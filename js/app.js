@@ -5542,23 +5542,6 @@ function setActiveTab(tabName){
 
 /* ===== UI wiring & init ===== */
 function initUI(){
-  // Anti-double-init guard
-  if (window.__FC_INIT_DONE__) {
-    try {
-      const banner = document.getElementById('app-banner');
-      const msgEl = banner && banner.querySelector('#app-banner-msg');
-      if (banner && msgEl) {
-        banner.style.background = '#b45309';
-        msgEl.textContent = '⚠️ Zablokowano ponowny start initUI (anti-double-bind).';
-        banner.style.display = 'block';
-      } else {
-        console.warn('[FC] Zablokowano ponowny start initUI (anti-double-bind).');
-      }
-    } catch(_) {}
-    return;
-  }
-  window.__FC_INIT_DONE__ = true;
-
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
@@ -5585,7 +5568,34 @@ function initUI(){
         setActiveTab(tabEl.getAttribute('data-tab'));
         return;
       }
-    }, { passive: true });
+    }, false);
+
+// iOS/Android robustness: also react on pointerup/touchend (some browsers delay/skip click)
+const __fcTapHandler = (e) => {
+      const t = e.target;
+      const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
+      if(roomEl){
+        uiState.roomType = roomEl.getAttribute('data-room');
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.getElementById('roomsView').style.display='none';
+        document.getElementById('appView').style.display='block';
+        document.getElementById('topTabs').style.display = 'inline-block';
+        uiState.activeTab = 'wywiad'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
+        renderCabinets();
+        return;
+      }
+      const tabEl = t.closest('[data-action="tab"][data-tab], .tab-btn[data-tab]');
+      if(tabEl){
+        setActiveTab(tabEl.getAttribute('data-tab'));
+        return;
+      }
+};
+if (window.PointerEvent) {
+  document.addEventListener('pointerup', __fcTapHandler, { passive: true });
+} else {
+  document.addEventListener('touchend', __fcTapHandler, { passive: true });
+}
   }
 
 document.getElementById('backToRooms').addEventListener('click', () => {
