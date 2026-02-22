@@ -7443,6 +7443,7 @@ try{
   FC.setActiveTabSafe = function(tab){
     try{ setActiveTab(tab); }catch(_){}
   };
-  window.FC = FC;
+    FC.addCabinetSafe = function(){ try{ addCabinet(); }catch(e){ console.error(e); } };
+window.FC = FC;
   window.App = window.App || { init: initUI };
 }catch(e){}

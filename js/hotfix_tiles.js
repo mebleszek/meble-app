@@ -15,6 +15,12 @@
     const handler = (e) => {
       const t = e.target;
 
+      const addEl = t.closest('#floatingAdd, [data-action="add-cabinet"]');
+      if(addEl){
+        try{ (window.FC && window.FC.addCabinetSafe) && window.FC.addCabinetSafe(); }catch(e){ console.error(e); }
+        return;
+      }
+
       const roomEl = t.closest('.room-btn[data-room], [data-action="open-room"][data-room]');
       if (roomEl) {
         const room = roomEl.getAttribute('data-room');
