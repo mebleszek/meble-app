@@ -1,74 +1,94 @@
-/* hotfix_tiles.js — emergency tile/tab delegation for mobile
-   If main delegation fails, this ensures room tiles and tabs still work.
-   Prefers using FC.openRoom / FC.setActiveTabSafe when available.
+/* hotfix_tiles.js — SAFE emergency delegation (no crashes)
+   - does NOT run if main delegation is active (__FC_DELEGATION__ === true)
+   - never throws (wraps handler in try/catch)
 */
 (() => {
   'use strict';
 
-  function bind() {
-    if (window.__HOTFIX_DELEGATION__) return;
-    // If main delegation is already active, we do nothing.
-    if (window.__FC_DELEGATION__) return;
+  function isOn() { return window.__FC_DELEGATION__ === true; }
 
+  function safeCall(fn, ...args) {
+    try { return typeof fn === 'function' ? fn(...args) : undefined; } catch { return undefined; }
+  }
+
+  function activate() {
+    if (isOn() || window.__HOTFIX_DELEGATION__ === true) return;
     window.__HOTFIX_DELEGATION__ = true;
 
     const handler = (e) => {
+      try {
+        const t = e.target; // IMPORTANT: define before any closest()
+        if (!t || !t.closest) return;
 
-// Cenniki (Price modal)
-const matBtn = t.closest('#openMaterialsBtn');
-if (matBtn) { if (window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('materials'); return; }
-const srvBtn = t.closest('#openServicesBtn');
-if (srvBtn) { if (window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('services'); return; }
-const closePrice = t.closest('#closePriceModal');
-if (closePrice) { if (window.FC && typeof window.FC.closePriceModalSafe === 'function') window.FC.closePriceModalSafe(); return; }
-
-// Plus (+)
-const plus = t.closest('#floatingAdd');
-if (plus) { if (window.FC && typeof window.FC.addCabinetSafe === 'function') window.FC.addCabinetSafe(); return; }
-
-// Zamknij modal szafki
-const closeCab = t.closest('#closeCabinetModal');
-if (closeCab) { if (window.FC && typeof window.FC.closeCabinetModalSafe === 'function') window.FC.closeCabinetModalSafe(); return; }
-
-      const t = e.target;
-
-      const roomEl = t.closest('.room-btn[data-room], [data-action="open-room"][data-room]');
-      if (roomEl) {
-        const room = roomEl.getAttribute('data-room');
-        if (room) {
-          if (window.FC && typeof window.FC.openRoom === 'function') {
-            window.FC.openRoom(room);
-          } else {
-            // fallback: minimal view switch
-            try {
-              const rv = document.getElementById('roomsView');
-              const av = document.getElementById('appView');
-              const tabs = document.getElementById('topTabs');
-              if (rv) rv.style.display='none';
-              if (av) av.style.display='block';
-              if (tabs) tabs.style.display='inline-block';
-            } catch {}
+        // Rooms
+        const roomEl = t.closest('.room-btn[data-room], [data-action="open-room"][data-room]');
+        if (roomEl) {
+          const room = roomEl.getAttribute('data-room');
+          if (room) {
+            // Prefer official API if present
+            if (window.FC && typeof window.FC.openRoom === 'function') return window.FC.openRoom(room);
+            if (window.FC && typeof window.FC.openRoomSafe === 'function') return window.FC.openRoomSafe(room);
+            // Fallback: trigger original click (if any)
+            safeCall(roomEl.click?.bind(roomEl));
           }
+          return;
         }
-        return;
-      }
 
-      const tabEl = t.closest('.tab-btn[data-tab], [data-action="tab"][data-tab]');
-      if (tabEl) {
-        const tab = tabEl.getAttribute('data-tab');
-        if (tab) {
-          if (window.FC && typeof window.FC.setActiveTabSafe === 'function') {
-            window.FC.setActiveTabSafe(tab);
+        // Tabs
+        const tabEl = t.closest('.tab-btn[data-tab], [data-action="tab"][data-tab]');
+        if (tabEl) {
+          const tab = tabEl.getAttribute('data-tab');
+          if (tab) {
+            if (window.FC && typeof window.FC.setActiveTabSafe === 'function') return window.FC.setActiveTabSafe(tab);
+            // fallback: click
+            safeCall(tabEl.click?.bind(tabEl));
           }
+          return;
         }
-        return;
+
+        // Price buttons
+        const matBtn = t.closest('#openMaterialsBtn,[data-action="open-materials"]');
+        if (matBtn) {
+          if (window.FC && typeof window.FC.openPriceListSafe === 'function') return window.FC.openPriceListSafe('materials');
+          safeCall(matBtn.click?.bind(matBtn));
+          return;
+        }
+        const srvBtn = t.closest('#openServicesBtn,[data-action="open-services"]');
+        if (srvBtn) {
+          if (window.FC && typeof window.FC.openPriceListSafe === 'function') return window.FC.openPriceListSafe('services');
+          safeCall(srvBtn.click?.bind(srvBtn));
+          return;
+        }
+
+        // Close buttons
+        const closeBtn = t.closest('#closePriceModal,#closeCabinetModal,[data-action="close"],.close-btn');
+        if (closeBtn) {
+          if (closeBtn.id === 'closePriceModal' && window.FC && typeof window.FC.closePriceModalSafe === 'function') {
+            return window.FC.closePriceModalSafe();
+          }
+          if (closeBtn.id === 'closeCabinetModal' && window.FC && typeof window.FC.closeCabinetModalSafe === 'function') {
+            return window.FC.closeCabinetModalSafe();
+          }
+          safeCall(closeBtn.click?.bind(closeBtn));
+          return;
+        }
+
+        // Floating add (+)
+        const plus = t.closest('#floatingAdd,[data-action="add"]');
+        if (plus) {
+          if (window.FC && typeof window.FC.addCabinetSafe === 'function') return window.FC.addCabinetSafe();
+          safeCall(plus.click?.bind(plus));
+          return;
+        }
+      } catch {
+        // Never crash the app
       }
     };
 
-    // capture to avoid overlays swallowing bubbling click
     document.addEventListener('pointerup', handler, { capture: true });
     document.addEventListener('click', handler, { capture: true });
   }
 
-  setTimeout(bind, 800);
+  // activate only if main delegation doesn't come up quickly
+  setTimeout(activate, 700);
 })();
