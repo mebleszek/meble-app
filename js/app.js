@@ -7540,3 +7540,16 @@ FC.closeCabinetModalSafe = function(){
   window.FC = FC;
   window.App = window.App || { init: initUI };
 }catch(e){}
+// ===== INIT ADAPTER (makes boot.js always able to start the app) =====
+try {
+  window.FC = window.FC || {};
+  window.App = window.App || {};
+
+  // If your app has initUI() function, expose it as FC.init/App.init
+  if (typeof window.FC.init !== 'function' && typeof initUI === 'function') window.FC.init = initUI;
+  if (typeof window.App.init !== 'function' && typeof initUI === 'function') window.App.init = initUI;
+
+  // If your app uses initApp(), also expose it
+  if (typeof window.FC.init !== 'function' && typeof initApp === 'function') window.FC.init = initApp;
+  if (typeof window.App.init !== 'function' && typeof initApp === 'function') window.App.init = initApp;
+} catch (e) {}
