@@ -5544,44 +5544,45 @@ function setActiveTab(tabName){
 function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
-    window.__FC_DELEGATION__ = true; window.__FC_DELEGATION_VERSION__ = 'deleg-2.0';
-    const __fcDelegatedHandler = (e) => {
+    window.__FC_DELEGATION__ = true;
+    const __fcDelegateHandler = (e) => {
       const t = e.target;
 
-      // Global buttons (work even if other binds fail)
-      const elOpenMat = t.closest('#openMaterialsBtn');
-      if(elOpenMat){
+      // Quick actions that must always work (even if later init fails)
+      const materialsBtn = t.closest('#openMaterialsBtn');
+      if(materialsBtn){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
         uiState.showPriceList='materials';
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        try{ renderPriceModal(); }catch(_){}
-        const pm = document.getElementById('priceModal');
-        if(pm) pm.style.display='flex';
+        renderPriceModal();
+        const pm=document.getElementById('priceModal'); if(pm) pm.style.display='flex';
         return;
       }
-      const elOpenSrv = t.closest('#openServicesBtn');
-      if(elOpenSrv){
+      const servicesBtn = t.closest('#openServicesBtn');
+      if(servicesBtn){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
         uiState.showPriceList='services';
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        try{ renderPriceModal(); }catch(_){}
-        const pm = document.getElementById('priceModal');
-        if(pm) pm.style.display='flex';
+        renderPriceModal();
+        const pm=document.getElementById('priceModal'); if(pm) pm.style.display='flex';
         return;
       }
-      const elClosePrice = t.closest('#closePriceModal');
-      if(elClosePrice){
-        try{ closePriceModal(); }catch(_){ const pm=document.getElementById('priceModal'); if(pm) pm.style.display='none'; }
+      const closePriceBtn = t.closest('#closePriceModal');
+      if(closePriceBtn){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+        closePriceModal();
         return;
       }
-      const elCloseCab = t.closest('#closeCabinetModal');
-      if(elCloseCab){
-        try{ closeCabinetModal(); }catch(_){ const cm=document.getElementById('cabinetModal'); if(cm) cm.style.display='none'; }
+      const closeCabBtn = t.closest('#closeCabinetModal');
+      if(closeCabBtn){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+        closeCabinetModal();
         return;
       }
-      const elPlus = t.closest('#floatingAdd');
-      if(elPlus){
-        try{
-          if(typeof openCabinetModalForAdd === 'function'){ openCabinetModalForAdd(); }
-        }catch(_){}
+      const addBtn = t.closest('#floatingAdd');
+      if(addBtn){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+        openCabinetModalForAdd();
         return;
       }
 
@@ -5607,8 +5608,8 @@ function initUI(){
         return;
       }
     };
-    document.addEventListener('pointerup', __fcDelegatedHandler, { passive: true });
-    document.addEventListener('click', __fcDelegatedHandler, { passive: true });
+    document.addEventListener('pointerup', __fcDelegateHandler, { capture: true });
+    document.addEventListener('click', __fcDelegateHandler, { capture: true });
   }
 
 document.getElementById('backToRooms').addEventListener('click', () => {
