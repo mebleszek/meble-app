@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const WINDOW_MS = 650; // tweak if needed
+  const WINDOW_MS = 900; // tweak if needed
   let lastPointerTs = 0;
 
   function hardStop(e){
