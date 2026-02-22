@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const BOOT_VERSION = 'boot-2.1';
+  const BOOT_VERSION = 'boot-2.2';
 
   // ---------- Banner UI ----------
   let bannerEl = null;
@@ -177,6 +177,10 @@
         );
       }
     }, 800);
+
+    if (hasParam('selftest')) {
+      setTimeout(runSelfTest, 950);
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -184,4 +188,61 @@
   } else {
     setTimeout(initOnce, 0);
   }
+}
+
+  // ---------- Optional SELF-TEST (runs only with ?selftest=1) ----------
+  function hasParam(name){
+    try{ return new URLSearchParams(location.search).get(name) === '1'; }catch(_){ return false; }
+  }
+
+  function visible(el){
+    if(!el) return false;
+    const s = getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+  }
+
+  function runSelfTest(){
+    try{
+      const report = [];
+      const roomsView = document.querySelector('#roomsView');
+      const appView   = document.querySelector('#appView');
+      report.push(['roomsView exists', !!roomsView]);
+      report.push(['appView exists', !!appView]);
+      report.push(['delegation flag', !!window.__FC_DELEGATION__]);
+
+      if(!roomsView || !appView){
+        showWarn('⚠️ SELFTEST: Brakuje #roomsView lub #appView — test przerwany.');
+        return;
+      }
+
+      // Step 1: click first room tile
+      const firstRoom = document.querySelector('.room-btn[data-room], [data-action="open-room"][data-room]');
+      report.push(['first room tile', !!firstRoom]);
+
+      if(firstRoom){
+        firstRoom.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
+      }
+
+      setTimeout(() => {
+        const ok1 = (appView.style.display !== 'none') || visible(appView);
+        report.push(['after room click: appView visible', ok1]);
+
+        // Summarize
+        const failed = report.filter(r => !r[1]);
+        if(failed.length){
+          showWarn(
+            '⚠️ SELFTEST: Wykryto problemy:\n' +
+            failed.map(f => `- ${f[0]}`).join('\n') +
+            '\n\nWskazówka: jeśli kafelki nie reagują, sprawdź delegację klików lub selektory.'
+          );
+        } else {
+          // keep quiet on success
+          // showWarn('✅ SELFTEST: OK');
+        }
+      }, 350);
+    } catch(err){
+      showWarn('⚠️ SELFTEST: błąd uruchomienia:\n' + (err?.stack || String(err)));
+    }
+  }
+
 })();
