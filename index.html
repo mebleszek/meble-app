@@ -13,11 +13,11 @@
 <div class="left">
 <button class="btn" id="backToRooms">⟲</button>
 <nav id="topTabs" style="display:none; margin-left:8px;">
-<button class="btn tab-btn" data-tab="wywiad">WYWIAD</button>
-<button class="btn tab-btn" data-tab="rysunek">RYSUNEK</button>
-<button class="btn tab-btn" data-tab="material">MATERIAŁ</button>
-<button class="btn tab-btn" data-tab="czynnosci">CZYNNOŚCI</button>
-<button class="btn tab-btn" data-tab="wycena">WYCENA</button>
+<button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
+<button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
+<button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
+<button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
+<button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
 </nav>
 </div>
 <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -37,10 +37,10 @@
 </div>
 </div>
 <div class="rooms">
-<div class="room-btn" data-room="kuchnia"><div style="font-size:28px">🍳</div><span>Kuchnia</span></div>
-<div class="room-btn" data-room="szafa"><div style="font-size:28px">🚪</div><span>Szafa</span></div>
-<div class="room-btn" data-room="pokoj"><div style="font-size:28px">🏠</div><span>Pokój</span></div>
-<div class="room-btn" data-room="lazienka"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
+<div class="room-btn" data-room="kuchnia" data-action="open-room"><div style="font-size:28px">🍳</div><span>Kuchnia</span></div>
+<div class="room-btn" data-room="szafa" data-action="open-room"><div style="font-size:28px">🚪</div><span>Szafa</span></div>
+<div class="room-btn" data-room="pokoj" data-action="open-room"><div style="font-size:28px">🏠</div><span>Pokój</span></div>
+<div class="room-btn" data-room="lazienka" data-action="open-room"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
 </div>
 </div>
 <div id="appView" style="display:none">
