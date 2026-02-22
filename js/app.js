@@ -8,48 +8,7 @@ const STORAGE_KEYS = {
   ui: 'fc_ui_v1',
 };
 
-try{ window.APP_REQUIRED_SELECTORS = ["#roomsView", "#appView", "#topTabs", "#backToRooms", "#floatingAdd", "#openMaterialsBtn", "#openServicesBtn"]; 
-
-/* ===== DEV/WARN banner (for anti-double-bind) ===== */
-function FC_warnOnce(message){
-  try{
-    if(!message) return;
-    // avoid spamming the same warning
-    window.__FC_WARNED__ = window.__FC_WARNED__ || {};
-    if(window.__FC_WARNED__[message]) return;
-    window.__FC_WARNED__[message] = true;
-
-    let el = document.getElementById('fc-warn-banner');
-    if(!el){
-      el = document.createElement('div');
-      el.id = 'fc-warn-banner';
-      el.style.cssText = [
-        'position:fixed',
-        'top:0',
-        'left:0',
-        'right:0',
-        'z-index:99998', /* below error banner if present */
-        'background:#b45309',
-        'color:#fff',
-        'font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif',
-        'padding:10px 12px',
-        'box-shadow:0 2px 10px rgba(0,0,0,.25)',
-        'display:none'
-      ].join(';');
-      const msg = document.createElement('div');
-      msg.id = 'fc-warn-msg';
-      msg.style.cssText = 'white-space:pre-wrap;word-break:break-word;';
-      el.appendChild(msg);
-      document.documentElement.appendChild(el);
-    }
-    el.querySelector('#fc-warn-msg').textContent = '⚠️ ' + message;
-    el.style.display = 'block';
-  }catch(_){
-    // fallback
-    try{ console.warn(message); }catch(__){}
-  }
-}
-}catch(e){}
+try{ window.APP_REQUIRED_SELECTORS = ["#roomsView", "#appView", "#topTabs", "#backToRooms", "#floatingAdd", "#openMaterialsBtn", "#openServicesBtn"]; }catch(e){}
 
 /** App namespace to reduce globals and keep concerns separated. */
 const FC = (function(){
@@ -5583,12 +5542,23 @@ function setActiveTab(tabName){
 
 /* ===== UI wiring & init ===== */
 function initUI(){
-  // Anti-double-bind: prevent multiple addEventListener hookups across refactors
-  if(window.__FC_UI_BOUND__){
-    FC_warnOnce('Zablokowano ponowne podpięcie handlerów (initUI uruchomione więcej niż raz).');
-  } else {
-    window.__FC_UI_BOUND__ = true;
+  // Anti-double-init guard
+  if (window.__FC_INIT_DONE__) {
+    try {
+      const banner = document.getElementById('app-banner');
+      const msgEl = banner && banner.querySelector('#app-banner-msg');
+      if (banner && msgEl) {
+        banner.style.background = '#b45309';
+        msgEl.textContent = '⚠️ Zablokowano ponowny start initUI (anti-double-bind).';
+        banner.style.display = 'block';
+      } else {
+        console.warn('[FC] Zablokowano ponowny start initUI (anti-double-bind).');
+      }
+    } catch(_) {}
+    return;
   }
+  window.__FC_INIT_DONE__ = true;
+
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
@@ -5618,9 +5588,6 @@ function initUI(){
     }, { passive: true });
   }
 
-  // Bind static listeners once
-  if(!window.__FC_STATIC_BOUND__){
-    window.__FC_STATIC_BOUND__ = true;
 document.getElementById('backToRooms').addEventListener('click', () => {
     uiState.roomType = null; uiState.selectedCabinetId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
@@ -5672,10 +5639,6 @@ document.getElementById('roomHeight').addEventListener('change', e => handleSett
   renderCabinets();
   if(uiState.showPriceList){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
   try{ window.__APP_INIT_DONE__ = true; }catch(e){}
-  } else {
-    FC_warnOnce('Zablokowano ponowne podpięcie static listeners (już były podpięte).');
-  }
-
 }
 
 /* ===== Set wizard minimal (reuse existing from previous version) ===== */
