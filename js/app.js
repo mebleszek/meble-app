@@ -5505,29 +5505,41 @@ function setActiveTab(tabName){
 
 /* ===== UI wiring & init ===== */
 function initUI(){
-  document.querySelectorAll('.room-btn').forEach(b => b.addEventListener('click', () => {
-    uiState.roomType = b.getAttribute('data-room');
-    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.getElementById('roomsView').style.display='none';
-    document.getElementById('appView').style.display='block';
-    document.getElementById('topTabs').style.display = 'inline-block';
-    uiState.activeTab = 'wywiad'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-    renderCabinets();
-  }));
+  // Delegated clicks (robust against DOM re-renders / new buttons)
+  if(!window.__FC_DELEGATION__){
+    window.__FC_DELEGATION__ = true;
+    document.addEventListener('click', (e) => {
+      const t = e.target;
 
-  document.getElementById('backToRooms').addEventListener('click', () => {
+      // Room tile: prefer data-action, fallback to class
+      const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
+      if(roomEl){
+        uiState.roomType = roomEl.getAttribute('data-room');
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.getElementById('roomsView').style.display='none';
+        document.getElementById('appView').style.display='block';
+        document.getElementById('topTabs').style.display = 'inline-block';
+        uiState.activeTab = 'wywiad'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
+        renderCabinets();
+        return;
+      }
+
+      // Tab button: prefer data-action, fallback to class
+      const tabEl = t.closest('[data-action="tab"][data-tab], .tab-btn[data-tab]');
+      if(tabEl){
+        setActiveTab(tabEl.getAttribute('data-tab'));
+        return;
+      }
+    }, { passive: true });
+  }
+
+document.getElementById('backToRooms').addEventListener('click', () => {
     uiState.roomType = null; uiState.selectedCabinetId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
     document.getElementById('topTabs').style.display = 'none';
   });
-
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      setActiveTab(btn.getAttribute('data-tab'));
-    });
-  });
-  document.getElementById('roomHeight').addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
+document.getElementById('roomHeight').addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
   document.getElementById('bottomHeight').addEventListener('change', e => handleSettingChange('bottomHeight', e.target.value));
   document.getElementById('legHeight').addEventListener('change', e => handleSettingChange('legHeight', e.target.value));
   document.getElementById('counterThickness').addEventListener('change', e => handleSettingChange('counterThickness', e.target.value));
