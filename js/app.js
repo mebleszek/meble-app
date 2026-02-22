@@ -5545,47 +5545,8 @@ function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
-    const __fcDelegateHandler = (e) => {
+    document.addEventListener('click', (e) => {
       const t = e.target;
-
-      // Quick actions that must always work (even if later init fails)
-      const materialsBtn = t.closest('#openMaterialsBtn');
-      if(materialsBtn){
-        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-        uiState.showPriceList='materials';
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        renderPriceModal();
-        const pm=document.getElementById('priceModal'); if(pm) pm.style.display='flex';
-        return;
-      }
-      const servicesBtn = t.closest('#openServicesBtn');
-      if(servicesBtn){
-        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-        uiState.showPriceList='services';
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        renderPriceModal();
-        const pm=document.getElementById('priceModal'); if(pm) pm.style.display='flex';
-        return;
-      }
-      const closePriceBtn = t.closest('#closePriceModal');
-      if(closePriceBtn){
-        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-        closePriceModal();
-        return;
-      }
-      const closeCabBtn = t.closest('#closeCabinetModal');
-      if(closeCabBtn){
-        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-        closeCabinetModal();
-        return;
-      }
-      const addBtn = t.closest('#floatingAdd');
-      if(addBtn){
-        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-        openCabinetModalForAdd();
-        return;
-      }
-
 
       // Room tile: prefer data-action, fallback to class
       const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
@@ -5607,9 +5568,7 @@ function initUI(){
         setActiveTab(tabEl.getAttribute('data-tab'));
         return;
       }
-    };
-    document.addEventListener('pointerup', __fcDelegateHandler, { capture: true });
-    document.addEventListener('click', __fcDelegateHandler, { capture: true });
+    }, { passive: true });
   }
 
 document.getElementById('backToRooms').addEventListener('click', () => {
@@ -7484,6 +7443,33 @@ try{
   FC.setActiveTabSafe = function(tab){
     try{ setActiveTab(tab); }catch(_){}
   };
+  // ===== Public safe APIs (used by hotfix / delegation) =====
+// Open price modal for 'materials' or 'services'
+FC.openPriceListSafe = function(kind){
+  try{
+    if(kind !== 'materials' && kind !== 'services') kind = 'materials';
+    uiState.showPriceList = kind;
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    renderPriceModal();
+    const pm = document.getElementById('priceModal');
+    if(pm) pm.style.display = 'flex';
+  }catch(e){}
+};
+FC.closePriceModalSafe = function(){
+  try{
+    const pm = document.getElementById('priceModal');
+    if(pm) pm.style.display = 'none';
+    uiState.showPriceList = null;
+    uiState.editingId = null;
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+  }catch(e){}
+};
+FC.addCabinetSafe = function(){
+  try{ addCabinet(); }catch(e){}
+};
+FC.closeCabinetModalSafe = function(){
+  try{ closeCabinetModal(); }catch(e){}
+};
   window.FC = FC;
   window.App = window.App || { init: initUI };
 }catch(e){}

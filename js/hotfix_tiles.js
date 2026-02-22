@@ -13,13 +13,24 @@
     window.__HOTFIX_DELEGATION__ = true;
 
     const handler = (e) => {
-      const t = e.target;
 
-      const addEl = t.closest('#floatingAdd, [data-action="add-cabinet"]');
-      if(addEl){
-        try{ (window.FC && window.FC.addCabinetSafe) && window.FC.addCabinetSafe(); }catch(e){ console.error(e); }
-        return;
-      }
+// Cenniki (Price modal)
+const matBtn = t.closest('#openMaterialsBtn');
+if (matBtn) { if (window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('materials'); return; }
+const srvBtn = t.closest('#openServicesBtn');
+if (srvBtn) { if (window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('services'); return; }
+const closePrice = t.closest('#closePriceModal');
+if (closePrice) { if (window.FC && typeof window.FC.closePriceModalSafe === 'function') window.FC.closePriceModalSafe(); return; }
+
+// Plus (+)
+const plus = t.closest('#floatingAdd');
+if (plus) { if (window.FC && typeof window.FC.addCabinetSafe === 'function') window.FC.addCabinetSafe(); return; }
+
+// Zamknij modal szafki
+const closeCab = t.closest('#closeCabinetModal');
+if (closeCab) { if (window.FC && typeof window.FC.closeCabinetModalSafe === 'function') window.FC.closeCabinetModalSafe(); return; }
+
+      const t = e.target;
 
       const roomEl = t.closest('.room-btn[data-room], [data-action="open-room"][data-room]');
       if (roomEl) {
