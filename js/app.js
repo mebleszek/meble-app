@@ -5545,30 +5545,79 @@ function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
-    document.addEventListener('click', (e) => {
-      const t = e.target;
 
-      // Room tile: prefer data-action, fallback to class
+    const stop = (e) => {
+      try{ e.preventDefault(); }catch(_){}
+      try{ e.stopPropagation(); }catch(_){}
+      try{ e.stopImmediatePropagation(); }catch(_){}
+    };
+
+    const handler = (e) => {
+      const t = e.target;
+      if(!t || !t.closest) return;
+
+      // ===== CRITICAL BUTTONS (always) =====
+      // Open price lists
+      if(t.closest('#openMaterialsBtn, [data-action="open-materials"]')){
+        stop(e);
+        if(window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('materials');
+        return;
+      }
+      if(t.closest('#openServicesBtn, [data-action="open-services"]')){
+        stop(e);
+        if(window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('services');
+        return;
+      }
+
+      // Close modals
+      if(t.closest('#closePriceModal, [data-action="close-price"]')){
+        stop(e);
+        if(window.FC && typeof window.FC.closePriceModalSafe === 'function') window.FC.closePriceModalSafe();
+        return;
+      }
+      if(t.closest('#closeCabinetModal, [data-action="close-cabinet"]')){
+        stop(e);
+        if(window.FC && typeof window.FC.closeCabinetModalSafe === 'function') window.FC.closeCabinetModalSafe();
+        return;
+      }
+
+      // Floating add (+)
+      if(t.closest('#floatingAdd, [data-action="add"]')){
+        stop(e);
+        if(window.FC && typeof window.FC.addCabinetSafe === 'function') window.FC.addCabinetSafe();
+        else if(typeof addCabinet === 'function') addCabinet();
+        return;
+      }
+
+      // ===== ROOM & TABS =====
       const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
       if(roomEl){
+        stop(e);
         uiState.roomType = roomEl.getAttribute('data-room');
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        document.getElementById('roomsView').style.display='none';
-        document.getElementById('appView').style.display='block';
-        document.getElementById('topTabs').style.display = 'inline-block';
+        const rv = document.getElementById('roomsView');
+        const av = document.getElementById('appView');
+        const tt = document.getElementById('topTabs');
+        if(rv) rv.style.display='none';
+        if(av) av.style.display='block';
+        if(tt) tt.style.display='inline-block';
         uiState.activeTab = 'wywiad'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
         renderCabinets();
         return;
       }
 
-      // Tab button: prefer data-action, fallback to class
       const tabEl = t.closest('[data-action="tab"][data-tab], .tab-btn[data-tab]');
       if(tabEl){
+        stop(e);
         setActiveTab(tabEl.getAttribute('data-tab'));
         return;
       }
-    }, { passive: true });
+    };
+
+    // Capture + pointerup to be reliable on mobile
+    document.addEventListener('pointerup', handler, { capture:true });
+    document.addEventListener('click', handler, { capture:true });
   }
 
 document.getElementById('backToRooms').addEventListener('click', () => {
