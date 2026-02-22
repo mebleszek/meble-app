@@ -1,8 +1,8 @@
-/* boot.js — SAFE START + ERROR/WARN BANNER (always on) */
+/* boot.js — SAFE START + ERROR/WARN BANNER + SELF-CHECK (always on) */
 (() => {
   'use strict';
 
-  const BOOT_VERSION = 'boot-2.0';
+  const BOOT_VERSION = 'boot-2.1';
 
   // ---------- Banner UI ----------
   let bannerEl = null;
@@ -111,53 +111,72 @@
     showError(details);
   });
 
-  // ---------- DOM contract (non-blocking) ----------
-  function validateDomContract() {
-    const req = window.APP_REQUIRED_SELECTORS;
-    if (!Array.isArray(req) || req.length === 0) return;
-    const missing = req.filter(sel => !document.querySelector(sel));
-    if (missing.length) {
-      showWarn(
-        '⚠️ Brakuje elementów HTML wymaganych przez JS (apka może działać źle):\n' +
-        missing.map(s => `- ${s}`).join('\n') +
-        '\n\nTo jest zabezpieczenie po zmianach w HTML.'
-      );
-    }
+  // ---------- DOM contract (warn only) ----------
+  const DEFAULT_REQUIRED = ['#roomsView', '#appView', '#topTabs', '#backToRooms', '#floatingAdd'];
+  function getRequiredSelectors(){
+    try{
+      if (Array.isArray(window.APP_REQUIRED_SELECTORS) && window.APP_REQUIRED_SELECTORS.length) {
+        return window.APP_REQUIRED_SELECTORS;
+      }
+    }catch(_){}
+    return DEFAULT_REQUIRED;
   }
 
-  // ---------- Safe init ----------
+  function checkSelectors(stage){
+    const req = getRequiredSelectors();
+    const missing = req.filter(sel => !document.querySelector(sel));
+    if (missing.length){
+      showWarn(
+        `⚠️ Kontrola UI (${stage}) — brakuje elementów HTML:\n` +
+        missing.map(s => `- ${s}`).join('\n') +
+        `\n\nTo ostrzeżenie (apka może działać częściowo).`
+      );
+      return false;
+    }
+    return true;
+  }
+
+  // ---------- Safe init (runs once) ----------
   function initOnce() {
     if (window.__APP_STARTED__) return;
     window.__APP_STARTED__ = true;
 
-    try {
-      validateDomContract();
+    // Pre-check (non-blocking)
+    checkSelectors('przed startem');
 
-      // Prefer App.init / FC.init (provided by app.js patch)
+    try {
       if (window.App && typeof window.App.init === 'function') {
         window.App.init();
       } else if (window.FC && typeof window.FC.init === 'function') {
         window.FC.init();
+      } else if (typeof window.initApp === 'function') {
+        window.initApp();
       } else {
-        // Last resort: do nothing, but warn. We don't want to break apps that self-start.
-        showWarn(
-          '⚠️ Boot: nie znaleziono funkcji startowej (App.init / FC.init).\n' +
-          'Jeśli aplikacja działa mimo tego — OK. Jeśli nie działa — daj mi znać.'
+        showError(
+          '❌ Nie znaleziono funkcji startowej aplikacji.\n' +
+          `Boot.js version: ${BOOT_VERSION}\n` +
+          'Boot.js szuka: App.init(), FC.init(), initApp().'
         );
+        return;
       }
     } catch (err) {
       showError('❌ Błąd podczas startu aplikacji:\n' + (err?.stack || String(err)));
+      return;
     }
 
-    // Watchdog: if app didn't set init-done flag, retry once (mobile can drop listeners)
+    // Post-checks (warn only)
     setTimeout(() => {
-      try {
-        if (!window.__APP_INIT_DONE__) {
-          if (window.App && typeof window.App.init === 'function') window.App.init();
-          else if (window.FC && typeof window.FC.init === 'function') window.FC.init();
-        }
-      } catch (e) {}
-    }, 1200);
+      checkSelectors('po starcie');
+
+      // Delegation check (helps catch "kafelki nie działają" after refactors)
+      if (!window.__FC_DELEGATION__) {
+        showWarn(
+          '⚠️ Wykryto brak delegacji klików (__FC_DELEGATION__ = false).\n' +
+          'To nie musi być błąd, ale często oznacza, że kliknięcia nie są podpięte.\n' +
+          'Jeśli kafelki/zakładki nie reagują — to jest trop.'
+        );
+      }
+    }, 800);
   }
 
   if (document.readyState === 'loading') {
