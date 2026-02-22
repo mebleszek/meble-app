@@ -5658,8 +5658,8 @@ document.getElementById('roomHeight').addEventListener('change', e => handleSett
     renderCabinets();
   });
 
-  document.getElementById('openMaterialsBtn').addEventListener('click', () => { uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('openServicesBtn').addEventListener('click', () => { uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  document.getElementById('openMaterialsBtn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  document.getElementById('openServicesBtn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
   document.getElementById('closePriceModal').addEventListener('click', closePriceModal);
   document.getElementById('priceSearch').addEventListener('input', renderPriceModal);
 
@@ -5683,7 +5683,9 @@ document.getElementById('roomHeight').addEventListener('change', e => handleSett
 
   renderTopHeight();
   renderCabinets();
-  if(uiState.showPriceList){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
+  if(uiState.showPriceList && !window.__FORCE_HOME__){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
+  // once initialized, allow normal persistence for next navigation
+  try{ window.__FORCE_HOME__ = false; }catch(e){}
   try{ window.__APP_INIT_DONE__ = true; }catch(e){}
 }
 
@@ -7451,8 +7453,8 @@ function initUI(){
     renderCabinets();
   });
 
-  document.getElementById('openMaterialsBtn').addEventListener('click', () => { uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('openServicesBtn').addEventListener('click', () => { uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  document.getElementById('openMaterialsBtn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  document.getElementById('openServicesBtn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
   document.getElementById('closePriceModal').addEventListener('click', closePriceModal);
   document.getElementById('priceSearch').addEventListener('input', renderPriceModal);
 
@@ -7476,7 +7478,9 @@ function initUI(){
 
   renderTopHeight();
   renderCabinets();
-  if(uiState.showPriceList){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
+  if(uiState.showPriceList && !window.__FORCE_HOME__){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
+  // once initialized, allow normal persistence for next navigation
+  try{ window.__FORCE_HOME__ = false; }catch(e){}
 }
 
 

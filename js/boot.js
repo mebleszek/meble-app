@@ -6,6 +6,10 @@
 (() => {
   'use strict';
 
+  // Force start from home screen on each load
+  window.__FORCE_HOME__ = true;
+
+
   const BOOT_VERSION = 'boot-home-1.0';
   const UI_KEY = 'fc_ui_v1';
 
