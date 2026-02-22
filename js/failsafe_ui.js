@@ -1,14 +1,14 @@
-/* failsafe_ui.js — critical close/open always works (capture)
-   Fixes "any Zamknij opens services" by:
-   - forcing close BEFORE any other action
-   - preventing default + stopping propagation
-   - clearing sticky UI state in localStorage
-   - providing ?reset=1 escape hatch
+/* failsafe_ui.js — v3
+   - CLOSE has absolute priority
+   - uses stopImmediatePropagation to beat other capture listeners
+   - adds short lock to ignore "open services/materials" right after close
+   - provides ?reset=1 escape hatch
 */
 (() => {
   'use strict';
 
   const UI_KEY = 'fc_ui_v1';
+  let closeLockUntil = 0;
 
   function getJSON(key, fallback){
     try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch{ return fallback; }
@@ -16,14 +16,12 @@
   function setJSON(key, val){
     try{ localStorage.setItem(key, JSON.stringify(val)); }catch{}
   }
-
   function el(id){ return document.getElementById(id); }
   function hide(id){ const x = el(id); if(x) x.style.display = 'none'; }
   function showFlex(id){ const x = el(id); if(x) x.style.display = 'flex'; }
 
   function clearStickyUI(){
     const ui = getJSON(UI_KEY, {}) || {};
-    // clear known sticky flags
     ui.showPriceList = null;
     ui.activePriceTab = null;
     ui.priceListType = null;
@@ -38,70 +36,81 @@
     clearStickyUI();
   }
 
-  // Escape hatch: add ?reset=1 to URL
   if (location.search.includes('reset=1')) {
     forceCloseAll();
   }
 
-  function isVisible(x){
-    if(!x) return False;
-    const s = getComputedStyle(x);
-    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+  function hardStop(e){
+    try{ e.preventDefault(); }catch{}
+    try{ e.stopPropagation(); }catch{}
+    try{ e.stopImmediatePropagation(); }catch{}
+  }
+
+  function isCloseButton(btn){
+    if (!btn) return false;
+    if (btn.id === 'closePriceModal' || btn.id === 'closeCabinetModal') return true;
+    const txt = (btn.textContent || '').trim().toLowerCase();
+    return txt === 'zamknij' || txt === 'close';
   }
 
   function on(e){
+    const now = Date.now();
     try{
       const t = e.target;
       if(!t || !t.closest) return;
 
-      const priceModal = el('priceModal');
-      const cabinetModal = el('cabinetModal');
+      // 1) CLOSE — absolute priority
+      const btn = t.closest('button, [role="button"]');
+      if (btn && isCloseButton(btn)) {
+        hardStop(e);
+        closeLockUntil = now + 400; // block accidental opens right after close tap
 
-      // 1) CLOSE buttons — highest priority
-      const closeBtn = t.closest('#closePriceModal,#closeCabinetModal,[data-action="close"],.close-btn,button');
-      if (closeBtn) {
-        const txt = (closeBtn.textContent || '').trim().toLowerCase();
-        const isClose = closeBtn.id === 'closePriceModal' || closeBtn.id === 'closeCabinetModal' || txt === 'zamknij' || txt === 'close';
-        if (isClose) {
-          e.preventDefault(); e.stopPropagation();
-          // Prefer official API
-          if (closeBtn.id === 'closePriceModal' && window.FC && typeof window.FC.closePriceModalSafe === 'function') {
-            window.FC.closePriceModalSafe();
-          } else if (closeBtn.id === 'closeCabinetModal' && window.FC && typeof window.FC.closeCabinetModalSafe === 'function') {
-            window.FC.closeCabinetModalSafe();
-          } else {
-            // fallback: hide whichever modal is visible; clear sticky
-            if (priceModal && getComputedStyle(priceModal).display !== 'none') hide('priceModal');
-            if (cabinetModal && getComputedStyle(cabinetModal).display !== 'none') hide('cabinetModal');
-            clearStickyUI();
-          }
-          return;
+        // Prefer official API if present
+        if (btn.id === 'closePriceModal' && window.FC && typeof window.FC.closePriceModalSafe === 'function') {
+          window.FC.closePriceModalSafe();
+        } else if (btn.id === 'closeCabinetModal' && window.FC && typeof window.FC.closeCabinetModalSafe === 'function') {
+          window.FC.closeCabinetModalSafe();
+        } else {
+          // fallback: hide visible modals and clear sticky
+          hide('priceModal');
+          hide('cabinetModal');
+          clearStickyUI();
         }
+        return;
       }
 
-      // 2) OPEN price lists (only if not currently trying to close)
+      // 2) If we just closed something, ignore any "open price list" attempts for a moment
+      if (now < closeLockUntil) {
+        hardStop(e);
+        return;
+      }
+
+      // 3) OPEN price lists
       if (t.closest('#openMaterialsBtn')) {
-        e.preventDefault(); e.stopPropagation();
+        hardStop(e);
         if (window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('materials');
         else showFlex('priceModal');
         return;
       }
       if (t.closest('#openServicesBtn')) {
-        e.preventDefault(); e.stopPropagation();
+        hardStop(e);
         if (window.FC && typeof window.FC.openPriceListSafe === 'function') window.FC.openPriceListSafe('services');
         else showFlex('priceModal');
         return;
       }
 
-      // 3) Floating add (+)
+      // 4) Floating add (+)
       if (t.closest('#floatingAdd')) {
-        // don't prevent default; keep normal behavior if exists
-        if (window.FC && typeof window.FC.addCabinetSafe === 'function') { e.preventDefault(); e.stopPropagation(); window.FC.addCabinetSafe(); }
+        hardStop(e);
+        if (window.FC && typeof window.FC.addCabinetSafe === 'function') window.FC.addCabinetSafe();
+        else if (window.FC && typeof window.FC.addCabinet === 'function') window.FC.addCabinet();
         return;
       }
     }catch(_){}
   }
 
+  // pointerdown is earlier than click/pointerup -> beats many handlers
+  document.addEventListener('pointerdown', on, { capture:true });
   document.addEventListener('pointerup', on, { capture:true });
   document.addEventListener('click', on, { capture:true });
 })();
