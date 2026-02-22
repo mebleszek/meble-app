@@ -5542,6 +5542,12 @@ function setActiveTab(tabName){
 
 /* ===== UI wiring & init ===== */
 function initUI(){
+  const on = (id, ev, fn, opts) => {
+    const el = document.getElementById(id);
+    if(!el){ try{ console.warn('[bind] missing #' + id); }catch(_){} return null; }
+    el.addEventListener(ev, fn, opts);
+    return el;
+  };
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
@@ -5571,20 +5577,20 @@ function initUI(){
     }, { passive: true });
   }
 
-document.getElementById('backToRooms').addEventListener('click', () => {
+on('backToRooms','click', () => {
     uiState.roomType = null; uiState.selectedCabinetId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
     document.getElementById('topTabs').style.display = 'none';
   });
-document.getElementById('roomHeight').addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
-  document.getElementById('bottomHeight').addEventListener('change', e => handleSettingChange('bottomHeight', e.target.value));
-  document.getElementById('legHeight').addEventListener('change', e => handleSettingChange('legHeight', e.target.value));
-  document.getElementById('counterThickness').addEventListener('change', e => handleSettingChange('counterThickness', e.target.value));
-  document.getElementById('gapHeight').addEventListener('change', e => handleSettingChange('gapHeight', e.target.value));
-  document.getElementById('ceilingBlende').addEventListener('change', e => handleSettingChange('ceilingBlende', e.target.value));
+on('roomHeight','change', e => handleSettingChange('roomHeight', e.target.value));
+  on('bottomHeight','change', e => handleSettingChange('bottomHeight', e.target.value));
+  on('legHeight','change', e => handleSettingChange('legHeight', e.target.value));
+  on('counterThickness','change', e => handleSettingChange('counterThickness', e.target.value));
+  on('gapHeight','change', e => handleSettingChange('gapHeight', e.target.value));
+  on('ceilingBlende','change', e => handleSettingChange('ceilingBlende', e.target.value));
 
-  document.getElementById('floatingAdd').addEventListener('click', addCabinet);
-  document.getElementById('newProjectBtn').addEventListener('click', () => {
+  on('floatingAdd','click', addCabinet);
+  on('newProjectBtn','click', () => {
     if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return;
     projectData = FC.utils.clone(DEFAULT_PROJECT);
     uiState.roomType = null; uiState.selectedCabinetId = null; uiState.expanded = {};
@@ -5595,16 +5601,16 @@ document.getElementById('roomHeight').addEventListener('change', e => handleSett
     renderCabinets();
   });
 
-  document.getElementById('openMaterialsBtn').addEventListener('click', () => { uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('openServicesBtn').addEventListener('click', () => { uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('closePriceModal').addEventListener('click', closePriceModal);
-  document.getElementById('priceSearch').addEventListener('input', renderPriceModal);
+  on('openMaterialsBtn','click', () => { uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  on('openServicesBtn','click', () => { uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  on('closePriceModal','click', closePriceModal);
+  on('priceSearch','input', renderPriceModal);
 
-  document.getElementById('closeCabinetModal').addEventListener('click', (e)=>{ if(e){e.preventDefault(); e.stopPropagation();} closeCabinetModal(); });
+  on('closeCabinetModal','click', (e)=>{ if(e){e.preventDefault(); e.stopPropagation();} closeCabinetModal(); });
   const _cabCancel2 = document.getElementById('cabinetModalCancel');
   if(_cabCancel2) _cabCancel2.addEventListener('click', closeCabinetModal);
-  document.getElementById('setWizardCancel').addEventListener('click', (e)=>{ if(e){e.preventDefault(); e.stopPropagation();} closeCabinetModal(); });
-  document.getElementById('setWizardCreate').addEventListener('click', createOrUpdateSetFromWizard);
+  on('setWizardCancel','click', (e)=>{ if(e){e.preventDefault(); e.stopPropagation();} closeCabinetModal(); });
+  on('setWizardCreate','click', createOrUpdateSetFromWizard);
 
   if(uiState.roomType){
     document.getElementById('roomsView').style.display='none';
@@ -7342,6 +7348,12 @@ addFinish(room, {
 }
 
 function initUI(){
+  const on = (id, ev, fn, opts) => {
+    const el = document.getElementById(id);
+    if(!el){ try{ console.warn('[bind] missing #' + id); }catch(_){} return null; }
+    el.addEventListener(ev, fn, opts);
+    return el;
+  };
   document.querySelectorAll('.room-btn').forEach(b => b.addEventListener('click', () => {
     uiState.roomType = b.getAttribute('data-room');
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -7353,7 +7365,7 @@ function initUI(){
     renderCabinets();
   }));
 
-  document.getElementById('backToRooms').addEventListener('click', () => {
+  on('backToRooms','click', () => {
     uiState.roomType = null; uiState.selectedCabinetId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
     document.getElementById('topTabs').style.display = 'none';
@@ -7369,15 +7381,15 @@ function initUI(){
     });
   });
 
-  document.getElementById('roomHeight').addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
-  document.getElementById('bottomHeight').addEventListener('change', e => handleSettingChange('bottomHeight', e.target.value));
-  document.getElementById('legHeight').addEventListener('change', e => handleSettingChange('legHeight', e.target.value));
-  document.getElementById('counterThickness').addEventListener('change', e => handleSettingChange('counterThickness', e.target.value));
-  document.getElementById('gapHeight').addEventListener('change', e => handleSettingChange('gapHeight', e.target.value));
-  document.getElementById('ceilingBlende').addEventListener('change', e => handleSettingChange('ceilingBlende', e.target.value));
+  on('roomHeight','change', e => handleSettingChange('roomHeight', e.target.value));
+  on('bottomHeight','change', e => handleSettingChange('bottomHeight', e.target.value));
+  on('legHeight','change', e => handleSettingChange('legHeight', e.target.value));
+  on('counterThickness','change', e => handleSettingChange('counterThickness', e.target.value));
+  on('gapHeight','change', e => handleSettingChange('gapHeight', e.target.value));
+  on('ceilingBlende','change', e => handleSettingChange('ceilingBlende', e.target.value));
 
-  document.getElementById('floatingAdd').addEventListener('click', addCabinet);
-  document.getElementById('newProjectBtn').addEventListener('click', () => {
+  on('floatingAdd','click', addCabinet);
+  on('newProjectBtn','click', () => {
     if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return;
     projectData = FC.utils.clone(DEFAULT_PROJECT);
     uiState.roomType = null; uiState.selectedCabinetId = null; uiState.expanded = {};
@@ -7388,16 +7400,16 @@ function initUI(){
     renderCabinets();
   });
 
-  document.getElementById('openMaterialsBtn').addEventListener('click', () => { uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('openServicesBtn').addEventListener('click', () => { uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('closePriceModal').addEventListener('click', closePriceModal);
-  document.getElementById('priceSearch').addEventListener('input', renderPriceModal);
+  on('openMaterialsBtn','click', () => { uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  on('openServicesBtn','click', () => { uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
+  on('closePriceModal','click', closePriceModal);
+  on('priceSearch','input', renderPriceModal);
 
-  document.getElementById('closeCabinetModal').addEventListener('click', closeCabinetModal);
+  on('closeCabinetModal','click', closeCabinetModal);
   const _cabCancel2 = document.getElementById('cabinetModalCancel');
   if(_cabCancel2) _cabCancel2.addEventListener('click', closeCabinetModal);
-  document.getElementById('setWizardCancel').addEventListener('click', closeCabinetModal);
-  document.getElementById('setWizardCreate').addEventListener('click', createOrUpdateSetFromWizard);
+  on('setWizardCancel','click', closeCabinetModal);
+  on('setWizardCreate','click', createOrUpdateSetFromWizard);
 
   if(uiState.roomType){
     document.getElementById('roomsView').style.display='none';
@@ -7443,7 +7455,6 @@ try{
   FC.setActiveTabSafe = function(tab){
     try{ setActiveTab(tab); }catch(_){}
   };
-    FC.addCabinetSafe = function(){ try{ addCabinet(); }catch(e){ console.error(e); } };
-window.FC = FC;
+  window.FC = FC;
   window.App = window.App || { init: initUI };
 }catch(e){}
