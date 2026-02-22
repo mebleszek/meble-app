@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   ui: 'fc_ui_v1',
 };
 
+try{ window.APP_REQUIRED_SELECTORS = ["#roomsView", "#appView", "#topTabs", "#backToRooms", "#floatingAdd", "#openMaterialsBtn", "#openServicesBtn"]; }catch(e){}
+
 /** App namespace to reduce globals and keep concerns separated. */
 const FC = (function(){
   'use strict';
@@ -5570,6 +5572,7 @@ function initUI(){
   renderTopHeight();
   renderCabinets();
   if(uiState.showPriceList){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
+  try{ window.__APP_INIT_DONE__ = true; }catch(e){}
 }
 
 /* ===== Set wizard minimal (reuse existing from previous version) ===== */
@@ -7366,5 +7369,11 @@ function initUI(){
 
 
 
-/* init on DOM ready */
-document.addEventListener('DOMContentLoaded', initUI);
+/* init moved to boot.js (safe init) */
+
+// --- Expose stable entrypoint for boot.js ---
+try{
+  FC.init = initUI;
+  window.FC = FC;
+  window.App = window.App || { init: initUI };
+}catch(e){}
