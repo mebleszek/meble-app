@@ -5568,34 +5568,7 @@ function initUI(){
         setActiveTab(tabEl.getAttribute('data-tab'));
         return;
       }
-    }, false);
-
-// iOS/Android robustness: also react on pointerup/touchend (some browsers delay/skip click)
-const __fcTapHandler = (e) => {
-      const t = e.target;
-      const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
-      if(roomEl){
-        uiState.roomType = roomEl.getAttribute('data-room');
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        document.getElementById('roomsView').style.display='none';
-        document.getElementById('appView').style.display='block';
-        document.getElementById('topTabs').style.display = 'inline-block';
-        uiState.activeTab = 'wywiad'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-        renderCabinets();
-        return;
-      }
-      const tabEl = t.closest('[data-action="tab"][data-tab], .tab-btn[data-tab]');
-      if(tabEl){
-        setActiveTab(tabEl.getAttribute('data-tab'));
-        return;
-      }
-};
-if (window.PointerEvent) {
-  document.addEventListener('pointerup', __fcTapHandler, { passive: true });
-} else {
-  document.addEventListener('touchend', __fcTapHandler, { passive: true });
-}
+    }, { passive: true });
   }
 
 document.getElementById('backToRooms').addEventListener('click', () => {
@@ -7450,6 +7423,26 @@ function initUI(){
 // --- Expose stable entrypoint for boot.js ---
 try{
   FC.init = initUI;
+  // Expose safe helpers for external scripts / hotfixes
+  FC.openRoom = function(room){
+    uiState.roomType = room;
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    const rv = document.getElementById('roomsView');
+    const av = document.getElementById('appView');
+    const tabs = document.getElementById('topTabs');
+    if(rv) rv.style.display='none';
+    if(av) av.style.display='block';
+    if(tabs) tabs.style.display = 'inline-block';
+    uiState.activeTab = uiState.activeTab || 'wywiad';
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    try{ document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)'); }catch(_){}
+    try{ renderTopHeight(); }catch(_){}
+    try{ renderCabinets(); }catch(_){}
+    try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
+  };
+  FC.setActiveTabSafe = function(tab){
+    try{ setActiveTab(tab); }catch(_){}
+  };
   window.FC = FC;
   window.App = window.App || { init: initUI };
 }catch(e){}
