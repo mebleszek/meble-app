@@ -455,19 +455,11 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 ]);
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
-let uiState = FC.storage.getJSON(STORAGE_KEYS.ui, { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null });
-// --- UI state normalization (prevents crashes when older storage missing keys)
-uiState = uiState || {};
-uiState.activeTab = uiState.activeTab || 'wywiad';
-if (typeof uiState.roomType === 'undefined') uiState.roomType = null;
-if (typeof uiState.showPriceList === 'undefined') uiState.showPriceList = null;
-uiState.expanded = uiState.expanded && typeof uiState.expanded === 'object' ? uiState.expanded : {};
-if (typeof uiState.matExpandedId === 'undefined') uiState.matExpandedId = null;
-uiState.searchTerm = uiState.searchTerm || '';
-if (typeof uiState.editingId === 'undefined') uiState.editingId = null;
-if (typeof uiState.selectedCabinetId === 'undefined') uiState.selectedCabinetId = null;
-// persist normalized state (safe)
-try { FC.storage.setJSON(STORAGE_KEYS.ui, uiState); } catch(e) {}
+const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
+let uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
+uiState = Object.assign({}, __uiDefaults, uiState);
+if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
+FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
 const MANUFACTURERS = {
   laminat: ['Egger','KronoSpan','Swiss Krono','Woodeco'],
