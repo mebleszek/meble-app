@@ -11,6 +11,8 @@
 
   // ===== Force Home on load (before app init) =====
   if (!location.search.includes('keepState=1')) {
+    // Flag used by app.js to avoid restoring sticky UI (e.g., reopened modals) on start.
+    window.__FORCE_HOME__ = true;
     try {
       const ui = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
       ui.roomType = null;
