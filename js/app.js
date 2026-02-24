@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
   ui: 'fc_ui_v1',
 };
 
-try{ window.APP_REQUIRED_SELECTORS = ["#roomsView", "#appView", "#topTabs", "#backToRooms", "#floatingAdd", "#openMaterialsBtn", "#openServicesBtn"]; }catch(e){}
+try{ window.APP_REQUIRED_SELECTORS = ["#roomsView","#appView","#topTabs","#backToRooms","#floatingAdd","#openMaterialsBtn","#openServicesBtn","#roomHeight","#bottomHeight","#legHeight","#counterThickness","#gapHeight","#ceilingBlende","#cabinetsList","#priceModal","#cabinetModal"]; }catch(e){}
 
 /** App namespace to reduce globals and keep concerns separated. */
 const FC = (function(){
@@ -5546,6 +5546,18 @@ function setActiveTab(tabName){
 
 /* ===== UI wiring & init ===== */
 function initUI(){
+  // Hard check: required DOM elements must exist (prevents silent breakage after HTML edits)
+  try{
+    const req = (window.APP_REQUIRED_SELECTORS||[]);
+    const missing = req.filter(sel => !document.querySelector(sel));
+    if(missing.length){
+      throw new Error('Brak wymaganych elementów w HTML: ' + missing.join(', '));
+    }
+  }catch(e){
+    // rethrow so boot.js error banner shows it
+    throw e;
+  }
+
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
@@ -7410,82 +7422,9 @@ addFinish(room, {
   renderFinishListPanel();
 }
 
-function initUI(){
-  document.querySelectorAll('.room-btn').forEach(b => b.addEventListener('click', () => {
-    uiState.roomType = b.getAttribute('data-room');
-    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.getElementById('roomsView').style.display='none';
-    document.getElementById('appView').style.display='block';
-    document.getElementById('topTabs').style.display = 'inline-block';
-    uiState.activeTab = 'wywiad'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-    renderCabinets();
-  }));
 
-  document.getElementById('backToRooms').addEventListener('click', () => {
-    uiState.roomType = null; uiState.selectedCabinetId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
-    document.getElementById('topTabs').style.display = 'none';
-  });
 
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      uiState.activeTab = btn.getAttribute('data-tab');
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.querySelectorAll('.tab-btn').forEach(t=>t.style.background='var(--card)');
-      btn.style.background = '#e6f7ff';
-      renderCabinets();
-    });
-  });
 
-  document.getElementById('roomHeight').addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
-  document.getElementById('bottomHeight').addEventListener('change', e => handleSettingChange('bottomHeight', e.target.value));
-  document.getElementById('legHeight').addEventListener('change', e => handleSettingChange('legHeight', e.target.value));
-  document.getElementById('counterThickness').addEventListener('change', e => handleSettingChange('counterThickness', e.target.value));
-  document.getElementById('gapHeight').addEventListener('change', e => handleSettingChange('gapHeight', e.target.value));
-  document.getElementById('ceilingBlende').addEventListener('change', e => handleSettingChange('ceilingBlende', e.target.value));
-
-  document.getElementById('floatingAdd').addEventListener('click', addCabinet);
-  document.getElementById('newProjectBtn').addEventListener('click', () => {
-    if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return;
-    projectData = FC.utils.clone(DEFAULT_PROJECT);
-    uiState.roomType = null; uiState.selectedCabinetId = null; uiState.expanded = {};
-    projectData = FC.project.save(projectData); FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.getElementById('roomsView').style.display='block';
-    document.getElementById('appView').style.display='none';
-    document.getElementById('topTabs').style.display='none';
-    renderCabinets();
-  });
-
-  document.getElementById('openMaterialsBtn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); uiState.showPriceList='materials'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('openServicesBtn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); uiState.showPriceList='services'; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); document.getElementById('priceModal').style.display='flex'; });
-  document.getElementById('closePriceModal').addEventListener('click', closePriceModal);
-  document.getElementById('priceSearch').addEventListener('input', renderPriceModal);
-
-  document.getElementById('closeCabinetModal').addEventListener('click', closeCabinetModal);
-  const _cabCancel2 = document.getElementById('cabinetModalCancel');
-  if(_cabCancel2) _cabCancel2.addEventListener('click', closeCabinetModal);
-  document.getElementById('setWizardCancel').addEventListener('click', closeCabinetModal);
-  document.getElementById('setWizardCreate').addEventListener('click', createOrUpdateSetFromWizard);
-
-  if(uiState.roomType){
-    document.getElementById('roomsView').style.display='none';
-    document.getElementById('appView').style.display='block';
-    document.getElementById('topTabs').style.display = 'inline-block';
-  } else {
-    document.getElementById('roomsView').style.display='block';
-    document.getElementById('appView').style.display='none';
-    document.getElementById('topTabs').style.display = 'none';
-  }
-
-  document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-
-  renderTopHeight();
-  renderCabinets();
-  if(uiState.showPriceList && !window.__FORCE_HOME__){ renderPriceModal(); document.getElementById('priceModal').style.display = 'flex'; }
-  // once initialized, allow normal persistence for next navigation
-  try{ window.__FORCE_HOME__ = false; }catch(e){}
-}
 
 
 
