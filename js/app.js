@@ -7523,7 +7523,7 @@ FC.addCabinetSafe = function(){
 FC.closeCabinetModalSafe = function(){
   try{ closeCabinetModal(); }catch(e){}
 };
-  window.FC = FC;
+  window.FC = Object.assign(window.FC || {}, FC);
   window.App = window.App || { init: initUI };
 }catch(e){}
 // ===== INIT ADAPTER (makes boot.js always able to start the app) =====
