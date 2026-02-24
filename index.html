@@ -7,27 +7,6 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
 <link rel="stylesheet" href="css/style.css">
-<script>
-/* Force home screen on every load (runs before deferred scripts) */
-(function(){
-  try{
-    const UI_KEY='fc_ui_v1';
-    const ui=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
-    ui.roomType=null;
-    ui.selectedCabinetId=null;
-    ui.activeTab='wywiad';
-    ui.showPriceList=null;
-    ui.editingId=null;
-    ui.editingCabinetId=null;
-    localStorage.setItem(UI_KEY, JSON.stringify(ui));
-  }catch(e){}
-  // Optional escape hatch
-  if (location.search.includes('reset=1')) {
-    try{ localStorage.removeItem('fc_ui_v1'); }catch(e){}
-  }
-})();
-</script>
-
 </head>
 <body>
 <header>
