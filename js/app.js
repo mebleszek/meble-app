@@ -8,7 +8,24 @@ const STORAGE_KEYS = {
   ui: 'fc_ui_v1',
 };
 
-try{ window.APP_REQUIRED_SELECTORS = ["#roomsView", "#appView", "#topTabs", "#backToRooms", "#floatingAdd", "#openMaterialsBtn", "#openServicesBtn"]; }catch(e){}
+try{ window.APP_REQUIRED_SELECTORS = ['#roomsView','#appView','#topTabs','#backToRooms','#floatingAdd','#openMaterialsBtn','#openServicesBtn','#priceModal','#closePriceModal','#cabinetModal','#closeCabinetModal']; }catch(e){}
+
+function validateRequiredDOM(){
+  const req = Array.isArray(window.APP_REQUIRED_SELECTORS) ? window.APP_REQUIRED_SELECTORS : [];
+  const missing = [];
+  for(const sel of req){
+    try{ if(!document.querySelector(sel)) missing.push(sel); }
+    catch(_){ missing.push(sel); }
+  }
+  if(missing.length){
+    throw new Error(
+      'Brak wymaganych elementów DOM: ' + missing.join(', ') +
+      '
+Najczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.'
+    );
+  }
+}
+
 
 /** App namespace to reduce globals and keep concerns separated. */
 const FC = (function(){
@@ -5545,6 +5562,12 @@ function setActiveTab(tabName){
 }
 
 /* ===== UI wiring & init ===== */
+function initApp(){
+  // Fail fast if HTML is missing required elements
+  validateRequiredDOM();
+  return initUI();
+}
+
 function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
@@ -5560,30 +5583,27 @@ function initUI(){
       let handled = false;
 
       // ==== CLOSE buttons (highest priority) ====
-      const btnAny = t.closest('button, [role="button"]');
-      if(btnAny){
-        const txt = (btnAny.textContent || '').trim().toLowerCase();
-        const isClose = btnAny.id === 'closePriceModal' || btnAny.id === 'closeCabinetModal' || txt === 'zamknij' || txt === 'close';
-        if(isClose){
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          try{
-            if(btnAny.id === 'closePriceModal') { closePriceModal(); return; }
-            if(btnAny.id === 'closeCabinetModal') { closeCabinetModal(); return; }
+      // ==== Actions via data-action (single source of truth) ====
+      const actEl = t.closest('[data-action]');
+      const action = actEl ? actEl.getAttribute('data-action') : null;
 
-            // fallback: close whichever modal is visible
-            const pm = document.getElementById('priceModal');
-            const cm = document.getElementById('cabinetModal');
-            if(pm && getComputedStyle(pm).display !== 'none') closePriceModal();
-            if(cm && getComputedStyle(cm).display !== 'none') closeCabinetModal();
-          }catch(_){}
-          return;
-        }
+      // CLOSES (highest priority)
+      if(action === 'close-price'){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        try{ closePriceModal(); }catch(_){ }
+        handled = true;
+        return handled;
+      }
+      if(action === 'close-cabinet'){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        try{ closeCabinetModal(); }catch(_){ }
+        handled = true;
+        return handled;
+      }
 
       // ==== Cabinet modal cancel / wizard cancel ====
-      const cabCancel = t.closest('#cabinetModalCancel, #setWizardCancel');
-      if(cabCancel){
+
+      if(action === 'cancel-cabinet'){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         try{ closeCabinetModal(); }catch(_){}
         handled = true;
@@ -5591,18 +5611,15 @@ function initUI(){
       }
 
       // ==== Cabinet wizard create ====
-      const cabCreate = t.closest('#setWizardCreate');
-      if(cabCreate){
+      if(action === 'create-set'){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         try{ createOrUpdateSetFromWizard(); }catch(_){}
         handled = true;
         return handled;
       }
-      }
 
       // ==== Price list open ====
-      const matBtn = t.closest('#openMaterialsBtn');
-      if(matBtn){
+      if(action === 'open-materials'){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         uiState.showPriceList='materials';
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -5612,9 +5629,7 @@ function initUI(){
         handled = true;
         return handled;
       }
-
-      const srvBtn = t.closest('#openServicesBtn');
-      if(srvBtn){
+      if(action === 'open-services'){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         uiState.showPriceList='services';
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -5625,8 +5640,9 @@ function initUI(){
         return handled;
       }
 
+
       // ==== Floating add (+) ====
-      const plus = t.closest('#floatingAdd');
+      const plus = (action === 'add-cabinet') ? actEl : null;
       if(plus){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         if(!uiState.roomType){ alert('Wybierz pomieszczenie najpierw'); return; }
@@ -5635,7 +5651,42 @@ function initUI(){
         return handled;
       }
 
-      // ==== Room tile ====
+      
+
+      // ==== Back to rooms (home) ====
+      if(action === 'back-rooms'){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        uiState.roomType = null;
+        uiState.selectedCabinetId = null;
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.getElementById('roomsView').style.display='block';
+        document.getElementById('appView').style.display='none';
+        document.getElementById('topTabs').style.display = 'none';
+        handled = true;
+        return handled;
+      }
+
+      // ==== New project ====
+      if(action === 'new-project'){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')){
+          handled = true;
+          return handled;
+        }
+        projectData = FC.utils.clone(DEFAULT_PROJECT);
+        uiState.roomType = null;
+        uiState.selectedCabinetId = null;
+        uiState.expanded = {};
+        projectData = FC.project.save(projectData);
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.getElementById('roomsView').style.display='block';
+        document.getElementById('appView').style.display='none';
+        document.getElementById('topTabs').style.display='none';
+        renderCabinets();
+        handled = true;
+        return handled;
+      }
+// ==== Room tile ====
       const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
       if(roomEl){
         uiState.roomType = roomEl.getAttribute('data-room');
@@ -5675,9 +5726,6 @@ function initUI(){
       __fcHandle(e);
     }, { capture:true, passive:false });
   }
-
-document.getElementById('backToRooms').addEventListener('click', () => {
-    uiState.roomType = null; uiState.selectedCabinetId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
     document.getElementById('topTabs').style.display = 'none';
   });
@@ -5688,9 +5736,6 @@ document.getElementById('roomHeight').addEventListener('change', e => handleSett
   document.getElementById('gapHeight').addEventListener('change', e => handleSettingChange('gapHeight', e.target.value));
   document.getElementById('ceilingBlende').addEventListener('change', e => handleSettingChange('ceilingBlende', e.target.value));
   // NOTE: #floatingAdd handled via delegated clicks (prevents click-through bugs)
-  document.getElementById('newProjectBtn').addEventListener('click', () => {
-    if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return;
-    projectData = FC.utils.clone(DEFAULT_PROJECT);
     uiState.roomType = null; uiState.selectedCabinetId = null; uiState.expanded = {};
     projectData = FC.project.save(projectData); FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     document.getElementById('roomsView').style.display='block';
@@ -7448,7 +7493,7 @@ addFinish(room, {
 
 // --- Expose stable entrypoint for boot.js ---
 try{
-  FC.init = initUI;
+  FC.init = initApp;
   // Expose safe helpers for external scripts / hotfixes
   FC.openRoom = function(room){
     uiState.roomType = room;
@@ -7505,7 +7550,7 @@ try {
   window.App = window.App || {};
 
   // If your app has initUI() function, expose it as FC.init/App.init
-  if (typeof window.FC.init !== 'function' && typeof initUI === 'function') window.FC.init = initUI;
+  if (typeof window.FC.init !== 'function' && typeof initUI === 'function') window.FC.init = initApp;
   if (typeof window.App.init !== 'function' && typeof initUI === 'function') window.App.init = initUI;
 
   // If your app uses initApp(), also expose it
