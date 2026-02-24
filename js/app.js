@@ -1518,7 +1518,7 @@ function deleteSelectedCabinet(){
 }
 
 /* ===== Price modal functions ===== */
-function closePriceModal(){ uiState.showPriceList = null; uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); document.getElementById('priceModal').style.display = 'none'; }
+function closePriceModal(){ unlockModalScroll(); uiState.showPriceList = null; uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); document.getElementById('priceModal').style.display = 'none'; }
 
 function saveMaterialFromForm(){
   const type = document.getElementById('formMaterialType').value;
@@ -5572,14 +5572,18 @@ function initUI(){
   if(!window.__FC_DELEGATION__){
     window.__FC_DELEGATION__ = true;
 
-    let __fcLastPointerTs = 0;
-    let __fcLastPointerHandled = false;
+    let __fcSuppressNextClick = false;
+    const __fcActionLocks = (window.__fcActionLocks ||= Object.create(null));
 
     const __fcHandle = (e) => {
       const t = e.target;
       if(!t || !t.closest) return;
 
       let handled = false;
+
+      // Click on modal overlay closes it (prevents click-through bugs)
+      if(t.id === 'priceModal'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); try{ closePriceModal(); }catch(_){ } return true; }
+      if(t.id === 'cabinetModal'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); try{ closeCabinetModal(); }catch(_){ } return true; }
 
       // ==== CLOSE buttons (highest priority) ====
       // ==== Actions via data-action (single source of truth) ====
@@ -5644,6 +5648,9 @@ function initUI(){
       const plus = (action === 'add-cabinet') ? actEl : null;
       if(plus){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        if(__fcActionLocks['add-cabinet']){ handled = true; return handled; }
+        __fcActionLocks['add-cabinet'] = true;
+        setTimeout(()=>{ __fcActionLocks['add-cabinet'] = false; }, 0);
         // IMPORTANT: mark as handled even when we show an alert.
         // Otherwise on mobile the synthetic click after pointerup will re-fire the same action.
         if(!uiState.roomType){
@@ -5715,30 +5722,35 @@ function initUI(){
       }
     };
 
-    // Mobile-safe: handle pointerup, then suppress exactly ONE synthetic click
-    // that some browsers fire after pointer interactions (especially when an alert() was shown).
-    // We do NOT rely on timing, because alert() can delay the click beyond any threshold.
-    let __fcSuppressNextClick = false;
-
+    // Mobile-safe: handle pointerup, ignore the synthetic click right after
     document.addEventListener('pointerup', (e) => {
       const handled = !!__fcHandle(e);
-      __fcLastPointerHandled = handled;
-      if(handled){
-        __fcSuppressNextClick = true;
-      }
+      if(handled) __fcSuppressNextClick = true;
     }, { capture:true, passive:false });
-
     document.addEventListener('click', (e) => {
       if(__fcSuppressNextClick){
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         __fcSuppressNextClick = false;
-        __fcLastPointerHandled = false;
         return;
       }
       __fcHandle(e);
     }, { capture:true, passive:false });
+  }
+
+  // ESC closes the top-most modal
+  if(!window.__FC_ESC__){
+    window.__FC_ESC__ = true;
+    document.addEventListener('keydown', (ev)=>{
+      if(ev.key !== 'Escape') return;
+      const pm = document.getElementById('priceModal');
+      const cm = document.getElementById('cabinetModal');
+      const pmOpen = pm && pm.style.display && pm.style.display !== 'none';
+      const cmOpen = cm && cm.style.display && cm.style.display !== 'none';
+      if(pmOpen){ try{ closePriceModal(); }catch(_){ } ev.preventDefault(); }
+      else if(cmOpen){ try{ closeCabinetModal(); }catch(_){ } ev.preventDefault(); }
+    }, {capture:true});
   }
 
   // Form inputs (change/input events are fine as direct listeners)
