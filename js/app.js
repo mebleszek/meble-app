@@ -5503,10 +5503,7 @@ function renderPriceModal(){
     delBtn.addEventListener('click', () => deletePriceItem(item));
   });
 
-  document.getElementById('savePriceBtn').onclick = saveMaterialFromForm;
-  document.getElementById('saveServiceBtn').onclick = saveServiceFromForm;
-  document.getElementById('cancelEditBtn').onclick = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); };
-  document.getElementById('cancelServiceEditBtn').onclick = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); };
+  // NOTE: Save/Cancel buttons are handled via delegated Actions (data-action).
 }
 
 
@@ -5575,116 +5572,103 @@ function initUI(){
     let __fcSuppressNextClick = false;
     const __fcActionLocks = (window.__fcActionLocks ||= Object.create(null));
 
-    const __fcHandle = (e) => {
-      const t = e.target;
-      if(!t || !t.closest) return;
+    // ===== Modal Manager (stack-based) =====
+    const Modal = (window.__FC_MODAL__ ||= (() => {
+      const stack = [];
+      const byId = (id) => document.getElementById(id);
+      const isOpen = (id) => {
+        const el = byId(id);
+        return !!(el && el.style.display && el.style.display !== 'none');
+      };
+      const push = (id) => {
+        const i = stack.indexOf(id);
+        if(i >= 0) stack.splice(i, 1);
+        stack.push(id);
+      };
+      const remove = (id) => {
+        const i = stack.lastIndexOf(id);
+        if(i >= 0) stack.splice(i, 1);
+      };
+      const top = () => stack.length ? stack[stack.length - 1] : null;
 
-      let handled = false;
+      const api = {
+        stack,
+        top,
+        isOpen,
+        openPrice: (mode) => {
+          uiState.showPriceList = mode;
+          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          renderPriceModal();
+          const el = byId('priceModal');
+          if(el) el.style.display = 'flex';
+          lockModalScroll();
+          push('priceModal');
+        },
+        closePrice: () => {
+          try{ closePriceModal(); }catch(_){}
+          remove('priceModal');
+        },
+        openCabinetAdd: () => {
+          try{ openCabinetModalForAdd(); }catch(_){}
+          push('cabinetModal');
+        },
+        closeCabinet: () => {
+          try{ closeCabinetModal(); }catch(_){}
+          remove('cabinetModal');
+        },
+        closeTop: () => {
+          const t = top();
+          if(t === 'priceModal') api.closePrice();
+          else if(t === 'cabinetModal') api.closeCabinet();
+        }
+      };
+      return api;
+    })());
 
-      // Click on modal overlay closes it (prevents click-through bugs)
-      if(t.id === 'priceModal'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); try{ closePriceModal(); }catch(_){ } return true; }
-      if(t.id === 'cabinetModal'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); try{ closeCabinetModal(); }catch(_){ } return true; }
+    // ===== Actions registry (single point to add features) =====
+    const Actions = (window.__FC_ACTIONS__ ||= Object.create(null));
+    if(!Actions.__inited){
+      Actions.__inited = true;
 
-      // ==== CLOSE buttons (highest priority) ====
-      // ==== Actions via data-action (single source of truth) ====
-      const actEl = t.closest('[data-action]');
-      const action = actEl ? actEl.getAttribute('data-action') : null;
+      Actions['close-price'] = () => { Modal.closePrice(); return true; };
+      Actions['close-cabinet'] = () => { Modal.closeCabinet(); return true; };
+      Actions['cancel-cabinet'] = () => { Modal.closeCabinet(); return true; };
+      Actions['create-set'] = () => { createOrUpdateSetFromWizard(); return true; };
 
-      // CLOSES (highest priority)
-      if(action === 'close-price'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        try{ closePriceModal(); }catch(_){ }
-        handled = true;
-        return handled;
-      }
-      if(action === 'close-cabinet'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        try{ closeCabinetModal(); }catch(_){ }
-        handled = true;
-        return handled;
-      }
+      Actions['open-materials'] = () => { Modal.openPrice('materials'); return true; };
+      Actions['open-services']  = () => { Modal.openPrice('services'); return true; };
 
-      // ==== Cabinet modal cancel / wizard cancel ====
+      Actions['save-material'] = () => { saveMaterialFromForm(); return true; };
+      Actions['cancel-material-edit'] = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); return true; };
 
-      if(action === 'cancel-cabinet'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        try{ closeCabinetModal(); }catch(_){}
-        handled = true;
-        return handled;
-      }
+      Actions['save-service'] = () => { saveServiceFromForm(); return true; };
+      Actions['cancel-service-edit'] = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); return true; };
 
-      // ==== Cabinet wizard create ====
-      if(action === 'create-set'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        try{ createOrUpdateSetFromWizard(); }catch(_){}
-        handled = true;
-        return handled;
-      }
-
-      // ==== Price list open ====
-      if(action === 'open-materials'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        uiState.showPriceList='materials';
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        renderPriceModal();
-        document.getElementById('priceModal').style.display='flex';
-        lockModalScroll();
-        handled = true;
-        return handled;
-      }
-      if(action === 'open-services'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        uiState.showPriceList='services';
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        renderPriceModal();
-        document.getElementById('priceModal').style.display='flex';
-        lockModalScroll();
-        handled = true;
-        return handled;
-      }
-
-
-      // ==== Floating add (+) ====
-      const plus = (action === 'add-cabinet') ? actEl : null;
-      if(plus){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        if(__fcActionLocks['add-cabinet']){ handled = true; return handled; }
+      Actions['add-cabinet'] = () => {
+        if(__fcActionLocks['add-cabinet']) return true;
         __fcActionLocks['add-cabinet'] = true;
         setTimeout(()=>{ __fcActionLocks['add-cabinet'] = false; }, 0);
-        // IMPORTANT: mark as handled even when we show an alert.
-        // Otherwise on mobile the synthetic click after pointerup will re-fire the same action.
+
         if(!uiState.roomType){
-          handled = true;
           alert('Wybierz pomieszczenie najpierw');
-          return handled;
+          return true;
         }
-        openCabinetModalForAdd();
-        handled = true;
-        return handled;
-      }
+        Modal.openCabinetAdd();
+        return true;
+      };
 
-      
-
-      // ==== Back to rooms (home) ====
-      if(action === 'back-rooms'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      Actions['back-rooms'] = () => {
         uiState.roomType = null;
         uiState.selectedCabinetId = null;
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         document.getElementById('roomsView').style.display='block';
         document.getElementById('appView').style.display='none';
         document.getElementById('topTabs').style.display = 'none';
-        handled = true;
-        return handled;
-      }
+        return true;
+      };
 
-      // ==== New project ====
-      if(action === 'new-project'){
-        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')){
-          handled = true;
-          return handled;
-        }
+      Actions['new-project'] = () => {
+        if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
         projectData = FC.utils.clone(DEFAULT_PROJECT);
         uiState.roomType = null;
         uiState.selectedCabinetId = null;
@@ -5695,10 +5679,59 @@ function initUI(){
         document.getElementById('appView').style.display='none';
         document.getElementById('topTabs').style.display='none';
         renderCabinets();
-        handled = true;
-        return handled;
-      }
+        return true;
+      };
+
+      Actions['open-room'] = ({ el }) => {
+        const room = el ? el.getAttribute('data-room') : null;
+        if(!room) return true;
+        uiState.roomType = room;
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.getElementById('roomsView').style.display='none';
+        document.getElementById('appView').style.display='block';
+        document.getElementById('topTabs').style.display = 'inline-block';
+        uiState.activeTab = 'wywiad';
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
+        renderCabinets();
+        return true;
+      };
+
+      Actions['tab'] = ({ el }) => {
+        const tab = el ? el.getAttribute('data-tab') : null;
+        if(tab) setActiveTab(tab);
+        return true;
+      };
+    }
+
+    const __fcHandle = (e) => {
+      const t = e.target;
+      if(!t || !t.closest) return;
+
+      let handled = false;
+
+      // Click on modal overlay closes it (prevents click-through bugs)
+      if(t.id === 'priceModal'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); Modal.closePrice(); return true; }
+      if(t.id === 'cabinetModal'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); Modal.closeCabinet(); return true; }
+
+      // ==== CLOSE buttons (highest priority) ====
+      // ==== Actions via data-action (single source of truth) ====
+const actEl = t.closest('[data-action]');
+const action = actEl ? actEl.getAttribute('data-action') : null;
+
+if(action){
+  const fn = Actions[action];
+  if(typeof fn !== 'function'){
+    // Fail fast: HTML references an action that has no handler.
+    throw new Error(`Brak handlera dla data-action="${action}" (dodaj go w Actions registry w initUI).`);
+  }
+  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  handled = !!fn({ event: e, el: actEl, target: t });
+  return true;
+}
+
 // ==== Room tile ====
+
       const roomEl = t.closest('[data-action="open-room"][data-room], .room-btn[data-room]');
       if(roomEl){
         uiState.roomType = roomEl.getAttribute('data-room');
@@ -5744,12 +5777,9 @@ function initUI(){
     window.__FC_ESC__ = true;
     document.addEventListener('keydown', (ev)=>{
       if(ev.key !== 'Escape') return;
-      const pm = document.getElementById('priceModal');
-      const cm = document.getElementById('cabinetModal');
-      const pmOpen = pm && pm.style.display && pm.style.display !== 'none';
-      const cmOpen = cm && cm.style.display && cm.style.display !== 'none';
-      if(pmOpen){ try{ closePriceModal(); }catch(_){ } ev.preventDefault(); }
-      else if(cmOpen){ try{ closeCabinetModal(); }catch(_){ } ev.preventDefault(); }
+      // Close the top-most modal in a single place
+      const t = Modal.top();
+      if(t){ Modal.closeTop(); ev.preventDefault(); }
     }, {capture:true});
   }
 
