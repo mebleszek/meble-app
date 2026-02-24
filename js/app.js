@@ -18,9 +18,10 @@ function validateRequiredDOM(){
     catch(_){ missing.push(sel); }
   }
   if(missing.length){
+    // Template literal minimalizuje ryzyko błędów składni przy łączeniu stringów.
     throw new Error(
-      'Brak wymaganych elementów DOM: ' + missing.join(', ') +
-      '\nNajczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.'
+      `Brak wymaganych elementów DOM: ${missing.join(', ')}\n` +
+      `Najczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.`
     );
   }
 }
