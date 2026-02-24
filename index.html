@@ -7,32 +7,11 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
 <link rel="stylesheet" href="css/style.css">
-<script>
-/* Force home screen on every load (runs before deferred scripts) */
-(function(){
-  try{
-    const UI_KEY='fc_ui_v1';
-    const ui=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
-    ui.roomType=null;
-    ui.selectedCabinetId=null;
-    ui.activeTab='wywiad';
-    ui.showPriceList=null;
-    ui.editingId=null;
-    ui.editingCabinetId=null;
-    localStorage.setItem(UI_KEY, JSON.stringify(ui));
-  }catch(e){}
-  // Optional escape hatch
-  if (location.search.includes('reset=1')) {
-    try{ localStorage.removeItem('fc_ui_v1'); }catch(e){}
-  }
-})();
-</script>
-
 </head>
 <body>
 <header>
 <div class="left">
-<button class="btn" id="backToRooms">⟲</button>
+<button class="btn" id="backToRooms" data-action="back-rooms">⟲</button>
 <nav id="topTabs" style="display:none; margin-left:8px;">
 <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
 <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
@@ -42,8 +21,8 @@
 </nav>
 </div>
 <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-<button class="btn" id="openMaterialsBtn">Cennik Materiałów</button>
-<button class="btn" id="openServicesBtn">Cennik Usług</button>
+<button class="btn" id="openMaterialsBtn" data-action="open-materials">Cennik Materiałów</button>
+<button class="btn" id="openServicesBtn" data-action="open-services">Cennik Usług</button>
 </div>
 </header>
 <div class="container">
@@ -54,7 +33,7 @@
 <p class="muted" style="margin:4px 0 0">Kliknij kafelek aby wejść w edycję</p>
 </div>
 <div class="top-actions">
-<button class="btn-danger" id="newProjectBtn">Nowy projekt</button>
+<button class="btn-danger" id="newProjectBtn" data-action="new-project">Nowy projekt</button>
 </div>
 </div>
 <div class="rooms">
@@ -125,7 +104,7 @@
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <input id="priceSearch" placeholder="Wyszukaj pozycję..." style="padding:8px;border-radius:8px;border:1px solid #eef6fb"/>
-<button type="button" class="btn" id="closePriceModal">Zamknij</button>
+<button type="button" class="btn" id="closePriceModal" data-action="close-price">Zamknij</button>
 </div>
 </div>
 <div class="body">
@@ -160,8 +139,8 @@
 <input id="formPrice" step="0.01" type="number"/>
 </div>
 <div style="display:flex;align-items:end;gap:8px">
-<button class="btn-primary" id="savePriceBtn">Zapisz</button>
-<button class="btn" id="cancelEditBtn" style="display:none">Anuluj</button>
+<button class="btn-primary" id="savePriceBtn" data-action="save-material">Zapisz</button>
+<button class="btn" id="cancelEditBtn" data-action="cancel-material-edit" style="display:none">Anuluj</button>
 </div>
 </div>
 </div>
@@ -182,8 +161,8 @@
 <input id="formServicePrice" step="0.01" type="number"/>
 </div>
 <div style="display:flex;align-items:end;gap:8px">
-<button class="btn-primary" id="saveServiceBtn">Zapisz</button>
-<button class="btn" id="cancelServiceEditBtn" style="display:none">Anuluj</button>
+<button class="btn-primary" id="saveServiceBtn" data-action="save-service">Zapisz</button>
+<button class="btn" id="cancelServiceEditBtn" data-action="cancel-service-edit" style="display:none">Anuluj</button>
 </div>
 </div>
 </div>
@@ -208,7 +187,7 @@
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <button type="button" class="btn-primary" id="cabinetModalSave" style="display:none">Zatwierdź</button>
-<button type="button" class="btn" id="closeCabinetModal">Zamknij</button>
+<button type="button" class="btn" id="closeCabinetModal" data-action="close-cabinet">Zamknij</button>
 </div>
 </div>
 <div class="body">
@@ -342,21 +321,21 @@
 </div>
 </div>
 <div style="display:flex;justify-content:flex-end;gap:8px">
-<button class="btn" id="setWizardCancel">Anuluj</button>
-<button class="btn-primary" id="setWizardCreate">Dodaj zestaw</button>
+<button class="btn" id="setWizardCancel" data-action="cancel-cabinet">Anuluj</button>
+<button class="btn-primary" id="setWizardCreate" data-action="create-set">Dodaj zestaw</button>
 </div>
 </div>
 </div>
 </div>
 </div>
 <!-- floating add button -->
-<div class="floating-add" id="floatingAdd" title="Dodaj">+</div>
+<div class="floating-add" id="floatingAdd" data-action="add-cabinet" title="Dodaj">+</div>
 
 
 
 
-<script defer src="js/app.js"></script>
 <script defer src="js/boot.js"></script>
+<script defer src="js/app.js"></script>
 
 </body>
 </html>
