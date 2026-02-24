@@ -3159,7 +3159,7 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
       const _av = validateAventosForDraft(room, draft);
       if(_av && _av.ok === false){
         applyAventosValidationUI(room, draft);
-        return;
+        return true;
       }
 
       const beforeCount = (projectData[room].cabinets || []).length;
@@ -3193,7 +3193,7 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
       const afterCount = (projectData[room].cabinets || []).length;
       if(isAdd && afterCount <= beforeCount){
         alert('Nie udało się dodać szafki (błąd logiki zapisu).');
-        return;
+        return true;
       }
 
       closeCabinetModal();
@@ -5563,10 +5563,11 @@ function initUI(){
     window.__FC_DELEGATION__ = true;
 
     let __fcLastPointerTs = 0;
+    let __fcLastHandled = false;
 
     const __fcHandle = (e) => {
       const t = e.target;
-      if(!t || !t.closest) return;
+      if(!t || !t.closest) return false;
 
       // ==== CLOSE buttons (highest priority) ====
       const btnAny = t.closest('button, [role="button"]');
@@ -5578,8 +5579,8 @@ function initUI(){
           e.stopPropagation();
           e.stopImmediatePropagation();
           try{
-            if(btnAny.id === 'closePriceModal') { closePriceModal(); return; }
-            if(btnAny.id === 'closeCabinetModal') { closeCabinetModal(); return; }
+            if(btnAny.id === 'closePriceModal') { closePriceModal(); return true; }
+            if(btnAny.id === 'closeCabinetModal') { closeCabinetModal(); return true; }
 
             // fallback: close whichever modal is visible
             const pm = document.getElementById('priceModal');
@@ -5587,7 +5588,7 @@ function initUI(){
             if(pm && getComputedStyle(pm).display !== 'none') closePriceModal();
             if(cm && getComputedStyle(cm).display !== 'none') closeCabinetModal();
           }catch(_){}
-          return;
+          return true;
         }
       }
 
@@ -5600,7 +5601,7 @@ function initUI(){
         renderPriceModal();
         document.getElementById('priceModal').style.display='flex';
         lockModalScroll();
-        return;
+        return true;
       }
 
       const srvBtn = t.closest('#openServicesBtn');
@@ -5611,7 +5612,7 @@ function initUI(){
         renderPriceModal();
         document.getElementById('priceModal').style.display='flex';
         lockModalScroll();
-        return;
+        return true;
       }
 
       // ==== Floating add (+) ====
@@ -5620,7 +5621,7 @@ function initUI(){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         if(!uiState.roomType){ alert('Wybierz pomieszczenie najpierw'); return; }
         openCabinetModalForAdd();
-        return;
+        return true;
       }
 
       // ==== Room tile ====
@@ -5641,13 +5642,28 @@ function initUI(){
       const tabEl = t.closest('[data-action="tab"][data-tab], .tab-btn[data-tab]');
       if(tabEl){
         setActiveTab(tabEl.getAttribute('data-tab'));
-        return;
+        return true;
       }
+
+      return false;
     };
 
-    // Mobile-safe: handle pointerup, ignore the synthetic click right after
-    document.addEventListener('pointerup', (e) => { __fcLastPointerTs = Date.now(); __fcHandle(e); }, { capture:true, passive:false });
-    document.addEventListener('click', (e) => { if(Date.now() - __fcLastPointerTs < 500) return; __fcHandle(e); }, { capture:true, passive:false });
+    // Mobile-safe: pointerup handles the action. The synthetic click right after can "click-through"
+    // when a modal is hidden during pointerup and hit buttons underneath (np. Cennik Usług).
+    // We suppress ONLY that follow-up click if pointerup already handled something.
+    document.addEventListener('pointerup', (e) => {
+      __fcLastPointerTs = Date.now();
+      __fcLastHandled = !!__fcHandle(e);
+    }, { capture:true, passive:false });
+    document.addEventListener('click', (e) => {
+      if(Date.now() - __fcLastPointerTs < 500 && __fcLastHandled){
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return;
+      }
+      __fcHandle(e);
+    }, { capture:true, passive:false });
   }
 
 document.getElementById('backToRooms').addEventListener('click', () => {
