@@ -18,10 +18,9 @@ function validateRequiredDOM(){
     catch(_){ missing.push(sel); }
   }
   if(missing.length){
-    // Template literal minimalizuje ryzyko błędów składni przy łączeniu stringów.
     throw new Error(
-      `Brak wymaganych elementów DOM: ${missing.join(', ')}\n` +
-      `Najczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.`
+      'Brak wymaganych elementów DOM: ' + missing.join(', ') +
+      '\nNajczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.'
     );
   }
 }
@@ -5716,16 +5715,25 @@ function initUI(){
       }
     };
 
-    // Mobile-safe: handle pointerup, ignore the synthetic click right after
+    // Mobile-safe: handle pointerup, then suppress exactly ONE synthetic click
+    // that some browsers fire after pointer interactions (especially when an alert() was shown).
+    // We do NOT rely on timing, because alert() can delay the click beyond any threshold.
+    let __fcSuppressNextClick = false;
+
     document.addEventListener('pointerup', (e) => {
-      __fcLastPointerTs = Date.now();
-      __fcLastPointerHandled = !!__fcHandle(e);
+      const handled = !!__fcHandle(e);
+      __fcLastPointerHandled = handled;
+      if(handled){
+        __fcSuppressNextClick = true;
+      }
     }, { capture:true, passive:false });
+
     document.addEventListener('click', (e) => {
-      if(__fcLastPointerHandled && (Date.now() - __fcLastPointerTs < 600)){
+      if(__fcSuppressNextClick){
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
+        __fcSuppressNextClick = false;
         __fcLastPointerHandled = false;
         return;
       }
