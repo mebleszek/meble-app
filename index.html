@@ -7,6 +7,27 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
 <link rel="stylesheet" href="css/style.css">
+<script>
+/* Force home screen on every load (runs before deferred scripts) */
+(function(){
+  try{
+    const UI_KEY='fc_ui_v1';
+    const ui=JSON.parse(localStorage.getItem(UI_KEY)||'{}');
+    ui.roomType=null;
+    ui.selectedCabinetId=null;
+    ui.activeTab='wywiad';
+    ui.showPriceList=null;
+    ui.editingId=null;
+    ui.editingCabinetId=null;
+    localStorage.setItem(UI_KEY, JSON.stringify(ui));
+  }catch(e){}
+  // Optional escape hatch
+  if (location.search.includes('reset=1')) {
+    try{ localStorage.removeItem('fc_ui_v1'); }catch(e){}
+  }
+})();
+</script>
+
 </head>
 <body>
 <header>
@@ -104,7 +125,7 @@
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <input id="priceSearch" placeholder="Wyszukaj pozycję..." style="padding:8px;border-radius:8px;border:1px solid #eef6fb"/>
-<button class="btn" id="closePriceModal">Zamknij</button>
+<button type="button" class="btn" id="closePriceModal">Zamknij</button>
 </div>
 </div>
 <div class="body">
@@ -334,9 +355,8 @@
 
 
 
-<!-- boot.js must run BEFORE app.js so Force Home reset applies to in-memory uiState too -->
-<script defer src="js/boot.js"></script>
 <script defer src="js/app.js"></script>
+<script defer src="js/boot.js"></script>
 
 </body>
 </html>
