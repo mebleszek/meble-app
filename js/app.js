@@ -20,8 +20,7 @@ function validateRequiredDOM(){
   if(missing.length){
     throw new Error(
       'Brak wymaganych elementów DOM: ' + missing.join(', ') +
-      '
-Najczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.'
+      '\nNajczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.'
     );
   }
 }
@@ -5732,26 +5731,23 @@ function initUI(){
       __fcHandle(e);
     }, { capture:true, passive:false });
   }
-    document.getElementById('roomsView').style.display='block'; document.getElementById('appView').style.display='none';
-    document.getElementById('topTabs').style.display = 'none';
-  });
-document.getElementById('roomHeight').addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
-  document.getElementById('bottomHeight').addEventListener('change', e => handleSettingChange('bottomHeight', e.target.value));
-  document.getElementById('legHeight').addEventListener('change', e => handleSettingChange('legHeight', e.target.value));
-  document.getElementById('counterThickness').addEventListener('change', e => handleSettingChange('counterThickness', e.target.value));
-  document.getElementById('gapHeight').addEventListener('change', e => handleSettingChange('gapHeight', e.target.value));
-  document.getElementById('ceilingBlende').addEventListener('change', e => handleSettingChange('ceilingBlende', e.target.value));
-  // NOTE: #floatingAdd handled via delegated clicks (prevents click-through bugs)
-    uiState.roomType = null; uiState.selectedCabinetId = null; uiState.expanded = {};
-    projectData = FC.project.save(projectData); FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    document.getElementById('roomsView').style.display='block';
-    document.getElementById('appView').style.display='none';
-    document.getElementById('topTabs').style.display='none';
-    renderCabinets();
-  });
-  // NOTE: price list open handled via delegated clicks  document.getElementById('closePriceModal').addEventListener('click', closePriceModal);
-  document.getElementById('priceSearch').addEventListener('input', renderPriceModal);
-  // NOTE: cabinet modal close/cancel/create handled via delegated clicks  document.getElementById('setWizardCancel').addEventListener('click', (e)=>{ if(e){e.preventDefault(); e.stopPropagation();} closeCabinetModal(); });
+
+  // Form inputs (change/input events are fine as direct listeners)
+  const roomHeightEl = document.getElementById('roomHeight');
+  if(roomHeightEl) roomHeightEl.addEventListener('change', e => handleSettingChange('roomHeight', e.target.value));
+  const bottomHeightEl = document.getElementById('bottomHeight');
+  if(bottomHeightEl) bottomHeightEl.addEventListener('change', e => handleSettingChange('bottomHeight', e.target.value));
+  const legHeightEl = document.getElementById('legHeight');
+  if(legHeightEl) legHeightEl.addEventListener('change', e => handleSettingChange('legHeight', e.target.value));
+  const counterThicknessEl = document.getElementById('counterThickness');
+  if(counterThicknessEl) counterThicknessEl.addEventListener('change', e => handleSettingChange('counterThickness', e.target.value));
+  const gapHeightEl = document.getElementById('gapHeight');
+  if(gapHeightEl) gapHeightEl.addEventListener('change', e => handleSettingChange('gapHeight', e.target.value));
+  const ceilingBlendeEl = document.getElementById('ceilingBlende');
+  if(ceilingBlendeEl) ceilingBlendeEl.addEventListener('change', e => handleSettingChange('ceilingBlende', e.target.value));
+
+  const priceSearchEl = document.getElementById('priceSearch');
+  if(priceSearchEl) priceSearchEl.addEventListener('input', renderPriceModal);
   if(uiState.roomType){
     document.getElementById('roomsView').style.display='none';
     document.getElementById('appView').style.display='block';
