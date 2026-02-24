@@ -1,49 +1,40 @@
-# DEV – Jak rozwijać aplikację bez psucia
+# DEV — jak rozwijać aplikację (żeby jej nie psuć)
 
-Ten projekt ma **jedno źródło prawdy dla klików**: `data-action` + `Actions registry` w `js/app.js`.
+## 1) Dodawanie nowego przycisku / akcji UI
 
-## 1) Dodawanie nowej funkcji (przycisk/akcja)
+1. W HTML dodaj atrybut:
+   - `data-action="twoja-akcja"`
+2. W kodzie dopisz handler w `registerCoreActions()` (plik `js/app.js`) **albo** w przyszłości w module:
+   - `FC.actions.register({ 'twoja-akcja': (ctx) => { ...; return true; } })`
+3. Start aplikacji ma **fail-fast**: jeśli w HTML jest `data-action`, którego nie ma w Actions registry — zobaczysz błąd w czerwonym bannerze.
 
-1. W HTML dodaj element z atrybutem:
-   - `data-action="moja-akcja"`
-2. W `js/app.js` dopisz handler w `Actions registry` (w `initUI()`):
-   - `Actions['moja-akcja'] = ({ event, el, target }) => { ...; return true; };`
-3. Jeśli dodajesz nowy widok/modal z elementami wymaganymi do startu:
-   - dopisz selektory do `window.APP_REQUIRED_SELECTORS` (fail-fast).
-
-**Zasada:** nie dodawaj nowych `addEventListener('click', ...)` na przyciski. Klik jest tylko przez delegację.
+**Zasada:** nie dodajemy nowych `addEventListener('click', ...)` na pojedyncze przyciski. Klik jest obsługiwany delegacją + `data-action`.
 
 ## 2) Modale
 
-Używaj `Modal` (stack-based) w `initUI()`:
-- `Modal.openPrice('materials'|'services')`
-- `Modal.closePrice()`
-- `Modal.openCabinetAdd()`
-- `Modal.closeCabinet()`
-- `Modal.closeTop()` (ESC)
+Używamy `FC.modal` (plik `js/core/modals.js`):
 
-Dzięki temu:
-- overlay click zamyka modal
-- ESC zamyka aktualny modal
-- brak click-through (klik pod spodem)
+- Otwieranie: `FC.modal.open('priceModal')`
+- Zamykanie: `FC.modal.close('priceModal')` **lub** funkcja domenowa `closePriceModal()` (zarejestrowana w `FC.modal.register()`).
 
-## 3) Reguły bezpieczeństwa UI
+Wbudowane zabezpieczenia:
+- klik w tło (overlay) zamyka modal,
+- `ESC` zamyka ostatnio otwarty modal (stack),
+- blokada scrolla jest wspólna.
 
-- Każdy element z `data-action` **musi mieć handler** w `Actions`.
-  Jeśli nie ma – aplikacja rzuci błąd (banner w `boot.js`).
-- Nie używaj `innerHTML` z danymi użytkownika (nazwy/symbole/opisy). Preferuj `textContent`.
+## 3) Fail-fast DOM
 
-## 4) Szybki check przed wrzutą na serwer (żeby nie wrócił SyntaxError)
+Lista wymaganych elementów jest w `window.APP_REQUIRED_SELECTORS`.
+Jeżeli po zmianach w HTML coś zniknie/zmieni ID — aplikacja nie wystartuje i pokaże listę braków w bannerze.
 
-Jeśli masz Node.js lokalnie:
-```bash
-node --check js/app.js
-```
+## 4) Minimalny check przed wrzutą na serwer
 
-## 5) Co wrzucać na serwer po zmianach
+Jeśli masz Node:
+- `node --check js/app.js`
 
-Zwykle:
-- `js/app.js`
+To eliminuje 99% sytuacji typu `SyntaxError` na produkcji.
 
-Jeśli zmieniasz HTML (np. nowe `data-action`, nowe elementy):
-- `index.html` + `js/app.js`
+## 5) Konwencje
+
+- Klikalne elementy: zawsze `data-action`.
+- Dane użytkownika w UI: preferuj `textContent` / `createElement` zamiast `innerHTML`.
