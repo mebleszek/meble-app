@@ -5645,7 +5645,13 @@ function initUI(){
       const plus = (action === 'add-cabinet') ? actEl : null;
       if(plus){
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-        if(!uiState.roomType){ alert('Wybierz pomieszczenie najpierw'); return; }
+        // IMPORTANT: mark as handled even when we show an alert.
+        // Otherwise on mobile the synthetic click after pointerup will re-fire the same action.
+        if(!uiState.roomType){
+          handled = true;
+          alert('Wybierz pomieszczenie najpierw');
+          return handled;
+        }
         openCabinetModalForAdd();
         handled = true;
         return handled;
