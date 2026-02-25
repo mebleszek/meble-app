@@ -1,4 +1,4 @@
-name: Deploy Pages from ZIP
+name: Deploy Pages from ZIP (site*.zip)
 
 on:
   push:
@@ -23,19 +23,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare artifact
+      - name: Prepare artifact from latest site*.zip
+        shell: bash
         run: |
+          set -euo pipefail
+
           rm -rf dist
           mkdir -p dist
-          test -f site*.zip
-          unzip -q site*.zip -d dist
 
-          # Jeśli ZIP ma w środku folder główny (np. meble-app-main/),
-          # to przenieś jego zawartość poziom wyżej.
+          ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No site*.zip found in repo root (e.g. site.zip, site (11).zip)"
+            exit 1
+          fi
+
+          echo "Using ZIP: $ZIP"
+          unzip -q "$ZIP" -d dist
+
+          # If ZIP contains a single top-level folder, flatten it.
           if [ -f dist/index.html ]; then
-            echo "OK: index.html in dist/"
+            echo "OK: index.html found in dist/"
           else
-            topdir="$(find dist -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+            topdir="$(find dist -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
             if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
               tmp="$(mktemp -d)"
               cp -R "$topdir/"* "$tmp/"
@@ -45,9 +54,12 @@ jobs:
             fi
           fi
 
-          test -f dist/index.html
+          if [ ! -f dist/index.html ]; then
+            echo "ERROR: index.html not found after unzip/flatten. Ensure the ZIP contains your site."
+            exit 1
+          fi
 
-      - name: Upload artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -59,6 +71,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
