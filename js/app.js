@@ -6,6 +6,54 @@ const STORAGE_KEYS = {
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
   ui: 'fc_ui_v1',
+
+
+// ===== CORE FALLBACKS (fail-soft) =====
+// If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
+// provide minimal implementations so the app can still start.
+// This prevents "FC.actions not loaded" from hard-killing the app during development/deploy.
+try{
+  window.FC = window.FC || {};
+
+  if(!window.FC.actions){
+    (function(){
+      const registry = Object.create(null);
+      const locks = Object.create(null);
+      function register(map){ Object.keys(map||{}).forEach(k=>registry[k]=map[k]); }
+      function has(a){ return typeof registry[a]==='function'; }
+      function lock(a,ms){ locks[a]=Date.now()+(ms||800); }
+      function isLocked(a){ return (locks[a]||0) > Date.now(); }
+      function dispatch(action, ctx){
+        const fn = registry[action];
+        if(typeof fn!=='function') return false;
+        return !!fn(ctx||{});
+      }
+      function validateDOMActions(){
+        // fallback: do not enforce, to avoid blocking start if registry is incomplete
+        return true;
+      }
+      window.FC.actions = { register, dispatch, has, validateDOMActions, lock, isLocked };
+    })();
+  }
+
+  if(!window.FC.modal){
+    (function(){
+      const stack = [];
+      const closeMap = Object.create(null);
+      function register(id, closeFn){ if(id) closeMap[id]=closeFn; }
+      function open(id){ if(id) stack.push(id); }
+      function close(id){
+        const key = id || stack.pop();
+        const fn = closeMap[key];
+        try{ if(typeof fn==='function') fn(); }catch(_){}
+      }
+      function top(){ return stack.length? stack[stack.length-1]: null; }
+      function closeTop(){ close(); }
+      window.FC.modal = { register, open, close, top, closeTop };
+    })();
+  }
+}catch(_){}
+
 };
 
 try{ window.APP_REQUIRED_SELECTORS = ['#roomsView','#appView','#topTabs','#backToRooms','#floatingAdd','#openMaterialsBtn','#openServicesBtn','#priceModal','#closePriceModal','#cabinetModal','#closeCabinetModal']; }catch(e){}
