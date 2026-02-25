@@ -5613,9 +5613,29 @@ function setActiveTab(tabName){
 /* ===== UI wiring & init ===== */
 
 function registerCoreActions(){
-    // Ensure core modules loaded before registering handlers
-  if(!window.FC || !window.FC.actions) throw new Error('FC.actions not loaded (missing js/core/actions.js)');
-  if(!window.FC.modal) throw new Error('FC.modal not loaded (missing js/core/modals.js)');
+  // Core modules are optional at runtime (GitHub Pages/cache can temporarily serve stale assets).
+  // We always provide fail-soft fallbacks at the top of this file.
+  window.FC = window.FC || {};
+  if(!window.FC.actions){
+    // Fallback should have created this already; keep a defensive guard.
+    window.FC.actions = window.FC.actions || {
+      register(){},
+      dispatch(){ return false; },
+      has(){ return false; },
+      validateDOMActions(){ return true; },
+      lock(){},
+      isLocked(){ return false; }
+    };
+  }
+  if(!window.FC.modal){
+    window.FC.modal = window.FC.modal || {
+      register(){},
+      open(){},
+      close(){},
+      top(){ return null; },
+      closeTop(){}
+    };
+  }
   // Bridge core modules into local FC namespace used in this file
   FC.actions = window.FC.actions;
   FC.modal = window.FC.modal;
