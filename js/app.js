@@ -5,8 +5,8 @@ const STORAGE_KEYS = {
   projectData: 'fc_project_v1',
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
-  ui: 'fc_ui_v1',
-
+  ui: 'fc_ui_v1'
+};
 
 // ===== CORE FALLBACKS (fail-soft) =====
 // If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
@@ -5612,110 +5612,65 @@ function setActiveTab(tabName){
 /* ===== UI wiring & init ===== */
 
 function registerCoreActions(){
-    // Ensure core modules loaded before registering handlers
-  if(!window.FC || !window.FC.actions) throw new Error('FC.actions not loaded (missing js/core/actions.js)');
-  if(!window.FC.modal) throw new Error('FC.modal not loaded (missing js/core/modals.js)');
+  // Fail-soft: core modules should be loaded via index.html (defer order),
+  // but during deploy/cache issues we don't hard-kill the app.
+  window.FC = window.FC || {};
+  const core = window.FC;
+
+  // If core modules didn't execute, create minimal fallbacks (same contract).
+  if(!core.actions){
+    const registry = Object.create(null);
+    const locks = Object.create(null);
+    core.actions = {
+      register(map){ Object.keys(map||{}).forEach(k=>registry[k]=map[k]); },
+      has(a){ return typeof registry[a]==='function'; },
+      lock(a,ms){ locks[a]=Date.now()+(ms||800); },
+      isLocked(a){ return (locks[a]||0) > Date.now(); },
+      dispatch(action, ctx){
+        const fn = registry[action];
+        if(typeof fn!=='function') return false;
+        try{ return !!fn(ctx||{}); }catch(e){ console.error(e); return true; }
+      },
+      validateDOMActions(){ return true; } // don't block start in fallback
+    };
+  }
+  if(!core.modal){
+    const stack = [];
+    const closeMap = Object.create(null);
+    core.modal = {
+      register(id, closeFn){ if(id) closeMap[id]=closeFn; },
+      open(id){ if(id) stack.push(id); },
+      close(id){
+        const key = id || stack.pop();
+        const fn = closeMap[key];
+        try{ if(typeof fn==='function') fn(); }catch(e){ console.error(e); }
+      },
+      top(){ return stack.length? stack[stack.length-1]: null; },
+      closeTop(){ this.close(); }
+    };
+  }
+
   // Bridge core modules into local FC namespace used in this file
-  FC.actions = window.FC.actions;
-  FC.modal = window.FC.modal;
+  FC.actions = core.actions;
+  FC.modal   = core.modal;
+
+  // Optional strict check: validate data-action in DOM (throws in non-fallback core implementation)
+  try{
+    if(typeof FC.actions.validateDOMActions === 'function') FC.actions.validateDOMActions();
+  }catch(e){
+    // show as startup error (boot banner will catch it)
+    throw e;
+  }
 
   // Register modal close functions for ESC/overlay stack handling
   try{
-    FC.modal.register('priceModal', () => { try{ closePriceModal(); }catch(_){ } });
-    FC.modal.register('cabinetModal', () => { try{ closeCabinetModal(); }catch(_){ } });
+    if(FC.modal && typeof FC.modal.register === 'function'){
+      FC.modal.register('priceModal', () => { try{ closePriceModal(); }catch(_){ } });
+      FC.modal.register('cabinetModal', () => { try{ closeCabinetModal(); }catch(_){ } });
+    }
   }catch(_){}
-
-  FC.actions.register({
-    'close-price': ({event}) => { closePriceModal(); return true; },
-    'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
-    'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
-    'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
-
-    'open-materials': ({event}) => {
-      uiState.showPriceList='materials';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      renderPriceModal();
-      FC.modal.open('priceModal');
-      return true;
-    },
-    'open-services': ({event}) => {
-      uiState.showPriceList='services';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      renderPriceModal();
-      FC.modal.open('priceModal');
-      return true;
-    },
-
-    'add-cabinet': ({event}) => {
-      // Hard guard against duplicate pointerup->click replays (mobile) and alert-induced delays
-      if(FC.actions.isLocked('add-cabinet')) return true;
-      FC.actions.lock('add-cabinet');
-      if(!uiState.roomType){
-        alert('Wybierz pomieszczenie najpierw');
-        return true;
-      }
-      openCabinetModalForAdd();
-      FC.modal.open('cabinetModal');
-      return true;
-    },
-
-    'back-rooms': ({event}) => {
-      uiState.roomType = null;
-      uiState.selectedCabinetId = null;
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.getElementById('roomsView').style.display='block';
-      document.getElementById('appView').style.display='none';
-      document.getElementById('topTabs').style.display = 'none';
-      return true;
-    },
-
-    'new-project': ({event}) => {
-      if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
-      projectData = FC.utils.clone(DEFAULT_PROJECT);
-      uiState.roomType = null;
-      uiState.selectedCabinetId = null;
-      uiState.expanded = {};
-      projectData = FC.project.save(projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.getElementById('roomsView').style.display='block';
-      document.getElementById('appView').style.display='none';
-      document.getElementById('topTabs').style.display='none';
-      renderCabinets();
-      return true;
-    },
-
-    'open-room': ({event, element}) => {
-      const room = element.getAttribute('data-room');
-      uiState.roomType = room;
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.getElementById('roomsView').style.display='none';
-      document.getElementById('appView').style.display='block';
-      document.getElementById('topTabs').style.display = 'inline-block';
-      uiState.activeTab = 'wywiad';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-      renderCabinets();
-      return true;
-    },
-
-    'tab': ({event, element}) => {
-      const tab = element.getAttribute('data-tab');
-      setActiveTab(tab);
-      return true;
-    },
-  });
 }
 
-function initApp(){
-  // Fail fast if HTML is missing required elements
-  validateRequiredDOM();
-
-  // Register actions + modals and validate that DOM doesn't reference unknown actions
-  registerCoreActions();
-  FC.actions.validateDOMActions(document);
-
-  return initUI();
-}
 
 function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
