@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
   ui: 'fc_ui_v1',
+};
 
 
 // ===== CORE FALLBACKS (fail-soft) =====
