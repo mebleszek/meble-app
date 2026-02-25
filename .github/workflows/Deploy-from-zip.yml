@@ -1,0 +1,64 @@
+name: Deploy Pages from ZIP
+
+on:
+  push:
+    paths:
+      - "site.zip"
+      - ".github/workflows/deploy-from-zip.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare artifact
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          test -f site.zip
+          unzip -q site.zip -d dist
+
+          # Jeśli ZIP ma w środku folder główny (np. meble-app-main/),
+          # to przenieś jego zawartość poziom wyżej.
+          if [ -f dist/index.html ]; then
+            echo "OK: index.html in dist/"
+          else
+            topdir="$(find dist -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+            if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
+              tmp="$(mktemp -d)"
+              cp -R "$topdir/"* "$tmp/"
+              rm -rf dist
+              mv "$tmp" dist
+              echo "Flattened top folder: $topdir"
+            fi
+          fi
+
+          test -f dist/index.html
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
