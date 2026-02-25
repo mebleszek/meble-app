@@ -6,7 +6,6 @@ const STORAGE_KEYS = {
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
   ui: 'fc_ui_v1',
-};
 
 
 // ===== CORE FALLBACKS (fail-soft) =====
@@ -55,6 +54,7 @@ try{
   }
 }catch(_){}
 
+};
 
 try{ window.APP_REQUIRED_SELECTORS = ['#roomsView','#appView','#topTabs','#backToRooms','#floatingAdd','#openMaterialsBtn','#openServicesBtn','#priceModal','#closePriceModal','#cabinetModal','#closeCabinetModal']; }catch(e){}
 
@@ -5631,6 +5631,31 @@ function registerCoreActions(){
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
 
+    'save-material': ({event}) => {
+      const btn = document.getElementById('savePriceBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      if(typeof saveMaterialFromForm === 'function') { saveMaterialFromForm(); return true; }
+      return false;
+    },
+    'cancel-material-edit': ({event}) => {
+      const btn = document.getElementById('cancelEditBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); try{ renderPriceModal(); }catch(_){}
+      return true;
+    },
+    'save-service': ({event}) => {
+      const btn = document.getElementById('saveServiceBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      if(typeof saveServiceFromForm === 'function') { saveServiceFromForm(); return true; }
+      return false;
+    },
+    'cancel-service-edit': ({event}) => {
+      const btn = document.getElementById('cancelServiceEditBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); try{ renderPriceModal(); }catch(_){}
+      return true;
+    },
+
     'open-materials': ({event}) => {
       uiState.showPriceList='materials';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -5716,16 +5741,6 @@ function initApp(){
 
   return initUI();
 }
-
-// ===== Boot entrypoints (explicit globals) =====
-// Some deployments load scripts with module scoping or reorder execution.
-// Expose stable entrypoints that boot.js can always find.
-try{
-  window.FC = window.FC || {};
-  if(typeof window.FC.init !== 'function') window.FC.init = initApp;
-  if(typeof window.initApp !== 'function') window.initApp = initApp;
-  if(typeof window.initUI !== 'function') window.initUI = initUI;
-}catch(_){ }
 
 function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
