@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - "site*.zip"
-      - ".github/workflows/deploy-from-zip.yml"
+      - ".github/workflows/Deploy-from-zip.yml"
   workflow_dispatch: {}
 
 permissions:
@@ -58,6 +58,27 @@ jobs:
             echo "ERROR: index.html not found after unzip/flatten. Ensure the ZIP contains your site."
             exit 1
           fi
+
+      - name: JS syntax check (node --check)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d dist/js ]; then
+            echo "ERROR: dist/js not found"
+            exit 1
+          fi
+          find dist/js -type f -name "*.js" -print0 | while IFS= read -r -d '' f; do
+            echo "Checking: $f"
+            node --check "$f"
+          done
+
+      - name: Basic sanity (required files)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -f dist/js/boot.js
+          test -f dist/js/app.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
