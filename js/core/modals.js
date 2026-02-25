@@ -1,85 +1,63 @@
-/* core/modals.js — safe modal open/close with overlay + ESC and stack */
+// js/core/modals.js
+// Minimal modal stack manager (ESC + overlay close). No dependencies.
+
 (function(){
   'use strict';
-  window.FC = window.FC || {};
-  const FC = window.FC;
+  const root = (typeof window !== 'undefined') ? window : globalThis;
+  root.FC = root.FC || {};
 
   const stack = [];
-  const closeFns = Object.create(null);
-
-  function _el(id){
-    return (typeof id === 'string') ? document.getElementById(id) : id;
-  }
+  const closeMap = Object.create(null);
 
   function register(id, closeFn){
     if(!id) return;
-    closeFns[id] = closeFn;
-  }
-
-  function isOpen(id){
-    const el = _el(id);
-    return !!(el && el.style.display && el.style.display !== 'none');
+    if(typeof closeFn === 'function') closeMap[id] = closeFn;
   }
 
   function open(id){
-    const el = _el(id);
-    if(!el) throw new Error('Modal not found: ' + id);
-    if(!stack.includes(el.id)) stack.push(el.id);
-    el.style.display = 'flex';
-    if(typeof window.lockModalScroll === 'function') window.lockModalScroll();
+    if(!id) return;
+    stack.push(id);
   }
 
   function close(id){
-    const el = _el(id);
-    if(!el) return;
-    el.style.display = 'none';
-    const idx = stack.lastIndexOf(el.id);
-    if(idx >= 0) stack.splice(idx, 1);
-    if(stack.length === 0 && typeof window.unlockModalScroll === 'function') window.unlockModalScroll();
+    const key = id || stack.pop();
+    if(!key) return;
+    const fn = closeMap[key];
+    if(typeof fn === 'function') fn();
+  }
+
+  function top(){
+    return stack.length ? stack[stack.length - 1] : null;
   }
 
   function closeTop(){
-    const topId = stack.length ? stack[stack.length-1] : null;
-    if(!topId) return false;
-    const fn = closeFns[topId];
-    if(typeof fn === 'function'){
-      fn();
-    }else{
-      close(topId);
-    }
-    return true;
+    close();
   }
 
-  // One-time global wiring
-  if(!window.__FC_MODAL_WIRING__){
-    window.__FC_MODAL_WIRING__ = true;
+  // ESC closes top modal.
+  if(root.document){
+    root.document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        const t = top();
+        if(t){
+          e.preventDefault();
+          try{ closeTop(); }catch(_){}
+        }
+      }
+    });
 
-    // Overlay click: close only if click hits the backdrop itself
-    document.addEventListener('pointerdown', (e)=>{
-      const t = e.target;
-      if(!t) return;
-      if(t.classList && t.classList.contains('modal-back')){
+    // Overlay click closes if element has data-modal-close="<id>".
+    root.document.addEventListener('pointerdown', (e) => {
+      const target = e.target;
+      if(!target || !target.getAttribute) return;
+      const id = target.getAttribute('data-modal-close');
+      if(id){
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
-        // close the exact modal
-        const id = t.id;
-        const fn = closeFns[id];
-        if(typeof fn === 'function') fn();
-        else close(id);
+        try{ close(id); }catch(_){}
       }
-    }, {capture:true, passive:false});
-
-    // ESC closes top-most modal
-    document.addEventListener('keydown', (e)=>{
-      if(e.key !== 'Escape') return;
-      const did = closeTop();
-      if(did){
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }, {capture:true});
+    });
   }
 
-  FC.modal = { register, open, close, isOpen, closeTop, _stack: stack };
+  root.FC.modal = { register, open, close, top, closeTop };
 })();
