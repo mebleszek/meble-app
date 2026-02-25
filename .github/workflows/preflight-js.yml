@@ -1,0 +1,58 @@
+name: Preflight (JS syntax + site sanity)
+
+on:
+  push:
+    paths:
+      - "site*.zip"
+      - ".github/workflows/preflight-js.yml"
+  workflow_dispatch: {}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip latest site*.zip to dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir -p dist
+          ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
+          test -n "$ZIP"
+          echo "Using ZIP: $ZIP"
+          unzip -q "$ZIP" -d dist
+
+          # flatten single top-level folder
+          if [ ! -f dist/index.html ]; then
+            topdir="$(find dist -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
+            if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
+              tmp="$(mktemp -d)"
+              cp -R "$topdir/"* "$tmp/"
+              rm -rf dist
+              mv "$tmp" dist
+            fi
+          fi
+
+          test -f dist/index.html
+
+      - name: JS syntax check (node --check)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # sprawdzamy wszystkie .js w dist/js (włącznie z podfolderami)
+          if compgen -G "dist/js/**/*.js" > /dev/null; then :; fi
+          find dist/js -type f -name "*.js" -print0 | while IFS= read -r -d '' f; do
+            echo "Checking: $f"
+            node --check "$f"
+          done
+
+      - name: Basic sanity (required files)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d dist/js
+          # możesz dopisać tu wymagane pliki, np.:
+          test -f dist/js/boot.js
+          test -f dist/js/app.js
