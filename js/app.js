@@ -5564,8 +5564,12 @@ function setActiveTab(tabName){
 /* ===== UI wiring & init ===== */
 
 function registerCoreActions(){
-  if(!window.FC || !FC.actions) throw new Error('FC.actions not loaded (missing js/core/actions.js)');
-  if(!FC.modal) throw new Error('FC.modal not loaded (missing js/core/modals.js)');
+    // Ensure core modules loaded before registering handlers
+  if(!window.FC || !window.FC.actions) throw new Error('FC.actions not loaded (missing js/core/actions.js)');
+  if(!window.FC.modal) throw new Error('FC.modal not loaded (missing js/core/modals.js)');
+  // Bridge core modules into local FC namespace used in this file
+  FC.actions = window.FC.actions;
+  FC.modal = window.FC.modal;
 
   // Register modal close functions for ESC/overlay stack handling
   try{
