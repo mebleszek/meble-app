@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
 };
 
 
+
 // ===== CORE FALLBACKS (fail-soft) =====
 // If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
 // provide minimal implementations so the app can still start.
