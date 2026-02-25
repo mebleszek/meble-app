@@ -5717,6 +5717,16 @@ function initApp(){
   return initUI();
 }
 
+// ===== Boot entrypoints (explicit globals) =====
+// Some deployments load scripts with module scoping or reorder execution.
+// Expose stable entrypoints that boot.js can always find.
+try{
+  window.FC = window.FC || {};
+  if(typeof window.FC.init !== 'function') window.FC.init = initApp;
+  if(typeof window.initApp !== 'function') window.initApp = initApp;
+  if(typeof window.initUI !== 'function') window.initUI = initUI;
+}catch(_){ }
+
 function initUI(){
   // Delegated clicks (robust against DOM re-renders / new buttons)
   if(!window.__FC_DELEGATION__){
