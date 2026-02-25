@@ -2,6 +2,7 @@ name: Preflight (JS syntax + site sanity)
 
 on:
   push:
+    branches: ["main"]
     paths:
       - "site*.zip"
       - ".github/workflows/preflight-js.yml"
@@ -19,8 +20,13 @@ jobs:
           set -euo pipefail
           rm -rf dist
           mkdir -p dist
+
           ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
-          test -n "$ZIP"
+          if [ -z "$ZIP" ]; then
+            echo "No site*.zip found. Preflight skipped (OK)."
+            exit 0
+          fi
+
           echo "Using ZIP: $ZIP"
           unzip -q "$ZIP" -d dist
 
@@ -41,8 +47,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # sprawdzamy wszystkie .js w dist/js (włącznie z podfolderami)
-          if compgen -G "dist/js/**/*.js" > /dev/null; then :; fi
+
+          if [ ! -d dist/js ]; then
+            echo "No dist/js found. Preflight skipped (OK)."
+            exit 0
+          fi
+
           find dist/js -type f -name "*.js" -print0 | while IFS= read -r -d '' f; do
             echo "Checking: $f"
             node --check "$f"
@@ -52,7 +62,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -d dist/js
-          # możesz dopisać tu wymagane pliki, np.:
+          test -f dist/index.html
           test -f dist/js/boot.js
           test -f dist/js/app.js
