@@ -15,6 +15,32 @@
 
   function has(action){ return typeof registry[action] === 'function'; }
 
+  // Default handlers for core price-list edit buttons.
+  // These are registered here so validateDOMActions can run early (before app.js extends the registry).
+  // app.js may overwrite these with richer implementations later.
+  register({
+    'save-material': () => {
+      const btn = document.getElementById('savePriceBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      return false;
+    },
+    'cancel-material-edit': () => {
+      const btn = document.getElementById('cancelEditBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      return false;
+    },
+    'save-service': () => {
+      const btn = document.getElementById('saveServiceBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      return false;
+    },
+    'cancel-service-edit': () => {
+      const btn = document.getElementById('cancelServiceEditBtn');
+      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
+      return false;
+    },
+  });
+
   function dispatch(action, ctx){
     const fn = registry[action];
     if(typeof fn !== 'function'){
