@@ -3,7 +3,7 @@ name: Deploy Pages from ZIP
 on:
   push:
     paths:
-      - "site.zip"
+      - "site*.zip"
       - ".github/workflows/deploy-from-zip.yml"
   workflow_dispatch: {}
 
@@ -27,8 +27,8 @@ jobs:
         run: |
           rm -rf dist
           mkdir -p dist
-          test -f site.zip
-          unzip -q site.zip -d dist
+          test -f site*.zip
+          unzip -q site*.zip -d dist
 
           # Jeśli ZIP ma w środku folder główny (np. meble-app-main/),
           # to przenieś jego zawartość poziom wyżej.
