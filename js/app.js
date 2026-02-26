@@ -3431,109 +3431,115 @@ function getNextSetNumber(room){
 }
 
 function createOrUpdateSetFromWizard(){
-  const room = uiState.roomType; if(!room){ alert('Wybierz pomieszczenie'); return; }
-  const presetId = cabinetModalState.setPreset;
-  if(!presetId){ alert('Wybierz zestaw'); return; }
+  try{
+    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
+    const room = state.roomType || (uiState && uiState.roomType);
+    if(!room){ alert('Wybierz pomieszczenie'); return; }
 
-  const params = getSetParamsFromUI(presetId);
-  if(!params){ alert('Brak parametrów'); return; }
+    const presetId = (typeof cabinetModalState !== 'undefined' && cabinetModalState) ? cabinetModalState.setPreset : null;
+    if(!presetId){ alert('Wybierz zestaw'); return; }
 
-  const frontCount = Number(document.getElementById('setFrontCount').value || 1);
-  const frontMaterial = document.getElementById('setFrontMaterial').value;
-  const frontColor = document.getElementById('setFrontColor').value || '';
+    const params = getSetParamsFromUI(presetId);
+    if(!params){ alert('Brak parametrów'); return; }
 
-  const isEdit = !!cabinetModalState.setEditId;
-  const setId = isEdit ? cabinetModalState.setEditId : FC.utils.uid();
+    // Ensure containers exist
+    projectData[room] = projectData[room] || { cabinets:[], settings:{} };
+    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
+    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
 
-  let setNumber;
-  if(isEdit){
-    const old = projectData[room].sets.find(s=>s.id===setId);
-    setNumber = old && typeof old.number === 'number' ? old.number : getNextSetNumber(room);
-  } else {
-    setNumber = getNextSetNumber(room);
-  }
-
-  const base = makeDefaultCabinetDraftForRoom(room);
-
-  function finalizeCab(c){
-    c.id = c.id || FC.utils.uid();
-    if(!c.details) c.details = FC.utils.clone(base.details || {});
-    if(!c.bodyColor) c.bodyColor = base.bodyColor;
-    if(!c.frontMaterial) c.frontMaterial = base.frontMaterial || 'laminat';
-    if(!c.frontColor){
-      const first = materials.find(m => m.materialType === c.frontMaterial);
-      c.frontColor = first ? first.name : '';
+    const cntEl = document.getElementById('setFrontCount');
+    const matEl = document.getElementById('setFrontMaterial');
+    const colEl = document.getElementById('setFrontColor');
+    if(!cntEl || !matEl || !colEl){
+      alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
+      return;
     }
-    if(!c.openingSystem) c.openingSystem = base.openingSystem || 'uchwyt klienta';
-    if(!c.backMaterial) c.backMaterial = base.backMaterial || 'HDF 3mm biała';
-    c.setId = setId;
-    c.setPreset = presetId;
-    c.setNumber = setNumber;
-    c.setName = `Zestaw ${setNumber}`;
-    return c;
+
+    const frontCount = Number(cntEl.value || 1);
+    const frontMaterial = matEl.value || 'laminat';
+    const frontColor = colEl.value || '';
+
+    const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
+    const setId = isEdit ? cabinetModalState.setEditId : (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()));
+
+    let setNumber;
+    if(isEdit){
+      const old = (projectData[room].sets || []).find(s=>s.id===setId);
+      setNumber = old && typeof old.number === 'number' ? old.number : getNextSetNumber(room);
+    } else {
+      setNumber = getNextSetNumber(room);
+    }
+
+    const base = makeDefaultCabinetDraftForRoom(room);
+
+    function finalizeCab(c){
+      c.id = c.id || (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()) + Math.random());
+      if(!c.details) c.details = (FC.utils && FC.utils.clone) ? FC.utils.clone(base.details || {}) : (base.details || {});
+      if(!c.bodyColor) c.bodyColor = base.bodyColor;
+      if(!c.frontMaterial) c.frontMaterial = base.frontMaterial || 'laminat';
+      if(!c.frontColor){
+        const first = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials.find(m => m.materialType === c.frontMaterial) : null;
+        c.frontColor = first ? first.name : '';
+      }
+      if(!c.openingSystem) c.openingSystem = base.openingSystem || 'uchwyt klienta';
+      if(!c.backMaterial) c.backMaterial = base.backMaterial || 'HDF 3mm biała';
+      c.setId = setId;
+      c.setPreset = presetId;
+      c.setNumber = setNumber;
+      c.setName = `Zestaw ${setNumber}`;
+      return c;
+    }
+
+    if(isEdit){
+      projectData[room].cabinets = projectData[room].cabinets.filter(c => c.setId !== setId);
+      removeFrontsForSet(room, setId);
+    }
+
+    const created = [];
+
+    if(presetId === 'A'){
+      const cab1 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w1, height:params.hB, depth:params.dBottom, setRole:'dolny_lewy', frontCount:2 }));
+      const cab2 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w2, height:params.hB, depth:params.dBottom, setRole:'dolny_prawy', frontCount:2 }));
+      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:(params.w1+params.w2), height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
+      created.push(cab1, cab2, top);
+      createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1,w2:params.w2,hB:params.hB,hTop:params.hTop}, setId, setNumber);
+    }
+
+    if(presetId === 'C'){
+      const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
+      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
+      created.push(bottom, top);
+      createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hTop:params.hTop}, setId, setNumber);
+    }
+
+    if(presetId === 'D'){
+      const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
+      const middle = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hM, depth:params.dModule, setRole:'srodkowy_modul', frontCount:0 }));
+      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
+      created.push(bottom, middle, top);
+      createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hM:params.hM,hTop:params.hTop}, setId, setNumber);
+    }
+
+    created.forEach(c => projectData[room].cabinets.push(c));
+
+    const setRecord = { id:setId, presetId, number:setNumber, params, frontCount, frontMaterial, frontColor };
+    if(isEdit){
+      projectData[room].sets = projectData[room].sets.map(s => s.id===setId ? setRecord : s);
+    } else {
+      projectData[room].sets.push(setRecord);
+    }
+
+    projectData = FC.project.save(projectData);
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+    closeCabinetModal();
+    renderCabinets();
+  }catch(e){
+    alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
+    throw e;
   }
-
-  if(isEdit){
-    projectData[room].cabinets = projectData[room].cabinets.filter(c => c.setId !== setId);
-    removeFrontsForSet(room, setId);
-  }
-
-  const created = [];
-
-  if(presetId === 'A'){
-    const cab1 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w1, height:params.hB, depth:params.dBottom, setRole:'dolny_lewy', frontCount:2 }));
-    const cab2 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w2, height:params.hB, depth:params.dBottom, setRole:'dolny_prawy', frontCount:2 }));
-    const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:(params.w1+params.w2), height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
-    created.push(cab1, cab2, top);
-
-    createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1,w2:params.w2,hB:params.hB,hTop:params.hTop}, setId, setNumber);
-  }
-
-  if(presetId === 'C'){
-    const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
-    const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
-    created.push(bottom, top);
-
-    createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hTop:params.hTop}, setId, setNumber);
-  }
-
-  if(presetId === 'D'){
-    const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
-    const middle = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hM, depth:params.dModule, setRole:'srodkowy_modul', frontCount:0 }));
-    const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
-    created.push(bottom, middle, top);
-
-    createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hM:params.hM,hTop:params.hTop}, setId, setNumber);
-  }
-
-  created.forEach(c => {
-    projectData[room].cabinets.push(c);
-    // domyślnie zwinięte
-    
-  });
-
-  const setRecord = {
-    id: setId,
-    presetId,
-    number: setNumber,
-    params,
-    frontCount,
-    frontMaterial,
-    frontColor
-  };
-
-  if(isEdit){
-    projectData[room].sets = projectData[room].sets.map(s => s.id===setId ? setRecord : s);
-  } else {
-    projectData[room].sets.push(setRecord);
-  }
-
-  projectData = FC.project.save(projectData);
-  FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-
-  closeCabinetModal();
-  renderCabinets();
 }
+
 
 /* ===== Read-only: cabinet details summary ===== */
 function getCabinetExtraSummary(room, cab){
@@ -7502,3 +7508,4 @@ try {
   if (typeof window.FC.init !== 'function' && typeof initApp === 'function') window.FC.init = initApp;
   if (typeof window.App.init !== 'function' && typeof initApp === 'function') window.App.init = initApp;
 } catch (e) {}
+//test
