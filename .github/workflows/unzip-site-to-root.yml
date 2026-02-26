@@ -1,4 +1,4 @@
-name: Unzip site*.zip into repo root (Pages: main/root)
+name: Unzip site ZIP into repo root (Pages: main/root)
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
   unzip:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,12 +35,13 @@ jobs:
             echo "No site*.zip found. Nothing to do."
             exit 0
           fi
+
           echo "Using ZIP: $ZIP"
           rm -rf _tmp_unzip
           mkdir -p _tmp_unzip
           unzip -q "$ZIP" -d _tmp_unzip
 
-          # flatten single top-level folder
+          # Flatten single top-level folder if needed
           if [ ! -f _tmp_unzip/index.html ]; then
             topdir="$(find _tmp_unzip -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
             if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
@@ -50,7 +52,10 @@ jobs:
             fi
           fi
 
-          test -f _tmp_unzip/index.html
+          if [ ! -f _tmp_unzip/index.html ]; then
+            echo "ERROR: index.html not found after unzip/flatten."
+            exit 1
+          fi
 
       - name: Replace site files in repo root (keep .github)
         shell: bash
