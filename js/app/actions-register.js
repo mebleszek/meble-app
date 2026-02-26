@@ -12,38 +12,18 @@
     'close-price': ({event}) => { closePriceModal(); return true; },
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
-    // Zestaw: na starcie potrafił "mrugać" bez efektu (brak inicjalizacji stanu/projektu).
-    // Mierzymy stan przed/po i jeśli nic się nie zmieniło, pokazujemy komunikat.
-    'create-set': ({event}) => {
+    'create-set': ({event, element}) => {
       try{
-        const st = (window.FC && FC.uiState && typeof FC.uiState.get === 'function')
-          ? FC.uiState.get()
-          : (typeof uiState !== 'undefined' ? uiState : {});
-        const room = (st && st.roomType) || (typeof uiState !== 'undefined' && uiState && uiState.roomType) || null;
-        const beforeCab = (room && typeof projectData !== 'undefined' && projectData && projectData[room] && Array.isArray(projectData[room].cabinets))
-          ? projectData[room].cabinets.length
-          : 0;
-        const beforeSets = (room && typeof projectData !== 'undefined' && projectData && projectData[room] && Array.isArray(projectData[room].sets))
-          ? projectData[room].sets.length
-          : 0;
-
-        const ok = !!createOrUpdateSetFromWizard();
-
-        const afterCab = (room && typeof projectData !== 'undefined' && projectData && projectData[room] && Array.isArray(projectData[room].cabinets))
-          ? projectData[room].cabinets.length
-          : beforeCab;
-        const afterSets = (room && typeof projectData !== 'undefined' && projectData && projectData[room] && Array.isArray(projectData[room].sets))
-          ? projectData[room].sets.length
-          : beforeSets;
-
-        if(!ok || (afterCab === beforeCab && afterSets === beforeSets)){
-          alert('Nie dodano zestawu. Wejdź do pomieszczenia, wybierz preset (A/C/D) i sprawdź pola frontów.');
+        const ok = (typeof createOrUpdateSetFromWizard === 'function') ? !!createOrUpdateSetFromWizard() : false;
+        try{ (element || (event && event.target)) && (element || event.target).blur && (element || event.target).blur(); }catch(_){}
+        if(!ok){
+          alert('Nie dodano zestawu. Sprawdź wybór zestawu i parametry (szerokość/wysokości/fronty).');
         }
+        return ok;
       }catch(e){
-        alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
-        throw e;
+        alert('Błąd przy dodawaniu zestawu: ' + ((e && e.message) ? e.message : e));
+        return false;
       }
-      return true;
     },
 
     'save-material': ({event}) => {

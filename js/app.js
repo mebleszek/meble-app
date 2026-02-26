@@ -3343,10 +3343,11 @@ function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColo
 
 /* ===== Zestaw: odczyt/wpis parametrów UI ===== */
 function getSetParamsFromUI(presetId){
-  const st = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? (FC.uiState.get()||{}) : (typeof uiState !== 'undefined' ? (uiState||{}) : {});
-  const room = st.roomType || (typeof uiState !== 'undefined' && uiState && uiState.roomType) || null;
-  if(!room || !projectData || !projectData[room]) return null;
-  const s = projectData[room].settings || {};
+  // Always read room from the same source of truth as the rest of the app.
+  const _state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : uiState;
+  const room = (_state && _state.roomType) || (uiState && uiState.roomType);
+  if(!room || !projectData || !projectData[room] || !projectData[room].settings) return null;
+  const s = projectData[room].settings;
 
   function num(id, fallback=0){
     const el = document.getElementById(id);
@@ -3435,11 +3436,12 @@ function getNextSetNumber(room){
 
 function createOrUpdateSetFromWizard(){
   try{
-    // UI state bywa trzymany w dwóch miejscach (global uiState + FC.uiState). Bierzemy jedno, spójne.
-    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function')
-      ? (FC.uiState.get() || {})
-      : (typeof uiState !== 'undefined' ? (uiState || {}) : {});
-    const room = state.roomType || (typeof uiState !== 'undefined' && uiState && uiState.roomType) || null;
+    // Sync global uiState from FC.uiState (single source of truth)
+    if(window.FC && FC.uiState && typeof FC.uiState.get === 'function'){
+      try{ uiState = FC.uiState.get(); }catch(_){ }
+    }
+    const state = (typeof uiState !== 'undefined' ? uiState : {});
+    const room = state && state.roomType;
     if(!room){ alert('Wybierz pomieszczenie'); return false; }
 
     const presetId =
@@ -3458,15 +3460,13 @@ function createOrUpdateSetFromWizard(){
       cabinetModalState.setPreset = presetId;
     }
 
-    // Ensure containers exist (na świeżym starcie potrafiło brakować struktur)
-    projectData[room] = projectData[room] || { cabinets:[], fronts:[], sets:[], settings:{} };
-    projectData[room].settings = projectData[room].settings || {};
-    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
-    projectData[room].fronts = Array.isArray(projectData[room].fronts) ? projectData[room].fronts : [];
-    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
-
     const params = getSetParamsFromUI(presetId);
     if(!params){ alert('Brak parametrów'); return false; }
+
+    // Ensure containers exist
+    projectData[room] = projectData[room] || { cabinets:[], settings:{} };
+    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
+    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
 
     const cntEl = document.getElementById('setFrontCount');
     const matEl = document.getElementById('setFrontMaterial');
@@ -3541,11 +3541,6 @@ function createOrUpdateSetFromWizard(){
       createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hM:params.hM,hTop:params.hTop}, setId, setNumber);
     }
 
-    if(created.length === 0){
-      alert('Nie rozpoznano presetu zestawu. Wybierz preset A/C/D i spróbuj ponownie.');
-      return false;
-    }
-
     created.forEach(c => projectData[room].cabinets.push(c));
 
     const setRecord = { id:setId, presetId, number:setNumber, params, frontCount, frontMaterial, frontColor };
@@ -3555,27 +3550,15 @@ function createOrUpdateSetFromWizard(){
       projectData[room].sets.push(setRecord);
     }
 
-    // Zapis projektu + UI
-    if(window.FC && FC.project && typeof FC.project.save === 'function'){
-      projectData = FC.project.save(projectData);
-    } else {
-      // fallback
-      FC.storage.setJSON(STORAGE_KEYS.project, projectData);
-    }
-
-    const uiToSave = (window.FC && FC.uiState && typeof FC.uiState.get === 'function')
-      ? (FC.uiState.get() || state)
-      : (typeof uiState !== 'undefined' ? (uiState || state) : state);
-    if(window.FC && FC.storage && STORAGE_KEYS && STORAGE_KEYS.ui){
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiToSave);
-    }
+    projectData = FC.project.save(projectData);
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
     closeCabinetModal();
     renderCabinets();
     return true;
   }catch(e){
     alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
-    throw e;
+    return false;
   }
 }
 
