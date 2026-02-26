@@ -3445,7 +3445,7 @@ function createOrUpdateSetFromWizard(){
 
     if(!presetId){
       alert('Wybierz zestaw');
-      return false;
+      return;
     }
 
     // keep state in sync if global exists
@@ -3466,7 +3466,7 @@ function createOrUpdateSetFromWizard(){
     const colEl = document.getElementById('setFrontColor');
     if(!cntEl || !matEl || !colEl){
       alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
-      return false;
+      return;
     }
 
     const frontCount = Number(cntEl.value || 1);
@@ -3548,7 +3548,6 @@ function createOrUpdateSetFromWizard(){
 
     closeCabinetModal();
     renderCabinets();
-    return true;
   }catch(e){
     alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
     throw e;
