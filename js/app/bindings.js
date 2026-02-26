@@ -71,12 +71,27 @@
 
     // ===== Form inputs (change/input events are fine as direct listeners) =====
     // Te funkcje istnieją w app.js. Tu tylko spinamy listenery.
+    const NUM_KEYS = new Set(['roomHeight','bottomHeight','legHeight','counterThickness','gapHeight','ceilingBlende']);
+    const clampNum = (v, min, max) => {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return null;
+      const a = (min != null) ? Math.max(min, n) : n;
+      return (max != null) ? Math.min(max, a) : a;
+    };
+
     const onSetting = (key) => (e) => {
       try {
+        let val = e?.target?.value;
+        if (NUM_KEYS.has(key)) {
+          // Allow empty while typing; sanitize on change.
+          const n = clampNum(val, 0, 10000);
+          if (n === null) return;
+          val = String(n);
+        }
         if (typeof window.handleSettingChange === 'function') {
-          window.handleSettingChange(key, e?.target?.value);
+          window.handleSettingChange(key, val);
         } else if (typeof handleSettingChange === 'function') {
-          handleSettingChange(key, e?.target?.value);
+          handleSettingChange(key, val);
         }
       } catch (_) {}
     };

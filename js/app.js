@@ -126,387 +126,11 @@ const FC = (function(){
   };
 
   /* ===== Module: project schema + migrations ===== */
-  const CURRENT_SCHEMA_VERSION = 9;
-
-  const DEFAULT_PROJECT = {
-    schemaVersion: CURRENT_SCHEMA_VERSION,
-    kuchnia: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 3.8, gapHeight: 60, ceilingBlende: 10 } },
-    szafa: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 5 } },
-    pokoj: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 5, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 0 } },
-    lazienka: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 220, bottomHeight: 82, legHeight: 15, counterThickness: 2, gapHeight: 0, ceilingBlende: 0 } }
-  };
-
-  const ROOMS = ['kuchnia','szafa','pokoj','lazienka'];
-
-  function migrateV1toV2(data){
-    // v1 had no schemaVersion. v2 introduces schemaVersion at root.
-    const out = utils.clone(data || {});
-    out.schemaVersion = 2;
-    return out;
+  // Extracted to js/app/project.js. Keep app.js lean and avoid double-definitions.
+  const project = (window.FC && window.FC.project) ? window.FC.project : null;
+  if(!project){
+    throw new Error('FC.project not loaded. Ensure js/app/project.js is loaded BEFORE js/app.js');
   }
-
-
-  function migrateV2toV3(data){
-    // v3: sensible defaults for base cabinet height & kitchen legs
-    const out = utils.clone(data || {});
-    for (const r of ROOMS){
-      const room = out[r] = utils.isPlainObject(out[r]) ? out[r] : {};
-      const settings = room.settings = utils.isPlainObject(room.settings) ? room.settings : {};
-      const bh = Number(settings.bottomHeight);
-      if (!Number.isFinite(bh) || bh <= 0) settings.bottomHeight = 82;
-
-      if (r === 'kuchnia'){
-        const lh = Number(settings.legHeight);
-        if (!Number.isFinite(lh) || lh <= 0) settings.legHeight = 10;
-      }
-    }
-    out.schemaVersion = 3;
-    return out;
-  }
-
-  
-  function migrateV3toV4(data){
-    // v4: standing standard cabinets get explicit inside mode + internal drawer defaults
-    const out = utils.clone(data || {});
-    for (const r of ROOMS){
-      const room = out[r] = utils.isPlainObject(out[r]) ? out[r] : {};
-      const cabinets = Array.isArray(room.cabinets) ? room.cabinets : [];
-      for (const cab of cabinets){
-        if(!cab || typeof cab !== 'object') continue;
-        if(cab.type === 'stojąca' && (cab.subType || 'standardowa') === 'standardowa'){
-          cab.details = utils.isPlainObject(cab.details) ? cab.details : {};
-          if(!('insideMode' in cab.details)) cab.details.insideMode = 'polki';
-          if(!('innerDrawerCount' in cab.details)) cab.details.innerDrawerCount = '1';
-          if(!('innerDrawerType' in cab.details)) cab.details.innerDrawerType = 'blum';
-        }
-        if(cab.type === 'stojąca' && (cab.subType || '') === 'piekarnikowa'){
-          cab.details = utils.isPlainObject(cab.details) ? cab.details : {};
-          if(!('ovenOption' in cab.details)) cab.details.ovenOption = 'szuflada_dol';
-          const oh = Number(cab.details.ovenHeight);
-          if(!('ovenHeight' in cab.details) || !isFinite(oh) || oh <= 0) cab.details.ovenHeight = '60';
-          const tc = parseInt(cab.details.techShelfCount, 10);
-          if(!('techShelfCount' in cab.details) || !Number.isFinite(tc) || tc <= 0) cab.details.techShelfCount = '1';
-          const sh = Number(cab.details.shelves);
-          if(!('shelves' in cab.details) || !isFinite(sh) || sh < 0) cab.details.shelves = 0;
-        }
-      }
-    }
-    out.schemaVersion = 4;
-    return out;
-  }
-
-
-  function migrateV4toV5(data){
-    // v5: standing oven cabinets shouldn't default to 1 shelf in summaries; set shelves to 0 unless explicitly meaningful.
-    const out = utils.clone(data || {});
-    for (const r of ROOMS){
-      const room = utils.isPlainObject(out[r]) ? out[r] : {};
-      const cabs = Array.isArray(room.cabinets) ? room.cabinets : [];
-      for (const cab of cabs){
-        if(!cab || typeof cab !== 'object') continue;
-        if(cab.type === 'stojąca' && (cab.subType || '') === 'piekarnikowa'){
-          cab.details = utils.isPlainObject(cab.details) ? cab.details : {};
-          // If shelves is missing or equals 1 (legacy default), normalize to 0 to avoid misleading UI.
-          const sh = Number(cab.details.shelves);
-          if(!('shelves' in cab.details) || !isFinite(sh) || sh === 1){
-            cab.details.shelves = 0;
-          }
-        }
-      }
-    }
-    out.schemaVersion = 5;
-    return out;
-  }
-
-function normalizeRoom(roomRaw, roomDefault){
-    const room = utils.isPlainObject(roomRaw) ? roomRaw : {};
-    const def = roomDefault;
-
-    const cabinets = Array.isArray(room.cabinets) ? room.cabinets : [];
-    const fronts   = Array.isArray(room.fronts)   ? room.fronts   : [];
-    const sets     = Array.isArray(room.sets)     ? room.sets     : [];
-
-    const sRaw = utils.isPlainObject(room.settings) ? room.settings : {};
-    const sDef = def.settings;
-
-    const settings = {
-      roomHeight: utils.num(sRaw.roomHeight, sDef.roomHeight),
-      bottomHeight: utils.num(sRaw.bottomHeight, sDef.bottomHeight),
-      legHeight: utils.num(sRaw.legHeight, sDef.legHeight),
-      counterThickness: utils.num(sRaw.counterThickness, sDef.counterThickness),
-      gapHeight: utils.num(sRaw.gapHeight, sDef.gapHeight),
-      ceilingBlende: utils.num(sRaw.ceilingBlende, sDef.ceilingBlende),
-    };
-
-    // Derived/normalized cabinet fields that depend on room settings.
-    const calcTechDividers = (frontH) => {
-      const fh = Number(frontH) || 0;
-      if(!(fh > 74.5)) return 0;
-      // 74.6–76.5 => 1; 76.6–78.5 => 2; ...
-      return Math.max(0, Math.ceil(((fh - 74.5) / 2) - 1e-9));
-    };
-
-    const leg = Number(settings.legHeight) || 0;
-    const bottomFrontH = Math.max(0, (Number(settings.bottomHeight) || 0) - leg);
-
-    const normCabinets = cabinets.map((c) => {
-      if(!utils.isPlainObject(c)) return c;
-      const cab = { ...c };
-      const d = utils.isPlainObject(cab.details) ? { ...cab.details } : {};
-
-      if(cab.subType === 'zmywarkowa'){
-        const frontH = (Number(cab.height) || 0) - leg;
-        d.techDividerCount = String(calcTechDividers(frontH));
-        d.shelves = 0;
-        cab.frontCount = 1;
-      }
-
-      if(cab.subType === 'lodowkowa'){
-        const opt = d.fridgeOption ? String(d.fridgeOption) : 'zabudowa';
-        if(opt === 'zabudowa'){
-          const div = calcTechDividers(bottomFrontH);
-          d.techDividerCount = String(div);
-          d.shelves = 0;
-          const bh = Number(settings.bottomHeight) || 0;
-          const lh = Number(settings.legHeight) || 0;
-          const nh = Number(d.fridgeNicheHeight) || 0;
-          // Wysokość lodówkowej (zabudowa): nisza + (przegrody*1.8) + 3.6 + nóżki
-          if(nh > 0){
-            cab.height = nh + (div * 1.8) + 3.6 + lh;
-          }
-        } else {
-          d.techDividerCount = '0';
-          d.shelves = 0;
-        }
-      }
-
-      
-      if(cab.subType === 'szuflady'){
-        // ujednolicenie pól dla szuflad stojących
-        let lay = String(d.drawerLayout || '');
-        if(!lay){
-          const legacy = String(d.drawerCount || '3');
-          if(legacy === '1') lay = '1_big';
-          else if(legacy === '2') lay = '2_equal';
-          else if(legacy === '3') lay = '3_1_2_2';
-          else if(legacy === '5') lay = '5_equal';
-          else lay = '3_equal';
-        }
-        d.drawerLayout = lay;
-        if(!d.drawerSystem) d.drawerSystem = 'skrzynkowe';
-      if(!d.drawerBrand) d.drawerBrand = 'blum';
-      if(!d.drawerModel) d.drawerModel = 'tandembox';
-        if(!('innerDrawerType' in d)) d.innerDrawerType = 'brak';
-        if(!('innerDrawerCount' in d) || d.innerDrawerCount == null){
-          d.innerDrawerCount = (lay === '3_equal') ? '3' : '2';
-        }
-        // limity: max 2 (dla 1/2/1:2:2), max 3 (dla 3_equal), brak (dla 5_equal)
-        if(lay === '5_equal'){
-          d.innerDrawerType = 'brak';
-          d.innerDrawerCount = '0';
-        } else if(lay === '3_equal'){
-          const n = Math.min(3, Math.max(0, parseInt(d.innerDrawerCount, 10) || 0));
-          d.innerDrawerCount = String(n > 0 ? n : 3);
-        } else {
-          const n = Math.min(2, Math.max(0, parseInt(d.innerDrawerCount, 10) || 0));
-          d.innerDrawerCount = String(n > 0 ? n : 2);
-        }
-
-        // ustaw frontCount zgodnie z układem
-        let fc = 3;
-        if(lay === '1_big') fc = 1;
-        else if(lay === '2_equal') fc = 2;
-        else if(lay === '3_equal') fc = 3;
-        else if(lay === '5_equal') fc = 5;
-        else if(lay === '3_1_2_2') fc = 3;
-        cab.frontCount = fc;
-      }
-cab.details = d;
-      return cab;
-    });
-
-    return { cabinets: normCabinets, fronts, sets, settings };
-  }
-
-  
-  function migrateV5toV6(data){
-    // v6: add technical shelf for standing oven cabinets (piekarnikowa)
-    // Legacy "shelves" (often default 1) is treated as technical shelf count, and user shelves are reset to 0.
-    const out = utils.clone(data || {});
-    for (const r of ROOMS){
-      const room = utils.isPlainObject(out[r]) ? out[r] : {};
-      const cabs = Array.isArray(room.cabinets) ? room.cabinets : [];
-      for (const cab of cabs){
-        if(!cab || typeof cab !== 'object') continue;
-        if(cab.type === 'stojąca' && (cab.subType || '') === 'piekarnikowa'){
-          cab.details = utils.isPlainObject(cab.details) ? cab.details : {};
-          const sh = Number(cab.details.shelves);
-          // move legacy shelves -> techShelfCount (default 1)
-          if(!('techShelfCount' in cab.details)){
-            if(isFinite(sh) && sh > 0){
-              cab.details.techShelfCount = String(Math.round(sh));
-            } else {
-              cab.details.techShelfCount = '1';
-            }
-          }
-          // user shelves for oven cabinet default to 0 (separate from tech shelf)
-          cab.details.shelves = 0;
-        }
-      }
-    }
-    out.schemaVersion = 6;
-    return out;
-  }
-
-  function migrateV6toV7(data){
-    // v7: zlewowa — replace legacy sinkOption with structured fields (sinkFront/sinkDoorCount/sinkExtra)
-    const out = utils.clone(data);
-    for (const r of ROOMS){
-      const room = utils.isPlainObject(out[r]) ? out[r] : {};
-      const cabs = Array.isArray(room.cabinets) ? room.cabinets : [];
-      cabs.forEach(c => {
-        if(!c || c.type !== 'stojąca' || c.subType !== 'zlewowa') return;
-        c.details = utils.isPlainObject(c.details) ? c.details : {};
-        const d = c.details;
-
-        if(!d.sinkFront){
-          if(d.sinkOption === 'zwykle_drzwi') d.sinkFront = 'drzwi';
-          else if(d.sinkOption === 'szuflada') d.sinkFront = 'szuflada';
-          else if(d.sinkOption === 'szuflada_i_polka'){ d.sinkFront = 'szuflada'; d.sinkExtra = d.sinkExtra || 'polka'; }
-          else d.sinkFront = 'drzwi';
-        }
-        if(!d.sinkDoorCount) d.sinkDoorCount = String([1,2].includes(Number(c.frontCount)) ? Number(c.frontCount) : 2);
-        if(!d.sinkExtra) d.sinkExtra = 'brak';
-        if(d.sinkExtraCount == null) d.sinkExtraCount = 1;
-        if(!d.sinkInnerDrawerType) d.sinkInnerDrawerType = 'skrzynkowe';
-      if(!d.sinkInnerDrawerBrand) d.sinkInnerDrawerBrand = 'blum';
-      if(!d.sinkInnerDrawerModel) d.sinkInnerDrawerModel = 'tandembox';
-
-        // ustaw frontCount zgodnie z wyborem
-        if(d.sinkFront === 'szuflada'){
-          c.frontCount = 1;
-        } else {
-          const dc = Number(d.sinkDoorCount) || 2;
-          c.frontCount = (dc === 1 ? 1 : 2);
-        }
-      });
-      room.cabinets = cabs;
-      out[r] = room;
-    }
-    out.schemaVersion = 7;
-    return out;
-  }
-
-function migrateV7toV8(data){
-  // v8: zmywarkowa — width selector sync + technical divider count for tall fronts
-  const out = utils.clone(data);
-  for (const r of ROOMS){
-    const room = utils.isPlainObject(out[r]) ? out[r] : {};
-    const cabs = Array.isArray(room.cabinets) ? room.cabinets : [];
-    const leg = utils.num(room.settings && room.settings.legHeight, utils.num(DEFAULT_PROJECT[r]?.settings?.legHeight, 0));
-
-    cabs.forEach(c => {
-      if(!c || c.type !== 'stojąca' || c.subType !== 'zmywarkowa') return;
-      c.details = utils.isPlainObject(c.details) ? c.details : {};
-      const d = c.details;
-
-      // Width selector default
-      let w = d.dishWasherWidth;
-      const cw = utils.num(c.width, 0);
-      if(!w){
-        if(cw === 45) w = '45';
-        else if(cw === 60) w = '60';
-        else w = '60';
-        d.dishWasherWidth = w;
-      }
-      // Sync cabinet width to selector
-      const wn = utils.num(d.dishWasherWidth, 60);
-      if(wn) c.width = wn;
-
-      // Technical dividers: 74.6–76.5 => 1; 76.6–78.5 => 2; itd.
-      const frontH = utils.num(c.height, 0) - leg;
-      const div = (frontH > 74.5) ? Math.max(0, Math.ceil(((frontH - 74.5) / 2) - 1e-9)) : 0;
-      d.techDividerCount = String(div);
-      // Dishwasher cabinet has no standard shelves
-      if(d.shelves == null || utils.num(d.shelves, 0) !== 0) d.shelves = 0;
-    });
-  }
-  out.schemaVersion = 9;
-  return out;
-}
-
-
-
-
-function normalizeProject(raw){
-    let data = utils.isPlainObject(raw) ? raw : {};
-    let ver = utils.num(data.schemaVersion, 1);
-    if (ver < 1) ver = 1;
-
-    // Stepwise migrations.
-    if (ver < 2) data = migrateV1toV2(data);
-    if (ver < 3) data = migrateV2toV3(data);
-    if (ver < 4) data = migrateV3toV4(data);
-    if (ver < 5) data = migrateV4toV5(data);
-    if (ver < 6) data = migrateV5toV6(data);
-    if (ver < 7) data = migrateV6toV7(data);
-    if (ver < 8) data = migrateV7toV8(data);
-
-    const out = { schemaVersion: CURRENT_SCHEMA_VERSION };
-    for (const r of ROOMS){
-      out[r] = normalizeRoom(data[r], DEFAULT_PROJECT[r]);
-    }
-
-    // Keep unknown root-level fields for forward compatibility.
-    for (const k of Object.keys(data)){
-      if (!(k in out)) out[k] = data[k];
-    }
-    return out;
-  }
-
-  const project = {
-    CURRENT_SCHEMA_VERSION,
-    DEFAULT_PROJECT,
-    load(){
-      // Robust load: try primary; if corrupted/empty, fall back to backup.
-      const rawPrimary = storage.getRaw(STORAGE_KEYS.projectData);
-      const rawBackup  = storage.getRaw(STORAGE_KEYS.projectBackup);
-
-      function parseOrNull(raw){
-        if (!raw) return null;
-        try{ return JSON.parse(raw); }catch(e){ return null; }
-      }
-
-      const primaryObj = parseOrNull(rawPrimary);
-      const backupObj  = parseOrNull(rawBackup);
-
-      // If primary is missing/corrupt but backup exists, restore from backup.
-      const chosen = primaryObj || backupObj || DEFAULT_PROJECT;
-
-      // If we had to fall back to backup, try to repair primary storage.
-      if (!primaryObj && backupObj){
-        storage.setRaw(STORAGE_KEYS.projectData, rawBackup);
-      }
-
-      return normalizeProject(chosen);
-    },
-    save(data){
-      // Robust save: keep last-good backup before overwriting.
-      const normalized = normalizeProject(data);
-
-      // Backup current primary (if any) before overwriting.
-      const currentRaw = storage.getRaw(STORAGE_KEYS.projectData);
-      if (currentRaw){
-        storage.setRaw(STORAGE_KEYS.projectBackup, currentRaw);
-        storage.setJSON(STORAGE_KEYS.projectBackupMeta, { savedAt: Date.now() });
-      }
-
-      // Write new state.
-      storage.setJSON(STORAGE_KEYS.projectData, normalized);
-      return normalized;
-    },
-    normalize: normalizeProject,
-  };
 
   return { utils, storage, project };
 })();
@@ -1129,9 +753,67 @@ function applyAventosValidationUI(room, draft){
 }
 
 
+function syncDraftFromCabinetModalForm(d){
+  if(!d) return;
+  const num = (id) => {
+    const el = document.getElementById(id);
+    if(!el) return null;
+    const raw = String(el.value ?? '').trim().replace(',', '.');
+    const v = Number(raw);
+    return Number.isFinite(v) ? v : null;
+  };
+  const str = (id) => {
+    const el = document.getElementById(id);
+    if(!el) return null;
+    const v = String(el.value ?? '').trim();
+    return v;
+  };
 
-/* moved to js/app/modals/cabinet.js: syncDraftFromCabinetModalForm */
+  const w = num('cmWidth');  if(w !== null) d.width = w;
+  const h = num('cmHeight'); if(h !== null) d.height = h;
+  const dep = num('cmDepth'); if(dep !== null) d.depth = dep;
 
+  const fc = num('cmFrontCount'); // może nie istnieć (np. klapa/narożna L)
+  if(fc !== null) d.frontCount = fc;
+
+  // półki
+  // UWAGA: cmShelves istnieje w DOM zawsze (ukryty wrap), ale nie każda szafka używa tego pola.
+  // Żeby nie nadpisywać wartości ustawianych w dynamicznych polach (np. Moduł→Standardowa),
+  // czytamy cmShelves tylko wtedy, gdy jego wrap jest widoczny.
+  const shWrap = document.getElementById('cmShelvesWrap');
+  const shWrapVisible = !!(shWrap && shWrap.style.display !== 'none' && shWrap.offsetParent !== null);
+  if(shWrapVisible){
+    const sh = num('cmShelves');
+    if(sh !== null){
+      // store as integer number for consistency across cabinet types
+      d.details = Object.assign({}, d.details || {}, { shelves: Math.max(0, Math.round(sh)) });
+    }
+  }
+
+  // narożna L (GL/GP/ST/SP)
+  const gl = num('cmGL'), gp = num('cmGP'), st = num('cmST'), sp = num('cmSP');
+  if([gl,gp,st,sp].some(v => v !== null)){
+    d.details = Object.assign({}, d.details || {}, {
+      gl: gl !== null ? String(gl) : (d.details?.gl ?? ''),
+      gp: gp !== null ? String(gp) : (d.details?.gp ?? ''),
+      st: st !== null ? String(st) : (d.details?.st ?? ''),
+      sp: sp !== null ? String(sp) : (d.details?.sp ?? '')
+    });
+    // pomocniczo: szerokość=ST, głębokość=max(GL,GP) – tak jak w sync narożnej
+    if(st !== null) d.width = st;
+    if(gl !== null || gp !== null) d.depth = Math.max(gl ?? 0, gp ?? 0);
+  }
+
+  // klapa (uchylne)
+  const flapVendor = str('cmFlapVendor');
+  const flapKind = str('cmFlapKind');
+  if((d.type === 'wisząca' || d.type === 'moduł') && d.subType === 'uchylne'){
+    const det = Object.assign({}, d.details || {});
+    if(flapVendor) det.flapVendor = flapVendor;
+    if(flapKind) det.flapKind = flapKind;
+    d.details = det;
+  }
+}
 
 
 function generateFrontsForCabinet(room, cab){
@@ -1509,21 +1191,52 @@ function deleteSelectedCabinet(){
 }
 
 /* ===== Price modal functions ===== */
+function closePriceModal(){ unlockModalScroll(); uiState.showPriceList = null; uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); document.getElementById('priceModal').style.display = 'none'; }
 
-/* moved to js/app/modals/price.js: closePriceModal */
+function saveMaterialFromForm(){
+  const type = document.getElementById('formMaterialType').value;
+  const manufacturer = document.getElementById('formManufacturer').value;
+  const symbol = document.getElementById('formSymbol').value.trim();
+  const name = document.getElementById('formName').value.trim();
+  const price = parseFloat(document.getElementById('formPrice').value || 0);
+  if(!name){ alert('Wprowadź nazwę'); return; }
+  const data = { materialType: type, manufacturer, symbol, name, price };
+  if(uiState.editingId){
+    materials = materials.map(m => m.id === uiState.editingId ? Object.assign({}, m, data) : m);
+    uiState.editingId = null;
+  } else {
+    const id = FC.utils.uid();
+    materials.push(Object.assign({ id }, data));
+  }
+  FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+  renderPriceModal();
+  renderCabinetModal();
+}
 
+function saveServiceFromForm(){
+  const category = document.getElementById('formCategory').value.trim() || 'Montaż';
+  const name = document.getElementById('formServiceName').value.trim();
+  const price = parseFloat(document.getElementById('formServicePrice').value || 0);
+  if(!name){ alert('Wprowadź nazwę'); return; }
+  const data = { category, name, price };
+  if(uiState.editingId){
+    services = services.map(s => s.id === uiState.editingId ? Object.assign({}, s, data) : s);
+    uiState.editingId = null;
+  } else {
+    const id = FC.utils.uid();
+    services.push(Object.assign({ id }, data));
+  }
+  FC.storage.setJSON(STORAGE_KEYS.services, services);
+  renderPriceModal();
+}
 
-
-/* moved to js/app/modals/price.js: saveMaterialFromForm */
-
-
-
-/* moved to js/app/modals/price.js: saveServiceFromForm */
-
-
-
-/* moved to js/app/modals/price.js: deletePriceItem */
-
+function deletePriceItem(item){
+  if(!confirm('Usunąć pozycję?')) return;
+  if(uiState.showPriceList === 'materials'){ materials = materials.filter(m => m.id !== item.id); FC.storage.setJSON(STORAGE_KEYS.materials, materials); }
+  else { services = services.filter(s => s.id !== item.id); FC.storage.setJSON(STORAGE_KEYS.services, services); }
+  renderPriceModal();
+  renderCabinetModal();
+}
 
 /* ===== Cabinet Modal helpers ===== */
 function makeDefaultCabinetDraftForRoom(room){
@@ -1561,9 +1274,17 @@ function makeDefaultCabinetDraftForRoom(room){
   };
 }
 
-
-/* moved to js/app/modals/cabinet.js: openCabinetModalForAdd */
-
+function openCabinetModalForAdd(){
+  cabinetModalState.mode = 'add';
+  cabinetModalState.editingId = null;
+  cabinetModalState.setEditId = null;
+  cabinetModalState.chosen = null;
+  cabinetModalState.setPreset = null;
+  cabinetModalState.draft = makeDefaultCabinetDraftForRoom(uiState.roomType);
+  renderCabinetModal();
+  document.getElementById('cabinetModal').style.display = 'flex';
+  lockModalScroll();
+}
 
 
 function lockModalScroll(){
@@ -1575,9 +1296,27 @@ function unlockModalScroll(){
   document.body.classList.remove('modal-lock');
 }
 
+function openCabinetModalForEdit(cabId){
+  cabId = String(cabId);
+  const room = uiState.roomType; if(!room) return;
+  const cab = projectData[room].cabinets.find(c => String(c.id) === cabId);
+  if(!cab) return;
 
-/* moved to js/app/modals/cabinet.js: openCabinetModalForEdit */
+  if(cab.setId){
+    openSetWizardForEdit(cab.setId);
+    return;
+  }
 
+  cabinetModalState.mode = 'edit';
+  cabinetModalState.editingId = cabId;
+  cabinetModalState.setEditId = null;
+  cabinetModalState.chosen = cab.type;
+  cabinetModalState.setPreset = null;
+  cabinetModalState.draft = FC.utils.clone(cab);
+  renderCabinetModal();
+  document.getElementById('cabinetModal').style.display = 'flex';
+  lockModalScroll();
+}
 
 function openSetWizardForEdit(setId){
   setId = String(setId);
@@ -1598,9 +1337,10 @@ function openSetWizardForEdit(setId){
   lockModalScroll();
 }
 
-
-/* moved to js/app/modals/cabinet.js: closeCabinetModal */
-
+function closeCabinetModal(){
+  unlockModalScroll();
+  document.getElementById('cabinetModal').style.display = 'none';
+}
 
 /* ===== Cabinet Modal rendering ===== */
 function renderCabinetTypeChoices(){
@@ -2621,9 +2361,540 @@ function wireSetParamsLiveUpdate(presetId){
 }
 
 /* ===== Cabinet modal render ===== */
+function renderCabinetModal(){
+  const isSetEdit = !!cabinetModalState.setEditId;
 
-/* moved to js/app/modals/cabinet.js: renderCabinetModal */
+  // Zatwierdź w nagłówku: widoczne tylko gdy pokazujemy formularz szafki (nie przy wyborze typu i nie w zestawie)
+  const saveTopBtn = document.getElementById('cabinetModalSave');
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'none';
+    saveTopBtn.disabled = true;
+  }
 
+  document.getElementById('cabinetModalIcon').textContent = isSetEdit ? '✏️' : (cabinetModalState.mode === 'edit' ? '✏️' : '➕');
+  document.getElementById('cabinetModalTitle').textContent = isSetEdit ? 'Edytuj zestaw' : (cabinetModalState.mode === 'edit' ? 'Edytuj szafkę' : 'Dodaj');
+
+  const choiceCard = document.getElementById('cabinetChoiceCard');
+  choiceCard.style.display = isSetEdit ? 'none' : 'block';
+
+  if(!isSetEdit){
+    renderCabinetTypeChoices();
+  } else {
+    cabinetModalState.chosen = 'zestaw';
+  }
+
+  const formArea = document.getElementById('cabinetFormArea');
+  const setArea = document.getElementById('setWizardArea');
+
+  formArea.style.display = 'none';
+  setArea.style.display = 'none';
+
+  if(cabinetModalState.chosen === 'zestaw'){
+    setArea.style.display = 'block';
+    renderSetTiles();
+
+    // W trybie zestawu pokaż \"Zatwierdź\" w nagłówku (działa jak Dodaj zestaw / Zapisz zmiany)
+    if(saveTopBtn){
+      const _btn = document.getElementById('setWizardCreate');
+      saveTopBtn.style.display = 'inline-flex';
+      saveTopBtn.disabled = false;
+      saveTopBtn.textContent = _btn ? _btn.textContent : (isSetEdit ? 'Zapisz zmiany' : 'Dodaj zestaw');
+    }
+
+    if(isSetEdit){
+      document.querySelectorAll('#setTiles .mini-tile').forEach(tile=>{
+        tile.style.pointerEvents = 'none';
+        tile.style.opacity = '0.8';
+      });
+      document.getElementById('setWizardCreate').textContent = 'Zapisz zmiany';
+      document.getElementById('setWizardTitle').textContent = 'Zestaw (edycja)';
+      document.getElementById('setWizardDesc').textContent = 'Zmieniasz parametry zestawu. Program przeliczy korpusy i fronty.';
+    } else {
+      document.getElementById('setWizardCreate').textContent = 'Dodaj zestaw';
+      document.getElementById('setWizardTitle').textContent = 'Zestaw';
+      document.getElementById('setWizardDesc').textContent = 'Wybierz standardowy układ. Program doda kilka korpusów oraz fronty.';
+    }
+
+    const hasPreset = !!cabinetModalState.setPreset;
+    renderSetParamsUI(cabinetModalState.setPreset);
+    document.getElementById('setParams').style.display = hasPreset ? 'grid' : 'none';
+
+    const frontBlock = document.getElementById('setFrontBlock');
+    frontBlock.style.display = hasPreset ? 'block' : 'none';
+
+    if(hasPreset){
+      const cntSel = document.getElementById('setFrontCount');
+      const matSel = document.getElementById('setFrontMaterial');
+      const colSel = document.getElementById('setFrontColor');
+
+      if(!cntSel.value) cntSel.value = '2';
+      if(!matSel.value) matSel.value = 'laminat';
+      populateFrontColorsTo(colSel, matSel.value, colSel.value || '');
+
+      matSel.onchange = () => { populateFrontColorsTo(colSel, matSel.value, ''); };
+
+      const hint = document.getElementById('setFrontHint');
+      const updateHint = () => {
+        const c = Number(cntSel.value || 1);
+        if(c === 1){
+          hint.textContent = 'Powstanie 1 front (na całą szerokość zestawu) o wysokości sumy segmentów.';
+        } else {
+          hint.textContent = 'Powstaną 2 fronty. Dla zestawu A: lewy/prawy. Dla pionów: po 1/2 szerokości każdy.';
+        }
+      };
+      cntSel.onchange = updateHint;
+      updateHint();
+    }
+
+    return;
+  }
+
+  if(!cabinetModalState.chosen) return;
+
+  formArea.style.display = 'block';
+
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'inline-flex';
+    saveTopBtn.disabled = false;
+  }
+
+  // pokazujemy Zatwierdź w nagłówku dopiero gdy jest formularz
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'inline-flex';
+    saveTopBtn.disabled = false;
+  }
+
+  const draft = cabinetModalState.draft;
+  const room = uiState.roomType;
+
+  // Rodzaj z kafelka
+  draft.type = cabinetModalState.chosen;
+
+  const cmSubType = document.getElementById('cmSubType');
+  populateSelect(cmSubType, getSubTypeOptionsForType(draft.type), draft.subType);
+
+  renderCabinetExtraDetailsInto(document.getElementById('cmExtraDetails'), draft);
+
+  document.getElementById('cmWidth').value = draft.width;
+  document.getElementById('cmHeight').value = draft.height;
+  document.getElementById('cmDepth').value = draft.depth;
+
+  document.getElementById('cmFrontMaterial').value = draft.frontMaterial || 'laminat';
+  document.getElementById('cmBackMaterial').value = draft.backMaterial || 'HDF 3mm biała';
+
+  populateFrontColorsTo(document.getElementById('cmFrontColor'), draft.frontMaterial || 'laminat', draft.frontColor || '');
+  populateBodyColorsTo(document.getElementById('cmBodyColor'), draft.bodyColor || '');
+  populateOpeningOptionsTo(document.getElementById('cmOpeningSystem'), draft.type, draft.openingSystem || 'uchwyt klienta');
+
+  // FRONT COUNT UI
+  const fcSel = document.getElementById('cmFrontCount');
+  const fcStatic = document.getElementById('cmFrontCountStatic');
+  const fcHint = document.getElementById('cmFrontCountHint');
+  const fcWrap = document.getElementById('cmFrontCountWrap');
+  const shelvesWrap = document.getElementById('cmShelvesWrap');
+  const shelvesInput = document.getElementById('cmShelves');
+
+const flapWrap = document.getElementById('cmFlapWrap');
+const flapVendorSel = document.getElementById('cmFlapVendor');
+const flapKindWrap = document.getElementById('cmFlapKindWrap');
+const flapKindSel = document.getElementById('cmFlapKind');
+const flapInfo = document.getElementById('cmFlapInfo');
+const flapFrontInfo = document.getElementById('cmFlapFrontInfo');
+
+const isFlapDraft = ((draft.type === 'wisząca' || draft.type === 'moduł') && draft.subType === 'uchylne');
+
+const BLUM_KINDS = [
+  { v:'HKI', t:'HKI – zintegrowany' },
+  { v:'HF_top', t:'HF top – składany (2 fronty)' },
+  { v:'HS_top', t:'HS top – uchylno‑nachodzący' },
+  { v:'HL_top', t:'HL top – podnoszony ponad korpus' },
+  { v:'HK_top', t:'HK top – uchylny' },
+  { v:'HK-S', t:'HK‑S – mały uchylny' },
+  { v:'HK-XS', t:'HK‑XS – mały uchylny (z zawiasami)' }
+];
+const HAFELE_KINDS = [
+  { v:'DUO', t:'Rozwórka nożycowa DUO.' }
+];
+
+function syncFlapUI(){
+  // UI dla klap (uchylne) tylko dla: wisząca + uchylne
+  if(!isFlapDraft){
+    if(flapWrap) flapWrap.style.display = 'none';
+    return;
+  }
+  if(flapWrap) flapWrap.style.display = 'block';
+
+  const d = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+  let vendor = String(d.flapVendor || 'blum');
+  if(!['blum','gtv','hafele'].includes(vendor)) vendor = 'blum';
+  d.flapVendor = vendor;
+
+  // vendor select
+  if(flapVendorSel){
+    flapVendorSel.value = vendor;
+    flapVendorSel.onchange = () => {
+      const dv = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+      const v = String(flapVendorSel.value || 'blum');
+      dv.flapVendor = (['blum','gtv','hafele'].includes(v) ? v : 'blum');
+
+      // domyślne rodzaje po zmianie firmy
+      if(dv.flapVendor === 'hafele') dv.flapKind = 'DUO';
+      else if(dv.flapVendor === 'gtv') dv.flapKind = '';
+      else dv.flapKind = 'HKI';
+
+      draft.details = dv;
+      ensureFrontCountRules(draft);
+      renderCabinetModal();
+    };
+  }
+
+  // vendor specific UI
+  if(vendor === 'gtv'){
+    if(flapKindWrap) flapKindWrap.style.display = 'none';
+    if(flapInfo){
+      flapInfo.style.display = 'block';
+      flapInfo.textContent = 'GTV – w budowie.';
+    }
+    draft.details = d;
+    ensureFrontCountRules(draft);
+    return;
+  }
+
+  if(flapInfo) flapInfo.style.display = 'none';
+  if(flapKindWrap) flapKindWrap.style.display = 'block';
+
+  const kindOptions = (vendor === 'hafele') ? HAFELE_KINDS : BLUM_KINDS;
+  const defaultKind = (vendor === 'hafele') ? 'DUO' : 'HKI';
+  const selectedKind = String(d.flapKind || defaultKind);
+  d.flapKind = selectedKind;
+
+  if(flapKindSel){
+    populateSelect(flapKindSel, kindOptions, selectedKind);
+    flapKindSel.onchange = () => {
+      const dv = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+      dv.flapKind = String(flapKindSel.value || defaultKind);
+      draft.details = dv;
+      ensureFrontCountRules(draft);
+      renderCabinetModal();
+    };
+  }
+
+  draft.details = d;
+  ensureFrontCountRules(draft);
+}
+
+  // Podblatowa (wisząca dolna): pozwól na brak frontów oraz rozróżnij drzwi vs szuflady
+  const isPodblatowaDraft = (draft.type === 'wisząca' && draft.subType === 'dolna_podblatowa');
+  const fcLabelEl = document.getElementById('cmFrontCountLabel');
+  const setFcOptions = (arr) => {
+    fcSel.innerHTML = arr.map(n => `<option value="${n}">${n}</option>`).join('');
+  };
+
+  if(isPodblatowaDraft){
+    const d = draft.details || {};
+    // domyślne wartości + kompatybilność wstecz
+    if(!d.podFrontMode){
+      if(d.subTypeOption === 'szuflada_1'){ d.podFrontMode = 'szuflady'; draft.frontCount = 1; }
+      else if(d.subTypeOption === 'szuflada_2'){ d.podFrontMode = 'szuflady'; draft.frontCount = 2; }
+      else d.podFrontMode = (Number(draft.frontCount) === 0 ? 'brak' : 'drzwi');
+      draft.details = Object.assign({}, d, { podFrontMode: d.podFrontMode });
+    }
+    if(fcLabelEl){
+      fcLabelEl.textContent = (d.podFrontMode === 'szuflady') ? 'Ilość szuflad' : 'Ilość frontów';
+    }
+    if(d.podFrontMode === 'brak'){
+      setFcOptions([0]);
+      draft.frontCount = 0;
+      fcSel.disabled = true;
+      if(fcHint) fcHint.textContent = 'Otwarta szafka (bez frontów).';
+    } else {
+      setFcOptions([1,2]);
+      if(![1,2].includes(Number(draft.frontCount))) draft.frontCount = 2;
+      fcSel.disabled = false;
+      if(fcHint) fcHint.textContent = (d.podFrontMode === 'szuflady') ? 'Ilość szuflad = ilość frontów szuflad.' : 'Ilość drzwi/frontów.';
+    }
+  } else {
+    // standardowe opcje: 1 lub 2 fronty
+    if(fcLabelEl) fcLabelEl.textContent = 'Ilość frontów';
+    setFcOptions([1,2]);
+  }
+
+  ensureFrontCountRules(draft);
+  syncFlapUI();
+
+  // Domyślnie pokazuj select, a statyczne info ukrywaj (wyjątek: klapy)
+  if(fcSel) fcSel.style.display = '';
+  if(fcStatic){
+    fcStatic.style.display = 'none';
+    fcStatic.textContent = '';
+  }
+
+  // czy pokazujemy wybór 1/2?
+  const canPick = cabinetAllowsFrontCount(draft);
+  const fixedOne = (draft.type === 'stojąca' && (draft.subType === 'zmywarkowa' || draft.subType === 'piekarnikowa' || (draft.subType === 'rogowa_slepa' && (draft.details?.cornerOption||'polki') === 'magic_corner'))) || (draft.type === 'stojąca' && draft.subType === 'zlewowa' && (draft.details?.sinkFront||'drzwi') === 'szuflada');
+  const isFridge = (draft.type === 'stojąca' && draft.subType === 'lodowkowa');
+
+  // lodówkowa w zabudowie — zamiast frontCount używamy details.fridgeFrontCount (1/2)
+  const isCornerL = (draft.subType === 'narozna_l');
+
+  if(isFridge){
+    // frontCount select ukrywamy (bo fronty lodówki wybiera się w szczegółach lodówki)
+    if(fcWrap) fcWrap.style.display = 'none';
+    fcHint.style.display = 'none';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+  } else if(isCornerL){
+    // narożna L: zawsze 2 fronty, zamiast wyboru frontów pokazujemy ilość półek
+    draft.frontCount = 2;
+
+    if(fcWrap) fcWrap.style.display = 'none';
+    fcHint.style.display = 'none';
+
+    if(shelvesWrap){
+      shelvesWrap.style.display = 'block';
+      const d = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+      const sh = (d.shelves == null ? 2 : Number(d.shelves));
+      draft.details = Object.assign({}, d, { shelves: Math.max(0, Math.round(Number.isFinite(sh) ? sh : 0)) });
+
+      if(shelvesInput){
+        shelvesInput.value = String(draft.details.shelves);
+        const onShelvesChange = () => {
+          const v = Math.max(0, Math.round(Number(shelvesInput.value) || 0));
+          draft.details = Object.assign({}, draft.details || {}, { shelves: v });
+          shelvesInput.value = String(v);
+        };
+        shelvesInput.oninput = onShelvesChange;
+        shelvesInput.onchange = onShelvesChange;
+      }
+    }
+  } else if(isFlapDraft){
+    // Klapa: ilość frontów jest automatyczna (1 lub 2 zależnie od rodzaju)
+    // Półki: użytkownik może wpisać (do wyceny i rozrysu)
+    if(shelvesWrap) shelvesWrap.style.display = 'block';
+    if(!draft.details) draft.details = {};
+    if(draft.details.shelves === undefined || draft.details.shelves === null) draft.details.shelves = 0;
+    if(shelvesInput){
+      shelvesInput.value = String(Math.max(0, Math.round(Number(draft.details.shelves) || 0)));
+      const onShelvesChange = () => {
+        const v = Math.max(0, Math.round(Number(shelvesInput.value) || 0));
+        draft.details = Object.assign({}, draft.details || {}, { shelves: v });
+        shelvesInput.value = String(v);
+      };
+      shelvesInput.oninput = onShelvesChange;
+      shelvesInput.onchange = onShelvesChange;
+    }
+
+
+    const fcAuto = getFlapFrontCount(draft);
+    // dla klap ilość frontów jest automatyczna i pokazujemy ją pod wyborem podnośnika
+    if(fcWrap) fcWrap.style.display = 'none';
+    if(fcSel){
+      fcSel.style.display = 'none';
+      fcSel.innerHTML = `<option value="${fcAuto}">${fcAuto}</option>`;
+      fcSel.value = String(fcAuto);
+      fcSel.disabled = true;
+    }
+    if(fcStatic) fcStatic.style.display = 'none';
+    if(fcHint) fcHint.style.display = 'none';
+    if(flapFrontInfo){
+      flapFrontInfo.style.display = 'inline-block';
+      flapFrontInfo.textContent = `Ilość frontów: ${fcAuto}` + ((fcAuto === 2) ? ' (HF top)' : '');
+    }
+  } else if(!canPick){
+    if(fcWrap) fcWrap.style.display = 'none';
+    fcHint.style.display = 'none';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+  } else if(fixedOne){
+    if(fcWrap) fcWrap.style.display = 'block';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+
+    fcSel.value = '1';
+    fcSel.disabled = true;
+    fcHint.style.display = 'block';
+    fcHint.textContent = 'Dla tej szafki ilość frontów jest stała: 1.';
+  } else {
+    if(fcWrap) fcWrap.style.display = 'block';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+
+    const podBrak = (isPodblatowaDraft && draft.details && draft.details.podFrontMode === 'brak');
+    fcSel.disabled = podBrak ? true : false;
+    const fcVal = (draft.frontCount === 0 ? 0 : (draft.frontCount || 2));
+    fcSel.value = String(fcVal);
+    if(podBrak){
+      fcHint.style.display = 'block';
+      fcHint.textContent = 'Otwarta szafka (bez frontów).';
+    } else {
+      fcHint.style.display = 'none';
+    }
+  }
+
+  cmSubType.onchange = () => {
+    applySubTypeRules(room, draft, cmSubType.value);
+ensureFrontCountRules(draft);
+
+// Moduł → Uchylna: wymuś tryb klapy i wyczyść ewentualne dane po szufladach
+if(draft.type === 'moduł' && cmSubType.value === 'uchylne'){
+  draft.subType = 'uchylne';
+  draft.details = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+  // fronty dla klapy wynikają z rodzaju podnośnika (HF top = 2)
+  draft.frontCount = getFlapFrontCount(draft);
+}
+
+// zmywarkowa: szerokość szafki = szerokość zmywarki + przegrody techniczne dla wysokich frontów
+if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
+  const leg = Number(projectData[room]?.settings?.legHeight) || 0;
+  const dw = (draft.details && draft.details.dishWasherWidth) ? draft.details.dishWasherWidth : (String(draft.width || '60'));
+  draft.details = Object.assign({}, draft.details || {}, { dishWasherWidth: dw });
+  draft.width = Number(dw) || 60;
+
+  const frontH = (Number(draft.height) || 0) - leg;
+  // Przegroda techniczna: 74.6–76.5 => 1; 76.6–78.5 => 2; itd.
+  const div = (frontH > 74.5) ? Math.max(0, Math.ceil(((frontH - 74.5) / 2) - 1e-9)) : 0;
+  draft.details = Object.assign({}, draft.details, { techDividerCount: String(div) });
+}
+
+    renderCabinetModal();
+  };
+
+  fcSel.onchange = () => {
+    draft.frontCount = Number(fcSel.value || 2);
+  };
+
+  document.getElementById('cmWidth').onchange = e => { draft.width = parseFloat(e.target.value || 0); };
+
+  // Live re-check dla uchylnych: po zmianie wysokości od razu przelicz LF i sprawdź zakresy
+  const _liveAventosCheck = () => {
+    try{
+      const room = uiState.roomType;
+      syncDraftFromCabinetModalForm(draft);
+      ensureFrontCountRules(draft);
+
+      // Walidacja szuflad systemowych (GTV/Rejs – w budowie -> blokada zapisu)
+      const _drawerBlockMsg = (function(){
+        const dd = draft.details || {};
+        const checkSystem = (sys, brand, ctx) => {
+          if(String(sys||'') !== 'systemowe') return null;
+          const b = String(brand||'blum');
+          if(b !== 'blum') return `Szuflady ${ctx}: ${b.toUpperCase()} – w budowie. Nie można zatwierdzić.`;
+          return null;
+        };
+        // główna szuflada (szufladowa / moduł / zlewowa front / piekarnikowa)
+        let m = checkSystem(dd.drawerSystem, dd.drawerBrand, 'frontowe');
+        if(m) return m;
+        // zlewowa: szuflada wewnętrzna
+        m = checkSystem(dd.sinkInnerDrawerType, dd.sinkInnerDrawerBrand, 'wewnętrzne (zlewowa)');
+        if(m) return m;
+        return null;
+      })();
+      if(_drawerBlockMsg){ alert(_drawerBlockMsg); return; }
+      applyAventosValidationUI(room, draft);
+    }catch(_e){ /* nie psuj modala */ }
+  };
+  const _cmHeightEl = document.getElementById('cmHeight');
+  if(_cmHeightEl){
+    _cmHeightEl.oninput = _liveAventosCheck;
+    _cmHeightEl.onchange = _liveAventosCheck;
+  }
+
+  const _cmWidthEl = document.getElementById('cmWidth');
+  if(_cmWidthEl){
+    _cmWidthEl.oninput = _liveAventosCheck;
+    _cmWidthEl.onchange = _liveAventosCheck;
+  }
+  const _cmDepthEl = document.getElementById('cmDepth');
+  if(_cmDepthEl){
+    _cmDepthEl.oninput = _liveAventosCheck;
+    _cmDepthEl.onchange = _liveAventosCheck;
+  }
+
+  document.getElementById('cmFrontMaterial').onchange = e => {
+    draft.frontMaterial = e.target.value;
+    const first = materials.find(m => m.materialType === draft.frontMaterial);
+    draft.frontColor = first ? first.name : '';
+    renderCabinetModal();
+  };
+  document.getElementById('cmFrontColor').onchange = e => { draft.frontColor = e.target.value; };
+  document.getElementById('cmBackMaterial').onchange = e => { draft.backMaterial = e.target.value; };
+  document.getElementById('cmBodyColor').onchange = e => { draft.bodyColor = e.target.value; };
+  document.getElementById('cmOpeningSystem').onchange = e => { draft.openingSystem = e.target.value; };
+
+  const _cabCancel = document.getElementById('cabinetModalCancel');
+  if(_cabCancel) _cabCancel.onclick = closeCabinetModal;
+  document.getElementById('cabinetModalSave').onclick = (e) => {
+    // twarde zabezpieczenie: żadnego "przebicia" kliknięcia do innych handlerów
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+
+    // Tryb zestawu: Zatwierdź działa jak "Dodaj zestaw / Zapisz zmiany"
+    const _setArea = document.getElementById('setWizardArea');
+    const inSetMode = (cabinetModalState && cabinetModalState.chosen === 'zestaw') ||
+                      (cabinetModalState && cabinetModalState.setEditId) ||
+                      (_setArea && _setArea.style.display === 'block');
+    if(inSetMode){
+      try{
+        createOrUpdateSetFromWizard();
+      } catch(err){
+        console.error(err);
+        alert('Błąd zapisu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
+      }
+      return;
+    }
+    try{
+      if(!uiState.roomType){ alert('Wybierz pomieszczenie'); return; }
+      const room = uiState.roomType;
+
+      syncDraftFromCabinetModalForm(draft);
+      ensureFrontCountRules(draft);
+
+      // Walidacja podnośników (AVENTOS) na etapie zapisu – jeśli poza zakresem, nie dodawaj/nie zapisuj
+      const _av = validateAventosForDraft(room, draft);
+      if(_av && _av.ok === false){
+        applyAventosValidationUI(room, draft);
+        return;
+      }
+
+      const beforeCount = (projectData[room].cabinets || []).length;
+
+      const isAdd = (cabinetModalState.mode === 'add' || !cabinetModalState.editingId);
+      if(isAdd){
+        const newCab = FC.utils.clone(draft);
+        newCab.id = FC.utils.uid();
+        projectData[room].cabinets.push(newCab);
+        uiState.expanded = {};
+        // domyślnie zwinięte
+        
+        uiState.selectedCabinetId = newCab.id;
+
+        // generuj fronty jeśli trzeba (lodówkowa też)
+        generateFrontsForCabinet(room, newCab);
+      } else {
+        const id = cabinetModalState.editingId;
+        projectData[room].cabinets = projectData[room].cabinets.map(c => c.id === id ? Object.assign({}, FC.utils.clone(draft), { id }) : c);
+
+        const updated = projectData[room].cabinets.find(c => c.id === id);
+        if(updated) generateFrontsForCabinet(room, updated);
+      }
+
+      projectData = FC.project.save(projectData);
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+      // najpierw odśwież widok — jeśli coś się wysypie, modal ma zostać otwarty
+      renderCabinets();
+
+      const afterCount = (projectData[room].cabinets || []).length;
+      if(isAdd && afterCount <= beforeCount){
+        alert('Nie udało się dodać szafki (błąd logiki zapisu).');
+        return;
+      }
+
+      closeCabinetModal();
+    }catch(err){
+      console.error('Błąd zapisu szafki:', err);
+      alert('Błąd podczas zapisu (sprawdź konsolę). Modal pozostaje otwarty.');
+    }
+  };
+
+  // Walidacja klapy (AVENTOS) – blokuj zapis jeśli poza zakresem
+  applyAventosValidationUI(room, draft);
+}
 
 /* ===== create fronts for sets ===== */
 function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber){
@@ -4829,9 +5100,87 @@ if(uiState.expanded[cab.id]){
 }
 
 /* ===== Price modal render ===== */
+function renderPriceModal(){
+  const modal = document.getElementById('priceModal'); const type = uiState.showPriceList;
+  if(!type){ modal.style.display = 'none'; return; }
+  modal.style.display = 'flex';
+  const isMat = type === 'materials';
+  document.getElementById('priceModalTitle').textContent = isMat ? 'Cennik Materiałów' : 'Cennik Usług';
+  document.getElementById('priceModalSubtitle').textContent = isMat ? 'Dodaj/edytuj materiały' : 'Dodaj/edytuj usługi';
+  document.getElementById('priceModalIcon').textContent = isMat ? '🧩' : '🔧';
+  document.getElementById('materialFormFields').style.display = isMat ? 'block' : 'none';
+  document.getElementById('serviceFormFields').style.display = isMat ? 'none' : 'block';
+  document.getElementById('editingIndicator').style.display = uiState.editingId ? 'inline-block' : 'none';
 
-/* moved to js/app/modals/price.js: renderPriceModal */
+  const formMaterialType = document.getElementById('formMaterialType'); formMaterialType.innerHTML = '';
+  ['laminat','akryl','lakier','blat','akcesoria'].forEach(t => { const o=document.createElement('option'); o.value=t; o.textContent=t; formMaterialType.appendChild(o); });
+  const formManufacturer = document.getElementById('formManufacturer');
+  function populateManufacturersFor(typeVal){ formManufacturer.innerHTML=''; (MANUFACTURERS[typeVal]||[]).forEach(m=>{const o=document.createElement('option'); o.value=m; o.textContent=m; formManufacturer.appendChild(o)}); }
+  populateManufacturersFor(formMaterialType.value);
+  formMaterialType.onchange = () => populateManufacturersFor(formMaterialType.value);
 
+  if(uiState.editingId){
+    if(isMat){
+      const item = materials.find(m => m.id === uiState.editingId);
+      if(item){
+        formMaterialType.value = item.materialType || 'laminat';
+        populateManufacturersFor(formMaterialType.value);
+        document.getElementById('formManufacturer').value = item.manufacturer || '';
+        document.getElementById('formSymbol').value = item.symbol || '';
+        document.getElementById('formName').value = item.name || '';
+        document.getElementById('formPrice').value = item.price || '';
+      }
+    } else {
+      const item = services.find(s => s.id === uiState.editingId);
+      if(item){
+        document.getElementById('formCategory').value = item.category || 'Montaż';
+        document.getElementById('formServiceName').value = item.name || '';
+        document.getElementById('formServicePrice').value = item.price || '';
+      }
+    }
+    document.getElementById('cancelEditBtn').style.display = isMat ? 'inline-block' : 'none';
+    document.getElementById('cancelServiceEditBtn').style.display = isMat ? 'none' : 'inline-block';
+  } else {
+    formMaterialType.value = 'laminat'; populateManufacturersFor('laminat');
+    document.getElementById('formSymbol').value = '';
+    document.getElementById('formName').value = '';
+    document.getElementById('formPrice').value = '';
+    document.getElementById('formCategory').value = 'Montaż';
+    document.getElementById('formServiceName').value = '';
+    document.getElementById('formServicePrice').value = '';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+    document.getElementById('cancelServiceEditBtn').style.display = 'none';
+  }
+
+  const q = document.getElementById('priceSearch').value.trim().toLowerCase();
+  const list = isMat ? materials : services;
+  const filtered = list.filter(item => {
+    const name = (item.name||'').toLowerCase(); const symbol=(item.symbol||'').toLowerCase(); const manu=(item.manufacturer||'').toLowerCase();
+    const mt=(item.materialType||'').toLowerCase(); const cat=(item.category||'').toLowerCase();
+    return name.includes(q) || symbol.includes(q) || manu.includes(q) || mt.includes(q) || cat.includes(q);
+  });
+
+  const container = document.getElementById('priceListItems'); container.innerHTML = '';
+  filtered.forEach(item => {
+    const row = document.createElement('div'); row.className='list-item';
+    const left = document.createElement('div');
+    left.innerHTML = `<div style="font-weight:900">${item.name}</div><div class="muted-tag xs">${isMat ? (item.materialType + ' • ' + (item.manufacturer||'') + (item.symbol ? ' • SYM: '+item.symbol : '')) : (item.category || '')}</div>`;
+    const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
+    const price = document.createElement('div'); price.style.fontWeight='900'; price.textContent = (Number(item.price)||0).toFixed(2) + ' PLN';
+    const editBtn = document.createElement('button'); editBtn.className='btn'; editBtn.textContent='Edytuj';
+    const delBtn = document.createElement('button'); delBtn.className='btn-danger'; delBtn.textContent='Usuń';
+    right.appendChild(price); right.appendChild(editBtn); right.appendChild(delBtn);
+    row.appendChild(left); row.appendChild(right); container.appendChild(row);
+
+    editBtn.addEventListener('click', () => { uiState.editingId = item.id; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); });
+    delBtn.addEventListener('click', () => deletePriceItem(item));
+  });
+
+  document.getElementById('savePriceBtn').onclick = saveMaterialFromForm;
+  document.getElementById('saveServiceBtn').onclick = saveServiceFromForm;
+  document.getElementById('cancelEditBtn').onclick = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); };
+  document.getElementById('cancelServiceEditBtn').onclick = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); };
+}
 
 
 // Jump helpers: per-cabinet navigation between SZAFKI and MATERIAŁ
