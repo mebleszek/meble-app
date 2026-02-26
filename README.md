@@ -13,3 +13,7 @@ W paczce `site.zip` powinny być **wszystkie pliki repo** (w tym `README.md` i `
 - `js/app/bindings.js` — delegacja klików + listenery inputów
 - `js/app/actions-register.js` — rejestracja wszystkich `data-action`
 - `js/app.js` — logika aplikacji + render + modale
+
+
+### Modale
+Logika modali została wydzielona do `js/app/modals/` (np. `price.js`, `cabinet.js`).

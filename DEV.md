@@ -46,3 +46,7 @@ To eliminuje 99% sytuacji typu `SyntaxError` na produkcji.
 - `js/core/modals.js` – modal manager.
 - `js/app/bindings.js` – **same listenery** (delegacja `data-action` + listenery inputów). Wywoływane z `initUI()`.
 - `js/app.js` – reszta logiki aplikacji (UI/render/obliczenia/dane).
+
+
+### Modale
+Logika modali została wydzielona do `js/app/modals/` (np. `price.js`, `cabinet.js`).
