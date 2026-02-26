@@ -63,7 +63,7 @@ jobs:
           shopt -s dotglob
           for item in * .*; do
             case "$item" in
-              .|..|.git|.github|site*.zip) ;;
+              .|..|.git|.github|site*.zip|_tmp_unzip) ;;
               *) rm -rf "$item" ;;
             esac
           done
@@ -76,17 +76,3 @@ jobs:
           set -euo pipefail
           rm -f site*.zip
           rm -rf _tmp_unzip
-
-      - name: Commit & push
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-          git commit -m "Deploy: unzip site.zip into repo root"
-          git push
