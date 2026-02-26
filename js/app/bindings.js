@@ -18,10 +18,6 @@
     if (!window.__FC_DELEGATION__) {
       window.__FC_DELEGATION__ = true;
 
-      // Suppress exactly the synthetic click that follows a handled pointerup.
-      // On some Android browsers, opening a modal during pointerup can prevent
-      // the subsequent click from firing, leaving a stale "suppress" flag that
-      // would swallow the *next* real user click. We avoid that by using a TTL.
       let __fcSuppressUntil = 0;
 
       const __fcHandle = (e) => {
@@ -52,7 +48,7 @@
         'pointerup',
         (e) => {
           const handled = __fcHandle(e);
-          if (handled) __fcSuppressUntil = Date.now() + 600;
+          if (handled) __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
         },
         { capture: true, passive: false }
       );
@@ -60,23 +56,21 @@
       document.addEventListener(
         'click',
         (e) => {
-          if (Date.now() < __fcSuppressUntil) {
+          if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
+            // reset even if this was not the synthetic click
             __fcSuppressUntil = 0;
             return;
+          }
+          if (__fcSuppressUntil && Date.now() >= __fcSuppressUntil) {
+            __fcSuppressUntil = 0;
           }
           __fcHandle(e);
         },
         { capture: true, passive: false }
       );
-
-      // Extra safety: never keep a stale suppression window if the browser
-      // doesn't emit a click at all (rare, but happens when DOM changes).
-      setInterval(() => {
-        if (__fcSuppressUntil && Date.now() > __fcSuppressUntil) __fcSuppressUntil = 0;
-      }, 1000);
     }
 
     // ===== Form inputs (change/input events are fine as direct listeners) =====
