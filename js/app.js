@@ -2792,6 +2792,14 @@ function renderCabinetModal(){
 
   if(cabinetModalState.chosen === 'zestaw'){
     setArea.style.display = 'block';
+
+    // UX/robustness: entering the set wizard without an explicitly selected preset
+    // should not make the "Dodaj zestaw" button look broken.
+    // Default to the first preset.
+    if(!isSetEdit && !cabinetModalState.setPreset){
+      cabinetModalState.setPreset = 'A';
+    }
+
     renderSetTiles();
 
     // W trybie zestawu pokaż \"Zatwierdź\" w nagłówku (działa jak Dodaj zestaw / Zapisz zmiany)
