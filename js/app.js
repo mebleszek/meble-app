@@ -521,15 +521,35 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
 const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
-
-// uiState is managed by js/app/ui-state.js when available (preferred).
-var uiState = (FC.uiState && typeof FC.uiState.get === 'function')
-  ? FC.uiState.get()
-  : (FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {});
+var uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
 uiState = Object.assign({}, __uiDefaults, uiState);
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
-if (FC.uiState && typeof FC.uiState.save === 'function') FC.uiState.save(uiState);
-else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+/* ===== Runtime validation (self-healing persisted state) ===== */
+try{
+  if (window.FC && window.FC.validate){
+    const V = window.FC.validate;
+    // Validate & repair lists.
+    materials = V.validateMaterials ? V.validateMaterials(materials) : materials;
+    services  = V.validateServices ? V.validateServices(services) : services;
+    projectData = V.validateProject ? V.validateProject(projectData) : projectData;
+    uiState   = V.validateUIState ? V.validateUIState(uiState) : uiState;
+
+    // Persist repairs back to storage.
+    if (V.persistIfPossible){
+      V.persistIfPossible(STORAGE_KEYS.materials, materials);
+      V.persistIfPossible(STORAGE_KEYS.services, services);
+      V.persistIfPossible(STORAGE_KEYS.projectData, projectData);
+      V.persistIfPossible(STORAGE_KEYS.ui, uiState);
+    } else {
+      FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+      FC.storage.setJSON(STORAGE_KEYS.services, services);
+      FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    }
+  }
+}catch(_){ }
 
 const MANUFACTURERS = {
   laminat: ['Egger','KronoSpan','Swiss Krono','Woodeco'],
@@ -616,11 +636,7 @@ function toggleExpandAll(id){
 /* Settings changes */
 function handleSettingChange(field, value){
   const room = uiState.roomType; if(!room) return;
-  const ranges = { roomHeight:[0,400], bottomHeight:[0,200], legHeight:[0,50], counterThickness:[0,10], gapHeight:[0,50], ceilingBlende:[0,50] };
-  const r = ranges[field];
-  const n = (FC.utils && FC.utils.num) ? FC.utils.num(value, 0) : (Number.isFinite(Number(value)) ? Number(value) : 0);
-  const nn = r && FC.utils && FC.utils.numClamp ? FC.utils.numClamp(n, 0, r[0], r[1]) : n;
-  projectData[room].settings[field] = value === '' ? 0 : nn;
+  projectData[room].settings[field] = value === '' ? 0 : parseFloat(value);
   projectData = FC.project.save(projectData);
   renderTopHeight();
   renderCabinets();
@@ -5677,7 +5693,15 @@ function initUI(){
   try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
   catch(_){ /* keep UI alive even if bindings fail */ }
 
-  if(FC.views && typeof FC.views.applyFromState==='function'){ FC.views.applyFromState(uiState); }
+  if(uiState.roomType){
+    document.getElementById('roomsView').style.display='none';
+    document.getElementById('appView').style.display='block';
+    document.getElementById('topTabs').style.display = 'inline-block';
+  } else {
+    document.getElementById('roomsView').style.display='block';
+    document.getElementById('appView').style.display='none';
+    document.getElementById('topTabs').style.display = 'none';
+  }
 
   document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
 
@@ -7416,16 +7440,21 @@ addFinish(room, {
 try{
   FC.init = initApp;
   // Expose safe helpers for external scripts / hotfixes
-  FC.backToRooms = function(){
-    uiState.roomType = null;
-    if(FC.uiState && FC.uiState.save) FC.uiState.save(uiState); else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(FC.views && FC.views.backToRooms) return FC.views.backToRooms();
-  };
-
   FC.openRoom = function(room){
     uiState.roomType = room;
-    if(FC.uiState && FC.uiState.save) FC.uiState.save(uiState); else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(FC.views && FC.views.openRoom) return FC.views.openRoom(room);
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    const rv = document.getElementById('roomsView');
+    const av = document.getElementById('appView');
+    const tabs = document.getElementById('topTabs');
+    if(rv) rv.style.display='none';
+    if(av) av.style.display='block';
+    if(tabs) tabs.style.display = 'inline-block';
+    uiState.activeTab = uiState.activeTab || 'wywiad';
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    try{ document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)'); }catch(_){}
+    try{ renderTopHeight(); }catch(_){}
+    try{ renderCabinets(); }catch(_){}
+    try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
   };
   FC.setActiveTabSafe = function(tab){
     try{ setActiveTab(tab); }catch(_){}

@@ -24,13 +24,12 @@
           return Number.isFinite(n) ? n : fallback;
         },
         clamp(n, min, max){
-          const x = Number(n);
-          if(!Number.isFinite(x)) return min;
-          return Math.min(max, Math.max(min, x));
+          if (!Number.isFinite(n)) return min;
+          return Math.min(max, Math.max(min, n));
         },
-        numClamp(v, fallback, min, max){
+        numClamp(v, min, max, fallback){
           const n = Number(v);
-          if(!Number.isFinite(n)) return fallback;
+          if (!Number.isFinite(n)) return fallback;
           return Math.min(max, Math.max(min, n));
         },
         isPlainObject(v){

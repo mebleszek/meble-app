@@ -41,13 +41,23 @@ To eliminuje 99% sytuacji typu `SyntaxError` na produkcji.
 
 ## 6) Struktura JS (ważne)
 
+
+### Mapa plików (gdzie co jest)
+
+**Start / core**
 - `js/boot.js` – bezpieczny start + czerwony pasek błędów.
-- `js/core/actions.js` – Actions registry (`data-action`).
+- `js/core/actions.js` – Actions registry + walidacja `data-action` (fail-fast).
 - `js/core/modals.js` – modal manager.
-- `js/app/bindings.js` – **same listenery** (delegacja `data-action` + listenery inputów). Wywoływane z `initUI()`.
-- `js/app.js` – reszta logiki aplikacji (UI/render/obliczenia/dane).
 
+**App: moduły bez efektów ubocznych (ładuj przed app.js)**
+- `js/app/constants.js` – klucze i stałe (`STORAGE_KEYS`).
+- `js/app/utils.js` – helpery (num/clone/uid/clamp).
+- `js/app/storage.js` – wrappery localStorage (getJSON/setJSON).
+- `js/app/validate.js` – walidacja + „samoleczenie” danych z localStorage.
 
-## Nowe moduły (2026-02-26)
-- `js/app/ui-state.js` — stan UI (uiState) + zapis do localStorage.
-- `js/app/views.js` — przełączanie widoków i tabów (rooms/app).
+**App: logika UI**
+- `js/app/bindings.js` – **same listenery** (delegacja `data-action` + listenery inputów).
+- `js/app/actions-register.js` – rejestracja akcji (`FC.actions.register({...})`) dla wszystkich `data-action`.
+- `js/app.js` – „klej” aplikacji + logika domenowa (render/obliczenia/dane), wywołuje moduły powyżej.
+
+**Zasada:** jeśli „klik nie działa” → `bindings.js`; jeśli „akcja robi źle” → `actions-register.js` + handler; jeśli „stan się psuje” → `validate.js`/`storage.js`.

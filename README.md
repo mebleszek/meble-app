@@ -13,8 +13,3 @@ W paczce `site.zip` powinny być **wszystkie pliki repo** (w tym `README.md` i `
 - `js/app/bindings.js` — delegacja klików + listenery inputów
 - `js/app/actions-register.js` — rejestracja wszystkich `data-action`
 - `js/app.js` — logika aplikacji + render + modale
-
-
-## Nowe moduły (2026-02-26)
-- `js/app/ui-state.js` — stan UI (uiState) + zapis do localStorage.
-- `js/app/views.js` — przełączanie widoków i tabów (rooms/app).
