@@ -619,30 +619,6 @@ function calcTopForSet(room, blende, sumLowerHeights){
   return h>0 ? Math.round(h*10)/10 : 0;
 }
 
-// ZESTAWY: na świeżym starcie zdarza się, że UI pokazuje liczby,
-// ale settings w projekcie nie są jeszcze zsynchronizowane. To powoduje
-// "mrugnięcie" i brak dodania zestawu. Ta funkcja wymusza synchronizację
-// kluczowych ustawień pokoju z aktualnych pól w DOM.
-function syncRoomSettingsFromDOM(room){
-  try{
-    if(!room || !projectData || !projectData[room] || !projectData[room].settings) return;
-    const ids = [
-      ['roomHeight','roomHeight'],
-      ['bottomHeight','bottomHeight'],
-      ['legHeight','legHeight'],
-      ['counterThickness','counterThickness'],
-      ['gapHeight','gapHeight'],
-      ['ceilingBlende','ceilingBlende'],
-    ];
-    ids.forEach(([id,key])=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      const n = parseFloat(el.value);
-      if(Number.isFinite(n)) projectData[room].settings[key] = n;
-    });
-  }catch(_){ }
-}
-
 /* Toggle expansion (single-open accordion) */
 function toggleExpandAll(id){
   const key = String(id);
@@ -2795,8 +2771,6 @@ function renderCabinetModal(){
   if(saveTopBtn){
     saveTopBtn.style.display = 'none';
     saveTopBtn.disabled = true;
-    // domyślny napis (po przełączeniu z "Zestaw" na zwykłą szafkę)
-    saveTopBtn.textContent = (cabinetModalState && cabinetModalState.mode === 'edit') ? 'Zapisz' : 'Zatwierdź';
   }
 
   document.getElementById('cabinetModalIcon').textContent = isSetEdit ? '✏️' : (cabinetModalState.mode === 'edit' ? '✏️' : '➕');
@@ -2818,11 +2792,6 @@ function renderCabinetModal(){
   setArea.style.display = 'none';
 
   if(cabinetModalState.chosen === 'zestaw'){
-    // Jeśli użytkownik wszedł w "Zestaw" i nic jeszcze nie kliknął,
-    // ustaw domyślny preset, żeby przycisk działał od razu.
-    if(!isSetEdit && !cabinetModalState.setPreset){
-      cabinetModalState.setPreset = 'A';
-    }
     setArea.style.display = 'block';
     renderSetTiles();
 
@@ -3374,10 +3343,7 @@ function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColo
 
 /* ===== Zestaw: odczyt/wpis parametrów UI ===== */
 function getSetParamsFromUI(presetId){
-  // Always read room from the same source of truth as the rest of the app.
-  const _state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : uiState;
-  const room = (_state && _state.roomType) || (uiState && uiState.roomType);
-  if(!room || !projectData || !projectData[room] || !projectData[room].settings) return null;
+  const room = uiState.roomType;
   const s = projectData[room].settings;
 
   function num(id, fallback=0){
@@ -3467,16 +3433,9 @@ function getNextSetNumber(room){
 
 function createOrUpdateSetFromWizard(){
   try{
-    // Sync global uiState from FC.uiState (single source of truth)
-    if(window.FC && FC.uiState && typeof FC.uiState.get === 'function'){
-      try{ uiState = FC.uiState.get(); }catch(_){ }
-    }
-    const state = (typeof uiState !== 'undefined' ? uiState : {});
-    const room = state && state.roomType;
-    if(!room){ alert('Wybierz pomieszczenie'); return false; }
-
-    // Critical: ensure room settings are synced from visible inputs on first run.
-    syncRoomSettingsFromDOM(room);
+    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
+    const room = state.roomType || (uiState && uiState.roomType);
+    if(!room){ alert('Wybierz pomieszczenie'); return; }
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
@@ -3495,7 +3454,7 @@ function createOrUpdateSetFromWizard(){
     }
 
     const params = getSetParamsFromUI(presetId);
-    if(!params){ alert('Brak parametrów'); return false; }
+    if(!params){ alert('Brak parametrów'); return; }
 
     // Ensure containers exist
     projectData[room] = projectData[room] || { cabinets:[], settings:{} };
@@ -3592,7 +3551,7 @@ function createOrUpdateSetFromWizard(){
     return true;
   }catch(e){
     alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
-    return false;
+    throw e;
   }
 }
 

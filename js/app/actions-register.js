@@ -14,15 +14,39 @@
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'create-set': ({event, element}) => {
       try{
-        const ok = (typeof createOrUpdateSetFromWizard === 'function') ? !!createOrUpdateSetFromWizard() : false;
-        try{ (element || (event && event.target)) && (element || event.target).blur && (element || event.target).blur(); }catch(_){}
-        if(!ok){
-          alert('Nie dodano zestawu. Sprawdź wybór zestawu i parametry (szerokość/wysokości/fronty).');
+        const state = (window.FC && FC.uiState && typeof FC.uiState.get==='function') ? FC.uiState.get() : (typeof uiState!=='undefined'?uiState:{});
+        const room = state.roomType || (uiState && uiState.roomType) || null;
+        const beforeCab = room && projectData && projectData[room] && Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets.length : 0;
+        const beforeSets = room && projectData && projectData[room] && Array.isArray(projectData[room].sets) ? projectData[room].sets.length : 0;
+
+        const ok = (typeof createOrUpdateSetFromWizard==='function') ? createOrUpdateSetFromWizard() : false;
+
+        const afterCab = room && projectData && projectData[room] && Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets.length : 0;
+        const afterSets = room && projectData && projectData[room] && Array.isArray(projectData[room].sets) ? projectData[room].sets.length : 0;
+
+        if(!ok || (afterCab===beforeCab && afterSets===beforeSets)){
+          const presetEl = document.querySelector('#setTiles .mini-tile.selected') || document.querySelector('#setTiles .mini-tile');
+          const preset = presetEl ? (presetEl.getAttribute('data-preset')||presetEl.dataset.preset||presetEl.textContent||'') : '';
+          alert(
+            'Nie dodano zestawu.
+' +
+            'roomType=' + (room||'BRAK') + '
+' +
+            'preset=' + (preset||'BRAK') + '
+' +
+            'frontCount=' + (document.getElementById('setFrontCount')?.value||'BRAK') + '
+' +
+            'material=' + (document.getElementById('setFrontMaterial')?.value||'BRAK') + '
+' +
+            'color=' + (document.getElementById('setFrontColor')?.value||'BRAK')
+          );
+          // zdejmij focus z przycisku, żeby nie wyglądał jak "zablokowany"
+          try{ (element||event?.target)?.blur?.(); }catch(_){}
         }
-        return ok;
+        return true;
       }catch(e){
-        alert('Błąd przy dodawaniu zestawu: ' + ((e && e.message) ? e.message : e));
-        return false;
+        alert('Błąd w create-set: ' + (e && e.message ? e.message : e));
+        return true;
       }
     },
 
