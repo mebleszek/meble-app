@@ -2627,6 +2627,7 @@ function renderSetTiles(){
   presets.forEach(p => {
     const tile = document.createElement('div');
     tile.className = 'mini-tile' + (cabinetModalState.setPreset === p.id ? ' selected' : '');
+    tile.setAttribute('data-preset', p.id);
     tile.innerHTML = `
       <div class="mini-head">
         ${p.svg}
@@ -2792,14 +2793,6 @@ function renderCabinetModal(){
 
   if(cabinetModalState.chosen === 'zestaw'){
     setArea.style.display = 'block';
-
-    // UX/robustness: entering the set wizard without an explicitly selected preset
-    // should not make the "Dodaj zestaw" button look broken.
-    // Default to the first preset.
-    if(!isSetEdit && !cabinetModalState.setPreset){
-      cabinetModalState.setPreset = 'A';
-    }
-
     renderSetTiles();
 
     // W trybie zestawu pokaż \"Zatwierdź\" w nagłówku (działa jak Dodaj zestaw / Zapisz zmiany)
@@ -3444,8 +3437,21 @@ function createOrUpdateSetFromWizard(){
     const room = state.roomType || (uiState && uiState.roomType);
     if(!room){ alert('Wybierz pomieszczenie'); return; }
 
-    const presetId = (typeof cabinetModalState !== 'undefined' && cabinetModalState) ? cabinetModalState.setPreset : null;
-    if(!presetId){ alert('Wybierz zestaw'); return; }
+    const presetId =
+      ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
+      || (document.querySelector('#setTiles .mini-tile.selected') && document.querySelector('#setTiles .mini-tile.selected').getAttribute('data-preset'))
+      || (document.querySelector('#setTiles .mini-tile') && document.querySelector('#setTiles .mini-tile').getAttribute('data-preset'))
+      || null;
+
+    if(!presetId){
+      alert('Wybierz zestaw');
+      return;
+    }
+
+    // keep state in sync if global exists
+    if(typeof cabinetModalState !== 'undefined' && cabinetModalState){
+      cabinetModalState.setPreset = presetId;
+    }
 
     const params = getSetParamsFromUI(presetId);
     if(!params){ alert('Brak parametrów'); return; }
