@@ -520,6 +520,24 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 ]);
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
+
+
+// Ensure per-room structures exist (cabinets/fronts/sets/settings) even for old/corrupted saves
+function ensureRoomData(room){
+  if(!room) return;
+  const defRoom = (window.FC && FC.project && FC.project.DEFAULT_PROJECT && FC.project.DEFAULT_PROJECT[room]) ? FC.project.DEFAULT_PROJECT[room] : null;
+  if(!projectData[room]){
+    projectData[room] = defRoom ? FC.utils.clone(defRoom) : { cabinets: [], fronts: [], sets: [], settings: {} };
+  }
+  const r = projectData[room];
+  if(!Array.isArray(r.cabinets)) r.cabinets = [];
+  if(!Array.isArray(r.fronts)) r.fronts = [];
+  if(!Array.isArray(r.sets)) r.sets = [];
+  if(!r.settings || typeof r.settings !== 'object') r.settings = {};
+  if(defRoom && defRoom.settings){
+    r.settings = Object.assign({}, defRoom.settings, r.settings);
+  }
+}
 const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
 var uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
 uiState = Object.assign({}, __uiDefaults, uiState);
@@ -3435,7 +3453,10 @@ function createOrUpdateSetFromWizard(){
   try{
     const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
     const room = state.roomType || (uiState && uiState.roomType);
-    if(!room){ alert('Wybierz pomieszczenie'); return false; }
+    if(!room){ alert('Wybierz pomieszczenie'); return; }
+
+    // Old saves may miss per-room arrays until first cabinet is added
+    ensureRoomData(room);
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
@@ -3445,7 +3466,7 @@ function createOrUpdateSetFromWizard(){
 
     if(!presetId){
       alert('Wybierz zestaw');
-      return false;
+      return;
     }
 
     // keep state in sync if global exists
@@ -3454,7 +3475,7 @@ function createOrUpdateSetFromWizard(){
     }
 
     const params = getSetParamsFromUI(presetId);
-    if(!params){ alert('Brak parametrów'); return false; }
+    if(!params){ alert('Brak parametrów'); return; }
 
     // Ensure containers exist
     projectData[room] = projectData[room] || { cabinets:[], settings:{} };
@@ -3466,7 +3487,7 @@ function createOrUpdateSetFromWizard(){
     const colEl = document.getElementById('setFrontColor');
     if(!cntEl || !matEl || !colEl){
       alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
-      return false;
+      return;
     }
 
     const frontCount = Number(cntEl.value || 1);
@@ -3548,10 +3569,9 @@ function createOrUpdateSetFromWizard(){
 
     closeCabinetModal();
     renderCabinets();
-    return true;
   }catch(e){
     alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
-    return false;
+    throw e;
   }
 }
 

@@ -12,27 +12,7 @@
     'close-price': ({event}) => { closePriceModal(); return true; },
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
-    'create-set': ({event}) => {
-      try{
-        const room = (typeof uiState !== 'undefined' && uiState) ? uiState.roomType : null;
-        if(!room){ alert('Wybierz pomieszczenie'); return true; }
-
-        const beforeCab = (projectData && projectData[room] && Array.isArray(projectData[room].cabinets)) ? projectData[room].cabinets.length : 0;
-        const beforeSet = (projectData && projectData[room] && Array.isArray(projectData[room].sets)) ? projectData[room].sets.length : 0;
-
-        const ok = (typeof createOrUpdateSetFromWizard === 'function') ? createOrUpdateSetFromWizard() : false;
-
-        const afterCab = (projectData && projectData[room] && Array.isArray(projectData[room].cabinets)) ? projectData[room].cabinets.length : 0;
-        const afterSet = (projectData && projectData[room] && Array.isArray(projectData[room].sets)) ? projectData[room].sets.length : 0;
-
-        if(ok === false || (afterCab === beforeCab && afterSet === beforeSet)){
-          alert('Nie dodano zestawu. Sprawdź: czy wybrany jest zestaw (A/C/D) oraz czy pola są wypełnione.');
-        }
-      }catch(err){
-        alert('Błąd przy dodawaniu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany'));
-      }
-      return true;
-    },
+    'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
 
     'save-material': ({event}) => {
       const btn = document.getElementById('savePriceBtn');
@@ -114,6 +94,7 @@
     'open-room': ({event, element}) => {
       const room = element.getAttribute('data-room');
       uiState.roomType = room;
+      if(typeof ensureRoomData==='function') ensureRoomData(room);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.getElementById('roomsView').style.display='none';
       document.getElementById('appView').style.display='block';
