@@ -145,7 +145,8 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
 const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
-let uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
+// Use var (not let) to avoid temporal-dead-zone edge cases if init is triggered unusually early.
+var uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
 uiState = Object.assign({}, __uiDefaults, uiState);
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
