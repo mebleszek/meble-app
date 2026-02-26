@@ -1,25 +1,25 @@
-name: Unzip site ZIP into repo root (Pages: main/root)
+name: Unzip site ZIP into repo root (Pages main/root)
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
     paths:
       - "site*.zip"
       - ".github/workflows/unzip-site-to-root.yml"
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: "unzip-to-root"
+  group: unzip-to-root
   cancel-in-progress: true
 
 jobs:
   unzip:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,7 +41,6 @@ jobs:
           mkdir -p _tmp_unzip
           unzip -q "$ZIP" -d _tmp_unzip
 
-          # Flatten single top-level folder if needed
           if [ ! -f _tmp_unzip/index.html ]; then
             topdir="$(find _tmp_unzip -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
             if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
