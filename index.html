@@ -5,26 +5,24 @@
 <meta charset="utf-8"/>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<meta content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
-<meta content="no-referrer" name="referrer"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link href="css/style.css" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <header>
 <div class="left">
-<button class="btn" data-action="back-rooms" id="backToRooms">⟲</button>
+<button class="btn" id="backToRooms" data-action="back-rooms">⟲</button>
 <nav id="topTabs" style="display:none; margin-left:8px;">
-<button class="btn tab-btn" data-action="tab" data-tab="wywiad">WYWIAD</button>
-<button class="btn tab-btn" data-action="tab" data-tab="rysunek">RYSUNEK</button>
-<button class="btn tab-btn" data-action="tab" data-tab="material">MATERIAŁ</button>
-<button class="btn tab-btn" data-action="tab" data-tab="czynnosci">CZYNNOŚCI</button>
-<button class="btn tab-btn" data-action="tab" data-tab="wycena">WYCENA</button>
+<button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
+<button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
+<button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
+<button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
+<button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
 </nav>
 </div>
 <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-<button class="btn" data-action="open-materials" id="openMaterialsBtn">Cennik Materiałów</button>
-<button class="btn" data-action="open-services" id="openServicesBtn">Cennik Usług</button>
+<button class="btn" id="openMaterialsBtn" data-action="open-materials">Cennik Materiałów</button>
+<button class="btn" id="openServicesBtn" data-action="open-services">Cennik Usług</button>
 </div>
 </header>
 <div class="container">
@@ -35,14 +33,14 @@
 <p class="muted" style="margin:4px 0 0">Kliknij kafelek aby wejść w edycję</p>
 </div>
 <div class="top-actions">
-<button class="btn-danger" data-action="new-project" id="newProjectBtn">Nowy projekt</button>
+<button class="btn-danger" id="newProjectBtn" data-action="new-project">Nowy projekt</button>
 </div>
 </div>
 <div class="rooms">
-<div class="room-btn" data-action="open-room" data-room="kuchnia"><div style="font-size:28px">🍳</div><span>Kuchnia</span></div>
-<div class="room-btn" data-action="open-room" data-room="szafa"><div style="font-size:28px">🚪</div><span>Szafa</span></div>
-<div class="room-btn" data-action="open-room" data-room="pokoj"><div style="font-size:28px">🏠</div><span>Pokój</span></div>
-<div class="room-btn" data-action="open-room" data-room="lazienka"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
+<div class="room-btn" data-room="kuchnia" data-action="open-room"><div style="font-size:28px">🍳</div><span>Kuchnia</span></div>
+<div class="room-btn" data-room="szafa" data-action="open-room"><div style="font-size:28px">🚪</div><span>Szafa</span></div>
+<div class="room-btn" data-room="pokoj" data-action="open-room"><div style="font-size:28px">🏠</div><span>Pokój</span></div>
+<div class="room-btn" data-room="lazienka" data-action="open-room"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
 </div>
 </div>
 <div id="appView" style="display:none">
@@ -94,7 +92,7 @@
 </div>
 </div>
 <!-- PRICE MODAL -->
-<div aria-modal="true" class="modal-back" data-modal-close="priceModal" id="priceModal" role="dialog">
+<div aria-modal="true" class="modal-back" id="priceModal" role="dialog" data-modal-close="priceModal">
 <div class="modal">
 <div class="header">
 <div style="display:flex;gap:12px;align-items:center">
@@ -106,7 +104,7 @@
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <input id="priceSearch" placeholder="Wyszukaj pozycję..." style="padding:8px;border-radius:8px;border:1px solid #eef6fb"/>
-<button class="btn" data-action="close-price" id="closePriceModal" type="button">Zamknij</button>
+<button type="button" class="btn" id="closePriceModal" data-action="close-price">Zamknij</button>
 </div>
 </div>
 <div class="body">
@@ -141,8 +139,8 @@
 <input id="formPrice" step="0.01" type="number"/>
 </div>
 <div style="display:flex;align-items:end;gap:8px">
-<button class="btn-primary" data-action="save-material" id="savePriceBtn">Zapisz</button>
-<button class="btn" data-action="cancel-material-edit" id="cancelEditBtn" style="display:none">Anuluj</button>
+<button class="btn-primary" id="savePriceBtn" data-action="save-material">Zapisz</button>
+<button class="btn" id="cancelEditBtn" data-action="cancel-material-edit" style="display:none">Anuluj</button>
 </div>
 </div>
 </div>
@@ -163,8 +161,8 @@
 <input id="formServicePrice" step="0.01" type="number"/>
 </div>
 <div style="display:flex;align-items:end;gap:8px">
-<button class="btn-primary" data-action="save-service" id="saveServiceBtn">Zapisz</button>
-<button class="btn" data-action="cancel-service-edit" id="cancelServiceEditBtn" style="display:none">Anuluj</button>
+<button class="btn-primary" id="saveServiceBtn" data-action="save-service">Zapisz</button>
+<button class="btn" id="cancelServiceEditBtn" data-action="cancel-service-edit" style="display:none">Anuluj</button>
 </div>
 </div>
 </div>
@@ -177,7 +175,7 @@
 </div>
 </div>
 <!-- CABINET ADD/EDIT MODAL -->
-<div aria-modal="true" class="modal-back" data-modal-close="cabinetModal" id="cabinetModal" role="dialog">
+<div aria-modal="true" class="modal-back" id="cabinetModal" role="dialog" data-modal-close="cabinetModal">
 <div class="modal">
 <div class="header">
 <div style="display:flex;gap:12px;align-items:center">
@@ -188,8 +186,8 @@
 </div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
-<button class="btn-primary" id="cabinetModalSave" style="display:none" type="button">Zatwierdź</button>
-<button class="btn" data-action="close-cabinet" id="closeCabinetModal" type="button">Zamknij</button>
+<button type="button" class="btn-primary" id="cabinetModalSave" style="display:none">Zatwierdź</button>
+<button type="button" class="btn" id="closeCabinetModal" data-action="close-cabinet">Zamknij</button>
 </div>
 </div>
 <div class="body">
@@ -323,22 +321,25 @@
 </div>
 </div>
 <div style="display:flex;justify-content:flex-end;gap:8px">
-<button class="btn" data-action="cancel-cabinet" id="setWizardCancel">Anuluj</button>
-<button class="btn-primary" data-action="create-set" id="setWizardCreate">Dodaj zestaw</button>
+<button class="btn" id="setWizardCancel" data-action="cancel-cabinet">Anuluj</button>
+<button class="btn-primary" id="setWizardCreate" data-action="create-set">Dodaj zestaw</button>
 </div>
 </div>
 </div>
 </div>
 </div>
 <!-- floating add button -->
-<div class="floating-add" data-action="add-cabinet" id="floatingAdd" title="Dodaj">+</div>
-<script defer="" src="js/boot.js?v=20260225_3"></script>
-<script defer="" src="js/core/actions.js?v=20260225_3"></script>
-<script defer="" src="js/core/modals.js?v=20260225_3"></script>
-<script defer="" src="js/app/constants.js?v=20260225_3"></script>
-<script defer="" src="js/app/utils.js?v=20260225_3"></script>
-<script defer="" src="js/app/storage.js?v=20260225_3"></script>
-<script defer="" src="js/app/render.js?v=20260225_3"></script>
-  <script defer="" src="js/app.js?v=20260225_3"></script>
+<div class="floating-add" id="floatingAdd" data-action="add-cabinet" title="Dodaj">+</div>
+
+
+
+
+<script defer src="js/boot.js?v=20260225_3"></script>
+<script defer src="js/core/actions.js?v=20260226_1"></script>
+<script defer src="js/core/modals.js?v=20260226_1"></script>
+<!-- bindings extracted from app.js (event wiring + delegation) -->
+<script defer src="js/app/bindings.js?v=20260226_1"></script>
+<script defer src="js/app.js?v=20260226_1"></script>
+
 </body>
 </html>
