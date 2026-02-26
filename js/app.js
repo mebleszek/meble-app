@@ -619,6 +619,30 @@ function calcTopForSet(room, blende, sumLowerHeights){
   return h>0 ? Math.round(h*10)/10 : 0;
 }
 
+// ZESTAWY: na świeżym starcie zdarza się, że UI pokazuje liczby,
+// ale settings w projekcie nie są jeszcze zsynchronizowane. To powoduje
+// "mrugnięcie" i brak dodania zestawu. Ta funkcja wymusza synchronizację
+// kluczowych ustawień pokoju z aktualnych pól w DOM.
+function syncRoomSettingsFromDOM(room){
+  try{
+    if(!room || !projectData || !projectData[room] || !projectData[room].settings) return;
+    const ids = [
+      ['roomHeight','roomHeight'],
+      ['bottomHeight','bottomHeight'],
+      ['legHeight','legHeight'],
+      ['counterThickness','counterThickness'],
+      ['gapHeight','gapHeight'],
+      ['ceilingBlende','ceilingBlende'],
+    ];
+    ids.forEach(([id,key])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      const n = parseFloat(el.value);
+      if(Number.isFinite(n)) projectData[room].settings[key] = n;
+    });
+  }catch(_){ }
+}
+
 /* Toggle expansion (single-open accordion) */
 function toggleExpandAll(id){
   const key = String(id);
@@ -3443,6 +3467,9 @@ function createOrUpdateSetFromWizard(){
     const state = (typeof uiState !== 'undefined' ? uiState : {});
     const room = state && state.roomType;
     if(!room){ alert('Wybierz pomieszczenie'); return false; }
+
+    // Critical: ensure room settings are synced from visible inputs on first run.
+    syncRoomSettingsFromDOM(room);
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
