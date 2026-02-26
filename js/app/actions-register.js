@@ -94,7 +94,6 @@
     'open-room': ({event, element}) => {
       const room = element.getAttribute('data-room');
       uiState.roomType = room;
-      if(typeof ensureRoomData==='function') ensureRoomData(room);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.getElementById('roomsView').style.display='none';
       document.getElementById('appView').style.display='block';

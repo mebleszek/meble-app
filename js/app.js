@@ -520,24 +520,6 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 ]);
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
-
-
-// Ensure per-room structures exist (cabinets/fronts/sets/settings) even for old/corrupted saves
-function ensureRoomData(room){
-  if(!room) return;
-  const defRoom = (window.FC && FC.project && FC.project.DEFAULT_PROJECT && FC.project.DEFAULT_PROJECT[room]) ? FC.project.DEFAULT_PROJECT[room] : null;
-  if(!projectData[room]){
-    projectData[room] = defRoom ? FC.utils.clone(defRoom) : { cabinets: [], fronts: [], sets: [], settings: {} };
-  }
-  const r = projectData[room];
-  if(!Array.isArray(r.cabinets)) r.cabinets = [];
-  if(!Array.isArray(r.fronts)) r.fronts = [];
-  if(!Array.isArray(r.sets)) r.sets = [];
-  if(!r.settings || typeof r.settings !== 'object') r.settings = {};
-  if(defRoom && defRoom.settings){
-    r.settings = Object.assign({}, defRoom.settings, r.settings);
-  }
-}
 const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
 var uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
 uiState = Object.assign({}, __uiDefaults, uiState);
@@ -3451,12 +3433,9 @@ function getNextSetNumber(room){
 
 function createOrUpdateSetFromWizard(){
   try{
-    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
+    const state = (window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function') ? window.FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
     const room = state.roomType || (uiState && uiState.roomType);
     if(!room){ alert('Wybierz pomieszczenie'); return; }
-
-    // Old saves may miss per-room arrays until first cabinet is added
-    ensureRoomData(room);
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
