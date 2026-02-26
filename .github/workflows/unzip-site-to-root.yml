@@ -1,4 +1,4 @@
-name: Unzip site*.zip into repo root (for Pages branch deploy)
+name: Unzip site*.zip into repo root (Pages: main/root)
 
 on:
   push:
@@ -29,45 +29,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
           if [ -z "$ZIP" ]; then
             echo "No site*.zip found. Nothing to do."
             exit 0
           fi
-
           echo "Using ZIP: $ZIP"
-
           rm -rf _tmp_unzip
           mkdir -p _tmp_unzip
           unzip -q "$ZIP" -d _tmp_unzip
 
-          # If ZIP contains a single top-level folder, flatten it.
-          if [ -f _tmp_unzip/index.html ]; then
-            echo "OK: index.html found at top level"
-          else
+          # flatten single top-level folder
+          if [ ! -f _tmp_unzip/index.html ]; then
             topdir="$(find _tmp_unzip -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
             if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
-              echo "Flattening top folder: $topdir"
-              rm -rf _tmp_flat
-              mkdir -p _tmp_flat
-              cp -R "$topdir/"* _tmp_flat/
+              tmp="$(mktemp -d)"
+              cp -R "$topdir/"* "$tmp/"
               rm -rf _tmp_unzip
-              mv _tmp_flat _tmp_unzip
+              mv "$tmp" _tmp_unzip
             fi
           fi
 
-          if [ ! -f _tmp_unzip/index.html ]; then
-            echo "ERROR: index.html not found after unzip/flatten. ZIP musi zawierać stronę."
-            exit 1
-          fi
+          test -f _tmp_unzip/index.html
 
       - name: Replace site files in repo root (keep .github)
         shell: bash
         run: |
           set -euo pipefail
-
-          # Delete old site files from root, but KEEP .git and .github
           shopt -s dotglob
           for item in * .*; do
             case "$item" in
@@ -76,8 +64,6 @@ jobs:
             esac
           done
           shopt -u dotglob
-
-          # Copy new site files into root
           cp -R _tmp_unzip/* .
 
       - name: Delete site*.zip and temp
@@ -91,15 +77,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
-
           git commit -m "Deploy: unzip site.zip into repo root"
           git push
