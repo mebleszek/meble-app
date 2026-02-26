@@ -13,10 +13,23 @@
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'create-set': ({event}) => {
-      const ok = (typeof createOrUpdateSetFromWizard === 'function') ? createOrUpdateSetFromWizard() : false;
-      if(!ok){
-        // If wizard didn't add anything, give explicit feedback (mobile often "looks like nothing").
-        try{ alert('Nie dodano zestawu. Upewnij się, że wybrałeś preset i pola są wypełnione.'); }catch(_){ }
+      try{
+        const room = (typeof uiState !== 'undefined' && uiState) ? uiState.roomType : null;
+        if(!room){ alert('Wybierz pomieszczenie'); return true; }
+
+        const beforeCab = (projectData && projectData[room] && Array.isArray(projectData[room].cabinets)) ? projectData[room].cabinets.length : 0;
+        const beforeSet = (projectData && projectData[room] && Array.isArray(projectData[room].sets)) ? projectData[room].sets.length : 0;
+
+        const ok = (typeof createOrUpdateSetFromWizard === 'function') ? createOrUpdateSetFromWizard() : false;
+
+        const afterCab = (projectData && projectData[room] && Array.isArray(projectData[room].cabinets)) ? projectData[room].cabinets.length : 0;
+        const afterSet = (projectData && projectData[room] && Array.isArray(projectData[room].sets)) ? projectData[room].sets.length : 0;
+
+        if(ok === false || (afterCab === beforeCab && afterSet === beforeSet)){
+          alert('Nie dodano zestawu. Sprawdź: czy wybrany jest zestaw (A/C/D) oraz czy pola są wypełnione.');
+        }
+      }catch(err){
+        alert('Błąd przy dodawaniu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany'));
       }
       return true;
     },

@@ -3551,7 +3551,7 @@ function createOrUpdateSetFromWizard(){
     return true;
   }catch(e){
     alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
-    throw e;
+    return false;
   }
 }
 
