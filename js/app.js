@@ -2795,6 +2795,8 @@ function renderCabinetModal(){
   if(saveTopBtn){
     saveTopBtn.style.display = 'none';
     saveTopBtn.disabled = true;
+    // domyślny napis (po przełączeniu z "Zestaw" na zwykłą szafkę)
+    saveTopBtn.textContent = (cabinetModalState && cabinetModalState.mode === 'edit') ? 'Zapisz' : 'Zatwierdź';
   }
 
   document.getElementById('cabinetModalIcon').textContent = isSetEdit ? '✏️' : (cabinetModalState.mode === 'edit' ? '✏️' : '➕');
@@ -2816,6 +2818,11 @@ function renderCabinetModal(){
   setArea.style.display = 'none';
 
   if(cabinetModalState.chosen === 'zestaw'){
+    // Jeśli użytkownik wszedł w "Zestaw" i nic jeszcze nie kliknął,
+    // ustaw domyślny preset, żeby przycisk działał od razu.
+    if(!isSetEdit && !cabinetModalState.setPreset){
+      cabinetModalState.setPreset = 'A';
+    }
     setArea.style.display = 'block';
     renderSetTiles();
 
