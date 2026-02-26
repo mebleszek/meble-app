@@ -46,3 +46,8 @@ To eliminuje 99% sytuacji typu `SyntaxError` na produkcji.
 - `js/core/modals.js` – modal manager.
 - `js/app/bindings.js` – **same listenery** (delegacja `data-action` + listenery inputów). Wywoływane z `initUI()`.
 - `js/app.js` – reszta logiki aplikacji (UI/render/obliczenia/dane).
+
+
+## Nowe moduły (2026-02-26)
+- `js/app/ui-state.js` — stan UI (uiState) + zapis do localStorage.
+- `js/app/views.js` — przełączanie widoków i tabów (rooms/app).

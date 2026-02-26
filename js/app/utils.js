@@ -23,6 +23,16 @@
           const n = Number(v);
           return Number.isFinite(n) ? n : fallback;
         },
+        clamp(n, min, max){
+          const x = Number(n);
+          if(!Number.isFinite(x)) return min;
+          return Math.min(max, Math.max(min, x));
+        },
+        numClamp(v, fallback, min, max){
+          const n = Number(v);
+          if(!Number.isFinite(n)) return fallback;
+          return Math.min(max, Math.max(min, n));
+        },
         isPlainObject(v){
           return !!v && typeof v === 'object' && (v.constructor === Object || Object.getPrototypeOf(v) === null);
         }
