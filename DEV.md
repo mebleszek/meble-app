@@ -4,7 +4,7 @@
 
 1. W HTML dodaj atrybut:
    - `data-action="twoja-akcja"`
-2. W kodzie dopisz handler w `registerCoreActions()` (plik `js/app.js`) **albo** w przyszłości w module:
+2. W kodzie dopisz handler w pliku `js/app/actions-register.js` (Actions registry)
    - `FC.actions.register({ 'twoja-akcja': (ctx) => { ...; return true; } })`
 3. Start aplikacji ma **fail-fast**: jeśli w HTML jest `data-action`, którego nie ma w Actions registry — zobaczysz błąd w czerwonym bannerze.
 
