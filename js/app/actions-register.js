@@ -12,7 +12,14 @@
     'close-price': ({event}) => { closePriceModal(); return true; },
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
-    'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
+    'create-set': ({event}) => {
+      const ok = (typeof createOrUpdateSetFromWizard === 'function') ? createOrUpdateSetFromWizard() : false;
+      if(!ok){
+        // If wizard didn't add anything, give explicit feedback (mobile often "looks like nothing").
+        try{ alert('Nie dodano zestawu. Upewnij się, że wybrałeś preset i pola są wypełnione.'); }catch(_){ }
+      }
+      return true;
+    },
 
     'save-material': ({event}) => {
       const btn = document.getElementById('savePriceBtn');

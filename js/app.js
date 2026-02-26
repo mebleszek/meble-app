@@ -3435,7 +3435,7 @@ function createOrUpdateSetFromWizard(){
   try{
     const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
     const room = state.roomType || (uiState && uiState.roomType);
-    if(!room){ alert('Wybierz pomieszczenie'); return; }
+    if(!room){ alert('Wybierz pomieszczenie'); return false; }
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
@@ -3445,7 +3445,7 @@ function createOrUpdateSetFromWizard(){
 
     if(!presetId){
       alert('Wybierz zestaw');
-      return;
+      return false;
     }
 
     // keep state in sync if global exists
@@ -3454,7 +3454,7 @@ function createOrUpdateSetFromWizard(){
     }
 
     const params = getSetParamsFromUI(presetId);
-    if(!params){ alert('Brak parametrów'); return; }
+    if(!params){ alert('Brak parametrów'); return false; }
 
     // Ensure containers exist
     projectData[room] = projectData[room] || { cabinets:[], settings:{} };
@@ -3466,7 +3466,7 @@ function createOrUpdateSetFromWizard(){
     const colEl = document.getElementById('setFrontColor');
     if(!cntEl || !matEl || !colEl){
       alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
-      return;
+      return false;
     }
 
     const frontCount = Number(cntEl.value || 1);
@@ -3548,6 +3548,7 @@ function createOrUpdateSetFromWizard(){
 
     closeCabinetModal();
     renderCabinets();
+    return true;
   }catch(e){
     alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
     throw e;
