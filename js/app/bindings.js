@@ -18,18 +18,15 @@
     if (!window.__FC_DELEGATION__) {
       window.__FC_DELEGATION__ = true;
 
-      // After handling a pointerup on an action element, some browsers also emit a synthetic click
-      // on the SAME element. We must suppress only that synthetic click, not the user's next real click
-      // on a different element.
-      let __fcSuppressClickSameElUntil = 0;
-      let __fcLastPointerEl = null;
-      let __fcLastPointerAction = null;
-      let __fcSuppressAllUntil = 0;
-
-      const __fcIsCloseAction = (action) => {
-        if (!action) return false;
-        return action === 'close-price' || action === 'close-cabinet' || action.startsWith('close-') || action.startsWith('cancel-');
-      };
+      // After handling a pointerup on an action element, some browsers also emit a synthetic click.
+      // We suppress only the synthetic click on the SAME element.
+      let __fcSuppressUntil = 0;
+      let __fcSuppressEl = null;
+      // Mobile click-through:
+      // When a modal is hidden during pointerup, the following synthetic click can be re-targeted
+      // to an element behind the modal (e.g. header buttons). We must suppress EXACTLY ONE next click
+      // globally (no TTL guessing) when the originating action was inside a modal.
+      let __fcSuppressNextClickGlobal = false;
 
       const __fcHandle = (e) => {
         const t = e.target;
@@ -51,30 +48,28 @@
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        return !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
+        const ok = !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
+        // UX: remove "stuck pressed" state on mobile (active/focus) after dispatch
+        try { if (actEl && typeof actEl.blur === 'function') actEl.blur(); } catch (_) {}
+        return ok;
       };
 
       // Mobile-safe: handle pointerup, suppress exactly one subsequent click if pointerup handled something
       document.addEventListener(
         'pointerup',
         (e) => {
-          // Handle actions on pointerup (mobile-friendly)
-          const t = e.target;
-          const actEl = (t && t.closest) ? t.closest('[data-action]') : null;
-          const action = actEl ? actEl.getAttribute('data-action') : null;
-
           const handled = __fcHandle(e);
           if (handled) {
-            // Suppress only the synthetic click that some browsers fire on the SAME element
-            __fcLastPointerEl = actEl;
-            __fcLastPointerAction = action;
-            __fcSuppressClickSameElUntil = Date.now() + 700;
-
-            // If we just closed/cancelled a modal, also suppress ONE click-through anywhere
-            // (prevents "close -> immediately opens something under it")
-            if (__fcIsCloseAction(action)) {
-              __fcSuppressAllUntil = Date.now() + 500;
-            }
+            __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
+            const t = e.target;
+            __fcSuppressEl = (t && t.closest) ? t.closest('[data-action]') : null;
+            // If the handled action came from inside a modal, suppress the NEXT click globally
+            // to prevent re-targeted synthetic click hitting underlying UI (click-through).
+            try {
+              const actEl = __fcSuppressEl;
+              const inModal = actEl && actEl.closest && actEl.closest('.modal-back');
+              if (inModal) __fcSuppressNextClickGlobal = true;
+            } catch (_) {}
           }
         },
         { capture: true, passive: false }
@@ -83,51 +78,36 @@
       document.addEventListener(
         'click',
         (e) => {
-          const now = Date.now();
-
-          // Global click-through suppress (only right after modal close/cancel)
-          if (__fcSuppressAllUntil && now < __fcSuppressAllUntil) {
+          // Global click-through suppression (exactly one next click after modal action)
+          if (__fcSuppressNextClickGlobal) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            __fcSuppressAllUntil = 0;
-            __fcSuppressClickSameElUntil = 0;
-            __fcLastPointerEl = null;
-            __fcLastPointerAction = null;
+            __fcSuppressNextClickGlobal = false;
             return;
           }
-          if (__fcSuppressAllUntil && now >= __fcSuppressAllUntil) {
-            __fcSuppressAllUntil = 0;
-          }
-
-          // Suppress only the synthetic click on the SAME action element after pointerup
-          if (__fcSuppressClickSameElUntil && now < __fcSuppressClickSameElUntil) {
+          if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
+            // Suppress only clicks on the same action element that triggered pointerup.
             const t = e.target;
             const clickedActEl = (t && t.closest) ? t.closest('[data-action]') : null;
-            const clickedAction = clickedActEl ? clickedActEl.getAttribute('data-action') : null;
-
-            if (clickedActEl && clickedActEl === __fcLastPointerEl && clickedAction === __fcLastPointerAction) {
+            if (__fcSuppressEl && clickedActEl && __fcSuppressEl === clickedActEl) {
               e.preventDefault();
               e.stopPropagation();
               e.stopImmediatePropagation();
-              __fcSuppressClickSameElUntil = 0;
-              __fcLastPointerEl = null;
-              __fcLastPointerAction = null;
+              __fcSuppressUntil = 0;
+              __fcSuppressEl = null;
               return;
             }
           }
-          if (__fcSuppressClickSameElUntil && now >= __fcSuppressClickSameElUntil) {
-            __fcSuppressClickSameElUntil = 0;
-            __fcLastPointerEl = null;
-            __fcLastPointerAction = null;
+          if (__fcSuppressUntil && Date.now() >= __fcSuppressUntil) {
+            __fcSuppressUntil = 0;
+            __fcSuppressEl = null;
           }
-
           __fcHandle(e);
         },
         { capture: true, passive: false }
       );
-
-    } // end one-time delegation install
+    }
 
     // ===== Form inputs (change/input events are fine as direct listeners) =====
     // Te funkcje istnieją w app.js. Tu tylko spinamy listenery.

@@ -3358,10 +3358,8 @@ function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColo
 
 /* ===== Zestaw: odczyt/wpis parametrów UI ===== */
 function getSetParamsFromUI(presetId){
-  const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
-  const room = state.roomType || (uiState && uiState.roomType);
-  if(!room) return null;
-  const s = (projectData && projectData[room] && projectData[room].settings) ? projectData[room].settings : {};
+  const room = uiState.roomType;
+  const s = projectData[room].settings;
 
   function num(id, fallback=0){
     const el = document.getElementById(id);
@@ -3470,14 +3468,13 @@ function createOrUpdateSetFromWizard(){
       cabinetModalState.setPreset = presetId;
     }
 
-    // Ensure room containers/settings exist BEFORE reading set params
-    projectData[room] = projectData[room] || { cabinets: [], sets: [], settings: {} };
-    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
-    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
-    projectData[room].settings = (projectData[room].settings && typeof projectData[room].settings === 'object') ? projectData[room].settings : {};
-
     const params = getSetParamsFromUI(presetId);
     if(!params){ alert('Brak parametrów'); return; }
+
+    // Ensure containers exist
+    projectData[room] = projectData[room] || { cabinets:[], settings:{} };
+    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
+    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
 
     const cntEl = document.getElementById('setFrontCount');
     const matEl = document.getElementById('setFrontMaterial');
