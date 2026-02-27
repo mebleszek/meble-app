@@ -78,22 +78,43 @@
 
     'new-project': ({event}) => {
       if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
+      // Reset danych projektu
       projectData = FC.utils.clone(DEFAULT_PROJECT);
-      uiState.roomType = null;
-      uiState.selectedCabinetId = null;
-      uiState.expanded = {};
-      projectData = FC.project.save(projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      // Zapis projektu (bez ryzyka nadpisania zmiennej zwrotką)
+      try {
+        if (FC.project && typeof FC.project.save === 'function') {
+          FC.project.save(projectData);
+        } else if (FC.storage && typeof FC.storage.setJSON === 'function') {
+          FC.storage.setJSON(STORAGE_KEYS.project, projectData);
+        }
+      } catch(e) { /* noop */ }
+
+      // Reset stanu UI (użyj jednego źródła prawdy jeśli jest)
+      try {
+        const ui = (FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (window.uiState || {});
+        ui.roomType = null;
+        ui.selectedCabinetId = null;
+        ui.expanded = {};
+        ui.activeTab = 'wywiad';
+        if (FC.uiState && typeof FC.uiState.set === 'function') {
+          FC.uiState.set(ui);
+        } else if (FC.storage && typeof FC.storage.setJSON === 'function') {
+          FC.storage.setJSON(STORAGE_KEYS.ui, ui);
+        } else {
+          window.uiState = ui;
+        }
+      } catch(e) { /* noop */ }
+
+      // Widok: wróć do listy pomieszczeń
       document.getElementById('roomsView').style.display='block';
       document.getElementById('appView').style.display='none';
       document.getElementById('topTabs').style.display='none';
-      renderCabinets();
 
-      // UX: on entering kitchen, open add-cabinet modal with default base cabinet.
-      if(room === 'kuchnia'){
-        try{ openCabinetModalForAdd(); }catch(_){}
-        try{ FC.modal && FC.modal.open && FC.modal.open('cabinetModal'); }catch(_){}
-      }
+      // Render bez zależności od roomType
+      try {
+        if (typeof renderRooms === 'function') renderRooms();
+        else if (typeof renderCabinets === 'function') renderCabinets();
+      } catch(e) { /* noop */ }
       return true;
     },
 
