@@ -23,8 +23,10 @@
       // on a different element.
       let __fcSuppressUntil = 0;
       let __fcSuppressEl = null;
-      // When closing a modal on pointerup, mobile browsers may "click-through" and fire a click
-      // on an element underneath. Suppress ANY click briefly only after close/cancel actions.
+      // Additionally: on mobile, if a handler hides a modal (display:none) during pointerup,
+      // the synthetic click can get re-targeted to an element *behind* the modal (click-through).
+      // To prevent loops like: "Zamknij" -> opens something underneath, we suppress the next click
+      // globally for a short TTL, but only when the originating action element was inside a modal.
       let __fcSuppressAllUntil = 0;
 
       const __fcHandle = (e) => {
@@ -47,27 +49,28 @@
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        return !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
+        const ok = !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
+        // UX: remove "stuck pressed" state on mobile (active/focus) after dispatch
+        try { if (actEl && typeof actEl.blur === 'function') actEl.blur(); } catch (_) {}
+        return ok;
       };
 
       // Mobile-safe: handle pointerup, suppress exactly one subsequent click if pointerup handled something
       document.addEventListener(
         'pointerup',
         (e) => {
-          // detect action element early (before __fcHandle potentially mutates DOM)
-          const t0 = e.target;
-          const actEl0 = (t0 && t0.closest) ? t0.closest('[data-action]') : null;
-          const action0 = actEl0 ? actEl0.getAttribute('data-action') : null;
-
           const handled = __fcHandle(e);
           if (handled) {
             __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
-            __fcSuppressEl = actEl0;
-
-            // Global click-through guard for close actions (prevents "close" -> underlying button click)
-            if (action0 && (action0.startsWith('close-') || action0.startsWith('cancel-'))) {
-              __fcSuppressAllUntil = Date.now() + 700;
-            }
+            const t = e.target;
+            __fcSuppressEl = (t && t.closest) ? t.closest('[data-action]') : null;
+            // If the handled action came from inside a modal, suppress the next click globally
+            // to prevent re-targeted synthetic click hitting underlying UI.
+            try {
+              const actEl = __fcSuppressEl;
+              const inModal = actEl && actEl.closest && actEl.closest('.modal-back');
+              if (inModal) __fcSuppressAllUntil = Date.now() + 700;
+            } catch (_) {}
           }
         },
         { capture: true, passive: false }
@@ -76,17 +79,14 @@
       document.addEventListener(
         'click',
         (e) => {
-          // suppress any click briefly after a close/cancel action to prevent click-through reopen loops
+          // Global click-through suppression (modal close / modal DOM changes)
           if (__fcSuppressAllUntil && Date.now() < __fcSuppressAllUntil) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
+            __fcSuppressAllUntil = 0;
             return;
           }
-          if (__fcSuppressAllUntil && Date.now() >= __fcSuppressAllUntil) {
-            __fcSuppressAllUntil = 0;
-          }
-
           if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
             // Suppress only clicks on the same action element that triggered pointerup.
             const t = e.target;
