@@ -23,6 +23,9 @@
       // on a different element.
       let __fcSuppressUntil = 0;
       let __fcSuppressEl = null;
+      // When closing a modal on pointerup, mobile browsers may "click-through" and fire a click
+      // on an element underneath. Suppress ANY click briefly only after close/cancel actions.
+      let __fcSuppressAllUntil = 0;
 
       const __fcHandle = (e) => {
         const t = e.target;
@@ -51,11 +54,20 @@
       document.addEventListener(
         'pointerup',
         (e) => {
+          // detect action element early (before __fcHandle potentially mutates DOM)
+          const t0 = e.target;
+          const actEl0 = (t0 && t0.closest) ? t0.closest('[data-action]') : null;
+          const action0 = actEl0 ? actEl0.getAttribute('data-action') : null;
+
           const handled = __fcHandle(e);
           if (handled) {
             __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
-            const t = e.target;
-            __fcSuppressEl = (t && t.closest) ? t.closest('[data-action]') : null;
+            __fcSuppressEl = actEl0;
+
+            // Global click-through guard for close actions (prevents "close" -> underlying button click)
+            if (action0 && (action0.startsWith('close-') || action0.startsWith('cancel-'))) {
+              __fcSuppressAllUntil = Date.now() + 700;
+            }
           }
         },
         { capture: true, passive: false }
@@ -64,6 +76,17 @@
       document.addEventListener(
         'click',
         (e) => {
+          // suppress any click briefly after a close/cancel action to prevent click-through reopen loops
+          if (__fcSuppressAllUntil && Date.now() < __fcSuppressAllUntil) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return;
+          }
+          if (__fcSuppressAllUntil && Date.now() >= __fcSuppressAllUntil) {
+            __fcSuppressAllUntil = 0;
+          }
+
           if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
             // Suppress only clicks on the same action element that triggered pointerup.
             const t = e.target;
