@@ -78,43 +78,29 @@
 
     'new-project': ({event}) => {
       if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
-      // Reset danych projektu
+
+      // Reset project data safely (no dependence on any 'room' variable)
       projectData = FC.utils.clone(DEFAULT_PROJECT);
-      // Zapis projektu (bez ryzyka nadpisania zmiennej zwrotką)
-      try {
-        if (FC.project && typeof FC.project.save === 'function') {
-          FC.project.save(projectData);
-        } else if (FC.storage && typeof FC.storage.setJSON === 'function') {
-          FC.storage.setJSON(STORAGE_KEYS.project, projectData);
-        }
-      } catch(e) { /* noop */ }
 
-      // Reset stanu UI (użyj jednego źródła prawdy jeśli jest)
-      try {
-        const ui = (FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (window.uiState || {});
-        ui.roomType = null;
-        ui.selectedCabinetId = null;
-        ui.expanded = {};
-        ui.activeTab = 'wywiad';
-        if (FC.uiState && typeof FC.uiState.set === 'function') {
-          FC.uiState.set(ui);
-        } else if (FC.storage && typeof FC.storage.setJSON === 'function') {
-          FC.storage.setJSON(STORAGE_KEYS.ui, ui);
-        } else {
-          window.uiState = ui;
-        }
-      } catch(e) { /* noop */ }
+      // Reset UI state safely
+      uiState.roomType = null;
+      uiState.selectedCabinetId = null;
+      uiState.expanded = {};
+      uiState.activeTab = 'wywiad';
 
-      // Widok: wróć do listy pomieszczeń
-      document.getElementById('roomsView').style.display='block';
-      document.getElementById('appView').style.display='none';
-      document.getElementById('topTabs').style.display='none';
+      // Persist
+      projectData = FC.project.save(projectData);
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
-      // Render bez zależności od roomType
-      try {
-        if (typeof renderRooms === 'function') renderRooms();
-        else if (typeof renderCabinets === 'function') renderCabinets();
-      } catch(e) { /* noop */ }
+      // Go back to rooms view
+      const roomsView = document.getElementById('roomsView');
+      const appView = document.getElementById('appView');
+      const topTabs = document.getElementById('topTabs');
+      if (roomsView) roomsView.style.display = 'block';
+      if (appView) appView.style.display = 'none';
+      if (topTabs) topTabs.style.display = 'none';
+
+      try { renderCabinets(); } catch(_) {}
       return true;
     },
 
