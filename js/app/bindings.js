@@ -18,22 +18,25 @@
     if (!window.__FC_DELEGATION__) {
       window.__FC_DELEGATION__ = true;
 
+      // After handling a pointerup on an action element, some browsers also emit a synthetic click
+      // on the SAME element. We must suppress only that synthetic click, not the user's next real click
+      // on a different element.
       let __fcSuppressUntil = 0;
       let __fcSuppressEl = null;
 
       const __fcHandle = (e) => {
         const t = e.target;
-        if (!t || !t.closest) return null;
+        if (!t || !t.closest) return false;
 
         const actEl = t.closest('[data-action]');
-        if (!actEl) return null;
+        if (!actEl) return false;
 
         const action = actEl.getAttribute('data-action');
-        if (!action) return null;
+        if (!action) return false;
 
         // Unknown actions are a hard error (prevents silent broken buttons)
         if (!FC.actions || typeof FC.actions.has !== 'function' || !FC.actions.has(action)) {
-          throw new Error(`Nieznana akcja data-action="". Dodaj handler w Actions registry.`);
+          throw new Error(`Nieznana akcja data-action="${action}". Dodaj handler w Actions registry.`);
         }
 
         // Always stop default/propa for handled actions to prevent click-through
@@ -41,18 +44,18 @@
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        const ok = !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
-        return ok ? actEl : null;
+        return !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
       };
 
-      // Mobile-safe: handle pointerup, suppress only the synthetic click on the SAME action element
+      // Mobile-safe: handle pointerup, suppress exactly one subsequent click if pointerup handled something
       document.addEventListener(
         'pointerup',
         (e) => {
-          const handledEl = __fcHandle(e);
-          if (handledEl) {
-            __fcSuppressUntil = Date.now() + 700;
-            __fcSuppressEl = handledEl;
+          const handled = __fcHandle(e);
+          if (handled) {
+            __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
+            const t = e.target;
+            __fcSuppressEl = (t && t.closest) ? t.closest('[data-action]') : null;
           }
         },
         { capture: true, passive: false }
@@ -61,10 +64,11 @@
       document.addEventListener(
         'click',
         (e) => {
-          if (__fcSuppressUntil && Date.now() < __fcSuppressUntil && __fcSuppressEl) {
+          if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
+            // Suppress only clicks on the same action element that triggered pointerup.
             const t = e.target;
-            const actEl = (t && t.closest) ? t.closest('[data-action]') : null;
-            if (actEl && actEl === __fcSuppressEl) {
+            const clickedActEl = (t && t.closest) ? t.closest('[data-action]') : null;
+            if (__fcSuppressEl && clickedActEl && __fcSuppressEl === clickedActEl) {
               e.preventDefault();
               e.stopPropagation();
               e.stopImmediatePropagation();
@@ -73,12 +77,10 @@
               return;
             }
           }
-
           if (__fcSuppressUntil && Date.now() >= __fcSuppressUntil) {
             __fcSuppressUntil = 0;
             __fcSuppressEl = null;
           }
-
           __fcHandle(e);
         },
         { capture: true, passive: false }

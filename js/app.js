@@ -2792,15 +2792,20 @@ function renderCabinetModal(){
   setArea.style.display = 'none';
 
   if(cabinetModalState.chosen === 'zestaw'){
+// Default preset on first entry to Set mode.
+// Keeps the first "Zatwierdź" deterministic without requiring the user to toggle types.
+if(!cabinetModalState.setPreset){
+  cabinetModalState.setPreset = 'A';
+}
+
     setArea.style.display = 'block';
     renderSetTiles();
 
     // W trybie zestawu pokaż \"Zatwierdź\" w nagłówku (działa jak Dodaj zestaw / Zapisz zmiany)
     if(saveTopBtn){
-      const _btn = document.getElementById('setWizardCreate');
       saveTopBtn.style.display = 'inline-flex';
       saveTopBtn.disabled = false;
-      saveTopBtn.textContent = _btn ? _btn.textContent : (isSetEdit ? 'Zapisz zmiany' : 'Dodaj zestaw');
+      saveTopBtn.textContent = isSetEdit ? 'Zapisz zmiany' : 'Zatwierdź';
     }
 
     if(isSetEdit){
@@ -2812,7 +2817,7 @@ function renderCabinetModal(){
       document.getElementById('setWizardTitle').textContent = 'Zestaw (edycja)';
       document.getElementById('setWizardDesc').textContent = 'Zmieniasz parametry zestawu. Program przeliczy korpusy i fronty.';
     } else {
-      document.getElementById('setWizardCreate').textContent = 'Dodaj zestaw';
+      document.getElementById('setWizardCreate').textContent = 'Zatwierdź';
       document.getElementById('setWizardTitle').textContent = 'Zestaw';
       document.getElementById('setWizardDesc').textContent = 'Wybierz standardowy układ. Program doda kilka korpusów oraz fronty.';
     }
@@ -2858,7 +2863,15 @@ function renderCabinetModal(){
   if(saveTopBtn){
     saveTopBtn.style.display = 'inline-flex';
     saveTopBtn.disabled = false;
-    saveTopBtn.textContent = (cabinetModalState && cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
+    // IMPORTANT: when leaving set mode, reset the CTA label so it doesn't stick as "Dodaj zestaw".
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
+  }
+
+  // pokazujemy Zatwierdź w nagłówku dopiero gdy jest formularz
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'inline-flex';
+    saveTopBtn.disabled = false;
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
   }
 
   const draft = cabinetModalState.draft;
@@ -3226,14 +3239,21 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
                       (cabinetModalState && cabinetModalState.setEditId) ||
                       (_setArea && _setArea.style.display === 'block');
     if(inSetMode){
-      try{
-        createOrUpdateSetFromWizard();
-      } catch(err){
-        console.error(err);
-        alert('Błąd zapisu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
-      }
-      return;
+  try{
+    // Use the same path as the set wizard button (data-action="create-set") for consistency.
+    if(window.FC && FC.actions && typeof FC.actions.dispatch === 'function'){
+      FC.actions.dispatch('create-set', { event: e, element: document.getElementById('setWizardCreate') || null, target: e && e.target });
+    } else {
+      createOrUpdateSetFromWizard();
     }
+  } catch(err){
+    console.error(err);
+    alert('Błąd zapisu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
+  } finally {
+    try { if(e && e.target && e.target.blur) e.target.blur(); } catch(_){}
+  }
+  return;
+}
     try{
       if(!uiState.roomType){ alert('Wybierz pomieszczenie'); return; }
       const room = uiState.roomType;
