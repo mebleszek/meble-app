@@ -18,59 +18,53 @@
     if (!window.__FC_DELEGATION__) {
       window.__FC_DELEGATION__ = true;
 
-      // After handling a pointerup on an action element, some browsers also emit a synthetic click.
-      // We suppress only the synthetic click on the SAME element.
-      let __fcSuppressUntil = 0;
-      let __fcSuppressEl = null;
-      // Mobile click-through:
-      // When a modal is hidden during pointerup, the following synthetic click can be re-targeted
-      // to an element behind the modal (e.g. header buttons). We must suppress EXACTLY ONE next click
-      // globally (no TTL guessing) when the originating action was inside a modal.
-      let __fcSuppressNextClickGlobal = false;
+	      // Mobile-safe: handle pointerup. On mobile, after pointerup browsers often emit a synthetic click
+	      // (sometimes delayed by alert()/layout), and when we close a modal that click can "go through" to
+	      // an element under the modal. We solve it by swallowing EXACTLY ONE next click when the action
+	      // was triggered from a modal.
+	      let swallowNextClick = false;
 
-      const __fcHandle = (e) => {
-        const t = e.target;
-        if (!t || !t.closest) return false;
+	      const dispatchActionFromEvent = (e) => {
+	        const t = e.target;
+	        if (!t || !t.closest) return { handled: false };
 
-        const actEl = t.closest('[data-action]');
-        if (!actEl) return false;
+	        const actEl = t.closest('[data-action]');
+	        if (!actEl) return { handled: false };
 
-        const action = actEl.getAttribute('data-action');
-        if (!action) return false;
+	        const action = actEl.getAttribute('data-action');
+	        if (!action) return { handled: false };
 
-        // Unknown actions are a hard error (prevents silent broken buttons)
-        if (!FC.actions || typeof FC.actions.has !== 'function' || !FC.actions.has(action)) {
-          throw new Error(`Nieznana akcja data-action="${action}". Dodaj handler w Actions registry.`);
-        }
+	        // Unknown actions are a hard error (prevents silent broken buttons)
+	        if (!FC.actions || typeof FC.actions.has !== 'function' || !FC.actions.has(action)) {
+	          throw new Error(`Nieznana akcja data-action="${action}". Dodaj handler w Actions registry.`);
+	        }
 
-        // Always stop default/propa for handled actions to prevent click-through
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+	        // Stop default/propa for handled actions to prevent click-through
+	        e.preventDefault();
+	        e.stopPropagation();
+	        e.stopImmediatePropagation();
 
-        const ok = !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
-        // UX: remove "stuck pressed" state on mobile (active/focus) after dispatch
-        try { if (actEl && typeof actEl.blur === 'function') actEl.blur(); } catch (_) {}
-        return ok;
-      };
+	        const ok = !!FC.actions.dispatch(action, { event: e, element: actEl, target: t });
+	        return { handled: ok, action, actEl };
+	      };
 
-      // Mobile-safe: handle pointerup, suppress exactly one subsequent click if pointerup handled something
+	      const shouldSwallowNextClick = (action, actEl) => {
+	        if (!action || !actEl) return false;
+	        // only arm swallow when action happens inside modal (prevents swallowing user's normal clicks)
+	        if (actEl.closest && actEl.closest('.modal-back')) return true;
+	        // extra safety for explicit close/cancel actions
+	        if (action.startsWith('close-') || action.startsWith('cancel-')) return true;
+	        return false;
+	      };
+
+	      // Handle pointerup and arm a single click swallow when needed
       document.addEventListener(
         'pointerup',
         (e) => {
-          const handled = __fcHandle(e);
-          if (handled) {
-            __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
-            const t = e.target;
-            __fcSuppressEl = (t && t.closest) ? t.closest('[data-action]') : null;
-            // If the handled action came from inside a modal, suppress the NEXT click globally
-            // to prevent re-targeted synthetic click hitting underlying UI (click-through).
-            try {
-              const actEl = __fcSuppressEl;
-              const inModal = actEl && actEl.closest && actEl.closest('.modal-back');
-              if (inModal) __fcSuppressNextClickGlobal = true;
-            } catch (_) {}
-          }
+	          const res = dispatchActionFromEvent(e);
+	          if (res.handled && shouldSwallowNextClick(res.action, res.actEl)) {
+	            swallowNextClick = true;
+	          }
         },
         { capture: true, passive: false }
       );
@@ -78,32 +72,15 @@
       document.addEventListener(
         'click',
         (e) => {
-          // Global click-through suppression (exactly one next click after modal action)
-          if (__fcSuppressNextClickGlobal) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            __fcSuppressNextClickGlobal = false;
-            return;
-          }
-          if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
-            // Suppress only clicks on the same action element that triggered pointerup.
-            const t = e.target;
-            const clickedActEl = (t && t.closest) ? t.closest('[data-action]') : null;
-            if (__fcSuppressEl && clickedActEl && __fcSuppressEl === clickedActEl) {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-              __fcSuppressUntil = 0;
-              __fcSuppressEl = null;
-              return;
-            }
-          }
-          if (__fcSuppressUntil && Date.now() >= __fcSuppressUntil) {
-            __fcSuppressUntil = 0;
-            __fcSuppressEl = null;
-          }
-          __fcHandle(e);
+	          if (swallowNextClick) {
+	            swallowNextClick = false;
+	            e.preventDefault();
+	            e.stopPropagation();
+	            e.stopImmediatePropagation();
+	            return;
+	          }
+	          // Desktop/fallback path: allow normal click handling
+	          dispatchActionFromEvent(e);
         },
         { capture: true, passive: false }
       );
