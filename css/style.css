@@ -188,6 +188,9 @@
     .modal-back{touch-action:none;overscroll-behavior:contain;}
     .modal{touch-action:auto;}
 
+    /* Mobile safety: when opening a modal under the same tap, prevent accidental instant <select> open */
+    .modal-open-guard, .modal-open-guard *{ pointer-events:none !important; }
+
 
 
 /* ===== RYSUNEK (import) ===== */

@@ -1694,7 +1694,19 @@ function openCabinetModalForAdd(){
   // Ustaw wybór typu na podstawie draftu, żeby od razu była widoczna właściwa sekcja.
   try{ cabinetModalState.chosen = cabinetModalState.draft && cabinetModalState.draft.type ? cabinetModalState.draft.type : null; }catch(_){ }
   renderCabinetModal();
-  document.getElementById('cabinetModal').style.display = 'flex';
+  const m = document.getElementById('cabinetModal');
+  if(m){
+    m.style.display = 'flex';
+    // Mobile click-through / "tap lands on first control" guard:
+    // When the modal appears under the same tap, some Android browsers can instantly open a <select>
+    // located under the finger. Temporarily disable pointer events for a split moment.
+    try{
+      m.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
   lockModalScroll();
 }
 
@@ -1726,7 +1738,16 @@ function openCabinetModalForEdit(cabId){
   cabinetModalState.setPreset = null;
   cabinetModalState.draft = FC.utils.clone(cab);
   renderCabinetModal();
-  document.getElementById('cabinetModal').style.display = 'flex';
+  const m = document.getElementById('cabinetModal');
+  if(m){
+    m.style.display = 'flex';
+    try{
+      m.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
   lockModalScroll();
 }
 
@@ -1745,7 +1766,16 @@ function openSetWizardForEdit(setId){
 
   renderCabinetModal();
   fillSetParamsUIFromSet(set);
-  document.getElementById('cabinetModal').style.display = 'flex';
+  const m = document.getElementById('cabinetModal');
+  if(m){
+    m.style.display = 'flex';
+    try{
+      m.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
   lockModalScroll();
 }
 
