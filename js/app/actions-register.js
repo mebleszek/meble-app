@@ -88,6 +88,12 @@
       document.getElementById('appView').style.display='none';
       document.getElementById('topTabs').style.display='none';
       renderCabinets();
+
+      // UX: on entering kitchen, open add-cabinet modal with default base cabinet.
+      if(room === 'kuchnia'){
+        try{ openCabinetModalForAdd(); }catch(_){}
+        try{ FC.modal && FC.modal.open && FC.modal.open('cabinetModal'); }catch(_){}
+      }
       return true;
     },
 
