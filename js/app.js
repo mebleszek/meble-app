@@ -520,7 +520,7 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 ]);
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
-const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
+const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null, lastAddedAt:null, lastAddedCabinetId:null, lastAddedCabinetType:null };
 var uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
 uiState = Object.assign({}, __uiDefaults, uiState);
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
@@ -1644,8 +1644,17 @@ function makeDefaultCabinetDraftForRoom(room){
   const arr = projectData[room].cabinets;
   const last = arr[arr.length - 1];
 
+  // UX: domyślnie podczas dodawania otwieraj "szafkę dolną" (kuchnia: stojąca),
+  // ale jeśli użytkownik dopiero co dodał szafkę, powiel ostatnio dodaną.
+  // Dzięki temu szybkie dodawanie serii (np. górnych) działa jak wcześniej,
+  // a po przerwie startujemy od dolnej.
+  const NOW = Date.now();
+  const RECENT_WINDOW_MS = 90 * 1000; // ~1.5 min „dopiero co”
+  const recentlyAdded = (uiState && Number.isFinite(Number(uiState.lastAddedAt)) && (NOW - Number(uiState.lastAddedAt) <= RECENT_WINDOW_MS));
+  const allowCloneLast = !!last && recentlyAdded;
+
   // powiel poprzednią ze wszystkimi ustawieniami
-  if(last){
+  if(allowCloneLast){
     const cloned = FC.utils.clone(last);
     cloned.id = null;
     delete cloned.setId;
@@ -1682,6 +1691,8 @@ function openCabinetModalForAdd(){
   cabinetModalState.chosen = null;
   cabinetModalState.setPreset = null;
   cabinetModalState.draft = makeDefaultCabinetDraftForRoom(uiState.roomType);
+  // Ustaw wybór typu na podstawie draftu, żeby od razu była widoczna właściwa sekcja.
+  try{ cabinetModalState.chosen = cabinetModalState.draft && cabinetModalState.draft.type ? cabinetModalState.draft.type : null; }catch(_){ }
   renderCabinetModal();
   document.getElementById('cabinetModal').style.display = 'flex';
   lockModalScroll();
@@ -3275,10 +3286,15 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
         const newCab = FC.utils.clone(draft);
         newCab.id = FC.utils.uid();
         projectData[room].cabinets.push(newCab);
+        // Po dodaniu: otwórz (rozwiń) ostatnio dodaną szafkę
         uiState.expanded = {};
-        // domyślnie zwinięte
-        
+        uiState.expanded[String(newCab.id)] = true;
         uiState.selectedCabinetId = newCab.id;
+
+        // Zapamiętaj „dopiero co dodaną” (do domyślnego typu przy kolejnym dodawaniu)
+        uiState.lastAddedAt = Date.now();
+        uiState.lastAddedCabinetId = String(newCab.id);
+        uiState.lastAddedCabinetType = String(newCab.type || '');
 
         // generuj fronty jeśli trzeba (lodówkowa też)
         generateFrontsForCabinet(room, newCab);
