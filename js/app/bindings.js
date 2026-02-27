@@ -127,7 +127,9 @@
         { capture: true, passive: false }
       );
 
-// ===== Form inputs (change/input events are fine as direct listeners) =====
+    } // end one-time delegation install
+
+    // ===== Form inputs (change/input events are fine as direct listeners) =====
     // Te funkcje istnieją w app.js. Tu tylko spinamy listenery.
     const onSetting = (key) => (e) => {
       try {
