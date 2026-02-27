@@ -2858,12 +2858,15 @@ function renderCabinetModal(){
   if(saveTopBtn){
     saveTopBtn.style.display = 'inline-flex';
     saveTopBtn.disabled = false;
+    // IMPORTANT: when leaving set mode, reset the CTA label so it doesn't stick as "Dodaj zestaw".
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
   }
 
   // pokazujemy Zatwierdź w nagłówku dopiero gdy jest formularz
   if(saveTopBtn){
     saveTopBtn.style.display = 'inline-flex';
     saveTopBtn.disabled = false;
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
   }
 
   const draft = cabinetModalState.draft;

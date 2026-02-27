@@ -18,7 +18,11 @@
     if (!window.__FC_DELEGATION__) {
       window.__FC_DELEGATION__ = true;
 
+      // After handling a pointerup on an action element, some browsers also emit a synthetic click
+      // on the SAME element. We must suppress only that synthetic click, not the user's next real click
+      // on a different element.
       let __fcSuppressUntil = 0;
+      let __fcSuppressEl = null;
 
       const __fcHandle = (e) => {
         const t = e.target;
@@ -48,7 +52,11 @@
         'pointerup',
         (e) => {
           const handled = __fcHandle(e);
-          if (handled) __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
+          if (handled) {
+            __fcSuppressUntil = Date.now() + 700; // suppress synthetic click for ~700ms
+            const t = e.target;
+            __fcSuppressEl = (t && t.closest) ? t.closest('[data-action]') : null;
+          }
         },
         { capture: true, passive: false }
       );
@@ -57,15 +65,21 @@
         'click',
         (e) => {
           if (__fcSuppressUntil && Date.now() < __fcSuppressUntil) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            // reset even if this was not the synthetic click
-            __fcSuppressUntil = 0;
-            return;
+            // Suppress only clicks on the same action element that triggered pointerup.
+            const t = e.target;
+            const clickedActEl = (t && t.closest) ? t.closest('[data-action]') : null;
+            if (__fcSuppressEl && clickedActEl && __fcSuppressEl === clickedActEl) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              __fcSuppressUntil = 0;
+              __fcSuppressEl = null;
+              return;
+            }
           }
           if (__fcSuppressUntil && Date.now() >= __fcSuppressUntil) {
             __fcSuppressUntil = 0;
+            __fcSuppressEl = null;
           }
           __fcHandle(e);
         },
