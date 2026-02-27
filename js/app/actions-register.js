@@ -53,6 +53,17 @@
       FC.modal.open('priceModal');
       return true;
     },
+    'new-investor': ({event}) => {
+      // Start investor flow: show rooms list with top menu already visible
+      uiState.entry = 'rooms';
+      uiState.roomType = null;
+      uiState.activeTab = 'pokoje';
+      uiState.selectedCabinetId = null;
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      if(FC.views && FC.views.openRooms) FC.views.openRooms();
+      return true;
+    },
+
 
     'add-cabinet': ({event}) => {
       if(FC.actions.isLocked('add-cabinet')) return true;
@@ -67,65 +78,38 @@
     },
 
     'back-rooms': ({event}) => {
-      uiState.roomType = null;
-      uiState.selectedCabinetId = null;
-      uiState.activeTab = 'wywiad';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.getElementById('roomsView').style.display='block';
-      document.getElementById('appView').style.display='none';
-      document.getElementById('topTabs').style.display = 'none';
-      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
+      if(FC.views && FC.views.back){ FC.views.back(); }
+      else {
+        uiState.roomType = null;
+        uiState.entry = 'home';
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      }
       return true;
     },
 
-    // Legacy (kept for future use)
     'new-project': ({event}) => {
       if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
       projectData = FC.utils.clone(DEFAULT_PROJECT);
       uiState.roomType = null;
       uiState.selectedCabinetId = null;
       uiState.expanded = {};
-      uiState.activeTab = 'wywiad';
       projectData = FC.project.save(projectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.getElementById('roomsView').style.display='block';
       document.getElementById('appView').style.display='none';
       document.getElementById('topTabs').style.display='none';
-      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
-      try{ renderCabinets(); }catch(_){ }
-      return true;
-    },
-
-    // New flow: start "investor" view and show top menu immediately
-    'new-investor': ({event}) => {
-      if(!confirm('Utworzyć NOWEGO inwestora? Projekt zostanie wyczyszczony.')) return true;
-      projectData = FC.utils.clone(DEFAULT_PROJECT);
-      uiState.roomType = null;
-      uiState.selectedCabinetId = null;
-      uiState.expanded = {};
-      uiState.activeTab = 'inwestor';
-      projectData = FC.project.save(projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.getElementById('roomsView').style.display='none';
-      document.getElementById('appView').style.display='block';
-      document.getElementById('topTabs').style.display = 'block';
-      document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
+      renderCabinets();
       return true;
     },
 
     'open-room': ({event, element}) => {
       const room = element.getAttribute('data-room');
+      // Enter room editor
       uiState.roomType = room;
+      if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'inwestor' || uiState.activeTab === 'rozrys') uiState.activeTab = 'wywiad';
+      uiState.entry = 'app';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.getElementById('roomsView').style.display='none';
-      document.getElementById('appView').style.display='block';
-      document.getElementById('topTabs').style.display = 'block';
-      uiState.activeTab = 'wywiad';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
-      renderCabinets();
+      if(FC.views && FC.views.openRoom) FC.views.openRoom(room);
       return true;
     },
 

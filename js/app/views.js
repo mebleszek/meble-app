@@ -1,5 +1,5 @@
 // js/app/views.js
-// View/router helpers: show rooms list vs app view, tab switching.
+// View/router helpers: home vs rooms vs app + placeholder sections.
 // Load after ui-state.js and before js/app.js.
 
 (() => {
@@ -9,62 +9,120 @@
 
   function $(id){ return document.getElementById(id); }
 
-  function showRooms(){
-    const rv = $('roomsView');
-    const av = $('appView');
+  function showOnly(ids){
+    const all = ['homeView','roomsView','appView','investorView','rozrysView'];
+    all.forEach(id => {
+      const el = $(id);
+      if(!el) return;
+      el.style.display = ids.includes(id) ? 'block' : 'none';
+    });
+  }
+
+  function setTabsVisible(on){
     const tabs = $('topTabs');
-    if(rv) rv.style.display = 'block';
-    if(av) av.style.display = 'none';
-    if(tabs) tabs.style.display = 'none';
+    if(tabs) tabs.style.display = on ? 'grid' : 'none';
+  }
+
+  function setBackVisible(on){
+    const back = $('backToRooms');
+    if(back) back.style.display = on ? 'inline-block' : 'none';
+  }
+
+  function showHome(){
+    showOnly(['homeView']);
+    setTabsVisible(false);
+    setBackVisible(false);
+  }
+
+  function showRooms(){
+    showOnly(['roomsView']);
+    setTabsVisible(true);
+    setBackVisible(true);
   }
 
   function showApp(){
-    const rv = $('roomsView');
-    const av = $('appView');
-    const tabs = $('topTabs');
-    if(rv) rv.style.display = 'none';
-    if(av) av.style.display = 'block';
-    if(tabs) tabs.style.display = 'inline-block';
+    showOnly(['appView']);
+    setTabsVisible(true);
+    setBackVisible(true);
+  }
+
+  function showInvestor(){
+    showOnly(['investorView']);
+    setTabsVisible(true);
+    setBackVisible(true);
+  }
+
+  function showRozrys(){
+    showOnly(['rozrysView']);
+    setTabsVisible(true);
+    setBackVisible(true);
   }
 
   function applyFromState(state){
     const st = state || (FC.uiState && FC.uiState.get ? FC.uiState.get() : {});
-    if(st && st.roomType){
-      showApp();
-    }else{
-      showRooms();
+    const entry = st && st.entry ? st.entry : 'home';
+    const tab = st && st.activeTab ? st.activeTab : null;
+
+    if(entry === 'home'){
+      showHome();
+      return;
     }
+    // entry rooms/app: tab may override
+    if(tab === 'inwestor') return showInvestor();
+    if(tab === 'rozrys') return showRozrys();
+    if(tab === 'pokoje') return showRooms();
+
+    if(entry === 'app' && st && st.roomType){
+      return showApp();
+    }
+    // fallback
+    return showRooms();
+  }
+
+  function openHome(){
+    if(FC.uiState && FC.uiState.set){
+      FC.uiState.set({ entry: 'home', roomType: null });
+    }
+    applyFromState({ entry:'home', roomType:null, activeTab:'pokoje' });
+  }
+
+  function openRooms(){
+    if(FC.uiState && FC.uiState.set){
+      FC.uiState.set({ entry: 'rooms', activeTab: 'pokoje' });
+    }
+    applyFromState({ entry:'rooms', activeTab:'pokoje' });
   }
 
   function openRoom(room){
     if(!room) return;
     if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ roomType: room });
+      FC.uiState.set({ entry:'app', roomType: room });
     }
-    applyFromState({ roomType: room });
+    applyFromState({ entry:'app', roomType: room });
   }
 
-  function backToRooms(){
-    if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ roomType: null });
+  function back(){
+    const st = (FC.uiState && FC.uiState.get) ? FC.uiState.get() : {};
+    if(st && st.entry === 'app'){
+      // back to rooms
+      if(FC.uiState && FC.uiState.set){
+        FC.uiState.set({ entry:'rooms', roomType:null, activeTab:'pokoje' });
+      }
+      return applyFromState({ entry:'rooms', roomType:null, activeTab:'pokoje' });
     }
-    applyFromState({ roomType: null });
-  }
-
-  function setActiveTab(tab){
-    if(!tab) return;
-    if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ activeTab: tab });
-    }
-    // Actual tab UI updates (classes) are handled by app.js renderers.
-    // We only persist state here.
+    // from rooms/placeholder -> home
+    return openHome();
   }
 
   FC.views = FC.views || {};
+  FC.views.showHome = showHome;
   FC.views.showRooms = showRooms;
   FC.views.showApp = showApp;
+  FC.views.showInvestor = showInvestor;
+  FC.views.showRozrys = showRozrys;
   FC.views.applyFromState = applyFromState;
+  FC.views.openHome = openHome;
+  FC.views.openRooms = openRooms;
   FC.views.openRoom = openRoom;
-  FC.views.backToRooms = backToRooms;
-  FC.views.setActiveTab = setActiveTab;
+  FC.views.back = back;
 })();

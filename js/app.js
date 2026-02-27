@@ -547,6 +547,18 @@ try{
       FC.storage.setJSON(STORAGE_KEYS.services, services);
       FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+  // Special top-level tabs (available even before selecting a room)
+  if(tabName === 'pokoje'){
+    uiState.entry = 'rooms';
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+  }
+  if(tabName === 'inwestor' || tabName === 'rozrys'){
+    // keep entry out of home
+    if(uiState.entry === 'home') uiState.entry = 'rooms';
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+  }
     }
   }
 }catch(_){ }
@@ -609,9 +621,7 @@ function calculateAvailableTopHeight(){
 }
 function renderTopHeight(){
   const el = document.getElementById('autoTopHeight');
-  if(!el) return;
-  if(!uiState || !uiState.roomType){ el.textContent = '0'; return; }
-  el.textContent = calculateAvailableTopHeight();
+  if(el) el.textContent = calculateAvailableTopHeight();
 }
 
 // ZESTAWY: top = roomHeight - suma niższych - blenda
@@ -632,7 +642,7 @@ function toggleExpandAll(id){
     uiState.selectedCabinetId = key;
   }
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  renderCabinets();
+  if(tabName !== 'pokoje' && tabName !== 'inwestor' && tabName !== 'rozrys') renderCabinets();
 }
 
 /* Settings changes */
@@ -5713,11 +5723,7 @@ function setActiveTab(tabName){
   document.querySelectorAll('.tab-btn').forEach(t=>t.style.background='var(--card)');
   const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
   if(activeBtn) activeBtn.style.background = '#e6f7ff';
-  try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
-  // renderCabinets assumes roomType; for extra tabs we show dedicated modules
-  if(uiState.roomType){
-    renderCabinets();
-  }
+  renderCabinets();
   try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
 }
 
@@ -5780,28 +5786,27 @@ function initUI(){
   try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
   catch(_){ /* keep UI alive even if bindings fail */ }
 
-  const __extraTab = (window.FC && window.FC.sections && typeof window.FC.sections.isExtraTab === 'function')
-    ? window.FC.sections.isExtraTab(uiState.activeTab)
-    : (uiState.activeTab === 'inwestor' || uiState.activeTab === 'rozrys');
-
-  if(uiState.roomType || __extraTab){
-    document.getElementById('roomsView').style.display='none';
-    document.getElementById('appView').style.display='block';
-    document.getElementById('topTabs').style.display = 'block';
-  } else {
-    document.getElementById('roomsView').style.display='block';
-    document.getElementById('appView').style.display='none';
-    document.getElementById('topTabs').style.display = 'none';
+  // Views (home/rooms/app/placeholders)
+  try{
+    if(!uiState.entry) uiState.entry = 'home';
+    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+  }catch(_){
+    // fallback legacy behavior
+    if(uiState.roomType){
+      document.getElementById('roomsView').style.display='none';
+      document.getElementById('appView').style.display='block';
+      document.getElementById('topTabs').style.display = 'grid';
+    } else {
+      document.getElementById('roomsView').style.display='block';
+      document.getElementById('appView').style.display='none';
+      document.getElementById('topTabs').style.display = 'none';
+    }
   }
 
   document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
 
-  try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
-
-  if(uiState.roomType){
-    renderTopHeight();
-    renderCabinets();
-  }
+  renderTopHeight();
+  renderCabinets();
 }
 
 

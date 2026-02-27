@@ -12,6 +12,7 @@
     { ui: 'fc_ui_v1' };
 
   const DEFAULTS = {
+    entry: 'home',
     activeTab: 'wywiad',
     roomType: null,
     showPriceList: null,

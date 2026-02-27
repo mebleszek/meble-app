@@ -6,36 +6,42 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260228_1">
+<link rel="stylesheet" href="css/style.css?v=20260227_6">
 </head>
 <body>
 <header>
 <div class="left">
 <button class="btn" id="backToRooms" data-action="back-rooms">⟲</button>
-<nav id="topTabs" class="two-row" style="display:none; margin-left:8px;">
-<button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
-<button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
-<button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
-<button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
-<button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
-<button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
-<button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
+<nav id="topTabs" style="display:none; margin-left:8px;">
+  <button class="btn tab-btn" data-tab="pokoje" data-action="tab">POKOJE</button>
+  <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
+  <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
+  <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
+  <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
+  <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
+  <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
+  <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
 </nav>
 </div>
-<div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-<button class="btn" id="openMaterialsBtn" data-action="open-materials">Cennik Materiałów</button>
-<button class="btn" id="openServicesBtn" data-action="open-services">Cennik Usług</button>
-</div>
+<div style="margin-left:auto;display:flex;gap:8px;align-items:center"></div>
 </header>
 <div class="container">
-<div id="roomsView">
+<div id="homeView">
+  <div class="card home-hero">
+    <h2 style="margin:0">Start</h2>
+    <p class="muted" style="margin:6px 0 0">Wybierz co chcesz zrobić</p>
+    <div class="home-actions" style="margin-top:14px">
+      <button class="btn home-btn" id="openMaterialsBtn" data-action="open-materials">Cennik materiałów</button>
+      <button class="btn home-btn" id="openServicesBtn" data-action="open-services">Cennik usług</button>
+      <button class="btn-primary home-btn" id="newInvestorBtn" data-action="new-investor">Nowy inwestor</button>
+    </div>
+  </div>
+</div>
+<div id="roomsView" style="display:none">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
 <div>
 <h2 style="margin:0">Wybierz pomieszczenie</h2>
 <p class="muted" style="margin:4px 0 0">Kliknij kafelek aby wejść w edycję</p>
-</div>
-<div class="top-actions">
-<button class="btn-danger" id="newProjectBtn" data-action="new-investor">Nowy inwestor</button>
 </div>
 </div>
 <div class="rooms">
@@ -45,19 +51,20 @@
 <div class="room-btn" data-room="lazienka" data-action="open-room"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
 </div>
 </div>
+<div id="investorView" style="display:none">
+  <div class="card">
+    <h3>Inwestor</h3>
+    <div class="muted">Strona w budowie</div>
+  </div>
+</div>
+
+<div id="rozrysView" style="display:none">
+  <div class="card">
+    <h3>Rozrys</h3>
+    <div class="muted">Strona w budowie</div>
+  </div>
+</div>
 <div id="appView" style="display:none">
-
-<div id="investorModule" class="card" style="display:none">
-  <h3 style="margin-top:0">Inwestor</h3>
-  <p class="muted" style="margin:6px 0 0">Strona w budowie</p>
-</div>
-
-<div id="rozrysModule" class="card" style="display:none">
-  <h3 style="margin-top:0">Rozrys</h3>
-  <p class="muted" style="margin:6px 0 0">Strona w budowie</p>
-</div>
-
-<div id="roomModule">
 <div class="card">
 <h3 id="roomTitle">Pomieszczenie</h3>
 <div class="grid-3" style="margin-top:12px">
@@ -101,7 +108,6 @@
 <div class="muted xs">Fronty dodawane przy zestawach</div>
 </div>
 <div id="frontsList" style="margin-top:14px"></div>
-</div>
 </div>
 </div>
 </div>
@@ -357,12 +363,10 @@
 <script defer src="js/app/utils.js?v=20260227_3"></script>
 <script defer src="js/app/storage.js?v=20260227_3"></script>
 <script defer src="js/app/validate.js?v=20260227_3"></script>
-
-<script defer src="js/app/sections.js?v=20260228_1"></script>
 <!-- bindings extracted from app.js (event wiring + delegation) -->
 <script defer src="js/app/bindings.js?v=20260227_5"></script>
-<script defer src="js/app/actions-register.js?v=20260228_1"></script>
-<script defer src="js/app.js?v=20260228_1"></script>
+<script defer src="js/app/actions-register.js?v=20260227_3"></script>
+<script defer src="js/app.js?v=20260227_3"></script>
 
 </body>
 </html>

@@ -15,7 +15,8 @@
       const ui = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
       ui.roomType = null;
       ui.selectedCabinetId = null;
-      ui.activeTab = 'wywiad';
+      ui.entry = 'home';
+      ui.activeTab = 'pokoje';
       ui.showPriceList = null;
       ui.editingId = null;
       ui.editingCabinetId = null;
