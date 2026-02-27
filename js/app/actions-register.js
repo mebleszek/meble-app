@@ -78,29 +78,22 @@
 
     'new-project': ({event}) => {
       if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
-
-      // Reset project data safely (no dependence on any 'room' variable)
       projectData = FC.utils.clone(DEFAULT_PROJECT);
-
-      // Reset UI state safely
       uiState.roomType = null;
       uiState.selectedCabinetId = null;
       uiState.expanded = {};
-      uiState.activeTab = 'wywiad';
-
-      // Persist
       projectData = FC.project.save(projectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      document.getElementById('roomsView').style.display='block';
+      document.getElementById('appView').style.display='none';
+      document.getElementById('topTabs').style.display='none';
+      renderCabinets();
 
-      // Go back to rooms view
-      const roomsView = document.getElementById('roomsView');
-      const appView = document.getElementById('appView');
-      const topTabs = document.getElementById('topTabs');
-      if (roomsView) roomsView.style.display = 'block';
-      if (appView) appView.style.display = 'none';
-      if (topTabs) topTabs.style.display = 'none';
-
-      try { renderCabinets(); } catch(_) {}
+      // UX: on entering kitchen, open add-cabinet modal with default base cabinet.
+      if(room === 'kuchnia'){
+        try{ openCabinetModalForAdd(); }catch(_){}
+        try{ FC.modal && FC.modal.open && FC.modal.open('cabinetModal'); }catch(_){}
+      }
       return true;
     },
 
