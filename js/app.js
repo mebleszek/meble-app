@@ -1679,11 +1679,7 @@ function openCabinetModalForAdd(){
   cabinetModalState.mode = 'add';
   cabinetModalState.editingId = null;
   cabinetModalState.setEditId = null;
-    // Default choice on open: for kitchen start from a standard base cabinet.
-  // This prevents "zestaw" state/CTA leaking and makes the modal deterministic on first open.
-  const room = uiState.roomType;
-  const isKitchen = room === 'kuchnia';
-  cabinetModalState.chosen = isKitchen ? 'stojąca' : 'moduł';
+  cabinetModalState.chosen = null;
   cabinetModalState.setPreset = null;
   cabinetModalState.draft = makeDefaultCabinetDraftForRoom(uiState.roomType);
   renderCabinetModal();
@@ -3455,12 +3451,6 @@ function createOrUpdateSetFromWizard(){
     const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
     const room = state.roomType || (uiState && uiState.roomType);
     if(!room){ alert('Wybierz pomieszczenie'); return; }
-
-    // Ensure room containers exist BEFORE reading set params (first run after refresh)
-    projectData[room] = projectData[room] || { cabinets: [], sets: [], settings: {} };
-    projectData[room].settings = projectData[room].settings || {};
-    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
-    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
