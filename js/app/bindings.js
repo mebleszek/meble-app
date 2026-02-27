@@ -23,6 +23,8 @@
 	      // an element under the modal. We solve it by swallowing EXACTLY ONE next click when the action
 	      // was triggered from a modal.
 	      let swallowNextClick = false;
+	      let swallowNextClickGlobal = false;
+	      let swallowNextClickEl = null;
 
 	      const dispatchActionFromEvent = (e) => {
 	        const t = e.target;
@@ -62,8 +64,11 @@
         'pointerup',
         (e) => {
 	          const res = dispatchActionFromEvent(e);
-	          if (res.handled && shouldSwallowNextClick(res.action, res.actEl)) {
+	          if (res.handled) {
+	            const global = shouldSwallowNextClick(res.action, res.actEl);
 	            swallowNextClick = true;
+	            swallowNextClickGlobal = global;
+	            swallowNextClickEl = global ? null : res.actEl;
 	          }
         },
         { capture: true, passive: false }
@@ -73,11 +78,27 @@
         'click',
         (e) => {
 	          if (swallowNextClick) {
+	            const shouldSwallow =
+	              swallowNextClickGlobal ||
+	              (() => {
+	                const clickAct = e.target?.closest ? e.target.closest('[data-action]') : null;
+	                return !!(clickAct && swallowNextClickEl && clickAct === swallowNextClickEl);
+	              })();
+
+	            if (shouldSwallow) {
+	              swallowNextClick = false;
+	              swallowNextClickGlobal = false;
+	              swallowNextClickEl = null;
+	              e.preventDefault();
+	              e.stopPropagation();
+	              e.stopImmediatePropagation();
+	              return;
+	            }
+
+	            // Not the synthetic click from the same action. Clear the guard and continue normally.
 	            swallowNextClick = false;
-	            e.preventDefault();
-	            e.stopPropagation();
-	            e.stopImmediatePropagation();
-	            return;
+	            swallowNextClickGlobal = false;
+	            swallowNextClickEl = null;
 	          }
 	          // Desktop/fallback path: allow normal click handling
 	          dispatchActionFromEvent(e);
