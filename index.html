@@ -6,18 +6,20 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260227_6">
+<link rel="stylesheet" href="css/style.css?v=20260228_1">
 </head>
 <body>
 <header>
 <div class="left">
 <button class="btn" id="backToRooms" data-action="back-rooms">⟲</button>
-<nav id="topTabs" style="display:none; margin-left:8px;">
+<nav id="topTabs" class="two-row" style="display:none; margin-left:8px;">
 <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
 <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
 <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
 <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
 <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
+<button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
+<button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
 </nav>
 </div>
 <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -33,7 +35,7 @@
 <p class="muted" style="margin:4px 0 0">Kliknij kafelek aby wejść w edycję</p>
 </div>
 <div class="top-actions">
-<button class="btn-danger" id="newProjectBtn" data-action="new-project">Nowy projekt</button>
+<button class="btn-danger" id="newProjectBtn" data-action="new-investor">Nowy inwestor</button>
 </div>
 </div>
 <div class="rooms">
@@ -44,6 +46,18 @@
 </div>
 </div>
 <div id="appView" style="display:none">
+
+<div id="investorModule" class="card" style="display:none">
+  <h3 style="margin-top:0">Inwestor</h3>
+  <p class="muted" style="margin:6px 0 0">Strona w budowie</p>
+</div>
+
+<div id="rozrysModule" class="card" style="display:none">
+  <h3 style="margin-top:0">Rozrys</h3>
+  <p class="muted" style="margin:6px 0 0">Strona w budowie</p>
+</div>
+
+<div id="roomModule">
 <div class="card">
 <h3 id="roomTitle">Pomieszczenie</h3>
 <div class="grid-3" style="margin-top:12px">
@@ -87,6 +101,7 @@
 <div class="muted xs">Fronty dodawane przy zestawach</div>
 </div>
 <div id="frontsList" style="margin-top:14px"></div>
+</div>
 </div>
 </div>
 </div>
@@ -342,10 +357,12 @@
 <script defer src="js/app/utils.js?v=20260227_3"></script>
 <script defer src="js/app/storage.js?v=20260227_3"></script>
 <script defer src="js/app/validate.js?v=20260227_3"></script>
+
+<script defer src="js/app/sections.js?v=20260228_1"></script>
 <!-- bindings extracted from app.js (event wiring + delegation) -->
 <script defer src="js/app/bindings.js?v=20260227_5"></script>
-<script defer src="js/app/actions-register.js?v=20260227_3"></script>
-<script defer src="js/app.js?v=20260227_3"></script>
+<script defer src="js/app/actions-register.js?v=20260228_1"></script>
+<script defer src="js/app.js?v=20260228_1"></script>
 
 </body>
 </html>

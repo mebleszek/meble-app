@@ -609,7 +609,9 @@ function calculateAvailableTopHeight(){
 }
 function renderTopHeight(){
   const el = document.getElementById('autoTopHeight');
-  if(el) el.textContent = calculateAvailableTopHeight();
+  if(!el) return;
+  if(!uiState || !uiState.roomType){ el.textContent = '0'; return; }
+  el.textContent = calculateAvailableTopHeight();
 }
 
 // ZESTAWY: top = roomHeight - suma niższych - blenda
@@ -5711,7 +5713,11 @@ function setActiveTab(tabName){
   document.querySelectorAll('.tab-btn').forEach(t=>t.style.background='var(--card)');
   const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
   if(activeBtn) activeBtn.style.background = '#e6f7ff';
-  renderCabinets();
+  try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
+  // renderCabinets assumes roomType; for extra tabs we show dedicated modules
+  if(uiState.roomType){
+    renderCabinets();
+  }
   try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
 }
 
@@ -5774,10 +5780,14 @@ function initUI(){
   try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
   catch(_){ /* keep UI alive even if bindings fail */ }
 
-  if(uiState.roomType){
+  const __extraTab = (window.FC && window.FC.sections && typeof window.FC.sections.isExtraTab === 'function')
+    ? window.FC.sections.isExtraTab(uiState.activeTab)
+    : (uiState.activeTab === 'inwestor' || uiState.activeTab === 'rozrys');
+
+  if(uiState.roomType || __extraTab){
     document.getElementById('roomsView').style.display='none';
     document.getElementById('appView').style.display='block';
-    document.getElementById('topTabs').style.display = 'inline-block';
+    document.getElementById('topTabs').style.display = 'block';
   } else {
     document.getElementById('roomsView').style.display='block';
     document.getElementById('appView').style.display='none';
@@ -5786,8 +5796,12 @@ function initUI(){
 
   document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
 
-  renderTopHeight();
-  renderCabinets();
+  try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
+
+  if(uiState.roomType){
+    renderTopHeight();
+    renderCabinets();
+  }
 }
 
 

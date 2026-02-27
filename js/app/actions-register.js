@@ -69,25 +69,48 @@
     'back-rooms': ({event}) => {
       uiState.roomType = null;
       uiState.selectedCabinetId = null;
+      uiState.activeTab = 'wywiad';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.getElementById('roomsView').style.display='block';
       document.getElementById('appView').style.display='none';
       document.getElementById('topTabs').style.display = 'none';
+      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
       return true;
     },
 
+    // Legacy (kept for future use)
     'new-project': ({event}) => {
       if(!confirm('Utworzyć NOWY projekt? Wszystkie pomieszczenia zostaną wyczyszczone.')) return true;
       projectData = FC.utils.clone(DEFAULT_PROJECT);
       uiState.roomType = null;
       uiState.selectedCabinetId = null;
       uiState.expanded = {};
+      uiState.activeTab = 'wywiad';
       projectData = FC.project.save(projectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.getElementById('roomsView').style.display='block';
       document.getElementById('appView').style.display='none';
       document.getElementById('topTabs').style.display='none';
-      renderCabinets();
+      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
+      try{ renderCabinets(); }catch(_){ }
+      return true;
+    },
+
+    // New flow: start "investor" view and show top menu immediately
+    'new-investor': ({event}) => {
+      if(!confirm('Utworzyć NOWEGO inwestora? Projekt zostanie wyczyszczony.')) return true;
+      projectData = FC.utils.clone(DEFAULT_PROJECT);
+      uiState.roomType = null;
+      uiState.selectedCabinetId = null;
+      uiState.expanded = {};
+      uiState.activeTab = 'inwestor';
+      projectData = FC.project.save(projectData);
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      document.getElementById('roomsView').style.display='none';
+      document.getElementById('appView').style.display='block';
+      document.getElementById('topTabs').style.display = 'block';
+      document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
+      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
       return true;
     },
 
@@ -97,10 +120,11 @@
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.getElementById('roomsView').style.display='none';
       document.getElementById('appView').style.display='block';
-      document.getElementById('topTabs').style.display = 'inline-block';
+      document.getElementById('topTabs').style.display = 'block';
       uiState.activeTab = 'wywiad';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
+      try{ window.FC && window.FC.sections && window.FC.sections.update(); }catch(_){ }
       renderCabinets();
       return true;
     },

@@ -7,12 +7,24 @@
     body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#0f172a}
     header{background:#fff;border-bottom:1px solid #e6eef6;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,0.03)}
 
+    /* Top tabs: two-row layout (safe for many tabs). */
+    #topTabs.two-row{
+      display:grid;
+      grid-template-rows:repeat(2, auto);
+      grid-auto-flow:column;
+      grid-auto-columns:max-content;
+      gap:8px;
+      align-items:center;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:4px;
+    }
+
 @media (max-width:600px){
   /* Header: avoid overlapping hitboxes (tabs vs price buttons) on mobile */
   header{flex-wrap:wrap;gap:10px;}
   header .left{width:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  #topTabs{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;margin-left:0 !important;}
-  #topTabs .tab-btn{flex:0 0 auto;}
+  #topTabs{width:100%;margin-left:0 !important;}
   header > div:last-child{width:100% !important;justify-content:flex-end;margin-left:0 !important;}
 }
     .left{display:flex;align-items:center;gap:8px}
