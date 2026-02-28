@@ -73,6 +73,9 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   if (actEl.closest && actEl.closest('.modal-back')) return true;
   // Extra safety for explicit close/cancel actions
   if (action.startsWith('close-') || action.startsWith('cancel-')) return true;
+  // View transitions can also suffer from "tap-through" on mobile (the synthetic click lands on
+  // a newly shown element under the finger, e.g. a room tile after clicking "Nowy inwestor").
+  if (action === 'new-investor' || action === 'back-rooms' || action === 'open-room') return true;
   return false;
 };
 

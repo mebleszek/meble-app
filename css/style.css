@@ -7,13 +7,15 @@
     body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#0f172a}
     header{background:#fff;border-bottom:1px solid #e6eef6;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,0.03)}
 
+/* Top tabs: always two-row grid (no horizontal scroll) */
+#topTabs{display:grid;grid-template-columns:repeat(4, minmax(70px, 1fr));gap:8px;align-items:stretch;margin-left:0 !important;}
+#topTabs .tab-btn{flex:0 0 auto;white-space:nowrap;}
+
 @media (max-width:600px){
-  /* Header: avoid overlapping hitboxes (tabs vs price buttons) on mobile */
+  /* Header: avoid overlapping hitboxes on mobile */
   header{flex-wrap:wrap;gap:10px;}
   header .left{width:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  #topTabs{display:grid;grid-template-columns:repeat(4, minmax(90px, 1fr));gap:8px;align-items:stretch;margin-left:0 !important;}
-@media (max-width:520px){#topTabs{grid-template-columns:repeat(2, minmax(120px, 1fr));}}
-  #topTabs .tab-btn{flex:0 0 auto;}
+  #topTabs .tab-btn{padding:7px 8px;font-size:12px;border-radius:12px;}
   header > div:last-child{width:100% !important;justify-content:flex-end;margin-left:0 !important;}
 }
     .left{display:flex;align-items:center;gap:8px}
