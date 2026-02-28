@@ -5737,6 +5737,17 @@ function jumpToCabinetFromMaterials(cabId){
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
 function setActiveTab(tabName){
+  // Ensure router state is always coherent (older stored uiState may miss "entry")
+  // - when a room is selected => entry 'app'
+  // - when no room selected => entry 'rooms' (so ROZRYS/MAGAZYN can render)
+  if(!uiState.entry){
+    uiState.entry = uiState.roomType ? 'app' : 'rooms';
+  }
+  // Extra tabs should never land in 'home'
+  if((tabName === 'rozrys' || tabName === 'magazyn' || tabName === 'inwestor') && uiState.entry === 'home'){
+    uiState.entry = 'rooms';
+  }
+
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
