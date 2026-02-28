@@ -551,13 +551,13 @@ try{
   if(tabName === 'pokoje'){
     uiState.entry = 'rooms';
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
+    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
   }
   if(tabName === 'inwestor' || tabName === 'rozrys'){
     // keep entry out of home
     if(uiState.entry === 'home') uiState.entry = 'rooms';
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
+    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
   }
     }
   }
@@ -642,12 +642,7 @@ function toggleExpandAll(id){
     uiState.selectedCabinetId = key;
   }
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  // Re-render only for tabs that use the main "app" cabinet renderer.
-  // (For dedicated views like MAGAZYN/ROZRYS/INWESTOR/POKOJE, the router handles rendering.)
-  const activeTab = String(uiState.activeTab || '');
-  if(activeTab !== 'pokoje' && activeTab !== 'inwestor' && activeTab !== 'rozrys' && activeTab !== 'magazyn'){
-    renderCabinets();
-  }
+  if(tabName !== 'pokoje' && tabName !== 'inwestor' && tabName !== 'rozrys') renderCabinets();
 }
 
 /* Settings changes */
@@ -5397,24 +5392,24 @@ function renderCabinets(){
   document.getElementById('gapHeight').value = s.gapHeight;
   document.getElementById('ceilingBlende').value = s.ceilingBlende;
   renderTopHeight();
+  // zakładki
+  if(uiState.activeTab === 'material'){
+    renderMaterialsTab(list, room);
+    return;
+  }
+  if(uiState.activeTab === 'rysunek'){
+    renderDrawingTab(list, room);
+    return;
+  }
 
-  // Zakładki — routing przez moduły (js/app/tabs-router.js + js/tabs/*)
-  // Dzięki temu każda zakładka ma osobny plik i minimalizujemy ryzyko psucia innych sekcji.
-  try{
-    if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
-      window.FC.tabsRouter.switchTo(uiState.activeTab, { listEl: list, room });
-      return;
-    }
-  }catch(_){ }
+  if(uiState.activeTab !== 'wywiad'){
+    const buildCard = document.createElement('div');
+    buildCard.className='build-card';
+    buildCard.innerHTML = '<h3>Strona w budowie</h3><p class="muted">Sekcja jest w trakcie przygotowania.</p>';
+    list.appendChild(buildCard);
+    return;
+  }
 
-  // Fallback (gdyby router nie był dostępny): zachowaj minimalne działanie.
-  if(uiState.activeTab === 'material') return renderMaterialsTab(list, room);
-  if(uiState.activeTab === 'rysunek') return renderDrawingTab(list, room);
-  return renderWywiadTab(list, room);
-}
-
-// Wydzielony renderer WYWIAD — używany przez js/tabs/wywiad.js
-function renderWywiadTab(list, room){
   // grupowanie: zestawy renderujemy jako blok: korpusy + fronty zestawu pod spodem
   const cabinets = projectData[room].cabinets || [];
   const renderedSets = new Set();
@@ -5424,6 +5419,8 @@ function renderWywiadTab(list, room){
     if(cab.setId && !renderedSets.has(cab.setId)){
       const setId = cab.setId;
       renderedSets.add(setId);
+      const setNumber = cab.setNumber;
+
       // wszystkie korpusy zestawu w kolejności jak w tablicy
       const setCabs = cabinets.filter(c => c.setId === setId);
       setCabs.forEach((sc, jdx) => {
@@ -5750,27 +5747,22 @@ function setActiveTab(tabName){
     if(activeBtn) activeBtn.style.background = '#e6f7ff';
   }catch(_){}
 
-  // Route to correct view (home/rooms/app + extra views)
-  // IMPORTANT: "FC" in this file is the local module; views/sections live on window.FC.
+  // Route to correct view (app / rooms / placeholders)
   try{
-    if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
-      window.FC.views.applyFromState(uiState);
+    if(window.FC && FC.views && typeof FC.views.applyFromState === 'function'){
+      FC.views.applyFromState(uiState);
     }
-  }catch(_){ }
+  }catch(_){}
 
   // Render extra modules (ROZRYS/MAGAZYN) when active
   try{
-    if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function'){
-      window.FC.sections.update();
+    if(window.FC && FC.sections && typeof FC.sections.update === 'function'){
+      FC.sections.update();
     }
-  }catch(_){ }
+  }catch(_){}
 
-  // Legacy rendering only for the "app" tabs.
-  // Extra tabs have their own views and must NOT be overwritten by the "Szafki" placeholder.
-  const isExtraTab = (tabName === 'pokoje' || tabName === 'inwestor' || tabName === 'rozrys' || tabName === 'magazyn');
-  if(!isExtraTab){
-    try{ renderCabinets(); }catch(_){ }
-  }
+  // Keep legacy rendering for main app tabs (WYWIAD/RYSUNEK/MATERIAŁ/...)
+  try{ renderCabinets(); }catch(_){}
 
   try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
 }
@@ -5838,7 +5830,7 @@ function initUI(){
   // Views (home/rooms/app/placeholders)
   try{
     if(!uiState.entry) uiState.entry = 'home';
-    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
+    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
   }catch(_){
     // fallback legacy behavior
     if(uiState.roomType){

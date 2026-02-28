@@ -280,177 +280,56 @@
     };
   }
 
+  // ===== Guillotine Beam (MVP)
+  // Cel: lepszy wynik niż pojedynczy greedy shelf, ale bez nakładania elementów.
+  // opts: { mode: 'fast'|'accurate'|'ultra' }
+  function packGuillotineBeam(itemsIn, boardW, boardH, kerf, opts){
+    const mode = (opts && opts.mode) ? String(opts.mode) : 'fast';
+    const W = clampInt(boardW, 2800);
+    const H = clampInt(boardH, 2070);
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+
+    const sorters = [
+      { name: 'maxside', fn: sortRectsByMaxSideDesc },
+      { name: 'area', fn: (arr)=>arr.slice().sort((a,b)=>(b.w*b.h)-(a.w*a.h)) },
+      { name: 'width', fn: (arr)=>arr.slice().sort((a,b)=>b.w-a.w) },
+      { name: 'height', fn: (arr)=>arr.slice().sort((a,b)=>b.h-a.h) },
+    ];
+
+    const maxTries = (mode === 'ultra') ? 8 : (mode === 'accurate' ? 6 : 4);
+
+    function score(sheets){
+      let waste = 0;
+      for(const sh of sheets){
+        waste += calcWaste(sh).waste;
+      }
+      return { sheets: sheets.length, waste };
+    }
+
+    let best = null;
+    const directions = ['wzdłuż','wpoprz'];
+    let tries = 0;
+    for(const dir of directions){
+      for(const s of sorters){
+        if(tries >= maxTries) break;
+        tries++;
+        const ordered = s.fn(itemsIn);
+        const res = packShelf(ordered, W, H, K, dir);
+        const sc = score(res);
+        if(!best || sc.sheets < best.sc.sheets || (sc.sheets === best.sc.sheets && sc.waste < best.sc.waste)){
+          best = { res, sc, meta: { dir, sorter: s.name, mode } };
+        }
+      }
+    }
+
+    return best ? best.res : packShelf(itemsIn, W, H, K, 'auto');
+  }
+
   window.FC.cutOptimizer = {
     makeItems,
     packShelf,
     packMaxRects,
+    packGuillotineBeam,
     calcWaste,
   };
-})();
-
-// ===== Guillotine Beam Search ("Gilotyna PRO")
-// Cel: praktyczny plan pod cięcia pełnym przejazdem, bez nakładania elementów.
-// To nadal heurystyka, ale z "myśleniem" (beam search) – zwykle lepiej niż Shelf.
-(function(){
-  'use strict';
-  if(!window.FC || !window.FC.cutOptimizer) return;
-  const opt = window.FC.cutOptimizer;
-
-  function clampInt(v, fallback){
-    const n = Math.round(Number(v));
-    return Number.isFinite(n) && n > 0 ? n : fallback;
-  }
-
-  function rectFits(r, w, h){
-    return (w <= r.w && h <= r.h);
-  }
-
-  function pruneFreeRects(freeRects){
-    const out = [];
-    for(let i=0;i<freeRects.length;i++){
-      const a = freeRects[i];
-      if(a.w<=0 || a.h<=0) continue;
-      let contained = false;
-      for(let j=0;j<freeRects.length;j++){
-        if(i===j) continue;
-        const b = freeRects[j];
-        if(b.w<=0 || b.h<=0) continue;
-        if(a.x>=b.x && a.y>=b.y && (a.x+a.w)<= (b.x+b.w) && (a.y+a.h) <= (b.y+b.h)){
-          contained = true; break;
-        }
-      }
-      if(!contained) out.push(a);
-    }
-    // stable-ish ordering
-    return out.sort((p,q)=> (p.y-q.y) || (p.x-q.x) || ((p.w*p.h) - (q.w*q.h)));
-  }
-
-  function sortByAreaDesc(items){
-    return items.slice().sort((a,b)=> (b.w*b.h) - (a.w*a.h));
-  }
-
-  // Guillotine split: right + bottom
-  function splitFreeRectGuillotine(free, placed){
-    const out = [];
-    const rx = placed.x + placed.w;
-    const rw = (free.x + free.w) - rx;
-    if(rw > 0) out.push({ x: rx, y: free.y, w: rw, h: free.h });
-    const by = placed.y + placed.h;
-    const bh = (free.y + free.h) - by;
-    if(bh > 0) out.push({ x: free.x, y: by, w: free.w, h: bh });
-    return out;
-  }
-
-  function placeInFreeRect(state, free, item, w, h, rotated, kerf){
-    const K = kerf;
-    const placed = { x: free.x, y: free.y, w, h };
-    const placement = { id: item.id, key: item.key, name: item.name, x: placed.x, y: placed.y, w: placed.w, h: placed.h, rotated: !!rotated };
-    const newFree = state.freeRects.filter(fr => fr !== free);
-    const split = splitFreeRectGuillotine(free, placed);
-    const adjusted = split.map(r=>{
-      const ax = (r.x > placed.x) ? (r.x + K) : r.x;
-      const ay = (r.y > placed.y) ? (r.y + K) : r.y;
-      const aw = r.w - ((r.x > placed.x) ? K : 0);
-      const ah = r.h - ((r.y > placed.y) ? K : 0);
-      return { x: ax, y: ay, w: aw, h: ah };
-    });
-    newFree.push(...adjusted);
-    return {
-      placements: state.placements.concat([placement]),
-      freeRects: pruneFreeRects(newFree),
-      usedArea: state.usedArea + (w*h),
-    };
-  }
-
-  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs){
-    const start = Date.now();
-    const maxBeam = clampInt(beamWidth, 40);
-    const budgetMs = Math.max(60, clampInt(timeMs, 300));
-
-    const remaining = sortByAreaDesc(items);
-    let beam = [{ placements: [], freeRects: [{ x:0, y:0, w:W, h:H }], usedArea: 0, usedIdx: new Set() }];
-
-    const CAND_ITEMS = 8;
-    const CAND_FREES = 14;
-
-    while(Date.now() - start < budgetMs){
-      const next = [];
-      for(const st of beam){
-        const cand = [];
-        for(let i=0;i<remaining.length && cand.length<CAND_ITEMS;i++){
-          if(!st.usedIdx.has(i)) cand.push({ idx:i, it: remaining[i] });
-        }
-        if(cand.length===0) continue;
-
-        const freeList = st.freeRects.slice(0, CAND_FREES);
-        for(const f of freeList){
-          for(const c of cand){
-            const it = c.it;
-            const opts = [{ w: it.w, h: it.h, rotated:false }];
-            if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated:true });
-            for(const o of opts){
-              if(!rectFits(f, o.w, o.h)) continue;
-              const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K);
-              const usedIdx = new Set(st.usedIdx);
-              usedIdx.add(c.idx);
-              next.push({ placements: placedState.placements, freeRects: placedState.freeRects, usedArea: placedState.usedArea, usedIdx });
-            }
-          }
-        }
-      }
-      if(next.length===0) break;
-
-      next.sort((a,b)=>{
-        if(b.usedArea !== a.usedArea) return b.usedArea - a.usedArea;
-        const aMax = a.freeRects.reduce((m,r)=>Math.max(m,r.w*r.h),0);
-        const bMax = b.freeRects.reduce((m,r)=>Math.max(m,r.w*r.h),0);
-        return bMax - aMax;
-      });
-      beam = next.slice(0, maxBeam);
-
-      const best = beam[0];
-      let canPlaceMore = false;
-      outer: for(const f of best.freeRects){
-        for(let i=0;i<remaining.length;i++){
-          if(best.usedIdx.has(i)) continue;
-          const it = remaining[i];
-          if(rectFits(f, it.w, it.h) || (it.rotationAllowed && rectFits(f, it.h, it.w))){
-            canPlaceMore = true; break outer;
-          }
-        }
-      }
-      if(!canPlaceMore) break;
-    }
-
-    const best = beam[0] || { placements: [], usedIdx: new Set() };
-    const rest = [];
-    for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
-    return { placements: best.placements, remaining: rest };
-  }
-
-  function packGuillotineBeam(itemsIn, boardW, boardH, kerf, options){
-    const W = clampInt(boardW, 2800);
-    const H = clampInt(boardH, 2070);
-    const K = Math.max(0, Math.round(Number(kerf)||0));
-    const beamWidth = options && options.beamWidth ? options.beamWidth : 60;
-    const timeMs = options && options.timeMs ? options.timeMs : 450;
-
-    let remaining = sortByAreaDesc(itemsIn);
-    const sheets = [];
-    while(remaining.length>0){
-      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs);
-      const placements = res.placements || [];
-      if(placements.length===0){
-        const it = remaining[0];
-        sheets.push({ boardW: W, boardH: H, placements: [{ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true }] });
-        remaining = remaining.slice(1);
-        continue;
-      }
-      sheets.push({ boardW: W, boardH: H, placements });
-      remaining = res.remaining;
-    }
-    return sheets;
-  }
-
-  opt.packGuillotineBeam = packGuillotineBeam;
 })();

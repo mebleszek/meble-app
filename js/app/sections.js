@@ -20,9 +20,6 @@
       const roomType = ui?.roomType || null;
 
       // Render extra modules when active (fail-soft)
-      if(activeTab === "inwestor" && FC.investorUI && typeof FC.investorUI.render === "function"){
-        FC.investorUI.render();
-      }
       if(activeTab === 'rozrys' && FC.rozrys && typeof FC.rozrys.render === 'function'){
         FC.rozrys.render();
       }
