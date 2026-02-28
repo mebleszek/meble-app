@@ -39,6 +39,24 @@
     return Math.round(n * 10);
   }
 
+  function toMm(v, unit){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return 0;
+    if(unit === 'cm') return Math.round(n * 10);
+    return Math.round(n);
+  }
+
+  function fmtFromMm(mm, unit){
+    const n = Math.round(Number(mm)||0);
+    if(unit === 'cm'){
+      const cm = n / 10;
+      // maks 1 miejsce po przecinku, bez ogona .0
+      const s = cm.toFixed(1);
+      return s.endsWith('.0') ? s.slice(0,-2) : s;
+    }
+    return String(n);
+  }
+
   function mmToStr(mm){
     const n = Math.round(Number(mm)||0);
     return String(n);
@@ -141,6 +159,19 @@
       ctx.strokeStyle = '#0b1f33';
       ctx.strokeRect(0.5,0.5,canvas.width-1,canvas.height-1);
 
+      // obszar roboczy po "równaniu" (jeśli ustawione)
+      if(sheet.usableW && sheet.usableH && sheet.edge){
+        const ex = sheet.edge * scale;
+        const ey = sheet.edge * scale;
+        const uw = sheet.usableW * scale;
+        const uh = sheet.usableH * scale;
+        ctx.save();
+        ctx.setLineDash([6,4]);
+        ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
+        ctx.strokeRect(ex+0.5, ey+0.5, Math.max(0,uw-1), Math.max(0,uh-1));
+        ctx.restore();
+      }
+
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
       placements.forEach(p=>{
@@ -233,18 +264,24 @@
     });
     const items = opt.makeItems(partsMm);
 
-    const W = Number(state.boardW)||2800;
-    const H = Number(state.boardH)||2070;
-    const K = Number(state.kerf)||4;
+    const unit = state.unit || 'cm';
+    const W = toMm(state.boardW, unit) || 2800;
+    const H = toMm(state.boardH, unit) || 2070;
+    const K = toMm(state.kerf, unit) || 4;
+    const EDGE = toMm(state.edge, unit) || 20;
+
+    const usableW = Math.max(1, W - 2*EDGE);
+    const usableH = Math.max(1, H - 2*EDGE);
 
     let sheets = [];
-    if(state.heur === 'maxrects'){
-      sheets = opt.packMaxRects(items, W, H, K);
+    if(state.heur === 'gpro'){
+      const mode = state.proMode || 'fast';
+      sheets = opt.packGuillotinePro(items, usableW, usableH, K, mode);
     } else {
       const dir = state.direction || 'auto';
       if(dir === 'auto'){
-        const a = opt.packShelf(items, W, H, K, 'wzdłuż');
-        const b = opt.packShelf(items, W, H, K, 'wpoprz');
+        const a = opt.packShelf(items, usableW, usableH, K, 'wzdłuż');
+        const b = opt.packShelf(items, usableW, usableH, K, 'wpoprz');
         // wybierz: mniej płyt, a przy remisie mniejszy odpad
         const score = (ss)=>{
           const totalWaste = ss.reduce((sum,s)=>sum + opt.calcWaste(s).waste,0);
@@ -254,10 +291,25 @@
         const sb = score(b);
         sheets = (sb.sheets < sa.sheets || (sb.sheets === sa.sheets && sb.waste < sa.waste)) ? b : a;
       } else {
-        sheets = opt.packShelf(items, W, H, K, dir);
+        sheets = opt.packShelf(items, usableW, usableH, K, dir);
       }
     }
-    return { sheets };
+
+    // Annotacje: pełny format + obszar roboczy + przesunięcie o "równanie"
+    sheets.forEach(s=>{
+      s.boardW = W;
+      s.boardH = H;
+      s.usableW = usableW;
+      s.usableH = usableH;
+      s.edge = EDGE;
+      (s.placements||[]).forEach(p=>{
+        if(p.unplaced) return;
+        p.x += EDGE;
+        p.y += EDGE;
+      });
+    });
+
+    return { sheets, meta: { W, H, K, EDGE, usableW, usableH } };
   }
 
   function render(){
@@ -283,18 +335,26 @@
     // state (ui) — keep local per render
     const state = {
       material: agg.materials[0],
-      boardW: 2800,
-      boardH: 2070,
-      kerf: 4,
+      unit: 'cm',
+      boardW: 280,
+      boardH: 207,
+      kerf: 0.4,
+      edge: 2,
       grain: true,
       heur: 'shelf',
       direction: 'auto',
+      proMode: 'fast',
     };
 
     // if magazyn has hint for first material
     try{
       const hint = (FC.magazyn && FC.magazyn.findForMaterial) ? FC.magazyn.findForMaterial(state.material) : [];
-      if(hint && hint[0]){ state.boardW = hint[0].width || state.boardW; state.boardH = hint[0].height || state.boardH; }
+      if(hint && hint[0]){
+        // magazyn trzyma w mm
+        state.unit = 'cm';
+        state.boardW = (hint[0].width||2800)/10;
+        state.boardH = (hint[0].height||2070)/10;
+      }
     }catch(_){ }
 
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -311,9 +371,19 @@
     matWrap.appendChild(matSel);
     controls.appendChild(matWrap);
 
-    // board size
+    // unit + board size
     const sizeWrap = h('div');
-    sizeWrap.appendChild(h('label', { text:'Format płyty (mm)' }));
+    sizeWrap.appendChild(h('label', { text:'Format płyty' }));
+    const unitRow = h('div', { style:'display:flex;gap:8px;align-items:center;margin-bottom:6px' });
+    const unitSel = h('select', { id:'rozUnit' });
+    unitSel.innerHTML = `
+      <option value="cm">cm</option>
+      <option value="mm">mm</option>
+    `;
+    unitRow.appendChild(h('div', { class:'muted xs', text:'Jednostki:' }));
+    unitRow.appendChild(unitSel);
+    sizeWrap.appendChild(unitRow);
+
     const sizeRow = h('div', { style:'display:flex;gap:8px' });
     const inW = h('input', { id:'rozW', type:'number', value:String(state.boardW) });
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
@@ -323,10 +393,17 @@
 
     // kerf
     const kerfWrap = h('div');
-    kerfWrap.appendChild(h('label', { text:'Kerf (mm)' }));
+    kerfWrap.appendChild(h('label', { text:'Kerf' }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
     controls.appendChild(kerfWrap);
+
+    // edge trim
+    const edgeWrap = h('div');
+    edgeWrap.appendChild(h('label', { text:'Równanie płyty (w koło)' }));
+    const inE = h('input', { id:'rozEdge', type:'number', value:String(state.edge) });
+    edgeWrap.appendChild(inE);
+    controls.appendChild(edgeWrap);
 
     // second row: grain + heuristic + direction
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -346,7 +423,7 @@
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
       <option value="shelf">Szybka (pasy / półki)</option>
-      <option value="maxrects">Lepsza (MaxRects)</option>
+      <option value="gpro">Dokładna (Gilotyna PRO)</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -361,6 +438,17 @@
     `;
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
+
+    // PRO mode
+    const proWrap = h('div');
+    proWrap.appendChild(h('label', { text:'Dokładność (dla "Gilotyna PRO")' }));
+    const proSel = h('select', { id:'rozPro' });
+    proSel.innerHTML = `
+      <option value="fast">Szybkie</option>
+      <option value="accurate">Dokładniejsze</option>
+    `;
+    proWrap.appendChild(proSel);
+    controls2.appendChild(proWrap);
 
     card.appendChild(controls);
     card.appendChild(controls2);
@@ -389,10 +477,42 @@
       try{
         const hint = (FC.magazyn && FC.magazyn.findForMaterial) ? FC.magazyn.findForMaterial(material) : [];
         if(hint && hint[0]){
-          inW.value = String(hint[0].width || 2800);
-          inH.value = String(hint[0].height || 2070);
+          // magazyn w mm
+          const u = unitSel.value || 'cm';
+          inW.value = fmtFromMm(hint[0].width || 2800, u);
+          inH.value = fmtFromMm(hint[0].height || 2070, u);
         }
       }catch(_){ }
+    }
+
+    function updateUnitsUI(){
+      const u = unitSel.value || 'cm';
+      // ustaw kroki i etykiety
+      inW.step = (u==='cm') ? '0.1' : '1';
+      inH.step = (u==='cm') ? '0.1' : '1';
+      inK.step = (u==='cm') ? '0.1' : '1';
+      inE.step = (u==='cm') ? '0.1' : '1';
+      // placeholdery / minimal
+      inW.min = '1'; inH.min = '1'; inK.min = '0'; inE.min = '0';
+    }
+
+    function syncStateFromInputs(){
+      state.unit = unitSel.value || 'cm';
+      state.material = matSel.value;
+      state.boardW = inW.value;
+      state.boardH = inH.value;
+      state.kerf = inK.value;
+      state.edge = inE.value;
+      state.grain = !!grainChk.checked;
+      state.heur = heurSel.value;
+      state.direction = dirSel.value;
+      state.proMode = proSel.value;
+    }
+
+    function updateHeurVisibility(){
+      const isPro = (heurSel.value === 'gpro');
+      dirWrap.style.display = isPro ? 'none' : '';
+      proWrap.style.display = isPro ? '' : 'none';
     }
 
     function renderOverrides(){
@@ -443,12 +563,18 @@
 
       const pct = sum.area>0 ? (sum.waste/sum.area)*100 : 0;
 
+      const unit = state.unit || 'cm';
+      const edgeMm = (meta && meta.EDGE!=null) ? meta.EDGE : 0;
+      const edgeStr = fmtFromMm(edgeMm, unit);
+      const usableStr = (meta && meta.usableW!=null) ? `${fmtFromMm(meta.usableW, unit)}×${fmtFromMm(meta.usableH, unit)} ${unit}` : '';
+
       out.appendChild(h('div', { class:'card', style:'margin:0', html:`
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><strong>Materiał:</strong> ${meta.material}</div>
           <div><strong>Płyty:</strong> ${sheets.length} szt.</div>
           <div><strong>Odpad:</strong> ${pct.toFixed(1)}%</div>
         </div>
+        <div class="muted xs" style="margin-top:6px">Równanie: ${edgeStr} ${unit} (w koło) • Pole robocze: ${usableStr}</div>
       ` }));
 
       const expRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap' });
@@ -526,18 +652,24 @@
     function generate(){
       const material = matSel.value;
       const parts = agg.byMaterial[material] || [];
+
+      syncStateFromInputs();
       const st = {
         material,
-        boardW: Number(inW.value)||2800,
-        boardH: Number(inH.value)||2070,
-        kerf: Number(inK.value)||4,
-        grain: !!grainChk.checked,
-        heur: heurSel.value,
-        direction: dirSel.value,
+        unit: state.unit,
+        boardW: state.boardW,
+        boardH: state.boardH,
+        kerf: state.kerf,
+        edge: state.edge,
+        grain: state.grain,
+        heur: state.heur,
+        direction: state.direction,
+        proMode: state.proMode,
       };
 
       const plan = computePlan(st, parts);
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur });
+      const meta = Object.assign({ material, kerf: st.kerf, heur: st.heur }, plan.meta || {});
+      renderOutput(plan, meta);
     }
 
     // events
@@ -551,23 +683,38 @@
       out.innerHTML = '';
     });
     heurSel.addEventListener('change', ()=>{
-      // Kierunek cięcia dotyczy tylko heurystyki "pasy"
-      const isShelf = (heurSel.value === 'shelf');
-      dirSel.disabled = !isShelf;
-      if(!isShelf){
-        dirSel.value = 'auto';
-      }
+      updateHeurVisibility();
       out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
       out.innerHTML = '';
     });
 
+    proSel.addEventListener('change', ()=>{ out.innerHTML = ''; });
+
+    unitSel.addEventListener('change', ()=>{
+      const oldU = state.unit || 'cm';
+      const newU = unitSel.value || 'cm';
+      // zachowaj wartości przez mm
+      const wMm = toMm(inW.value, oldU);
+      const hMm = toMm(inH.value, oldU);
+      const kMm = toMm(inK.value, oldU);
+      const eMm = toMm(inE.value, oldU);
+      inW.value = fmtFromMm(wMm, newU);
+      inH.value = fmtFromMm(hMm, newU);
+      inK.value = fmtFromMm(kMm, newU);
+      inE.value = fmtFromMm(eMm, newU);
+      state.unit = newU;
+      updateUnitsUI();
+      out.innerHTML = '';
+    });
+
     saveToMag.addEventListener('click', ()=>{
       if(!(FC.magazyn && FC.magazyn.upsertSheet)) return alert('Brak modułu magazynu');
       const material = matSel.value;
-      const w = Number(inW.value)||0;
-      const hh = Number(inH.value)||0;
+      const u = unitSel.value || 'cm';
+      const w = toMm(inW.value, u);
+      const hh = toMm(inH.value, u);
       if(!(w>0 && hh>0)) return alert('Podaj format płyty');
       FC.magazyn.upsertSheet({ material, width:w, height:hh, qty:0 });
       alert('Zapisano format w Magazyn (ilość = 0).');
@@ -579,6 +726,8 @@
 
     // initial
     renderOverrides();
+    updateUnitsUI();
+    updateHeurVisibility();
   }
 
   FC.rozrys = {

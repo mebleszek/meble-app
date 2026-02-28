@@ -1,5 +1,6 @@
 /* cut-optimizer.js — proste heurystyki rozkroju (MVP)
-   - Shelf (pasy) + MaxRects (lepsza)
+   - Shelf (pasy) + Guillotine PRO (dokładniejsza, pod plan cięć)
+   - (pozostawione) MaxRects — układ, nie plan cięć
    - Dane w mm (liczby całkowite), kerf w mm
    - Obsługa ograniczeń słoi (rotationAllowed)
    Uwaga: To NIE jest CAD. Ma być użyteczne i stabilne, bez crashy.
@@ -66,6 +67,12 @@
     });
   }
 
+  function area(r){ return r.w * r.h; }
+
+  function containsRect(a,b){
+    return (b.x>=a.x && b.y>=a.y && (b.x+b.w)<= (a.x+a.w) && (b.y+b.h) <= (a.y+a.h));
+  }
+
   function makeItems(partsMm){
     const items = [];
     for(const p of (partsMm||[])){
@@ -85,18 +92,17 @@
     return items;
   }
 
-  // ===== Shelf heuristic ("pasy"). direction:
-  // 'wzdłuż'  -> układanie w wierszach (X rośnie, nowy wiersz w dół)
-  // 'wpoprz'  -> układanie w kolumnach (Y rośnie, nowa kolumna w prawo)
-  // 'auto'    -> decyzję podejmuje warstwa wyżej (rozrys.js)
+  // ===== Shelf heuristic (rows). direction:
+  // 'auto' | 'wzdłuż' | 'wpoprz'  => for wpoprz swap board axes.
   function packShelf(itemsIn, boardW, boardH, kerf, direction){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
     const K = Math.max(0, Math.round(Number(kerf)||0));
 
-    const mode = (direction === 'wpoprz') ? 'col' : 'row';
-    const BW = W;
-    const BH = H;
+    // coordinate system swap for cross-cut preference
+    const swap = (direction === 'wpoprz');
+    const BW = swap ? H : W;
+    const BH = swap ? W : H;
 
     const items = sortRectsByMaxSideDesc(itemsIn);
     const sheets = [];
@@ -109,8 +115,7 @@
     let sheet = newSheet();
     let cursorX = 0;
     let cursorY = 0;
-    let rowH = 0;     // for row-mode
-    let colW = 0;     // for col-mode
+    let rowH = 0;
 
     function placeOne(it){
       const opts = [];
@@ -119,63 +124,34 @@
       if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated: true });
 
       for(const o of opts){
-        if(mode === 'row'){
-          // new row if doesn't fit
-          if(cursorX + o.w > BW){
-            cursorX = 0;
-            cursorY = cursorY + rowH + (rowH>0 ? K : 0);
-            rowH = 0;
-          }
-          // new sheet if doesn't fit vertically
-          if(cursorY + o.h > BH){
-            sheet = newSheet();
-            cursorX = 0;
-            cursorY = 0;
-            rowH = 0;
-          }
-          if(cursorX + o.w <= BW && cursorY + o.h <= BH){
-            sheet.placements.push({
-              id: it.id,
-              key: it.key,
-              name: it.name,
-              x: cursorX,
-              y: cursorY,
-              w: o.w,
-              h: o.h,
-              rotated: o.rotated,
-            });
-            cursorX = cursorX + o.w + K;
-            rowH = Math.max(rowH, o.h);
-            return true;
-          }
-        } else {
-          // column-mode ("w poprzek")
-          if(cursorY + o.h > BH){
-            cursorY = 0;
-            cursorX = cursorX + colW + (colW>0 ? K : 0);
-            colW = 0;
-          }
-          if(cursorX + o.w > BW){
-            sheet = newSheet();
-            cursorX = 0;
-            cursorY = 0;
-            colW = 0;
-          }
-          if(cursorX + o.w <= BW && cursorY + o.h <= BH){
-            sheet.placements.push({
-              id: it.id,
-              key: it.key,
-              name: it.name,
-              x: cursorX,
-              y: cursorY,
-              w: o.w,
-              h: o.h,
-              rotated: o.rotated,
-            });
-            cursorY = cursorY + o.h + K;
-            colW = Math.max(colW, o.w);
-            return true;
-          }
+        // new row if doesn't fit
+        if(cursorX + o.w > BW){
+          cursorX = 0;
+          cursorY = cursorY + rowH + (rowH>0 ? K : 0);
+          rowH = 0;
+        }
+        // new sheet if doesn't fit vertically
+        if(cursorY + o.h > BH){
+          sheet = newSheet();
+          cursorX = 0;
+          cursorY = 0;
+          rowH = 0;
+        }
+        // if still doesn't fit, try next orientation
+        if(cursorX + o.w <= BW && cursorY + o.h <= BH){
+          sheet.placements.push({
+            id: it.id,
+            key: it.key,
+            name: it.name,
+            x: cursorX,
+            y: cursorY,
+            w: o.w,
+            h: o.h,
+            rotated: o.rotated,
+          });
+          cursorX = cursorX + o.w + K;
+          rowH = Math.max(rowH, o.h);
+          return true;
         }
       }
       return false;
@@ -186,15 +162,178 @@
       placeOne(it);
     }
 
-    sheets.forEach(s=>{ s.boardW = W; s.boardH = H; });
+    // swap back placements if needed
+    if(swap){
+      sheets.forEach(s=>{
+        s.placements.forEach(p=>{
+          const nx = p.y;
+          const ny = p.x;
+          const nw = p.h;
+          const nh = p.w;
+          p.x = nx; p.y = ny; p.w = nw; p.h = nh;
+        });
+        s.boardW = W;
+        s.boardH = H;
+      });
+    } else {
+      sheets.forEach(s=>{ s.boardW = W; s.boardH = H; });
+    }
+
+    return sheets;
+  }
+
+  // ===== Guillotine PRO (beam search; realny "plan cięć" pod gilotynę)
+  // - tworzy układ guillotine-friendly
+  // - automatycznie wybiera orientację podziału na każdym kroku
+  // - nie wymaga preferencji kierunku cięcia od użytkownika
+  // mode: 'fast' | 'accurate'
+  function packGuillotinePro(itemsIn, boardW, boardH, kerf, mode){
+    const W = clampInt(boardW, 2800);
+    const H = clampInt(boardH, 2070);
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const beam = (mode === 'accurate') ? 60 : 20;
+
+    const items = sortRectsByMaxSideDesc(itemsIn);
+    const sheets = [];
+
+    function newState(){
+      return {
+        free: [{ x:0, y:0, w:W, h:H }],
+        placements: [],
+        used: 0,
+      };
+    }
+
+    function scoreState(st){
+      // niżej = lepiej
+      const freeArea = st.free.reduce((s,r)=>s+area(r),0);
+      const maxFree = st.free.reduce((m,r)=>Math.max(m, area(r)), 0);
+      // preferuj mniej „poszatkowanych” prostokątów
+      const frag = st.free.length;
+      return (freeArea - maxFree) + frag * 5000;
+    }
+
+    function splitGuillotine(free, placed, splitKind){
+      // Założenie: placed jest w lewym-górnym rogu free
+      const out = [];
+      const wRem = free.w - placed.w - K;
+      const hRem = free.h - placed.h - K;
+      if(splitKind === 'H'){
+        // 1) cięcie poziome po wysokości elementu -> dolny prostokąt pełnej szerokości
+        if(hRem > 0){
+          out.push({ x: free.x, y: free.y + placed.h + K, w: free.w, h: hRem });
+        }
+        // 2) w górnym pasie docinamy pionowo -> prawy prostokąt wysokości elementu
+        if(wRem > 0){
+          out.push({ x: free.x + placed.w + K, y: free.y, w: wRem, h: placed.h });
+        }
+      } else {
+        // 'V'
+        // 1) cięcie pionowe po szerokości elementu -> prawy prostokąt pełnej wysokości
+        if(wRem > 0){
+          out.push({ x: free.x + placed.w + K, y: free.y, w: wRem, h: free.h });
+        }
+        // 2) w lewym pasie docinamy poziomo -> dolny prostokąt szerokości elementu
+        if(hRem > 0){
+          out.push({ x: free.x, y: free.y + placed.h + K, w: placed.w, h: hRem });
+        }
+      }
+      return out.filter(r=>r.w>0 && r.h>0);
+    }
+
+    function prune(list){
+      const cleaned = list.filter(r=>r.w>0 && r.h>0);
+      // usuń zawarte
+      const out = [];
+      for(let i=0;i<cleaned.length;i++){
+        const a = cleaned[i];
+        let contained = false;
+        for(let j=0;j<cleaned.length;j++){
+          if(i===j) continue;
+          const b = cleaned[j];
+          if(containsRect(b,a)) { contained = true; break; }
+        }
+        if(!contained) out.push(a);
+      }
+      return out;
+    }
+
+    function expand(states, it){
+      const next = [];
+      for(const st of states){
+        for(const free of st.free){
+          const candidates = [];
+          candidates.push({ w: it.w, h: it.h, rotated:false });
+          if(it.rotationAllowed) candidates.push({ w: it.h, h: it.w, rotated:true });
+          for(const c of candidates){
+            if(!rectFits(free, c.w, c.h)) continue;
+            const placed = { x: free.x, y: free.y, w: c.w, h: c.h };
+            // dwie możliwości podziału
+            for(const splitKind of ['H','V']){
+              const ns = {
+                free: st.free.filter(r=>r!==free).slice(),
+                placements: st.placements.slice(),
+                used: st.used + area(placed),
+              };
+              ns.placements.push({
+                id: it.id,
+                key: it.key,
+                name: it.name,
+                x: placed.x,
+                y: placed.y,
+                w: placed.w,
+                h: placed.h,
+                rotated: c.rotated,
+              });
+              ns.free.push(...splitGuillotine(free, placed, splitKind));
+              ns.free = prune(ns.free);
+              next.push(ns);
+            }
+          }
+        }
+      }
+      if(!next.length) return null;
+      next.sort((a,b)=>scoreState(a)-scoreState(b));
+      return next.slice(0, beam);
+    }
+
+    let idx = 0;
+    while(idx < items.length){
+      let states = [newState()];
+      let placedAny = false;
+      let startIdx = idx;
+      while(idx < items.length){
+        const it = items[idx];
+        const n = expand(states, it);
+        if(!n){
+          break;
+        }
+        states = n;
+        placedAny = true;
+        idx++;
+      }
+
+      // jeśli nie udało się wstawić nawet jednego elementu na pustą płytę
+      if(!placedAny){
+        const s = { boardW: W, boardH: H, placements: [] };
+        const it = items[idx];
+        s.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true });
+        sheets.push(s);
+        idx++;
+        continue;
+      }
+
+      const best = states[0];
+      sheets.push({ boardW: W, boardH: H, placements: best.placements });
+
+      // safety: jeśli algorytm utknął bez postępu, przeskocz
+      if(idx === startIdx) idx++;
+    }
 
     return sheets;
   }
 
   // ===== MaxRects (best short-side fit)
-  // Poprawione: pełny split wszystkich przecinających się freeRect + pruning.
-  // Kerf: traktujemy jako odstęp między elementami (padding w algorytmie),
-  // a w placements przechowujemy realne w/h (bez paddingu).
   function packMaxRects(itemsIn, boardW, boardH, kerf){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
@@ -234,46 +373,14 @@
         for(const c of candidates){
           const w = c.w;
           const h = c.h;
-          // wymagaj miejsca także na kerf jako odstęp (po prawej i na dole)
-          const wNeed = Math.min(w + K, W); // clamp (gdy element prawie na całą płytę)
-          const hNeed = Math.min(h + K, H);
-          if(!rectFits(free, wNeed, hNeed)) continue;
-          const sc = scoreFit(free, wNeed, hNeed);
+          if(!rectFits(free, w, h)) continue;
+          const sc = scoreFit(free, w, h);
           if(!best || sc.shortSide < best.sc.shortSide || (sc.shortSide === best.sc.shortSide && sc.longSide < best.sc.longSide)){
             best = { x: free.x, y: free.y, w, h, rotated: c.rotated, sc, free };
           }
         }
       }
       return best;
-    }
-
-    function intersects(a, b){
-      return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-    }
-
-    function splitFreeByPlaced(free, placedPad){
-      const out = [];
-      // left
-      if(placedPad.x > free.x){
-        out.push({ x: free.x, y: free.y, w: placedPad.x - free.x, h: free.h });
-      }
-      // right
-      const rX = placedPad.x + placedPad.w;
-      const rW = (free.x + free.w) - rX;
-      if(rW > 0){
-        out.push({ x: rX, y: free.y, w: rW, h: free.h });
-      }
-      // top
-      if(placedPad.y > free.y){
-        out.push({ x: free.x, y: free.y, w: free.w, h: placedPad.y - free.y });
-      }
-      // bottom
-      const bY = placedPad.y + placedPad.h;
-      const bH = (free.y + free.h) - bY;
-      if(bH > 0){
-        out.push({ x: free.x, y: bY, w: free.w, h: bH });
-      }
-      return out.filter(r=>r.w>0 && r.h>0);
     }
 
     function place(sheet, it, pos){
@@ -288,21 +395,19 @@
         h: placed.h,
         rotated: pos.rotated,
       });
-
-      // Kerf padding area (to keep a gap between parts)
-      const placedPad = { x: placed.x, y: placed.y, w: placed.w + K, h: placed.h + K };
-      placedPad.w = Math.min(placedPad.w, sheet.boardW - placedPad.x);
-      placedPad.h = Math.min(placedPad.h, sheet.boardH - placedPad.y);
-
-      const next = [];
-      for(const fr of sheet.freeRects){
-        if(!intersects(fr, placedPad)){
-          next.push(fr);
-          continue;
-        }
-        next.push(...splitFreeByPlaced(fr, placedPad));
-      }
-      sheet.freeRects = pruneFreeRects(next);
+      // create new free rects from the one we used
+      const newRects = splitFreeRect(pos.free, placed);
+      // add kerf spacing around placed area (simple safety): shrink new rects by kerf on the near edges
+      const adjusted = newRects.map(r=>({
+        x: r.x + (r.x>placed.x ? K : 0),
+        y: r.y + (r.y>placed.y ? K : 0),
+        w: r.w - (r.x>placed.x ? K : 0),
+        h: r.h - (r.y>placed.y ? K : 0)
+      }));
+      // remove used free rect
+      sheet.freeRects = sheet.freeRects.filter(fr => fr !== pos.free);
+      sheet.freeRects.push(...adjusted);
+      sheet.freeRects = pruneFreeRects(sheet.freeRects);
     }
 
     for(const it of items){
@@ -322,7 +427,9 @@
   }
 
   function calcWaste(sheet){
-    const areaBoard = sheet.boardW * sheet.boardH;
+    const bw = sheet.usableW || sheet.boardW;
+    const bh = sheet.usableH || sheet.boardH;
+    const areaBoard = bw * bh;
     const used = (sheet.placements||[]).filter(p=>!p.unplaced).reduce((s,p)=>s + (p.w*p.h),0);
     const waste = Math.max(0, areaBoard - used);
     return {
@@ -336,6 +443,7 @@
   window.FC.cutOptimizer = {
     makeItems,
     packShelf,
+    packGuillotinePro,
     packMaxRects,
     calcWaste,
   };
