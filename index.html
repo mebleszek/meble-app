@@ -350,7 +350,8 @@
 </div>
 </div>
 <!-- floating add button -->
-<div class="floating-add" id="floatingAdd" data-action="add-cabinet" title="Dodaj">+</div>
+<!-- FAB: pokazujemy dopiero po wejściu w edycję pokoju (JS włącza w widoku app) -->
+<div class="floating-add" id="floatingAdd" data-action="add-cabinet" title="Dodaj" style="display:none">+</div>
 
 
 
@@ -359,14 +360,17 @@
 <script defer src="js/core/actions.js?v=20260227_3"></script>
 <script defer src="js/core/modals.js?v=20260227_3"></script>
 <!-- shared app modules (no DOM side-effects) -->
-<script defer src="js/app/constants.js?v=20260227_3"></script>
-<script defer src="js/app/utils.js?v=20260227_3"></script>
-<script defer src="js/app/storage.js?v=20260227_3"></script>
-<script defer src="js/app/validate.js?v=20260227_3"></script>
+<script defer src="js/app/constants.js?v=20260228_1"></script>
+<script defer src="js/app/utils.js?v=20260228_1"></script>
+<script defer src="js/app/storage.js?v=20260228_1"></script>
+<script defer src="js/app/ui-state.js?v=20260228_1"></script>
+<script defer src="js/app/sections.js?v=20260228_1"></script>
+<script defer src="js/app/views.js?v=20260228_1"></script>
+<script defer src="js/app/validate.js?v=20260228_1"></script>
 <!-- bindings extracted from app.js (event wiring + delegation) -->
-<script defer src="js/app/bindings.js?v=20260227_5"></script>
-<script defer src="js/app/actions-register.js?v=20260227_3"></script>
-<script defer src="js/app.js?v=20260227_3"></script>
+<script defer src="js/app/bindings.js?v=20260228_1"></script>
+<script defer src="js/app/actions-register.js?v=20260228_1"></script>
+<script defer src="js/app.js?v=20260228_1"></script>
 
 </body>
 </html>
