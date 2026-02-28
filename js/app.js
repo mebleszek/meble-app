@@ -5224,6 +5224,17 @@ function renderMaterialsTab(listEl, room){
     return (cm * qty) / 100; // meters
   }
 
+  function calcEdgeMetersForParts(parts){
+    let sum = 0;
+    (parts||[]).forEach(p=>{
+      if(!(Number(p.a)>0 && Number(p.b)>0)) return;
+      const sig = partSig(p);
+      const e = getEdges(sig);
+      sum += edgingMetersForPart(p, e);
+    });
+    return sum;
+  }
+
   // Suma projektu
   const projectTotals = {};
   let projectEdgeMeters = 0;
@@ -5378,6 +5389,9 @@ function renderMaterialsTab(listEl, room){
     }
 
     const parts = getCabinetCutList(cab, room);
+
+    // OKLEINA mb dla tej szafki (musi być liczona tu, bo używamy jej w UI)
+    const cabEdgeMeters = calcEdgeMetersForParts(parts);
 
     // SUMA m² dla szafki
     const cabTotalsBox = document.createElement('div');

@@ -119,8 +119,10 @@
     // Session buttons
     'session-cancel': ({event}) => {
       try{ if(window.FC && window.FC.session && typeof window.FC.session.cancel === 'function') window.FC.session.cancel(); }catch(_){ }
-      // go home
-      try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
+      // IMPORTANT: po anulowaniu musimy wyczyścić stan w pamięci (uiState/projectData),
+      // inaczej aplikacja może ponownie zapisać "nowe" dane do localStorage.
+      // Najpewniejsze i najszybsze: pełny reload do strony głównej.
+      try{ window.location.reload(); }catch(_){ }
       return true;
     },
     'session-save': ({event}) => {

@@ -18,12 +18,12 @@
 
   /* Top bar layout: session buttons on the left of tabs */
   .topbar{width:100%;display:flex;align-items:flex-start;gap:12px;}
-  .session-btns{display:flex;flex-direction:column;gap:8px;min-width:118px;}
+  .session-btns{display:flex;flex-direction:column;gap:8px;min-width:0;align-items:flex-start;}
   .top-tabs{display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:10px;flex:1;}
 
   @media (max-width:520px){
     .topbar{gap:10px;}
-    .session-btns{min-width:110px;}
+    .session-btns{min-width:0;}
     .top-tabs{gap:8px;}
   }
   #topTabs .tab-btn{padding:7px 8px;font-size:12px;border-radius:12px;}
@@ -38,7 +38,11 @@
     .btn-success{background:#22c55e;color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
     .btn:disabled,.btn-danger:disabled,.btn-primary:disabled{opacity:.5;cursor:not-allowed}
 
-    .session-btns{display:flex;flex-direction:column;gap:6px}
+    .session-btns{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+
+    /* Session buttons should size to content ("Anuluj" is the longest) */
+    .session-btns .btn-danger,
+    .session-btns .btn-success{width:fit-content}
     .container{padding:20px;max-width:1200px;margin:0 auto}
     .rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}
     .room-btn{background:var(--card);padding:18px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1px solid #e6eef6;box-shadow:var(--shadow);transition:transform .12s}
