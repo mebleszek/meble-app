@@ -551,13 +551,13 @@ try{
   if(tabName === 'pokoje'){
     uiState.entry = 'rooms';
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
   }
   if(tabName === 'inwestor' || tabName === 'rozrys'){
     // keep entry out of home
     if(uiState.entry === 'home') uiState.entry = 'rooms';
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
   }
     }
   }
@@ -5737,17 +5737,6 @@ function jumpToCabinetFromMaterials(cabId){
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
 function setActiveTab(tabName){
-  // Ensure router state is always coherent (older stored uiState may miss "entry")
-  // - when a room is selected => entry 'app'
-  // - when no room selected => entry 'rooms' (so ROZRYS/MAGAZYN can render)
-  if(!uiState.entry){
-    uiState.entry = uiState.roomType ? 'app' : 'rooms';
-  }
-  // Extra tabs should never land in 'home'
-  if((tabName === 'rozrys' || tabName === 'magazyn' || tabName === 'inwestor') && uiState.entry === 'home'){
-    uiState.entry = 'rooms';
-  }
-
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
@@ -5758,26 +5747,27 @@ function setActiveTab(tabName){
     if(activeBtn) activeBtn.style.background = '#e6f7ff';
   }catch(_){}
 
-  // Route to correct view (app / rooms / placeholders)
+  // Route to correct view (home/rooms/app + extra views)
+  // IMPORTANT: "FC" in this file is the local module; views/sections live on window.FC.
   try{
-    if(window.FC && FC.views && typeof FC.views.applyFromState === 'function'){
-      FC.views.applyFromState(uiState);
+    if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
+      window.FC.views.applyFromState(uiState);
     }
-  }catch(_){}
+  }catch(_){ }
 
   // Render extra modules (ROZRYS/MAGAZYN) when active
   try{
-    if(window.FC && FC.sections && typeof FC.sections.update === 'function'){
-      FC.sections.update();
+    if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function'){
+      window.FC.sections.update();
     }
-  }catch(_){}
+  }catch(_){ }
 
-  // Keep legacy rendering for main app tabs (WYWIAD/RYSUNEK/MATERIAŁ/...)
-  try{
-    if(!(tabName === 'rozrys' || tabName === 'magazyn' || tabName === 'inwestor')){
-      renderCabinets();
-    }
-  }catch(_){}
+  // Legacy rendering only for the "app" tabs.
+  // Extra tabs have their own views and must NOT be overwritten by the "Szafki" placeholder.
+  const isExtraTab = (tabName === 'pokoje' || tabName === 'inwestor' || tabName === 'rozrys' || tabName === 'magazyn');
+  if(!isExtraTab){
+    try{ renderCabinets(); }catch(_){ }
+  }
 
   try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
 }
@@ -5845,7 +5835,7 @@ function initUI(){
   // Views (home/rooms/app/placeholders)
   try{
     if(!uiState.entry) uiState.entry = 'home';
-    if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
   }catch(_){
     // fallback legacy behavior
     if(uiState.roomType){
