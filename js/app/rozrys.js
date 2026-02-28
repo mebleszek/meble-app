@@ -152,9 +152,30 @@
         ctx.fillRect(x,y,w,hh);
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
+        // wymiary na właściwych bokach: szerokość na górze, wysokość po lewej
         ctx.fillStyle = '#0b1f33';
-        const label = `${mmToStr(p.w)}×${mmToStr(p.h)}`;
-        ctx.fillText(label, x+6, y+16);
+        const wLabel = `${mmToStr(p.w)}`;
+        const hLabel = `${mmToStr(p.h)}`;
+
+        // top label (width)
+        if(w > 34){
+          const tw = ctx.measureText(wLabel).width;
+          ctx.fillText(wLabel, x + Math.max(4, (w - tw) / 2), y + 16);
+        } else {
+          ctx.fillText(wLabel, x + 4, y + 16);
+        }
+
+        // left label (height) rotated
+        if(hh > 34){
+          ctx.save();
+          ctx.translate(x + 12, y + hh/2);
+          ctx.rotate(-Math.PI/2);
+          const th = ctx.measureText(hLabel).width;
+          ctx.fillText(hLabel, -th/2, 0);
+          ctx.restore();
+        } else {
+          ctx.fillText(hLabel, x + 4, y + 30);
+        }
       });
     }catch(_){ }
   }
@@ -238,14 +259,23 @@
     const K = Number(state.kerf)||4;
 
     let sheets = [];
-    if(state.heur === 'maxrects'){
+
+    if(state.heur === 'gpro' || state.heur === 'gpro_ultra'){
+      if(typeof opt.packGuillotineBeam !== 'function'){
+        return { sheets: [], note: 'Brak modułu Gilotyna PRO (packGuillotineBeam).' };
+      }
+      const ultra = (state.heur === 'gpro_ultra');
+      sheets = opt.packGuillotineBeam(items, W, H, K, {
+        beamWidth: ultra ? 140 : 70,
+        timeMs: ultra ? 1400 : 500,
+      });
+    } else if(state.heur === 'maxrects'){
       sheets = opt.packMaxRects(items, W, H, K);
     } else {
       const dir = state.direction || 'auto';
       if(dir === 'auto'){
         const a = opt.packShelf(items, W, H, K, 'wzdłuż');
         const b = opt.packShelf(items, W, H, K, 'wpoprz');
-        // wybierz: mniej płyt, a przy remisie mniejszy odpad
         const score = (ss)=>{
           const totalWaste = ss.reduce((sum,s)=>sum + opt.calcWaste(s).waste,0);
           return { sheets: ss.length, waste: totalWaste };
@@ -346,7 +376,9 @@
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
       <option value="shelf">Szybka (pasy / półki)</option>
-      <option value="maxrects">Lepsza (MaxRects)</option>
+      <option value="gpro">Dokładna (Gilotyna PRO)</option>
+      <option value="gpro_ultra">Ultra (Gilotyna PRO • dłużej liczy)</option>
+      <option value="maxrects">Eksperymentalna (MaxRects)</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -551,6 +583,9 @@
       out.innerHTML = '';
     });
     heurSel.addEventListener('change', ()=>{
+      const isShelf = (heurSel.value === 'shelf');
+      dirSel.disabled = !isShelf;
+      if(!isShelf) dirSel.value = 'auto';
       out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
