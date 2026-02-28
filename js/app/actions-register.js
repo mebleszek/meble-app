@@ -83,6 +83,89 @@
       return true;
     },
 
+    // ===== INWESTOR (UI uses delegated data-action; handlers must exist in registry) =====
+    'create-investor': ({event}) => {
+      try{
+        if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
+          const inv = window.FC.investors.create({ kind:'person' });
+          if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = inv.id;
+          if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+            window.FC.investorUI.state.selectedId = inv.id;
+            window.FC.investorUI.state.mode = 'detail';
+          }
+          try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
+        }
+      }catch(_){ }
+      return true;
+    },
+    'open-investor': ({event, element}) => {
+      const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
+      if(!id) return true;
+      try{
+        if(window.FC && window.FC.investors && typeof window.FC.investors.setCurrentId === 'function'){
+          window.FC.investors.setCurrentId(id);
+        }
+        if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = id;
+        if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+          window.FC.investorUI.state.selectedId = id;
+          window.FC.investorUI.state.mode = 'detail';
+        }
+        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
+      }catch(_){ }
+      return true;
+    },
+    'back-investors': ({event}) => {
+      try{
+        if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+          window.FC.investorUI.state.mode = 'list';
+        }
+        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
+      }catch(_){ }
+      return true;
+    },
+    'assign-investor': ({event, element}) => {
+      const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
+      if(!id) return true;
+      try{
+        if(window.FC && window.FC.investors && typeof window.FC.investors.setCurrentId === 'function'){
+          window.FC.investors.setCurrentId(id);
+        }
+        if(typeof uiState !== 'undefined' && uiState){
+          uiState.currentInvestorId = id;
+          if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && typeof STORAGE_KEYS !== 'undefined'){
+            window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          }
+        }
+        // If project layer exists, store link (non-breaking)
+        try{
+          if(typeof projectData !== 'undefined' && projectData){
+            projectData.meta = projectData.meta || {};
+            projectData.meta.assignedInvestorId = id;
+            if(window.FC && window.FC.project && typeof window.FC.project.save === 'function') window.FC.project.save(projectData);
+          }
+        }catch(_){ }
+        alert('Przypisano inwestora do bieżącego projektu (lokalnie).');
+      }catch(_){ }
+      return true;
+    },
+    'delete-investor': ({event, element}) => {
+      const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
+      if(!id) return true;
+      if(!confirm('Usunąć inwestora?')) return true;
+      try{
+        if(window.FC && window.FC.investors && typeof window.FC.investors.remove === 'function'){
+          window.FC.investors.remove(id);
+        }
+        if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId === id) uiState.currentInvestorId = null;
+        if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+          window.FC.investorUI.state.selectedId = null;
+          window.FC.investorUI.state.mode = 'list';
+        }
+        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
+      }catch(_){ }
+      return true;
+    },
+
 
     'add-cabinet': ({event}) => {
       if(FC.actions.isLocked('add-cabinet')) return true;
