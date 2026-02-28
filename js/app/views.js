@@ -28,34 +28,44 @@
     if(back) back.style.display = on ? 'inline-block' : 'none';
   }
 
+  function setFloatingVisible(on){
+    const fab = $('floatingAdd');
+    if(fab) fab.style.display = on ? 'flex' : 'none';
+  }
+
   function showHome(){
     showOnly(['homeView']);
     setTabsVisible(false);
     setBackVisible(false);
+    setFloatingVisible(false);
   }
 
   function showRooms(){
     showOnly(['roomsView']);
     setTabsVisible(true);
     setBackVisible(true);
+    setFloatingVisible(false);
   }
 
   function showApp(){
     showOnly(['appView']);
     setTabsVisible(true);
     setBackVisible(true);
+    setFloatingVisible(true);
   }
 
   function showInvestor(){
     showOnly(['investorView']);
     setTabsVisible(true);
     setBackVisible(true);
+    setFloatingVisible(false);
   }
 
   function showRozrys(){
     showOnly(['rozrysView']);
     setTabsVisible(true);
     setBackVisible(true);
+    setFloatingVisible(false);
   }
 
   function applyFromState(state){

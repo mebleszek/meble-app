@@ -5595,9 +5595,28 @@ if(uiState.expanded[cab.id]){
 
 /* ===== Price modal render ===== */
 function renderPriceModal(){
-  const modal = document.getElementById('priceModal'); const type = uiState.showPriceList;
-  if(!type){ modal.style.display = 'none'; return; }
+  const modal = document.getElementById('priceModal');
+  const type = uiState.showPriceList;
+  const wasOpen = modal && modal.style.display === 'flex';
+  if(!type){
+    if(modal) modal.style.display = 'none';
+    // If something hid the modal without calling closePriceModal(), make sure scroll lock is released.
+    if(wasOpen) try{ unlockModalScroll(); }catch(_){ }
+    return;
+  }
+
+  // Open modal
   modal.style.display = 'flex';
+  if(!wasOpen){
+    // Lock scroll + guard against mobile tap-through (opening <select> / clicking save under the finger)
+    try{ lockModalScroll(); }catch(_){ }
+    try{
+      modal.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ modal.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
   const isMat = type === 'materials';
   document.getElementById('priceModalTitle').textContent = isMat ? 'Cennik Materiałów' : 'Cennik Usług';
   document.getElementById('priceModalSubtitle').textContent = isMat ? 'Dodaj/edytuj materiały' : 'Dodaj/edytuj usługi';
