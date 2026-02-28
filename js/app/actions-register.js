@@ -55,23 +55,31 @@
     },
 
     'open-investors': ({event}) => {
-      // Go to investor tab (list/search view). For now it's a dedicated view.
       uiState.entry = 'rooms';
       uiState.activeTab = 'inwestor';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-      // If an investor module exists, let it render.
       try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
       return true;
     },
+
     'new-investor': ({event}) => {
-      // Start investor flow: show rooms list with top menu already visible
+      // Create investor and open investor view
+      try{
+        if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
+          const inv = window.FC.investors.create({ kind:'person' });
+          if(inv && inv.id){
+            uiState.currentInvestorId = inv.id;
+          }
+        }
+      }catch(_){ }
       uiState.entry = 'rooms';
       uiState.roomType = null;
-      uiState.activeTab = 'pokoje';
+      uiState.activeTab = 'inwestor';
       uiState.selectedCabinetId = null;
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      if(FC.views && FC.views.openRooms) FC.views.openRooms();
+      if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+      try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
       return true;
     },
 
