@@ -85,17 +85,18 @@
     return items;
   }
 
-  // ===== Shelf heuristic (rows). direction:
-  // 'auto' | 'wzdłuż' | 'wpoprz'  => for wpoprz swap board axes.
+  // ===== Shelf heuristic ("pasy"). direction:
+  // 'wzdłuż'  -> układanie w wierszach (X rośnie, nowy wiersz w dół)
+  // 'wpoprz'  -> układanie w kolumnach (Y rośnie, nowa kolumna w prawo)
+  // 'auto'    -> decyzję podejmuje warstwa wyżej (rozrys.js)
   function packShelf(itemsIn, boardW, boardH, kerf, direction){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
     const K = Math.max(0, Math.round(Number(kerf)||0));
 
-    // coordinate system swap for cross-cut preference
-    const swap = (direction === 'wpoprz');
-    const BW = swap ? H : W;
-    const BH = swap ? W : H;
+    const mode = (direction === 'wpoprz') ? 'col' : 'row';
+    const BW = W;
+    const BH = H;
 
     const items = sortRectsByMaxSideDesc(itemsIn);
     const sheets = [];
@@ -108,7 +109,8 @@
     let sheet = newSheet();
     let cursorX = 0;
     let cursorY = 0;
-    let rowH = 0;
+    let rowH = 0;     // for row-mode
+    let colW = 0;     // for col-mode
 
     function placeOne(it){
       const opts = [];
@@ -117,34 +119,63 @@
       if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated: true });
 
       for(const o of opts){
-        // new row if doesn't fit
-        if(cursorX + o.w > BW){
-          cursorX = 0;
-          cursorY = cursorY + rowH + (rowH>0 ? K : 0);
-          rowH = 0;
-        }
-        // new sheet if doesn't fit vertically
-        if(cursorY + o.h > BH){
-          sheet = newSheet();
-          cursorX = 0;
-          cursorY = 0;
-          rowH = 0;
-        }
-        // if still doesn't fit, try next orientation
-        if(cursorX + o.w <= BW && cursorY + o.h <= BH){
-          sheet.placements.push({
-            id: it.id,
-            key: it.key,
-            name: it.name,
-            x: cursorX,
-            y: cursorY,
-            w: o.w,
-            h: o.h,
-            rotated: o.rotated,
-          });
-          cursorX = cursorX + o.w + K;
-          rowH = Math.max(rowH, o.h);
-          return true;
+        if(mode === 'row'){
+          // new row if doesn't fit
+          if(cursorX + o.w > BW){
+            cursorX = 0;
+            cursorY = cursorY + rowH + (rowH>0 ? K : 0);
+            rowH = 0;
+          }
+          // new sheet if doesn't fit vertically
+          if(cursorY + o.h > BH){
+            sheet = newSheet();
+            cursorX = 0;
+            cursorY = 0;
+            rowH = 0;
+          }
+          if(cursorX + o.w <= BW && cursorY + o.h <= BH){
+            sheet.placements.push({
+              id: it.id,
+              key: it.key,
+              name: it.name,
+              x: cursorX,
+              y: cursorY,
+              w: o.w,
+              h: o.h,
+              rotated: o.rotated,
+            });
+            cursorX = cursorX + o.w + K;
+            rowH = Math.max(rowH, o.h);
+            return true;
+          }
+        } else {
+          // column-mode ("w poprzek")
+          if(cursorY + o.h > BH){
+            cursorY = 0;
+            cursorX = cursorX + colW + (colW>0 ? K : 0);
+            colW = 0;
+          }
+          if(cursorX + o.w > BW){
+            sheet = newSheet();
+            cursorX = 0;
+            cursorY = 0;
+            colW = 0;
+          }
+          if(cursorX + o.w <= BW && cursorY + o.h <= BH){
+            sheet.placements.push({
+              id: it.id,
+              key: it.key,
+              name: it.name,
+              x: cursorX,
+              y: cursorY,
+              w: o.w,
+              h: o.h,
+              rotated: o.rotated,
+            });
+            cursorY = cursorY + o.h + K;
+            colW = Math.max(colW, o.w);
+            return true;
+          }
         }
       }
       return false;
@@ -155,27 +186,15 @@
       placeOne(it);
     }
 
-    // swap back placements if needed
-    if(swap){
-      sheets.forEach(s=>{
-        s.placements.forEach(p=>{
-          const nx = p.y;
-          const ny = p.x;
-          const nw = p.h;
-          const nh = p.w;
-          p.x = nx; p.y = ny; p.w = nw; p.h = nh;
-        });
-        s.boardW = W;
-        s.boardH = H;
-      });
-    } else {
-      sheets.forEach(s=>{ s.boardW = W; s.boardH = H; });
-    }
+    sheets.forEach(s=>{ s.boardW = W; s.boardH = H; });
 
     return sheets;
   }
 
   // ===== MaxRects (best short-side fit)
+  // Poprawione: pełny split wszystkich przecinających się freeRect + pruning.
+  // Kerf: traktujemy jako odstęp między elementami (padding w algorytmie),
+  // a w placements przechowujemy realne w/h (bez paddingu).
   function packMaxRects(itemsIn, boardW, boardH, kerf){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
@@ -215,14 +234,46 @@
         for(const c of candidates){
           const w = c.w;
           const h = c.h;
-          if(!rectFits(free, w, h)) continue;
-          const sc = scoreFit(free, w, h);
+          // wymagaj miejsca także na kerf jako odstęp (po prawej i na dole)
+          const wNeed = Math.min(w + K, W); // clamp (gdy element prawie na całą płytę)
+          const hNeed = Math.min(h + K, H);
+          if(!rectFits(free, wNeed, hNeed)) continue;
+          const sc = scoreFit(free, wNeed, hNeed);
           if(!best || sc.shortSide < best.sc.shortSide || (sc.shortSide === best.sc.shortSide && sc.longSide < best.sc.longSide)){
             best = { x: free.x, y: free.y, w, h, rotated: c.rotated, sc, free };
           }
         }
       }
       return best;
+    }
+
+    function intersects(a, b){
+      return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+    }
+
+    function splitFreeByPlaced(free, placedPad){
+      const out = [];
+      // left
+      if(placedPad.x > free.x){
+        out.push({ x: free.x, y: free.y, w: placedPad.x - free.x, h: free.h });
+      }
+      // right
+      const rX = placedPad.x + placedPad.w;
+      const rW = (free.x + free.w) - rX;
+      if(rW > 0){
+        out.push({ x: rX, y: free.y, w: rW, h: free.h });
+      }
+      // top
+      if(placedPad.y > free.y){
+        out.push({ x: free.x, y: free.y, w: free.w, h: placedPad.y - free.y });
+      }
+      // bottom
+      const bY = placedPad.y + placedPad.h;
+      const bH = (free.y + free.h) - bY;
+      if(bH > 0){
+        out.push({ x: free.x, y: bY, w: free.w, h: bH });
+      }
+      return out.filter(r=>r.w>0 && r.h>0);
     }
 
     function place(sheet, it, pos){
@@ -237,19 +288,21 @@
         h: placed.h,
         rotated: pos.rotated,
       });
-      // create new free rects from the one we used
-      const newRects = splitFreeRect(pos.free, placed);
-      // add kerf spacing around placed area (simple safety): shrink new rects by kerf on the near edges
-      const adjusted = newRects.map(r=>({
-        x: r.x + (r.x>placed.x ? K : 0),
-        y: r.y + (r.y>placed.y ? K : 0),
-        w: r.w - (r.x>placed.x ? K : 0),
-        h: r.h - (r.y>placed.y ? K : 0)
-      }));
-      // remove used free rect
-      sheet.freeRects = sheet.freeRects.filter(fr => fr !== pos.free);
-      sheet.freeRects.push(...adjusted);
-      sheet.freeRects = pruneFreeRects(sheet.freeRects);
+
+      // Kerf padding area (to keep a gap between parts)
+      const placedPad = { x: placed.x, y: placed.y, w: placed.w + K, h: placed.h + K };
+      placedPad.w = Math.min(placedPad.w, sheet.boardW - placedPad.x);
+      placedPad.h = Math.min(placedPad.h, sheet.boardH - placedPad.y);
+
+      const next = [];
+      for(const fr of sheet.freeRects){
+        if(!intersects(fr, placedPad)){
+          next.push(fr);
+          continue;
+        }
+        next.push(...splitFreeByPlaced(fr, placedPad));
+      }
+      sheet.freeRects = pruneFreeRects(next);
     }
 
     for(const it of items){

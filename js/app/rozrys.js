@@ -551,6 +551,12 @@
       out.innerHTML = '';
     });
     heurSel.addEventListener('change', ()=>{
+      // Kierunek cięcia dotyczy tylko heurystyki "pasy"
+      const isShelf = (heurSel.value === 'shelf');
+      dirSel.disabled = !isShelf;
+      if(!isShelf){
+        dirSel.value = 'auto';
+      }
       out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
