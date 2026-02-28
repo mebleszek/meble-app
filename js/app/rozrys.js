@@ -15,6 +15,7 @@
   const FC = window.FC;
 
   const OVERRIDE_KEY = 'fc_rozrys_overrides_v1';
+  const EDGE_KEY = 'fc_edge_v1';
 
   function safeGetProject(){
     try{
@@ -56,6 +57,16 @@
 
   function saveOverrides(obj){
     try{ localStorage.setItem(OVERRIDE_KEY, JSON.stringify(obj || {})); }catch(_){ }
+  }
+
+  function loadEdgeStore(){
+    try{
+      const raw = localStorage.getItem(EDGE_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === 'object') ? obj : {};
+    }catch(_){
+      return {};
+    }
   }
 
   function partSignature(p){
@@ -152,6 +163,43 @@
         ctx.fillRect(x,y,w,hh);
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
+
+        // Edge banding markers (optional): draw thicker strokes on selected sides
+        const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
+        if(hasEdges){
+          ctx.save();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
+          // top (width side 1)
+          if(p.edgeW1){
+            ctx.beginPath();
+            ctx.moveTo(x+1, y+1);
+            ctx.lineTo(x+w-1, y+1);
+            ctx.stroke();
+          }
+          // bottom (width side 2)
+          if(p.edgeW2){
+            ctx.beginPath();
+            ctx.moveTo(x+1, y+hh-1);
+            ctx.lineTo(x+w-1, y+hh-1);
+            ctx.stroke();
+          }
+          // left (height side 1)
+          if(p.edgeH1){
+            ctx.beginPath();
+            ctx.moveTo(x+1, y+1);
+            ctx.lineTo(x+1, y+hh-1);
+            ctx.stroke();
+          }
+          // right (height side 2)
+          if(p.edgeH2){
+            ctx.beginPath();
+            ctx.moveTo(x+w-1, y+1);
+            ctx.lineTo(x+w-1, y+hh-1);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
         // wymiary na właściwych bokach: szerokość na górze, wysokość po lewej
         ctx.fillStyle = '#0b1f33';
         const wLabel = `${mmToStr(p.w)}`;
@@ -238,10 +286,12 @@
 
     const grainOn = !!state.grain;
     const overrides = loadOverrides();
+    const edgeStore = loadEdgeStore();
 
     const partsMm = (parts||[]).map(p=>{
       const sig = partSignature(p);
       const allow = grainOn ? !!overrides[sig] : true;
+      const e = edgeStore[sig] || {};
       return {
         key: sig,
         name: p.name,
@@ -250,6 +300,10 @@
         qty: p.qty,
         material: p.material,
         rotationAllowed: grainOn ? allow : true,
+        edgeW1: !!e.w1,
+        edgeW2: !!e.w2,
+        edgeH1: !!e.h1,
+        edgeH2: !!e.h2,
       };
     });
     const items = opt.makeItems(partsMm);

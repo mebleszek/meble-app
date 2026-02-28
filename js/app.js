@@ -5187,11 +5187,64 @@ return parts;
 function renderMaterialsTab(listEl, room){
   const cabinets = projectData[room].cabinets || [];
 
+  // Edge banding selections (stored locally for now)
+  const EDGE_KEY = 'fc_edge_v1';
+  const cmToMmLocal = (v)=>{ const n=Number(v); return Number.isFinite(n)? Math.round(n*10):0; };
+  function loadEdgeStore(){
+    try{ const raw = localStorage.getItem(EDGE_KEY); const obj = raw ? JSON.parse(raw) : {}; return (obj && typeof obj==='object') ? obj : {}; }
+    catch(_){ return {}; }
+  }
+  function saveEdgeStore(obj){
+    try{ localStorage.setItem(EDGE_KEY, JSON.stringify(obj||{})); }catch(_){ }
+  }
+  const edgeStore = loadEdgeStore();
+  function partSig(p){
+    return `${String(p.material||'').trim()}||${String(p.name||'').trim()}||${cmToMmLocal(p.a)}x${cmToMmLocal(p.b)}`;
+  }
+  function getEdges(sig){
+    const e = edgeStore[sig] || null;
+    return {
+      w1: !!(e && e.w1),
+      w2: !!(e && e.w2),
+      h1: !!(e && e.h1),
+      h2: !!(e && e.h2),
+    };
+  }
+  function setEdges(sig, patch){
+    const prev = edgeStore[sig] || {};
+    edgeStore[sig] = { ...prev, ...patch };
+    saveEdgeStore(edgeStore);
+  }
+  function edgingMetersForPart(p, edges){
+    const qty = Number(p.qty)||0;
+    const a = Number(p.a)||0; // cm
+    const b = Number(p.b)||0; // cm
+    if(!(qty>0 && a>0 && b>0)) return 0;
+    const cm = ((edges.w1?1:0) + (edges.w2?1:0)) * a + ((edges.h1?1:0) + (edges.h2?1:0)) * b;
+    return (cm * qty) / 100; // meters
+  }
+
   // Suma projektu
   const projectTotals = {};
+  let projectEdgeMeters = 0;
   cabinets.forEach(cab => {
     const parts = getCabinetCutList(cab, room);
+
+    let cabEdgeMeters = 0;
+    (parts||[]).forEach(p=>{
+      if(!(Number(p.a)>0 && Number(p.b)>0)) return;
+      const sig = partSig(p);
+      const e = getEdges(sig);
+      cabEdgeMeters += edgingMetersForPart(p, e);
+    });
     mergeTotals(projectTotals, totalsFromParts(parts));
+    // edging total (meters)
+    (parts||[]).forEach(p=>{
+      if(!(Number(p.a)>0 && Number(p.b)>0)) return;
+      const sig = partSig(p);
+      const e = getEdges(sig);
+      projectEdgeMeters += edgingMetersForPart(p, e);
+    });
   });
 
   const top = document.createElement('div');
@@ -5217,6 +5270,9 @@ function renderMaterialsTab(listEl, room){
     <div>
       <div class="muted xs" style="font-weight:900; margin-bottom:6px">Suma m² materiałów — cały projekt</div>
       <div id="projectMatTotals"></div>
+      <div class="hr"></div>
+      <div class="muted xs" style="font-weight:900; margin-bottom:6px">Okleina — suma mb (A1/A2/B1/B2)</div>
+      <div id="projectEdgeTotals" class="muted xs"></div>
       <div class="muted xs" style="margin-top:8px;line-height:1.45">
         <div><strong>Założenia do obliczeń zawiasów/podnośników (waga frontów):</strong></div>
         <div>• Laminat 18&nbsp;mm: <span id="wLam"></span> kg/m²</div>
@@ -5232,6 +5288,11 @@ function renderMaterialsTab(listEl, room){
   // wypełnij sumy projektu
   const projTotalsEl = top.querySelector('#projectMatTotals');
   if(projTotalsEl) renderTotals(projTotalsEl, projectTotals);
+
+  const projEdgeEl = top.querySelector('#projectEdgeTotals');
+  if(projEdgeEl){
+    projEdgeEl.textContent = `${projectEdgeMeters.toFixed(2)} mb`;
+  }
 
   // wagi założone (kg/m²) — do informacji na górze
   const wLamEl = top.querySelector('#wLam');
@@ -5329,6 +5390,12 @@ function renderMaterialsTab(listEl, room){
     card.appendChild(cabTotalsBox);
     renderTotals(cabTotalsEl, totalsFromParts(parts));
 
+    const cabEdgeBox = document.createElement('div');
+    cabEdgeBox.className = 'muted xs';
+    cabEdgeBox.style.marginTop = '6px';
+    cabEdgeBox.textContent = `Okleina: ${cabEdgeMeters.toFixed(2)} mb`;
+    cabTotalsBox.appendChild(cabEdgeBox);
+
     const table = document.createElement('div');
     table.style.marginTop = '12px';
     table.style.border = '1px solid #eef6fb';
@@ -5343,9 +5410,10 @@ function renderMaterialsTab(listEl, room){
       <div class="front-meta">Ilość</div>
       <div class="front-meta">Wymiar (cm)</div>
       <div class="front-meta">Materiał</div>
+      <div class="front-meta">Okleina (A1 A2 B1 B2)</div>
     `;
     tHead.style.display = 'grid';
-    tHead.style.gridTemplateColumns = '1.4fr 0.4fr 0.7fr 1fr';
+    tHead.style.gridTemplateColumns = '1.2fr 0.35fr 0.65fr 0.95fr 1.1fr';
     tHead.style.gap = '10px';
     table.appendChild(tHead);
 
@@ -5354,7 +5422,7 @@ parts.forEach(p => {
       const row = document.createElement('div');
       row.className = 'front-row';
       row.style.display = 'grid';
-      row.style.gridTemplateColumns = '1.4fr 0.4fr 0.7fr 1fr';
+      row.style.gridTemplateColumns = '1.2fr 0.35fr 0.65fr 0.95fr 1.1fr';
       row.style.gap = '10px';
 
       if(p.tone === 'red'){
@@ -5365,13 +5433,49 @@ parts.forEach(p => {
         row.style.borderLeft = '6px solid #f0a000';
       }
 
+      const isBoard = (Number(p.a)>0 && Number(p.b)>0);
+      const sig = isBoard ? partSig(p) : null;
+      const e = (sig ? getEdges(sig) : {w1:false,w2:false,h1:false,h2:false});
+      const ok = isBoard ? edgingMetersForPart(p, e) : 0;
+
       row.innerHTML = `
         <div style="font-weight:900">${p.name}</div>
         <div style="font-weight:900">${p.qty}</div>
         <div style="font-weight:900">${p.dims}</div>
         <div class="front-meta">${p.material || ''}</div>
+        <div class="front-meta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          ${isBoard ? `
+            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />A1
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />A2
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />B1
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />B2
+            </label>
+            <span class="muted xs" style="margin-left:auto">${ok.toFixed(2)} mb</span>
+          ` : `<span class="muted xs">—</span>`}
+        </div>
       `;
       table.appendChild(row);
+
+      // bind edge toggles
+      if(isBoard){
+        row.querySelectorAll('input[type="checkbox"][data-edge]').forEach(ch => {
+          ch.addEventListener('change', (ev)=>{
+            const sig2 = ch.getAttribute('data-sig');
+            const edge = ch.getAttribute('data-edge');
+            if(!sig2 || !edge) return;
+            setEdges(sig2, { [edge]: !!ch.checked });
+            // refresh totals and keep expanded cabinet
+            renderCabinets();
+          });
+        });
+      }
     });
 
     card.appendChild(table);

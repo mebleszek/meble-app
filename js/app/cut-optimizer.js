@@ -79,6 +79,11 @@
           h: clampInt(p.h, 1),
           material: p.material || '',
           rotationAllowed: !!p.rotationAllowed,
+          // Edge banding markers for drawing (optional)
+          edgeW1: !!p.edgeW1,
+          edgeW2: !!p.edgeW2,
+          edgeH1: !!p.edgeH1,
+          edgeH2: !!p.edgeH2,
         });
       }
     }
@@ -141,6 +146,10 @@
             w: o.w,
             h: o.h,
             rotated: o.rotated,
+            edgeW1: o.rotated ? it.edgeH1 : it.edgeW1,
+            edgeW2: o.rotated ? it.edgeH2 : it.edgeW2,
+            edgeH1: o.rotated ? it.edgeW1 : it.edgeH1,
+            edgeH2: o.rotated ? it.edgeW2 : it.edgeH2,
           });
           cursorX = cursorX + o.w + K;
           rowH = Math.max(rowH, o.h);
@@ -164,6 +173,9 @@
           const nw = p.h;
           const nh = p.w;
           p.x = nx; p.y = ny; p.w = nw; p.h = nh;
+          const ew1 = p.edgeW1, ew2 = p.edgeW2, eh1 = p.edgeH1, eh2 = p.edgeH2;
+          p.edgeW1 = eh1; p.edgeW2 = eh2;
+          p.edgeH1 = ew1; p.edgeH2 = ew2;
         });
         s.boardW = W;
         s.boardH = H;
@@ -370,7 +382,20 @@
   function placeInFreeRect(state, free, item, w, h, rotated, kerf){
     const K = kerf;
     const placed = { x: free.x, y: free.y, w, h };
-    const placement = { id: item.id, key: item.key, name: item.name, x: placed.x, y: placed.y, w: placed.w, h: placed.h, rotated: !!rotated };
+    const placement = {
+      id: item.id,
+      key: item.key,
+      name: item.name,
+      x: placed.x,
+      y: placed.y,
+      w: placed.w,
+      h: placed.h,
+      rotated: !!rotated,
+      edgeW1: rotated ? item.edgeH1 : item.edgeW1,
+      edgeW2: rotated ? item.edgeH2 : item.edgeW2,
+      edgeH1: rotated ? item.edgeW1 : item.edgeH1,
+      edgeH2: rotated ? item.edgeW2 : item.edgeH2,
+    };
 
     const newFree = state.freeRects.filter(fr => fr !== free);
     const split = splitFreeRectGuillotine(free, placed);

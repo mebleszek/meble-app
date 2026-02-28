@@ -8,6 +8,7 @@
   const STATUS_OPTIONS = [
     { v: 'nowy', label: 'Nowy (lead)' },
     { v: 'wstepna_wycena', label: 'Wstępna wycena' },
+    { v: 'po_pomiarze', label: 'Po pomiarze' },
     { v: 'wycena', label: 'Wycena' },
     { v: 'umowa', label: 'Umowa' },
     { v: 'produkcja', label: 'Produkcja' },
@@ -41,14 +42,7 @@
 
     const list = FC.investors.search(state.query);
     el.innerHTML = buildList(list);
-
-    const search = el.querySelector('#invSearch');
-    if(search){
-      search.addEventListener('input', () => {
-        state.query = search.value || '';
-        renderListOnly(targetEl);
-      }, { passive: true });
-    }
+    bindList(targetEl);
   }
 
   function persistUIInvestorId(id){
@@ -118,7 +112,7 @@
           <input id="invSearch" placeholder="Szukaj po nazwie/telefonie..." value="${escapeAttr(state.query)}" />
           <button class="btn-primary" data-action="create-investor">+ Dodaj</button>
         </div>
-        <div style="margin-top:12px">${items || '<div class="muted">Brak inwestorów.</div>'}</div>
+        <div id="invItems" style="margin-top:12px">${items || '<div class="muted">Brak inwestorów.</div>'}</div>
       </div>
     `;
   }
@@ -193,16 +187,32 @@
     `;
   }
 
-  function bindList(){
-    const search = $('invSearch');
-    if(search){
+  function bindList(scopeEl){
+    // IMPORTANT: do not re-render the whole card on each keypress.
+    // Replacing the <input> element causes mobile keyboards to hide after 1 char.
+    const root = scopeEl || getRoot();
+    if(!root) return;
+    const search = root.querySelector('#invSearch');
+    const itemsEl = root.querySelector('#invItems');
+    if(search && itemsEl){
       search.addEventListener('input', () => {
         state.query = search.value || '';
-        render();
+        const list = (FC.investors && typeof FC.investors.search === 'function') ? FC.investors.search(state.query) : [];
+        itemsEl.innerHTML = (list || []).map(inv => {
+          const title = (inv.kind === 'company' ? (inv.companyName || '(Firma bez nazwy)') : (inv.name || '(Bez nazwy)'));
+          const sub = [inv.phone, inv.city].filter(Boolean).join(' • ');
+          return `
+            <div class="item" data-inv-id="${inv.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:1px solid rgba(0,0,0,.08);border-radius:12px;margin:8px 0;">
+              <div style="min-width:0">
+                <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(title)}</div>
+                <div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(sub || '')}</div>
+              </div>
+              <button class="btn" data-action="open-investor" data-inv-id="${inv.id}">Otwórz</button>
+            </div>
+          `;
+        }).join('') || '<div class="muted">Brak inwestorów.</div>';
       }, { passive: true });
     }
-
-    // Buttons are handled by Actions registry (bindings.js)
   }
 
   function bindDetail(inv){
