@@ -1,6 +1,5 @@
 /* cut-optimizer.js — proste heurystyki rozkroju (MVP)
-   - Shelf (pasy) + Guillotine PRO (dokładniejsza, pod plan cięć)
-   - (pozostawione) MaxRects — układ, nie plan cięć
+   - Shelf (pasy) + MaxRects (lepsza)
    - Dane w mm (liczby całkowite), kerf w mm
    - Obsługa ograniczeń słoi (rotationAllowed)
    Uwaga: To NIE jest CAD. Ma być użyteczne i stabilne, bez crashy.
@@ -65,12 +64,6 @@
       const qa = Math.max(q.w, q.h);
       return qa - pa;
     });
-  }
-
-  function area(r){ return r.w * r.h; }
-
-  function containsRect(a,b){
-    return (b.x>=a.x && b.y>=a.y && (b.x+b.w)<= (a.x+a.w) && (b.y+b.h) <= (a.y+a.h));
   }
 
   function makeItems(partsMm){
@@ -182,157 +175,6 @@
     return sheets;
   }
 
-  // ===== Guillotine PRO (beam search; realny "plan cięć" pod gilotynę)
-  // - tworzy układ guillotine-friendly
-  // - automatycznie wybiera orientację podziału na każdym kroku
-  // - nie wymaga preferencji kierunku cięcia od użytkownika
-  // mode: 'fast' | 'accurate'
-  function packGuillotinePro(itemsIn, boardW, boardH, kerf, mode){
-    const W = clampInt(boardW, 2800);
-    const H = clampInt(boardH, 2070);
-    const K = Math.max(0, Math.round(Number(kerf)||0));
-    const beam = (mode === 'accurate') ? 60 : 20;
-
-    const items = sortRectsByMaxSideDesc(itemsIn);
-    const sheets = [];
-
-    function newState(){
-      return {
-        free: [{ x:0, y:0, w:W, h:H }],
-        placements: [],
-        used: 0,
-      };
-    }
-
-    function scoreState(st){
-      // niżej = lepiej
-      const freeArea = st.free.reduce((s,r)=>s+area(r),0);
-      const maxFree = st.free.reduce((m,r)=>Math.max(m, area(r)), 0);
-      // preferuj mniej „poszatkowanych” prostokątów
-      const frag = st.free.length;
-      return (freeArea - maxFree) + frag * 5000;
-    }
-
-    function splitGuillotine(free, placed, splitKind){
-      // Założenie: placed jest w lewym-górnym rogu free
-      const out = [];
-      const wRem = free.w - placed.w - K;
-      const hRem = free.h - placed.h - K;
-      if(splitKind === 'H'){
-        // 1) cięcie poziome po wysokości elementu -> dolny prostokąt pełnej szerokości
-        if(hRem > 0){
-          out.push({ x: free.x, y: free.y + placed.h + K, w: free.w, h: hRem });
-        }
-        // 2) w górnym pasie docinamy pionowo -> prawy prostokąt wysokości elementu
-        if(wRem > 0){
-          out.push({ x: free.x + placed.w + K, y: free.y, w: wRem, h: placed.h });
-        }
-      } else {
-        // 'V'
-        // 1) cięcie pionowe po szerokości elementu -> prawy prostokąt pełnej wysokości
-        if(wRem > 0){
-          out.push({ x: free.x + placed.w + K, y: free.y, w: wRem, h: free.h });
-        }
-        // 2) w lewym pasie docinamy poziomo -> dolny prostokąt szerokości elementu
-        if(hRem > 0){
-          out.push({ x: free.x, y: free.y + placed.h + K, w: placed.w, h: hRem });
-        }
-      }
-      return out.filter(r=>r.w>0 && r.h>0);
-    }
-
-    function prune(list){
-      const cleaned = list.filter(r=>r.w>0 && r.h>0);
-      // usuń zawarte
-      const out = [];
-      for(let i=0;i<cleaned.length;i++){
-        const a = cleaned[i];
-        let contained = false;
-        for(let j=0;j<cleaned.length;j++){
-          if(i===j) continue;
-          const b = cleaned[j];
-          if(containsRect(b,a)) { contained = true; break; }
-        }
-        if(!contained) out.push(a);
-      }
-      return out;
-    }
-
-    function expand(states, it){
-      const next = [];
-      for(const st of states){
-        for(const free of st.free){
-          const candidates = [];
-          candidates.push({ w: it.w, h: it.h, rotated:false });
-          if(it.rotationAllowed) candidates.push({ w: it.h, h: it.w, rotated:true });
-          for(const c of candidates){
-            if(!rectFits(free, c.w, c.h)) continue;
-            const placed = { x: free.x, y: free.y, w: c.w, h: c.h };
-            // dwie możliwości podziału
-            for(const splitKind of ['H','V']){
-              const ns = {
-                free: st.free.filter(r=>r!==free).slice(),
-                placements: st.placements.slice(),
-                used: st.used + area(placed),
-              };
-              ns.placements.push({
-                id: it.id,
-                key: it.key,
-                name: it.name,
-                x: placed.x,
-                y: placed.y,
-                w: placed.w,
-                h: placed.h,
-                rotated: c.rotated,
-              });
-              ns.free.push(...splitGuillotine(free, placed, splitKind));
-              ns.free = prune(ns.free);
-              next.push(ns);
-            }
-          }
-        }
-      }
-      if(!next.length) return null;
-      next.sort((a,b)=>scoreState(a)-scoreState(b));
-      return next.slice(0, beam);
-    }
-
-    let idx = 0;
-    while(idx < items.length){
-      let states = [newState()];
-      let placedAny = false;
-      let startIdx = idx;
-      while(idx < items.length){
-        const it = items[idx];
-        const n = expand(states, it);
-        if(!n){
-          break;
-        }
-        states = n;
-        placedAny = true;
-        idx++;
-      }
-
-      // jeśli nie udało się wstawić nawet jednego elementu na pustą płytę
-      if(!placedAny){
-        const s = { boardW: W, boardH: H, placements: [] };
-        const it = items[idx];
-        s.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true });
-        sheets.push(s);
-        idx++;
-        continue;
-      }
-
-      const best = states[0];
-      sheets.push({ boardW: W, boardH: H, placements: best.placements });
-
-      // safety: jeśli algorytm utknął bez postępu, przeskocz
-      if(idx === startIdx) idx++;
-    }
-
-    return sheets;
-  }
-
   // ===== MaxRects (best short-side fit)
   function packMaxRects(itemsIn, boardW, boardH, kerf){
     const W = clampInt(boardW, 2800);
@@ -427,9 +269,7 @@
   }
 
   function calcWaste(sheet){
-    const bw = sheet.usableW || sheet.boardW;
-    const bh = sheet.usableH || sheet.boardH;
-    const areaBoard = bw * bh;
+    const areaBoard = sheet.boardW * sheet.boardH;
     const used = (sheet.placements||[]).filter(p=>!p.unplaced).reduce((s,p)=>s + (p.w*p.h),0);
     const waste = Math.max(0, areaBoard - used);
     return {
@@ -443,8 +283,175 @@
   window.FC.cutOptimizer = {
     makeItems,
     packShelf,
-    packGuillotinePro,
     packMaxRects,
+    packGuillotineBeam,
     calcWaste,
   };
+})();
+
+// ===== Guillotine Beam Search ("Gilotyna PRO")
+// Cel: praktyczny plan pod cięcia pełnym przejazdem, bez nakładania elementów.
+// To nadal heurystyka, ale z "myśleniem" (beam search) – zwykle lepiej niż Shelf.
+(function(){
+  'use strict';
+  if(!window.FC || !window.FC.cutOptimizer) return;
+  const opt = window.FC.cutOptimizer;
+
+  function clampInt(v, fallback){
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
+  function rectFits(r, w, h){
+    return (w <= r.w && h <= r.h);
+  }
+
+  function pruneFreeRects(freeRects){
+    const out = [];
+    for(let i=0;i<freeRects.length;i++){
+      const a = freeRects[i];
+      if(a.w<=0 || a.h<=0) continue;
+      let contained = false;
+      for(let j=0;j<freeRects.length;j++){
+        if(i===j) continue;
+        const b = freeRects[j];
+        if(b.w<=0 || b.h<=0) continue;
+        if(a.x>=b.x && a.y>=b.y && (a.x+a.w)<= (b.x+b.w) && (a.y+a.h) <= (b.y+b.h)){
+          contained = true; break;
+        }
+      }
+      if(!contained) out.push(a);
+    }
+    // stable-ish ordering
+    return out.sort((p,q)=> (p.y-q.y) || (p.x-q.x) || ((p.w*p.h) - (q.w*q.h)));
+  }
+
+  function sortByAreaDesc(items){
+    return items.slice().sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+  }
+
+  // Guillotine split: right + bottom
+  function splitFreeRectGuillotine(free, placed){
+    const out = [];
+    const rx = placed.x + placed.w;
+    const rw = (free.x + free.w) - rx;
+    if(rw > 0) out.push({ x: rx, y: free.y, w: rw, h: free.h });
+    const by = placed.y + placed.h;
+    const bh = (free.y + free.h) - by;
+    if(bh > 0) out.push({ x: free.x, y: by, w: free.w, h: bh });
+    return out;
+  }
+
+  function placeInFreeRect(state, free, item, w, h, rotated, kerf){
+    const K = kerf;
+    const placed = { x: free.x, y: free.y, w, h };
+    const placement = { id: item.id, key: item.key, name: item.name, x: placed.x, y: placed.y, w: placed.w, h: placed.h, rotated: !!rotated };
+    const newFree = state.freeRects.filter(fr => fr !== free);
+    const split = splitFreeRectGuillotine(free, placed);
+    const adjusted = split.map(r=>{
+      const ax = (r.x > placed.x) ? (r.x + K) : r.x;
+      const ay = (r.y > placed.y) ? (r.y + K) : r.y;
+      const aw = r.w - ((r.x > placed.x) ? K : 0);
+      const ah = r.h - ((r.y > placed.y) ? K : 0);
+      return { x: ax, y: ay, w: aw, h: ah };
+    });
+    newFree.push(...adjusted);
+    return {
+      placements: state.placements.concat([placement]),
+      freeRects: pruneFreeRects(newFree),
+      usedArea: state.usedArea + (w*h),
+    };
+  }
+
+  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs){
+    const start = Date.now();
+    const maxBeam = clampInt(beamWidth, 40);
+    const budgetMs = Math.max(60, clampInt(timeMs, 300));
+
+    const remaining = sortByAreaDesc(items);
+    let beam = [{ placements: [], freeRects: [{ x:0, y:0, w:W, h:H }], usedArea: 0, usedIdx: new Set() }];
+
+    const CAND_ITEMS = 8;
+    const CAND_FREES = 14;
+
+    while(Date.now() - start < budgetMs){
+      const next = [];
+      for(const st of beam){
+        const cand = [];
+        for(let i=0;i<remaining.length && cand.length<CAND_ITEMS;i++){
+          if(!st.usedIdx.has(i)) cand.push({ idx:i, it: remaining[i] });
+        }
+        if(cand.length===0) continue;
+
+        const freeList = st.freeRects.slice(0, CAND_FREES);
+        for(const f of freeList){
+          for(const c of cand){
+            const it = c.it;
+            const opts = [{ w: it.w, h: it.h, rotated:false }];
+            if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated:true });
+            for(const o of opts){
+              if(!rectFits(f, o.w, o.h)) continue;
+              const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K);
+              const usedIdx = new Set(st.usedIdx);
+              usedIdx.add(c.idx);
+              next.push({ placements: placedState.placements, freeRects: placedState.freeRects, usedArea: placedState.usedArea, usedIdx });
+            }
+          }
+        }
+      }
+      if(next.length===0) break;
+
+      next.sort((a,b)=>{
+        if(b.usedArea !== a.usedArea) return b.usedArea - a.usedArea;
+        const aMax = a.freeRects.reduce((m,r)=>Math.max(m,r.w*r.h),0);
+        const bMax = b.freeRects.reduce((m,r)=>Math.max(m,r.w*r.h),0);
+        return bMax - aMax;
+      });
+      beam = next.slice(0, maxBeam);
+
+      const best = beam[0];
+      let canPlaceMore = false;
+      outer: for(const f of best.freeRects){
+        for(let i=0;i<remaining.length;i++){
+          if(best.usedIdx.has(i)) continue;
+          const it = remaining[i];
+          if(rectFits(f, it.w, it.h) || (it.rotationAllowed && rectFits(f, it.h, it.w))){
+            canPlaceMore = true; break outer;
+          }
+        }
+      }
+      if(!canPlaceMore) break;
+    }
+
+    const best = beam[0] || { placements: [], usedIdx: new Set() };
+    const rest = [];
+    for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
+    return { placements: best.placements, remaining: rest };
+  }
+
+  function packGuillotineBeam(itemsIn, boardW, boardH, kerf, options){
+    const W = clampInt(boardW, 2800);
+    const H = clampInt(boardH, 2070);
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const beamWidth = options && options.beamWidth ? options.beamWidth : 60;
+    const timeMs = options && options.timeMs ? options.timeMs : 450;
+
+    let remaining = sortByAreaDesc(itemsIn);
+    const sheets = [];
+    while(remaining.length>0){
+      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs);
+      const placements = res.placements || [];
+      if(placements.length===0){
+        const it = remaining[0];
+        sheets.push({ boardW: W, boardH: H, placements: [{ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true }] });
+        remaining = remaining.slice(1);
+        continue;
+      }
+      sheets.push({ boardW: W, boardH: H, placements });
+      remaining = res.remaining;
+    }
+    return sheets;
+  }
+
+  opt.packGuillotineBeam = packGuillotineBeam;
 })();
