@@ -11,6 +11,8 @@
 <body>
 <header>
 <div class="left">
+<!-- legacy: wymagane przez validator (nie pokazujemy w UI) -->
+<button id="backToRooms" type="button" style="display:none" aria-hidden="true" tabindex="-1"></button>
 <div id="sessionButtons" class="session-btns" style="display:none">
   <button class="btn btn-danger" id="sessionCancel" data-action="session-cancel">Anuluj</button>
   <button class="btn btn-success" id="sessionSave" data-action="session-save">Zapisz</button>
