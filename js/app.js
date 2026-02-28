@@ -5392,24 +5392,24 @@ function renderCabinets(){
   document.getElementById('gapHeight').value = s.gapHeight;
   document.getElementById('ceilingBlende').value = s.ceilingBlende;
   renderTopHeight();
-  // zakładki
-  if(uiState.activeTab === 'material'){
-    renderMaterialsTab(list, room);
-    return;
-  }
-  if(uiState.activeTab === 'rysunek'){
-    renderDrawingTab(list, room);
-    return;
-  }
 
-  if(uiState.activeTab !== 'wywiad'){
-    const buildCard = document.createElement('div');
-    buildCard.className='build-card';
-    buildCard.innerHTML = '<h3>Strona w budowie</h3><p class="muted">Sekcja jest w trakcie przygotowania.</p>';
-    list.appendChild(buildCard);
-    return;
-  }
+  // Zakładki — routing przez moduły (js/app/tabs-router.js + js/tabs/*)
+  // Dzięki temu każda zakładka ma osobny plik i minimalizujemy ryzyko psucia innych sekcji.
+  try{
+    if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
+      window.FC.tabsRouter.switchTo(uiState.activeTab, { listEl: list, room });
+      return;
+    }
+  }catch(_){ }
 
+  // Fallback (gdyby router nie był dostępny): zachowaj minimalne działanie.
+  if(uiState.activeTab === 'material') return renderMaterialsTab(list, room);
+  if(uiState.activeTab === 'rysunek') return renderDrawingTab(list, room);
+  return renderWywiadTab(list, room);
+}
+
+// Wydzielony renderer WYWIAD — używany przez js/tabs/wywiad.js
+function renderWywiadTab(list, room){
   // grupowanie: zestawy renderujemy jako blok: korpusy + fronty zestawu pod spodem
   const cabinets = projectData[room].cabinets || [];
   const renderedSets = new Set();
@@ -5419,8 +5419,6 @@ function renderCabinets(){
     if(cab.setId && !renderedSets.has(cab.setId)){
       const setId = cab.setId;
       renderedSets.add(setId);
-      const setNumber = cab.setNumber;
-
       // wszystkie korpusy zestawu w kolejności jak w tablicy
       const setCabs = cabinets.filter(c => c.setId === setId);
       setCabs.forEach((sc, jdx) => {
