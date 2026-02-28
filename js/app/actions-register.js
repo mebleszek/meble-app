@@ -53,8 +53,25 @@
       FC.modal.open('priceModal');
       return true;
     },
-    'new-investor': ({event}) => {
-      // Start investor flow: show rooms list with top menu already visible
+    
+    'open-investors-list': ({event, el}) => {
+      if(FC.inwestor && typeof FC.inwestor.onAction === 'function'){
+        return FC.inwestor.onAction('open-investors-list', el || null);
+      }
+      return true;
+    },
+    'open-investor': ({event, el}) => {
+      if(FC.inwestor && typeof FC.inwestor.onAction === 'function'){
+        return FC.inwestor.onAction('open-investor', el || null);
+      }
+      return true;
+    },
+'new-investor': ({event, el}) => {
+      // Inwestor flow (lokalna baza)
+      if(FC.inwestor && typeof FC.inwestor.onAction === 'function'){
+        return FC.inwestor.onAction('new-investor', el || null);
+      }
+      // fallback: legacy behavior
       uiState.entry = 'rooms';
       uiState.roomType = null;
       uiState.activeTab = 'pokoje';

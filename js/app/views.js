@@ -10,7 +10,7 @@
   function $(id){ return document.getElementById(id); }
 
   function showOnly(ids){
-    const all = ['homeView','roomsView','appView','investorView','rozrysView','magazynView'];
+    const all = ['homeView','roomsView','investorsListView','appView','investorView','rozrysView','magazynView'];
     all.forEach(id => {
       const el = $(id);
       if(!el) return;
@@ -40,7 +40,15 @@
     setFloatingVisible(false);
   }
 
-  function showRooms(){
+  
+  function showInvestorsList(){
+    showOnly(['investorsListView']);
+    setTabsVisible(false);
+    setBackVisible(false);
+    setFloatingVisible(false);
+  }
+
+function showRooms(){
     showOnly(['roomsView']);
     setTabsVisible(true);
     setBackVisible(true);
@@ -84,6 +92,10 @@
       showHome();
       return;
     }
+    if(entry === 'investors'){
+      showInvestorsList();
+      return;
+    }
     // entry rooms/app: tab may override
     if(tab === 'inwestor') return showInvestor();
     if(tab === 'rozrys') return showRozrys();
@@ -104,7 +116,15 @@
     applyFromState({ entry:'home', roomType:null, activeTab:'pokoje' });
   }
 
-  function openRooms(){
+  
+  function openInvestorsList(){
+    if(FC.uiState && FC.uiState.set){
+      FC.uiState.set({ entry: 'investors', roomType: null });
+    }
+    applyFromState({ entry:'investors', roomType:null, activeTab:'pokoje' });
+  }
+
+function openRooms(){
     if(FC.uiState && FC.uiState.set){
       FC.uiState.set({ entry: 'rooms', activeTab: 'pokoje' });
     }
