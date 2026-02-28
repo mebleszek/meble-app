@@ -23,9 +23,9 @@
     if(tabs) tabs.style.display = on ? 'grid' : 'none';
   }
 
-  function setBackVisible(on){
-    const back = $('backToRooms');
-    if(back) back.style.display = on ? 'inline-block' : 'none';
+  function setSessionButtonsVisible(on){
+    const sb = $('sessionButtons');
+    if(sb) sb.style.display = on ? 'flex' : 'none';
   }
 
   function setFloatingVisible(on){
@@ -36,42 +36,42 @@
   function showHome(){
     showOnly(['homeView']);
     setTabsVisible(false);
-    setBackVisible(false);
+    setSessionButtonsVisible(false);
     setFloatingVisible(false);
   }
 
   function showRooms(){
     showOnly(['roomsView']);
     setTabsVisible(true);
-    setBackVisible(true);
+    setSessionButtonsVisible(true);
     setFloatingVisible(false);
   }
 
   function showApp(){
     showOnly(['appView']);
     setTabsVisible(true);
-    setBackVisible(true);
+    setSessionButtonsVisible(true);
     setFloatingVisible(true);
   }
 
   function showInvestor(){
     showOnly(['investorView']);
     setTabsVisible(true);
-    setBackVisible(true);
+    setSessionButtonsVisible(true);
     setFloatingVisible(false);
   }
 
   function showRozrys(){
     showOnly(['rozrysView']);
     setTabsVisible(true);
-    setBackVisible(true);
+    setSessionButtonsVisible(true);
     setFloatingVisible(false);
   }
 
   function showMagazyn(){
     showOnly(['magazynView']);
     setTabsVisible(true);
-    setBackVisible(true);
+    setSessionButtonsVisible(true);
     setFloatingVisible(false);
   }
 

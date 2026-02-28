@@ -24,7 +24,10 @@
     .btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer}
     .btn-primary:hover{background:#0284c7}
     .btn-danger{background:var(--danger);color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
+    .btn-success{background:#22c55e;color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
     .btn:disabled,.btn-danger:disabled,.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+    .session-btns{display:flex;flex-direction:column;gap:6px}
     .container{padding:20px;max-width:1200px;margin:0 auto}
     .rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}
     .room-btn{background:var(--card);padding:18px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1px solid #e6eef6;box-shadow:var(--shadow);transition:transform .12s}

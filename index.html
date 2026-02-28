@@ -11,7 +11,10 @@
 <body>
 <header>
 <div class="left">
-<button class="btn" id="backToRooms" data-action="back-rooms">⟲</button>
+<div id="sessionButtons" class="session-btns" style="display:none">
+  <button class="btn btn-danger" id="sessionCancel" data-action="session-cancel">Anuluj</button>
+  <button class="btn btn-success" id="sessionSave" data-action="session-save">Zapisz</button>
+</div>
 <nav id="topTabs" style="display:none; margin-left:8px;">
   <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
   <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
@@ -363,6 +366,7 @@
 <script defer src="js/app/utils.js?v=20260228_1"></script>
 <script defer src="js/app/storage.js?v=20260228_1"></script>
 <script defer src="js/app/ui-state.js?v=20260228_1"></script>
+<script defer src="js/app/session.js?v=20260228_session1"></script>
 <script defer src="js/app/investors-store.js?v=20260228_investor1"></script>
 <script defer src="js/app/investor-ui.js?v=20260228_investor1"></script>
 <script defer src="js/app/sections.js?v=20260228_fix1"></script>

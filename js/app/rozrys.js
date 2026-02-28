@@ -254,9 +254,21 @@
     });
     const items = opt.makeItems(partsMm);
 
-    const W = Number(state.boardW)||2800;
-    const H = Number(state.boardH)||2070;
-    const K = Number(state.kerf)||4;
+    const unit = (state.unit === 'mm') ? 'mm' : 'cm';
+    const toMm = (v)=> {
+      const n = Number(v);
+      if(!Number.isFinite(n)) return 0;
+      return unit === 'mm' ? Math.round(n) : Math.round(n * 10);
+    };
+
+    const W0 = toMm(state.boardW) || 2800;
+    const H0 = toMm(state.boardH) || 2070;
+    const K  = toMm(state.kerf)   || 4;
+    const trim = toMm(state.edgeTrim) || 20; // default 2 cm
+
+    // usable area after edge trimming (equalizing)
+    const W = Math.max(10, W0 - 2*trim);
+    const H = Math.max(10, H0 - 2*trim);
 
     let sheets = [];
 
@@ -269,8 +281,6 @@
         beamWidth: ultra ? 140 : 70,
         timeMs: ultra ? 1400 : 500,
       });
-    } else if(state.heur === 'maxrects'){
-      sheets = opt.packMaxRects(items, W, H, K);
     } else {
       const dir = state.direction || 'auto';
       if(dir === 'auto'){
@@ -287,7 +297,8 @@
         sheets = opt.packShelf(items, W, H, K, dir);
       }
     }
-    return { sheets };
+    // store meta for drawing offset
+    return { sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
   }
 
   function render(){
@@ -313,18 +324,26 @@
     // state (ui) — keep local per render
     const state = {
       material: agg.materials[0],
-      boardW: 2800,
-      boardH: 2070,
-      kerf: 4,
+      unit: 'cm',
+      boardW: 280,
+      boardH: 207,
+      kerf: 0.4,
+      edgeTrim: 2,
       grain: true,
       heur: 'shelf',
       direction: 'auto',
     };
 
     // if magazyn has hint for first material
+    function toDisp(mm){ return state.unit === 'mm' ? mm : (mm/10); }
+    function fromDisp(v){ return state.unit === 'mm' ? Number(v) : (Number(v) * 10); }
+
     try{
       const hint = (FC.magazyn && FC.magazyn.findForMaterial) ? FC.magazyn.findForMaterial(state.material) : [];
-      if(hint && hint[0]){ state.boardW = hint[0].width || state.boardW; state.boardH = hint[0].height || state.boardH; }
+      if(hint && hint[0]){
+        state.boardW = toDisp(hint[0].width || 2800);
+        state.boardH = toDisp(hint[0].height || 2070);
+      }
     }catch(_){ }
 
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -341,9 +360,20 @@
     matWrap.appendChild(matSel);
     controls.appendChild(matWrap);
 
+    // units selector
+    const unitWrap = h('div');
+    unitWrap.appendChild(h('label', { text:'Jednostki' }));
+    const unitSel = h('select', { id:'rozUnit' });
+    unitSel.innerHTML = `
+      <option value="cm" ${state.unit==='cm'?'selected':''}>cm</option>
+      <option value="mm" ${state.unit==='mm'?'selected':''}>mm</option>
+    `;
+    unitWrap.appendChild(unitSel);
+    controls.appendChild(unitWrap);
+
     // board size
     const sizeWrap = h('div');
-    sizeWrap.appendChild(h('label', { text:'Format płyty (mm)' }));
+    sizeWrap.appendChild(h('label', { text:`Format płyty (${state.unit})` }));
     const sizeRow = h('div', { style:'display:flex;gap:8px' });
     const inW = h('input', { id:'rozW', type:'number', value:String(state.boardW) });
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
@@ -353,10 +383,17 @@
 
     // kerf
     const kerfWrap = h('div');
-    kerfWrap.appendChild(h('label', { text:'Kerf (mm)' }));
+    kerfWrap.appendChild(h('label', { text:`Kerf (${state.unit})` }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
     controls.appendChild(kerfWrap);
+
+    // edge trim
+    const trimWrap = h('div');
+    trimWrap.appendChild(h('label', { text:`Równanie płyty w koło (${state.unit})` }));
+    const inTrim = h('input', { id:'rozTrim', type:'number', value:String(state.edgeTrim) });
+    trimWrap.appendChild(inTrim);
+    controls.appendChild(trimWrap);
 
     // second row: grain + heuristic + direction
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -378,7 +415,6 @@
       <option value="shelf">Szybka (pasy / półki)</option>
       <option value="gpro">Dokładna (Gilotyna PRO)</option>
       <option value="gpro_ultra">Ultra (Gilotyna PRO • dłużej liczy)</option>
-      <option value="maxrects">Eksperymentalna (MaxRects)</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -421,8 +457,11 @@
       try{
         const hint = (FC.magazyn && FC.magazyn.findForMaterial) ? FC.magazyn.findForMaterial(material) : [];
         if(hint && hint[0]){
-          inW.value = String(hint[0].width || 2800);
-          inH.value = String(hint[0].height || 2070);
+          const wmm = hint[0].width || 2800;
+          const hmm = hint[0].height || 2070;
+          const u = unitSel.value;
+          inW.value = String(u==='mm' ? wmm : (Math.round((wmm/10)*10)/10));
+          inH.value = String(u==='mm' ? hmm : (Math.round((hmm/10)*10)/10));
         }
       }catch(_){ }
     }
@@ -560,19 +599,42 @@
       const parts = agg.byMaterial[material] || [];
       const st = {
         material,
-        boardW: Number(inW.value)||2800,
-        boardH: Number(inH.value)||2070,
-        kerf: Number(inK.value)||4,
+        unit: unitSel.value,
+        boardW: Number(inW.value)|| (unitSel.value==='mm'?2800:280),
+        boardH: Number(inH.value)|| (unitSel.value==='mm'?2070:207),
+        kerf: Number(inK.value)|| (unitSel.value==='mm'?4:0.4),
+        edgeTrim: Number(inTrim.value)|| (unitSel.value==='mm'?20:2),
         grain: !!grainChk.checked,
         heur: heurSel.value,
         direction: dirSel.value,
       };
 
       const plan = computePlan(st, parts);
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur });
+      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, meta: plan.meta });
     }
 
     // events
+    unitSel.addEventListener('change', ()=>{
+      const prev = state.unit;
+      const next = unitSel.value;
+      if(prev === next) return;
+      const factor = (prev==='cm' && next==='mm') ? 10 : (prev==='mm' && next==='cm') ? 0.1 : 1;
+      const conv = (el)=>{
+        const n = Number(el.value);
+        if(!Number.isFinite(n)) return;
+        const v = n * factor;
+        // keep 1 decimal max in cm
+        el.value = (next==='cm') ? String(Math.round(v*10)/10) : String(Math.round(v));
+      };
+      conv(inW); conv(inH); conv(inK); conv(inTrim);
+      state.unit = next;
+      // update labels
+      sizeWrap.querySelector('label').textContent = `Format płyty (${next})`;
+      kerfWrap.querySelector('label').textContent = `Kerf (${next})`;
+      trimWrap.querySelector('label').textContent = `Równanie płyty w koło (${next})`;
+      out.innerHTML = '';
+    });
+
     matSel.addEventListener('change', ()=>{
       applyHintFromMagazyn(matSel.value);
       renderOverrides();
@@ -595,8 +657,9 @@
     saveToMag.addEventListener('click', ()=>{
       if(!(FC.magazyn && FC.magazyn.upsertSheet)) return alert('Brak modułu magazynu');
       const material = matSel.value;
-      const w = Number(inW.value)||0;
-      const hh = Number(inH.value)||0;
+      const u = unitSel.value;
+      const w = (u==='mm') ? (Number(inW.value)||0) : Math.round((Number(inW.value)||0)*10);
+      const hh = (u==='mm') ? (Number(inH.value)||0) : Math.round((Number(inH.value)||0)*10);
       if(!(w>0 && hh>0)) return alert('Podaj format płyty');
       FC.magazyn.upsertSheet({ material, width:w, height:hh, qty:0 });
       alert('Zapisano format w Magazyn (ilość = 0).');

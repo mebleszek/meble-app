@@ -329,31 +329,61 @@
     return items.slice().sort((a,b)=> (b.w*b.h) - (a.w*a.h));
   }
 
-  // Guillotine split: right + bottom
+  // Guillotine split (NON-overlapping):
+  // We place always at top-left corner of a free rect.
+  // Two valid, non-overlapping splits exist:
+  //  - Horizontal-first: make a top band (height = placed.h) then split that band vertically.
+  //  - Vertical-first: make a left band (width = placed.w) then split that band horizontally.
+  // We choose automatically by keeping the larger secondary leftover (simple but stable).
   function splitFreeRectGuillotine(free, placed){
-    const out = [];
-    const rx = placed.x + placed.w;
-    const rw = (free.x + free.w) - rx;
-    if(rw > 0) out.push({ x: rx, y: free.y, w: rw, h: free.h });
-    const by = placed.y + placed.h;
-    const bh = (free.y + free.h) - by;
-    if(bh > 0) out.push({ x: free.x, y: by, w: free.w, h: bh });
-    return out;
+    const outA = [];
+    const outB = [];
+
+    // A) Horizontal-first
+    // Right of placed within the top band
+    const rwA = (free.x + free.w) - (placed.x + placed.w);
+    if(rwA > 0){
+      outA.push({ x: placed.x + placed.w, y: free.y, w: rwA, h: placed.h });
+    }
+    // Bottom band
+    const bhA = (free.y + free.h) - (placed.y + placed.h);
+    if(bhA > 0){
+      outA.push({ x: free.x, y: placed.y + placed.h, w: free.w, h: bhA });
+    }
+
+    // B) Vertical-first
+    // Bottom of placed within the left band
+    const bhB = (free.y + free.h) - (placed.y + placed.h);
+    if(bhB > 0){
+      outB.push({ x: free.x, y: placed.y + placed.h, w: placed.w, h: bhB });
+    }
+    // Right band
+    const rwB = (free.x + free.w) - (placed.x + placed.w);
+    if(rwB > 0){
+      outB.push({ x: placed.x + placed.w, y: free.y, w: rwB, h: free.h });
+    }
+
+    const score = (arr)=> arr.reduce((m,r)=> Math.max(m, r.w*r.h), 0);
+    return score(outA) >= score(outB) ? outA : outB;
   }
 
   function placeInFreeRect(state, free, item, w, h, rotated, kerf){
     const K = kerf;
     const placed = { x: free.x, y: free.y, w, h };
     const placement = { id: item.id, key: item.key, name: item.name, x: placed.x, y: placed.y, w: placed.w, h: placed.h, rotated: !!rotated };
+
     const newFree = state.freeRects.filter(fr => fr !== free);
     const split = splitFreeRectGuillotine(free, placed);
+
+    // Apply kerf as spacing between placed rect and remaining free rects.
+    // We shrink and shift only on the side adjacent to the placed rect.
     const adjusted = split.map(r=>{
-      const ax = (r.x > placed.x) ? (r.x + K) : r.x;
-      const ay = (r.y > placed.y) ? (r.y + K) : r.y;
-      const aw = r.w - ((r.x > placed.x) ? K : 0);
-      const ah = r.h - ((r.y > placed.y) ? K : 0);
+      let ax=r.x, ay=r.y, aw=r.w, ah=r.h;
+      if(r.x >= placed.x + placed.w){ ax = r.x + K; aw = r.w - K; }
+      if(r.y >= placed.y + placed.h){ ay = r.y + K; ah = r.h - K; }
       return { x: ax, y: ay, w: aw, h: ah };
-    });
+    }).filter(r=> r.w>0 && r.h>0);
+
     newFree.push(...adjusted);
     return {
       placements: state.placements.concat([placement]),

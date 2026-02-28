@@ -20,6 +20,7 @@
     mode: 'list', // list|detail
     query: '',
     selectedId: null,
+    allowListAccess: true,
   };
 
   function $(id){ return document.getElementById(id); }
@@ -56,6 +57,7 @@
     // Decide mode
     const currentId = FC.investors.getCurrentId() || readUIInvestorId();
     if(state.selectedId == null && currentId) state.selectedId = currentId;
+    if(!state.allowListAccess && state.selectedId) state.mode = 'detail';
     if(state.mode === 'detail' && !state.selectedId) state.mode = 'list';
 
     if(state.mode === 'detail'){
@@ -107,7 +109,7 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <h3 style="margin:0">Inwestor</h3>
-          <button class="btn" data-action="back-investors">Lista</button>
+          ${state.allowListAccess ? '<button class="btn" data-action="back-investors">Lista</button>' : ''}
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
@@ -178,30 +180,7 @@
       }, { passive: true });
     }
 
-    // Delegate buttons
-    const root = getRoot();
-    if(!root) return;
-    root.querySelectorAll('[data-action="create-investor"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const inv = FC.investors.create({ kind:'person' });
-        state.selectedId = inv.id;
-        state.mode = 'detail';
-        persistUIInvestorId(inv.id);
-        render();
-      });
-    });
-
-    root.querySelectorAll('[data-action="open-investor"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-inv-id');
-        if(!id) return;
-        FC.investors.setCurrentId(id);
-        persistUIInvestorId(id);
-        state.selectedId = id;
-        state.mode = 'detail';
-        render();
-      });
-    });
+    // Buttons are handled by Actions registry (bindings.js)
   }
 
   function bindDetail(inv){

@@ -55,22 +55,33 @@
     },
 
     'open-investors': ({event}) => {
+      // open list of investors
       uiState.entry = 'rooms';
       uiState.activeTab = 'inwestor';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+      try{ if(window.FC && window.FC.investorUI && window.FC.investorUI.state){ window.FC.investorUI.state.mode='list'; window.FC.investorUI.state.allowListAccess=true; } }catch(_){ }
       try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
       return true;
     },
 
     'new-investor': ({event}) => {
-      // Create investor and open investor view
+      // Start "new client" session: snapshot current local data for Cancel
+      try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
+      // Create investor and open investor form (no access to list from here)
       try{
         if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
           const inv = window.FC.investors.create({ kind:'person' });
           if(inv && inv.id){
             uiState.currentInvestorId = inv.id;
           }
+          try{
+            if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+              window.FC.investorUI.state.selectedId = inv.id;
+              window.FC.investorUI.state.mode = 'detail';
+              window.FC.investorUI.state.allowListAccess = false;
+            }
+          }catch(_){ }
         }
       }catch(_){ }
       uiState.entry = 'rooms';
@@ -80,6 +91,20 @@
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
       try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
+      return true;
+    },
+
+    // Session buttons
+    'session-cancel': ({event}) => {
+      try{ if(window.FC && window.FC.session && typeof window.FC.session.cancel === 'function') window.FC.session.cancel(); }catch(_){ }
+      // go home
+      try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
+      return true;
+    },
+    'session-save': ({event}) => {
+      // Data is saved live (local). Commit just clears snapshot.
+      try{ if(window.FC && window.FC.session && typeof window.FC.session.commit === 'function') window.FC.session.commit(); }catch(_){ }
+      try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       return true;
     },
 
@@ -117,7 +142,7 @@
     'back-investors': ({event}) => {
       try{
         if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-          window.FC.investorUI.state.mode = 'list';
+          if(window.FC.investorUI.state.allowListAccess) window.FC.investorUI.state.mode = 'list';
         }
         try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
       }catch(_){ }
