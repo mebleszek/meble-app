@@ -284,7 +284,6 @@
     makeItems,
     packShelf,
     packMaxRects,
-    packGuillotineBeam,
     calcWaste,
   };
 })();
