@@ -642,7 +642,12 @@ function toggleExpandAll(id){
     uiState.selectedCabinetId = key;
   }
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  if(tabName !== 'pokoje' && tabName !== 'inwestor' && tabName !== 'rozrys') renderCabinets();
+  // Re-render only for tabs that use the main "app" cabinet renderer.
+  // (For dedicated views like MAGAZYN/ROZRYS/INWESTOR/POKOJE, the router handles rendering.)
+  const activeTab = String(uiState.activeTab || '');
+  if(activeTab !== 'pokoje' && activeTab !== 'inwestor' && activeTab !== 'rozrys' && activeTab !== 'magazyn'){
+    renderCabinets();
+  }
 }
 
 /* Settings changes */
