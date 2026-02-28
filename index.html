@@ -18,6 +18,7 @@
   <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
   <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
   <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
+  <button class="btn tab-btn" data-tab="magazyn" data-action="tab">MAGAZYN</button>
   <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
   <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
 </nav>
@@ -58,10 +59,11 @@
 </div>
 
 <div id="rozrysView" style="display:none">
-  <div class="card">
-    <h3>Rozrys</h3>
-    <div class="muted">Strona w budowie</div>
-  </div>
+  <div id="rozrysRoot"></div>
+</div>
+
+<div id="magazynView" style="display:none">
+  <div id="magazynRoot"></div>
 </div>
 <div id="appView" style="display:none">
 <div class="card">
@@ -370,6 +372,11 @@
 <script defer src="js/app/bindings.js?v=20260228_1"></script>
 <script defer src="js/app/actions-register.js?v=20260228_1"></script>
 <script defer src="js/app.js?v=20260228_1"></script>
+
+<!-- rozrys/magazyn (nowe moduły) -->
+<script defer src="js/app/cut-optimizer.js?v=20260228_1"></script>
+<script defer src="js/app/magazyn.js?v=20260228_1"></script>
+<script defer src="js/app/rozrys.js?v=20260228_1"></script>
 
 </body>
 </html>

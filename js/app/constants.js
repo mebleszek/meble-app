@@ -13,6 +13,7 @@
       window.FC.constants.STORAGE_KEYS = {
         materials: 'fc_materials_v1',
         services: 'fc_services_v1',
+        sheets: 'fc_sheets_v1',
         projectData: 'fc_project_v1',
         projectBackup: 'fc_project_backup_v1',
         projectBackupMeta: 'fc_project_backup_meta_v1',

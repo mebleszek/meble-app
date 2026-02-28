@@ -10,7 +10,7 @@
   function $(id){ return document.getElementById(id); }
 
   function showOnly(ids){
-    const all = ['homeView','roomsView','appView','investorView','rozrysView'];
+    const all = ['homeView','roomsView','appView','investorView','rozrysView','magazynView'];
     all.forEach(id => {
       const el = $(id);
       if(!el) return;
@@ -68,6 +68,13 @@
     setFloatingVisible(false);
   }
 
+  function showMagazyn(){
+    showOnly(['magazynView']);
+    setTabsVisible(true);
+    setBackVisible(true);
+    setFloatingVisible(false);
+  }
+
   function applyFromState(state){
     const st = state || (FC.uiState && FC.uiState.get ? FC.uiState.get() : {});
     const entry = st && st.entry ? st.entry : 'home';
@@ -80,6 +87,7 @@
     // entry rooms/app: tab may override
     if(tab === 'inwestor') return showInvestor();
     if(tab === 'rozrys') return showRozrys();
+    if(tab === 'magazyn') return showMagazyn();
     if(tab === 'pokoje') return showRooms();
 
     if(entry === 'app' && st && st.roomType){
@@ -130,6 +138,7 @@
   FC.views.showApp = showApp;
   FC.views.showInvestor = showInvestor;
   FC.views.showRozrys = showRozrys;
+  FC.views.showMagazyn = showMagazyn;
   FC.views.applyFromState = applyFromState;
   FC.views.openHome = openHome;
   FC.views.openRooms = openRooms;

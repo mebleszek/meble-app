@@ -11,7 +11,7 @@
 
   function byId(id){ return document.getElementById(id); }
 
-  function isExtraTab(tab){ return tab === 'inwestor' || tab === 'rozrys'; }
+  function isExtraTab(tab){ return tab === 'inwestor' || tab === 'rozrys' || tab === 'magazyn'; }
 
   function update(){
     try{
@@ -19,29 +19,12 @@
       const activeTab = ui?.activeTab || 'wywiad';
       const roomType = ui?.roomType || null;
 
-      const investor = byId('investorModule');
-      const rozrys = byId('rozrysModule');
-      const roomModule = byId('roomModule');
-      const floatingAdd = byId('floatingAdd');
-
-      if(!investor || !rozrys || !roomModule) return;
-
-      const showInvestor = activeTab === 'inwestor';
-      const showRozrys = activeTab === 'rozrys';
-      const showRoom = !isExtraTab(activeTab);
-
-      investor.style.display = showInvestor ? 'block' : 'none';
-      rozrys.style.display = showRozrys ? 'block' : 'none';
-      roomModule.style.display = showRoom ? 'block' : 'none';
-
-      // Floating + only makes sense in room context
-      if(floatingAdd){
-        floatingAdd.style.display = (showRoom && !!roomType) ? 'flex' : 'none';
+      // Render extra modules when active (fail-soft)
+      if(activeTab === 'rozrys' && FC.rozrys && typeof FC.rozrys.render === 'function'){
+        FC.rozrys.render();
       }
-
-      // If user is on room tabs but no room is selected, we still hide room module to avoid errors
-      if(showRoom && !roomType){
-        roomModule.style.display = 'none';
+      if(activeTab === 'magazyn' && FC.magazyn && typeof FC.magazyn.render === 'function'){
+        FC.magazyn.render();
       }
     }catch(_){
       // fail-soft: never crash app

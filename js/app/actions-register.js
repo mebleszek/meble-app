@@ -106,7 +106,7 @@
       const room = element.getAttribute('data-room');
       // Enter room editor
       uiState.roomType = room;
-      if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'inwestor' || uiState.activeTab === 'rozrys') uiState.activeTab = 'wywiad';
+      if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'inwestor' || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
       uiState.entry = 'app';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       if(FC.views && FC.views.openRoom) FC.views.openRoom(room);
