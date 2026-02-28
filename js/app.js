@@ -5402,11 +5402,6 @@ function renderCabinets(){
     return;
   }
 
-  // Dedicated views render outside of the "Szafki" list
-  if(uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn' || uiState.activeTab === 'inwestor'){
-    return;
-  }
-
   if(uiState.activeTab !== 'wywiad'){
     const buildCard = document.createElement('div');
     buildCard.className='build-card';
@@ -5752,22 +5747,7 @@ function setActiveTab(tabName){
     if(activeBtn) activeBtn.style.background = '#e6f7ff';
   }catch(_){}
 
-  // Route to correct view (app / rooms / extra views)
-  // We call explicit view functions first (more deterministic on mobile)
-  // and then keep the state-based router as a safety net.
-  try{
-    if(window.FC && FC.views){
-      if(tabName === 'rozrys' && typeof FC.views.showRozrys === 'function') FC.views.showRozrys();
-      else if(tabName === 'magazyn' && typeof FC.views.showMagazyn === 'function') FC.views.showMagazyn();
-      else if(tabName === 'inwestor' && typeof FC.views.showInvestor === 'function') FC.views.showInvestor();
-      else if(tabName === 'pokoje' && typeof FC.views.showRooms === 'function') FC.views.showRooms();
-      else {
-        if(uiState.roomType && typeof FC.views.showApp === 'function') FC.views.showApp();
-        else if(typeof FC.views.showRooms === 'function') FC.views.showRooms();
-      }
-    }
-  }catch(_){}
-
+  // Route to correct view (app / rooms / placeholders)
   try{
     if(window.FC && FC.views && typeof FC.views.applyFromState === 'function'){
       FC.views.applyFromState(uiState);
@@ -5782,12 +5762,7 @@ function setActiveTab(tabName){
   }catch(_){}
 
   // Keep legacy rendering for main app tabs (WYWIAD/RYSUNEK/MATERIAŁ/...)
-  // IMPORTANT: do not inject placeholder "Strona w budowie" for dedicated views.
-  try{
-    if(tabName !== 'rozrys' && tabName !== 'magazyn' && tabName !== 'inwestor'){
-      renderCabinets();
-    }
-  }catch(_){}
+  try{ renderCabinets(); }catch(_){}
 
   try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
 }

@@ -367,16 +367,17 @@
 <script defer src="js/app/ui-state.js?v=20260228_1"></script>
 <script defer src="js/app/sections.js?v=20260228_1"></script>
 <script defer src="js/app/views.js?v=20260228_1"></script>
-<script defer src="js/app/validate.js?v=20260228_1"></script>
-<!-- bindings extracted from app.js (event wiring + delegation) -->
-<script defer src="js/app/bindings.js?v=20260228_1"></script>
-<script defer src="js/app/actions-register.js?v=20260228_1"></script>
-<script defer src="js/app.js?v=20260228_1"></script>
+<script defer src="js/app/validate.js?v=20260228_2"></script>
 
-<!-- rozrys/magazyn (nowe moduły) -->
-<script defer src="js/app/cut-optimizer.js?v=20260228_1"></script>
-<script defer src="js/app/magazyn.js?v=20260228_1"></script>
-<script defer src="js/app/rozrys.js?v=20260228_1"></script>
+<!-- rozrys/magazyn (nowe moduły) — muszą się załadować PRZED app.js, żeby setActiveTab mógł od razu renderować UI -->
+<script defer src="js/app/cut-optimizer.js?v=20260228_2"></script>
+<script defer src="js/app/magazyn.js?v=20260228_2"></script>
+<script defer src="js/app/rozrys.js?v=20260228_2"></script>
+
+<!-- bindings extracted from app.js (event wiring + delegation) -->
+<script defer src="js/app/bindings.js?v=20260228_2"></script>
+<script defer src="js/app/actions-register.js?v=20260228_2"></script>
+<script defer src="js/app.js?v=20260228_2"></script>
 
 </body>
 </html>
