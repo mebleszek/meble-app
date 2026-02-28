@@ -13,20 +13,22 @@
 <div class="left">
 <!-- legacy: wymagane przez validator (nie pokazujemy w UI) -->
 <button id="backToRooms" type="button" style="display:none" aria-hidden="true" tabindex="-1"></button>
-<div id="sessionButtons" class="session-btns" style="display:none">
-  <button class="btn btn-danger" id="sessionCancel" data-action="session-cancel">Anuluj</button>
-  <button class="btn btn-success" id="sessionSave" data-action="session-save">Zapisz</button>
+<div id="topBar" class="topbar" style="display:none">
+  <div id="sessionButtons" class="session-btns">
+    <button class="btn btn-danger" id="sessionCancel" data-action="session-cancel">Anuluj</button>
+    <button class="btn btn-success" id="sessionSave" data-action="session-save">Zapisz</button>
+  </div>
+  <nav id="topTabs" class="top-tabs">
+    <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
+    <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
+    <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
+    <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
+    <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
+    <button class="btn tab-btn" data-tab="magazyn" data-action="tab">MAGAZYN</button>
+    <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
+    <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
+  </nav>
 </div>
-<nav id="topTabs" style="display:none; margin-left:8px;">
-  <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
-  <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
-  <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
-  <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
-  <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
-  <button class="btn tab-btn" data-tab="magazyn" data-action="tab">MAGAZYN</button>
-  <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
-  <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
-</nav>
 </div>
 <div style="margin-left:auto;display:flex;gap:8px;align-items:center"></div>
 </header>
@@ -38,9 +40,19 @@
     <div class="home-actions" style="margin-top:14px">
       <button class="btn home-btn" id="openMaterialsBtn" data-action="open-materials">Cennik materiałów</button>
       <button class="btn home-btn" id="openServicesBtn" data-action="open-services">Cennik usług</button>
-      <button class="btn home-btn" id="openInvestorsBtn" data-action="open-investors">Lista inwestorów</button>
+      <button class="btn home-btn" id="openInvestorsBtn" data-action="open-investors-list">Lista inwestorów</button>
       <button class="btn-primary home-btn" id="newInvestorBtn" data-action="new-investor">Nowy inwestor</button>
     </div>
+  </div>
+</div>
+
+<div id="investorsListView" style="display:none">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <h3 style="margin:0">Lista inwestorów</h3>
+      <button class="btn" data-action="close-investors-list">Zamknij</button>
+    </div>
+    <div id="investorsListRoot" style="margin-top:12px"></div>
   </div>
 </div>
 <div id="roomsView" style="display:none">

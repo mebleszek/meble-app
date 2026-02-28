@@ -54,14 +54,36 @@
       return true;
     },
 
+    'open-investors-list': ({event}) => {
+      // open separate investors list screen (no top tabs)
+      try{
+        if(FC.views && typeof FC.views.openInvestorsList === 'function') FC.views.openInvestorsList();
+        else {
+          uiState.entry = 'investorsList';
+          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+        }
+      }catch(_){ }
+
+      // render list
+      try{
+        const root = document.getElementById('investorsListRoot');
+        if(root && window.FC && window.FC.investorUI && typeof window.FC.investorUI.renderListOnly === 'function'){
+          window.FC.investorUI.state.mode = 'list';
+          window.FC.investorUI.state.allowListAccess = false;
+          window.FC.investorUI.renderListOnly(root);
+        }
+      }catch(_){ }
+      return true;
+    },
+
+    // backward compat
     'open-investors': ({event}) => {
-      // open list of investors
-      uiState.entry = 'rooms';
-      uiState.activeTab = 'inwestor';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-      try{ if(window.FC && window.FC.investorUI && window.FC.investorUI.state){ window.FC.investorUI.state.mode='list'; window.FC.investorUI.state.allowListAccess=true; } }catch(_){ }
-      try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
+      try{ return FC.actions.dispatch('open-investors-list', { event }); }catch(_){ return true; }
+    },
+
+    'close-investors-list': ({event}) => {
+      try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       return true;
     },
 
@@ -131,9 +153,19 @@
           window.FC.investors.setCurrentId(id);
         }
         if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = id;
+        // move to full workflow and open INWESTOR tab
+        try{
+          if(typeof uiState !== 'undefined' && uiState){
+            uiState.entry = 'rooms';
+            uiState.activeTab = 'inwestor';
+            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          }
+          if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+        }catch(_){ }
         if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
           window.FC.investorUI.state.selectedId = id;
           window.FC.investorUI.state.mode = 'detail';
+          window.FC.investorUI.state.allowListAccess = false;
         }
         try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
       }catch(_){ }

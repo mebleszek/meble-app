@@ -10,7 +10,7 @@
   function $(id){ return document.getElementById(id); }
 
   function showOnly(ids){
-    const all = ['homeView','roomsView','appView','investorView','rozrysView','magazynView'];
+    const all = ['homeView','roomsView','appView','investorView','rozrysView','magazynView','investorsListView'];
     all.forEach(id => {
       const el = $(id);
       if(!el) return;
@@ -18,9 +18,15 @@
     });
   }
 
+  function setTopBarVisible(on){
+    const tb = $('topBar');
+    if(tb) tb.style.display = on ? 'flex' : 'none';
+  }
+
   function setTabsVisible(on){
     const tabs = $('topTabs');
     if(tabs) tabs.style.display = on ? 'grid' : 'none';
+    setTopBarVisible(!!on);
   }
 
   function setSessionButtonsVisible(on){
@@ -38,6 +44,22 @@
     setTabsVisible(false);
     setSessionButtonsVisible(false);
     setFloatingVisible(false);
+  }
+
+  function showInvestorsList(){
+    showOnly(['investorsListView']);
+    setTabsVisible(false);
+    setSessionButtonsVisible(false);
+    setFloatingVisible(false);
+    // best effort render for refresh
+    try{
+      const root = $('investorsListRoot');
+      if(root && window.FC && window.FC.investorUI && typeof window.FC.investorUI.renderListOnly === 'function'){
+        window.FC.investorUI.state.mode = 'list';
+        window.FC.investorUI.state.allowListAccess = false;
+        window.FC.investorUI.renderListOnly(root);
+      }
+    }catch(_){ }
   }
 
   function showRooms(){
@@ -84,6 +106,10 @@
       showHome();
       return;
     }
+    if(entry === 'investorsList'){
+      showInvestorsList();
+      return;
+    }
     // entry rooms/app: tab may override
     if(tab === 'inwestor') return showInvestor();
     if(tab === 'rozrys') return showRozrys();
@@ -102,6 +128,13 @@
       FC.uiState.set({ entry: 'home', roomType: null });
     }
     applyFromState({ entry:'home', roomType:null, activeTab:'pokoje' });
+  }
+
+  function openInvestorsList(){
+    if(FC.uiState && FC.uiState.set){
+      FC.uiState.set({ entry:'investorsList', activeTab:null });
+    }
+    applyFromState({ entry:'investorsList' });
   }
 
   function openRooms(){
@@ -134,6 +167,7 @@
 
   FC.views = FC.views || {};
   FC.views.showHome = showHome;
+  FC.views.showInvestorsList = showInvestorsList;
   FC.views.showRooms = showRooms;
   FC.views.showApp = showApp;
   FC.views.showInvestor = showInvestor;
@@ -141,6 +175,7 @@
   FC.views.showMagazyn = showMagazyn;
   FC.views.applyFromState = applyFromState;
   FC.views.openHome = openHome;
+  FC.views.openInvestorsList = openInvestorsList;
   FC.views.openRooms = openRooms;
   FC.views.openRoom = openRoom;
   FC.views.back = back;

@@ -29,6 +29,28 @@
     return $('investorRoot') || $('investorView');
   }
 
+  // Render only list UI into a given container (used by separate Investors List screen).
+  function renderListOnly(targetEl){
+    const el = targetEl;
+    if(!el) return;
+
+    if(!FC.investors){
+      el.innerHTML = '<div class="muted">Brak modułu bazy inwestorów.</div>';
+      return;
+    }
+
+    const list = FC.investors.search(state.query);
+    el.innerHTML = buildList(list);
+
+    const search = el.querySelector('#invSearch');
+    if(search){
+      search.addEventListener('input', () => {
+        state.query = search.value || '';
+        renderListOnly(targetEl);
+      }, { passive: true });
+    }
+  }
+
   function persistUIInvestorId(id){
     try{
       if(typeof uiState !== 'undefined' && uiState){
@@ -278,6 +300,7 @@
 
   FC.investorUI = {
     render,
+    renderListOnly,
     state,
   };
 })();

@@ -15,6 +15,17 @@
   /* Header: avoid overlapping hitboxes on mobile */
   header{flex-wrap:wrap;gap:10px;}
   header .left{width:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+  /* Top bar layout: session buttons on the left of tabs */
+  .topbar{width:100%;display:flex;align-items:flex-start;gap:12px;}
+  .session-btns{display:flex;flex-direction:column;gap:8px;min-width:118px;}
+  .top-tabs{display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:10px;flex:1;}
+
+  @media (max-width:520px){
+    .topbar{gap:10px;}
+    .session-btns{min-width:110px;}
+    .top-tabs{gap:8px;}
+  }
   #topTabs .tab-btn{padding:7px 8px;font-size:12px;border-radius:12px;}
   header > div:last-child{width:100% !important;justify-content:flex-end;margin-left:0 !important;}
 }
