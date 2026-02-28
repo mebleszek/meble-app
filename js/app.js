@@ -5737,19 +5737,17 @@ function jumpToCabinetFromMaterials(cabId){
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
 function setActiveTab(tabName){
-  // Ensure router state is always coherent (older stored uiState may miss "entry")
-  // - when a room is selected => entry 'app'
-  // - when no room selected => entry 'rooms' (so ROZRYS/MAGAZYN can render)
-  if(!uiState.entry){
-    uiState.entry = uiState.roomType ? 'app' : 'rooms';
-  }
-  // Extra tabs should never land in 'home'
-  if((tabName === 'rozrys' || tabName === 'magazyn' || tabName === 'inwestor') && uiState.entry === 'home'){
-    uiState.entry = 'rooms';
-  }
-
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+  // Extra tabs have dedicated views; legacy renderCabinets() injects placeholders
+  // and can visually override ROZRYS/MAGAZYN/INWESTOR.
+  let isExtraTab = (tabName === 'rozrys' || tabName === 'magazyn' || tabName === 'inwestor');
+  try{
+    if(window.FC && FC.sections && typeof FC.sections.isExtraTab === 'function'){
+      isExtraTab = !!FC.sections.isExtraTab(tabName);
+    }
+  }catch(_){ /* keep fallback */ }
 
   // highlight active tab
   try{
@@ -5773,7 +5771,15 @@ function setActiveTab(tabName){
   }catch(_){}
 
   // Keep legacy rendering for main app tabs (WYWIAD/RYSUNEK/MATERIAŁ/...)
-  try{ renderCabinets(); }catch(_){}
+  try{ if(!isExtraTab) renderCabinets(); }catch(_){}
+
+  // Safety net: enforce correct view routing AFTER legacy renders.
+  try{
+    if(isExtraTab && window.FC && FC.views && typeof FC.views.applyFromState === "function"){
+      FC.views.applyFromState(uiState);
+    }
+  }catch(_){ }
+
 
   try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
 }
@@ -7605,7 +7611,7 @@ try{
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     try{ document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)'); }catch(_){}
     try{ renderTopHeight(); }catch(_){}
-    try{ renderCabinets(); }catch(_){}
+    try{ if(!isExtraTab) renderCabinets(); }catch(_){}
     try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
   };
   FC.setActiveTabSafe = function(tab){
