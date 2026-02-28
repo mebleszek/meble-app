@@ -20,8 +20,7 @@
     matExpandedId: null,
     searchTerm: '',
     editingId: null,
-    selectedCabinetId: null,
-    currentInvestorId: null
+    selectedCabinetId: null
   };
 
   function normalize(state){

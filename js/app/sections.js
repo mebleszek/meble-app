@@ -26,13 +26,6 @@
       if(activeTab === 'magazyn' && FC.magazyn && typeof FC.magazyn.render === 'function'){
         FC.magazyn.render();
       }
-      if(activeTab === 'inwestor' && FC.inwestor && typeof FC.inwestor.render === 'function'){
-        FC.inwestor.render();
-      }
-      // investors list view can render too (entry-based)
-      if((ui && ui.entry === 'investors') && FC.inwestor && typeof FC.inwestor.renderList === 'function'){
-        FC.inwestor.renderList();
-      }
     }catch(_){
       // fail-soft: never crash app
     }

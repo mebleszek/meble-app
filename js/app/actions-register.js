@@ -53,25 +53,19 @@
       FC.modal.open('priceModal');
       return true;
     },
-    
-    'open-investors-list': ({event, el}) => {
-      if(FC.inwestor && typeof FC.inwestor.onAction === 'function'){
-        return FC.inwestor.onAction('open-investors-list', el || null);
-      }
+
+    'open-investors': ({event}) => {
+      // Go to investor tab (list/search view). For now it's a dedicated view.
+      uiState.entry = 'rooms';
+      uiState.activeTab = 'inwestor';
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+      // If an investor module exists, let it render.
+      try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
       return true;
     },
-    'open-investor': ({event, el}) => {
-      if(FC.inwestor && typeof FC.inwestor.onAction === 'function'){
-        return FC.inwestor.onAction('open-investor', el || null);
-      }
-      return true;
-    },
-'new-investor': ({event, el}) => {
-      // Inwestor flow (lokalna baza)
-      if(FC.inwestor && typeof FC.inwestor.onAction === 'function'){
-        return FC.inwestor.onAction('new-investor', el || null);
-      }
-      // fallback: legacy behavior
+    'new-investor': ({event}) => {
+      // Start investor flow: show rooms list with top menu already visible
       uiState.entry = 'rooms';
       uiState.roomType = null;
       uiState.activeTab = 'pokoje';
