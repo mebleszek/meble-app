@@ -5739,12 +5739,34 @@ function jumpToCabinetFromMaterials(cabId){
 function setActiveTab(tabName){
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  document.querySelectorAll('.tab-btn').forEach(t=>t.style.background='var(--card)');
-  const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-  if(activeBtn) activeBtn.style.background = '#e6f7ff';
-  renderCabinets();
-  try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
+
+  // highlight active tab
+  try{
+    document.querySelectorAll('.tab-btn').forEach(t=>t.style.background='var(--card)');
+    const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    if(activeBtn) activeBtn.style.background = '#e6f7ff';
+  }catch(_){}
+
+  // Route to correct view (app / rooms / placeholders)
+  try{
+    if(window.FC && FC.views && typeof FC.views.applyFromState === 'function'){
+      FC.views.applyFromState(uiState);
+    }
+  }catch(_){}
+
+  // Render extra modules (ROZRYS/MAGAZYN) when active
+  try{
+    if(window.FC && FC.sections && typeof FC.sections.update === 'function'){
+      FC.sections.update();
+    }
+  }catch(_){}
+
+  // Keep legacy rendering for main app tabs (WYWIAD/RYSUNEK/MATERIAŁ/...)
+  try{ renderCabinets(); }catch(_){}
+
+  try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
 }
+
 
 /* ===== UI wiring & init ===== */
 /* ===== UI wiring & init ===== */
