@@ -152,6 +152,32 @@
       ctx.strokeStyle = '#0b1f33';
       ctx.strokeRect(0.5,0.5,canvas.width-1,canvas.height-1);
 
+      // Pixel-snapping helpers (reduces anti-aliasing differences: "czarne" vs "szare" linie)
+      // For odd line widths (1px) draw on half-pixel boundaries.
+      const snap = (v, lw)=>{
+        const n = Math.round(v);
+        return (lw % 2) ? (n + 0.5) : n;
+      };
+      const snapRect = (x,y,w,h,lw)=>{
+        const sx = snap(x, lw);
+        const sy = snap(y, lw);
+        // keep size consistent after snapping start
+        const sw = Math.max(0, Math.round(w));
+        const sh = Math.max(0, Math.round(h));
+        return { sx, sy, sw, sh };
+      };
+      const strokeLine = (x1,y1,x2,y2,lw)=>{
+        const sx1 = snap(x1, lw);
+        const sy1 = snap(y1, lw);
+        const sx2 = snap(x2, lw);
+        const sy2 = snap(y2, lw);
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.moveTo(sx1, sy1);
+        ctx.lineTo(sx2, sy2);
+        ctx.stroke();
+      };
+
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       // Base font; for tiny parts we will temporarily shrink it.
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
@@ -163,7 +189,12 @@
         ctx.fillStyle = 'rgba(11, 141, 183, 0.10)';
         ctx.fillRect(x,y,w,hh);
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
-        ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
+        {
+          const r = snapRect(x, y, w, hh, 1);
+          ctx.lineWidth = 1;
+          // draw inside the filled rect
+          ctx.strokeRect(r.sx, r.sy, Math.max(0, r.sw-1), Math.max(0, r.sh-1));
+        }
 
         // ===== Dimension labels + okleina (ciągła linia: 3px od krawędzi, wymiary: 6px) =====
         // Problem on tiny parts: fallback positions could end up outside the part.
@@ -190,7 +221,6 @@
         const dimInset = 6;  // px inside the part (from border to text bbox top/left)
         if(hasEdges){
           ctx.save();
-          ctx.lineWidth = 1;
           ctx.setLineDash([]);
           ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
 
@@ -202,31 +232,19 @@
           const padY = shortPad(hh);
           // top (dim1 side A)
           if(p.edgeW1){
-            ctx.beginPath();
-            ctx.moveTo(x+padX, y+edgeInset);
-            ctx.lineTo(x+w-padX, y+edgeInset);
-            ctx.stroke();
+            strokeLine(x+padX, y+edgeInset, x+w-padX, y+edgeInset, 1);
           }
           // bottom (dim1 side B)
           if(p.edgeW2){
-            ctx.beginPath();
-            ctx.moveTo(x+padX, y+hh-edgeInset);
-            ctx.lineTo(x+w-padX, y+hh-edgeInset);
-            ctx.stroke();
+            strokeLine(x+padX, y+hh-edgeInset, x+w-padX, y+hh-edgeInset, 1);
           }
           // left (dim2 side A)
           if(p.edgeH1){
-            ctx.beginPath();
-            ctx.moveTo(x+edgeInset, y+padY);
-            ctx.lineTo(x+edgeInset, y+hh-padY);
-            ctx.stroke();
+            strokeLine(x+edgeInset, y+padY, x+edgeInset, y+hh-padY, 1);
           }
           // right (dim2 side B)
           if(p.edgeH2){
-            ctx.beginPath();
-            ctx.moveTo(x+w-edgeInset, y+padY);
-            ctx.lineTo(x+w-edgeInset, y+hh-padY);
-            ctx.stroke();
+            strokeLine(x+w-edgeInset, y+padY, x+w-edgeInset, y+hh-padY, 1);
           }
           ctx.restore();
         }
