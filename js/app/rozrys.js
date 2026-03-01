@@ -222,12 +222,16 @@
 
         // Edge banding markers (optional): solid line 3px from border; shorten by 5% so it's visible on short edges.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
-        const edgeInset = 3; // px inside the part
-        const dimInset = 6;  // px inside the part (from border to text bbox top/left)
+        const edgeInset = 3; // px inside the part (okleina)
+        // Dimensions should sit very close to the okleina marker for readability.
+        // Requirement: digits ~1px away from okleina line.
+        // => put dimension text at (edgeInset + 1) from the same border.
+        const dimInset = edgeInset + 1;
         if(hasEdges){
           ctx.save();
           ctx.setLineDash([]);
-          ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
+          // Slightly lighter than the part outline so it doesn't overpower dimensions.
+          ctx.strokeStyle = 'rgba(11, 31, 51, 0.45)';
 
           const shortPad = (len)=>{
             const p5 = Math.max(1, Math.floor(len * 0.025)); // 2.5% each side => 95% visible
