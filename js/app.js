@@ -5323,7 +5323,7 @@ function renderMaterialsTab(listEl, room){
       <div class="muted xs" style="font-weight:900; margin-bottom:6px">Suma m² materiałów — cały projekt</div>
       <div id="projectMatTotals"></div>
       <div class="hr"></div>
-      <div class="muted xs" style="font-weight:900; margin-bottom:6px">Okleina — suma mb (A1/A2/B1/B2)</div>
+      <div class="muted xs" style="font-weight:900; margin-bottom:6px">Okleiny — suma mb</div>
       <div id="projectEdgeTotals" class="muted xs"></div>
       <div class="muted xs" style="margin-top:8px;line-height:1.45">
         <div><strong>Założenia do obliczeń zawiasów/podnośników (waga frontów):</strong></div>
@@ -5374,17 +5374,20 @@ function renderMaterialsTab(listEl, room){
       : '';
 
     const head = document.createElement('div');
+    head.className = 'mat-cab-head';
     head.style.display = 'flex';
     head.style.justifyContent = 'space-between';
     head.style.alignItems = 'baseline';
     head.style.gap = '12px';
+    // mobile: allow wrapping so long text never pushes buttons outside viewport
+    head.style.flexWrap = 'wrap';
     head.innerHTML = `
       <div>
         <div style="font-weight:900">#${idx+1} • ${cab.type || ''} • ${cab.subType || ''} ${badge}</div>
         <div class="muted xs">${cab.width} × ${cab.height} × ${cab.depth} • korpus: ${cab.bodyColor || ''} • plecy: ${cab.backMaterial || ''}</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:100%">
-        <div class="muted xs" style="white-space:normal;max-width:100%;flex:1 1 260px;min-width:180px">${getCabinetAssemblyRuleText(cab)}</div>
+      <div class="mat-head-right" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:100%">
+        <div class="muted xs mat-assembly" style="white-space:normal;max-width:100%;flex:1 1 260px;min-width:180px">${getCabinetAssemblyRuleText(cab)}</div>
         <button class="btn" type="button" data-act="editCab" data-cab="${cab.id}">Edytuj</button>
         <button class="btn" type="button" data-act="jumpCab" data-cab="${cab.id}">← Szafka</button>
       </div>
@@ -5465,7 +5468,7 @@ function renderMaterialsTab(listEl, room){
       <div class="front-meta">Ilość</div>
       <div class="front-meta">Wymiar (cm)</div>
       <div class="front-meta">Materiał</div>
-      <div class="front-meta">Okleina (A1 A2 B1 B2)</div>
+      <div class="front-meta">Okleiny</div>
     `;
     tHead.style.display = 'grid';
     // lekko poszerz kolumnę okleiny, żeby mieściło się "###.# cm" + oznaczenia 1A/1B/2A/2B

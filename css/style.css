@@ -170,6 +170,14 @@
     }
     .front-row:last-child{border-bottom:none}
     .front-meta{font-size:12px;color:#64748b;font-weight:800}
+
+/* ===== MATERIAŁ: mobile wrapping for cabinet cards ===== */
+.mat-assembly{overflow-wrap:anywhere; word-break:break-word;}
+@media (max-width:600px){
+  .mat-cab-head{align-items:flex-start !important;}
+  .mat-cab-head .mat-head-right{width:100%; justify-content:flex-start !important;}
+  .mat-cab-head .mat-assembly{flex:1 1 100% !important; min-width:0 !important;}
+}
   
 
 .warn-orange{
