@@ -5201,8 +5201,36 @@ function renderMaterialsTab(listEl, room){
   function partSig(p){
     return `${String(p.material||'').trim()}||${String(p.name||'').trim()}||${cmToMmLocal(p.a)}x${cmToMmLocal(p.b)}`;
   }
-  function getEdges(sig){
+  function defaultEdgesForPart(p){
+    const name = String((p && p.name) || '').toLowerCase();
+    // Fronty / blendy / maskownice: standardowo okleina dookoła
+    if(name.includes('front') || name.includes('drzwi') || name.includes('blenda') || name.includes('maskown') || name.includes('szufl') || name.includes('klapa')){
+      return { w1:true, w2:true, h1:true, h2:true };
+    }
+    // Plecy / HDF: zwykle bez okleiny
+    if(name.includes('plecy') || name.includes('hdf') || name.includes('tył') || name.includes('tyl')){
+      return { w1:false, w2:false, h1:false, h2:false };
+    }
+    // Korpusy (boki, wieńce, półki, przegrody, trawersy, dno/góra): najczęściej 1 krawędź widoczna
+    if(
+      name.includes('bok') || name.includes('półka') || name.includes('polka') || name.includes('wieniec') ||
+      name.includes('trawers') || name.includes('przegrod') || name.includes('ściank') || name.includes('sciank') ||
+      name.includes('dno') || name.includes('góra') || name.includes('gora') || name.includes('cok')
+    ){
+      return { w1:true, w2:false, h1:false, h2:false };
+    }
+    return { w1:false, w2:false, h1:false, h2:false };
+  }
+
+  function getEdges(sig, part){
     const e = edgeStore[sig] || null;
+    if(!e){
+      // Pierwsze spotkanie danej formatki: ustaw domyślne okleiny, żeby przyspieszyć wycenę wstępną.
+      const def = defaultEdgesForPart(part);
+      edgeStore[sig] = { ...def };
+      saveEdgeStore(edgeStore);
+      return { ...def };
+    }
     return {
       w1: !!(e && e.w1),
       w2: !!(e && e.w2),
@@ -5236,7 +5264,7 @@ function renderMaterialsTab(listEl, room){
     (parts||[]).forEach(p=>{
       if(!(Number(p.a)>0 && Number(p.b)>0)) return;
       const sig = partSig(p);
-      const e = getEdges(sig);
+      const e = getEdges(sig, p);
       sum += edgingMetersForPart(p, e);
     });
     return sum;
@@ -5252,7 +5280,7 @@ function renderMaterialsTab(listEl, room){
     (parts||[]).forEach(p=>{
       if(!(Number(p.a)>0 && Number(p.b)>0)) return;
       const sig = partSig(p);
-      const e = getEdges(sig);
+      const e = getEdges(sig, p);
       cabEdgeMeters += edgingMetersForPart(p, e);
     });
     mergeTotals(projectTotals, totalsFromParts(parts));
@@ -5260,7 +5288,7 @@ function renderMaterialsTab(listEl, room){
     (parts||[]).forEach(p=>{
       if(!(Number(p.a)>0 && Number(p.b)>0)) return;
       const sig = partSig(p);
-      const e = getEdges(sig);
+      const e = getEdges(sig, p);
       projectEdgeMeters += edgingMetersForPart(p, e);
     });
   });
@@ -5456,7 +5484,7 @@ parts.forEach(p => {
 
       const isBoard = (Number(p.a)>0 && Number(p.b)>0);
       const sig = isBoard ? partSig(p) : null;
-      const e = (sig ? getEdges(sig) : {w1:false,w2:false,h1:false,h2:false});
+      const e = (sig ? getEdges(sig, p) : {w1:false,w2:false,h1:false,h2:false});
       const ok = isBoard ? edgingMetersForPart(p, e) : 0;
 
       row.innerHTML = `
