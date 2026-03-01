@@ -5201,8 +5201,9 @@ function renderMaterialsTab(listEl, room){
   function partSig(p){
     return `${String(p.material||'').trim()}||${String(p.name||'').trim()}||${cmToMmLocal(p.a)}x${cmToMmLocal(p.b)}`;
   }
-  function defaultEdgesForPart(p){
+  function defaultEdgesForPart(p, cab){
     const name = String((p && p.name) || '').toLowerCase();
+    const cabType = String((cab && cab.type) || '').toLowerCase();
     // Fronty / blendy / maskownice: standardowo okleina dookoła
     if(name.includes('front') || name.includes('drzwi') || name.includes('blenda') || name.includes('maskown') || name.includes('szufl') || name.includes('klapa')){
       return { w1:true, w2:true, h1:true, h2:true };
@@ -5211,6 +5212,11 @@ function renderMaterialsTab(listEl, room){
     if(name.includes('plecy') || name.includes('hdf') || name.includes('tył') || name.includes('tyl')){
       return { w1:false, w2:false, h1:false, h2:false };
     }
+    // Wiszące: boki zwykle mają okleinę na przód + góra + dół (żeby przyspieszyć wycenę)
+    if(cabType.includes('wis') && name.includes('bok')){
+      return { w1:true, w2:false, h1:true, h2:true };
+    }
+
     // Korpusy (boki, wieńce, półki, przegrody, trawersy, dno/góra): najczęściej 1 krawędź widoczna
     if(
       name.includes('bok') || name.includes('półka') || name.includes('polka') || name.includes('wieniec') ||
@@ -5222,11 +5228,11 @@ function renderMaterialsTab(listEl, room){
     return { w1:false, w2:false, h1:false, h2:false };
   }
 
-  function getEdges(sig, part){
+  function getEdges(sig, part, cab){
     const e = edgeStore[sig] || null;
     if(!e){
       // Pierwsze spotkanie danej formatki: ustaw domyślne okleiny, żeby przyspieszyć wycenę wstępną.
-      const def = defaultEdgesForPart(part);
+      const def = defaultEdgesForPart(part, cab);
       edgeStore[sig] = { ...def };
       saveEdgeStore(edgeStore);
       return { ...def };
@@ -5259,12 +5265,12 @@ function renderMaterialsTab(listEl, room){
     return s.endsWith('.0') ? s.slice(0,-2) : s;
   }
 
-  function calcEdgeMetersForParts(parts){
+  function calcEdgeMetersForParts(parts, cab){
     let sum = 0;
     (parts||[]).forEach(p=>{
       if(!(Number(p.a)>0 && Number(p.b)>0)) return;
       const sig = partSig(p);
-      const e = getEdges(sig, p);
+      const e = getEdges(sig, p, cab);
       sum += edgingMetersForPart(p, e);
     });
     return sum;
@@ -5280,7 +5286,7 @@ function renderMaterialsTab(listEl, room){
     (parts||[]).forEach(p=>{
       if(!(Number(p.a)>0 && Number(p.b)>0)) return;
       const sig = partSig(p);
-      const e = getEdges(sig, p);
+      const e = getEdges(sig, p, cab);
       cabEdgeMeters += edgingMetersForPart(p, e);
     });
     mergeTotals(projectTotals, totalsFromParts(parts));
@@ -5288,7 +5294,7 @@ function renderMaterialsTab(listEl, room){
     (parts||[]).forEach(p=>{
       if(!(Number(p.a)>0 && Number(p.b)>0)) return;
       const sig = partSig(p);
-      const e = getEdges(sig, p);
+      const e = getEdges(sig, p, cab);
       projectEdgeMeters += edgingMetersForPart(p, e);
     });
   });
@@ -5377,8 +5383,8 @@ function renderMaterialsTab(listEl, room){
         <div style="font-weight:900">#${idx+1} • ${cab.type || ''} • ${cab.subType || ''} ${badge}</div>
         <div class="muted xs">${cab.width} × ${cab.height} × ${cab.depth} • korpus: ${cab.bodyColor || ''} • plecy: ${cab.backMaterial || ''}</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
-        <div class="muted xs" style="white-space:nowrap">${getCabinetAssemblyRuleText(cab)}</div>
+      <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:100%">
+        <div class="muted xs" style="white-space:normal;max-width:100%;flex:1 1 260px;min-width:180px">${getCabinetAssemblyRuleText(cab)}</div>
         <button class="btn" type="button" data-act="editCab" data-cab="${cab.id}">Edytuj</button>
         <button class="btn" type="button" data-act="jumpCab" data-cab="${cab.id}">← Szafka</button>
       </div>
@@ -5426,7 +5432,7 @@ function renderMaterialsTab(listEl, room){
     const parts = getCabinetCutList(cab, room);
 
     // OKLEINA mb dla tej szafki (musi być liczona tu, bo używamy jej w UI)
-    const cabEdgeMeters = calcEdgeMetersForParts(parts);
+    const cabEdgeMeters = calcEdgeMetersForParts(parts, cab);
 
     // SUMA m² dla szafki
     const cabTotalsBox = document.createElement('div');
@@ -5462,7 +5468,8 @@ function renderMaterialsTab(listEl, room){
       <div class="front-meta">Okleina (A1 A2 B1 B2)</div>
     `;
     tHead.style.display = 'grid';
-    tHead.style.gridTemplateColumns = '1.2fr 0.35fr 0.65fr 0.95fr 1.1fr';
+    // lekko poszerz kolumnę okleiny, żeby mieściło się "###.# cm" + oznaczenia 1A/1B/2A/2B
+    tHead.style.gridTemplateColumns = '1.15fr 0.35fr 0.70fr 0.90fr 1.30fr';
     tHead.style.gap = '10px';
     table.appendChild(tHead);
 
@@ -5471,7 +5478,7 @@ parts.forEach(p => {
       const row = document.createElement('div');
       row.className = 'front-row';
       row.style.display = 'grid';
-      row.style.gridTemplateColumns = '1.2fr 0.35fr 0.65fr 0.95fr 1.1fr';
+      row.style.gridTemplateColumns = '1.15fr 0.35fr 0.70fr 0.90fr 1.30fr';
       row.style.gap = '10px';
 
       if(p.tone === 'red'){
@@ -5484,29 +5491,43 @@ parts.forEach(p => {
 
       const isBoard = (Number(p.a)>0 && Number(p.b)>0);
       const sig = isBoard ? partSig(p) : null;
-      const e = (sig ? getEdges(sig, p) : {w1:false,w2:false,h1:false,h2:false});
-      const ok = isBoard ? edgingMetersForPart(p, e) : 0;
+      const e = (sig ? getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false});
 
       row.innerHTML = `
         <div style="font-weight:900">${p.name}</div>
         <div style="font-weight:900">${p.qty}</div>
         <div style="font-weight:900">${p.dims}</div>
         <div class="front-meta">${p.material || ''}</div>
-        <div class="front-meta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="front-meta" style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
           ${isBoard ? `
-            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />${fmtCm(p.a)} cm (1)
+            <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />
+              <span style="display:flex;flex-direction:column;line-height:1.05">
+                <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
+                <span class="muted" style="font-size:11px;font-weight:900">1A</span>
+              </span>
             </label>
-            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />${fmtCm(p.a)} cm (2)
+            <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />
+              <span style="display:flex;flex-direction:column;line-height:1.05">
+                <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
+                <span class="muted" style="font-size:11px;font-weight:900">1B</span>
+              </span>
             </label>
-            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />${fmtCm(p.b)} cm (1)
+            <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />
+              <span style="display:flex;flex-direction:column;line-height:1.05">
+                <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
+                <span class="muted" style="font-size:11px;font-weight:900">2A</span>
+              </span>
             </label>
-            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />${fmtCm(p.b)} cm (2)
+            <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+              <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />
+              <span style="display:flex;flex-direction:column;line-height:1.05">
+                <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
+                <span class="muted" style="font-size:11px;font-weight:900">2B</span>
+              </span>
             </label>
-            <span class="muted xs" style="margin-left:auto">${ok.toFixed(2)} mb</span>
           ` : `<span class="muted xs">—</span>`}
         </div>
       `;

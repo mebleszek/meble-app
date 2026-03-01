@@ -165,45 +165,7 @@
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
 
-        // Edge banding markers (optional): draw strokes INSIDE the part.
-        // This avoids "double-thick" borders when two edged parts touch each other.
-        const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
-        if(hasEdges){
-          ctx.save();
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
-          const inset = Math.max(2, Math.min(6, Math.floor(Math.min(w, hh) / 6))); // px inside the part
-          // top (width side 1)
-          if(p.edgeW1){
-            ctx.beginPath();
-            ctx.moveTo(x+inset, y+inset);
-            ctx.lineTo(x+w-inset, y+inset);
-            ctx.stroke();
-          }
-          // bottom (width side 2)
-          if(p.edgeW2){
-            ctx.beginPath();
-            ctx.moveTo(x+inset, y+hh-inset);
-            ctx.lineTo(x+w-inset, y+hh-inset);
-            ctx.stroke();
-          }
-          // left (height side 1)
-          if(p.edgeH1){
-            ctx.beginPath();
-            ctx.moveTo(x+inset, y+inset);
-            ctx.lineTo(x+inset, y+hh-inset);
-            ctx.stroke();
-          }
-          // right (height side 2)
-          if(p.edgeH2){
-            ctx.beginPath();
-            ctx.moveTo(x+w-inset, y+inset);
-            ctx.lineTo(x+w-inset, y+hh-inset);
-            ctx.stroke();
-          }
-          ctx.restore();
-        }
-        // ===== Dimension labels =====
+        // ===== Dimension labels + okleina (kreska przerywana w "kanale" między krawędzią a wymiarem) =====
         // Problem on tiny parts: fallback positions could end up outside the part.
         // Fix: always clamp text inside the rectangle; for very small parts place labels centered.
         ctx.fillStyle = '#0b1f33';
@@ -215,26 +177,70 @@
         const isTiny = minSide < 46; // px
 
         // Shrink font a bit for tiny parts so labels remain readable and inside.
+        let fontSize = 12;
         if(isTiny){
-          const fs = Math.max(9, Math.min(12, Math.floor(minSide / 4))); // 9..12
+          fontSize = Math.max(9, Math.min(12, Math.floor(minSide / 4))); // 9..12
           ctx.save();
-          ctx.font = `${fs}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+          ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
         }
 
-        // top label (width) — keep inside
+        // Edge banding markers (optional): dashed line in a stable channel so it doesn't touch dimensions.
+        const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
+        // channelInset: distance from the part border; chosen so that labels can sit below/inside without overlap
+        const channelInset = Math.max(8, Math.min(16, Math.floor(minSide / 3))); // px
+        if(hasEdges){
+          ctx.save();
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6,4]);
+          ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
+
+          const innerPad = Math.max(4, Math.min(10, Math.floor(minSide / 6)));
+          // top (dim1 side A)
+          if(p.edgeW1){
+            ctx.beginPath();
+            ctx.moveTo(x+innerPad, y+channelInset);
+            ctx.lineTo(x+w-innerPad, y+channelInset);
+            ctx.stroke();
+          }
+          // bottom (dim1 side B)
+          if(p.edgeW2){
+            ctx.beginPath();
+            ctx.moveTo(x+innerPad, y+hh-channelInset);
+            ctx.lineTo(x+w-innerPad, y+hh-channelInset);
+            ctx.stroke();
+          }
+          // left (dim2 side A)
+          if(p.edgeH1){
+            ctx.beginPath();
+            ctx.moveTo(x+channelInset, y+innerPad);
+            ctx.lineTo(x+channelInset, y+hh-innerPad);
+            ctx.stroke();
+          }
+          // right (dim2 side B)
+          if(p.edgeH2){
+            ctx.beginPath();
+            ctx.moveTo(x+w-channelInset, y+innerPad);
+            ctx.lineTo(x+w-channelInset, y+hh-innerPad);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // top label (width) — keep inside; keep it below the dashed channel
         {
           const tw = ctx.measureText(wLabel).width;
           const tx = x + Math.max(pad, (w - tw) / 2);
-          const ty = y + Math.min(16, Math.max(pad + 10, hh - pad));
+          const tySafe = y + channelInset + fontSize + 2;
+          const ty = Math.min(y + hh - pad, Math.max(tySafe, y + pad + fontSize));
           // If the part is extremely short, place at vertical center.
-          const finalY = (hh < 22) ? (y + hh/2 + 4) : ty;
+          const finalY = (hh < (fontSize*2 + 10)) ? (y + hh/2 + 4) : ty;
           ctx.fillText(wLabel, tx, finalY);
         }
 
-        // height label — prefer rotated on the left, but never outside
+        // height label — prefer rotated on the left, but never outside; keep it away from the dashed channel
         if(hh > 34 && w > 22){
           ctx.save();
-          const tx = x + Math.min(12, Math.max(pad + 8, w - pad));
+          const tx = x + Math.min(w - pad, Math.max(channelInset + fontSize + 2, pad + 10));
           ctx.translate(tx, y + hh/2);
           ctx.rotate(-Math.PI/2);
           const th = ctx.measureText(hLabel).width;
