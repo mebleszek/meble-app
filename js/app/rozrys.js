@@ -164,42 +164,46 @@
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
 
-        // Edge banding markers (optional): draw strokes INSIDE the part.
-        // This avoids "double-thick" borders when two edged parts touch each other.
+        // Edge banding markers (optional): draw CORNER TICKS inside the part.
+        // Why: full-length lines can cross dimension labels (especially on small parts).
+        // Corner ticks remain readable and do not create "double-thick" borders.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
         if(hasEdges){
           ctx.save();
           ctx.lineWidth = 2;
           ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
-          const inset = Math.max(2, Math.min(6, Math.floor(Math.min(w, hh) / 6))); // px inside the part
-          // top (width side 1)
+          const inset = Math.max(2, Math.min(7, Math.floor(Math.min(w, hh) / 6))); // px inside
+          const minSide = Math.max(0, Math.min(w, hh));
+          const tickLen = Math.max(8, Math.min(18, Math.floor(minSide * 0.22)));
+
+          function tick(x1,y1,x2,y2){
+            ctx.beginPath();
+            ctx.moveTo(x1,y1);
+            ctx.lineTo(x2,y2);
+            ctx.stroke();
+          }
+
+          // top edge ticks
           if(p.edgeW1){
-            ctx.beginPath();
-            ctx.moveTo(x+inset, y+inset);
-            ctx.lineTo(x+w-inset, y+inset);
-            ctx.stroke();
+            tick(x+inset, y+inset, x+inset+tickLen, y+inset);
+            tick(x+w-inset-tickLen, y+inset, x+w-inset, y+inset);
           }
-          // bottom (width side 2)
+          // bottom edge ticks
           if(p.edgeW2){
-            ctx.beginPath();
-            ctx.moveTo(x+inset, y+hh-inset);
-            ctx.lineTo(x+w-inset, y+hh-inset);
-            ctx.stroke();
+            tick(x+inset, y+hh-inset, x+inset+tickLen, y+hh-inset);
+            tick(x+w-inset-tickLen, y+hh-inset, x+w-inset, y+hh-inset);
           }
-          // left (height side 1)
+          // left edge ticks
           if(p.edgeH1){
-            ctx.beginPath();
-            ctx.moveTo(x+inset, y+inset);
-            ctx.lineTo(x+inset, y+hh-inset);
-            ctx.stroke();
+            tick(x+inset, y+inset, x+inset, y+inset+tickLen);
+            tick(x+inset, y+hh-inset-tickLen, x+inset, y+hh-inset);
           }
-          // right (height side 2)
+          // right edge ticks
           if(p.edgeH2){
-            ctx.beginPath();
-            ctx.moveTo(x+w-inset, y+inset);
-            ctx.lineTo(x+w-inset, y+hh-inset);
-            ctx.stroke();
+            tick(x+w-inset, y+inset, x+w-inset, y+inset+tickLen);
+            tick(x+w-inset, y+hh-inset-tickLen, x+w-inset, y+hh-inset);
           }
+
           ctx.restore();
         }
         // wymiary na właściwych bokach: szerokość na górze, wysokość po lewej
