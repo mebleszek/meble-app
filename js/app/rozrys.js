@@ -153,6 +153,7 @@
       ctx.strokeRect(0.5,0.5,canvas.width-1,canvas.height-1);
 
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
+      // Base font; for tiny parts we will temporarily shrink it.
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
       placements.forEach(p=>{
         const x = p.x * scale;
@@ -164,71 +165,90 @@
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
 
-        // Edge banding markers (optional): draw CORNER TICKS inside the part.
-        // Why: full-length lines can cross dimension labels (especially on small parts).
-        // Corner ticks remain readable and do not create "double-thick" borders.
+        // Edge banding markers (optional): draw strokes INSIDE the part.
+        // This avoids "double-thick" borders when two edged parts touch each other.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
         if(hasEdges){
           ctx.save();
           ctx.lineWidth = 2;
           ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
-          const inset = Math.max(2, Math.min(7, Math.floor(Math.min(w, hh) / 6))); // px inside
-          const minSide = Math.max(0, Math.min(w, hh));
-          const tickLen = Math.max(8, Math.min(18, Math.floor(minSide * 0.22)));
-
-          function tick(x1,y1,x2,y2){
+          const inset = Math.max(2, Math.min(6, Math.floor(Math.min(w, hh) / 6))); // px inside the part
+          // top (width side 1)
+          if(p.edgeW1){
             ctx.beginPath();
-            ctx.moveTo(x1,y1);
-            ctx.lineTo(x2,y2);
+            ctx.moveTo(x+inset, y+inset);
+            ctx.lineTo(x+w-inset, y+inset);
             ctx.stroke();
           }
-
-          // top edge ticks
-          if(p.edgeW1){
-            tick(x+inset, y+inset, x+inset+tickLen, y+inset);
-            tick(x+w-inset-tickLen, y+inset, x+w-inset, y+inset);
-          }
-          // bottom edge ticks
+          // bottom (width side 2)
           if(p.edgeW2){
-            tick(x+inset, y+hh-inset, x+inset+tickLen, y+hh-inset);
-            tick(x+w-inset-tickLen, y+hh-inset, x+w-inset, y+hh-inset);
+            ctx.beginPath();
+            ctx.moveTo(x+inset, y+hh-inset);
+            ctx.lineTo(x+w-inset, y+hh-inset);
+            ctx.stroke();
           }
-          // left edge ticks
+          // left (height side 1)
           if(p.edgeH1){
-            tick(x+inset, y+inset, x+inset, y+inset+tickLen);
-            tick(x+inset, y+hh-inset-tickLen, x+inset, y+hh-inset);
+            ctx.beginPath();
+            ctx.moveTo(x+inset, y+inset);
+            ctx.lineTo(x+inset, y+hh-inset);
+            ctx.stroke();
           }
-          // right edge ticks
+          // right (height side 2)
           if(p.edgeH2){
-            tick(x+w-inset, y+inset, x+w-inset, y+inset+tickLen);
-            tick(x+w-inset, y+hh-inset-tickLen, x+w-inset, y+hh-inset);
+            ctx.beginPath();
+            ctx.moveTo(x+w-inset, y+inset);
+            ctx.lineTo(x+w-inset, y+hh-inset);
+            ctx.stroke();
           }
-
           ctx.restore();
         }
-        // wymiary na właściwych bokach: szerokość na górze, wysokość po lewej
+        // ===== Dimension labels =====
+        // Problem on tiny parts: fallback positions could end up outside the part.
+        // Fix: always clamp text inside the rectangle; for very small parts place labels centered.
         ctx.fillStyle = '#0b1f33';
         const wLabel = `${mmToStr(p.w)}`;
         const hLabel = `${mmToStr(p.h)}`;
 
-        // top label (width)
-        if(w > 34){
-          const tw = ctx.measureText(wLabel).width;
-          ctx.fillText(wLabel, x + Math.max(4, (w - tw) / 2), y + 16);
-        } else {
-          ctx.fillText(wLabel, x + 4, y + 16);
+        const pad = 4;
+        const minSide = Math.min(w, hh);
+        const isTiny = minSide < 46; // px
+
+        // Shrink font a bit for tiny parts so labels remain readable and inside.
+        if(isTiny){
+          const fs = Math.max(9, Math.min(12, Math.floor(minSide / 4))); // 9..12
+          ctx.save();
+          ctx.font = `${fs}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
         }
 
-        // left label (height) rotated
-        if(hh > 34){
+        // top label (width) — keep inside
+        {
+          const tw = ctx.measureText(wLabel).width;
+          const tx = x + Math.max(pad, (w - tw) / 2);
+          const ty = y + Math.min(16, Math.max(pad + 10, hh - pad));
+          // If the part is extremely short, place at vertical center.
+          const finalY = (hh < 22) ? (y + hh/2 + 4) : ty;
+          ctx.fillText(wLabel, tx, finalY);
+        }
+
+        // height label — prefer rotated on the left, but never outside
+        if(hh > 34 && w > 22){
           ctx.save();
-          ctx.translate(x + 12, y + hh/2);
+          const tx = x + Math.min(12, Math.max(pad + 8, w - pad));
+          ctx.translate(tx, y + hh/2);
           ctx.rotate(-Math.PI/2);
           const th = ctx.measureText(hLabel).width;
           ctx.fillText(hLabel, -th/2, 0);
           ctx.restore();
         } else {
-          ctx.fillText(hLabel, x + 4, y + 30);
+          const th = ctx.measureText(hLabel).width;
+          const tx = x + Math.max(pad, Math.min(w - th - pad, pad));
+          const ty = y + Math.min(hh - pad, Math.max(pad + 10, hh/2 + 6));
+          ctx.fillText(hLabel, x + pad, ty);
+        }
+
+        if(isTiny){
+          ctx.restore();
         }
       });
     }catch(_){ }

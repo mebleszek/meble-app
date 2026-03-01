@@ -8,10 +8,16 @@
   const FC = window.FC;
 
   const EXTRA_KEYS = [
+    // investors store
     'fc_investors_v1',
-    'fc_investors_current_v1',
+    // correct key for current investor
+    'fc_current_investor_v1',
+    // investor UI state
     'fc_investor_ui_v1',
   ];
+
+  const PROJECT_INV_PREFIX = 'fc_project_inv_';
+  const PROJECT_INV_SUFFIX = '_v1';
 
   function getKeysToSnapshot(){
     const keys = [];
@@ -20,6 +26,16 @@
       Object.keys(K).forEach(k => { if(K[k]) keys.push(String(K[k])); });
     }
     EXTRA_KEYS.forEach(k => keys.push(k));
+
+    // Include all per-investor project slots so Cancel can restore them.
+    // (Without this, Cancel could revert only the active project and leave investor slots modified.)
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(!k) continue;
+        if(k.startsWith(PROJECT_INV_PREFIX) && k.endsWith(PROJECT_INV_SUFFIX)) keys.push(k);
+      }
+    }catch(_){ }
     // unique
     return Array.from(new Set(keys));
   }

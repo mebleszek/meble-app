@@ -603,111 +603,6 @@ function normalizeProjectData(){
 }
 normalizeProjectData();
 
-/* ===== Per-investor project isolation (without changing UI) =====
-   Idea: app continues to work on STORAGE_KEYS.projectData (fc_project_v1) as the active project.
-   When you switch investors, we swap the active project with a per-investor slot in localStorage.
-   This guarantees each investor has their own cabinets/rooms/material state.
-*/
-(function(){
-  try{
-    window.FC = window.FC || {};
-    const FC = window.FC;
-    const INV_PREFIX = 'fc_project_inv_';
-    function keysFor(id){
-      const safe = String(id||'').trim();
-      return {
-        data: `${INV_PREFIX}${safe}_v1`,
-        backup: `${INV_PREFIX}${safe}_backup_v1`,
-        backupMeta: `${INV_PREFIX}${safe}_backup_meta_v1`,
-      };
-    }
-
-    function readRaw(key){ try{ return localStorage.getItem(key); }catch(_){ return null; } }
-    function writeRaw(key, raw){
-      try{
-        if(raw === null || typeof raw === 'undefined') localStorage.removeItem(key);
-        else localStorage.setItem(key, raw);
-      }catch(_){ }
-    }
-
-    function saveActiveProjectToInvestor(id){
-      if(!id) return;
-      const k = keysFor(id);
-      const raw = readRaw(STORAGE_KEYS.projectData);
-      const bkp = readRaw(STORAGE_KEYS.projectBackup);
-      const bkm = readRaw(STORAGE_KEYS.projectBackupMeta);
-      if(raw) writeRaw(k.data, raw);
-      if(bkp) writeRaw(k.backup, bkp);
-      if(bkm) writeRaw(k.backupMeta, bkm);
-    }
-
-    function loadInvestorProjectToActive(id, opts){
-      const o = opts || {};
-      if(!id){
-        // No investor: keep current active project.
-        return;
-      }
-      const k = keysFor(id);
-      const raw = readRaw(k.data);
-      const bkp = readRaw(k.backup);
-      const bkm = readRaw(k.backupMeta);
-
-      if(raw){
-        writeRaw(STORAGE_KEYS.projectData, raw);
-        if(bkp) writeRaw(STORAGE_KEYS.projectBackup, bkp);
-        if(bkm) writeRaw(STORAGE_KEYS.projectBackupMeta, bkm);
-        return;
-      }
-
-      // If missing: create a clean project for this investor.
-      if(o.createEmpty){
-        const empty = FC.utils && FC.utils.clone ? FC.utils.clone(DEFAULT_PROJECT) : JSON.parse(JSON.stringify(DEFAULT_PROJECT));
-        FC.storage.setJSON(STORAGE_KEYS.projectData, empty);
-        // wipe backups for a fresh start
-        writeRaw(STORAGE_KEYS.projectBackup, null);
-        writeRaw(STORAGE_KEYS.projectBackupMeta, null);
-        // also persist slot
-        try{ writeRaw(k.data, JSON.stringify(empty)); }catch(_){ }
-      }
-    }
-
-    function switchToInvestor(id, opts){
-      const nextId = String(id||'').trim();
-      if(!nextId) return;
-      const prevId = (uiState && uiState.currentInvestorId) ? String(uiState.currentInvestorId) : '';
-
-      // 1) Save current active project into previous investor slot (if any)
-      if(prevId && prevId !== nextId){
-        saveActiveProjectToInvestor(prevId);
-      }
-
-      // 2) Load next investor slot into active project storage (or create empty)
-      loadInvestorProjectToActive(nextId, opts);
-
-      // 3) Update in-memory projectData and normalize
-      try{ projectData = FC.project.load(); }catch(_){ /* keep existing */ }
-      try{ normalizeProjectData(); }catch(_){ }
-
-      // 4) Persist UI state and re-render current screen
-      try{
-        if(typeof uiState !== 'undefined' && uiState){
-          uiState.currentInvestorId = nextId;
-          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        }
-      }catch(_){ }
-      try{ if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState); }catch(_){ }
-      // Re-render investor UI if present
-      try{ if(window.FC && window.FC.investorUI && window.FC.investorUI.render) window.FC.investorUI.render(); }catch(_){ }
-    }
-
-    FC.projects = FC.projects || {};
-    FC.projects.keysFor = keysFor;
-    FC.projects.saveActiveProjectToInvestor = saveActiveProjectToInvestor;
-    FC.projects.loadInvestorProjectToActive = loadInvestorProjectToActive;
-    FC.projects.switchToInvestor = switchToInvestor;
-  }catch(_){ }
-})();
-
 /* ===== Modal state ===== */
 const cabinetModalState = {
   mode: 'add',          // 'add' | 'edit'
@@ -5315,46 +5210,6 @@ function renderMaterialsTab(listEl, room){
       h2: !!(e && e.h2),
     };
   }
-
-  // Default edge banding (most common workshop practice).
-  // IMPORTANT: we keep it heuristic-based on part name, because the cut list does not encode
-  // a full "front/back" orientation yet.
-  function defaultEdgesForPart(p){
-    const name = String(p && p.name || '').toLowerCase();
-    // Non-board or undefined dims => none
-    if(!(Number(p && p.a)>0 && Number(p && p.b)>0)) return { w1:false, w2:false, h1:false, h2:false };
-
-    // Fronts / visible fillers typically get all 4 edges.
-    if(name.includes('front') || name.includes('blenda') || name.includes('czapka') || name.includes('maskown')){
-      return { w1:true, w2:true, h1:true, h2:true };
-    }
-
-    // Back panels: no edge banding by default.
-    if(name.includes('plecy') || name.includes('hdf')){
-      return { w1:false, w2:false, h1:false, h2:false };
-    }
-
-    // Shelves / crowns / stretchers: usually band the "front" edge only.
-    if(name.includes('półka') || name.includes('polka') || name.includes('wieniec') || name.includes('trawers')){
-      return { w1:true, w2:false, h1:false, h2:false };
-    }
-
-    // Side panels: usually band the front edge only.
-    if(name.includes('bok')){
-      return { w1:true, w2:false, h1:false, h2:false };
-    }
-
-    // Default fallback: no edges.
-    return { w1:false, w2:false, h1:false, h2:false };
-  }
-
-  function ensureDefaultEdges(sig, part){
-    if(!sig) return;
-    if(edgeStore[sig]) return; // user already set
-    const def = defaultEdgesForPart(part);
-    edgeStore[sig] = { w1:!!def.w1, w2:!!def.w2, h1:!!def.h1, h2:!!def.h2 };
-    saveEdgeStore(edgeStore);
-  }
   function setEdges(sig, patch){
     const prev = edgeStore[sig] || {};
     edgeStore[sig] = { ...prev, ...patch };
@@ -5601,7 +5456,6 @@ parts.forEach(p => {
 
       const isBoard = (Number(p.a)>0 && Number(p.b)>0);
       const sig = isBoard ? partSig(p) : null;
-      if(sig) ensureDefaultEdges(sig, p);
       const e = (sig ? getEdges(sig) : {w1:false,w2:false,h1:false,h2:false});
       const ok = isBoard ? edgingMetersForPart(p, e) : 0;
 

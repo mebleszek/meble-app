@@ -137,11 +137,6 @@
       try{
         if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
           const inv = window.FC.investors.create({ kind:'person' });
-
-          // Each investor must have their own project dataset.
-          // Switch to a clean project slot for this new investor.
-          try{ if(window.FC && window.FC.projects && typeof window.FC.projects.switchToInvestor === 'function') window.FC.projects.switchToInvestor(inv.id, { createEmpty: true }); }catch(_){ }
-
           if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = inv.id;
           if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
             window.FC.investorUI.state.selectedId = inv.id;
@@ -156,10 +151,7 @@
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
 
-      // Switch active project to this investor (so WYWIAD/MATERIAŁ etc are not shared across investors)
-      try{ if(window.FC && window.FC.projects && typeof window.FC.projects.switchToInvestor === 'function') window.FC.projects.switchToInvestor(id, { createEmpty: true }); }catch(_){ }
-
-      // Start edit session snapshot AFTER switching (Cancel should revert investor + project changes)
+      // Start edit session snapshot (Cancel should revert investor + cabinets + room data)
       try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
 
       try{
@@ -198,9 +190,6 @@
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
       try{
-        // Switch active project to the selected investor (isolation guarantee)
-        try{ if(window.FC && window.FC.projects && typeof window.FC.projects.switchToInvestor === 'function') window.FC.projects.switchToInvestor(id, { createEmpty: true }); }catch(_){ }
-
         if(window.FC && window.FC.investors && typeof window.FC.investors.setCurrentId === 'function'){
           window.FC.investors.setCurrentId(id);
         }
