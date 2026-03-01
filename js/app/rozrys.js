@@ -165,7 +165,7 @@
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
 
-        // ===== Dimension labels + okleina (kreska przerywana w "kanale" między krawędzią a wymiarem) =====
+        // ===== Dimension labels + okleina (ciągła linia: 3px od krawędzi, wymiary: 6px) =====
         // Problem on tiny parts: fallback positions could end up outside the part.
         // Fix: always clamp text inside the rectangle; for very small parts place labels centered.
         ctx.fillStyle = '#0b1f33';
@@ -184,69 +184,71 @@
           ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
         }
 
-        // Edge banding markers (optional): solid line 3px inside the part.
-        // Dimension labels are pushed a further +3px (so 6px inside) to avoid overlap.
+        // Edge banding markers (optional): solid line 3px from border; shorten by 5% so it's visible on short edges.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
-        // Clamp insets for tiny parts so we don't collapse the usable interior.
-        const edgeInset = 3;
-        const dimInset = 6;
-        const maxInset = Math.max(1, Math.floor(minSide / 4)); // keep some interior
-        const edgeInsetUsed = Math.min(edgeInset, maxInset);
-        const dimInsetUsed = Math.min(dimInset, Math.max(edgeInsetUsed + 1, maxInset + 2));
-
+        const edgeInset = 3; // px inside the part
+        const dimInset = 6;  // px inside the part (from border to text bbox top/left)
         if(hasEdges){
           ctx.save();
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 1;
           ctx.setLineDash([]);
           ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
 
-          const innerPad = Math.max(6, Math.min(14, Math.floor(minSide / 5)));
+          const shortPad = (len)=>{
+            const p5 = Math.max(1, Math.floor(len * 0.025)); // 2.5% each side => 95% visible
+            return p5;
+          };
+          const padX = shortPad(w);
+          const padY = shortPad(hh);
           // top (dim1 side A)
           if(p.edgeW1){
             ctx.beginPath();
-            ctx.moveTo(x+innerPad, y+edgeInsetUsed);
-            ctx.lineTo(x+w-innerPad, y+edgeInsetUsed);
+            ctx.moveTo(x+padX, y+edgeInset);
+            ctx.lineTo(x+w-padX, y+edgeInset);
             ctx.stroke();
           }
           // bottom (dim1 side B)
           if(p.edgeW2){
             ctx.beginPath();
-            ctx.moveTo(x+innerPad, y+hh-edgeInsetUsed);
-            ctx.lineTo(x+w-innerPad, y+hh-edgeInsetUsed);
+            ctx.moveTo(x+padX, y+hh-edgeInset);
+            ctx.lineTo(x+w-padX, y+hh-edgeInset);
             ctx.stroke();
           }
           // left (dim2 side A)
           if(p.edgeH1){
             ctx.beginPath();
-            ctx.moveTo(x+edgeInsetUsed, y+innerPad);
-            ctx.lineTo(x+edgeInsetUsed, y+hh-innerPad);
+            ctx.moveTo(x+edgeInset, y+padY);
+            ctx.lineTo(x+edgeInset, y+hh-padY);
             ctx.stroke();
           }
           // right (dim2 side B)
           if(p.edgeH2){
             ctx.beginPath();
-            ctx.moveTo(x+w-edgeInsetUsed, y+innerPad);
-            ctx.lineTo(x+w-edgeInsetUsed, y+hh-innerPad);
+            ctx.moveTo(x+w-edgeInset, y+padY);
+            ctx.lineTo(x+w-edgeInset, y+hh-padY);
             ctx.stroke();
           }
           ctx.restore();
         }
 
-        // top label (width) — keep inside; keep it below the edge marker (+3px extra)
+        // top label (width) — keep inside; visually keep ~6px from top border
         {
           const tw = ctx.measureText(wLabel).width;
           const tx = x + Math.max(pad, (w - tw) / 2);
-          const tySafe = y + dimInsetUsed + fontSize + 1;
-          const ty = Math.min(y + hh - pad, Math.max(tySafe, y + pad + fontSize));
+          const mt = ctx.measureText('0');
+          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          const baseY = y + dimInset + ascent;
           // If the part is extremely short, place at vertical center.
-          const finalY = (hh < (fontSize*2 + 10)) ? (y + hh/2 + 4) : ty;
+          const finalY = (hh < (fontSize*2 + 10)) ? (y + hh/2 + Math.round(fontSize/3)) : Math.min(y + hh - pad, Math.max(baseY, y + pad + ascent));
           ctx.fillText(wLabel, tx, finalY);
         }
 
-        // height label — prefer rotated on the left, but never outside; keep it away from the edge marker (+3px extra)
+        // height label — prefer rotated on the left, but never outside
         if(hh > 34 && w > 22){
           ctx.save();
-          const tx = x + Math.min(w - pad, Math.max(dimInsetUsed + 2, pad + 10));
+          const mt = ctx.measureText('0');
+          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          const tx = x + Math.min(w - pad, Math.max(dimInset + ascent, pad + 10));
           ctx.translate(tx, y + hh/2);
           ctx.rotate(-Math.PI/2);
           const th = ctx.measureText(hLabel).width;

@@ -5233,47 +5233,10 @@ function renderMaterialsTab(listEl, room){
     if(!e){
       // Pierwsze spotkanie danej formatki: ustaw domyślne okleiny, żeby przyspieszyć wycenę wstępną.
       const def = defaultEdgesForPart(part, cab);
-      edgeStore[sig] = { ...def, __auto: true, __autoVer: 2 };
+      edgeStore[sig] = { ...def };
       saveEdgeStore(edgeStore);
       return { ...def };
     }
-
-    // Jeśli użytkownik nie modyfikował jeszcze oklein tej formatki, możemy bezpiecznie
-    // dopasowywać domyślne reguły (np. po zmianie logiki domyślnych oklein).
-    // To rozwiązuje przypadek, gdy ta sama formatka (sygnatura) pojawiła się wcześniej
-    // w innym typie szafki i odziedziczyła stare domyślne.
-    try{
-      const name = String((part && part.name) || '').toLowerCase();
-      const cabType = String((cab && cab.type) || '').toLowerCase();
-      const isHangingSide = cabType.includes('wis') && name.includes('bok');
-      const userTouched = !!(e && e.__user);
-      if(isHangingSide && !userTouched){
-        // Domyślne dla boków wiszących: 1A + 2A + 2B
-        const forced = { w1:true, w2:false, h1:true, h2:true };
-        const needs = !(e.w1===true && !e.w2 && e.h1===true && e.h2===true);
-        if(needs){
-          edgeStore[sig] = { ...forced, __auto:true, __autoVer: 3 };
-          saveEdgeStore(edgeStore);
-          return { ...forced };
-        }
-      }
-    }catch(_){ }
-
-    // Upgrade legacy defaults (bez ingerencji w ręczne ustawienia użytkownika).
-    // Jeśli w starszej wersji bok w wiszących miał tylko 1A (w1), a użytkownik nie zmieniał nic,
-    // to podbijamy domyślne do 1A + 2A + 2B (w1 + h1 + h2).
-    try{
-      const name = String((part && part.name) || '').toLowerCase();
-      const cabType = String((cab && cab.type) || '').toLowerCase();
-      const isHangingSide = cabType.includes('wis') && name.includes('bok');
-      const looksLegacy = !!(e && e.w1 === true && !e.w2 && !e.h1 && !e.h2);
-      if(isHangingSide && looksLegacy){
-        const upgraded = { w1:true, w2:false, h1:true, h2:true };
-        edgeStore[sig] = { ...upgraded, __auto:true, __autoVer: 2 };
-        saveEdgeStore(edgeStore);
-        return { ...upgraded };
-      }
-    }catch(_){ }
     return {
       w1: !!(e && e.w1),
       w2: !!(e && e.w2),
@@ -5283,9 +5246,7 @@ function renderMaterialsTab(listEl, room){
   }
   function setEdges(sig, patch){
     const prev = edgeStore[sig] || {};
-    // Zaznacz, że użytkownik dotknął ustawień tej formatki – od tego momentu
-    // nie nadpisujemy jej domyślnymi/migracjami.
-    edgeStore[sig] = { ...prev, ...patch, __user: true };
+    edgeStore[sig] = { ...prev, ...patch };
     saveEdgeStore(edgeStore);
   }
   function edgingMetersForPart(p, edges){
@@ -5507,7 +5468,7 @@ function renderMaterialsTab(listEl, room){
       <div class="front-meta">Ilość</div>
       <div class="front-meta">Wymiar (cm)</div>
       <div class="front-meta">Materiał</div>
-      <div class="front-meta">Okleina</div>
+      <div class="front-meta">Okleiny</div>
     `;
     tHead.style.display = 'grid';
     // lekko poszerz kolumnę okleiny, żeby mieściło się "###.# cm" + oznaczenia 1A/1B/2A/2B
@@ -5538,7 +5499,7 @@ parts.forEach(p => {
       row.innerHTML = `
         <div style="font-weight:900">${p.name}</div>
         <div style="font-weight:900">${p.qty}</div>
-        <div style="font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;text-align:center">${isBoard ? ('<span>'+fmtCm(p.a)+'</span><span style="font-weight:900">×</span><span>'+fmtCm(p.b)+'</span>') : String(p.dims||'')}</div>
+        <div style="font-weight:900">${p.dims}</div>
         <div class="front-meta">${p.material || ''}</div>
         <div class="front-meta" style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
           ${isBoard ? `
