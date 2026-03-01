@@ -164,38 +164,40 @@
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
         ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
 
-        // Edge banding markers (optional): draw thicker strokes on selected sides
+        // Edge banding markers (optional): draw strokes INSIDE the part.
+        // This avoids "double-thick" borders when two edged parts touch each other.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
         if(hasEdges){
           ctx.save();
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 2;
           ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
+          const inset = Math.max(2, Math.min(6, Math.floor(Math.min(w, hh) / 6))); // px inside the part
           // top (width side 1)
           if(p.edgeW1){
             ctx.beginPath();
-            ctx.moveTo(x+1, y+1);
-            ctx.lineTo(x+w-1, y+1);
+            ctx.moveTo(x+inset, y+inset);
+            ctx.lineTo(x+w-inset, y+inset);
             ctx.stroke();
           }
           // bottom (width side 2)
           if(p.edgeW2){
             ctx.beginPath();
-            ctx.moveTo(x+1, y+hh-1);
-            ctx.lineTo(x+w-1, y+hh-1);
+            ctx.moveTo(x+inset, y+hh-inset);
+            ctx.lineTo(x+w-inset, y+hh-inset);
             ctx.stroke();
           }
           // left (height side 1)
           if(p.edgeH1){
             ctx.beginPath();
-            ctx.moveTo(x+1, y+1);
-            ctx.lineTo(x+1, y+hh-1);
+            ctx.moveTo(x+inset, y+inset);
+            ctx.lineTo(x+inset, y+hh-inset);
             ctx.stroke();
           }
           // right (height side 2)
           if(p.edgeH2){
             ctx.beginPath();
-            ctx.moveTo(x+w-1, y+1);
-            ctx.lineTo(x+w-1, y+hh-1);
+            ctx.moveTo(x+w-inset, y+inset);
+            ctx.lineTo(x+w-inset, y+hh-inset);
             ctx.stroke();
           }
           ctx.restore();

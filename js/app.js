@@ -5224,6 +5224,13 @@ function renderMaterialsTab(listEl, room){
     return (cm * qty) / 100; // meters
   }
 
+  function fmtCm(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return '0';
+    const s = (Math.round(n*10)/10).toFixed(1);
+    return s.endsWith('.0') ? s.slice(0,-2) : s;
+  }
+
   function calcEdgeMetersForParts(parts){
     let sum = 0;
     (parts||[]).forEach(p=>{
@@ -5460,16 +5467,16 @@ parts.forEach(p => {
         <div class="front-meta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           ${isBoard ? `
             <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />A1
+              <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />${fmtCm(p.a)} cm (1)
             </label>
             <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />A2
+              <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />${fmtCm(p.a)} cm (2)
             </label>
             <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />B1
+              <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />${fmtCm(p.b)} cm (1)
             </label>
             <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-              <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />B2
+              <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />${fmtCm(p.b)} cm (2)
             </label>
             <span class="muted xs" style="margin-left:auto">${ok.toFixed(2)} mb</span>
           ` : `<span class="muted xs">—</span>`}

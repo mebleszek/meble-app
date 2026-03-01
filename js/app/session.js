@@ -38,6 +38,8 @@
     active: false,
     snapshot: null,
     begin(){
+      // Idempotent: once we started an edit session, do not overwrite the snapshot.
+      if(session.active && session.snapshot) return;
       const snap = {};
       for(const k of getKeysToSnapshot()) snap[k] = readRaw(k);
       session.snapshot = snap;

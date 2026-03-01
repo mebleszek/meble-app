@@ -150,6 +150,10 @@
     'open-investor': ({event, element}) => {
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
+
+      // Start edit session snapshot (Cancel should revert investor + cabinets + room data)
+      try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
+
       try{
         if(window.FC && window.FC.investors && typeof window.FC.investors.setCurrentId === 'function'){
           window.FC.investors.setCurrentId(id);
@@ -267,10 +271,15 @@
       const room = element.getAttribute('data-room');
       // Enter room editor
       uiState.roomType = room;
-      if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'inwestor' || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
+      // From investor screen we want a fast jump to pricing. From other placeholder screens, go to WYWIAD.
+      if(uiState.activeTab === 'inwestor') uiState.activeTab = 'wycena';
+      else if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
       uiState.entry = 'app';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       if(FC.views && FC.views.openRoom) FC.views.openRoom(room);
+
+      // Ensure tab content refreshes immediately after the navigation.
+      try{ if(typeof setActiveTab === 'function' && uiState && uiState.activeTab) setActiveTab(uiState.activeTab); }catch(_){ }
       return true;
     },
 
