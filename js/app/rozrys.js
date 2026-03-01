@@ -184,63 +184,69 @@
           ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
         }
 
-        // Edge banding markers (optional): dashed line in a stable channel so it doesn't touch dimensions.
+        // Edge banding markers (optional): solid line 3px inside the part.
+        // Dimension labels are pushed a further +3px (so 6px inside) to avoid overlap.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
-        // channelInset: distance from the part border; chosen so that labels can sit below/inside without overlap
-        const channelInset = Math.max(8, Math.min(16, Math.floor(minSide / 3))); // px
+        // Clamp insets for tiny parts so we don't collapse the usable interior.
+        const edgeInset = 3;
+        const dimInset = 6;
+        const maxInset = Math.max(1, Math.floor(minSide / 4)); // keep some interior
+        const edgeInsetUsed = Math.min(edgeInset, maxInset);
+        const dimInsetUsed = Math.min(dimInset, Math.max(edgeInsetUsed + 1, maxInset + 2));
+
         if(hasEdges){
           ctx.save();
           ctx.lineWidth = 2;
-          ctx.setLineDash([6,4]);
+          ctx.setLineDash([]);
           ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
 
-          const innerPad = Math.max(4, Math.min(10, Math.floor(minSide / 6)));
+          const innerPad = Math.max(6, Math.min(14, Math.floor(minSide / 5)));
           // top (dim1 side A)
           if(p.edgeW1){
             ctx.beginPath();
-            ctx.moveTo(x+innerPad, y+channelInset);
-            ctx.lineTo(x+w-innerPad, y+channelInset);
+            ctx.moveTo(x+innerPad, y+edgeInsetUsed);
+            ctx.lineTo(x+w-innerPad, y+edgeInsetUsed);
             ctx.stroke();
           }
           // bottom (dim1 side B)
           if(p.edgeW2){
             ctx.beginPath();
-            ctx.moveTo(x+innerPad, y+hh-channelInset);
-            ctx.lineTo(x+w-innerPad, y+hh-channelInset);
+            ctx.moveTo(x+innerPad, y+hh-edgeInsetUsed);
+            ctx.lineTo(x+w-innerPad, y+hh-edgeInsetUsed);
             ctx.stroke();
           }
           // left (dim2 side A)
           if(p.edgeH1){
             ctx.beginPath();
-            ctx.moveTo(x+channelInset, y+innerPad);
-            ctx.lineTo(x+channelInset, y+hh-innerPad);
+            ctx.moveTo(x+edgeInsetUsed, y+innerPad);
+            ctx.lineTo(x+edgeInsetUsed, y+hh-innerPad);
             ctx.stroke();
           }
           // right (dim2 side B)
           if(p.edgeH2){
             ctx.beginPath();
-            ctx.moveTo(x+w-channelInset, y+innerPad);
-            ctx.lineTo(x+w-channelInset, y+hh-innerPad);
+            ctx.moveTo(x+w-edgeInsetUsed, y+innerPad);
+            ctx.lineTo(x+w-edgeInsetUsed, y+hh-innerPad);
             ctx.stroke();
           }
           ctx.restore();
         }
 
-        // top label (width) — keep inside; keep it below the dashed channel
+        // top label (width) — keep inside; keep it below the edge marker (+3px extra)
         {
           const tw = ctx.measureText(wLabel).width;
           const tx = x + Math.max(pad, (w - tw) / 2);
-          const tySafe = y + channelInset + fontSize + 2;
+          const tySafe = y + dimInsetUsed + fontSize + 1;
           const ty = Math.min(y + hh - pad, Math.max(tySafe, y + pad + fontSize));
           // If the part is extremely short, place at vertical center.
           const finalY = (hh < (fontSize*2 + 10)) ? (y + hh/2 + 4) : ty;
           ctx.fillText(wLabel, tx, finalY);
         }
 
-        // height label — prefer rotated on the left, but never outside; keep it away from the dashed channel
+        // height label — prefer rotated on the left, but never outside; keep it away from the edge marker (+3px extra)
         if(hh > 34 && w > 22){
           ctx.save();
-          const tx = x + Math.min(w - pad, Math.max(channelInset + fontSize + 2, pad + 10));
+          const tx = x + Math.min(w - pad, Math.max(dimInsetUsed + 2, pad + 10));
           ctx.translate(tx, y + hh/2);
           ctx.rotate(-Math.PI/2);
           const th = ctx.measureText(hLabel).width;
