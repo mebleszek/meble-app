@@ -5468,7 +5468,7 @@ function renderMaterialsTab(listEl, room){
       <div class="front-meta">Ilość</div>
       <div class="front-meta">Wymiar (cm)</div>
       <div class="front-meta">Materiał</div>
-      <div class="front-meta">Okleiny</div>
+      <div class="front-meta">Okleina</div>
     `;
     tHead.style.display = 'grid';
     // lekko poszerz kolumnę okleiny, żeby mieściło się "###.# cm" + oznaczenia 1A/1B/2A/2B
@@ -5499,7 +5499,7 @@ parts.forEach(p => {
       row.innerHTML = `
         <div style="font-weight:900">${p.name}</div>
         <div style="font-weight:900">${p.qty}</div>
-        <div style="font-weight:900">${p.dims}</div>
+        <div style="font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;text-align:center">${isBoard ? ('<span>'+fmtCm(p.a)+'</span><span style="font-weight:900">×</span><span>'+fmtCm(p.b)+'</span>') : String(p.dims||'')}</div>
         <div class="front-meta">${p.material || ''}</div>
         <div class="front-meta" style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
           ${isBoard ? `
