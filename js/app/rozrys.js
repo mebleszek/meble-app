@@ -190,10 +190,12 @@
         // Visual gap between parts (for readability only).
         // Shrink each part by 1px on every side => 2px gap between adjacent parts.
         const gap = 1;
-        const vx = x + gap;
-        const vy = y + gap;
-        const vw = Math.max(0, w - gap*2);
-        const vh = Math.max(0, hh - gap*2);
+        // Round to whole pixels before we apply pixel-snapping.
+        // This makes left/right and top/bottom offsets visually symmetric.
+        const vx = Math.round(x + gap);
+        const vy = Math.round(y + gap);
+        const vw = Math.max(0, Math.round(w - gap*2));
+        const vh = Math.max(0, Math.round(hh - gap*2));
 
         ctx.fillStyle = 'rgba(11, 141, 183, 0.10)';
         ctx.fillRect(vx,vy,vw,vh);
@@ -213,16 +215,8 @@
         const hLabel = `${mmToStr(p.h)}`;
 
         const pad = 4;
-        const minSide = Math.min(vw, vh);
-        const isTiny = minSide < 46; // px
-
-        // Shrink font a bit for tiny parts so labels remain readable and inside.
-        let fontSize = 12;
-        if(isTiny){
-          fontSize = Math.max(9, Math.min(12, Math.floor(minSide / 4))); // 9..12
-          ctx.save();
-          ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
-        }
+        // Keep a constant font size (user requirement: never rotate; keep centered even if it overflows).
+        const fontSize = 12;
 
         // Edge banding markers (optional): solid line 3px from border; shorten by 5% so it's visible on short edges.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
@@ -258,7 +252,7 @@
           ctx.restore();
         }
 
-        // top label (width) — keep inside; visually keep ~6px from top border
+        // top label (width) — keep centered; visually keep ~6px from top border
         {
           const tw = ctx.measureText(wLabel).width;
           const tx = vx + Math.max(pad, (vw - tw) / 2);
@@ -266,30 +260,20 @@
           const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
           const baseY = vy + dimInset + ascent;
           // If the part is extremely short, place at vertical center.
-          const finalY = (vh < (fontSize*2 + 10)) ? (vy + vh/2 + Math.round(fontSize/3)) : Math.min(vy + vh - pad, Math.max(baseY, vy + pad + ascent));
+          const finalY = (vh < (fontSize*2 + 10)) ? (vy + vh/2 + Math.round(fontSize/3)) : baseY;
           ctx.fillText(wLabel, tx, finalY);
         }
 
-        // height label — prefer rotated on the left, but never outside
-        if(vh > 34 && vw > 22){
-          ctx.save();
-          const mt = ctx.measureText('0');
-          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
-          const tx = vx + Math.min(vw - pad, Math.max(dimInset + ascent, pad + 10));
-          ctx.translate(tx, vy + vh/2);
-          ctx.rotate(-Math.PI/2);
+        // height label — NEVER rotate (user requirement). Keep centered; allow overflow if needed.
+        {
           const th = ctx.measureText(hLabel).width;
-          ctx.fillText(hLabel, -th/2, 0);
-          ctx.restore();
-        } else {
-          const th = ctx.measureText(hLabel).width;
-          const tx = vx + Math.max(pad, Math.min(vw - th - pad, pad));
-          const ty = vy + Math.min(vh - pad, Math.max(pad + 10, vh/2 + 6));
-          ctx.fillText(hLabel, vx + pad, ty);
-        }
-
-        if(isTiny){
-          ctx.restore();
+          // Place near the left side with dimInset, but center vertically.
+          const tx = vx + dimInset;
+          const ty = vy + (vh/2) + Math.round(fontSize/3);
+          // If the label would fully fit horizontally, center it; otherwise keep the left anchor.
+          const cx = vx + (vw - th)/2;
+          const useCenter = (cx >= vx + pad) && (cx + th <= vx + vw - pad);
+          ctx.fillText(hLabel, useCenter ? cx : tx, ty);
         }
       });
     }catch(_){ }
