@@ -208,8 +208,10 @@
         }
 
         // ===== Dimension labels + okleina (ciągła linia: 3px od krawędzi, wymiary: 6px) =====
-        // Problem on tiny parts: fallback positions could end up outside the part.
-        // Fix: always clamp text inside the rectangle; for very small parts place labels centered.
+        // Wymiary mają być rysowane zawsze tak samo jak na "600x510":
+        // - wymiar W (wzdłuż słoja / 1) poziomo u góry
+        // - wymiar H (w poprzek / 2) pionowo po lewej (obrót 90°)
+        // Bez specjalnych wyjątków dla małych elementów (mogą wyjść poza ramkę).
         ctx.fillStyle = '#0b1f33';
         const wLabel = `${mmToStr(p.w)}`;
         const hLabel = `${mmToStr(p.h)}`;
@@ -252,28 +254,28 @@
           ctx.restore();
         }
 
-        // top label (width) — keep centered; visually keep ~6px from top border
+        // top label (width) — centered; visually keep ~6px from top border
         {
           const tw = ctx.measureText(wLabel).width;
-          const tx = vx + Math.max(pad, (vw - tw) / 2);
+          const tx = vx + (vw - tw) / 2;
           const mt = ctx.measureText('0');
           const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
           const baseY = vy + dimInset + ascent;
-          // If the part is extremely short, place at vertical center.
-          const finalY = (vh < (fontSize*2 + 10)) ? (vy + vh/2 + Math.round(fontSize/3)) : baseY;
-          ctx.fillText(wLabel, tx, finalY);
+          ctx.fillText(wLabel, tx, baseY);
         }
 
-        // height label — NEVER rotate (user requirement). Keep centered; allow overflow if needed.
+        // height label — ALWAYS rotated 90° on the left, centered vertically (like "600x510").
         {
-          const th = ctx.measureText(hLabel).width;
-          // Place near the left side with dimInset, but center vertically.
-          const tx = vx + dimInset;
-          const ty = vy + (vh/2) + Math.round(fontSize/3);
-          // If the label would fully fit horizontally, center it; otherwise keep the left anchor.
-          const cx = vx + (vw - th)/2;
-          const useCenter = (cx >= vx + pad) && (cx + th <= vx + vw - pad);
-          ctx.fillText(hLabel, useCenter ? cx : tx, ty);
+          const mt = ctx.measureText('0');
+          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          ctx.save();
+          // Place the rotated text ~6px from the left border (visually), centered in Y.
+          ctx.translate(vx + dimInset + ascent, vy + vh/2);
+          ctx.rotate(-Math.PI/2);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(hLabel, 0, 0);
+          ctx.restore();
         }
       });
     }catch(_){ }
