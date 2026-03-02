@@ -68,6 +68,7 @@ try{
     const timeBudgetMs = Math.max(1000, Math.round(Number(opts && opts.timeBudgetMs) || 30000));
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
+    const cutPref = (opts && (opts.cutPref || opts.direction)) || 'auto';
 
     const started = now();
     const base = sortVariants(items);
@@ -75,7 +76,7 @@ try{
     // deterministic runs first
     let best = null;
     const tryOne = (arr)=>{
-      const sheets = opt.packGuillotineBeam(arr, W, H, K, { beamWidth, timeMs: perSheetMs });
+      const sheets = opt.packGuillotineBeam(arr, W, H, K, { beamWidth, timeMs: perSheetMs, cutPref });
       const sc = scoreSheets(sheets);
       const res = { sheets, sc };
       if(better(res, best)) best = res;
@@ -106,7 +107,7 @@ try{
       }
     }
 
-    return { sheets: best ? best.sheets : opt.packGuillotineBeam(items, W, H, K, { beamWidth, timeMs: perSheetMs }) };
+    return { sheets: best ? best.sheets : opt.packGuillotineBeam(items, W, H, K, { beamWidth, timeMs: perSheetMs, cutPref }) };
   }
 
   self.onmessage = (ev)=>{

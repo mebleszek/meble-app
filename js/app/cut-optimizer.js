@@ -480,7 +480,11 @@
   //  - Horizontal-first: make a top band (height = placed.h) then split that band vertically.
   //  - Vertical-first: make a left band (width = placed.w) then split that band horizontally.
   // We choose automatically by keeping the larger secondary leftover (simple but stable).
-  function splitFreeRectGuillotine(free, placed){
+  // cutPref:
+  //  - 'auto'   : choose split by leftover score (default)
+  //  - 'along'  : prefer making vertical cuts first (rip strips)
+  //  - 'across' : prefer making horizontal cuts first (cross cuts)
+  function splitFreeRectGuillotine(free, placed, cutPref){
     const outA = [];
     const outB = [];
 
@@ -508,11 +512,14 @@
       outB.push({ x: placed.x + placed.w, y: free.y, w: rwB, h: free.h });
     }
 
+    if(cutPref === 'across') return outA;
+    if(cutPref === 'along') return outB;
+
     const score = (arr)=> arr.reduce((m,r)=> Math.max(m, r.w*r.h), 0);
     return score(outA) >= score(outB) ? outA : outB;
   }
 
-  function placeInFreeRect(state, free, item, w, h, rotated, kerf){
+  function placeInFreeRect(state, free, item, w, h, rotated, kerf, cutPref){
     const K = kerf;
     const placed = { x: free.x, y: free.y, w, h };
     const placement = {
@@ -531,7 +538,7 @@
     };
 
     const newFree = state.freeRects.filter(fr => fr !== free);
-    const split = splitFreeRectGuillotine(free, placed);
+    const split = splitFreeRectGuillotine(free, placed, cutPref);
 
     // Apply kerf as spacing between placed rect and remaining free rects.
     // We shrink and shift only on the side adjacent to the placed rect.
@@ -550,7 +557,7 @@
     };
   }
 
-  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs){
+  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs, cutPref){
     const start = Date.now();
     const maxBeam = clampInt(beamWidth, 40);
     const budgetMs = Math.max(60, clampInt(timeMs, 300));
@@ -578,7 +585,7 @@
             if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated:true });
             for(const o of opts){
               if(!rectFits(f, o.w, o.h)) continue;
-              const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K);
+              const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K, cutPref);
               const usedIdx = new Set(st.usedIdx);
               usedIdx.add(c.idx);
               next.push({ placements: placedState.placements, freeRects: placedState.freeRects, usedArea: placedState.usedArea, usedIdx });
@@ -613,49 +620,6 @@
     const best = beam[0] || { placements: [], usedIdx: new Set() };
     const rest = [];
     for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
-
-    // Post-fill pass (greedy, no candidate limits):
-    // Beam search uses small candidate windows for speed; this pass tries to
-    // pack any remaining parts into the leftover free rectangles.
-    // This significantly improves utilization for "odpad" strips in panel-saw layouts.
-    if(best.placements && best.freeRects && rest.length>0){
-      // Work on a mutable copy of the best state.
-      let st = { placements: best.placements.slice(), freeRects: best.freeRects.slice(), usedArea: best.usedArea||0 };
-      // Keep rest sorted by area (largest first).
-      rest.sort((a,b)=>(b.w*b.h)-(a.w*a.h));
-
-      const tryPlaceOne = ()=>{
-        // Prefer bigger free rectangles first (more chance to fit something).
-        st.freeRects.sort((a,b)=>(b.w*b.h)-(a.w*a.h));
-        for(let fi=0; fi<st.freeRects.length; fi++){
-          const f = st.freeRects[fi];
-          // Find the first remaining item that fits this free rect.
-          for(let ii=0; ii<rest.length; ii++){
-            const it = rest[ii];
-            const opts = [{ w: it.w, h: it.h, rotated:false }];
-            if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated:true });
-            for(const o of opts){
-              if(!rectFits(f, o.w, o.h)) continue;
-              const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K);
-              st = { placements: placedState.placements, freeRects: placedState.freeRects, usedArea: placedState.usedArea };
-              // Remove placed item from rest
-              rest.splice(ii, 1);
-              return true;
-            }
-          }
-        }
-        return false;
-      };
-
-      // Iterate until no more placements are possible.
-      let guard = 0;
-      while(rest.length>0 && guard++ < 5000){
-        if(!tryPlaceOne()) break;
-      }
-
-      best.placements = st.placements;
-      best.freeRects = st.freeRects;
-    }
     return { placements: best.placements, remaining: rest };
   }
 
@@ -665,11 +629,12 @@
     const K = Math.max(0, Math.round(Number(kerf)||0));
     const beamWidth = options && options.beamWidth ? options.beamWidth : 60;
     const timeMs = options && options.timeMs ? options.timeMs : 450;
+    const cutPref = (options && options.cutPref) ? options.cutPref : 'auto';
 
     let remaining = sortByAreaDesc(itemsIn);
     const sheets = [];
     while(remaining.length>0){
-      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs);
+      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
       const placements = res.placements || [];
       if(placements.length===0){
         const it = remaining[0];

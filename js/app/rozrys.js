@@ -448,6 +448,7 @@
       sheets = opt.packGuillotineBeam(items, W, H, K, {
         beamWidth: 260,
         timeMs: 30000,
+        cutPref: state.direction || 'auto',
       });
     }
     else if(state.heur === 'gpro' || state.heur === 'gpro_ultra'){
@@ -461,6 +462,7 @@
       });
     } else {
       const dir = state.direction || 'auto';
+      const toShelfDir = (d)=> (d==='along') ? 'wzdłuż' : (d==='across') ? 'wpoprz' : d;
       if(dir === 'auto'){
         const a = opt.packShelf(items, W, H, K, 'wzdłuż');
         const b = opt.packShelf(items, W, H, K, 'wpoprz');
@@ -472,7 +474,7 @@
         const sb = score(b);
         sheets = (sb.sheets < sa.sheets || (sb.sheets === sa.sheets && sb.waste < sa.waste)) ? b : a;
       } else {
-        sheets = opt.packShelf(items, W, H, K, dir);
+        sheets = opt.packShelf(items, W, H, K, toShelfDir(dir));
       }
     }
     // store meta for drawing offset
@@ -526,7 +528,7 @@
       // singleton worker
       if(!FC._panelProWorker){
         try{
-          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260302_10');
+          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260303_1');
         }catch(e){
           // fallback (sync, limited)
           try{
@@ -563,7 +565,7 @@
           cmd: 'panel_pro',
           items,
           W, H, K,
-          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220 }
+          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
         });
       }catch(e){
         worker.removeEventListener('message', handle);
@@ -709,12 +711,12 @@
     controls2.appendChild(heurWrap);
 
     const dirWrap = h('div');
-    dirWrap.appendChild(h('label', { text:'Kierunek cięcia (dla "pasy")' }));
+    dirWrap.appendChild(h('label', { text:'Kierunek cięcia (pod piłę)' }));
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
       <option value="auto">Auto</option>
-      <option value="wzdłuż">Wzdłuż</option>
-      <option value="wpoprz">W poprzek</option>
+      <option value="along">Preferuj wzdłuż</option>
+      <option value="across">Preferuj w poprzek</option>
     `;
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
@@ -963,9 +965,9 @@
       out.innerHTML = '';
     });
     heurSel.addEventListener('change', ()=>{
-      const isShelf = (heurSel.value === 'shelf');
-      dirSel.disabled = !isShelf;
-      if(!isShelf) dirSel.value = 'auto';
+      const usesDir = (heurSel.value === 'shelf' || heurSel.value === 'panel30');
+      dirSel.disabled = !usesDir;
+      if(!usesDir) dirSel.value = 'auto';
       out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
