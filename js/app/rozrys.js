@@ -449,6 +449,7 @@
         beamWidth: 260,
         timeMs: 30000,
         cutPref: state.direction || 'auto',
+        scrapFirst: true,
       });
     }
     else if(state.heur === 'gpro' || state.heur === 'gpro_ultra'){
@@ -715,8 +716,8 @@
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
       <option value="auto">Auto</option>
-      <option value="along">Preferuj wzdłuż</option>
-      <option value="across">Preferuj w poprzek</option>
+      <option value="along">Preferuj w poprzek</option>
+      <option value="across">Preferuj wzdłuż</option>
     `;
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);

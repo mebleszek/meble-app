@@ -617,10 +617,67 @@
       if(!canPlaceMore) break;
     }
 
-    const best = beam[0] || { placements: [], usedIdx: new Set() };
+    const best = beam[0] || { placements: [], freeRects: [{x:0,y:0,w:W,h:H}], usedArea:0, usedIdx: new Set() };
     const rest = [];
     for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
-    return { placements: best.placements, remaining: rest };
+    // IMPORTANT: expose freeRects so caller can keep using scrap areas across sheets.
+    return { placements: best.placements, remaining: rest, freeRects: best.freeRects || [], usedArea: best.usedArea || 0 };
+  }
+
+  // Try to place remaining items into already-created sheets using their current freeRects.
+  // This is a "scrap-first" pass that tends to eliminate last sheets with small leftovers.
+  function tryFillExistingSheets(sheets, remaining, W, H, K, cutPref){
+    if(!sheets.length || !remaining.length) return { sheets, remaining, placed:false };
+
+    // Work on a mutable copy of remaining (largest first)
+    let rem = sortByAreaDesc(remaining);
+    let placedAny = false;
+
+    // Greedy: iterate sheets in order; for each sheet, try to place any remaining item into any freeRect.
+    for(const sh of sheets){
+      if(!rem.length) break;
+      if(!sh._freeRects || !sh._freeRects.length) continue;
+
+      // Build a state wrapper compatible with placeInFreeRect
+      let st = {
+        placements: sh.placements,
+        freeRects: sh._freeRects,
+        usedArea: sh._usedArea || 0,
+      };
+
+      // Attempt multiple passes because each placement changes freeRects
+      let localPlaced = true;
+      while(localPlaced && rem.length){
+        localPlaced = false;
+
+        // For each item (big to small), find first fit in this sheet.
+        outerItem: for(let i=0;i<rem.length;i++){
+          const it = rem[i];
+          // Try each free rect (largest first helps)
+          const freeSorted = st.freeRects.slice().sort((a,b)=>(b.w*b.h)-(a.w*a.h));
+          for(const f of freeSorted){
+            const opts = [{ w: it.w, h: it.h, rotated:false }];
+            if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated:true });
+            for(const o of opts){
+              if(!rectFits(f, o.w, o.h)) continue;
+              st = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K, cutPref);
+              // remove this item instance
+              rem.splice(i,1);
+              placedAny = true;
+              localPlaced = true;
+              break outerItem;
+            }
+          }
+        }
+      }
+
+      // persist back to sheet
+      sh.placements = st.placements;
+      sh._freeRects = st.freeRects;
+      sh._usedArea = st.usedArea;
+    }
+
+    return { sheets, remaining: rem, placed: placedAny };
   }
 
   function packGuillotineBeam(itemsIn, boardW, boardH, kerf, options){
@@ -631,12 +688,46 @@
     const timeMs = options && options.timeMs ? options.timeMs : 450;
     const cutPref = (options && options.cutPref) ? options.cutPref : 'auto';
 
+    const scrapFirst = !!(options && options.scrapFirst);
     let remaining = sortByAreaDesc(itemsIn);
     const sheets = [];
+
+    // If enabled, prefer reusing scraps on existing sheets before allocating a new board.
+    if(scrapFirst){
+      while(remaining.length>0){
+        const filled = tryFillExistingSheets(sheets, remaining, W, H, K, cutPref);
+        remaining = filled.remaining;
+        if(!remaining.length) break;
+
+        const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
+      const placements = res.placements || [];
+      if(placements.length===0){
+        const it = remaining[0];
+        sheets.push({ boardW: W, boardH: H, placements: [{ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true }] });
+        remaining = remaining.slice(1);
+        continue;
+      }
+      const sheet = { boardW: W, boardH: H, placements };
+      // Keep internal freeRects for later scrap reuse. Filter: keep only meaningful scraps (>=10cm x 10cm).
+      const minScrap = 100; // mm
+      sheet._freeRects = (res.freeRects || []).filter(r=>r.w>=minScrap && r.h>=minScrap);
+      sheet._usedArea = res.usedArea || 0;
+      sheets.push(sheet);
+      remaining = res.remaining;
+    }
+
+      // Final pass: one more attempt to backfill any leftover into scraps
+      if(remaining.length && sheets.length){
+        const filled2 = tryFillExistingSheets(sheets, remaining, W, H, K, cutPref);
+        remaining = filled2.remaining;
+      }
+    }
+
+    // Default (legacy) behavior: fill sheets sequentially.
     while(remaining.length>0){
       const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
       const placements = res.placements || [];
-      if(placements.length===0){
+      if(!placements.length){
         const it = remaining[0];
         sheets.push({ boardW: W, boardH: H, placements: [{ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true }] });
         remaining = remaining.slice(1);
