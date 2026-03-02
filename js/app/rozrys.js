@@ -148,7 +148,11 @@
     return el;
   }
 
-  function drawSheet(canvas, sheet, displayUnit){
+  // edgeSubMm: 0 => show nominal dimensions, >0 => show "do cięcia" dims (kompensacja okleiny)
+  // Zasada kompensacji (zgodnie z ustaleniem):
+  // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
+  // - okleina na krawędziach H (left/right) zwiększa wymiar W => odejmujemy od W
+  function drawSheet(canvas, sheet, displayUnit, edgeSubMm){
     try{
       const ctx = canvas.getContext('2d');
       const unit = (displayUnit === 'cm') ? 'cm' : 'mm';
@@ -194,6 +198,17 @@
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       // Base font; for tiny parts we will temporarily shrink it.
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      const sub = Math.max(0, Number(edgeSubMm)||0);
+      const getCutDims = (p)=>{
+        if(!(sub>0)) return { w:p.w, h:p.h };
+        const cW = (p.edgeH1?1:0) + (p.edgeH2?1:0);
+        const cH = (p.edgeW1?1:0) + (p.edgeW2?1:0);
+        // cross-dimension compensation
+        const w = Math.max(0, Math.round((p.w||0) - sub*cW));
+        const h = Math.max(0, Math.round((p.h||0) - sub*cH));
+        return { w, h };
+      };
+
       placements.forEach(p=>{
         const x = p.x * scale;
         const y = p.y * scale;
@@ -226,8 +241,9 @@
         // - wymiar H (w poprzek / 2) pionowo po lewej (obrót 90°)
         // Bez specjalnych wyjątków dla małych elementów (mogą wyjść poza ramkę).
         ctx.fillStyle = '#0b1f33';
-        const wLabel = `${mmToUnitStr(p.w, unit)}`;
-        const hLabel = `${mmToUnitStr(p.h, unit)}`;
+        const cut = getCutDims(p);
+        const wLabel = `${mmToUnitStr(cut.w, unit)}`;
+        const hLabel = `${mmToUnitStr(cut.h, unit)}`;
 
         const pad = 4;
         // Keep a constant font size (user requirement: never rotate; keep centered even if it overflows).
@@ -310,16 +326,27 @@
   function buildCsv(sheets, meta){
     const lines = [];
     lines.push(['material','sheet_no','board_w_mm','board_h_mm','item','w_mm','h_mm','x_mm','y_mm','rotated'].join(';'));
+    const sub = Math.max(0, Number(meta && meta.edgeSubMm)||0);
+    const cutDims = (p)=>{
+      if(!(sub>0)) return { w:p.w, h:p.h };
+      const cW = (p.edgeH1?1:0) + (p.edgeH2?1:0);
+      const cH = (p.edgeW1?1:0) + (p.edgeW2?1:0);
+      return {
+        w: Math.max(0, Math.round((p.w||0) - sub*cW)),
+        h: Math.max(0, Math.round((p.h||0) - sub*cH)),
+      };
+    };
     sheets.forEach((s, i)=>{
       (s.placements||[]).filter(p=>!p.unplaced).forEach(p=>{
+        const d = cutDims(p);
         lines.push([
           meta.material || '',
           String(i+1),
           String(s.boardW),
           String(s.boardH),
           (p.name||p.key||p.id||''),
-          String(p.w),
-          String(p.h),
+          String(d.w),
+          String(d.h),
           String(p.x),
           String(p.y),
           p.rotated ? '1':'0'
@@ -479,6 +506,7 @@
       }
     }catch(_){ }
 
+    // top row: material + units + edge compensation
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
     // material select
     const matWrap = h('div');
@@ -504,6 +532,21 @@
     unitWrap.appendChild(unitSel);
     controls.appendChild(unitWrap);
 
+    // edge compensation selector (labels/exports only)
+    const edgeWrap = h('div');
+    edgeWrap.appendChild(h('label', { text:'Odjąć okleinę?' }));
+    const edgeSel = h('select', { id:'rozEdgeSub' });
+    edgeSel.innerHTML = `
+      <option value="0" selected>NIE</option>
+      <option value="1">Tak - 1mm</option>
+      <option value="2">Tak - 2mm</option>
+    `;
+    edgeWrap.appendChild(edgeSel);
+    controls.appendChild(edgeWrap);
+
+    // second row: board size + kerf + trim (move format inputs lower as requested)
+    const controlsSize = h('div', { class:'grid-3', style:'margin-top:12px' });
+
     // board size
     const sizeWrap = h('div');
     sizeWrap.appendChild(h('label', { text:`Format płyty (${state.unit})` }));
@@ -512,21 +555,21 @@
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     sizeRow.appendChild(inW); sizeRow.appendChild(inH);
     sizeWrap.appendChild(sizeRow);
-    controls.appendChild(sizeWrap);
+    controlsSize.appendChild(sizeWrap);
 
     // kerf
     const kerfWrap = h('div');
     kerfWrap.appendChild(h('label', { text:`Kerf (${state.unit})` }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
-    controls.appendChild(kerfWrap);
+    controlsSize.appendChild(kerfWrap);
 
     // edge trim
     const trimWrap = h('div');
     trimWrap.appendChild(h('label', { text:`Równanie płyty w koło (${state.unit})` }));
     const inTrim = h('input', { id:'rozTrim', type:'number', value:String(state.edgeTrim) });
     trimWrap.appendChild(inTrim);
-    controls.appendChild(trimWrap);
+    controlsSize.appendChild(trimWrap);
 
     // second row: grain + heuristic + direction
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -564,6 +607,7 @@
     controls2.appendChild(dirWrap);
 
     card.appendChild(controls);
+    card.appendChild(controlsSize);
     card.appendChild(controls2);
 
     // action buttons
@@ -622,7 +666,8 @@
           saveOverrides(o);
         });
         row.appendChild(cb);
-        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${p.w}×${p.h} mm • ilość ${p.qty}` }));
+        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
+        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
         list.appendChild(row);
       });
       overridesBox.appendChild(list);
@@ -670,7 +715,25 @@
       const pdfBtn = h('button', { class:'btn', type:'button' });
       pdfBtn.textContent = 'Eksport PDF (drukuj)';
       pdfBtn.addEventListener('click', ()=>{
-        // proste HTML do wydruku
+        // proste HTML do wydruku (renderujemy tutaj, a do okna wysyłamy obrazy, żeby zachować identyczny wygląd jak ROZRYS)
+        const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
+        const imgs = [];
+        try{
+          sheets.forEach((s)=>{
+            const c = document.createElement('canvas');
+            // sztuczny kontener o stałej szerokości dla spójnego skalowania
+            const tmp = document.createElement('div');
+            tmp.style.width = '980px';
+            tmp.style.position = 'absolute';
+            tmp.style.left = '-99999px';
+            tmp.appendChild(c);
+            document.body.appendChild(tmp);
+            drawSheet(c, s, u, edgeSubMm);
+            imgs.push(c.toDataURL('image/png'));
+            tmp.remove();
+          });
+        }catch(_){ }
+
         let html = `<!doctype html><html><head><meta charset="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
           <title>Rozrys</title>
@@ -679,37 +742,17 @@
             h1{ font-size:18px; margin:0 0 10px; }
             .meta{ font-size:12px; color:#333; margin-bottom:12px; }
             .sheet{ margin:14px 0; page-break-inside:avoid; }
-            canvas{ width:100%; max-width:980px; border:1px solid #333; border-radius:10px; }
+            img{ width:100%; max-width:980px; border:1px solid #333; border-radius:10px; }
           </style>
         </head><body>`;
         html += `<h1>Rozrys — ${meta.material}</h1>`;
-        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}</div>`;
+        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
+        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
         sheets.forEach((s,i)=>{
           html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}</div>`;
-          html += `<canvas id="c${i}" width="${s.boardW}" height="${s.boardH}"></canvas></div>`;
+          const src = imgs[i] || '';
+          html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
         });
-        html += `<script>(function(){
-          const sheets = ${JSON.stringify(sheets)};
-          function draw(i){
-            const s = sheets[i];
-            const c = document.getElementById('c'+i);
-            const ctx = c.getContext('2d');
-            ctx.clearRect(0,0,c.width,c.height);
-            ctx.strokeStyle='#000';
-            ctx.strokeRect(0.5,0.5,c.width-1,c.height-1);
-            ctx.font='36px sans-serif';
-            ctx.fillStyle='rgba(0,0,0,0.06)';
-            (s.placements||[]).filter(p=>!p.unplaced).forEach(p=>{
-              ctx.fillRect(p.x,p.y,p.w,p.h);
-              ctx.strokeStyle='rgba(0,0,0,0.55)';
-              ctx.strokeRect(p.x+0.5,p.y+0.5,Math.max(0,p.w-1),Math.max(0,p.h-1));
-              ctx.fillStyle='#000';
-              ctx.fillText(p.w+'×'+p.h, p.x+20, p.y+60);
-              ctx.fillStyle='rgba(0,0,0,0.06)';
-            });
-          }
-          for(let i=0;i<sheets.length;i++) draw(i);
-        })();<\/script>`;
         html += `</body></html>`;
         openPrintView(html);
       });
@@ -717,6 +760,7 @@
       expRow.appendChild(pdfBtn);
       out.appendChild(expRow);
 
+      const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
       sheets.forEach((s,i)=>{
         const box = h('div', { class:'card', style:'margin-top:12px' });
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
@@ -728,7 +772,7 @@
         canvas.style.marginTop = '10px';
         box.appendChild(canvas);
         out.appendChild(box);
-        drawSheet(canvas, s, u);
+        drawSheet(canvas, s, u, edgeSubMm);
       });
     }
 
@@ -738,6 +782,7 @@
       const st = {
         material,
         unit: unitSel.value,
+        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
         boardW: Number(inW.value)|| (unitSel.value==='mm'?2800:280),
         boardH: Number(inH.value)|| (unitSel.value==='mm'?2070:207),
         kerf: Number(inK.value)|| (unitSel.value==='mm'?4:0.4),
@@ -748,7 +793,7 @@
       };
 
       const plan = computePlan(st, parts);
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, meta: plan.meta });
+      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
     }
 
     // events
@@ -789,6 +834,10 @@
       out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
+      out.innerHTML = '';
+    });
+
+    edgeSel.addEventListener('change', ()=>{
       out.innerHTML = '';
     });
 
