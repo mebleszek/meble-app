@@ -613,6 +613,49 @@
     const best = beam[0] || { placements: [], usedIdx: new Set() };
     const rest = [];
     for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
+
+    // Post-fill pass (greedy, no candidate limits):
+    // Beam search uses small candidate windows for speed; this pass tries to
+    // pack any remaining parts into the leftover free rectangles.
+    // This significantly improves utilization for "odpad" strips in panel-saw layouts.
+    if(best.placements && best.freeRects && rest.length>0){
+      // Work on a mutable copy of the best state.
+      let st = { placements: best.placements.slice(), freeRects: best.freeRects.slice(), usedArea: best.usedArea||0 };
+      // Keep rest sorted by area (largest first).
+      rest.sort((a,b)=>(b.w*b.h)-(a.w*a.h));
+
+      const tryPlaceOne = ()=>{
+        // Prefer bigger free rectangles first (more chance to fit something).
+        st.freeRects.sort((a,b)=>(b.w*b.h)-(a.w*a.h));
+        for(let fi=0; fi<st.freeRects.length; fi++){
+          const f = st.freeRects[fi];
+          // Find the first remaining item that fits this free rect.
+          for(let ii=0; ii<rest.length; ii++){
+            const it = rest[ii];
+            const opts = [{ w: it.w, h: it.h, rotated:false }];
+            if(it.rotationAllowed) opts.push({ w: it.h, h: it.w, rotated:true });
+            for(const o of opts){
+              if(!rectFits(f, o.w, o.h)) continue;
+              const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K);
+              st = { placements: placedState.placements, freeRects: placedState.freeRects, usedArea: placedState.usedArea };
+              // Remove placed item from rest
+              rest.splice(ii, 1);
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      // Iterate until no more placements are possible.
+      let guard = 0;
+      while(rest.length>0 && guard++ < 5000){
+        if(!tryPlaceOne()) break;
+      }
+
+      best.placements = st.placements;
+      best.freeRects = st.freeRects;
+    }
     return { placements: best.placements, remaining: rest };
   }
 
