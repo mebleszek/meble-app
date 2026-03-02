@@ -269,12 +269,21 @@
         }
 
         // height label — ALWAYS rotated 90° on the left, centered vertically (like "600x510").
+        // IMPORTANT: keep the visual gap to the okleina line consistent with top label.
+        // We want the nearest edge of glyphs to be ~1px from the okleina marker.
         {
-          const mt = ctx.measureText('0');
-          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          const mtH = ctx.measureText(hLabel);
+          const ascH = (mtH && mtH.actualBoundingBoxAscent) ? mtH.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          const desH = (mtH && mtH.actualBoundingBoxDescent) ? mtH.actualBoundingBoxDescent : Math.round(fontSize * 0.2);
+          const textH = ascH + desH;
+
+          // Left okleina marker is at (vx + edgeInset). Keep ~1px between marker and text.
+          // When rotated, the text height becomes horizontal extent. With textBaseline='middle',
+          // half of that extent is on the left side of the origin.
+          const originX = vx + edgeInset + 1 + (textH / 2);
+
           ctx.save();
-          // Place the rotated text ~6px from the left border (visually), centered in Y.
-          ctx.translate(vx + dimInset + ascent, vy + vh/2);
+          ctx.translate(originX, vy + vh/2);
           ctx.rotate(-Math.PI/2);
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
