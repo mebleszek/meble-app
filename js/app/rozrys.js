@@ -479,6 +479,99 @@
     return { sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
   }
 
+  // ===== Panel-saw PRO (30s) in Web Worker (non-blocking) =====
+  function computePlanPanelProAsync(state, parts, onProgress){
+    return new Promise((resolve)=>{
+      const opt = FC.cutOptimizer;
+      if(!opt) return resolve({ sheets: [], note: 'Brak modułu cutOptimizer.' });
+
+      const grainOn = !!state.grain;
+      const overrides = loadOverrides();
+      const edgeStore = loadEdgeStore();
+
+      const partsMm = (parts||[]).map(p=>{
+        const sig = partSignature(p);
+        const allow = grainOn ? !!overrides[sig] : true;
+        const e = edgeStore[sig] || {};
+        return {
+          key: sig,
+          name: p.name,
+          w: p.w,
+          h: p.h,
+          qty: p.qty,
+          material: p.material,
+          rotationAllowed: grainOn ? allow : true,
+          edgeW1: !!e.w1,
+          edgeW2: !!e.w2,
+          edgeH1: !!e.h1,
+          edgeH2: !!e.h2,
+        };
+      });
+      const items = opt.makeItems(partsMm);
+
+      const unit = (state.unit === 'mm') ? 'mm' : 'cm';
+      const toMm = (v)=> {
+        const n = Number(v);
+        if(!Number.isFinite(n)) return 0;
+        return unit === 'mm' ? Math.round(n) : Math.round(n * 10);
+      };
+
+      const W0 = toMm(state.boardW) || 2800;
+      const H0 = toMm(state.boardH) || 2070;
+      const K  = toMm(state.kerf)   || 4;
+      const trim = toMm(state.edgeTrim) || 20;
+      const W = Math.max(10, W0 - 2*trim);
+      const H = Math.max(10, H0 - 2*trim);
+
+      // singleton worker
+      if(!FC._panelProWorker){
+        try{
+          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260302_10');
+        }catch(e){
+          // fallback (sync, limited)
+          try{
+            const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 600 });
+            return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
+          }catch(_){
+            return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
+          }
+        }
+      }
+
+      const worker = FC._panelProWorker;
+      const handle = (ev)=>{
+        const msg = ev && ev.data ? ev.data : {};
+        if(msg.type === 'progress'){
+          try{ onProgress && onProgress(msg); }catch(_){ }
+          return;
+        }
+        if(msg.type === 'done'){
+          worker.removeEventListener('message', handle);
+          const result = msg.result || {};
+          resolve({ sheets: result.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
+          return;
+        }
+        if(msg.type === 'error'){
+          worker.removeEventListener('message', handle);
+          resolve({ sheets: [], note: msg.error || 'Błąd worker', meta: { trim, boardW: W0, boardH: H0, unit } });
+        }
+      };
+
+      worker.addEventListener('message', handle);
+      try{
+        worker.postMessage({
+          cmd: 'panel_pro',
+          items,
+          W, H, K,
+          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220 }
+        });
+      }catch(e){
+        worker.removeEventListener('message', handle);
+        resolve({ sheets: [], note: 'Nie udało się wystartować liczenia.', meta: { trim, boardW: W0, boardH: H0, unit } });
+      }
+    });
+  }
+
   function render(){
     const root = document.getElementById('rozrysRoot');
     if(!root) return;
@@ -796,7 +889,15 @@
       });
     }
 
-    function generate(){
+    function renderLoading(text){
+      out.innerHTML = '';
+      const box = h('div', { class:'rozrys-loading' });
+      box.appendChild(h('div', { class:'rozrys-spinner' }));
+      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
+      out.appendChild(box);
+    }
+
+    async function generate(){
       const material = matSel.value;
       const parts = agg.byMaterial[material] || [];
       const st = {
@@ -811,6 +912,20 @@
         heur: heurSel.value,
         direction: dirSel.value,
       };
+
+      // Pro mode: panel saw (30s) should not block UI.
+      if(st.heur === 'panel30'){
+        genBtn.disabled = true;
+        renderLoading('Liczę… 0.0 s');
+        const plan = await computePlanPanelProAsync(st, parts, (p)=>{
+          const t = ((p.elapsedMs||0)/1000).toFixed(1);
+          const el = document.getElementById('rozrysLoadingText');
+          if(el) el.textContent = `Liczę… ${t} s`;
+        });
+        genBtn.disabled = false;
+        renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
+        return;
+      }
 
       const plan = computePlan(st, parts);
       renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
