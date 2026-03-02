@@ -45,6 +45,18 @@
     return String(n);
   }
 
+  // Display length stored in millimeters in the selected unit.
+  // - mm: integer
+  // - cm: one decimal when needed, without trailing .0
+  function mmToUnitStr(mm, unit){
+    const u = (unit === 'cm') ? 'cm' : 'mm';
+    const n = Math.round(Number(mm)||0);
+    if(u === 'mm') return String(n);
+    const cm = n / 10;
+    const s = (Math.round(cm * 10) / 10).toFixed(1);
+    return s.endsWith('.0') ? s.slice(0, -2) : s;
+  }
+
   function loadOverrides(){
     try{
       const raw = localStorage.getItem(OVERRIDE_KEY);
@@ -136,9 +148,10 @@
     return el;
   }
 
-  function drawSheet(canvas, sheet){
+  function drawSheet(canvas, sheet, displayUnit){
     try{
       const ctx = canvas.getContext('2d');
+      const unit = (displayUnit === 'cm') ? 'cm' : 'mm';
       const W = sheet.boardW;
       const H = sheet.boardH;
 
@@ -213,8 +226,8 @@
         // - wymiar H (w poprzek / 2) pionowo po lewej (obrót 90°)
         // Bez specjalnych wyjątków dla małych elementów (mogą wyjść poza ramkę).
         ctx.fillStyle = '#0b1f33';
-        const wLabel = `${mmToStr(p.w)}`;
-        const hLabel = `${mmToStr(p.h)}`;
+        const wLabel = `${mmToUnitStr(p.w, unit)}`;
+        const hLabel = `${mmToUnitStr(p.h, unit)}`;
 
         const pad = 4;
         // Keep a constant font size (user requirement: never rotate; keep centered even if it overflows).
@@ -619,6 +632,11 @@
       out.innerHTML = '';
       const opt = FC.cutOptimizer;
       const sheets = plan.sheets || [];
+      const u = (meta && (meta.unit === 'cm' || meta.unit === 'mm'))
+        ? meta.unit
+        : (meta && meta.meta && (meta.meta.unit === 'cm' || meta.meta.unit === 'mm'))
+          ? meta.meta.unit
+          : 'mm';
       if(!sheets.length){
         out.appendChild(h('div', { class:'muted', text:'Brak wyniku.' }));
         return;
@@ -665,9 +683,9 @@
           </style>
         </head><body>`;
         html += `<h1>Rozrys — ${meta.material}</h1>`;
-        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}mm • Heurystyka: ${meta.heur}</div>`;
+        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}</div>`;
         sheets.forEach((s,i)=>{
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${s.boardW}×${s.boardH} mm</div>`;
+          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}</div>`;
           html += `<canvas id="c${i}" width="${s.boardW}" height="${s.boardH}"></canvas></div>`;
         });
         html += `<script>(function(){
@@ -703,14 +721,14 @@
         const box = h('div', { class:'card', style:'margin-top:12px' });
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
           h('div', { style:'font-weight:900', text:`Arkusz ${i+1}` }),
-          h('div', { class:'muted xs', text:`${s.boardW}×${s.boardH} mm` })
+          h('div', { class:'muted xs', text:`${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}` })
         ]));
         const canvas = document.createElement('canvas');
         canvas.style.width = '100%';
         canvas.style.marginTop = '10px';
         box.appendChild(canvas);
         out.appendChild(box);
-        drawSheet(canvas, s);
+        drawSheet(canvas, s, u);
       });
     }
 
@@ -730,7 +748,7 @@
       };
 
       const plan = computePlan(st, parts);
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, meta: plan.meta });
+      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, meta: plan.meta });
     }
 
     // events
