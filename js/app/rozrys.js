@@ -45,6 +45,18 @@
     return String(n);
   }
 
+  // Display length stored in millimeters in the selected unit.
+  // - mm: integer
+  // - cm: one decimal when needed, without trailing .0
+  function mmToUnitStr(mm, unit){
+    const u = (unit === 'cm') ? 'cm' : 'mm';
+    const n = Math.round(Number(mm)||0);
+    if(u === 'mm') return String(n);
+    const cm = n / 10;
+    const s = (Math.round(cm * 10) / 10).toFixed(1);
+    return s.endsWith('.0') ? s.slice(0, -2) : s;
+  }
+
   function loadOverrides(){
     try{
       const raw = localStorage.getItem(OVERRIDE_KEY);
@@ -136,9 +148,14 @@
     return el;
   }
 
-  function drawSheet(canvas, sheet){
+  // edgeSubMm: 0 => show nominal dimensions, >0 => show "do cięcia" dims (kompensacja okleiny)
+  // Zasada kompensacji (zgodnie z ustaleniem):
+  // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
+  // - okleina na krawędziach H (left/right) zwiększa wymiar W => odejmujemy od W
+  function drawSheet(canvas, sheet, displayUnit, edgeSubMm){
     try{
       const ctx = canvas.getContext('2d');
+      const unit = (displayUnit === 'cm') ? 'cm' : 'mm';
       const W = sheet.boardW;
       const H = sheet.boardH;
 
@@ -152,108 +169,154 @@
       ctx.strokeStyle = '#0b1f33';
       ctx.strokeRect(0.5,0.5,canvas.width-1,canvas.height-1);
 
+      // Pixel-snapping helpers (reduces anti-aliasing differences: "czarne" vs "szare" linie)
+      // For odd line widths (1px) draw on half-pixel boundaries.
+      const snap = (v, lw)=>{
+        const n = Math.round(v);
+        return (lw % 2) ? (n + 0.5) : n;
+      };
+      const snapRect = (x,y,w,h,lw)=>{
+        const sx = snap(x, lw);
+        const sy = snap(y, lw);
+        // keep size consistent after snapping start
+        const sw = Math.max(0, Math.round(w));
+        const sh = Math.max(0, Math.round(h));
+        return { sx, sy, sw, sh };
+      };
+      const strokeLine = (x1,y1,x2,y2,lw)=>{
+        const sx1 = snap(x1, lw);
+        const sy1 = snap(y1, lw);
+        const sx2 = snap(x2, lw);
+        const sy2 = snap(y2, lw);
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.moveTo(sx1, sy1);
+        ctx.lineTo(sx2, sy2);
+        ctx.stroke();
+      };
+
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       // Base font; for tiny parts we will temporarily shrink it.
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      const sub = Math.max(0, Number(edgeSubMm)||0);
+      const getCutDims = (p)=>{
+        if(!(sub>0)) return { w:p.w, h:p.h };
+        const cW = (p.edgeH1?1:0) + (p.edgeH2?1:0);
+        const cH = (p.edgeW1?1:0) + (p.edgeW2?1:0);
+        // cross-dimension compensation
+        const w = Math.max(0, Math.round((p.w||0) - sub*cW));
+        const h = Math.max(0, Math.round((p.h||0) - sub*cH));
+        return { w, h };
+      };
+
       placements.forEach(p=>{
         const x = p.x * scale;
         const y = p.y * scale;
         const w = p.w * scale;
         const hh = p.h * scale;
+
+        // Visual gap between parts (for readability only).
+        // Shrink each part by 1px on every side => 2px gap between adjacent parts.
+        const gap = 1;
+        // Round to whole pixels before we apply pixel-snapping.
+        // This makes left/right and top/bottom offsets visually symmetric.
+        const vx = Math.round(x + gap);
+        const vy = Math.round(y + gap);
+        const vw = Math.max(0, Math.round(w - gap*2));
+        const vh = Math.max(0, Math.round(hh - gap*2));
+
         ctx.fillStyle = 'rgba(11, 141, 183, 0.10)';
-        ctx.fillRect(x,y,w,hh);
+        ctx.fillRect(vx,vy,vw,vh);
         ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
-        ctx.strokeRect(x+0.5,y+0.5,Math.max(0,w-1),Math.max(0,hh-1));
-
-        // ===== Dimension labels + okleina (kreska przerywana w "kanale" między krawędzią a wymiarem) =====
-        // Problem on tiny parts: fallback positions could end up outside the part.
-        // Fix: always clamp text inside the rectangle; for very small parts place labels centered.
-        ctx.fillStyle = '#0b1f33';
-        const wLabel = `${mmToStr(p.w)}`;
-        const hLabel = `${mmToStr(p.h)}`;
-
-        const pad = 4;
-        const minSide = Math.min(w, hh);
-        const isTiny = minSide < 46; // px
-
-        // Shrink font a bit for tiny parts so labels remain readable and inside.
-        let fontSize = 12;
-        if(isTiny){
-          fontSize = Math.max(9, Math.min(12, Math.floor(minSide / 4))); // 9..12
-          ctx.save();
-          ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+        {
+          const r = snapRect(vx, vy, vw, vh, 1);
+          ctx.lineWidth = 1;
+          // draw inside the filled rect
+          ctx.strokeRect(r.sx, r.sy, Math.max(0, r.sw-1), Math.max(0, r.sh-1));
         }
 
-        // Edge banding markers (optional): dashed line in a stable channel so it doesn't touch dimensions.
+        // ===== Dimension labels + okleina (ciągła linia: 3px od krawędzi, wymiary: 6px) =====
+        // Wymiary mają być rysowane zawsze tak samo jak na "600x510":
+        // - wymiar W (wzdłuż słoja / 1) poziomo u góry
+        // - wymiar H (w poprzek / 2) pionowo po lewej (obrót 90°)
+        // Bez specjalnych wyjątków dla małych elementów (mogą wyjść poza ramkę).
+        ctx.fillStyle = '#0b1f33';
+        const cut = getCutDims(p);
+        const wLabel = `${mmToUnitStr(cut.w, unit)}`;
+        const hLabel = `${mmToUnitStr(cut.h, unit)}`;
+
+        const pad = 4;
+        // Keep a constant font size (user requirement: never rotate; keep centered even if it overflows).
+        const fontSize = 12;
+
+        // Edge banding markers (optional): solid line 3px from border; shorten by 5% so it's visible on short edges.
         const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
-        // channelInset: distance from the part border; chosen so that labels can sit below/inside without overlap
-        const channelInset = Math.max(8, Math.min(16, Math.floor(minSide / 3))); // px
+        const edgeInset = 3; // px inside the part (okleina)
+        // Dimensions should sit very close to the okleina marker for readability.
+        // Requirement: digits ~1px away from okleina line.
+        // => put dimension text at (edgeInset + 1) from the same border.
+        const dimInset = edgeInset + 1;
         if(hasEdges){
           ctx.save();
-          ctx.lineWidth = 2;
-          ctx.setLineDash([6,4]);
-          ctx.strokeStyle = 'rgba(11, 31, 51, 0.85)';
+          ctx.setLineDash([]);
+          // Slightly lighter than the part outline so it doesn't overpower dimensions.
+          ctx.strokeStyle = 'rgba(11, 31, 51, 0.45)';
 
-          const innerPad = Math.max(4, Math.min(10, Math.floor(minSide / 6)));
+          const shortPad = (len)=>{
+            const p5 = Math.max(1, Math.floor(len * 0.025)); // 2.5% each side => 95% visible
+            return p5;
+          };
+          const padX = shortPad(vw);
+          const padY = shortPad(vh);
           // top (dim1 side A)
           if(p.edgeW1){
-            ctx.beginPath();
-            ctx.moveTo(x+innerPad, y+channelInset);
-            ctx.lineTo(x+w-innerPad, y+channelInset);
-            ctx.stroke();
+            strokeLine(vx+padX, vy+edgeInset, vx+vw-padX, vy+edgeInset, 1);
           }
           // bottom (dim1 side B)
           if(p.edgeW2){
-            ctx.beginPath();
-            ctx.moveTo(x+innerPad, y+hh-channelInset);
-            ctx.lineTo(x+w-innerPad, y+hh-channelInset);
-            ctx.stroke();
+            strokeLine(vx+padX, vy+vh-edgeInset, vx+vw-padX, vy+vh-edgeInset, 1);
           }
           // left (dim2 side A)
           if(p.edgeH1){
-            ctx.beginPath();
-            ctx.moveTo(x+channelInset, y+innerPad);
-            ctx.lineTo(x+channelInset, y+hh-innerPad);
-            ctx.stroke();
+            strokeLine(vx+edgeInset, vy+padY, vx+edgeInset, vy+vh-padY, 1);
           }
           // right (dim2 side B)
           if(p.edgeH2){
-            ctx.beginPath();
-            ctx.moveTo(x+w-channelInset, y+innerPad);
-            ctx.lineTo(x+w-channelInset, y+hh-innerPad);
-            ctx.stroke();
+            strokeLine(vx+vw-edgeInset, vy+padY, vx+vw-edgeInset, vy+vh-padY, 1);
           }
           ctx.restore();
         }
 
-        // top label (width) — keep inside; keep it below the dashed channel
+        // top label (width) — centered; visually keep ~6px from top border
         {
           const tw = ctx.measureText(wLabel).width;
-          const tx = x + Math.max(pad, (w - tw) / 2);
-          const tySafe = y + channelInset + fontSize + 2;
-          const ty = Math.min(y + hh - pad, Math.max(tySafe, y + pad + fontSize));
-          // If the part is extremely short, place at vertical center.
-          const finalY = (hh < (fontSize*2 + 10)) ? (y + hh/2 + 4) : ty;
-          ctx.fillText(wLabel, tx, finalY);
+          const tx = vx + (vw - tw) / 2;
+          const mt = ctx.measureText('0');
+          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          const baseY = vy + dimInset + ascent;
+          ctx.fillText(wLabel, tx, baseY);
         }
 
-        // height label — prefer rotated on the left, but never outside; keep it away from the dashed channel
-        if(hh > 34 && w > 22){
+        // height label — ALWAYS rotated 90° on the left, centered vertically (like "600x510").
+        // IMPORTANT: keep the visual gap to the okleina line consistent with top label.
+        // We want the nearest edge of glyphs to be ~1px from the okleina marker.
+        {
+          const mtH = ctx.measureText(hLabel);
+          const ascH = (mtH && mtH.actualBoundingBoxAscent) ? mtH.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
+          const desH = (mtH && mtH.actualBoundingBoxDescent) ? mtH.actualBoundingBoxDescent : Math.round(fontSize * 0.2);
+          const textH = ascH + desH;
+
+          // Left okleina marker is at (vx + edgeInset). Keep ~1px between marker and text.
+          // When rotated, the text height becomes horizontal extent. With textBaseline='middle',
+          // half of that extent is on the left side of the origin.
+          const originX = vx + edgeInset + 1 + (textH / 2);
+
           ctx.save();
-          const tx = x + Math.min(w - pad, Math.max(channelInset + fontSize + 2, pad + 10));
-          ctx.translate(tx, y + hh/2);
+          ctx.translate(originX, vy + vh/2);
           ctx.rotate(-Math.PI/2);
-          const th = ctx.measureText(hLabel).width;
-          ctx.fillText(hLabel, -th/2, 0);
-          ctx.restore();
-        } else {
-          const th = ctx.measureText(hLabel).width;
-          const tx = x + Math.max(pad, Math.min(w - th - pad, pad));
-          const ty = y + Math.min(hh - pad, Math.max(pad + 10, hh/2 + 6));
-          ctx.fillText(hLabel, x + pad, ty);
-        }
-
-        if(isTiny){
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(hLabel, 0, 0);
           ctx.restore();
         }
       });
@@ -263,16 +326,27 @@
   function buildCsv(sheets, meta){
     const lines = [];
     lines.push(['material','sheet_no','board_w_mm','board_h_mm','item','w_mm','h_mm','x_mm','y_mm','rotated'].join(';'));
+    const sub = Math.max(0, Number(meta && meta.edgeSubMm)||0);
+    const cutDims = (p)=>{
+      if(!(sub>0)) return { w:p.w, h:p.h };
+      const cW = (p.edgeH1?1:0) + (p.edgeH2?1:0);
+      const cH = (p.edgeW1?1:0) + (p.edgeW2?1:0);
+      return {
+        w: Math.max(0, Math.round((p.w||0) - sub*cW)),
+        h: Math.max(0, Math.round((p.h||0) - sub*cH)),
+      };
+    };
     sheets.forEach((s, i)=>{
       (s.placements||[]).filter(p=>!p.unplaced).forEach(p=>{
+        const d = cutDims(p);
         lines.push([
           meta.material || '',
           String(i+1),
           String(s.boardW),
           String(s.boardH),
           (p.name||p.key||p.id||''),
-          String(p.w),
-          String(p.h),
+          String(d.w),
+          String(d.h),
           String(p.x),
           String(p.y),
           p.rotated ? '1':'0'
@@ -358,13 +432,25 @@
 
     let sheets = [];
 
-    if(state.heur === 'pro'){
-      if(typeof opt.packProTimed !== 'function'){
-        return { sheets: [], note: 'Brak modułu PRO (packProTimed).' };
+    if(state.heur === 'super'){
+      if(typeof opt.packSuper !== 'function'){
+        return { sheets: [], note: 'Brak modułu SUPER (packSuper).' };
       }
-      // "kilka sekund" — bezpieczny budżet; w razie potrzeby podniesiemy.
-      sheets = opt.packProTimed(items, W, H, K, { timeMs: 2800 });
-    } else if(state.heur === 'gpro' || state.heur === 'gpro_ultra'){
+      // Multi-start search (few seconds). Best result by (#sheets, waste).
+      sheets = opt.packSuper(items, W, H, K, { timeMs: 2600, beamWidth: 140 });
+    }
+    else if(state.heur === 'panel30'){
+      // Panel saw friendly: guillotine-only plan with longer thinking time.
+      // Uses the existing Guillotine Beam Search (non-overlapping by construction).
+      if(typeof opt.packGuillotineBeam !== 'function'){
+        return { sheets: [], note: 'Brak modułu Gilotyna PRO (packGuillotineBeam).' };
+      }
+      sheets = opt.packGuillotineBeam(items, W, H, K, {
+        beamWidth: 260,
+        timeMs: 30000,
+      });
+    }
+    else if(state.heur === 'gpro' || state.heur === 'gpro_ultra'){
       if(typeof opt.packGuillotineBeam !== 'function'){
         return { sheets: [], note: 'Brak modułu Gilotyna PRO (packGuillotineBeam).' };
       }
@@ -438,6 +524,7 @@
       }
     }catch(_){ }
 
+    // top row: material + units + edge compensation
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
     // material select
     const matWrap = h('div');
@@ -463,6 +550,21 @@
     unitWrap.appendChild(unitSel);
     controls.appendChild(unitWrap);
 
+    // edge compensation selector (labels/exports only)
+    const edgeWrap = h('div');
+    edgeWrap.appendChild(h('label', { text:'Odjąć okleinę?' }));
+    const edgeSel = h('select', { id:'rozEdgeSub' });
+    edgeSel.innerHTML = `
+      <option value="0" selected>NIE</option>
+      <option value="1">Tak - 1mm</option>
+      <option value="2">Tak - 2mm</option>
+    `;
+    edgeWrap.appendChild(edgeSel);
+    controls.appendChild(edgeWrap);
+
+    // second row: board size + kerf + trim (move format inputs lower as requested)
+    const controlsSize = h('div', { class:'grid-3', style:'margin-top:12px' });
+
     // board size
     const sizeWrap = h('div');
     sizeWrap.appendChild(h('label', { text:`Format płyty (${state.unit})` }));
@@ -471,21 +573,21 @@
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     sizeRow.appendChild(inW); sizeRow.appendChild(inH);
     sizeWrap.appendChild(sizeRow);
-    controls.appendChild(sizeWrap);
+    controlsSize.appendChild(sizeWrap);
 
     // kerf
     const kerfWrap = h('div');
     kerfWrap.appendChild(h('label', { text:`Kerf (${state.unit})` }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
-    controls.appendChild(kerfWrap);
+    controlsSize.appendChild(kerfWrap);
 
     // edge trim
     const trimWrap = h('div');
     trimWrap.appendChild(h('label', { text:`Równanie płyty w koło (${state.unit})` }));
     const inTrim = h('input', { id:'rozTrim', type:'number', value:String(state.edgeTrim) });
     trimWrap.appendChild(inTrim);
-    controls.appendChild(trimWrap);
+    controlsSize.appendChild(trimWrap);
 
     // second row: grain + heuristic + direction
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -505,9 +607,10 @@
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
       <option value="shelf">Szybka (pasy / półki)</option>
-      <option value="pro">SUPER (kilka sekund • najlepsze upakowanie)</option>
       <option value="gpro">Dokładna (Gilotyna PRO)</option>
       <option value="gpro_ultra">Ultra (Gilotyna PRO • dłużej liczy)</option>
+      <option value="super">SUPER (kilka sekund • najlepsze upakowanie)</option>
+      <option value="panel30">PIŁA PANEL. PRO (do 30s • tylko gilotyna)</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -524,6 +627,7 @@
     controls2.appendChild(dirWrap);
 
     card.appendChild(controls);
+    card.appendChild(controlsSize);
     card.appendChild(controls2);
 
     // action buttons
@@ -582,7 +686,8 @@
           saveOverrides(o);
         });
         row.appendChild(cb);
-        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${p.w}×${p.h} mm • ilość ${p.qty}` }));
+        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
+        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
         list.appendChild(row);
       });
       overridesBox.appendChild(list);
@@ -592,6 +697,11 @@
       out.innerHTML = '';
       const opt = FC.cutOptimizer;
       const sheets = plan.sheets || [];
+      const u = (meta && (meta.unit === 'cm' || meta.unit === 'mm'))
+        ? meta.unit
+        : (meta && meta.meta && (meta.meta.unit === 'cm' || meta.meta.unit === 'mm'))
+          ? meta.meta.unit
+          : 'mm';
       if(!sheets.length){
         out.appendChild(h('div', { class:'muted', text:'Brak wyniku.' }));
         return;
@@ -625,7 +735,25 @@
       const pdfBtn = h('button', { class:'btn', type:'button' });
       pdfBtn.textContent = 'Eksport PDF (drukuj)';
       pdfBtn.addEventListener('click', ()=>{
-        // proste HTML do wydruku
+        // proste HTML do wydruku (renderujemy tutaj, a do okna wysyłamy obrazy, żeby zachować identyczny wygląd jak ROZRYS)
+        const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
+        const imgs = [];
+        try{
+          sheets.forEach((s)=>{
+            const c = document.createElement('canvas');
+            // sztuczny kontener o stałej szerokości dla spójnego skalowania
+            const tmp = document.createElement('div');
+            tmp.style.width = '980px';
+            tmp.style.position = 'absolute';
+            tmp.style.left = '-99999px';
+            tmp.appendChild(c);
+            document.body.appendChild(tmp);
+            drawSheet(c, s, u, edgeSubMm);
+            imgs.push(c.toDataURL('image/png'));
+            tmp.remove();
+          });
+        }catch(_){ }
+
         let html = `<!doctype html><html><head><meta charset="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
           <title>Rozrys</title>
@@ -634,37 +762,17 @@
             h1{ font-size:18px; margin:0 0 10px; }
             .meta{ font-size:12px; color:#333; margin-bottom:12px; }
             .sheet{ margin:14px 0; page-break-inside:avoid; }
-            canvas{ width:100%; max-width:980px; border:1px solid #333; border-radius:10px; }
+            img{ width:100%; max-width:980px; border:1px solid #333; border-radius:10px; }
           </style>
         </head><body>`;
         html += `<h1>Rozrys — ${meta.material}</h1>`;
-        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}mm • Heurystyka: ${meta.heur}</div>`;
+        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
+        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
         sheets.forEach((s,i)=>{
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${s.boardW}×${s.boardH} mm</div>`;
-          html += `<canvas id="c${i}" width="${s.boardW}" height="${s.boardH}"></canvas></div>`;
+          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}</div>`;
+          const src = imgs[i] || '';
+          html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
         });
-        html += `<script>(function(){
-          const sheets = ${JSON.stringify(sheets)};
-          function draw(i){
-            const s = sheets[i];
-            const c = document.getElementById('c'+i);
-            const ctx = c.getContext('2d');
-            ctx.clearRect(0,0,c.width,c.height);
-            ctx.strokeStyle='#000';
-            ctx.strokeRect(0.5,0.5,c.width-1,c.height-1);
-            ctx.font='36px sans-serif';
-            ctx.fillStyle='rgba(0,0,0,0.06)';
-            (s.placements||[]).filter(p=>!p.unplaced).forEach(p=>{
-              ctx.fillRect(p.x,p.y,p.w,p.h);
-              ctx.strokeStyle='rgba(0,0,0,0.55)';
-              ctx.strokeRect(p.x+0.5,p.y+0.5,Math.max(0,p.w-1),Math.max(0,p.h-1));
-              ctx.fillStyle='#000';
-              ctx.fillText(p.w+'×'+p.h, p.x+20, p.y+60);
-              ctx.fillStyle='rgba(0,0,0,0.06)';
-            });
-          }
-          for(let i=0;i<sheets.length;i++) draw(i);
-        })();<\/script>`;
         html += `</body></html>`;
         openPrintView(html);
       });
@@ -672,18 +780,19 @@
       expRow.appendChild(pdfBtn);
       out.appendChild(expRow);
 
+      const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
       sheets.forEach((s,i)=>{
         const box = h('div', { class:'card', style:'margin-top:12px' });
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
           h('div', { style:'font-weight:900', text:`Arkusz ${i+1}` }),
-          h('div', { class:'muted xs', text:`${s.boardW}×${s.boardH} mm` })
+          h('div', { class:'muted xs', text:`${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}` })
         ]));
         const canvas = document.createElement('canvas');
         canvas.style.width = '100%';
         canvas.style.marginTop = '10px';
         box.appendChild(canvas);
         out.appendChild(box);
-        drawSheet(canvas, s);
+        drawSheet(canvas, s, u, edgeSubMm);
       });
     }
 
@@ -693,6 +802,7 @@
       const st = {
         material,
         unit: unitSel.value,
+        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
         boardW: Number(inW.value)|| (unitSel.value==='mm'?2800:280),
         boardH: Number(inH.value)|| (unitSel.value==='mm'?2070:207),
         kerf: Number(inK.value)|| (unitSel.value==='mm'?4:0.4),
@@ -703,7 +813,7 @@
       };
 
       const plan = computePlan(st, parts);
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, meta: plan.meta });
+      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
     }
 
     // events
@@ -744,6 +854,10 @@
       out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
+      out.innerHTML = '';
+    });
+
+    edgeSel.addEventListener('change', ()=>{
       out.innerHTML = '';
     });
 

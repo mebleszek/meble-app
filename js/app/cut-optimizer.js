@@ -19,6 +19,53 @@
     return (w <= r.w && h <= r.h);
   }
 
+  function rectIntersects(a, b){
+    return !(b.x >= a.x + a.w ||
+             b.x + b.w <= a.x ||
+             b.y >= a.y + a.h ||
+             b.y + b.h <= a.y);
+  }
+
+  // Split a free rect by an overlapping placed rect into up to 4 non-overlapping rects.
+  // Standard MaxRects split that preserves correctness (prevents overlapping free rects
+  // that could later yield overlapping placements).
+  function splitFreeRectByIntersection(free, placed){
+    const out = [];
+    if(!rectIntersects(free, placed)) return [free];
+
+    const fx = free.x, fy = free.y, fw = free.w, fh = free.h;
+    const px = placed.x, py = placed.y, pw = placed.w, ph = placed.h;
+
+    const fr = fx + fw;
+    const fb = fy + fh;
+    const pr = px + pw;
+    const pb = py + ph;
+
+    // left
+    if(px > fx){
+      out.push({ x: fx, y: fy, w: px - fx, h: fh });
+    }
+    // right
+    if(pr < fr){
+      out.push({ x: pr, y: fy, w: fr - pr, h: fh });
+    }
+    // top
+    if(py > fy){
+      const topX = Math.max(fx, px);
+      const topR = Math.min(fr, pr);
+      const topW = topR - topX;
+      if(topW > 0) out.push({ x: topX, y: fy, w: topW, h: py - fy });
+    }
+    // bottom
+    if(pb < fb){
+      const botX = Math.max(fx, px);
+      const botR = Math.min(fr, pr);
+      const botW = botR - botX;
+      if(botW > 0) out.push({ x: botX, y: pb, w: botW, h: fb - pb });
+    }
+    return out.filter(r=>r.w>0 && r.h>0);
+  }
+
   // Split free rect by placed rect (guillotine-ish split: right + bottom)
   function splitFreeRect(free, placed){
     const out = [];
@@ -248,20 +295,26 @@
         w: placed.w,
         h: placed.h,
         rotated: pos.rotated,
+        edgeW1: pos.rotated ? it.edgeH1 : it.edgeW1,
+        edgeW2: pos.rotated ? it.edgeH2 : it.edgeW2,
+        edgeH1: pos.rotated ? it.edgeW1 : it.edgeH1,
+        edgeH2: pos.rotated ? it.edgeW2 : it.edgeH2,
       });
-      // create new free rects from the one we used
-      const newRects = splitFreeRect(pos.free, placed);
-      // add kerf spacing around placed area (simple safety): shrink new rects by kerf on the near edges
-      const adjusted = newRects.map(r=>({
-        x: r.x + (r.x>placed.x ? K : 0),
-        y: r.y + (r.y>placed.y ? K : 0),
-        w: r.w - (r.x>placed.x ? K : 0),
-        h: r.h - (r.y>placed.y ? K : 0)
-      }));
-      // remove used free rect
-      sheet.freeRects = sheet.freeRects.filter(fr => fr !== pos.free);
-      sheet.freeRects.push(...adjusted);
-      sheet.freeRects = pruneFreeRects(sheet.freeRects);
+
+      // Apply kerf as a safety margin (to the right and bottom) to prevent near-touch
+      // overlaps and to model the saw cut width.
+      const placedK = { x: placed.x, y: placed.y, w: placed.w + K, h: placed.h + K };
+
+      // Correct MaxRects update: split ALL intersecting free rects against placed rect.
+      const nextFree = [];
+      for(const fr of sheet.freeRects){
+        if(rectIntersects(fr, placedK)){
+          nextFree.push(...splitFreeRectByIntersection(fr, placedK));
+        } else {
+          nextFree.push(fr);
+        }
+      }
+      sheet.freeRects = pruneFreeRects(nextFree);
     }
 
     for(const it of items){
@@ -280,6 +333,85 @@
     return sheets;
   }
 
+  // ===== SUPER: multi-start search (kilka sekund)
+  // Runs several orderings + small random perturbations and picks the best result
+  // by (#sheets, waste). Uses existing stable packers.
+  function packSuper(itemsIn, boardW, boardH, kerf, options){
+    const W = clampInt(boardW, 2800);
+    const H = clampInt(boardH, 2070);
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const opts = options || {};
+    const timeMs = Math.max(200, Math.round(Number(opts.timeMs)||2500));
+    const beamWidth = Math.max(20, Math.round(Number(opts.beamWidth)||120));
+
+    // Deterministic-ish RNG (seed based on items) so results are stable for the same input.
+    let seed = 1337;
+    for(const it of itemsIn){
+      seed = (seed * 1664525 + 1013904223 + (it.w*31 + it.h*17)) >>> 0;
+    }
+    const rnd = ()=>{
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const shuffle = (arr)=>{
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(rnd()*(i+1));
+        const t=a[i]; a[i]=a[j]; a[j]=t;
+      }
+      return a;
+    };
+
+    const score = (sheets)=>{
+      const waste = sheets.reduce((sum,s)=> sum + calcWaste(s).waste, 0);
+      return { sheets: sheets.length, waste };
+    };
+    const better = (a, b)=>{
+      if(!b) return true;
+      if(a.sc.sheets !== b.sc.sheets) return a.sc.sheets < b.sc.sheets;
+      return a.sc.waste < b.sc.waste;
+    };
+
+    // Base orderings
+    const byAreaDesc = itemsIn.slice().sort((a,b)=>(b.w*b.h)-(a.w*a.h));
+    const byPerimDesc = itemsIn.slice().sort((a,b)=>((b.w+b.h)-(a.w+a.h)));
+    const byMaxSideDesc = sortRectsByMaxSideDesc(itemsIn);
+    const byMinSideDesc = itemsIn.slice().sort((a,b)=>Math.min(b.w,b.h)-Math.min(a.w,a.h));
+
+    const candidates = [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc];
+    const started = Date.now();
+    let best = null;
+
+    const tryOne = (arr)=>{
+      const mr = packMaxRects(arr, W, H, K);
+      const sc = score(mr);
+      const res = { sheets: mr, sc };
+      if(better(res, best)) best = res;
+
+      // Also try Guillotine PRO quickly if available
+      if(window.FC && window.FC.cutOptimizer && typeof window.FC.cutOptimizer.packGuillotineBeam === 'function'){
+        const gb = window.FC.cutOptimizer.packGuillotineBeam(arr, W, H, K, {
+          beamWidth,
+          timeMs: Math.min(600, Math.max(250, Math.round(timeMs/6)))
+        });
+        const sc2 = score(gb);
+        const res2 = { sheets: gb, sc: sc2 };
+        if(better(res2, best)) best = res2;
+      }
+    };
+
+    // First deterministic passes
+    for(const c of candidates) tryOne(c);
+
+    // Random perturbations until time budget
+    while(Date.now() - started < timeMs){
+      const base = candidates[Math.floor(rnd()*candidates.length)];
+      tryOne(shuffle(base));
+    }
+
+    return best ? best.sheets : packMaxRects(itemsIn, W, H, K);
+  }
+
   function calcWaste(sheet){
     const areaBoard = sheet.boardW * sheet.boardH;
     const used = (sheet.placements||[]).filter(p=>!p.unplaced).reduce((s,p)=>s + (p.w*p.h),0);
@@ -296,190 +428,9 @@
     makeItems,
     packShelf,
     packMaxRects,
+    packSuper,
     calcWaste,
   };
-})();
-
-// ===== Timed Multi-start packer ("PRO")
-// Cel: podejście jak w profesjonalnych aplikacjach: kilka sekund prób i wybór najlepszego upakowania.
-// - NIE gwarantuje optimum (to NP-trudne), ale zwykle poprawia wynik vs pojedyncza heurystyka.
-// - Kryterium: minimalna liczba płyt, a potem minimalny odpad.
-(function(){
-  'use strict';
-  if(!window.FC || !window.FC.cutOptimizer) return;
-  const opt = window.FC.cutOptimizer;
-
-  function clampInt(v, fallback){
-    const n = Math.round(Number(v));
-    return Number.isFinite(n) && n > 0 ? n : fallback;
-  }
-
-  function shuffleInPlace(arr){
-    for(let i=arr.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      const t = arr[i]; arr[i]=arr[j]; arr[j]=t;
-    }
-    return arr;
-  }
-
-  function scoreSheets(sheets){
-    const waste = sheets.reduce((sum,s)=> sum + (opt.calcWaste(s).waste||0), 0);
-    return { sheets: sheets.length, waste };
-  }
-
-  // Variant of MaxRects that respects given order (no internal sorting)
-  function packMaxRectsOrdered(itemsOrdered, boardW, boardH, kerf){
-    const W = clampInt(boardW, 2800);
-    const H = clampInt(boardH, 2070);
-    const K = Math.max(0, Math.round(Number(kerf)||0));
-
-    function rectFits(r, w, h){ return (w <= r.w && h <= r.h); }
-
-    function splitFreeRect(free, placed){
-      const out = [];
-      const rw = free.w - (placed.x - free.x) - placed.w;
-      const rx = placed.x + placed.w;
-      if(rw > 0) out.push({ x: rx, y: free.y, w: rw, h: free.h });
-      const bh = free.h - (placed.y - free.y) - placed.h;
-      const by = placed.y + placed.h;
-      if(bh > 0) out.push({ x: free.x, y: by, w: free.w, h: bh });
-      return out;
-    }
-
-    function pruneFreeRects(freeRects){
-      const out = [];
-      for(let i=0;i<freeRects.length;i++){
-        const a = freeRects[i];
-        if(a.w<=0 || a.h<=0) continue;
-        let contained = false;
-        for(let j=0;j<freeRects.length;j++){
-          if(i===j) continue;
-          const b = freeRects[j];
-          if(b.w<=0 || b.h<=0) continue;
-          if(a.x>=b.x && a.y>=b.y && (a.x+a.w)<= (b.x+b.w) && (a.y+a.h) <= (b.y+b.h)){
-            contained = true; break;
-          }
-        }
-        if(!contained) out.push(a);
-      }
-      return out;
-    }
-
-    const sheets = [];
-    function newSheet(){
-      const sheet = { boardW: W, boardH: H, placements: [], freeRects: [{ x:0, y:0, w:W, h:H }] };
-      sheets.push(sheet);
-      return sheet;
-    }
-    let sheet = newSheet();
-
-    function scoreFit(free, w, h){
-      const leftoverH = free.h - h;
-      const leftoverW = free.w - w;
-      const shortSide = Math.min(leftoverH, leftoverW);
-      const longSide = Math.max(leftoverH, leftoverW);
-      return { shortSide, longSide };
-    }
-
-    function findPosition(sheet, it){
-      let best = null;
-      for(const free of sheet.freeRects){
-        const candidates = [{ w: it.w, h: it.h, rotated:false }];
-        if(it.rotationAllowed) candidates.push({ w: it.h, h: it.w, rotated:true });
-        for(const c of candidates){
-          if(!rectFits(free, c.w, c.h)) continue;
-          const sc = scoreFit(free, c.w, c.h);
-          if(!best || sc.shortSide < best.sc.shortSide || (sc.shortSide === best.sc.shortSide && sc.longSide < best.sc.longSide)){
-            best = { x: free.x, y: free.y, w:c.w, h:c.h, rotated:c.rotated, sc, free };
-          }
-        }
-      }
-      return best;
-    }
-
-    function place(sheet, it, pos){
-      const placed = { x: pos.x, y: pos.y, w: pos.w, h: pos.h };
-      sheet.placements.push({
-        id: it.id, key: it.key, name: it.name,
-        x: placed.x, y: placed.y, w: placed.w, h: placed.h, rotated: pos.rotated,
-        edgeW1: pos.rotated ? it.edgeH1 : it.edgeW1,
-        edgeW2: pos.rotated ? it.edgeH2 : it.edgeW2,
-        edgeH1: pos.rotated ? it.edgeW1 : it.edgeH1,
-        edgeH2: pos.rotated ? it.edgeW2 : it.edgeH2,
-      });
-      const newRects = splitFreeRect(pos.free, placed);
-      const adjusted = newRects.map(r=>({
-        x: r.x + (r.x>placed.x ? K : 0),
-        y: r.y + (r.y>placed.y ? K : 0),
-        w: r.w - (r.x>placed.x ? K : 0),
-        h: r.h - (r.y>placed.y ? K : 0)
-      }));
-      sheet.freeRects = sheet.freeRects.filter(fr => fr !== pos.free);
-      sheet.freeRects.push(...adjusted);
-      sheet.freeRects = pruneFreeRects(sheet.freeRects);
-    }
-
-    for(const it of (itemsOrdered||[])){
-      let pos = findPosition(sheet, it);
-      if(!pos){
-        sheet = newSheet();
-        pos = findPosition(sheet, it);
-      }
-      if(pos) place(sheet, it, pos);
-      else sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true });
-    }
-    return sheets;
-  }
-
-  function packProTimed(itemsIn, boardW, boardH, kerf, options){
-    const W = clampInt(boardW, 2800);
-    const H = clampInt(boardH, 2070);
-    const K = Math.max(0, Math.round(Number(kerf)||0));
-    const timeMs = Math.max(400, clampInt(options && options.timeMs, 2800));
-    const start = Date.now();
-
-    let best = null;
-    function consider(sheets){
-      if(!sheets || !sheets.length) return;
-      const sc = scoreSheets(sheets);
-      if(!best || sc.sheets < best.sc.sheets || (sc.sheets===best.sc.sheets && sc.waste < best.sc.waste)){
-        best = { sheets, sc };
-      }
-    }
-
-    // Baselines
-    try{ consider(opt.packMaxRects(itemsIn, W, H, K)); }catch(_){ }
-    try{ consider(opt.packShelf(itemsIn, W, H, K, 'wzdłuż')); }catch(_){ }
-    try{ consider(opt.packShelf(itemsIn, W, H, K, 'wpoprz')); }catch(_){ }
-    try{ if(typeof opt.packGuillotineBeam==='function') consider(opt.packGuillotineBeam(itemsIn, W, H, K, { beamWidth: 90, timeMs: 700 })); }catch(_){ }
-
-    const base = itemsIn.slice();
-    const orders = [
-      (arr)=> arr.slice().sort((a,b)=>(b.w*b.h)-(a.w*a.h)),
-      (arr)=> arr.slice().sort((a,b)=> Math.max(b.w,b.h)-Math.max(a.w,a.h)),
-      (arr)=> arr.slice().sort((a,b)=> b.w-a.w),
-      (arr)=> arr.slice().sort((a,b)=> b.h-a.h),
-    ];
-
-    let iter = 0;
-    while(Date.now()-start < timeMs){
-      iter++;
-      let ord;
-      if(iter <= orders.length) ord = orders[iter-1](base);
-      else ord = shuffleInPlace(base.slice());
-      try{ consider(packMaxRectsOrdered(ord, W, H, K)); }catch(_){ }
-      if(typeof opt.packGuillotineBeam==='function' && (iter % 4 === 0)){
-        const left = timeMs - (Date.now()-start);
-        const slice = Math.max(250, Math.min(900, Math.floor(left/2)));
-        try{ consider(opt.packGuillotineBeam(itemsIn, W, H, K, { beamWidth: 110, timeMs: slice })); }catch(_){ }
-      }
-      if(best && best.sc.sheets === 1 && (Date.now()-start) > 450) break;
-    }
-
-    return (best && best.sheets) ? best.sheets : opt.packMaxRects(itemsIn, W, H, K);
-  }
-
-  opt.packProTimed = packProTimed;
 })();
 
 // ===== Guillotine Beam Search ("Gilotyna PRO")
