@@ -452,14 +452,14 @@
         scrapFirst: true,
       });
     }
-    else if(state.heur === 'gpro' || state.heur === 'gpro_ultra'){
+    else if(state.heur === 'gpro'){
       if(typeof opt.packGuillotineBeam !== 'function'){
         return { sheets: [], note: 'Brak modułu Gilotyna PRO (packGuillotineBeam).' };
       }
-      const ultra = (state.heur === 'gpro_ultra');
+      // Dokładne upakowanie (szybciej niż Panel PRO, ale lepiej niż Shelf)
       sheets = opt.packGuillotineBeam(items, W, H, K, {
-        beamWidth: ultra ? 140 : 70,
-        timeMs: ultra ? 1400 : 500,
+        beamWidth: 80,
+        timeMs: 700,
       });
     } else {
       const dir = state.direction || 'auto';
@@ -529,7 +529,7 @@
       // singleton worker
       if(!FC._panelProWorker){
         try{
-          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260303_1');
+          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260303_02');
         }catch(e){
           // fallback (sync, limited)
           try{
@@ -702,11 +702,10 @@
     heurWrap.appendChild(h('label', { text:'Heurystyka' }));
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
-      <option value="shelf">Szybka (pasy / półki)</option>
-      <option value="gpro">Dokładna (Gilotyna PRO)</option>
-      <option value="gpro_ultra">Ultra (Gilotyna PRO • dłużej liczy)</option>
-      <option value="super">SUPER (kilka sekund • najlepsze upakowanie)</option>
-      <option value="panel30">PIŁA PANEL. PRO (do 30s • tylko gilotyna)</option>
+      <option value="shelf">Szybkie i proste</option>
+      <option value="gpro">Dokładne upakowanie</option>
+      <option value="super">Super upakowanie</option>
+      <option value="panel30">Ultra 30sekund</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -900,7 +899,79 @@
       out.appendChild(box);
     }
 
-    async function generate(){
+    
+    // ===== Cache planów rozkroju (żeby nie liczyć ponownie)
+    const PLAN_CACHE_KEY = 'fc_rozrys_plan_cache_v1';
+
+    function hashStr(s){
+      // szybki, stabilny hash (djb2)
+      let h = 5381;
+      for(let i=0;i<s.length;i++){
+        h = ((h << 5) + h) + s.charCodeAt(i);
+        h = h >>> 0;
+      }
+      return h.toString(16);
+    }
+
+    function loadPlanCache(){
+      try{
+        const raw = localStorage.getItem(PLAN_CACHE_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        return (obj && typeof obj === 'object') ? obj : {};
+      }catch(_){
+        return {};
+      }
+    }
+
+    function savePlanCache(cache){
+      try{
+        // proste ograniczenie rozmiaru: trzymamy max 20 wpisów (ostatnie użyte)
+        const entries = Object.entries(cache || {});
+        if(entries.length > 20){
+          entries.sort((a,b)=> (b[1].ts||0) - (a[1].ts||0));
+          const keep = entries.slice(0, 20);
+          const next = {};
+          for(const [k,v] of keep) next[k] = v;
+          cache = next;
+        }
+        localStorage.setItem(PLAN_CACHE_KEY, JSON.stringify(cache || {}));
+      }catch(_){}
+    }
+
+    function makePlanCacheKey(st, parts){
+      // uwzględniamy: ustawienia + lista formatek + wyjątki słojów + okleiny (wpływają na edgeSub)
+      const overrides = loadOverrides();
+      const edgeStore = loadEdgeStore();
+      const items = (parts||[]).map(p=>{
+        const sig = partSignature(p);
+        const allow = st.grain ? !!overrides[sig] : true;
+        const e = edgeStore[sig] || {};
+        return {
+          k: sig,
+          n: p.name,
+          w: p.w,
+          h: p.h,
+          q: p.qty,
+          ra: st.grain ? allow : true,
+          ew1: !!e.w1, ew2: !!e.w2, eh1: !!e.h1, eh2: !!e.h2
+        };
+      }).sort((a,b)=> (a.k<b.k?-1:a.k>b.k?1:(a.w-b.w)||(a.h-b.h)));
+      const keyObj = {
+        st: {
+          material: st.material,
+          unit: st.unit,
+          edgeSubMm: st.edgeSubMm,
+          boardW: st.boardW, boardH: st.boardH,
+          kerf: st.kerf, edgeTrim: st.edgeTrim,
+          grain: st.grain,
+          heur: st.heur,
+          direction: st.direction,
+        },
+        items
+      };
+      return 'plan_' + hashStr(JSON.stringify(keyObj));
+    }
+async function generate(){
       const material = matSel.value;
       const parts = agg.byMaterial[material] || [];
       const st = {
@@ -915,6 +986,15 @@
         heur: heurSel.value,
         direction: dirSel.value,
       };
+      // cache: jeśli identyczne wejście było już liczone, pokaż wynik natychmiast
+      const cache = loadPlanCache();
+      const cacheKey = makePlanCacheKey(st, parts);
+      if(cache[cacheKey] && cache[cacheKey].plan){
+        const cached = cache[cacheKey].plan;
+        renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta });
+        return;
+      }
+
 
       // Pro mode: panel saw (30s) should not block UI.
       if(st.heur === 'panel30'){
@@ -926,11 +1006,20 @@
           if(el) el.textContent = `Liczę… ${t} s`;
         });
         genBtn.disabled = false;
+
+        // zapisz do cache
+        try{
+          cache[cacheKey] = { ts: Date.now(), plan };
+          savePlanCache(cache);
+        }catch(_){}
+
         renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
         return;
       }
 
       const plan = computePlan(st, parts);
+      // zapisz do cache
+      try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){ }
       renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
     }
 
