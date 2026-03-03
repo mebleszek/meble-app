@@ -553,6 +553,24 @@
       }
 
       const worker = FC._panelProWorker;
+
+      let settled = false;
+      let tmr = null;
+
+      const cleanup = ()=>{
+        try{ worker.removeEventListener('message', handle); }catch(_){ }
+        try{ worker.removeEventListener('error', onErr); }catch(_){ }
+        try{ worker.removeEventListener('messageerror', onMsgErr); }catch(_){ }
+        if(tmr){ try{ clearTimeout(tmr); }catch(_){ } tmr = null; }
+      };
+
+      const finish = (payload)=>{
+        if(settled) return;
+        settled = true;
+        cleanup();
+        resolve(payload);
+      };
+
       const handle = (ev)=>{
         const msg = ev && ev.data ? ev.data : {};
         if(msg.type === 'progress'){
@@ -560,18 +578,40 @@
           return;
         }
         if(msg.type === 'done'){
-          worker.removeEventListener('message', handle);
           const result = msg.result || {};
-          resolve({ sheets: result.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
+          finish({ sheets: result.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
           return;
         }
         if(msg.type === 'error'){
-          worker.removeEventListener('message', handle);
-          resolve({ sheets: [], note: msg.error || 'Błąd worker', meta: { trim, boardW: W0, boardH: H0, unit } });
+          finish({ sheets: [], note: msg.error || 'Błąd worker', meta: { trim, boardW: W0, boardH: H0, unit } });
         }
       };
 
+      const onErr = ()=>{
+        // Worker script failed to load or runtime error
+        // Reset the singleton so next run can recreate it.
+        try{ worker.terminate(); }catch(_){ }
+        FC._panelProWorker = null;
+        finish({ sheets: [], note: 'Błąd Web Workera (nie udało się wykonać obliczeń).', meta: { trim, boardW: W0, boardH: H0, unit } });
+      };
+
+      const onMsgErr = ()=>{
+        try{ worker.terminate(); }catch(_){ }
+        FC._panelProWorker = null;
+        finish({ sheets: [], note: 'Błąd komunikacji z Web Workerem.', meta: { trim, boardW: W0, boardH: H0, unit } });
+      };
+
       worker.addEventListener('message', handle);
+      worker.addEventListener('error', onErr);
+      worker.addEventListener('messageerror', onMsgErr);
+
+      // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
+      tmr = setTimeout(()=>{
+        try{ worker.terminate(); }catch(_){ }
+        FC._panelProWorker = null;
+        finish({ sheets: [], note: 'Liczenie przerwane: przekroczono limit czasu (brak odpowiedzi workera).', meta: { trim, boardW: W0, boardH: H0, unit } });
+      }, 35000);
+
       try{
         worker.postMessage({
           cmd: 'panel_pro',
@@ -580,8 +620,8 @@
           options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
         });
       }catch(e){
-        worker.removeEventListener('message', handle);
-        resolve({ sheets: [], note: 'Nie udało się wystartować liczenia.', meta: { trim, boardW: W0, boardH: H0, unit } });
+        // Posting failed: cleanup and return
+        finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', meta: { trim, boardW: W0, boardH: H0, unit } });
       }
     });
   }
@@ -1065,12 +1105,18 @@ async function generate(){
     if(st.heur === "panel30"){
       genBtn.disabled = true;
       renderLoading("Liczę… 0.0 s");
-      const plan = await computePlanPanelProAsync(st, parts, (p)=>{
-        const t = ((p.elapsedMs||0)/1000).toFixed(1);
-        const el = document.getElementById("rozrysLoadingText");
-        if(el) el.textContent = `Liczę… ${t} s`;
-      });
-      genBtn.disabled = false;
+      let plan = null;
+      try{
+        plan = await computePlanPanelProAsync(st, parts, (p)=>{
+          const t = ((p.elapsedMs||0)/1000).toFixed(1);
+          const el = document.getElementById("rozrysLoadingText");
+          if(el) el.textContent = `Liczę… ${t} s`;
+        });
+      }catch(e){
+        plan = { sheets: [], note: 'Błąd podczas liczenia (Ultra 30sek).' };
+      } finally {
+        genBtn.disabled = false;
+      }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
       renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
       return;
