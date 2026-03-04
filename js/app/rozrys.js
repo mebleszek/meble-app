@@ -829,28 +829,56 @@
       overridesBox.style.display = grainOn ? 'block' : 'none';
       if(!grainOn) return;
 
-      const parts = agg.byMaterial[matSel.value] || [];
       const overrides = loadOverrides();
+      const u = unitSel.value === 'cm' ? 'cm' : 'mm';
+      const sel = matSel.value;
+
+      // W nowych trybach (__ALL__/__FRONTS__/__NO_FRONTS__) musimy pokazać listę wyjątków
+      // dla całego zakresu (grupując po materiale). Dla pojedynczego materiału – jak wcześniej.
+      let src = null;
+      if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
+        const mode = (sel === '__ALL__') ? 'all' : (sel === '__FRONTS__') ? 'fronts' : 'nofronts';
+        src = deriveAggForMode(mode);
+      } else {
+        src = { byMaterial: { [sel]: (agg.byMaterial[sel] || []) }, materials: [sel] };
+      }
 
       overridesBox.appendChild(h('div', { class:'muted xs', style:'font-weight:900;margin-bottom:6px', text:'Wyjątki: pozwól obrót dla wybranych elementów (mimo słoi)' }));
-      const list = h('div', { style:'display:flex;flex-direction:column;gap:6px' });
-      parts.forEach(p=>{
-        const sig = partSignature(p);
-        const row = h('label', { style:'display:flex;align-items:center;gap:10px' });
-        const cb = h('input', { type:'checkbox' });
-        cb.checked = !!overrides[sig];
-        cb.addEventListener('change', ()=>{
-          const o = loadOverrides();
-          if(cb.checked) o[sig] = true;
-          else delete o[sig];
-          saveOverrides(o);
+
+      if(!src || !src.materials || !src.materials.length){
+        overridesBox.appendChild(h('div', { class:'muted xs', text:'Brak elementów do pokazania w tym trybie.' }));
+        return;
+      }
+
+      const wrap = h('div', { style:'display:flex;flex-direction:column;gap:10px' });
+      src.materials.forEach((matKey)=>{
+        const parts = (src.byMaterial && src.byMaterial[matKey]) ? src.byMaterial[matKey] : [];
+        if(!parts.length) return;
+
+        if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
+          wrap.appendChild(h('div', { class:'muted xs', style:'font-weight:900;margin-top:2px', text: String(matKey) }));
+        }
+
+        const list = h('div', { style:'display:flex;flex-direction:column;gap:6px' });
+        parts.forEach((p)=>{
+          const sig = partSignature(p);
+          const row = h('label', { style:'display:flex;align-items:center;gap:10px' });
+          const cb = h('input', { type:'checkbox' });
+          cb.checked = !!overrides[sig];
+          cb.addEventListener('change', ()=>{
+            const o = loadOverrides();
+            if(cb.checked) o[sig] = true;
+            else delete o[sig];
+            saveOverrides(o);
+          });
+          row.appendChild(cb);
+          row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
+          list.appendChild(row);
         });
-        row.appendChild(cb);
-        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
-        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
-        list.appendChild(row);
+        wrap.appendChild(list);
       });
-      overridesBox.appendChild(list);
+
+      overridesBox.appendChild(wrap);
     }
 
     function renderOutput(plan, meta, target){
