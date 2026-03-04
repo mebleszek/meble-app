@@ -855,7 +855,9 @@
 
     function renderOutput(plan, meta, target){
       const tgt = target || out;
-      if(!target) tgt.innerHTML = '';
+      // Zawsze czyścimy target. W trybie wielomateriałowym każdy wynik ma osobny box,
+      // a pozostawienie spinnera "Liczę…" wygląda jak zawieszka.
+      tgt.innerHTML = '';
       const opt = FC.cutOptimizer;
       const sheets = plan.sheets || [];
       const u = (meta && (meta.unit === 'cm' || meta.unit === 'mm'))
@@ -961,7 +963,7 @@
       out.innerHTML = '';
       const box = h('div', { class:'rozrys-loading' });
       box.appendChild(h('div', { class:'rozrys-spinner' }));
-      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
+      box.appendChild(h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' }));
       out.appendChild(box);
     }
 
@@ -970,8 +972,10 @@
       tgt.innerHTML = '';
       const box = h('div', { class:'rozrys-loading' });
       box.appendChild(h('div', { class:'rozrys-spinner' }));
-      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
+      const textEl = h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' });
+      box.appendChild(textEl);
       tgt.appendChild(box);
+      return { box, textEl };
     }
 
     
@@ -1116,7 +1120,7 @@ async function generate(){
 
     // Pro mode: panel saw (30s) should not block UI.
     if(st.heur === "panel30"){
-      renderLoadingInto(target || null, "Liczę… 0.0 s");
+      const loadingRef = renderLoadingInto(target || null, "Liczę… 0.0 s");
       let plan = null;
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
@@ -1125,7 +1129,7 @@ async function generate(){
         tick = setInterval(()=>{
           const now = (window.performance && performance.now) ? performance.now() : Date.now();
           const t = ((now - startedAt)/1000).toFixed(1);
-          const el = document.getElementById("rozrysLoadingText");
+          const el = (loadingRef && loadingRef.textEl) ? loadingRef.textEl : null;
           if(el) el.textContent = `Liczę… ${t} s`;
         }, 120);
 
