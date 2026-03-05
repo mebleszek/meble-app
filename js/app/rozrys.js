@@ -542,7 +542,7 @@
       // worker per-run (bardziej niezawodne na telefonach)
       let worker = null;
       try{
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_02');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_03');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -607,19 +607,10 @@
       }, 35000);
 
       try{
-        // Dynamic budget (SAFE): skracamy Ultra TYLKO gdy mamy dużą pewność, że to trywialny rozkrój.
-        // Poprzednia estymacja na szybkim upakowaniu potrafiła zaniżać liczbę płyt (mobile/edge-cases),
-        // więc tu bazujemy na twardym dolnym ograniczeniu z pól powierzchni + liczbie elementów.
-        const boardArea = Math.max(1, W * H);
-        const totalArea = items.reduce((s,it)=> s + (Math.max(0,it.w)*Math.max(0,it.h)), 0);
-        const lowerBoundSheets = Math.max(1, Math.ceil(totalArea / boardArea));
-        const isTrivial = (lowerBoundSheets <= 2) && (items.length <= 24);
-
-        // Domyślnie Ultra ma pełny budżet (max 30s). Skracamy tylko dla pewnych przypadków 1–2 płyt.
-        let timeBudgetMs = 30000;
-        if(isTrivial){
-          timeBudgetMs = (lowerBoundSheets <= 1) ? 3500 : 6500;
-        }
+        // Ultra 30sekund: pełny budżet do 30s.
+        // Wcześniejsze próby "skracanek" pogarszały jakość (najlepsze poprawy często wpadają późno),
+        // więc Ultra traktujemy jako tryb maksymalnej jakości.
+        const timeBudgetMs = 30000;
 
         worker.postMessage({
           cmd: 'panel_pro',
@@ -630,10 +621,8 @@
             perSheetMs: 420,
             beamWidth: 220,
             cutPref: state.direction || 'auto',
-            // Early-stop tylko dla trywialnych przypadków (np. 1–2 płyty HDF)
-            enableEarlyStop: isTrivial,
-            minRunMs: isTrivial ? 900 : 2400,
-            patienceMs: isTrivial ? 1600 : 7000,
+            // Bez early-stop — nie ucinamy heurystyki.
+            enableEarlyStop: false,
           }
         });
       }catch(e){
