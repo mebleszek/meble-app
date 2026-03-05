@@ -607,25 +607,18 @@
       }, 35000);
 
       try{
-        // Dynamic budget: for trivial jobs (np. 1–2 płyty) nie ma sensu marnować 30s.
-        let estSheets = null;
-        try{
-          const quick = opt.packGuillotineBeam(items, W, H, K, {
-            beamWidth: 80,
-            timeMs: 180,
-            cutPref: state.direction || 'auto',
-            scrapFirst: true,
-          });
-          if(Array.isArray(quick)) estSheets = quick.length;
-        }catch(_){ }
+        // Dynamic budget (SAFE): skracamy Ultra TYLKO gdy mamy dużą pewność, że to trywialny rozkrój.
+        // Poprzednia estymacja na szybkim upakowaniu potrafiła zaniżać liczbę płyt (mobile/edge-cases),
+        // więc tu bazujemy na twardym dolnym ograniczeniu z pól powierzchni + liczbie elementów.
+        const boardArea = Math.max(1, W * H);
+        const totalArea = items.reduce((s,it)=> s + (Math.max(0,it.w)*Math.max(0,it.h)), 0);
+        const lowerBoundSheets = Math.max(1, Math.ceil(totalArea / boardArea));
+        const isTrivial = (lowerBoundSheets <= 2) && (items.length <= 24);
 
-        // Domyślnie Ultra ma pełny budżet (max 30s). Skracamy TYLKO dla trywialnych przypadków,
-        // gdzie szybkie upakowanie daje praktycznie to samo (np. 1–2 płyty HDF).
+        // Domyślnie Ultra ma pełny budżet (max 30s). Skracamy tylko dla pewnych przypadków 1–2 płyt.
         let timeBudgetMs = 30000;
-        if(estSheets !== null){
-          if(estSheets <= 1) timeBudgetMs = 3500;
-          else if(estSheets <= 2) timeBudgetMs = 6500;
-          // dla >2 płyt nie skracamy — tu realnie potrafi znaleźć lepszy wynik dopiero po kilku sekundach
+        if(isTrivial){
+          timeBudgetMs = (lowerBoundSheets <= 1) ? 3500 : 6500;
         }
 
         worker.postMessage({
@@ -637,9 +630,10 @@
             perSheetMs: 420,
             beamWidth: 220,
             cutPref: state.direction || 'auto',
-            // Early-stop knobs (worker has defaults; these just help on mobile)
-            minRunMs: (estSheets !== null && estSheets <= 2) ? 900 : 2400,
-            patienceMs: (estSheets !== null && estSheets <= 2) ? 1600 : 7000,
+            // Early-stop tylko dla trywialnych przypadków (np. 1–2 płyty HDF)
+            enableEarlyStop: isTrivial,
+            minRunMs: isTrivial ? 900 : 2400,
+            patienceMs: isTrivial ? 1600 : 7000,
           }
         });
       }catch(e){

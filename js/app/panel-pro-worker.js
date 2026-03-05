@@ -74,9 +74,9 @@ try{
     const started = now();
     const base = sortVariants(items);
 
-    // Early-stop heuristics:
-    // Ultra is a "max time" budget; on small/trivial jobs (np. 1–2 płyty HDF)
-    // we want to finish quickly when no improvement is happening.
+    // Early-stop is OPTIONAL. Enable it only for trivial jobs (np. 1–2 płyty HDF).
+    // For bigger jobs, the best improvement often appears late.
+    const enableEarlyStop = !!(opts && opts.enableEarlyStop);
     const minRunMsUser = Number(opts && opts.minRunMs);
     const minRunMs = Number.isFinite(minRunMsUser) ? Math.max(400, Math.round(minRunMsUser)) : 2400;
     const patienceMsUser = Number(opts && opts.patienceMs);
@@ -112,15 +112,14 @@ try{
       tryOne(arr);
       iters++;
 
-      // Dynamic early stop:
-      // - Always run at least `minRunMs`.
-      // - Stop when we haven't improved for a while (patience), with stricter
-      //   patience on trivial best-sheets counts.
-      {
+      if(enableEarlyStop){
+        // Dynamic early stop (ONLY when enabled):
+        // - Always run at least `minRunMs`.
+        // - Stop when we haven't improved for a while (patience), with stricter
+        //   patience on trivial best-sheets counts.
         const t = now();
         const elapsed = t - started;
         const bestSheets = best ? best.sc.sheets : Number.POSITIVE_INFINITY;
-        // If the current best uses very few sheets, waiting 30s is usually pointless.
         const dynPatience =
           (bestSheets <= 1) ? 700 :
           (bestSheets <= 2) ? 1200 :
