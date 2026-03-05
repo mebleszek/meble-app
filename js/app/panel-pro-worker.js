@@ -69,7 +69,9 @@ try{
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
     const cutPref = (opts && (opts.cutPref || opts.direction)) || 'auto';
-    const prefList = (cutPref === 'auto') ? ['along','across'] : [cutPref];
+    // For Auto we must also try the optimizer's own 'auto' split selection.
+    // Otherwise the search is artificially constrained and may leave obvious gaps.
+    const prefList = (cutPref === 'auto') ? ['auto','along','across'] : [cutPref];
 
     const started = now();
     const base = sortVariants(items);
@@ -90,6 +92,10 @@ try{
     let iters = 0;
     let lastProgress = started;
     while(now() - started < timeBudgetMs){
+      // Cooperative cancel (best-so-far)
+      if(self.__cancel && self.__cancel.active){
+        break;
+      }
       const seed = (Date.now() + iters*9973) >>> 0;
       const rnd = mulberry32(seed);
       const pick = base[Math.floor(rnd()*base.length)];
@@ -124,14 +130,22 @@ try{
 
   self.onmessage = (ev)=>{
     const msg = ev && ev.data ? ev.data : {};
+    if(msg.cmd === 'cancel'){
+      // cooperative cancel flag; the running loop checks it
+      self.__cancel = { active: true, runId: msg.runId || null };
+      return;
+    }
     if(msg.cmd !== 'panel_pro') return;
     try{
+      // reset cancel state for a new run
+      self.__cancel = { active: false, runId: msg.runId || null };
       const items = Array.isArray(msg.items) ? msg.items : [];
       const W = Number(msg.W)||2800;
       const H = Number(msg.H)||2070;
       const K = Number(msg.K)||4;
       const res = packPanelPro(items, W, H, K, msg.options || {});
-      self.postMessage({ type:'done', result: res });
+      const cancelled = !!(self.__cancel && self.__cancel.active);
+      self.postMessage({ type:'done', result: res, cancelled, runId: msg.runId || null });
     }catch(e){
       self.postMessage({ type:'error', error: String(e && (e.message||e) || 'Błąd') });
     }

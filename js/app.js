@@ -4996,9 +4996,7 @@ function getCabinetCutList(cab, room){
   const h = Number(cab.height) || 0;
   const d = Number(cab.depth) || 0;
   const bodyMat = cab.bodyColor || 'laminat';
-  // Plecy: "Brak" traktujemy jak brak materiału (nie dodajemy pozycji do Materiałów ani ROZRYS)
-  const backMatRaw = cab.backMaterial || 'HDF';
-  const backMat = (String(backMatRaw).trim().toLowerCase() === 'brak' || String(backMatRaw).trim() === '— brak —') ? '' : backMatRaw;
+  const backMat = cab.backMaterial || 'HDF';
 
   const subType = String(cab.subType || '');
   // Wisząca podblatowa ma być liczona w materiałach jak stojąca
