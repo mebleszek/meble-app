@@ -134,6 +134,17 @@
     return { byMaterial: outByMat, materials };
   }
 
+  function isFrontMaterialKey(materialKey){
+    return /^\s*Front\s*:/i.test(String(materialKey||''));
+  }
+
+  function normalizeFrontLaminatMaterialKey(materialKey){
+    // Jeśli front jest z laminatu i ma kolor jak korpus, łączymy pod ten sam klucz materiału.
+    // Fronty w Materiałach mają postać: "Front: laminat • <KOLOR>".
+    const m = String(materialKey||'').match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
+    return m ? String(m[1]||'').trim() : String(materialKey||'').trim();
+  }
+
   function h(tag, attrs, children){
     const el = document.createElement(tag);
     if(attrs){
@@ -483,6 +494,8 @@
   }
 
   // ===== Panel-saw PRO (30s) in Web Worker (non-blocking) =====
+  // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
+  // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
   function computePlanPanelProAsync(state, parts, onProgress){
     return new Promise((resolve)=>{
       const opt = FC.cutOptimizer;
@@ -526,22 +539,39 @@
       const W = Math.max(10, W0 - 2*trim);
       const H = Math.max(10, H0 - 2*trim);
 
-      // singleton worker
-      if(!FC._panelProWorker){
+      // worker per-run (bardziej niezawodne na telefonach)
+      let worker = null;
+      try{
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260303_03');
+      }catch(e){
+        // fallback (sync, limited)
         try{
-          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260303_02');
-        }catch(e){
-          // fallback (sync, limited)
-          try{
-            const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 600 });
-            return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
-          }catch(_){
-            return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
-          }
+          const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, scrapFirst:true });
+          return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
+        }catch(_){
+          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
         }
       }
 
-      const worker = FC._panelProWorker;
+      let settled = false;
+      let tmr = null;
+
+      const cleanup = ()=>{
+        try{ worker.removeEventListener('message', handle); }catch(_){ }
+        try{ worker.removeEventListener('error', onErr); }catch(_){ }
+        try{ worker.removeEventListener('messageerror', onMsgErr); }catch(_){ }
+        if(tmr){ try{ clearTimeout(tmr); }catch(_){ } tmr = null; }
+        try{ worker.terminate(); }catch(_){ }
+        worker = null;
+      };
+
+      const finish = (payload)=>{
+        if(settled) return;
+        settled = true;
+        cleanup();
+        resolve(payload);
+      };
+
       const handle = (ev)=>{
         const msg = ev && ev.data ? ev.data : {};
         if(msg.type === 'progress'){
@@ -549,18 +579,33 @@
           return;
         }
         if(msg.type === 'done'){
-          worker.removeEventListener('message', handle);
           const result = msg.result || {};
-          resolve({ sheets: result.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
+          finish({ sheets: result.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
           return;
         }
         if(msg.type === 'error'){
-          worker.removeEventListener('message', handle);
-          resolve({ sheets: [], note: msg.error || 'Błąd worker', meta: { trim, boardW: W0, boardH: H0, unit } });
+          finish({ sheets: [], note: msg.error || 'Błąd worker', meta: { trim, boardW: W0, boardH: H0, unit } });
         }
       };
 
+      const onErr = ()=>{
+        // Worker script failed to load or runtime error
+        finish({ sheets: [], note: 'Błąd Web Workera (nie udało się wykonać obliczeń).', meta: { trim, boardW: W0, boardH: H0, unit } });
+      };
+
+      const onMsgErr = ()=>{
+        finish({ sheets: [], note: 'Błąd komunikacji z Web Workerem.', meta: { trim, boardW: W0, boardH: H0, unit } });
+      };
+
       worker.addEventListener('message', handle);
+      worker.addEventListener('error', onErr);
+      worker.addEventListener('messageerror', onMsgErr);
+
+      // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
+      tmr = setTimeout(()=>{
+        finish({ sheets: [], note: 'Liczenie przerwane: przekroczono limit czasu (brak odpowiedzi workera).', meta: { trim, boardW: W0, boardH: H0, unit } });
+      }, 35000);
+
       try{
         worker.postMessage({
           cmd: 'panel_pro',
@@ -569,8 +614,8 @@
           options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
         });
       }catch(e){
-        worker.removeEventListener('message', handle);
-        resolve({ sheets: [], note: 'Nie udało się wystartować liczenia.', meta: { trim, boardW: W0, boardH: H0, unit } });
+        // Posting failed: cleanup and return
+        finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', meta: { trim, boardW: W0, boardH: H0, unit } });
       }
     });
   }
@@ -626,6 +671,26 @@
     const matWrap = h('div');
     matWrap.appendChild(h('label', { text:'Materiał' }));
     const matSel = h('select', { id:'rozMat' });
+    // Specjalne tryby (generowanie na raz)
+    [
+      { v:'__ALL__', t:'WSZYSTKIE' },
+      { v:'__FRONTS__', t:'FRONTY' },
+      { v:'__NO_FRONTS__', t:'BEZ FRONTÓW' },
+    ].forEach(x=>{
+      const o = document.createElement('option');
+      o.value = x.v;
+      o.textContent = x.t;
+      matSel.appendChild(o);
+    });
+    // Separator (disabled)
+    {
+      const o = document.createElement('option');
+      o.value = '';
+      o.textContent = '────────';
+      o.disabled = true;
+      matSel.appendChild(o);
+    }
+    // Konkretny materiał
     agg.materials.forEach(m=>{
       const o = document.createElement('option');
       o.value = m;
@@ -788,8 +853,9 @@
       overridesBox.appendChild(list);
     }
 
-    function renderOutput(plan, meta){
-      out.innerHTML = '';
+    function renderOutput(plan, meta, target){
+      const tgt = target || out;
+      if(!target) tgt.innerHTML = '';
       const opt = FC.cutOptimizer;
       const sheets = plan.sheets || [];
       const u = (meta && (meta.unit === 'cm' || meta.unit === 'mm'))
@@ -798,7 +864,7 @@
           ? meta.meta.unit
           : 'mm';
       if(!sheets.length){
-        out.appendChild(h('div', { class:'muted', text:'Brak wyniku.' }));
+        tgt.appendChild(h('div', { class:'muted', text:'Brak wyniku.' }));
         return;
       }
 
@@ -812,7 +878,7 @@
 
       const pct = sum.area>0 ? (sum.waste/sum.area)*100 : 0;
 
-      out.appendChild(h('div', { class:'card', style:'margin:0', html:`
+      tgt.appendChild(h('div', { class:'card', style:'margin:0', html:`
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><strong>Materiał:</strong> ${meta.material}</div>
           <div><strong>Płyty:</strong> ${sheets.length} szt.</div>
@@ -873,7 +939,7 @@
       });
       expRow.appendChild(csvBtn);
       expRow.appendChild(pdfBtn);
-      out.appendChild(expRow);
+      tgt.appendChild(expRow);
 
       const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
       sheets.forEach((s,i)=>{
@@ -886,7 +952,7 @@
         canvas.style.width = '100%';
         canvas.style.marginTop = '10px';
         box.appendChild(canvas);
-        out.appendChild(box);
+        tgt.appendChild(box);
         drawSheet(canvas, s, u, edgeSubMm);
       });
     }
@@ -897,6 +963,15 @@
       box.appendChild(h('div', { class:'rozrys-spinner' }));
       box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
       out.appendChild(box);
+    }
+
+    function renderLoadingInto(target, text){
+      const tgt = target || out;
+      tgt.innerHTML = '';
+      const box = h('div', { class:'rozrys-loading' });
+      box.appendChild(h('div', { class:'rozrys-spinner' }));
+      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
+      tgt.appendChild(box);
     }
 
     
@@ -971,59 +1046,182 @@
       };
       return 'plan_' + hashStr(JSON.stringify(keyObj));
     }
+
+function deriveAggForMode(mode){
+  // mode: 'all' | 'fronts' | 'nofronts'
+  const accByMat = {};
+  const pushPart = (matKey, p)=>{
+    const key = `${p.name}||${p.w}||${p.h}`;
+    accByMat[matKey] = accByMat[matKey] || new Map();
+    const map = accByMat[matKey];
+    if(map.has(key)) map.get(key).qty += Number(p.qty)||0;
+    else map.set(key, { name:p.name, w:p.w, h:p.h, qty:Number(p.qty)||1, material: matKey });
+  };
+  for(const mat of agg.materials){
+    const parts = agg.byMaterial[mat] || [];
+    for(const p of parts){
+      const isFront = (p.name === "Front") || isFrontMaterialKey(p.material);
+      if(mode === "fronts" && !isFront) continue;
+      if(mode === "nofronts" && isFront) continue;
+      const matKey = (mode === "all") ? normalizeFrontLaminatMaterialKey(p.material) : p.material;
+      pushPart(matKey, Object.assign({}, p, { material: matKey }));
+    }
+  }
+  const materials = Object.keys(accByMat).sort((a,b)=>a.localeCompare(b,"pl"));
+  const byMaterial = {};
+  for(const m of materials){
+    byMaterial[m] = Array.from(accByMat[m].values()).sort((a,b)=>{
+      const aa = Math.max(a.w,a.h);
+      const bb = Math.max(b.w,b.h);
+      return bb-aa;
+    });
+  }
+  return { byMaterial, materials };
+}
+
+let _rozrysRunId = 0;
+let _rozrysRunning = false;
+
 async function generate(){
-      const material = matSel.value;
-      const parts = agg.byMaterial[material] || [];
-      const st = {
-        material,
-        unit: unitSel.value,
-        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
-        boardW: Number(inW.value)|| (unitSel.value==='mm'?2800:280),
-        boardH: Number(inH.value)|| (unitSel.value==='mm'?2070:207),
-        kerf: Number(inK.value)|| (unitSel.value==='mm'?4:0.4),
-        edgeTrim: Number(inTrim.value)|| (unitSel.value==='mm'?20:2),
-        grain: !!grainChk.checked,
-        heur: heurSel.value,
-        direction: dirSel.value,
-      };
-      // cache: jeśli identyczne wejście było już liczone, pokaż wynik natychmiast
-      const cache = loadPlanCache();
-      const cacheKey = makePlanCacheKey(st, parts);
-      if(cache[cacheKey] && cache[cacheKey].plan){
-        const cached = cache[cacheKey].plan;
-        renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta });
-        return;
-      }
+  if(_rozrysRunning) return;
+  _rozrysRunning = true;
+  const runId = (++_rozrysRunId);
+  genBtn.disabled = true;
+  try{
+  const sel = matSel.value;
+  const baseSt = {
+    unit: unitSel.value,
+    edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
+    boardW: Number(inW.value)|| (unitSel.value==="mm"?2800:280),
+    boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
+    kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
+    edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
+    grain: !!grainChk.checked,
+    heur: heurSel.value,
+    direction: dirSel.value,
+  };
 
+  const cache = loadPlanCache();
 
-      // Pro mode: panel saw (30s) should not block UI.
-      if(st.heur === 'panel30'){
-        genBtn.disabled = true;
-        renderLoading('Liczę… 0.0 s');
-        const plan = await computePlanPanelProAsync(st, parts, (p)=>{
-          const t = ((p.elapsedMs||0)/1000).toFixed(1);
-          const el = document.getElementById('rozrysLoadingText');
-          if(el) el.textContent = `Liczę… ${t} s`;
-        });
-        genBtn.disabled = false;
-
-        // zapisz do cache
-        try{
-          cache[cacheKey] = { ts: Date.now(), plan };
-          savePlanCache(cache);
-        }catch(_){}
-
-        renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
-        return;
-      }
-
-      const plan = computePlan(st, parts);
-      // zapisz do cache
-      try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){ }
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta });
+  const runOne = async (material, parts, target)=>{
+    if(runId !== _rozrysRunId) return;
+    const st = Object.assign({}, baseSt, { material });
+    const cacheKey = makePlanCacheKey(st, parts);
+    if(cache[cacheKey] && cache[cacheKey].plan){
+      const cached = cache[cacheKey].plan;
+      if(runId !== _rozrysRunId) return;
+      renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
+      return;
     }
 
-    // events
+    // Pro mode: panel saw (30s) should not block UI.
+    if(st.heur === "panel30"){
+      renderLoadingInto(target || null, "Liczę… 0.0 s");
+      let plan = null;
+      const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
+      let tick = null;
+      try{
+        // Lokalny licznik czasu — niezależny od progress z workera
+        tick = setInterval(()=>{
+          const now = (window.performance && performance.now) ? performance.now() : Date.now();
+          const t = ((now - startedAt)/1000).toFixed(1);
+          const el = document.getElementById("rozrysLoadingText");
+          if(el) el.textContent = `Liczę… ${t} s`;
+        }, 120);
+
+        plan = await computePlanPanelProAsync(st, parts, (p)=>{
+          try{ void(p); }catch(_){ }
+        });
+      }catch(e){
+        plan = { sheets: [], note: 'Błąd podczas liczenia (Ultra 30sek).' };
+      } finally {
+        if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
+      }
+
+      // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
+      if(!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0){
+        try{
+          const opt2 = FC.cutOptimizer;
+          const grainOn2 = !!st.grain;
+          const overrides2 = loadOverrides();
+          const edgeStore2 = loadEdgeStore();
+          const partsMm2 = (parts||[]).map(p=>{
+            const sig = partSignature(p);
+            const allow = grainOn2 ? !!overrides2[sig] : true;
+            const e = edgeStore2[sig] || {};
+            return {
+              key: sig,
+              name: p.name,
+              w: p.w,
+              h: p.h,
+              qty: p.qty,
+              material: p.material,
+              rotationAllowed: grainOn2 ? allow : true,
+              edgeW1: !!e.w1,
+              edgeW2: !!e.w2,
+              edgeH1: !!e.h1,
+              edgeH2: !!e.h2,
+            };
+          });
+          const items2 = opt2.makeItems(partsMm2);
+          const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
+          const toMm2 = (v)=>{
+            const n = Number(v);
+            if(!Number.isFinite(n)) return 0;
+            return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
+          };
+          const W02 = toMm2(st.boardW) || 2800;
+          const H02 = toMm2(st.boardH) || 2070;
+          const K2  = toMm2(st.kerf)   || 4;
+          const trim2 = toMm2(st.edgeTrim) || 20;
+          const W2 = Math.max(10, W02 - 2*trim2);
+          const H2 = Math.max(10, H02 - 2*trim2);
+          const sheets2 = opt2.packGuillotineBeam(items2, W2, H2, K2, {
+            beamWidth: 110,
+            timeMs: 900,
+            cutPref: st.direction || 'auto',
+            scrapFirst: true,
+          });
+          plan = { sheets: sheets2, meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
+        }catch(_){ }
+      }
+      try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
+      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
+      return;
+    }
+
+    const plan = computePlan(st, parts);
+    try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
+    renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
+  };
+
+  if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
+    out.innerHTML = "";
+    const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
+    const derived = deriveAggForMode(mode);
+    if(!derived.materials.length){
+      out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
+      return;
+    }
+    for(const m of derived.materials){
+      const parts = derived.byMaterial[m] || [];
+      const box = h("div", { style:"margin-top:12px" });
+      out.appendChild(box);
+      await runOne(m, parts, box);
+    }
+    return;
+  }
+
+  const material = sel;
+  const parts = agg.byMaterial[material] || [];
+  await runOne(material, parts, null);
+  } finally {
+    genBtn.disabled = false;
+    _rozrysRunning = false;
+  }
+}
+
+// events
     unitSel.addEventListener('change', ()=>{
       const prev = state.unit;
       const next = unitSel.value;
@@ -1046,7 +1244,8 @@ async function generate(){
     });
 
     matSel.addEventListener('change', ()=>{
-      applyHintFromMagazyn(matSel.value);
+      const v = matSel.value;
+      if(v && !String(v).startsWith('__')) applyHintFromMagazyn(v);
       renderOverrides();
       out.innerHTML = '';
     });
