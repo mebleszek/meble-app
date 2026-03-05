@@ -62,6 +62,7 @@ try{
 
   let _cancelled = false;
   let _activeRunId = 0;
+  let _pendingCancelRunId = 0;
 
   function packPanelPro(items, W, H, K, opts){
     if(!opt || typeof opt.packGuillotineBeam !== 'function'){
@@ -132,13 +133,20 @@ try{
     const msg = ev && ev.data ? ev.data : {};
     if(msg.cmd === 'cancel'){
       // cancel current run; worker will return best-so-far on next check
-      if(msg.runId && msg.runId === _activeRunId) _cancelled = true;
+      const rid = Number(msg.runId)||0;
+      // If cancel arrives before we set _activeRunId (race on mobile), remember it.
+      if(rid && rid === _activeRunId) _cancelled = true;
+      else if(rid) _pendingCancelRunId = rid;
       return;
     }
     if(msg.cmd !== 'panel_pro') return;
     try{
       _cancelled = false;
       _activeRunId = Number(msg.runId)||0;
+      if(_pendingCancelRunId && _pendingCancelRunId === _activeRunId){
+        _cancelled = true;
+        _pendingCancelRunId = 0;
+      }
       const items = Array.isArray(msg.items) ? msg.items : [];
       const W = Number(msg.W)||2800;
       const H = Number(msg.H)||2070;

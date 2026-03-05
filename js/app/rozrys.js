@@ -542,7 +542,7 @@
       // worker per-run (bardziej niezawodne na telefonach)
       let worker = null;
       try{
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260305_01');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_01');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -559,9 +559,11 @@
       // allow caller to cancel this run
       const runId = (control && Number(control.runId)) ? Number(control.runId) : 0;
       if(control){
-        control.cancel = ()=>{
-          try{ worker && worker.postMessage({ cmd:'cancel', runId }); }catch(_){ }
-        };
+        // If UI requested cancel before we managed to attach a working cancel() (race), honor it.
+        const postCancel = ()=>{ try{ worker && worker.postMessage({ cmd:'cancel', runId }); }catch(_){ } };
+        control.cancel = ()=>{ control._cancelRequested = true; postCancel(); };
+        // If cancel was requested earlier, send it immediately.
+        if(control._cancelRequested) postCancel();
       }
 
       const cleanup = ()=>{
@@ -832,8 +834,36 @@
       }catch(_){ }
     }
 
+    // Helper: whether current material (by name) is marked as having grain in the price list.
+    function materialHasGrain(name){
+      try{ return !!(FC && typeof FC.materialHasGrain === 'function' && FC.materialHasGrain(name)); }catch(_){ return false; }
+    }
+
+    function updateGrainAvailability(){
+      const sel = String(matSel.value||'');
+      // For bulk modes keep the checkbox enabled; grain will apply only to materials that have grain.
+      if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
+        grainChk.disabled = false;
+        return;
+      }
+      if(!sel || sel.startsWith('__')){
+        grainChk.checked = false;
+        grainChk.disabled = true;
+        return;
+      }
+      const has = materialHasGrain(sel);
+      if(has){
+        grainChk.disabled = false;
+      } else {
+        // If material has no grain, don't enforce direction and don't show overrides.
+        grainChk.checked = false;
+        grainChk.disabled = true;
+      }
+    }
+
     function renderOverrides(){
-      const grainOn = !!grainChk.checked;
+      const sel = String(matSel.value||'');
+      const grainOn = (!!grainChk.checked) && (!!sel) && (!sel.startsWith('__')) && materialHasGrain(sel);
       overridesBox.innerHTML = '';
       overridesBox.style.display = grainOn ? 'block' : 'none';
       if(!grainOn) return;
@@ -871,6 +901,7 @@
         boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
         kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
         edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
+        // Grain is applied per-material (only where the price list marks it as having grain).
         grain: !!grainChk.checked,
         heur: heurSel.value,
         direction: dirSel.value,
@@ -902,7 +933,7 @@
             const parts = derived.byMaterial[m] || [];
             const box = h('div', { style:'margin-top:12px' });
             out.appendChild(box);
-            const st = Object.assign({}, stBase, { material: m });
+            const st = Object.assign({}, stBase, { material: m, grain: !!(stBase.grain && materialHasGrain(m)) });
             const cacheKey = makePlanCacheKey(st, parts);
             if(cache[cacheKey] && cache[cacheKey].plan){
               const plan = cache[cacheKey].plan;
@@ -930,7 +961,8 @@
           setGenBtnMode('idle');
           return false;
         }
-        const st = Object.assign({}, getBaseState(), { material });
+        const base = getBaseState();
+        const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
         const cache = loadPlanCache();
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
@@ -1231,7 +1263,7 @@ async function generate(force){
 
   const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
-    const st = Object.assign({}, baseSt, { material });
+    const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
     const cacheKey = makePlanCacheKey(st, parts);
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
@@ -1248,6 +1280,11 @@ async function generate(force){
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
       const control = { runId };
+      // Make cancel responsive even if user taps very quickly (before worker is ready).
+      _rozrysActiveCancel = ()=>{
+        try{ control._cancelRequested = true; }catch(_){ }
+        try{ control.cancel && control.cancel(); }catch(_){ }
+      };
       try{
         // Lokalny licznik czasu — niezależny od progress z workera
         tick = setInterval(()=>{
@@ -1255,9 +1292,6 @@ async function generate(force){
           const t = ((now - startedAt)/1000).toFixed(1);
           if(loading && loading.textEl) loading.textEl.textContent = `Liczę… ${t} s`;
         }, 120);
-
-        // allow UI to cancel this run
-        _rozrysActiveCancel = ()=>{ try{ control.cancel && control.cancel(); }catch(_){ } };
 
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
           try{ void(p); }catch(_){ }
@@ -1380,6 +1414,7 @@ async function generate(force){
     matSel.addEventListener('change', ()=>{
       const v = matSel.value;
       if(v && !String(v).startsWith('__')) applyHintFromMagazyn(v);
+      updateGrainAvailability();
       renderOverrides();
       tryAutoRenderFromCache();
     });
@@ -1433,6 +1468,7 @@ async function generate(force){
     });
 
     // initial
+    updateGrainAvailability();
     renderOverrides();
     tryAutoRenderFromCache();
   }

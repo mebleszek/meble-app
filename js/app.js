@@ -514,10 +514,24 @@ const DEFAULT_PROJECT = FC.project.DEFAULT_PROJECT;
 
 /* ===== State initialization ===== */
 let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
-  { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35 },
-  { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180 },
-  { id: 'm3', materialType: 'akcesoria', manufacturer: 'blum', symbol: 'B1', name: 'Zawias Blum', price: 18 }
+  { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35, hasGrain: false },
+  { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180, hasGrain: false },
+  { id: 'm3', materialType: 'akcesoria', manufacturer: 'blum', symbol: 'B1', name: 'Zawias Blum', price: 18, hasGrain: false }
 ]);
+
+// Helper: ROZRYS and other modules can ask whether a material has grain direction.
+// Matching is done by the displayed material name.
+window.FC = window.FC || {};
+window.FC.materialHasGrain = function(materialName){
+  const name = String(materialName||'').trim();
+  if(!name) return false;
+  try{
+    const it = (Array.isArray(materials) ? materials : []).find(m => String(m.name||'').trim() === name);
+    return !!(it && it.hasGrain);
+  }catch(_){
+    return false;
+  }
+};
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
 const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null, lastAddedAt:null, lastAddedCabinetId:null, lastAddedCabinetType:null };
@@ -1617,8 +1631,9 @@ function saveMaterialFromForm(){
   const symbol = document.getElementById('formSymbol').value.trim();
   const name = document.getElementById('formName').value.trim();
   const price = parseFloat(document.getElementById('formPrice').value || 0);
+  const hasGrain = !!(document.getElementById('formHasGrain') && document.getElementById('formHasGrain').checked);
   if(!name){ alert('Wprowadź nazwę'); return; }
-  const data = { materialType: type, manufacturer, symbol, name, price };
+  const data = { materialType: type, manufacturer, symbol, name, price, hasGrain };
   if(uiState.editingId){
     materials = materials.map(m => m.id === uiState.editingId ? Object.assign({}, m, data) : m);
     uiState.editingId = null;
@@ -1627,6 +1642,8 @@ function saveMaterialFromForm(){
     materials.push(Object.assign({ id }, data));
   }
   FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+  // keep helper accurate
+  try{ window.FC.materialHasGrain = window.FC.materialHasGrain; }catch(_){ }
   renderPriceModal();
   renderCabinetModal();
 }
@@ -5828,6 +5845,8 @@ function renderPriceModal(){
         document.getElementById('formSymbol').value = item.symbol || '';
         document.getElementById('formName').value = item.name || '';
         document.getElementById('formPrice').value = item.price || '';
+        const g = document.getElementById('formHasGrain');
+        if(g) g.checked = !!item.hasGrain;
       }
     } else {
       const item = services.find(s => s.id === uiState.editingId);
@@ -5844,6 +5863,8 @@ function renderPriceModal(){
     document.getElementById('formSymbol').value = '';
     document.getElementById('formName').value = '';
     document.getElementById('formPrice').value = '';
+    const g = document.getElementById('formHasGrain');
+    if(g) g.checked = false;
     document.getElementById('formCategory').value = 'Montaż';
     document.getElementById('formServiceName').value = '';
     document.getElementById('formServicePrice').value = '';
@@ -5863,7 +5884,8 @@ function renderPriceModal(){
   filtered.forEach(item => {
     const row = document.createElement('div'); row.className='list-item';
     const left = document.createElement('div');
-    left.innerHTML = `<div style="font-weight:900">${item.name}</div><div class="muted-tag xs">${isMat ? (item.materialType + ' • ' + (item.manufacturer||'') + (item.symbol ? ' • SYM: '+item.symbol : '')) : (item.category || '')}</div>`;
+    const grainBadge = (isMat && item.hasGrain) ? ' • 🌾 słoje' : '';
+    left.innerHTML = `<div style="font-weight:900">${item.name}</div><div class="muted-tag xs">${isMat ? (item.materialType + ' • ' + (item.manufacturer||'') + (item.symbol ? ' • SYM: '+item.symbol : '') + grainBadge) : (item.category || '')}</div>`;
     const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
     const price = document.createElement('div'); price.style.fontWeight='900'; price.textContent = (Number(item.price)||0).toFixed(2) + ' PLN';
     const editBtn = document.createElement('button'); editBtn.className='btn'; editBtn.textContent='Edytuj';
