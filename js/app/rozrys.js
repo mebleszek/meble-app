@@ -494,8 +494,6 @@
   }
 
   // ===== Panel-saw PRO (30s) in Web Worker (non-blocking) =====
-  // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
-  // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
   function computePlanPanelProAsync(state, parts, onProgress){
     return new Promise((resolve)=>{
       const opt = FC.cutOptimizer;
@@ -539,19 +537,22 @@
       const W = Math.max(10, W0 - 2*trim);
       const H = Math.max(10, H0 - 2*trim);
 
-      // worker per-run (bardziej niezawodne na telefonach)
-      let worker = null;
-      try{
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_03');
-      }catch(e){
-        // fallback (sync, limited)
+      // singleton worker
+      if(!FC._panelProWorker){
         try{
-          const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, scrapFirst:true });
-          return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
-        }catch(_){
-          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
+          FC._panelProWorker = new Worker('js/app/panel-pro-worker.js?v=20260303_02');
+        }catch(e){
+          // fallback (sync, limited)
+          try{
+            const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 600 });
+            return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
+          }catch(_){
+            return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
+          }
         }
       }
+
+      const worker = FC._panelProWorker;
 
       let settled = false;
       let tmr = null;
@@ -561,8 +562,6 @@
         try{ worker.removeEventListener('error', onErr); }catch(_){ }
         try{ worker.removeEventListener('messageerror', onMsgErr); }catch(_){ }
         if(tmr){ try{ clearTimeout(tmr); }catch(_){ } tmr = null; }
-        try{ worker.terminate(); }catch(_){ }
-        worker = null;
       };
 
       const finish = (payload)=>{
@@ -590,10 +589,15 @@
 
       const onErr = ()=>{
         // Worker script failed to load or runtime error
+        // Reset the singleton so next run can recreate it.
+        try{ worker.terminate(); }catch(_){ }
+        FC._panelProWorker = null;
         finish({ sheets: [], note: 'Błąd Web Workera (nie udało się wykonać obliczeń).', meta: { trim, boardW: W0, boardH: H0, unit } });
       };
 
       const onMsgErr = ()=>{
+        try{ worker.terminate(); }catch(_){ }
+        FC._panelProWorker = null;
         finish({ sheets: [], note: 'Błąd komunikacji z Web Workerem.', meta: { trim, boardW: W0, boardH: H0, unit } });
       };
 
@@ -603,27 +607,17 @@
 
       // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
       tmr = setTimeout(()=>{
+        try{ worker.terminate(); }catch(_){ }
+        FC._panelProWorker = null;
         finish({ sheets: [], note: 'Liczenie przerwane: przekroczono limit czasu (brak odpowiedzi workera).', meta: { trim, boardW: W0, boardH: H0, unit } });
       }, 35000);
 
       try{
-        // Ultra 30sekund: pełny budżet do 30s.
-        // Wcześniejsze próby "skracanek" pogarszały jakość (najlepsze poprawy często wpadają późno),
-        // więc Ultra traktujemy jako tryb maksymalnej jakości.
-        const timeBudgetMs = 30000;
-
         worker.postMessage({
           cmd: 'panel_pro',
           items,
           W, H, K,
-          options: {
-            timeBudgetMs,
-            perSheetMs: 420,
-            beamWidth: 220,
-            cutPref: state.direction || 'auto',
-            // Bez early-stop — nie ucinamy heurystyki.
-            enableEarlyStop: false,
-          }
+          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
         });
       }catch(e){
         // Posting failed: cleanup and return
@@ -867,9 +861,7 @@
 
     function renderOutput(plan, meta, target){
       const tgt = target || out;
-      // Zawsze czyścimy target. W trybie wielomateriałowym każdy wynik ma osobny box,
-      // a pozostawienie spinnera "Liczę…" wygląda jak zawieszka.
-      tgt.innerHTML = '';
+      if(!target) tgt.innerHTML = '';
       const opt = FC.cutOptimizer;
       const sheets = plan.sheets || [];
       const u = (meta && (meta.unit === 'cm' || meta.unit === 'mm'))
@@ -975,19 +967,8 @@
       out.innerHTML = '';
       const box = h('div', { class:'rozrys-loading' });
       box.appendChild(h('div', { class:'rozrys-spinner' }));
-      box.appendChild(h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' }));
+      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
       out.appendChild(box);
-    }
-
-    function renderLoadingInto(target, text){
-      const tgt = target || out;
-      tgt.innerHTML = '';
-      const box = h('div', { class:'rozrys-loading' });
-      box.appendChild(h('div', { class:'rozrys-spinner' }));
-      const textEl = h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' });
-      box.appendChild(textEl);
-      tgt.appendChild(box);
-      return { box, textEl };
     }
 
     
@@ -1095,15 +1076,7 @@ function deriveAggForMode(mode){
   return { byMaterial, materials };
 }
 
-let _rozrysRunId = 0;
-let _rozrysRunning = false;
-
 async function generate(){
-  if(_rozrysRunning) return;
-  _rozrysRunning = true;
-  const runId = (++_rozrysRunId);
-  genBtn.disabled = true;
-  try{
   const sel = matSel.value;
   const baseSt = {
     unit: unitSel.value,
@@ -1120,86 +1093,29 @@ async function generate(){
   const cache = loadPlanCache();
 
   const runOne = async (material, parts, target)=>{
-    if(runId !== _rozrysRunId) return;
     const st = Object.assign({}, baseSt, { material });
     const cacheKey = makePlanCacheKey(st, parts);
     if(cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
-      if(runId !== _rozrysRunId) return;
       renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
       return;
     }
 
     // Pro mode: panel saw (30s) should not block UI.
     if(st.heur === "panel30"){
-      const loadingRef = renderLoadingInto(target || null, "Liczę… 0.0 s");
+      genBtn.disabled = true;
+      renderLoading("Liczę… 0.0 s");
       let plan = null;
-      const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
-      let tick = null;
       try{
-        // Lokalny licznik czasu — niezależny od progress z workera
-        tick = setInterval(()=>{
-          const now = (window.performance && performance.now) ? performance.now() : Date.now();
-          const t = ((now - startedAt)/1000).toFixed(1);
-          const el = (loadingRef && loadingRef.textEl) ? loadingRef.textEl : null;
-          if(el) el.textContent = `Liczę… ${t} s`;
-        }, 120);
-
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
-          try{ void(p); }catch(_){ }
+          const t = ((p.elapsedMs||0)/1000).toFixed(1);
+          const el = document.getElementById("rozrysLoadingText");
+          if(el) el.textContent = `Liczę… ${t} s`;
         });
       }catch(e){
         plan = { sheets: [], note: 'Błąd podczas liczenia (Ultra 30sek).' };
       } finally {
-        if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
-      }
-
-      // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
-      if(!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0){
-        try{
-          const opt2 = FC.cutOptimizer;
-          const grainOn2 = !!st.grain;
-          const overrides2 = loadOverrides();
-          const edgeStore2 = loadEdgeStore();
-          const partsMm2 = (parts||[]).map(p=>{
-            const sig = partSignature(p);
-            const allow = grainOn2 ? !!overrides2[sig] : true;
-            const e = edgeStore2[sig] || {};
-            return {
-              key: sig,
-              name: p.name,
-              w: p.w,
-              h: p.h,
-              qty: p.qty,
-              material: p.material,
-              rotationAllowed: grainOn2 ? allow : true,
-              edgeW1: !!e.w1,
-              edgeW2: !!e.w2,
-              edgeH1: !!e.h1,
-              edgeH2: !!e.h2,
-            };
-          });
-          const items2 = opt2.makeItems(partsMm2);
-          const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
-          const toMm2 = (v)=>{
-            const n = Number(v);
-            if(!Number.isFinite(n)) return 0;
-            return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
-          };
-          const W02 = toMm2(st.boardW) || 2800;
-          const H02 = toMm2(st.boardH) || 2070;
-          const K2  = toMm2(st.kerf)   || 4;
-          const trim2 = toMm2(st.edgeTrim) || 20;
-          const W2 = Math.max(10, W02 - 2*trim2);
-          const H2 = Math.max(10, H02 - 2*trim2);
-          const sheets2 = opt2.packGuillotineBeam(items2, W2, H2, K2, {
-            beamWidth: 110,
-            timeMs: 900,
-            cutPref: st.direction || 'auto',
-            scrapFirst: true,
-          });
-          plan = { sheets: sheets2, meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
-        }catch(_){ }
+        genBtn.disabled = false;
       }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
       renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
@@ -1231,10 +1147,6 @@ async function generate(){
   const material = sel;
   const parts = agg.byMaterial[material] || [];
   await runOne(material, parts, null);
-  } finally {
-    genBtn.disabled = false;
-    _rozrysRunning = false;
-  }
 }
 
 // events
