@@ -881,13 +881,52 @@
       try{
         if(_rozrysRunning) return false;
         const sel = matSel.value;
-        if(!sel || String(sel).startsWith('__')){
+        if(!sel){
+          // Variant B: no selection => clear output
+          out.innerHTML = '';
+          setGenBtnMode('idle');
+          return false;
+        }
+
+        // Variant B: special modes should also auto-render from cache,
+        // but never keep stale results when cache miss.
+        if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
+          out.innerHTML = '';
+          const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
+          const derived = deriveAggForMode(mode);
+          const stBase = getBaseState();
+          const cache = loadPlanCache();
+          let allHit = true;
+          let anyHit = false;
+          for(const m of derived.materials){
+            const parts = derived.byMaterial[m] || [];
+            const box = h('div', { style:'margin-top:12px' });
+            out.appendChild(box);
+            const st = Object.assign({}, stBase, { material: m });
+            const cacheKey = makePlanCacheKey(st, parts);
+            if(cache[cacheKey] && cache[cacheKey].plan){
+              const plan = cache[cacheKey].plan;
+              renderOutput(plan, { material: m, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, box);
+              anyHit = true;
+            } else {
+              allHit = false;
+              box.innerHTML = '';
+            }
+          }
+          setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
+          return anyHit;
+        }
+
+        if(String(sel).startsWith('__')){
+          out.innerHTML = '';
           setGenBtnMode('idle');
           return false;
         }
         const material = sel;
         const parts = agg.byMaterial[material] || [];
         if(!parts.length){
+          // Variant B: clear output when nothing to render
+          out.innerHTML = '';
           setGenBtnMode('idle');
           return false;
         }
@@ -900,9 +939,12 @@
           setGenBtnMode('done');
           return true;
         }
+        // Variant B: cache miss => clear view (no stale result)
+        out.innerHTML = '';
         setGenBtnMode('idle');
         return false;
       }catch(_){
+        out.innerHTML = '';
         setGenBtnMode('idle');
         return false;
       }
@@ -1165,7 +1207,7 @@ function requestCancel(){
   try{ _rozrysActiveCancel && _rozrysActiveCancel(); }catch(_){ }
 }
 
-async function generate(){
+async function generate(force){
   if(_rozrysRunning) return;
   _rozrysRunning = true;
   _rozrysCancelRequested = false;
@@ -1191,7 +1233,7 @@ async function generate(){
     if(runId !== _rozrysRunId) return;
     const st = Object.assign({}, baseSt, { material });
     const cacheKey = makePlanCacheKey(st, parts);
-    if(cache[cacheKey] && cache[cacheKey].plan){
+    if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
       if(runId !== _rozrysRunId) return;
       renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
@@ -1375,9 +1417,9 @@ async function generate(){
         requestCancel();
         return;
       }
-      // If already have a cached result, "Generuj ponownie" should recompute.
-      // We simply run generate() again (it will overwrite cache).
-      generate();
+      // "Generuj ponownie" must bypass cache and recompute.
+      const force = (_rozrysBtnMode === 'done');
+      generate(force);
     });
 
     // auto preview from cache when user tweaks parameters
