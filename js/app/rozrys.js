@@ -542,7 +542,7 @@
       // worker per-run (bardziej niezawodne na telefonach)
       let worker = null;
       try{
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260303_03');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_02');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -607,11 +607,40 @@
       }, 35000);
 
       try{
+        // Dynamic budget: for trivial jobs (np. 1–2 płyty) nie ma sensu marnować 30s.
+        let estSheets = null;
+        try{
+          const quick = opt.packGuillotineBeam(items, W, H, K, {
+            beamWidth: 80,
+            timeMs: 180,
+            cutPref: state.direction || 'auto',
+            scrapFirst: true,
+          });
+          if(Array.isArray(quick)) estSheets = quick.length;
+        }catch(_){ }
+
+        // Domyślnie Ultra ma pełny budżet (max 30s). Skracamy TYLKO dla trywialnych przypadków,
+        // gdzie szybkie upakowanie daje praktycznie to samo (np. 1–2 płyty HDF).
+        let timeBudgetMs = 30000;
+        if(estSheets !== null){
+          if(estSheets <= 1) timeBudgetMs = 3500;
+          else if(estSheets <= 2) timeBudgetMs = 6500;
+          // dla >2 płyt nie skracamy — tu realnie potrafi znaleźć lepszy wynik dopiero po kilku sekundach
+        }
+
         worker.postMessage({
           cmd: 'panel_pro',
           items,
           W, H, K,
-          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
+          options: {
+            timeBudgetMs,
+            perSheetMs: 420,
+            beamWidth: 220,
+            cutPref: state.direction || 'auto',
+            // Early-stop knobs (worker has defaults; these just help on mobile)
+            minRunMs: (estSheets !== null && estSheets <= 2) ? 900 : 2400,
+            patienceMs: (estSheets !== null && estSheets <= 2) ? 1600 : 7000,
+          }
         });
       }catch(e){
         // Posting failed: cleanup and return
@@ -829,56 +858,28 @@
       overridesBox.style.display = grainOn ? 'block' : 'none';
       if(!grainOn) return;
 
+      const parts = agg.byMaterial[matSel.value] || [];
       const overrides = loadOverrides();
-      const u = unitSel.value === 'cm' ? 'cm' : 'mm';
-      const sel = matSel.value;
-
-      // W nowych trybach (__ALL__/__FRONTS__/__NO_FRONTS__) musimy pokazać listę wyjątków
-      // dla całego zakresu (grupując po materiale). Dla pojedynczego materiału – jak wcześniej.
-      let src = null;
-      if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
-        const mode = (sel === '__ALL__') ? 'all' : (sel === '__FRONTS__') ? 'fronts' : 'nofronts';
-        src = deriveAggForMode(mode);
-      } else {
-        src = { byMaterial: { [sel]: (agg.byMaterial[sel] || []) }, materials: [sel] };
-      }
 
       overridesBox.appendChild(h('div', { class:'muted xs', style:'font-weight:900;margin-bottom:6px', text:'Wyjątki: pozwól obrót dla wybranych elementów (mimo słoi)' }));
-
-      if(!src || !src.materials || !src.materials.length){
-        overridesBox.appendChild(h('div', { class:'muted xs', text:'Brak elementów do pokazania w tym trybie.' }));
-        return;
-      }
-
-      const wrap = h('div', { style:'display:flex;flex-direction:column;gap:10px' });
-      src.materials.forEach((matKey)=>{
-        const parts = (src.byMaterial && src.byMaterial[matKey]) ? src.byMaterial[matKey] : [];
-        if(!parts.length) return;
-
-        if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
-          wrap.appendChild(h('div', { class:'muted xs', style:'font-weight:900;margin-top:2px', text: String(matKey) }));
-        }
-
-        const list = h('div', { style:'display:flex;flex-direction:column;gap:6px' });
-        parts.forEach((p)=>{
-          const sig = partSignature(p);
-          const row = h('label', { style:'display:flex;align-items:center;gap:10px' });
-          const cb = h('input', { type:'checkbox' });
-          cb.checked = !!overrides[sig];
-          cb.addEventListener('change', ()=>{
-            const o = loadOverrides();
-            if(cb.checked) o[sig] = true;
-            else delete o[sig];
-            saveOverrides(o);
-          });
-          row.appendChild(cb);
-          row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
-          list.appendChild(row);
+      const list = h('div', { style:'display:flex;flex-direction:column;gap:6px' });
+      parts.forEach(p=>{
+        const sig = partSignature(p);
+        const row = h('label', { style:'display:flex;align-items:center;gap:10px' });
+        const cb = h('input', { type:'checkbox' });
+        cb.checked = !!overrides[sig];
+        cb.addEventListener('change', ()=>{
+          const o = loadOverrides();
+          if(cb.checked) o[sig] = true;
+          else delete o[sig];
+          saveOverrides(o);
         });
-        wrap.appendChild(list);
+        row.appendChild(cb);
+        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
+        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
+        list.appendChild(row);
       });
-
-      overridesBox.appendChild(wrap);
+      overridesBox.appendChild(list);
     }
 
     function renderOutput(plan, meta, target){

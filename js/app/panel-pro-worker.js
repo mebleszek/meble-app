@@ -74,6 +74,17 @@ try{
     const started = now();
     const base = sortVariants(items);
 
+    // Early-stop heuristics:
+    // Ultra is a "max time" budget; on small/trivial jobs (np. 1–2 płyty HDF)
+    // we want to finish quickly when no improvement is happening.
+    const minRunMsUser = Number(opts && opts.minRunMs);
+    const minRunMs = Number.isFinite(minRunMsUser) ? Math.max(400, Math.round(minRunMsUser)) : 2400;
+    const patienceMsUser = Number(opts && opts.patienceMs);
+    const patienceMsDefault = 7000;
+    const patienceMs = Number.isFinite(patienceMsUser) ? Math.max(400, Math.round(patienceMsUser)) : patienceMsDefault;
+
+    let lastImprove = started;
+
     // deterministic runs first
     let best = null;
     const tryOne = (arr)=>{
@@ -81,7 +92,10 @@ try{
         const sheets = opt.packGuillotineBeam(arr, W, H, K, { beamWidth, timeMs: perSheetMs, cutPref: pref, scrapFirst:true });
         const sc = scoreSheets(sheets);
         const res = { sheets, sc };
-        if(better(res, best)) best = res;
+        if(better(res, best)){
+          best = res;
+          lastImprove = now();
+        }
       }
     };
     base.forEach(tryOne);
@@ -97,6 +111,27 @@ try{
       const arr = shuffle(pick, rnd);
       tryOne(arr);
       iters++;
+
+      // Dynamic early stop:
+      // - Always run at least `minRunMs`.
+      // - Stop when we haven't improved for a while (patience), with stricter
+      //   patience on trivial best-sheets counts.
+      {
+        const t = now();
+        const elapsed = t - started;
+        const bestSheets = best ? best.sc.sheets : Number.POSITIVE_INFINITY;
+        // If the current best uses very few sheets, waiting 30s is usually pointless.
+        const dynPatience =
+          (bestSheets <= 1) ? 700 :
+          (bestSheets <= 2) ? 1200 :
+          (bestSheets <= 3) ? 2400 :
+          (bestSheets <= 4) ? 3500 :
+          patienceMs;
+        const dynMinRun = (bestSheets <= 2) ? Math.min(minRunMs, 1400) : minRunMs;
+        if(elapsed >= dynMinRun && (t - lastImprove) >= dynPatience){
+          break;
+        }
+      }
 
       const t = now();
       if(t - lastProgress > 500){
