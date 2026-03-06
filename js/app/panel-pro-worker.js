@@ -23,8 +23,42 @@ try{
 
   function scoreSheets(sheets){
     if(!opt || !opt.calcWaste) return { sheets: (sheets||[]).length, waste: Number.POSITIVE_INFINITY };
-    const waste = (sheets||[]).reduce((sum,s)=> sum + opt.calcWaste(s).waste, 0);
-    return { sheets: (sheets||[]).length, waste };
+    const arr = (sheets||[]);
+    let waste = arr.reduce((sum,s)=> sum + opt.calcWaste(s).waste, 0);
+
+    // Tie-breaker: penalize "duże mieszanie kierunków" na jednej płycie.
+    // Cel praktyczny: nie wymuszać częstego obracania całej płyty. Dopuszczamy rotacje,
+    // ale preferujemy sytuacje, gdy obrócone elementy mieszczą się w "pasie" <= 1000 mm.
+    // (np. można odciąć wzdłuż 30–100 cm i dopiero ten pas obracać).
+    const MAX_ROTATE_STRIP_MM = 1000;
+    for(const s of arr){
+      const pls = (s && s.placements) ? s.placements.filter(p=>p && !p.unplaced) : [];
+      if(pls.length < 2) continue;
+      let hasR = false, hasN = false;
+      let minX=1e18, minY=1e18, maxX=-1e18, maxY=-1e18;
+      for(const p of pls){
+        if(p.rotated) {
+          hasR = true;
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x + p.w);
+          maxY = Math.max(maxY, p.y + p.h);
+        } else {
+          hasN = true;
+        }
+      }
+      if(!(hasR && hasN)) continue;
+      const bw = (maxX>minX) ? (maxX-minX) : 0;
+      const bh = (maxY>minY) ? (maxY-minY) : 0;
+      const okStrip = (bw <= MAX_ROTATE_STRIP_MM) || (bh <= MAX_ROTATE_STRIP_MM);
+      if(!okStrip){
+        const area = (s.boardW||0) * (s.boardH||0);
+        // 8% płyty jako kara – tylko tie-breaker, nie przebija "mniej płyt".
+        waste += area * 0.08;
+      }
+    }
+
+    return { sheets: arr.length, waste };
   }
 
   function better(a, b){
@@ -57,7 +91,10 @@ try{
     const byMaxSideDesc = items.slice().sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h));
     const byMinSideDesc = items.slice().sort((a,b)=>Math.min(b.w,b.h)-Math.min(a.w,a.h));
     const byPerimDesc = items.slice().sort((a,b)=>((b.w+b.h)-(a.w+a.h)));
-    return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc];
+    // Dodatkowe warianty "pasowe" – pomagają znaleźć układ typu: odetnij pas 730mm i dopakuj drobnicę.
+    const byWidthDesc = items.slice().sort((a,b)=>b.w-a.w);
+    const byHeightDesc = items.slice().sort((a,b)=>b.h-a.h);
+    return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc, byWidthDesc, byHeightDesc];
   }
 
   let _cancelled = false;
@@ -308,7 +345,9 @@ try{
       const removeFromSet = (ids)=>{ for(const id of ids){ remainingById.delete(id); } };
 
       // Find strip-like free rects: full height/width (within 5%) and at least 30cm thickness.
+      // Dodatkowo: nie chcemy obracać "wielkiej płyty" – pas do obracania max 1000 mm.
       const minStrip = 300; // mm
+      const maxRotateStrip = 1000; // mm
       const strips = [];
       for(let si=0; si<prefix.length; si++){
         const s = prefix[si];
@@ -317,7 +356,9 @@ try{
           if(!r || r.w<=0 || r.h<=0) continue;
           const fullH = (r.h >= (H * 0.95)) && (r.w >= minStrip);
           const fullW = (r.w >= (W * 0.95)) && (r.h >= minStrip);
-          if(fullH || fullW){
+          // tylko pasy, które mają "grubość" <= 1 m – wtedy realnie da się je obracać.
+          const thick = fullH ? r.w : (fullW ? r.h : 1e18);
+          if((fullH || fullW) && thick <= maxRotateStrip){
             strips.push({ sheetIndex: si, rect: r, fullH, fullW });
           }
         }

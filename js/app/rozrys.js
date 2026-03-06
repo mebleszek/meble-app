@@ -1418,8 +1418,10 @@ async function generate(force){
           }catch(_){ }
         }, control, {
           timeBudgetMs: budgetMs,
-          perSheetMs: isOptimax ? 520 : 420,
-          beamWidth: isOptimax ? 260 : 220,
+          // Optimax ma budżet czasu zależny od liczby płyt (7s/płyta), więc możemy pozwolić sobie
+          // na większą szerokość wiązki i dłuższe próby na płytę – zwiększa szansę zejścia z 7 → 6.
+          perSheetMs: isOptimax ? 720 : 420,
+          beamWidth: isOptimax ? 340 : 220,
           // Keep user's direction choice; for Auto we still explore along/across in worker.
           cutPref: st.direction || 'auto',
           // Optimax enables extra strip-fill post-pass in worker.
