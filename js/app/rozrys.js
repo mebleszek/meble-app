@@ -830,6 +830,15 @@
     globalStatus.appendChild(globalSubEl);
     card.appendChild(globalStatus);
 
+    // One source of truth for global status updates (avoid duplicated inline helpers)
+    function setGlobalStatus(visible, text, sub){
+      try{
+        globalStatus.style.display = visible ? '' : 'none';
+        if(text) globalTextEl.textContent = text;
+        globalSubEl.textContent = sub || '';
+      }catch(_){ }
+    }
+
 
     // overrides list container
     const overridesBox = h('div', { style:'margin-top:12px;display:none' });
@@ -948,15 +957,7 @@
           const stBase = getBaseState();
           const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
-    if(gsSub) gsSub.textContent = sub || '';
-  }
+          // (global status is managed by the single setGlobalStatus() defined near the UI)
           let allHit = true;
           let anyHit = false;
           for(const m of derived.materials){
@@ -995,15 +996,7 @@
         const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
         const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
-    if(gsSub) gsSub.textContent = sub || '';
-  }
+        // (global status is managed by the single setGlobalStatus() defined near the UI)
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
           const plan = cache[cacheKey].plan;
@@ -1254,7 +1247,6 @@ function deriveAggForMode(mode){
 
 let _rozrysRunId = 0;
 let _rozrysRunning = false;
-    try{ setGlobalStatus(false); }catch(_){ }
 let _rozrysBtnMode = 'idle'; // idle | running | done
 let _rozrysCancelRequested = false;
 let _rozrysActiveCancel = null;
@@ -1312,17 +1304,7 @@ async function generate(force){
 
   const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
-    if(gsSub) gsSub.textContent = sub || '';
-  }
-
-  const runOne = async (material, parts, target)=>{
+  const runOne = async (material, parts, target, optsRun)=>{
     if(runId !== _rozrysRunId) return;
     const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
     const cacheKey = makePlanCacheKey(st, parts);
@@ -1336,8 +1318,10 @@ async function generate(force){
 
     // Pro mode: panel saw (30s) should not block UI.
     if(st.heur === "panel30"){
-      const loading = renderLoadingInto(target || null, 'Pozostało… 30.0 s', `Materiał: ${material}`);
-      setGlobalStatus(true, 'Pozostało… 30.0 s', `Materiał: ${material}`);
+      const showLocal = !!(optsRun && optsRun.showLocalLoading);
+      const loading = showLocal ? renderLoadingInto(target || null, 'Pozostało… 30.0 s', `Materiał: ${material}`) : null;
+      let lastSub = `Materiał: ${material}`;
+      setGlobalStatus(true, 'Pozostało… 30.0 s', lastSub);
       let plan = null;
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
@@ -1358,7 +1342,7 @@ async function generate(force){
           const left = Math.max(0, (budgetMs - (now - startedAt))/1000);
           const t = left.toFixed(1);
           if(loading && loading.textEl) loading.textEl.textContent = `Pozostało… ${t} s`;
-          if(gsText) gsText.textContent = `Pozostało… ${t} s`;
+          setGlobalStatus(true, `Pozostało… ${t} s`, lastSub);
         }, 120);
 
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
@@ -1367,11 +1351,10 @@ async function generate(force){
             const best = (p && p.best) ? p.best : null;
             const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
-            if(loading && loading.subEl){
-              const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              loading.subEl.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
-            }
+            const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
+            lastSub = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
+            if(loading && loading.subEl) loading.subEl.textContent = lastSub;
+            setGlobalStatus(true, (loading && loading.textEl) ? loading.textEl.textContent : 'Pozostało…', lastSub);
           }catch(_){ }
         }, control);
       }catch(e){
@@ -1450,11 +1433,14 @@ async function generate(force){
       out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
       return;
     }
-    for(const m of derived.materials){
+    for(let idx=0; idx<derived.materials.length; idx++){
+      const m = derived.materials[idx];
       const parts = derived.byMaterial[m] || [];
       const box = h("div", { style:"margin-top:12px" });
       out.appendChild(box);
-      await runOne(m, parts, box);
+      // Na starcie ma być tylko jeden licznik (globalny). Lokalny licznik pokazujemy dopiero
+      // poniżej pierwszych wyników (kolejne materiały).
+      await runOne(m, parts, box, { showLocalLoading: idx > 0 });
       if(_rozrysCancelRequested) break;
     }
     return;
@@ -1462,7 +1448,7 @@ async function generate(force){
 
   const material = sel;
   const parts = agg.byMaterial[material] || [];
-  await runOne(material, parts, null);
+  await runOne(material, parts, null, { showLocalLoading: true });
   } finally {
     _rozrysRunning = false;
     try{ setGlobalStatus(false); }catch(_){ }

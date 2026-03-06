@@ -57,7 +57,10 @@ try{
     const byMaxSideDesc = items.slice().sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h));
     const byMinSideDesc = items.slice().sort((a,b)=>Math.min(b.w,b.h)-Math.min(a.w,a.h));
     const byPerimDesc = items.slice().sort((a,b)=>((b.w+b.h)-(a.w+a.h)));
-    return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc];
+    // Helpful for "pasowe" układy: sort po szerokości/wysokości (strip-first)
+    const byWidthDesc = items.slice().sort((a,b)=> (b.w-a.w) || (b.h-a.h) || ((b.w*b.h)-(a.w*a.h)));
+    const byHeightDesc = items.slice().sort((a,b)=> (b.h-a.h) || (b.w-a.w) || ((b.w*b.h)-(a.w*a.h)));
+    return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc, byWidthDesc, byHeightDesc];
   }
 
   let _cancelled = false;
