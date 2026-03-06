@@ -66,7 +66,7 @@
 - `js/app/validate.js` — walidacja danych.
 - `js/app/bindings.js` — listenery i delegacja zdarzeń.
 - `js/app/actions-register.js` — rejestr akcji `data-action`.
-- `js/app.js` — główny klej aplikacji + nadal duża część logiki domenowej.
+- `js/app.js` — główny klej aplikacji + nadal część logiki domenowej; renderery `WYWIAD`, `MATERIAŁ` i `RYSUNEK` są już wydzielone do `js/tabs/*`.
 - `js/app/investor-project.js` — projekt inwestora.
 - `js/app/tabs-router.js` — routing zakładek.
 - `js/app/cut-optimizer.js` — silnik rozkroju.
@@ -74,9 +74,9 @@
 - `js/app/rozrys.js` — logika zakładki rozrysu / Optimax.
 
 ### Zakładki aktywnie ładowane przez `index.html`
-- `js/tabs/wywiad.js`
-- `js/tabs/rysunek.js`
-- `js/tabs/material.js`
+- `js/tabs/wywiad.js` — aktywny renderer zakładki WYWIAD.
+- `js/tabs/rysunek.js` — aktywny renderer zakładki RYSUNEK.
+- `js/tabs/material.js` — aktywny renderer zakładki MATERIAŁ.
 - `js/tabs/czynnosci.js`
 - `js/tabs/wycena.js`
 
