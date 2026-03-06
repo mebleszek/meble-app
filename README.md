@@ -22,7 +22,6 @@ Workflow wypakuje ZIP do roota, usunie ZIP i zrobi commit.
 - `js/app/bindings.js` — delegacja klików + listenery
 - `js/app/actions-register.js` — rejestr akcji UI
 - `js/app.js` — główny klej aplikacji; renderery `WYWIAD`, `MATERIAŁ` i `RYSUNEK` są już przeniesione do `js/tabs/*`
-- stary, nieużywany helper listy wykończeń RYSUNKU został usunięty z `js/app.js`
 - `js/app/rozrys.js` — zakładka rozrysu / Optimax
 - `js/app/cut-optimizer.js` — silnik rozkroju
 
@@ -32,3 +31,7 @@ Repo zawiera też pliki pomocnicze / historyczne, które nie zawsze są bezpośr
 Przed edycją zawsze trzeba sprawdzić, czy plik jest aktywnym entrypointem, workerem, czy legacy.
 
 Szczegóły utrzymywać i aktualizować w `DEV.md`.
+
+
+- `js/app/price-modal.js` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
+- Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.

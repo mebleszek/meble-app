@@ -76,7 +76,6 @@
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
 - `js/tabs/rysunek.js` — aktywny renderer zakładki RYSUNEK.
-- Martwy helper `renderFinishList()` został usunięty z `js/app.js`; aktywna lista wykończeń RYSUNKU siedzi w `js/tabs/rysunek.js`.
 - `js/tabs/material.js` — aktywny renderer zakładki MATERIAŁ.
 - `js/tabs/czynnosci.js`
 - `js/tabs/wycena.js`
@@ -189,3 +188,7 @@ Dopiero potem go zmieniać.
 2. Stopniowo wynosić logikę domenową z `app.js` do właściwych plików.
 3. Utrzymywać jedną prawdę dla akcji UI: `data-action` + registry.
 4. Przy każdej większej zmianie aktualizować ten plik (`DEV.md`).
+
+
+- `js/app/price-modal.js` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
+- Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.
