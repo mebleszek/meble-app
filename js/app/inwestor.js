@@ -1,7 +1,7 @@
+// LEGACY / UWAGA: ten plik nie jest ładowany bezpośrednio przez index.html w tej wersji repo.
+// Aktywny wariant UI inwestora jest w: js/app/investor-ui.js
 // js/app/inwestor.js
 // UI dla zakładki INWESTOR + lista inwestorów (widok z Home).
-// LEGACY NOTE: ten plik nie jest bezpośrednio ładowany przez index.html.
-// Nie traktuj go jako głównego miejsca do nowych zmian bez sprawdzenia aktywnego przepływu w investor-ui.js / investors-store.js / investor-project.js.
 (function(){
   'use strict';
   window.FC = window.FC || {};

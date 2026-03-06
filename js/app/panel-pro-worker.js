@@ -1,7 +1,8 @@
+/* UWAGA: ten plik nie jest ładowany przez index.html jako zwykły script.
+   Jest używany pośrednio jako Web Worker z js/app/rozrys.js.
+   Zmieniać ostrożnie i testować ścieżkę workerową osobno. */
 /* panel-pro-worker.js — cięższe liczenie rozkroju "pod piłę panelową" w Web Workerze
    - Nie zmienia UI; odciąża główny wątek.
-// NOTE: helper uruchamiany jako Web Worker, nie zwykły script ładowany przez index.html.
-// Zmiany tutaj testować razem z przepływem Optimax, nie jak klasyczny moduł UI.
    - Importuje istniejący cut-optimizer (Guillotine Beam Search).
    - Robi multi-start (różne sortowania + losowe tasowania) w budżecie czasu.
 */
