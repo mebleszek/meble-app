@@ -5275,82 +5275,35 @@ function renderPriceModal(){
 }
 
 
-// Jump helpers: per-cabinet navigation between SZAFKI and MATERIAŁ
-function _scrollToAndFlash(el){
-  if(!el) return;
-  try{ el.scrollIntoView({behavior:'smooth', block:'start'}); } catch(_){ el.scrollIntoView(true); }
-  el.classList.remove('focus-flash'); // reset if repeated
-  // force reflow
-  void el.offsetWidth;
-  el.classList.add('focus-flash');
-  window.setTimeout(()=> el.classList.remove('focus-flash'), 1300);
-}
-
+// Tab/navigation helpers extracted to js/app/tab-navigation.js
 function jumpToMaterialsForCabinet(cabId){
-  if(!cabId) return;
-  uiState.matExpandedId = String(cabId);
-  uiState._focusCabAfterRender = { tab:'material', id: String(cabId) };
-  FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  setActiveTab('material');
-  // after render
-  window.setTimeout(() => {
-    const el = document.getElementById(`mat-${cabId}`);
-    _scrollToAndFlash(el);
-  }, 80);
+  try{
+    const mod = window.FC && window.FC.tabNavigation;
+    if(mod && typeof mod.jumpToMaterialsForCabinet === 'function'){
+      return mod.jumpToMaterialsForCabinet(cabId);
+    }
+  }catch(_){ }
 }
 
 function jumpToCabinetFromMaterials(cabId){
-  if(!cabId) return;
-  // select + expand to show details
-  uiState.selectedCabinetId = String(cabId);
-  uiState.expanded = {};
-  uiState.expanded[String(cabId)] = true;
-  uiState._focusCabAfterRender = { tab:'wywiad', id: String(cabId) };
-  FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  setActiveTab('wywiad');
-  window.setTimeout(() => {
-    const el = document.getElementById(`cab-${cabId}`);
-    _scrollToAndFlash(el);
-  }, 80);
+  try{
+    const mod = window.FC && window.FC.tabNavigation;
+    if(mod && typeof mod.jumpToCabinetFromMaterials === 'function'){
+      return mod.jumpToCabinetFromMaterials(cabId);
+    }
+  }catch(_){ }
 }
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
 // RYZYKO REGRESJI: przełączanie zakładek wpływa też na odświeżanie danych i render.
 // Nie zmieniać kolejności efektów ubocznych bez testu całego przepływu projektu.
 function setActiveTab(tabName){
-  uiState.activeTab = tabName;
-  FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-
-  // highlight active tab
   try{
-    document.querySelectorAll('.tab-btn').forEach(t=>t.style.background='var(--card)');
-    const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-    if(activeBtn) activeBtn.style.background = '#e6f7ff';
-  }catch(_){}
-
-  // Route to correct view (home/rooms/app + extra views)
-  // IMPORTANT: "FC" in this file is the local module; views/sections live on window.FC.
-  try{
-    if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
-      window.FC.views.applyFromState(uiState);
+    const mod = window.FC && window.FC.tabNavigation;
+    if(mod && typeof mod.setActiveTab === 'function'){
+      return mod.setActiveTab(tabName);
     }
   }catch(_){ }
-
-  // Render extra modules (ROZRYS/MAGAZYN) when active
-  try{
-    if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function'){
-      window.FC.sections.update();
-    }
-  }catch(_){ }
-
-  // Legacy rendering only for the "app" tabs.
-  // Extra tabs have their own views and must NOT be overwritten by the "Szafki" placeholder.
-  const isExtraTab = (tabName === 'pokoje' || tabName === 'inwestor' || tabName === 'rozrys' || tabName === 'magazyn');
-  if(!isExtraTab){
-    try{ renderCabinets(); }catch(_){ }
-  }
-
-  try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
 }
 
 

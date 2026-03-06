@@ -192,3 +192,6 @@ Dopiero potem go zmieniać.
 
 - `js/app/price-modal.js` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
 - Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.
+
+
+- `js/app/tab-navigation.js` — centralna nawigacja zakładek i skoki między WYWIAD ↔ MATERIAŁ; źródło prawdy dla `setActiveTab()` i helperów focus/scroll.
