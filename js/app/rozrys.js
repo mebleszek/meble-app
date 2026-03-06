@@ -496,7 +496,7 @@
   // ===== Panel-saw PRO (30s) in Web Worker (non-blocking) =====
   // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
   // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
-  function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
+  function computePlanPanelProAsync(state, parts, onProgress){
     return new Promise((resolve)=>{
       const opt = FC.cutOptimizer;
       if(!opt) return resolve({ sheets: [], note: 'Brak modułu cutOptimizer.' });
@@ -542,8 +542,7 @@
       // worker per-run (bardziej niezawodne na telefonach)
       let worker = null;
       try{
-        // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_03');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260303_03');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -556,16 +555,6 @@
 
       let settled = false;
       let tmr = null;
-
-      // allow caller to cancel this run
-      const runId = (control && Number(control.runId)) ? Number(control.runId) : 0;
-      if(control){
-        // If UI requested cancel before we managed to attach a working cancel() (race), honor it.
-        const postCancel = ()=>{ try{ worker && worker.postMessage({ cmd:'cancel', runId }); }catch(_){ } };
-        control.cancel = ()=>{ control._cancelRequested = true; postCancel(); };
-        // If cancel was requested earlier, send it immediately.
-        if(control._cancelRequested) postCancel();
-      }
 
       const cleanup = ()=>{
         try{ worker.removeEventListener('message', handle); }catch(_){ }
@@ -582,15 +571,6 @@
         cleanup();
         resolve(payload);
       };
-      // hard-terminate fallback (used by UI when cancel seems stuck)
-      if(control){
-        control._terminate = ()=>{
-          try{ worker && worker.terminate && worker.terminate(); }catch(_){ }
-          // unblock UI even if worker does not respond
-          try{ finish({ sheets: [], cancelled: true, note: "Generowanie przerwane.", meta: { trim, boardW: W0, boardH: H0, unit } }); }catch(_){ }
-        };
-      }
-
 
       const handle = (ev)=>{
         const msg = ev && ev.data ? ev.data : {};
@@ -600,7 +580,7 @@
         }
         if(msg.type === 'done'){
           const result = msg.result || {};
-          finish({ sheets: result.sheets || [], cancelled: !!result.cancelled, meta: { trim, boardW: W0, boardH: H0, unit } });
+          finish({ sheets: result.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
           return;
         }
         if(msg.type === 'error'){
@@ -627,13 +607,11 @@
       }, 35000);
 
       try{
-        const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
         worker.postMessage({
           cmd: 'panel_pro',
-          runId,
           items,
           W, H, K,
-          options: o
+          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
         });
       }catch(e){
         // Posting failed: cleanup and return
@@ -793,7 +771,6 @@
       <option value="gpro">Dokładne upakowanie</option>
       <option value="super">Super upakowanie</option>
       <option value="panel30">Ultra 30sekund</option>
-      <option value="optimax">Optimax (PRO)</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -823,16 +800,6 @@
     btnRow.appendChild(genBtn);
     card.appendChild(btnRow);
 
-    // Globalny status liczenia (nie znika między materiałami w trybie WSZYSTKIE)
-    const globalStatus = h('div', { id:'rozrysGlobalStatus', class:'rozrys-loading', style:'margin-top:10px;display:none' });
-    globalStatus.appendChild(h('div', { class:'rozrys-spinner' }));
-    const globalTextEl = h('div', { class:'rozrys-loading-text', text:'Pozostało… 30.0 s' });
-    const globalSubEl = h('div', { class:'muted xs', style:'margin-top:6px', text:'' });
-    globalStatus.appendChild(globalTextEl);
-    globalStatus.appendChild(globalSubEl);
-    card.appendChild(globalStatus);
-
-
     // overrides list container
     const overridesBox = h('div', { style:'margin-top:12px;display:none' });
     card.appendChild(overridesBox);
@@ -856,36 +823,8 @@
       }catch(_){ }
     }
 
-    // Helper: whether current material (by name) is marked as having grain in the price list.
-    function materialHasGrain(name){
-      try{ return !!(FC && typeof FC.materialHasGrain === 'function' && FC.materialHasGrain(name)); }catch(_){ return false; }
-    }
-
-    function updateGrainAvailability(){
-      const sel = String(matSel.value||'');
-      // For bulk modes keep the checkbox enabled; grain will apply only to materials that have grain.
-      if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
-        grainChk.disabled = false;
-        return;
-      }
-      if(!sel || sel.startsWith('__')){
-        grainChk.checked = false;
-        grainChk.disabled = true;
-        return;
-      }
-      const has = materialHasGrain(sel);
-      if(has){
-        grainChk.disabled = false;
-      } else {
-        // If material has no grain, don't enforce direction and don't show overrides.
-        grainChk.checked = false;
-        grainChk.disabled = true;
-      }
-    }
-
     function renderOverrides(){
-      const sel = String(matSel.value||'');
-      const grainOn = (!!grainChk.checked) && (!!sel) && (!sel.startsWith('__')) && materialHasGrain(sel);
+      const grainOn = !!grainChk.checked;
       overridesBox.innerHTML = '';
       overridesBox.style.display = grainOn ? 'block' : 'none';
       if(!grainOn) return;
@@ -905,7 +844,6 @@
           if(cb.checked) o[sig] = true;
           else delete o[sig];
           saveOverrides(o);
-          tryAutoRenderFromCache();
         });
         row.appendChild(cb);
         const u = unitSel.value === 'cm' ? 'cm' : 'mm';
@@ -915,120 +853,9 @@
       overridesBox.appendChild(list);
     }
 
-    function getBaseState(){
-      return {
-        unit: unitSel.value,
-        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
-        boardW: Number(inW.value)|| (unitSel.value==="mm"?2800:280),
-        boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
-        kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
-        edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
-        // Grain is applied per-material (only where the price list marks it as having grain).
-        grain: !!grainChk.checked,
-        heur: heurSel.value,
-        direction: dirSel.value,
-      };
-    }
-
-    function tryAutoRenderFromCache(){
-      try{
-        if(_rozrysRunning) return false;
-        const sel = matSel.value;
-        if(!sel){
-          // Variant B: no selection => clear output
-          out.innerHTML = '';
-          setGenBtnMode('idle');
-          return false;
-        }
-
-        // Variant B: special modes should also auto-render from cache,
-        // but never keep stale results when cache miss.
-        if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
-          out.innerHTML = '';
-          const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
-          const derived = deriveAggForMode(mode);
-          const stBase = getBaseState();
-          const cache = loadPlanCache();
-
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
-    if(gsSub) gsSub.textContent = sub || '';
-  }
-          let allHit = true;
-          let anyHit = false;
-          for(const m of derived.materials){
-            const parts = derived.byMaterial[m] || [];
-            const box = h('div', { style:'margin-top:12px' });
-            out.appendChild(box);
-            const st = Object.assign({}, stBase, { material: m, grain: !!(stBase.grain && materialHasGrain(m)) });
-            const cacheKey = makePlanCacheKey(st, parts);
-            if(cache[cacheKey] && cache[cacheKey].plan){
-              const plan = cache[cacheKey].plan;
-              renderOutput(plan, { material: m, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, box);
-              anyHit = true;
-            } else {
-              allHit = false;
-              box.innerHTML = '';
-            }
-          }
-          setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
-          return anyHit;
-        }
-
-        if(String(sel).startsWith('__')){
-          out.innerHTML = '';
-          setGenBtnMode('idle');
-          return false;
-        }
-        const material = sel;
-        const parts = agg.byMaterial[material] || [];
-        if(!parts.length){
-          // Variant B: clear output when nothing to render
-          out.innerHTML = '';
-          setGenBtnMode('idle');
-          return false;
-        }
-        const base = getBaseState();
-        const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
-        const cache = loadPlanCache();
-
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
-    if(gsSub) gsSub.textContent = sub || '';
-  }
-        const cacheKey = makePlanCacheKey(st, parts);
-        if(cache[cacheKey] && cache[cacheKey].plan){
-          const plan = cache[cacheKey].plan;
-          renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, null);
-          setGenBtnMode('done');
-          return true;
-        }
-        // Variant B: cache miss => clear view (no stale result)
-        out.innerHTML = '';
-        setGenBtnMode('idle');
-        return false;
-      }catch(_){
-        out.innerHTML = '';
-        setGenBtnMode('idle');
-        return false;
-      }
-    }
-
     function renderOutput(plan, meta, target){
       const tgt = target || out;
-      // Always clear target; otherwise spinners can remain in WSZYSTKIE mode
-      // or when re-rendering into an existing box.
-      tgt.innerHTML = '';
+      if(!target) tgt.innerHTML = '';
       const opt = FC.cutOptimizer;
       const sheets = plan.sheets || [];
       const u = (meta && (meta.unit === 'cm' || meta.unit === 'mm'))
@@ -1051,14 +878,12 @@
 
       const pct = sum.area>0 ? (sum.waste/sum.area)*100 : 0;
 
-      const cancelledNote = (meta && meta.cancelled) ? '<div class="muted xs" style="margin-top:6px;font-weight:700">Generowanie przerwane — pokazuję najlepszy wynik do tej pory.</div>' : '';
       tgt.appendChild(h('div', { class:'card', style:'margin:0', html:`
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><strong>Materiał:</strong> ${meta.material}</div>
           <div><strong>Płyty:</strong> ${sheets.length} szt.</div>
           <div><strong>Odpad:</strong> ${pct.toFixed(1)}%</div>
         </div>
-        ${cancelledNote}
       ` }));
 
       const expRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap' });
@@ -1133,20 +958,20 @@
     }
 
     function renderLoading(text){
-      return renderLoadingInto(null, text);
+      out.innerHTML = '';
+      const box = h('div', { class:'rozrys-loading' });
+      box.appendChild(h('div', { class:'rozrys-spinner' }));
+      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
+      out.appendChild(box);
     }
 
-    function renderLoadingInto(target, text, subText){
+    function renderLoadingInto(target, text){
       const tgt = target || out;
       tgt.innerHTML = '';
       const box = h('div', { class:'rozrys-loading' });
       box.appendChild(h('div', { class:'rozrys-spinner' }));
-      const textEl = h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' });
-      const subEl = h('div', { class:'muted xs', style:'margin-top:6px', text: subText || '' });
-      box.appendChild(textEl);
-      box.appendChild(subEl);
+      box.appendChild(h('div', { id:'rozrysLoadingText', text: text || 'Liczę…' }));
       tgt.appendChild(box);
-      return { box, textEl, subEl, target: tgt };
     }
 
     
@@ -1175,11 +1000,11 @@
 
     function savePlanCache(cache){
       try{
-        // proste ograniczenie rozmiaru: trzymamy max 10 wpisów (ostatnie użyte)
+        // proste ograniczenie rozmiaru: trzymamy max 20 wpisów (ostatnie użyte)
         const entries = Object.entries(cache || {});
-        if(entries.length > 10){
+        if(entries.length > 20){
           entries.sort((a,b)=> (b[1].ts||0) - (a[1].ts||0));
-          const keep = entries.slice(0, 10);
+          const keep = entries.slice(0, 20);
           const next = {};
           for(const [k,v] of keep) next[k] = v;
           cache = next;
@@ -1256,48 +1081,12 @@ function deriveAggForMode(mode){
 
 let _rozrysRunId = 0;
 let _rozrysRunning = false;
-    try{ setGlobalStatus(false); }catch(_){ }
-let _rozrysBtnMode = 'idle'; // idle | running | done
-let _rozrysCancelRequested = false;
-let _rozrysActiveCancel = null;
-let _rozrysCancelTmr = null;
-let _rozrysActiveTerminate = null;
 
-function setGenBtnMode(mode){
-  _rozrysBtnMode = mode;
-  if(mode === 'running'){
-    genBtn.textContent = 'Anuluj rozkrój';
-    genBtn.disabled = false;
-    return;
-  }
-  if(mode === 'done'){
-    genBtn.textContent = 'Generuj ponownie';
-    genBtn.disabled = false;
-    return;
-  }
-  // idle
-  genBtn.textContent = 'Generuj rozkrój';
-  genBtn.disabled = false;
-}
-
-function requestCancel(){
-  if(!_rozrysRunning) return;
-  _rozrysCancelRequested = true;
-  try{ _rozrysActiveCancel && _rozrysActiveCancel(); }catch(_){ }
-  // twardy fallback: jeśli worker nie odpowie, terminate żeby UI nie wisiało
-  if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
-  _rozrysCancelTmr = setTimeout(()=>{
-    if(!_rozrysRunning) return;
-    try{ _rozrysActiveTerminate && _rozrysActiveTerminate(); }catch(_){ }
-  }, 700);
-}
-
-async function generate(force){
+async function generate(){
   if(_rozrysRunning) return;
   _rozrysRunning = true;
-  _rozrysCancelRequested = false;
   const runId = (++_rozrysRunId);
-  setGenBtnMode('running');
+  genBtn.disabled = true;
   try{
   const sel = matSel.value;
   const baseSt = {
@@ -1314,126 +1103,39 @@ async function generate(force){
 
   const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
-    if(gsSub) gsSub.textContent = sub || '';
-  }
-
   const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
-    const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
+    const st = Object.assign({}, baseSt, { material });
     const cacheKey = makePlanCacheKey(st, parts);
-    if(!force && cache[cacheKey] && cache[cacheKey].plan){
+    if(cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
       if(runId !== _rozrysRunId) return;
       renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
-      setGenBtnMode('done');
       return;
     }
 
-    // Pro mode: heavy compute in Web Worker.
-    if(st.heur === "panel30" || st.heur === "optimax"){
-      // Budget:
-      // - Ultra 30s: fixed 30s
-      // - Optimax: quick estimate (along vs across) then 7s per estimated sheet
-      const isOptimax = (st.heur === 'optimax');
-      const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
-      const toMm2 = (v)=>{
-        const n = Number(v);
-        if(!Number.isFinite(n)) return 0;
-        return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
-      };
-      const W02 = toMm2(st.boardW) || 2800;
-      const H02 = toMm2(st.boardH) || 2070;
-      const K2  = toMm2(st.kerf)   || 4;
-      const trim2 = toMm2(st.edgeTrim) || 20;
-      const W2 = Math.max(10, W02 - 2*trim2);
-      const H2 = Math.max(10, H02 - 2*trim2);
-
-      let budgetMs = 30000;
-      if(isOptimax){
-        try{
-          // Quick estimate: simplest guillotine beam with small settings.
-          const optQ = FC.cutOptimizer;
-          const grainOnQ = !!st.grain;
-          const overridesQ = loadOverrides();
-          const edgeStoreQ = loadEdgeStore();
-          const partsMmQ = (parts||[]).map(p=>{
-            const sig = partSignature(p);
-            const allow = grainOnQ ? !!overridesQ[sig] : true;
-            const e = edgeStoreQ[sig] || {};
-            return { key:sig, name:p.name, w:p.w, h:p.h, qty:p.qty, material:p.material, rotationAllowed: grainOnQ ? allow : true, edgeW1:!!e.w1, edgeW2:!!e.w2, edgeH1:!!e.h1, edgeH2:!!e.h2 };
-          });
-          const itemsQ = optQ.makeItems(partsMmQ);
-          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true });
-          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true });
-          const est = Math.max(1, Math.min((sA||[]).length||9999, (sB||[]).length||9999));
-          budgetMs = Math.min(120000, Math.max(7000, est * 7000));
-        }catch(_){
-          budgetMs = 42000; // safe fallback
-        }
-      }
-
-      const label = isOptimax ? `Pozostało… ${(budgetMs/1000).toFixed(1)} s` : 'Pozostało… 30.0 s';
-      const loading = renderLoadingInto(target || null, label, `Materiał: ${material}`);
-      setGlobalStatus(true, label, `Materiał: ${material}`);
+    // Pro mode: panel saw (30s) should not block UI.
+    if(st.heur === "panel30"){
+      renderLoadingInto(target || null, "Liczę… 0.0 s");
       let plan = null;
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
-      const control = { runId };
-      // Make cancel responsive even if user taps very quickly (before worker is ready).
-      _rozrysActiveCancel = ()=>{
-        try{ control._cancelRequested = true; }catch(_){ }
-        try{ control.cancel && control.cancel(); }catch(_){ }
-      };
-      _rozrysActiveTerminate = ()=>{
-        try{ control._terminate && control._terminate(); }catch(_){ }
-      };
       try{
-        // Lokalny licznik czasu — odliczanie wstecz
+        // Lokalny licznik czasu — niezależny od progress z workera
         tick = setInterval(()=>{
           const now = (window.performance && performance.now) ? performance.now() : Date.now();
-          const left = Math.max(0, (budgetMs - (now - startedAt))/1000);
-          const t = left.toFixed(1);
-          if(loading && loading.textEl) loading.textEl.textContent = `Pozostało… ${t} s`;
-          if(gsText) gsText.textContent = `Pozostało… ${t} s`;
+          const t = ((now - startedAt)/1000).toFixed(1);
+          const el = document.getElementById("rozrysLoadingText");
+          if(el) el.textContent = `Liczę… ${t} s`;
         }, 120);
 
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
-          try{
-            // postęp Ultra: iteracje + najlepszy wynik
-            const best = (p && p.best) ? p.best : null;
-            const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
-            const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
-            if(loading && loading.subEl){
-              const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              loading.subEl.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
-            }
-          }catch(_){ }
-        }, control, {
-          timeBudgetMs: budgetMs,
-          // Optimax ma budżet czasu zależny od liczby płyt (7s/płyta), więc możemy pozwolić sobie
-          // na większą szerokość wiązki i dłuższe próby na płytę – zwiększa szansę zejścia z 7 → 6.
-          perSheetMs: isOptimax ? 720 : 420,
-          beamWidth: isOptimax ? 340 : 220,
-          // Keep user's direction choice; for Auto we still explore along/across in worker.
-          cutPref: st.direction || 'auto',
-          // Optimax enables extra strip-fill post-pass in worker.
-          optimax: !!isOptimax,
+          try{ void(p); }catch(_){ }
         });
       }catch(e){
-        plan = { sheets: [], note: isOptimax ? 'Błąd podczas liczenia (Optimax).' : 'Błąd podczas liczenia (Ultra 30sek).' };
+        plan = { sheets: [], note: 'Błąd podczas liczenia (Ultra 30sek).' };
       } finally {
         if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
-        _rozrysActiveCancel = null;
-        _rozrysActiveTerminate = null;
-        if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
       }
 
       // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
@@ -1480,19 +1182,17 @@ async function generate(force){
             cutPref: st.direction || 'auto',
             scrapFirst: true,
           });
-          plan = { sheets: sheets2, cancelled: !!(plan && plan.cancelled), meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
+          plan = { sheets: sheets2, meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
         }catch(_){ }
       }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled }, target);
-      setGenBtnMode('done');
+      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
       return;
     }
 
     const plan = computePlan(st, parts);
     try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
     renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
-    setGenBtnMode('done');
   };
 
   if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
@@ -1508,7 +1208,6 @@ async function generate(force){
       const box = h("div", { style:"margin-top:12px" });
       out.appendChild(box);
       await runOne(m, parts, box);
-      if(_rozrysCancelRequested) break;
     }
     return;
   }
@@ -1517,9 +1216,8 @@ async function generate(force){
   const parts = agg.byMaterial[material] || [];
   await runOne(material, parts, null);
   } finally {
+    genBtn.disabled = false;
     _rozrysRunning = false;
-    try{ setGlobalStatus(false); }catch(_){ }
-    if(_rozrysBtnMode === 'running') setGenBtnMode('idle');
   }
 }
 
@@ -1542,32 +1240,31 @@ async function generate(force){
       sizeWrap.querySelector('label').textContent = `Format płyty (${next})`;
       kerfWrap.querySelector('label').textContent = `Kerf (${next})`;
       trimWrap.querySelector('label').textContent = `Równanie płyty w koło (${next})`;
-      tryAutoRenderFromCache();
+      out.innerHTML = '';
     });
 
     matSel.addEventListener('change', ()=>{
       const v = matSel.value;
       if(v && !String(v).startsWith('__')) applyHintFromMagazyn(v);
-      updateGrainAvailability();
       renderOverrides();
-      tryAutoRenderFromCache();
+      out.innerHTML = '';
     });
     grainChk.addEventListener('change', ()=>{
       renderOverrides();
-      tryAutoRenderFromCache();
+      out.innerHTML = '';
     });
     heurSel.addEventListener('change', ()=>{
-      const usesDir = (heurSel.value === 'shelf' || heurSel.value === 'panel30' || heurSel.value === 'optimax');
+      const usesDir = (heurSel.value === 'shelf' || heurSel.value === 'panel30');
       dirSel.disabled = !usesDir;
       if(!usesDir) dirSel.value = 'auto';
-      tryAutoRenderFromCache();
+      out.innerHTML = '';
     });
     dirSel.addEventListener('change', ()=>{
-      tryAutoRenderFromCache();
+      out.innerHTML = '';
     });
 
     edgeSel.addEventListener('change', ()=>{
-      tryAutoRenderFromCache();
+      out.innerHTML = '';
     });
 
     saveToMag.addEventListener('click', ()=>{
@@ -1582,29 +1279,11 @@ async function generate(force){
     });
 
     genBtn.addEventListener('click', ()=>{
-      if(_rozrysRunning){
-        requestCancel();
-        return;
-      }
-      // "Generuj ponownie" must bypass cache and recompute.
-      const force = (_rozrysBtnMode === 'done');
-      generate(force);
-    });
-
-    // auto preview from cache when user tweaks parameters
-    [inW, inH, inK, inTrim].forEach(el=>{
-      el.addEventListener('input', ()=>{
-        tryAutoRenderFromCache();
-      });
-      el.addEventListener('change', ()=>{
-        tryAutoRenderFromCache();
-      });
+      generate();
     });
 
     // initial
-    updateGrainAvailability();
     renderOverrides();
-    tryAutoRenderFromCache();
   }
 
   FC.rozrys = {
