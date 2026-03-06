@@ -53,8 +53,10 @@ try{
       const okStrip = (bw <= MAX_ROTATE_STRIP_MM) || (bh <= MAX_ROTATE_STRIP_MM);
       if(!okStrip){
         const area = (s.boardW||0) * (s.boardH||0);
-        // 8% płyty jako kara – tylko tie-breaker, nie przebija "mniej płyt".
-        waste += area * 0.08;
+        // Mocna kara za "duże mieszanie" – w praktyce eliminuje obracanie całej dużej płyty.
+        // Nadal nie przebija kryterium "mniej płyt" (to jest leksykograficzne), ale przy tej
+        // samej liczbie płyt prawie zawsze wybierze układ bez takiego obracania.
+        waste += area * 0.35;
       }
     }
 
@@ -298,7 +300,12 @@ try{
     }
 
     if(best && !_cancelled){
-      best = doCrazyPostPass(best);
+      // Post-pass should NEVER make the solution worse.
+      // Keep the original unless the improved one is strictly better.
+      try{
+        const improved = doCrazyPostPass(best);
+        if(improved && improved.sheets && better(improved, best)) best = improved;
+      }catch(_){ }
     }
 
     // === Optimax post-pass: strip-first + fill long strips with small parts from tail ===
@@ -456,8 +463,14 @@ try{
     }
 
     if(best && !_cancelled && opts && opts.optimax){
-      best = doOptimaxStripFill(best);
-      setBest(best);
+      // Optimax strip-fill is a repair step; keep it only if it improves.
+      try{
+        const improved = doOptimaxStripFill(best);
+        if(improved && improved.sheets && better(improved, best)){
+          best = improved;
+          setBest(best);
+        }
+      }catch(_){ }
     }
 
     if(best) return { sheets: best.sheets, cancelled: _cancelled };
