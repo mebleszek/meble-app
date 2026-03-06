@@ -199,3 +199,5 @@ Dopiero potem go zmieniać.
 
 
 - `js/app/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
+
+- `js/app/front-hardware.js` — wspólne obliczenia frontów i okuć (fronty do Materiałów, zawiasy BLUM, AVENTOS).
