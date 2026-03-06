@@ -1,7 +1,7 @@
-// UWAGA: plik obecny w repo, ale nieładowany bezpośrednio przez index.html w tej wersji.
-// Przed zmianami sprawdź, czy jest podpinany pośrednio lub planowany do aktywacji.
 // js/app/calc.js
 // Minimal calculation layer extracted from app.js (Etap 3A)
+// NOTE: plik pomocniczy; obecnie nie jest bezpośrednio ładowany przez index.html.
+// Zanim dodasz tu logikę, sprawdź czy aktywny przepływ nie korzysta nadal z obliczeń osadzonych w app.js albo dedykowanym module domenowym.
 // Keep as classic script (no ES modules) for maximum GitHub Pages compatibility.
 
 (function(){

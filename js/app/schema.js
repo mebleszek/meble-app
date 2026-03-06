@@ -1,7 +1,7 @@
-// UWAGA: plik obecny w repo, ale nieładowany bezpośrednio przez index.html w tej wersji.
-// Rozrys może oczekiwać FC.schema, ale ten plik nie jest obecnie standardowo bootowany.
 // js/app/schema.js
 // Project schema (defaults + normalization). Loaded before js/app.js
+// NOTE: wydzielony moduł schematu; obecnie nie jest bezpośrednio ładowany przez index.html.
+// Traktować jako kierunek porządkowania, ale nie jako aktywne źródło prawdy bez sprawdzenia app.js.
 
 (function(){
   'use strict';

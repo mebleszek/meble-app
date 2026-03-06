@@ -13,12 +13,13 @@ const STORAGE_KEYS = {
 // ===== CORE FALLBACKS (fail-soft) =====
 // If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
 // provide minimal implementations so the app can still start.
-// RYZYKO REGRESJI: fallbacki FC.actions / FC.modal tylko awaryjnie.
-// Jeśli moduły core są załadowane poprawnie, prawdziwym źródłem powinny być js/core/actions.js i js/core/modals.js.
 // This prevents "FC.actions not loaded" from hard-killing the app during development/deploy.
 try{
   window.FC = window.FC || {};
 
+  // ARCHITEKTURA: to tylko awaryjny fallback na wypadek braku core/actions.js.
+// Nie rozwijać tu docelowej logiki akcji — źródłem prawdy ma być js/core/actions.js + js/app/actions-register.js.
+  // ARCHITEKTURA: wtórny guard startu. Docelowe akcje mają być zarejestrowane poza app.js.
   if(!window.FC.actions){
     (function(){
       const registry = Object.create(null);
@@ -40,6 +41,9 @@ try{
     })();
   }
 
+  // ARCHITEKTURA: to tylko awaryjny fallback na wypadek braku core/modals.js.
+// Docelowe zmiany obsługi modali robić w js/core/modals.js i modułach domenowych, nie tutaj.
+  // ARCHITEKTURA: wtórny guard startu. Docelowe zachowania modali utrzymywać poza app.js.
   if(!window.FC.modal){
     (function(){
       const stack = [];
@@ -5585,8 +5589,8 @@ parts.forEach(p => {
 
 
 /* ===== Render UI: cabinets (NO inline editing) ===== */
-// RYZYKO REGRESJI: centralny render szafek.
-// Każda zmiana tutaj może psuć kilka widoków naraz, więc testować dodawanie/edycję/usuwanie oraz przełączanie zakładek.
+// RYZYKO REGRESJI: renderCabinets() wpływa na dużą część UI szafek.
+// Każdą zmianę testować razem z dodawaniem, edycją, zapisaniem i przełączaniem zakładek.
 function renderCabinets(){
   const list = document.getElementById('cabinetsList'); list.innerHTML = '';
   const room = uiState.roomType;
@@ -5948,8 +5952,8 @@ function jumpToCabinetFromMaterials(cabId){
 }
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
-// RYZYKO REGRESJI: przełączanie zakładek wpływa też na odświeżanie danych i render.
-// Nie zmieniać kolejności efektów ubocznych bez testu całego przepływu projektu.
+// RYZYKO REGRESJI: setActiveTab() spina router zakładek z renderem i stanem widoku.
+// Nie dopisywać tu nowej logiki domenowej, jeśli może trafić do tabs-router.js lub konkretnej zakładki.
 function setActiveTab(tabName){
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -6039,8 +6043,8 @@ function initApp(){
   return initUI();
 }
 
-// RYZYKO REGRESJI: główny start aplikacji.
-// Tu spinają się fallbacki, modale, walidacja akcji i inicjalizacja widoków.
+// RYZYKO REGRESJI: initUI() to punkt startowy dużej części aplikacji.
+// Trzymać tu tylko bootstrap / spinanie modułów; ciężką logikę wyciągać do dedykowanych plików.
 function initUI(){
   uiState = uiState || __uiDefaults;
 
