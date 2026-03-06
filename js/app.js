@@ -13,8 +13,8 @@ const STORAGE_KEYS = {
 // ===== CORE FALLBACKS (fail-soft) =====
 // If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
 // provide minimal implementations so the app can still start.
-// ARCH: Ten fallback istnieje tylko jako siatka bezpieczeństwa na deploy/start.
-// Nowych akcji nie dopisywać tutaj — właściwe miejsce to js/core/actions.js + js/app/actions-register.js.
+// RYZYKO REGRESJI: fallbacki FC.actions / FC.modal tylko awaryjnie.
+// Jeśli moduły core są załadowane poprawnie, prawdziwym źródłem powinny być js/core/actions.js i js/core/modals.js.
 // This prevents "FC.actions not loaded" from hard-killing the app during development/deploy.
 try{
   window.FC = window.FC || {};
@@ -40,7 +40,6 @@ try{
     })();
   }
 
-  // ARCH: Fallback modali tylko awaryjny. Docelowe miejsce logiki modalowej: js/core/modals.js.
   if(!window.FC.modal){
     (function(){
       const stack = [];
@@ -517,10 +516,24 @@ const DEFAULT_PROJECT = FC.project.DEFAULT_PROJECT;
 
 /* ===== State initialization ===== */
 let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
-  { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35 },
-  { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180 },
-  { id: 'm3', materialType: 'akcesoria', manufacturer: 'blum', symbol: 'B1', name: 'Zawias Blum', price: 18 }
+  { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35, hasGrain: false },
+  { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180, hasGrain: false },
+  { id: 'm3', materialType: 'akcesoria', manufacturer: 'blum', symbol: 'B1', name: 'Zawias Blum', price: 18, hasGrain: false }
 ]);
+
+// Helper: ROZRYS and other modules can ask whether a material has grain direction.
+// Matching is done by the displayed material name.
+window.FC = window.FC || {};
+window.FC.materialHasGrain = function(materialName){
+  const name = String(materialName||'').trim();
+  if(!name) return false;
+  try{
+    const it = (Array.isArray(materials) ? materials : []).find(m => String(m.name||'').trim() === name);
+    return !!(it && it.hasGrain);
+  }catch(_){
+    return false;
+  }
+};
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
 const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null, lastAddedAt:null, lastAddedCabinetId:null, lastAddedCabinetType:null };
@@ -1620,8 +1633,9 @@ function saveMaterialFromForm(){
   const symbol = document.getElementById('formSymbol').value.trim();
   const name = document.getElementById('formName').value.trim();
   const price = parseFloat(document.getElementById('formPrice').value || 0);
+  const hasGrain = !!(document.getElementById('formHasGrain') && document.getElementById('formHasGrain').checked);
   if(!name){ alert('Wprowadź nazwę'); return; }
-  const data = { materialType: type, manufacturer, symbol, name, price };
+  const data = { materialType: type, manufacturer, symbol, name, price, hasGrain };
   if(uiState.editingId){
     materials = materials.map(m => m.id === uiState.editingId ? Object.assign({}, m, data) : m);
     uiState.editingId = null;
@@ -1630,6 +1644,8 @@ function saveMaterialFromForm(){
     materials.push(Object.assign({ id }, data));
   }
   FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+  // keep helper accurate
+  try{ window.FC.materialHasGrain = window.FC.materialHasGrain; }catch(_){ }
   renderPriceModal();
   renderCabinetModal();
 }
@@ -5569,8 +5585,8 @@ parts.forEach(p => {
 
 
 /* ===== Render UI: cabinets (NO inline editing) ===== */
-// ARCH: renderCabinets() jest jednym z głównych punktów ryzyka regresji.
-// Zmiany robić małymi krokami i testować: dodanie/edycja/usunięcie szafki, przełączanie zakładek, zapis/odświeżenie.
+// RYZYKO REGRESJI: centralny render szafek.
+// Każda zmiana tutaj może psuć kilka widoków naraz, więc testować dodawanie/edycję/usuwanie oraz przełączanie zakładek.
 function renderCabinets(){
   const list = document.getElementById('cabinetsList'); list.innerHTML = '';
   const room = uiState.roomType;
@@ -5833,6 +5849,8 @@ function renderPriceModal(){
         document.getElementById('formSymbol').value = item.symbol || '';
         document.getElementById('formName').value = item.name || '';
         document.getElementById('formPrice').value = item.price || '';
+        const g = document.getElementById('formHasGrain');
+        if(g) g.checked = !!item.hasGrain;
       }
     } else {
       const item = services.find(s => s.id === uiState.editingId);
@@ -5849,6 +5867,8 @@ function renderPriceModal(){
     document.getElementById('formSymbol').value = '';
     document.getElementById('formName').value = '';
     document.getElementById('formPrice').value = '';
+    const g = document.getElementById('formHasGrain');
+    if(g) g.checked = false;
     document.getElementById('formCategory').value = 'Montaż';
     document.getElementById('formServiceName').value = '';
     document.getElementById('formServicePrice').value = '';
@@ -5868,7 +5888,8 @@ function renderPriceModal(){
   filtered.forEach(item => {
     const row = document.createElement('div'); row.className='list-item';
     const left = document.createElement('div');
-    left.innerHTML = `<div style="font-weight:900">${item.name}</div><div class="muted-tag xs">${isMat ? (item.materialType + ' • ' + (item.manufacturer||'') + (item.symbol ? ' • SYM: '+item.symbol : '')) : (item.category || '')}</div>`;
+    const grainBadge = (isMat && item.hasGrain) ? ' • 🌾 słoje' : '';
+    left.innerHTML = `<div style="font-weight:900">${item.name}</div><div class="muted-tag xs">${isMat ? (item.materialType + ' • ' + (item.manufacturer||'') + (item.symbol ? ' • SYM: '+item.symbol : '') + grainBadge) : (item.category || '')}</div>`;
     const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
     const price = document.createElement('div'); price.style.fontWeight='900'; price.textContent = (Number(item.price)||0).toFixed(2) + ' PLN';
     const editBtn = document.createElement('button'); editBtn.className='btn'; editBtn.textContent='Edytuj';
@@ -5927,7 +5948,8 @@ function jumpToCabinetFromMaterials(cabId){
 }
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
-// ARCH: To jest czuły punkt regresji — zmiany robić ostrożnie i sprawdzać checklistę z DEV.md.
+// RYZYKO REGRESJI: przełączanie zakładek wpływa też na odświeżanie danych i render.
+// Nie zmieniać kolejności efektów ubocznych bez testu całego przepływu projektu.
 function setActiveTab(tabName){
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -6017,7 +6039,8 @@ function initApp(){
   return initUI();
 }
 
-// ARCH: initUI() scala moduły. Nie dokładać tu nowej logiki domenowej, jeśli ma własny moduł.
+// RYZYKO REGRESJI: główny start aplikacji.
+// Tu spinają się fallbacki, modale, walidacja akcji i inicjalizacja widoków.
 function initUI(){
   uiState = uiState || __uiDefaults;
 
