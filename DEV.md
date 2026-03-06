@@ -76,6 +76,7 @@
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
 - `js/tabs/rysunek.js` — aktywny renderer zakładki RYSUNEK.
+- Martwy helper `renderFinishList()` został usunięty z `js/app.js`; aktywna lista wykończeń RYSUNKU siedzi w `js/tabs/rysunek.js`.
 - `js/tabs/material.js` — aktywny renderer zakładki MATERIAŁ.
 - `js/tabs/czynnosci.js`
 - `js/tabs/wycena.js`

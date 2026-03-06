@@ -22,6 +22,7 @@ Workflow wypakuje ZIP do roota, usunie ZIP i zrobi commit.
 - `js/app/bindings.js` — delegacja klików + listenery
 - `js/app/actions-register.js` — rejestr akcji UI
 - `js/app.js` — główny klej aplikacji; renderery `WYWIAD`, `MATERIAŁ` i `RYSUNEK` są już przeniesione do `js/tabs/*`
+- stary, nieużywany helper listy wykończeń RYSUNKU został usunięty z `js/app.js`
 - `js/app/rozrys.js` — zakładka rozrysu / Optimax
 - `js/app/cut-optimizer.js` — silnik rozkroju
 
