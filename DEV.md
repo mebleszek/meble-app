@@ -74,7 +74,7 @@
 - `js/app/rozrys.js` — logika zakładki rozrysu / Optimax.
 
 ### Zakładki aktywnie ładowane przez `index.html`
-- `js/tabs/wywiad.js` — aktywny renderer zakładki WYWIAD.
+- `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
 - `js/tabs/rysunek.js` — aktywny renderer zakładki RYSUNEK.
 - `js/tabs/material.js` — aktywny renderer zakładki MATERIAŁ.
 - `js/tabs/czynnosci.js`
