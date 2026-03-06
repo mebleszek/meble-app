@@ -582,6 +582,15 @@
         cleanup();
         resolve(payload);
       };
+      // hard-terminate fallback (used by UI when cancel seems stuck)
+      if(control){
+        control._terminate = ()=>{
+          try{ worker && worker.terminate && worker.terminate(); }catch(_){ }
+          // unblock UI even if worker does not respond
+          try{ finish({ sheets: [], cancelled: true, note: "Generowanie przerwane.", meta: { trim, boardW: W0, boardH: H0, unit } }); }catch(_){ }
+        };
+      }
+
 
       const handle = (ev)=>{
         const msg = ev && ev.data ? ev.data : {};
@@ -812,6 +821,16 @@
     btnRow.appendChild(genBtn);
     card.appendChild(btnRow);
 
+    // Globalny status liczenia (nie znika między materiałami w trybie WSZYSTKIE)
+    const globalStatus = h('div', { id:'rozrysGlobalStatus', class:'rozrys-loading', style:'margin-top:10px;display:none' });
+    globalStatus.appendChild(h('div', { class:'rozrys-spinner' }));
+    const globalTextEl = h('div', { class:'rozrys-loading-text', text:'Pozostało… 30.0 s' });
+    const globalSubEl = h('div', { class:'muted xs', style:'margin-top:6px', text:'' });
+    globalStatus.appendChild(globalTextEl);
+    globalStatus.appendChild(globalSubEl);
+    card.appendChild(globalStatus);
+
+
     // overrides list container
     const overridesBox = h('div', { style:'margin-top:12px;display:none' });
     card.appendChild(overridesBox);
@@ -928,6 +947,16 @@
           const derived = deriveAggForMode(mode);
           const stBase = getBaseState();
           const cache = loadPlanCache();
+
+  const gs = document.getElementById('rozrysGlobalStatus');
+  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
+  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
+  function setGlobalStatus(visible, text, sub){
+    if(!gs) return;
+    gs.style.display = visible ? '' : 'none';
+    if(gsText && text) gsText.textContent = text;
+    if(gsSub) gsSub.textContent = sub || '';
+  }
           let allHit = true;
           let anyHit = false;
           for(const m of derived.materials){
@@ -965,6 +994,16 @@
         const base = getBaseState();
         const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
         const cache = loadPlanCache();
+
+  const gs = document.getElementById('rozrysGlobalStatus');
+  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
+  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
+  function setGlobalStatus(visible, text, sub){
+    if(!gs) return;
+    gs.style.display = visible ? '' : 'none';
+    if(gsText && text) gsText.textContent = text;
+    if(gsSub) gsSub.textContent = sub || '';
+  }
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
           const plan = cache[cacheKey].plan;
@@ -1095,15 +1134,17 @@
       return renderLoadingInto(null, text);
     }
 
-    function renderLoadingInto(target, text){
+    function renderLoadingInto(target, text, subText){
       const tgt = target || out;
       tgt.innerHTML = '';
       const box = h('div', { class:'rozrys-loading' });
       box.appendChild(h('div', { class:'rozrys-spinner' }));
       const textEl = h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' });
+      const subEl = h('div', { class:'muted xs', style:'margin-top:6px', text: subText || '' });
       box.appendChild(textEl);
+      box.appendChild(subEl);
       tgt.appendChild(box);
-      return { box, textEl, target: tgt };
+      return { box, textEl, subEl, target: tgt };
     }
 
     
@@ -1213,9 +1254,12 @@ function deriveAggForMode(mode){
 
 let _rozrysRunId = 0;
 let _rozrysRunning = false;
+    try{ setGlobalStatus(false); }catch(_){ }
 let _rozrysBtnMode = 'idle'; // idle | running | done
 let _rozrysCancelRequested = false;
 let _rozrysActiveCancel = null;
+let _rozrysCancelTmr = null;
+let _rozrysActiveTerminate = null;
 
 function setGenBtnMode(mode){
   _rozrysBtnMode = mode;
@@ -1238,6 +1282,12 @@ function requestCancel(){
   if(!_rozrysRunning) return;
   _rozrysCancelRequested = true;
   try{ _rozrysActiveCancel && _rozrysActiveCancel(); }catch(_){ }
+  // twardy fallback: jeśli worker nie odpowie, terminate żeby UI nie wisiało
+  if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
+  _rozrysCancelTmr = setTimeout(()=>{
+    if(!_rozrysRunning) return;
+    try{ _rozrysActiveTerminate && _rozrysActiveTerminate(); }catch(_){ }
+  }, 700);
 }
 
 async function generate(force){
@@ -1262,6 +1312,16 @@ async function generate(force){
 
   const cache = loadPlanCache();
 
+  const gs = document.getElementById('rozrysGlobalStatus');
+  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
+  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
+  function setGlobalStatus(visible, text, sub){
+    if(!gs) return;
+    gs.style.display = visible ? '' : 'none';
+    if(gsText && text) gsText.textContent = text;
+    if(gsSub) gsSub.textContent = sub || '';
+  }
+
   const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
     const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
@@ -1276,7 +1336,8 @@ async function generate(force){
 
     // Pro mode: panel saw (30s) should not block UI.
     if(st.heur === "panel30"){
-      const loading = renderLoadingInto(target || null, "Liczę… 0.0 s");
+      const loading = renderLoadingInto(target || null, 'Pozostało… 30.0 s', `Materiał: ${material}`);
+      setGlobalStatus(true, 'Pozostało… 30.0 s', `Materiał: ${material}`);
       let plan = null;
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
@@ -1286,22 +1347,40 @@ async function generate(force){
         try{ control._cancelRequested = true; }catch(_){ }
         try{ control.cancel && control.cancel(); }catch(_){ }
       };
+      _rozrysActiveTerminate = ()=>{
+        try{ control._terminate && control._terminate(); }catch(_){ }
+      };
       try{
-        // Lokalny licznik czasu — niezależny od progress z workera
+        // Lokalny licznik czasu — odliczanie wstecz (max 30s)
+        const budgetMs = 30000;
         tick = setInterval(()=>{
           const now = (window.performance && performance.now) ? performance.now() : Date.now();
-          const t = ((now - startedAt)/1000).toFixed(1);
-          if(loading && loading.textEl) loading.textEl.textContent = `Liczę… ${t} s`;
+          const left = Math.max(0, (budgetMs - (now - startedAt))/1000);
+          const t = left.toFixed(1);
+          if(loading && loading.textEl) loading.textEl.textContent = `Pozostało… ${t} s`;
+          if(gsText) gsText.textContent = `Pozostało… ${t} s`;
         }, 120);
 
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
-          try{ void(p); }catch(_){ }
+          try{
+            // postęp Ultra: iteracje + najlepszy wynik
+            const best = (p && p.best) ? p.best : null;
+            const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
+            const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
+            if(loading && loading.subEl){
+              const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
+              loading.subEl.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
+              if(gsSub) gsSub.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
+            }
+          }catch(_){ }
         }, control);
       }catch(e){
         plan = { sheets: [], note: 'Błąd podczas liczenia (Ultra 30sek).' };
       } finally {
         if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
         _rozrysActiveCancel = null;
+        _rozrysActiveTerminate = null;
+        if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
       }
 
       // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
@@ -1386,6 +1465,7 @@ async function generate(force){
   await runOne(material, parts, null);
   } finally {
     _rozrysRunning = false;
+    try{ setGlobalStatus(false); }catch(_){ }
     if(_rozrysBtnMode === 'running') setGenBtnMode('idle');
   }
 }

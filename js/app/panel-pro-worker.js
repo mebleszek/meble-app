@@ -80,9 +80,11 @@ try{
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
     const cutPref = (opts && (opts.cutPref || opts.direction)) || 'auto';
-    // When user selects Auto, also let the optimizer decide (auto) in addition
-    // to forced preferences. This often reduces "dziury" in some layouts.
-    const prefList = (cutPref === 'auto') ? ['auto','along','across'] : [cutPref];
+    // NOTE (praktyka): "auto" w packGuillotineBeam potrafi generować układy
+    // OK procentowo, ale fatalne pod piłę (mnóstwo zmian kierunku cięcia).
+    // W Ultra "Auto" oznacza: wybierz najlepsze spośród along/across.
+    const prefList = (cutPref === 'auto') ? ['along','across'] : [cutPref];
+
 
     const started = now();
     const base = sortVariants(items);
