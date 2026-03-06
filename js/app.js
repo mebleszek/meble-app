@@ -4005,104 +4005,100 @@ if(cab.subType === 'zmywarkowa'){
 
 
 /* ===== Materiały: rozpiska mebli (korpusy/plecy/trawersy) ===== */
-const FC_BOARD_THICKNESS_CM = 1.8; // domyślnie płyta 18mm (do obliczeń wymiarów "między bokami")
-const FC_TOP_TRAVERSE_DEPTH_CM = 9; // trawersy górne mają głębokość 9cm
+const FC_BOARD_THICKNESS_CM = (window.FC && window.FC.materialCommon && window.FC.materialCommon.FC_BOARD_THICKNESS_CM) || 1.8; // domyślnie płyta 18mm
+const FC_TOP_TRAVERSE_DEPTH_CM = (window.FC && window.FC.materialCommon && window.FC.materialCommon.FC_TOP_TRAVERSE_DEPTH_CM) || 9; // trawersy górne
 
 function fmtCm(v){
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.fmtCm === 'function') return mod.fmtCm(v);
+  }catch(_){ }
   const n = Number(v);
   if(!Number.isFinite(n)) return String(v ?? '');
   return (Math.round(n * 10) / 10).toString();
 }
 
 function formatM2(v){
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.formatM2 === 'function') return mod.formatM2(v);
+  }catch(_){ }
   const n = Number(v);
   if(!Number.isFinite(n)) return '0.000';
   return (Math.round(n * 1000) / 1000).toFixed(3);
 }
 
 function escapeHtml(str){
-  return String(str ?? '').replace(/[&<>"']/g, (ch) => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  }[ch] || ch));
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.escapeHtml === 'function') return mod.escapeHtml(str);
+  }catch(_){ }
+  return String(str ?? '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch] || ch));
 }
 
 function calcPartAreaM2(p){
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.calcPartAreaM2 === 'function') return mod.calcPartAreaM2(p);
+  }catch(_){ }
   const a = Number(p.a) || 0;
   const b = Number(p.b) || 0;
   const qty = Number(p.qty) || 0;
-  return qty * (a * b) / 10000; // cm^2 -> m^2
+  return qty * (a * b) / 10000;
 }
 
 function addArea(map, material, area){
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.addArea === 'function') return mod.addArea(map, material, area);
+  }catch(_){ }
   const key = String(material || '');
   if(!key) return;
   map[key] = (map[key] || 0) + (Number(area) || 0);
 }
 
 function totalsFromParts(parts){
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.totalsFromParts === 'function') return mod.totalsFromParts(parts);
+  }catch(_){ }
   const totals = {};
   (parts || []).forEach(p => addArea(totals, p.material, calcPartAreaM2(p)));
   return totals;
 }
 
 function mergeTotals(target, src){
-  for(const k in (src || {})){
-    target[k] = (target[k] || 0) + (src[k] || 0);
-  }
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.mergeTotals === 'function') return mod.mergeTotals(target, src);
+  }catch(_){ }
+  for(const k in (src || {})) target[k] = (target[k] || 0) + (src[k] || 0);
   return target;
 }
 
 function totalsToRows(totals){
-  return Object.entries(totals || {})
-    .map(([material, m2]) => ({ material, m2 }))
-    .filter(r => r.m2 > 0)
-    .sort((a,b) => b.m2 - a.m2);
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.totalsToRows === 'function') return mod.totalsToRows(totals);
+  }catch(_){ }
+  return Object.entries(totals || {}).map(([material, m2]) => ({ material, m2 })).filter(r => r.m2 > 0).sort((a,b) => b.m2 - a.m2);
 }
 
 function renderTotals(container, totals){
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.renderTotals === 'function') return mod.renderTotals(container, totals);
+  }catch(_){ }
   container.innerHTML = '';
-  const rows = totalsToRows(totals);
-  if(!rows.length){
-    const em = document.createElement('div');
-    em.className = 'muted xs';
-    em.textContent = '—';
-    container.appendChild(em);
-    return;
-  }
-  rows.forEach(r => {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.justifyContent = 'space-between';
-    row.style.gap = '10px';
-    row.style.padding = '2px 0';
-
-    const left = document.createElement('div');
-    left.className = 'muted xs';
-    left.style.fontWeight = '900';
-    left.textContent = r.material;
-
-    const right = document.createElement('div');
-    right.className = 'muted xs';
-    right.style.fontWeight = '900';
-    right.textContent = `${formatM2(r.m2)} m²`;
-
-    row.appendChild(left);
-    row.appendChild(right);
-    container.appendChild(row);
-  });
 }
 
 function getCabinetAssemblyRuleText(cab){
-  if(cab.type === 'wisząca' || cab.type === 'moduł'){
-    return 'Skręcanie: wieniec górny i dolny między bokami.';
-  }
-  if(cab.type === 'stojąca'){
-    return `Skręcanie: wieniec dolny pod bokami (boki niższe o ${FC_BOARD_THICKNESS_CM} cm); góra na trawersach 2×${FC_TOP_TRAVERSE_DEPTH_CM} cm (przód+tył).`;
-  }
+  try{
+    const mod = window.FC && window.FC.materialCommon;
+    if(mod && typeof mod.getCabinetAssemblyRuleText === 'function') return mod.getCabinetAssemblyRuleText(cab);
+  }catch(_){ }
+  if(cab.type === 'wisząca' || cab.type === 'moduł') return 'Skręcanie: wieniec górny i dolny między bokami.';
+  if(cab.type === 'stojąca') return `Skręcanie: wieniec dolny pod bokami (boki niższe o ${FC_BOARD_THICKNESS_CM} cm); góra na trawersach 2×${FC_TOP_TRAVERSE_DEPTH_CM} cm (przód+tył).`;
   return 'Skręcanie: —';
 }
 
