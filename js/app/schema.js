@@ -1,6 +1,7 @@
 // js/app/schema.js
 // Project schema (defaults + normalization). Loaded before js/app.js
 
+// Legacy / niepodpięty moduł: obecnie nie jest ładowany przez index.html. Przed użyciem sprawdź zgodność z aktualnym shape danych projektu.
 (function(){
   'use strict';
   try{

@@ -2,6 +2,7 @@
 // Minimal calculation layer extracted from app.js (Etap 3A)
 // Keep as classic script (no ES modules) for maximum GitHub Pages compatibility.
 
+// Legacy / rezerwa: plik nie jest obecnie ładowany przez index.html. Nie rozwijaj tu nowej logiki bez wcześniejszego świadomego podpięcia.
 (function(){
   'use strict';
   window.FC = window.FC || {};

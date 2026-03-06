@@ -1,4 +1,5 @@
 /* panel-pro-worker.js — cięższe liczenie rozkroju "pod piłę panelową" w Web Workerze
+// Worker pomocniczy dla rozkroju. Nie jest ładowany jako zwykły skrypt w index.html; używać tylko świadomie jako worker.
    - Nie zmienia UI; odciąża główny wątek.
    - Importuje istniejący cut-optimizer (Guillotine Beam Search).
    - Robi multi-start (różne sortowania + losowe tasowania) w budżecie czasu.

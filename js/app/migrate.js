@@ -1,6 +1,7 @@
 // js/app/migrate.js
 // Project schema migrations. Loaded before js/app.js
 
+// Legacy / niepodpięty moduł migracji: obecnie nie jest ładowany przez index.html. Przed użyciem sprawdź DEV.md i aktualne klucze storage.
 (function(){
   'use strict';
   try{

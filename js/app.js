@@ -13,6 +13,8 @@ const STORAGE_KEYS = {
 // ===== CORE FALLBACKS (fail-soft) =====
 // If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
 // provide minimal implementations so the app can still start.
+// ARCH: Ten fallback istnieje tylko jako siatka bezpieczeństwa na deploy/start.
+// Nowych akcji nie dopisywać tutaj — właściwe miejsce to js/core/actions.js + js/app/actions-register.js.
 // This prevents "FC.actions not loaded" from hard-killing the app during development/deploy.
 try{
   window.FC = window.FC || {};
@@ -38,6 +40,7 @@ try{
     })();
   }
 
+  // ARCH: Fallback modali tylko awaryjny. Docelowe miejsce logiki modalowej: js/core/modals.js.
   if(!window.FC.modal){
     (function(){
       const stack = [];
@@ -5566,6 +5569,8 @@ parts.forEach(p => {
 
 
 /* ===== Render UI: cabinets (NO inline editing) ===== */
+// ARCH: renderCabinets() jest jednym z głównych punktów ryzyka regresji.
+// Zmiany robić małymi krokami i testować: dodanie/edycja/usunięcie szafki, przełączanie zakładek, zapis/odświeżenie.
 function renderCabinets(){
   const list = document.getElementById('cabinetsList'); list.innerHTML = '';
   const room = uiState.roomType;
@@ -5922,6 +5927,7 @@ function jumpToCabinetFromMaterials(cabId){
 }
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
+// ARCH: To jest czuły punkt regresji — zmiany robić ostrożnie i sprawdzać checklistę z DEV.md.
 function setActiveTab(tabName){
   uiState.activeTab = tabName;
   FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
@@ -6011,6 +6017,7 @@ function initApp(){
   return initUI();
 }
 
+// ARCH: initUI() scala moduły. Nie dokładać tu nowej logiki domenowej, jeśli ma własny moduł.
 function initUI(){
   uiState = uiState || __uiDefaults;
 
