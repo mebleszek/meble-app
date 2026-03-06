@@ -87,10 +87,10 @@ try{
     const started = now();
     const base = sortVariants(items);
 
-    // Map items by id so we can reconstruct pools from placements in a repair step.
+    // Map items by id for quick lookup when doing post-pass repair.
     const itemById = new Map();
-    for(const it of (items||[])){
-      if(it && it.id!=null) itemById.set(String(it.id), it);
+    for(const it of items){
+      if(it && (it.id!==undefined && it.id!==null)) itemById.set(it.id, it);
     }
 
     // deterministic runs first
@@ -132,94 +132,137 @@ try{
       }
     }
 
-    // --- Ultra post-pass ("przekozacki" local repair) ---
-    // The main multi-start search can end with a weakly-filled last sheet.
-    // Here we run 20 repair attempts that repack the tail (last 3–4 sheets)
-    // and optionally "borrow" up to 10 items from the previous sheet to enable swaps.
-    function placementsToItems(sheet){
+    // === "Przekozacki" post-pass (repair) ===
+    // Goal: reduce "pusta ostatnia płyta" by repacking the tail (last 2-3 sheets)
+    // and optionally borrowing up to 10 elements from 1-2 sheets earlier.
+    // This is intentionally local: we do NOT repack the whole solution.
+    function idsFromSheet(sheet){
       const out = [];
-      if(!sheet || !Array.isArray(sheet.placements)) return out;
-      for(const p of sheet.placements){
-        if(!p || p.unplaced) continue;
-        const it = itemById.get(String(p.id));
-        if(it) out.push(it);
+      const pls = (sheet && Array.isArray(sheet.placements)) ? sheet.placements : [];
+      for(const p of pls){
+        if(p && p.unplaced) continue;
+        if(p && (p.id!==undefined && p.id!==null)) out.push(p.id);
       }
       return out;
     }
 
-    function cloneHeadSheets(sheets, keepCount){
-      return sheets.slice(0, keepCount).map(sh=>({
-        boardW: sh.boardW,
-        boardH: sh.boardH,
-        placements: (sh.placements||[]).slice(),
-        _freeRects: sh._freeRects ? sh._freeRects.slice() : undefined,
-        _usedArea: sh._usedArea
-      }));
+    function repackTailWithBorrow(prefixSheets, tailSheets, borrowIds, cutPref){
+      // Build pool: all items that were placed on tail sheets + borrowed ids.
+      const poolIds = [];
+      for(const s of tailSheets){
+        poolIds.push(...idsFromSheet(s));
+      }
+      if(Array.isArray(borrowIds) && borrowIds.length) poolIds.push(...borrowIds);
+
+      // Map ids -> items; de-dup ids.
+      const uniq = [];
+      const seen = new Set();
+      for(const id of poolIds){
+        if(seen.has(id)) continue;
+        seen.add(id);
+        const it = itemById.get(id);
+        if(it) uniq.push(it);
+      }
+      if(!uniq.length) return null;
+
+      // Repack only the pool into new sheets.
+      const newTail = opt.packGuillotineBeam(uniq, W, H, K, {
+        beamWidth,
+        // Keep it snappy: we may do many trials.
+        timeMs: Math.min(260, Math.max(120, Math.round(perSheetMs * 0.6))),
+        cutPref,
+        scrapFirst: true,
+      });
+
+      const combined = (prefixSheets||[]).concat(newTail||[]);
+      const sc = scoreSheets(combined);
+      return { sheets: combined, sc };
     }
 
-    function tryImproveTail(current){
-      if(!current || !Array.isArray(current.sheets) || current.sheets.length < 2) return current;
-      const sheets0 = current.sheets;
-      const n = sheets0.length;
-      const attempts = 20;
-      let bestLocal = { sheets: sheets0, sc: scoreSheets(sheets0) };
+    function doCrazyPostPass(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
 
-      for(let a=0; a<attempts; a++){
+      const sheets = currentBest.sheets;
+      if(sheets.length < 3) return currentBest;
+
+      // Only worth it when the last sheet is "light" (few items) or when we have many sheets.
+      const lastIds = idsFromSheet(sheets[sheets.length-1]);
+      if(sheets.length <= 4 && lastIds.length > 10) return currentBest;
+
+      const trials = Math.max(0, Math.round(Number(opts && opts.crazyTailTrials) || 20));
+      if(!trials) return currentBest;
+
+      let bestLocal = currentBest;
+
+      // Candidate borrow sheets: 1-2 sheets before the tail.
+      const borrowCandidates = [];
+      const idxA = sheets.length - 4;
+      const idxB = sheets.length - 5;
+      if(idxA >= 0) borrowCandidates.push(idxA);
+      if(idxB >= 0) borrowCandidates.push(idxB);
+
+      // Tail sizes: last 2 or last 3 sheets.
+      const tailSizes = [3, 2];
+
+      const startPost = now();
+      for(let t=0; t<trials; t++){
         if(_cancelled) break;
-        const win = (a % 5 === 0) ? 4 : 3; // occasionally try a wider window
-        const startIdx = Math.max(0, n - win);
-        let pool = [];
-        for(let i=startIdx;i<n;i++) pool = pool.concat(placementsToItems(sheets0[i]));
-        if(!pool.length) continue;
+        // Respect remaining time budget.
+        if(now() - started > timeBudgetMs) break;
 
-        // Borrow up to 10 items from the sheet just before the window.
+        const seed = ((Date.now() + 1337) + t*7919) >>> 0;
+        const rnd = mulberry32(seed);
+
+        const tailSize = tailSizes[Math.floor(rnd()*tailSizes.length)];
+        const tailStart = Math.max(0, sheets.length - tailSize);
+        const prefix = sheets.slice(0, tailStart);
+        const tail = sheets.slice(tailStart);
+
+        // Borrow up to 10 ids from 1-2 candidate sheets.
         const borrowMax = 10;
-        const borrowFromIdx = startIdx - 1;
-        let borrowed = [];
-        if(borrowFromIdx >= 0){
-          const candidates = placementsToItems(sheets0[borrowFromIdx]);
-          if(candidates.length){
-            const seed = ((Date.now() + a*1337) >>> 0);
-            const rnd = mulberry32(seed);
-            borrowed = shuffle(candidates, rnd).slice(0, Math.min(borrowMax, candidates.length));
-            pool = pool.concat(borrowed);
+        const borrowIds = [];
+        const borrowFromCount = (borrowCandidates.length && rnd() < 0.65) ? (rnd() < 0.35 ? 2 : 1) : 0;
+        if(borrowFromCount){
+          const cand = shuffle(borrowCandidates, rnd).slice(0, borrowFromCount);
+          for(const idx of cand){
+            const ids = idsFromSheet(sheets[idx]);
+            if(!ids.length) continue;
+            const pickCount = Math.min(borrowMax - borrowIds.length, Math.max(1, Math.floor(rnd()*Math.min(6, ids.length))));
+            const shuffledIds = shuffle(ids, rnd);
+            for(let i=0;i<pickCount && borrowIds.length<borrowMax;i++) borrowIds.push(shuffledIds[i]);
           }
         }
 
-        const seed2 = ((Date.now() + a*9973) >>> 0);
-        const rnd2 = mulberry32(seed2);
-        const arr = shuffle(pool, rnd2);
+        // Try different cut preferences even when overall is auto.
+        const pref = prefList[Math.floor(rnd()*prefList.length)];
+        const candRes = repackTailWithBorrow(prefix, tail, borrowIds, pref);
+        if(!candRes) continue;
+        if(better(candRes, bestLocal)) bestLocal = candRes;
+        setBest(bestLocal);
 
-        // Stronger parameters for tail repair.
-        const tailBeam = Math.max(180, beamWidth);
-        const tailMs = Math.max(220, Math.min(650, perSheetMs + 180));
-
-        for(const pref of prefList){
-          if(_cancelled) break;
-          const repacked = opt.packGuillotineBeam(arr, W, H, K, { beamWidth: tailBeam, timeMs: tailMs, cutPref: pref, scrapFirst:true });
-          const replacedStart = borrowed.length ? borrowFromIdx : startIdx;
-          const newHead = cloneHeadSheets(sheets0, replacedStart);
-          const newSheets = newHead.concat(repacked);
-          const sc = scoreSheets(newSheets);
-          const res = { sheets: newSheets, sc };
-          if(better(res, bestLocal)) bestLocal = res;
-          setBest(res);
+        // progress ping (cheap)
+        const tt = now();
+        if(tt - startPost > 650 && (t % 5 === 4)){
+          try{
+            self.postMessage({
+              type:'progress',
+              elapsedMs: Math.round(tt - started),
+              iters: iters + t + 1,
+              best: bestLocal ? { sheets: bestLocal.sc.sheets, waste: bestLocal.sc.waste } : null,
+            });
+          }catch(_){ }
         }
       }
+
       return bestLocal;
     }
 
-    if(best){
-      // Spend the remaining time for repair if available.
-      if(!_cancelled){
-        const remainingMs = timeBudgetMs - (now() - started);
-        if(remainingMs > 300){
-          const improved = tryImproveTail(best);
-          if(improved && better(improved, best)) best = improved;
-        }
-      }
-      return { sheets: best.sheets, cancelled: _cancelled };
+    if(best && !_cancelled){
+      best = doCrazyPostPass(best);
     }
+
+    if(best) return { sheets: best.sheets, cancelled: _cancelled };
     // Fallback: still evaluate both preferences when auto.
     let fallbackBest = null;
     for(const pref of prefList){
