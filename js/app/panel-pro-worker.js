@@ -57,10 +57,7 @@ try{
     const byMaxSideDesc = items.slice().sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h));
     const byMinSideDesc = items.slice().sort((a,b)=>Math.min(b.w,b.h)-Math.min(a.w,a.h));
     const byPerimDesc = items.slice().sort((a,b)=>((b.w+b.h)-(a.w+a.h)));
-    // Helpful for "pasowe" układy: sort po szerokości/wysokości (strip-first)
-    const byWidthDesc = items.slice().sort((a,b)=> (b.w-a.w) || (b.h-a.h) || ((b.w*b.h)-(a.w*a.h)));
-    const byHeightDesc = items.slice().sort((a,b)=> (b.h-a.h) || (b.w-a.w) || ((b.w*b.h)-(a.w*a.h)));
-    return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc, byWidthDesc, byHeightDesc];
+    return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc];
   }
 
   let _cancelled = false;
@@ -265,6 +262,161 @@ try{
 
     if(best && !_cancelled){
       best = doCrazyPostPass(best);
+    }
+
+    // === Optimax post-pass: strip-first + fill long strips with small parts from tail ===
+    // Triggered only when opts.optimax=true.
+    // Idea: if an earlier sheet has a long free strip (full height/width), treat it as a temporary "magazyn".
+    // Then try to pack small parts taken from the last ~35% of sheets into those strips.
+    // Finally, repack the remaining tail pool. This often removes the "pusta ostatnia płyta" and reduces waste.
+    function doOptimaxStripFill(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
+      const sheets0 = currentBest.sheets;
+      if(sheets0.length < 2) return currentBest;
+
+      const tailCount = Math.max(1, Math.ceil(sheets0.length * 0.35));
+      const tailStart = Math.max(0, sheets0.length - tailCount);
+      if(tailStart <= 0) return currentBest;
+
+      // Pool ids from tail sheets
+      const poolIds = [];
+      for(let i=tailStart;i<sheets0.length;i++) poolIds.push(...idsFromSheet(sheets0[i]));
+      if(!poolIds.length) return currentBest;
+
+      // Build pool items (small-first)
+      const poolItems = [];
+      {
+        const seen = new Set();
+        for(const id of poolIds){
+          if(seen.has(id)) continue;
+          seen.add(id);
+          const it = itemById.get(id);
+          if(it) poolItems.push(it);
+        }
+        poolItems.sort((a,b)=> (a.w*a.h) - (b.w*b.h));
+      }
+
+      // Clone prefix sheets and keep their placements; we'll add placements into strips.
+      const prefix = [];
+      for(let i=0;i<tailStart;i++){
+        const s = sheets0[i];
+        prefix.push({ boardW:s.boardW, boardH:s.boardH, placements: (s.placements||[]).slice(), _freeRects: (s._freeRects||[]).slice() });
+      }
+
+      const remainingById = new Set(poolItems.map(it=>it.id));
+      const removeFromSet = (ids)=>{ for(const id of ids){ remainingById.delete(id); } };
+
+      // Find strip-like free rects: full height/width (within 5%) and at least 30cm thickness.
+      const minStrip = 300; // mm
+      const strips = [];
+      for(let si=0; si<prefix.length; si++){
+        const s = prefix[si];
+        const fr = Array.isArray(s._freeRects) ? s._freeRects : [];
+        for(const r of fr){
+          if(!r || r.w<=0 || r.h<=0) continue;
+          const fullH = (r.h >= (H * 0.95)) && (r.w >= minStrip);
+          const fullW = (r.w >= (W * 0.95)) && (r.h >= minStrip);
+          if(fullH || fullW){
+            strips.push({ sheetIndex: si, rect: r, fullH, fullW });
+          }
+        }
+      }
+      if(!strips.length) return currentBest;
+
+      // Try to fill strips with up to N small parts.
+      // We do a few rounds; keep it cheap.
+      let poolCursor = 0;
+      for(const srec of strips){
+        if(_cancelled) break;
+        if(poolCursor >= poolItems.length) break;
+
+        const rect = srec.rect;
+        // build subset of remaining small items
+        const subset = [];
+        let tries = 0;
+        while(poolCursor < poolItems.length && subset.length < 30 && tries < 120){
+          const it = poolItems[poolCursor++];
+          tries++;
+          if(!it) continue;
+          if(!remainingById.has(it.id)) continue;
+          subset.push(it);
+        }
+        if(!subset.length) continue;
+
+        // Prefer stable cut direction within a strip.
+        const stripPref = srec.fullH ? 'along' : 'across';
+        const packed = opt.packGuillotineBeam(subset, rect.w, rect.h, K, {
+          beamWidth: Math.max(60, Math.min(140, Math.round(beamWidth*0.6))),
+          timeMs: 140,
+          cutPref: stripPref,
+          scrapFirst: false,
+        });
+        if(!packed || !packed[0] || !Array.isArray(packed[0].placements)) continue;
+        const pls = packed[0].placements.filter(p=>p && !p.unplaced);
+        if(!pls.length) continue;
+
+        // Apply placements into the parent sheet with offset.
+        const dst = prefix[srec.sheetIndex];
+        for(const p of pls){
+          dst.placements.push({
+            id: p.id,
+            key: p.key,
+            name: p.name,
+            x: rect.x + p.x,
+            y: rect.y + p.y,
+            w: p.w,
+            h: p.h,
+            rotated: !!p.rotated,
+            unplaced: false,
+          });
+        }
+        removeFromSet(pls.map(p=>p.id));
+
+        // progress ping
+        const tt = now();
+        if(tt - started > 800){
+          try{
+            self.postMessage({
+              type:'progress',
+              elapsedMs: Math.round(tt - started),
+              iters: iters,
+              best: _bestSoFar ? { sheets:_bestSoFar.sc.sheets, waste:_bestSoFar.sc.waste } : null,
+            });
+          }catch(_){ }
+        }
+      }
+
+      // Build remaining pool and repack into tail.
+      const remItems = [];
+      for(const it of poolItems){
+        if(remainingById.has(it.id)) remItems.push(it);
+      }
+      if(!remItems.length) {
+        // Tail eliminated.
+        const sc = scoreSheets(prefix);
+        const res = { sheets: prefix, sc };
+        if(better(res, currentBest)) return res;
+        return currentBest;
+      }
+
+      // Repack remaining tail.
+      const newTail = opt.packGuillotineBeam(remItems, W, H, K, {
+        beamWidth,
+        timeMs: Math.min(260, Math.max(140, Math.round(perSheetMs*0.7))),
+        cutPref: (opts && (opts.cutPref||opts.direction)) || 'along',
+        scrapFirst: true,
+      });
+      const combined = prefix.concat(newTail||[]);
+      const sc = scoreSheets(combined);
+      const res = { sheets: combined, sc };
+      if(better(res, currentBest)) return res;
+      return currentBest;
+    }
+
+    if(best && !_cancelled && opts && opts.optimax){
+      best = doOptimaxStripFill(best);
+      setBest(best);
     }
 
     if(best) return { sheets: best.sheets, cancelled: _cancelled };

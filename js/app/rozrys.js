@@ -496,7 +496,7 @@
   // ===== Panel-saw PRO (30s) in Web Worker (non-blocking) =====
   // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
   // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
-  function computePlanPanelProAsync(state, parts, onProgress, control){
+  function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     return new Promise((resolve)=>{
       const opt = FC.cutOptimizer;
       if(!opt) return resolve({ sheets: [], note: 'Brak modułu cutOptimizer.' });
@@ -543,7 +543,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_02');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_03');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -627,12 +627,13 @@
       }, 35000);
 
       try{
+        const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
         worker.postMessage({
           cmd: 'panel_pro',
           runId,
           items,
           W, H, K,
-          options: { timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }
+          options: o
         });
       }catch(e){
         // Posting failed: cleanup and return
@@ -792,6 +793,7 @@
       <option value="gpro">Dokładne upakowanie</option>
       <option value="super">Super upakowanie</option>
       <option value="panel30">Ultra 30sekund</option>
+      <option value="optimax">Optimax (PRO)</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -829,15 +831,6 @@
     globalStatus.appendChild(globalTextEl);
     globalStatus.appendChild(globalSubEl);
     card.appendChild(globalStatus);
-
-    // One source of truth for global status updates (avoid duplicated inline helpers)
-    function setGlobalStatus(visible, text, sub){
-      try{
-        globalStatus.style.display = visible ? '' : 'none';
-        if(text) globalTextEl.textContent = text;
-        globalSubEl.textContent = sub || '';
-      }catch(_){ }
-    }
 
 
     // overrides list container
@@ -957,7 +950,15 @@
           const stBase = getBaseState();
           const cache = loadPlanCache();
 
-          // (global status is managed by the single setGlobalStatus() defined near the UI)
+  const gs = document.getElementById('rozrysGlobalStatus');
+  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
+  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
+  function setGlobalStatus(visible, text, sub){
+    if(!gs) return;
+    gs.style.display = visible ? '' : 'none';
+    if(gsText && text) gsText.textContent = text;
+    if(gsSub) gsSub.textContent = sub || '';
+  }
           let allHit = true;
           let anyHit = false;
           for(const m of derived.materials){
@@ -996,7 +997,15 @@
         const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
         const cache = loadPlanCache();
 
-        // (global status is managed by the single setGlobalStatus() defined near the UI)
+  const gs = document.getElementById('rozrysGlobalStatus');
+  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
+  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
+  function setGlobalStatus(visible, text, sub){
+    if(!gs) return;
+    gs.style.display = visible ? '' : 'none';
+    if(gsText && text) gsText.textContent = text;
+    if(gsSub) gsSub.textContent = sub || '';
+  }
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
           const plan = cache[cacheKey].plan;
@@ -1247,6 +1256,7 @@ function deriveAggForMode(mode){
 
 let _rozrysRunId = 0;
 let _rozrysRunning = false;
+    try{ setGlobalStatus(false); }catch(_){ }
 let _rozrysBtnMode = 'idle'; // idle | running | done
 let _rozrysCancelRequested = false;
 let _rozrysActiveCancel = null;
@@ -1304,7 +1314,17 @@ async function generate(force){
 
   const cache = loadPlanCache();
 
-  const runOne = async (material, parts, target, optsRun)=>{
+  const gs = document.getElementById('rozrysGlobalStatus');
+  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
+  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
+  function setGlobalStatus(visible, text, sub){
+    if(!gs) return;
+    gs.style.display = visible ? '' : 'none';
+    if(gsText && text) gsText.textContent = text;
+    if(gsSub) gsSub.textContent = sub || '';
+  }
+
+  const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
     const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
     const cacheKey = makePlanCacheKey(st, parts);
@@ -1316,12 +1336,52 @@ async function generate(force){
       return;
     }
 
-    // Pro mode: panel saw (30s) should not block UI.
-    if(st.heur === "panel30"){
-      const showLocal = !!(optsRun && optsRun.showLocalLoading);
-      const loading = showLocal ? renderLoadingInto(target || null, 'Pozostało… 30.0 s', `Materiał: ${material}`) : null;
-      let lastSub = `Materiał: ${material}`;
-      setGlobalStatus(true, 'Pozostało… 30.0 s', lastSub);
+    // Pro mode: heavy compute in Web Worker.
+    if(st.heur === "panel30" || st.heur === "optimax"){
+      // Budget:
+      // - Ultra 30s: fixed 30s
+      // - Optimax: quick estimate (along vs across) then 7s per estimated sheet
+      const isOptimax = (st.heur === 'optimax');
+      const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
+      const toMm2 = (v)=>{
+        const n = Number(v);
+        if(!Number.isFinite(n)) return 0;
+        return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
+      };
+      const W02 = toMm2(st.boardW) || 2800;
+      const H02 = toMm2(st.boardH) || 2070;
+      const K2  = toMm2(st.kerf)   || 4;
+      const trim2 = toMm2(st.edgeTrim) || 20;
+      const W2 = Math.max(10, W02 - 2*trim2);
+      const H2 = Math.max(10, H02 - 2*trim2);
+
+      let budgetMs = 30000;
+      if(isOptimax){
+        try{
+          // Quick estimate: simplest guillotine beam with small settings.
+          const optQ = FC.cutOptimizer;
+          const grainOnQ = !!st.grain;
+          const overridesQ = loadOverrides();
+          const edgeStoreQ = loadEdgeStore();
+          const partsMmQ = (parts||[]).map(p=>{
+            const sig = partSignature(p);
+            const allow = grainOnQ ? !!overridesQ[sig] : true;
+            const e = edgeStoreQ[sig] || {};
+            return { key:sig, name:p.name, w:p.w, h:p.h, qty:p.qty, material:p.material, rotationAllowed: grainOnQ ? allow : true, edgeW1:!!e.w1, edgeW2:!!e.w2, edgeH1:!!e.h1, edgeH2:!!e.h2 };
+          });
+          const itemsQ = optQ.makeItems(partsMmQ);
+          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true });
+          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true });
+          const est = Math.max(1, Math.min((sA||[]).length||9999, (sB||[]).length||9999));
+          budgetMs = Math.min(120000, Math.max(7000, est * 7000));
+        }catch(_){
+          budgetMs = 42000; // safe fallback
+        }
+      }
+
+      const label = isOptimax ? `Pozostało… ${(budgetMs/1000).toFixed(1)} s` : 'Pozostało… 30.0 s';
+      const loading = renderLoadingInto(target || null, label, `Materiał: ${material}`);
+      setGlobalStatus(true, label, `Materiał: ${material}`);
       let plan = null;
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
@@ -1335,14 +1395,13 @@ async function generate(force){
         try{ control._terminate && control._terminate(); }catch(_){ }
       };
       try{
-        // Lokalny licznik czasu — odliczanie wstecz (max 30s)
-        const budgetMs = 30000;
+        // Lokalny licznik czasu — odliczanie wstecz
         tick = setInterval(()=>{
           const now = (window.performance && performance.now) ? performance.now() : Date.now();
           const left = Math.max(0, (budgetMs - (now - startedAt))/1000);
           const t = left.toFixed(1);
           if(loading && loading.textEl) loading.textEl.textContent = `Pozostało… ${t} s`;
-          setGlobalStatus(true, `Pozostało… ${t} s`, lastSub);
+          if(gsText) gsText.textContent = `Pozostało… ${t} s`;
         }, 120);
 
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
@@ -1351,14 +1410,23 @@ async function generate(force){
             const best = (p && p.best) ? p.best : null;
             const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
-            const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-            lastSub = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
-            if(loading && loading.subEl) loading.subEl.textContent = lastSub;
-            setGlobalStatus(true, (loading && loading.textEl) ? loading.textEl.textContent : 'Pozostało…', lastSub);
+            if(loading && loading.subEl){
+              const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
+              loading.subEl.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
+              if(gsSub) gsSub.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
+            }
           }catch(_){ }
-        }, control);
+        }, control, {
+          timeBudgetMs: budgetMs,
+          perSheetMs: isOptimax ? 520 : 420,
+          beamWidth: isOptimax ? 260 : 220,
+          // Keep user's direction choice; for Auto we still explore along/across in worker.
+          cutPref: st.direction || 'auto',
+          // Optimax enables extra strip-fill post-pass in worker.
+          optimax: !!isOptimax,
+        });
       }catch(e){
-        plan = { sheets: [], note: 'Błąd podczas liczenia (Ultra 30sek).' };
+        plan = { sheets: [], note: isOptimax ? 'Błąd podczas liczenia (Optimax).' : 'Błąd podczas liczenia (Ultra 30sek).' };
       } finally {
         if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
         _rozrysActiveCancel = null;
@@ -1433,14 +1501,11 @@ async function generate(force){
       out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
       return;
     }
-    for(let idx=0; idx<derived.materials.length; idx++){
-      const m = derived.materials[idx];
+    for(const m of derived.materials){
       const parts = derived.byMaterial[m] || [];
       const box = h("div", { style:"margin-top:12px" });
       out.appendChild(box);
-      // Na starcie ma być tylko jeden licznik (globalny). Lokalny licznik pokazujemy dopiero
-      // poniżej pierwszych wyników (kolejne materiały).
-      await runOne(m, parts, box, { showLocalLoading: idx > 0 });
+      await runOne(m, parts, box);
       if(_rozrysCancelRequested) break;
     }
     return;
@@ -1448,7 +1513,7 @@ async function generate(force){
 
   const material = sel;
   const parts = agg.byMaterial[material] || [];
-  await runOne(material, parts, null, { showLocalLoading: true });
+  await runOne(material, parts, null);
   } finally {
     _rozrysRunning = false;
     try{ setGlobalStatus(false); }catch(_){ }
@@ -1490,7 +1555,7 @@ async function generate(force){
       tryAutoRenderFromCache();
     });
     heurSel.addEventListener('change', ()=>{
-      const usesDir = (heurSel.value === 'shelf' || heurSel.value === 'panel30');
+      const usesDir = (heurSel.value === 'shelf' || heurSel.value === 'panel30' || heurSel.value === 'optimax');
       dirSel.disabled = !usesDir;
       if(!usesDir) dirSel.value = 'auto';
       tryAutoRenderFromCache();
