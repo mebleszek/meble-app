@@ -58,3 +58,6 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - Step 17: safe dead-code cleanup in `js/app.js` (removed unused `deleteSelectedCabinet()` and duplicate/trailing ballast comments).
+
+
+- `js/app/corner-sketch.js` — helper canvas szkicu narożnych szafek; wydzielony z `app.js` bez zmiany UI.
