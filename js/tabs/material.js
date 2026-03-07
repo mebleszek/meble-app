@@ -9,6 +9,17 @@
   function renderMaterialsTab(listEl, room){
     const cabinets = projectData[room].cabinets || [];
 
+    const common = (window.FC && window.FC.materialCommon) || {};
+    const hw = (window.FC && window.FC.frontHardware) || {};
+
+    const mergeTotalsFn = (typeof mergeTotals === 'function') ? mergeTotals : ((typeof common.mergeTotals === 'function') ? common.mergeTotals : function(dst, src){ Object.keys(src||{}).forEach((k)=>{ dst[k] = (Number(dst[k])||0) + (Number(src[k])||0); }); return dst; });
+    const totalsFromPartsFn = (typeof totalsFromParts === 'function') ? totalsFromParts : ((typeof common.totalsFromParts === 'function') ? common.totalsFromParts : function(){ return {}; });
+    const renderTotalsFn = (typeof renderTotals === 'function') ? renderTotals : ((typeof common.renderTotals === 'function') ? common.renderTotals : function(container){ if(container) container.innerHTML=''; });
+    const getAssemblyRuleTextFn = (typeof getCabinetAssemblyRuleText === 'function') ? getCabinetAssemblyRuleText : ((typeof common.getCabinetAssemblyRuleText === 'function') ? common.getCabinetAssemblyRuleText : function(){ return 'Skręcanie: —'; });
+    const getCabinetCutListFn = (typeof getCabinetCutList === 'function') ? getCabinetCutList : function(){ return []; };
+    const FC_HANDLE_WEIGHT_KG_SAFE = (typeof window.FC_HANDLE_WEIGHT_KG !== 'undefined') ? window.FC_HANDLE_WEIGHT_KG : (Number(hw.FC_HANDLE_WEIGHT_KG) || 0);
+    const FC_FRONT_WEIGHT_KG_M2_SAFE = (window.FC_FRONT_WEIGHT_KG_M2 && typeof window.FC_FRONT_WEIGHT_KG_M2 === 'object') ? window.FC_FRONT_WEIGHT_KG_M2 : (hw.FC_FRONT_WEIGHT_KG_M2 || { laminat:0, akryl:0, lakier:0 });
+
     // Edge banding selections (stored locally for now)
     const EDGE_KEY = 'fc_edge_v1';
     const cmToMmLocal = (v)=>{ const n=Number(v); return Number.isFinite(n)? Math.round(n*10):0; };
@@ -95,8 +106,8 @@
     const projectTotals = {};
     let projectEdgeMeters = 0;
     cabinets.forEach(cab => {
-      const parts = getCabinetCutList(cab, room);
-      mergeTotals(projectTotals, totalsFromParts(parts));
+      const parts = getCabinetCutListFn(cab, room);
+      mergeTotalsFn(projectTotals, totalsFromPartsFn(parts));
       (parts||[]).forEach(p=>{
         if(!(Number(p.a)>0 && Number(p.b)>0)) return;
         const sig = partSig(p);
@@ -136,7 +147,7 @@
           <div>• Laminat 18&nbsp;mm: <span id="wLam"></span> kg/m²</div>
           <div>• Akryl (MDF 18&nbsp;mm): <span id="wAkr"></span> kg/m²</div>
           <div>• Lakier (MDF 18&nbsp;mm): <span id="wLak"></span> kg/m²</div>
-          <div>• Uchwyt (zawiasy): ${FC_HANDLE_WEIGHT_KG} kg / front; (podnośniki klap): ${FC_HANDLE_WEIGHT_KG*2} kg / klapa</div>
+          <div>• Uchwyt (zawiasy): ${FC_HANDLE_WEIGHT_KG_SAFE} kg / front; (podnośniki klap): ${FC_HANDLE_WEIGHT_KG_SAFE*2} kg / klapa</div>
           <div style="font-size:12px;color:#5b6b7c;margin-top:6px">Uchwyty doliczane tylko gdy wybrany system z uchwytem (TIP-ON/podchwyt = 0 kg).</div>
         </div>
       </div>
@@ -144,7 +155,7 @@
     listEl.appendChild(top);
 
     const projTotalsEl = top.querySelector('#projectMatTotals');
-    if(projTotalsEl) renderTotals(projTotalsEl, projectTotals);
+    if(projTotalsEl) renderTotalsFn(projTotalsEl, projectTotals);
 
     const projEdgeEl = top.querySelector('#projectEdgeTotals');
     if(projEdgeEl){
@@ -154,9 +165,9 @@
     const wLamEl = top.querySelector('#wLam');
     const wAkrEl = top.querySelector('#wAkr');
     const wLakEl = top.querySelector('#wLak');
-    if(wLamEl) wLamEl.textContent = String(FC_FRONT_WEIGHT_KG_M2.laminat);
-    if(wAkrEl) wAkrEl.textContent = String(FC_FRONT_WEIGHT_KG_M2.akryl);
-    if(wLakEl) wLakEl.textContent = String(FC_FRONT_WEIGHT_KG_M2.lakier);
+    if(wLamEl) wLamEl.textContent = String(FC_FRONT_WEIGHT_KG_M2_SAFE.laminat);
+    if(wAkrEl) wAkrEl.textContent = String(FC_FRONT_WEIGHT_KG_M2_SAFE.akryl);
+    if(wLakEl) wLakEl.textContent = String(FC_FRONT_WEIGHT_KG_M2_SAFE.lakier);
 
     if(!cabinets.length){
       const empty = document.createElement('div');
@@ -188,7 +199,7 @@
           <div class="muted xs">${cab.width} × ${cab.height} × ${cab.depth} • korpus: ${cab.bodyColor || ''} • plecy: ${cab.backMaterial || ''}</div>
         </div>
         <div class="mat-head-right" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:100%">
-          <div class="muted xs mat-assembly" style="white-space:normal;max-width:100%;flex:1 1 260px;min-width:180px">${getCabinetAssemblyRuleText(cab)}</div>
+          <div class="muted xs mat-assembly" style="white-space:normal;max-width:100%;flex:1 1 260px;min-width:180px">${getAssemblyRuleTextFn(cab)}</div>
           <button class="btn" type="button" data-act="editCab" data-cab="${cab.id}">Edytuj</button>
           <button class="btn" type="button" data-act="jumpCab" data-cab="${cab.id}">← Szafka</button>
         </div>
@@ -233,7 +244,7 @@
         return;
       }
 
-      const parts = getCabinetCutList(cab, room);
+      const parts = getCabinetCutListFn(cab, room);
       const cabEdgeMeters = calcEdgeMetersForParts(parts, cab);
 
       const cabTotalsBox = document.createElement('div');
@@ -364,6 +375,9 @@
       return;
     }catch(e){
       try{ console.error('[material] render error', e); }catch(_){ }
+      try{
+        list.innerHTML = '<div class="build-card"><h3>Materiał</h3><p class="muted">Błąd renderu zakładki. Sprawdź konsolę.</p></div>';
+      }catch(_){ }
     }
 
     try{
