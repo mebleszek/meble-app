@@ -1,0 +1,2006 @@
+(function(){
+  const ns = (window.FC = window.FC || {});
+
+function makeDefaultCabinetDraftForRoom(room){
+  const arr = projectData[room].cabinets;
+  const last = arr[arr.length - 1];
+
+  // UX: domyślnie podczas dodawania otwieraj "szafkę dolną" (kuchnia: stojąca),
+  // ale jeśli użytkownik dopiero co dodał szafkę, powiel ostatnio dodaną.
+  // Dzięki temu szybkie dodawanie serii (np. górnych) działa jak wcześniej,
+  // a po przerwie startujemy od dolnej.
+  const NOW = Date.now();
+  const RECENT_WINDOW_MS = 90 * 1000; // ~1.5 min „dopiero co”
+  const recentlyAdded = (uiState && Number.isFinite(Number(uiState.lastAddedAt)) && (NOW - Number(uiState.lastAddedAt) <= RECENT_WINDOW_MS));
+  const allowCloneLast = !!last && recentlyAdded;
+
+  // powiel poprzednią ze wszystkimi ustawieniami
+  if(allowCloneLast){
+    const cloned = FC.utils.clone(last);
+    cloned.id = null;
+    delete cloned.setId;
+    delete cloned.setPreset;
+    delete cloned.setRole;
+    delete cloned.setName;
+    delete cloned.setNumber;
+    return cloned;
+  }
+
+  const isKitchen = room === 'kuchnia';
+  const baseLaminat = (materials.find(m=>m.materialType==='laminat')?.name || '');
+  return {
+    id: null,
+    width: 60,
+    height: isKitchen ? projectData.kuchnia.settings.bottomHeight : 200,
+    depth: isKitchen ? 51 : 60,
+    type: isKitchen ? 'stojąca' : 'moduł',
+    subType: 'standardowa',
+    bodyColor: baseLaminat,
+    frontMaterial: 'laminat',
+    frontColor: baseLaminat,
+    openingSystem: 'uchwyt klienta',
+    backMaterial: 'HDF 3mm biała',
+    frontCount: 2,
+    details: { insideMode: 'polki', innerDrawerCount: '1', innerDrawerType: 'blum', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', drawerCount: '3', subTypeOption: 'polki', fridgeFrontCount: '2' }
+  };
+}
+
+function openCabinetModalForAdd(){
+  cabinetModalState.mode = 'add';
+  cabinetModalState.editingId = null;
+  cabinetModalState.setEditId = null;
+  cabinetModalState.chosen = null;
+  cabinetModalState.setPreset = null;
+  cabinetModalState.draft = makeDefaultCabinetDraftForRoom(uiState.roomType);
+  // Ustaw wybór typu na podstawie draftu, żeby od razu była widoczna właściwa sekcja.
+  try{ cabinetModalState.chosen = cabinetModalState.draft && cabinetModalState.draft.type ? cabinetModalState.draft.type : null; }catch(_){ }
+  renderCabinetModal();
+  const m = document.getElementById('cabinetModal');
+  if(m){
+    m.style.display = 'flex';
+    // Mobile click-through / "tap lands on first control" guard:
+    // When the modal appears under the same tap, some Android browsers can instantly open a <select>
+    // located under the finger. Temporarily disable pointer events for a split moment.
+    try{
+      m.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
+  lockModalScroll();
+}
+
+
+function lockModalScroll(){
+  document.documentElement.classList.add('modal-lock');
+  document.body.classList.add('modal-lock');
+}
+function unlockModalScroll(){
+  document.documentElement.classList.remove('modal-lock');
+  document.body.classList.remove('modal-lock');
+}
+
+function openCabinetModalForEdit(cabId){
+  cabId = String(cabId);
+  const room = uiState.roomType; if(!room) return;
+  const cab = projectData[room].cabinets.find(c => String(c.id) === cabId);
+  if(!cab) return;
+
+  if(cab.setId){
+    openSetWizardForEdit(cab.setId);
+    return;
+  }
+
+  cabinetModalState.mode = 'edit';
+  cabinetModalState.editingId = cabId;
+  cabinetModalState.setEditId = null;
+  cabinetModalState.chosen = cab.type;
+  cabinetModalState.setPreset = null;
+  cabinetModalState.draft = FC.utils.clone(cab);
+  renderCabinetModal();
+  const m = document.getElementById('cabinetModal');
+  if(m){
+    m.style.display = 'flex';
+    try{
+      m.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
+  lockModalScroll();
+}
+
+function openSetWizardForEdit(setId){
+  setId = String(setId);
+  const room = uiState.roomType; if(!room) return;
+  const set = projectData[room].sets.find(s => String(s.id) === setId);
+  if(!set){ alert('Nie znaleziono zestawu'); return; }
+
+  cabinetModalState.mode = 'add';
+  cabinetModalState.editingId = null;
+  cabinetModalState.setEditId = setId;
+  cabinetModalState.chosen = 'zestaw';
+  cabinetModalState.setPreset = set.presetId;
+  cabinetModalState.draft = null;
+
+  renderCabinetModal();
+  fillSetParamsUIFromSet(set);
+  const m = document.getElementById('cabinetModal');
+  if(m){
+    m.style.display = 'flex';
+    try{
+      m.classList.add('modal-open-guard');
+      requestAnimationFrame(() => setTimeout(() => {
+        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
+      }, 260));
+    }catch(_){ }
+  }
+  lockModalScroll();
+}
+
+function closeCabinetModal(){
+  unlockModalScroll();
+  document.getElementById('cabinetModal').style.display = 'none';
+}
+
+/* ===== Cabinet Modal rendering ===== */
+function renderCabinetTypeChoices(){
+  const wrap = document.getElementById('cabinetTypeChoices');
+  wrap.innerHTML = '';
+  const choices = [
+    { key:'stojąca', title:'Szafka dolna', sub:'Standardowy dół', ico:'⬇️' },
+    { key:'wisząca', title:'Szafka wisząca', sub:'Standardowa góra', ico:'⬆️' },
+    { key:'moduł', title:'Moduł', sub:'Wkład / segment', ico:'🧱' },
+    { key:'zestaw', title:'Zestaw', sub:'Standardy na ikonkach', ico:'🧩' }
+  ];
+
+  choices.forEach(ch => {
+    const tile = document.createElement('div');
+    tile.className = 'choice-tile' + (cabinetModalState.chosen === ch.key ? ' selected' : '');
+    tile.innerHTML = `
+      <div class="choice-ico">${ch.ico}</div>
+      <div>
+        <div class="choice-title">${ch.title}</div>
+        <div class="choice-sub">${ch.sub}</div>
+      </div>
+    `;
+    tile.addEventListener('click', () => {
+      cabinetModalState.chosen = ch.key;
+
+      if(ch.key !== 'zestaw'){
+        const room = uiState.roomType;
+    projectData[room].cabinets = projectData[room].cabinets || [];
+        if(!cabinetModalState.draft) cabinetModalState.draft = makeDefaultCabinetDraftForRoom(room);
+
+        applyTypeRules(room, cabinetModalState.draft, ch.key);
+        const opts = getSubTypeOptionsForType(ch.key).map(o=>o.v);
+        if(!opts.includes(cabinetModalState.draft.subType)) cabinetModalState.draft.subType = opts[0];
+        applySubTypeRules(room, cabinetModalState.draft, cabinetModalState.draft.subType);
+        ensureFrontCountRules(cabinetModalState.draft);
+      }
+      renderCabinetModal();
+    });
+    wrap.appendChild(tile);
+  });
+}
+
+function populateSelect(el, options, selected){
+  el.innerHTML = '';
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.v; opt.textContent = o.t;
+    if(selected === o.v) opt.selected = true;
+    el.appendChild(opt);
+  });
+}
+
+function populateFrontColorsTo(selectEl, typeVal, selected){
+  selectEl.innerHTML = '';
+  materials.filter(m => m.materialType === typeVal).forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.name; o.textContent = m.name;
+    if(m.name === selected) o.selected = true;
+    selectEl.appendChild(o);
+  });
+  if(selectEl.options.length === 0){
+    const o = document.createElement('option'); o.value=''; o.textContent='— brak —';
+    selectEl.appendChild(o);
+  }
+}
+
+function populateBodyColorsTo(selectEl, selected){
+  selectEl.innerHTML = '';
+  materials.filter(m => m.materialType === 'laminat').forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.name; o.textContent = m.name;
+    if(m.name === selected) o.selected = true;
+    selectEl.appendChild(o);
+  });
+  if(selectEl.options.length === 0){
+    const o = document.createElement('option'); o.value=''; o.textContent='— brak —';
+    selectEl.appendChild(o);
+  }
+}
+
+function populateOpeningOptionsTo(selectEl, typeVal, selected){
+  selectEl.innerHTML = '';
+  const isHanging = typeVal === 'wisząca';
+  const options = isHanging
+    ? ['uchwyt klienta','podchwyt','TIP-ON','krawędziowy HEXA GTV','korytkowy','UKW']
+    : ['uchwyt klienta','TIP-ON','krawędziowy HEXA GTV','UKW','korytkowy'];
+  options.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if(v === selected) o.selected = true;
+    selectEl.appendChild(o);
+  });
+}
+
+function renderCabinetExtraDetailsInto(container, draft){
+  container.innerHTML = '';
+  const t = draft.type;
+  const st = draft.subType;
+  const d = draft.details || {};
+
+  function addSelect(labelText, key, options, onChangeExtra){
+    const div = document.createElement('div'); div.style.marginBottom='10px';
+    div.innerHTML = `<label>${labelText}</label><select></select>`;
+    const sel = div.querySelector('select');
+    options.forEach(opt => {
+      const o = document.createElement('option'); o.value=opt.v; o.textContent=opt.t; sel.appendChild(o);
+    });
+    sel.value = (draft.details && draft.details[key]) ? draft.details[key] : options[0].v;
+    sel.addEventListener('change', e => {
+      draft.details = Object.assign({}, draft.details || {}, { [key]: e.target.value });
+      if(onChangeExtra) onChangeExtra(e.target.value);
+      renderCabinetModal();
+    });
+    container.appendChild(div);
+  }
+
+  function addNumber(labelText, key, fallback){
+    const div = document.createElement('div'); div.style.marginBottom='10px';
+    const raw = (draft.details && draft.details[key] != null) ? draft.details[key] : fallback;
+    const existingShelves = document.getElementById('cmShelves');
+    const idAttr = (!existingShelves && key === 'shelves') ? ' id="cmShelves"' : '';
+    div.innerHTML = `<label>${labelText}</label><input type="number"${idAttr} value="${raw}" />`;
+    const inp = div.querySelector('input');
+
+    const apply = () => {
+      // zapisuj od razu (żeby nie wymagało "odkliknięcia" pola)
+      draft.details = Object.assign({}, draft.details || {}, { [key]: inp.value });
+    };
+
+    inp.addEventListener('input', apply);
+    inp.addEventListener('change', apply);
+    container.appendChild(div);
+  }
+
+
+  // narożna L (wisząca / stojąca): własne wymiary + szkic (bez grafik zewnętrznych)
+  if((t === 'wisząca' || t === 'stojąca') && st === 'narozna_l'){
+    const d0 = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+    // domyślne wymiary zależnie od typu
+    const isStanding = (t === 'stojąca');
+    const defaults = {
+      gl: (d0.gl != null ? d0.gl : (isStanding ? '110' : '70')),
+      gp: (d0.gp != null ? d0.gp : (isStanding ? '50'  : '36')),
+      st: (d0.st != null ? d0.st : (isStanding ? '100' : '60')),
+      sp: (d0.sp != null ? d0.sp : (isStanding ? '47'  : '33')),
+      shelves: (d0.shelves != null ? d0.shelves : 2)
+    ,
+      cornerFlip: (d0.cornerFlip != null ? d0.cornerFlip : false)
+    };
+    draft.details = Object.assign({}, d0, defaults);
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <div>
+          <label>GL</label>
+          <input id="cmGL" type="number" step="0.1" />
+          <div class="muted xs" style="margin-top:4px">Głębokość lewa (cm)</div>
+        </div>
+        <div>
+          <label>GP</label>
+          <input id="cmGP" type="number" step="0.1" />
+          <div class="muted xs" style="margin-top:4px">Głębokość prawa (cm)</div>
+        </div>
+        <div>
+          <label>ST</label>
+          <input id="cmST" type="number" step="0.1" />
+          <div class="muted xs" style="margin-top:4px">Szerokość tyłu (cm)</div>
+        </div>
+        <div>
+          <label>SP</label>
+          <input id="cmSP" type="number" step="0.1" />
+          <div class="muted xs" style="margin-top:4px">Szerokość przodu (cm)</div>
+        </div>
+      </div>
+
+      <div class="flex" style="margin-top:10px;justify-content:space-between;flex-wrap:wrap">
+        <button id="flipCornerBtn" class="btn" type="button">Odwróć narożnik</button>
+        <div id="cornerWarn" class="warn-orange xs"></div>
+      </div>
+
+      <div class="muted xs" style="margin-top:8px">
+        Widok z góry. Fronty liczone: <b>FL = |GL−GP|</b> oraz <b>FP = |ST−SP−1,8|</b> (płyta 18&nbsp;mm).
+      </div>
+
+      <div style="margin-top:10px">
+        <canvas id="cornerPreview" width="520" height="360" style="width:100%;max-width:520px;border:1px solid #ddd;border-radius:10px;"></canvas>
+        <div class="muted xs" id="cornerPreviewLegend" style="margin-top:6px"></div>
+      </div>
+    `;
+    container.appendChild(wrap);
+
+    const iGL = wrap.querySelector('#cmGL');
+    const iGP = wrap.querySelector('#cmGP');
+    const iST = wrap.querySelector('#cmST');
+    const iSP = wrap.querySelector('#cmSP');
+    const warnEl = wrap.querySelector('#cornerWarn');
+    const flipBtn = wrap.querySelector('#flipCornerBtn');
+
+    iGL.value = draft.details.gl;
+    iGP.value = draft.details.gp;
+    iST.value = draft.details.st;
+    iSP.value = draft.details.sp;
+
+    const widthInput = document.getElementById('cmWidth');
+    const depthInput = document.getElementById('cmDepth');
+
+    const sync = () => {
+      const GL = Number(iGL.value) || 0;
+      const GP = Number(iGP.value) || 0;
+      const ST = Number(iST.value) || 0;
+      const SP = Number(iSP.value) || 0;
+      const flip = !!(draft.details && draft.details.cornerFlip);
+
+      // Twoje zasady na fronty (cm)
+      const FL = Math.abs(GL - GP);
+      const FP = Math.abs(ST - SP - 1.8);
+
+      draft.details = Object.assign({}, draft.details || {}, {
+        gl: String(GL),
+        gp: String(GP),
+        st: String(ST),
+        sp: String(SP)
+      });
+
+      // pomocniczo: uzupełnij "Szerokość" i "Głębokość" w głównych polach (żeby wycena/listy miały sens)
+      // szerokość = ST, głębokość = max(GL, GP)
+      draft.width = ST;
+      draft.depth = Math.max(GL, GP);
+
+      if(widthInput) widthInput.value = String(draft.width);
+      if(depthInput) depthInput.value = String(draft.depth);
+
+      drawCornerSketch({ GL, GP, ST, SP, t: 1.8, flip });
+
+      // Ostrzeżenie: front < 15 cm
+      if(warnEl){
+        const msgs = [];
+        if(FL > 0 && FL < 15) msgs.push('Front (FL) < 15 cm');
+        if(FP > 0 && FP < 15) msgs.push('Front (FP) < 15 cm');
+        if(msgs.length){
+          warnEl.style.display = 'block';
+          warnEl.textContent = '⚠ ' + msgs.join(' • ');
+        } else {
+          warnEl.style.display = 'none';
+          warnEl.textContent = '';
+        }
+      }
+    };
+
+    [iGL,iGP,iST,iSP].filter(Boolean).forEach(inp => {
+      inp.addEventListener('input', sync);
+      inp.addEventListener('change', sync);
+    });
+
+    if(flipBtn){
+      flipBtn.addEventListener('click', () => {
+        // Odwróć tylko "stronę" narożnika (rysunek + opisy), bez zamiany wpisanych wartości.
+        // Fronty i tak liczymy z wartości bezwzględnych, a GL/GP w formularzu zostają tym,
+        // co wpisał operator.
+        draft.details = Object.assign({}, draft.details || {}, {
+          cornerFlip: !(draft.details && draft.details.cornerFlip)
+        });
+        sync();
+      });
+    }
+
+    sync();
+    return;
+  }
+
+  if(t === 'wisząca'){
+    if(st === 'dolna_podblatowa'){
+      // PODBLATOWA: fronty mogą być brak/drzwi/szuflady, a wnętrze: półki lub szuflady wewnętrzne
+      if(!d.podFrontMode){
+        // kompatybilność wstecz: jeśli stary zapis miał subTypeOption szuflady_1/2
+        if(d.subTypeOption === 'szuflada_1'){ d.podFrontMode = 'szuflady'; cabinetModalState.draft.frontCount = 1; }
+        else if(d.subTypeOption === 'szuflada_2'){ d.podFrontMode = 'szuflady'; cabinetModalState.draft.frontCount = 2; }
+        else d.podFrontMode = (Number(cabinetModalState.draft.frontCount) === 0 ? 'brak' : 'drzwi');
+      }
+      if(!d.podInsideMode) d.podInsideMode = 'polki';
+      if(!d.podInnerDrawerCount) d.podInnerDrawerCount = '1';
+
+      addSelect('Front', 'podFrontMode', [
+        {v:'brak', t:'Otwarta (brak frontów)'},
+        {v:'drzwi', t:'Drzwi (fronty)'},
+        {v:'szuflady', t:'Szuflady (zamiast drzwi)'}
+      ], (val)=>{
+        // synchronizacja z ilością frontów/szuflad
+        if(val === 'brak'){
+          cabinetModalState.draft.frontCount = 0;
+        } else {
+          const fc = Number(cabinetModalState.draft.frontCount);
+          if(![1,2].includes(fc)) cabinetModalState.draft.frontCount = 2;
+        }
+      });
+
+      if(d.podFrontMode !== 'szuflady'){
+        addSelect('Wnętrze', 'podInsideMode', [
+          {v:'polki', t:'Półki'},
+          {v:'szuflady_wewn', t:'Szuflady wewnętrzne'}
+        ]);
+
+        if(d.podInsideMode === 'polki'){
+          addNumber('Ilość półek', 'shelves', 2);
+        } else {
+          addSelect('Ilość szuflad wewnętrznych', 'podInnerDrawerCount', [
+            {v:'1', t:'1'},
+            {v:'2', t:'2'}
+          ]);
+        }
+
+      // Plecy (tak/nie) – tylko dla szafki: wisząca podblatowa
+      if(!(draft.details && (draft.details.hasBack !== undefined))){
+        draft.details = Object.assign({}, draft.details || {}, { hasBack: '1' });
+      }
+      addSelect('Plecy', 'hasBack', [
+        {v:'1', t:'Tak'},
+        {v:'0', t:'Nie'}
+      ]);
+      }
+    } else {
+      if(st === 'rogowa_slepa') addNumber('Część zaślepiona (cm)', 'blindPart', 30);
+      if(st !== 'uchylne') addNumber('Ilość półek', 'shelves', 2);
+    }
+  }
+
+  if(t === 'stojąca' || t === 'moduł'){
+    if(st === 'szuflady'){
+      // Szafka stojąca szufladowa: układ + typ szuflad + opcjonalne szuflady wewnętrzne
+      if(!d.drawerLayout){
+        // kompatybilność wstecz: drawerCount 1/2/3/4/5
+        const legacy = String(d.drawerCount || '3');
+        if(legacy === '1') d.drawerLayout = '1_big';
+        else if(legacy === '2') d.drawerLayout = '2_equal';
+        else if(legacy === '3') d.drawerLayout = '3_1_2_2';
+        else if(legacy === '5') d.drawerLayout = '5_equal';
+        else d.drawerLayout = '3_equal';
+      }
+      if(!d.drawerSystem) d.drawerSystem = 'skrzynkowe';
+      if(!('innerDrawerType' in d)) d.innerDrawerType = 'brak';
+      if(!('innerDrawerCount' in d) || d.innerDrawerCount == null) d.innerDrawerCount = '0';
+addSelect('Układ szuflad (fronty)', 'drawerLayout', [
+        {v:'1_big', t:'1 duża (1:1)'},
+        {v:'3_1_2_2', t:'1 mała + 2 duże (1:2:2)'},
+        {v:'2_equal', t:'2 równe (1:1)'},
+        {v:'3_equal', t:'3 równe (1:1:1)'},
+        {v:'5_equal', t:'5 równych (1:1:1:1:1)'}
+      ], () => {
+        // dostosuj domyślne limity dla szuflad wewnętrznych
+        const lay = String(draft.details?.drawerLayout || '3_1_2_2');
+        if(lay === '5_equal'){
+          draft.details = Object.assign({}, draft.details || {}, { innerDrawerType: 'brak', innerDrawerCount: '0' });
+        } else if(lay === '3_equal'){
+          if(String(draft.details?.innerDrawerCount || '') === '0' || !draft.details?.innerDrawerCount) draft.details = Object.assign({}, draft.details || {}, { innerDrawerCount: '3' });
+        } else {
+          if(String(draft.details?.innerDrawerCount || '') === '0' || !draft.details?.innerDrawerCount) draft.details = Object.assign({}, draft.details || {}, { innerDrawerCount: '2' });
+        }
+        renderCabinetModal();
+      });
+
+      // domyślne ustawienia dla szafki szufladowej
+      draft.details = Object.assign({}, draft.details || {});
+      const isAdd = (cabinetModalState.mode === 'add' || !cabinetModalState.editingId);
+
+      // UWAGA: nie nadpisuj wyborów użytkownika przy każdym renderze.
+      // drawerSystem przyjmuje tylko: 'skrzynkowe' | 'systemowe'
+      if(!draft.details.drawerSystem || !['skrzynkowe','systemowe'].includes(String(draft.details.drawerSystem))){
+        draft.details.drawerSystem = 'skrzynkowe';
+      }
+      if(!draft.details.innerDrawerType) draft.details.innerDrawerType = 'brak';
+      if(draft.details.innerDrawerType === 'brak'){
+        draft.details.innerDrawerCount = '0';
+      } else if(!draft.details.innerDrawerCount){
+        // domyślnie 2, dalsze ograniczenia liczy istniejąca logika układu
+        draft.details.innerDrawerCount = '2';
+      }
+addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
+        {v:'skrzynkowe', t:'Skrzynkowe'},
+        {v:'systemowe', t:'Systemowe'}
+      ], ()=>{ renderCabinetModal(); });
+
+      const ds = String((draft.details && draft.details.drawerSystem) ? draft.details.drawerSystem : 'skrzynkowe');
+      if(ds === 'systemowe'){
+        // domyślne wartości
+        if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
+        if(draft.details.drawerBrand === 'blum' && !draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
+
+        addSelect('Firma systemu', 'drawerBrand', [
+          {v:'blum', t:'BLUM'},
+          {v:'gtv', t:'GTV'},
+          {v:'rejs', t:'Rejs'}
+        ], ()=>{ renderCabinetModal(); });
+
+        const br = String(draft.details.drawerBrand || 'blum');
+        if(br === 'blum'){
+          addSelect('Typ szuflady BLUM', 'drawerModel', [
+            {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
+            {v:'legrabox', t:'LEGRABOX'},
+            {v:'merivobox', t:'MERIVOBOX'},
+            {v:'metabox', t:'METABOX'}
+          ]);
+        } else {
+          const warn = document.createElement('div');
+          warn.className = 'muted xs';
+          warn.style.marginTop = '6px';
+          warn.textContent = 'GTV/Rejs – w budowie. Nie można zatwierdzić.';
+          container.appendChild(warn);
+        }
+      }
+
+      const lay = String(d.drawerLayout || '3_1_2_2');
+      if(lay === '5_equal'){
+        // Brak szuflad wewnętrznych dla 5 szuflad
+        draft.details = Object.assign({}, draft.details || {}, { innerDrawerType: 'brak', innerDrawerCount: '0' });
+        const note = document.createElement('div');
+        note.className = 'muted xs';
+        note.style.marginTop = '6px';
+        note.textContent = 'Dla układu 5 szuflad nie dodajemy szuflad wewnętrznych.';
+        container.appendChild(note);
+      } else {
+        addSelect('Szuflady wewnętrzne', 'innerDrawerType', [
+          {v:'brak', t:'Brak'},
+          {v:'skrzynkowe', t:'Skrzynkowe'},
+          {v:'blum', t:'Systemowe BLUM'}
+        ], () => renderCabinetModal());
+
+        const mode = String((draft.details && draft.details.innerDrawerType) ? draft.details.innerDrawerType : 'brak');
+        const max = (lay === '3_equal') ? 3 : 2;
+        const def = (lay === '3_equal') ? 3 : 2;
+
+        if(mode !== 'brak'){
+          // ilość z listy (limit)
+          (function(){
+            const div = document.createElement('div'); div.style.marginBottom='10px';
+            div.innerHTML = `<label>Ilość szuflad wewnętrznych (max ${max})</label><select></select>`;
+            const sel = div.querySelector('select');
+
+            const raw = (draft.details && draft.details.innerDrawerCount != null) ? draft.details.innerDrawerCount : String(def);
+            let cur = parseInt(raw || '0', 10);
+            if(!Number.isFinite(cur) || cur < 1) cur = def;
+            if(cur > max) cur = max;
+
+            sel.innerHTML = Array.from({length:max}, (_,i)=>i+1).map(n=>`<option value="${n}">${n}</option>`).join('');
+            sel.value = String(cur);
+
+            sel.addEventListener('change', e => {
+              let v = parseInt(e.target.value || '1', 10);
+              if(!Number.isFinite(v) || v < 1) v = 1;
+              if(v > max) v = max;
+              draft.details = Object.assign({}, draft.details || {}, { innerDrawerCount: String(v) });
+              renderCabinetModal();
+            });
+
+            container.appendChild(div);
+          })();
+        } else {
+          // utrzymuj sensowną domyślną wartość "na start"
+          const cur = parseInt(d.innerDrawerCount, 10);
+          if(!Number.isFinite(cur) || cur <= 0){
+            draft.details = Object.assign({}, draft.details || {}, { innerDrawerCount: String(def) });
+          }
+        }
+      }
+    }
+
+    if(st === 'zlewowa'){
+      // FRONT: drzwi lub szuflada
+      if(!d.sinkFront) d.sinkFront = 'drzwi';
+      if(!d.sinkDoorCount) d.sinkDoorCount = '2';
+      if(!d.sinkExtra) d.sinkExtra = 'brak';
+      if(d.sinkExtraCount == null) d.sinkExtraCount = 1;
+      if(!d.sinkInnerDrawerType) d.sinkInnerDrawerType = 'skrzynkowe';
+
+      addSelect('Front szafki zlewowej', 'sinkFront', [
+        {v:'drzwi', t:'Drzwi'},
+        {v:'szuflada', t:'Szuflada (1 duży front)'}
+      ], () => {
+        // wymuszenia frontów
+        const curFront = (draft.details && draft.details.sinkFront) ? draft.details.sinkFront : 'drzwi';
+        if(curFront === 'szuflada'){
+          draft.frontCount = 1;
+        } else {
+          const dc = Number((draft.details && draft.details.sinkDoorCount) ? draft.details.sinkDoorCount : '2') || 2;
+          draft.frontCount = (dc === 1 ? 1 : 2);
+        }
+        renderCabinetModal();
+      });
+
+      const curFront = (draft.details && draft.details.sinkFront) ? draft.details.sinkFront : 'drzwi';
+
+      if(curFront === 'drzwi'){
+        addSelect('Ilość drzwi', 'sinkDoorCount', [
+          {v:'1', t:'1 drzwi'},
+          {v:'2', t:'2 drzwi'}
+        ], () => {
+          const dc = Number((draft.details && draft.details.sinkDoorCount) ? draft.details.sinkDoorCount : '2') || 2;
+          draft.frontCount = (dc === 1 ? 1 : 2);
+        });
+      } else {
+        // szuflada: 1 front
+        draft.frontCount = 1;
+      }
+
+      if(curFront === 'szuflada'){
+        if(!draft.details.drawerSystem) draft.details.drawerSystem = 'skrzynkowe';
+        if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
+        if(!draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
+
+        addSelect('Typ szuflady (zlewowa)', 'drawerSystem', [
+          {v:'skrzynkowe', t:'Skrzynkowe'},
+          {v:'systemowe', t:'Systemowe'}
+        ], ()=>{ renderCabinetModal(); });
+
+        const ds3 = String(draft.details.drawerSystem || 'skrzynkowe');
+        if(ds3 === 'systemowe'){
+          addSelect('Firma systemu', 'drawerBrand', [
+            {v:'blum', t:'BLUM'},
+            {v:'gtv', t:'GTV'},
+            {v:'rejs', t:'Rejs'}
+          ], ()=>{ renderCabinetModal(); });
+          const br3 = String(draft.details.drawerBrand || 'blum');
+          if(br3 === 'blum'){
+            addSelect('Typ szuflady BLUM', 'drawerModel', [
+              {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
+              {v:'legrabox', t:'LEGRABOX'},
+              {v:'merivobox', t:'MERIVOBOX'},
+              {v:'metabox', t:'METABOX'}
+            ]);
+          } else {
+            const warn3 = document.createElement('div');
+            warn3.className = 'muted xs';
+            warn3.style.marginTop = '6px';
+            warn3.textContent = 'GTV/Rejs – w budowie. Nie można zatwierdzić.';
+            container.appendChild(warn3);
+          }
+        }
+      }
+
+      // DODATKOWE WNĘTRZE
+      addSelect('Dodatkowo w środku', 'sinkExtra', [
+        {v:'brak', t:'Brak'},
+        {v:'polka', t:'Dodatkowa półka'},
+        {v:'szuflada_wew', t:'Szuflada wewnętrzna'}
+      ], ()=>{ renderCabinetModal(); });
+
+      const extra = (draft.details && draft.details.sinkExtra) ? draft.details.sinkExtra : 'brak';
+      if(extra === 'polka'){
+        addNumber('Ilość dodatkowych półek', 'sinkExtraCount', 1);
+      } else if(extra === 'szuflada_wew'){
+        addNumber('Ilość szuflad wewnętrznych', 'sinkExtraCount', 1);
+        addSelect('Typ szuflad wewnętrznych', 'sinkInnerDrawerType', [
+          {v:'skrzynkowe', t:'Skrzynkowe'},
+          {v:'systemowe', t:'Systemowe'}
+        ], ()=>{ renderCabinetModal(); });
+
+        const stt = String((draft.details && draft.details.sinkInnerDrawerType) ? draft.details.sinkInnerDrawerType : 'skrzynkowe');
+        if(stt === 'systemowe'){
+          if(!draft.details.sinkInnerDrawerBrand) draft.details.sinkInnerDrawerBrand = 'blum';
+          if(draft.details.sinkInnerDrawerBrand === 'blum' && !draft.details.sinkInnerDrawerModel) draft.details.sinkInnerDrawerModel = 'tandembox';
+
+          addSelect('Firma systemu', 'sinkInnerDrawerBrand', [
+            {v:'blum', t:'BLUM'},
+            {v:'gtv', t:'GTV'},
+            {v:'rejs', t:'Rejs'}
+          ], ()=>{ renderCabinetModal(); });
+
+          const br2 = String(draft.details.sinkInnerDrawerBrand || 'blum');
+          if(br2 === 'blum'){
+            addSelect('Typ szuflady BLUM', 'sinkInnerDrawerModel', [
+              {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
+              {v:'legrabox', t:'LEGRABOX'},
+              {v:'merivobox', t:'MERIVOBOX'},
+              {v:'metabox', t:'METABOX'}
+            ]);
+          } else {
+            const warn2 = document.createElement('div');
+            warn2.className = 'muted xs';
+            warn2.style.marginTop = '6px';
+            warn2.textContent = 'GTV/Rejs – w budowie. Nie można zatwierdzić.';
+            container.appendChild(warn2);
+          }
+        }
+      }
+    }
+    if(st === 'zmywarkowa'){
+      addSelect('Szerokość zmywarki', 'dishWasherWidth', [
+        {v:'45', t:'45 cm'},
+        {v:'60', t:'60 cm'}
+      ], (val) => {
+        draft.frontCount = 1;
+        draft.width = Number(val) || draft.width;
+      });
+    }
+    if(st === 'lodowkowa'){
+      // Lodówkowa: zabudowa / wolnostojąca
+      const grid = document.createElement('div');
+      grid.className = 'grid-2';
+      grid.style.gap = '12px';
+      grid.style.marginBottom = '10px';
+
+      const cur = (draft.details && FC.utils.isPlainObject(draft.details)) ? draft.details : {};
+      const opt = cur.fridgeOption ? String(cur.fridgeOption) : 'zabudowa';
+      const niche = cur.fridgeNicheHeight ? String(cur.fridgeNicheHeight) : '178';
+      const freeOpt = cur.fridgeFreeOption ? String(cur.fridgeFreeOption) : 'brak';
+
+      grid.innerHTML = `
+        <div>
+          <label>Typ lodówki</label>
+          <select id="cmFridgeOption">
+            <option value="zabudowa">W zabudowie</option>
+            <option value="wolnostojaca">Wolnostojąca</option>
+          </select>
+        </div>
+        <div id="cmFridgeNicheWrap">
+          <label>Wysokość niszy (cm)</label>
+          <select id="cmFridgeNiche">
+            <option value="82">82</option>
+            <option value="122">122</option>
+            <option value="158">158</option>
+            <option value="178">178</option>
+            <option value="194">194</option>
+            <option value="204">204</option>
+          </select>
+        </div>
+        <div id="cmFridgeFreeWrap" style="display:none">
+          <label>Opcja</label>
+          <select id="cmFridgeFree">
+            <option value="brak">Brak</option>
+            <option value="podest">Podest</option>
+            <option value="obudowa">Obudowa</option>
+          </select>
+        </div>
+      `;
+
+      const fo = grid.querySelector('#cmFridgeOption');
+      const fn = grid.querySelector('#cmFridgeNiche');
+      const fw = grid.querySelector('#cmFridgeFree');
+      const nicheWrap = grid.querySelector('#cmFridgeNicheWrap');
+      const freeWrap = grid.querySelector('#cmFridgeFreeWrap');
+
+      fo.value = opt;
+      fn.value = niche;
+      fw.value = freeOpt;
+
+      function applyFridgeDims(){
+        const room = uiState.roomType;
+        const s = projectData[room] ? projectData[room].settings : null;
+        const bh = s ? (Number(s.bottomHeight) || 0) : 0;
+        const leg = s ? (Number(s.legHeight) || 0) : 0;
+
+        const curOpt = (draft.details && draft.details.fridgeOption) ? String(draft.details.fridgeOption) : (fo ? fo.value : 'zabudowa');
+        const curFree = (draft.details && draft.details.fridgeFreeOption) ? String(draft.details.fridgeFreeOption) : (fw ? fw.value : 'brak');
+        const nh = Number((draft.details && draft.details.fridgeNicheHeight) ? draft.details.fridgeNicheHeight : (fn ? fn.value : 0)) || 0;
+
+        // zawsze utrzymuj spójne details
+        draft.details = Object.assign({}, draft.details || {}, {
+          fridgeOption: curOpt,
+          fridgeFreeOption: curFree,
+          fridgeNicheHeight: String(nh)
+        });
+
+        if(curOpt === 'zabudowa'){
+          // ilość przegród technicznych liczona jak w zmywarce: od dolnego frontu (wys. dołu - nóżki)
+          const bottomFrontH = Math.max(0, bh - leg);
+          const div = (bottomFrontH > 74.5)
+            ? Math.max(0, Math.ceil(((bottomFrontH - 74.5) / 2) - 1e-9))
+            : 0;
+
+          draft.details = Object.assign({}, draft.details, { techDividerCount: String(div) });
+
+          // wysokość słupka lodówkowego: nisza + (przegrody * 1.8) + 3.6 + nóżki
+          draft.height = nh + (div * 1.8) + 3.6 + leg;
+          return;
+        }
+
+        // wolnostojąca: auto-wymiary zależnie od opcji
+        if(curFree === 'podest'){
+          draft.width = 60;
+          draft.depth = 60;
+          draft.height = 3.6 + leg;
+        } else if(curFree === 'obudowa'){
+          draft.width = 65;
+          draft.depth = 59.2;
+          draft.height = 207;
+        }
+      }
+
+      function toggleFridgeUI(){
+        const o = (draft.details && draft.details.fridgeOption) ? draft.details.fridgeOption : fo.value;
+        const isBuiltIn = (o === 'zabudowa');
+        nicheWrap.style.display = isBuiltIn ? 'block' : 'none';
+        freeWrap.style.display = isBuiltIn ? 'none' : 'block';
+      }
+
+      fo.addEventListener('change', e => {
+        draft.details = Object.assign({}, draft.details || {}, { fridgeOption: e.target.value });
+        applyFridgeDims();
+        // dla zmiany typu nie tracimy danych, ale aktualizujemy UI
+        renderCabinetModal();
+      });
+
+      fn.addEventListener('change', e => {
+        draft.details = Object.assign({}, draft.details || {}, { fridgeNicheHeight: e.target.value });
+        applyFridgeDims();
+        // odświeżamy wartości pól
+        renderCabinetModal();
+      });
+
+      fw.addEventListener('change', e => {
+        draft.details = Object.assign({}, draft.details || {}, { fridgeFreeOption: e.target.value });
+        applyFridgeDims();
+        renderCabinetModal();
+      });
+
+      container.appendChild(grid);
+
+      // FRONTY lodówkowej: 1 lub 2 (tylko zabudowa)
+      const builtInNow = (opt === 'zabudowa');
+      if(builtInNow){
+        addSelect('Fronty lodówki (zabudowa)', 'fridgeFrontCount', [
+          {v:'1', t:'1 duży front'},
+          {v:'2', t:'2 fronty (dolny + górny)'}
+        ]);
+      }
+
+      toggleFridgeUI();
+      // ustaw wysokość przy wejściu (zabudowa)
+      draft.details = Object.assign({}, draft.details || {}, {
+        fridgeOption: opt,
+        fridgeNicheHeight: niche,
+        fridgeFreeOption: freeOpt
+      });
+      applyFridgeDims();
+    }
+    if(st === 'piekarnikowa'){
+      addSelect('Opcja piekarnika', 'ovenOption', [
+        {v:'szuflada_dol', t:'Szuflada na dole'},
+        {v:'szuflada_gora', t:'Szuflada na górze'},
+        {v:'klapka_dol', t:'Klapka na dole'},
+        {v:'klapka_gora', t:'Klapka na górze'}
+      ], () => {
+        draft.frontCount = 1;
+      });
+      addNumber('Wysokość piekarnika (cm)', 'ovenHeight', 60);
+      addNumber('Przegroda techniczna (szt)', 'techShelfCount', 1);
+      const oo = String((draft.details && draft.details.ovenOption) ? draft.details.ovenOption : 'szuflada_dol');
+      if(oo.indexOf('szuflada') !== -1){
+        if(!draft.details.drawerSystem) draft.details.drawerSystem = 'skrzynkowe';
+        if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
+        if(!draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
+
+        addSelect('Typ szuflady (piekarnikowa)', 'drawerSystem', [
+          {v:'skrzynkowe', t:'Skrzynkowe'},
+          {v:'systemowe', t:'Systemowe'}
+        ], ()=>{ renderCabinetModal(); });
+
+        const ds2 = String(draft.details.drawerSystem || 'skrzynkowe');
+        if(ds2 === 'systemowe'){
+          addSelect('Firma systemu', 'drawerBrand', [
+            {v:'blum', t:'BLUM'},
+            {v:'gtv', t:'GTV'},
+            {v:'rejs', t:'Rejs'}
+          ], ()=>{ renderCabinetModal(); });
+
+          const br = String(draft.details.drawerBrand || 'blum');
+          if(br === 'blum'){
+            addSelect('Typ szuflady BLUM', 'drawerModel', [
+              {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
+              {v:'legrabox', t:'LEGRABOX'},
+              {v:'merivobox', t:'MERIVOBOX'},
+              {v:'metabox', t:'METABOX'}
+            ]);
+          } else {
+            const warn = document.createElement('div');
+            warn.className = 'muted xs';
+            warn.style.marginTop = '6px';
+            warn.textContent = 'GTV/Rejs – w budowie. Nie można zatwierdzić.';
+            container.appendChild(warn);
+          }
+        }
+      }
+    }
+    if(['standardowa','rogowa_slepa','narozna_l'].includes(st)){
+      if(st !== 'standardowa'){
+        const opt = (st === 'narozna_l') ? {v:'karuzela', t:'Karuzela'} : {v:'magic_corner', t:'Magic Corner'};
+        if(st === 'rogowa_slepa') addNumber('Część zaślepiona (cm)', 'blindPart', 30);
+        addSelect('System narożny', 'cornerOption', [
+          {v:'polki', t:'Półki'},
+          opt
+        ], () => {
+          if(st === 'rogowa_slepa' && (draft.details?.cornerOption || 'polki') === 'magic_corner'){
+            draft.frontCount = 1;
+          }
+        });
+      }
+      const corner = d.cornerOption ? d.cornerOption : 'polki';
+
+      // STANDARDOWA: wnętrze półki lub szuflady wewnętrzne
+      if(st === 'standardowa'){
+        if(!d.insideMode) d.insideMode = 'polki';
+        if(!d.innerDrawerCount) d.innerDrawerCount = '1';
+        if(!d.innerDrawerType) d.innerDrawerType = 'blum';
+
+        addSelect('Wnętrze', 'insideMode', [
+          {v:'polki', t:'Półki'},
+          {v:'szuflady_wew', t:'Szuflady wewnętrzne'}
+        ], (val)=>{
+          // utrzymuj spójne dane: jeśli wybierasz szuflady wew., półki powinny być 0 (żeby nie mieszać w szczegółach)
+          const dv = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+          if(String(val) === 'szuflady_wew'){
+            dv.shelves = 0;
+            if(!dv.innerDrawerCount) dv.innerDrawerCount = '1';
+            if(!dv.innerDrawerType) dv.innerDrawerType = 'blum';
+          } else {
+            // półki
+            if(dv.shelves == null || dv.shelves === '' || Number(dv.shelves) <= 0) dv.shelves = 1;
+          }
+          draft.details = dv;
+        });
+
+        const inside = (draft.details && draft.details.insideMode) ? draft.details.insideMode : 'polki';
+        if(inside === 'polki'){
+          addNumber('Ilość półek', 'shelves', 1);
+        } else {
+          addNumber('Ilość szuflad wewnętrznych', 'innerDrawerCount', 1);
+          addSelect('Typ szuflad wewnętrznych', 'innerDrawerType', [
+            {v:'skrzynkowe', t:'Skrzynkowe'},
+            {v:'blum', t:'Systemowe BLUM'}
+          ]);
+        }
+      } else if(corner === 'polki'){
+        addNumber('Ilość półek', 'shelves', 1);
+      }
+    }
+  }
+}
+
+/* ===== Zestawy (presety) ===== */
+function renderSetTiles(){
+  const wrap = document.getElementById('setTiles');
+  wrap.innerHTML = '';
+
+  const presets = [
+    {
+      id:'A',
+      title:'2 dolne + górny moduł',
+      desc:'Dwa dolne korpusy obok siebie + górny moduł. Wysokość górnego = pomieszczenie - dół - blenda.',
+      svg: `
+        <svg class="mini-svg" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="18" width="24" height="20" rx="3" fill="#eaf6ff" stroke="#0ea5e9" />
+          <rect x="30" y="18" width="24" height="20" rx="3" fill="#eaf6ff" stroke="#0ea5e9" />
+          <rect x="2" y="2" width="52" height="14" rx="3" fill="#ffffff" stroke="#94a3b8" />
+        </svg>
+      `
+    },
+    {
+      id:'C',
+      title:'1 pion: dół + górny moduł',
+      desc:'Jeden pion (dół + górny moduł). Wysokość górnego = pomieszczenie - dół - blenda.',
+      svg: `
+        <svg class="mini-svg" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="18" y="2" width="20" height="36" rx="3" fill="#eaf6ff" stroke="#0ea5e9" />
+          <line x1="18" y1="22" x2="38" y2="22" stroke="#0ea5e9" stroke-width="2"/>
+        </svg>
+      `
+    },
+    {
+      id:'D',
+      title:'1 pion: dół + środek + góra',
+      desc:'Trzy segmenty w pionie. Środkowy i górny to moduły (głębokość = dół - 1). Wysokość górnego = pomieszczenie - dół - środek - blenda.',
+      svg: `
+        <svg class="mini-svg" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="18" y="2" width="20" height="36" rx="3" fill="#ffffff" stroke="#0ea5e9" />
+          <line x1="18" y1="15" x2="38" y2="15" stroke="#0ea5e9" stroke-width="2"/>
+          <line x1="18" y1="26" x2="38" y2="26" stroke="#0ea5e9" stroke-width="2"/>
+          <rect x="18" y="26" width="20" height="12" rx="0" fill="#eaf6ff" opacity="0.65" />
+        </svg>
+      `
+    }
+  ];
+
+  presets.forEach(p => {
+    const tile = document.createElement('div');
+    tile.className = 'mini-tile' + (cabinetModalState.setPreset === p.id ? ' selected' : '');
+    tile.setAttribute('data-preset', p.id);
+    tile.innerHTML = `
+      <div class="mini-head">
+        ${p.svg}
+        <div>
+          <div class="mini-title">${p.title}</div>
+          <div class="muted-tag xs">Zestaw standardowy</div>
+        </div>
+      </div>
+      <div class="mini-desc">${p.desc}</div>
+    `;
+    tile.addEventListener('click', () => {
+      cabinetModalState.setPreset = p.id;
+      renderCabinetModal();
+    });
+    wrap.appendChild(tile);
+  });
+}
+
+function renderSetParamsUI(presetId){
+  const room = uiState.roomType;
+  const s = projectData[room].settings;
+  const paramsWrap = document.getElementById('setParams');
+  paramsWrap.innerHTML = '';
+  if(!presetId){ paramsWrap.style.display='none'; return; }
+
+  paramsWrap.style.display='grid';
+
+  function addInput(id,label,value,extra=''){
+    const d = document.createElement('div');
+    d.innerHTML = `<label>${label}</label><input id="${id}" type="number" value="${value}" ${extra}/>`;
+    paramsWrap.appendChild(d);
+  }
+  function addReadonly(id,label,value){
+    const d = document.createElement('div');
+    d.innerHTML = `<label>${label}</label><input id="${id}" type="number" value="${value}" disabled />`;
+    paramsWrap.appendChild(d);
+  }
+
+  const defaultBlende = Number(s.ceilingBlende) || 0;
+
+  if(presetId === 'A'){
+    addInput('setW1','Szer. lewa (cm)', 60);
+    addInput('setW2','Szer. prawa (cm)', 60);
+    addInput('setHBottom','Wys. dolnych (cm)', Number(s.bottomHeight)||82);
+    addInput('setDBottom','Głębokość dolnych (cm)', 51);
+    addInput('setBlende','Blenda (cm)', defaultBlende);
+
+    const hTop = calcTopForSet(room, defaultBlende, Number(s.bottomHeight)||82);
+    addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
+    addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
+  }
+
+  if(presetId === 'C'){
+    addInput('setW','Szerokość (cm)', 60);
+    addInput('setHBottom','Wys. dolnego z nogami (cm)', Number(s.bottomHeight)||82);
+    addInput('setDBottom','Głębokość dolnego (cm)', 51);
+    addInput('setBlende','Blenda (cm)', defaultBlende);
+
+    const hTop = calcTopForSet(room, defaultBlende, Number(s.bottomHeight)||82);
+    addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
+    addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
+  }
+
+  if(presetId === 'D'){
+    addInput('setW','Szerokość (cm)', 60);
+    addInput('setHBottom','Wys. dolnego z nogami (cm)', Number(s.bottomHeight)||82);
+    addInput('setHMiddle','Wys. środkowego (cm)', 100);
+    addInput('setDBottom','Głębokość dolnego (cm)', 51);
+    addInput('setBlende','Blenda (cm)', defaultBlende);
+
+    const hTop = calcTopForSet(room, defaultBlende, (Number(s.bottomHeight)||82) + 100);
+    addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
+    addReadonly('setDTopResult','Głęb. modułów (dół-1)', Math.max(0, 51-1));
+  }
+
+  wireSetParamsLiveUpdate(presetId);
+}
+
+function wireSetParamsLiveUpdate(presetId){
+  const room = uiState.roomType;
+  const s = projectData[room].settings;
+
+  function val(id, fallback=0){
+    const el = document.getElementById(id);
+    if(!el) return fallback;
+    return Number(el.value || fallback);
+  }
+
+  function update(){
+    const bl = val('setBlende', Number(s.ceilingBlende)||0);
+
+    if(presetId === 'A'){
+      const db = val('setDBottom', 51);
+      const hB = val('setHBottom', Number(s.bottomHeight)||82);
+      const ht = calcTopForSet(room, bl, hB);
+      const dt = Math.max(0, Math.round((db - 1) * 10)/10);
+      const htEl = document.getElementById('setHTopResult');
+      const dtEl = document.getElementById('setDTopResult');
+      if(htEl) htEl.value = ht;
+      if(dtEl) dtEl.value = dt;
+    }
+
+    if(presetId === 'C'){
+      const db = val('setDBottom', 51);
+      const hB = val('setHBottom', Number(s.bottomHeight)||82);
+      const ht = calcTopForSet(room, bl, hB);
+      const dt = Math.max(0, Math.round((db - 1) * 10)/10);
+      const htEl = document.getElementById('setHTopResult');
+      const dtEl = document.getElementById('setDTopResult');
+      if(htEl) htEl.value = ht;
+      if(dtEl) dtEl.value = dt;
+    }
+
+    if(presetId === 'D'){
+      const db = val('setDBottom', 51);
+      const hb = val('setHBottom', Number(s.bottomHeight)||82);
+      const hm = val('setHMiddle', 100);
+      const ht = calcTopForSet(room, bl, (hb + hm));
+      const dt = Math.max(0, Math.round((db - 1) * 10)/10);
+      const htEl = document.getElementById('setHTopResult');
+      const dtEl = document.getElementById('setDTopResult');
+      if(htEl) htEl.value = ht;
+      if(dtEl) dtEl.value = dt;
+    }
+  }
+
+  ['setDBottom','setBlende','setHBottom','setHMiddle'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', update);
+  });
+
+  update();
+}
+
+/* ===== Cabinet modal render ===== */
+function renderCabinetModal(){
+  const isSetEdit = !!cabinetModalState.setEditId;
+
+  // Zatwierdź w nagłówku: widoczne tylko gdy pokazujemy formularz szafki (nie przy wyborze typu i nie w zestawie)
+  const saveTopBtn = document.getElementById('cabinetModalSave');
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'none';
+    saveTopBtn.disabled = true;
+  }
+
+  document.getElementById('cabinetModalIcon').textContent = isSetEdit ? '✏️' : (cabinetModalState.mode === 'edit' ? '✏️' : '➕');
+  document.getElementById('cabinetModalTitle').textContent = isSetEdit ? 'Edytuj zestaw' : (cabinetModalState.mode === 'edit' ? 'Edytuj szafkę' : 'Dodaj');
+
+  const choiceCard = document.getElementById('cabinetChoiceCard');
+  choiceCard.style.display = isSetEdit ? 'none' : 'block';
+
+  if(!isSetEdit){
+    renderCabinetTypeChoices();
+  } else {
+    cabinetModalState.chosen = 'zestaw';
+  }
+
+  const formArea = document.getElementById('cabinetFormArea');
+  const setArea = document.getElementById('setWizardArea');
+
+  formArea.style.display = 'none';
+  setArea.style.display = 'none';
+
+  if(cabinetModalState.chosen === 'zestaw'){
+// Default preset on first entry to Set mode.
+// Keeps the first "Zatwierdź" deterministic without requiring the user to toggle types.
+if(!cabinetModalState.setPreset){
+  cabinetModalState.setPreset = 'A';
+}
+
+    setArea.style.display = 'block';
+    renderSetTiles();
+
+    // W trybie zestawu pokaż \"Zatwierdź\" w nagłówku (działa jak Dodaj zestaw / Zapisz zmiany)
+    if(saveTopBtn){
+      saveTopBtn.style.display = 'inline-flex';
+      saveTopBtn.disabled = false;
+      saveTopBtn.textContent = isSetEdit ? 'Zapisz zmiany' : 'Zatwierdź';
+    }
+
+    if(isSetEdit){
+      document.querySelectorAll('#setTiles .mini-tile').forEach(tile=>{
+        tile.style.pointerEvents = 'none';
+        tile.style.opacity = '0.8';
+      });
+      document.getElementById('setWizardCreate').textContent = 'Zapisz zmiany';
+      document.getElementById('setWizardTitle').textContent = 'Zestaw (edycja)';
+      document.getElementById('setWizardDesc').textContent = 'Zmieniasz parametry zestawu. Program przeliczy korpusy i fronty.';
+    } else {
+      document.getElementById('setWizardCreate').textContent = 'Zatwierdź';
+      document.getElementById('setWizardTitle').textContent = 'Zestaw';
+      document.getElementById('setWizardDesc').textContent = 'Wybierz standardowy układ. Program doda kilka korpusów oraz fronty.';
+    }
+
+    const hasPreset = !!cabinetModalState.setPreset;
+    renderSetParamsUI(cabinetModalState.setPreset);
+    document.getElementById('setParams').style.display = hasPreset ? 'grid' : 'none';
+
+    const frontBlock = document.getElementById('setFrontBlock');
+    frontBlock.style.display = hasPreset ? 'block' : 'none';
+
+    if(hasPreset){
+      const cntSel = document.getElementById('setFrontCount');
+      const matSel = document.getElementById('setFrontMaterial');
+      const colSel = document.getElementById('setFrontColor');
+
+      if(!cntSel.value) cntSel.value = '2';
+      if(!matSel.value) matSel.value = 'laminat';
+      populateFrontColorsTo(colSel, matSel.value, colSel.value || '');
+
+      matSel.onchange = () => { populateFrontColorsTo(colSel, matSel.value, ''); };
+
+      const hint = document.getElementById('setFrontHint');
+      const updateHint = () => {
+        const c = Number(cntSel.value || 1);
+        if(c === 1){
+          hint.textContent = 'Powstanie 1 front (na całą szerokość zestawu) o wysokości sumy segmentów.';
+        } else {
+          hint.textContent = 'Powstaną 2 fronty. Dla zestawu A: lewy/prawy. Dla pionów: po 1/2 szerokości każdy.';
+        }
+      };
+      cntSel.onchange = updateHint;
+      updateHint();
+    }
+
+    return;
+  }
+
+  if(!cabinetModalState.chosen) return;
+
+  formArea.style.display = 'block';
+
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'inline-flex';
+    saveTopBtn.disabled = false;
+    // IMPORTANT: when leaving set mode, reset the CTA label so it doesn't stick as "Dodaj zestaw".
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
+  }
+
+  // pokazujemy Zatwierdź w nagłówku dopiero gdy jest formularz
+  if(saveTopBtn){
+    saveTopBtn.style.display = 'inline-flex';
+    saveTopBtn.disabled = false;
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
+  }
+
+  const draft = cabinetModalState.draft;
+  const room = uiState.roomType;
+
+  // Rodzaj z kafelka
+  draft.type = cabinetModalState.chosen;
+
+  const cmSubType = document.getElementById('cmSubType');
+  populateSelect(cmSubType, getSubTypeOptionsForType(draft.type), draft.subType);
+
+  renderCabinetExtraDetailsInto(document.getElementById('cmExtraDetails'), draft);
+
+  document.getElementById('cmWidth').value = draft.width;
+  document.getElementById('cmHeight').value = draft.height;
+  document.getElementById('cmDepth').value = draft.depth;
+
+  document.getElementById('cmFrontMaterial').value = draft.frontMaterial || 'laminat';
+  document.getElementById('cmBackMaterial').value = draft.backMaterial || 'HDF 3mm biała';
+
+  populateFrontColorsTo(document.getElementById('cmFrontColor'), draft.frontMaterial || 'laminat', draft.frontColor || '');
+  populateBodyColorsTo(document.getElementById('cmBodyColor'), draft.bodyColor || '');
+  populateOpeningOptionsTo(document.getElementById('cmOpeningSystem'), draft.type, draft.openingSystem || 'uchwyt klienta');
+
+  // FRONT COUNT UI
+  const fcSel = document.getElementById('cmFrontCount');
+  const fcStatic = document.getElementById('cmFrontCountStatic');
+  const fcHint = document.getElementById('cmFrontCountHint');
+  const fcWrap = document.getElementById('cmFrontCountWrap');
+  const shelvesWrap = document.getElementById('cmShelvesWrap');
+  const shelvesInput = document.getElementById('cmShelves');
+
+const flapWrap = document.getElementById('cmFlapWrap');
+const flapVendorSel = document.getElementById('cmFlapVendor');
+const flapKindWrap = document.getElementById('cmFlapKindWrap');
+const flapKindSel = document.getElementById('cmFlapKind');
+const flapInfo = document.getElementById('cmFlapInfo');
+const flapFrontInfo = document.getElementById('cmFlapFrontInfo');
+
+const isFlapDraft = ((draft.type === 'wisząca' || draft.type === 'moduł') && draft.subType === 'uchylne');
+
+const BLUM_KINDS = [
+  { v:'HKI', t:'HKI – zintegrowany' },
+  { v:'HF_top', t:'HF top – składany (2 fronty)' },
+  { v:'HS_top', t:'HS top – uchylno‑nachodzący' },
+  { v:'HL_top', t:'HL top – podnoszony ponad korpus' },
+  { v:'HK_top', t:'HK top – uchylny' },
+  { v:'HK-S', t:'HK‑S – mały uchylny' },
+  { v:'HK-XS', t:'HK‑XS – mały uchylny (z zawiasami)' }
+];
+const HAFELE_KINDS = [
+  { v:'DUO', t:'Rozwórka nożycowa DUO.' }
+];
+
+function syncFlapUI(){
+  // UI dla klap (uchylne) tylko dla: wisząca + uchylne
+  if(!isFlapDraft){
+    if(flapWrap) flapWrap.style.display = 'none';
+    return;
+  }
+  if(flapWrap) flapWrap.style.display = 'block';
+
+  const d = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+  let vendor = String(d.flapVendor || 'blum');
+  if(!['blum','gtv','hafele'].includes(vendor)) vendor = 'blum';
+  d.flapVendor = vendor;
+
+  // vendor select
+  if(flapVendorSel){
+    flapVendorSel.value = vendor;
+    flapVendorSel.onchange = () => {
+      const dv = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+      const v = String(flapVendorSel.value || 'blum');
+      dv.flapVendor = (['blum','gtv','hafele'].includes(v) ? v : 'blum');
+
+      // domyślne rodzaje po zmianie firmy
+      if(dv.flapVendor === 'hafele') dv.flapKind = 'DUO';
+      else if(dv.flapVendor === 'gtv') dv.flapKind = '';
+      else dv.flapKind = 'HKI';
+
+      draft.details = dv;
+      ensureFrontCountRules(draft);
+      renderCabinetModal();
+    };
+  }
+
+  // vendor specific UI
+  if(vendor === 'gtv'){
+    if(flapKindWrap) flapKindWrap.style.display = 'none';
+    if(flapInfo){
+      flapInfo.style.display = 'block';
+      flapInfo.textContent = 'GTV – w budowie.';
+    }
+    draft.details = d;
+    ensureFrontCountRules(draft);
+    return;
+  }
+
+  if(flapInfo) flapInfo.style.display = 'none';
+  if(flapKindWrap) flapKindWrap.style.display = 'block';
+
+  const kindOptions = (vendor === 'hafele') ? HAFELE_KINDS : BLUM_KINDS;
+  const defaultKind = (vendor === 'hafele') ? 'DUO' : 'HKI';
+  const selectedKind = String(d.flapKind || defaultKind);
+  d.flapKind = selectedKind;
+
+  if(flapKindSel){
+    populateSelect(flapKindSel, kindOptions, selectedKind);
+    flapKindSel.onchange = () => {
+      const dv = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+      dv.flapKind = String(flapKindSel.value || defaultKind);
+      draft.details = dv;
+      ensureFrontCountRules(draft);
+      renderCabinetModal();
+    };
+  }
+
+  draft.details = d;
+  ensureFrontCountRules(draft);
+}
+
+  // Podblatowa (wisząca dolna): pozwól na brak frontów oraz rozróżnij drzwi vs szuflady
+  const isPodblatowaDraft = (draft.type === 'wisząca' && draft.subType === 'dolna_podblatowa');
+  const fcLabelEl = document.getElementById('cmFrontCountLabel');
+  const setFcOptions = (arr) => {
+    fcSel.innerHTML = arr.map(n => `<option value="${n}">${n}</option>`).join('');
+  };
+
+  if(isPodblatowaDraft){
+    const d = draft.details || {};
+    // domyślne wartości + kompatybilność wstecz
+    if(!d.podFrontMode){
+      if(d.subTypeOption === 'szuflada_1'){ d.podFrontMode = 'szuflady'; draft.frontCount = 1; }
+      else if(d.subTypeOption === 'szuflada_2'){ d.podFrontMode = 'szuflady'; draft.frontCount = 2; }
+      else d.podFrontMode = (Number(draft.frontCount) === 0 ? 'brak' : 'drzwi');
+      draft.details = Object.assign({}, d, { podFrontMode: d.podFrontMode });
+    }
+    if(fcLabelEl){
+      fcLabelEl.textContent = (d.podFrontMode === 'szuflady') ? 'Ilość szuflad' : 'Ilość frontów';
+    }
+    if(d.podFrontMode === 'brak'){
+      setFcOptions([0]);
+      draft.frontCount = 0;
+      fcSel.disabled = true;
+      if(fcHint) fcHint.textContent = 'Otwarta szafka (bez frontów).';
+    } else {
+      setFcOptions([1,2]);
+      if(![1,2].includes(Number(draft.frontCount))) draft.frontCount = 2;
+      fcSel.disabled = false;
+      if(fcHint) fcHint.textContent = (d.podFrontMode === 'szuflady') ? 'Ilość szuflad = ilość frontów szuflad.' : 'Ilość drzwi/frontów.';
+    }
+  } else {
+    // standardowe opcje: 1 lub 2 fronty
+    if(fcLabelEl) fcLabelEl.textContent = 'Ilość frontów';
+    setFcOptions([1,2]);
+  }
+
+  ensureFrontCountRules(draft);
+  syncFlapUI();
+
+  // Domyślnie pokazuj select, a statyczne info ukrywaj (wyjątek: klapy)
+  if(fcSel) fcSel.style.display = '';
+  if(fcStatic){
+    fcStatic.style.display = 'none';
+    fcStatic.textContent = '';
+  }
+
+  // czy pokazujemy wybór 1/2?
+  const canPick = cabinetAllowsFrontCount(draft);
+  const fixedOne = (draft.type === 'stojąca' && (draft.subType === 'zmywarkowa' || draft.subType === 'piekarnikowa' || (draft.subType === 'rogowa_slepa' && (draft.details?.cornerOption||'polki') === 'magic_corner'))) || (draft.type === 'stojąca' && draft.subType === 'zlewowa' && (draft.details?.sinkFront||'drzwi') === 'szuflada');
+  const isFridge = (draft.type === 'stojąca' && draft.subType === 'lodowkowa');
+
+  // lodówkowa w zabudowie — zamiast frontCount używamy details.fridgeFrontCount (1/2)
+  const isCornerL = (draft.subType === 'narozna_l');
+
+  if(isFridge){
+    // frontCount select ukrywamy (bo fronty lodówki wybiera się w szczegółach lodówki)
+    if(fcWrap) fcWrap.style.display = 'none';
+    fcHint.style.display = 'none';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+  } else if(isCornerL){
+    // narożna L: zawsze 2 fronty, zamiast wyboru frontów pokazujemy ilość półek
+    draft.frontCount = 2;
+
+    if(fcWrap) fcWrap.style.display = 'none';
+    fcHint.style.display = 'none';
+
+    if(shelvesWrap){
+      shelvesWrap.style.display = 'block';
+      const d = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+      const sh = (d.shelves == null ? 2 : Number(d.shelves));
+      draft.details = Object.assign({}, d, { shelves: Math.max(0, Math.round(Number.isFinite(sh) ? sh : 0)) });
+
+      if(shelvesInput){
+        shelvesInput.value = String(draft.details.shelves);
+        const onShelvesChange = () => {
+          const v = Math.max(0, Math.round(Number(shelvesInput.value) || 0));
+          draft.details = Object.assign({}, draft.details || {}, { shelves: v });
+          shelvesInput.value = String(v);
+        };
+        shelvesInput.oninput = onShelvesChange;
+        shelvesInput.onchange = onShelvesChange;
+      }
+    }
+  } else if(isFlapDraft){
+    // Klapa: ilość frontów jest automatyczna (1 lub 2 zależnie od rodzaju)
+    // Półki: użytkownik może wpisać (do wyceny i rozrysu)
+    if(shelvesWrap) shelvesWrap.style.display = 'block';
+    if(!draft.details) draft.details = {};
+    if(draft.details.shelves === undefined || draft.details.shelves === null) draft.details.shelves = 0;
+    if(shelvesInput){
+      shelvesInput.value = String(Math.max(0, Math.round(Number(draft.details.shelves) || 0)));
+      const onShelvesChange = () => {
+        const v = Math.max(0, Math.round(Number(shelvesInput.value) || 0));
+        draft.details = Object.assign({}, draft.details || {}, { shelves: v });
+        shelvesInput.value = String(v);
+      };
+      shelvesInput.oninput = onShelvesChange;
+      shelvesInput.onchange = onShelvesChange;
+    }
+
+
+    const fcAuto = getFlapFrontCount(draft);
+    // dla klap ilość frontów jest automatyczna i pokazujemy ją pod wyborem podnośnika
+    if(fcWrap) fcWrap.style.display = 'none';
+    if(fcSel){
+      fcSel.style.display = 'none';
+      fcSel.innerHTML = `<option value="${fcAuto}">${fcAuto}</option>`;
+      fcSel.value = String(fcAuto);
+      fcSel.disabled = true;
+    }
+    if(fcStatic) fcStatic.style.display = 'none';
+    if(fcHint) fcHint.style.display = 'none';
+    if(flapFrontInfo){
+      flapFrontInfo.style.display = 'inline-block';
+      flapFrontInfo.textContent = `Ilość frontów: ${fcAuto}` + ((fcAuto === 2) ? ' (HF top)' : '');
+    }
+  } else if(!canPick){
+    if(fcWrap) fcWrap.style.display = 'none';
+    fcHint.style.display = 'none';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+  } else if(fixedOne){
+    if(fcWrap) fcWrap.style.display = 'block';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+
+    fcSel.value = '1';
+    fcSel.disabled = true;
+    fcHint.style.display = 'block';
+    fcHint.textContent = 'Dla tej szafki ilość frontów jest stała: 1.';
+  } else {
+    if(fcWrap) fcWrap.style.display = 'block';
+    if(shelvesWrap) shelvesWrap.style.display = 'none';
+
+    const podBrak = (isPodblatowaDraft && draft.details && draft.details.podFrontMode === 'brak');
+    fcSel.disabled = podBrak ? true : false;
+    const fcVal = (draft.frontCount === 0 ? 0 : (draft.frontCount || 2));
+    fcSel.value = String(fcVal);
+    if(podBrak){
+      fcHint.style.display = 'block';
+      fcHint.textContent = 'Otwarta szafka (bez frontów).';
+    } else {
+      fcHint.style.display = 'none';
+    }
+  }
+
+  cmSubType.onchange = () => {
+    applySubTypeRules(room, draft, cmSubType.value);
+ensureFrontCountRules(draft);
+
+// Moduł → Uchylna: wymuś tryb klapy i wyczyść ewentualne dane po szufladach
+if(draft.type === 'moduł' && cmSubType.value === 'uchylne'){
+  draft.subType = 'uchylne';
+  draft.details = FC.utils.isPlainObject(draft.details) ? draft.details : {};
+  // fronty dla klapy wynikają z rodzaju podnośnika (HF top = 2)
+  draft.frontCount = getFlapFrontCount(draft);
+}
+
+// zmywarkowa: szerokość szafki = szerokość zmywarki + przegrody techniczne dla wysokich frontów
+if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
+  const leg = Number(projectData[room]?.settings?.legHeight) || 0;
+  const dw = (draft.details && draft.details.dishWasherWidth) ? draft.details.dishWasherWidth : (String(draft.width || '60'));
+  draft.details = Object.assign({}, draft.details || {}, { dishWasherWidth: dw });
+  draft.width = Number(dw) || 60;
+
+  const frontH = (Number(draft.height) || 0) - leg;
+  // Przegroda techniczna: 74.6–76.5 => 1; 76.6–78.5 => 2; itd.
+  const div = (frontH > 74.5) ? Math.max(0, Math.ceil(((frontH - 74.5) / 2) - 1e-9)) : 0;
+  draft.details = Object.assign({}, draft.details, { techDividerCount: String(div) });
+}
+
+    renderCabinetModal();
+  };
+
+  fcSel.onchange = () => {
+    draft.frontCount = Number(fcSel.value || 2);
+  };
+
+  document.getElementById('cmWidth').onchange = e => { draft.width = parseFloat(e.target.value || 0); };
+
+  // Live re-check dla uchylnych: po zmianie wysokości od razu przelicz LF i sprawdź zakresy
+  const _liveAventosCheck = () => {
+    try{
+      const room = uiState.roomType;
+      syncDraftFromCabinetModalForm(draft);
+      ensureFrontCountRules(draft);
+
+      // Walidacja szuflad systemowych (GTV/Rejs – w budowie -> blokada zapisu)
+      const _drawerBlockMsg = (function(){
+        const dd = draft.details || {};
+        const checkSystem = (sys, brand, ctx) => {
+          if(String(sys||'') !== 'systemowe') return null;
+          const b = String(brand||'blum');
+          if(b !== 'blum') return `Szuflady ${ctx}: ${b.toUpperCase()} – w budowie. Nie można zatwierdzić.`;
+          return null;
+        };
+        // główna szuflada (szufladowa / moduł / zlewowa front / piekarnikowa)
+        let m = checkSystem(dd.drawerSystem, dd.drawerBrand, 'frontowe');
+        if(m) return m;
+        // zlewowa: szuflada wewnętrzna
+        m = checkSystem(dd.sinkInnerDrawerType, dd.sinkInnerDrawerBrand, 'wewnętrzne (zlewowa)');
+        if(m) return m;
+        return null;
+      })();
+      if(_drawerBlockMsg){ alert(_drawerBlockMsg); return; }
+      applyAventosValidationUI(room, draft);
+    }catch(_e){ /* nie psuj modala */ }
+  };
+  const _cmHeightEl = document.getElementById('cmHeight');
+  if(_cmHeightEl){
+    _cmHeightEl.oninput = _liveAventosCheck;
+    _cmHeightEl.onchange = _liveAventosCheck;
+  }
+
+  const _cmWidthEl = document.getElementById('cmWidth');
+  if(_cmWidthEl){
+    _cmWidthEl.oninput = _liveAventosCheck;
+    _cmWidthEl.onchange = _liveAventosCheck;
+  }
+  const _cmDepthEl = document.getElementById('cmDepth');
+  if(_cmDepthEl){
+    _cmDepthEl.oninput = _liveAventosCheck;
+    _cmDepthEl.onchange = _liveAventosCheck;
+  }
+
+  document.getElementById('cmFrontMaterial').onchange = e => {
+    draft.frontMaterial = e.target.value;
+    const first = materials.find(m => m.materialType === draft.frontMaterial);
+    draft.frontColor = first ? first.name : '';
+    renderCabinetModal();
+  };
+  document.getElementById('cmFrontColor').onchange = e => { draft.frontColor = e.target.value; };
+  document.getElementById('cmBackMaterial').onchange = e => { draft.backMaterial = e.target.value; };
+  document.getElementById('cmBodyColor').onchange = e => { draft.bodyColor = e.target.value; };
+  document.getElementById('cmOpeningSystem').onchange = e => { draft.openingSystem = e.target.value; };
+
+  const _cabCancel = document.getElementById('cabinetModalCancel');
+  if(_cabCancel) _cabCancel.onclick = closeCabinetModal;
+  document.getElementById('cabinetModalSave').onclick = (e) => {
+    // twarde zabezpieczenie: żadnego "przebicia" kliknięcia do innych handlerów
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+
+    // Tryb zestawu: Zatwierdź działa jak "Dodaj zestaw / Zapisz zmiany"
+    const _setArea = document.getElementById('setWizardArea');
+    const inSetMode = (cabinetModalState && cabinetModalState.chosen === 'zestaw') ||
+                      (cabinetModalState && cabinetModalState.setEditId) ||
+                      (_setArea && _setArea.style.display === 'block');
+    if(inSetMode){
+  try{
+    // Use the same path as the set wizard button (data-action="create-set") for consistency.
+    if(window.FC && FC.actions && typeof FC.actions.dispatch === 'function'){
+      FC.actions.dispatch('create-set', { event: e, element: document.getElementById('setWizardCreate') || null, target: e && e.target });
+    } else {
+      createOrUpdateSetFromWizard();
+    }
+  } catch(err){
+    console.error(err);
+    alert('Błąd zapisu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
+  } finally {
+    try { if(e && e.target && e.target.blur) e.target.blur(); } catch(_){}
+  }
+  return;
+}
+    try{
+      if(!uiState.roomType){ alert('Wybierz pomieszczenie'); return; }
+      const room = uiState.roomType;
+
+      syncDraftFromCabinetModalForm(draft);
+      ensureFrontCountRules(draft);
+
+      // Walidacja podnośników (AVENTOS) na etapie zapisu – jeśli poza zakresem, nie dodawaj/nie zapisuj
+      const _av = validateAventosForDraft(room, draft);
+      if(_av && _av.ok === false){
+        applyAventosValidationUI(room, draft);
+        return;
+      }
+
+      const beforeCount = (projectData[room].cabinets || []).length;
+
+      const isAdd = (cabinetModalState.mode === 'add' || !cabinetModalState.editingId);
+      if(isAdd){
+        const newCab = FC.utils.clone(draft);
+        newCab.id = FC.utils.uid();
+        projectData[room].cabinets.push(newCab);
+        // Po dodaniu: otwórz (rozwiń) ostatnio dodaną szafkę
+        uiState.expanded = {};
+        uiState.expanded[String(newCab.id)] = true;
+        uiState.selectedCabinetId = newCab.id;
+
+        // Zapamiętaj „dopiero co dodaną” (do domyślnego typu przy kolejnym dodawaniu)
+        uiState.lastAddedAt = Date.now();
+        uiState.lastAddedCabinetId = String(newCab.id);
+        uiState.lastAddedCabinetType = String(newCab.type || '');
+
+        // generuj fronty jeśli trzeba (lodówkowa też)
+        generateFrontsForCabinet(room, newCab);
+      } else {
+        const id = cabinetModalState.editingId;
+        projectData[room].cabinets = projectData[room].cabinets.map(c => c.id === id ? Object.assign({}, FC.utils.clone(draft), { id }) : c);
+
+        const updated = projectData[room].cabinets.find(c => c.id === id);
+        if(updated) generateFrontsForCabinet(room, updated);
+      }
+
+      projectData = FC.project.save(projectData);
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+      // najpierw odśwież widok — jeśli coś się wysypie, modal ma zostać otwarty
+      renderCabinets();
+
+      const afterCount = (projectData[room].cabinets || []).length;
+      if(isAdd && afterCount <= beforeCount){
+        alert('Nie udało się dodać szafki (błąd logiki zapisu).');
+        return;
+      }
+
+      closeCabinetModal();
+    }catch(err){
+      console.error('Błąd zapisu szafki:', err);
+      alert('Błąd podczas zapisu (sprawdź konsolę). Modal pozostaje otwarty.');
+    }
+  };
+
+  // Walidacja klapy (AVENTOS) – blokuj zapis jeśli poza zakresem
+  applyAventosValidationUI(room, draft);
+}
+
+/* ===== create fronts for sets ===== */
+function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber){
+  const fc = Number(frontCount||1);
+
+  if(presetId === 'A'){
+    const { w1, w2, hB, hTop } = dims;
+    const totalH = (Number(hB)||0) + (Number(hTop)||0);
+    if(fc === 1){
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0) + (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+    } else {
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0), height: totalH, note: `Zestaw ${setNumber}: front lewy` });
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: front prawy` });
+    }
+    return;
+  }
+
+  if(presetId === 'C'){
+    const { w, hB, hTop } = dims;
+    const totalH = (Number(hB)||0) + (Number(hTop)||0);
+    if(fc === 1){
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+    } else {
+      const half = Math.round(((Number(w)||0) / 2) * 10)/10;
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+    }
+    return;
+  }
+
+  if(presetId === 'D'){
+    const { w, hB, hM, hTop } = dims;
+    const totalH = (Number(hB)||0) + (Number(hM)||0) + (Number(hTop)||0);
+    if(fc === 1){
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+    } else {
+      const half = Math.round(((Number(w)||0) / 2) * 10)/10;
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
+      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+    }
+    return;
+  }
+}
+
+/* ===== Zestaw: odczyt/wpis parametrów UI ===== */
+function getSetParamsFromUI(presetId){
+  const room = uiState.roomType;
+  const s = projectData[room].settings;
+
+  function num(id, fallback=0){
+    const el = document.getElementById(id);
+    if(!el) return fallback;
+    return Number(el.value || fallback);
+  }
+
+  const blende = num('setBlende', Number(s.ceilingBlende)||0);
+  const dBottom = num('setDBottom', 51);
+  const dModule = Math.max(0, Math.round((dBottom - 1)*10)/10);
+
+  if(presetId === 'A'){
+    const w1 = num('setW1', 60);
+    const w2 = num('setW2', 60);
+    const hB = num('setHBottom', Number(s.bottomHeight)||82);
+    const hTop = calcTopForSet(room, blende, hB);
+    return { presetId, w1,w2, hB, hTop, dBottom, dModule, blende };
+  }
+  if(presetId === 'C'){
+    const w = num('setW', 60);
+    const hB = num('setHBottom', Number(s.bottomHeight)||82);
+    const hTop = calcTopForSet(room, blende, hB);
+    return { presetId, w, hB, hTop, dBottom, dModule, blende };
+  }
+  if(presetId === 'D'){
+    const w = num('setW', 60);
+    const hB = num('setHBottom', Number(s.bottomHeight)||82);
+    const hM = num('setHMiddle', 100);
+    const hTop = calcTopForSet(room, blende, (hB + hM));
+    return { presetId, w, hB, hM, hTop, dBottom, dModule, blende };
+  }
+  return null;
+}
+
+function fillSetParamsUIFromSet(set){
+  renderSetParamsUI(set.presetId);
+
+  const p = set.params || {};
+  function setVal(id,v){
+    const el = document.getElementById(id);
+    if(el && v != null && !el.disabled) el.value = v;
+  }
+
+  if(set.presetId === 'A'){
+    setVal('setW1', p.w1);
+    setVal('setW2', p.w2);
+    setVal('setHBottom', p.hB);
+    setVal('setDBottom', p.dBottom);
+    setVal('setBlende', p.blende);
+  }
+  if(set.presetId === 'C'){
+    setVal('setW', p.w);
+    setVal('setHBottom', p.hB);
+    setVal('setDBottom', p.dBottom);
+    setVal('setBlende', p.blende);
+  }
+  if(set.presetId === 'D'){
+    setVal('setW', p.w);
+    setVal('setHBottom', p.hB);
+    setVal('setHMiddle', p.hM);
+    setVal('setDBottom', p.dBottom);
+    setVal('setBlende', p.blende);
+  }
+
+  const cntSel = document.getElementById('setFrontCount');
+  const matSel = document.getElementById('setFrontMaterial');
+  const colSel = document.getElementById('setFrontColor');
+
+  if(cntSel && set.frontCount) cntSel.value = String(set.frontCount);
+  if(matSel && set.frontMaterial) matSel.value = set.frontMaterial;
+  if(colSel){
+    populateFrontColorsTo(colSel, (matSel ? matSel.value : 'laminat'), set.frontColor || '');
+    colSel.value = set.frontColor || colSel.value;
+  }
+
+  wireSetParamsLiveUpdate(set.presetId);
+}
+
+/* ===== Create/Update set ===== */
+function getNextSetNumber(room){
+  const arr = projectData[room].sets || [];
+  let max = 0;
+  arr.forEach(s=>{ if(typeof s.number === 'number') max = Math.max(max, s.number); });
+  return max + 1;
+}
+
+function createOrUpdateSetFromWizard(){
+  try{
+    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
+    const room = state.roomType || (uiState && uiState.roomType);
+    if(!room){ alert('Wybierz pomieszczenie'); return; }
+
+    const presetId =
+      ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
+      || (document.querySelector('#setTiles .mini-tile.selected') && document.querySelector('#setTiles .mini-tile.selected').getAttribute('data-preset'))
+      || (document.querySelector('#setTiles .mini-tile') && document.querySelector('#setTiles .mini-tile').getAttribute('data-preset'))
+      || null;
+
+    if(!presetId){
+      alert('Wybierz zestaw');
+      return;
+    }
+
+    // keep state in sync if global exists
+    if(typeof cabinetModalState !== 'undefined' && cabinetModalState){
+      cabinetModalState.setPreset = presetId;
+    }
+
+    const params = getSetParamsFromUI(presetId);
+    if(!params){ alert('Brak parametrów'); return; }
+
+    // Ensure containers exist
+    projectData[room] = projectData[room] || { cabinets:[], settings:{} };
+    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
+    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
+
+    const cntEl = document.getElementById('setFrontCount');
+    const matEl = document.getElementById('setFrontMaterial');
+    const colEl = document.getElementById('setFrontColor');
+    if(!cntEl || !matEl || !colEl){
+      alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
+      return;
+    }
+
+    const frontCount = Number(cntEl.value || 1);
+    const frontMaterial = matEl.value || 'laminat';
+    const frontColor = colEl.value || '';
+
+    const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
+    const setId = isEdit ? cabinetModalState.setEditId : (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()));
+
+    let setNumber;
+    if(isEdit){
+      const old = (projectData[room].sets || []).find(s=>s.id===setId);
+      setNumber = old && typeof old.number === 'number' ? old.number : getNextSetNumber(room);
+    } else {
+      setNumber = getNextSetNumber(room);
+    }
+
+    const base = makeDefaultCabinetDraftForRoom(room);
+
+    function finalizeCab(c){
+      c.id = c.id || (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()) + Math.random());
+      if(!c.details) c.details = (FC.utils && FC.utils.clone) ? FC.utils.clone(base.details || {}) : (base.details || {});
+      if(!c.bodyColor) c.bodyColor = base.bodyColor;
+      if(!c.frontMaterial) c.frontMaterial = base.frontMaterial || 'laminat';
+      if(!c.frontColor){
+        const first = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials.find(m => m.materialType === c.frontMaterial) : null;
+        c.frontColor = first ? first.name : '';
+      }
+      if(!c.openingSystem) c.openingSystem = base.openingSystem || 'uchwyt klienta';
+      if(!c.backMaterial) c.backMaterial = base.backMaterial || 'HDF 3mm biała';
+      c.setId = setId;
+      c.setPreset = presetId;
+      c.setNumber = setNumber;
+      c.setName = `Zestaw ${setNumber}`;
+      return c;
+    }
+
+    if(isEdit){
+      projectData[room].cabinets = projectData[room].cabinets.filter(c => c.setId !== setId);
+      removeFrontsForSet(room, setId);
+    }
+
+    const created = [];
+
+    if(presetId === 'A'){
+      const cab1 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w1, height:params.hB, depth:params.dBottom, setRole:'dolny_lewy', frontCount:2 }));
+      const cab2 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w2, height:params.hB, depth:params.dBottom, setRole:'dolny_prawy', frontCount:2 }));
+      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:(params.w1+params.w2), height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
+      created.push(cab1, cab2, top);
+      createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1,w2:params.w2,hB:params.hB,hTop:params.hTop}, setId, setNumber);
+    }
+
+    if(presetId === 'C'){
+      const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
+      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
+      created.push(bottom, top);
+      createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hTop:params.hTop}, setId, setNumber);
+    }
+
+    if(presetId === 'D'){
+      const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
+      const middle = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hM, depth:params.dModule, setRole:'srodkowy_modul', frontCount:0 }));
+      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
+      created.push(bottom, middle, top);
+      createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hM:params.hM,hTop:params.hTop}, setId, setNumber);
+    }
+
+    created.forEach(c => projectData[room].cabinets.push(c));
+
+    const setRecord = { id:setId, presetId, number:setNumber, params, frontCount, frontMaterial, frontColor };
+    if(isEdit){
+      projectData[room].sets = projectData[room].sets.map(s => s.id===setId ? setRecord : s);
+    } else {
+      projectData[room].sets.push(setRecord);
+    }
+
+    projectData = FC.project.save(projectData);
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+    closeCabinetModal();
+    renderCabinets();
+  }catch(e){
+    alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
+    throw e;
+  }
+}
+
+
+/* ===== Read-only: cabinet details summary ===== */
+
+  ns.cabinetModal = {
+    makeDefaultCabinetDraftForRoom,
+    openCabinetModalForAdd,
+    lockModalScroll,
+    unlockModalScroll,
+    openCabinetModalForEdit,
+    openSetWizardForEdit,
+    closeCabinetModal,
+    renderCabinetTypeChoices,
+    populateSelect,
+    populateFrontColorsTo,
+    populateBodyColorsTo,
+    populateOpeningOptionsTo,
+    renderCabinetExtraDetailsInto,
+    renderSetTiles,
+    renderSetParamsUI,
+    wireSetParamsLiveUpdate,
+    renderCabinetModal,
+    syncFlapUI,
+    getSetParamsFromUI,
+    fillSetParamsUIFromSet,
+    getNextSetNumber,
+    createOrUpdateSetFromWizard
+  };
+})();
