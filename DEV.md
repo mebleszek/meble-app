@@ -219,4 +219,5 @@ Dopiero potem go zmieniać.
 
 - `js/app/corner-sketch.js` — helper canvas szkicu narożnych szafek; wydzielony z `app.js` bez zmiany UI.
 
-- `js/app/cabinet-cutlist.js` — wyliczanie listy formatek szafki dla Materiałów i Rozrysu; `app.js` trzyma tylko globalny wrapper z fallbackiem.
+
+- `js/app/cabinet-cutlist.js` — helper obliczeniowy `getCabinetCutList(cab, room)` wydzielony z `app.js` z fallbackiem wstecznym.

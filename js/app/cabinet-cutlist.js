@@ -1,9 +1,7 @@
-// Cabinet cut list extracted from app.js.
 (function(){
   window.FC = window.FC || {};
-  const ns = window.FC.cabinetCutlist = window.FC.cabinetCutlist || {};
 
-  function getCabinetCutList(cab, room){
+function getCabinetCutList(cab, room){
   const t = FC_BOARD_THICKNESS_CM;
   const w = Number(cab.width) || 0;
   const h = Number(cab.height) || 0;
@@ -195,8 +193,9 @@ if(String(cab.subType || '') === 'uchylne'){
 }
 
 return parts;
+}
 
-  }
 
-  ns.getCabinetCutList = getCabinetCutList;
+  window.FC.cabinetCutlist = window.FC.cabinetCutlist || {};
+  window.FC.cabinetCutlist.getCabinetCutList = getCabinetCutList;
 })();

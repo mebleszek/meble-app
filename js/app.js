@@ -1461,7 +1461,10 @@ function getBlumAventosInfo(cab, room){
 }
 
 function getCabinetCutList(cab, room){
-  return callExtracted('cabinetCutlist','getCabinetCutList',[cab, room], function(cab, room){
+  return callExtracted('cabinetCutlist','getCabinetCutList',[cab, room], _getCabinetCutListFallback);
+}
+
+function _getCabinetCutListFallback(cab, room){
   const t = FC_BOARD_THICKNESS_CM;
   const w = Number(cab.width) || 0;
   const h = Number(cab.height) || 0;
@@ -1653,10 +1656,7 @@ if(String(cab.subType || '') === 'uchylne'){
 }
 
 return parts;
-
-  });
 }
-
 
 
 
