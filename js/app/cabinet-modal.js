@@ -1997,7 +1997,6 @@ function createOrUpdateSetFromWizard(){
     renderSetParamsUI,
     wireSetParamsLiveUpdate,
     renderCabinetModal,
-    syncFlapUI,
     getSetParamsFromUI,
     fillSetParamsUIFromSet,
     getNextSetNumber,

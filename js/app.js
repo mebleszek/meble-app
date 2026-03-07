@@ -722,7 +722,6 @@ function renderSetTiles(){ return callExtracted('cabinetModal','renderSetTiles',
 function renderSetParamsUI(presetId){ return callExtracted('cabinetModal','renderSetParamsUI',[presetId]); }
 function wireSetParamsLiveUpdate(presetId){ return callExtracted('cabinetModal','wireSetParamsLiveUpdate',[presetId]); }
 function renderCabinetModal(){ return callExtracted('cabinetModal','renderCabinetModal',[]); }
-function syncFlapUI(){ return callExtracted('cabinetModal','syncFlapUI',[]); }
 function getSetParamsFromUI(presetId){ return callExtracted('cabinetModal','getSetParamsFromUI',[presetId]); }
 function fillSetParamsUIFromSet(set){ return callExtracted('cabinetModal','fillSetParamsUIFromSet',[set]); }
 function getNextSetNumber(room){ return callExtracted('cabinetModal','getNextSetNumber',[room]); }
