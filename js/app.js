@@ -224,6 +224,8 @@ function normalizeProjectData(data, defaults){
     return FC.project.save(pd);
   });
 }
+let projectData = FC.project.load();
+
 projectData = normalizeProjectData(projectData, DEFAULT_PROJECT);
 
 /* ===== Modal state ===== */
