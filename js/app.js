@@ -586,36 +586,38 @@ const MANUFACTURERS = {
 };
 
 /* ===== Normalize (backward compatibility) ===== */
-function normalizeProjectData(){
-  ['kuchnia','szafa','pokoj','lazienka'].forEach(r=>{
-    if(!projectData[r]) projectData[r] = FC.utils.clone(DEFAULT_PROJECT[r]);
-    if(!Array.isArray(projectData[r].cabinets)) projectData[r].cabinets = [];
-    if(!projectData[r].settings) projectData[r].settings = FC.utils.clone(DEFAULT_PROJECT[r].settings);
-    if(!Array.isArray(projectData[r].fronts)) projectData[r].fronts = [];
-    if(!Array.isArray(projectData[r].sets)) projectData[r].sets = [];
+function normalizeProjectData(data, defaults){
+  return callExtracted('projectBootstrap','normalizeProjectData',[data, defaults], function(pd, defs){
+    ['kuchnia','szafa','pokoj','lazienka'].forEach(r=>{
+      if(!pd[r]) pd[r] = FC.utils.clone(defs[r]);
+      if(!Array.isArray(pd[r].cabinets)) pd[r].cabinets = [];
+      if(!pd[r].settings) pd[r].settings = FC.utils.clone(defs[r].settings);
+      if(!Array.isArray(pd[r].fronts)) pd[r].fronts = [];
+      if(!Array.isArray(pd[r].sets)) pd[r].sets = [];
 
-    // numeracja zestawów jeśli brak
-    let n = 1;
-    projectData[r].sets.forEach(s=>{
-      if(typeof s.number !== 'number'){
-        s.number = n;
-      }
-      n = Math.max(n, s.number + 1);
-    });
+      // numeracja zestawów jeśli brak
+      let n = 1;
+      pd[r].sets.forEach(s=>{
+        if(typeof s.number !== 'number'){
+          s.number = n;
+        }
+        n = Math.max(n, s.number + 1);
+      });
 
-    const map = new Map(projectData[r].sets.map(s=>[s.id, s.number]));
-    projectData[r].cabinets.forEach(c=>{
-      if(c.setId && typeof c.setNumber !== 'number'){
-        const num = map.get(c.setId);
-        if(typeof num === 'number') c.setNumber = num;
-      }
-      if(typeof c.frontCount !== 'number') c.frontCount = 2; // domyślnie 2 (dla standardów)
-      if(!c.details) c.details = {};
+      const map = new Map(pd[r].sets.map(s=>[s.id, s.number]));
+      pd[r].cabinets.forEach(c=>{
+        if(c.setId && typeof c.setNumber !== 'number'){
+          const num = map.get(c.setId);
+          if(typeof num === 'number') c.setNumber = num;
+        }
+        if(typeof c.frontCount !== 'number') c.frontCount = 2; // domyślnie 2 (dla standardów)
+        if(!c.details) c.details = {};
+      });
     });
+    return FC.project.save(pd);
   });
-  projectData = FC.project.save(projectData);
 }
-normalizeProjectData();
+projectData = normalizeProjectData(projectData, DEFAULT_PROJECT);
 
 /* ===== Modal state ===== */
 const cabinetModalState = {

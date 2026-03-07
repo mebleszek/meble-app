@@ -64,3 +64,6 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - `js/app/cabinet-cutlist.js` — helper obliczeniowy `getCabinetCutList(cab, room)` wydzielony z `app.js` z fallbackiem wstecznym.
+
+
+- `js/app/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
