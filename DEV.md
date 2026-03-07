@@ -212,3 +212,6 @@ Dopiero potem go zmieniać.
 
 
 - `js/app/cabinet-summary.js` — helper tekstowych podsumowań szafek wydzielony z `app.js`.
+
+
+- Step 17: safe dead-code cleanup in `js/app.js` (removed unused `deleteSelectedCabinet()` and duplicate/trailing ballast comments).

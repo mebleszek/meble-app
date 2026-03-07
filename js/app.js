@@ -438,8 +438,6 @@ function migrateV7toV8(data){
 }
 
 
-
-
 function normalizeProject(raw){
     let data = utils.isPlainObject(raw) ? raw : {};
     let ver = utils.num(data.schemaVersion, 1);
@@ -910,17 +908,6 @@ function deleteCabinetById(cabId){
   renderCabinets();
 }
 
-/* delete selected cabinet or last if none selected */
-function deleteSelectedCabinet(){
-  const room = uiState.roomType; if(!room) return;
-  let sel = uiState.selectedCabinetId;
-  if(!sel){
-    const arr = projectData[room].cabinets || [];
-    if(arr.length === 0){ alert('Brak szafek do usunięcia'); return; }
-    sel = arr[arr.length-1].id;
-  }
-  deleteCabinetById(sel);
-}
 
 /* ===== Price modal functions ===== */
 function closePriceModal(){ return callExtracted('priceModal','closePriceModal',[]); }
@@ -1384,8 +1371,6 @@ function getCabinetAssemblyRuleText(cab){
   if(cab.type === 'stojąca') return `Skręcanie: wieniec dolny pod bokami (boki niższe o ${FC_BOARD_THICKNESS_CM} cm); góra na trawersach 2×${FC_TOP_TRAVERSE_DEPTH_CM} cm (przód+tył).`;
   return 'Skręcanie: —';
 }
-
-
 
 
 function getCabinetFrontCutListForMaterials(room, cab){
@@ -1909,7 +1894,6 @@ function setActiveTab(tabName){
 
 
 /* ===== UI wiring & init ===== */
-/* ===== UI wiring & init ===== */
 
 function registerCoreActions(){
   // Core modules are optional at runtime (GitHub Pages/cache can temporarily serve stale assets).
@@ -2022,8 +2006,6 @@ function renderDrawingTab(list, room){
 /* initUI removed: duplicate listener-based version deleted (delegation is the single source of truth). */
 
 
-
-
 /* init moved to boot.js (safe init) */
 
 // --- Expose stable entrypoint for boot.js ---
@@ -2092,4 +2074,3 @@ try {
   if (typeof window.FC.init !== 'function' && typeof initApp === 'function') window.FC.init = initApp;
   if (typeof window.App.init !== 'function' && typeof initApp === 'function') window.App.init = initApp;
 } catch (e) {}
-//test
