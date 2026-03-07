@@ -7,7 +7,7 @@
 */
 (() => {
   'use strict';
-  const BOOT_VERSION = 'boot-clean-1.2';
+  const BOOT_VERSION = 'boot-clean-1.3';
   const UI_KEY = 'fc_ui_v1';
 
   // ===== Smart state on load (before app init) =====
@@ -21,7 +21,18 @@
       const hasSpecialTab = ['inwestor','rozrys','magazyn'].includes(String(ui.activeTab || ''));
       const preserveContext = hasRoomContext || hasViewContext || hasSpecialTab;
 
-      if (!preserveContext) {
+      if (preserveContext) {
+        // Normalize stale UI state after refresh.
+        // If there is an open room/project context, entry must not stay on 'home'.
+        if (hasRoomContext && String(ui.entry || '') === 'home') {
+          ui.entry = 'app';
+          if (!ui.activeTab || ui.activeTab === 'pokoje') ui.activeTab = 'wywiad';
+        }
+        if (!hasRoomContext && hasSpecialTab && String(ui.entry || '') === 'home') {
+          ui.entry = 'app';
+        }
+        localStorage.setItem(UI_KEY, JSON.stringify(ui));
+      } else {
         ui.roomType = null;
         ui.selectedCabinetId = null;
         ui.entry = 'home';
