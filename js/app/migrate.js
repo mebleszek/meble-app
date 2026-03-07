@@ -1,4 +1,5 @@
-// AKTYWNY moduł migracji i normalizacji projektu. Ładowany przed js/app.js.
+// UWAGA: plik obecny w repo, ale nieładowany bezpośrednio przez index.html w tej wersji.
+// Zawiera migracje schematu; przed użyciem sprawdź faktyczny entrypoint i zależności.
 // js/app/migrate.js
 // Project schema migrations. Loaded before js/app.js
 
@@ -200,133 +201,6 @@
         return out;
       }
 
-
-
-      function normalizeRoom(roomRaw, roomDefault){
-        const room = isPlainObject(roomRaw) ? roomRaw : {};
-        const def = roomDefault || { settings:{} };
-
-        const cabinets = Array.isArray(room.cabinets) ? room.cabinets : [];
-        const fronts   = Array.isArray(room.fronts)   ? room.fronts   : [];
-        const sets     = Array.isArray(room.sets)     ? room.sets     : [];
-
-        const sRaw = isPlainObject(room.settings) ? room.settings : {};
-        const sDef = isPlainObject(def.settings) ? def.settings : {};
-
-        const settings = {
-          roomHeight: Number.isFinite(Number(sRaw.roomHeight)) ? Number(sRaw.roomHeight) : Number(sDef.roomHeight)||250,
-          bottomHeight: Number.isFinite(Number(sRaw.bottomHeight)) ? Number(sRaw.bottomHeight) : Number(sDef.bottomHeight)||82,
-          legHeight: Number.isFinite(Number(sRaw.legHeight)) ? Number(sRaw.legHeight) : Number(sDef.legHeight)||0,
-          counterThickness: Number.isFinite(Number(sRaw.counterThickness)) ? Number(sRaw.counterThickness) : Number(sDef.counterThickness)||1.8,
-          gapHeight: Number.isFinite(Number(sRaw.gapHeight)) ? Number(sRaw.gapHeight) : Number(sDef.gapHeight)||0,
-          ceilingBlende: Number.isFinite(Number(sRaw.ceilingBlende)) ? Number(sRaw.ceilingBlende) : Number(sDef.ceilingBlende)||0,
-        };
-
-        const calcTechDividers = (frontH) => {
-          const fh = Number(frontH) || 0;
-          if(!(fh > 74.5)) return 0;
-          return Math.max(0, Math.ceil(((fh - 74.5) / 2) - 1e-9));
-        };
-
-        const leg = Number(settings.legHeight) || 0;
-        const bottomFrontH = Math.max(0, (Number(settings.bottomHeight) || 0) - leg);
-
-        const normCabinets = cabinets.map((c) => {
-          if(!isPlainObject(c)) return c;
-          const cab = { ...c };
-          const d = isPlainObject(cab.details) ? { ...cab.details } : {};
-
-          if(cab.subType === 'zmywarkowa'){
-            const frontH = (Number(cab.height) || 0) - leg;
-            d.techDividerCount = String(calcTechDividers(frontH));
-            d.shelves = 0;
-            cab.frontCount = 1;
-          }
-
-          if(cab.subType === 'lodowkowa'){
-            const opt = d.fridgeOption ? String(d.fridgeOption) : 'zabudowa';
-            if(opt === 'zabudowa'){
-              const div = calcTechDividers(bottomFrontH);
-              d.techDividerCount = String(div);
-              d.shelves = 0;
-              const lh = Number(settings.legHeight) || 0;
-              const nh = Number(d.fridgeNicheHeight) || 0;
-              if(nh > 0) cab.height = nh + (div * 1.8) + 3.6 + lh;
-            } else {
-              d.techDividerCount = '0';
-              d.shelves = 0;
-            }
-          }
-
-          if(cab.subType === 'szuflady'){
-            let lay = String(d.drawerLayout || '');
-            if(!lay){
-              const legacy = String(d.drawerCount || '3');
-              if(legacy === '1') lay = '1_big';
-              else if(legacy === '2') lay = '2_equal';
-              else if(legacy === '3') lay = '3_1_2_2';
-              else if(legacy === '5') lay = '5_equal';
-              else lay = '3_equal';
-            }
-            d.drawerLayout = lay;
-            if(!d.drawerSystem) d.drawerSystem = 'skrzynkowe';
-            if(!d.drawerBrand) d.drawerBrand = 'blum';
-            if(!d.drawerModel) d.drawerModel = 'tandembox';
-            if(!('innerDrawerType' in d)) d.innerDrawerType = 'brak';
-            if(!('innerDrawerCount' in d) || d.innerDrawerCount == null){
-              d.innerDrawerCount = (lay === '3_equal') ? '3' : '2';
-            }
-            if(lay === '5_equal'){
-              d.innerDrawerType = 'brak';
-              d.innerDrawerCount = '0';
-            } else if(lay === '3_equal'){
-              const n = Math.min(3, Math.max(0, parseInt(d.innerDrawerCount, 10) || 0));
-              d.innerDrawerCount = String(n > 0 ? n : 3);
-            } else {
-              const n = Math.min(2, Math.max(0, parseInt(d.innerDrawerCount, 10) || 0));
-              d.innerDrawerCount = String(n > 0 ? n : 2);
-            }
-
-            let fc = 3;
-            if(lay === '1_big') fc = 1;
-            else if(lay === '2_equal') fc = 2;
-            else if(lay === '3_equal') fc = 3;
-            else if(lay === '5_equal') fc = 5;
-            else if(lay === '3_1_2_2') fc = 3;
-            cab.frontCount = fc;
-          }
-
-          cab.details = d;
-          return cab;
-        });
-
-        return { cabinets: normCabinets, fronts, sets, settings };
-      }
-
-      function normalizeProject(raw, DEFAULT_PROJECT, CURRENT_SCHEMA_VERSION){
-        let data = isPlainObject(raw) ? raw : {};
-        let ver = Number(data.schemaVersion);
-        if (!Number.isFinite(ver) || ver < 1) ver = 1;
-
-        if (ver < 2) data = migrateV1toV2(data);
-        if (ver < 3) data = migrateV2toV3(data);
-        if (ver < 4) data = migrateV3toV4(data);
-        if (ver < 5) data = migrateV4toV5(data);
-        if (ver < 6) data = migrateV5toV6(data);
-        if (ver < 7) data = migrateV6toV7(data);
-        if (ver < 8) data = migrateV7toV8(data);
-        if (ver < 9) data = migrateV8toV9(data);
-
-        const out = { schemaVersion: CURRENT_SCHEMA_VERSION || 9 };
-        for (const r of ROOMS){
-          out[r] = normalizeRoom(data[r], DEFAULT_PROJECT && DEFAULT_PROJECT[r]);
-        }
-        for (const k of Object.keys(data)){
-          if (!(k in out)) out[k] = data[k];
-        }
-        return out;
-      }
-
       window.FC.migrations = {
         migrateV1toV2,
         migrateV2toV3,
@@ -336,8 +210,6 @@
         migrateV6toV7,
         migrateV7toV8,
         migrateV8toV9,
-        normalizeRoom,
-        normalizeProject,
       };
     }
   }catch(_){ }

@@ -81,6 +81,3 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `front-hardware` wrappers to thin delegators with minimal fallbacks.
 
 - `js/app.js` trzyma już tylko minimalny awaryjny fallback dla `getCabinetCutList()`; pełna logika siedzi w `js/app/cabinet-cutlist.js`.
-
-
-- `js/app/migrate.js` — aktywny moduł migracji i normalizacji projektu, ładowany przed `js/app.js`.
