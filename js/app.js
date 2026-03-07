@@ -1955,12 +1955,57 @@ function initApp(){
 
 // RYZYKO REGRESJI: główny start aplikacji.
 // Tu spinają się fallbacki, modale, walidacja akcji i inicjalizacja widoków.
+
+let __autosaveTimer = null;
+function scheduleProjectAutosave(){
+  try{
+    clearTimeout(__autosaveTimer);
+  }catch(_){ }
+  __autosaveTimer = setTimeout(function(){
+    try{
+      if(window.FC && FC.project && typeof FC.project.save === 'function'){
+        projectData = FC.project.save(projectData);
+      }
+    }catch(_){ }
+  }, 180);
+}
+
+function installProjectAutosave(){
+  if(window.__fcProjectAutosaveInstalled) return;
+  window.__fcProjectAutosaveInstalled = true;
+  const root = document.getElementById('appView') || document;
+  const handler = function(ev){
+    try{
+      const t = ev && ev.target;
+      if(!t || !t.closest) return;
+      if(t.closest('#priceModal')) return;
+      if(t.closest('#investorRoot')) return;
+      scheduleProjectAutosave();
+    }catch(_){ }
+  };
+  root.addEventListener('change', handler, true);
+  root.addEventListener('input', handler, true);
+  root.addEventListener('click', function(ev){
+    try{
+      const t = ev && ev.target;
+      if(!t || !t.closest) return;
+      if(t.closest('#priceModal')) return;
+      if(t.closest('#investorRoot')) return;
+      if(t.closest('[data-action]') || t.closest('[data-act]') || t.closest('.tab-btn') || t.closest('.room-card') || t.closest('button')){
+        scheduleProjectAutosave();
+      }
+    }catch(_){ }
+  }, true);
+}
+
 function initUI(){
   uiState = uiState || __uiDefaults;
 
   // Event wiring extracted to js/app/bindings.js
   try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
   catch(_){ /* keep UI alive even if bindings fail */ }
+
+  try{ installProjectAutosave(); }catch(_){ }
 
   // Views (home/rooms/app/placeholders)
   try{

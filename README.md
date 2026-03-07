@@ -67,3 +67,6 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - `js/app/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
+
+
+- `js/app.js` ma też lekki, globalny debounce autosave projektu (`installProjectAutosave` / `scheduleProjectAutosave`) jako bezpiecznik na wypadek, gdy pojedynczy handler zmiany nie zapisze stanu od razu.
