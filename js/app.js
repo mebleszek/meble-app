@@ -933,6 +933,8 @@ function deletePriceItem(item){ return callExtracted('priceModal','deletePriceIt
 
 /* ===== Cabinet Modal helpers ===== */
 function getCabinetExtraSummary(room, cab){
+  return callExtracted('cabinetSummary', 'getCabinetExtraSummary', arguments, function(room, cab){
+
   const d = cab.details || {};
   const parts = [];
 
@@ -1280,6 +1282,8 @@ if(cab.subType === 'zmywarkowa'){
   }
 
   return '';
+
+  });
 }
 
 
