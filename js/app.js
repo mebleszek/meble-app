@@ -648,6 +648,18 @@ function renderTopHeight(){
   });
 }
 
+function calcTopForSet(room, blende, sumLowerHeights){
+  try{
+    const mod = window.FC && window.FC.calc;
+    if(mod && typeof mod.calcTopForSet === 'function'){
+      return mod.calcTopForSet(projectData, room, blende, sumLowerHeights);
+    }
+  }catch(_){ }
+  const s = projectData && projectData[room] && projectData[room].settings ? projectData[room].settings : {};
+  const h = (Number(s.roomHeight)||0) - (Number(sumLowerHeights)||0) - (Number(blende)||0);
+  return h>0?Math.round(h*10)/10:0;
+}
+
 // ZESTAWY: top = roomHeight - suma niższych - blenda
 function toggleExpandAll(id){
   return callExtracted('settingsUI', 'toggleExpandAll', arguments, function(id){
