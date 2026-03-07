@@ -33,7 +33,7 @@ Przed edycją zawsze trzeba sprawdzić, czy plik jest aktywnym entrypointem, wor
 Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
-- `js/app/price-modal.js` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
+- `js/app/price-modal.js (renderer + akcje modala cenników)` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
 - Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.
 
 

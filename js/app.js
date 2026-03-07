@@ -920,55 +920,13 @@ function deleteSelectedCabinet(){
 }
 
 /* ===== Price modal functions ===== */
-function closePriceModal(){ unlockModalScroll(); uiState.showPriceList = null; uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); document.getElementById('priceModal').style.display = 'none'; }
+function closePriceModal(){ return callExtracted('priceModal','closePriceModal',[]); }
 
-function saveMaterialFromForm(){
-  const type = document.getElementById('formMaterialType').value;
-  const manufacturer = document.getElementById('formManufacturer').value;
-  const symbol = document.getElementById('formSymbol').value.trim();
-  const name = document.getElementById('formName').value.trim();
-  const price = parseFloat(document.getElementById('formPrice').value || 0);
-  const hasGrain = !!(document.getElementById('formHasGrain') && document.getElementById('formHasGrain').checked);
-  if(!name){ alert('Wprowadź nazwę'); return; }
-  const data = { materialType: type, manufacturer, symbol, name, price, hasGrain };
-  if(uiState.editingId){
-    materials = materials.map(m => m.id === uiState.editingId ? Object.assign({}, m, data) : m);
-    uiState.editingId = null;
-  } else {
-    const id = FC.utils.uid();
-    materials.push(Object.assign({ id }, data));
-  }
-  FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-  // keep helper accurate
-  try{ window.FC.materialHasGrain = window.FC.materialHasGrain; }catch(_){ }
-  renderPriceModal();
-  renderCabinetModal();
-}
+function saveMaterialFromForm(){ return callExtracted('priceModal','saveMaterialFromForm',[]); }
 
-function saveServiceFromForm(){
-  const category = document.getElementById('formCategory').value.trim() || 'Montaż';
-  const name = document.getElementById('formServiceName').value.trim();
-  const price = parseFloat(document.getElementById('formServicePrice').value || 0);
-  if(!name){ alert('Wprowadź nazwę'); return; }
-  const data = { category, name, price };
-  if(uiState.editingId){
-    services = services.map(s => s.id === uiState.editingId ? Object.assign({}, s, data) : s);
-    uiState.editingId = null;
-  } else {
-    const id = FC.utils.uid();
-    services.push(Object.assign({ id }, data));
-  }
-  FC.storage.setJSON(STORAGE_KEYS.services, services);
-  renderPriceModal();
-}
+function saveServiceFromForm(){ return callExtracted('priceModal','saveServiceFromForm',[]); }
 
-function deletePriceItem(item){
-  if(!confirm('Usunąć pozycję?')) return;
-  if(uiState.showPriceList === 'materials'){ materials = materials.filter(m => m.id !== item.id); FC.storage.setJSON(STORAGE_KEYS.materials, materials); }
-  else { services = services.filter(s => s.id !== item.id); FC.storage.setJSON(STORAGE_KEYS.services, services); }
-  renderPriceModal();
-  renderCabinetModal();
-}
+function deletePriceItem(item){ return callExtracted('priceModal','deletePriceItem',[item]); }
 
 /* ===== Cabinet Modal helpers ===== */
 function getCabinetExtraSummary(room, cab){

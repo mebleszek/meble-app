@@ -109,5 +109,70 @@
     document.getElementById('cancelServiceEditBtn').onclick = () => { uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); renderPriceModal(); };
   }
 
+
+  function closePriceModal(){
+    try{ unlockModalScroll(); }catch(_){ }
+    uiState.showPriceList = null;
+    uiState.editingId = null;
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    const modal = document.getElementById('priceModal');
+    if(modal) modal.style.display = 'none';
+  }
+
+  function saveMaterialFromForm(){
+    const type = document.getElementById('formMaterialType').value;
+    const manufacturer = document.getElementById('formManufacturer').value;
+    const symbol = document.getElementById('formSymbol').value.trim();
+    const name = document.getElementById('formName').value.trim();
+    const price = parseFloat(document.getElementById('formPrice').value || 0);
+    const hasGrain = !!(document.getElementById('formHasGrain') && document.getElementById('formHasGrain').checked);
+    if(!name){ alert('Wprowadź nazwę'); return; }
+    const data = { materialType: type, manufacturer, symbol, name, price, hasGrain };
+    if(uiState.editingId){
+      materials = materials.map(m => m.id === uiState.editingId ? Object.assign({}, m, data) : m);
+      uiState.editingId = null;
+    } else {
+      const id = FC.utils.uid();
+      materials.push(Object.assign({ id }, data));
+    }
+    FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+    renderPriceModal();
+    try{ renderCabinetModal(); }catch(_){ }
+  }
+
+  function saveServiceFromForm(){
+    const category = document.getElementById('formCategory').value.trim() || 'Montaż';
+    const name = document.getElementById('formServiceName').value.trim();
+    const price = parseFloat(document.getElementById('formServicePrice').value || 0);
+    if(!name){ alert('Wprowadź nazwę'); return; }
+    const data = { category, name, price };
+    if(uiState.editingId){
+      services = services.map(s => s.id === uiState.editingId ? Object.assign({}, s, data) : s);
+      uiState.editingId = null;
+    } else {
+      const id = FC.utils.uid();
+      services.push(Object.assign({ id }, data));
+    }
+    FC.storage.setJSON(STORAGE_KEYS.services, services);
+    renderPriceModal();
+  }
+
+  function deletePriceItem(item){
+    if(!confirm('Usunąć pozycję?')) return;
+    if(uiState.showPriceList === 'materials'){
+      materials = materials.filter(m => m.id !== item.id);
+      FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+    } else {
+      services = services.filter(s => s.id !== item.id);
+      FC.storage.setJSON(STORAGE_KEYS.services, services);
+    }
+    renderPriceModal();
+    try{ renderCabinetModal(); }catch(_){ }
+  }
+
   window.FC.priceModal.renderPriceModal = renderPriceModal;
+  window.FC.priceModal.closePriceModal = closePriceModal;
+  window.FC.priceModal.saveMaterialFromForm = saveMaterialFromForm;
+  window.FC.priceModal.saveServiceFromForm = saveServiceFromForm;
+  window.FC.priceModal.deletePriceItem = deletePriceItem;
 })();

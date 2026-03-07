@@ -190,7 +190,7 @@ Dopiero potem go zmieniać.
 4. Przy każdej większej zmianie aktualizować ten plik (`DEV.md`).
 
 
-- `js/app/price-modal.js` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
+- `js/app/price-modal.js (renderer + akcje modala cenników)` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
 - Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.
 
 
