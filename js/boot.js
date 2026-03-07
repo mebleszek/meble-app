@@ -1,52 +1,19 @@
-/* boot.js — boot-clean-1.2 (ERROR BANNER + SMART STATE + STARTER)
+/* boot.js — boot-clean-1.4 (ERROR BANNER + STARTER)
    - pokazuje czerwony pasek błędów
-   - przy pierwszym wejściu startuje od strony startowej
-   - po odświeżeniu zachowuje ostatnio otwarty projekt/widok zamiast wymuszać powrót na start
+   - NIE resetuje automatycznie widoku po zwykłym odświeżeniu
    - uruchamia aplikację: FC.init() / App.init() / initApp() / initUI()
-   - jeśli chcesz NIE resetować stanu (np. debug), dodaj do adresu: ?keepState=1
+   - ręczny tryb awaryjny: ?safe=1 lub ?reset=1
 */
 (() => {
   'use strict';
-  const BOOT_VERSION = 'boot-clean-1.3';
+  const BOOT_VERSION = 'boot-clean-1.4';
   const UI_KEY = 'fc_ui_v1';
 
-  // ===== Smart state on load (before app init) =====
-  // Preserve the last open project/view on normal refresh.
-  // Only force Home when there is no meaningful work context yet.
-  if (!location.search.includes('keepState=1')) {
-    try {
-      const ui = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
-      const hasRoomContext = !!ui.roomType;
-      const hasViewContext = ['app','rooms','investorsList'].includes(String(ui.entry || ''));
-      const hasSpecialTab = ['inwestor','rozrys','magazyn'].includes(String(ui.activeTab || ''));
-      const preserveContext = hasRoomContext || hasViewContext || hasSpecialTab;
+  // No automatic reset to Home on normal refresh.
+  // Keep ordinary reloads inside the current project/view.
 
-      if (preserveContext) {
-        // Normalize stale UI state after refresh.
-        // If there is an open room/project context, entry must not stay on 'home'.
-        if (hasRoomContext && String(ui.entry || '') === 'home') {
-          ui.entry = 'app';
-          if (!ui.activeTab || ui.activeTab === 'pokoje') ui.activeTab = 'wywiad';
-        }
-        if (!hasRoomContext && hasSpecialTab && String(ui.entry || '') === 'home') {
-          ui.entry = 'app';
-        }
-        localStorage.setItem(UI_KEY, JSON.stringify(ui));
-      } else {
-        ui.roomType = null;
-        ui.selectedCabinetId = null;
-        ui.entry = 'home';
-        ui.activeTab = 'pokoje';
-        ui.showPriceList = null;
-        ui.editingId = null;
-        ui.editingCabinetId = null;
-        localStorage.setItem(UI_KEY, JSON.stringify(ui));
-      }
-    } catch (_) {}
-  }
-
-  // Optional hard reset: closes loops like stuck modals
-  if (location.search.includes('reset=1')) {
+  // Optional hard reset: manual safe mode only.
+  if (location.search.includes('safe=1') || location.search.includes('reset=1')) {
     try { localStorage.removeItem(UI_KEY); } catch (_) {}
   }
 
