@@ -2010,6 +2010,12 @@ function initUI(){
   // Views (home/rooms/app/placeholders)
   try{
     if(!uiState.entry) uiState.entry = 'home';
+    // Restore sensible working context after refresh: if a room is already selected,
+    // do not fall back to home just because persisted entry stayed as 'home'.
+    if(uiState.roomType && (!uiState.entry || uiState.entry === 'home')){
+      uiState.entry = 'app';
+      try{ FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+    }
     if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
   }catch(_){
     // fallback legacy behavior
