@@ -1,26 +1,36 @@
-/* boot.js — boot-clean-1.1 (ERROR BANNER + FORCE HOME + STARTER)
+/* boot.js — boot-clean-1.2 (ERROR BANNER + SMART STATE + STARTER)
    - pokazuje czerwony pasek błędów
-   - zawsze startuje od strony startowej (resetuje tylko stan UI w localStorage)
+   - przy pierwszym wejściu startuje od strony startowej
+   - po odświeżeniu zachowuje ostatnio otwarty projekt/widok zamiast wymuszać powrót na start
    - uruchamia aplikację: FC.init() / App.init() / initApp() / initUI()
    - jeśli chcesz NIE resetować stanu (np. debug), dodaj do adresu: ?keepState=1
 */
 (() => {
   'use strict';
-  const BOOT_VERSION = 'boot-clean-1.1';
+  const BOOT_VERSION = 'boot-clean-1.2';
   const UI_KEY = 'fc_ui_v1';
 
-  // ===== Force Home on load (before app init) =====
+  // ===== Smart state on load (before app init) =====
+  // Preserve the last open project/view on normal refresh.
+  // Only force Home when there is no meaningful work context yet.
   if (!location.search.includes('keepState=1')) {
     try {
       const ui = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
-      ui.roomType = null;
-      ui.selectedCabinetId = null;
-      ui.entry = 'home';
-      ui.activeTab = 'pokoje';
-      ui.showPriceList = null;
-      ui.editingId = null;
-      ui.editingCabinetId = null;
-      localStorage.setItem(UI_KEY, JSON.stringify(ui));
+      const hasRoomContext = !!ui.roomType;
+      const hasViewContext = ['app','rooms','investorsList'].includes(String(ui.entry || ''));
+      const hasSpecialTab = ['inwestor','rozrys','magazyn'].includes(String(ui.activeTab || ''));
+      const preserveContext = hasRoomContext || hasViewContext || hasSpecialTab;
+
+      if (!preserveContext) {
+        ui.roomType = null;
+        ui.selectedCabinetId = null;
+        ui.entry = 'home';
+        ui.activeTab = 'pokoje';
+        ui.showPriceList = null;
+        ui.editingId = null;
+        ui.editingCabinetId = null;
+        localStorage.setItem(UI_KEY, JSON.stringify(ui));
+      }
     } catch (_) {}
   }
 

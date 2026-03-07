@@ -18,6 +18,7 @@
 
   const PROJECT_INV_PREFIX = 'fc_project_inv_';
   const PROJECT_INV_SUFFIX = '_v1';
+  const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
 
   function getKeysToSnapshot(){
     const keys = [];
@@ -50,6 +51,35 @@
     }catch(_){ }
   }
 
+
+  function persistSession(){
+    try{
+      const payload = {
+        active: !!session.active,
+        snapshot: session.snapshot || null
+      };
+      if(!payload.active && !payload.snapshot){
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+    }catch(_){ }
+  }
+
+  function restoreSession(){
+    try{
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      if(!parsed || typeof parsed !== 'object') return;
+      session.active = !!parsed.active;
+      session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
+      if(!session.active && !session.snapshot){
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+    }catch(_){ }
+  }
+
   const session = {
     active: false,
     snapshot: null,
@@ -60,18 +90,22 @@
       for(const k of getKeysToSnapshot()) snap[k] = readRaw(k);
       session.snapshot = snap;
       session.active = true;
+      persistSession();
     },
     commit(){
       session.snapshot = null;
       session.active = false;
+      persistSession();
+      persistSession();
     },
     cancel(){
-      if(!session.snapshot){ session.active = false; return; }
+      if(!session.snapshot){ session.active = false; persistSession(); return; }
       for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
       session.snapshot = null;
       session.active = false;
     }
   };
 
+  restoreSession();
   FC.session = session;
 })();

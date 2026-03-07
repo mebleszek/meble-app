@@ -49,7 +49,7 @@
 
 ### Start / core
 - `index.html` — struktura widoków i lista realnie ładowanych skryptów.
-- `js/boot.js` — bezpieczny start + czerwony banner błędów.
+- `js/boot.js` — bezpieczny start + czerwony banner błędów; po odświeżeniu zachowuje ostatni sensowny kontekst pracy zamiast wymuszać stronę główną.
 - `js/core/actions.js` — registry dla `data-action`.
 - `js/core/modals.js` — wspólna obsługa modali.
 
