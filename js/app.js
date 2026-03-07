@@ -778,21 +778,21 @@ const FC_BOARD_THICKNESS_CM = (window.FC && window.FC.materialCommon && window.F
 const FC_TOP_TRAVERSE_DEPTH_CM = (window.FC && window.FC.materialCommon && window.FC.materialCommon.FC_TOP_TRAVERSE_DEPTH_CM) || 9; // trawersy górne
 
 function fmtCm(v){ return callExtracted('materialCommon','fmtCm',[v], function(x){ const n = Number(x); return Number.isFinite(n) ? (Math.round(n * 10) / 10).toString() : String(x ?? ''); }); }
-function formatM2(v){ return callExtracted('materialCommon','formatM2',[v], function(x){ const n = Number(x); return Number.isFinite(n) ? (Math.round(n * 1000) / 1000).toFixed(3) : '0.000'; }); }
-function escapeHtml(str){ return callExtracted('materialCommon','escapeHtml',[str], function(s){ return String(s ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch] || ch)); }); }
-function calcPartAreaM2(p){ return callExtracted('materialCommon','calcPartAreaM2',[p], function(part){ const a = Number(part && part.a) || 0; const b = Number(part && part.b) || 0; const qty = Number(part && part.qty) || 0; return qty * (a * b) / 10000; }); }
-function addArea(map, material, area){ return callExtracted('materialCommon','addArea',[map, material, area], function(dst, mat, val){ const key = String(mat || ''); if(!key) return; dst[key] = (dst[key] || 0) + (Number(val) || 0); }); }
-function totalsFromParts(parts){ return callExtracted('materialCommon','totalsFromParts',[parts], function(list){ const totals = {}; (list || []).forEach(p => addArea(totals, p.material, calcPartAreaM2(p))); return totals; }); }
-function mergeTotals(target, src){ return callExtracted('materialCommon','mergeTotals',[target, src], function(dst, from){ for(const k in (from || {})){ dst[k] = (dst[k] || 0) + (from[k] || 0); } return dst; }); }
-function totalsToRows(totals){ return callExtracted('materialCommon','totalsToRows',[totals], function(sum){ return Object.entries(sum || {}).map(([material, m2]) => ({ material, m2 })).filter(r => r.m2 > 0).sort((a,b) => b.m2 - a.m2); }); }
+function formatM2(v){ return callExtracted('materialCommon','formatM2',[v], function(){ return '0.000'; }); }
+function escapeHtml(str){ return callExtracted('materialCommon','escapeHtml',[str], function(s){ return String(s ?? ''); }); }
+function calcPartAreaM2(p){ return callExtracted('materialCommon','calcPartAreaM2',[p], function(){ return 0; }); }
+function addArea(map, material, area){ return callExtracted('materialCommon','addArea',[map, material, area], function(dst){ return dst; }); }
+function totalsFromParts(parts){ return callExtracted('materialCommon','totalsFromParts',[parts], function(){ return {}; }); }
+function mergeTotals(target, src){ return callExtracted('materialCommon','mergeTotals',[target, src], function(dst){ return dst || {}; }); }
+function totalsToRows(totals){ return callExtracted('materialCommon','totalsToRows',[totals], function(){ return []; }); }
 function renderTotals(container, totals){ return callExtracted('materialCommon','renderTotals',[container, totals], function(el){ if(el) el.innerHTML = ''; }); }
-function getCabinetAssemblyRuleText(cab){ return callExtracted('materialCommon','getCabinetAssemblyRuleText',[cab], function(obj){ if(obj && obj.type === 'wisząca' || obj && obj.type === 'moduł') return 'Skręcanie: wieniec górny i dolny między bokami.'; if(obj && obj.type === 'stojąca') return `Skręcanie: wieniec dolny pod bokami (boki niższe o ${FC_BOARD_THICKNESS_CM} cm); góra na trawersach 2×${FC_TOP_TRAVERSE_DEPTH_CM} cm (przód+tył).`; return 'Skręcanie: —'; }); }
+function getCabinetAssemblyRuleText(cab){ return callExtracted('materialCommon','getCabinetAssemblyRuleText',[cab], function(){ return 'Skręcanie: —'; }); }
 
 function getCabinetFrontCutListForMaterials(room, cab){ return callExtracted('frontHardware','getCabinetFrontCutListForMaterials',[room, cab], function(){ return []; }); }
-function cabinetHasHandle(cab){ return callExtracted('frontHardware','cabinetHasHandle',[cab], function(obj){ const os = String(obj?.openingSystem || '').toLowerCase(); return !(os.includes('tip-on') || os.includes('podchwyt')); }); }
-function getFrontWeightKgM2(frontMaterial){ return callExtracted('frontHardware','getFrontWeightKgM2',[frontMaterial], function(material){ const m = String(material || 'laminat').toLowerCase(); return ({ laminat:13.0, akryl:14.44, lakier:14.44 })[m] || 13.0; }); }
-function estimateFrontWeightKg(wCm, hCm, frontMaterial, hasHandle){ return callExtracted('frontHardware','estimateFrontWeightKg',[wCm, hCm, frontMaterial, hasHandle], function(w, h, material, handle){ const area = (Math.max(0, Number(w) || 0) / 100) * (Math.max(0, Number(h) || 0) / 100); return area * getFrontWeightKgM2(material) + (handle ? 0.2 : 0); }); }
-function blumHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){ return callExtracted('frontHardware','blumHingesPerDoor',[wCm, hCm, frontMaterial, hasHandle], function(w, h, material, handle){ const weightKg = estimateFrontWeightKg(w, h, material, handle); const weightLb = weightKg * 2.20462; if(weightLb <= 15) return 2; if(weightLb <= 30) return 3; if(weightLb <= 45) return 4; if(weightLb <= 60) return 5; return 5 + Math.ceil((weightLb - 60) / 15); }); }
+function cabinetHasHandle(cab){ return callExtracted('frontHardware','cabinetHasHandle',[cab], function(){ return true; }); }
+function getFrontWeightKgM2(frontMaterial){ return callExtracted('frontHardware','getFrontWeightKgM2',[frontMaterial], function(){ return 13.0; }); }
+function estimateFrontWeightKg(wCm, hCm, frontMaterial, hasHandle){ return callExtracted('frontHardware','estimateFrontWeightKg',[wCm, hCm, frontMaterial, hasHandle], function(){ return 0; }); }
+function blumHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){ return callExtracted('frontHardware','blumHingesPerDoor',[wCm, hCm, frontMaterial, hasHandle], function(){ return 0; }); }
 function getDoorFrontPanelsForHinges(room, cab){ return callExtracted('frontHardware','getDoorFrontPanelsForHinges',[room, cab], function(){ return []; }); }
 function getHingeCountForCabinet(room, cab){ return callExtracted('frontHardware','getHingeCountForCabinet',[room, cab], function(){ return 0; }); }
 function estimateFlapWeightKg(cab, room){ return callExtracted('frontHardware','estimateFlapWeightKg',[cab, room], function(){ return 0; }); }

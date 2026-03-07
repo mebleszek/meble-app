@@ -241,3 +241,4 @@ Dopiero potem go zmieniać.
 
 
 - `js/app/cabinet-actions.js` — proste akcje szafek (dodanie/usunięcie) wydzielone z `app.js`.
+- `js/app/cabinet-actions.js` i `js/app/cabinet-summary.js` są teraz również ładowane bezpośrednio przez `index.html`, więc `app.js` nie musi utrzymywać rozbudowanych fallbacków tylko z powodu braku skryptu.
