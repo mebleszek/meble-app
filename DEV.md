@@ -236,3 +236,5 @@ Dopiero potem go zmieniać.
 
 
 - Step 24: `app.js` odchudzone przez skrócenie dużych lokalnych wrapperów `material-common` i `front-hardware`; źródłem prawdy pozostają moduły `js/app/material-common.js` i `js/app/front-hardware.js`, a w `app.js` zostały tylko cienkie delegatory z minimalnym fallbackiem.
+
+- `js/app.js` trzyma już tylko minimalny awaryjny fallback dla `getCabinetCutList()`; pełna logika siedzi w `js/app/cabinet-cutlist.js`.
