@@ -468,13 +468,7 @@ function normalizeProject(raw){
     CURRENT_SCHEMA_VERSION,
     DEFAULT_PROJECT,
     load(){
-      try{
-        const mod = window.FC && window.FC.projectState;
-        if(mod && typeof mod.load === 'function'){
-          return mod.load(storage, normalizeProject, STORAGE_KEYS, DEFAULT_PROJECT);
-        }
-      }catch(_){ }
-      // Fallback local implementation if extracted module is unavailable.
+      // Robust load: try primary; if corrupted/empty, fall back to backup.
       const rawPrimary = storage.getRaw(STORAGE_KEYS.projectData);
       const rawBackup  = storage.getRaw(STORAGE_KEYS.projectBackup);
 
@@ -485,26 +479,29 @@ function normalizeProject(raw){
 
       const primaryObj = parseOrNull(rawPrimary);
       const backupObj  = parseOrNull(rawBackup);
+
+      // If primary is missing/corrupt but backup exists, restore from backup.
       const chosen = primaryObj || backupObj || DEFAULT_PROJECT;
+
+      // If we had to fall back to backup, try to repair primary storage.
       if (!primaryObj && backupObj){
         storage.setRaw(STORAGE_KEYS.projectData, rawBackup);
       }
+
       return normalizeProject(chosen);
     },
     save(data){
-      try{
-        const mod = window.FC && window.FC.projectState;
-        if(mod && typeof mod.save === 'function'){
-          return mod.save(storage, normalizeProject, STORAGE_KEYS, data);
-        }
-      }catch(_){ }
-      // Fallback local implementation if extracted module is unavailable.
+      // Robust save: keep last-good backup before overwriting.
       const normalized = normalizeProject(data);
+
+      // Backup current primary (if any) before overwriting.
       const currentRaw = storage.getRaw(STORAGE_KEYS.projectData);
       if (currentRaw){
         storage.setRaw(STORAGE_KEYS.projectBackup, currentRaw);
         storage.setJSON(STORAGE_KEYS.projectBackupMeta, { savedAt: Date.now() });
       }
+
+      // Write new state.
       storage.setJSON(STORAGE_KEYS.projectData, normalized);
       return normalized;
     },

@@ -67,6 +67,3 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - `js/app/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
-
-
-- `js/app/project-state.js` — techniczny moduł bezpiecznego load/save projektu (primary + backup).
