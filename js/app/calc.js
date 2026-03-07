@@ -1,7 +1,7 @@
-// UWAGA: plik obecny w repo, ale nieładowany bezpośrednio przez index.html w tej wersji.
-// Przed zmianami sprawdź, czy jest podpinany pośrednio lub planowany do aktywacji.
+// AKTYWNY MODUŁ: plik ładowany przez index.html w tej wersji.
+// Trzyma lekkie helpery obliczeniowe wykorzystywane przez app.js i modal szafki.
 // js/app/calc.js
-// Minimal calculation layer extracted from app.js (Etap 3A)
+// Minimal calculation layer extracted from app.js (aktywny moduł)
 // Keep as classic script (no ES modules) for maximum GitHub Pages compatibility.
 
 (function(){
