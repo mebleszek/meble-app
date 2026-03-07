@@ -49,3 +49,6 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - `js/app/calc.js` — aktywny moduł lekkich helperów obliczeniowych (wysokość góry, top zestawów).
+
+
+- `js/app/settings-ui.js` — helpery ustawień pokoju i rozwijania kart wyjęte z `app.js`.

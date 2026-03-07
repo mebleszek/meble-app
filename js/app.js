@@ -642,49 +642,39 @@ function calculateAvailableTopHeight(){
   return h>0?Math.round(h*10)/10:0;
 }
 function renderTopHeight(){
-  const el = document.getElementById('autoTopHeight');
-  if(el) el.textContent = calculateAvailableTopHeight();
+  return callExtracted('settingsUI', 'renderTopHeight', arguments, function(){
+    const el = document.getElementById('autoTopHeight');
+    if(el) el.textContent = calculateAvailableTopHeight();
+  });
 }
 
 // ZESTAWY: top = roomHeight - suma niższych - blenda
-function calcTopForSet(room, blende, sumLowerHeights){
-  try{
-    const mod = window.FC && window.FC.calc;
-    if(mod && typeof mod.calcTopForSet === 'function'){
-      return mod.calcTopForSet(projectData, room, blende, sumLowerHeights);
-    }
-  }catch(_){ }
-  const s = projectData[room].settings;
-  const h = (Number(s.roomHeight)||0) - (Number(sumLowerHeights)||0) - (Number(blende)||0);
-  return h>0 ? Math.round(h*10)/10 : 0;
-}
-
-/* Toggle expansion (single-open accordion) */
 function toggleExpandAll(id){
-  const key = String(id);
-  const isOpen = !!(uiState.expanded && uiState.expanded[key]);
-  // only one cabinet expanded at a time
-  uiState.expanded = {};
-  if(!isOpen){
-    uiState.expanded[key] = true;
-    uiState.selectedCabinetId = key;
-  }
-  FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  // Re-render only for tabs that use the main "app" cabinet renderer.
-  // (For dedicated views like MAGAZYN/ROZRYS/INWESTOR/POKOJE, the router handles rendering.)
-  const activeTab = String(uiState.activeTab || '');
-  if(activeTab !== 'pokoje' && activeTab !== 'inwestor' && activeTab !== 'rozrys' && activeTab !== 'magazyn'){
-    renderCabinets();
-  }
+  return callExtracted('settingsUI', 'toggleExpandAll', arguments, function(id){
+    const key = String(id);
+    const isOpen = !!(uiState.expanded && uiState.expanded[key]);
+    uiState.expanded = {};
+    if(!isOpen){
+      uiState.expanded[key] = true;
+      uiState.selectedCabinetId = key;
+    }
+    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+    const activeTab = String(uiState.activeTab || '');
+    if(activeTab !== 'pokoje' && activeTab !== 'inwestor' && activeTab !== 'rozrys' && activeTab !== 'magazyn'){
+      renderCabinets();
+    }
+  });
 }
 
 /* Settings changes */
 function handleSettingChange(field, value){
-  const room = uiState.roomType; if(!room) return;
-  projectData[room].settings[field] = value === '' ? 0 : parseFloat(value);
-  projectData = FC.project.save(projectData);
-  renderTopHeight();
-  renderCabinets();
+  return callExtracted('settingsUI', 'handleSettingChange', arguments, function(field, value){
+    const room = uiState.roomType; if(!room) return;
+    projectData[room].settings[field] = value === '' ? 0 : parseFloat(value);
+    projectData = FC.project.save(projectData);
+    renderTopHeight();
+    renderCabinets();
+  });
 }
 
 /* --- Variant lists --- */
