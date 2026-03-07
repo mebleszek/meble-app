@@ -903,6 +903,8 @@ function suggestKindsForDepth(lt){
 
 
   ns.frontHardware = Object.assign({}, ns.frontHardware, {
+    FC_HANDLE_WEIGHT_KG,
+    FC_FRONT_WEIGHT_KG_M2,
     getCabinetFrontCutListForMaterials,
     cabinetHasHandle,
     getFrontWeightKgM2,
@@ -914,4 +916,10 @@ function suggestKindsForDepth(lt){
     blumAventosPowerFactor,
     getBlumAventosInfo
   });
+
+  // Backward-compatible globals for existing classic scripts.
+  // Tabs like js/tabs/material.js still read these names directly.
+  window.FC_HANDLE_WEIGHT_KG = FC_HANDLE_WEIGHT_KG;
+  window.FC_FRONT_WEIGHT_KG_M2 = FC_FRONT_WEIGHT_KG_M2;
+  window.getCabinetFrontCutListForMaterials = getCabinetFrontCutListForMaterials;
 })();
