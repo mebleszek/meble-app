@@ -196,9 +196,9 @@ const FC = (function(){
 function normalizeProjectData(data, defaults){
   return callExtracted('projectBootstrap','normalizeProjectData',[data, defaults], function(pd, defs){
     ['kuchnia','szafa','pokoj','lazienka'].forEach(r=>{
-      if(!pd[r]) pd[r] = FC.utils.clone(defs[r]);
+      if(!pd[r]) pd[r] = utils.clone(defs[r]);
       if(!Array.isArray(pd[r].cabinets)) pd[r].cabinets = [];
-      if(!pd[r].settings) pd[r].settings = FC.utils.clone(defs[r].settings);
+      if(!pd[r].settings) pd[r].settings = utils.clone(defs[r].settings);
       if(!Array.isArray(pd[r].fronts)) pd[r].fronts = [];
       if(!Array.isArray(pd[r].sets)) pd[r].sets = [];
 
@@ -221,10 +221,24 @@ function normalizeProjectData(data, defaults){
         if(!c.details) c.details = {};
       });
     });
-    return FC.project.save(pd);
+    return normalizeProject(pd);
   });
 }
-let projectData = FC.project.load();
+let projectData = (function(){
+  const rawPrimary = storage.getRaw(STORAGE_KEYS.projectData);
+  const rawBackup  = storage.getRaw(STORAGE_KEYS.projectBackup);
+  function parseOrNull(raw){
+    if (!raw) return null;
+    try{ return JSON.parse(raw); }catch(_){ return null; }
+  }
+  const primaryObj = parseOrNull(rawPrimary);
+  const backupObj  = parseOrNull(rawBackup);
+  const chosen = primaryObj || backupObj || DEFAULT_PROJECT;
+  if (!primaryObj && backupObj){
+    storage.setRaw(STORAGE_KEYS.projectData, rawBackup);
+  }
+  return normalizeProject(chosen);
+})();
 
 projectData = normalizeProjectData(projectData, DEFAULT_PROJECT);
 
