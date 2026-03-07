@@ -746,32 +746,15 @@ function drawCornerSketch(opts){
 }
 
 
-/* ===== add cabinet (opens modal) ===== */
+/* ===== add/delete cabinet actions extracted to js/app/cabinet-actions.js ===== */
 function addCabinet(){
-  if(!uiState.roomType){ alert('Wybierz pomieszczenie najpierw'); return; }
-  openCabinetModalForAdd();
+  return callExtracted('cabinetActions', 'addCabinet', []);
 }
 
 
 /* ===== Delete cabinet by id (used by per-card delete) ===== */
 function deleteCabinetById(cabId){
-  const room = uiState.roomType; if(!room) return;
-  if(!cabId){ alert('Wybierz szafkę do usunięcia'); return; }
-
-  const cab = (projectData[room].cabinets || []).find(c => c.id === cabId);
-  const label = cab ? `${cab.type || 'szafka'} ${cab.subType ? '('+cab.subType+')' : ''} ${cab.width}×${cab.height}×${cab.depth}` : 'szafkę';
-  if(!confirm(`Usunąć ${label}?`)) return;
-
-  // usuń powiązane fronty
-  removeFrontsForCab(room, cabId);
-
-  projectData[room].cabinets = (projectData[room].cabinets || []).filter(c => c.id !== cabId);
-
-  if(uiState.selectedCabinetId === cabId) uiState.selectedCabinetId = null;
-
-  FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
-  FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  renderCabinets();
+  return callExtracted('cabinetActions', 'deleteCabinetById', [cabId]);
 }
 
 
@@ -1073,31 +1056,11 @@ function setActiveTab(tabName){
 
 function registerCoreActions(){
   // Core modules are optional at runtime (GitHub Pages/cache can temporarily serve stale assets).
-  // We always provide fail-soft fallbacks at the top of this file.
+  // Top-level fail-soft bootstrap already creates awaryjne window.FC.actions / window.FC.modal.
   window.FC = window.FC || {};
-  if(!window.FC.actions){
-    // Fallback should have created this already; keep a defensive guard.
-    window.FC.actions = window.FC.actions || {
-      register(){},
-      dispatch(){ return false; },
-      has(){ return false; },
-      validateDOMActions(){ return true; },
-      lock(){},
-      isLocked(){ return false; }
-    };
-  }
-  if(!window.FC.modal){
-    window.FC.modal = window.FC.modal || {
-      register(){},
-      open(){},
-      close(){},
-      top(){ return null; },
-      closeTop(){}
-    };
-  }
-  // Bridge core modules into local FC namespace used in this file
-  FC.actions = window.FC.actions;
-  FC.modal = window.FC.modal;
+  FC.actions = window.FC.actions || FC.actions;
+  FC.modal = window.FC.modal || FC.modal;
+  if(!FC.actions || !FC.modal) throw new Error('Brak core actions/modal');
 
   // Register modal close functions for ESC/overlay stack handling
   try{
