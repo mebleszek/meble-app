@@ -680,12 +680,13 @@ function handleSettingChange(field, value){
 /* --- Variant lists --- */
 
 // Extracted implementation delegator for modules loaded after app.js.
-function callExtracted(nsName, fnName, args){
+function callExtracted(nsName, fnName, args, fallback){
   try{
     const mod = window.FC && window.FC[nsName];
     const impl = mod && mod[fnName];
     if(typeof impl === 'function') return impl.apply(null, args || []);
   }catch(_){ }
+  if(typeof fallback === 'function') return fallback.apply(null, args || []);
 }
 
 /* ===== Cabinet/front rules moved to js/app/cabinet-fronts.js ===== */

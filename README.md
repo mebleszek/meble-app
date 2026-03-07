@@ -52,3 +52,6 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - `js/app/settings-ui.js` — helpery ustawień pokoju i rozwijania kart wyjęte z `app.js`.
+
+
+- `js/app/cabinet-summary.js` — helper tekstowych podsumowań szafek wydzielony z `app.js`.
