@@ -102,6 +102,14 @@
     const entry = st && st.entry ? st.entry : 'home';
     const tab = st && st.activeTab ? st.activeTab : null;
 
+    // Prefer restoring an active project over showing Home.
+    // This prevents pull-to-refresh on mobile from throwing the user back
+    // to the start screen when roomType is already known but persisted entry
+    // is stale or still equals 'home'.
+    if(st && st.roomType && (entry === 'home' || !entry)){
+      return showApp();
+    }
+
     if(entry === 'home'){
       showHome();
       return;
