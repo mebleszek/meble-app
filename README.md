@@ -74,3 +74,5 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 - Refresh behavior: normal page refresh no longer forces a return to Home; manual safe reset is available via `?safe=1` (and legacy `?reset=1`).
 
 - Router widoków preferuje aktywny projekt (`roomType`) nad starym `entry: home`, żeby zwykły refresh nie wyrzucał na start.
+
+- `js/app.js`: fallbacki dla `drawCornerSketch()` i `getCabinetExtraSummary()` zostały uproszczone do cienkich delegatorów; źródłem prawdy są moduły `js/app/corner-sketch.js` i `js/app/cabinet-summary.js`.
