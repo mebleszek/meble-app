@@ -37,7 +37,12 @@
     const formMaterialType = document.getElementById('formMaterialType'); formMaterialType.innerHTML = '';
     ['laminat','akryl','lakier','blat','akcesoria'].forEach(t => { const o=document.createElement('option'); o.value=t; o.textContent=t; formMaterialType.appendChild(o); });
     const formManufacturer = document.getElementById('formManufacturer');
-    function populateManufacturersFor(typeVal){ formManufacturer.innerHTML=''; (MANUFACTURERS[typeVal]||[]).forEach(m=>{const o=document.createElement('option'); o.value=m; o.textContent=m; formManufacturer.appendChild(o)}); }
+    function populateManufacturersFor(typeVal){
+      const registry = window.FC && window.FC.materialRegistry;
+      const manufacturers = (registry && registry.MANUFACTURERS) || {};
+      formManufacturer.innerHTML='';
+      (manufacturers[typeVal]||[]).forEach(m=>{const o=document.createElement('option'); o.value=m; o.textContent=m; formManufacturer.appendChild(o)});
+    }
     populateManufacturersFor(formMaterialType.value);
     formMaterialType.onchange = () => populateManufacturersFor(formMaterialType.value);
 

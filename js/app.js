@@ -154,16 +154,6 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
   { id: 'm3', materialType: 'akcesoria', manufacturer: 'blum', symbol: 'B1', name: 'Zawias Blum', price: 18, hasGrain: false }
 ]);
 
-// Helper: ROZRYS and other modules can ask whether a material has grain direction.
-// Matching is done by the displayed material name.
-window.FC = window.FC || {};
-window.FC.materialHasGrain = function(materialName){
-  try{
-    const reg = window.FC && window.FC.materialRegistry;
-    if(reg && typeof reg.materialHasGrain === 'function') return reg.materialHasGrain(materialName, materials);
-  }catch(_){ }
-  return false;
-};
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
 const __uiDefaults = ((window.FC && window.FC.uiState && typeof window.FC.uiState.defaults === 'function')
@@ -216,13 +206,6 @@ try{
   }
 }catch(_){ }
 
-const MANUFACTURERS = (window.FC && window.FC.materialRegistry && window.FC.materialRegistry.MANUFACTURERS) || {
-  laminat: ['Egger','KronoSpan','Swiss Krono','Woodeco'],
-  akryl: ['Rehau','manufaktura Łomża'],
-  lakier: ['elektronowa','Pol-wiór'],
-  blat: ['Egger','KronoSpan','Swiss Krono','Woodeco'],
-  akcesoria: ['blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich']
-};
 
 /* ===== Normalize (backward compatibility) ===== */
 function normalizeProjectData(data, defaults){

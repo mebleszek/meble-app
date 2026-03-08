@@ -29,5 +29,11 @@
         }
       };
     }
+
+    if(typeof window.FC.materialHasGrain !== 'function'){
+      window.FC.materialHasGrain = function(materialName, materials){
+        return ns.materialHasGrain(materialName, materials);
+      };
+    }
   }catch(_){ }
 })();
