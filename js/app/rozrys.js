@@ -1497,8 +1497,8 @@ async function generate(force){
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
             if(loading && loading.subEl){
               const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
+              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Warianty: ${iters} • Najlepsze: ${bs}`;
+              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Warianty: ${iters} • Najlepsze: ${bs}`;
             }
           }catch(_){ }
         }, control, {

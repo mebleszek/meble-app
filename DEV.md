@@ -268,4 +268,6 @@ Dopiero potem go zmieniać.
 - Step 40: przebudowa UI części ROZRYS pod Optimax (profile A→DD, kierunek opcjonalnie/wzdłuż/w poprzek, rzaz, obrównanie, minimalny użyteczny odpad) oraz nowy pasowy packer `packStripBands()` dla trybów wzdłuż/w poprzek.
 
 - Step 41: dopracowanie Optimax opcjonalnego — hybrydowy wybór między gilotyną i pasami, osobne obrównanie dla nowej płyty i odpadu (`edgeTrimNewSheet` / `edgeTrimScrap`) w UI i silniku oraz cięższe strojenie profilu DD (większy beam, dłuższy post-pass, więcej hybrydowych prób).
+- Step 42: przestrojenie trybu „Opcjonalnie kierunek cięcia” — mocniejsza preferencja układów pasowych, kara za rozdrobnienie i spójniejsze porównywanie rodzin kandydatów.
+- Step 43: naprawa licznika postępu Optimax — status liczy teraz wszystkie sprawdzone warianty od początku (nie tylko końcowe restarty), aktualizuje się także w ciężkiej fazie opcjonalnej/DD; w UI etykieta zmieniona z „Próby” na „Warianty”.
 - Step 42: mocniejsze strojenie trybu `Opcjonalnie kierunek cięcia` w workerze — preferencja układów pasowych przy zbliżonym odpadzie, silniejsza kara za rozdrobnienie i wąskie ścinki oraz lepsze ważenie spójności rzędów/kolumn przy wyborze między gilotyną a pasami.

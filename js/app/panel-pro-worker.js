@@ -255,16 +255,21 @@ try{
     // W Ultra "Auto" oznacza: wybierz najlepsze spośród along/across.
     const prefList = (cutPref === 'auto') ? ['along','across'] : [cutPref];
 
-    const packGuillotine = (arr, pref, ms)=> opt.packGuillotineBeam(arr, W, H, K, {
-      beamWidth,
-      timeMs: ms,
-      cutPref: pref,
-      scrapFirst: true,
-      minScrapW,
-      minScrapH,
-      edgeTrimNewSheet,
-      edgeTrimScrap,
-    });
+    const packGuillotine = (arr, pref, ms)=>{
+      const out = opt.packGuillotineBeam(arr, W, H, K, {
+        beamWidth,
+        timeMs: ms,
+        cutPref: pref,
+        scrapFirst: true,
+        minScrapW,
+        minScrapH,
+        edgeTrimNewSheet,
+        edgeTrimScrap,
+      });
+      attempts += 1;
+      emitProgress(false);
+      return out;
+    };
 
     const packOptionalHybrid = (arr, pref, ms)=>{
       const candidates = [];
@@ -310,17 +315,19 @@ try{
         return (a.sc.waste <= b.sc.waste) ? a : b;
       };
 
-      const add = (family, sheets)=>{
+      const add = (family, sheets, alreadyCounted)=>{
+        if(!alreadyCounted) attempts += 1;
         if(Array.isArray(sheets) && sheets.length){
           const sc = scoreSheets(sheets);
           candidates.push({ family, sheets, sc, meta: analyzeCandidate({ sheets }) });
         }
+        emitProgress(false);
       };
 
-      add('guillotine-' + pref, packGuillotine(arr, pref, ms));
+      add('guillotine-' + pref, packGuillotine(arr, pref, ms), true);
       const altPref = (pref === 'along') ? 'across' : 'along';
       if(pref !== altPref){
-        add('guillotine-' + altPref, packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.8))));
+        add('guillotine-' + altPref, packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.8))), true);
       }
       if(opt.packStripBands){
         add('strip-along', opt.packStripBands(arr, W, H, K, 'along', { edgeTrimNewSheet }));
@@ -335,7 +342,7 @@ try{
         const extraFamily = /^strip/.test(best.family) ? best.family.replace(/^strip-/, '') : best.family.replace(/^guillotine-/, '');
         for(let i=1;i<hybridRuns;i++){
           const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.30)));
-          add('guillotine-' + extraFamily, packGuillotine(arr, extraFamily, extraMs));
+          add('guillotine-' + extraFamily, packGuillotine(arr, extraFamily, extraMs), true);
         }
         best = null;
         for(const cand of candidates) best = chooseBetterCandidate(cand, best);
@@ -355,6 +362,20 @@ try{
 
     const started = now();
     const base = sortVariants(items);
+    let attempts = 0;
+    let lastProgress = started;
+
+    const emitProgress = (force)=>{
+      const t = now();
+      if(!force && (t - lastProgress) <= 180) return;
+      lastProgress = t;
+      self.postMessage({
+        type:'progress',
+        elapsedMs: Math.round(t - started),
+        iters: attempts,
+        best: best ? { sheets: best.sc.sheets, waste: best.sc.waste } : (_bestSoFar ? { sheets: _bestSoFar.sc.sheets, waste: _bestSoFar.sc.waste } : null),
+      });
+    };
 
     // Map items by id for quick lookup when doing post-pass repair.
     const itemById = new Map();
@@ -376,30 +397,21 @@ try{
     };
     base.forEach(tryOne);
 
+    emitProgress(true);
+
     // randomized multi-start
-    let iters = 0;
-    let lastProgress = started;
     while(now() - started < timeBudgetMs){
       if(_cancelled) break;
-      const seed = (Date.now() + iters*9973) >>> 0;
+      const seed = (Date.now() + attempts*9973) >>> 0;
       const rnd = mulberry32(seed);
       const pick = base[Math.floor(rnd()*base.length)];
       // mix: shuffle within buckets (keeps some structure)
       const arr = shuffle(pick, rnd);
       tryOne(arr);
-      iters++;
-
-      const t = now();
-      if(t - lastProgress > 500){
-        lastProgress = t;
-        self.postMessage({
-          type:'progress',
-          elapsedMs: Math.round(t - started),
-          iters,
-          best: best ? { sheets: best.sc.sheets, waste: best.sc.waste } : null,
-        });
-      }
+      emitProgress(false);
     }
+
+    emitProgress(true);
 
     // === "Przekozacki" post-pass (repair) ===
     // Goal: reduce "pusta ostatnia płyta" by repacking the tail (last 2-3 sheets)
@@ -511,7 +523,7 @@ try{
             self.postMessage({
               type:'progress',
               elapsedMs: Math.round(tt - started),
-              iters: iters + t + 1,
+              iters: attempts + t + 1,
               best: bestLocal ? { sheets: bestLocal.sc.sheets, waste: bestLocal.sc.waste } : null,
             });
           }catch(_){ }
@@ -649,7 +661,7 @@ try{
             self.postMessage({
               type:'progress',
               elapsedMs: Math.round(tt - started),
-              iters: iters,
+              iters: attempts,
               best: _bestSoFar ? { sheets:_bestSoFar.sc.sheets, waste:_bestSoFar.sc.waste } : null,
             });
           }catch(_){ }
@@ -683,7 +695,7 @@ try{
       setBest(best);
     }
 
-    if(best) return { sheets: best.sheets, cancelled: _cancelled };
+    if(best){ emitProgress(true); return { sheets: best.sheets, cancelled: _cancelled }; }
     // Fallback: still evaluate both preferences when auto.
     let fallbackBest = null;
     for(const pref of prefList){
@@ -694,6 +706,7 @@ try{
       if(better(res, fallbackBest)) fallbackBest = res;
       setBest(res);
     }
+    emitProgress(true);
     return { sheets: fallbackBest ? fallbackBest.sheets : [], cancelled: _cancelled };
   }
 
