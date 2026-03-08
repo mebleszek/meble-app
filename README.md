@@ -106,3 +106,6 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 ## Update
 - Aktywowane moduły techniczne przed `app.js`: `js/app/migrate.js`, `js/app/schema.js`.
 - `app.js` deleguje teraz normalizację projektu/room do `FC.schema` z lekkim fallbackiem awaryjnym.
+
+
+- `js/app/material-registry.js` — registry producentów i helper `materialHasGrain()` wydzielone z `app.js`.

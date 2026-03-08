@@ -170,14 +170,11 @@ let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
 // Matching is done by the displayed material name.
 window.FC = window.FC || {};
 window.FC.materialHasGrain = function(materialName){
-  const name = String(materialName||'').trim();
-  if(!name) return false;
   try{
-    const it = (Array.isArray(materials) ? materials : []).find(m => String(m.name||'').trim() === name);
-    return !!(it && it.hasGrain);
-  }catch(_){
-    return false;
-  }
+    const reg = window.FC && window.FC.materialRegistry;
+    if(reg && typeof reg.materialHasGrain === 'function') return reg.materialHasGrain(materialName, materials);
+  }catch(_){ }
+  return false;
 };
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
@@ -231,7 +228,7 @@ try{
   }
 }catch(_){ }
 
-const MANUFACTURERS = {
+const MANUFACTURERS = (window.FC && window.FC.materialRegistry && window.FC.materialRegistry.MANUFACTURERS) || {
   laminat: ['Egger','KronoSpan','Swiss Krono','Woodeco'],
   akryl: ['Rehau','manufaktura Łomża'],
   lakier: ['elektronowa','Pol-wiór'],
@@ -243,31 +240,10 @@ const MANUFACTURERS = {
 function normalizeProjectData(data, defaults){
   const pd = (typeof data === 'undefined' || data === null) ? projectData : data;
   const defs = (typeof defaults === 'undefined' || defaults === null) ? DEFAULT_PROJECT : defaults;
-  return callExtracted('projectBootstrap','normalizeProjectData',[pd, defs], function(localPd, localDefs){
-    ['kuchnia','szafa','pokoj','lazienka'].forEach(r=>{
-      if(!localPd[r]) localPd[r] = FC.utils.clone(localDefs[r]);
-      if(!Array.isArray(localPd[r].cabinets)) localPd[r].cabinets = [];
-      if(!localPd[r].settings) localPd[r].settings = FC.utils.clone(localDefs[r].settings);
-      if(!Array.isArray(localPd[r].fronts)) localPd[r].fronts = [];
-      if(!Array.isArray(localPd[r].sets)) localPd[r].sets = [];
-
-      let n = 1;
-      localPd[r].sets.forEach(s=>{
-        if(typeof s.number !== 'number') s.number = n;
-        n = Math.max(n, s.number + 1);
-      });
-
-      const map = new Map(localPd[r].sets.map(s=>[s.id, s.number]));
-      localPd[r].cabinets.forEach(c=>{
-        if(c.setId && typeof c.setNumber !== 'number'){
-          const num = map.get(c.setId);
-          if(typeof num === 'number') c.setNumber = num;
-        }
-        if(typeof c.frontCount !== 'number') c.frontCount = 2;
-        if(!c.details) c.details = {};
-      });
-    });
-    const out = FC.project.save(localPd);
+  return callExtracted('projectBootstrap','normalizeProjectData',[pd, defs], function(localPd){
+    if(!localPd) return localPd;
+    const normalized = (FC.project && typeof FC.project.normalize === 'function') ? FC.project.normalize(localPd) : localPd;
+    const out = (FC.project && typeof FC.project.save === 'function') ? FC.project.save(normalized) : normalized;
     try{ if(localPd === projectData) projectData = out; }catch(_){ }
     return out;
   });
