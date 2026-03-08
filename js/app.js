@@ -587,7 +587,36 @@ const MANUFACTURERS = {
 
 /* ===== Normalize (backward compatibility) ===== */
 function normalizeProjectData(data, defaults){
-  return callExtracted('projectBootstrap','normalizeProjectData',[data, defaults], function(pd){ return FC.project.save(pd); });
+  const pd = (typeof data === 'undefined' || data === null) ? projectData : data;
+  const defs = (typeof defaults === 'undefined' || defaults === null) ? DEFAULT_PROJECT : defaults;
+  return callExtracted('projectBootstrap','normalizeProjectData',[pd, defs], function(localPd, localDefs){
+    ['kuchnia','szafa','pokoj','lazienka'].forEach(r=>{
+      if(!localPd[r]) localPd[r] = FC.utils.clone(localDefs[r]);
+      if(!Array.isArray(localPd[r].cabinets)) localPd[r].cabinets = [];
+      if(!localPd[r].settings) localPd[r].settings = FC.utils.clone(localDefs[r].settings);
+      if(!Array.isArray(localPd[r].fronts)) localPd[r].fronts = [];
+      if(!Array.isArray(localPd[r].sets)) localPd[r].sets = [];
+
+      let n = 1;
+      localPd[r].sets.forEach(s=>{
+        if(typeof s.number !== 'number') s.number = n;
+        n = Math.max(n, s.number + 1);
+      });
+
+      const map = new Map(localPd[r].sets.map(s=>[s.id, s.number]));
+      localPd[r].cabinets.forEach(c=>{
+        if(c.setId && typeof c.setNumber !== 'number'){
+          const num = map.get(c.setId);
+          if(typeof num === 'number') c.setNumber = num;
+        }
+        if(typeof c.frontCount !== 'number') c.frontCount = 2;
+        if(!c.details) c.details = {};
+      });
+    });
+    const out = FC.project.save(localPd);
+    try{ if(localPd === projectData) projectData = out; }catch(_){ }
+    return out;
+  });
 }
 projectData = normalizeProjectData(projectData, DEFAULT_PROJECT);
 
