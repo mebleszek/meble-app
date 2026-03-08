@@ -124,7 +124,28 @@ try{
         waste -= Math.min(area * 0.035, stripFree * 0.18);
       }
       if(bandArea > 0){
-        waste -= Math.min(area * 0.04, bandArea * 0.06);
+        waste -= Math.min(area * 0.05, bandArea * 0.07);
+      }
+
+      // Lekka kara za "poszarpaną" ostatnią płytę z wieloma małymi wyspami.
+      if(s === arr[arr.length-1]){
+        const pls2 = (s && s.placements) ? s.placements.filter(p=>p && !p.unplaced) : [];
+        if(pls2.length > 0){
+          const bbox = pls2.reduce((acc,p)=>({
+            minX: Math.min(acc.minX, p.x),
+            minY: Math.min(acc.minY, p.y),
+            maxX: Math.max(acc.maxX, p.x + p.w),
+            maxY: Math.max(acc.maxY, p.y + p.h),
+          }), { minX:1e18, minY:1e18, maxX:-1e18, maxY:-1e18 });
+          const bw = Math.max(0, bbox.maxX - bbox.minX);
+          const bh = Math.max(0, bbox.maxY - bbox.minY);
+          const bboxArea = bw * bh;
+          const usedArea = pls2.reduce((sum,p)=> sum + ((p.w||0)*(p.h||0)), 0);
+          if(bboxArea > 0){
+            const fill = usedArea / bboxArea;
+            if(fill < 0.74) waste += area * 0.02;
+          }
+        }
       }
     }
 
@@ -190,25 +211,72 @@ try{
     const cutMode = (opts && opts.cutMode) || 'optional';
     const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
     const minScrapH = Math.max(0, Math.round((opts && opts.minScrapH != null) ? Number(opts.minScrapH) : 100));
+    const edgeTrimNewSheet = Math.max(0, Math.round((opts && opts.edgeTrimNewSheet != null) ? Number(opts.edgeTrimNewSheet) : 0));
+    const edgeTrimScrap = Math.max(0, Math.round((opts && opts.edgeTrimScrap != null) ? Number(opts.edgeTrimScrap) : 0));
+    const hybridRuns = Math.max(1, Math.round(Number(opts && opts.hybridRuns) || 1));
     // NOTE (praktyka): "auto" w packGuillotineBeam potrafi generować układy
     // OK procentowo, ale fatalne pod piłę (mnóstwo zmian kierunku cięcia).
     // W Ultra "Auto" oznacza: wybierz najlepsze spośród along/across.
     const prefList = (cutPref === 'auto') ? ['along','across'] : [cutPref];
 
+    const packGuillotine = (arr, pref, ms)=> opt.packGuillotineBeam(arr, W, H, K, {
+      beamWidth,
+      timeMs: ms,
+      cutPref: pref,
+      scrapFirst: true,
+      minScrapW,
+      minScrapH,
+      edgeTrimNewSheet,
+      edgeTrimScrap,
+    });
+
+    const packOptionalHybrid = (arr, pref, ms)=>{
+      const candidates = [];
+      const add = (sheets)=>{
+        if(Array.isArray(sheets) && sheets.length) candidates.push(sheets);
+      };
+      add(packGuillotine(arr, pref, ms));
+      const altPref = (pref === 'along') ? 'across' : 'along';
+      if(pref !== altPref){
+        add(packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.8))));
+      }
+      if(opt.packStripBands){
+        add(opt.packStripBands(arr, W, H, K, 'along', { edgeTrimNewSheet }));
+        add(opt.packStripBands(arr, W, H, K, 'across', { edgeTrimNewSheet }));
+      }
+      let bestSheets = candidates[0] || [];
+      let bestScore = scoreSheets(bestSheets);
+      for(let i=1;i<candidates.length;i++){
+        const sc = scoreSheets(candidates[i]);
+        if(better({ sheets:candidates[i], sc }, { sheets:bestSheets, sc:bestScore })){
+          bestSheets = candidates[i];
+          bestScore = sc;
+        }
+      }
+      // Heavy profiles: re-run the winning family once more with a bit more time.
+      if(hybridRuns > 1 && bestSheets && bestSheets.length){
+        for(let i=1;i<hybridRuns;i++){
+          add(packGuillotine(arr, pref, Math.max(ms, Math.round(ms * (1 + i*0.25)))));
+        }
+        for(const cand of candidates){
+          const sc = scoreSheets(cand);
+          if(better({ sheets:cand, sc }, { sheets:bestSheets, sc:bestScore })){
+            bestSheets = cand;
+            bestScore = sc;
+          }
+        }
+      }
+      return bestSheets;
+    };
+
     const packOne = (arr, pref, ms)=>{
       if(cutMode === 'along' || cutMode === 'across'){
         if(opt.packStripBands){
-          return opt.packStripBands(arr, W, H, K, cutMode);
+          return opt.packStripBands(arr, W, H, K, cutMode, { edgeTrimNewSheet });
         }
       }
-      return opt.packGuillotineBeam(arr, W, H, K, {
-        beamWidth,
-        timeMs: ms,
-        cutPref: pref,
-        scrapFirst: true,
-        minScrapW,
-        minScrapH,
-      });
+      if(cutMode === 'optional') return packOptionalHybrid(arr, pref, ms);
+      return packGuillotine(arr, pref, ms);
     };
 
     const started = now();
@@ -470,7 +538,7 @@ try{
         // Prefer stable cut direction within a strip.
         const stripPref = srec.fullH ? 'along' : 'across';
         const packed = (opt.packStripBands && (cutMode === 'along' || cutMode === 'across'))
-          ? opt.packStripBands(subset, rect.w, rect.h, K, stripPref)
+          ? opt.packStripBands(subset, rect.w, rect.h, K, stripPref, { edgeTrimNewSheet: 0 })
           : opt.packGuillotineBeam(subset, rect.w, rect.h, K, {
               beamWidth: Math.max(60, Math.min(140, Math.round(beamWidth*0.6))),
               timeMs: 140,

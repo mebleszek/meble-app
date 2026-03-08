@@ -266,3 +266,5 @@ Dopiero potem go zmieniać.
 - `js/app/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
 
 - Step 40: przebudowa UI części ROZRYS pod Optimax (profile A→DD, kierunek opcjonalnie/wzdłuż/w poprzek, rzaz, obrównanie, minimalny użyteczny odpad) oraz nowy pasowy packer `packStripBands()` dla trybów wzdłuż/w poprzek.
+
+- Step 41: dopracowanie Optimax opcjonalnego — hybrydowy wybór między gilotyną i pasami, osobne obrównanie dla nowej płyty i odpadu (`edgeTrimNewSheet` / `edgeTrimScrap`) w UI i silniku oraz cięższe strojenie profilu DD (większy beam, dłuższy post-pass, więcej hybrydowych prób).

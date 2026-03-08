@@ -240,13 +240,14 @@
   // - 'along'  => horizontal strips running along the long edge shown on screen
   // - 'across' => same logic after swapping board axes (vertical strips in final view)
   // The row height is defined by the anchor piece; smaller pieces may fill the tail of the strip.
-  function packStripBands(itemsIn, boardW, boardH, kerf, direction){
+  function packStripBands(itemsIn, boardW, boardH, kerf, direction, options){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
     const K = Math.max(0, Math.round(Number(kerf)||0));
     const swap = (direction === 'across' || direction === 'wpoprz');
     const BW = swap ? H : W;
     const BH = swap ? W : H;
+    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet)||0));
 
     const rem = (itemsIn||[]).map(it=>Object.assign({}, it));
     const sheets = [];
@@ -269,12 +270,12 @@
       return p;
     }
 
-    function chooseAnchor(maxRowH){
+    function chooseAnchor(maxRowH, maxRowW){
       let best = null;
       for(let i=0;i<rem.length;i++){
         const it = rem[i];
         for(const c of toCandidates(it)){
-          if(c.w > BW || c.h > maxRowH) continue;
+          if(c.w > maxRowW || c.h > maxRowH) continue;
           const sc = (c.h * 1000000) + (c.w * 1000) + (c.w * c.h);
           if(!best || sc > best.sc){
             best = { idx:i, it, cand:c, sc };
@@ -303,16 +304,22 @@
     }
 
     while(rem.length){
+      const workX = trimNew;
+      const workY = trimNew;
+      const workW = Math.max(10, BW - 2*trimNew);
+      const workH = Math.max(10, BH - 2*trimNew);
+      const maxX = workX + workW;
+      const maxY = workY + workH;
       const sheet = { boardW: BW, boardH: BH, placements: [] };
-      let cursorY = 0;
+      let cursorY = workY;
       let placedAny = false;
 
       while(rem.length){
-        const availableH = BH - cursorY;
-        const anchor = chooseAnchor(availableH);
+        const availableH = maxY - cursorY;
+        const anchor = chooseAnchor(availableH, workW);
         if(!anchor) break;
 
-        let cursorX = 0;
+        let cursorX = workX;
         const rowH = anchor.cand.h;
         const first = {
           id: anchor.it.id,
@@ -333,8 +340,8 @@
         cursorX += anchor.cand.w + K;
         rem.splice(anchor.idx, 1);
 
-        while(rem.length && cursorX < BW){
-          const fit = chooseBestForStrip(BW - cursorX, rowH);
+        while(rem.length && cursorX < maxX){
+          const fit = chooseBestForStrip(maxX - cursorX, rowH);
           if(!fit) break;
           sheet.placements.push({
             id: fit.it.id,
@@ -615,6 +622,16 @@
     return out.sort((p,q)=> (p.y-q.y) || (p.x-q.x) || ((p.w*p.h) - (q.w*q.h)));
   }
 
+  function insetRect(rect, trim){
+    const t = Math.max(0, Math.round(Number(trim)||0));
+    if(!rect) return null;
+    if(t <= 0) return { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+    const w = rect.w - 2*t;
+    const h = rect.h - 2*t;
+    if(w <= 0 || h <= 0) return null;
+    return { x: rect.x + t, y: rect.y + t, w, h };
+  }
+
   // Soft preference for "professional" strip/band style layouts.
   // This is deliberately only a tie-breaker inside the beam search:
   // - reward placements that extend existing rows/columns,
@@ -739,13 +756,14 @@
     };
   }
 
-  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs, cutPref){
+  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs, cutPref, initialFreeRects){
     const start = Date.now();
     const maxBeam = clampInt(beamWidth, 40);
     const budgetMs = Math.max(60, clampInt(timeMs, 300));
 
     const remaining = sortByAreaDesc(items);
-    let beam = [{ placements: [], freeRects: [{ x:0, y:0, w:W, h:H }], usedArea: 0, usedIdx: new Set(), alignmentScore: 0, boardW: W, boardH: H }];
+    const seedFreeRects = Array.isArray(initialFreeRects) && initialFreeRects.length ? initialFreeRects.map(r=>({ x:r.x, y:r.y, w:r.w, h:r.h })) : [{ x:0, y:0, w:W, h:H }];
+    let beam = [{ placements: [], freeRects: seedFreeRects, usedArea: 0, usedIdx: new Set(), alignmentScore: 0, boardW: W, boardH: H }];
 
     const CAND_ITEMS = 8;
     const CAND_FREES = 14;
@@ -809,7 +827,7 @@
       if(!canPlaceMore) break;
     }
 
-    const best = beam[0] || { placements: [], freeRects: [{x:0,y:0,w:W,h:H}], usedArea:0, usedIdx: new Set(), alignmentScore:0, boardW:W, boardH:H };
+    const best = beam[0] || { placements: [], freeRects: seedFreeRects, usedArea:0, usedIdx: new Set(), alignmentScore:0, boardW:W, boardH:H };
     const rest = [];
     for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
     // IMPORTANT: expose freeRects so caller can keep using scrap areas across sheets.
@@ -879,10 +897,18 @@
     const beamWidth = options && options.beamWidth ? options.beamWidth : 60;
     const timeMs = options && options.timeMs ? options.timeMs : 450;
     const cutPref = (options && options.cutPref) ? options.cutPref : 'auto';
+    const edgeTrimNewSheet = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet)||0));
+    const edgeTrimScrap = Math.max(0, Math.round(Number(options && options.edgeTrimScrap)||0));
 
     const scrapFirst = !!(options && options.scrapFirst);
     let remaining = sortByAreaDesc(itemsIn);
     const sheets = [];
+    const initialFree = insetRect({ x:0, y:0, w:W, h:H }, edgeTrimNewSheet) || { x:0, y:0, w:W, h:H };
+    const normalizeScraps = (freeRects)=>{
+      const minScrapW = Math.max(0, Math.round((options && options.minScrapW != null) ? Number(options.minScrapW) : 100));
+      const minScrapH = Math.max(0, Math.round((options && options.minScrapH != null) ? Number(options.minScrapH) : 100));
+      return (freeRects || []).map(r=> insetRect(r, edgeTrimScrap)).filter(r=>r && r.w>=minScrapW && r.h>=minScrapH);
+    };
 
     // If enabled, prefer reusing scraps on existing sheets before allocating a new board.
     if(scrapFirst){
@@ -891,7 +917,7 @@
         remaining = filled.remaining;
         if(!remaining.length) break;
 
-        const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
+        const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref, [initialFree]);
       const placements = res.placements || [];
       if(placements.length===0){
         const it = remaining[0];
@@ -900,10 +926,7 @@
         continue;
       }
       const sheet = { boardW: W, boardH: H, placements };
-      // Keep internal freeRects for later scrap reuse. Filter: keep only meaningful scraps (>=10cm x 10cm).
-      const minScrapW = Math.max(0, Math.round((options && options.minScrapW != null) ? Number(options.minScrapW) : 100));
-      const minScrapH = Math.max(0, Math.round((options && options.minScrapH != null) ? Number(options.minScrapH) : 100));
-      sheet._freeRects = (res.freeRects || []).filter(r=>r.w>=minScrapW && r.h>=minScrapH);
+      sheet._freeRects = normalizeScraps(res.freeRects);
       sheet._usedArea = res.usedArea || 0;
       sheets.push(sheet);
       remaining = res.remaining;
@@ -918,7 +941,7 @@
 
     // Default (legacy) behavior: fill sheets sequentially.
     while(remaining.length>0){
-      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
+      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref, [initialFree]);
       const placements = res.placements || [];
       if(!placements.length){
         const it = remaining[0];
@@ -926,7 +949,10 @@
         remaining = remaining.slice(1);
         continue;
       }
-      sheets.push({ boardW: W, boardH: H, placements });
+      const sheet = { boardW: W, boardH: H, placements };
+      sheet._freeRects = normalizeScraps(res.freeRects);
+      sheet._usedArea = res.usedArea || 0;
+      sheets.push(sheet);
       remaining = res.remaining;
     }
     return sheets;
