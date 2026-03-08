@@ -109,3 +109,5 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 
 
 - `js/app/material-registry.js` — registry producentów i helper `materialHasGrain()` wydzielone z `app.js`.
+
+- `schema.js` is now the primary source of truth for project/room normalization; `app.js` keeps only a minimal emergency fallback.

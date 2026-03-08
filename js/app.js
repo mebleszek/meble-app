@@ -78,22 +78,15 @@ const FC = (function(){
     if(schema && typeof schema.normalizeRoom === 'function'){
       return schema.normalizeRoom(roomRaw, roomDefault);
     }
-    const room = utils.isPlainObject(roomRaw) ? roomRaw : {};
-    const def = roomDefault || {};
-    const settings = utils.isPlainObject(room.settings) ? room.settings : {};
-    return {
-      cabinets: Array.isArray(room.cabinets) ? utils.clone(room.cabinets) : [],
-      fronts: Array.isArray(room.fronts) ? utils.clone(room.fronts) : [],
-      sets: Array.isArray(room.sets) ? utils.clone(room.sets) : [],
-      settings: {
-        roomHeight: utils.num(settings.roomHeight, utils.num(def.settings && def.settings.roomHeight, 250)),
-        bottomHeight: utils.num(settings.bottomHeight, utils.num(def.settings && def.settings.bottomHeight, 82)),
-        legHeight: utils.num(settings.legHeight, utils.num(def.settings && def.settings.legHeight, 10)),
-        counterThickness: utils.num(settings.counterThickness, utils.num(def.settings && def.settings.counterThickness, 1.8)),
-        gapHeight: utils.num(settings.gapHeight, utils.num(def.settings && def.settings.gapHeight, 0)),
-        ceilingBlende: utils.num(settings.ceilingBlende, utils.num(def.settings && def.settings.ceilingBlende, 0)),
-      }
-    };
+    const room = utils.isPlainObject(roomRaw) ? utils.clone(roomRaw) : {};
+    const def = utils.isPlainObject(roomDefault) ? utils.clone(roomDefault) : {};
+    const settings = Object.assign({}, def.settings || {}, utils.isPlainObject(room.settings) ? room.settings : {});
+    return Object.assign(def, room, {
+      cabinets: Array.isArray(room.cabinets) ? room.cabinets : [],
+      fronts: Array.isArray(room.fronts) ? room.fronts : [],
+      sets: Array.isArray(room.sets) ? room.sets : [],
+      settings,
+    });
   }
 
   function normalizeProject(raw){
@@ -101,13 +94,8 @@ const FC = (function(){
       return schema.normalizeProject(raw);
     }
     const data = utils.isPlainObject(raw) ? raw : {};
-    const out = { schemaVersion: CURRENT_SCHEMA_VERSION };
-    for (const r of ROOMS){
-      out[r] = normalizeRoom(data[r], DEFAULT_PROJECT[r]);
-    }
-    for (const k of Object.keys(data)){
-      if (!(k in out)) out[k] = data[k];
-    }
+    const out = Object.assign(utils.clone(DEFAULT_PROJECT), data, { schemaVersion: CURRENT_SCHEMA_VERSION });
+    for (const r of ROOMS) out[r] = normalizeRoom(data[r], DEFAULT_PROJECT[r]);
     return out;
   }
 
