@@ -92,3 +92,7 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 
 
 - `js/app/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
+
+
+- `js/app/core-failsafe.js` — awaryjne minimalne fallbacki dla `FC.actions` i `FC.modal`, ładowane przed `app.js`.
+- `js/app/dom-guard.js` — walidacja wymaganych selektorów DOM, ładowana przed `app.js`.

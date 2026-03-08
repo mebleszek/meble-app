@@ -10,70 +10,11 @@ const STORAGE_KEYS = (window.FC && window.FC.constants && window.FC.constants.ST
 
 
 
-// ===== CORE FALLBACKS (fail-soft) =====
-// If for any reason core modules (js/core/actions.js, js/core/modals.js) fail to execute,
-// provide minimal implementations so the app can still start.
-// RYZYKO REGRESJI: fallbacki FC.actions / FC.modal tylko awaryjnie.
-// Jeśli moduły core są załadowane poprawnie, prawdziwym źródłem powinny być js/core/actions.js i js/core/modals.js.
-// This prevents "FC.actions not loaded" from hard-killing the app during development/deploy.
-try{
-  window.FC = window.FC || {};
-
-  if(!window.FC.actions){
-    (function(){
-      const registry = Object.create(null);
-      const locks = Object.create(null);
-      function register(map){ Object.keys(map||{}).forEach(k=>registry[k]=map[k]); }
-      function has(a){ return typeof registry[a]==='function'; }
-      function lock(a,ms){ locks[a]=Date.now()+(ms||800); }
-      function isLocked(a){ return (locks[a]||0) > Date.now(); }
-      function dispatch(action, ctx){
-        const fn = registry[action];
-        if(typeof fn!=='function') return false;
-        return !!fn(ctx||{});
-      }
-      function validateDOMActions(){
-        // fallback: do not enforce, to avoid blocking start if registry is incomplete
-        return true;
-      }
-      window.FC.actions = { register, dispatch, has, validateDOMActions, lock, isLocked };
-    })();
-  }
-
-  if(!window.FC.modal){
-    (function(){
-      const stack = [];
-      const closeMap = Object.create(null);
-      function register(id, closeFn){ if(id) closeMap[id]=closeFn; }
-      function open(id){ if(id) stack.push(id); }
-      function close(id){
-        const key = id || stack.pop();
-        const fn = closeMap[key];
-        try{ if(typeof fn==='function') fn(); }catch(_){}
-      }
-      function top(){ return stack.length? stack[stack.length-1]: null; }
-      function closeTop(){ close(); }
-      window.FC.modal = { register, open, close, top, closeTop };
-    })();
-  }
-}catch(_){}
-
-
-try{ window.APP_REQUIRED_SELECTORS = ['#roomsView','#appView','#topTabs','#backToRooms','#floatingAdd','#openMaterialsBtn','#openServicesBtn','#priceModal','#closePriceModal','#cabinetModal','#closeCabinetModal']; }catch(e){}
-
 function validateRequiredDOM(){
-  const req = Array.isArray(window.APP_REQUIRED_SELECTORS) ? window.APP_REQUIRED_SELECTORS : [];
-  const missing = [];
-  for(const sel of req){
-    try{ if(!document.querySelector(sel)) missing.push(sel); }
-    catch(_){ missing.push(sel); }
-  }
-  if(missing.length){
-    throw new Error(
-      'Brak wymaganych elementów DOM: ' + missing.join(', ') +
-      '\nNajczęściej: zmieniłeś ID/strukturę w index.html albo wgrałeś niepełne pliki.'
-    );
-  }
+  try{
+    const guard = window.FC && window.FC.domGuard && window.FC.domGuard.validateRequiredDOM;
+    if(typeof guard === 'function') return guard();
+  }catch(_){ }
 }
 
 
