@@ -493,7 +493,35 @@
     return { sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
   }
 
-  // ===== Panel-saw PRO (30s) in Web Worker (non-blocking) =====
+  function getOptimaxProfilePreset(profile){
+    const key = String(profile || 'DD').toUpperCase();
+    const map = {
+      A:  { baseMs: 4000,  estMsPerSheet: 1800, maxMs: 18000,  perSheetMs: 140, beamWidth: 60 },
+      B:  { baseMs: 6500,  estMsPerSheet: 2200, maxMs: 24000,  perSheetMs: 180, beamWidth: 80 },
+      C:  { baseMs: 9000,  estMsPerSheet: 2800, maxMs: 32000,  perSheetMs: 220, beamWidth: 100 },
+      D:  { baseMs: 13000, estMsPerSheet: 3400, maxMs: 42000,  perSheetMs: 260, beamWidth: 120 },
+      AA: { baseMs: 18000, estMsPerSheet: 4200, maxMs: 60000,  perSheetMs: 340, beamWidth: 150 },
+      BB: { baseMs: 26000, estMsPerSheet: 5200, maxMs: 80000,  perSheetMs: 420, beamWidth: 200 },
+      CC: { baseMs: 36000, estMsPerSheet: 6400, maxMs: 105000, perSheetMs: 560, beamWidth: 270 },
+      DD: { baseMs: 48000, estMsPerSheet: 7600, maxMs: 120000, perSheetMs: 760, beamWidth: 360 },
+    };
+    return map[key] || map.DD;
+  }
+
+  function directionLabel(dir){
+    if(dir === 'along') return 'Pasy wzdłuż';
+    if(dir === 'across') return 'Pasy w poprzek';
+    return 'Opcjonalnie';
+  }
+
+  function formatHeurLabel(st){
+    if(st && st.heur === 'optimax'){
+      return `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • ${directionLabel(st.direction)}`;
+    }
+    return String((st && st.heur) || '');
+  }
+
+  // ===== Panel-saw PRO / Optimax in Web Worker (non-blocking) =====
   // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
   // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
   function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
@@ -543,11 +571,16 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260306_03');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260308_optimax_ui_01');
       }catch(e){
         // fallback (sync, limited)
         try{
-          const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, scrapFirst:true });
+          const cutMode = (state.direction === 'along' || state.direction === 'across') ? state.direction : 'optional';
+          const minScrapW = toMm(state.minScrapW) || 0;
+          const minScrapH = toMm(state.minScrapH) || 0;
+          const sheets = (cutMode !== 'optional' && opt.packStripBands)
+            ? opt.packStripBands(items, W, H, K, cutMode)
+            : opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, cutPref: state.direction || 'auto', scrapFirst:true, minScrapW: minScrapW, minScrapH: minScrapH });
           return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
         }catch(_){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
@@ -621,13 +654,14 @@
       worker.addEventListener('error', onErr);
       worker.addEventListener('messageerror', onMsgErr);
 
+      const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
+      const watchdogMs = Math.max(35000, Math.round(Number(o.timeBudgetMs)||30000) + 12000);
       // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
       tmr = setTimeout(()=>{
         finish({ sheets: [], note: 'Liczenie przerwane: przekroczono limit czasu (brak odpowiedzi workera).', meta: { trim, boardW: W0, boardH: H0, unit } });
-      }, 35000);
+      }, watchdogMs);
 
       try{
-        const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
         worker.postMessage({
           cmd: 'panel_pro',
           runId,
@@ -652,8 +686,8 @@
 
     const card = h('div', { class:'card' });
     card.appendChild(h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' }, [
-      h('h3', { style:'margin:0', text:'Rozrys płyt (MVP)' }),
-      h('div', { class:'muted xs', text:'Źródło: Materiały → rozpiska mebli' })
+      h('h3', { style:'margin:0', text:'Optimax — optymalizacja rozkroju' }),
+      h('div', { class:'muted xs', text:'Nowy panel rozkroju inspirowany programami produkcyjnymi do optymalizacji płyt.' })
     ]));
 
     if(!agg.materials.length){
@@ -665,13 +699,16 @@
     // state (ui) — keep local per render
     const state = {
       material: agg.materials[0],
-      unit: 'cm',
-      boardW: 280,
-      boardH: 207,
-      kerf: 0.4,
-      edgeTrim: 2,
+      unit: 'mm',
+      boardW: 2800,
+      boardH: 2070,
+      kerf: 4,
+      edgeTrim: 20,
       grain: true,
-      heur: 'shelf',
+      heur: 'optimax',
+      optimaxProfile: 'DD',
+      minScrapW: 0,
+      minScrapH: 0,
       direction: 'auto',
     };
 
@@ -691,7 +728,7 @@
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
     // material select
     const matWrap = h('div');
-    matWrap.appendChild(h('label', { text:'Materiał' }));
+    matWrap.appendChild(h('label', { text:'Materiał / grupa' }));
     const matSel = h('select', { id:'rozMat' });
     // Specjalne tryby (generowanie na raz)
     [
@@ -719,6 +756,7 @@
       o.textContent = m;
       matSel.appendChild(o);
     });
+    matSel.value = state.material;
     matWrap.appendChild(matSel);
     controls.appendChild(matWrap);
 
@@ -735,12 +773,12 @@
 
     // edge compensation selector (labels/exports only)
     const edgeWrap = h('div');
-    edgeWrap.appendChild(h('label', { text:'Odjąć okleinę?' }));
+    edgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
     const edgeSel = h('select', { id:'rozEdgeSub' });
     edgeSel.innerHTML = `
-      <option value="0" selected>NIE</option>
-      <option value="1">Tak - 1mm</option>
-      <option value="2">Tak - 2mm</option>
+      <option value="0">Nominalne</option>
+      <option value="1">Po odjęciu 1 mm okleiny</option>
+      <option value="2">Po odjęciu 2 mm okleiny</option>
     `;
     edgeWrap.appendChild(edgeSel);
     controls.appendChild(edgeWrap);
@@ -750,7 +788,7 @@
 
     // board size
     const sizeWrap = h('div');
-    sizeWrap.appendChild(h('label', { text:`Format płyty (${state.unit})` }));
+    sizeWrap.appendChild(h('label', { text:`Format arkusza (${state.unit})` }));
     const sizeRow = h('div', { style:'display:flex;gap:8px' });
     const inW = h('input', { id:'rozW', type:'number', value:String(state.boardW) });
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
@@ -760,14 +798,14 @@
 
     // kerf
     const kerfWrap = h('div');
-    kerfWrap.appendChild(h('label', { text:`Kerf (${state.unit})` }));
+    kerfWrap.appendChild(h('label', { text:`Rzaz piły (${state.unit})` }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
     controlsSize.appendChild(kerfWrap);
 
     // edge trim
     const trimWrap = h('div');
-    trimWrap.appendChild(h('label', { text:`Równanie płyty w koło (${state.unit})` }));
+    trimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${state.unit})` }));
     const inTrim = h('input', { id:'rozTrim', type:'number', value:String(state.edgeTrim) });
     trimWrap.appendChild(inTrim);
     controlsSize.appendChild(trimWrap);
@@ -776,42 +814,68 @@
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
 
     const grainWrap = h('div');
-    grainWrap.appendChild(h('label', { text:'Słoje' }));
+    grainWrap.appendChild(h('label', { text:'Struktura / kierunek' }));
     const grainRow = h('div', { style:'display:flex;align-items:center;gap:10px' });
     const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
     grainChk.checked = true;
     grainRow.appendChild(grainChk);
-    grainRow.appendChild(h('div', { class:'muted xs', text:'Pilnuj kierunku (obrót zablokowany, chyba że zaznaczysz wyjątek).' }));
+    grainRow.appendChild(h('div', { class:'muted xs', text:'Arkusz posiada strukturę — pilnuj kierunku i blokuj obrót poza wyjątkami.' }));
     grainWrap.appendChild(grainRow);
     controls2.appendChild(grainWrap);
 
     const heurWrap = h('div');
-    heurWrap.appendChild(h('label', { text:'Heurystyka' }));
+    heurWrap.appendChild(h('label', { text:'Profil optymalizacji Optimax' }));
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
-      <option value="shelf">Szybkie i proste</option>
-      <option value="gpro">Dokładne upakowanie</option>
-      <option value="super">Super upakowanie</option>
-      <option value="panel30">Ultra 30sekund</option>
-      <option value="optimax">Optimax (PRO)</option>
+      <option value="A">Optymalizacja A</option>
+      <option value="B">Optymalizacja B</option>
+      <option value="C">Optymalizacja C</option>
+      <option value="D">Optymalizacja D</option>
+      <option value="AA">Optymalizacja AA</option>
+      <option value="BB">Optymalizacja BB</option>
+      <option value="CC">Optymalizacja CC</option>
+      <option value="DD" selected>Optymalizacja DD</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
 
     const dirWrap = h('div');
-    dirWrap.appendChild(h('label', { text:'Kierunek cięcia (pod piłę)' }));
+    dirWrap.appendChild(h('label', { text:'Kierunek cięcia' }));
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
-      <option value="auto">Auto</option>
-      <option value="along">Preferuj w poprzek</option>
-      <option value="across">Preferuj wzdłuż</option>
+      <option value="auto">Opcjonalnie kierunek cięcia</option>
+      <option value="along">Tnij na pasy wzdłuż arkusza</option>
+      <option value="across">Tnij na pasy w poprzek arkusza</option>
     `;
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
 
+    const controls3 = h('div', { class:'grid-3', style:'margin-top:12px' });
+
+    const minScrapWrap = h('div');
+    minScrapWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${state.unit})` }));
+    const minScrapRow = h('div', { style:'display:flex;gap:8px' });
+    const inMinW = h('input', { id:'rozMinScrapW', type:'number', value:String(state.minScrapW) });
+    const inMinH = h('input', { id:'rozMinScrapH', type:'number', value:String(state.minScrapH) });
+    minScrapRow.appendChild(inMinW);
+    minScrapRow.appendChild(inMinH);
+    minScrapWrap.appendChild(minScrapRow);
+    controls3.appendChild(minScrapWrap);
+
+    const profileHintWrap = h('div');
+    profileHintWrap.appendChild(h('label', { text:'Jak czytać profile' }));
+    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → DD), tym dłuższe i dokładniejsze liczenie.' }));
+    controls3.appendChild(profileHintWrap);
+
+    const modeHintWrap = h('div');
+    modeHintWrap.appendChild(h('label', { text:'Tryb pracy' }));
+    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = hybryda. Wzdłuż / w poprzek = rozkrój pasowy jak w programach produkcyjnych.' }));
+    controls3.appendChild(modeHintWrap);
+
     card.appendChild(controls);
     card.appendChild(controlsSize);
     card.appendChild(controls2);
+    card.appendChild(controls3);
 
     // action buttons
     const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap' });
@@ -923,9 +987,12 @@
         boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
         kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
         edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
+        minScrapW: Math.max(0, Number(inMinW.value)||0),
+        minScrapH: Math.max(0, Number(inMinH.value)||0),
         // Grain is applied per-material (only where the price list marks it as having grain).
         grain: !!grainChk.checked,
-        heur: heurSel.value,
+        heur: 'optimax',
+        optimaxProfile: heurSel.value,
         direction: dirSel.value,
       };
     }
@@ -969,7 +1036,7 @@
             const cacheKey = makePlanCacheKey(st, parts);
             if(cache[cacheKey] && cache[cacheKey].plan){
               const plan = cache[cacheKey].plan;
-              renderOutput(plan, { material: m, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, box);
+              renderOutput(plan, { material: m, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, box);
               anyHit = true;
             } else {
               allHit = false;
@@ -1009,7 +1076,7 @@
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
           const plan = cache[cacheKey].plan;
-          renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, null);
+          renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, null);
           setGenBtnMode('done');
           return true;
         }
@@ -1213,8 +1280,11 @@
           edgeSubMm: st.edgeSubMm,
           boardW: st.boardW, boardH: st.boardH,
           kerf: st.kerf, edgeTrim: st.edgeTrim,
+          minScrapW: st.minScrapW,
+          minScrapH: st.minScrapH,
           grain: st.grain,
           heur: st.heur,
+          optimaxProfile: st.optimaxProfile,
           direction: st.direction,
         },
         items
@@ -1307,8 +1377,11 @@ async function generate(force){
     boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
     kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
     edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
+    minScrapW: Math.max(0, Number(inMinW.value)||0),
+    minScrapH: Math.max(0, Number(inMinH.value)||0),
     grain: !!grainChk.checked,
-    heur: heurSel.value,
+    heur: 'optimax',
+    optimaxProfile: heurSel.value,
     direction: dirSel.value,
   };
 
@@ -1331,17 +1404,15 @@ async function generate(force){
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
       if(runId !== _rozrysRunId) return;
-      renderOutput(cached, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
+      renderOutput(cached, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
       setGenBtnMode('done');
       return;
     }
 
-    // Pro mode: heavy compute in Web Worker.
-    if(st.heur === "panel30" || st.heur === "optimax"){
-      // Budget:
-      // - Ultra 30s: fixed 30s
-      // - Optimax: quick estimate (along vs across) then 7s per estimated sheet
-      const isOptimax = (st.heur === 'optimax');
+    // Optimax mode: profile-driven worker with optional / strip cut styles.
+    if(st.heur === "optimax"){
+      const preset = getOptimaxProfilePreset(st.optimaxProfile);
+      const cutMode = (st.direction === 'along' || st.direction === 'across') ? st.direction : 'optional';
       const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
       const toMm2 = (v)=>{
         const n = Number(v);
@@ -1352,41 +1423,44 @@ async function generate(force){
       const H02 = toMm2(st.boardH) || 2070;
       const K2  = toMm2(st.kerf)   || 4;
       const trim2 = toMm2(st.edgeTrim) || 20;
+      const minScrapW2 = toMm2(st.minScrapW) || 0;
+      const minScrapH2 = toMm2(st.minScrapH) || 0;
       const W2 = Math.max(10, W02 - 2*trim2);
       const H2 = Math.max(10, H02 - 2*trim2);
 
-      let budgetMs = 30000;
-      if(isOptimax){
-        try{
-          // Quick estimate: simplest guillotine beam with small settings.
-          const optQ = FC.cutOptimizer;
-          const grainOnQ = !!st.grain;
-          const overridesQ = loadOverrides();
-          const edgeStoreQ = loadEdgeStore();
-          const partsMmQ = (parts||[]).map(p=>{
-            const sig = partSignature(p);
-            const allow = grainOnQ ? !!overridesQ[sig] : true;
-            const e = edgeStoreQ[sig] || {};
-            return { key:sig, name:p.name, w:p.w, h:p.h, qty:p.qty, material:p.material, rotationAllowed: grainOnQ ? allow : true, edgeW1:!!e.w1, edgeW2:!!e.w2, edgeH1:!!e.h1, edgeH2:!!e.h2 };
-          });
-          const itemsQ = optQ.makeItems(partsMmQ);
-          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true });
-          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true });
-          const est = Math.max(1, Math.min((sA||[]).length||9999, (sB||[]).length||9999));
-          budgetMs = Math.min(120000, Math.max(7000, est * 7000));
-        }catch(_){
-          budgetMs = 42000; // safe fallback
+      let budgetMs = preset.baseMs;
+      try{
+        const optQ = FC.cutOptimizer;
+        const grainOnQ = !!st.grain;
+        const overridesQ = loadOverrides();
+        const edgeStoreQ = loadEdgeStore();
+        const partsMmQ = (parts||[]).map(p=>{
+          const sig = partSignature(p);
+          const allow = grainOnQ ? !!overridesQ[sig] : true;
+          const e = edgeStoreQ[sig] || {};
+          return { key:sig, name:p.name, w:p.w, h:p.h, qty:p.qty, material:p.material, rotationAllowed: grainOnQ ? allow : true, edgeW1:!!e.w1, edgeW2:!!e.w2, edgeH1:!!e.h1, edgeH2:!!e.h2 };
+        });
+        const itemsQ = optQ.makeItems(partsMmQ);
+        let est = 1;
+        if(cutMode === 'optional'){
+          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2 });
+          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2 });
+          est = Math.max(1, Math.min((sA||[]).length||9999, (sB||[]).length||9999));
+        } else if(optQ.packStripBands){
+          est = Math.max(1, (optQ.packStripBands(itemsQ, W2, H2, K2, cutMode)||[]).length || 1);
         }
+        budgetMs = Math.min(preset.maxMs, Math.max(preset.baseMs, est * preset.estMsPerSheet));
+      }catch(_){
+        budgetMs = preset.baseMs;
       }
 
-      const label = isOptimax ? `Pozostało… ${(budgetMs/1000).toFixed(1)} s` : 'Pozostało… 30.0 s';
+      const label = `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • pozostało… ${(budgetMs/1000).toFixed(1)} s`;
       const loading = renderLoadingInto(target || null, label, `Materiał: ${material}`);
       setGlobalStatus(true, label, `Materiał: ${material}`);
       let plan = null;
       const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
       let tick = null;
       const control = { runId };
-      // Make cancel responsive even if user taps very quickly (before worker is ready).
       _rozrysActiveCancel = ()=>{
         try{ control._cancelRequested = true; }catch(_){ }
         try{ control.cancel && control.cancel(); }catch(_){ }
@@ -1395,40 +1469,37 @@ async function generate(force){
         try{ control._terminate && control._terminate(); }catch(_){ }
       };
       try{
-        // Lokalny licznik czasu — odliczanie wstecz
         tick = setInterval(()=>{
           const now = (window.performance && performance.now) ? performance.now() : Date.now();
           const left = Math.max(0, (budgetMs - (now - startedAt))/1000);
           const t = left.toFixed(1);
-          if(loading && loading.textEl) loading.textEl.textContent = `Pozostało… ${t} s`;
-          if(gsText) gsText.textContent = `Pozostało… ${t} s`;
+          if(loading && loading.textEl) loading.textEl.textContent = `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • pozostało… ${t} s`;
+          if(gsText) gsText.textContent = `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • pozostało… ${t} s`;
         }, 120);
 
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
           try{
-            // postęp Ultra: iteracje + najlepszy wynik
             const best = (p && p.best) ? p.best : null;
             const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
             if(loading && loading.subEl){
               const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              loading.subEl.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Próby: ${iters} • Najlepsze: ${bs}`;
+              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
+              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
             }
           }catch(_){ }
         }, control, {
           timeBudgetMs: budgetMs,
-          // Optimax ma budżet czasu zależny od liczby płyt (7s/płyta), więc możemy pozwolić sobie
-          // na większą szerokość wiązki i dłuższe próby na płytę – zwiększa szansę zejścia z 7 → 6.
-          perSheetMs: isOptimax ? 720 : 420,
-          beamWidth: isOptimax ? 340 : 220,
-          // Keep user's direction choice; for Auto we still explore along/across in worker.
+          perSheetMs: preset.perSheetMs,
+          beamWidth: preset.beamWidth,
           cutPref: st.direction || 'auto',
-          // Optimax enables extra strip-fill post-pass in worker.
-          optimax: !!isOptimax,
+          cutMode,
+          minScrapW: minScrapW2,
+          minScrapH: minScrapH2,
+          optimax: true,
         });
       }catch(e){
-        plan = { sheets: [], note: isOptimax ? 'Błąd podczas liczenia (Optimax).' : 'Błąd podczas liczenia (Ultra 30sek).' };
+        plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
       } finally {
         if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
         _rozrysActiveCancel = null;
@@ -1472,26 +1543,33 @@ async function generate(force){
           const H02 = toMm2(st.boardH) || 2070;
           const K2  = toMm2(st.kerf)   || 4;
           const trim2 = toMm2(st.edgeTrim) || 20;
+          const minScrapW2 = toMm2(st.minScrapW) || 0;
+          const minScrapH2 = toMm2(st.minScrapH) || 0;
           const W2 = Math.max(10, W02 - 2*trim2);
           const H2 = Math.max(10, H02 - 2*trim2);
-          const sheets2 = opt2.packGuillotineBeam(items2, W2, H2, K2, {
-            beamWidth: 110,
-            timeMs: 900,
-            cutPref: st.direction || 'auto',
-            scrapFirst: true,
-          });
+          const cutMode2 = (st.direction === 'along' || st.direction === 'across') ? st.direction : 'optional';
+          const sheets2 = (cutMode2 !== 'optional' && opt2.packStripBands)
+            ? opt2.packStripBands(items2, W2, H2, K2, cutMode2)
+            : opt2.packGuillotineBeam(items2, W2, H2, K2, {
+                beamWidth: 110,
+                timeMs: 900,
+                cutPref: st.direction || 'auto',
+                scrapFirst: true,
+                minScrapW: minScrapW2,
+                minScrapH: minScrapH2,
+              });
           plan = { sheets: sheets2, cancelled: !!(plan && plan.cancelled), meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
         }catch(_){ }
       }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-      renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled }, target);
+      renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled }, target);
       setGenBtnMode('done');
       return;
     }
 
     const plan = computePlan(st, parts);
     try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-    renderOutput(plan, { material, kerf: st.kerf, heur: st.heur, unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
+    renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
     setGenBtnMode('done');
   };
 
@@ -1536,12 +1614,13 @@ async function generate(force){
         // keep 1 decimal max in cm
         el.value = (next==='cm') ? String(Math.round(v*10)/10) : String(Math.round(v));
       };
-      conv(inW); conv(inH); conv(inK); conv(inTrim);
+      conv(inW); conv(inH); conv(inK); conv(inTrim); conv(inMinW); conv(inMinH);
       state.unit = next;
       // update labels
-      sizeWrap.querySelector('label').textContent = `Format płyty (${next})`;
-      kerfWrap.querySelector('label').textContent = `Kerf (${next})`;
-      trimWrap.querySelector('label').textContent = `Równanie płyty w koło (${next})`;
+      sizeWrap.querySelector('label').textContent = `Format arkusza (${next})`;
+      kerfWrap.querySelector('label').textContent = `Rzaz piły (${next})`;
+      trimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${next})`;
+      minScrapWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${next})`;
       tryAutoRenderFromCache();
     });
 
@@ -1557,14 +1636,13 @@ async function generate(force){
       tryAutoRenderFromCache();
     });
     heurSel.addEventListener('change', ()=>{
-      const usesDir = (heurSel.value === 'shelf' || heurSel.value === 'panel30' || heurSel.value === 'optimax');
-      dirSel.disabled = !usesDir;
-      if(!usesDir) dirSel.value = 'auto';
       tryAutoRenderFromCache();
     });
     dirSel.addEventListener('change', ()=>{
       tryAutoRenderFromCache();
     });
+    inMinW.addEventListener('change', ()=>{ tryAutoRenderFromCache(); });
+    inMinH.addEventListener('change', ()=>{ tryAutoRenderFromCache(); });
 
     edgeSel.addEventListener('change', ()=>{
       tryAutoRenderFromCache();

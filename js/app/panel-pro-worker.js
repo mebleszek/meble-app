@@ -24,6 +24,49 @@ try{
 
   function now(){ return (self.performance && performance.now) ? performance.now() : Date.now(); }
 
+  function groupAreaMax(items, keyFn){
+    const map = new Map();
+    for(const it of (items||[])){
+      const key = keyFn(it);
+      const prev = map.get(key) || { count:0, area:0 };
+      prev.count += 1;
+      prev.area += (Number(it.w)||0) * (Number(it.h)||0);
+      map.set(key, prev);
+    }
+    let best = 0;
+    for(const v of map.values()){
+      if(v.count >= 2 && v.area > best) best = v.area;
+    }
+    return best;
+  }
+
+  function meaningfulFreeRects(sheet){
+    return ((sheet && Array.isArray(sheet._freeRects)) ? sheet._freeRects : []).filter(r=>r && r.w >= 120 && r.h >= 120);
+  }
+
+  function largestReusableStripArea(sheet){
+    const arr = meaningfulFreeRects(sheet);
+    const W = Number(sheet && sheet.boardW) || 0;
+    const H = Number(sheet && sheet.boardH) || 0;
+    let best = 0;
+    for(const r of arr){
+      const fullH = H > 0 && r.h >= H * 0.92 && r.w >= 180;
+      const fullW = W > 0 && r.w >= W * 0.92 && r.h >= 180;
+      if(fullH || fullW) best = Math.max(best, r.w * r.h);
+    }
+    return best;
+  }
+
+  function sheetBandArea(sheet){
+    const pls = (sheet && Array.isArray(sheet.placements)) ? sheet.placements.filter(p=>p && !p.unplaced) : [];
+    if(pls.length < 2) return 0;
+    const byWidth = groupAreaMax(pls, p=>'w:' + p.w);
+    const byHeight = groupAreaMax(pls, p=>'h:' + p.h);
+    const byRowBand = groupAreaMax(pls, p=>'row:' + p.y + ':' + p.h);
+    const byColBand = groupAreaMax(pls, p=>'col:' + p.x + ':' + p.w);
+    return Math.max(byWidth, byHeight, byRowBand, byColBand);
+  }
+
   function scoreSheets(sheets){
     if(!opt || !opt.calcWaste) return { sheets: (sheets||[]).length, waste: Number.POSITIVE_INFINITY };
     const arr = (sheets||[]);
@@ -35,33 +78,57 @@ try{
     // (np. można odciąć wzdłuż 30–100 cm i dopiero ten pas obracać).
     const MAX_ROTATE_STRIP_MM = 1000;
     for(const s of arr){
+      const area = (Number(s && s.boardW) || 0) * (Number(s && s.boardH) || 0);
+      if(area <= 0) continue;
+
       const pls = (s && s.placements) ? s.placements.filter(p=>p && !p.unplaced) : [];
-      if(pls.length < 2) continue;
-      let hasR = false, hasN = false;
-      let minX=1e18, minY=1e18, maxX=-1e18, maxY=-1e18;
-      for(const p of pls){
-        if(p.rotated) {
-          hasR = true;
-          minX = Math.min(minX, p.x);
-          minY = Math.min(minY, p.y);
-          maxX = Math.max(maxX, p.x + p.w);
-          maxY = Math.max(maxY, p.y + p.h);
-        } else {
-          hasN = true;
+      if(pls.length >= 2){
+        let hasR = false, hasN = false;
+        let minX=1e18, minY=1e18, maxX=-1e18, maxY=-1e18;
+        for(const p of pls){
+          if(p.rotated) {
+            hasR = true;
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x + p.w);
+            maxY = Math.max(maxY, p.y + p.h);
+          } else {
+            hasN = true;
+          }
+        }
+        if(hasR && hasN){
+          const bw = (maxX>minX) ? (maxX-minX) : 0;
+          const bh = (maxY>minY) ? (maxY-minY) : 0;
+          const okStrip = (bw <= MAX_ROTATE_STRIP_MM) || (bh <= MAX_ROTATE_STRIP_MM);
+          if(!okStrip){
+            // 8% płyty jako kara – tylko tie-breaker, nie przebija "mniej płyt".
+            waste += area * 0.08;
+          }
         }
       }
-      if(!(hasR && hasN)) continue;
-      const bw = (maxX>minX) ? (maxX-minX) : 0;
-      const bh = (maxY>minY) ? (maxY-minY) : 0;
-      const okStrip = (bw <= MAX_ROTATE_STRIP_MM) || (bh <= MAX_ROTATE_STRIP_MM);
-      if(!okStrip){
-        const area = (s.boardW||0) * (s.boardH||0);
-        // 8% płyty jako kara – tylko tie-breaker, nie przebija "mniej płyt".
-        waste += area * 0.08;
+
+      // Opti-like preference: keep one sensowny duży prostokąt odpadu / pas do dalszego użycia,
+      // a nie wiele drobnych ścinków.
+      const free = meaningfulFreeRects(s);
+      const largestFree = free.reduce((m,r)=>Math.max(m, r.w*r.h), 0);
+      const stripFree = largestReusableStripArea(s);
+      const bandArea = sheetBandArea(s);
+
+      if(free.length > 4){
+        waste += area * Math.min(0.05, (free.length - 4) * 0.008);
+      }
+      if(largestFree > 0){
+        waste -= Math.min(area * 0.03, largestFree * 0.12);
+      }
+      if(stripFree > 0){
+        waste -= Math.min(area * 0.035, stripFree * 0.18);
+      }
+      if(bandArea > 0){
+        waste -= Math.min(area * 0.04, bandArea * 0.06);
       }
     }
 
-    return { sheets: arr.length, waste };
+    return { sheets: arr.length, waste: Math.max(0, waste) };
   }
 
   function better(a, b){
@@ -120,11 +187,29 @@ try{
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
     const cutPref = (opts && (opts.cutPref || opts.direction)) || 'auto';
+    const cutMode = (opts && opts.cutMode) || 'optional';
+    const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
+    const minScrapH = Math.max(0, Math.round((opts && opts.minScrapH != null) ? Number(opts.minScrapH) : 100));
     // NOTE (praktyka): "auto" w packGuillotineBeam potrafi generować układy
     // OK procentowo, ale fatalne pod piłę (mnóstwo zmian kierunku cięcia).
     // W Ultra "Auto" oznacza: wybierz najlepsze spośród along/across.
     const prefList = (cutPref === 'auto') ? ['along','across'] : [cutPref];
 
+    const packOne = (arr, pref, ms)=>{
+      if(cutMode === 'along' || cutMode === 'across'){
+        if(opt.packStripBands){
+          return opt.packStripBands(arr, W, H, K, cutMode);
+        }
+      }
+      return opt.packGuillotineBeam(arr, W, H, K, {
+        beamWidth,
+        timeMs: ms,
+        cutPref: pref,
+        scrapFirst: true,
+        minScrapW,
+        minScrapH,
+      });
+    };
 
     const started = now();
     const base = sortVariants(items);
@@ -140,7 +225,7 @@ try{
     const tryOne = (arr)=>{
       for(const pref of prefList){
         if(_cancelled) return;
-        const sheets = opt.packGuillotineBeam(arr, W, H, K, { beamWidth, timeMs: perSheetMs, cutPref: pref, scrapFirst:true });
+        const sheets = packOne(arr, pref, perSheetMs);
         const sc = scoreSheets(sheets);
         const res = { sheets, sc };
         if(better(res, best)) best = res;
@@ -208,13 +293,7 @@ try{
       if(!uniq.length) return null;
 
       // Repack only the pool into new sheets.
-      const newTail = opt.packGuillotineBeam(uniq, W, H, K, {
-        beamWidth,
-        // Keep it snappy: we may do many trials.
-        timeMs: Math.min(260, Math.max(120, Math.round(perSheetMs * 0.6))),
-        cutPref,
-        scrapFirst: true,
-      });
+      const newTail = packOne(uniq, cutPref, Math.min(260, Math.max(120, Math.round(perSheetMs * 0.6))));
 
       const combined = (prefixSheets||[]).concat(newTail||[]);
       const sc = scoreSheets(combined);
@@ -300,7 +379,7 @@ try{
       return bestLocal;
     }
 
-    if(best && !_cancelled){
+    if(best && !_cancelled && cutMode === 'optional'){
       best = doCrazyPostPass(best);
     }
 
@@ -390,12 +469,16 @@ try{
 
         // Prefer stable cut direction within a strip.
         const stripPref = srec.fullH ? 'along' : 'across';
-        const packed = opt.packGuillotineBeam(subset, rect.w, rect.h, K, {
-          beamWidth: Math.max(60, Math.min(140, Math.round(beamWidth*0.6))),
-          timeMs: 140,
-          cutPref: stripPref,
-          scrapFirst: false,
-        });
+        const packed = (opt.packStripBands && (cutMode === 'along' || cutMode === 'across'))
+          ? opt.packStripBands(subset, rect.w, rect.h, K, stripPref)
+          : opt.packGuillotineBeam(subset, rect.w, rect.h, K, {
+              beamWidth: Math.max(60, Math.min(140, Math.round(beamWidth*0.6))),
+              timeMs: 140,
+              cutPref: stripPref,
+              scrapFirst: false,
+              minScrapW,
+              minScrapH,
+            });
         if(!packed || !packed[0] || !Array.isArray(packed[0].placements)) continue;
         const pls = packed[0].placements.filter(p=>p && !p.unplaced);
         if(!pls.length) continue;
@@ -445,12 +528,7 @@ try{
       }
 
       // Repack remaining tail.
-      const newTail = opt.packGuillotineBeam(remItems, W, H, K, {
-        beamWidth,
-        timeMs: Math.min(260, Math.max(140, Math.round(perSheetMs*0.7))),
-        cutPref: (opts && (opts.cutPref||opts.direction)) || 'along',
-        scrapFirst: true,
-      });
+      const newTail = packOne(remItems, (opts && (opts.cutPref||opts.direction)) || 'along', Math.min(260, Math.max(140, Math.round(perSheetMs*0.7))));
       const combined = prefix.concat(newTail||[]);
       const sc = scoreSheets(combined);
       const res = { sheets: combined, sc };
@@ -458,7 +536,7 @@ try{
       return currentBest;
     }
 
-    if(best && !_cancelled && opts && opts.optimax){
+    if(best && !_cancelled && opts && opts.optimax && cutMode === 'optional'){
       best = doOptimaxStripFill(best);
       setBest(best);
     }
@@ -468,7 +546,7 @@ try{
     let fallbackBest = null;
     for(const pref of prefList){
       if(_cancelled) break;
-      const sheets = opt.packGuillotineBeam(items, W, H, K, { beamWidth, timeMs: perSheetMs, cutPref: pref, scrapFirst:true });
+      const sheets = packOne(items, pref, perSheetMs);
       const sc = scoreSheets(sheets);
       const res = { sheets, sc };
       if(better(res, fallbackBest)) fallbackBest = res;

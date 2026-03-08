@@ -264,3 +264,5 @@ Dopiero potem go zmieniać.
 
 - `schema.js` is now the primary source of truth for project/room normalization; `app.js` keeps only a minimal emergency fallback.
 - `js/app/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
+
+- Step 40: przebudowa UI części ROZRYS pod Optimax (profile A→DD, kierunek opcjonalnie/wzdłuż/w poprzek, rzaz, obrównanie, minimalny użyteczny odpad) oraz nowy pasowy packer `packStripBands()` dla trybów wzdłuż/w poprzek.

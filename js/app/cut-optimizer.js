@@ -234,6 +234,150 @@
     return sheets;
   }
 
+
+  // ===== Strip bands (Opti-like pass mode)
+  // direction:
+  // - 'along'  => horizontal strips running along the long edge shown on screen
+  // - 'across' => same logic after swapping board axes (vertical strips in final view)
+  // The row height is defined by the anchor piece; smaller pieces may fill the tail of the strip.
+  function packStripBands(itemsIn, boardW, boardH, kerf, direction){
+    const W = clampInt(boardW, 2800);
+    const H = clampInt(boardH, 2070);
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const swap = (direction === 'across' || direction === 'wpoprz');
+    const BW = swap ? H : W;
+    const BH = swap ? W : H;
+
+    const rem = (itemsIn||[]).map(it=>Object.assign({}, it));
+    const sheets = [];
+
+    function toCandidates(it){
+      const out = [{ w: it.w, h: it.h, rotated:false }];
+      if(it.rotationAllowed) out.push({ w: it.h, h: it.w, rotated:true });
+      return out;
+    }
+
+    function swapPlacementBack(p){
+      const nx = p.y;
+      const ny = p.x;
+      const nw = p.h;
+      const nh = p.w;
+      const ew1 = p.edgeW1, ew2 = p.edgeW2, eh1 = p.edgeH1, eh2 = p.edgeH2;
+      p.x = nx; p.y = ny; p.w = nw; p.h = nh;
+      p.edgeW1 = eh1; p.edgeW2 = eh2;
+      p.edgeH1 = ew1; p.edgeH2 = ew2;
+      return p;
+    }
+
+    function chooseAnchor(maxRowH){
+      let best = null;
+      for(let i=0;i<rem.length;i++){
+        const it = rem[i];
+        for(const c of toCandidates(it)){
+          if(c.w > BW || c.h > maxRowH) continue;
+          const sc = (c.h * 1000000) + (c.w * 1000) + (c.w * c.h);
+          if(!best || sc > best.sc){
+            best = { idx:i, it, cand:c, sc };
+          }
+        }
+      }
+      return best;
+    }
+
+    function chooseBestForStrip(spaceW, rowH){
+      let best = null;
+      for(let i=0;i<rem.length;i++){
+        const it = rem[i];
+        for(const c of toCandidates(it)){
+          if(c.w > spaceW || c.h > rowH) continue;
+          const heightGap = rowH - c.h;
+          const widthWaste = spaceW - c.w;
+          const exactHeight = (heightGap === 0) ? 1 : 0;
+          const sc = (exactHeight * 1000000) - (heightGap * 2500) - widthWaste + (c.w * c.h * 0.001);
+          if(!best || sc > best.sc){
+            best = { idx:i, it, cand:c, sc };
+          }
+        }
+      }
+      return best;
+    }
+
+    while(rem.length){
+      const sheet = { boardW: BW, boardH: BH, placements: [] };
+      let cursorY = 0;
+      let placedAny = false;
+
+      while(rem.length){
+        const availableH = BH - cursorY;
+        const anchor = chooseAnchor(availableH);
+        if(!anchor) break;
+
+        let cursorX = 0;
+        const rowH = anchor.cand.h;
+        const first = {
+          id: anchor.it.id,
+          key: anchor.it.key,
+          name: anchor.it.name,
+          x: cursorX,
+          y: cursorY,
+          w: anchor.cand.w,
+          h: anchor.cand.h,
+          rotated: !!anchor.cand.rotated,
+          edgeW1: anchor.cand.rotated ? anchor.it.edgeH1 : anchor.it.edgeW1,
+          edgeW2: anchor.cand.rotated ? anchor.it.edgeH2 : anchor.it.edgeW2,
+          edgeH1: anchor.cand.rotated ? anchor.it.edgeW1 : anchor.it.edgeH1,
+          edgeH2: anchor.cand.rotated ? anchor.it.edgeW2 : anchor.it.edgeH2,
+        };
+        sheet.placements.push(first);
+        placedAny = true;
+        cursorX += anchor.cand.w + K;
+        rem.splice(anchor.idx, 1);
+
+        while(rem.length && cursorX < BW){
+          const fit = chooseBestForStrip(BW - cursorX, rowH);
+          if(!fit) break;
+          sheet.placements.push({
+            id: fit.it.id,
+            key: fit.it.key,
+            name: fit.it.name,
+            x: cursorX,
+            y: cursorY,
+            w: fit.cand.w,
+            h: fit.cand.h,
+            rotated: !!fit.cand.rotated,
+            edgeW1: fit.cand.rotated ? fit.it.edgeH1 : fit.it.edgeW1,
+            edgeW2: fit.cand.rotated ? fit.it.edgeH2 : fit.it.edgeW2,
+            edgeH1: fit.cand.rotated ? fit.it.edgeW1 : fit.it.edgeH1,
+            edgeH2: fit.cand.rotated ? fit.it.edgeW2 : fit.it.edgeH2,
+          });
+          cursorX += fit.cand.w + K;
+          rem.splice(fit.idx, 1);
+        }
+
+        cursorY += rowH + K;
+      }
+
+      if(!placedAny){
+        const it = rem.shift();
+        if(it){
+          sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true });
+        }
+      }
+
+      if(swap){
+        sheet.placements.forEach(swapPlacementBack);
+        sheet.boardW = W;
+        sheet.boardH = H;
+      } else {
+        sheet.boardW = W;
+        sheet.boardH = H;
+      }
+      sheets.push(sheet);
+    }
+
+    return sheets;
+  }
+
   // ===== MaxRects (best short-side fit)
   function packMaxRects(itemsIn, boardW, boardH, kerf){
     const W = clampInt(boardW, 2800);
@@ -427,6 +571,7 @@
   window.FC.cutOptimizer = {
     makeItems,
     packShelf,
+    packStripBands,
     packMaxRects,
     packSuper,
     calcWaste,
@@ -468,6 +613,42 @@
     }
     // stable-ish ordering
     return out.sort((p,q)=> (p.y-q.y) || (p.x-q.x) || ((p.w*p.h) - (q.w*q.h)));
+  }
+
+  // Soft preference for "professional" strip/band style layouts.
+  // This is deliberately only a tie-breaker inside the beam search:
+  // - reward placements that extend existing rows/columns,
+  // - reward repeated widths/heights,
+  // - keep strong anchors on sheet edges.
+  // It must NEVER dominate usedArea / sheet count.
+  function scorePlacementAlignment(existingPlacements, placement, boardW, boardH){
+    const pls = Array.isArray(existingPlacements) ? existingPlacements : [];
+    const p = placement || {};
+    const px2 = (p.x||0) + (p.w||0);
+    const py2 = (p.y||0) + (p.h||0);
+    let score = 0;
+
+    if((p.x||0) === 0 || px2 === boardW) score += 1.0;
+    if((p.y||0) === 0 || py2 === boardH) score += 1.0;
+
+    for(const q of pls){
+      if(!q || q.unplaced) continue;
+      const qx2 = (q.x||0) + (q.w||0);
+      const qy2 = (q.y||0) + (q.h||0);
+
+      // Shared strip/band edges.
+      if((p.x||0) === (q.x||0) || px2 === qx2) score += 0.65;
+      if((p.y||0) === (q.y||0) || py2 === qy2) score += 0.65;
+
+      // Repeated dimensions tend to build cleaner bands / strips.
+      if((p.w||0) === (q.w||0)) score += 0.35;
+      if((p.h||0) === (q.h||0)) score += 0.35;
+
+      // Exact adjacency without overlap extends a pass / shelf naturally.
+      if(px2 === (q.x||0) || qx2 === (p.x||0)) score += 0.22;
+      if(py2 === (q.y||0) || qy2 === (p.y||0)) score += 0.22;
+    }
+    return score;
   }
 
   function sortByAreaDesc(items){
@@ -554,6 +735,7 @@
       placements: state.placements.concat([placement]),
       freeRects: pruneFreeRects(newFree),
       usedArea: state.usedArea + (w*h),
+      alignmentScore: (state.alignmentScore||0) + scorePlacementAlignment(state.placements, placement, state.boardW, state.boardH),
     };
   }
 
@@ -563,7 +745,7 @@
     const budgetMs = Math.max(60, clampInt(timeMs, 300));
 
     const remaining = sortByAreaDesc(items);
-    let beam = [{ placements: [], freeRects: [{ x:0, y:0, w:W, h:H }], usedArea: 0, usedIdx: new Set() }];
+    let beam = [{ placements: [], freeRects: [{ x:0, y:0, w:W, h:H }], usedArea: 0, usedIdx: new Set(), alignmentScore: 0, boardW: W, boardH: H }];
 
     const CAND_ITEMS = 8;
     const CAND_FREES = 14;
@@ -588,7 +770,15 @@
               const placedState = placeInFreeRect(st, f, it, o.w, o.h, o.rotated, K, cutPref);
               const usedIdx = new Set(st.usedIdx);
               usedIdx.add(c.idx);
-              next.push({ placements: placedState.placements, freeRects: placedState.freeRects, usedArea: placedState.usedArea, usedIdx });
+              next.push({
+                placements: placedState.placements,
+                freeRects: placedState.freeRects,
+                usedArea: placedState.usedArea,
+                usedIdx,
+                alignmentScore: placedState.alignmentScore || 0,
+                boardW: W,
+                boardH: H,
+              });
             }
           }
         }
@@ -597,9 +787,11 @@
 
       next.sort((a,b)=>{
         if(b.usedArea !== a.usedArea) return b.usedArea - a.usedArea;
+        if((b.alignmentScore||0) !== (a.alignmentScore||0)) return (b.alignmentScore||0) - (a.alignmentScore||0);
         const aMax = a.freeRects.reduce((m,r)=>Math.max(m,r.w*r.h),0);
         const bMax = b.freeRects.reduce((m,r)=>Math.max(m,r.w*r.h),0);
-        return bMax - aMax;
+        if(bMax !== aMax) return bMax - aMax;
+        return (a.freeRects.length||0) - (b.freeRects.length||0);
       });
       beam = next.slice(0, maxBeam);
 
@@ -617,7 +809,7 @@
       if(!canPlaceMore) break;
     }
 
-    const best = beam[0] || { placements: [], freeRects: [{x:0,y:0,w:W,h:H}], usedArea:0, usedIdx: new Set() };
+    const best = beam[0] || { placements: [], freeRects: [{x:0,y:0,w:W,h:H}], usedArea:0, usedIdx: new Set(), alignmentScore:0, boardW:W, boardH:H };
     const rest = [];
     for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
     // IMPORTANT: expose freeRects so caller can keep using scrap areas across sheets.
@@ -709,8 +901,9 @@
       }
       const sheet = { boardW: W, boardH: H, placements };
       // Keep internal freeRects for later scrap reuse. Filter: keep only meaningful scraps (>=10cm x 10cm).
-      const minScrap = 100; // mm
-      sheet._freeRects = (res.freeRects || []).filter(r=>r.w>=minScrap && r.h>=minScrap);
+      const minScrapW = Math.max(0, Math.round((options && options.minScrapW != null) ? Number(options.minScrapW) : 100));
+      const minScrapH = Math.max(0, Math.round((options && options.minScrapH != null) ? Number(options.minScrapH) : 100));
+      sheet._freeRects = (res.freeRects || []).filter(r=>r.w>=minScrapW && r.h>=minScrapH);
       sheet._usedArea = res.usedArea || 0;
       sheets.push(sheet);
       remaining = res.remaining;
