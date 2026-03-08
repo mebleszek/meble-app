@@ -253,3 +253,6 @@ Dopiero potem go zmieniać.
 
 - `js/app/core-failsafe.js` — awaryjne minimalne fallbacki dla `FC.actions` i `FC.modal`, ładowane przed `app.js`.
 - `js/app/dom-guard.js` — walidacja wymaganych selektorów DOM, ładowana przed `app.js`.
+
+
+- Step 33: trimmed app.js wrappers for dom-guard, project-bootstrap and calc/settings by delegating to preloaded modules with minimal local fallbacks.
