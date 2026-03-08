@@ -246,3 +246,6 @@ Dopiero potem go zmieniać.
 - `project-bootstrap.js` ładowany tylko raz w `index.html`; usunięty duplikat include.
 
 - js/app.js korzysta już z preładowanych modułów constants/utils/storage/ui-state jako źródeł prawdy; w app.js zostały tylko lokalne fallbacki awaryjne.
+
+
+- `js/app/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
