@@ -258,3 +258,6 @@ Dopiero potem go zmieniać.
 - Step 33: trimmed app.js wrappers for dom-guard, project-bootstrap and calc/settings by delegating to preloaded modules with minimal local fallbacks.
 
 - `js/app/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
+
+
+- js/app/migrate.js (active) — migracje schematu projektu, ładowane przed js/app.js.
