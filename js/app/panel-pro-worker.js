@@ -24,7 +24,7 @@ try{
 
   function now(){ return (self.performance && performance.now) ? performance.now() : Date.now(); }
 
-  function groupAreaMax(items, keyFn){
+  function groupAreaStats(items, keyFn){
     const map = new Map();
     for(const it of (items||[])){
       const key = keyFn(it);
@@ -34,10 +34,18 @@ try{
       map.set(key, prev);
     }
     let best = 0;
+    let repeated = 0;
     for(const v of map.values()){
-      if(v.count >= 2 && v.area > best) best = v.area;
+      if(v.count >= 2){
+        if(v.area > best) best = v.area;
+        repeated += v.area;
+      }
     }
-    return best;
+    return { best, repeated };
+  }
+
+  function groupAreaMax(items, keyFn){
+    return groupAreaStats(items, keyFn).best;
   }
 
   function meaningfulFreeRects(sheet){
@@ -57,14 +65,24 @@ try{
     return best;
   }
 
-  function sheetBandArea(sheet){
+  function sheetStructureMetrics(sheet){
     const pls = (sheet && Array.isArray(sheet.placements)) ? sheet.placements.filter(p=>p && !p.unplaced) : [];
-    if(pls.length < 2) return 0;
-    const byWidth = groupAreaMax(pls, p=>'w:' + p.w);
-    const byHeight = groupAreaMax(pls, p=>'h:' + p.h);
-    const byRowBand = groupAreaMax(pls, p=>'row:' + p.y + ':' + p.h);
-    const byColBand = groupAreaMax(pls, p=>'col:' + p.x + ':' + p.w);
-    return Math.max(byWidth, byHeight, byRowBand, byColBand);
+    if(pls.length < 2) return { bandArea:0, repeatedArea:0, axisCoherence:0, usedArea:0 };
+    const usedArea = pls.reduce((sum,p)=> sum + ((Number(p.w)||0) * (Number(p.h)||0)), 0);
+    const byWidth = groupAreaStats(pls, p=>'w:' + p.w);
+    const byHeight = groupAreaStats(pls, p=>'h:' + p.h);
+    const byRowBand = groupAreaStats(pls, p=>'row:' + p.y + ':' + p.h);
+    const byColBand = groupAreaStats(pls, p=>'col:' + p.x + ':' + p.w);
+    const bandArea = Math.max(byWidth.best, byHeight.best, byRowBand.best, byColBand.best);
+    const repeatedRows = byRowBand.repeated + byHeight.repeated * 0.35;
+    const repeatedCols = byColBand.repeated + byWidth.repeated * 0.35;
+    const repeatedArea = Math.max(repeatedRows, repeatedCols);
+    const axisCoherence = usedArea > 0 ? Math.max(repeatedRows, repeatedCols) / usedArea : 0;
+    return { bandArea, repeatedArea, axisCoherence, usedArea };
+  }
+
+  function sheetBandArea(sheet){
+    return sheetStructureMetrics(sheet).bandArea;
   }
 
   function scoreSheets(sheets){
@@ -112,19 +130,37 @@ try{
       const free = meaningfulFreeRects(s);
       const largestFree = free.reduce((m,r)=>Math.max(m, r.w*r.h), 0);
       const stripFree = largestReusableStripArea(s);
-      const bandArea = sheetBandArea(s);
+      const structure = sheetStructureMetrics(s);
+      const bandArea = structure.bandArea;
+      const repeatedArea = structure.repeatedArea;
+      const axisCoherence = structure.axisCoherence;
+      const narrowScrapArea = free.reduce((sum,r)=>{
+        const minSide = Math.min(r.w, r.h);
+        return sum + (minSide < 120 ? (r.w*r.h) : 0);
+      }, 0);
 
       if(free.length > 4){
-        waste += area * Math.min(0.05, (free.length - 4) * 0.008);
+        waste += area * Math.min(0.06, (free.length - 4) * 0.010);
       }
       if(largestFree > 0){
         waste -= Math.min(area * 0.03, largestFree * 0.12);
       }
       if(stripFree > 0){
-        waste -= Math.min(area * 0.035, stripFree * 0.18);
+        waste -= Math.min(area * 0.04, stripFree * 0.18);
       }
       if(bandArea > 0){
-        waste -= Math.min(area * 0.05, bandArea * 0.07);
+        waste -= Math.min(area * 0.06, bandArea * 0.08);
+      }
+      if(repeatedArea > 0){
+        waste -= Math.min(area * 0.07, repeatedArea * 0.05);
+      }
+      if(axisCoherence > 0.58){
+        waste -= area * Math.min(0.05, (axisCoherence - 0.58) * 0.18);
+      } else if(axisCoherence < 0.42){
+        waste += area * Math.min(0.05, (0.42 - axisCoherence) * 0.16);
+      }
+      if(narrowScrapArea > 0){
+        waste += Math.min(area * 0.05, narrowScrapArea * 0.12);
       }
 
       // Lekka kara za "poszarpaną" ostatnią płytę z wieloma małymi wyspami.
@@ -232,41 +268,79 @@ try{
 
     const packOptionalHybrid = (arr, pref, ms)=>{
       const candidates = [];
-      const add = (sheets)=>{
-        if(Array.isArray(sheets) && sheets.length) candidates.push(sheets);
+      const boardArea = W * H;
+
+      const analyzeCandidate = (cand)=>{
+        let repeatedArea = 0;
+        let bandArea = 0;
+        let axisCoherenceSum = 0;
+        let usedArea = 0;
+        for(const s of (cand.sheets||[])){
+          const m = sheetStructureMetrics(s);
+          repeatedArea += m.repeatedArea;
+          bandArea += m.bandArea;
+          axisCoherenceSum += m.axisCoherence;
+          usedArea += m.usedArea;
+        }
+        return {
+          repeatedArea,
+          bandArea,
+          coherence: usedArea > 0 ? Math.max(0, Math.min(1, repeatedArea / usedArea)) : 0,
+          avgAxisCoherence: (cand.sheets && cand.sheets.length) ? (axisCoherenceSum / cand.sheets.length) : 0,
+        };
       };
-      add(packGuillotine(arr, pref, ms));
+
+      const chooseBetterCandidate = (a, b)=>{
+        if(!b) return a;
+        if(!a) return b;
+        if(a.sc.sheets !== b.sc.sheets) return (a.sc.sheets < b.sc.sheets) ? a : b;
+
+        const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
+        const structureMargin = boardArea * 0.04;
+        const aStrip = /^strip/.test(a.family);
+        const bStrip = /^strip/.test(b.family);
+
+        if(aStrip !== bStrip && wasteGap <= structureMargin){
+          return aStrip ? a : b;
+        }
+
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.045) - (a.meta.bandArea * 0.035) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.62) * 0.55);
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.045) - (b.meta.bandArea * 0.035) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.62) * 0.55);
+        if(Math.abs(aScore - bScore) > (boardArea * 0.012)) return (aScore < bScore) ? a : b;
+        return (a.sc.waste <= b.sc.waste) ? a : b;
+      };
+
+      const add = (family, sheets)=>{
+        if(Array.isArray(sheets) && sheets.length){
+          const sc = scoreSheets(sheets);
+          candidates.push({ family, sheets, sc, meta: analyzeCandidate({ sheets }) });
+        }
+      };
+
+      add('guillotine-' + pref, packGuillotine(arr, pref, ms));
       const altPref = (pref === 'along') ? 'across' : 'along';
       if(pref !== altPref){
-        add(packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.8))));
+        add('guillotine-' + altPref, packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.8))));
       }
       if(opt.packStripBands){
-        add(opt.packStripBands(arr, W, H, K, 'along', { edgeTrimNewSheet }));
-        add(opt.packStripBands(arr, W, H, K, 'across', { edgeTrimNewSheet }));
+        add('strip-along', opt.packStripBands(arr, W, H, K, 'along', { edgeTrimNewSheet }));
+        add('strip-across', opt.packStripBands(arr, W, H, K, 'across', { edgeTrimNewSheet }));
       }
-      let bestSheets = candidates[0] || [];
-      let bestScore = scoreSheets(bestSheets);
-      for(let i=1;i<candidates.length;i++){
-        const sc = scoreSheets(candidates[i]);
-        if(better({ sheets:candidates[i], sc }, { sheets:bestSheets, sc:bestScore })){
-          bestSheets = candidates[i];
-          bestScore = sc;
-        }
-      }
-      // Heavy profiles: re-run the winning family once more with a bit more time.
-      if(hybridRuns > 1 && bestSheets && bestSheets.length){
+
+      let best = null;
+      for(const cand of candidates) best = chooseBetterCandidate(cand, best);
+
+      // Heavy profiles: deepen only the family that already looks promising.
+      if(hybridRuns > 1 && best && best.sheets && best.sheets.length){
+        const extraFamily = /^strip/.test(best.family) ? best.family.replace(/^strip-/, '') : best.family.replace(/^guillotine-/, '');
         for(let i=1;i<hybridRuns;i++){
-          add(packGuillotine(arr, pref, Math.max(ms, Math.round(ms * (1 + i*0.25)))));
+          const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.30)));
+          add('guillotine-' + extraFamily, packGuillotine(arr, extraFamily, extraMs));
         }
-        for(const cand of candidates){
-          const sc = scoreSheets(cand);
-          if(better({ sheets:cand, sc }, { sheets:bestSheets, sc:bestScore })){
-            bestSheets = cand;
-            bestScore = sc;
-          }
-        }
+        best = null;
+        for(const cand of candidates) best = chooseBetterCandidate(cand, best);
       }
-      return bestSheets;
+      return best ? best.sheets : [];
     };
 
     const packOne = (arr, pref, ms)=>{
