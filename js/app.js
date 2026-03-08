@@ -587,35 +587,7 @@ const MANUFACTURERS = {
 
 /* ===== Normalize (backward compatibility) ===== */
 function normalizeProjectData(data, defaults){
-  return callExtracted('projectBootstrap','normalizeProjectData',[data, defaults], function(pd, defs){
-    ['kuchnia','szafa','pokoj','lazienka'].forEach(r=>{
-      if(!pd[r]) pd[r] = FC.utils.clone(defs[r]);
-      if(!Array.isArray(pd[r].cabinets)) pd[r].cabinets = [];
-      if(!pd[r].settings) pd[r].settings = FC.utils.clone(defs[r].settings);
-      if(!Array.isArray(pd[r].fronts)) pd[r].fronts = [];
-      if(!Array.isArray(pd[r].sets)) pd[r].sets = [];
-
-      // numeracja zestawów jeśli brak
-      let n = 1;
-      pd[r].sets.forEach(s=>{
-        if(typeof s.number !== 'number'){
-          s.number = n;
-        }
-        n = Math.max(n, s.number + 1);
-      });
-
-      const map = new Map(pd[r].sets.map(s=>[s.id, s.number]));
-      pd[r].cabinets.forEach(c=>{
-        if(c.setId && typeof c.setNumber !== 'number'){
-          const num = map.get(c.setId);
-          if(typeof num === 'number') c.setNumber = num;
-        }
-        if(typeof c.frontCount !== 'number') c.frontCount = 2; // domyślnie 2 (dla standardów)
-        if(!c.details) c.details = {};
-      });
-    });
-    return FC.project.save(pd);
-  });
+  return callExtracted('projectBootstrap','normalizeProjectData',[data, defaults], function(pd){ return FC.project.save(pd); });
 }
 projectData = normalizeProjectData(projectData, DEFAULT_PROJECT);
 
@@ -664,17 +636,11 @@ function calcTopForSet(room, blende, sumLowerHeights){
 function toggleExpandAll(id){
   return callExtracted('settingsUI', 'toggleExpandAll', arguments, function(id){
     const key = String(id);
-    const isOpen = !!(uiState.expanded && uiState.expanded[key]);
     uiState.expanded = {};
-    if(!isOpen){
-      uiState.expanded[key] = true;
-      uiState.selectedCabinetId = key;
-    }
+    uiState.expanded[key] = true;
+    uiState.selectedCabinetId = key;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    const activeTab = String(uiState.activeTab || '');
-    if(activeTab !== 'pokoje' && activeTab !== 'inwestor' && activeTab !== 'rozrys' && activeTab !== 'magazyn'){
-      renderCabinets();
-    }
+    renderCabinets();
   });
 }
 
