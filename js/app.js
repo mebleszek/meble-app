@@ -976,46 +976,18 @@ function renderSingleCabinetCard(list, room, cab, displayIndex){
 }
 
 /* ===== Price modal render ===== */
-function renderPriceModal(){
-  try{
-    const mod = window.FC && window.FC.priceModal;
-    if(mod && typeof mod.renderPriceModal === 'function'){
-      return mod.renderPriceModal();
-    }
-  }catch(_){ }
-}
+function renderPriceModal(){ return callExtracted('priceModal','renderPriceModal',[]); }
 
 
 // Tab/navigation helpers extracted to js/app/tab-navigation.js
-function jumpToMaterialsForCabinet(cabId){
-  try{
-    const mod = window.FC && window.FC.tabNavigation;
-    if(mod && typeof mod.jumpToMaterialsForCabinet === 'function'){
-      return mod.jumpToMaterialsForCabinet(cabId);
-    }
-  }catch(_){ }
-}
+function jumpToMaterialsForCabinet(cabId){ return callExtracted('tabNavigation','jumpToMaterialsForCabinet',[cabId]); }
 
-function jumpToCabinetFromMaterials(cabId){
-  try{
-    const mod = window.FC && window.FC.tabNavigation;
-    if(mod && typeof mod.jumpToCabinetFromMaterials === 'function'){
-      return mod.jumpToCabinetFromMaterials(cabId);
-    }
-  }catch(_){ }
-}
+function jumpToCabinetFromMaterials(cabId){ return callExtracted('tabNavigation','jumpToCabinetFromMaterials',[cabId]); }
 
 // Centralne przełączanie zakładek (używane też przez przyciski "skoku")
 // RYZYKO REGRESJI: przełączanie zakładek wpływa też na odświeżanie danych i render.
 // Nie zmieniać kolejności efektów ubocznych bez testu całego przepływu projektu.
-function setActiveTab(tabName){
-  try{
-    const mod = window.FC && window.FC.tabNavigation;
-    if(mod && typeof mod.setActiveTab === 'function'){
-      return mod.setActiveTab(tabName);
-    }
-  }catch(_){ }
-}
+function setActiveTab(tabName){ return callExtracted('tabNavigation','setActiveTab',[tabName]); }
 
 
 /* ===== UI wiring & init ===== */
