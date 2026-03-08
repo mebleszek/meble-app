@@ -1,5 +1,3 @@
-// UWAGA: plik obecny w repo, ale nieładowany bezpośrednio przez index.html w tej wersji.
-// Rozrys może oczekiwać FC.schema, ale ten plik nie jest obecnie standardowo bootowany.
 // js/app/schema.js
 // Project schema (defaults + normalization). Loaded before js/app.js
 

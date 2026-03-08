@@ -101,3 +101,8 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 - Step 33: trimmed app.js wrappers for dom-guard, project-bootstrap and calc/settings by delegating to preloaded modules with minimal local fallbacks.
 
 - `js/app/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
+
+
+## Update
+- Aktywowane moduły techniczne przed `app.js`: `js/app/migrate.js`, `js/app/schema.js`.
+- `app.js` deleguje teraz normalizację projektu/room do `FC.schema` z lekkim fallbackiem awaryjnym.

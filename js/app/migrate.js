@@ -1,5 +1,3 @@
-// UWAGA: plik obecny w repo, ale nieładowany bezpośrednio przez index.html w tej wersji.
-// Zawiera migracje schematu; przed użyciem sprawdź faktyczny entrypoint i zależności.
 // js/app/migrate.js
 // Project schema migrations. Loaded before js/app.js
 
