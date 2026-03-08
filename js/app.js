@@ -1,5 +1,5 @@
 /* ===== Storage keys and defaults ===== */
-const STORAGE_KEYS = {
+const STORAGE_KEYS = (window.FC && window.FC.constants && window.FC.constants.STORAGE_KEYS) || {
   materials: 'fc_materials_v1',
   services: 'fc_services_v1',
   projectData: 'fc_project_v1',
@@ -81,16 +81,13 @@ function validateRequiredDOM(){
 const FC = (function(){
   'use strict';
 
-  /* ===== Module: utils ===== */
-  const utils = {
+  /* ===== Module aliases: utils + storage ===== */
+  const utils = (window.FC && window.FC.utils) || {
     uid(){
-      // Prefer cryptographically strong UUIDs when available.
       if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-      // Fallback: time + random (kept for older browsers).
       return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 1e9);
     },
     clone(x){
-      // Prefer structuredClone when available; fallback to JSON for plain data.
       if (typeof structuredClone === 'function') return structuredClone(x);
       return JSON.parse(JSON.stringify(x));
     },
@@ -103,8 +100,7 @@ const FC = (function(){
     }
   };
 
-  /* ===== Module: storage ===== */
-  const storage = {
+  const storage = (window.FC && window.FC.storage) || {
     getJSON(key, fallback){
       try{
         const raw = localStorage.getItem(key);
@@ -115,9 +111,7 @@ const FC = (function(){
       }
     },
     setJSON(key, value){
-      try{
-        localStorage.setItem(key, JSON.stringify(value));
-      }catch(e){}
+      try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
     },
     getRaw(key){
       try{ return localStorage.getItem(key); }catch(e){ return null; }
@@ -534,8 +528,15 @@ window.FC.materialHasGrain = function(materialName){
 };
 let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
-const __uiDefaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null, lastAddedAt:null, lastAddedCabinetId:null, lastAddedCabinetType:null };
-var uiState = FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults) || {};
+const __uiDefaults = ((window.FC && window.FC.uiState && typeof window.FC.uiState.defaults === 'function')
+  ? window.FC.uiState.defaults()
+  : { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null }) || {};
+__uiDefaults.lastAddedAt = null;
+__uiDefaults.lastAddedCabinetId = null;
+__uiDefaults.lastAddedCabinetType = null;
+var uiState = ((window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function')
+  ? window.FC.uiState.get()
+  : FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults)) || {};
 uiState = Object.assign({}, __uiDefaults, uiState);
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);

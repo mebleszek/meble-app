@@ -87,3 +87,5 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 - `js/app/cabinet-actions.js` i `js/app/cabinet-summary.js` są teraz również ładowane bezpośrednio przez `index.html`, więc `app.js` nie musi utrzymywać rozbudowanych fallbacków tylko z powodu braku skryptu.
 
 - `project-bootstrap.js` ładowany tylko raz w `index.html`; usunięty duplikat include.
+
+- js/app.js korzysta już z preładowanych modułów constants/utils/storage/ui-state jako źródeł prawdy; w app.js zostały tylko lokalne fallbacki awaryjne.
