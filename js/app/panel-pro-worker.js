@@ -1412,6 +1412,51 @@ try{
       const candidates = [];
       const boardArea = W * H;
 
+      const analyzeJobSignature = (list)=>{
+        const widthCounts = new Map();
+        const heightCounts = new Map();
+        const pairCounts = new Map();
+        let elongated = 0;
+        let medium = 0;
+        let large = 0;
+        let skinny = 0;
+        let totalArea = 0;
+        for(const it of (list || [])){
+          if(!it) continue;
+          const w = Math.max(1, Number(it.w) || 0);
+          const h = Math.max(1, Number(it.h) || 0);
+          const mx = Math.max(w, h);
+          const mn = Math.max(1, Math.min(w, h));
+          const ratio = mx / mn;
+          const area = w * h;
+          totalArea += area;
+          if(ratio >= 2.15) elongated += 1;
+          else if(ratio >= 1.45) medium += 1;
+          if(mn <= 340) skinny += 1;
+          if(area >= boardArea * 0.07) large += 1;
+          widthCounts.set(w, (widthCounts.get(w) || 0) + 1);
+          heightCounts.set(h, (heightCounts.get(h) || 0) + 1);
+          pairCounts.set(w + 'x' + h, (pairCounts.get(w + 'x' + h) || 0) + 1);
+        }
+        const total = Math.max(1, (list || []).length);
+        const repShare = (m)=>{
+          let rep = 0;
+          for(const v of m.values()) if(v >= 2) rep += v;
+          return rep / total;
+        };
+        const widthRep = repShare(widthCounts);
+        const heightRep = repShare(heightCounts);
+        const pairRep = repShare(pairCounts);
+        const elongatedRatio = elongated / total;
+        const skinnyRatio = skinny / total;
+        const largeRatio = large / total;
+        const mediumRatio = medium / total;
+        const stripFriendly = (heightRep >= 0.52 || widthRep >= 0.52 || elongatedRatio >= 0.42 || (skinnyRatio >= 0.55 && pairRep >= 0.24));
+        const mixedTreeFriendly = (largeRatio >= 0.16 && mediumRatio >= 0.16) || (pairRep >= 0.20 && (heightRep >= 0.28 || widthRep >= 0.28));
+        return { widthRep, heightRep, pairRep, elongatedRatio, skinnyRatio, largeRatio, mediumRatio, stripFriendly, mixedTreeFriendly };
+      };
+      const jobSig = analyzeJobSignature(arr);
+
       const analyzeCandidate = (cand)=>{
         let repeatedArea = 0;
         let bandArea = 0;
@@ -1489,8 +1534,26 @@ try{
         const bRecursive = bType === 'recursive' ? 1 : 0;
         const aTree = aType === 'treebeam' ? 1 : 0;
         const bTree = bType === 'treebeam' ? 1 : 0;
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.060) - (aTree * boardArea * 0.090);
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.060) - (bTree * boardArea * 0.090);
+        const familyBonus = (type)=>{
+          let bonus = 0;
+          if(jobSig.stripFriendly){
+            if(type === 'strip') bonus += boardArea * 0.130;
+            else if(type === 'adaptive') bonus += boardArea * 0.095;
+            else if(type === 'guillotine') bonus += boardArea * 0.030;
+            else if(type === 'treebeam') bonus -= boardArea * 0.050;
+            else if(type === 'recursive') bonus -= boardArea * 0.030;
+          }
+          if(jobSig.mixedTreeFriendly){
+            if(type === 'treebeam') bonus += boardArea * 0.095;
+            else if(type === 'recursive') bonus += boardArea * 0.075;
+            else if(type === 'strip') bonus -= boardArea * 0.030;
+          }
+          return bonus;
+        };
+        const aBonus = familyBonus(aType);
+        const bBonus = familyBonus(bType);
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.060) - (aTree * boardArea * 0.090) - aBonus;
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.060) - (bTree * boardArea * 0.090) - bBonus;
         if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
         if(tailAwareBetter(a, b, boardArea)) return a;
         return b;
@@ -1557,7 +1620,7 @@ try{
           return opt.packStripBands(arr, W, H, K, cutMode, { edgeTrimNewSheet });
         }
       }
-      if(cutMode === 'optional') return packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, lineVariants: 5, branchWidth: Math.max(6, Math.round(beamWidth * 0.06)), beamWidth: Math.max(7, Math.round(beamWidth * 0.07)), nodeBudget: Math.max(260, Math.round(beamWidth * 1.9)), deadline: now() + Math.max(650, Math.round(ms * 1.85)), perSheetSliceMs: Math.max(620, Math.round(ms * 1.20)), maxZeroSplits: 4, maxSteps: 30 });
+      if(cutMode === 'optional') return packOptionalHybrid(arr, pref, ms);
       return packGuillotine(arr, pref, ms);
     };
 

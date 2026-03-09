@@ -285,3 +285,5 @@ Dopiero potem go zmieniać.
 
 - Step 49: `js/app/panel-pro-worker.js` — tryb `Opcjonalnie` dostał prawdziwy kandydat split-recursive (czysty podział regionu na 2 dzieci bez wymuszania pełnego pasa) oraz mocniejszy budżet/priorytet dla rodziny rekurencyjnej, bo poprzednie kroki w praktyce dalej przegrywały z układami pasowymi i dawały niemal identyczne wyniki.
 - Step 50: `js/app/panel-pro-worker.js` — tryb `Opcjonalnie` przestał być tylko hybrydowym wrapperem i dostał nowy główny solver `packOptionalTreeBeam()`: beam-search po częściowych drzewach cięć regionów (open/closed regions, lokalne splity/bandy/bloki, cofanie przez utrzymywanie wielu stanów naraz). To jest pierwszy krok w stronę realnego „odtwarzania ruchów wstecz” zamiast samych restartów od zera.
+
+- Step 51: `Opcjonalnie` wróciło na solver portfelowy (treebeam/recursive/adaptive/strip/guillotine) zamiast wymuszać sam `treebeam`; dodano rozpoznawanie typu zadania (wąskie powtarzalne formatki vs mieszane korpusowe) i bias wyboru rodziny układu.
