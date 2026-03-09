@@ -544,6 +544,57 @@ try{
     const arr = chooseRegionLineSizes(rem, region, axis, K, 1);
     return arr.length ? arr[0].size : 0;
   }
+  function chooseRegionSplitSizes(rem, region, axis, K, limit){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    const regionSpan = axis === 'col' ? rw : rh;
+    const sizes = chooseRegionLineSizes(rem, region, axis, K, Math.max(2, Math.round(Number(limit) || 2) + 1))
+      .map(x=> Math.max(0, Math.round(Number(x && x.size) || 0)));
+    const out = [];
+    const seen = new Set();
+    for(const raw of sizes){
+      const sz = Math.max(80, raw);
+      if(sz >= regionSpan - 80) continue;
+      if(seen.has(sz)) continue;
+      seen.add(sz);
+      out.push(sz);
+    }
+    const half = Math.max(80, Math.round((regionSpan - K) / 2));
+    if(half >= 80 && half <= regionSpan - 80 && !seen.has(half)) out.push(half);
+    const twoThirds = Math.max(80, Math.round((regionSpan - K) * 0.62));
+    if(twoThirds >= 80 && twoThirds <= regionSpan - 80 && !seen.has(twoThirds)) out.push(twoThirds);
+    return out.slice(0, Math.max(1, Math.round(Number(limit) || 1)));
+  }
+
+  function buildRegionSplitCandidate(region, axis, splitSize, K, state){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    const cut = Math.max(80, Math.round(Number(splitSize) || 0));
+    if(axis === 'row'){
+      if(cut >= rh - 80) return null;
+      const bottomY = region.y + cut + K;
+      const bottomH = Math.max(0, region.y + rh - bottomY);
+      if(bottomH < 80) return null;
+      const top = { x: region.x, y: region.y, w: rw, h: cut };
+      const bottom = { x: region.x, y: bottomY, w: rw, h: bottomH };
+      const balance = 1 - (Math.abs(top.h - bottom.h) / Math.max(1, rh));
+      let score = state.boardArea * 0.001;
+      score += (balance * state.boardArea * 0.0035);
+      if(state.prefDir === 'along') score += state.boardArea * 0.0025;
+      return { kind:'split', axis, lineSize:cut, placements:[], usedIdx:[], regions:[top, bottom], usedArea:0, score };
+    }
+    if(cut >= rw - 80) return null;
+    const rightX = region.x + cut + K;
+    const rightW = Math.max(0, region.x + rw - rightX);
+    if(rightW < 80) return null;
+    const left = { x: region.x, y: region.y, w: cut, h: rh };
+    const right = { x: rightX, y: region.y, w: rightW, h: rh };
+    const balance = 1 - (Math.abs(left.w - right.w) / Math.max(1, rw));
+    let score = state.boardArea * 0.001;
+    score += (balance * state.boardArea * 0.0035);
+    if(state.prefDir === 'across') score += state.boardArea * 0.0025;
+    return { kind:'split', axis, lineSize:cut, placements:[], usedIdx:[], regions:[left, right], usedArea:0, score };
+  }
 
   function pickRegionExact(rem, axis, lineSize, spacePrimary, regionSecondary, blocked){
     let best = null;
@@ -798,7 +849,8 @@ try{
         childScore -= freePenalty;
         if(axisTag === 'row' && state.prefDir === 'along') childScore += state.boardArea * 0.0025;
         if(axisTag === 'col' && state.prefDir === 'across') childScore += state.boardArea * 0.0025;
-        if(baseCand.kind === 'block') childScore += state.boardArea * 0.0040;
+        if(baseCand.kind === 'block') childScore += state.boardArea * 0.0080;
+        if(baseCand.kind === 'split') childScore += state.boardArea * 0.0100;
         if(orderMode === 'large-first' && childFreeRects.length <= 2) childScore += state.boardArea * 0.0015;
 
         const cand = {
@@ -832,9 +884,16 @@ try{
         const remAfterBand = removeItemsByIndices(rem, band.usedIdx);
         finalizeRecursiveCandidate(band, remAfterBand, axis);
       }
+      const splitChoices = chooseRegionSplitSizes(rem, region, axis, K, Math.max(2, state.lineVariants));
+      for(const splitSize of splitChoices){
+        if(state.deadline && now() > state.deadline) break;
+        const split = buildRegionSplitCandidate(region, axis, splitSize, K, state);
+        if(!split) continue;
+        finalizeRecursiveCandidate(split, rem.slice(), axis);
+      }
     }
 
-    const anchors = chooseRegionAnchorCandidates(rem, region, Math.max(2, state.lineVariants + 1));
+    const anchors = chooseRegionAnchorCandidates(rem, region, Math.max(3, state.lineVariants + 2));
     for(const anchor of anchors){
       if(state.deadline && now() > state.deadline) break;
       const block = buildRegionBlockCandidate(rem, region, anchor, K, state);
@@ -1066,7 +1125,7 @@ try{
         const aType = familyClass(a.family);
         const bType = familyClass(b.family);
         const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
-        const recursiveMargin = boardArea * 0.070;
+        const recursiveMargin = boardArea * 0.140;
         const adaptiveMargin = boardArea * 0.060;
         const stripMargin = boardArea * 0.055;
         const aTail = tailMetrics(a.sheets);
@@ -1095,8 +1154,8 @@ try{
 
         const aRecursive = aType === 'recursive' ? 1 : 0;
         const bRecursive = bType === 'recursive' ? 1 : 0;
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.020);
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.020);
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.060);
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.060);
         if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
         if(tailAwareBetter(a, b, boardArea)) return a;
         return b;
@@ -1113,8 +1172,8 @@ try{
 
       const recursiveNodeBudget = Math.max(120, Math.round(beamWidth * 0.90));
       const recursiveDeadline = now() + Math.max(240, Math.round(ms * 1.35));
-      add('recursive-main', packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, maxDepth: 10, lineVariants: 2, nodeBudget: recursiveNodeBudget, deadline: recursiveDeadline, perSheetSliceMs: Math.max(260, Math.round(ms * 0.55)) }), false);
-      add('recursive-pref-' + pref, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, maxDepth: 10, lineVariants: 2, nodeBudget: recursiveNodeBudget, deadline: recursiveDeadline, perSheetSliceMs: Math.max(260, Math.round(ms * 0.55)) }), false);
+      add('recursive-main', packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, maxDepth: 12, lineVariants: 3, nodeBudget: Math.max(180, Math.round(recursiveNodeBudget * 1.35)), deadline: recursiveDeadline, perSheetSliceMs: Math.max(340, Math.round(ms * 0.78)) }), false);
+      add('recursive-pref-' + pref, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, maxDepth: 12, lineVariants: 3, nodeBudget: Math.max(180, Math.round(recursiveNodeBudget * 1.35)), deadline: recursiveDeadline, perSheetSliceMs: Math.max(340, Math.round(ms * 0.78)) }), false);
       add('adaptive-main', packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet }), false);
       add('adaptive-pref-' + pref, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref }), false);
       if(opt.packStripBands){
@@ -1135,7 +1194,7 @@ try{
         for(let i=1;i<hybridRuns;i++){
           const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.24)));
           if(extraType === 'recursive'){
-            add('recursive-deep-' + i, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), maxDepth: 11, lineVariants: 2, nodeBudget: Math.max(140, Math.round(beamWidth * (1.0 + i*0.18))), deadline: now() + Math.max(320, Math.round(extraMs * 1.25)), perSheetSliceMs: Math.max(300, Math.round(extraMs * 0.60)) }), false);
+            add('recursive-deep-' + i, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), maxDepth: 13, lineVariants: 4, nodeBudget: Math.max(220, Math.round(beamWidth * (1.45 + i*0.22))), deadline: now() + Math.max(420, Math.round(extraMs * 1.45)), perSheetSliceMs: Math.max(420, Math.round(extraMs * 0.92)) }), false);
           } else if(extraType === 'adaptive'){
             add('adaptive-deep-' + i, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref) }), false);
           } else if(extraType === 'strip' && opt.packStripBands){

@@ -282,3 +282,5 @@ Dopiero potem go zmieniać.
 - Step 47: `js/app/panel-pro-worker.js` — przebudowa trybu `Opcjonalnie` w kierunku rekurencyjnego drzewa cięć regionów (lokalna zmiana osi per region, kandydaci line-size, lokalny backtracking kolejności dzieci) zamiast samego multi-startu od zera.
 
 - Step 48: `js/app/panel-pro-worker.js` — tryb `Opcjonalnie` dostał pierwszy prawdziwy kandydat blokowo‑rekurencyjny: poza pełnymi pasami rozważa też wycięcie pojedynczego bloku kotwiczonego w lewym górnym rogu regionu i dalsze rekurencyjne dzielenie prawego/dolnego dziecka, co ma zbliżyć solver do „fraktalnych” lokalnych zmian osi z Optimika.
+
+- Step 49: `js/app/panel-pro-worker.js` — tryb `Opcjonalnie` dostał prawdziwy kandydat split-recursive (czysty podział regionu na 2 dzieci bez wymuszania pełnego pasa) oraz mocniejszy budżet/priorytet dla rodziny rekurencyjnej, bo poprzednie kroki w praktyce dalej przegrywały z układami pasowymi i dawały niemal identyczne wyniki.
