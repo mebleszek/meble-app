@@ -879,7 +879,7 @@
 
     const modeHintWrap = h('div');
     modeHintWrap.appendChild(h('label', { text:'Tryb pracy' }));
-    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = hybryda: porównuje kilka rodzin układów i wybiera najlepszą. Wzdłuż / w poprzek = rozkrój pasowy.' }));
+    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = adaptacyjny tryb pasowy: dobiera oś płyta-po-płycie, buduje pasy i dopiero lokalnie dopycha końcówki. Wzdłuż / w poprzek = rozkrój pasowy w jednym kierunku.' }));
     controls3.appendChild(modeHintWrap);
 
     card.appendChild(controls);

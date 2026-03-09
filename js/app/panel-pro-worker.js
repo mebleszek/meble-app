@@ -224,6 +224,253 @@ try{
     return [byAreaDesc, byMaxSideDesc, byPerimDesc, byMinSideDesc, byWidthDesc, byHeightDesc];
   }
 
+  function makePlacementFromCandidate(it, cand, x, y){
+    return {
+      id: it.id,
+      key: it.key,
+      name: it.name,
+      x, y,
+      w: cand.w,
+      h: cand.h,
+      rotated: !!cand.rotated,
+      edgeW1: cand.rotated ? it.edgeH1 : it.edgeW1,
+      edgeW2: cand.rotated ? it.edgeH2 : it.edgeW2,
+      edgeH1: cand.rotated ? it.edgeW1 : it.edgeH1,
+      edgeH2: cand.rotated ? it.edgeW2 : it.edgeH2,
+    };
+  }
+
+  function buildAdaptiveStripSheet(itemsIn, boardW, boardH, kerf, direction, options){
+    const W = Math.max(10, Math.round(Number(boardW)||0));
+    const H = Math.max(10, Math.round(Number(boardH)||0));
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const swap = (direction === 'across' || direction === 'wpoprz');
+    const BW = swap ? H : W;
+    const BH = swap ? W : H;
+    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet) || 0));
+    const rem = (itemsIn || []).map(it=>Object.assign({}, it));
+
+    const workX = trimNew;
+    const workY = trimNew;
+    const workW = Math.max(10, BW - 2 * trimNew);
+    const workH = Math.max(10, BH - 2 * trimNew);
+    const maxX = workX + workW;
+    const maxY = workY + workH;
+
+    function candidatesForItem(it){
+      const out = [{ w: Number(it.w)||0, h: Number(it.h)||0, rotated:false }];
+      if(it.rotationAllowed) out.push({ w: Number(it.h)||0, h: Number(it.w)||0, rotated:true });
+      return out.filter(c=>c.w > 0 && c.h > 0);
+    }
+
+    function swapRectBack(r){
+      return { x:r.y, y:r.x, w:r.h, h:r.w };
+    }
+
+    function swapPlacementBack(p){
+      const nx = p.y;
+      const ny = p.x;
+      const nw = p.h;
+      const nh = p.w;
+      const ew1 = p.edgeW1, ew2 = p.edgeW2, eh1 = p.edgeH1, eh2 = p.edgeH2;
+      p.x = nx; p.y = ny; p.w = nw; p.h = nh;
+      p.edgeW1 = eh1; p.edgeW2 = eh2;
+      p.edgeH1 = ew1; p.edgeH2 = ew2;
+      return p;
+    }
+
+    function chooseBandHeight(availH, availW){
+      const stats = new Map();
+      let fallback = null;
+      for(let i=0;i<rem.length;i++){
+        const it = rem[i];
+        for(const cand of candidatesForItem(it)){
+          if(cand.w > availW || cand.h > availH) continue;
+          const key = cand.h;
+          let st = stats.get(key);
+          if(!st){
+            st = { h:cand.h, count:0, area:0, width:0, maxW:0, exact2:0 };
+            stats.set(key, st);
+          }
+          st.count += 1;
+          st.area += cand.w * cand.h;
+          st.width += cand.w;
+          st.maxW = Math.max(st.maxW, cand.w);
+          if(cand.h === key) st.exact2 += 1;
+          const fbScore = (cand.w * cand.h) + (cand.h * 1000) + cand.w;
+          if(!fallback || fbScore > fallback.score){
+            fallback = { h:cand.h, score:fbScore };
+          }
+        }
+      }
+      let best = null;
+      for(const st of stats.values()){
+        const repeated = st.count >= 2 ? 1 : 0;
+        const fillPotential = Math.min(availW, st.width + Math.max(0, st.count - 1) * K);
+        const score = (repeated * 9000000) + (st.count * 1600000) + (fillPotential * 320) + (st.area * 0.45) + (st.h * 900) + (st.maxW * 25);
+        if(!best || score > best.score){
+          best = { h:st.h, score, repeated };
+        }
+      }
+      if(best) return best.h;
+      return fallback ? fallback.h : 0;
+    }
+
+    function pickExactForBand(spaceW, bandH){
+      let best = null;
+      for(let i=0;i<rem.length;i++){
+        const it = rem[i];
+        for(const cand of candidatesForItem(it)){
+          if(cand.h !== bandH || cand.w > spaceW) continue;
+          const score = (cand.w * 1000000) + (cand.h * 1000) + (cand.w * cand.h);
+          if(!best || score > best.score) best = { idx:i, it, cand, score };
+        }
+      }
+      return best;
+    }
+
+    function pickTailFiller(spaceW, bandH){
+      let best = null;
+      for(let i=0;i<rem.length;i++){
+        const it = rem[i];
+        for(const cand of candidatesForItem(it)){
+          if(cand.w > spaceW || cand.h > bandH) continue;
+          const gapH = bandH - cand.h;
+          const gapW = spaceW - cand.w;
+          const exactH = gapH === 0 ? 1 : 0;
+          const score = (exactH * 7000000) - (gapH * 3800) - (gapW * 45) + (cand.w * cand.h * 0.8) + (cand.w * 600);
+          if(!best || score > best.score) best = { idx:i, it, cand, score };
+        }
+      }
+      return best;
+    }
+
+    const sheet = { boardW: W, boardH: H, placements: [], _freeRects: [] };
+    const placedIds = [];
+    let cursorY = workY;
+    let exactArea = 0;
+    let fillerArea = 0;
+    let rowCount = 0;
+
+    while(rem.length && cursorY < maxY){
+      const availH = maxY - cursorY;
+      const bandH = chooseBandHeight(availH, workW);
+      if(!bandH) break;
+      let cursorX = workX;
+      let rowPlaced = 0;
+      let rowUsedW = 0;
+
+      while(rem.length && cursorX < maxX){
+        const exact = pickExactForBand(maxX - cursorX, bandH);
+        if(!exact) break;
+        const p = makePlacementFromCandidate(exact.it, exact.cand, cursorX, cursorY);
+        sheet.placements.push(p);
+        placedIds.push(exact.it.id);
+        exactArea += p.w * p.h;
+        rowPlaced += 1;
+        rowUsedW += p.w;
+        cursorX += p.w + K;
+        rem.splice(exact.idx, 1);
+      }
+
+      while(rem.length && cursorX < maxX){
+        const filler = pickTailFiller(maxX - cursorX, bandH);
+        if(!filler) break;
+        const p = makePlacementFromCandidate(filler.it, filler.cand, cursorX, cursorY);
+        sheet.placements.push(p);
+        placedIds.push(filler.it.id);
+        fillerArea += p.w * p.h;
+        rowPlaced += 1;
+        rowUsedW += p.w;
+        cursorX += p.w + K;
+        rem.splice(filler.idx, 1);
+      }
+
+      if(!rowPlaced) break;
+      rowCount += 1;
+      const tailW = Math.max(0, maxX - cursorX);
+      if(tailW >= 80 && bandH >= 80){
+        sheet._freeRects.push({ x: cursorX, y: cursorY, w: tailW, h: bandH });
+      }
+      cursorY += bandH + K;
+    }
+
+    const bottomH = Math.max(0, maxY - cursorY);
+    if(bottomH >= 80 && workW >= 80){
+      sheet._freeRects.push({ x: workX, y: cursorY, w: workW, h: bottomH });
+    }
+
+    if(!sheet.placements.length && rem.length){
+      const it = rem[0];
+      sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w:it.w, h:it.h, rotated:false, unplaced:true });
+    }
+
+    if(swap){
+      sheet.placements = sheet.placements.map(p=> swapPlacementBack(p));
+      sheet._freeRects = sheet._freeRects.map(swapRectBack);
+    }
+    sheet.boardW = W;
+    sheet.boardH = H;
+
+    return {
+      sheet,
+      placedIds,
+      exactArea,
+      fillerArea,
+      rowCount,
+      usedArea: sheet.placements.reduce((sum,p)=> sum + ((p && !p.unplaced) ? ((p.w||0)*(p.h||0)) : 0), 0),
+      remaining: rem,
+      direction,
+    };
+  }
+
+  function packAdaptiveBands(itemsIn, boardW, boardH, kerf, options){
+    let rem = (itemsIn || []).map(it=>Object.assign({}, it));
+    const sheets = [];
+    const boardArea = Math.max(1, (Number(boardW)||0) * (Number(boardH)||0));
+
+    function chooseBuild(a, b){
+      if(!b || !b.sheet || !(b.sheet.placements||[]).length) return a;
+      if(!a || !a.sheet || !(a.sheet.placements||[]).length) return b;
+      const aPlaced = (a.sheet.placements||[]).filter(p=>p && !p.unplaced).length;
+      const bPlaced = (b.sheet.placements||[]).filter(p=>p && !p.unplaced).length;
+      const aSc = scoreSheets([a.sheet]);
+      const bSc = scoreSheets([b.sheet]);
+      const aStruct = sheetStructureMetrics(a.sheet);
+      const bStruct = sheetStructureMetrics(b.sheet);
+      const aLargest = meaningfulFreeRects(a.sheet).reduce((m,r)=>Math.max(m, r.w*r.h), 0);
+      const bLargest = meaningfulFreeRects(b.sheet).reduce((m,r)=>Math.max(m, r.w*r.h), 0);
+      let aScore = aSc.waste - (a.exactArea * 0.050) - (aStruct.repeatedArea * 0.060) - (aStruct.bandArea * 0.045) - (aLargest * 0.12) - (aPlaced * boardArea * 0.0012) + (a.rowCount * boardArea * 0.0010);
+      let bScore = bSc.waste - (b.exactArea * 0.050) - (bStruct.repeatedArea * 0.060) - (bStruct.bandArea * 0.045) - (bLargest * 0.12) - (bPlaced * boardArea * 0.0012) + (b.rowCount * boardArea * 0.0010);
+      const prefDir = options && options.preferredDirection;
+      if(prefDir === 'along' || prefDir === 'across'){
+        if(a.direction === prefDir) aScore -= boardArea * 0.004;
+        if(b.direction === prefDir) bScore -= boardArea * 0.004;
+      }
+      if(Math.abs(aScore - bScore) > boardArea * 0.010) return aScore <= bScore ? a : b;
+      if(aPlaced !== bPlaced) return aPlaced > bPlaced ? a : b;
+      if(a.usedArea !== b.usedArea) return a.usedArea > b.usedArea ? a : b;
+      return aSc.waste <= bSc.waste ? a : b;
+    }
+
+    while(rem.length){
+      const along = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'along', options);
+      const across = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'across', options);
+      const chosen = chooseBuild(along, across) || along || across;
+      if(!chosen || !chosen.sheet || !(chosen.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
+      sheets.push(chosen.sheet);
+      const taken = new Set(chosen.placedIds);
+      rem = rem.filter(it=> !taken.has(it.id));
+    }
+
+    if(rem.length){
+      const fallback = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'along', options);
+      if(fallback && fallback.sheet) sheets.push(fallback.sheet);
+    }
+
+    return sheets;
+  }
+
   let _cancelled = false;
   let _activeRunId = 0;
   let _pendingCancelRunId = 0;
@@ -280,19 +527,28 @@ try{
         let bandArea = 0;
         let axisCoherenceSum = 0;
         let usedArea = 0;
+        let largestFree = 0;
         for(const s of (cand.sheets||[])){
           const m = sheetStructureMetrics(s);
           repeatedArea += m.repeatedArea;
           bandArea += m.bandArea;
           axisCoherenceSum += m.axisCoherence;
           usedArea += m.usedArea;
+          largestFree = Math.max(largestFree, meaningfulFreeRects(s).reduce((mx,r)=>Math.max(mx, r.w*r.h), 0));
         }
         return {
           repeatedArea,
           bandArea,
           coherence: usedArea > 0 ? Math.max(0, Math.min(1, repeatedArea / usedArea)) : 0,
           avgAxisCoherence: (cand.sheets && cand.sheets.length) ? (axisCoherenceSum / cand.sheets.length) : 0,
+          largestFree,
         };
+      };
+
+      const familyClass = (name)=>{
+        if(/^adaptive/.test(name)) return 'adaptive';
+        if(/^strip/.test(name)) return 'strip';
+        return 'guillotine';
       };
 
       const chooseBetterCandidate = (a, b)=>{
@@ -300,18 +556,24 @@ try{
         if(!a) return b;
         if(a.sc.sheets !== b.sc.sheets) return (a.sc.sheets < b.sc.sheets) ? a : b;
 
+        const aType = familyClass(a.family);
+        const bType = familyClass(b.family);
         const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
-        const structureMargin = boardArea * 0.04;
-        const aStrip = /^strip/.test(a.family);
-        const bStrip = /^strip/.test(b.family);
+        const adaptiveMargin = boardArea * 0.065;
+        const stripMargin = boardArea * 0.050;
 
-        if(aStrip !== bStrip && wasteGap <= structureMargin){
-          return aStrip ? a : b;
+        if(aType !== bType){
+          if((aType === 'adaptive' || bType === 'adaptive') && wasteGap <= adaptiveMargin){
+            return aType === 'adaptive' ? a : b;
+          }
+          if((aType === 'strip' || bType === 'strip') && wasteGap <= stripMargin){
+            return aType === 'strip' ? a : b;
+          }
         }
 
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.045) - (a.meta.bandArea * 0.035) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.62) * 0.55);
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.045) - (b.meta.bandArea * 0.035) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.62) * 0.55);
-        if(Math.abs(aScore - bScore) > (boardArea * 0.012)) return (aScore < bScore) ? a : b;
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.065) - (a.meta.bandArea * 0.055) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.75) - (a.meta.largestFree * 0.12);
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.065) - (b.meta.bandArea * 0.055) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.75) - (b.meta.largestFree * 0.12);
+        if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
         return (a.sc.waste <= b.sc.waste) ? a : b;
       };
 
@@ -324,25 +586,34 @@ try{
         emitProgress(false);
       };
 
-      add('guillotine-' + pref, packGuillotine(arr, pref, ms), true);
-      const altPref = (pref === 'along') ? 'across' : 'along';
-      if(pref !== altPref){
-        add('guillotine-' + altPref, packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.8))), true);
-      }
+      add('adaptive-main', packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet }), false);
+      add('adaptive-pref-' + pref, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref }), false);
       if(opt.packStripBands){
         add('strip-along', opt.packStripBands(arr, W, H, K, 'along', { edgeTrimNewSheet }));
         add('strip-across', opt.packStripBands(arr, W, H, K, 'across', { edgeTrimNewSheet }));
+      }
+      add('guillotine-' + pref, packGuillotine(arr, pref, ms), true);
+      const altPref = (pref === 'along') ? 'across' : 'along';
+      if(pref !== altPref){
+        add('guillotine-' + altPref, packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.7))), true);
       }
 
       let best = null;
       for(const cand of candidates) best = chooseBetterCandidate(cand, best);
 
-      // Heavy profiles: deepen only the family that already looks promising.
       if(hybridRuns > 1 && best && best.sheets && best.sheets.length){
-        const extraFamily = /^strip/.test(best.family) ? best.family.replace(/^strip-/, '') : best.family.replace(/^guillotine-/, '');
+        const extraType = familyClass(best.family);
         for(let i=1;i<hybridRuns;i++){
-          const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.30)));
-          add('guillotine-' + extraFamily, packGuillotine(arr, extraFamily, extraMs), true);
+          const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.24)));
+          if(extraType === 'adaptive'){
+            add('adaptive-deep-' + i, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref) }), false);
+          } else if(extraType === 'strip' && opt.packStripBands){
+            const dir = /across$/.test(best.family) ? 'across' : 'along';
+            add('strip-deep-' + dir + '-' + i, opt.packStripBands(arr, W, H, K, dir, { edgeTrimNewSheet }));
+          } else {
+            const dir = /across$/.test(best.family) ? 'across' : 'along';
+            add('guillotine-deep-' + dir + '-' + i, packGuillotine(arr, dir, extraMs), true);
+          }
         }
         best = null;
         for(const cand of candidates) best = chooseBetterCandidate(cand, best);

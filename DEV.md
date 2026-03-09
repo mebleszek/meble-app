@@ -271,3 +271,5 @@ Dopiero potem go zmieniać.
 - Step 42: przestrojenie trybu „Opcjonalnie kierunek cięcia” — mocniejsza preferencja układów pasowych, kara za rozdrobnienie i spójniejsze porównywanie rodzin kandydatów.
 - Step 43: naprawa licznika postępu Optimax — status liczy teraz wszystkie sprawdzone warianty od początku (nie tylko końcowe restarty), aktualizuje się także w ciężkiej fazie opcjonalnej/DD; w UI etykieta zmieniona z „Próby” na „Warianty”.
 - Step 42: mocniejsze strojenie trybu `Opcjonalnie kierunek cięcia` w workerze — preferencja układów pasowych przy zbliżonym odpadzie, silniejsza kara za rozdrobnienie i wąskie ścinki oraz lepsze ważenie spójności rzędów/kolumn przy wyborze między gilotyną a pasami.
+
+- Step 44: tryb `Opcjonalnie` w Optimaxie dostał nowy adaptacyjny wariant pasowy w workerze (`js/app/panel-pro-worker.js`): wybór osi płyta-po-płycie, grupowanie po dominujących wysokościach/szerokościach, budowa pasów i dopychanie końcówek jako tail-fill zamiast luźnego globalnego porównania rodzin układów.
