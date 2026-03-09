@@ -273,3 +273,7 @@ Dopiero potem go zmieniać.
 - Step 42: mocniejsze strojenie trybu `Opcjonalnie kierunek cięcia` w workerze — preferencja układów pasowych przy zbliżonym odpadzie, silniejsza kara za rozdrobnienie i wąskie ścinki oraz lepsze ważenie spójności rzędów/kolumn przy wyborze między gilotyną a pasami.
 
 - Step 44: tryb `Opcjonalnie` w Optimaxie dostał nowy adaptacyjny wariant pasowy w workerze (`js/app/panel-pro-worker.js`): wybór osi płyta-po-płycie, grupowanie po dominujących wysokościach/szerokościach, budowa pasów i dopychanie końcówek jako tail-fill zamiast luźnego globalnego porównania rodzin układów.
+
+- step45: w Optimax optional dodano mocniejszą ocenę wykorzystania ostatniej płyty oraz deterministyczny post-pass repakujący ogon (ostatnie 2-3 arkusze) trybami adaptive/strip, żeby ograniczyć pusty 5. arkusz.
+
+- Step 46: tryb `Opcjonalnie` w Optimax został przebudowany z wyboru globalnej rodziny układów na adaptacyjne pasy/bloki dobierane region-po-regionie w workerze; celem jest lepsze wykorzystanie ogona i możliwość lokalnej zmiany osi bez psucia całego arkusza.

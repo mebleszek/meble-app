@@ -85,6 +85,65 @@ try{
     return sheetStructureMetrics(sheet).bandArea;
   }
 
+  function tailMetrics(sheets){
+    const arr = Array.isArray(sheets) ? sheets : [];
+    const boardArea = (sheet)=> Math.max(1, (Number(sheet && sheet.boardW) || 0) * (Number(sheet && sheet.boardH) || 0));
+    const usedArea = (sheet)=> ((sheet && Array.isArray(sheet.placements)) ? sheet.placements : []).reduce((sum,p)=> sum + ((p && !p.unplaced) ? ((Number(p.w)||0) * (Number(p.h)||0)) : 0), 0);
+    const bboxFill = (sheet)=>{
+      const pls = (sheet && Array.isArray(sheet.placements)) ? sheet.placements.filter(p=>p && !p.unplaced) : [];
+      if(!pls.length) return 0;
+      const bbox = pls.reduce((acc,p)=>({
+        minX: Math.min(acc.minX, p.x),
+        minY: Math.min(acc.minY, p.y),
+        maxX: Math.max(acc.maxX, p.x + p.w),
+        maxY: Math.max(acc.maxY, p.y + p.h),
+      }), { minX:1e18, minY:1e18, maxX:-1e18, maxY:-1e18 });
+      const bw = Math.max(0, bbox.maxX - bbox.minX);
+      const bh = Math.max(0, bbox.maxY - bbox.minY);
+      const area = bw * bh;
+      const used = usedArea(sheet);
+      return area > 0 ? (used / area) : 0;
+    };
+    const last = arr.length ? arr[arr.length - 1] : null;
+    const prev = arr.length > 1 ? arr[arr.length - 2] : null;
+    const lastArea = boardArea(last);
+    const prevArea = boardArea(prev);
+    const lastUsed = usedArea(last);
+    const prevUsed = usedArea(prev);
+    const lastFree = last ? meaningfulFreeRects(last).reduce((mx,r)=>Math.max(mx, r.w*r.h), 0) : 0;
+    const prevFree = prev ? meaningfulFreeRects(prev).reduce((mx,r)=>Math.max(mx, r.w*r.h), 0) : 0;
+    const tailArea = lastArea + prevArea;
+    const tailUsed = lastUsed + prevUsed;
+    return {
+      lastUsedRatio: lastArea > 0 ? (lastUsed / lastArea) : 0,
+      prevUsedRatio: prevArea > 0 ? (prevUsed / prevArea) : 0,
+      tail2UsedRatio: tailArea > 0 ? (tailUsed / tailArea) : 0,
+      lastBBoxFill: bboxFill(last),
+      prevBBoxFill: bboxFill(prev),
+      lastLargestFree: lastFree,
+      prevLargestFree: prevFree,
+    };
+  }
+
+  function tailAwareBetter(a, b, boardArea){
+    if(!b) return true;
+    if(!a) return false;
+    if(a.sc.sheets !== b.sc.sheets) return a.sc.sheets < b.sc.sheets;
+    const margin = Math.max(boardArea * 0.08, 1);
+    const ta = tailMetrics(a.sheets);
+    const tb = tailMetrics(b.sheets);
+    const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
+    if(wasteGap <= margin){
+      if(Math.abs(ta.lastUsedRatio - tb.lastUsedRatio) >= 0.09) return ta.lastUsedRatio > tb.lastUsedRatio;
+      if(Math.abs(ta.tail2UsedRatio - tb.tail2UsedRatio) >= 0.06) return ta.tail2UsedRatio > tb.tail2UsedRatio;
+      if(Math.abs(ta.lastBBoxFill - tb.lastBBoxFill) >= 0.10) return ta.lastBBoxFill > tb.lastBBoxFill;
+    }
+    if(wasteGap <= boardArea * 0.04){
+      if(Math.abs(ta.lastUsedRatio - tb.lastUsedRatio) >= 0.05) return ta.lastUsedRatio > tb.lastUsedRatio;
+    }
+    return better(a, b);
+  }
+
   function scoreSheets(sheets){
     if(!opt || !opt.calcWaste) return { sheets: (sheets||[]).length, waste: Number.POSITIVE_INFINITY };
     const arr = (sheets||[]);
@@ -163,7 +222,7 @@ try{
         waste += Math.min(area * 0.05, narrowScrapArea * 0.12);
       }
 
-      // Lekka kara za "poszarpaną" ostatnią płytę z wieloma małymi wyspami.
+      // Mocniejsza kara za słabo wykorzystaną / poszarpaną ostatnią płytę.
       if(s === arr[arr.length-1]){
         const pls2 = (s && s.placements) ? s.placements.filter(p=>p && !p.unplaced) : [];
         if(pls2.length > 0){
@@ -176,10 +235,18 @@ try{
           const bw = Math.max(0, bbox.maxX - bbox.minX);
           const bh = Math.max(0, bbox.maxY - bbox.minY);
           const bboxArea = bw * bh;
-          const usedArea = pls2.reduce((sum,p)=> sum + ((p.w||0)*(p.h||0)), 0);
+          const usedArea2 = pls2.reduce((sum,p)=> sum + ((p.w||0)*(p.h||0)), 0);
+          const usedRatio = area > 0 ? (usedArea2 / area) : 0;
           if(bboxArea > 0){
-            const fill = usedArea / bboxArea;
-            if(fill < 0.74) waste += area * 0.02;
+            const fill = usedArea2 / bboxArea;
+            if(fill < 0.80) waste += area * Math.min(0.060, (0.80 - fill) * 0.18);
+          }
+          if(usedRatio < 0.62){
+            waste += area * Math.min(0.095, (0.62 - usedRatio) * 0.22);
+          }
+          const largestFree2 = meaningfulFreeRects(s).reduce((mx,r)=>Math.max(mx, r.w*r.h), 0);
+          if(usedRatio < 0.52 && largestFree2 > area * 0.28){
+            waste += area * 0.018;
           }
         }
       }
@@ -284,7 +351,7 @@ try{
       let fallback = null;
       for(let i=0;i<rem.length;i++){
         const it = rem[i];
-        for(const cand of candidatesForItem(it)){
+        for(const cand of adaptiveCandidatesForItem(it)){
           if(cand.w > availW || cand.h > availH) continue;
           const key = cand.h;
           let st = stats.get(key);
@@ -320,7 +387,7 @@ try{
       let best = null;
       for(let i=0;i<rem.length;i++){
         const it = rem[i];
-        for(const cand of candidatesForItem(it)){
+        for(const cand of adaptiveCandidatesForItem(it)){
           if(cand.h !== bandH || cand.w > spaceW) continue;
           const score = (cand.w * 1000000) + (cand.h * 1000) + (cand.w * cand.h);
           if(!best || score > best.score) best = { idx:i, it, cand, score };
@@ -333,7 +400,7 @@ try{
       let best = null;
       for(let i=0;i<rem.length;i++){
         const it = rem[i];
-        for(const cand of candidatesForItem(it)){
+        for(const cand of adaptiveCandidatesForItem(it)){
           if(cand.w > spaceW || cand.h > bandH) continue;
           const gapH = bandH - cand.h;
           const gapW = spaceW - cand.w;
@@ -424,50 +491,239 @@ try{
     };
   }
 
+
+  function adaptiveCandidatesForItem(it){
+    const out = [{ w: Number(it.w)||0, h: Number(it.h)||0, rotated:false }];
+    if(it && it.rotationAllowed) out.push({ w: Number(it.h)||0, h: Number(it.w)||0, rotated:true });
+    return out.filter(c=>c.w > 0 && c.h > 0);
+  }
+
+  function chooseRegionLineSize(rem, region, axis, K){
+    const stats = new Map();
+    let fallback = null;
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    for(let i=0;i<rem.length;i++){
+      const it = rem[i];
+      for(const cand of adaptiveCandidatesForItem(it)){
+        if(cand.w > rw || cand.h > rh) continue;
+        const key = axis === 'col' ? cand.w : cand.h;
+        let st = stats.get(key);
+        if(!st){
+          st = { size:key, count:0, area:0, primary:0, maxPrimary:0, exactCount:0 };
+          stats.set(key, st);
+        }
+        const primary = axis === 'col' ? cand.h : cand.w;
+        st.count += 1;
+        st.area += cand.w * cand.h;
+        st.primary += primary;
+        st.maxPrimary = Math.max(st.maxPrimary, primary);
+        if((axis === 'col' ? cand.w : cand.h) === key) st.exactCount += 1;
+        const fbScore = (cand.w * cand.h) + (key * 1000) + primary;
+        if(!fallback || fbScore > fallback.score){
+          fallback = { size:key, score:fbScore };
+        }
+      }
+    }
+    let best = null;
+    const regionPrimary = axis === 'col' ? rh : rw;
+    for(const st of stats.values()){
+      const repeated = st.count >= 2 ? 1 : 0;
+      const kerfNeed = Math.max(0, st.count - 1) * K;
+      const fillPotential = Math.min(regionPrimary, st.primary + kerfNeed);
+      const score = (repeated * 9000000) + (st.count * 1500000) + (fillPotential * 320) + (st.area * 0.42) + (st.size * 800) + (st.maxPrimary * 22);
+      if(!best || score > best.score) best = { size:st.size, score, repeated };
+    }
+    if(best) return best.size;
+    return fallback ? fallback.size : 0;
+  }
+
+  function pickRegionExact(rem, axis, lineSize, spacePrimary, regionSecondary, blocked){
+    let best = null;
+    for(let i=0;i<rem.length;i++){
+      if(blocked && blocked.has(i)) continue;
+      const it = rem[i];
+      for(const cand of adaptiveCandidatesForItem(it)){
+        const candPrimary = axis === 'col' ? cand.h : cand.w;
+        const candSecondary = axis === 'col' ? cand.w : cand.h;
+        if(candPrimary > spacePrimary || candSecondary !== lineSize || candSecondary > regionSecondary) continue;
+        const score = (candPrimary * 1000000) + (candSecondary * 1000) + (cand.w * cand.h);
+        if(!best || score > best.score) best = { idx:i, it, cand, score };
+      }
+    }
+    return best;
+  }
+
+  function pickRegionFiller(rem, axis, lineSize, spacePrimary, blocked){
+    let best = null;
+    for(let i=0;i<rem.length;i++){
+      if(blocked && blocked.has(i)) continue;
+      const it = rem[i];
+      for(const cand of adaptiveCandidatesForItem(it)){
+        const candPrimary = axis === 'col' ? cand.h : cand.w;
+        const candSecondary = axis === 'col' ? cand.w : cand.h;
+        if(candPrimary > spacePrimary || candSecondary > lineSize) continue;
+        const gapSecondary = lineSize - candSecondary;
+        const gapPrimary = spacePrimary - candPrimary;
+        const exactSecondary = gapSecondary === 0 ? 1 : 0;
+        const score = (exactSecondary * 7000000) - (gapSecondary * 3800) - (gapPrimary * 42) + (cand.w * cand.h * 0.8) + (candPrimary * 600);
+        if(!best || score > best.score) best = { idx:i, it, cand, score };
+      }
+    }
+    return best;
+  }
+
+  function buildRegionBandCandidate(rem, region, axis, K, prefDir, boardArea){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    if(rw < 80 || rh < 80) return null;
+    const lineSize = chooseRegionLineSize(rem, region, axis, K);
+    if(!lineSize) return null;
+
+    const placements = [];
+    const usedIdx = [];
+    const blocked = new Set();
+    let exactArea = 0;
+    let fillerArea = 0;
+    let exactCount = 0;
+    let cursorPrimary = axis === 'col' ? region.y : region.x;
+    const limitPrimary = axis === 'col' ? (region.y + rh) : (region.x + rw);
+    const regionSecondary = axis === 'col' ? rw : rh;
+
+    while(rem.length && cursorPrimary < limitPrimary){
+      const exact = pickRegionExact(rem, axis, lineSize, limitPrimary - cursorPrimary, regionSecondary, blocked);
+      if(!exact) break;
+      const p = axis === 'col'
+        ? makePlacementFromCandidate(exact.it, exact.cand, region.x, cursorPrimary)
+        : makePlacementFromCandidate(exact.it, exact.cand, cursorPrimary, region.y);
+      placements.push(p);
+      usedIdx.push(exact.idx);
+      blocked.add(exact.idx);
+      exactArea += p.w * p.h;
+      exactCount += 1;
+      cursorPrimary += (axis === 'col' ? p.h : p.w) + K;
+    }
+
+    while(rem.length && cursorPrimary < limitPrimary){
+      const filler = pickRegionFiller(rem, axis, lineSize, limitPrimary - cursorPrimary, blocked);
+      if(!filler) break;
+      const p = axis === 'col'
+        ? makePlacementFromCandidate(filler.it, filler.cand, region.x, cursorPrimary)
+        : makePlacementFromCandidate(filler.it, filler.cand, cursorPrimary, region.y);
+      placements.push(p);
+      usedIdx.push(filler.idx);
+      blocked.add(filler.idx);
+      fillerArea += p.w * p.h;
+      cursorPrimary += (axis === 'col' ? p.h : p.w) + K;
+    }
+
+    if(!placements.length) return null;
+
+    const usedArea = exactArea + fillerArea;
+    const usedPrimary = Math.max(0, cursorPrimary - (axis === 'col' ? region.y : region.x) - K);
+    const mainFill = axis === 'col'
+      ? (rh > 0 ? (usedPrimary / rh) : 0)
+      : (rw > 0 ? (usedPrimary / rw) : 0);
+    const lineArea = axis === 'col' ? (lineSize * rh) : (rw * lineSize);
+    const lineFill = lineArea > 0 ? (usedArea / lineArea) : 0;
+    const regions = [];
+    if(axis === 'row'){
+      const tailW = Math.max(0, region.x + rw - cursorPrimary);
+      if(tailW >= 80 && lineSize >= 80) regions.push({ x: cursorPrimary, y: region.y, w: tailW, h: lineSize });
+      const bottomY = region.y + lineSize + K;
+      const bottomH = Math.max(0, region.y + rh - bottomY);
+      if(rw >= 80 && bottomH >= 80) regions.push({ x: region.x, y: bottomY, w: rw, h: bottomH });
+    } else {
+      const tailH = Math.max(0, region.y + rh - cursorPrimary);
+      if(lineSize >= 80 && tailH >= 80) regions.push({ x: region.x, y: cursorPrimary, w: lineSize, h: tailH });
+      const rightX = region.x + lineSize + K;
+      const rightW = Math.max(0, region.x + rw - rightX);
+      if(rightW >= 80 && rh >= 80) regions.push({ x: rightX, y: region.y, w: rightW, h: rh });
+    }
+
+    let score = usedArea + (exactArea * 0.28) + (exactCount * 22000) + (lineFill * (axis === 'col' ? (lineSize * rh) : (rw * lineSize)) * 0.55) + (mainFill * (axis === 'col' ? rh : rw) * 1200);
+    if(exactCount >= 2) score += 160000;
+    if(prefDir === 'along' && axis === 'row') score += boardArea * 0.004;
+    if(prefDir === 'across' && axis === 'col') score += boardArea * 0.004;
+    if(lineFill < 0.74) score -= boardArea * Math.min(0.020, (0.74 - lineFill) * 0.10);
+
+    return { axis, region, placements, usedIdx, regions, usedArea, exactArea, fillerArea, exactCount, score };
+  }
+
+  function buildAdaptiveMosaicSheet(itemsIn, boardW, boardH, kerf, options){
+    const W = Math.max(10, Math.round(Number(boardW)||0));
+    const H = Math.max(10, Math.round(Number(boardH)||0));
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet) || 0));
+    const prefDir = options && options.preferredDirection;
+    const workX = trimNew;
+    const workY = trimNew;
+    const workW = Math.max(10, W - 2 * trimNew);
+    const workH = Math.max(10, H - 2 * trimNew);
+    let rem = (itemsIn || []).map(it=>Object.assign({}, it));
+    const sheet = { boardW: W, boardH: H, placements: [], _freeRects: [] };
+    const placedIds = [];
+    const regions = [{ x: workX, y: workY, w: workW, h: workH }];
+    const boardArea = W * H;
+
+    while(rem.length && regions.length){
+      regions.sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+      let best = null;
+      const regionLimit = Math.min(regions.length, 8);
+      for(let ri=0; ri<regionLimit; ri++){
+        const region = regions[ri];
+        const rowCand = buildRegionBandCandidate(rem, region, 'row', K, prefDir, boardArea);
+        const colCand = buildRegionBandCandidate(rem, region, 'col', K, prefDir, boardArea);
+        for(const cand of [rowCand, colCand]){
+          if(!cand) continue;
+          if(!best || cand.score > best.score) best = Object.assign({ regionIndex: ri }, cand);
+        }
+      }
+      if(!best) break;
+
+      const usedSet = new Set(best.usedIdx);
+      const usedSorted = Array.from(usedSet).sort((a,b)=> b-a);
+      for(const idx of usedSorted){
+        const it = rem[idx];
+        if(it) placedIds.push(it.id);
+        rem.splice(idx, 1);
+      }
+      for(const p of best.placements) sheet.placements.push(p);
+      regions.splice(best.regionIndex, 1);
+      for(const nr of best.regions){
+        if(nr && nr.w >= 80 && nr.h >= 80) regions.push(nr);
+      }
+    }
+
+    sheet._freeRects = regions.slice();
+
+    if(!sheet.placements.length && rem.length){
+      const it = rem[0];
+      sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w:it.w, h:it.h, rotated:false, unplaced:true });
+    }
+
+    return {
+      sheet,
+      placedIds,
+      remaining: rem,
+      usedArea: sheet.placements.reduce((sum,p)=> sum + ((p && !p.unplaced) ? ((p.w||0)*(p.h||0)) : 0), 0),
+    };
+  }
+
   function packAdaptiveBands(itemsIn, boardW, boardH, kerf, options){
     let rem = (itemsIn || []).map(it=>Object.assign({}, it));
     const sheets = [];
-    const boardArea = Math.max(1, (Number(boardW)||0) * (Number(boardH)||0));
-
-    function chooseBuild(a, b){
-      if(!b || !b.sheet || !(b.sheet.placements||[]).length) return a;
-      if(!a || !a.sheet || !(a.sheet.placements||[]).length) return b;
-      const aPlaced = (a.sheet.placements||[]).filter(p=>p && !p.unplaced).length;
-      const bPlaced = (b.sheet.placements||[]).filter(p=>p && !p.unplaced).length;
-      const aSc = scoreSheets([a.sheet]);
-      const bSc = scoreSheets([b.sheet]);
-      const aStruct = sheetStructureMetrics(a.sheet);
-      const bStruct = sheetStructureMetrics(b.sheet);
-      const aLargest = meaningfulFreeRects(a.sheet).reduce((m,r)=>Math.max(m, r.w*r.h), 0);
-      const bLargest = meaningfulFreeRects(b.sheet).reduce((m,r)=>Math.max(m, r.w*r.h), 0);
-      let aScore = aSc.waste - (a.exactArea * 0.050) - (aStruct.repeatedArea * 0.060) - (aStruct.bandArea * 0.045) - (aLargest * 0.12) - (aPlaced * boardArea * 0.0012) + (a.rowCount * boardArea * 0.0010);
-      let bScore = bSc.waste - (b.exactArea * 0.050) - (bStruct.repeatedArea * 0.060) - (bStruct.bandArea * 0.045) - (bLargest * 0.12) - (bPlaced * boardArea * 0.0012) + (b.rowCount * boardArea * 0.0010);
-      const prefDir = options && options.preferredDirection;
-      if(prefDir === 'along' || prefDir === 'across'){
-        if(a.direction === prefDir) aScore -= boardArea * 0.004;
-        if(b.direction === prefDir) bScore -= boardArea * 0.004;
-      }
-      if(Math.abs(aScore - bScore) > boardArea * 0.010) return aScore <= bScore ? a : b;
-      if(aPlaced !== bPlaced) return aPlaced > bPlaced ? a : b;
-      if(a.usedArea !== b.usedArea) return a.usedArea > b.usedArea ? a : b;
-      return aSc.waste <= bSc.waste ? a : b;
-    }
-
     while(rem.length){
-      const along = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'along', options);
-      const across = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'across', options);
-      const chosen = chooseBuild(along, across) || along || across;
-      if(!chosen || !chosen.sheet || !(chosen.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
-      sheets.push(chosen.sheet);
-      const taken = new Set(chosen.placedIds);
+      const built = buildAdaptiveMosaicSheet(rem, boardW, boardH, kerf, options || {});
+      if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
+      sheets.push(built.sheet);
+      const taken = new Set(built.placedIds);
       rem = rem.filter(it=> !taken.has(it.id));
     }
-
     if(rem.length){
-      const fallback = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'along', options);
+      const fallback = buildAdaptiveStripSheet(rem, boardW, boardH, kerf, 'along', options || {});
       if(fallback && fallback.sheet) sheets.push(fallback.sheet);
     }
-
     return sheets;
   }
 
@@ -559,22 +815,31 @@ try{
         const aType = familyClass(a.family);
         const bType = familyClass(b.family);
         const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
-        const adaptiveMargin = boardArea * 0.065;
-        const stripMargin = boardArea * 0.050;
+        const adaptiveMargin = boardArea * 0.060;
+        const stripMargin = boardArea * 0.055;
+        const aTail = tailMetrics(a.sheets);
+        const bTail = tailMetrics(b.sheets);
 
         if(aType !== bType){
           if((aType === 'adaptive' || bType === 'adaptive') && wasteGap <= adaptiveMargin){
+            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.08){
+              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
+            }
             return aType === 'adaptive' ? a : b;
           }
           if((aType === 'strip' || bType === 'strip') && wasteGap <= stripMargin){
+            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.06){
+              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
+            }
             return aType === 'strip' ? a : b;
           }
         }
 
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.065) - (a.meta.bandArea * 0.055) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.75) - (a.meta.largestFree * 0.12);
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.065) - (b.meta.bandArea * 0.055) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.75) - (b.meta.largestFree * 0.12);
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12);
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12);
         if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
-        return (a.sc.waste <= b.sc.waste) ? a : b;
+        if(tailAwareBetter(a, b, boardArea)) return a;
+        return b;
       };
 
       const add = (family, sheets, alreadyCounted)=>{
@@ -684,6 +949,52 @@ try{
 
     emitProgress(true);
 
+    function deterministicTailCompaction(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
+      const sheets = currentBest.sheets;
+      if(sheets.length < 2) return currentBest;
+
+      let bestLocal = currentBest;
+      const tailSizes = [2, 3];
+      const variants = [];
+      for(const tailSize of tailSizes){
+        if(sheets.length < tailSize) continue;
+        const tailStart = Math.max(0, sheets.length - tailSize);
+        const prefix = sheets.slice(0, tailStart);
+        const tail = sheets.slice(tailStart);
+        const ids = [];
+        for(const s of tail) ids.push(...idsFromSheet(s));
+        if(!ids.length) continue;
+        const uniq = [];
+        const seen = new Set();
+        for(const id of ids){
+          if(seen.has(id)) continue;
+          seen.add(id);
+          const it = itemById.get(id);
+          if(it) uniq.push(it);
+        }
+        if(!uniq.length) continue;
+
+        variants.push(prefix.concat(packAdaptiveBands(uniq, W, H, K, { edgeTrimNewSheet, preferredDirection:'along' }) || []));
+        variants.push(prefix.concat(packAdaptiveBands(uniq, W, H, K, { edgeTrimNewSheet, preferredDirection:'across' }) || []));
+        variants.push(prefix.concat(packAdaptiveBands(uniq, W, H, K, { edgeTrimNewSheet }) || []));
+        if(opt.packStripBands){
+          variants.push(prefix.concat(opt.packStripBands(uniq, W, H, K, 'along', { edgeTrimNewSheet }) || []));
+          variants.push(prefix.concat(opt.packStripBands(uniq, W, H, K, 'across', { edgeTrimNewSheet }) || []));
+        }
+      }
+
+      for(const sheets2 of variants){
+        if(_cancelled) break;
+        if(!Array.isArray(sheets2) || !sheets2.length) continue;
+        const cand = { sheets: sheets2, sc: scoreSheets(sheets2) };
+        if(tailAwareBetter(cand, bestLocal, W * H)) bestLocal = cand;
+      }
+
+      return bestLocal;
+    }
+
     // === "Przekozacki" post-pass (repair) ===
     // Goal: reduce "pusta ostatnia płyta" by repacking the tail (last 2-3 sheets)
     // and optionally borrowing up to 10 elements from 1-2 sheets earlier.
@@ -784,7 +1095,7 @@ try{
         const pref = prefList[Math.floor(rnd()*prefList.length)];
         const candRes = repackTailWithBorrow(prefix, tail, borrowIds, pref);
         if(!candRes) continue;
-        if(better(candRes, bestLocal)) bestLocal = candRes;
+        if(tailAwareBetter(candRes, bestLocal, W * H)) bestLocal = candRes;
         setBest(bestLocal);
 
         // progress ping (cheap)
@@ -805,6 +1116,8 @@ try{
     }
 
     if(best && !_cancelled && cutMode === 'optional'){
+      best = deterministicTailCompaction(best);
+      setBest(best);
       best = doCrazyPostPass(best);
     }
 
