@@ -959,6 +959,331 @@ try{
     return sheets;
   }
 
+  function regionCanFitAnyItem(rem, region){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    if(rw < 80 || rh < 80) return false;
+    for(let i=0;i<(rem||[]).length;i++){
+      const it = rem[i];
+      for(const cand of adaptiveCandidatesForItem(it)){
+        if(cand.w <= rw && cand.h <= rh) return true;
+      }
+    }
+    return false;
+  }
+
+  function potentialFitCount(rem, region, cap){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    const limit = Math.max(1, Math.round(Number(cap) || 9999));
+    let count = 0;
+    let area = 0;
+    for(let i=0;i<(rem||[]).length;i++){
+      const it = rem[i];
+      let fits = false;
+      for(const cand of adaptiveCandidatesForItem(it)){
+        if(cand.w <= rw && cand.h <= rh){ fits = true; break; }
+      }
+      if(fits){
+        count += 1;
+        area += (Number(it.w)||0) * (Number(it.h)||0);
+        if(count >= limit) break;
+      }
+    }
+    return { count, area };
+  }
+
+  function chooseBeamRegionIndex(state){
+    const open = Array.isArray(state && state.openRegions) ? state.openRegions : [];
+    if(!open.length) return -1;
+    let bestIdx = 0;
+    let bestScore = -Infinity;
+    for(let i=0;i<open.length;i++){
+      const region = open[i];
+      const area = regionArea(region);
+      const fit = potentialFitCount(state.remaining, region, 12);
+      const score = area + (fit.count * 160000) + (fit.area * 0.08);
+      if(score > bestScore){ bestScore = score; bestIdx = i; }
+    }
+    return bestIdx;
+  }
+
+  function regionCandidateScoreBonus(candidate, region, state){
+    const regArea = Math.max(1, regionArea(region));
+    const usedArea = Math.max(0, Number(candidate && candidate.usedArea) || 0);
+    const usedRatio = usedArea / regArea;
+    const children = Array.isArray(candidate && candidate.regions) ? candidate.regions : [];
+    const childAreas = children.map(regionArea).sort((a,b)=>b-a);
+    const largestChild = childAreas[0] || 0;
+    const secondChild = childAreas[1] || 0;
+    let bonus = 0;
+    bonus += usedRatio * regArea * 0.18;
+    bonus += Math.min(regArea * 0.08, largestChild * 0.03);
+    if(secondChild > 0) bonus += Math.min(regArea * 0.04, secondChild * 0.015);
+    if((candidate && candidate.kind) === 'split'){
+      bonus += state.boardArea * 0.010;
+      if(childAreas.length === 2){
+        const balance = 1 - (Math.abs(childAreas[0] - childAreas[1]) / Math.max(1, childAreas[0] + childAreas[1]));
+        bonus += balance * state.boardArea * 0.008;
+      }
+    }
+    if((candidate && candidate.kind) === 'block') bonus += state.boardArea * 0.004;
+    if((candidate && candidate.kind) === 'band') bonus += state.boardArea * 0.003;
+    return bonus;
+  }
+
+  function generateTreeBeamCandidates(rem, region, K, state){
+    const out = [];
+    const axes = state.prefDir === 'along' ? ['row','col'] : (state.prefDir === 'across' ? ['col','row'] : ['row','col']);
+    const regionFit = potentialFitCount(rem, region, 24);
+    for(const axis of axes){
+      const lineChoices = chooseRegionLineSizes(rem, region, axis, K, Math.max(2, state.lineVariants));
+      for(const lineChoice of lineChoices){
+        const band = buildRegionBandCandidateForLine(rem, region, axis, lineChoice.size, K, state.prefDir, state.boardArea);
+        if(!band) continue;
+        band.kind = 'band';
+        band.score = (band.score || 0) + regionCandidateScoreBonus(band, region, state);
+        out.push(band);
+      }
+      if(state.allowSplits && state.zeroSplitDepth < state.maxZeroSplits){
+        const splitChoices = chooseRegionSplitSizes(rem, region, axis, K, Math.max(2, state.lineVariants + 1));
+        for(const splitSize of splitChoices){
+          const split = buildRegionSplitCandidate(region, axis, splitSize, K, state);
+          if(!split) continue;
+          let childFitCount = 0;
+          let childFitArea = 0;
+          let usefulChildren = 0;
+          for(const sub of split.regions || []){
+            const fit = potentialFitCount(rem, sub, 16);
+            childFitCount += fit.count;
+            childFitArea += fit.area;
+            if(fit.count > 0) usefulChildren += 1;
+          }
+          if(childFitCount <= 0) continue;
+          split.score = (split.score || 0) + (childFitArea * 0.05) + (usefulChildren * state.boardArea * 0.006) + regionCandidateScoreBonus(split, region, state);
+          out.push(split);
+        }
+      }
+    }
+    const anchors = chooseRegionAnchorCandidates(rem, region, Math.max(4, state.lineVariants + 2));
+    for(const anchor of anchors){
+      const block = buildRegionBlockCandidate(rem, region, anchor, K, state);
+      if(!block) continue;
+      block.score = (block.score || 0) + regionCandidateScoreBonus(block, region, state);
+      out.push(block);
+    }
+    out.sort((a,b)=> (b.score||0) - (a.score||0));
+    // Dedupe similar candidates so beam explores more families.
+    const uniq = [];
+    const seen = new Set();
+    for(const cand of out){
+      const key = [cand.kind||'?', cand.axis||'?', Math.round(Number(cand.lineSize)||0), Math.round(Number(cand.anchorW)||0), Math.round(Number(cand.anchorH)||0)].join(':');
+      if(seen.has(key)) continue;
+      seen.add(key);
+      uniq.push(cand);
+      if(uniq.length >= Math.max(6, state.branchWidth * 2)) break;
+    }
+    // If region has many possible items, encourage at least one pure split branch near the top.
+    if(regionFit.count >= 4 && state.allowSplits && state.zeroSplitDepth < state.maxZeroSplits){
+      uniq.sort((a,b)=>{
+        const ak = a.kind === 'split' ? 1 : 0;
+        const bk = b.kind === 'split' ? 1 : 0;
+        if(ak !== bk) return bk - ak;
+        return (b.score||0) - (a.score||0);
+      });
+      uniq.sort((a,b)=> (b.score||0) - (a.score||0));
+    }
+    return uniq.slice(0, Math.max(4, state.branchWidth));
+  }
+
+  function applyTreeBeamCandidate(state, regionIndex, candidate){
+    const region = state.openRegions[regionIndex];
+    const nextOpen = state.openRegions.slice(0, regionIndex).concat(state.openRegions.slice(regionIndex + 1));
+    const nextClosed = state.closedRegions.slice();
+    const nextPlacements = state.placements.slice().concat(candidate.placements || []);
+    const nextPlacedIds = state.placedIds.slice().concat((candidate.placements || []).map(p=>p.id));
+    const nextRegions = [];
+    for(const sub of (candidate.regions || [])){
+      if(!sub || regionArea(sub) < 6400) continue;
+      nextRegions.push(sub);
+    }
+    for(const sub of nextRegions){
+      if(regionCanFitAnyItem(state.remaining, sub)) nextOpen.push(sub);
+      else nextClosed.push(sub);
+    }
+    const nextRemaining = (candidate.kind === 'split') ? state.remaining.slice() : removeItemsByIndices(state.remaining, candidate.usedIdx || []);
+    return {
+      openRegions: nextOpen,
+      closedRegions: nextClosed,
+      placements: nextPlacements,
+      placedIds: nextPlacedIds,
+      remaining: nextRemaining,
+      usedArea: state.usedArea + Math.max(0, Number(candidate.usedArea)||0),
+      partialScore: state.partialScore + Math.max(0, Number(candidate.score)||0),
+      zeroSplitDepth: (candidate.kind === 'split') ? (state.zeroSplitDepth + 1) : 0,
+      steps: state.steps + 1,
+      branchKinds: state.branchKinds.concat([candidate.kind || '?']),
+    };
+  }
+
+  function estimatePartialStateScore(st, boardArea){
+    const usedArea = Math.max(0, Number(st && st.usedArea) || 0);
+    const open = Array.isArray(st && st.openRegions) ? st.openRegions : [];
+    const closed = Array.isArray(st && st.closedRegions) ? st.closedRegions : [];
+    const openArea = open.reduce((sum,r)=> sum + regionArea(r), 0);
+    const largestOpen = open.reduce((mx,r)=> Math.max(mx, regionArea(r)), 0);
+    const placements = Array.isArray(st && st.placements) ? st.placements : [];
+    const meta = sheetStructureMetrics({ placements });
+    let score = Math.max(0, Number(st && st.partialScore) || 0);
+    score += usedArea * 0.60;
+    score += placements.length * 22000;
+    score += Math.min(boardArea * 0.12, meta.repeatedArea * 0.05);
+    score += Math.min(boardArea * 0.10, meta.bandArea * 0.04);
+    score += Math.min(boardArea * 0.06, largestOpen * 0.04);
+    score -= open.length * (boardArea * 0.0035);
+    score -= closed.length * (boardArea * 0.0015);
+    score -= Math.min(boardArea * 0.06, openArea * 0.010);
+    score -= (Math.max(0, Number(st && st.zeroSplitDepth) || 0) * boardArea * 0.010);
+    return score;
+  }
+
+  function buildTreeBeamOptionalSheet(itemsIn, boardW, boardH, kerf, options){
+    const W = Math.max(10, Math.round(Number(boardW)||0));
+    const H = Math.max(10, Math.round(Number(boardH)||0));
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet) || 0));
+    const deadline = (options && options.deadline) || 0;
+    const boardArea = W * H;
+    const root = { x: trimNew, y: trimNew, w: Math.max(10, W - 2 * trimNew), h: Math.max(10, H - 2 * trimNew) };
+    const beamWidth = Math.max(4, Math.round(Number(options && options.beamWidth) || 8));
+    const branchWidth = Math.max(4, Math.round(Number(options && options.branchWidth) || 6));
+    const maxSteps = Math.max(10, Math.round(Number(options && options.maxSteps) || 22));
+    const nodeBudget = Math.max(40, Math.round(Number(options && options.nodeBudget) || 180));
+    const init = {
+      openRegions: [root],
+      closedRegions: [],
+      placements: [],
+      placedIds: [],
+      remaining: (itemsIn || []).map(it=>Object.assign({}, it)),
+      usedArea: 0,
+      partialScore: 0,
+      zeroSplitDepth: 0,
+      steps: 0,
+      branchKinds: [],
+    };
+    let beam = [init];
+    let explored = 0;
+
+    while(beam.length && explored < nodeBudget){
+      if(deadline && now() > deadline) break;
+      const next = [];
+      let anyExpanded = false;
+      for(const st of beam){
+        if(explored >= nodeBudget) break;
+        if(deadline && now() > deadline) break;
+        if(!st.openRegions.length || !st.remaining.length || st.steps >= maxSteps){
+          next.push(st);
+          continue;
+        }
+        const regionIndex = chooseBeamRegionIndex(st);
+        if(regionIndex < 0){
+          next.push(st);
+          continue;
+        }
+        const region = st.openRegions[regionIndex];
+        const cands = generateTreeBeamCandidates(st.remaining, region, K, {
+          prefDir: options && options.preferredDirection,
+          boardArea,
+          lineVariants: Math.max(2, Math.round(Number(options && options.lineVariants) || 3)),
+          branchWidth,
+          allowSplits: true,
+          maxZeroSplits: Math.max(2, Math.round(Number(options && options.maxZeroSplits) || 3)),
+          zeroSplitDepth: st.zeroSplitDepth,
+        });
+        if(!cands.length){
+          next.push({
+            openRegions: st.openRegions.slice(0, regionIndex).concat(st.openRegions.slice(regionIndex + 1)),
+            closedRegions: st.closedRegions.concat([region]),
+            placements: st.placements.slice(),
+            placedIds: st.placedIds.slice(),
+            remaining: st.remaining.slice(),
+            usedArea: st.usedArea,
+            partialScore: st.partialScore - boardArea * 0.002,
+            zeroSplitDepth: 0,
+            steps: st.steps + 1,
+            branchKinds: st.branchKinds.slice(),
+          });
+          explored += 1;
+          continue;
+        }
+        anyExpanded = true;
+        for(const cand of cands.slice(0, branchWidth)){
+          next.push(applyTreeBeamCandidate(st, regionIndex, cand));
+          explored += 1;
+          if(explored >= nodeBudget) break;
+        }
+      }
+      if(!next.length) break;
+      next.sort((a,b)=> estimatePartialStateScore(b, boardArea) - estimatePartialStateScore(a, boardArea));
+      // light dedupe by placements + region count + branch fingerprint
+      const deduped = [];
+      const seen = new Set();
+      for(const st of next){
+        const key = [st.placements.length, st.openRegions.length, st.closedRegions.length, st.zeroSplitDepth, st.branchKinds.slice(-4).join(',')].join('|');
+        if(seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(st);
+        if(deduped.length >= beamWidth) break;
+      }
+      beam = deduped;
+      if(!anyExpanded) break;
+    }
+
+    let best = null;
+    for(const st of beam){
+      const freeRects = st.closedRegions.concat(st.openRegions).filter(r=>r && regionArea(r) >= 6400);
+      const sheet = { boardW: W, boardH: H, placements: st.placements.slice(), _freeRects: freeRects.slice() };
+      const sc = scoreSheets([sheet]);
+      const tail = tailMetrics([sheet]);
+      const composite = sc.waste - (estimatePartialStateScore(st, boardArea) * 0.12) - (boardArea * Math.max(0, tail.lastUsedRatio - 0.45) * 0.10);
+      const cand = { sheet, placedIds: st.placedIds.slice(), remaining: st.remaining.slice(), usedArea: st.usedArea, composite };
+      if(!best || cand.usedArea > best.usedArea + boardArea * 0.003 || (Math.abs(cand.usedArea - best.usedArea) <= boardArea * 0.003 && cand.composite < best.composite)) best = cand;
+    }
+
+    if(!best){
+      const sheet = { boardW: W, boardH: H, placements: [], _freeRects: [root] };
+      return { sheet, placedIds: [], remaining: init.remaining.slice(), usedArea: 0, composite: Number.POSITIVE_INFINITY };
+    }
+    if(!best.sheet.placements.length && best.remaining.length){
+      const it = best.remaining[0];
+      best.sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w:it.w, h:it.h, rotated:false, unplaced:true });
+    }
+    return best;
+  }
+
+  function packOptionalTreeBeam(itemsIn, boardW, boardH, kerf, options){
+    let rem = (itemsIn || []).map(it=>Object.assign({}, it));
+    const sheets = [];
+    const overallDeadline = (options && options.deadline) || 0;
+    while(rem.length){
+      const perSheetDeadline = overallDeadline
+        ? Math.min(overallDeadline, now() + Math.max(260, Math.round(Number(options && options.perSheetSliceMs) || 1200)))
+        : (now() + Math.max(260, Math.round(Number(options && options.perSheetSliceMs) || 1200)));
+      const built = buildTreeBeamOptionalSheet(rem, boardW, boardH, kerf, Object.assign({}, options || {}, { deadline: perSheetDeadline }));
+      if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
+      sheets.push(built.sheet);
+      const taken = new Set(built.placedIds || []);
+      rem = rem.filter(it=> !taken.has(it.id));
+      if(overallDeadline && now() > overallDeadline) break;
+    }
+    if(rem.length){
+      const fallbackSheets = packAdaptiveBands(rem, boardW, boardH, kerf, options || {});
+      if(Array.isArray(fallbackSheets) && fallbackSheets.length) sheets.push(...fallbackSheets);
+    }
+    return sheets;
+  }
+
+
   function buildAdaptiveMosaicSheet(itemsIn, boardW, boardH, kerf, options){
     const W = Math.max(10, Math.round(Number(boardW)||0));
     const H = Math.max(10, Math.round(Number(boardH)||0));
@@ -1111,6 +1436,7 @@ try{
       };
 
       const familyClass = (name)=>{
+        if(/^treebeam/.test(name)) return 'treebeam';
         if(/^recursive/.test(name)) return 'recursive';
         if(/^adaptive/.test(name)) return 'adaptive';
         if(/^strip/.test(name)) return 'strip';
@@ -1125,6 +1451,7 @@ try{
         const aType = familyClass(a.family);
         const bType = familyClass(b.family);
         const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
+        const treeBeamMargin = boardArea * 0.170;
         const recursiveMargin = boardArea * 0.140;
         const adaptiveMargin = boardArea * 0.060;
         const stripMargin = boardArea * 0.055;
@@ -1132,6 +1459,12 @@ try{
         const bTail = tailMetrics(b.sheets);
 
         if(aType !== bType){
+          if((aType === 'treebeam' || bType === 'treebeam') && wasteGap <= treeBeamMargin){
+            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.04){
+              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
+            }
+            return aType === 'treebeam' ? a : b;
+          }
           if((aType === 'recursive' || bType === 'recursive') && wasteGap <= recursiveMargin){
             if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.06){
               return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
@@ -1154,8 +1487,10 @@ try{
 
         const aRecursive = aType === 'recursive' ? 1 : 0;
         const bRecursive = bType === 'recursive' ? 1 : 0;
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.060);
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.060);
+        const aTree = aType === 'treebeam' ? 1 : 0;
+        const bTree = bType === 'treebeam' ? 1 : 0;
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.060) - (aTree * boardArea * 0.090);
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.060) - (bTree * boardArea * 0.090);
         if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
         if(tailAwareBetter(a, b, boardArea)) return a;
         return b;
@@ -1172,6 +1507,9 @@ try{
 
       const recursiveNodeBudget = Math.max(120, Math.round(beamWidth * 0.90));
       const recursiveDeadline = now() + Math.max(240, Math.round(ms * 1.35));
+      const treeDeadline = now() + Math.max(420, Math.round(ms * 1.85));
+      add('treebeam-main', packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, lineVariants: 4, branchWidth: Math.max(5, Math.round(beamWidth * 0.05)), beamWidth: Math.max(6, Math.round(beamWidth * 0.06)), nodeBudget: Math.max(180, Math.round(beamWidth * 1.55)), deadline: treeDeadline, perSheetSliceMs: Math.max(520, Math.round(ms * 1.12)), maxZeroSplits: 3, maxSteps: 26 }), false);
+      add('treebeam-pref-' + pref, packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, lineVariants: 4, branchWidth: Math.max(5, Math.round(beamWidth * 0.05)), beamWidth: Math.max(6, Math.round(beamWidth * 0.06)), nodeBudget: Math.max(180, Math.round(beamWidth * 1.55)), deadline: treeDeadline, perSheetSliceMs: Math.max(520, Math.round(ms * 1.12)), maxZeroSplits: 3, maxSteps: 26 }), false);
       add('recursive-main', packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, maxDepth: 12, lineVariants: 3, nodeBudget: Math.max(180, Math.round(recursiveNodeBudget * 1.35)), deadline: recursiveDeadline, perSheetSliceMs: Math.max(340, Math.round(ms * 0.78)) }), false);
       add('recursive-pref-' + pref, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, maxDepth: 12, lineVariants: 3, nodeBudget: Math.max(180, Math.round(recursiveNodeBudget * 1.35)), deadline: recursiveDeadline, perSheetSliceMs: Math.max(340, Math.round(ms * 0.78)) }), false);
       add('adaptive-main', packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet }), false);
@@ -1193,7 +1531,9 @@ try{
         const extraType = familyClass(best.family);
         for(let i=1;i<hybridRuns;i++){
           const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.24)));
-          if(extraType === 'recursive'){
+          if(extraType === 'treebeam'){
+            add('treebeam-deep-' + i, packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), lineVariants: 5, branchWidth: Math.max(6, Math.round(beamWidth * 0.06)), beamWidth: Math.max(7, Math.round(beamWidth * 0.07)), nodeBudget: Math.max(240, Math.round(beamWidth * (1.9 + i*0.26))), deadline: now() + Math.max(650, Math.round(extraMs * 1.85)), perSheetSliceMs: Math.max(620, Math.round(extraMs * 1.20)), maxZeroSplits: 4, maxSteps: 30 }), false);
+          } else if(extraType === 'recursive'){
             add('recursive-deep-' + i, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), maxDepth: 13, lineVariants: 4, nodeBudget: Math.max(220, Math.round(beamWidth * (1.45 + i*0.22))), deadline: now() + Math.max(420, Math.round(extraMs * 1.45)), perSheetSliceMs: Math.max(420, Math.round(extraMs * 0.92)) }), false);
           } else if(extraType === 'adaptive'){
             add('adaptive-deep-' + i, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref) }), false);
@@ -1217,7 +1557,7 @@ try{
           return opt.packStripBands(arr, W, H, K, cutMode, { edgeTrimNewSheet });
         }
       }
-      if(cutMode === 'optional') return packOptionalHybrid(arr, pref, ms);
+      if(cutMode === 'optional') return packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, lineVariants: 5, branchWidth: Math.max(6, Math.round(beamWidth * 0.06)), beamWidth: Math.max(7, Math.round(beamWidth * 0.07)), nodeBudget: Math.max(260, Math.round(beamWidth * 1.9)), deadline: now() + Math.max(650, Math.round(ms * 1.85)), perSheetSliceMs: Math.max(620, Math.round(ms * 1.20)), maxZeroSplits: 4, maxSteps: 30 });
       return packGuillotine(arr, pref, ms);
     };
 
