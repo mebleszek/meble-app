@@ -289,3 +289,5 @@ Dopiero potem go zmieniać.
 - Step 51: `Opcjonalnie` wróciło na solver portfelowy (treebeam/recursive/adaptive/strip/guillotine) zamiast wymuszać sam `treebeam`; dodano rozpoznawanie typu zadania (wąskie powtarzalne formatki vs mieszane korpusowe) i bias wyboru rodziny układu.
 
 - Step 52: tryb `Opcjonalnie` został przepisany na sekwencyjny solver „best next sheet” w `js/app/panel-pro-worker.js`: każda kolejna płyta wybierana jest osobno z portfela rodzin (`treebeam` / `recursive` / `adaptive` / `strip` / `guillotine`), z prostym look-aheadem na następną płytę i karą za pozostawianie złego ogona / osieroconych grup wymiarowych.
+
+- Step 53: `Opcjonalnie` dostał lokalne dopychanie free-rectów wewnątrz pasów (`split-band fill`) w `js/app/panel-pro-worker.js`; po osadzeniu większego elementu pas/kolumna tworzy mniejsze regiony do dalszego upychania zamiast zostawiać je martwe.

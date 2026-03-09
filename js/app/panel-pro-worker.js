@@ -454,6 +454,33 @@ try{
       }
 
       if(!rowPlaced) break;
+
+      const bandPlacements = sheet.placements.slice(sheet.placements.length - rowPlaced);
+      const localRects = [];
+      for(const p of bandPlacements){
+        const innerH = bandH - p.h - K;
+        if(innerH >= 80 && p.w >= 80){
+          localRects.push({ x: p.x, y: p.y + p.h + K, w: p.w, h: innerH });
+        }
+      }
+      if(localRects.length && rem.length){
+        const localFill = fillLocalFreeRects(rem, localRects, K, { minRect: 80 });
+        if(localFill.placements.length){
+          for(const p of localFill.placements){
+            sheet.placements.push(p);
+            placedIds.push(p.id);
+            fillerArea += p.w * p.h;
+          }
+          const usedSorted = Array.from(new Set(localFill.usedIdx)).sort((a,b)=> b-a);
+          for(const idx of usedSorted){
+            rem.splice(idx, 1);
+          }
+        }
+        for(const r of localFill.remainingRects || []){
+          if(r && r.w >= 80 && r.h >= 80) sheet._freeRects.push(r);
+        }
+      }
+
       rowCount += 1;
       const tailW = Math.max(0, maxX - cursorX);
       if(tailW >= 80 && bandH >= 80){
@@ -496,6 +523,60 @@ try{
     const out = [{ w: Number(it.w)||0, h: Number(it.h)||0, rotated:false }];
     if(it && it.rotationAllowed) out.push({ w: Number(it.h)||0, h: Number(it.w)||0, rotated:true });
     return out.filter(c=>c.w > 0 && c.h > 0);
+  }
+
+
+  function fillLocalFreeRects(rem, freeRects, K, options){
+    const rects = (freeRects || []).filter(r=>r && r.w >= 80 && r.h >= 80).map(r=>({ x:r.x, y:r.y, w:r.w, h:r.h }));
+    const blocked = new Set((options && options.blockedIdx) || []);
+    const placements = [];
+    const usedIdx = [];
+    const remainingRects = [];
+    const minSize = Math.max(60, Math.round(Number(options && options.minRect) || 80));
+
+    function pickBest(rect){
+      let best = null;
+      for(let i=0;i<(rem||[]).length;i++){
+        if(blocked.has(i)) continue;
+        const it = rem[i];
+        for(const cand of adaptiveCandidatesForItem(it)){
+          if(cand.w > rect.w || cand.h > rect.h) continue;
+          const area = cand.w * cand.h;
+          const exactW = cand.w === rect.w ? 1 : 0;
+          const exactH = cand.h === rect.h ? 1 : 0;
+          const waste = (rect.w * rect.h) - area;
+          const score = (area * 1000) + (exactW * 160000) + (exactH * 150000) - (waste * 0.55) - ((rect.w - cand.w) * 120) - ((rect.h - cand.h) * 120);
+          if(!best || score > best.score) best = { idx:i, it, cand, score };
+        }
+      }
+      return best;
+    }
+
+    while(rects.length){
+      rects.sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+      const rect = rects.shift();
+      if(!rect || rect.w < minSize || rect.h < minSize) continue;
+      const best = pickBest(rect);
+      if(!best){
+        remainingRects.push(rect);
+        continue;
+      }
+      blocked.add(best.idx);
+      usedIdx.push(best.idx);
+      const p = makePlacementFromCandidate(best.it, best.cand, rect.x, rect.y);
+      placements.push(p);
+
+      const rightW = rect.w - p.w - K;
+      const bottomH = rect.h - p.h - K;
+      if(rightW >= minSize && p.h >= minSize){
+        rects.push({ x: rect.x + p.w + K, y: rect.y, w: rightW, h: p.h });
+      }
+      if(bottomH >= minSize && rect.w >= minSize){
+        rects.push({ x: rect.x, y: rect.y + p.h + K, w: rect.w, h: bottomH });
+      }
+    }
+
+    return { placements, usedIdx, remainingRects };
   }
 
   function chooseRegionLineSizes(rem, region, axis, K, limit){
@@ -675,7 +756,32 @@ try{
 
     if(!placements.length) return null;
 
-    const usedArea = exactArea + fillerArea;
+    const localRects = [];
+    for(const p of placements){
+      if(axis === 'row'){
+        const innerH = lineSize - p.h - K;
+        if(innerH >= 80 && p.w >= 80) localRects.push({ x: p.x, y: p.y + p.h + K, w: p.w, h: innerH });
+      } else {
+        const innerW = lineSize - p.w - K;
+        if(innerW >= 80 && p.h >= 80) localRects.push({ x: p.x + p.w + K, y: p.y, w: innerW, h: p.h });
+      }
+    }
+    let localExtraArea = 0;
+    if(localRects.length){
+      const localFill = fillLocalFreeRects(rem, localRects, K, { blockedIdx: blocked, minRect: 80 });
+      for(let li=0; li<((localFill.placements||[]).length); li++){
+        const p = localFill.placements[li];
+        const idx = localFill.usedIdx[li];
+        placements.push(p);
+        usedIdx.push(idx);
+        blocked.add(idx);
+        localExtraArea += p.w * p.h;
+      }
+      localRects.length = 0;
+      for(const r of localFill.remainingRects || []) localRects.push(r);
+    }
+
+    const usedArea = exactArea + fillerArea + localExtraArea;
     const usedPrimary = Math.max(0, cursorPrimary - (axis === 'col' ? region.y : region.x) - K);
     const mainFill = axis === 'col'
       ? (rh > 0 ? (usedPrimary / rh) : 0)
@@ -683,6 +789,9 @@ try{
     const lineArea = axis === 'col' ? (lineSize * rh) : (rw * lineSize);
     const lineFill = lineArea > 0 ? (usedArea / lineArea) : 0;
     const regions = [];
+    for(const r of localRects){
+      if(r && r.w >= 80 && r.h >= 80) regions.push(r);
+    }
     if(axis === 'row'){
       const tailW = Math.max(0, region.x + rw - cursorPrimary);
       if(tailW >= 80 && lineSize >= 80) regions.push({ x: cursorPrimary, y: region.y, w: tailW, h: lineSize });
@@ -697,7 +806,7 @@ try{
       if(rightW >= 80 && rh >= 80) regions.push({ x: rightX, y: region.y, w: rightW, h: rh });
     }
 
-    let score = usedArea + (exactArea * 0.28) + (exactCount * 22000) + (lineFill * (axis === 'col' ? (lineSize * rh) : (rw * lineSize)) * 0.55) + (mainFill * (axis === 'col' ? rh : rw) * 1200);
+    let score = usedArea + (exactArea * 0.28) + (exactCount * 22000) + (lineFill * (axis === 'col' ? (lineSize * rh) : (rw * lineSize)) * 0.55) + (mainFill * (axis === 'col' ? rh : rw) * 1200) + (localExtraArea * 0.40);
     if(exactCount >= 2) score += 160000;
     if(prefDir === 'along' && axis === 'row') score += boardArea * 0.004;
     if(prefDir === 'across' && axis === 'col') score += boardArea * 0.004;
