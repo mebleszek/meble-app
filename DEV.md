@@ -291,3 +291,5 @@ Dopiero potem go zmieniać.
 - Step 52: tryb `Opcjonalnie` został przepisany na sekwencyjny solver „best next sheet” w `js/app/panel-pro-worker.js`: każda kolejna płyta wybierana jest osobno z portfela rodzin (`treebeam` / `recursive` / `adaptive` / `strip` / `guillotine`), z prostym look-aheadem na następną płytę i karą za pozostawianie złego ogona / osieroconych grup wymiarowych.
 
 - Step 53: `Opcjonalnie` dostał lokalne dopychanie free-rectów wewnątrz pasów (`split-band fill`) w `js/app/panel-pro-worker.js`; po osadzeniu większego elementu pas/kolumna tworzy mniejsze regiony do dalszego upychania zamiast zostawiać je martwe.
+
+- Step 54: `js/app/panel-pro-worker.js` — `Opcjonalnie` dostał nowe kandydaty pod drobnicę i słupki 2-up/3-up: wybór line-size uwzględnia teraz „compact minor lines” (małe rzędy startowe / boczne kolumny z obróconych małych elementów), splity mogą brać rozmiary dużych bloków zamiast tylko dominujących pasów, a band/adaptive dostają dodatkowy bonus za takie kompaktowe układy. Celem jest lepsze myślenie o przypadkach typu: małe elementy po 2 w kolumnie oraz header-row zamiast pustego ogona.

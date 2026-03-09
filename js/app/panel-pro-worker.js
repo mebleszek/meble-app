@@ -379,6 +379,11 @@ try{
           best = { h:st.h, score, repeated };
         }
       }
+      const compact = chooseCompactMinorLineSizes(rem, { x:workX, y:cursorY, w:availW, h:availH }, 'row', K, 1);
+      if(compact.length){
+        const cand = compact[0];
+        if(!best || cand.score > best.score * 0.82) return cand.size;
+      }
       if(best) return best.h;
       return fallback ? fallback.h : 0;
     }
@@ -579,6 +584,58 @@ try{
     return { placements, usedIdx, remainingRects };
   }
 
+  function chooseCompactMinorLineSizes(rem, region, axis, K, limit){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    const regionPrimary = axis === 'col' ? rh : rw;
+    const regionSecondary = axis === 'col' ? rw : rh;
+    const cap = Math.max(1, Math.round(Number(limit) || 1));
+    const maxMinor = Math.max(120, Math.round(regionSecondary * 0.42));
+    const groups = new Map();
+
+    for(let i=0;i<(rem||[]).length;i++){
+      const it = rem[i];
+      for(const cand of adaptiveCandidatesForItem(it)){
+        if(cand.w > rw || cand.h > rh) continue;
+        const minor = axis === 'col' ? cand.w : cand.h;
+        const primary = axis === 'col' ? cand.h : cand.w;
+        if(minor < 80 || minor > maxMinor) continue;
+        let st = groups.get(minor);
+        if(!st){
+          st = { size:minor, count:0, primaries:[], area:0, rotatedCount:0, longest:0 };
+          groups.set(minor, st);
+        }
+        st.count += 1;
+        st.primaries.push(primary);
+        st.area += cand.w * cand.h;
+        st.longest = Math.max(st.longest, primary);
+        if(cand.rotated) st.rotatedCount += 1;
+      }
+    }
+
+    const ranked = [];
+    for(const st of groups.values()){
+      if(st.count < 2) continue;
+      st.primaries.sort((a,b)=> b-a);
+      let usedPrimary = 0;
+      let packed = 0;
+      for(let i=0;i<st.primaries.length;i++){
+        const need = st.primaries[i] + (packed > 0 ? K : 0);
+        if(usedPrimary + need > regionPrimary + Math.max(0, K)) continue;
+        usedPrimary += need;
+        packed += 1;
+      }
+      if(packed < 2) continue;
+      const fill = Math.min(1, usedPrimary / Math.max(1, regionPrimary));
+      if(fill < 0.48) continue;
+      const pairable = st.rotatedCount >= Math.ceil(st.count * 0.5) ? 1 : 0;
+      const score = (pairable * 7000000) + (packed * 1800000) + (fill * 2500000) + (st.area * 0.18) + (st.longest * 35) - (st.size * 90);
+      ranked.push({ size:st.size, score, repeated:1, compact:true, packed, fill });
+    }
+    ranked.sort((a,b)=> b.score - a.score);
+    return ranked.slice(0, cap);
+  }
+
   function chooseRegionLineSizes(rem, region, axis, K, limit){
     const stats = new Map();
     let fallback = null;
@@ -616,9 +673,28 @@ try{
       const score = (repeated * 9000000) + (st.count * 1500000) + (fillPotential * 320) + (st.area * 0.42) + (st.size * 800) + (st.maxPrimary * 22);
       ranked.push({ size:st.size, score, repeated });
     }
+    for(const compact of chooseCompactMinorLineSizes(rem, region, axis, K, Math.max(1, Math.min(2, cap)))){
+      const existing = ranked.find(x=> Math.abs((x && x.size) - compact.size) <= 1);
+      if(existing){
+        existing.score = Math.max(existing.score, compact.score + 850000);
+        existing.compact = true;
+      } else {
+        ranked.push(compact);
+      }
+    }
     ranked.sort((a,b)=> b.score - a.score);
     if(!ranked.length && fallback) ranked.push(fallback);
-    return ranked.slice(0, cap);
+    const out = [];
+    const seen = new Set();
+    for(const item of ranked){
+      const key = Math.round(Number(item && item.size) || 0);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+      if(out.length >= cap) break;
+    }
+    if(fallback && out.length < cap && !seen.has(Math.round(Number(fallback.size)||0))) out.push(fallback);
+    return out.slice(0, cap);
   }
 
   function chooseRegionLineSize(rem, region, axis, K){
@@ -629,21 +705,40 @@ try{
     const rw = Math.max(0, Number(region && region.w) || 0);
     const rh = Math.max(0, Number(region && region.h) || 0);
     const regionSpan = axis === 'col' ? rw : rh;
-    const sizes = chooseRegionLineSizes(rem, region, axis, K, Math.max(2, Math.round(Number(limit) || 2) + 1))
+    const lineSizes = chooseRegionLineSizes(rem, region, axis, K, Math.max(2, Math.round(Number(limit) || 2) + 1))
       .map(x=> Math.max(0, Math.round(Number(x && x.size) || 0)));
     const out = [];
     const seen = new Set();
-    for(const raw of sizes){
-      const sz = Math.max(80, raw);
-      if(sz >= regionSpan - 80) continue;
-      if(seen.has(sz)) continue;
+    const pushSize = (raw)=>{
+      const sz = Math.max(80, Math.round(Number(raw) || 0));
+      if(sz < 80 || sz >= regionSpan - 80) return;
+      if(seen.has(sz)) return;
       seen.add(sz);
       out.push(sz);
+    };
+    for(const raw of lineSizes) pushSize(raw);
+
+    // Dodatkowe splity od "dużych bloków" – pozwalają np. najpierw odciąć 1164 zamiast 1280,
+    // jeśli po takim ruchu reszta regionu rokuje lepiej dla drobnicy/kolumn.
+    const regionSecondary = axis === 'col' ? rh : rw;
+    const blockPrimary = [];
+    for(let i=0;i<(rem||[]).length;i++){
+      const it = rem[i];
+      for(const cand of adaptiveCandidatesForItem(it)){
+        if(cand.w > rw || cand.h > rh) continue;
+        const primary = axis === 'col' ? cand.w : cand.h;
+        const secondary = axis === 'col' ? cand.h : cand.w;
+        if(primary >= regionSpan - 80 || secondary > regionSecondary) continue;
+        blockPrimary.push(primary);
+      }
     }
+    blockPrimary.sort((a,b)=> b-a);
+    for(const raw of blockPrimary.slice(0, Math.max(3, Math.round(Number(limit) || 2) + 1))) pushSize(raw);
+
     const half = Math.max(80, Math.round((regionSpan - K) / 2));
-    if(half >= 80 && half <= regionSpan - 80 && !seen.has(half)) out.push(half);
+    pushSize(half);
     const twoThirds = Math.max(80, Math.round((regionSpan - K) * 0.62));
-    if(twoThirds >= 80 && twoThirds <= regionSpan - 80 && !seen.has(twoThirds)) out.push(twoThirds);
+    pushSize(twoThirds);
     return out.slice(0, Math.max(1, Math.round(Number(limit) || 1)));
   }
 
@@ -990,6 +1085,7 @@ try{
         if(state.deadline && now() > state.deadline) break;
         const band = buildRegionBandCandidateForLine(rem, region, axis, lineChoice.size, K, state.prefDir, state.boardArea);
         if(!band) continue;
+        if(lineChoice && lineChoice.compact) band.score += state.boardArea * 0.010;
         const remAfterBand = removeItemsByIndices(rem, band.usedIdx);
         finalizeRecursiveCandidate(band, remAfterBand, axis);
       }
@@ -1152,6 +1248,7 @@ try{
         if(!band) continue;
         band.kind = 'band';
         band.score = (band.score || 0) + regionCandidateScoreBonus(band, region, state);
+        if(lineChoice && lineChoice.compact) band.score += state.boardArea * 0.012;
         out.push(band);
       }
       if(state.allowSplits && state.zeroSplitDepth < state.maxZeroSplits){
