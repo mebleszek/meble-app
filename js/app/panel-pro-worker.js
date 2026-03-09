@@ -672,6 +672,74 @@ try{
     return Math.max(0, (Number(region && region.w) || 0) * (Number(region && region.h) || 0));
   }
 
+  function chooseRegionAnchorCandidates(rem, region, limit){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    const cap = Math.max(1, Math.round(Number(limit) || 1));
+    const out = [];
+    for(let i=0;i<rem.length;i++){
+      const it = rem[i];
+      const baseW = Number(it && it.w) || 0;
+      const baseH = Number(it && it.h) || 0;
+      let sameW = 0;
+      let sameH = 0;
+      for(let j=0;j<rem.length;j++){
+        if(i === j) continue;
+        const jt = rem[j];
+        const jw = Number(jt && jt.w) || 0;
+        const jh = Number(jt && jt.h) || 0;
+        if(jw === baseW || jh === baseW) sameW += 1;
+        if(jh === baseH || jw === baseH) sameH += 1;
+      }
+      for(const cand of adaptiveCandidatesForItem(it)){
+        if(cand.w > rw || cand.h > rh) continue;
+        const fill = (cand.w * cand.h) / Math.max(1, rw * rh);
+        const score = (cand.w * cand.h)
+          + (Math.max(sameW, sameH) * 22000)
+          + (Math.min(rw - cand.w, rh - cand.h) * -8)
+          + (fill * 100000)
+          + ((cand.w >= rw * 0.45 || cand.h >= rh * 0.45) ? 18000 : 0);
+        out.push({ idx:i, it, cand, score });
+      }
+    }
+    out.sort((a,b)=> b.score - a.score);
+    return out.slice(0, cap);
+  }
+
+  function buildRegionBlockCandidate(rem, region, anchor, K, state){
+    if(!anchor || !anchor.cand || !anchor.it) return null;
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    const aw = Number(anchor.cand.w) || 0;
+    const ah = Number(anchor.cand.h) || 0;
+    if(aw <= 0 || ah <= 0 || aw > rw || ah > rh) return null;
+
+    const placement = makePlacementFromCandidate(anchor.it, anchor.cand, region.x, region.y);
+    const regions = [];
+    const rightX = region.x + aw + K;
+    const rightW = Math.max(0, region.x + rw - rightX);
+    if(rightW >= 80 && ah >= 80) regions.push({ x: rightX, y: region.y, w: rightW, h: ah });
+    const bottomY = region.y + ah + K;
+    const bottomH = Math.max(0, region.y + rh - bottomY);
+    if(rw >= 80 && bottomH >= 80) regions.push({ x: region.x, y: bottomY, w: rw, h: bottomH });
+
+    let score = (aw * ah) * 1.05;
+    score += Math.max(0, (rw * rh) * ((aw * ah) / Math.max(1, rw * rh)) * 0.12);
+    score += (regions.length <= 2 ? state.boardArea * 0.002 : 0);
+    if(state.prefDir === 'along' && aw >= ah) score += state.boardArea * 0.0015;
+    if(state.prefDir === 'across' && ah >= aw) score += state.boardArea * 0.0015;
+    return {
+      kind: 'block',
+      placements: [placement],
+      usedIdx: [anchor.idx],
+      regions,
+      usedArea: aw * ah,
+      score,
+      anchorW: aw,
+      anchorH: ah,
+    };
+  }
+
   function sortRegionsForRecursion(regions, mode){
     const arr = (regions || []).slice();
     if(mode === 'small-first') arr.sort((a,b)=> regionArea(a) - regionArea(b));
@@ -696,69 +764,83 @@ try{
     const axes = state.prefDir === 'along' ? ['row','col'] : (state.prefDir === 'across' ? ['col','row'] : ['row','col']);
     let best = null;
 
+    const finalizeRecursiveCandidate = (baseCand, remAfterBase, axisTag)=>{
+      const orderModes = baseCand.regions.length >= 2 ? ['large-first', 'small-first'] : ['large-first'];
+      for(const orderMode of orderModes){
+        let childRem = remAfterBase.slice();
+        let childPlacements = baseCand.placements.slice();
+        let childIds = baseCand.placements.map(p=>p.id);
+        let childFreeRects = [];
+        let childUsedArea = baseCand.usedArea;
+        let childScore = baseCand.score;
+        let timeout = false;
+        const orderedRegions = sortRegionsForRecursion(baseCand.regions, orderMode);
+        for(const sub of orderedRegions){
+          const subRes = solveRegionRecursive(childRem, sub, K, state, depth + 1);
+          if(subRes.timedOut) timeout = true;
+          childRem = subRes.remaining.slice();
+          childPlacements = childPlacements.concat(subRes.placements || []);
+          childIds = childIds.concat(subRes.placedIds || []);
+          childFreeRects = childFreeRects.concat(subRes.freeRects || []);
+          childUsedArea += subRes.usedArea || 0;
+          childScore += subRes.score || 0;
+        }
+
+        const regArea = rw * rh;
+        const usedRatio = regArea > 0 ? (childUsedArea / regArea) : 0;
+        const sheetMeta = sheetStructureMetrics({ placements: childPlacements });
+        const largestFree = childFreeRects.reduce((mx, r)=> Math.max(mx, regionArea(r)), 0);
+        const freePenalty = childFreeRects.length > 1 ? (childFreeRects.length - 1) * state.boardArea * 0.0025 : 0;
+        childScore += (usedRatio * regArea * 0.75);
+        childScore += Math.min(regArea * 0.18, largestFree * 0.09);
+        childScore += Math.min(regArea * 0.14, sheetMeta.repeatedArea * 0.06);
+        childScore += Math.min(regArea * 0.10, sheetMeta.bandArea * 0.05);
+        childScore -= freePenalty;
+        if(axisTag === 'row' && state.prefDir === 'along') childScore += state.boardArea * 0.0025;
+        if(axisTag === 'col' && state.prefDir === 'across') childScore += state.boardArea * 0.0025;
+        if(baseCand.kind === 'block') childScore += state.boardArea * 0.0040;
+        if(orderMode === 'large-first' && childFreeRects.length <= 2) childScore += state.boardArea * 0.0015;
+
+        const cand = {
+          placements: childPlacements,
+          placedIds: childIds,
+          remaining: childRem,
+          freeRects: childFreeRects,
+          usedArea: childUsedArea,
+          score: childScore,
+          depth,
+          axis: axisTag,
+          lineSize: baseCand.lineSize || 0,
+          timedOut: timeout,
+          kind: baseCand.kind || 'band',
+        };
+
+        if(!best ||
+           cand.usedArea > best.usedArea + (state.boardArea * 0.004) ||
+           (Math.abs(cand.usedArea - best.usedArea) <= (state.boardArea * 0.004) && cand.score > best.score)){
+          best = cand;
+        }
+      }
+    };
+
     for(const axis of axes){
       const lineChoices = chooseRegionLineSizes(rem, region, axis, K, state.lineVariants);
       for(const lineChoice of lineChoices){
         if(state.deadline && now() > state.deadline) break;
         const band = buildRegionBandCandidateForLine(rem, region, axis, lineChoice.size, K, state.prefDir, state.boardArea);
         if(!band) continue;
-
         const remAfterBand = removeItemsByIndices(rem, band.usedIdx);
-        const orderModes = band.regions.length >= 2 ? ['large-first', 'small-first'] : ['large-first'];
-        for(const orderMode of orderModes){
-          let childRem = remAfterBand.slice();
-          let childPlacements = band.placements.slice();
-          let childIds = band.placements.map(p=>p.id);
-          let childFreeRects = [];
-          let childUsedArea = band.usedArea;
-          let childScore = band.score;
-          let timeout = false;
-          const orderedRegions = sortRegionsForRecursion(band.regions, orderMode);
-          for(const sub of orderedRegions){
-            const subRes = solveRegionRecursive(childRem, sub, K, state, depth + 1);
-            if(subRes.timedOut) timeout = true;
-            childRem = subRes.remaining.slice();
-            childPlacements = childPlacements.concat(subRes.placements || []);
-            childIds = childIds.concat(subRes.placedIds || []);
-            childFreeRects = childFreeRects.concat(subRes.freeRects || []);
-            childUsedArea += subRes.usedArea || 0;
-            childScore += subRes.score || 0;
-          }
-
-          const regArea = rw * rh;
-          const usedRatio = regArea > 0 ? (childUsedArea / regArea) : 0;
-          const sheetMeta = sheetStructureMetrics({ placements: childPlacements });
-          const largestFree = childFreeRects.reduce((mx, r)=> Math.max(mx, regionArea(r)), 0);
-          const freePenalty = childFreeRects.length > 1 ? (childFreeRects.length - 1) * state.boardArea * 0.0025 : 0;
-          childScore += (usedRatio * regArea * 0.75);
-          childScore += Math.min(regArea * 0.18, largestFree * 0.09);
-          childScore += Math.min(regArea * 0.14, sheetMeta.repeatedArea * 0.06);
-          childScore += Math.min(regArea * 0.10, sheetMeta.bandArea * 0.05);
-          childScore -= freePenalty;
-          if(axis === 'row' && state.prefDir === 'along') childScore += state.boardArea * 0.0025;
-          if(axis === 'col' && state.prefDir === 'across') childScore += state.boardArea * 0.0025;
-          if(orderMode === 'large-first' && childFreeRects.length <= 2) childScore += state.boardArea * 0.0015;
-
-          const cand = {
-            placements: childPlacements,
-            placedIds: childIds,
-            remaining: childRem,
-            freeRects: childFreeRects,
-            usedArea: childUsedArea,
-            score: childScore,
-            depth,
-            axis,
-            lineSize: lineChoice.size,
-            timedOut: timeout,
-          };
-
-          if(!best ||
-             cand.usedArea > best.usedArea + (state.boardArea * 0.004) ||
-             (Math.abs(cand.usedArea - best.usedArea) <= (state.boardArea * 0.004) && cand.score > best.score)){
-            best = cand;
-          }
-        }
+        finalizeRecursiveCandidate(band, remAfterBand, axis);
       }
+    }
+
+    const anchors = chooseRegionAnchorCandidates(rem, region, Math.max(2, state.lineVariants + 1));
+    for(const anchor of anchors){
+      if(state.deadline && now() > state.deadline) break;
+      const block = buildRegionBlockCandidate(rem, region, anchor, K, state);
+      if(!block) continue;
+      const remAfterBlock = removeItemsByIndices(rem, block.usedIdx);
+      finalizeRecursiveCandidate(block, remAfterBlock, block.anchorW >= block.anchorH ? 'row' : 'col');
     }
 
     if(best) return best;
