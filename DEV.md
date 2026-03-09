@@ -287,3 +287,5 @@ Dopiero potem go zmieniać.
 - Step 50: `js/app/panel-pro-worker.js` — tryb `Opcjonalnie` przestał być tylko hybrydowym wrapperem i dostał nowy główny solver `packOptionalTreeBeam()`: beam-search po częściowych drzewach cięć regionów (open/closed regions, lokalne splity/bandy/bloki, cofanie przez utrzymywanie wielu stanów naraz). To jest pierwszy krok w stronę realnego „odtwarzania ruchów wstecz” zamiast samych restartów od zera.
 
 - Step 51: `Opcjonalnie` wróciło na solver portfelowy (treebeam/recursive/adaptive/strip/guillotine) zamiast wymuszać sam `treebeam`; dodano rozpoznawanie typu zadania (wąskie powtarzalne formatki vs mieszane korpusowe) i bias wyboru rodziny układu.
+
+- Step 52: tryb `Opcjonalnie` został przepisany na sekwencyjny solver „best next sheet” w `js/app/panel-pro-worker.js`: każda kolejna płyta wybierana jest osobno z portfela rodzin (`treebeam` / `recursive` / `adaptive` / `strip` / `guillotine`), z prostym look-aheadem na następną płytę i karą za pozostawianie złego ogona / osieroconych grup wymiarowych.

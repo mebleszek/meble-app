@@ -1409,8 +1409,9 @@ try{
     };
 
     const packOptionalHybrid = (arr, pref, ms)=>{
-      const candidates = [];
       const boardArea = W * H;
+      const workArea = Math.max(1, (Math.max(10, W - 2 * edgeTrimNewSheet)) * (Math.max(10, H - 2 * edgeTrimNewSheet)));
+      const altPref = (pref === 'along') ? 'across' : 'along';
 
       const analyzeJobSignature = (list)=>{
         const widthCounts = new Map();
@@ -1420,7 +1421,6 @@ try{
         let medium = 0;
         let large = 0;
         let skinny = 0;
-        let totalArea = 0;
         for(const it of (list || [])){
           if(!it) continue;
           const w = Math.max(1, Number(it.w) || 0);
@@ -1429,7 +1429,6 @@ try{
           const mn = Math.max(1, Math.min(w, h));
           const ratio = mx / mn;
           const area = w * h;
-          totalArea += area;
           if(ratio >= 2.15) elongated += 1;
           else if(ratio >= 1.45) medium += 1;
           if(mn <= 340) skinny += 1;
@@ -1441,42 +1440,37 @@ try{
         const total = Math.max(1, (list || []).length);
         const repShare = (m)=>{
           let rep = 0;
-          for(const v of m.values()) if(v >= 2) rep += v;
-          return rep / total;
+          let single = 0;
+          for(const v of m.values()){
+            if(v >= 2) rep += v;
+            else single += v;
+          }
+          return { rep: rep / total, single: single / total };
         };
-        const widthRep = repShare(widthCounts);
-        const heightRep = repShare(heightCounts);
-        const pairRep = repShare(pairCounts);
+        const wStat = repShare(widthCounts);
+        const hStat = repShare(heightCounts);
+        const pStat = repShare(pairCounts);
         const elongatedRatio = elongated / total;
         const skinnyRatio = skinny / total;
         const largeRatio = large / total;
         const mediumRatio = medium / total;
-        const stripFriendly = (heightRep >= 0.52 || widthRep >= 0.52 || elongatedRatio >= 0.42 || (skinnyRatio >= 0.55 && pairRep >= 0.24));
-        const mixedTreeFriendly = (largeRatio >= 0.16 && mediumRatio >= 0.16) || (pairRep >= 0.20 && (heightRep >= 0.28 || widthRep >= 0.28));
-        return { widthRep, heightRep, pairRep, elongatedRatio, skinnyRatio, largeRatio, mediumRatio, stripFriendly, mixedTreeFriendly };
-      };
-      const jobSig = analyzeJobSignature(arr);
-
-      const analyzeCandidate = (cand)=>{
-        let repeatedArea = 0;
-        let bandArea = 0;
-        let axisCoherenceSum = 0;
-        let usedArea = 0;
-        let largestFree = 0;
-        for(const s of (cand.sheets||[])){
-          const m = sheetStructureMetrics(s);
-          repeatedArea += m.repeatedArea;
-          bandArea += m.bandArea;
-          axisCoherenceSum += m.axisCoherence;
-          usedArea += m.usedArea;
-          largestFree = Math.max(largestFree, meaningfulFreeRects(s).reduce((mx,r)=>Math.max(mx, r.w*r.h), 0));
-        }
+        const stripFriendly = (hStat.rep >= 0.50 || wStat.rep >= 0.50 || elongatedRatio >= 0.40 || (skinnyRatio >= 0.55 && pStat.rep >= 0.22));
+        const mixedTreeFriendly = (largeRatio >= 0.14 && mediumRatio >= 0.18) || (pStat.rep >= 0.18 && (hStat.rep >= 0.26 || wStat.rep >= 0.26));
+        const orphanShare = Math.max(0, Math.min(1, (wStat.single * 0.34) + (hStat.single * 0.34) + (pStat.single * 0.32)));
         return {
-          repeatedArea,
-          bandArea,
-          coherence: usedArea > 0 ? Math.max(0, Math.min(1, repeatedArea / usedArea)) : 0,
-          avgAxisCoherence: (cand.sheets && cand.sheets.length) ? (axisCoherenceSum / cand.sheets.length) : 0,
-          largestFree,
+          widthRep: wStat.rep,
+          heightRep: hStat.rep,
+          pairRep: pStat.rep,
+          widthSingle: wStat.single,
+          heightSingle: hStat.single,
+          pairSingle: pStat.single,
+          elongatedRatio,
+          skinnyRatio,
+          largeRatio,
+          mediumRatio,
+          stripFriendly,
+          mixedTreeFriendly,
+          orphanShare,
         };
       };
 
@@ -1488,130 +1482,191 @@ try{
         return 'guillotine';
       };
 
-      const chooseBetterCandidate = (a, b)=>{
-        if(!b) return a;
-        if(!a) return b;
-        if(a.sc.sheets !== b.sc.sheets) return (a.sc.sheets < b.sc.sheets) ? a : b;
-
-        const aType = familyClass(a.family);
-        const bType = familyClass(b.family);
-        const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
-        const treeBeamMargin = boardArea * 0.170;
-        const recursiveMargin = boardArea * 0.140;
-        const adaptiveMargin = boardArea * 0.060;
-        const stripMargin = boardArea * 0.055;
-        const aTail = tailMetrics(a.sheets);
-        const bTail = tailMetrics(b.sheets);
-
-        if(aType !== bType){
-          if((aType === 'treebeam' || bType === 'treebeam') && wasteGap <= treeBeamMargin){
-            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.04){
-              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
-            }
-            return aType === 'treebeam' ? a : b;
-          }
-          if((aType === 'recursive' || bType === 'recursive') && wasteGap <= recursiveMargin){
-            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.06){
-              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
-            }
-            return aType === 'recursive' ? a : b;
-          }
-          if((aType === 'adaptive' || bType === 'adaptive') && wasteGap <= adaptiveMargin){
-            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.08){
-              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
-            }
-            return aType === 'adaptive' ? a : b;
-          }
-          if((aType === 'strip' || bType === 'strip') && wasteGap <= stripMargin){
-            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.06){
-              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
-            }
-            return aType === 'strip' ? a : b;
-          }
-        }
-
-        const aRecursive = aType === 'recursive' ? 1 : 0;
-        const bRecursive = bType === 'recursive' ? 1 : 0;
-        const aTree = aType === 'treebeam' ? 1 : 0;
-        const bTree = bType === 'treebeam' ? 1 : 0;
-        const familyBonus = (type)=>{
-          let bonus = 0;
-          if(jobSig.stripFriendly){
-            if(type === 'strip') bonus += boardArea * 0.130;
-            else if(type === 'adaptive') bonus += boardArea * 0.095;
-            else if(type === 'guillotine') bonus += boardArea * 0.030;
-            else if(type === 'treebeam') bonus -= boardArea * 0.050;
-            else if(type === 'recursive') bonus -= boardArea * 0.030;
-          }
-          if(jobSig.mixedTreeFriendly){
-            if(type === 'treebeam') bonus += boardArea * 0.095;
-            else if(type === 'recursive') bonus += boardArea * 0.075;
-            else if(type === 'strip') bonus -= boardArea * 0.030;
-          }
-          return bonus;
+      const runGuillotineFirstSheet = (list, dir, msOne)=>{
+        const sheets = packGuillotine(list, dir, msOne);
+        const sheet = Array.isArray(sheets) && sheets.length ? sheets[0] : null;
+        if(!sheet) return null;
+        const takenIds = idsFromSheet(sheet);
+        const taken = new Set(takenIds);
+        return {
+          sheet,
+          placedIds: takenIds,
+          remaining: list.filter(it => !taken.has(it.id)),
+          usedArea: (sheet.placements || []).reduce((sum, p)=> sum + ((p && !p.unplaced) ? ((p.w||0) * (p.h||0)) : 0), 0),
         };
-        const aBonus = familyBonus(aType);
-        const bBonus = familyBonus(bType);
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.060) - (aTree * boardArea * 0.090) - aBonus;
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.060) - (bTree * boardArea * 0.090) - bBonus;
-        if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
-        if(tailAwareBetter(a, b, boardArea)) return a;
-        return b;
       };
 
-      const add = (family, sheets, alreadyCounted)=>{
-        if(!alreadyCounted) attempts += 1;
-        if(Array.isArray(sheets) && sheets.length){
-          const sc = scoreSheets(sheets);
-          candidates.push({ family, sheets, sc, meta: analyzeCandidate({ sheets }) });
+      const estimateFuture = (remaining, hintType)=>{
+        if(!remaining || !remaining.length){
+          return { nextRatio: 1, sig: analyzeJobSignature([]), nextMeta: { avgAxisCoherence: 1, bandArea: 0, repeatedArea: 0 }, nextUsedArea: 0 };
         }
-        emitProgress(false);
+        const sig = analyzeJobSignature(remaining);
+        const previews = [];
+        const pushPreview = (type, built)=>{
+          if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)) return;
+          const usedArea = built.usedArea || (built.sheet.placements || []).reduce((sum, p)=> sum + ((p && !p.unplaced) ? ((p.w||0) * (p.h||0)) : 0), 0);
+          const sm = sheetStructureMetrics(built.sheet);
+          previews.push({ type, usedArea, ratio: usedArea / workArea, meta: sm });
+        };
+        const quickMs = Math.max(140, Math.round(ms * 0.36));
+        if(sig.stripFriendly || hintType === 'strip' || hintType === 'adaptive'){
+          pushPreview('strip-along', buildAdaptiveStripSheet(remaining, W, H, K, 'along', { edgeTrimNewSheet }));
+          pushPreview('strip-across', buildAdaptiveStripSheet(remaining, W, H, K, 'across', { edgeTrimNewSheet }));
+          pushPreview('adaptive', buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet }));
+        }
+        if(sig.mixedTreeFriendly || hintType === 'treebeam' || hintType === 'recursive'){
+          pushPreview('recursive', buildRecursiveOptionalSheet(remaining, W, H, K, {
+            edgeTrimNewSheet,
+            preferredDirection: null,
+            maxDepth: 10,
+            lineVariants: 2,
+            nodeBudget: Math.max(90, Math.round(beamWidth * 0.46)),
+            deadline: now() + Math.max(120, quickMs),
+          }));
+          pushPreview('treebeam', buildTreeBeamOptionalSheet(remaining, W, H, K, {
+            edgeTrimNewSheet,
+            preferredDirection: null,
+            lineVariants: 3,
+            branchWidth: Math.max(4, Math.round(beamWidth * 0.03)),
+            beamWidth: Math.max(5, Math.round(beamWidth * 0.035)),
+            nodeBudget: Math.max(100, Math.round(beamWidth * 0.72)),
+            deadline: now() + Math.max(160, Math.round(quickMs * 1.2)),
+            perSheetSliceMs: Math.max(180, Math.round(quickMs * 0.8)),
+            maxZeroSplits: 2,
+            maxSteps: 18,
+          }));
+        }
+        if(!previews.length){
+          pushPreview('adaptive', buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet }));
+          pushPreview('strip-along', buildAdaptiveStripSheet(remaining, W, H, K, 'along', { edgeTrimNewSheet }));
+        }
+        let best = null;
+        for(const prev of previews){
+          const score = prev.usedArea + (prev.meta.repeatedArea * 0.10) + (prev.meta.bandArea * 0.08) + (boardArea * Math.max(0, prev.meta.axisCoherence - 0.55) * 0.20);
+          if(!best || score > best.score) best = Object.assign({ score }, prev);
+        }
+        return { nextRatio: best ? best.ratio : 0, sig, nextMeta: best ? best.meta : { avgAxisCoherence: 0, bandArea: 0, repeatedArea: 0 }, nextUsedArea: best ? best.usedArea : 0 };
       };
 
-      const recursiveNodeBudget = Math.max(120, Math.round(beamWidth * 0.90));
-      const recursiveDeadline = now() + Math.max(240, Math.round(ms * 1.35));
-      const treeDeadline = now() + Math.max(420, Math.round(ms * 1.85));
-      add('treebeam-main', packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, lineVariants: 4, branchWidth: Math.max(5, Math.round(beamWidth * 0.05)), beamWidth: Math.max(6, Math.round(beamWidth * 0.06)), nodeBudget: Math.max(180, Math.round(beamWidth * 1.55)), deadline: treeDeadline, perSheetSliceMs: Math.max(520, Math.round(ms * 1.12)), maxZeroSplits: 3, maxSteps: 26 }), false);
-      add('treebeam-pref-' + pref, packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, lineVariants: 4, branchWidth: Math.max(5, Math.round(beamWidth * 0.05)), beamWidth: Math.max(6, Math.round(beamWidth * 0.06)), nodeBudget: Math.max(180, Math.round(beamWidth * 1.55)), deadline: treeDeadline, perSheetSliceMs: Math.max(520, Math.round(ms * 1.12)), maxZeroSplits: 3, maxSteps: 26 }), false);
-      add('recursive-main', packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, maxDepth: 12, lineVariants: 3, nodeBudget: Math.max(180, Math.round(recursiveNodeBudget * 1.35)), deadline: recursiveDeadline, perSheetSliceMs: Math.max(340, Math.round(ms * 0.78)) }), false);
-      add('recursive-pref-' + pref, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, maxDepth: 12, lineVariants: 3, nodeBudget: Math.max(180, Math.round(recursiveNodeBudget * 1.35)), deadline: recursiveDeadline, perSheetSliceMs: Math.max(340, Math.round(ms * 0.78)) }), false);
-      add('adaptive-main', packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet }), false);
-      add('adaptive-pref-' + pref, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref }), false);
-      if(opt.packStripBands){
-        add('strip-along', opt.packStripBands(arr, W, H, K, 'along', { edgeTrimNewSheet }));
-        add('strip-across', opt.packStripBands(arr, W, H, K, 'across', { edgeTrimNewSheet }));
-      }
-      add('guillotine-' + pref, packGuillotine(arr, pref, ms), true);
-      const altPref = (pref === 'along') ? 'across' : 'along';
-      if(pref !== altPref){
-        add('guillotine-' + altPref, packGuillotine(arr, altPref, Math.max(120, Math.round(ms * 0.7))), true);
-      }
-
-      let best = null;
-      for(const cand of candidates) best = chooseBetterCandidate(cand, best);
-
-      if(hybridRuns > 1 && best && best.sheets && best.sheets.length){
-        const extraType = familyClass(best.family);
-        for(let i=1;i<hybridRuns;i++){
-          const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.24)));
-          if(extraType === 'treebeam'){
-            add('treebeam-deep-' + i, packOptionalTreeBeam(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), lineVariants: 5, branchWidth: Math.max(6, Math.round(beamWidth * 0.06)), beamWidth: Math.max(7, Math.round(beamWidth * 0.07)), nodeBudget: Math.max(240, Math.round(beamWidth * (1.9 + i*0.26))), deadline: now() + Math.max(650, Math.round(extraMs * 1.85)), perSheetSliceMs: Math.max(620, Math.round(extraMs * 1.20)), maxZeroSplits: 4, maxSteps: 30 }), false);
-          } else if(extraType === 'recursive'){
-            add('recursive-deep-' + i, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), maxDepth: 13, lineVariants: 4, nodeBudget: Math.max(220, Math.round(beamWidth * (1.45 + i*0.22))), deadline: now() + Math.max(420, Math.round(extraMs * 1.45)), perSheetSliceMs: Math.max(420, Math.round(extraMs * 0.92)) }), false);
-          } else if(extraType === 'adaptive'){
-            add('adaptive-deep-' + i, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref) }), false);
-          } else if(extraType === 'strip' && opt.packStripBands){
-            const dir = /across$/.test(best.family) ? 'across' : 'along';
-            add('strip-deep-' + dir + '-' + i, opt.packStripBands(arr, W, H, K, dir, { edgeTrimNewSheet }));
-          } else {
-            const dir = /across$/.test(best.family) ? 'across' : 'along';
-            add('guillotine-deep-' + dir + '-' + i, packGuillotine(arr, dir, extraMs), true);
+      const chooseSingleSheet = (remaining, dirPref, sheetIndex)=>{
+        const remSig = analyzeJobSignature(remaining);
+        const candidates = [];
+        const addCand = (family, built, alreadyCounted)=>{
+          if(!alreadyCounted) attempts += 1;
+          if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)){
+            emitProgress(false);
+            return;
           }
+          const usedArea = built.usedArea || (built.sheet.placements || []).reduce((sum, p)=> sum + ((p && !p.unplaced) ? ((p.w||0) * (p.h||0)) : 0), 0);
+          const meta = sheetStructureMetrics(built.sheet);
+          const future = estimateFuture(built.remaining || [], familyClass(family));
+          const type = familyClass(family);
+          let familyBias = 0;
+          if(remSig.stripFriendly){
+            if(type === 'strip') familyBias += boardArea * 0.10;
+            else if(type === 'adaptive') familyBias += boardArea * 0.07;
+            else if(type === 'guillotine') familyBias += boardArea * 0.02;
+            else if(type === 'treebeam') familyBias -= boardArea * 0.05;
+            else if(type === 'recursive') familyBias -= boardArea * 0.04;
+          }
+          if(remSig.mixedTreeFriendly){
+            if(type === 'treebeam') familyBias += boardArea * 0.07;
+            else if(type === 'recursive') familyBias += boardArea * 0.06;
+          }
+          const earlyWeight = sheetIndex <= 1 ? 0.56 : 0.40;
+          const futureWeight = sheetIndex <= 1 ? 0.58 : 0.82;
+          const currentScore = usedArea
+            + (meta.repeatedArea * 0.14)
+            + (meta.bandArea * 0.10)
+            + (boardArea * Math.max(0, meta.axisCoherence - 0.56) * 0.26)
+            + (meaningfulFreeRects(built.sheet).reduce((mx, r)=> Math.max(mx, r.w * r.h), 0) * 0.03);
+          const futureScore = (boardArea * future.nextRatio * futureWeight)
+            + (boardArea * Math.max(future.sig.widthRep, future.sig.heightRep, future.sig.pairRep) * 0.16)
+            - (boardArea * future.sig.orphanShare * 0.36)
+            + (future.nextUsedArea * 0.08)
+            + (boardArea * Math.max(0, future.nextMeta.axisCoherence - 0.56) * 0.12);
+          const utilRatio = usedArea / workArea;
+          const weakTailPenalty = (sheetIndex >= 2 && utilRatio < 0.78) ? (boardArea * (0.78 - utilRatio) * 0.45) : 0;
+          const tooGreedyPenalty = (sheetIndex <= 1 && future.sig.orphanShare > 0.52) ? (boardArea * (future.sig.orphanShare - 0.52) * 0.40) : 0;
+          const score = (currentScore * earlyWeight) + futureScore + familyBias - weakTailPenalty - tooGreedyPenalty;
+          candidates.push({ family, built, usedArea, meta, future, score });
+          emitProgress(false);
+        };
+
+        const localMs = Math.max(220, Math.round(ms * (sheetIndex <= 0 ? 1.00 : (sheetIndex === 1 ? 0.88 : 0.74))));
+        const recDeadline = now() + Math.max(180, Math.round(localMs * 0.95));
+        const treeDeadline = now() + Math.max(240, Math.round(localMs * 1.25));
+        addCand('treebeam-main', buildTreeBeamOptionalSheet(remaining, W, H, K, {
+          edgeTrimNewSheet,
+          preferredDirection: null,
+          lineVariants: 4,
+          branchWidth: Math.max(5, Math.round(beamWidth * 0.045)),
+          beamWidth: Math.max(6, Math.round(beamWidth * 0.05)),
+          nodeBudget: Math.max(170, Math.round(beamWidth * 1.25)),
+          deadline: treeDeadline,
+          perSheetSliceMs: Math.max(420, Math.round(localMs * 0.78)),
+          maxZeroSplits: 3,
+          maxSteps: 22,
+        }), false);
+        addCand('treebeam-pref-' + dirPref, buildTreeBeamOptionalSheet(remaining, W, H, K, {
+          edgeTrimNewSheet,
+          preferredDirection: dirPref,
+          lineVariants: 4,
+          branchWidth: Math.max(5, Math.round(beamWidth * 0.045)),
+          beamWidth: Math.max(6, Math.round(beamWidth * 0.05)),
+          nodeBudget: Math.max(170, Math.round(beamWidth * 1.25)),
+          deadline: treeDeadline,
+          perSheetSliceMs: Math.max(420, Math.round(localMs * 0.78)),
+          maxZeroSplits: 3,
+          maxSteps: 22,
+        }), false);
+        addCand('recursive-main', buildRecursiveOptionalSheet(remaining, W, H, K, {
+          edgeTrimNewSheet,
+          preferredDirection: null,
+          maxDepth: 12,
+          lineVariants: 3,
+          nodeBudget: Math.max(150, Math.round(beamWidth * 0.92)),
+          deadline: recDeadline,
+        }), false);
+        addCand('recursive-pref-' + dirPref, buildRecursiveOptionalSheet(remaining, W, H, K, {
+          edgeTrimNewSheet,
+          preferredDirection: dirPref,
+          maxDepth: 12,
+          lineVariants: 3,
+          nodeBudget: Math.max(150, Math.round(beamWidth * 0.92)),
+          deadline: recDeadline,
+        }), false);
+        addCand('adaptive-main', buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet }), false);
+        addCand('adaptive-pref-' + dirPref, buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet, preferredDirection: dirPref }), false);
+        addCand('strip-along', buildAdaptiveStripSheet(remaining, W, H, K, 'along', { edgeTrimNewSheet }), false);
+        addCand('strip-across', buildAdaptiveStripSheet(remaining, W, H, K, 'across', { edgeTrimNewSheet }), false);
+        addCand('guillotine-' + dirPref, runGuillotineFirstSheet(remaining, dirPref, Math.max(140, Math.round(localMs * 0.72))), true);
+        addCand('guillotine-' + altPref, runGuillotineFirstSheet(remaining, altPref, Math.max(120, Math.round(localMs * 0.58))), true);
+
+        let best = null;
+        for(const cand of candidates){
+          if(!best || cand.score > best.score + boardArea * 0.002 || (Math.abs(cand.score - best.score) <= boardArea * 0.002 && cand.usedArea > best.usedArea)) best = cand;
         }
-        best = null;
-        for(const cand of candidates) best = chooseBetterCandidate(cand, best);
+        return best ? best.built : null;
+      };
+
+      let rem = (arr || []).map(it=>Object.assign({}, it));
+      const sheets = [];
+      const overallDeadline = now() + Math.max(Math.round(ms * 3.2), 950);
+      let sheetIndex = 0;
+      while(rem.length && now() < overallDeadline){
+        const built = chooseSingleSheet(rem, sheetIndex % 2 ? altPref : pref, sheetIndex);
+        if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
+        sheets.push(built.sheet);
+        const taken = new Set(built.placedIds || []);
+        rem = rem.filter(it => !taken.has(it.id));
+        sheetIndex += 1;
       }
-      return best ? best.sheets : [];
+      if(rem.length){
+        const fallbackSheets = packAdaptiveBands(rem, W, H, K, { edgeTrimNewSheet, preferredDirection: pref });
+        if(Array.isArray(fallbackSheets) && fallbackSheets.length) sheets.push(...fallbackSheets);
+      }
+      return sheets;
     };
 
     const packOne = (arr, pref, ms)=>{
