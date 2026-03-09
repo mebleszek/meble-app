@@ -277,3 +277,6 @@ Dopiero potem go zmieniać.
 - step45: w Optimax optional dodano mocniejszą ocenę wykorzystania ostatniej płyty oraz deterministyczny post-pass repakujący ogon (ostatnie 2-3 arkusze) trybami adaptive/strip, żeby ograniczyć pusty 5. arkusz.
 
 - Step 46: tryb `Opcjonalnie` w Optimax został przebudowany z wyboru globalnej rodziny układów na adaptacyjne pasy/bloki dobierane region-po-regionie w workerze; celem jest lepsze wykorzystanie ogona i możliwość lokalnej zmiany osi bez psucia całego arkusza.
+
+
+- Step 47: `js/app/panel-pro-worker.js` — przebudowa trybu `Opcjonalnie` w kierunku rekurencyjnego drzewa cięć regionów (lokalna zmiana osi per region, kandydaci line-size, lokalny backtracking kolejności dzieci) zamiast samego multi-startu od zera.

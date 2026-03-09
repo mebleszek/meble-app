@@ -498,11 +498,12 @@ try{
     return out.filter(c=>c.w > 0 && c.h > 0);
   }
 
-  function chooseRegionLineSize(rem, region, axis, K){
+  function chooseRegionLineSizes(rem, region, axis, K, limit){
     const stats = new Map();
     let fallback = null;
     const rw = Math.max(0, Number(region && region.w) || 0);
     const rh = Math.max(0, Number(region && region.h) || 0);
+    const cap = Math.max(1, Math.round(Number(limit) || 1));
     for(let i=0;i<rem.length;i++){
       const it = rem[i];
       for(const cand of adaptiveCandidatesForItem(it)){
@@ -521,21 +522,27 @@ try{
         if((axis === 'col' ? cand.w : cand.h) === key) st.exactCount += 1;
         const fbScore = (cand.w * cand.h) + (key * 1000) + primary;
         if(!fallback || fbScore > fallback.score){
-          fallback = { size:key, score:fbScore };
+          fallback = { size:key, score:fbScore, repeated:0 };
         }
       }
     }
-    let best = null;
     const regionPrimary = axis === 'col' ? rh : rw;
+    const ranked = [];
     for(const st of stats.values()){
       const repeated = st.count >= 2 ? 1 : 0;
       const kerfNeed = Math.max(0, st.count - 1) * K;
       const fillPotential = Math.min(regionPrimary, st.primary + kerfNeed);
       const score = (repeated * 9000000) + (st.count * 1500000) + (fillPotential * 320) + (st.area * 0.42) + (st.size * 800) + (st.maxPrimary * 22);
-      if(!best || score > best.score) best = { size:st.size, score, repeated };
+      ranked.push({ size:st.size, score, repeated });
     }
-    if(best) return best.size;
-    return fallback ? fallback.size : 0;
+    ranked.sort((a,b)=> b.score - a.score);
+    if(!ranked.length && fallback) ranked.push(fallback);
+    return ranked.slice(0, cap);
+  }
+
+  function chooseRegionLineSize(rem, region, axis, K){
+    const arr = chooseRegionLineSizes(rem, region, axis, K, 1);
+    return arr.length ? arr[0].size : 0;
   }
 
   function pickRegionExact(rem, axis, lineSize, spacePrimary, regionSecondary, blocked){
@@ -573,12 +580,10 @@ try{
     return best;
   }
 
-  function buildRegionBandCandidate(rem, region, axis, K, prefDir, boardArea){
+  function buildRegionBandCandidateForLine(rem, region, axis, lineSize, K, prefDir, boardArea){
     const rw = Math.max(0, Number(region && region.w) || 0);
     const rh = Math.max(0, Number(region && region.h) || 0);
-    if(rw < 80 || rh < 80) return null;
-    const lineSize = chooseRegionLineSize(rem, region, axis, K);
-    if(!lineSize) return null;
+    if(rw < 80 || rh < 80 || !lineSize) return null;
 
     const placements = [];
     const usedIdx = [];
@@ -647,7 +652,170 @@ try{
     if(prefDir === 'across' && axis === 'col') score += boardArea * 0.004;
     if(lineFill < 0.74) score -= boardArea * Math.min(0.020, (0.74 - lineFill) * 0.10);
 
-    return { axis, region, placements, usedIdx, regions, usedArea, exactArea, fillerArea, exactCount, score };
+    return { axis, region, lineSize, placements, usedIdx, regions, usedArea, exactArea, fillerArea, exactCount, score };
+  }
+
+  function buildRegionBandCandidate(rem, region, axis, K, prefDir, boardArea){
+    const top = chooseRegionLineSizes(rem, region, axis, K, 1);
+    return top.length ? buildRegionBandCandidateForLine(rem, region, axis, top[0].size, K, prefDir, boardArea) : null;
+  }
+
+  function removeItemsByIndices(rem, usedIdx){
+    if(!Array.isArray(rem) || !rem.length) return [];
+    const used = new Set(usedIdx || []);
+    const out = [];
+    for(let i=0;i<rem.length;i++) if(!used.has(i)) out.push(rem[i]);
+    return out;
+  }
+
+  function regionArea(region){
+    return Math.max(0, (Number(region && region.w) || 0) * (Number(region && region.h) || 0));
+  }
+
+  function sortRegionsForRecursion(regions, mode){
+    const arr = (regions || []).slice();
+    if(mode === 'small-first') arr.sort((a,b)=> regionArea(a) - regionArea(b));
+    else arr.sort((a,b)=> regionArea(b) - regionArea(a));
+    return arr;
+  }
+
+  function solveRegionRecursive(rem, region, K, state, depth){
+    const rw = Math.max(0, Number(region && region.w) || 0);
+    const rh = Math.max(0, Number(region && region.h) || 0);
+    if(!rem.length || rw < 80 || rh < 80){
+      return { placements: [], placedIds: [], remaining: rem.slice(), freeRects: (rw >= 80 && rh >= 80) ? [region] : [], usedArea: 0, score: 0, depth };
+    }
+    if(state.deadline && now() > state.deadline){
+      return { placements: [], placedIds: [], remaining: rem.slice(), freeRects: [region], usedArea: 0, score: 0, depth, timedOut:true };
+    }
+    if(state.nodeBudget <= 0 || depth >= state.maxDepth){
+      return { placements: [], placedIds: [], remaining: rem.slice(), freeRects: [region], usedArea: 0, score: 0, depth, budgetHit:true };
+    }
+    state.nodeBudget -= 1;
+
+    const axes = state.prefDir === 'along' ? ['row','col'] : (state.prefDir === 'across' ? ['col','row'] : ['row','col']);
+    let best = null;
+
+    for(const axis of axes){
+      const lineChoices = chooseRegionLineSizes(rem, region, axis, K, state.lineVariants);
+      for(const lineChoice of lineChoices){
+        if(state.deadline && now() > state.deadline) break;
+        const band = buildRegionBandCandidateForLine(rem, region, axis, lineChoice.size, K, state.prefDir, state.boardArea);
+        if(!band) continue;
+
+        const remAfterBand = removeItemsByIndices(rem, band.usedIdx);
+        const orderModes = band.regions.length >= 2 ? ['large-first', 'small-first'] : ['large-first'];
+        for(const orderMode of orderModes){
+          let childRem = remAfterBand.slice();
+          let childPlacements = band.placements.slice();
+          let childIds = band.placements.map(p=>p.id);
+          let childFreeRects = [];
+          let childUsedArea = band.usedArea;
+          let childScore = band.score;
+          let timeout = false;
+          const orderedRegions = sortRegionsForRecursion(band.regions, orderMode);
+          for(const sub of orderedRegions){
+            const subRes = solveRegionRecursive(childRem, sub, K, state, depth + 1);
+            if(subRes.timedOut) timeout = true;
+            childRem = subRes.remaining.slice();
+            childPlacements = childPlacements.concat(subRes.placements || []);
+            childIds = childIds.concat(subRes.placedIds || []);
+            childFreeRects = childFreeRects.concat(subRes.freeRects || []);
+            childUsedArea += subRes.usedArea || 0;
+            childScore += subRes.score || 0;
+          }
+
+          const regArea = rw * rh;
+          const usedRatio = regArea > 0 ? (childUsedArea / regArea) : 0;
+          const sheetMeta = sheetStructureMetrics({ placements: childPlacements });
+          const largestFree = childFreeRects.reduce((mx, r)=> Math.max(mx, regionArea(r)), 0);
+          const freePenalty = childFreeRects.length > 1 ? (childFreeRects.length - 1) * state.boardArea * 0.0025 : 0;
+          childScore += (usedRatio * regArea * 0.75);
+          childScore += Math.min(regArea * 0.18, largestFree * 0.09);
+          childScore += Math.min(regArea * 0.14, sheetMeta.repeatedArea * 0.06);
+          childScore += Math.min(regArea * 0.10, sheetMeta.bandArea * 0.05);
+          childScore -= freePenalty;
+          if(axis === 'row' && state.prefDir === 'along') childScore += state.boardArea * 0.0025;
+          if(axis === 'col' && state.prefDir === 'across') childScore += state.boardArea * 0.0025;
+          if(orderMode === 'large-first' && childFreeRects.length <= 2) childScore += state.boardArea * 0.0015;
+
+          const cand = {
+            placements: childPlacements,
+            placedIds: childIds,
+            remaining: childRem,
+            freeRects: childFreeRects,
+            usedArea: childUsedArea,
+            score: childScore,
+            depth,
+            axis,
+            lineSize: lineChoice.size,
+            timedOut: timeout,
+          };
+
+          if(!best ||
+             cand.usedArea > best.usedArea + (state.boardArea * 0.004) ||
+             (Math.abs(cand.usedArea - best.usedArea) <= (state.boardArea * 0.004) && cand.score > best.score)){
+            best = cand;
+          }
+        }
+      }
+    }
+
+    if(best) return best;
+    return { placements: [], placedIds: [], remaining: rem.slice(), freeRects: [region], usedArea: 0, score: 0, depth };
+  }
+
+  function buildRecursiveOptionalSheet(itemsIn, boardW, boardH, kerf, options){
+    const W = Math.max(10, Math.round(Number(boardW)||0));
+    const H = Math.max(10, Math.round(Number(boardH)||0));
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet) || 0));
+    let rem = (itemsIn || []).map(it=>Object.assign({}, it));
+    const root = { x: trimNew, y: trimNew, w: Math.max(10, W - 2 * trimNew), h: Math.max(10, H - 2 * trimNew) };
+    const state = {
+      prefDir: options && options.preferredDirection,
+      boardArea: W * H,
+      maxDepth: Math.max(4, Math.round(Number(options && options.maxDepth) || 10)),
+      lineVariants: Math.max(1, Math.round(Number(options && options.lineVariants) || 2)),
+      nodeBudget: Math.max(30, Math.round(Number(options && options.nodeBudget) || 160)),
+      deadline: (options && options.deadline) || 0,
+    };
+    const solved = solveRegionRecursive(rem, root, K, state, 0);
+    const sheet = { boardW: W, boardH: H, placements: (solved.placements || []).slice(), _freeRects: (solved.freeRects || []).slice() };
+    if(!sheet.placements.length && rem.length){
+      const it = rem[0];
+      sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w:it.w, h:it.h, rotated:false, unplaced:true });
+    }
+    return {
+      sheet,
+      placedIds: (solved.placedIds || []).slice(),
+      remaining: (solved.remaining || rem).slice(),
+      usedArea: solved.usedArea || 0,
+      score: solved.score || 0,
+    };
+  }
+
+  function packRecursiveOptional(itemsIn, boardW, boardH, kerf, options){
+    let rem = (itemsIn || []).map(it=>Object.assign({}, it));
+    const sheets = [];
+    const started = now();
+    while(rem.length){
+      const perSheetDeadline = (options && options.deadline)
+        ? Math.min(options.deadline, now() + Math.max(180, Math.round(Number(options && options.perSheetSliceMs) || 900)))
+        : (now() + Math.max(180, Math.round(Number(options && options.perSheetSliceMs) || 900)));
+      const built = buildRecursiveOptionalSheet(rem, boardW, boardH, kerf, Object.assign({}, options || {}, { deadline: perSheetDeadline }));
+      if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
+      sheets.push(built.sheet);
+      const taken = new Set(built.placedIds || []);
+      rem = rem.filter(it=> !taken.has(it.id));
+      if(options && options.deadline && now() > options.deadline) break;
+      if(now() - started > 120000) break;
+    }
+    if(rem.length){
+      const fallbackSheets = packAdaptiveBands(rem, boardW, boardH, kerf, options || {});
+      if(Array.isArray(fallbackSheets) && fallbackSheets.length) sheets.push(...fallbackSheets);
+    }
+    return sheets;
   }
 
   function buildAdaptiveMosaicSheet(itemsIn, boardW, boardH, kerf, options){
@@ -802,6 +970,7 @@ try{
       };
 
       const familyClass = (name)=>{
+        if(/^recursive/.test(name)) return 'recursive';
         if(/^adaptive/.test(name)) return 'adaptive';
         if(/^strip/.test(name)) return 'strip';
         return 'guillotine';
@@ -815,12 +984,19 @@ try{
         const aType = familyClass(a.family);
         const bType = familyClass(b.family);
         const wasteGap = Math.abs(a.sc.waste - b.sc.waste);
+        const recursiveMargin = boardArea * 0.070;
         const adaptiveMargin = boardArea * 0.060;
         const stripMargin = boardArea * 0.055;
         const aTail = tailMetrics(a.sheets);
         const bTail = tailMetrics(b.sheets);
 
         if(aType !== bType){
+          if((aType === 'recursive' || bType === 'recursive') && wasteGap <= recursiveMargin){
+            if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.06){
+              return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
+            }
+            return aType === 'recursive' ? a : b;
+          }
           if((aType === 'adaptive' || bType === 'adaptive') && wasteGap <= adaptiveMargin){
             if(Math.abs(aTail.lastUsedRatio - bTail.lastUsedRatio) >= 0.08){
               return aTail.lastUsedRatio > bTail.lastUsedRatio ? a : b;
@@ -835,8 +1011,10 @@ try{
           }
         }
 
-        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12);
-        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12);
+        const aRecursive = aType === 'recursive' ? 1 : 0;
+        const bRecursive = bType === 'recursive' ? 1 : 0;
+        const aScore = a.sc.waste - (a.meta.repeatedArea * 0.070) - (a.meta.bandArea * 0.060) - (boardArea * Math.max(0, a.meta.avgAxisCoherence - 0.58) * 0.80) - (a.meta.largestFree * 0.10) - (boardArea * Math.max(0, aTail.lastUsedRatio - 0.48) * 0.12) - (aRecursive * boardArea * 0.020);
+        const bScore = b.sc.waste - (b.meta.repeatedArea * 0.070) - (b.meta.bandArea * 0.060) - (boardArea * Math.max(0, b.meta.avgAxisCoherence - 0.58) * 0.80) - (b.meta.largestFree * 0.10) - (boardArea * Math.max(0, bTail.lastUsedRatio - 0.48) * 0.12) - (bRecursive * boardArea * 0.020);
         if(Math.abs(aScore - bScore) > (boardArea * 0.010)) return (aScore < bScore) ? a : b;
         if(tailAwareBetter(a, b, boardArea)) return a;
         return b;
@@ -851,6 +1029,10 @@ try{
         emitProgress(false);
       };
 
+      const recursiveNodeBudget = Math.max(120, Math.round(beamWidth * 0.90));
+      const recursiveDeadline = now() + Math.max(240, Math.round(ms * 1.35));
+      add('recursive-main', packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: null, maxDepth: 10, lineVariants: 2, nodeBudget: recursiveNodeBudget, deadline: recursiveDeadline, perSheetSliceMs: Math.max(260, Math.round(ms * 0.55)) }), false);
+      add('recursive-pref-' + pref, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref, maxDepth: 10, lineVariants: 2, nodeBudget: recursiveNodeBudget, deadline: recursiveDeadline, perSheetSliceMs: Math.max(260, Math.round(ms * 0.55)) }), false);
       add('adaptive-main', packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet }), false);
       add('adaptive-pref-' + pref, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: pref }), false);
       if(opt.packStripBands){
@@ -870,7 +1052,9 @@ try{
         const extraType = familyClass(best.family);
         for(let i=1;i<hybridRuns;i++){
           const extraMs = Math.max(ms, Math.round(ms * (1 + i*0.24)));
-          if(extraType === 'adaptive'){
+          if(extraType === 'recursive'){
+            add('recursive-deep-' + i, packRecursiveOptional(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref), maxDepth: 11, lineVariants: 2, nodeBudget: Math.max(140, Math.round(beamWidth * (1.0 + i*0.18))), deadline: now() + Math.max(320, Math.round(extraMs * 1.25)), perSheetSliceMs: Math.max(300, Math.round(extraMs * 0.60)) }), false);
+          } else if(extraType === 'adaptive'){
             add('adaptive-deep-' + i, packAdaptiveBands(arr, W, H, K, { edgeTrimNewSheet, preferredDirection: (i % 2 ? pref : altPref) }), false);
           } else if(extraType === 'strip' && opt.packStripBands){
             const dir = /across$/.test(best.family) ? 'across' : 'along';
