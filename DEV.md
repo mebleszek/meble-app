@@ -295,3 +295,5 @@ Dopiero potem go zmieniać.
 - Step 54: `js/app/panel-pro-worker.js` — `Opcjonalnie` dostał nowe kandydaty pod drobnicę i słupki 2-up/3-up: wybór line-size uwzględnia teraz „compact minor lines” (małe rzędy startowe / boczne kolumny z obróconych małych elementów), splity mogą brać rozmiary dużych bloków zamiast tylko dominujących pasów, a band/adaptive dostają dodatkowy bonus za takie kompaktowe układy. Celem jest lepsze myślenie o przypadkach typu: małe elementy po 2 w kolumnie oraz header-row zamiast pustego ogona.
 
 - Step 55: optional / DD dostał mocniejsze punktowanie lokalnych ruchów pod kompaktowe kolumny i małe rzędy: w portfolio dochodzi analiza możliwości „repacku” drobnicy w wolnych prostokątach, słabsze premiowanie czystych pasów przy wysokiej koherencji osi oraz większe budżety treebeam/recursive dla wczesnych arkuszy.
+
+- Step 56: `Opcjonalnie` dostało nową rodzinę kandydatów `compact-header`, która najpierw buduje mały rząd lub boczną kolumnę z drobnicy (także po obrocie), a dopiero potem dopakowuje resztę regionów solverem mozaikowym. `buildAdaptiveMosaicSheet()` rozważa teraz po kilka line-size na region zamiast tylko jednego najlepszego.

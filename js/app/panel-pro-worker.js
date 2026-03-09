@@ -1520,6 +1520,93 @@ try{
   }
 
 
+  function fillRegionsAdaptive(remIn, regionsIn, K, prefDir, boardArea){
+    let rem = (remIn || []).map(it=>Object.assign({}, it));
+    const regions = (regionsIn || []).filter(r=> r && r.w >= 80 && r.h >= 80).map(r=>({ x:r.x, y:r.y, w:r.w, h:r.h }));
+    const placements = [];
+    const placedIds = [];
+
+    while(rem.length && regions.length){
+      regions.sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+      let best = null;
+      const regionLimit = Math.min(regions.length, 8);
+      for(let ri=0; ri<regionLimit; ri++){
+        const region = regions[ri];
+        const rowChoices = chooseRegionLineSizes(rem, region, 'row', K, 3);
+        const colChoices = chooseRegionLineSizes(rem, region, 'col', K, 3);
+        for(const lineChoice of rowChoices){
+          const cand = buildRegionBandCandidateForLine(rem, region, 'row', lineChoice.size, K, prefDir, boardArea);
+          if(cand && (!best || cand.score > best.score)) best = Object.assign({ regionIndex: ri }, cand);
+        }
+        for(const lineChoice of colChoices){
+          const cand = buildRegionBandCandidateForLine(rem, region, 'col', lineChoice.size, K, prefDir, boardArea);
+          if(cand && (!best || cand.score > best.score)) best = Object.assign({ regionIndex: ri }, cand);
+        }
+      }
+      if(!best) break;
+
+      const usedSet = new Set(best.usedIdx || []);
+      const usedSorted = Array.from(usedSet).sort((a,b)=> b-a);
+      for(const idx of usedSorted){
+        const it = rem[idx];
+        if(it) placedIds.push(it.id);
+        rem.splice(idx, 1);
+      }
+      for(const p of best.placements || []) placements.push(p);
+      regions.splice(best.regionIndex, 1);
+      for(const nr of best.regions || []) if(nr && nr.w >= 80 && nr.h >= 80) regions.push(nr);
+    }
+
+    return { placements, placedIds, remaining: rem, freeRects: regions };
+  }
+
+  function buildCompactHeaderSheet(itemsIn, boardW, boardH, kerf, options){
+    const W = Math.max(10, Math.round(Number(boardW)||0));
+    const H = Math.max(10, Math.round(Number(boardH)||0));
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet) || 0));
+    const prefDir = options && options.preferredDirection;
+    const workX = trimNew;
+    const workY = trimNew;
+    const workW = Math.max(10, W - 2 * trimNew);
+    const workH = Math.max(10, H - 2 * trimNew);
+    const region = { x: workX, y: workY, w: workW, h: workH };
+    const boardArea = W * H;
+    const remBase = (itemsIn || []).map(it=>Object.assign({}, it));
+    const variants = [];
+
+    const pushChoices = (axis)=>{
+      const compact = chooseCompactMinorLineSizes(remBase, region, axis, K, 4)
+        .filter(c=> c && (c.compact || c.packed >= 2 || c.size <= Math.max(320, Math.round((axis==='row'?workH:workW) * 0.22))));
+      for(const choice of compact){
+        const first = buildRegionBandCandidateForLine(remBase, region, axis, choice.size, K, prefDir, boardArea);
+        if(!first || !(first.placements||[]).length) continue;
+        const remAfter = removeItemsByIndices(remBase, first.usedIdx || []);
+        const filled = fillRegionsAdaptive(remAfter, first.regions || [], K, prefDir, boardArea);
+        const placements = [].concat(first.placements || [], filled.placements || []);
+        const placedIds = placements.map(p=> p && p.id).filter(Boolean);
+        const sheet = { boardW: W, boardH: H, placements, _freeRects: (filled.freeRects || []).slice() };
+        const usedArea = placements.reduce((sum,p)=> sum + ((p && !p.unplaced) ? ((p.w||0)*(p.h||0)) : 0), 0);
+        const freeArea = Math.max(0, workW * workH - usedArea);
+        const meta = sheetStructureMetrics(sheet);
+        const score = usedArea
+          + (first.usedArea || 0) * 0.10
+          + (meta.repeatedArea * 0.10)
+          + (meta.bandArea * 0.08)
+          + ((choice.packed || 0) * 38000)
+          + (boardArea * Math.max(0, meta.axisCoherence - 0.52) * 0.06)
+          - (freeArea * 0.02);
+        variants.push({ sheet, placedIds, remaining: filled.remaining || [], usedArea, score, axis, headerSize: choice.size });
+      }
+    };
+
+    pushChoices('row');
+    pushChoices('col');
+    if(!variants.length) return null;
+    variants.sort((a,b)=> b.score - a.score || b.usedArea - a.usedArea);
+    return variants[0];
+  }
+
   function buildAdaptiveMosaicSheet(itemsIn, boardW, boardH, kerf, options){
     const W = Math.max(10, Math.round(Number(boardW)||0));
     const H = Math.max(10, Math.round(Number(boardH)||0));
@@ -1542,11 +1629,15 @@ try{
       const regionLimit = Math.min(regions.length, 8);
       for(let ri=0; ri<regionLimit; ri++){
         const region = regions[ri];
-        const rowCand = buildRegionBandCandidate(rem, region, 'row', K, prefDir, boardArea);
-        const colCand = buildRegionBandCandidate(rem, region, 'col', K, prefDir, boardArea);
-        for(const cand of [rowCand, colCand]){
-          if(!cand) continue;
-          if(!best || cand.score > best.score) best = Object.assign({ regionIndex: ri }, cand);
+        const rowChoices = chooseRegionLineSizes(rem, region, 'row', K, 3);
+        const colChoices = chooseRegionLineSizes(rem, region, 'col', K, 3);
+        for(const lineChoice of rowChoices){
+          const cand = buildRegionBandCandidateForLine(rem, region, 'row', lineChoice.size, K, prefDir, boardArea);
+          if(cand && (!best || cand.score > best.score)) best = Object.assign({ regionIndex: ri }, cand);
+        }
+        for(const lineChoice of colChoices){
+          const cand = buildRegionBandCandidateForLine(rem, region, 'col', lineChoice.size, K, prefDir, boardArea);
+          if(cand && (!best || cand.score > best.score)) best = Object.assign({ regionIndex: ri }, cand);
         }
       }
       if(!best) break;
@@ -1714,6 +1805,7 @@ try{
         if(/^treebeam/.test(name)) return 'treebeam';
         if(/^recursive/.test(name)) return 'recursive';
         if(/^adaptive/.test(name)) return 'adaptive';
+        if(/^compact-header/.test(name)) return 'compact';
         if(/^strip/.test(name)) return 'strip';
         return 'guillotine';
       };
@@ -1801,6 +1893,7 @@ try{
           if(remSig.stripFriendly){
             if(type === 'strip') familyBias += boardArea * 0.055;
             else if(type === 'adaptive') familyBias += boardArea * 0.045;
+            else if(type === 'compact') familyBias += boardArea * 0.062;
             else if(type === 'guillotine') familyBias += boardArea * 0.012;
             else if(type === 'treebeam') familyBias -= boardArea * 0.012;
             else if(type === 'recursive') familyBias -= boardArea * 0.008;
@@ -1840,7 +1933,7 @@ try{
           const utilRatio = usedArea / workArea;
           const weakTailPenalty = (sheetIndex >= 2 && utilRatio < 0.78) ? (boardArea * (0.78 - utilRatio) * 0.45) : 0;
           const tooGreedyPenalty = (sheetIndex <= 1 && future.sig.orphanShare > 0.52) ? (boardArea * (future.sig.orphanShare - 0.52) * 0.40) : 0;
-          const sameAxisPenalty = ((type === 'strip' || type === 'adaptive') && meta.axisCoherence > 0.86 && repack.best > boardArea * 0.055)
+          const sameAxisPenalty = ((type === 'strip' || type === 'adaptive' || type === 'compact') && meta.axisCoherence > 0.86 && repack.best > boardArea * 0.055)
             ? Math.min(boardArea * 0.14, repack.best * 0.62)
             : 0;
           const salvagePenalty = (largestFreeNow > boardArea * 0.11 && repack.packed >= 2)
@@ -1849,7 +1942,10 @@ try{
           const mixedRecoveryBonus = ((type === 'treebeam' || type === 'recursive') && repack.best > boardArea * 0.030)
             ? Math.min(boardArea * 0.08, repack.best * 0.20)
             : 0;
-          const score = (currentScore * earlyWeight) + futureScore + familyBias + mixedRecoveryBonus - weakTailPenalty - tooGreedyPenalty - sameAxisPenalty - salvagePenalty;
+          const compactHeaderBonus = (type === 'compact' && repack.packed >= 2)
+            ? Math.min(boardArea * 0.10, repack.score * 0.16)
+            : 0;
+          const score = (currentScore * earlyWeight) + futureScore + familyBias + mixedRecoveryBonus + compactHeaderBonus - weakTailPenalty - tooGreedyPenalty - sameAxisPenalty - salvagePenalty;
           candidates.push({ family, built, usedArea, meta, future, score });
           emitProgress(false);
         };
@@ -1899,6 +1995,8 @@ try{
         }), false);
         addCand('adaptive-main', buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet }), false);
         addCand('adaptive-pref-' + dirPref, buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet, preferredDirection: dirPref }), false);
+        addCand('compact-header-main', buildCompactHeaderSheet(remaining, W, H, K, { edgeTrimNewSheet }), false);
+        addCand('compact-header-pref-' + dirPref, buildCompactHeaderSheet(remaining, W, H, K, { edgeTrimNewSheet, preferredDirection: dirPref }), false);
         addCand('strip-along', buildAdaptiveStripSheet(remaining, W, H, K, 'along', { edgeTrimNewSheet }), false);
         addCand('strip-across', buildAdaptiveStripSheet(remaining, W, H, K, 'across', { edgeTrimNewSheet }), false);
         addCand('guillotine-' + dirPref, runGuillotineFirstSheet(remaining, dirPref, Math.max(140, Math.round(localMs * 0.72))), true);
