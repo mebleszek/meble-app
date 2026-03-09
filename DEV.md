@@ -293,3 +293,5 @@ Dopiero potem go zmieniać.
 - Step 53: `Opcjonalnie` dostał lokalne dopychanie free-rectów wewnątrz pasów (`split-band fill`) w `js/app/panel-pro-worker.js`; po osadzeniu większego elementu pas/kolumna tworzy mniejsze regiony do dalszego upychania zamiast zostawiać je martwe.
 
 - Step 54: `js/app/panel-pro-worker.js` — `Opcjonalnie` dostał nowe kandydaty pod drobnicę i słupki 2-up/3-up: wybór line-size uwzględnia teraz „compact minor lines” (małe rzędy startowe / boczne kolumny z obróconych małych elementów), splity mogą brać rozmiary dużych bloków zamiast tylko dominujących pasów, a band/adaptive dostają dodatkowy bonus za takie kompaktowe układy. Celem jest lepsze myślenie o przypadkach typu: małe elementy po 2 w kolumnie oraz header-row zamiast pustego ogona.
+
+- Step 55: optional / DD dostał mocniejsze punktowanie lokalnych ruchów pod kompaktowe kolumny i małe rzędy: w portfolio dochodzi analiza możliwości „repacku” drobnicy w wolnych prostokątach, słabsze premiowanie czystych pasów przy wysokiej koherencji osi oraz większe budżety treebeam/recursive dla wczesnych arkuszy.

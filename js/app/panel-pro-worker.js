@@ -584,6 +584,36 @@ try{
     return { placements, usedIdx, remainingRects };
   }
 
+  function estimateCompactRepackOpportunity(pool, freeRects, K){
+    const rects = (freeRects || []).filter(r=>r && r.w >= 80 && r.h >= 80);
+    if(!rects.length || !pool || !pool.length) return { score:0, best:0, packed:0, axis:null };
+    let total = 0;
+    let best = 0;
+    let packedBest = 0;
+    let bestAxis = null;
+    const localPool = pool.map((it, idx)=>({ id: idx + 1, w: Number(it.w)||0, h: Number(it.h)||0, rotationAllowed: it.rotationAllowed !== false })).filter(it=> it.w > 0 && it.h > 0);
+    for(const rect of rects){
+      for(const axis of ['row','col']){
+        const opts = chooseCompactMinorLineSizes(localPool, rect, axis, K, 2);
+        for(const cand of opts){
+          if(!cand) continue;
+          const rectArea = Math.max(1, (rect.w||0) * (rect.h||0));
+          const fill = Math.max(0, Math.min(1, Number(cand.fill) || 0));
+          const packed = Math.max(0, Math.round(Number(cand.packed) || 0));
+          const score = ((Number(cand.score) || 0) * 0.00003) + (rectArea * fill * 0.55) + (packed * 28000);
+          total += score;
+          if(score > best){
+            best = score;
+            packedBest = packed;
+            bestAxis = axis;
+          }
+        }
+      }
+    }
+    return { score: total, best, packed: packedBest, axis: bestAxis };
+  }
+
+
   function chooseCompactMinorLineSizes(rem, region, axis, K, limit){
     const rw = Math.max(0, Number(region && region.w) || 0);
     const rh = Math.max(0, Number(region && region.h) || 0);
@@ -1769,23 +1799,39 @@ try{
           const type = familyClass(family);
           let familyBias = 0;
           if(remSig.stripFriendly){
-            if(type === 'strip') familyBias += boardArea * 0.10;
-            else if(type === 'adaptive') familyBias += boardArea * 0.07;
-            else if(type === 'guillotine') familyBias += boardArea * 0.02;
-            else if(type === 'treebeam') familyBias -= boardArea * 0.05;
-            else if(type === 'recursive') familyBias -= boardArea * 0.04;
+            if(type === 'strip') familyBias += boardArea * 0.055;
+            else if(type === 'adaptive') familyBias += boardArea * 0.045;
+            else if(type === 'guillotine') familyBias += boardArea * 0.012;
+            else if(type === 'treebeam') familyBias -= boardArea * 0.012;
+            else if(type === 'recursive') familyBias -= boardArea * 0.008;
           }
           if(remSig.mixedTreeFriendly){
-            if(type === 'treebeam') familyBias += boardArea * 0.07;
-            else if(type === 'recursive') familyBias += boardArea * 0.06;
+            if(type === 'treebeam') familyBias += boardArea * 0.090;
+            else if(type === 'recursive') familyBias += boardArea * 0.075;
           }
           const earlyWeight = sheetIndex <= 1 ? 0.56 : 0.40;
           const futureWeight = sheetIndex <= 1 ? 0.58 : 0.82;
+          const freeRectsNow = meaningfulFreeRects(built.sheet);
+          const largestFreeNow = freeRectsNow.reduce((mx, r)=> Math.max(mx, r.w * r.h), 0);
+          const compactPool = [];
+          for(const p of (built.sheet && built.sheet.placements) || []){
+            if(!p || p.unplaced) continue;
+            const pw = Number(p.w) || 0;
+            const ph = Number(p.h) || 0;
+            if(Math.min(pw, ph) <= 360 || (pw * ph) <= boardArea * 0.055){
+              compactPool.push({ w: pw, h: ph, rotationAllowed: true });
+            }
+          }
+          for(const it of (built.remaining || []).slice(0, 36)){
+            compactPool.push({ w: Number(it.w)||0, h: Number(it.h)||0, rotationAllowed: !!it.rotationAllowed });
+          }
+          const repack = estimateCompactRepackOpportunity(compactPool, freeRectsNow, K);
           const currentScore = usedArea
             + (meta.repeatedArea * 0.14)
             + (meta.bandArea * 0.10)
             + (boardArea * Math.max(0, meta.axisCoherence - 0.56) * 0.26)
-            + (meaningfulFreeRects(built.sheet).reduce((mx, r)=> Math.max(mx, r.w * r.h), 0) * 0.03);
+            + (largestFreeNow * 0.03)
+            + Math.min(boardArea * 0.06, repack.best * 0.40);
           const futureScore = (boardArea * future.nextRatio * futureWeight)
             + (boardArea * Math.max(future.sig.widthRep, future.sig.heightRep, future.sig.pairRep) * 0.16)
             - (boardArea * future.sig.orphanShare * 0.36)
@@ -1794,7 +1840,16 @@ try{
           const utilRatio = usedArea / workArea;
           const weakTailPenalty = (sheetIndex >= 2 && utilRatio < 0.78) ? (boardArea * (0.78 - utilRatio) * 0.45) : 0;
           const tooGreedyPenalty = (sheetIndex <= 1 && future.sig.orphanShare > 0.52) ? (boardArea * (future.sig.orphanShare - 0.52) * 0.40) : 0;
-          const score = (currentScore * earlyWeight) + futureScore + familyBias - weakTailPenalty - tooGreedyPenalty;
+          const sameAxisPenalty = ((type === 'strip' || type === 'adaptive') && meta.axisCoherence > 0.86 && repack.best > boardArea * 0.055)
+            ? Math.min(boardArea * 0.14, repack.best * 0.62)
+            : 0;
+          const salvagePenalty = (largestFreeNow > boardArea * 0.11 && repack.packed >= 2)
+            ? Math.min(boardArea * 0.10, repack.score * 0.18)
+            : 0;
+          const mixedRecoveryBonus = ((type === 'treebeam' || type === 'recursive') && repack.best > boardArea * 0.030)
+            ? Math.min(boardArea * 0.08, repack.best * 0.20)
+            : 0;
+          const score = (currentScore * earlyWeight) + futureScore + familyBias + mixedRecoveryBonus - weakTailPenalty - tooGreedyPenalty - sameAxisPenalty - salvagePenalty;
           candidates.push({ family, built, usedArea, meta, future, score });
           emitProgress(false);
         };
@@ -1806,9 +1861,9 @@ try{
           edgeTrimNewSheet,
           preferredDirection: null,
           lineVariants: 4,
-          branchWidth: Math.max(5, Math.round(beamWidth * 0.045)),
-          beamWidth: Math.max(6, Math.round(beamWidth * 0.05)),
-          nodeBudget: Math.max(170, Math.round(beamWidth * 1.25)),
+          branchWidth: Math.max(6, Math.round(beamWidth * 0.060)),
+          beamWidth: Math.max(8, Math.round(beamWidth * 0.072)),
+          nodeBudget: Math.max(220, Math.round(beamWidth * 1.80)),
           deadline: treeDeadline,
           perSheetSliceMs: Math.max(420, Math.round(localMs * 0.78)),
           maxZeroSplits: 3,
@@ -1818,9 +1873,9 @@ try{
           edgeTrimNewSheet,
           preferredDirection: dirPref,
           lineVariants: 4,
-          branchWidth: Math.max(5, Math.round(beamWidth * 0.045)),
-          beamWidth: Math.max(6, Math.round(beamWidth * 0.05)),
-          nodeBudget: Math.max(170, Math.round(beamWidth * 1.25)),
+          branchWidth: Math.max(6, Math.round(beamWidth * 0.060)),
+          beamWidth: Math.max(8, Math.round(beamWidth * 0.072)),
+          nodeBudget: Math.max(220, Math.round(beamWidth * 1.80)),
           deadline: treeDeadline,
           perSheetSliceMs: Math.max(420, Math.round(localMs * 0.78)),
           maxZeroSplits: 3,
@@ -1829,17 +1884,17 @@ try{
         addCand('recursive-main', buildRecursiveOptionalSheet(remaining, W, H, K, {
           edgeTrimNewSheet,
           preferredDirection: null,
-          maxDepth: 12,
-          lineVariants: 3,
-          nodeBudget: Math.max(150, Math.round(beamWidth * 0.92)),
+          maxDepth: 14,
+          lineVariants: 4,
+          nodeBudget: Math.max(210, Math.round(beamWidth * 1.28)),
           deadline: recDeadline,
         }), false);
         addCand('recursive-pref-' + dirPref, buildRecursiveOptionalSheet(remaining, W, H, K, {
           edgeTrimNewSheet,
           preferredDirection: dirPref,
-          maxDepth: 12,
-          lineVariants: 3,
-          nodeBudget: Math.max(150, Math.round(beamWidth * 0.92)),
+          maxDepth: 14,
+          lineVariants: 4,
+          nodeBudget: Math.max(210, Math.round(beamWidth * 1.28)),
           deadline: recDeadline,
         }), false);
         addCand('adaptive-main', buildAdaptiveMosaicSheet(remaining, W, H, K, { edgeTrimNewSheet }), false);
