@@ -496,14 +496,14 @@
   function getOptimaxProfilePreset(profile){
     const key = String(profile || 'DD').toUpperCase();
     const map = {
-      A:  { baseMs: 4000,  estMsPerSheet: 1800, maxMs: 18000,  perSheetMs: 140, beamWidth: 60,  crazyTailTrials: 8,  hybridRuns: 1 },
-      B:  { baseMs: 6500,  estMsPerSheet: 2200, maxMs: 24000,  perSheetMs: 180, beamWidth: 80,  crazyTailTrials: 10, hybridRuns: 1 },
-      C:  { baseMs: 9000,  estMsPerSheet: 2800, maxMs: 32000,  perSheetMs: 220, beamWidth: 100, crazyTailTrials: 12, hybridRuns: 1 },
-      D:  { baseMs: 13000, estMsPerSheet: 3400, maxMs: 42000,  perSheetMs: 260, beamWidth: 120, crazyTailTrials: 16, hybridRuns: 2 },
-      AA: { baseMs: 18000, estMsPerSheet: 4200, maxMs: 60000,  perSheetMs: 340, beamWidth: 150, crazyTailTrials: 20, hybridRuns: 2 },
-      BB: { baseMs: 26000, estMsPerSheet: 5200, maxMs: 80000,  perSheetMs: 420, beamWidth: 200, crazyTailTrials: 28, hybridRuns: 2 },
-      CC: { baseMs: 36000, estMsPerSheet: 6400, maxMs: 105000, perSheetMs: 560, beamWidth: 270, crazyTailTrials: 36, hybridRuns: 3 },
-      DD: { baseMs: 52000, estMsPerSheet: 8200, maxMs: 135000, perSheetMs: 900, beamWidth: 420, crazyTailTrials: 48, hybridRuns: 4 },
+      A:  { baseMs: 4000,  estMsPerSheet: 1800, maxMs: 18000,  perSheetMs: 140, beamWidth: 60 },
+      B:  { baseMs: 6500,  estMsPerSheet: 2200, maxMs: 24000,  perSheetMs: 180, beamWidth: 80 },
+      C:  { baseMs: 9000,  estMsPerSheet: 2800, maxMs: 32000,  perSheetMs: 220, beamWidth: 100 },
+      D:  { baseMs: 13000, estMsPerSheet: 3400, maxMs: 42000,  perSheetMs: 260, beamWidth: 120 },
+      AA: { baseMs: 18000, estMsPerSheet: 4200, maxMs: 60000,  perSheetMs: 340, beamWidth: 150 },
+      BB: { baseMs: 26000, estMsPerSheet: 5200, maxMs: 80000,  perSheetMs: 420, beamWidth: 200 },
+      CC: { baseMs: 36000, estMsPerSheet: 6400, maxMs: 105000, perSheetMs: 560, beamWidth: 270 },
+      DD: { baseMs: 48000, estMsPerSheet: 7600, maxMs: 120000, perSheetMs: 760, beamWidth: 360 },
     };
     return map[key] || map.DD;
   }
@@ -564,15 +564,14 @@
       const H0 = toMm(state.boardH) || 2070;
       const K  = toMm(state.kerf)   || 4;
       const trim = toMm(state.edgeTrim) || 20;
-      const trimScrap = Math.max(0, toMm(state.edgeTrimScrap) || 0);
-      const W = W0;
-      const H = H0;
+      const W = Math.max(10, W0 - 2*trim);
+      const H = Math.max(10, H0 - 2*trim);
 
       // worker per-run (bardziej niezawodne na telefonach)
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260308_optimax_ui_02');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260308_optimax_ui_01');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -580,8 +579,8 @@
           const minScrapW = toMm(state.minScrapW) || 0;
           const minScrapH = toMm(state.minScrapH) || 0;
           const sheets = (cutMode !== 'optional' && opt.packStripBands)
-            ? opt.packStripBands(items, W, H, K, cutMode, { edgeTrimNewSheet: trim })
-            : opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, cutPref: state.direction || 'auto', scrapFirst:true, minScrapW: minScrapW, minScrapH: minScrapH, edgeTrimNewSheet: trim, edgeTrimScrap: trimScrap });
+            ? opt.packStripBands(items, W, H, K, cutMode)
+            : opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, cutPref: state.direction || 'auto', scrapFirst:true, minScrapW: minScrapW, minScrapH: minScrapH });
           return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
         }catch(_){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
@@ -655,7 +654,7 @@
       worker.addEventListener('error', onErr);
       worker.addEventListener('messageerror', onMsgErr);
 
-      const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto', edgeTrimNewSheet: trim, edgeTrimScrap: trimScrap }, (panelOpts||{}));
+      const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
       const watchdogMs = Math.max(35000, Math.round(Number(o.timeBudgetMs)||30000) + 12000);
       // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
       tmr = setTimeout(()=>{
@@ -705,7 +704,6 @@
       boardH: 2070,
       kerf: 4,
       edgeTrim: 20,
-      edgeTrimScrap: 0,
       grain: true,
       heur: 'optimax',
       optimaxProfile: 'DD',
@@ -812,14 +810,6 @@
     trimWrap.appendChild(inTrim);
     controlsSize.appendChild(trimWrap);
 
-    const controlsTrim = h('div', { class:'grid-3', style:'margin-top:12px' });
-
-    const scrapTrimWrap = h('div');
-    scrapTrimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — odpad (${state.unit})` }));
-    const inTrimScrap = h('input', { id:'rozTrimScrap', type:'number', value:String(state.edgeTrimScrap) });
-    scrapTrimWrap.appendChild(inTrimScrap);
-    controlsTrim.appendChild(scrapTrimWrap);
-
     // second row: grain + heuristic + direction
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
 
@@ -874,17 +864,16 @@
 
     const profileHintWrap = h('div');
     profileHintWrap.appendChild(h('label', { text:'Jak czytać profile' }));
-    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → DD), tym dłuższe i dokładniejsze liczenie. DD dostał mocniejszy tryb hybrydowy i cięższy post-pass.' }));
+    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → DD), tym dłuższe i dokładniejsze liczenie.' }));
     controls3.appendChild(profileHintWrap);
 
     const modeHintWrap = h('div');
     modeHintWrap.appendChild(h('label', { text:'Tryb pracy' }));
-    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = rekurencyjne drzewo cięć: dzieli płytę na regiony, lokalnie zmienia oś cięcia i buduje pasy/bloki jak w programach produkcyjnych. Wzdłuż / w poprzek = rozkrój pasowy w jednym kierunku.' }));
+    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = hybryda. Wzdłuż / w poprzek = rozkrój pasowy jak w programach produkcyjnych.' }));
     controls3.appendChild(modeHintWrap);
 
     card.appendChild(controls);
     card.appendChild(controlsSize);
-    card.appendChild(controlsTrim);
     card.appendChild(controls2);
     card.appendChild(controls3);
 
@@ -998,7 +987,6 @@
         boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
         kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
         edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
-        edgeTrimScrap: Math.max(0, Number(inTrimScrap.value)||0),
         minScrapW: Math.max(0, Number(inMinW.value)||0),
         minScrapH: Math.max(0, Number(inMinH.value)||0),
         // Grain is applied per-material (only where the price list marks it as having grain).
@@ -1435,11 +1423,10 @@ async function generate(force){
       const H02 = toMm2(st.boardH) || 2070;
       const K2  = toMm2(st.kerf)   || 4;
       const trim2 = toMm2(st.edgeTrim) || 20;
-      const trimScrap2 = Math.max(0, toMm2(st.edgeTrimScrap) || 0);
       const minScrapW2 = toMm2(st.minScrapW) || 0;
       const minScrapH2 = toMm2(st.minScrapH) || 0;
-      const W2 = W02;
-      const H2 = H02;
+      const W2 = Math.max(10, W02 - 2*trim2);
+      const H2 = Math.max(10, H02 - 2*trim2);
 
       let budgetMs = preset.baseMs;
       try{
@@ -1456,11 +1443,11 @@ async function generate(force){
         const itemsQ = optQ.makeItems(partsMmQ);
         let est = 1;
         if(cutMode === 'optional'){
-          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2, edgeTrimNewSheet: trim2, edgeTrimScrap: trimScrap2 });
-          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2, edgeTrimNewSheet: trim2, edgeTrimScrap: trimScrap2 });
+          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2 });
+          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2 });
           est = Math.max(1, Math.min((sA||[]).length||9999, (sB||[]).length||9999));
         } else if(optQ.packStripBands){
-          est = Math.max(1, (optQ.packStripBands(itemsQ, W2, H2, K2, cutMode, { edgeTrimNewSheet: trim2 })||[]).length || 1);
+          est = Math.max(1, (optQ.packStripBands(itemsQ, W2, H2, K2, cutMode)||[]).length || 1);
         }
         budgetMs = Math.min(preset.maxMs, Math.max(preset.baseMs, est * preset.estMsPerSheet));
       }catch(_){
@@ -1497,8 +1484,8 @@ async function generate(force){
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
             if(loading && loading.subEl){
               const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Warianty: ${iters} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Warianty: ${iters} • Najlepsze: ${bs}`;
+              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
+              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
             }
           }catch(_){ }
         }, control, {
@@ -1510,8 +1497,6 @@ async function generate(force){
           minScrapW: minScrapW2,
           minScrapH: minScrapH2,
           optimax: true,
-          crazyTailTrials: preset.crazyTailTrials,
-          hybridRuns: preset.hybridRuns,
         });
       }catch(e){
         plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
@@ -1558,14 +1543,13 @@ async function generate(force){
           const H02 = toMm2(st.boardH) || 2070;
           const K2  = toMm2(st.kerf)   || 4;
           const trim2 = toMm2(st.edgeTrim) || 20;
-          const trimScrap2 = Math.max(0, toMm2(st.edgeTrimScrap) || 0);
           const minScrapW2 = toMm2(st.minScrapW) || 0;
           const minScrapH2 = toMm2(st.minScrapH) || 0;
-          const W2 = W02;
-          const H2 = H02;
+          const W2 = Math.max(10, W02 - 2*trim2);
+          const H2 = Math.max(10, H02 - 2*trim2);
           const cutMode2 = (st.direction === 'along' || st.direction === 'across') ? st.direction : 'optional';
           const sheets2 = (cutMode2 !== 'optional' && opt2.packStripBands)
-            ? opt2.packStripBands(items2, W2, H2, K2, cutMode2, { edgeTrimNewSheet: trim2 })
+            ? opt2.packStripBands(items2, W2, H2, K2, cutMode2)
             : opt2.packGuillotineBeam(items2, W2, H2, K2, {
                 beamWidth: 110,
                 timeMs: 900,
@@ -1573,8 +1557,6 @@ async function generate(force){
                 scrapFirst: true,
                 minScrapW: minScrapW2,
                 minScrapH: minScrapH2,
-                edgeTrimNewSheet: trim2,
-                edgeTrimScrap: trimScrap2,
               });
           plan = { sheets: sheets2, cancelled: !!(plan && plan.cancelled), meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
         }catch(_){ }

@@ -240,7 +240,7 @@
   // - 'along'  => horizontal strips running along the long edge shown on screen
   // - 'across' => same logic after swapping board axes (vertical strips in final view)
   // The row height is defined by the anchor piece; smaller pieces may fill the tail of the strip.
-  function packStripBandsStable(itemsIn, boardW, boardH, kerf, direction){
+  function packStripBands(itemsIn, boardW, boardH, kerf, direction){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
     const K = Math.max(0, Math.round(Number(kerf)||0));
@@ -376,10 +376,6 @@
     }
 
     return sheets;
-  }
-
-  function packStripBands(itemsIn, boardW, boardH, kerf, direction, options){
-    return packStripBandsStable(itemsIn, boardW, boardH, kerf, direction);
   }
 
   // ===== MaxRects (best short-side fit)
@@ -576,7 +572,6 @@
     makeItems,
     packShelf,
     packStripBands,
-    packStripBandsStable,
     packMaxRects,
     packSuper,
     calcWaste,
@@ -618,16 +613,6 @@
     }
     // stable-ish ordering
     return out.sort((p,q)=> (p.y-q.y) || (p.x-q.x) || ((p.w*p.h) - (q.w*q.h)));
-  }
-
-  function insetRect(rect, trim){
-    const t = Math.max(0, Math.round(Number(trim)||0));
-    if(!rect) return null;
-    if(t <= 0) return { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
-    const w = rect.w - 2*t;
-    const h = rect.h - 2*t;
-    if(w <= 0 || h <= 0) return null;
-    return { x: rect.x + t, y: rect.y + t, w, h };
   }
 
   // Soft preference for "professional" strip/band style layouts.
@@ -754,14 +739,13 @@
     };
   }
 
-  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs, cutPref, initialFreeRects){
+  function fillOneSheetBeam(items, W, H, K, beamWidth, timeMs, cutPref){
     const start = Date.now();
     const maxBeam = clampInt(beamWidth, 40);
     const budgetMs = Math.max(60, clampInt(timeMs, 300));
 
     const remaining = sortByAreaDesc(items);
-    const seedFreeRects = Array.isArray(initialFreeRects) && initialFreeRects.length ? initialFreeRects.map(r=>({ x:r.x, y:r.y, w:r.w, h:r.h })) : [{ x:0, y:0, w:W, h:H }];
-    let beam = [{ placements: [], freeRects: seedFreeRects, usedArea: 0, usedIdx: new Set(), alignmentScore: 0, boardW: W, boardH: H }];
+    let beam = [{ placements: [], freeRects: [{ x:0, y:0, w:W, h:H }], usedArea: 0, usedIdx: new Set(), alignmentScore: 0, boardW: W, boardH: H }];
 
     const CAND_ITEMS = 8;
     const CAND_FREES = 14;
@@ -825,7 +809,7 @@
       if(!canPlaceMore) break;
     }
 
-    const best = beam[0] || { placements: [], freeRects: seedFreeRects, usedArea:0, usedIdx: new Set(), alignmentScore:0, boardW:W, boardH:H };
+    const best = beam[0] || { placements: [], freeRects: [{x:0,y:0,w:W,h:H}], usedArea:0, usedIdx: new Set(), alignmentScore:0, boardW:W, boardH:H };
     const rest = [];
     for(let i=0;i<remaining.length;i++) if(!best.usedIdx.has(i)) rest.push(remaining[i]);
     // IMPORTANT: expose freeRects so caller can keep using scrap areas across sheets.
@@ -895,18 +879,10 @@
     const beamWidth = options && options.beamWidth ? options.beamWidth : 60;
     const timeMs = options && options.timeMs ? options.timeMs : 450;
     const cutPref = (options && options.cutPref) ? options.cutPref : 'auto';
-    const edgeTrimNewSheet = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet)||0));
-    const edgeTrimScrap = Math.max(0, Math.round(Number(options && options.edgeTrimScrap)||0));
 
     const scrapFirst = !!(options && options.scrapFirst);
     let remaining = sortByAreaDesc(itemsIn);
     const sheets = [];
-    const initialFree = insetRect({ x:0, y:0, w:W, h:H }, edgeTrimNewSheet) || { x:0, y:0, w:W, h:H };
-    const normalizeScraps = (freeRects)=>{
-      const minScrapW = Math.max(0, Math.round((options && options.minScrapW != null) ? Number(options.minScrapW) : 100));
-      const minScrapH = Math.max(0, Math.round((options && options.minScrapH != null) ? Number(options.minScrapH) : 100));
-      return (freeRects || []).map(r=> insetRect(r, edgeTrimScrap)).filter(r=>r && r.w>=minScrapW && r.h>=minScrapH);
-    };
 
     // If enabled, prefer reusing scraps on existing sheets before allocating a new board.
     if(scrapFirst){
@@ -915,7 +891,7 @@
         remaining = filled.remaining;
         if(!remaining.length) break;
 
-        const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref, [initialFree]);
+        const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
       const placements = res.placements || [];
       if(placements.length===0){
         const it = remaining[0];
@@ -924,7 +900,10 @@
         continue;
       }
       const sheet = { boardW: W, boardH: H, placements };
-      sheet._freeRects = normalizeScraps(res.freeRects);
+      // Keep internal freeRects for later scrap reuse. Filter: keep only meaningful scraps (>=10cm x 10cm).
+      const minScrapW = Math.max(0, Math.round((options && options.minScrapW != null) ? Number(options.minScrapW) : 100));
+      const minScrapH = Math.max(0, Math.round((options && options.minScrapH != null) ? Number(options.minScrapH) : 100));
+      sheet._freeRects = (res.freeRects || []).filter(r=>r.w>=minScrapW && r.h>=minScrapH);
       sheet._usedArea = res.usedArea || 0;
       sheets.push(sheet);
       remaining = res.remaining;
@@ -939,7 +918,7 @@
 
     // Default (legacy) behavior: fill sheets sequentially.
     while(remaining.length>0){
-      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref, [initialFree]);
+      const res = fillOneSheetBeam(remaining, W, H, K, beamWidth, timeMs, cutPref);
       const placements = res.placements || [];
       if(!placements.length){
         const it = remaining[0];
@@ -947,10 +926,7 @@
         remaining = remaining.slice(1);
         continue;
       }
-      const sheet = { boardW: W, boardH: H, placements };
-      sheet._freeRects = normalizeScraps(res.freeRects);
-      sheet._usedArea = res.usedArea || 0;
-      sheets.push(sheet);
+      sheets.push({ boardW: W, boardH: H, placements });
       remaining = res.remaining;
     }
     return sheets;
