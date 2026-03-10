@@ -2125,6 +2125,9 @@ try{
 
     const packOne = (arr, pref, ms)=>{
       if(cutMode === 'along' || cutMode === 'across'){
+        if(opt.packStripBandsStable){
+          return opt.packStripBandsStable(arr, W, H, K, cutMode);
+        }
         if(opt.packStripBands){
           return opt.packStripBands(arr, W, H, K, cutMode, { edgeTrimNewSheet });
         }
@@ -2217,8 +2220,8 @@ try{
         variants.push(prefix.concat(packAdaptiveBands(uniq, W, H, K, { edgeTrimNewSheet, preferredDirection:'across' }) || []));
         variants.push(prefix.concat(packAdaptiveBands(uniq, W, H, K, { edgeTrimNewSheet }) || []));
         if(opt.packStripBands){
-          variants.push(prefix.concat(opt.packStripBands(uniq, W, H, K, 'along', { edgeTrimNewSheet }) || []));
-          variants.push(prefix.concat(opt.packStripBands(uniq, W, H, K, 'across', { edgeTrimNewSheet }) || []));
+          variants.push(prefix.concat((opt.packStripBandsStable ? opt.packStripBandsStable(uniq, W, H, K, 'along') : opt.packStripBands(uniq, W, H, K, 'along', { edgeTrimNewSheet })) || []));
+          variants.push(prefix.concat((opt.packStripBandsStable ? opt.packStripBandsStable(uniq, W, H, K, 'across') : opt.packStripBands(uniq, W, H, K, 'across', { edgeTrimNewSheet })) || []));
         }
       }
 
@@ -2445,7 +2448,7 @@ try{
         // Prefer stable cut direction within a strip.
         const stripPref = srec.fullH ? 'along' : 'across';
         const packed = (opt.packStripBands && (cutMode === 'along' || cutMode === 'across'))
-          ? opt.packStripBands(subset, rect.w, rect.h, K, stripPref, { edgeTrimNewSheet: 0 })
+          ? (opt.packStripBandsStable ? opt.packStripBandsStable(subset, rect.w, rect.h, K, stripPref) : opt.packStripBands(subset, rect.w, rect.h, K, stripPref, { edgeTrimNewSheet: 0 }))
           : opt.packGuillotineBeam(subset, rect.w, rect.h, K, {
               beamWidth: Math.max(60, Math.min(140, Math.round(beamWidth*0.6))),
               timeMs: 140,

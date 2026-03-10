@@ -240,14 +240,13 @@
   // - 'along'  => horizontal strips running along the long edge shown on screen
   // - 'across' => same logic after swapping board axes (vertical strips in final view)
   // The row height is defined by the anchor piece; smaller pieces may fill the tail of the strip.
-  function packStripBands(itemsIn, boardW, boardH, kerf, direction, options){
+  function packStripBandsStable(itemsIn, boardW, boardH, kerf, direction){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
     const K = Math.max(0, Math.round(Number(kerf)||0));
     const swap = (direction === 'across' || direction === 'wpoprz');
     const BW = swap ? H : W;
     const BH = swap ? W : H;
-    const trimNew = Math.max(0, Math.round(Number(options && options.edgeTrimNewSheet)||0));
 
     const rem = (itemsIn||[]).map(it=>Object.assign({}, it));
     const sheets = [];
@@ -270,12 +269,12 @@
       return p;
     }
 
-    function chooseAnchor(maxRowH, maxRowW){
+    function chooseAnchor(maxRowH){
       let best = null;
       for(let i=0;i<rem.length;i++){
         const it = rem[i];
         for(const c of toCandidates(it)){
-          if(c.w > maxRowW || c.h > maxRowH) continue;
+          if(c.w > BW || c.h > maxRowH) continue;
           const sc = (c.h * 1000000) + (c.w * 1000) + (c.w * c.h);
           if(!best || sc > best.sc){
             best = { idx:i, it, cand:c, sc };
@@ -304,22 +303,16 @@
     }
 
     while(rem.length){
-      const workX = trimNew;
-      const workY = trimNew;
-      const workW = Math.max(10, BW - 2*trimNew);
-      const workH = Math.max(10, BH - 2*trimNew);
-      const maxX = workX + workW;
-      const maxY = workY + workH;
       const sheet = { boardW: BW, boardH: BH, placements: [] };
-      let cursorY = workY;
+      let cursorY = 0;
       let placedAny = false;
 
       while(rem.length){
-        const availableH = maxY - cursorY;
-        const anchor = chooseAnchor(availableH, workW);
+        const availableH = BH - cursorY;
+        const anchor = chooseAnchor(availableH);
         if(!anchor) break;
 
-        let cursorX = workX;
+        let cursorX = 0;
         const rowH = anchor.cand.h;
         const first = {
           id: anchor.it.id,
@@ -340,8 +333,8 @@
         cursorX += anchor.cand.w + K;
         rem.splice(anchor.idx, 1);
 
-        while(rem.length && cursorX < maxX){
-          const fit = chooseBestForStrip(maxX - cursorX, rowH);
+        while(rem.length && cursorX < BW){
+          const fit = chooseBestForStrip(BW - cursorX, rowH);
           if(!fit) break;
           sheet.placements.push({
             id: fit.it.id,
@@ -383,6 +376,10 @@
     }
 
     return sheets;
+  }
+
+  function packStripBands(itemsIn, boardW, boardH, kerf, direction, options){
+    return packStripBandsStable(itemsIn, boardW, boardH, kerf, direction);
   }
 
   // ===== MaxRects (best short-side fit)
@@ -579,6 +576,7 @@
     makeItems,
     packShelf,
     packStripBands,
+    packStripBandsStable,
     packMaxRects,
     packSuper,
     calcWaste,
