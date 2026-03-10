@@ -67,7 +67,7 @@ try{
 
   function sheetStructureMetrics(sheet){
     const pls = (sheet && Array.isArray(sheet.placements)) ? sheet.placements.filter(p=>p && !p.unplaced) : [];
-    if(pls.length < 2) return { bandArea:0, repeatedArea:0, axisCoherence:0, usedArea:0 };
+    if(pls.length < 2) return { bandArea:0, repeatedArea:0, axisCoherence:0, usedArea:0, repeatedRows:0, repeatedCols:0, dominantAxis:'mixed' };
     const usedArea = pls.reduce((sum,p)=> sum + ((Number(p.w)||0) * (Number(p.h)||0)), 0);
     const byWidth = groupAreaStats(pls, p=>'w:' + p.w);
     const byHeight = groupAreaStats(pls, p=>'h:' + p.h);
@@ -78,7 +78,10 @@ try{
     const repeatedCols = byColBand.repeated + byWidth.repeated * 0.35;
     const repeatedArea = Math.max(repeatedRows, repeatedCols);
     const axisCoherence = usedArea > 0 ? Math.max(repeatedRows, repeatedCols) / usedArea : 0;
-    return { bandArea, repeatedArea, axisCoherence, usedArea };
+    const dominantAxis = Math.abs(repeatedRows - repeatedCols) <= usedArea * 0.06
+      ? 'mixed'
+      : (repeatedRows > repeatedCols ? 'row' : 'col');
+    return { bandArea, repeatedArea, axisCoherence, usedArea, repeatedRows, repeatedCols, dominantAxis };
   }
 
   function sheetBandArea(sheet){
@@ -498,6 +501,19 @@ try{
     if(bottomH >= 80 && workW >= 80){
       sheet._freeRects.push({ x: workX, y: cursorY, w: workW, h: bottomH });
     }
+    if(sheet._freeRects.length && rem.length){
+      const extra = fillResidualFreeRects(rem, sheet._freeRects, K, { minRect: 70 });
+      if(extra.placements && extra.placements.length){
+        for(const p of extra.placements){
+          sheet.placements.push(p);
+          placedIds.push(p.id);
+          fillerArea += p.w * p.h;
+        }
+        const usedSorted = Array.from(new Set(extra.usedIdx || [])).sort((a,b)=> b-a);
+        for(const idx of usedSorted) rem.splice(idx, 1);
+      }
+      sheet._freeRects = (extra.remainingRects || []).filter(r=> r && r.w >= 70 && r.h >= 70);
+    }
 
     if(!sheet.placements.length && rem.length){
       const it = rem[0];
@@ -530,6 +546,53 @@ try{
     return out.filter(c=>c.w > 0 && c.h > 0);
   }
 
+
+
+  function estimateBroadFitOpportunity(items, freeRects, K){
+    const rects = (freeRects || []).filter(r=>r && r.w >= 120 && r.h >= 120)
+      .map(r=>({ x:r.x, y:r.y, w:r.w, h:r.h }))
+      .sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+    const pool = (items || []).slice(0, 72).map(it=>({
+      w: Number(it.w) || 0,
+      h: Number(it.h) || 0,
+      rotationAllowed: !!it.rotationAllowed,
+    })).filter(it=> it.w > 0 && it.h > 0);
+    let packed = 0;
+    let area = 0;
+    const boardArea = rects.reduce((sum,r)=> sum + (r.w * r.h), 0);
+    for(const rect of rects){
+      let bestIdx = -1;
+      let bestCand = null;
+      let bestScore = -Infinity;
+      for(let i=0;i<pool.length;i++){
+        const it = pool[i];
+        const cands = [{ w:it.w, h:it.h }];
+        if(it.rotationAllowed && !(it.w === it.h)) cands.push({ w:it.h, h:it.w });
+        for(const cand of cands){
+          if(cand.w > rect.w || cand.h > rect.h) continue;
+          const fitArea = cand.w * cand.h;
+          const remW = rect.w - cand.w;
+          const remH = rect.h - cand.h;
+          const score = (fitArea * 1.0) - (Math.abs(remW - remH) * 18) - ((remW + remH) * 8) + (Math.min(cand.w, cand.h) <= 340 ? 4200 : 0);
+          if(score > bestScore){
+            bestScore = score; bestIdx = i; bestCand = cand;
+          }
+        }
+      }
+      if(bestIdx >= 0 && bestCand){
+        packed += 1;
+        area += bestCand.w * bestCand.h;
+        pool.splice(bestIdx, 1);
+      }
+    }
+    return { packed, area, boardArea, ratio: boardArea > 0 ? area / boardArea : 0 };
+  }
+
+  function fillResidualFreeRects(rem, freeRects, K, options){
+    const rects = (freeRects || []).filter(r=>r && r.w >= 80 && r.h >= 80);
+    if(!rects.length || !(rem && rem.length)) return { placements: [], usedIdx: [], remainingRects: rects.slice() };
+    return fillLocalFreeRects(rem, rects, K, Object.assign({ minRect: 70 }, options || {}));
+  }
 
   function fillLocalFreeRects(rem, freeRects, K, options){
     const rects = (freeRects || []).filter(r=>r && r.w >= 80 && r.h >= 80).map(r=>({ x:r.x, y:r.y, w:r.w, h:r.h }));
@@ -1584,8 +1647,20 @@ try{
         const remAfter = removeItemsByIndices(remBase, first.usedIdx || []);
         const filled = fillRegionsAdaptive(remAfter, first.regions || [], K, prefDir, boardArea);
         const placements = [].concat(first.placements || [], filled.placements || []);
+        let remaining = (filled.remaining || []).slice();
+        const freeRects = (filled.freeRects || []).slice();
+        if(freeRects.length && remaining.length){
+          const extra = fillResidualFreeRects(remaining, freeRects, K, { minRect: 70 });
+          if(extra.placements && extra.placements.length){
+            placements.push(...extra.placements);
+            const usedSorted = Array.from(new Set(extra.usedIdx || [])).sort((a,b)=> b-a);
+            for(const idx of usedSorted) remaining.splice(idx, 1);
+          }
+          freeRects.length = 0;
+          for(const r of (extra.remainingRects || [])) if(r && r.w >= 70 && r.h >= 70) freeRects.push(r);
+        }
         const placedIds = placements.map(p=> p && p.id).filter(Boolean);
-        const sheet = { boardW: W, boardH: H, placements, _freeRects: (filled.freeRects || []).slice() };
+        const sheet = { boardW: W, boardH: H, placements, _freeRects: freeRects };
         const usedArea = placements.reduce((sum,p)=> sum + ((p && !p.unplaced) ? ((p.w||0)*(p.h||0)) : 0), 0);
         const freeArea = Math.max(0, workW * workH - usedArea);
         const meta = sheetStructureMetrics(sheet);
@@ -1596,7 +1671,7 @@ try{
           + ((choice.packed || 0) * 38000)
           + (boardArea * Math.max(0, meta.axisCoherence - 0.52) * 0.06)
           - (freeArea * 0.02);
-        variants.push({ sheet, placedIds, remaining: filled.remaining || [], usedArea, score, axis, headerSize: choice.size });
+        variants.push({ sheet, placedIds, remaining, usedArea, score, axis, headerSize: choice.size });
       }
     };
 
@@ -1657,6 +1732,15 @@ try{
     }
 
     sheet._freeRects = regions.slice();
+    if(sheet._freeRects.length && rem.length){
+      const extra = fillResidualFreeRects(rem, sheet._freeRects, K, { minRect: 70 });
+      if(extra.placements && extra.placements.length){
+        for(const p of extra.placements){ sheet.placements.push(p); placedIds.push(p.id); }
+        const usedSorted = Array.from(new Set(extra.usedIdx || [])).sort((a,b)=> b-a);
+        for(const idx of usedSorted) rem.splice(idx, 1);
+      }
+      sheet._freeRects = (extra.remainingRects || []).filter(r=> r && r.w >= 70 && r.h >= 70);
+    }
 
     if(!sheet.placements.length && rem.length){
       const it = rem[0];
@@ -1876,7 +1960,7 @@ try{
         return { nextRatio: best ? best.ratio : 0, sig, nextMeta: best ? best.meta : { avgAxisCoherence: 0, bandArea: 0, repeatedArea: 0 }, nextUsedArea: best ? best.usedArea : 0 };
       };
 
-      const chooseSingleSheet = (remaining, dirPref, sheetIndex)=>{
+      const chooseSingleSheet = (remaining, dirPref, sheetIndex, axisHistory)=>{
         const remSig = analyzeJobSignature(remaining);
         const candidates = [];
         const addCand = (family, built, alreadyCounted)=>{
@@ -1891,12 +1975,12 @@ try{
           const type = familyClass(family);
           let familyBias = 0;
           if(remSig.stripFriendly){
-            if(type === 'strip') familyBias += boardArea * 0.055;
-            else if(type === 'adaptive') familyBias += boardArea * 0.045;
-            else if(type === 'compact') familyBias += boardArea * 0.062;
-            else if(type === 'guillotine') familyBias += boardArea * 0.012;
-            else if(type === 'treebeam') familyBias -= boardArea * 0.012;
-            else if(type === 'recursive') familyBias -= boardArea * 0.008;
+            if(type === 'strip') familyBias += boardArea * 0.028;
+            else if(type === 'adaptive') familyBias += boardArea * 0.026;
+            else if(type === 'compact') familyBias += boardArea * 0.038;
+            else if(type === 'guillotine') familyBias += boardArea * 0.008;
+            else if(type === 'treebeam') familyBias += boardArea * 0.012;
+            else if(type === 'recursive') familyBias += boardArea * 0.010;
           }
           if(remSig.mixedTreeFriendly){
             if(type === 'treebeam') familyBias += boardArea * 0.090;
@@ -1919,6 +2003,7 @@ try{
             compactPool.push({ w: Number(it.w)||0, h: Number(it.h)||0, rotationAllowed: !!it.rotationAllowed });
           }
           const repack = estimateCompactRepackOpportunity(compactPool, freeRectsNow, K);
+          const broadFit = estimateBroadFitOpportunity((built.remaining || []).slice(0, 72), freeRectsNow, K);
           const currentScore = usedArea
             + (meta.repeatedArea * 0.14)
             + (meta.bandArea * 0.10)
@@ -1933,19 +2018,26 @@ try{
           const utilRatio = usedArea / workArea;
           const weakTailPenalty = (sheetIndex >= 2 && utilRatio < 0.78) ? (boardArea * (0.78 - utilRatio) * 0.45) : 0;
           const tooGreedyPenalty = (sheetIndex <= 1 && future.sig.orphanShare > 0.52) ? (boardArea * (future.sig.orphanShare - 0.52) * 0.40) : 0;
-          const sameAxisPenalty = ((type === 'strip' || type === 'adaptive' || type === 'compact') && meta.axisCoherence > 0.86 && repack.best > boardArea * 0.055)
-            ? Math.min(boardArea * 0.14, repack.best * 0.62)
+          const sameAxisPenalty = ((type === 'strip' || type === 'adaptive' || type === 'compact') && meta.axisCoherence > 0.84 && (repack.best > boardArea * 0.040 || broadFit.area > boardArea * 0.050))
+            ? Math.min(boardArea * 0.18, Math.max(repack.best * 0.62, broadFit.area * 0.42))
             : 0;
-          const salvagePenalty = (largestFreeNow > boardArea * 0.11 && repack.packed >= 2)
-            ? Math.min(boardArea * 0.10, repack.score * 0.18)
+          const salvagePenalty = (largestFreeNow > boardArea * 0.09 && (repack.packed >= 2 || broadFit.packed >= 2))
+            ? Math.min(boardArea * 0.14, Math.max(repack.score * 0.18, broadFit.area * 0.22))
             : 0;
-          const mixedRecoveryBonus = ((type === 'treebeam' || type === 'recursive') && repack.best > boardArea * 0.030)
-            ? Math.min(boardArea * 0.08, repack.best * 0.20)
+          const mixedRecoveryBonus = ((type === 'treebeam' || type === 'recursive') && (repack.best > boardArea * 0.025 || broadFit.area > boardArea * 0.040))
+            ? Math.min(boardArea * 0.11, Math.max(repack.best * 0.20, broadFit.area * 0.18))
             : 0;
-          const compactHeaderBonus = (type === 'compact' && repack.packed >= 2)
-            ? Math.min(boardArea * 0.10, repack.score * 0.16)
+          const compactHeaderBonus = (type === 'compact' && (repack.packed >= 2 || broadFit.packed >= 2))
+            ? Math.min(boardArea * 0.12, Math.max(repack.score * 0.16, broadFit.area * 0.14))
             : 0;
-          const score = (currentScore * earlyWeight) + futureScore + familyBias + mixedRecoveryBonus + compactHeaderBonus - weakTailPenalty - tooGreedyPenalty - sameAxisPenalty - salvagePenalty;
+          const sameRun = Array.isArray(axisHistory) && axisHistory.length ? axisHistory.slice(-2).filter(ax => ax && ax !== 'mixed' && ax === meta.dominantAxis).length : 0;
+          const repeatedAxisPenalty = (sameRun >= 1 && meta.dominantAxis !== 'mixed' && meta.axisCoherence > 0.80 && broadFit.area > boardArea * 0.040)
+            ? boardArea * (sameRun >= 2 ? 0.13 : 0.07)
+            : 0;
+          const underusedPenalty = (usedArea / workArea < 0.88 && broadFit.area > boardArea * 0.045)
+            ? Math.min(boardArea * 0.18, broadFit.area * 0.30)
+            : 0;
+          const score = (currentScore * earlyWeight) + futureScore + familyBias + mixedRecoveryBonus + compactHeaderBonus - weakTailPenalty - tooGreedyPenalty - sameAxisPenalty - salvagePenalty - repeatedAxisPenalty - underusedPenalty;
           candidates.push({ family, built, usedArea, meta, future, score });
           emitProgress(false);
         };
@@ -2011,12 +2103,15 @@ try{
 
       let rem = (arr || []).map(it=>Object.assign({}, it));
       const sheets = [];
+      const axisHistory = [];
       const overallDeadline = now() + Math.max(Math.round(ms * 3.2), 950);
       let sheetIndex = 0;
       while(rem.length && now() < overallDeadline){
-        const built = chooseSingleSheet(rem, sheetIndex % 2 ? altPref : pref, sheetIndex);
+        const built = chooseSingleSheet(rem, sheetIndex % 2 ? altPref : pref, sheetIndex, axisHistory);
         if(!built || !built.sheet || !(built.sheet.placements||[]).some(p=>p && !p.unplaced)) break;
         sheets.push(built.sheet);
+        const metrics = sheetStructureMetrics(built.sheet);
+        axisHistory.push(metrics.dominantAxis || 'mixed');
         const taken = new Set(built.placedIds || []);
         rem = rem.filter(it => !taken.has(it.id));
         sheetIndex += 1;

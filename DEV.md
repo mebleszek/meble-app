@@ -297,3 +297,5 @@ Dopiero potem go zmieniać.
 - Step 55: optional / DD dostał mocniejsze punktowanie lokalnych ruchów pod kompaktowe kolumny i małe rzędy: w portfolio dochodzi analiza możliwości „repacku” drobnicy w wolnych prostokątach, słabsze premiowanie czystych pasów przy wysokiej koherencji osi oraz większe budżety treebeam/recursive dla wczesnych arkuszy.
 
 - Step 56: `Opcjonalnie` dostało nową rodzinę kandydatów `compact-header`, która najpierw buduje mały rząd lub boczną kolumnę z drobnicy (także po obrocie), a dopiero potem dopakowuje resztę regionów solverem mozaikowym. `buildAdaptiveMosaicSheet()` rozważa teraz po kilka line-size na region zamiast tylko jednego najlepszego.
+
+- Step 57: `Opcjonalnie` dostało globalne dopychanie resztkowych wolnych prostokątów na końcu budowy arkusza (`fillResidualFreeRects`), szerszą ocenę możliwości repacku pozostałych elementów w białych polach (`estimateBroadFitOpportunity`) oraz karę za powtarzanie tego samego dominującego kierunku na kolejnych płytach, jeśli w wolnych prostokątach da się jeszcze sensownie upchnąć resztę.
