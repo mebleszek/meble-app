@@ -249,7 +249,7 @@
     const BH = swap ? W : H;
     const MAX_TAIL_WASTE = 100; // <= 10 cm w rzędzie to akceptowalny odpad
 
-    const rem = (itemsIn||[]).map(it=>Object.assign({}, it));
+    let remMaster = (itemsIn||[]).map(it=>Object.assign({}, it));
     const sheets = [];
 
     function toCandidates(it){
@@ -269,11 +269,12 @@
       return true;
     }
 
-    function preferredCandidatesForItem(it, fitFn){
+    function getCandidates(it, fitFn, allowFallback){
       const all = toCandidates(it).filter(fitFn);
       if(!all.length) return all;
       const pref = all.filter(prefersFinalOrientation);
-      return pref.length ? pref : all;
+      if(pref.length) return pref;
+      return allowFallback ? all : [];
     }
 
     function orientationBonus(c, weight){
@@ -309,15 +310,16 @@
       });
     }
 
-    function fillResidualRects(sheet, freeRects){
+    function fillResidualRects(sheet, freeRects, remList, strategy){
       let free = pruneFreeRects((freeRects||[]).filter(r=>r && r.w > 0 && r.h > 0));
-      while(rem.length && free.length){
+      while(remList.length && free.length){
         let best = null;
         for(let fi=0; fi<free.length; fi++){
           const fr = free[fi];
-          for(let i=0;i<rem.length;i++){
-            const it = rem[i];
-            const opts = preferredCandidatesForItem(it, c => c.w <= fr.w && c.h <= fr.h);
+          for(let i=0;i<remList.length;i++){
+            const it = remList[i];
+            let opts = getCandidates(it, c => c.w <= fr.w && c.h <= fr.h, false);
+            if(!opts.length) opts = getCandidates(it, c => c.w <= fr.w && c.h <= fr.h, true);
             for(const c of opts){
               const shortSide = Math.min(fr.w - c.w, fr.h - c.h);
               const longSide = Math.max(fr.w - c.w, fr.h - c.h);
@@ -326,10 +328,10 @@
               const sc =
                 (exactW * 600000) +
                 (exactH * 350000) +
-                orientationBonus(c, 120000) +
-                (c.w * c.h * 2) -
-                (shortSide * 1200) -
-                (longSide * 200);
+                orientationBonus(c, 180000) +
+                (c.w * c.h * (strategy.areaWeight || 2)) -
+                (shortSide * (strategy.shortPenalty || 1200)) -
+                (longSide * (strategy.longPenalty || 200));
               if(!best || sc > best.sc){
                 best = { fi, idx:i, it, cand:c, fr, sc };
               }
@@ -345,19 +347,20 @@
           else nextFree.push(fr);
         }
         free = pruneFreeRects(nextFree.filter(r=>r.w >= 40 && r.h >= 40));
-        rem.splice(best.idx, 1);
+        remList.splice(best.idx, 1);
       }
+      return free;
     }
 
-    function collectStripHeights(availableH){
+    function collectStripHeights(remList, availableH){
       const byH = new Map();
-      for(const it of rem){
-        const opts = preferredCandidatesForItem(it, c => c.w <= BW && c.h <= availableH);
+      for(const it of remList){
+        let opts = getCandidates(it, c => c.w <= BW && c.h <= availableH, false);
+        if(!opts.length) opts = getCandidates(it, c => c.w <= BW && c.h <= availableH, true);
         for(const c of opts){
-          const e = byH.get(c.h) || { h:c.h, area:0, count:0, exactArea:0 };
+          const e = byH.get(c.h) || { h:c.h, area:0, count:0 };
           e.area += c.w * c.h;
           e.count += 1;
-          e.exactArea += c.w * c.h;
           byH.set(c.h, e);
         }
       }
@@ -367,18 +370,18 @@
         if(b.count !== a.count) return b.count - a.count;
         return b.h - a.h;
       });
-      // Zawsze sprawdź kilka najmocniejszych wysokości, ale nie wszystkie — inaczej będzie za wolne.
-      return arr.slice(0, 12).map(v=>v.h);
+      return arr.slice(0, 14).map(v=>v.h);
     }
 
-    function buildStripPlan(rowH){
-      const n = rem.length;
+    function buildStripPlan(remList, rowH, strategy){
+      const n = remList.length;
       const dp = new Array(BW + 1).fill(null);
       dp[0] = { score: 0, area: 0, count: 0, prev: -1, item: -1, cand: null };
 
       for(let i=0;i<n;i++){
-        const it = rem[i];
-        const options = preferredCandidatesForItem(it, c => c.w <= BW && c.h <= rowH);
+        const it = remList[i];
+        let options = getCandidates(it, c => c.w <= BW && c.h <= rowH, false);
+        if(!options.length) options = getCandidates(it, c => c.w <= BW && c.h <= rowH, true);
         if(!options.length) continue;
         const next = dp.slice();
         for(let used=0; used<=BW; used++){
@@ -390,14 +393,14 @@
             if(nw > BW) continue;
             const gapH = rowH - c.h;
             const tail = BW - nw;
-            const fitBonus = tail <= MAX_TAIL_WASTE ? 200000 : 0;
+            const fitBonus = tail <= MAX_TAIL_WASTE ? (strategy.tailBonus || 200000) : 0;
             const exactHeight = gapH === 0 ? 1 : 0;
             const localScore = state.score
-              + (c.w * c.h * 1000)
-              + (exactHeight * 80000)
-              + orientationBonus(c, 120000)
-              - (gapH * c.w * 6)
-              - (tail <= MAX_TAIL_WASTE ? 0 : tail * 20)
+              + (c.w * c.h * (strategy.areaWeight || 1000))
+              + (exactHeight * (strategy.exactHBonus || 80000))
+              + orientationBonus(c, strategy.orientationWeight || 240000)
+              - (gapH * c.w * (strategy.gapPenalty || 6))
+              - (tail <= MAX_TAIL_WASTE ? 0 : tail * (strategy.tailPenalty || 20))
               + fitBonus;
             const prevBest = next[nw];
             if(!prevBest || localScore > prevBest.score){
@@ -415,10 +418,10 @@
         if(!st) continue;
         const tail = BW - used;
         const occupancy = st.area / Math.max(1, BW * rowH);
-        const closeness = tail <= MAX_TAIL_WASTE ? 250000 : -(tail * 400);
-        const finishBias = occupancy >= 0.85 ? 140000 : 0;
-        const total = st.score + closeness + finishBias + occupancy * 100000;
-        const cur = bestState ? (bestState.score + ((BW - bestW) <= MAX_TAIL_WASTE ? 250000 : -((BW - bestW) * 400)) + ((bestState.area / Math.max(1, BW * rowH)) >= 0.85 ? 140000 : 0) + (bestState.area / Math.max(1, BW * rowH)) * 100000) : -1e18;
+        const closeness = tail <= MAX_TAIL_WASTE ? (strategy.tailCloseBonus || 250000) : -(tail * (strategy.tailClosePenalty || 400));
+        const finishBias = occupancy >= 0.85 ? (strategy.finishBias || 140000) : 0;
+        const total = st.score + closeness + finishBias + occupancy * (strategy.occWeight || 100000);
+        const cur = bestState ? (bestState.score + ((BW - bestW) <= MAX_TAIL_WASTE ? (strategy.tailCloseBonus || 250000) : -((BW - bestW) * (strategy.tailClosePenalty || 400))) + ((bestState.area / Math.max(1, BW * rowH)) >= 0.85 ? (strategy.finishBias || 140000) : 0) + (bestState.area / Math.max(1, BW * rowH)) * (strategy.occWeight || 100000)) : -1e18;
         if(!bestState || total > cur){
           bestState = st;
           bestW = used;
@@ -433,14 +436,13 @@
         const st = dp[cursor];
         if(!st || st.item < 0 || !st.cand) break;
         if(!usedItems.has(st.item)){
-          chosen.push({ idx: st.item, it: rem[st.item], cand: st.cand });
+          chosen.push({ idx: st.item, it: remList[st.item], cand: st.cand });
           usedItems.add(st.item);
         }
         cursor = st.prev;
       }
       if(!chosen.length) return null;
       chosen.reverse();
-      // place taller/exact first, then wider. Pozwala to zostawić bardziej używalne prostokąty pod krótszymi detalami.
       chosen.sort((a,b)=>{
         if(b.cand.h !== a.cand.h) return b.cand.h - a.cand.h;
         return b.cand.w - a.cand.w;
@@ -461,29 +463,29 @@
         usedArea,
         occupancy,
         tail,
-        score: usedArea + occupancy * 100000 + (tail <= MAX_TAIL_WASTE ? 200000 : -tail * 200)
+        score: usedArea + occupancy * (strategy.occWeight || 100000) + (tail <= MAX_TAIL_WASTE ? (strategy.tailBonus || 200000) : -tail * (strategy.tailPenalty || 200))
       };
     }
 
-    function chooseBestStrip(availableH){
-      const heights = collectStripHeights(availableH);
+    function chooseBestStrip(remList, availableH, strategy){
+      const heights = collectStripHeights(remList, availableH);
       let best = null;
       for(const h of heights){
-        const plan = buildStripPlan(h);
+        const plan = buildStripPlan(remList, h, strategy);
         if(!plan) continue;
         const sc =
           plan.score
           + (plan.occupancy >= 0.85 ? 250000 : 0)
-          + (plan.tail <= MAX_TAIL_WASTE ? 200000 : 0)
-          + (h * 500);
+          + (plan.tail <= MAX_TAIL_WASTE ? 220000 : 0)
+          + (h * (strategy.heightBias || 500));
         if(!best || sc > best.sc) best = { plan, sc };
       }
       return best ? best.plan : null;
     }
 
-    while(rem.length){
+    function buildSheetVariant(sourceRem, strategy){
+      const rem = sourceRem.map(it=>Object.assign({}, it));
       const sheet = { boardW: BW, boardH: BH, placements: [] };
-      const rows = [];
       const residual = [];
       let cursorY = 0;
       let placedAny = false;
@@ -491,27 +493,25 @@
       while(rem.length){
         const availableH = BH - cursorY;
         if(availableH <= 40) break;
-        const plan = chooseBestStrip(availableH);
+        const plan = chooseBestStrip(rem, availableH, strategy);
         if(!plan) break;
 
         let cursorX = 0;
         const rowH = plan.rowH;
-        const usedIdx = [];
-        for(let pi=0; pi<plan.items.length; pi++){
-          const picked = plan.items[pi];
+        const usedIds = [];
+        for(const picked of plan.items){
           placeFromCandidate(sheet, picked.it, picked.cand, cursorX, cursorY);
-          rows.push({ x: cursorX, y: cursorY, w: picked.cand.w, h: picked.cand.h, rowH });
           if(rowH - picked.cand.h - K > 40){
             residual.push({ x: cursorX, y: cursorY + picked.cand.h + K, w: picked.cand.w, h: rowH - picked.cand.h - K });
           }
           cursorX += picked.cand.w + K;
-          usedIdx.push(picked.idx);
+          usedIds.push(picked.it.id);
           placedAny = true;
         }
 
-        // Usuń użyte po indeksach malejąco.
-        usedIdx.sort((a,b)=>b-a);
-        for(const idx of usedIdx) rem.splice(idx, 1);
+        for(let r=rem.length-1; r>=0; r--){
+          if(usedIds.includes(rem[r].id)) rem.splice(r, 1);
+        }
 
         const usedW = Math.max(0, cursorX - K);
         const tailX = usedW + K;
@@ -522,19 +522,51 @@
         cursorY += rowH + K;
       }
 
-      if(!placedAny){
-        const it = rem.shift();
-        if(it){
-          sheet.placements.push({ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true });
-        }
-      } else {
-        const bottomH = BH - cursorY;
-        if(bottomH > 40){
-          residual.push({ x:0, y: cursorY, w: BW, h: bottomH });
-        }
-        fillResidualRects(sheet, residual);
+      if(!placedAny) return null;
+      const bottomH = BH - cursorY;
+      if(bottomH > 40){
+        residual.push({ x:0, y: cursorY, w: BW, h: bottomH });
+      }
+      const freeLeft = fillResidualRects(sheet, residual, rem, strategy);
+      const usedArea = sheet.placements.reduce((s,p)=> s + (p.w * p.h), 0);
+      const occupancy = usedArea / Math.max(1, BW * BH);
+      const bigWaste = (freeLeft||[]).reduce((m,r)=> Math.max(m, r.w*r.h), 0);
+      const score = usedArea * 50 + occupancy * 1000000 + (occupancy >= 0.85 ? 400000 : 0) - bigWaste * 0.08 + sheet.placements.length * 500;
+      return { sheet, rem, score };
+    }
+
+    const strategies = [
+      { name:'balanced', areaWeight:1000, exactHBonus:80000, gapPenalty:6, tailPenalty:20, tailBonus:220000, tailCloseBonus:260000, finishBias:150000, occWeight:100000, heightBias:500, orientationWeight:260000, shortPenalty:1200, longPenalty:200 },
+      { name:'tight-tail', areaWeight:1000, exactHBonus:70000, gapPenalty:8, tailPenalty:30, tailBonus:300000, tailCloseBonus:340000, finishBias:150000, occWeight:110000, heightBias:300, orientationWeight:260000, shortPenalty:1400, longPenalty:220 },
+      { name:'exact-height', areaWeight:900, exactHBonus:140000, gapPenalty:10, tailPenalty:18, tailBonus:200000, tailCloseBonus:220000, finishBias:140000, occWeight:90000, heightBias:800, orientationWeight:260000, shortPenalty:1200, longPenalty:260 },
+      { name:'dense', areaWeight:1200, exactHBonus:90000, gapPenalty:5, tailPenalty:26, tailBonus:180000, tailCloseBonus:220000, finishBias:200000, occWeight:130000, heightBias:450, orientationWeight:260000, shortPenalty:1000, longPenalty:180 },
+      { name:'compact', areaWeight:950, exactHBonus:60000, gapPenalty:12, tailPenalty:16, tailBonus:280000, tailCloseBonus:300000, finishBias:120000, occWeight:95000, heightBias:650, orientationWeight:260000, shortPenalty:1500, longPenalty:240 },
+    ];
+
+    while(remMaster.length){
+      let bestVariant = null;
+      for(const strategy of strategies){
+        const variant = buildSheetVariant(remMaster, strategy);
+        if(!variant) continue;
+        if(!bestVariant || variant.score > bestVariant.score) bestVariant = variant;
       }
 
+      if(!bestVariant){
+        const it = remMaster.shift();
+        if(!it) break;
+        const sheet = { boardW: BW, boardH: BH, placements: [{ id: it.id, key: it.key, name: it.name, x:0, y:0, w: it.w, h: it.h, rotated:false, unplaced:true }] };
+        if(swap){
+          sheet.placements.forEach(swapPlacementBack);
+          sheet.boardW = W; sheet.boardH = H;
+        } else {
+          sheet.boardW = W; sheet.boardH = H;
+        }
+        sheets.push(sheet);
+        continue;
+      }
+
+      remMaster = bestVariant.rem;
+      const sheet = bestVariant.sheet;
       if(swap){
         sheet.placements.forEach(swapPlacementBack);
         sheet.boardW = W;
