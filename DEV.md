@@ -266,3 +266,12 @@ Dopiero potem go zmieniać.
 - `js/app/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
 
 - Step 40: przebudowa UI części ROZRYS pod Optimax (profile A→DD, kierunek opcjonalnie/wzdłuż/w poprzek, rzaz, obrównanie, minimalny użyteczny odpad) oraz nowy pasowy packer `packStripBands()` dla trybów wzdłuż/w poprzek.
+
+- Step 61: tryby pasowe `wzdłuż` / `w poprzek` dostały mocniejsze legacy-strip dopakowanie końcówek (`packStripBands`): preferencja orientacji zgodnej z kierunkiem, fill resztek po pasach przez wolne prostokąty oraz łagodny bonus dla pełnych rzędów/kolumn.
+
+
+## Step 62
+- Rewritten `packStripBands()` in `js/app/cut-optimizer.js` for stable `wzdłuż` / `w poprzek` strip modes.
+- Strip selection now evaluates multiple candidate strip heights and uses a width DP to choose the best-fitting group for each strip.
+- Residual free rectangles are also created under shorter pieces inside a strip, then globally filled.
+- Goal: restore practical strip behavior (group-oriented, near-full strips, <=100 mm acceptable tail waste) without relying on `optional` heuristics.
