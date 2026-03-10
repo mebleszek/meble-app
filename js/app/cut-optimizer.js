@@ -262,17 +262,22 @@
       return swap ? { fw: c.h, fh: c.w } : { fw: c.w, fh: c.h };
     }
 
-    function orientationBonus(c, weight){
+    function prefersFinalOrientation(c){
       const d = finalDims(c);
-      if(direction === 'across' || direction === 'wpoprz'){
-        // w widoku końcowym chcemy pasy "w poprzek", więc preferuj elementy szersze niż wyższe.
-        return d.fw >= d.fh ? weight : 0;
-      }
-      if(direction === 'along' || direction === 'wzdluz'){
-        // w widoku końcowym chcemy pasy "wzdłuż", więc preferuj elementy wyższe niż szersze.
-        return d.fh >= d.fw ? weight : 0;
-      }
-      return 0;
+      if(direction === 'across' || direction === 'wpoprz') return d.fw >= d.fh;
+      if(direction === 'along' || direction === 'wzdluz') return d.fh >= d.fw;
+      return true;
+    }
+
+    function preferredCandidatesForItem(it, fitFn){
+      const all = toCandidates(it).filter(fitFn);
+      if(!all.length) return all;
+      const pref = all.filter(prefersFinalOrientation);
+      return pref.length ? pref : all;
+    }
+
+    function orientationBonus(c, weight){
+      return prefersFinalOrientation(c) ? weight : -Math.abs(weight);
     }
 
     function swapPlacementBack(p){
@@ -312,8 +317,8 @@
           const fr = free[fi];
           for(let i=0;i<rem.length;i++){
             const it = rem[i];
-            for(const c of toCandidates(it)){
-              if(c.w > fr.w || c.h > fr.h) continue;
+            const opts = preferredCandidatesForItem(it, c => c.w <= fr.w && c.h <= fr.h);
+            for(const c of opts){
               const shortSide = Math.min(fr.w - c.w, fr.h - c.h);
               const longSide = Math.max(fr.w - c.w, fr.h - c.h);
               const exactW = (fr.w - c.w === 0) ? 1 : 0;
@@ -347,8 +352,8 @@
     function collectStripHeights(availableH){
       const byH = new Map();
       for(const it of rem){
-        for(const c of toCandidates(it)){
-          if(c.w > BW || c.h > availableH) continue;
+        const opts = preferredCandidatesForItem(it, c => c.w <= BW && c.h <= availableH);
+        for(const c of opts){
           const e = byH.get(c.h) || { h:c.h, area:0, count:0, exactArea:0 };
           e.area += c.w * c.h;
           e.count += 1;
@@ -373,7 +378,7 @@
 
       for(let i=0;i<n;i++){
         const it = rem[i];
-        const options = toCandidates(it).filter(c => c.w <= BW && c.h <= rowH);
+        const options = preferredCandidatesForItem(it, c => c.w <= BW && c.h <= rowH);
         if(!options.length) continue;
         const next = dp.slice();
         for(let used=0; used<=BW; used++){

@@ -275,3 +275,4 @@ Dopiero potem go zmieniać.
 - Strip selection now evaluates multiple candidate strip heights and uses a width DP to choose the best-fitting group for each strip.
 - Residual free rectangles are also created under shorter pieces inside a strip, then globally filled.
 - Goal: restore practical strip behavior (group-oriented, near-full strips, <=100 mm acceptable tail waste) without relying on `optional` heuristics.
+- Step 63: tryby pasowe `wzdłuż` / `w poprzek` dostały twardą preferencję orientacji końcowej na poziomie doboru kandydatów (`preferredCandidatesForItem` w `js/app/cut-optimizer.js`). Jeśli dla elementu istnieje wariant zgodny z wybranym kierunkiem pasa, solver używa go zamiast mieszać orientacje w residual fill / planowaniu pasa.
