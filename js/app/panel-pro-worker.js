@@ -1783,7 +1783,107 @@ try{
     if(!_bestSoFar || better(res, _bestSoFar)) _bestSoFar = res;
   }
 
+  function packPanelProStripLegacy(items, W, H, K, opts){
+    if(!opt || typeof opt.packStripBands !== 'function' || typeof opt.calcWaste !== 'function'){
+      return { sheets: [], note: 'Brak packStripBands/calcWaste w workerze.' };
+    }
+
+    const timeBudgetMs = Math.max(1000, Math.round(Number(opts && opts.timeBudgetMs) || 30000));
+    const cutMode = (opts && opts.cutMode) || 'along';
+    const started = now();
+    const base = sortVariants(items);
+    let best = null;
+    let iters = 0;
+    let lastProgress = started;
+
+    function legacyScoreSheets(sheets){
+      const arr = (sheets || []);
+      let waste = arr.reduce((sum,s)=> sum + opt.calcWaste(s).waste, 0);
+      const MAX_ROTATE_STRIP_MM = 1000;
+      for(const s of arr){
+        const area = (Number(s && s.boardW) || 0) * (Number(s && s.boardH) || 0);
+        if(area <= 0) continue;
+        const pls = (s && s.placements) ? s.placements.filter(pp=>pp && !pp.unplaced) : [];
+        if(pls.length >= 2){
+          let hasR = false, hasN = false;
+          let minX=1e18, minY=1e18, maxX=-1e18, maxY=-1e18;
+          for(const pp of pls){
+            if(pp.rotated){
+              hasR = true;
+              minX = Math.min(minX, pp.x);
+              minY = Math.min(minY, pp.y);
+              maxX = Math.max(maxX, pp.x + pp.w);
+              maxY = Math.max(maxY, pp.y + pp.h);
+            } else {
+              hasN = true;
+            }
+          }
+          if(hasR && hasN){
+            const bw = (maxX>minX) ? (maxX-minX) : 0;
+            const bh = (maxY>minY) ? (maxY-minY) : 0;
+            const okStrip = (bw <= MAX_ROTATE_STRIP_MM) || (bh <= MAX_ROTATE_STRIP_MM);
+            if(!okStrip) waste += area * 0.08;
+          }
+        }
+        const free = meaningfulFreeRects(s);
+        const largestFree = free.reduce((m,r)=>Math.max(m, r.w*r.h), 0);
+        const stripFree = largestReusableStripArea(s);
+        const bandArea = sheetBandArea(s);
+        if(free.length > 4) waste += area * Math.min(0.05, (free.length - 4) * 0.008);
+        if(largestFree > 0) waste -= Math.min(area * 0.03, largestFree * 0.12);
+        if(stripFree > 0) waste -= Math.min(area * 0.035, stripFree * 0.18);
+        if(bandArea > 0) waste -= Math.min(area * 0.04, bandArea * 0.06);
+      }
+      return { sheets: arr.length, waste: Math.max(0, waste) };
+    }
+
+    function legacyBetter(a, b){
+      if(!b) return true;
+      if(a.sc.sheets !== b.sc.sheets) return a.sc.sheets < b.sc.sheets;
+      return a.sc.waste < b.sc.waste;
+    }
+
+    const tryOne = (arr)=>{
+      if(_cancelled) return;
+      const sheets = (opt.packStripBandsStable ? opt.packStripBandsStable(arr, W, H, K, cutMode) : opt.packStripBands(arr, W, H, K, cutMode));
+      const sc = legacyScoreSheets(sheets);
+      const res = { sheets, sc };
+      if(legacyBetter(res, best)) best = res;
+      setBest(res);
+    };
+
+    base.forEach(tryOne);
+    while(now() - started < timeBudgetMs){
+      if(_cancelled) break;
+      const seed = (Date.now() + iters*9973) >>> 0;
+      const rnd = mulberry32(seed);
+      const pick = base[Math.floor(rnd()*base.length)];
+      const arr = shuffle(pick, rnd);
+      tryOne(arr);
+      iters++;
+      const t = now();
+      if(t - lastProgress > 500){
+        lastProgress = t;
+        self.postMessage({
+          type:'progress',
+          elapsedMs: Math.round(t - started),
+          iters,
+          best: best ? { sheets: best.sc.sheets, waste: best.sc.waste } : null,
+        });
+      }
+    }
+
+    if(!best){
+      const sheets = (opt.packStripBandsStable ? opt.packStripBandsStable(items, W, H, K, cutMode) : opt.packStripBands(items, W, H, K, cutMode));
+      best = { sheets, sc: legacyScoreSheets(sheets) };
+    }
+    return best.sheets;
+  }
+
   function packPanelPro(items, W, H, K, opts){
+    if((opts && opts.cutMode) === 'along' || (opts && opts.cutMode) === 'across'){
+      return packPanelProStripLegacy(items, W, H, K, opts);
+    }
     if(!opt || typeof opt.packGuillotineBeam !== 'function'){
       return { sheets: [], note: 'Brak packGuillotineBeam w workerze.' };
     }

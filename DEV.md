@@ -301,3 +301,5 @@ Dopiero potem go zmieniać.
 - Step 57: `Opcjonalnie` dostało globalne dopychanie resztkowych wolnych prostokątów na końcu budowy arkusza (`fillResidualFreeRects`), szerszą ocenę możliwości repacku pozostałych elementów w białych polach (`estimateBroadFitOpportunity`) oraz karę za powtarzanie tego samego dominującego kierunku na kolejnych płytach, jeśli w wolnych prostokątach da się jeszcze sensownie upchnąć resztę.
 
 - step58: restored stable legacy strip solver for tryby wzdłuż/w poprzek (`packStripBandsStable`) and separated it from Optional experiments in the worker.
+
+- 2026-03-10 step59: tryby wzdłuż/w poprzek idą przez osobny legacy-strip solver workerowy (stary scorer + stary multi-start), bez współdzielenia nowych heurystyk Optional.
