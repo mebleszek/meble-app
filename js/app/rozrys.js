@@ -505,8 +505,8 @@
   }
 
   function directionLabel(dir){
-    if(dir === 'along') return 'Pasy wzdłuż';
-    if(dir === 'across') return 'Pasy w poprzek';
+    if(dir === 'along') return 'Preferuj pasy wzdłuż';
+    if(dir === 'across') return 'Preferuj pasy w poprzek';
     return 'Opcjonalnie';
   }
 
@@ -567,7 +567,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260308_optimax_ui_01');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260311_attempt_ui_names_01');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -836,8 +836,8 @@
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
       <option value="auto">Opcjonalnie kierunek cięcia</option>
-      <option value="along">Tnij na pasy wzdłuż arkusza</option>
-      <option value="across">Tnij na pasy w poprzek arkusza</option>
+      <option value="along">Preferuj pasy wzdłuż arkusza</option>
+      <option value="across">Preferuj pasy w poprzek arkusza</option>
     `;
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
@@ -856,12 +856,12 @@
 
     const profileHintWrap = h('div');
     profileHintWrap.appendChild(h('label', { text:'Jak czytać profile' }));
-    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → D), tym więcej sprawdzonych wariantów.' }));
+    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → D), tym więcej sprawdzonych prób głównych. Końcówka ostatniego arkusza ma osobny limit 200 prób.' }));
     controls3.appendChild(profileHintWrap);
 
     const modeHintWrap = h('div');
     modeHintWrap.appendChild(h('label', { text:'Tryb pracy' }));
-    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = hybryda. Wzdłuż / w poprzek = rozkrój pasowy jak w programach produkcyjnych.' }));
+    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = hybryda. Pozostałe tryby preferują pasy w wybranym kierunku, ale mogą lokalnie od niego odejść dla lepszego upakowania.' }));
     controls3.appendChild(modeHintWrap);
 
     card.appendChild(controls);
@@ -1437,14 +1437,24 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
           try{
             const best = (p && p.best) ? p.best : null;
+            const phase = (p && p.phase) ? String(p.phase) : 'main';
             const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
+            const workerMax = (p && Number(p.maxAttempts)) ? Number(p.maxAttempts) : maxAttempts;
+            const tailIters = (p && Number(p.tailIters)) ? Number(p.tailIters) : 0;
+            const tailMax = (p && Number(p.endgameAttempts)) ? Number(p.endgameAttempts) : 200;
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
             if(loading && loading.subEl){
               const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              if(loading && loading.textEl) loading.textEl.textContent = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby ${Math.min(maxAttempts, iters)}/${maxAttempts}`;
-              if(gsText) gsText.textContent = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby ${Math.min(maxAttempts, iters)}/${maxAttempts}`;
-              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Próby: ${iters}/${maxAttempts} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Próby: ${iters}/${maxAttempts} • Najlepsze: ${bs}`;
+              const mainTxt = `${Math.min(workerMax, iters)}/${workerMax}`;
+              const tailTxt = `${Math.min(tailMax, tailIters)}/${tailMax}`;
+              const title = (phase === 'tail')
+                ? `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • końcówka ${tailTxt}`
+                : `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby ${mainTxt}`;
+              const sub = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Główne: ${mainTxt} • Końcówka: ${tailTxt} • Najlepsze: ${bs}`;
+              if(loading && loading.textEl) loading.textEl.textContent = title;
+              if(gsText) gsText.textContent = title;
+              loading.subEl.textContent = sub;
+              if(gsSub) gsSub.textContent = sub;
             }
           }catch(_){ }
         }, control, {

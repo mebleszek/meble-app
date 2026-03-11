@@ -222,6 +222,28 @@ try{
       if(it && (it.id!==undefined && it.id!==null)) itemById.set(it.id, it);
     }
 
+    const progress = { phase:'main', iters:0, tailIters:0 };
+    let lastProgressKey = '';
+    function reportProgress(force){
+      try{
+        const bestRef = _bestSoFar || best;
+        const bestMsg = bestRef ? { sheets: bestRef.sc.sheets, waste: bestRef.sc.waste } : null;
+        const key = [progress.phase, progress.iters, progress.tailIters, bestMsg ? bestMsg.sheets : '-', bestMsg ? Math.round(bestMsg.waste) : '-'].join('|');
+        if(!force && key === lastProgressKey) return;
+        lastProgressKey = key;
+        self.postMessage({
+          type:'progress',
+          phase: progress.phase,
+          elapsedMs: Math.round(now() - started),
+          iters: progress.iters,
+          maxAttempts,
+          tailIters: progress.tailIters,
+          endgameAttempts,
+          best: bestMsg,
+        });
+      }catch(_){ }
+    }
+
     // deterministic runs first
     let best = null;
     const tryOne = (arr)=>{
@@ -239,10 +261,12 @@ try{
       if(_cancelled || iters >= maxAttempts || (now() - started) >= hardStopMs) break;
       tryOne(arr);
       iters++;
+      progress.iters = iters;
+      reportProgress(false);
     }
 
     // randomized multi-start
-    let lastProgress = started;
+    progress.phase = 'main';
     while(iters < maxAttempts && (now() - started) < hardStopMs){
       if(_cancelled) break;
       const seed = (Date.now() + iters*9973) >>> 0;
@@ -252,18 +276,11 @@ try{
       const arr = shuffle(pick, rnd);
       tryOne(arr);
       iters++;
-
-      const t = now();
-      if(t - lastProgress > 500){
-        lastProgress = t;
-        self.postMessage({
-          type:'progress',
-          elapsedMs: Math.round(t - started),
-          iters,
-          best: best ? { sheets: best.sc.sheets, waste: best.sc.waste } : null,
-        });
-      }
+      progress.iters = iters;
+      reportProgress(false);
     }
+    progress.iters = iters;
+    reportProgress(true);
 
     // === "Przekozacki" post-pass (repair) ===
     // Goal: reduce "pusta ostatnia płyta" by repacking the tail (last 2-3 sheets)
@@ -366,17 +383,26 @@ try{
       };
 
       let tailTries = 0;
+      progress.phase = 'tail';
+      progress.tailIters = 0;
+      reportProgress(true);
       for(const arr of variants){
         if(_cancelled || tailTries >= endgameAttempts || (now() - started) >= hardStopMs) break;
         evalOne(arr);
         tailTries++;
+        progress.tailIters = tailTries;
+        reportProgress(false);
       }
       while(!_cancelled && tailTries < endgameAttempts && (now() - started) < hardStopMs){
         const seed = (Date.now() + tailTries*3571) >>> 0;
         const rnd = mulberry32(seed);
         evalOne(shuffle(subset, rnd));
         tailTries++;
+        progress.tailIters = tailTries;
+        reportProgress(false);
       }
+      reportProgress(true);
+      progress.phase = 'main';
       return bestLocal;
     }
 
