@@ -11,10 +11,10 @@
 self.window = self;
 
 try{
-  importScripts('strip-solver.js', 'cut-optimizer.js');
+  importScripts('strip-solver.js', 'optional-solver.js', 'cut-optimizer.js');
 }catch(e){
   // fallback: try absolute from /js/app (when worker is created with different base)
-  try{ importScripts('/js/app/strip-solver.js', '/js/app/cut-optimizer.js'); }catch(_){ }
+  try{ importScripts('/js/app/strip-solver.js', '/js/app/optional-solver.js', '/js/app/cut-optimizer.js'); }catch(_){ }
 }
 
 (function(){
@@ -256,6 +256,33 @@ try{
         if(progress.step === 'running' || progress.phase === 'tail') reportProgress(true);
       }catch(_){ }
     }, 250);
+
+    if(cutMode === 'optional' && self.FC && self.FC.optionalSolver && typeof self.FC.optionalSolver.packOptionalBySheet === 'function'){
+      progress.phase = 'main';
+      progress.step = 'running';
+      reportProgress(true);
+      const sheets = self.FC.optionalSolver.packOptionalBySheet(items, W, H, K, {
+        maxAttempts,
+        endgameAttempts,
+        onProgress: (info)=>{
+          try{
+            progress.step = (info && info.step) ? String(info.step) : 'sheet';
+            self.postMessage({
+              type:'progress',
+              phase: progress.phase,
+              step: progress.step,
+              elapsedMs: Math.round(now() - started),
+              best: { sheets: Math.max(1, Number((info && info.builtSheets) || 1)), waste: 0 }
+            });
+          }catch(_){ }
+        }
+      });
+      const sc = scoreSheets(sheets);
+      const res = { sheets, sc };
+      setBest(res);
+      reportProgress(true);
+      return { sheets: res.sheets, cancelled: _cancelled };
+    }
 
     // deterministic runs first
     let best = null;

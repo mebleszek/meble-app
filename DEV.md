@@ -295,3 +295,9 @@ Dopiero potem go zmieniać.
 - step69: doprecyzowano raportowanie postępu prób w Optimax. Worker wysyła teraz nie tylko liczbę ukończonych prób, ale też numer aktualnie analizowanej próby (`currentAttempt` / `currentTailAttempt`) i fazę (`main` / `tail`). UI pokazuje dzięki temu bardziej realny stan: `Ukończone ...` oraz `W toku ...`, zamiast sprawiać wrażenie, że licznik stanął.
 - step72: uproszczono UI postępu w `js/app/rozrys.js`. Usunięto górny globalny licznik/box postępu (`rozrysGlobalStatus`) i zostawiono tylko lokalny licznik przy aktualnie liczonym materiale. Z opisu zniknął też etap/faza liczenia — status pokazuje już tylko materiał i `Najlepsze`.
 - step73: wydzielono tryby pasowe do osobnego pliku `js/app/strip-solver.js`. `js/app/cut-optimizer.js` zachowuje tylko wrapper `packStripBands()` + wspólne API, a `index.html` ładuje teraz osobno solver pasowy przed silnikiem głównym. Cel: odseparować `Preferuj pasy wzdłuż / w poprzek` od ryzykownych zmian w innych heurystykach Optimax.
+
+
+## 2026-03-11 — step75
+- `js/app/strip-solver.js`: stabilny solver trybów „Preferuj pasy wzdłuż / w poprzek”; nie mieszać z optional.
+- `js/app/optional-solver.js`: nowy solver trybu „Opcjonalnie kierunek cięcia”. Liczy płyta po płycie, porównuje pełne warianty `along/across` oraz warianty hybrydowe z jednym głównym splitem i zmianą kierunku w drugiej części płyty. Końcówka dopieszcza ostatnie 2 płyty i jeszcze raz ostatnią.
+- `js/app/panel-pro-worker.js`: worker importuje teraz `optional-solver.js` i dla trybu optional korzysta z oddzielnego toru liczenia, bez dotykania solvera pasowego.
