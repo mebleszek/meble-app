@@ -28,6 +28,7 @@
 6. **Optimax rozwijamy głównie w tych plikach:**
    - `js/app/rozrys.js`
    - `js/app/cut-optimizer.js`
+   - `js/app/strip-solver.js`
    - Nie dokładamy tam logiki bokiem do `app.js`, poza koniecznymi mostami do istniejących danych projektu.
 
 7. **Duży `js/app.js` traktować ostrożnie.**
@@ -69,7 +70,8 @@
 - `js/app.js` — główny klej aplikacji + nadal część logiki domenowej; renderery `WYWIAD`, `MATERIAŁ` i `RYSUNEK` są już wydzielone do `js/tabs/*`.
 - `js/app/investor-project.js` — projekt inwestora.
 - `js/app/tabs-router.js` — routing zakładek.
-- `js/app/cut-optimizer.js` — silnik rozkroju.
+- `js/app/cut-optimizer.js` — główny silnik rozkroju i eksport API Optimax.
+- `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
 - `js/app/magazyn.js` — logika magazynu.
 - `js/app/rozrys.js` — logika zakładki rozrysu / Optimax.
 
@@ -292,3 +294,4 @@ Dopiero potem go zmieniać.
 
 - step69: doprecyzowano raportowanie postępu prób w Optimax. Worker wysyła teraz nie tylko liczbę ukończonych prób, ale też numer aktualnie analizowanej próby (`currentAttempt` / `currentTailAttempt`) i fazę (`main` / `tail`). UI pokazuje dzięki temu bardziej realny stan: `Ukończone ...` oraz `W toku ...`, zamiast sprawiać wrażenie, że licznik stanął.
 - step72: uproszczono UI postępu w `js/app/rozrys.js`. Usunięto górny globalny licznik/box postępu (`rozrysGlobalStatus`) i zostawiono tylko lokalny licznik przy aktualnie liczonym materiale. Z opisu zniknął też etap/faza liczenia — status pokazuje już tylko materiał i `Najlepsze`.
+- step73: wydzielono tryby pasowe do osobnego pliku `js/app/strip-solver.js`. `js/app/cut-optimizer.js` zachowuje tylko wrapper `packStripBands()` + wspólne API, a `index.html` ładuje teraz osobno solver pasowy przed silnikiem głównym. Cel: odseparować `Preferuj pasy wzdłuż / w poprzek` od ryzykownych zmian w innych heurystykach Optimax.
