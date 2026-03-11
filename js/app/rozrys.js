@@ -856,7 +856,7 @@
 
     const profileHintWrap = h('div');
     profileHintWrap.appendChild(h('label', { text:'Jak czytać profile' }));
-    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → D), tym więcej sprawdzonych prób głównych. Końcówka ostatniego arkusza ma osobny limit 200 prób.' }));
+    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → D), tym dokładniejsze szukanie układu. Końcówka ostatniego arkusza ma dodatkowy polish.' }));
     controls3.appendChild(profileHintWrap);
 
     const modeHintWrap = h('div');
@@ -1391,6 +1391,33 @@ async function generate(force){
     if(gsText) gsText.textContent = text || '';
     if(gsSub) gsSub.textContent = sub || '';
   }
+  const overallStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  let _overallTick = null;
+  let _globalProgressInfo = { material:'', profile:'D', phase:'main', bestSheets:null };
+  function fmtElapsed(ms){ return `${(Math.max(0, Number(ms)||0)/1000).toFixed(1)} s`; }
+  function phaseLabel(phase){ return phase === 'tail' ? 'Końcówka ostatniego arkusza' : 'Liczenie rozkroju'; }
+  function refreshGlobalTicker(){
+    try{
+      if(!_rozrysRunning) return;
+      const prof = String(_globalProgressInfo.profile || 'D').toUpperCase();
+      const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - overallStartedAt;
+      const bestTxt = _globalProgressInfo.bestSheets ? `${_globalProgressInfo.bestSheets} płyt` : '—';
+      setGlobalStatus(true, `Optimax ${prof} • ${fmtElapsed(elapsed)}`, `Liczę materiał: ${_globalProgressInfo.material || '—'} • Etap: ${phaseLabel(_globalProgressInfo.phase)} • Najlepsze: ${bestTxt}`);
+    }catch(_){ }
+  }
+  function startGlobalTicker(material, profile){
+    _globalProgressInfo.material = material || '';
+    _globalProgressInfo.profile = profile || 'D';
+    _globalProgressInfo.phase = 'main';
+    _globalProgressInfo.bestSheets = null;
+    refreshGlobalTicker();
+    if(_overallTick) return;
+    _overallTick = setInterval(refreshGlobalTicker, 250);
+  }
+  function stopGlobalTicker(){
+    try{ if(_overallTick) clearInterval(_overallTick); }catch(_){ }
+    _overallTick = null;
+  }
 
   const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
@@ -1424,9 +1451,26 @@ async function generate(force){
       const H2 = Math.max(10, H02 - 2*trim2);
 
       const maxAttempts = Math.max(1, Math.round(Number(preset.maxAttempts) || 150));
-const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próba 0/${maxAttempts}`;
-      const loading = renderLoadingInto(target || null, label, `Materiał: ${material}`);
-      setGlobalStatus(true, label, `Materiał: ${material}`);
+      const profileLabel = String(st.optimaxProfile || 'D').toUpperCase();
+      const loading = renderLoadingInto(target || null, `Optimax ${profileLabel} • 0.0 s`, `Liczę materiał: ${material} • Etap: Liczenie rozkroju • Najlepsze: —`);
+      startGlobalTicker(material, profileLabel);
+      const materialStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const materialProgress = { phase:'main', bestSheets:null };
+      function refreshMaterialTicker(){
+        try{
+          const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt;
+          const bestTxt = materialProgress.bestSheets ? `${materialProgress.bestSheets} płyt` : '—';
+          if(loading && loading.textEl) loading.textEl.textContent = `Optimax ${profileLabel} • ${fmtElapsed(elapsed)}`;
+          if(loading && loading.subEl) loading.subEl.textContent = `Liczę materiał: ${material} • Etap: ${phaseLabel(materialProgress.phase)} • Najlepsze: ${bestTxt}`;
+          _globalProgressInfo.material = material;
+          _globalProgressInfo.profile = profileLabel;
+          _globalProgressInfo.phase = materialProgress.phase;
+          _globalProgressInfo.bestSheets = materialProgress.bestSheets;
+          refreshGlobalTicker();
+        }catch(_){ }
+      }
+      const materialTicker = setInterval(refreshMaterialTicker, 250);
+      refreshMaterialTicker();
       let plan = null;
       const control = { runId };
       _rozrysActiveCancel = ()=>{
@@ -1440,34 +1484,9 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
           try{
             const best = (p && p.best) ? p.best : null;
-            const phase = (p && p.phase) ? String(p.phase) : 'main';
-            const step = (p && p.step) ? String(p.step) : 'running';
-            const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
-            const currentAttempt = (p && Number(p.currentAttempt)) ? Number(p.currentAttempt) : Math.min(maxAttempts, iters + 1);
-            const workerMax = (p && Number(p.maxAttempts)) ? Number(p.maxAttempts) : maxAttempts;
-            const tailIters = (p && Number(p.tailIters)) ? Number(p.tailIters) : 0;
-            const currentTailAttempt = (p && Number(p.currentTailAttempt)) ? Number(p.currentTailAttempt) : Math.min(200, tailIters + 1);
-            const tailMax = (p && Number(p.endgameAttempts)) ? Number(p.endgameAttempts) : 200;
-            const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
-            if(loading && loading.subEl){
-              const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              const mainDone = `${Math.min(workerMax, iters)}/${workerMax}`;
-              const mainNow = `${Math.min(workerMax, currentAttempt)}/${workerMax}`;
-              const tailDone = `${Math.min(tailMax, tailIters)}/${tailMax}`;
-              const tailNow = `${Math.min(tailMax, currentTailAttempt)}/${tailMax}`;
-              const elapsedSec = Math.max(0, Number((p && p.elapsedMs) || 0)) / 1000;
-              const pulse = ['·', '··', '···'][Math.floor(elapsedSec * 2) % 3];
-              const title = (phase === 'tail')
-                ? `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • końcówka ${tailNow} ${pulse}`
-                : `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próba ${mainNow} ${pulse}`;
-              const sub = (phase === 'tail')
-                ? `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Główne ukończone: ${mainDone} • Końcówka w toku: ${tailNow} • Końcówka ukończona: ${tailDone} • Czas: ${elapsedSec.toFixed(1)} s • Najlepsze: ${bs}`
-                : `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Główne ukończone: ${mainDone} • Liczy teraz: ${mainNow} • Końcówka ukończona: ${tailDone} • Czas: ${elapsedSec.toFixed(1)} s • Najlepsze: ${bs}`;
-              if(loading && loading.textEl) loading.textEl.textContent = title;
-              if(gsText) gsText.textContent = title;
-              loading.subEl.textContent = sub;
-              if(gsSub) gsSub.textContent = sub;
-            }
+            materialProgress.phase = (p && p.phase) ? String(p.phase) : 'main';
+            materialProgress.bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
+            refreshMaterialTicker();
           }catch(_){ }
         }, control, {
           maxAttempts: maxAttempts,
@@ -1483,6 +1502,7 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
       }catch(e){
         plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
       } finally {
+        try{ clearInterval(materialTicker); }catch(_){ }
         _rozrysActiveCancel = null;
         _rozrysActiveTerminate = null;
         if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
@@ -1578,6 +1598,7 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
   await runOne(material, parts, null);
   } finally {
     _rozrysRunning = false;
+    try{ stopGlobalTicker(); }catch(_){ }
     try{ setGlobalStatus(false); }catch(_){ }
     if(_rozrysBtnMode === 'running') setGenBtnMode('idle');
   }
