@@ -3,10 +3,10 @@
    w klasycznych trybach pasowych.
 */
 
-(function(){
+(function(root){
   'use strict';
 
-  window.FC = window.FC || {};
+  root.FC = root.FC || {};
 
   function clampInt(v, fallback){
     const n = Math.round(Number(v));
@@ -584,7 +584,7 @@
     return sheets;
   }
 
-  window.FC.stripSolver = Object.assign({}, window.FC.stripSolver || {}, {
+  root.FC.stripSolver = Object.assign({}, root.FC.stripSolver || {}, {
     packStripBands,
   });
-})();
+})(typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : globalThis));

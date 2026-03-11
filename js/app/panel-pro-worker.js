@@ -11,10 +11,10 @@
 self.window = self;
 
 try{
-  importScripts('cut-optimizer.js');
+  importScripts('strip-solver.js', 'cut-optimizer.js');
 }catch(e){
   // fallback: try absolute from /js/app (when worker is created with different base)
-  try{ importScripts('/js/app/cut-optimizer.js'); }catch(_){ }
+  try{ importScripts('/js/app/strip-solver.js', '/js/app/cut-optimizer.js'); }catch(_){ }
 }
 
 (function(){
