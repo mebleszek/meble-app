@@ -183,6 +183,9 @@ try{
       return { sheets: [], note: 'Brak packGuillotineBeam w workerze.' };
     }
 
+    let _heartbeat = null;
+    try{
+
     const maxAttempts = Math.max(1, Math.round(Number(opts && opts.maxAttempts) || 150));
     const endgameAttempts = Math.max(0, Math.round(Number(opts && opts.endgameAttempts) || 200));
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
@@ -246,6 +249,13 @@ try{
         });
       }catch(_){ }
     }
+
+    _heartbeat = setInterval(()=>{
+      try{
+        if(_cancelled) return;
+        if(progress.step === 'running' || progress.phase === 'tail') reportProgress(true);
+      }catch(_){ }
+    }, 250);
 
     // deterministic runs first
     let best = null;
@@ -691,6 +701,9 @@ try{
       setBest(res);
     }
     return { sheets: fallbackBest ? fallbackBest.sheets : [], cancelled: _cancelled };
+    } finally {
+      try{ if(_heartbeat) clearInterval(_heartbeat); }catch(_){ }
+    }
   }
 
   self.onmessage = (ev)=>{

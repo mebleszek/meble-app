@@ -1015,7 +1015,8 @@
   function setGlobalStatus(visible, text, sub){
     if(!gs) return;
     gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
+    gs.hidden = !visible;
+    if(gsText) gsText.textContent = text || '';
     if(gsSub) gsSub.textContent = sub || '';
   }
           let allHit = true;
@@ -1062,7 +1063,8 @@
   function setGlobalStatus(visible, text, sub){
     if(!gs) return;
     gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
+    gs.hidden = !visible;
+    if(gsText) gsText.textContent = text || '';
     if(gsSub) gsSub.textContent = sub || '';
   }
         const cacheKey = makePlanCacheKey(st, parts);
@@ -1385,7 +1387,8 @@ async function generate(force){
   function setGlobalStatus(visible, text, sub){
     if(!gs) return;
     gs.style.display = visible ? '' : 'none';
-    if(gsText && text) gsText.textContent = text;
+    gs.hidden = !visible;
+    if(gsText) gsText.textContent = text || '';
     if(gsSub) gsSub.textContent = sub || '';
   }
 
@@ -1421,7 +1424,7 @@ async function generate(force){
       const H2 = Math.max(10, H02 - 2*trim2);
 
       const maxAttempts = Math.max(1, Math.round(Number(preset.maxAttempts) || 150));
-const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby 0/${maxAttempts}`;
+const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próba 0/${maxAttempts}`;
       const loading = renderLoadingInto(target || null, label, `Materiał: ${material}`);
       setGlobalStatus(true, label, `Materiał: ${material}`);
       let plan = null;
@@ -1452,12 +1455,14 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
               const mainNow = `${Math.min(workerMax, currentAttempt)}/${workerMax}`;
               const tailDone = `${Math.min(tailMax, tailIters)}/${tailMax}`;
               const tailNow = `${Math.min(tailMax, currentTailAttempt)}/${tailMax}`;
+              const elapsedSec = Math.max(0, Number((p && p.elapsedMs) || 0)) / 1000;
+              const pulse = ['·', '··', '···'][Math.floor(elapsedSec * 2) % 3];
               const title = (phase === 'tail')
-                ? `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • analiza końcówki ${tailNow}`
-                : `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • analiza próby ${mainNow}`;
+                ? `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • końcówka ${tailNow} ${pulse}`
+                : `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próba ${mainNow} ${pulse}`;
               const sub = (phase === 'tail')
-                ? `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Ukończone główne: ${mainDone} • W toku końcówki: ${tailNow} • Ukończone końcówki: ${tailDone} • Najlepsze: ${bs}`
-                : `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Ukończone główne: ${mainDone} • W toku: ${mainNow} • Końcówka: ${tailDone} • Najlepsze: ${bs}`;
+                ? `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Główne ukończone: ${mainDone} • Końcówka w toku: ${tailNow} • Końcówka ukończona: ${tailDone} • Czas: ${elapsedSec.toFixed(1)} s • Najlepsze: ${bs}`
+                : `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Główne ukończone: ${mainDone} • Liczy teraz: ${mainNow} • Końcówka ukończona: ${tailDone} • Czas: ${elapsedSec.toFixed(1)} s • Najlepsze: ${bs}`;
               if(loading && loading.textEl) loading.textEl.textContent = title;
               if(gsText) gsText.textContent = title;
               loading.subEl.textContent = sub;
@@ -1539,6 +1544,7 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
       }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
       renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled }, target);
+      try{ setGlobalStatus(false, '', ''); }catch(_){ }
       setGenBtnMode('done');
       return;
     }
