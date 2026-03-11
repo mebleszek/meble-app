@@ -567,7 +567,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260311_attempt_ui_names_01');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260311_attempt_ui_names_02');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -1438,19 +1438,26 @@ const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • pr�
           try{
             const best = (p && p.best) ? p.best : null;
             const phase = (p && p.phase) ? String(p.phase) : 'main';
+            const step = (p && p.step) ? String(p.step) : 'running';
             const iters = (p && Number(p.iters)) ? Number(p.iters) : 0;
+            const currentAttempt = (p && Number(p.currentAttempt)) ? Number(p.currentAttempt) : Math.min(maxAttempts, iters + 1);
             const workerMax = (p && Number(p.maxAttempts)) ? Number(p.maxAttempts) : maxAttempts;
             const tailIters = (p && Number(p.tailIters)) ? Number(p.tailIters) : 0;
+            const currentTailAttempt = (p && Number(p.currentTailAttempt)) ? Number(p.currentTailAttempt) : Math.min(200, tailIters + 1);
             const tailMax = (p && Number(p.endgameAttempts)) ? Number(p.endgameAttempts) : 200;
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
             if(loading && loading.subEl){
               const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              const mainTxt = `${Math.min(workerMax, iters)}/${workerMax}`;
-              const tailTxt = `${Math.min(tailMax, tailIters)}/${tailMax}`;
+              const mainDone = `${Math.min(workerMax, iters)}/${workerMax}`;
+              const mainNow = `${Math.min(workerMax, currentAttempt)}/${workerMax}`;
+              const tailDone = `${Math.min(tailMax, tailIters)}/${tailMax}`;
+              const tailNow = `${Math.min(tailMax, currentTailAttempt)}/${tailMax}`;
               const title = (phase === 'tail')
-                ? `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • końcówka ${tailTxt}`
-                : `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby ${mainTxt}`;
-              const sub = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Główne: ${mainTxt} • Końcówka: ${tailTxt} • Najlepsze: ${bs}`;
+                ? `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • analiza końcówki ${tailNow}`
+                : `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • analiza próby ${mainNow}`;
+              const sub = (phase === 'tail')
+                ? `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Ukończone główne: ${mainDone} • W toku końcówki: ${tailNow} • Ukończone końcówki: ${tailDone} • Najlepsze: ${bs}`
+                : `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Ukończone główne: ${mainDone} • W toku: ${mainNow} • Końcówka: ${tailDone} • Najlepsze: ${bs}`;
               if(loading && loading.textEl) loading.textEl.textContent = title;
               if(gsText) gsText.textContent = title;
               loading.subEl.textContent = sub;

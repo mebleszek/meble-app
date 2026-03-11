@@ -222,22 +222,25 @@ try{
       if(it && (it.id!==undefined && it.id!==null)) itemById.set(it.id, it);
     }
 
-    const progress = { phase:'main', iters:0, tailIters:0 };
+    const progress = { phase:'main', iters:0, tailIters:0, currentAttempt:0, currentTailAttempt:0, step:'idle' };
     let lastProgressKey = '';
     function reportProgress(force){
       try{
         const bestRef = _bestSoFar || best;
         const bestMsg = bestRef ? { sheets: bestRef.sc.sheets, waste: bestRef.sc.waste } : null;
-        const key = [progress.phase, progress.iters, progress.tailIters, bestMsg ? bestMsg.sheets : '-', bestMsg ? Math.round(bestMsg.waste) : '-'].join('|');
+        const key = [progress.phase, progress.iters, progress.tailIters, progress.currentAttempt, progress.currentTailAttempt, progress.step, bestMsg ? bestMsg.sheets : '-', bestMsg ? Math.round(bestMsg.waste) : '-'].join('|');
         if(!force && key === lastProgressKey) return;
         lastProgressKey = key;
         self.postMessage({
           type:'progress',
           phase: progress.phase,
+          step: progress.step,
           elapsedMs: Math.round(now() - started),
           iters: progress.iters,
+          currentAttempt: progress.currentAttempt,
           maxAttempts,
           tailIters: progress.tailIters,
+          currentTailAttempt: progress.currentTailAttempt,
           endgameAttempts,
           best: bestMsg,
         });
@@ -259,16 +262,26 @@ try{
     let iters = 0;
     for(const arr of base){
       if(_cancelled || iters >= maxAttempts || (now() - started) >= hardStopMs) break;
+      progress.phase = 'main';
+      progress.step = 'running';
+      progress.currentAttempt = Math.min(maxAttempts, iters + 1);
+      reportProgress(true);
       tryOne(arr);
       iters++;
       progress.iters = iters;
-      reportProgress(false);
+      progress.currentAttempt = Math.min(maxAttempts, iters + 1);
+      progress.step = 'running';
+      reportProgress(true);
     }
 
     // randomized multi-start
     progress.phase = 'main';
     while(iters < maxAttempts && (now() - started) < hardStopMs){
       if(_cancelled) break;
+      progress.phase = 'main';
+      progress.step = 'running';
+      progress.currentAttempt = Math.min(maxAttempts, iters + 1);
+      reportProgress(true);
       const seed = (Date.now() + iters*9973) >>> 0;
       const rnd = mulberry32(seed);
       const pick = base[Math.floor(rnd()*base.length)];
@@ -277,9 +290,13 @@ try{
       tryOne(arr);
       iters++;
       progress.iters = iters;
-      reportProgress(false);
+      progress.currentAttempt = Math.min(maxAttempts, iters + 1);
+      progress.step = 'running';
+      reportProgress(true);
     }
     progress.iters = iters;
+    progress.currentAttempt = Math.min(maxAttempts, iters);
+    progress.step = 'done-main';
     reportProgress(true);
 
     // === "Przekozacki" post-pass (repair) ===
@@ -384,25 +401,40 @@ try{
 
       let tailTries = 0;
       progress.phase = 'tail';
+      progress.step = 'running';
       progress.tailIters = 0;
+      progress.currentTailAttempt = endgameAttempts > 0 ? 1 : 0;
       reportProgress(true);
       for(const arr of variants){
         if(_cancelled || tailTries >= endgameAttempts || (now() - started) >= hardStopMs) break;
+        progress.phase = 'tail';
+        progress.step = 'running';
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
         evalOne(arr);
         tailTries++;
         progress.tailIters = tailTries;
-        reportProgress(false);
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
       }
       while(!_cancelled && tailTries < endgameAttempts && (now() - started) < hardStopMs){
+        progress.phase = 'tail';
+        progress.step = 'running';
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
         const seed = (Date.now() + tailTries*3571) >>> 0;
         const rnd = mulberry32(seed);
         evalOne(shuffle(subset, rnd));
         tailTries++;
         progress.tailIters = tailTries;
-        reportProgress(false);
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
       }
+      progress.step = 'done-tail';
+      progress.currentTailAttempt = Math.min(endgameAttempts, tailTries);
       reportProgress(true);
       progress.phase = 'main';
+      progress.step = 'running';
       return bestLocal;
     }
 

@@ -289,3 +289,5 @@ Dopiero potem go zmieniać.
 - step67: profile A–D w Optimax przeszedł z budżetu czasowego na budżet prób (`maxAttempts`) z osobnym limitem `endgameAttempts=200` dla końcówki. `rozrys.js` pokazuje teraz próby zamiast sekund. W workerze strip modes dostały tylko lokalny polish ostatniego arkusza przez ponowne sortowanie/repack ostatniego sheetu; główne planowanie pasów nie zostało ruszone.
 
 - step68: bez zmiany rdzenia algorytmu zmieniono nazwy trybów cięcia na uczciwsze (`Preferuj pasy wzdłuż/poprzek`) oraz poprawiono raportowanie postępu prób. Worker wysyła teraz osobno postęp prób głównych i końcówki ostatniego arkusza, dzięki czemu licznik nie stoi pozornie w miejscu ani nie skacze na końcu.
+
+- step69: doprecyzowano raportowanie postępu prób w Optimax. Worker wysyła teraz nie tylko liczbę ukończonych prób, ale też numer aktualnie analizowanej próby (`currentAttempt` / `currentTailAttempt`) i fazę (`main` / `tail`). UI pokazuje dzięki temu bardziej realny stan: `Ukończone ...` oraz `W toku ...`, zamiast sprawiać wrażenie, że licznik stanął.
