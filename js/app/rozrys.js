@@ -879,14 +879,7 @@
     btnRow.appendChild(genBtn);
     card.appendChild(btnRow);
 
-    // Globalny status liczenia (nie znika między materiałami w trybie WSZYSTKIE)
-    const globalStatus = h('div', { id:'rozrysGlobalStatus', class:'rozrys-loading', style:'margin-top:10px;display:none' });
-    globalStatus.appendChild(h('div', { class:'rozrys-spinner' }));
-    const globalTextEl = h('div', { class:'rozrys-loading-text', text:'Pozostało… 30.0 s' });
-    const globalSubEl = h('div', { class:'muted xs', style:'margin-top:6px', text:'' });
-    globalStatus.appendChild(globalTextEl);
-    globalStatus.appendChild(globalSubEl);
-    card.appendChild(globalStatus);
+    // Globalny status usunięty — zostaje tylko lokalny licznik przy aktualnie liczonym materiale.
 
 
     // overrides list container
@@ -1009,16 +1002,7 @@
           const stBase = getBaseState();
           const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    gs.hidden = !visible;
-    if(gsText) gsText.textContent = text || '';
-    if(gsSub) gsSub.textContent = sub || '';
-  }
+  function setGlobalStatus(){ }
           let allHit = true;
           let anyHit = false;
           for(const m of derived.materials){
@@ -1057,16 +1041,7 @@
         const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
         const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    gs.hidden = !visible;
-    if(gsText) gsText.textContent = text || '';
-    if(gsSub) gsSub.textContent = sub || '';
-  }
+  function setGlobalStatus(){ }
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
           const plan = cache[cacheKey].plan;
@@ -1381,28 +1356,18 @@ async function generate(force){
 
   const cache = loadPlanCache();
 
-  const gs = document.getElementById('rozrysGlobalStatus');
-  const gsText = gs ? gs.querySelector('.rozrys-loading-text') : null;
-  const gsSub = gs ? gs.querySelector('.muted.xs') : null;
-  function setGlobalStatus(visible, text, sub){
-    if(!gs) return;
-    gs.style.display = visible ? '' : 'none';
-    gs.hidden = !visible;
-    if(gsText) gsText.textContent = text || '';
-    if(gsSub) gsSub.textContent = sub || '';
-  }
+  function setGlobalStatus(){ }
   const overallStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   let _overallTick = null;
   let _globalProgressInfo = { material:'', profile:'D', phase:'main', bestSheets:null };
   function fmtElapsed(ms){ return `${(Math.max(0, Number(ms)||0)/1000).toFixed(1)} s`; }
-  function phaseLabel(phase){ return phase === 'tail' ? 'Końcówka ostatniego arkusza' : 'Liczenie rozkroju'; }
   function refreshGlobalTicker(){
     try{
       if(!_rozrysRunning) return;
       const prof = String(_globalProgressInfo.profile || 'D').toUpperCase();
       const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - overallStartedAt;
       const bestTxt = _globalProgressInfo.bestSheets ? `${_globalProgressInfo.bestSheets} płyt` : '—';
-      setGlobalStatus(true, `Optimax ${prof} • ${fmtElapsed(elapsed)}`, `Liczę materiał: ${_globalProgressInfo.material || '—'} • Etap: ${phaseLabel(_globalProgressInfo.phase)} • Najlepsze: ${bestTxt}`);
+      setGlobalStatus(true, `Optimax ${prof} • ${fmtElapsed(elapsed)}`, `Liczę materiał: ${_globalProgressInfo.material || '—'} • Najlepsze: ${bestTxt}`);
     }catch(_){ }
   }
   function startGlobalTicker(material, profile){
@@ -1452,7 +1417,7 @@ async function generate(force){
 
       const maxAttempts = Math.max(1, Math.round(Number(preset.maxAttempts) || 150));
       const profileLabel = String(st.optimaxProfile || 'D').toUpperCase();
-      const loading = renderLoadingInto(target || null, `Optimax ${profileLabel} • 0.0 s`, `Liczę materiał: ${material} • Etap: Liczenie rozkroju • Najlepsze: —`);
+      const loading = renderLoadingInto(target || null, `Optimax ${profileLabel} • 0.0 s`, `Liczę materiał: ${material} • Najlepsze: —`);
       startGlobalTicker(material, profileLabel);
       const materialStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       const materialProgress = { phase:'main', bestSheets:null };
@@ -1461,7 +1426,7 @@ async function generate(force){
           const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt;
           const bestTxt = materialProgress.bestSheets ? `${materialProgress.bestSheets} płyt` : '—';
           if(loading && loading.textEl) loading.textEl.textContent = `Optimax ${profileLabel} • ${fmtElapsed(elapsed)}`;
-          if(loading && loading.subEl) loading.subEl.textContent = `Liczę materiał: ${material} • Etap: ${phaseLabel(materialProgress.phase)} • Najlepsze: ${bestTxt}`;
+          if(loading && loading.subEl) loading.subEl.textContent = `Liczę materiał: ${material} • Najlepsze: ${bestTxt}`;
           _globalProgressInfo.material = material;
           _globalProgressInfo.profile = profileLabel;
           _globalProgressInfo.phase = materialProgress.phase;
