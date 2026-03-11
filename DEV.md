@@ -278,3 +278,12 @@ Dopiero potem go zmieniać.
 - Step 63: tryby pasowe `wzdłuż` / `w poprzek` dostały twardą preferencję orientacji końcowej na poziomie doboru kandydatów (`preferredCandidatesForItem` w `js/app/cut-optimizer.js`). Jeśli dla elementu istnieje wariant zgodny z wybranym kierunkiem pasa, solver używa go zamiast mieszać orientacje w residual fill / planowaniu pasa.
 
 - Step 64: `packStripBands()` przebudowany na pełny search wariantów dla jednej płyty. Tryby `wzdłuż` / `w poprzek` porównują teraz kilka strategii budowy pasów dla całego arkusza, wybierają najlepszy cały arkusz po occupancy / dużych pustkach, a dopiero potem przechodzą do następnej płyty. To ma ograniczyć duże białe pola i monotonne słabe układy.
+
+
+## step65
+- Strip modes (`wzdłuż` / `w poprzek`) dostały endgame dla ostatnich 2 płyt: dodatkowe strategie i więcej testów obrotu, oceniane wspólnie jako para arkuszy.
+- W ogonie solver premiuje większe dociśnięcie przedostatniej płyty i bardziej kompaktową ostatnią płytę.
+
+- step66: wzmocniono końcówkę trybów pasowych (`wzdłuż`/`w poprzek`) o strategie exact-band/exact-band-rot, silniejszą kontrolę pełnych pasów jednowymiarowych oraz scoring premiujący równomierne pasy na ostatnich 2 płytach.
+
+- step67: profile A–D w Optimax przeszedł z budżetu czasowego na budżet prób (`maxAttempts`) z osobnym limitem `endgameAttempts=200` dla końcówki. `rozrys.js` pokazuje teraz próby zamiast sekund. W workerze strip modes dostały tylko lokalny polish ostatniego arkusza przez ponowne sortowanie/repack ostatniego sheetu; główne planowanie pasów nie zostało ruszone.

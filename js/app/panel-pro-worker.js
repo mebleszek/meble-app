@@ -183,9 +183,11 @@ try{
       return { sheets: [], note: 'Brak packGuillotineBeam w workerze.' };
     }
 
-    const timeBudgetMs = Math.max(1000, Math.round(Number(opts && opts.timeBudgetMs) || 30000));
+    const maxAttempts = Math.max(1, Math.round(Number(opts && opts.maxAttempts) || 150));
+    const endgameAttempts = Math.max(0, Math.round(Number(opts && opts.endgameAttempts) || 200));
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
+    const hardStopMs = Math.max(4000, maxAttempts * 1500);
     const cutPref = (opts && (opts.cutPref || opts.direction)) || 'auto';
     const cutMode = (opts && opts.cutMode) || 'optional';
     const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
@@ -232,12 +234,16 @@ try{
         setBest(res);
       }
     };
-    base.forEach(tryOne);
+    let iters = 0;
+    for(const arr of base){
+      if(_cancelled || iters >= maxAttempts || (now() - started) >= hardStopMs) break;
+      tryOne(arr);
+      iters++;
+    }
 
     // randomized multi-start
-    let iters = 0;
     let lastProgress = started;
-    while(now() - started < timeBudgetMs){
+    while(iters < maxAttempts && (now() - started) < hardStopMs){
       if(_cancelled) break;
       const seed = (Date.now() + iters*9973) >>> 0;
       const rnd = mulberry32(seed);
@@ -300,6 +306,80 @@ try{
       return { sheets: combined, sc };
     }
 
+    function calcSheetWasteValue(sheet){
+      try{ return opt && opt.calcWaste ? Number(opt.calcWaste(sheet).waste) || 0 : 0; }catch(_){ return 0; }
+    }
+
+    function stripTailBetter(a, b){
+      if(!b) return true;
+      if(a.sc.sheets !== b.sc.sheets) return a.sc.sheets < b.sc.sheets;
+      if(Math.abs(a.sc.waste - b.sc.waste) > 1) return a.sc.waste < b.sc.waste;
+      const aLast = a.sheets && a.sheets.length ? a.sheets[a.sheets.length-1] : null;
+      const bLast = b.sheets && b.sheets.length ? b.sheets[b.sheets.length-1] : null;
+      const aWaste = calcSheetWasteValue(aLast);
+      const bWaste = calcSheetWasteValue(bLast);
+      if(Math.abs(aWaste - bWaste) > 1) return aWaste < bWaste;
+      const aBBox = sheetBBoxArea(aLast) / Math.max(1, BW * BH);
+      const bBBox = sheetBBoxArea(bLast) / Math.max(1, BW * BH);
+      return aBBox > bBBox;
+    }
+
+    function doStripLastSheetPolish(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets) || !currentBest.sheets.length) return currentBest;
+      const lastSheet = currentBest.sheets[currentBest.sheets.length - 1];
+      const lastIds = idsFromSheet(lastSheet);
+      if(lastIds.length < 3) return currentBest;
+
+      const subset = [];
+      const seen = new Set();
+      for(const id of lastIds){
+        if(seen.has(id)) continue;
+        seen.add(id);
+        const it = itemById.get(id);
+        if(it) subset.push(Object.assign({}, it));
+      }
+      if(subset.length < 3) return currentBest;
+
+      const prefix = currentBest.sheets.slice(0, -1);
+      let bestLocal = currentBest;
+      const variants = sortVariants(subset);
+      variants.push(subset.slice().sort((a,b)=>{
+        const ak = (cutMode === 'along') ? Math.max(a.w, a.h) : Math.min(a.w, a.h);
+        const bk = (cutMode === 'along') ? Math.max(b.w, b.h) : Math.min(b.w, b.h);
+        if(bk !== ak) return bk - ak;
+        return (b.w*b.h) - (a.w*a.h);
+      }));
+      variants.push(subset.slice().sort((a,b)=>{
+        const ak = (cutMode === 'along') ? Math.min(a.w, a.h) : Math.max(a.w, a.h);
+        const bk = (cutMode === 'along') ? Math.min(b.w, b.h) : Math.max(b.w, b.h);
+        if(bk !== ak) return bk - ak;
+        return (b.w*b.h) - (a.w*a.h);
+      }));
+
+      const evalOne = (arr)=>{
+        const repacked = opt.packStripBands(arr, W, H, K, cutMode);
+        if(!repacked || repacked.length !== 1) return;
+        const cand = { sheets: prefix.concat(repacked), sc: scoreSheets(prefix.concat(repacked)) };
+        if(stripTailBetter(cand, bestLocal)) bestLocal = cand;
+        setBest(bestLocal);
+      };
+
+      let tailTries = 0;
+      for(const arr of variants){
+        if(_cancelled || tailTries >= endgameAttempts || (now() - started) >= hardStopMs) break;
+        evalOne(arr);
+        tailTries++;
+      }
+      while(!_cancelled && tailTries < endgameAttempts && (now() - started) < hardStopMs){
+        const seed = (Date.now() + tailTries*3571) >>> 0;
+        const rnd = mulberry32(seed);
+        evalOne(shuffle(subset, rnd));
+        tailTries++;
+      }
+      return bestLocal;
+    }
+
     function doCrazyPostPass(currentBest){
       if(_cancelled) return currentBest;
       if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
@@ -330,7 +410,7 @@ try{
       for(let t=0; t<trials; t++){
         if(_cancelled) break;
         // Respect remaining time budget.
-        if(now() - started > timeBudgetMs) break;
+        if(now() - started > hardStopMs) break;
 
         const seed = ((Date.now() + 1337) + t*7919) >>> 0;
         const rnd = mulberry32(seed);

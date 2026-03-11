@@ -494,18 +494,14 @@
   }
 
   function getOptimaxProfilePreset(profile){
-    const key = String(profile || 'DD').toUpperCase();
+    const key = String(profile || 'D').toUpperCase();
     const map = {
-      A:  { baseMs: 4000,  estMsPerSheet: 1800, maxMs: 18000,  perSheetMs: 140, beamWidth: 60 },
-      B:  { baseMs: 6500,  estMsPerSheet: 2200, maxMs: 24000,  perSheetMs: 180, beamWidth: 80 },
-      C:  { baseMs: 9000,  estMsPerSheet: 2800, maxMs: 32000,  perSheetMs: 220, beamWidth: 100 },
-      D:  { baseMs: 13000, estMsPerSheet: 3400, maxMs: 42000,  perSheetMs: 260, beamWidth: 120 },
-      AA: { baseMs: 18000, estMsPerSheet: 4200, maxMs: 60000,  perSheetMs: 340, beamWidth: 150 },
-      BB: { baseMs: 26000, estMsPerSheet: 5200, maxMs: 80000,  perSheetMs: 420, beamWidth: 200 },
-      CC: { baseMs: 36000, estMsPerSheet: 6400, maxMs: 105000, perSheetMs: 560, beamWidth: 270 },
-      DD: { baseMs: 48000, estMsPerSheet: 7600, maxMs: 120000, perSheetMs: 760, beamWidth: 360 },
+      A: { maxAttempts: 10,  perSheetMs: 140, beamWidth: 60,  endgameAttempts: 200 },
+      B: { maxAttempts: 50,  perSheetMs: 180, beamWidth: 80,  endgameAttempts: 200 },
+      C: { maxAttempts: 100, perSheetMs: 220, beamWidth: 100, endgameAttempts: 200 },
+      D: { maxAttempts: 150, perSheetMs: 260, beamWidth: 120, endgameAttempts: 200 },
     };
-    return map[key] || map.DD;
+    return map[key] || map.D;
   }
 
   function directionLabel(dir){
@@ -516,7 +512,7 @@
 
   function formatHeurLabel(st){
     if(st && st.heur === 'optimax'){
-      return `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • ${directionLabel(st.direction)}`;
+      return `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • ${directionLabel(st.direction)}`;
     }
     return String((st && st.heur) || '');
   }
@@ -654,11 +650,11 @@
       worker.addEventListener('error', onErr);
       worker.addEventListener('messageerror', onMsgErr);
 
-      const o = Object.assign({ timeBudgetMs: 30000, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
-      const watchdogMs = Math.max(35000, Math.round(Number(o.timeBudgetMs)||30000) + 12000);
+      const o = Object.assign({ maxAttempts: 150, endgameAttempts: 200, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
+      const watchdogMs = Math.max(15000, Math.round(Number(o.maxAttempts)||150) * 400 + 12000);
       // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
       tmr = setTimeout(()=>{
-        finish({ sheets: [], note: 'Liczenie przerwane: przekroczono limit czasu (brak odpowiedzi workera).', meta: { trim, boardW: W0, boardH: H0, unit } });
+        finish({ sheets: [], note: 'Liczenie przerwane: worker nie odpowiedział w rozsądnym czasie.', meta: { trim, boardW: W0, boardH: H0, unit } });
       }, watchdogMs);
 
       try{
@@ -706,7 +702,7 @@
       edgeTrim: 20,
       grain: true,
       heur: 'optimax',
-      optimaxProfile: 'DD',
+      optimaxProfile: 'D',
       minScrapW: 0,
       minScrapH: 0,
       direction: 'auto',
@@ -830,11 +826,7 @@
       <option value="A">Optymalizacja A</option>
       <option value="B">Optymalizacja B</option>
       <option value="C">Optymalizacja C</option>
-      <option value="D">Optymalizacja D</option>
-      <option value="AA">Optymalizacja AA</option>
-      <option value="BB">Optymalizacja BB</option>
-      <option value="CC">Optymalizacja CC</option>
-      <option value="DD" selected>Optymalizacja DD</option>
+      <option value="D" selected>Optymalizacja D</option>
     `;
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
@@ -864,7 +856,7 @@
 
     const profileHintWrap = h('div');
     profileHintWrap.appendChild(h('label', { text:'Jak czytać profile' }));
-    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → DD), tym dłuższe i dokładniejsze liczenie.' }));
+    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Im wyższy profil (A → D), tym więcej sprawdzonych wariantów.' }));
     controls3.appendChild(profileHintWrap);
 
     const modeHintWrap = h('div');
@@ -1428,38 +1420,11 @@ async function generate(force){
       const W2 = Math.max(10, W02 - 2*trim2);
       const H2 = Math.max(10, H02 - 2*trim2);
 
-      let budgetMs = preset.baseMs;
-      try{
-        const optQ = FC.cutOptimizer;
-        const grainOnQ = !!st.grain;
-        const overridesQ = loadOverrides();
-        const edgeStoreQ = loadEdgeStore();
-        const partsMmQ = (parts||[]).map(p=>{
-          const sig = partSignature(p);
-          const allow = grainOnQ ? !!overridesQ[sig] : true;
-          const e = edgeStoreQ[sig] || {};
-          return { key:sig, name:p.name, w:p.w, h:p.h, qty:p.qty, material:p.material, rotationAllowed: grainOnQ ? allow : true, edgeW1:!!e.w1, edgeW2:!!e.w2, edgeH1:!!e.h1, edgeH2:!!e.h2 };
-        });
-        const itemsQ = optQ.makeItems(partsMmQ);
-        let est = 1;
-        if(cutMode === 'optional'){
-          const sA = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'along', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2 });
-          const sB = optQ.packGuillotineBeam(itemsQ, W2, H2, K2, { beamWidth: 60, timeMs: 120, cutPref: 'across', scrapFirst:true, minScrapW:minScrapW2, minScrapH:minScrapH2 });
-          est = Math.max(1, Math.min((sA||[]).length||9999, (sB||[]).length||9999));
-        } else if(optQ.packStripBands){
-          est = Math.max(1, (optQ.packStripBands(itemsQ, W2, H2, K2, cutMode)||[]).length || 1);
-        }
-        budgetMs = Math.min(preset.maxMs, Math.max(preset.baseMs, est * preset.estMsPerSheet));
-      }catch(_){
-        budgetMs = preset.baseMs;
-      }
-
-      const label = `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • pozostało… ${(budgetMs/1000).toFixed(1)} s`;
+      const maxAttempts = Math.max(1, Math.round(Number(preset.maxAttempts) || 150));
+const label = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby 0/${maxAttempts}`;
       const loading = renderLoadingInto(target || null, label, `Materiał: ${material}`);
       setGlobalStatus(true, label, `Materiał: ${material}`);
       let plan = null;
-      const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
-      let tick = null;
       const control = { runId };
       _rozrysActiveCancel = ()=>{
         try{ control._cancelRequested = true; }catch(_){ }
@@ -1469,14 +1434,6 @@ async function generate(force){
         try{ control._terminate && control._terminate(); }catch(_){ }
       };
       try{
-        tick = setInterval(()=>{
-          const now = (window.performance && performance.now) ? performance.now() : Date.now();
-          const left = Math.max(0, (budgetMs - (now - startedAt))/1000);
-          const t = left.toFixed(1);
-          if(loading && loading.textEl) loading.textEl.textContent = `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • pozostało… ${t} s`;
-          if(gsText) gsText.textContent = `Optimax ${String(st.optimaxProfile || 'DD').toUpperCase()} • pozostało… ${t} s`;
-        }, 120);
-
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
           try{
             const best = (p && p.best) ? p.best : null;
@@ -1484,14 +1441,17 @@ async function generate(force){
             const bestSheets = best && Number(best.sheets) ? Number(best.sheets) : null;
             if(loading && loading.subEl){
               const bs = (bestSheets!==null) ? `${bestSheets} płyt` : '-';
-              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
-              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'DD').toUpperCase()} • Próby: ${iters} • Najlepsze: ${bs}`;
+              if(loading && loading.textEl) loading.textEl.textContent = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby ${Math.min(maxAttempts, iters)}/${maxAttempts}`;
+              if(gsText) gsText.textContent = `Optimax ${String(st.optimaxProfile || 'D').toUpperCase()} • próby ${Math.min(maxAttempts, iters)}/${maxAttempts}`;
+              loading.subEl.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Próby: ${iters}/${maxAttempts} • Najlepsze: ${bs}`;
+              if(gsSub) gsSub.textContent = `Materiał: ${material} • Profil: ${String(st.optimaxProfile || 'D').toUpperCase()} • Próby: ${iters}/${maxAttempts} • Najlepsze: ${bs}`;
             }
           }catch(_){ }
         }, control, {
-          timeBudgetMs: budgetMs,
+          maxAttempts: maxAttempts,
           perSheetMs: preset.perSheetMs,
           beamWidth: preset.beamWidth,
+          endgameAttempts: preset.endgameAttempts,
           cutPref: st.direction || 'auto',
           cutMode,
           minScrapW: minScrapW2,
@@ -1501,7 +1461,6 @@ async function generate(force){
       }catch(e){
         plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
       } finally {
-        if(tick){ try{ clearInterval(tick); }catch(_){ } tick = null; }
         _rozrysActiveCancel = null;
         _rozrysActiveTerminate = null;
         if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
