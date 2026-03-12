@@ -148,31 +148,95 @@
     if(axis === 'across') return { close: closeCols, singleton: singletonCols, otherClose: closeRows, otherSingleton: singletonRows };
     return { close: Math.max(closeRows, closeCols), singleton: Math.min(singletonRows, singletonCols), otherClose: Math.min(closeRows, closeCols), otherSingleton: Math.max(singletonRows, singletonCols) };
   }
+
+  function isSmallPlacement(p){
+    const area = (Number(p && p.w) || 0) * (Number(p && p.h) || 0);
+    return Math.min(Number(p && p.w) || 0, Number(p && p.h) || 0) <= 180 || area <= 85000;
+  }
+  function smallGroupMetrics(sheet){
+    const pls = ((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced && isSmallPlacement(p));
+    const rows = new Map();
+    const cols = new Map();
+    for(const p of pls){
+      const rk = `${p.y||0}:${p.h||0}`;
+      const ck = `${p.x||0}:${p.w||0}`;
+      const r = rows.get(rk) || { count:0, span:0, min:1e9, max:0 };
+      r.count += 1; r.min = Math.min(r.min, p.x||0); r.max = Math.max(r.max, (p.x||0)+(p.w||0)); r.span = r.max - r.min; rows.set(rk, r);
+      const c = cols.get(ck) || { count:0, span:0, min:1e9, max:0 };
+      c.count += 1; c.min = Math.min(c.min, p.y||0); c.max = Math.max(c.max, (p.y||0)+(p.h||0)); c.span = c.max - c.min; cols.set(ck, c);
+    }
+    let sharedRows = 0, isolatedRows = 0, sharedCols = 0, isolatedCols = 0;
+    for(const r of rows.values()){
+      if(r.count >= 2) sharedRows += 1;
+      else isolatedRows += 1;
+    }
+    for(const c of cols.values()){
+      if(c.count >= 2) sharedCols += 1;
+      else isolatedCols += 1;
+    }
+    return { sharedRows, isolatedRows, sharedCols, isolatedCols, smallCount: pls.length };
+  }
+  function scrapMetrics(freeRects){
+    const free = Array.isArray(freeRects) ? freeRects : [];
+    let disposalArea = 0, disposalCount = 0, reusableArea = 0, reusableCount = 0, longStrips = 0;
+    for(const r of free){
+      const area = (Number(r && r.w) || 0) * (Number(r && r.h) || 0);
+      const minSide = Math.min(Number(r && r.w) || 0, Number(r && r.h) || 0);
+      const maxSide = Math.max(Number(r && r.w) || 0, Number(r && r.h) || 0);
+      const reusable = minSide >= 100 && area >= 30000;
+      if(reusable){
+        reusableArea += area;
+        reusableCount += 1;
+        if(minSide < 140 && maxSide >= 600) longStrips += 1;
+      } else {
+        disposalArea += area;
+        disposalCount += 1;
+      }
+    }
+    return { disposalArea, disposalCount, reusableArea, reusableCount, longStrips };
+  }
   function scoreSheet(sheet, kerf, axis, lookaheadOcc){
     const W = Number(sheet && sheet.boardW) || 0;
     const H = Number(sheet && sheet.boardH) || 0;
     const area = Math.max(1, W * H);
     const used = placementArea(sheet);
     const occ = used / area;
-    const free = calcFreeRects(sheet, kerf).filter(r=>r.w >= 40 && r.h >= 40);
+    const free = calcFreeRects(sheet, kerf).filter(r=>r.w >= 25 && r.h >= 25);
     const largestFree = free.reduce((m,r)=>Math.max(m, r.w*r.h), 0);
-    const reusable = free.reduce((m,r)=>Math.max(m, (r.w >= 160 && r.h >= 160) ? (r.w*r.h) : 0), 0);
     const bm = bandMetrics(sheet, axis);
+    const sm = scrapMetrics(free);
+    const gm = smallGroupMetrics(sheet);
     const placements = ((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced);
     let score = 0;
     score += occ * 1000000;
-    score += bm.close * 140000;
-    score += bm.otherClose * 60000;
-    score -= bm.singleton * 160000;
-    score -= bm.otherSingleton * 80000;
-    score -= (largestFree / area) * 200000;
-    score -= Math.max(0, free.length - 3) * 22000;
-    score += (reusable / area) * 50000;
-    score += (Number(lookaheadOcc)||0) * 240000;
+    score += bm.close * 130000;
+    score += bm.otherClose * 50000;
+    score -= bm.singleton * 175000;
+    score -= bm.otherSingleton * 90000;
+    score += gm.sharedRows * 85000;
+    score += gm.sharedCols * 50000;
+    score -= gm.isolatedRows * 65000;
+    score -= gm.isolatedCols * 45000;
+    score -= (largestFree / area) * 140000;
+    score -= (sm.disposalArea / area) * 260000;
+    score -= sm.disposalCount * 42000;
+    score -= sm.longStrips * 28000;
+    score -= Math.max(0, free.length - 4) * 15000;
+    score += (sm.reusableArea / area) * 35000;
+    score += (Number(lookaheadOcc)||0) * 260000;
     if(occ >= 0.90) score += 120000;
-    else if(occ >= 0.85) score += 70000;
+    else if(occ >= 0.85) score += 65000;
+    if(gm.smallCount >= 3 && (gm.sharedRows + gm.sharedCols) === 0) score -= 90000;
     if(placements.length <= 1) score -= 120000;
-    return { score, occ, used, freeRects: free.length, largestFree };
+    return { score, occ, used, freeRects: free.length, largestFree, disposalArea: sm.disposalArea, disposalCount: sm.disposalCount, reusableArea: sm.reusableArea, sharedRows: gm.sharedRows, sharedCols: gm.sharedCols };
+  }
+
+  function scoreSheetPair(s1, s2, kerf){
+    const a = scoreSheet(s1, kerf, 'auto', 0);
+    const b = scoreSheet(s2, kerf, 'auto', 0);
+    const pairOcc = ((Number(a.used)||0) + (Number(b.used)||0)) / Math.max(1, ((Number(s1 && s1.boardW)||0)*(Number(s1 && s1.boardH)||0)) + ((Number(s2 && s2.boardW)||0)*(Number(s2 && s2.boardH)||0)));
+    const pairScore = a.score + b.score + pairOcc * 180000 - (a.disposalArea + b.disposalArea) / Math.max(1, (Number(s1 && s1.boardW)||0)*(Number(s1 && s1.boardH)||0)) * 100000;
+    return { score: pairScore, occ: pairOcc, disposalArea: (a.disposalArea||0) + (b.disposalArea||0) };
   }
 
   function packFirstSheet(items, W, H, K, dir){
@@ -241,11 +305,20 @@
   }
 
   function candidateDimensions(items, W, H, attempts, endgame){
-    const hArr = groupDimSupport(items, 'h', H).slice(0, endgame ? 10 : Math.max(3, Math.min(6, Math.floor(attempts / 8) || 3)));
-    const wArr = groupDimSupport(items, 'w', W).slice(0, endgame ? 10 : Math.max(3, Math.min(6, Math.floor(attempts / 8) || 3)));
+    const take = endgame ? 12 : Math.max(4, Math.min(8, Math.floor(attempts / 6) || 4));
+    const hBase = groupDimSupport(items, 'h', H).slice(0, take);
+    const wBase = groupDimSupport(items, 'w', W).slice(0, take);
+    const smallHs = Array.from(new Set((items||[])
+      .filter(it => Math.min(it.w||0, it.h||0) <= 180)
+      .flatMap(it => [it.h, (it.rotationAllowed && it.w !== it.h) ? it.w : null])
+      .filter(v => v > 0 && v <= H))).slice(0, endgame ? 8 : 4);
+    const smallWs = Array.from(new Set((items||[])
+      .filter(it => Math.min(it.w||0, it.h||0) <= 180)
+      .flatMap(it => [it.w, (it.rotationAllowed && it.w !== it.h) ? it.h : null])
+      .filter(v => v > 0 && v <= W))).slice(0, endgame ? 8 : 4);
     return {
-      hs: hArr.map(v=>v.dim),
-      ws: wArr.map(v=>v.dim),
+      hs: Array.from(new Set(hBase.map(v=>v.dim).concat(smallHs))),
+      ws: Array.from(new Set(wBase.map(v=>v.dim).concat(smallWs))),
     };
   }
 
@@ -310,7 +383,7 @@
       firsts.push(cand);
     }
     firsts.sort((a,b)=>b.score - a.score);
-    const take = firsts.slice(0, Math.min(8, firsts.length));
+    const take = firsts.slice(0, Math.min(12, firsts.length));
     let best = null;
     for(const first of take){
       if(!first.rem.length){
@@ -320,7 +393,8 @@
       }
       const second = chooseBestNextSheet(first.rem, W, H, K, { attempts: Math.max(8, Math.floor(attempts / 2)), lookahead:false, endgame:true });
       if(!second) continue;
-      const total = first.score + second.score + (first.metrics.occ * 180000) + (second.metrics.occ * 100000) - ((second.metrics.largestFree / Math.max(1, W*H)) * 140000);
+      const pairMetrics = scoreSheetPair(first.sheet, second.sheet, K);
+      const total = first.score + second.score + pairMetrics.score + (first.metrics.sharedRows * 30000) + (second.metrics.sharedRows * 30000) - (first.metrics.disposalCount + second.metrics.disposalCount) * 22000;
       if(!best || total > best.score){
         best = { score: total, sheets:[first.sheet, second.sheet], rem: second.rem };
       }
@@ -372,6 +446,23 @@
       sheets.push(best.sheet);
       rem = best.rem;
       emit('sheet');
+    }
+
+    if(sheets.length >= 2){
+      const penultimate = sheets[sheets.length - 2];
+      const last = sheets[sheets.length - 1];
+      const pairIds = new Set([...usedIds(penultimate), ...usedIds(last)]);
+      const pairItems = (itemsIn||[]).filter(it => pairIds.has(it.id));
+      const rebalanced = chooseBestTwoSheetTail(pairItems, W, H, K, { attempts: Math.max(attempts, Math.floor(endgameAttempts * 0.75)) });
+      if(rebalanced && rebalanced.sheets && rebalanced.sheets.length === 2){
+        const oldPair = scoreSheetPair(penultimate, last, K);
+        const newPair = scoreSheetPair(rebalanced.sheets[0], rebalanced.sheets[1], K);
+        if(newPair.score > oldPair.score + 30000 || newPair.disposalArea < oldPair.disposalArea - 20000){
+          sheets[sheets.length - 2] = rebalanced.sheets[0];
+          sheets[sheets.length - 1] = rebalanced.sheets[1];
+          emit('tail-rebalance');
+        }
+      }
     }
 
     if(sheets.length){
