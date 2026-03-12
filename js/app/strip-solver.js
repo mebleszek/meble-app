@@ -72,6 +72,41 @@
     return out;
   }
 
+
+  function calcResidualWasteMetrics(freeRects){
+    const free = Array.isArray(freeRects) ? freeRects : [];
+    let disposalArea = 0;
+    let disposalCount = 0;
+    let reusableArea = 0;
+    let longThinCount = 0;
+    for(const r of free){
+      const w = Number(r && r.w) || 0;
+      const h = Number(r && r.h) || 0;
+      if(w <= 0 || h <= 0) continue;
+      const area = w * h;
+      const minSide = Math.min(w, h);
+      const maxSide = Math.max(w, h);
+      const reusable = minSide >= 100 && area >= 30000;
+      if(reusable) reusableArea += area;
+      else {
+        disposalArea += area;
+        disposalCount += 1;
+      }
+      if(minSide < 110 && maxSide >= 420) longThinCount += 1;
+    }
+    return { disposalArea, disposalCount, reusableArea, longThinCount };
+  }
+
+  function widthBucket(n){
+    return Math.max(10, Math.round((Number(n) || 0) / 10) * 10);
+  }
+
+  function isResidualSmallCandidate(c){
+    const w = Number(c && c.w) || 0;
+    const h = Number(c && c.h) || 0;
+    return Math.min(w, h) <= 220 || (w * h) <= 120000;
+  }
+
   function packStripBands(itemsIn, boardW, boardH, kerf, direction){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
@@ -151,9 +186,170 @@
       });
     }
 
+    function collectResidualRowHeights(remList, fr){
+      const byH = new Map();
+      const widthSupport = new Map();
+      for(const it of remList){
+        let opts = getCandidates(it, c => c.w <= fr.w && c.h <= fr.h, false);
+        if(!opts.length) opts = getCandidates(it, c => c.w <= fr.w && c.h <= fr.h, true);
+        for(const c of opts){
+          if(!isResidualSmallCandidate(c)) continue;
+          const e = byH.get(c.h) || { h:c.h, area:0, count:0 };
+          e.area += c.w * c.h;
+          e.count += 1;
+          byH.set(c.h, e);
+          const bucket = widthBucket(c.w);
+          widthSupport.set(bucket, (widthSupport.get(bucket) || 0) + 1);
+        }
+      }
+      const heights = Array.from(byH.values())
+        .sort((a,b)=> (b.count - a.count) || (b.area - a.area) || (b.h - a.h))
+        .slice(0, 8)
+        .map(v => v.h);
+      return { heights, widthSupport };
+    }
+
+    function buildResidualSharedRowPlan(remList, fr, strategy){
+      const meta = collectResidualRowHeights(remList, fr);
+      if(!meta.heights.length) return null;
+      let bestPlan = null;
+      for(const rowH of meta.heights){
+        const n = remList.length;
+        const dp = new Array(fr.w + 1).fill(null);
+        dp[0] = { score: 0, area: 0, count: 0, gapArea: 0, prev: -1, item: -1, cand: null };
+        for(let i=0;i<n;i++){
+          const it = remList[i];
+          let options = getCandidates(it, c => c.w <= fr.w && c.h <= rowH, false);
+          if(!options.length) options = getCandidates(it, c => c.w <= fr.w && c.h <= rowH, true);
+          options = options.filter(isResidualSmallCandidate);
+          if(!options.length) continue;
+          const next = dp.slice();
+          for(let used=0; used<=fr.w; used++){
+            const st = dp[used];
+            if(!st) continue;
+            for(const c of options){
+              const extraW = (st.count > 0 ? K : 0) + c.w;
+              const nw = used + extraW;
+              if(nw > fr.w) continue;
+              const tail = fr.w - nw;
+              const gapH = rowH - c.h;
+              const bucket = widthBucket(c.w);
+              const support = meta.widthSupport.get(bucket) || 1;
+              const heightClose = gapH <= 20 ? 1 : 0;
+              const localScore = st.score
+                + (c.w * c.h * ((strategy.areaWeight || 1000) * 0.6))
+                + orientationBonus(c, 120000)
+                + rotationModeBonus(c, strategy)
+                + (support >= 2 ? 90000 * Math.min(3, support) : 0)
+                + (heightClose ? 70000 : -(gapH * 120))
+                + (tail <= MAX_TAIL_WASTE ? 120000 : -(tail * 180));
+              const prevBest = next[nw];
+              if(!prevBest || localScore > prevBest.score){
+                next[nw] = {
+                  score: localScore,
+                  area: st.area + c.w * c.h,
+                  count: st.count + 1,
+                  gapArea: st.gapArea + (gapH * c.w),
+                  prev: used,
+                  item: i,
+                  cand: c
+                };
+              }
+            }
+          }
+          for(let x=0;x<=fr.w;x++) dp[x] = next[x];
+        }
+
+        let bestW = 0;
+        let bestState = dp[0];
+        for(let used=1; used<=fr.w; used++){
+          const st = dp[used];
+          if(!st || st.count < 2) continue;
+          const tail = fr.w - used;
+          const occ = st.area / Math.max(1, fr.w * rowH);
+          const gapRatio = st.gapArea / Math.max(1, fr.w * rowH);
+          const total = st.score + occ * 220000 - gapRatio * 180000 + (tail <= MAX_TAIL_WASTE ? 150000 : -tail * 250);
+          const current = bestState && bestState.count >= 2
+            ? bestState.score + (bestState.area / Math.max(1, fr.w * rowH)) * 220000 - (bestState.gapArea / Math.max(1, fr.w * rowH)) * 180000 + ((fr.w - bestW) <= MAX_TAIL_WASTE ? 150000 : -(fr.w - bestW) * 250)
+            : -1e18;
+          if(!bestState || total > current){
+            bestState = st;
+            bestW = used;
+          }
+        }
+        if(!bestState || bestState.count < 2) continue;
+
+        const chosen = [];
+        const usedIdx = new Set();
+        let cursor = bestW;
+        while(cursor > 0){
+          const st = dp[cursor];
+          if(!st || st.item < 0 || !st.cand) break;
+          if(!usedIdx.has(st.item)){
+            chosen.push({ idx: st.item, it: remList[st.item], cand: st.cand });
+            usedIdx.add(st.item);
+          }
+          cursor = st.prev;
+        }
+        if(chosen.length < 2) continue;
+        chosen.reverse();
+        chosen.sort((a,b)=> {
+          const ba = widthBucket(a.cand.w);
+          const bb = widthBucket(b.cand.w);
+          if(bb !== ba) return bb - ba;
+          if(b.cand.h !== a.cand.h) return b.cand.h - a.cand.h;
+          return b.cand.w - a.cand.w;
+        });
+        let usedW = 0;
+        let sameBucketPairs = 0;
+        for(let i=0;i<chosen.length;i++){
+          usedW += chosen[i].cand.w + (i > 0 ? K : 0);
+          if(i > 0 && widthBucket(chosen[i - 1].cand.w) === widthBucket(chosen[i].cand.w)) sameBucketPairs += 1;
+        }
+        const tail = fr.w - usedW;
+        const score = bestState.score + sameBucketPairs * 90000 + (tail <= MAX_TAIL_WASTE ? 120000 : -tail * 250);
+        const plan = { fr, rowH, items: chosen, usedW, tail, score, sameBucketPairs };
+        if(!bestPlan || plan.score > bestPlan.score) bestPlan = plan;
+      }
+      return bestPlan;
+    }
+
     function fillResidualRects(sheet, freeRects, remList, strategy){
       let free = pruneFreeRects((freeRects||[]).filter(r=>r && r.w > 0 && r.h > 0));
       while(remList.length && free.length){
+        let bestRow = null;
+        for(let fi=0; fi<free.length; fi++){
+          const fr = free[fi];
+          if(fr.w < 180 || fr.h < 80) continue;
+          const rowPlan = buildResidualSharedRowPlan(remList, fr, strategy);
+          if(rowPlan && (!bestRow || rowPlan.score > bestRow.plan.score)) bestRow = { fi, plan: rowPlan };
+        }
+        if(bestRow && bestRow.plan && bestRow.plan.items && bestRow.plan.items.length >= 2){
+          let cursorX = bestRow.plan.fr.x;
+          const usedIds = [];
+          for(const picked of bestRow.plan.items){
+            placeFromCandidate(sheet, picked.it, picked.cand, cursorX, bestRow.plan.fr.y);
+            cursorX += picked.cand.w + K;
+            usedIds.push(picked.it.id);
+          }
+          // recompute by splitting against newly inserted placements only
+          const inserted = sheet.placements.slice(-bestRow.plan.items.length).map(p => ({ x:p.x, y:p.y, w:p.w + K, h:p.h + K }));
+          let splitFree = free.slice();
+          for(const placedK of inserted){
+            const tmp = [];
+            for(const fr of splitFree){
+              if(rectIntersects(fr, placedK)) tmp.push(...splitFreeRectByIntersection(fr, placedK));
+              else tmp.push(fr);
+            }
+            splitFree = pruneFreeRects(tmp.filter(r=>r.w >= 40 && r.h >= 40));
+          }
+          free = splitFree;
+          for(let r=remList.length-1; r>=0; r--){
+            if(usedIds.includes(remList[r].id)) remList.splice(r, 1);
+          }
+          continue;
+        }
+
         let best = null;
         for(let fi=0; fi<free.length; fi++){
           const fr = free[fi];
@@ -398,7 +594,14 @@
       const bboxA = sheetBBoxArea(res.sheet);
       const bboxRatio = bboxA / Math.max(1, BW * BH);
       const compactBonus = (1 - Math.min(1, bboxRatio)) * 300000;
-      return res.score * (firstWeight || 1) + occ * (secondWeight || 1) + compactBonus;
+      const waste = res.waste || calcResidualWasteMetrics([]);
+      const rowBonus = Number(res.rowBonus) || 0;
+      return res.score * (firstWeight || 1)
+        + occ * (secondWeight || 1)
+        + compactBonus
+        + rowBonus * 45000
+        - waste.disposalCount * 35000
+        - waste.longThinCount * 28000;
     }
 
     function estimateUniformRowBonus(sheet){
@@ -443,8 +646,10 @@
           const firstOcc = (first.usedArea || 0) / Math.max(1, BW * BH);
           const secondOcc = (second.usedArea || 0) / Math.max(1, BW * BH);
           const secondBBox = sheetBBoxArea(second.sheet) / Math.max(1, BW * BH);
-          const firstRows = estimateUniformRowBonus(first.sheet);
-          const secondRows = estimateUniformRowBonus(second.sheet);
+          const firstRows = Number(first.rowBonus) || estimateUniformRowBonus(first.sheet);
+          const secondRows = Number(second.rowBonus) || estimateUniformRowBonus(second.sheet);
+          const pairWaste = (first.waste ? first.waste.disposalArea : 0) + (second.waste ? second.waste.disposalArea : 0);
+          const pairThin = (first.waste ? first.waste.longThinCount : 0) + (second.waste ? second.waste.longThinCount : 0);
           const pairScore =
             scoreSheetResult(first, 1.45, 1200000)
             + scoreSheetResult(second, 0.95, 500000)
@@ -454,7 +659,9 @@
             + secondRows * 120000
             + (firstOcc >= 0.88 ? 220000 : 0)
             + (secondOcc >= 0.78 ? 80000 : 0)
-            - ((second.sheet.placements||[]).length * 1500);
+            - ((second.sheet.placements||[]).length * 1500)
+            - pairWaste * 0.04
+            - pairThin * 30000;
           if(!best || pairScore > best.score){
             best = { score: pairScore, sheets:[first.sheet, second.sheet], rem: rem2 };
           }
@@ -512,8 +719,20 @@
       const occupancy = usedArea / Math.max(1, BW * BH);
       const bigWaste = (freeLeft||[]).reduce((m,r)=> Math.max(m, r.w*r.h), 0);
       const bboxArea = sheetBBoxArea(sheet);
-      const score = usedArea * 50 + occupancy * 1000000 + (occupancy >= 0.85 ? 400000 : 0) - bigWaste * 0.08 - bboxArea * 0.01 + sheet.placements.length * 500;
-      return { sheet, rem, score, usedArea, occupancy, bboxArea };
+      const waste = calcResidualWasteMetrics(freeLeft);
+      const rowBonus = estimateUniformRowBonus(sheet);
+      const score = usedArea * 50
+        + occupancy * 1000000
+        + (occupancy >= 0.85 ? 400000 : 0)
+        - bigWaste * 0.08
+        - bboxArea * 0.01
+        + sheet.placements.length * 500
+        + rowBonus * 85000
+        - waste.disposalArea * 0.12
+        - waste.disposalCount * 60000
+        - waste.longThinCount * 45000
+        + waste.reusableArea * 0.01;
+      return { sheet, rem, score, usedArea, occupancy, bboxArea, waste, rowBonus };
     }
 
     const strategies = [
