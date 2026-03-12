@@ -164,13 +164,13 @@
     const sm = scrapMetrics(free);
     const fam = bandFamilyMetrics((sheet.placements || []).filter(p=>p && !p.unplaced), (meta && meta.primaryAxis) || 'v');
     let score = 0;
-    score += occ * 1000000;
-    score -= (sm.disposalArea / area) * 420000;
-    score -= sm.disposalCount * 52000;
-    score -= sm.longThinCount * 30000;
-    score += (sm.reusableArea / area) * 30000;
-    score += fam.dominantCount * 14000;
-    score -= fam.singletons * 16000;
+    score += occ * 1600000;
+    score -= (sm.disposalArea / area) * 520000;
+    score -= sm.disposalCount * 60000;
+    score -= sm.longThinCount * 40000;
+    score += (sm.reusableArea / area) * 20000;
+    score += fam.dominantCount * 8000;
+    score -= fam.singletons * 20000;
     if(meta && Array.isArray(meta.seedBands)){
       for(const b of meta.seedBands){
         score += (b.fillRatio || 0) * 200000;
@@ -414,7 +414,19 @@
   function residualFillCandidate(remaining, rect, kerf, primaryAxis, opts){
     if(!remaining.length) return null;
     const oppositeAxis = primaryAxis === 'v' ? 'h' : 'v';
-    const direct = packBandsInAxis(remaining, rect, kerf, oppositeAxis, opts);
+    const oppositeDir = oppositeAxis === 'v' ? 'along' : 'across';
+    let direct = null;
+    if(strip && typeof strip.packStripBands === 'function') {
+      try{
+        const sheets = strip.packStripBands(remaining, rect.w, rect.h, kerf, oppositeDir) || [];
+        if(sheets && sheets[0]){
+          direct = { direction: oppositeDir, sheet: sheets[0], ids: usedIds(sheets[0]) };
+        }
+      }catch(_){ }
+    }
+    if(!direct){
+      direct = packBandsInAxis(remaining, rect, kerf, oppositeAxis, opts);
+    }
     const firstSheet = (direct && direct.sheet) || { boardW:rect.w, boardH:rect.h, placements:[] };
     const sc = scoreSheet(firstSheet, kerf, { primaryAxis: oppositeAxis, seedBands:[] });
     return { direction: direct.direction, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0, ids: direct.ids || new Set() };
@@ -467,7 +479,7 @@
     }
 
     const sheet = mergePlacements(W, H, placements);
-    const meta = { kind:'constructive', primaryAxis:seedAxis, residualDirection, seedBands };
+    const meta = { kind:'constructive', primaryAxis:seedAxis, residualDirection, seedBands, firstBandPrimary:(band1.bandPrimary||0) };
     const sc = scoreSheet(sheet, kerf, meta);
     // Nie wywalamy słabego pasa — wybór najlepszego robi się później, żeby optional nie wpadał od razu w fallback.
     return { sheet, meta, sc, firstBandFill:(band1.fillRatio||0), accepted: (band1.fillRatio||0) >= threshold1 };
@@ -493,7 +505,7 @@
       }
     }
     return Array.from(buckets.values())
-      .sort((a,b)=> (b.area-a.area) || (b.maxPrimary-a.maxPrimary) || (b.count-a.count) || (b.guide-a.guide));
+      .sort((a,b)=> (b.maxPrimary-a.maxPrimary) || (b.area-a.area) || (b.count-a.count) || (b.guide-a.guide));
   }
 
   function generateSeedPlans(items, boardW, boardH, kerf, opts){
@@ -537,9 +549,23 @@
   function chooseBestConstructive(items, boardW, boardH, kerf, opts){
     const plans = generateSeedPlans(items, boardW, boardH, kerf, opts);
     const maxAttempts = Math.max(1, Math.round(Number((opts && opts.maxAttempts) || 150)));
+    let bestStrong = null;
     let bestAccepted = null;
     let bestAny = null;
     let tries = 0;
+    function better(a, b){
+      if(!a) return true;
+      const ao = Number(a.sc && a.sc.occupancy) || 0;
+      const bo = Number(b.sc && b.sc.occupancy) || 0;
+      if(Math.abs(bo - ao) > 0.015) return bo > ao;
+      const af = Number(a.meta && a.meta.firstBandPrimary) || 0;
+      const bf = Number(b.meta && b.meta.firstBandPrimary) || 0;
+      if(Math.abs(bf - af) > 20) return bf > af;
+      const ad = Number(a.sc && a.sc.disposalArea) || 0;
+      const bd = Number(b.sc && b.sc.disposalArea) || 0;
+      if(Math.abs(ad - bd) > 5000) return bd < ad;
+      return (Number(b.sc && b.sc.score) || 0) > (Number(a.sc && a.sc.score) || 0);
+    }
     for(const plan of plans){
       if(tries >= maxAttempts) break;
       const built = buildConstructiveSheet(items, boardW, boardH, kerf, null, plan.axis, plan.guideA, plan.guideB, opts);
@@ -548,10 +574,12 @@
         try{ opts.onProgress({ step:'attempt', currentAttempt:tries, maxAttempts }); }catch(_){ }
       }
       if(!built || !usedIds(built.sheet).size) continue;
-      built.sc.score += (plan.seedWideScore || 0) * 0.02;
-      if(!bestAny || built.sc.score > bestAny.sc.score) bestAny = built;
-      if(built.accepted && (!bestAccepted || built.sc.score > bestAccepted.sc.score)) bestAccepted = built;
+      built.sc.score += (plan.seedWideScore || 0) * 0.01;
+      if(better(bestAny, built)) bestAny = built;
+      if(built.accepted && better(bestAccepted, built)) bestAccepted = built;
+      if(built.accepted && (Number(built.sc && built.sc.occupancy) || 0) >= 0.80 && better(bestStrong, built)) bestStrong = built;
     }
+    if(bestStrong) return bestStrong;
     if(bestAccepted) return bestAccepted;
     if(bestAny) return bestAny;
     return buildFallback(items, boardW, boardH, kerf);
@@ -603,7 +631,7 @@
     if(rebuilt.length !== 2) return sheets;
     const oldSc = scoreSheetPair(prev, last, kerf);
     const newSc = scoreSheetPair(rebuilt[0], rebuilt[1], kerf);
-    if(newSc.score > oldSc.score || newSc.disposalArea < oldSc.disposalArea){
+    if((newSc.occupancy >= oldSc.occupancy + 0.01) || (newSc.disposalArea + 10000 < oldSc.disposalArea && newSc.occupancy >= oldSc.occupancy - 0.01)){
       out[out.length - 2] = rebuilt[0];
       out[out.length - 1] = rebuilt[1];
     }
@@ -633,7 +661,7 @@
     const rebuilt = chooseBestConstructive(pool, last.boardW, last.boardH, kerf, opts);
     if(!rebuilt) return sheets;
     const oldSc = scoreSheet(last, kerf, { kind:'old-last', primaryAxis:'v', seedBands:[] });
-    if(rebuilt.sc.score > oldSc.score || rebuilt.sc.disposalArea < oldSc.disposalArea){
+    if(((Number(rebuilt.sc && rebuilt.sc.occupancy)||0) >= (Number(oldSc && oldSc.occupancy)||0) + 0.01) || ((Number(rebuilt.sc && rebuilt.sc.disposalArea)||0) + 5000 < (Number(oldSc && oldSc.disposalArea)||0) && (Number(rebuilt.sc && rebuilt.sc.occupancy)||0) >= (Number(oldSc && oldSc.occupancy)||0) - 0.01)){
       out[out.length - 1] = rebuilt.sheet;
     }
     return out;
@@ -653,6 +681,7 @@
       minOppositeResidualFill: 0.66,
       onProgress: null,
       maxAttempts: 150,
+      targetSheetOccupancy: 0.80,
     }, opts || {});
 
     let remaining = (itemsIn || []).map(it=>Object.assign({}, it));
