@@ -411,7 +411,58 @@
       return arr.slice(0, 14).map(v=>v.h);
     }
 
-    function buildStripPlan(remList, rowH, strategy){
+    function collectStripWidthBuckets(remList, rowH){
+      const byBucket = new Map();
+      for(const it of remList){
+        let opts = getCandidates(it, c => c.w <= BW && c.h <= rowH, false);
+        if(!opts.length) opts = getCandidates(it, c => c.w <= BW && c.h <= rowH, true);
+        if(!opts.length) continue;
+        for(const c of opts){
+          const bucket = widthBucket(c.w);
+          const e = byBucket.get(bucket) || { bucket, count:0, area:0 };
+          e.count += 1;
+          e.area += c.w * c.h;
+          byBucket.set(bucket, e);
+        }
+      }
+      return Array.from(byBucket.values())
+        .sort((a,b)=> (b.count - a.count) || (b.area - a.area) || (b.bucket - a.bucket))
+        .slice(0, 4)
+        .map(v => v.bucket);
+    }
+
+    function calcRowGroupingMetrics(chosen){
+      const items = Array.isArray(chosen) ? chosen : [];
+      const buckets = items.map(v => widthBucket(v && v.cand ? v.cand.w : 0));
+      const counts = new Map();
+      let sameBucketPairs = 0;
+      let singletonBuckets = 0;
+      let smallSingletons = 0;
+      let widthSpreadPenalty = 0;
+      let tinyTailPenalty = 0;
+      for(let i=0;i<buckets.length;i++){
+        const b = buckets[i];
+        counts.set(b, (counts.get(b) || 0) + 1);
+        if(i > 0){
+          if(buckets[i-1] === b) sameBucketPairs += 1;
+          if(Math.abs(buckets[i-1] - b) >= 70) widthSpreadPenalty += 1;
+        }
+      }
+      for(const [bucket, count] of counts.entries()){
+        if(count === 1){
+          singletonBuckets += 1;
+          if(bucket <= 380) smallSingletons += 1;
+        }
+      }
+      const tail = items.slice(-4);
+      for(const it of tail){
+        const w = Number(it && it.cand ? it.cand.w : 0) || 0;
+        if(w > 0 && w <= 140) tinyTailPenalty += 1;
+      }
+      return { sameBucketPairs, singletonBuckets, smallSingletons, widthSpreadPenalty, tinyTailPenalty };
+    }
+
+    function buildStripPlan(remList, rowH, strategy, preferredBucket){
       const n = remList.length;
       const dp = new Array(BW + 1).fill(null);
       dp[0] = { score: 0, area: 0, count: 0, gapArea: 0, exactCount: 0, rotatedCount: 0, prev: -1, item: -1, cand: null };
@@ -437,11 +488,20 @@
             const tail = BW - nw;
             const fitBonus = tail <= MAX_TAIL_WASTE ? (strategy.tailBonus || 200000) : 0;
             const exactHeight = gapH === 0 ? 1 : 0;
+            const bucket = widthBucket(c.w);
+            const bucketBias = preferredBucket
+              ? (bucket === preferredBucket
+                  ? (strategy.bucketMatchBonus || 150000)
+                  : (Math.abs(bucket - preferredBucket) <= 20
+                      ? (strategy.bucketNearBonus || 60000)
+                      : ((Math.min(c.w, c.h) <= 220 || c.w <= 380) ? -(strategy.bucketMissPenalty || 70000) : 0)))
+              : 0;
             const localScore = state.score
               + (c.w * c.h * (strategy.areaWeight || 1000))
               + (exactHeight * (strategy.exactHBonus || 80000))
               + orientationBonus(c, strategy.orientationWeight || 240000)
               + rotationModeBonus(c, strategy)
+              + bucketBias
               - (gapH * c.w * (strategy.gapPenalty || 6))
               - (tail <= MAX_TAIL_WASTE ? 0 : tail * (strategy.tailPenalty || 20))
               + fitBonus;
@@ -513,6 +573,9 @@
       if(!chosen.length) return null;
       chosen.reverse();
       chosen.sort((a,b)=>{
+        const ba = widthBucket(a.cand.w);
+        const bb = widthBucket(b.cand.w);
+        if(bb !== ba) return bb - ba;
         if(b.cand.h !== a.cand.h) return b.cand.h - a.cand.h;
         return b.cand.w - a.cand.w;
       });
@@ -529,6 +592,7 @@
       const exactRatio = chosen.length ? (exactCount / chosen.length) : 0;
       const gapArea = chosen.reduce((sum, v) => sum + ((rowH - v.cand.h) * v.cand.w), 0);
       const gapRatio = gapArea / Math.max(1, BW * rowH);
+      const grouping = calcRowGroupingMetrics(chosen);
       return {
         rowH,
         items: chosen,
@@ -540,10 +604,16 @@
         exactRatio,
         gapArea,
         gapRatio,
+        grouping,
         score: usedArea
           + occupancy * (strategy.occWeight || 100000)
           + (tail <= MAX_TAIL_WASTE ? (strategy.tailBonus || 200000) : -tail * (strategy.tailPenalty || 200))
           + exactRatio * (strategy.uniformBonus || 180000)
+          + grouping.sameBucketPairs * (strategy.groupPairBonus || 90000)
+          - grouping.singletonBuckets * (strategy.singletonPenalty || 45000)
+          - grouping.smallSingletons * (strategy.smallSingletonPenalty || 70000)
+          - grouping.widthSpreadPenalty * (strategy.widthSpreadPenalty || 40000)
+          - grouping.tinyTailPenalty * (strategy.tinyTailPenalty || 85000)
           - gapRatio * (strategy.gapAreaPenalty || 220000)
           + ((strategy.exactOnly && exactRatio >= 0.999) ? (strategy.exactOnlyBonus || 260000) : 0)
       };
@@ -553,17 +623,23 @@
       const heights = collectStripHeights(remList, availableH);
       let best = null;
       for(const h of heights){
-        const plan = buildStripPlan(remList, h, strategy);
-        if(!plan) continue;
-        const sc =
-          plan.score
-          + (plan.occupancy >= 0.85 ? 250000 : 0)
-          + (plan.tail <= MAX_TAIL_WASTE ? 220000 : 0)
-          + (plan.exactRatio >= 0.999 ? 220000 : 0)
-          + (plan.exactRatio * (strategy.uniformBonus || 180000))
-          - (plan.gapRatio * (strategy.gapAreaPenalty || 220000))
-          + (h * (strategy.heightBias || 500));
-        if(!best || sc > best.sc) best = { plan, sc };
+        const preferredBuckets = [null].concat(collectStripWidthBuckets(remList, h));
+        for(const preferredBucket of preferredBuckets){
+          const plan = buildStripPlan(remList, h, strategy, preferredBucket);
+          if(!plan) continue;
+          const sc =
+            plan.score
+            + (plan.occupancy >= 0.85 ? 250000 : 0)
+            + (plan.tail <= MAX_TAIL_WASTE ? 220000 : 0)
+            + (plan.exactRatio >= 0.999 ? 220000 : 0)
+            + (plan.exactRatio * (strategy.uniformBonus || 180000))
+            + ((plan.grouping && plan.grouping.sameBucketPairs) ? plan.grouping.sameBucketPairs * 60000 : 0)
+            - ((plan.grouping && plan.grouping.smallSingletons) ? plan.grouping.smallSingletons * 80000 : 0)
+            - ((plan.grouping && plan.grouping.tinyTailPenalty) ? plan.grouping.tinyTailPenalty * 90000 : 0)
+            - (plan.gapRatio * (strategy.gapAreaPenalty || 220000))
+            + (h * (strategy.heightBias || 500));
+          if(!best || sc > best.sc) best = { plan, sc };
+        }
       }
       return best ? best.plan : null;
     }
