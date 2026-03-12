@@ -10,7 +10,7 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
-const SOLVER_VER = '20260312_optima_v2';
+const SOLVER_VER = '20260312_optima_v3';
 try{
   importScripts('strip-solver.js?v=' + SOLVER_VER, 'optima-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){

@@ -344,4 +344,10 @@ Dopiero potem go zmieniać.
 ## 2026-03-12 — krok 92: korekta trybu Optima
 - Podniesiono docelowe wypełnienie dalszych pasów z 80% do 90% i mocniej karane są końcówki pasa z dużym pustym ogonem.
 - `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
-- Podbito cache-bust workera/solverów do `20260312_optima_v2`.
+- Podbito cache-bust workera/solverów do `20260312_optima_v3`.
+
+## 2026-03-12 — krok 93: Optima mocniej wymusza zmianę kierunku
+- `js/app/optima-solver.js` po 1–2 pasach startowych próbuje teraz obowiązkowo przejść w przeciwny kierunek, jeśli tylko da się zbudować sensowną dalszą część arkusza (`goodEnoughSwitch`).
+- Dalsza część płyty jest pakowana jako osobny wariant w prostokącie resztowym z wymuszonym przeciwnym kierunkiem, zamiast iść do końca tym samym układem pasów.
+- Wiersze / kolumny są dodatkowo normalizowane do układu od szerszych do węższych, żeby ograniczyć dziwne naprzemienne kolejności w jednym pasie.
+- Cache-bust workera/solverów podbity do `20260312_optima_v3`.

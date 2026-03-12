@@ -413,11 +413,12 @@
       - rows.length * 4000;
   }
 
-  function buildRectPackVariant(remSource, rect, K, cfg, minScrapW, minScrapH, isCancelled){
+  function buildRectPackVariant(remSource, rect, K, cfg, minScrapW, minScrapH, isCancelled, allowedSwaps){
     if(!rect || rect.w <= 40 || rect.h <= 40 || !remSource || !remSource.length) return null;
     let best = null;
     const localLimit = Math.max(4, Math.min(10, Number(cfg && cfg.rowSeedLimit) || 6));
-    for(const swap of [false, true]){
+    const swaps = Array.isArray(allowedSwaps) && allowedSwaps.length ? allowedSwaps.slice() : [false, true];
+    for(const swap of swaps){
       if(isCancelled && isCancelled()) break;
       const BW = swap ? rect.h : rect.w;
       const BH = swap ? rect.w : rect.h;
@@ -480,6 +481,40 @@
     return { rem: remNow, placements, freeRects, extraArea, extraScore };
   }
 
+  function sortRowItems(row){
+    if(!row || !Array.isArray(row.items) || !row.items.length) return row;
+    row.items.sort((a,b)=> {
+      const dw = (Number(b && b.cand && b.cand.w) || 0) - (Number(a && a.cand && a.cand.w) || 0);
+      if(dw) return dw;
+      const dh = (Number(b && b.cand && b.cand.h) || 0) - (Number(a && a.cand && a.cand.h) || 0);
+      if(dh) return dh;
+      return String((a && a.it && a.it.id) || '').localeCompare(String((b && b.it && b.it.id) || ''));
+    });
+    return row;
+  }
+
+  function normalizeRows(rows){
+    for(const row of (rows || [])) sortRowItems(row);
+    return rows;
+  }
+
+  function continueRows(remSource, BW, availableH, K, swap, cfg, isCancelled){
+    let remNow = remSource.map(cloneItem);
+    let leftH = availableH;
+    const rows = [];
+    while(remNow.length && leftH > 40){
+      if(isCancelled && isCancelled()) break;
+      const row = chooseBestRow(remNow, BW, leftH, K, swap, cfg, 0.90, { preferWide:true });
+      if(!row) break;
+      sortRowItems(row);
+      rows.push(row);
+      remNow = removeSelected(remNow, row.items.map(v => v.it.id));
+      leftH -= (row.rowH + K);
+      if(row.rowH <= 0) break;
+    }
+    return { rows, rem: remNow, availableH: leftH };
+  }
+
   function repairRows(rows, rem, BW, K, swap){
     for(let ri=0; ri<rows.length; ri++){
       const row = rows[ri];
@@ -529,46 +564,72 @@
     const BW = swap ? H : W;
     const BH = swap ? W : H;
     const rem = remSource.map(cloneItem);
-    const rows = [];
-    let availableH = BH;
 
     const seedRow = buildRow(rem, BW, K, seed.rowH, seed, widthBucket(seed.cand.w), { swap, preferWide:true });
     if(!seedRow) return null;
     if(!isNestedRectPack && seedRow.occupancy < 0.80) return null;
-    rows.push(seedRow);
-    let remNow = removeSelected(rem, seedRow.items.map(v => v.it.id));
-    availableH -= (seedRow.rowH + K);
+    sortRowItems(seedRow);
+
+    const leadRows = [seedRow];
+    let remLead = removeSelected(rem, seedRow.items.map(v => v.it.id));
+    let availableH = BH - (seedRow.rowH + K);
 
     if(availableH > 40){
-      const second = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
+      const second = chooseBestRow(remLead, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
       if(second && second.occupancy >= 0.90 && seedRow.occupancy >= 0.90){
-        rows.push(second);
-        remNow = removeSelected(remNow, second.items.map(v => v.it.id));
+        sortRowItems(second);
+        leadRows.push(second);
+        remLead = removeSelected(remLead, second.items.map(v => v.it.id));
         availableH -= (second.rowH + K);
       }
     }
+    normalizeRows(leadRows);
 
-    while(remNow.length && availableH > 40){
-      if(isCancelled && isCancelled()) break;
-      const row = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
-      if(!row) break;
-      rows.push(row);
-      remNow = removeSelected(remNow, row.items.map(v => v.it.id));
-      availableH -= (row.rowH + K);
-      if(row.rowH <= 0) break;
-    }
+    const sameTail = continueRows(remLead, BW, availableH, K, swap, cfg, isCancelled);
+    const sameRows = normalizeRows(leadRows.concat(sameTail.rows));
+    let sameRem = sameTail.rem;
+    repairRows(sameRows, sameRem, BW, K, swap);
+    normalizeRows(sameRows);
 
-    repairRows(rows, remNow, BW, K, swap);
-
-    let extras = { rem: remNow, placements: [], freeRects: buildSheetFreeRects(rows, BW, BH, K), extraArea: 0, extraScore: 0 };
+    let sameExtras = { rem: sameRem, placements: [], freeRects: buildSheetFreeRects(sameRows, BW, BH, K), extraArea: 0, extraScore: 0 };
     if(!isNestedRectPack){
-      extras = fillResidualRects(rows, remNow, BW, BH, W, H, K, swap, cfg, minScrapW, minScrapH, isCancelled);
-      remNow = extras.rem;
+      sameExtras = fillResidualRects(sameRows, sameRem, BW, BH, W, H, K, swap, cfg, minScrapW, minScrapH, isCancelled);
+      sameRem = sameExtras.rem;
+    }
+    const sameSheet = buildSheetObject(sameRows, BW, BH, W, H, K, swap, minScrapW, minScrapH, sameExtras);
+    const sameScore = scoreRows(sameRows, BW, BH) + (sameExtras.extraArea || 0) + (sameExtras.extraScore || 0);
+    const leadArea = leadRows.reduce((sum, row)=> sum + (Number(row && row.usedArea) || 0), 0);
+    const sameTailArea = Math.max(0, (sameSheet._usedArea || 0) - leadArea);
+    const tailRectArea = Math.max(1, BW * Math.max(1, availableH));
+    const sameTailOcc = availableH > 40 ? (sameTailArea / tailRectArea) : 1;
+    let bestPlan = { sheet: sameSheet, rem: sameRem, rows: sameRows, score: sameScore, swap, switched:false, tailOcc: sameTailOcc };
+
+    if(!isNestedRectPack && availableH > 80 && remLead.length && !(isCancelled && isCancelled())){
+      const tailY = BH - availableH;
+      const tailRect = { x:0, y:tailY, w:BW, h:availableH };
+      const switchedVariant = buildRectPackVariant(remLead, tailRect, K, cfg, minScrapW, minScrapH, isCancelled, [!swap]);
+      if(switchedVariant && switchedVariant.sheet && Array.isArray(switchedVariant.sheet.placements) && switchedVariant.sheet.placements.length){
+        const switchedPlacedCount = switchedVariant.sheet.placements.filter(p => p && !p.unplaced).length;
+        const switchedTailOcc = (switchedVariant.sheet._usedArea || 0) / Math.max(1, tailRect.w * tailRect.h);
+        const goodEnoughSwitch = switchedPlacedCount >= 2 && switchedTailOcc >= 0.72;
+        if(goodEnoughSwitch){
+          const leadFreeRects = buildSheetFreeRects(leadRows, BW, BH, K).filter(r => !(r.x === tailRect.x && r.y === tailRect.y && r.w === tailRect.w && r.h === tailRect.h));
+          const switchedExtras = {
+            placements: (switchedVariant.sheet.placements || []).map(p => offsetPlacement(p, tailRect.x, tailRect.y)),
+            freeRects: leadFreeRects.concat(((switchedVariant.sheet._freeRects || []).map(r => offsetRect(r, tailRect.x, tailRect.y))))
+          };
+          const switchedSheet = buildSheetObject(leadRows, BW, BH, W, H, K, swap, minScrapW, minScrapH, switchedExtras);
+          let switchedScore = scoreRows(leadRows, BW, BH) + (switchedVariant.score || 0) + (switchedTailOcc * 650000) + 260000;
+          if(switchedTailOcc >= 0.90) switchedScore += 220000;
+          else if(switchedTailOcc >= 0.84) switchedScore += 120000;
+          if(switchedPlacedCount >= 4) switchedScore += 90000;
+          const switchedPlan = { sheet: switchedSheet, rem: switchedVariant.rem, rows: leadRows, score: switchedScore, swap, switched:true, tailOcc: switchedTailOcc };
+          bestPlan = switchedPlan;
+        }
+      }
     }
 
-    const sheet = buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH, extras);
-    const score = scoreRows(rows, BW, BH) + (extras.extraArea || 0) + (extras.extraScore || 0);
-    return { sheet, rem: remNow, rows, score, swap };
+    return bestPlan;
   }
 
   function placementsToItems(sheet){

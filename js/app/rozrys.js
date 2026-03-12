@@ -572,7 +572,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260312_optima_v2');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260312_optima_v3');
       }catch(e){
         // fallback (sync, limited)
         try{
