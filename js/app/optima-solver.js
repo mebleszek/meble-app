@@ -209,17 +209,23 @@
       if(!st || st.count <= 0) continue;
       const tail = maxW - used;
       const occ = st.area / Math.max(1, maxW * rowH);
+      const occPenalty = occ < 0.90 ? (0.90 - occ) * 900000 : 0;
       const total = st.score
-        + occ * 900000
-        + (tail <= 100 ? 220000 : -tail * 500)
+        + occ * 1150000
+        + (tail <= 60 ? 320000 : (tail <= 120 ? 150000 : -tail * 900))
+        + (occ >= 0.95 ? 260000 : 0)
         + (occ >= 0.90 ? 180000 : 0)
-        + (occ >= 0.80 ? 80000 : 0);
+        - occPenalty;
+      const curOcc = bestState ? (bestState.area / Math.max(1, maxW * rowH)) : 0;
+      const curTail = maxW - bestUsed;
+      const curPenalty = curOcc < 0.90 ? (0.90 - curOcc) * 900000 : 0;
       const cur = bestState ? (
         bestState.score
-        + (bestState.area / Math.max(1, maxW * rowH)) * 900000
-        + ((maxW - bestUsed) <= 100 ? 220000 : -((maxW - bestUsed) * 500))
-        + ((bestState.area / Math.max(1, maxW * rowH)) >= 0.90 ? 180000 : 0)
-        + ((bestState.area / Math.max(1, maxW * rowH)) >= 0.80 ? 80000 : 0)
+        + curOcc * 1150000
+        + (curTail <= 60 ? 320000 : (curTail <= 120 ? 150000 : -(curTail * 900)))
+        + (curOcc >= 0.95 ? 260000 : 0)
+        + (curOcc >= 0.90 ? 180000 : 0)
+        - curPenalty
       ) : -1e18;
       if(!bestState || total > cur){
         bestState = st;
@@ -320,7 +326,18 @@
     return { x: r.y, y: r.x, w: r.h, h: r.w };
   }
 
-  function buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH){
+  function offsetPlacement(p, dx, dy){
+    const q = Object.assign({}, p);
+    q.x += dx;
+    q.y += dy;
+    return q;
+  }
+
+  function offsetRect(r, dx, dy){
+    return { x: r.x + dx, y: r.y + dy, w: r.w, h: r.h };
+  }
+
+  function buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH, extras){
     const placements = [];
     let usedArea = 0;
     let cursorY = 0;
@@ -352,6 +369,15 @@
       cursorY += row.rowH + K;
     }
     let freeRects = buildSheetFreeRects(rows, BW, BH, K);
+    if(extras && Array.isArray(extras.placements)){
+      for(const p of extras.placements){
+        placements.push(Object.assign({}, p));
+        usedArea += Math.max(0, Number(p && p.w) || 0) * Math.max(0, Number(p && p.h) || 0);
+      }
+    }
+    if(extras && Array.isArray(extras.freeRects)){
+      freeRects = extras.freeRects.map(r => Object.assign({}, r));
+    }
     if(swap){
       placements.forEach(swapPlacementBack);
       freeRects = freeRects.map(swapRectBack);
@@ -374,17 +400,84 @@
     for(const row of rows){
       usedArea += row.usedArea || 0;
       occSum += row.occupancy || 0;
-      if((row.occupancy || 0) >= 0.90) strongRows += 1;
-      if((row.occupancy || 0) < 0.80) weakRows += 1;
+      if((row.occupancy || 0) >= 0.95) strongRows += 1;
+      if((row.occupancy || 0) < 0.90) weakRows += 1;
     }
     const occ = usedArea / Math.max(1, BW * BH);
     const avgRowOcc = rows.length ? occSum / rows.length : 0;
     return usedArea
-      + occ * 1200000
-      + avgRowOcc * 300000
-      + strongRows * 160000
-      - weakRows * 220000
+      + occ * 1500000
+      + avgRowOcc * 500000
+      + strongRows * 220000
+      - weakRows * 340000
       - rows.length * 4000;
+  }
+
+  function buildRectPackVariant(remSource, rect, K, cfg, minScrapW, minScrapH, isCancelled){
+    if(!rect || rect.w <= 40 || rect.h <= 40 || !remSource || !remSource.length) return null;
+    let best = null;
+    const localLimit = Math.max(4, Math.min(10, Number(cfg && cfg.rowSeedLimit) || 6));
+    for(const swap of [false, true]){
+      if(isCancelled && isCancelled()) break;
+      const BW = swap ? rect.h : rect.w;
+      const BH = swap ? rect.w : rect.h;
+      const seeds = buildSeedCandidates(remSource, BW, BH, swap, localLimit);
+      for(const seed of seeds){
+        if(isCancelled && isCancelled()) break;
+        const variant = buildSheetVariant(remSource, rect.w, rect.h, K, swap, seed, cfg, minScrapW, minScrapH, isCancelled, true);
+        if(!variant || !variant.sheet || !variant.sheet.placements || !variant.sheet.placements.length) continue;
+        const rectArea = Math.max(1, rect.w * rect.h);
+        const occ = (variant.sheet._usedArea || 0) / rectArea;
+        const score = variant.score + occ * 400000 + (occ >= 0.90 ? 160000 : 0) + ((variant.sheet.placements.length || 0) >= 2 ? 40000 : 0);
+        if(!best || score > best._rectScore){
+          variant._rectScore = score;
+          best = variant;
+        }
+      }
+    }
+    return best;
+  }
+
+  function fillResidualRects(rows, rem, BW, BH, W, H, K, swap, cfg, minScrapW, minScrapH, isCancelled){
+    const baseRects = buildSheetFreeRects(rows, BW, BH, K)
+      .filter(r => r && r.w > 80 && r.h > 80)
+      .sort((a,b)=> (b.w * b.h) - (a.w * a.h));
+    if(!baseRects.length || !rem.length) return { rem, placements: [], freeRects: baseRects, extraArea: 0, extraScore: 0 };
+
+    const placements = [];
+    const freeRects = [];
+    let extraArea = 0;
+    let extraScore = 0;
+    let remNow = rem;
+
+    for(const rect of baseRects){
+      if(isCancelled && isCancelled()) break;
+      if(!remNow.length) {
+        freeRects.push(rect);
+        continue;
+      }
+      const rectArea = rect.w * rect.h;
+      const variant = buildRectPackVariant(remNow, rect, K, cfg, minScrapW, minScrapH, isCancelled);
+      if(!variant || !variant.sheet) {
+        freeRects.push(rect);
+        continue;
+      }
+      const occ = (variant.sheet._usedArea || 0) / Math.max(1, rectArea);
+      const usedCount = (variant.sheet.placements || []).filter(p => p && !p.unplaced).length;
+      const accept = occ >= 0.90 || (rectArea <= 240000 && occ >= 0.80) || (occ >= 0.78 && usedCount >= 3);
+      if(!accept){
+        freeRects.push(rect);
+        continue;
+      }
+      remNow = variant.rem;
+      extraArea += Number(variant.sheet._usedArea) || 0;
+      extraScore += Number(variant.score) || 0;
+      for(const p of (variant.sheet.placements || [])) placements.push(offsetPlacement(p, rect.x, rect.y));
+      const localFree = (variant.sheet._freeRects || []).map(r => offsetRect(r, rect.x, rect.y));
+      if(localFree.length) freeRects.push(...localFree);
+    }
+
+    return { rem: remNow, placements, freeRects, extraArea, extraScore };
   }
 
   function repairRows(rows, rem, BW, K, swap){
@@ -432,7 +525,7 @@
     }
   }
 
-  function buildSheetVariant(remSource, W, H, K, swap, seed, cfg, minScrapW, minScrapH, isCancelled){
+  function buildSheetVariant(remSource, W, H, K, swap, seed, cfg, minScrapW, minScrapH, isCancelled, isNestedRectPack){
     const BW = swap ? H : W;
     const BH = swap ? W : H;
     const rem = remSource.map(cloneItem);
@@ -441,7 +534,7 @@
 
     const seedRow = buildRow(rem, BW, K, seed.rowH, seed, widthBucket(seed.cand.w), { swap, preferWide:true });
     if(!seedRow) return null;
-    if(seedRow.occupancy < 0.80) return null;
+    if(!isNestedRectPack && seedRow.occupancy < 0.80) return null;
     rows.push(seedRow);
     let remNow = removeSelected(rem, seedRow.items.map(v => v.it.id));
     availableH -= (seedRow.rowH + K);
@@ -457,7 +550,7 @@
 
     while(remNow.length && availableH > 40){
       if(isCancelled && isCancelled()) break;
-      const row = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.80, null);
+      const row = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
       if(!row) break;
       rows.push(row);
       remNow = removeSelected(remNow, row.items.map(v => v.it.id));
@@ -467,8 +560,14 @@
 
     repairRows(rows, remNow, BW, K, swap);
 
-    const sheet = buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH);
-    const score = scoreRows(rows, BW, BH);
+    let extras = { rem: remNow, placements: [], freeRects: buildSheetFreeRects(rows, BW, BH, K), extraArea: 0, extraScore: 0 };
+    if(!isNestedRectPack){
+      extras = fillResidualRects(rows, remNow, BW, BH, W, H, K, swap, cfg, minScrapW, minScrapH, isCancelled);
+      remNow = extras.rem;
+    }
+
+    const sheet = buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH, extras);
+    const score = scoreRows(rows, BW, BH) + (extras.extraArea || 0) + (extras.extraScore || 0);
     return { sheet, rem: remNow, rows, score, swap };
   }
 

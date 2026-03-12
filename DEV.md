@@ -340,3 +340,8 @@ Dopiero potem go zmieniać.
 - W `rozrys.js` dodano wstępny szacunek liczby płyt na podstawie sumy pól formatek i pokazywanie go podczas liczenia.
 - Web Worker ma nowy cache-bust `20260312_optima_v1` i ładuje `optima-solver.js`.
 - Profile A/B/C/D dla trybu `Optima` mają większy budżet czasu na płytę niż klasyczne tryby pasowe.
+
+## 2026-03-12 — krok 92: korekta trybu Optima
+- Podniesiono docelowe wypełnienie dalszych pasów z 80% do 90% i mocniej karane są końcówki pasa z dużym pustym ogonem.
+- `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
+- Podbito cache-bust workera/solverów do `20260312_optima_v2`.
