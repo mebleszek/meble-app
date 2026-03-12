@@ -567,7 +567,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260312_optional_rewrite_v3');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260312_optional_rewrite_v4');
       }catch(e){
         // fallback (sync, limited)
         try{

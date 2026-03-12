@@ -320,3 +320,5 @@ Dopiero potem go zmieniać.
 - Podbito wersję workera w `js/app/rozrys.js`, żeby przeglądarka nie trzymała starego worker cache.
 
 - 2026-03-12: optional solver v3 — naprawa cache workera (importScripts z query string), poprawka klastrów podobnych wymiarów (<= tolerancji zamiast >), mocniejsza preferencja zmiany kierunku po pasie startowym.
+
+- Step 85: Optional solver tightened to avoid immediate fallback when no 80% seed band exists; it now picks the best constructive seed candidate, forces opposite-direction residual fill after 1-2 seed bands, and bumps worker/script cache versions to v4.

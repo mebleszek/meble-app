@@ -336,21 +336,10 @@
   function residualFillCandidate(remaining, rect, kerf, primaryAxis, opts){
     if(!remaining.length || !strip || typeof strip.packStripBands !== 'function') return null;
     const preferred = primaryAxis === 'v' ? 'across' : 'along';
-    const alternate = primaryAxis === 'v' ? 'along' : 'across';
-
-    function build(dir){
-      const packed = strip.packStripBands(remaining, rect.w, rect.h, kerf, dir) || [];
-      const firstSheet = packed[0] || { boardW:rect.w, boardH:rect.h, placements:[] };
-      const sc = scoreSheet(firstSheet, kerf, { primaryAxis: dir === 'along' ? 'v' : 'h', seedBands:[] });
-      return { direction: dir, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0 };
-    }
-
-    const prefRec = build(preferred);
-    const altRec = build(alternate);
-    const minOppOcc = Number((opts && opts.minOppositeResidualFill) || 0.58);
-    if(prefRec.occ >= minOppOcc) return prefRec;
-    if((altRec.score - prefRec.score) > 25000) return altRec;
-    return prefRec.score >= altRec.score ? prefRec : altRec;
+    const packed = strip.packStripBands(remaining, rect.w, rect.h, kerf, preferred) || [];
+    const firstSheet = packed[0] || { boardW:rect.w, boardH:rect.h, placements:[] };
+    const sc = scoreSheet(firstSheet, kerf, { primaryAxis: preferred === 'along' ? 'v' : 'h', seedBands:[] });
+    return { direction: preferred, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0 };
   }
 
   function buildConstructiveSheet(items, boardW, boardH, kerf, seedItem, seedAxis, guideA, guideB, opts){
@@ -373,18 +362,22 @@
       }
     };
 
+    const threshold1 = Number((opts && opts.minBandFill) || 0.80);
+    const threshold2 = Number((opts && opts.secondBandFill) || 0.90);
     const band1 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideA, seedItem && seedItem.id, opts);
-    if(!band1 || band1.fillRatio < (opts.minBandFill || 0.80)) return null;
+    if(!band1) return null;
     applyBand(band1);
 
-    if(guideB && residual.w > 120 && residual.h > 120){
+    // Drugi pas tylko gdy pierwszy jest naprawdę mocny i drugi też mocny.
+    if((band1.fillRatio || 0) >= threshold2 && guideB && residual.w > 120 && residual.h > 120){
       const band2 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideB, null, opts);
-      if(band2 && band2.fillRatio >= (opts.secondBandFill || 0.90)){
+      if(band2 && (band2.fillRatio || 0) >= threshold2){
         applyBand(band2);
       }
     }
 
     let residualDirection = 'none';
+    // Po 1-2 pasach na sztywno próbujemy kierunku przeciwnego.
     if(residual.w > 100 && residual.h > 100 && remaining.length){
       const refilled = residualFillCandidate(remaining, residual, kerf, seedAxis, opts);
       if(refilled){
@@ -398,7 +391,8 @@
     const sheet = mergePlacements(W, H, placements);
     const meta = { kind:'constructive', primaryAxis:seedAxis, residualDirection, seedBands };
     const sc = scoreSheet(sheet, kerf, meta);
-    return { sheet, meta, sc };
+    // Nie wywalamy słabego pasa — wybór najlepszego robi się później, żeby optional nie wpadał od razu w fallback.
+    return { sheet, meta, sc, firstBandFill:(band1.fillRatio||0), accepted: (band1.fillRatio||0) >= threshold1 };
   }
 
   function generateSeedPlans(items, boardW, boardH, kerf, opts){
@@ -442,13 +436,16 @@
 
   function chooseBestConstructive(items, boardW, boardH, kerf, opts){
     const plans = generateSeedPlans(items, boardW, boardH, kerf, opts);
-    let best = null;
+    let bestAccepted = null;
+    let bestAny = null;
     for(const plan of plans){
       const built = buildConstructiveSheet(items, boardW, boardH, kerf, plan.seed, plan.axis, plan.guideA, plan.guideB, opts);
       if(!built || !usedIds(built.sheet).size) continue;
-      if(!best || built.sc.score > best.sc.score) best = built;
+      if(!bestAny || built.sc.score > bestAny.sc.score) bestAny = built;
+      if(built.accepted && (!bestAccepted || built.sc.score > bestAccepted.sc.score)) bestAccepted = built;
     }
-    if(best) return best;
+    if(bestAccepted) return bestAccepted;
+    if(bestAny) return bestAny;
     return buildFallback(items, boardW, boardH, kerf);
   }
 
