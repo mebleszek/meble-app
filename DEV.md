@@ -344,10 +344,9 @@ Dopiero potem go zmieniać.
 ## 2026-03-12 — krok 92: korekta trybu Optima
 - Podniesiono docelowe wypełnienie dalszych pasów z 80% do 90% i mocniej karane są końcówki pasa z dużym pustym ogonem.
 - `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
-- Podbito cache-bust workera/solverów do `20260312_optima_v3`.
+- Podbito cache-bust workera/solverów do `20260312_optima_v2`.
 
-## 2026-03-12 — krok 93: Optima mocniej wymusza zmianę kierunku
-- `js/app/optima-solver.js` po 1–2 pasach startowych próbuje teraz obowiązkowo przejść w przeciwny kierunek, jeśli tylko da się zbudować sensowną dalszą część arkusza (`goodEnoughSwitch`).
-- Dalsza część płyty jest pakowana jako osobny wariant w prostokącie resztowym z wymuszonym przeciwnym kierunkiem, zamiast iść do końca tym samym układem pasów.
-- Wiersze / kolumny są dodatkowo normalizowane do układu od szerszych do węższych, żeby ograniczyć dziwne naprzemienne kolejności w jednym pasie.
-- Cache-bust workera/solverów podbity do `20260312_optima_v3`.
+## 2026-03-13 — krok 94: Optima, kontrola 2. pasa po powierzchni
+- `js/app/optima-solver.js`: decyzja o 2. pasie startowym nie opiera się już wyłącznie na lokalnym wypełnieniu pasa. Doszedł test powierzchni (`boardShare` / `remainingShare` / relacja pola do 1. pasa), żeby odrzucać długie, cienkie drugie pasy, które formalnie mają >=90% zajętości, ale praktycznie psują układ.
+- Po odrzuceniu takiego 2. pasa top-level `Optima` próbuje najpierw zapakować główny prostokąt resztowy w osi przeciwnej (`buildForcedDirectionRectPack`), zamiast kontynuować ten sam kierunek na siłę.
+- Podbito cache-bust workera/solverów do `20260313_optima_v4`.
