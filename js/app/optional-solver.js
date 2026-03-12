@@ -239,6 +239,165 @@
     return { score: pairScore, occ: pairOcc, disposalArea: (a.disposalArea||0) + (b.disposalArea||0) };
   }
 
+  function orientForFixedDim(it, fixedDim, mode){
+    const out = [];
+    if(mode === 'hband'){
+      if((Number(it.h)||0) === fixedDim) out.push({ w:Number(it.w)||0, h:fixedDim, rotated:false });
+      if(it.rotationAllowed && (Number(it.w)||0) === fixedDim && (Number(it.h)||0) !== fixedDim) out.push({ w:Number(it.h)||0, h:fixedDim, rotated:true });
+    } else if(mode === 'vband'){
+      if((Number(it.w)||0) === fixedDim) out.push({ w:fixedDim, h:Number(it.h)||0, rotated:false });
+      if(it.rotationAllowed && (Number(it.h)||0) === fixedDim && (Number(it.w)||0) !== fixedDim) out.push({ w:fixedDim, h:Number(it.w)||0, rotated:true });
+    }
+    return out.filter(o=>o.w>0 && o.h>0);
+  }
+
+  function chooseBestBandSubset(items, fixedDim, mode, limitLen, kerf){
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const options = [];
+    for(const it of (items||[])){
+      const oriented = orientForFixedDim(it, fixedDim, mode);
+      if(!oriented.length) continue;
+      oriented.sort((a,b)=>{
+        const al = mode === 'hband' ? a.w : a.h;
+        const bl = mode === 'hband' ? b.w : b.h;
+        if(bl !== al) return bl - al;
+        return (a.rotated?1:0) - (b.rotated?1:0);
+      });
+      const best = oriented[0];
+      const len = mode === 'hband' ? best.w : best.h;
+      if(!(len > 0 && len <= limitLen)) continue;
+      options.push({ id: it.id, len, w: best.w, h: best.h, rotated: !!best.rotated });
+    }
+    if(options.length < 2) return null;
+
+    const freq = new Map();
+    for(const o of options) freq.set(o.len, (freq.get(o.len) || 0) + 1);
+    options.sort((a,b)=>{
+      const fa = freq.get(a.len) || 0;
+      const fb = freq.get(b.len) || 0;
+      if(fb !== fa) return fb - fa;
+      if(b.len !== a.len) return b.len - a.len;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    const trimmed = options.slice(0, Math.min(options.length, 28));
+    const dp = Array(limitLen + 1).fill(null);
+    dp[0] = { score:0, count:0, prev:-1, itemIndex:-1 };
+    for(let i=0;i<trimmed.length;i++){
+      const opt = trimmed[i];
+      for(let s=limitLen;s>=opt.len;s--){
+        const prev = dp[s - opt.len];
+        if(prev === null) continue;
+        const candScore = prev.score + (opt.len * 100) + ((freq.get(opt.len) || 0) * 1800) + (prev.count * 250);
+        const cur = dp[s];
+        if(cur === null || candScore > cur.score || (candScore === cur.score && (prev.count + 1) > cur.count)){
+          dp[s] = { score: candScore, count: prev.count + 1, prev: s - opt.len, itemIndex: i };
+        }
+      }
+    }
+
+    let bestS = -1, bestScore = -1e18;
+    for(let s=1;s<=limitLen;s++){
+      const state = dp[s];
+      if(state === null || state.count < 2) continue;
+      const consumed = s + Math.max(0, state.count - 1) * K;
+      if(consumed > limitLen) continue;
+      const leftover = limitLen - consumed;
+      let score = state.score;
+      score -= leftover * 20;
+      score += state.count * 5000;
+      if(leftover <= 80) score += 140000;
+      else if(leftover <= 120) score += 80000;
+      else if(leftover <= 180) score += 30000;
+      if(score > bestScore){ bestScore = score; bestS = s; }
+    }
+    if(bestS < 0) return null;
+
+    const usedIdx = [];
+    let cur = bestS;
+    while(cur > 0 && dp[cur] && dp[cur].itemIndex >= 0){
+      const st = dp[cur];
+      usedIdx.push(st.itemIndex);
+      cur = st.prev;
+    }
+    usedIdx.reverse();
+    const selected = usedIdx.map(i => trimmed[i]);
+    if(selected.length < 2) return null;
+    let span = 0;
+    for(let i=0;i<selected.length;i++) span += selected[i].len + (i > 0 ? K : 0);
+    return { selected, span };
+  }
+
+  function buildGroupedBandCandidate(items, W, H, K, fixedDim, mode, restDir){
+    const limitLen = mode === 'hband' ? W : H;
+    const subset = chooseBestBandSubset(items, fixedDim, mode, limitLen, K);
+    if(!subset || !subset.selected || subset.selected.length < 2) return null;
+
+    const parts = [];
+    let rem = (items || []).slice();
+    const selIds = new Set(subset.selected.map(s => s.id));
+    rem = removeByIds(rem, selIds);
+
+    const leadPlacements = [];
+    if(mode === 'hband'){
+      let x = 0;
+      for(const s of subset.selected){
+        leadPlacements.push({ id:s.id, x, y:0, w:s.w, h:s.h, rotated:s.rotated });
+        x += s.w + K;
+      }
+      parts.push({ boardW:W, boardH:H, placements: leadPlacements });
+      const usedW = subset.span;
+      const rightW = W - usedW - K;
+      if(rightW > 120 && rem.length){
+        const right = packFirstSheet(rem, rightW, fixedDim, K, restDir);
+        if(right && right.placements && right.placements.length){
+          const ids = usedIds(right);
+          rem = removeByIds(rem, ids);
+          parts.push(offsetSheet(right, usedW + K, 0));
+        }
+      }
+      const bottomH = H - fixedDim - K;
+      if(bottomH > 120 && rem.length){
+        const bottom = packFirstSheet(rem, W, bottomH, K, restDir);
+        if(bottom && bottom.placements && bottom.placements.length){
+          const ids = usedIds(bottom);
+          rem = removeByIds(rem, ids);
+          parts.push(offsetSheet(bottom, 0, fixedDim + K));
+        }
+      }
+    } else {
+      let y = 0;
+      for(const s of subset.selected){
+        leadPlacements.push({ id:s.id, x:0, y, w:s.w, h:s.h, rotated:s.rotated });
+        y += s.h + K;
+      }
+      parts.push({ boardW:W, boardH:H, placements: leadPlacements });
+      const usedH = subset.span;
+      const bottomH = H - usedH - K;
+      if(bottomH > 120 && rem.length){
+        const bottom = packFirstSheet(rem, fixedDim, bottomH, K, restDir);
+        if(bottom && bottom.placements && bottom.placements.length){
+          const ids = usedIds(bottom);
+          rem = removeByIds(rem, ids);
+          parts.push(offsetSheet(bottom, 0, usedH + K));
+        }
+      }
+      const rightW = W - fixedDim - K;
+      if(rightW > 120 && rem.length){
+        const right = packFirstSheet(rem, rightW, H, K, restDir);
+        if(right && right.placements && right.placements.length){
+          const ids = usedIds(right);
+          rem = removeByIds(rem, ids);
+          parts.push(offsetSheet(right, fixedDim + K, 0));
+        }
+      }
+    }
+
+    const merged = mergeSheets(W, H, parts);
+    const ids = usedIds(merged);
+    return { kind:`group-${mode}-${fixedDim}-${restDir}`, axis:'auto', sheet:merged, rem: removeByIds(items, ids), ids };
+  }
+
   function packFirstSheet(items, W, H, K, dir){
     if(!strip || typeof strip.packStripBands !== 'function') return null;
     const sheets = strip.packStripBands(items, W, H, K, dir) || [];
@@ -389,6 +548,14 @@
       builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'along', 2));
       builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'across', 2));
     }
+    for(const h of hs.slice(0, Math.min(hs.length, endgame ? 10 : 6))){
+      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, h, 'hband', 'along'));
+      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, h, 'hband', 'across'));
+    }
+    for(const w of ws.slice(0, Math.min(ws.length, endgame ? 10 : 6))){
+      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, w, 'vband', 'along'));
+      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, w, 'vband', 'across'));
+    }
     for(const h of hs){
       builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'along', 'across'));
       builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'across', 'along'));
@@ -429,6 +596,12 @@
         if(cand.teacherFillDir && cand.teacherBaseDir && cand.teacherFillDir !== cand.teacherBaseDir) cand.score += 85000;
         cand.score -= (sc.disposalCount || 0) * 12000;
       }
+      if(cand.kind && String(cand.kind).indexOf('group-') === 0){
+        cand.score += 120000;
+        cand.score += (sc.sharedRows || 0) * 35000;
+        cand.score += (sc.sharedCols || 0) * 25000;
+        cand.score -= (sc.disposalCount || 0) * 18000;
+      }
       if(!best || cand.score > best.score) best = cand;
     }
     return best;
@@ -448,6 +621,12 @@
         cand.score += 55000;
         if(cand.teacherFillDir && cand.teacherBaseDir && cand.teacherFillDir !== cand.teacherBaseDir) cand.score += 85000;
         cand.score -= (sc.disposalCount || 0) * 12000;
+      }
+      if(cand.kind && String(cand.kind).indexOf('group-') === 0){
+        cand.score += 120000;
+        cand.score += (sc.sharedRows || 0) * 35000;
+        cand.score += (sc.sharedCols || 0) * 25000;
+        cand.score -= (sc.disposalCount || 0) * 18000;
       }
       firsts.push(cand);
     }
