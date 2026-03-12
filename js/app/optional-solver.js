@@ -213,8 +213,7 @@
   function buildClusterBand(items, axis, limitPrimary, limitCross, kerf, guideDim, preferredItemId, opts){
     const K = Math.max(0, Math.round(Number(kerf)||0));
     const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
-    const familyMinRatio = Math.max(0.65, Number((opts && opts.familyMinRatio) || 0.74));
-    const candidates = [];
+        const candidates = [];
     for(const it of (items || [])){
       const variants = [];
       for(const o of itemOrientations(it)){
@@ -222,8 +221,9 @@
         const cross = axis === 'v' ? o.h : o.w;
         if(primary <= 0 || cross <= 0) continue;
         if(primary > limitPrimary || cross > limitCross) continue;
-        const lower = Math.min(guideDim - tol, guideDim * familyMinRatio);
-        const similar = primary >= lower && primary <= guideDim + tol;
+        const lower = Math.max(0, guideDim - tol);
+        const upper = guideDim + tol;
+        const similar = primary >= lower && primary <= upper;
         if(!similar) continue;
         const gap = Math.abs(primary - guideDim);
         const prefer = (preferredItemId && it.id === preferredItemId) ? 120000 : 0;
@@ -337,17 +337,20 @@
     if(!remaining.length || !strip || typeof strip.packStripBands !== 'function') return null;
     const preferred = primaryAxis === 'v' ? 'across' : 'along';
     const alternate = primaryAxis === 'v' ? 'along' : 'across';
-    const dirs = [preferred, alternate];
-    let best = null;
-    for(const dir of dirs){
+
+    function build(dir){
       const packed = strip.packStripBands(remaining, rect.w, rect.h, kerf, dir) || [];
       const firstSheet = packed[0] || { boardW:rect.w, boardH:rect.h, placements:[] };
       const sc = scoreSheet(firstSheet, kerf, { primaryAxis: dir === 'along' ? 'v' : 'h', seedBands:[] });
-      const bias = (dir === preferred ? 20000 : 0);
-      const rec = { direction: dir, sheet:firstSheet, score: sc.score + bias, sc };
-      if(!best || rec.score > best.score) best = rec;
+      return { direction: dir, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0 };
     }
-    return best;
+
+    const prefRec = build(preferred);
+    const altRec = build(alternate);
+    const minOppOcc = Number((opts && opts.minOppositeResidualFill) || 0.58);
+    if(prefRec.occ >= minOppOcc) return prefRec;
+    if((altRec.score - prefRec.score) > 25000) return altRec;
+    return prefRec.score >= altRec.score ? prefRec : altRec;
   }
 
   function buildConstructiveSheet(items, boardW, boardH, kerf, seedItem, seedAxis, guideA, guideB, opts){
@@ -413,7 +416,7 @@
           for(const other of seeds){
             if(other.id === seed.id) continue;
             for(const og of guideDimsFromItem(other, axis)){
-              if(Math.abs(og.guide - g.guide) > Math.max(75, opts.clusterTolerance || 75) && familyGuides.length < 3){
+              if(Math.abs(og.guide - g.guide) <= Math.max(75, opts.clusterTolerance || 75) && familyGuides.length < 3){
                 familyGuides.push(og.guide);
               }
             }
@@ -540,7 +543,8 @@
       familyMinRatio: 0.74,
       minBandFill: 0.80,
       secondBandFill: 0.90,
-      seedLimit: 18,
+      seedLimit: 24,
+      minOppositeResidualFill: 0.58,
       onProgress: null,
     }, opts || {});
 

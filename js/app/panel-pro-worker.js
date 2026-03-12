@@ -10,11 +10,12 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
+const SOLVER_VER = '20260312_optional_v3';
 try{
-  importScripts('strip-solver.js', 'optional-solver.js', 'cut-optimizer.js');
+  importScripts('strip-solver.js?v=' + SOLVER_VER, 'optional-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){
   // fallback: try absolute from /js/app (when worker is created with different base)
-  try{ importScripts('/js/app/strip-solver.js', '/js/app/optional-solver.js', '/js/app/cut-optimizer.js'); }catch(_){ }
+  try{ importScripts('/js/app/strip-solver.js?v=' + SOLVER_VER, '/js/app/optional-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
 }
 
 (function(){
