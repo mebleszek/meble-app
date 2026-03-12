@@ -3,7 +3,8 @@
    - nie dotykać solverów pasowych w strip-solver.js,
    - budować arkusz konstrukcyjnie: 1–2 pasy startowe -> zmiana kierunku -> dogęszczenie,
    - częściej grupować podobne szerokości / wysokości,
-   - minimalizować śmieciowy odpad i mikro-ogonki.
+   - minimalizować śmieciowy odpad i mikro-ogonki,
+   - preferować 1–2 mocne pasy startowe i poprawiać słabe pasy małą, podobną grupą.
 */
 (function(root){
   'use strict';
@@ -37,6 +38,21 @@
   }
   function mergePlacements(boardW, boardH, placements){
     return { boardW, boardH, placements: (placements || []).slice() };
+  }
+  function avg(nums){
+    if(!nums || !nums.length) return 0;
+    return nums.reduce((s,n)=>s + (Number(n)||0), 0) / nums.length;
+  }
+  function uniqueNumbers(arr){
+    const seen = new Set();
+    const out = [];
+    for(const v of (arr || [])){
+      const n = Math.round(Number(v) || 0);
+      if(n <= 0 || seen.has(n)) continue;
+      seen.add(n);
+      out.push(n);
+    }
+    return out;
   }
 
   function orientItem(it, rotated){
@@ -179,6 +195,12 @@
         else score -= 90000;
       }
     }
+    if(meta && Array.isArray(meta.residualBands)){
+      for(const b of meta.residualBands){
+        score += (b.fillRatio || 0) * 50000;
+        if((b.fillRatio || 0) < 0.80) score -= 35000;
+      }
+    }
     if(meta && meta.residualDirection){
       if(meta.primaryAxis === 'v' && meta.residualDirection === 'across') score += 40000;
       if(meta.primaryAxis === 'h' && meta.residualDirection === 'along') score += 40000;
@@ -213,7 +235,10 @@
   function buildClusterBand(items, axis, limitPrimary, limitCross, kerf, guideDim, preferredItemId, opts){
     const K = Math.max(0, Math.round(Number(kerf)||0));
     const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
-        const candidates = [];
+    const targetCross = Number(opts && opts.targetCross) || 0;
+    const targetCrossTol = Math.max(20, Math.round(Number((opts && opts.targetCrossTolerance) || 75)));
+    const requirePreferred = !!(opts && opts.requirePreferredItem && preferredItemId);
+    const candidates = [];
     for(const it of (items || [])){
       const variants = [];
       for(const o of itemOrientations(it)){
@@ -223,13 +248,15 @@
         if(primary > limitPrimary || cross > limitCross) continue;
         const lower = Math.max(0, guideDim - tol);
         const upper = guideDim + tol;
-        const similar = primary >= lower && primary <= upper;
-        if(!similar) continue;
+        if(primary < lower || primary > upper) continue;
         const gap = Math.abs(primary - guideDim);
-        const prefer = (preferredItemId && it.id === preferredItemId) ? 120000 : 0;
+        const prefer = (preferredItemId && it.id === preferredItemId) ? 140000 : 0;
         const familyBonus = Math.max(0, tol - gap) * 1200;
         const wideBonus = (opts && opts.preferWideBand) ? primary * 900 : 0;
-        const score = (o.w * o.h) * 1000 + familyBonus + prefer + wideBonus - gap * 1200 - cross * 25;
+        const crossGap = targetCross ? Math.abs(cross - targetCross) : 0;
+        const crossBonus = targetCross ? Math.max(0, targetCrossTol - crossGap) * 900 : 0;
+        const crossPenalty = targetCross ? crossGap * 180 : 0;
+        const score = (o.w * o.h) * 1000 + familyBonus + prefer + wideBonus + crossBonus - crossPenalty - gap * 1200 - cross * 25;
         variants.push({ orient:o, primary, cross, score });
       }
       if(!variants.length) continue;
@@ -240,7 +267,7 @@
 
     const cap = Math.max(0, Math.round(limitCross));
     const dp = new Array(cap + 1).fill(null);
-    dp[0] = { score:0, area:0, count:0, prev:-1, choice:null, used:new Set() };
+    dp[0] = { score:0, area:0, count:0, prev:-1, choice:null, used:new Set(), hasPreferred:false };
     for(let i=0;i<candidates.length;i++){
       const next = dp.slice();
       for(let used=0; used<=cap; used++){
@@ -255,7 +282,8 @@
           usedSet.add(candidates[i].item.id);
           const tail = cap - nu;
           const tailPenalty = tail > 120 ? tail * 250 : -((120 - tail) * 200);
-          const localScore = st.score + v.score - tailPenalty + 5000;
+          const hasPreferred = st.hasPreferred || (preferredItemId && candidates[i].item.id === preferredItemId);
+          const localScore = st.score + v.score - tailPenalty + 5000 + (hasPreferred ? 2000 : 0);
           const prevBest = next[nu];
           if(!prevBest || localScore > prevBest.score){
             next[nu] = {
@@ -265,6 +293,7 @@
               prev: used,
               choice: { idx:i, orient:v.orient, primary:v.primary, cross:v.cross },
               used: usedSet,
+              hasPreferred,
             };
           }
         }
@@ -276,6 +305,7 @@
     for(let used=0; used<=cap; used++){
       const st = dp[used];
       if(!st || st.used.size === 0) continue;
+      if(requirePreferred && !st.hasPreferred) continue;
       let bandPrimary = 0;
       let cur = st;
       while(cur && cur.choice){
@@ -285,7 +315,8 @@
       if(bandPrimary <= 0) continue;
       const fillRatio = st.area / Math.max(1, bandPrimary * cap);
       const wideBandScore = (opts && opts.preferWideBand) ? bandPrimary * 500 : 0;
-      const score = st.score + fillRatio * 240000 + st.count * 8000 + wideBandScore - Math.abs(bandPrimary - guideDim) * 400;
+      const preferredScore = st.hasPreferred ? 35000 : 0;
+      const score = st.score + fillRatio * 240000 + st.count * 8000 + wideBandScore + preferredScore - Math.abs(bandPrimary - guideDim) * 400;
       if(!best || score > best.score) best = { score, st, bandPrimary, fillRatio };
     }
     if(!best) return null;
@@ -299,6 +330,16 @@
     }
     picked.reverse();
     if(!picked.length) return null;
+    if(requirePreferred && !picked.some(p=>p.item && p.item.id === preferredItemId)) return null;
+
+    picked.sort((a,b)=>{
+      const ap = (preferredItemId && a.item.id === preferredItemId) ? 1 : 0;
+      const bp = (preferredItemId && b.item.id === preferredItemId) ? 1 : 0;
+      if(bp !== ap) return bp - ap;
+      if(b.primary !== a.primary) return b.primary - a.primary;
+      if(b.cross !== a.cross) return b.cross - a.cross;
+      return (b.orient.w * b.orient.h) - (a.orient.w * a.orient.h);
+    });
 
     const placements = [];
     let cursor = 0;
@@ -324,17 +365,20 @@
       }
     }
 
+    const firstEntry = picked[0] || null;
     return {
       axis,
       guideDim,
       bandPrimary: best.bandPrimary,
       fillRatio: best.fillRatio,
+      wasteRatio: Math.max(0, 1 - best.fillRatio),
       placements,
       ids: new Set(picked.map(p=>p.item.id)),
       usedArea: picked.reduce((s,p)=> s + p.orient.w * p.orient.h, 0),
+      picked,
+      firstEntry,
     };
   }
-
 
   function familyGuidesFromRemaining(items, axis, limitPrimary, limitCross, opts){
     const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
@@ -357,7 +401,102 @@
     return Array.from(buckets.values())
       .sort((a,b)=> (b.count-a.count) || (b.area-a.area) || (b.guide-a.guide))
       .map(v=>v.guide)
-      .slice(0, 10);
+      .slice(0, 12);
+  }
+
+  function fixedPoolItemFromPicked(entry){
+    return {
+      id: entry.item.id,
+      key: entry.item.key,
+      name: entry.item.name,
+      w: Number(entry.orient.w) || 0,
+      h: Number(entry.orient.h) || 0,
+      rotationAllowed: false,
+      edgeW1: entry.orient.edgeW1,
+      edgeW2: entry.orient.edgeW2,
+      edgeH1: entry.orient.edgeH1,
+      edgeH2: entry.orient.edgeH2,
+    };
+  }
+
+  function repairWeakBand(originalBand, items, axis, limitPrimary, limitCross, kerf, opts){
+    if(!originalBand || !originalBand.firstEntry) return originalBand;
+    if((originalBand.wasteRatio || 0) <= 0.20) return originalBand;
+    const anchor = originalBand.firstEntry;
+    const smallThreshold = Math.max(1, (Number(anchor.cross) || 0) * 0.50);
+    const smallPicked = (originalBand.picked || []).filter((e, idx)=> idx > 0 && (Number(e.cross) || 0) <= smallThreshold);
+    if(!smallPicked.length) return originalBand;
+
+    const kept = (originalBand.picked || []).filter((e, idx)=> idx === 0 || (Number(e.cross) || 0) > smallThreshold);
+    const used = new Set((originalBand.picked || []).map(e=>e.item.id));
+    const targetCross = avg(smallPicked.map(e=>e.cross));
+    const tolPrimary = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
+    const tolCross = Math.max(20, Math.round(Number((opts && opts.smallGroupTolerance) || 75)));
+
+    const external = [];
+    for(const it of (items || [])){
+      if(used.has(it.id)) continue;
+      let canUse = false;
+      for(const o of itemOrientations(it)){
+        const primary = axis === 'v' ? o.w : o.h;
+        const cross = axis === 'v' ? o.h : o.w;
+        if(primary <= 0 || cross <= 0) continue;
+        if(primary > limitPrimary || cross > limitCross) continue;
+        if(Math.abs(primary - (originalBand.guideDim || 0)) > tolPrimary) continue;
+        if(Math.abs(cross - targetCross) > tolCross) continue;
+        if(cross > (Number(anchor.cross) || 0) * 0.85) continue;
+        canUse = true;
+        break;
+      }
+      if(canUse) external.push(it);
+    }
+    if(external.length < 2) return originalBand;
+
+    const pool = kept.map(fixedPoolItemFromPicked).concat(external);
+    const repaired = buildClusterBand(pool, axis, limitPrimary, limitCross, kerf, originalBand.guideDim, anchor.item.id, Object.assign({}, opts, {
+      preferWideBand: true,
+      requirePreferredItem: true,
+      targetCross,
+      targetCrossTolerance: tolCross,
+    }));
+    if(!repaired) return originalBand;
+    if((repaired.fillRatio || 0) >= (originalBand.fillRatio || 0) + 0.015) return repaired;
+    if((repaired.fillRatio || 0) >= (originalBand.fillRatio || 0) - 0.005 && (repaired.picked || []).length > (originalBand.picked || []).length + 1) return repaired;
+    return originalBand;
+  }
+
+  function bandBeats(a, b){
+    if(!a) return true;
+    const af = Number(a && a.fillRatio) || 0;
+    const bf = Number(b && b.fillRatio) || 0;
+    if(bf > af + 0.0001) return true;
+    if(Math.abs(bf - af) <= 0.0001){
+      return (Number(b && b.usedArea) || 0) > (Number(a && a.usedArea) || 0);
+    }
+    return false;
+  }
+
+  function tryAlternativeBand(items, axis, limitPrimary, limitCross, kerf, guideDim, seedItemId, currentBest, opts){
+    const guides = familyGuidesFromRemaining(items, axis, limitPrimary, limitCross, opts);
+    const allGuides = uniqueNumbers([guideDim].concat(guides));
+    let best = currentBest || null;
+    const seedItem = (items || []).find(it => seedItemId && it.id === seedItemId) || null;
+
+    if(seedItem){
+      for(const dim of guideDimsFromItem(seedItem, axis)){
+        const alt = buildClusterBand(items, axis, limitPrimary, limitCross, kerf, dim.guide, seedItemId, Object.assign({}, opts, { preferWideBand:true, requirePreferredItem:true }));
+        if(alt && bandBeats(best, alt)) best = alt;
+        if(best && (best.fillRatio || 0) >= Number((opts && opts.minBandFill) || 0.80)) return best;
+      }
+    }
+
+    for(const guide of allGuides){
+      const band = buildClusterBand(items, axis, limitPrimary, limitCross, kerf, guide, seedItemId, Object.assign({}, opts, { preferWideBand:true, requirePreferredItem: !!seedItemId }));
+      if(!band) continue;
+      if(bandBeats(best, band)) best = band;
+      if(best && (best.fillRatio || 0) >= Number((opts && opts.minBandFill) || 0.80)) return best;
+    }
+    return best;
   }
 
   function packBandsInAxis(items, rect, kerf, axis, opts){
@@ -366,8 +505,7 @@
     const placements = [];
     let residual = { x:0, y:0, w:Number(rect.w)||0, h:Number(rect.h)||0 };
     const ids = new Set();
-    const minFill = Math.max(0.45, Number((opts && opts.minOppositeResidualFill) || 0.58));
-    const weakStop = Math.max(0.38, minFill - 0.10);
+    const bands = [];
     let bandsMade = 0;
 
     while(remaining.length && residual.w > 60 && residual.h > 60){
@@ -375,24 +513,38 @@
       const limitCross = axis === 'v' ? residual.h : residual.w;
       const guides = familyGuidesFromRemaining(remaining, axis, limitPrimary, limitCross, opts);
       if(!guides.length) break;
+
       let bestBand = null;
       for(const guide of guides){
-        const band = buildClusterBand(remaining, axis, limitPrimary, limitCross, K, guide, null, opts);
+        let band = buildClusterBand(remaining, axis, limitPrimary, limitCross, K, guide, null, Object.assign({}, opts, { preferWideBand: true }));
         if(!band || !band.ids || !band.ids.size) continue;
-        const tail = Math.max(0, limitCross - ((axis === 'v')
-          ? Math.max(...band.placements.map(p=> (p.y||0) + (p.h||0)), 0)
-          : Math.max(...band.placements.map(p=> (p.x||0) + (p.w||0)), 0)));
-        const score = (band.fillRatio || 0) * 100000 + (band.usedArea || 0) - tail * 120;
+        if((band.wasteRatio || 0) > 0.20){
+          band = repairWeakBand(band, remaining, axis, limitPrimary, limitCross, K, opts);
+        }
+        const score = (band.fillRatio || 0) * 100000 + (band.usedArea || 0) + (band.bandPrimary || 0) * 200 - (band.wasteRatio || 0) * 40000;
         if(!bestBand || score > bestBand._score){
           bestBand = Object.assign({ _score: score }, band);
         }
       }
       if(!bestBand) break;
-      if(bandsMade > 0 && (bestBand.fillRatio || 0) < weakStop) break;
-      if(bandsMade === 0 && (bestBand.fillRatio || 0) < minFill) break;
+
+      if((bestBand.fillRatio || 0) < Number((opts && opts.minBandFill) || 0.80)){
+        const improved = tryAlternativeBand(remaining, axis, limitPrimary, limitCross, K, bestBand.guideDim, bestBand.firstEntry && bestBand.firstEntry.item && bestBand.firstEntry.item.id, bestBand, opts);
+        if(improved) bestBand = Object.assign({}, improved, { _score: bestBand._score });
+      }
+
+      if((bestBand.fillRatio || 0) < 0.35 && bandsMade > 0) break;
+      if(!bestBand.ids || !bestBand.ids.size) break;
 
       const shifted = bestBand.placements.map(p=>Object.assign({}, p, { x:(p.x||0)+residual.x, y:(p.y||0)+residual.y }));
       placements.push(...shifted);
+      bands.push({
+        direction: axis === 'v' ? 'along' : 'across',
+        fillRatio: bestBand.fillRatio || 0,
+        wasteRatio: bestBand.wasteRatio || 0,
+        bandPrimary: bestBand.bandPrimary || 0,
+        guideDim: bestBand.guideDim || 0,
+      });
       for(const id of bestBand.ids) ids.add(id);
       remaining = removeByIds(remaining, bestBand.ids);
       if(axis === 'v'){
@@ -408,28 +560,43 @@
       sheet: mergePlacements(Number(rect.w)||0, Number(rect.h)||0, placements),
       ids,
       bandsMade,
+      bands,
     };
   }
 
   function residualFillCandidate(remaining, rect, kerf, primaryAxis, opts){
     if(!remaining.length) return null;
-    const oppositeAxis = primaryAxis === 'v' ? 'h' : 'v';
-    const oppositeDir = oppositeAxis === 'v' ? 'along' : 'across';
-    let direct = null;
-    if(strip && typeof strip.packStripBands === 'function') {
+    const preferredDirection = primaryAxis === 'v' ? 'across' : 'along';
+    const candidates = [];
+
+    for(const axis of ['v','h']){
+      const dir = axis === 'v' ? 'along' : 'across';
       try{
-        const sheets = strip.packStripBands(remaining, rect.w, rect.h, kerf, oppositeDir) || [];
-        if(sheets && sheets[0]){
-          direct = { direction: oppositeDir, sheet: sheets[0], ids: usedIds(sheets[0]) };
+        const direct = packBandsInAxis(remaining, rect, kerf, axis, opts);
+        if(direct && direct.sheet){
+          const sc = scoreSheet(direct.sheet, kerf, { primaryAxis: axis, seedBands: [], residualBands: direct.bands || [] });
+          candidates.push({ direction: dir, sheet: direct.sheet, ids: direct.ids || new Set(), bands: direct.bands || [], sc, occ: sc.occupancy || 0, via: 'constructive' });
         }
       }catch(_){ }
+
+      if(strip && typeof strip.packStripBands === 'function'){
+        try{
+          const sheets = strip.packStripBands(remaining, rect.w, rect.h, kerf, dir) || [];
+          if(sheets && sheets[0]){
+            const sc = scoreSheet(sheets[0], kerf, { primaryAxis: axis, seedBands: [] });
+            candidates.push({ direction: dir, sheet: sheets[0], ids: usedIds(sheets[0]), bands: [], sc, occ: sc.occupancy || 0, via: 'strip' });
+          }
+        }catch(_){ }
+      }
     }
-    if(!direct){
-      direct = packBandsInAxis(remaining, rect, kerf, oppositeAxis, opts);
-    }
-    const firstSheet = (direct && direct.sheet) || { boardW:rect.w, boardH:rect.h, placements:[] };
-    const sc = scoreSheet(firstSheet, kerf, { primaryAxis: oppositeAxis, seedBands:[] });
-    return { direction: direct.direction, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0, ids: direct.ids || new Set() };
+
+    if(!candidates.length) return null;
+    candidates.sort((a,b)=>{
+      const as = (Number(a.sc && a.sc.score) || 0) + (a.direction === preferredDirection ? 20000 : 0) + ((a.occ || 0) * 20000);
+      const bs = (Number(b.sc && b.sc.score) || 0) + (b.direction === preferredDirection ? 20000 : 0) + ((b.occ || 0) * 20000);
+      return bs - as;
+    });
+    return candidates[0];
   }
 
   function buildConstructiveSheet(items, boardW, boardH, kerf, seedItem, seedAxis, guideA, guideB, opts){
@@ -439,6 +606,7 @@
     const seedBands = [];
     let remaining = (items || []).slice();
     let residual = { x:0, y:0, w:W, h:H };
+    const seedItemId = seedItem && seedItem.id ? seedItem.id : null;
 
     const applyBand = (band)=>{
       const shifted = band.placements.map(p=>Object.assign({}, p, { x:(p.x||0)+residual.x, y:(p.y||0)+residual.y }));
@@ -454,20 +622,31 @@
 
     const threshold1 = Number((opts && opts.minBandFill) || 0.80);
     const threshold2 = Number((opts && opts.secondBandFill) || 0.90);
-    const band1 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideA, null, Object.assign({}, opts, { preferWideBand:true }));
+
+    let band1 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideA, seedItemId, Object.assign({}, opts, { preferWideBand:true, requirePreferredItem: !!seedItemId }));
+    if(!band1) return null;
+    if((band1.wasteRatio || 0) > 0.20){
+      band1 = repairWeakBand(band1, remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, opts);
+    }
+    if((band1.fillRatio || 0) < threshold1){
+      const improved = tryAlternativeBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideA, seedItemId, band1, opts);
+      if(improved) band1 = improved;
+    }
     if(!band1) return null;
     applyBand(band1);
 
-    // Drugi pas tylko gdy pierwszy jest naprawdę mocny i drugi też mocny.
     if((band1.fillRatio || 0) >= threshold2 && guideB && residual.w > 120 && residual.h > 120){
-      const band2 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideB, null, Object.assign({}, opts, { preferWideBand:true }));
+      let band2 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideB, null, Object.assign({}, opts, { preferWideBand:true }));
+      if(band2 && (band2.wasteRatio || 0) > 0.20){
+        band2 = repairWeakBand(band2, remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, opts);
+      }
       if(band2 && (band2.fillRatio || 0) >= threshold2){
         applyBand(band2);
       }
     }
 
     let residualDirection = 'none';
-    // Po 1-2 pasach na sztywno próbujemy kierunku przeciwnego.
+    let residualBands = [];
     if(residual.w > 100 && residual.h > 100 && remaining.length){
       const refilled = residualFillCandidate(remaining, residual, kerf, seedAxis, opts);
       if(refilled){
@@ -475,13 +654,13 @@
         placements.push(...(shifted.placements || []));
         remaining = removeByIds(remaining, refilled.ids && refilled.ids.size ? refilled.ids : usedIds(refilled.sheet));
         residualDirection = refilled.direction;
+        residualBands = refilled.bands || [];
       }
     }
 
     const sheet = mergePlacements(W, H, placements);
-    const meta = { kind:'constructive', primaryAxis:seedAxis, residualDirection, seedBands, firstBandPrimary:(band1.bandPrimary||0) };
+    const meta = { kind:'constructive', primaryAxis:seedAxis, residualDirection, residualBands, seedBands, firstBandPrimary:(band1.bandPrimary||0) };
     const sc = scoreSheet(sheet, kerf, meta);
-    // Nie wywalamy słabego pasa — wybór najlepszego robi się później, żeby optional nie wpadał od razu w fallback.
     return { sheet, meta, sc, firstBandFill:(band1.fillRatio||0), accepted: (band1.fillRatio||0) >= threshold1 };
   }
 
@@ -512,27 +691,54 @@
     const W = boardW, H = boardH;
     const out = [];
     const maxAttempts = Math.max(1, Math.round(Number((opts && opts.maxAttempts) || 150)));
-    const wideRatio = Math.max(0.45, Math.min(0.92, Number((opts && opts.seedWideRatio) || 0.65)));
+    const seedLimit = Math.max(8, Math.round(Number((opts && opts.seedLimit) || 24)));
+    const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
+    const seeds = topSeedItems(items, seedLimit);
+
     for(const axis of ['v','h']){
       const limitPrimary = axis === 'v' ? W : H;
       const limitCross = axis === 'v' ? H : W;
-      const fams = familyClusters(items, axis, limitPrimary, limitCross, opts);
-      if(!fams.length) continue;
-      const topArea = fams[0].area || 1;
-      const maxGuide = fams.reduce((m,f)=>Math.max(m, f.guide||0), 0);
-      let strong = fams.filter(f=> (f.guide >= maxGuide * wideRatio) || (f.area >= topArea * 0.55));
-      if(!strong.length) strong = fams.slice(0, Math.min(8, fams.length));
-      strong = strong.slice(0, Math.min(10, maxAttempts));
-      for(let i=0; i<strong.length; i++){
-        const a = strong[i];
-        out.push({ axis, guideA:a.guide, guideB:null, seedWideScore: a.guide * 1000 + a.area });
-        for(let j=i+1; j<Math.min(strong.length, i+4); j++){
-          const b = strong[j];
-          out.push({ axis, guideA:a.guide, guideB:b.guide, seedWideScore: Math.max(a.guide, b.guide) * 1500 + a.area + b.area });
+      const fams = familyClusters(items, axis, limitPrimary, limitCross, opts).slice(0, 8);
+      const famGuides = fams.map(f=>f.guide);
+      for(let idx=0; idx<seeds.length; idx++){
+        const seed = seeds[idx];
+        const dims = guideDimsFromItem(seed, axis)
+          .filter(d=>d.guide <= limitPrimary && d.cross <= limitCross)
+          .sort((a,b)=> (b.guide-a.guide) || (b.cross-a.cross));
+        for(let d=0; d<dims.length; d++){
+          const dim = dims[d];
+          const related = uniqueNumbers([dim.guide].concat(famGuides.filter(g=>Math.abs(g - dim.guide) <= tol * 1.25))).slice(0, 4);
+          out.push({
+            axis,
+            guideA: dim.guide,
+            guideB: related[1] || null,
+            seedItemId: seed.id,
+            seedWideScore: (dim.guide * 3000) + areaOf(seed) + (d === 0 ? 50000 : 25000),
+            seedOrder: idx,
+            rotationRank: d,
+          });
+          for(let k=1; k<Math.min(related.length, 3); k++){
+            out.push({
+              axis,
+              guideA: dim.guide,
+              guideB: related[k],
+              seedItemId: seed.id,
+              seedWideScore: (Math.max(dim.guide, related[k]) * 3400) + areaOf(seed) + (d === 0 ? 50000 : 25000) + k * 5000,
+              seedOrder: idx,
+              rotationRank: d,
+            });
+          }
         }
       }
+
+      for(const fam of fams.slice(0, Math.min(6, fams.length))){
+        out.push({ axis, guideA:fam.guide, guideB:null, seedItemId:null, seedWideScore:fam.guide * 1400 + fam.area, seedOrder:9999, rotationRank:0 });
+      }
     }
-    return out.sort((a,b)=> (b.seedWideScore-a.seedWideScore) || ((b.guideA||0)-(a.guideA||0)));
+
+    return out
+      .sort((a,b)=> (a.seedOrder-b.seedOrder) || (a.rotationRank-b.rotationRank) || (b.seedWideScore-a.seedWideScore) || ((b.guideA||0)-(a.guideA||0)))
+      .slice(0, maxAttempts * 2);
   }
 
   function buildFallback(items, boardW, boardH, kerf){
@@ -568,7 +774,8 @@
     }
     for(const plan of plans){
       if(tries >= maxAttempts) break;
-      const built = buildConstructiveSheet(items, boardW, boardH, kerf, null, plan.axis, plan.guideA, plan.guideB, opts);
+      const seedItem = plan.seedItemId ? ((items || []).find(it=>it.id === plan.seedItemId) || null) : null;
+      const built = buildConstructiveSheet(items, boardW, boardH, kerf, seedItem, plan.axis, plan.guideA, plan.guideB, opts);
       tries += 1;
       if(typeof opts.onProgress === 'function'){
         try{ opts.onProgress({ step:'attempt', currentAttempt:tries, maxAttempts }); }catch(_){ }
@@ -679,6 +886,7 @@
       seedWideRatio: 0.65,
       seedLimit: 24,
       minOppositeResidualFill: 0.66,
+      smallGroupTolerance: 75,
       onProgress: null,
       maxAttempts: 150,
       targetSheetOccupancy: 0.80,

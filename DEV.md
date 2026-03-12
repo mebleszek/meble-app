@@ -305,6 +305,7 @@ Dopiero potem go zmieniać.
 
 
 - step76: optional dostał bardziej produkcyjny scoring końcówki: kara za śmieciowy odpad / utylizację (małe i pocięte resztki), premia za grupowanie drobnicy w jednym wspólnym rzędzie/pasie oraz finalny rebalance ostatnich 2 płyt przed polish ostatniej. Zmiany zamknięte wyłącznie w `js/app/optional-solver.js`; tryby pasowe w `js/app/strip-solver.js` pozostają bez zmian.
+- step89: tryb `Opcjonalnie` dostał mocniejsze reguły konstrukcyjne pod pasy startowe i słabe pasy. Solver próbuje teraz startować od konkretnych dużych formatek, wymusza 2. pas tylko gdy oba pasy mają >=90% zapełnienia, po pasie startowym ocenia resztę zarówno wzdłuż, jak i w poprzek, a słabe pasy (>20% odpadu) próbuje przebudować przez wyrzucenie zbyt małych elementów i dołożenie podobnej drobnicy w grupie +/- 75 mm. Worker dostał nowy znacznik cache `20260312_optional_v8` / `20260312_optional_rewrite_v8`.
 
 - step77: tryby pasowe (`js/app/strip-solver.js`) dostały scrap-aware tail polish w obrębie residual fill i score: kara za śmieciowy odpad / długie cienkie ścinki oraz nowy shared-row fill dla drobnicy w resztkowych prostokątach, żeby częściej grupować małe elementy obok siebie zamiast otwierać wiele pojedynczych mikro-stref.
 
