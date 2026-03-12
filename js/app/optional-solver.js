@@ -253,6 +253,59 @@
     return { kind:`full-${dir}`, axis:dir, sheet, rem: removeByIds(items, ids), ids };
   }
 
+  function scoreRectForTeacherFill(fr){
+    const area = (Number(fr && fr.w) || 0) * (Number(fr && fr.h) || 0);
+    const minSide = Math.min(Number(fr && fr.w) || 0, Number(fr && fr.h) || 0);
+    const maxSide = Math.max(Number(fr && fr.w) || 0, Number(fr && fr.h) || 0);
+    return area + (minSide >= 220 ? 60000 : 0) + (maxSide >= 600 ? 40000 : 0) - Math.max(0, 180 - minSide) * 600;
+  }
+
+  function mergePlacementSheets(baseSheet, extraParts, boardW, boardH){
+    const placements = [];
+    for(const p of (((baseSheet && baseSheet.placements) || []))) placements.push(Object.assign({}, p));
+    for(const part of (extraParts || [])){
+      for(const p of (((part && part.placements) || []))) placements.push(Object.assign({}, p));
+    }
+    return { boardW, boardH, placements };
+  }
+
+  function buildTeacherRefinedCandidate(items, W, H, K, baseDir, fillDir, maxRectsToFill){
+    const base = buildFullCandidate(items, W, H, K, baseDir);
+    if(!base || !base.sheet || !base.sheet.placements || !base.sheet.placements.length) return null;
+    const freeRects = calcFreeRects(base.sheet, K)
+      .filter(r => (Number(r && r.w) || 0) >= 140 && (Number(r && r.h) || 0) >= 140)
+      .sort((a,b)=> scoreRectForTeacherFill(b) - scoreRectForTeacherFill(a));
+    if(!freeRects.length) return base;
+
+    let rem = base.rem.slice();
+    const extraSheets = [];
+    let usedAny = false;
+    const limit = Math.max(1, Math.round(Number(maxRectsToFill) || 1));
+    for(const fr of freeRects.slice(0, limit)){
+      if(!rem.length) break;
+      const packed = packFirstSheet(rem, fr.w, fr.h, K, fillDir);
+      if(!packed || !packed.placements || !packed.placements.length) continue;
+      const ids = usedIds(packed);
+      if(!ids.size) continue;
+      usedAny = true;
+      rem = removeByIds(rem, ids);
+      extraSheets.push(offsetSheet(packed, fr.x, fr.y));
+    }
+    if(!usedAny) return base;
+    const merged = mergePlacementSheets(base.sheet, extraSheets, W, H);
+    const ids = usedIds(merged);
+    return {
+      kind:`teach-${baseDir}-${fillDir}-${limit}`,
+      axis:fillDir === baseDir ? baseDir : 'auto',
+      sheet: merged,
+      rem: removeByIds(items, ids),
+      ids,
+      teacherBaseDir: baseDir,
+      teacherFillDir: fillDir,
+      teacherRects: limit,
+    };
+  }
+
   function buildHybridHorizontal(items, W, H, K, splitH, topDir, bottomDir){
     if(!(splitH > 0 && splitH < H - 40)) return null;
     const top = packFirstSheet(items, W, splitH, K, topDir);
@@ -325,28 +378,34 @@
   function buildCandidateList(items, W, H, K, attempts, endgame){
     const { hs, ws } = candidateDimensions(items, W, H, attempts, endgame);
     const builders = [];
+    // Baselines taught by the stable strip solvers.
     builders.push(()=>buildFullCandidate(items, W, H, K, 'along'));
     builders.push(()=>buildFullCandidate(items, W, H, K, 'across'));
+    builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'across', 1));
+    builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'along', 1));
+    if(endgame || attempts >= 24){
+      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'across', 2));
+      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'along', 2));
+      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'along', 2));
+      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'across', 2));
+    }
     for(const h of hs){
       builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'along', 'across'));
       builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'across', 'along'));
+      if(endgame){
+        builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'along', 'along'));
+        builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'across', 'across'));
+      }
     }
     for(const w of ws){
       builders.push(()=>buildHybridVertical(items, W, H, K, w, 'across', 'along'));
       builders.push(()=>buildHybridVertical(items, W, H, K, w, 'along', 'across'));
-    }
-    // Slight extra diversity on endgame.
-    if(endgame){
-      for(const h of hs.slice(0, 4)){
-        builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'along', 'along'));
-        builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'across', 'across'));
-      }
-      for(const w of ws.slice(0, 4)){
+      if(endgame){
         builders.push(()=>buildHybridVertical(items, W, H, K, w, 'along', 'along'));
         builders.push(()=>buildHybridVertical(items, W, H, K, w, 'across', 'across'));
       }
     }
-    return builders.slice(0, Math.max(2, attempts));
+    return builders.slice(0, Math.max(4, attempts));
   }
 
   function chooseBestNextSheet(items, W, H, K, opts){
@@ -365,6 +424,11 @@
       cand.score = sc.score;
       cand.metrics = sc;
       cand.tries = tries;
+      if(cand.kind && String(cand.kind).indexOf('teach-') === 0){
+        cand.score += 55000;
+        if(cand.teacherFillDir && cand.teacherBaseDir && cand.teacherFillDir !== cand.teacherBaseDir) cand.score += 85000;
+        cand.score -= (sc.disposalCount || 0) * 12000;
+      }
       if(!best || cand.score > best.score) best = cand;
     }
     return best;
@@ -380,6 +444,11 @@
       const sc = scoreSheet(cand.sheet, K, cand.axis, 0);
       cand.score = sc.score;
       cand.metrics = sc;
+      if(cand.kind && String(cand.kind).indexOf('teach-') === 0){
+        cand.score += 55000;
+        if(cand.teacherFillDir && cand.teacherBaseDir && cand.teacherFillDir !== cand.teacherBaseDir) cand.score += 85000;
+        cand.score -= (sc.disposalCount || 0) * 12000;
+      }
       firsts.push(cand);
     }
     firsts.sort((a,b)=>b.score - a.score);
