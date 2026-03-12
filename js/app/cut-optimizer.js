@@ -250,6 +250,14 @@
     return packShelf(itemsIn, boardW, boardH, kerf, direction === 'across' ? 'wpoprz' : 'auto');
   }
 
+  function packOptima(itemsIn, boardW, boardH, kerf, options){
+    const optimaSolver = window.FC && window.FC.optimaSolver;
+    if(optimaSolver && typeof optimaSolver.packOptima === 'function'){
+      return optimaSolver.packOptima(itemsIn, boardW, boardH, kerf, options || {});
+    }
+    return packStripBands(itemsIn, boardW, boardH, kerf, 'along');
+  }
+
 
 
 
@@ -447,6 +455,7 @@
     makeItems,
     packShelf,
     packStripBands,
+    packOptima,
     packMaxRects,
     packSuper,
     calcWaste,

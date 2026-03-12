@@ -332,3 +332,11 @@ Dopiero potem go zmieniać.
 - 2026-03-12: Optionalnie v7: residual po pasach startowych wypełniany najpierw solverem pasowym w osi przeciwnej; wybór kandydatów preferuje wyższą zajętość arkusza i szerszy pierwszy pas; tail rebalance i polish tylko przy realnej poprawie zajętości/odpadu.
 
 - 2026-03-12 step90: usunięto tryb `Opcjonalnie` z UI ROZRYS i ścieżki workera. Kierunek cięcia został zredukowany do dwóch trybów: `Preferuj pasy wzdłuż` oraz `Preferuj pasy w poprzek`. Stare konfiguracje `auto/optional` są normalizowane do `along`, a worker nie importuje już `optional-solver.js`.
+
+
+## 2026-03-12 — krok 91: tryb Optima w Optimax
+- Dodano nowy solver `js/app/optima-solver.js` i nową opcję kierunku cięcia `Optima`.
+- `Optima` działa osobno od klasycznych pasów wzdłuż/poprzek: próbuje obu orientacji arkusza, startuje od mocnych pasów i robi lokalną poprawę końcówki.
+- W `rozrys.js` dodano wstępny szacunek liczby płyt na podstawie sumy pól formatek i pokazywanie go podczas liczenia.
+- Web Worker ma nowy cache-bust `20260312_optima_v1` i ładuje `optima-solver.js`.
+- Profile A/B/C/D dla trybu `Optima` mają większy budżet czasu na płytę niż klasyczne tryby pasowe.

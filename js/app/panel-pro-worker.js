@@ -10,12 +10,12 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
-const SOLVER_VER = '20260312_strip_only_v1';
+const SOLVER_VER = '20260312_optima_v1';
 try{
-  importScripts('strip-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
+  importScripts('strip-solver.js?v=' + SOLVER_VER, 'optima-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){
   // fallback: try absolute from /js/app (when worker is created with different base)
-  try{ importScripts('/js/app/strip-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
+  try{ importScripts('/js/app/strip-solver.js?v=' + SOLVER_VER, '/js/app/optima-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
 }
 
 (function(){
@@ -192,13 +192,26 @@ try{
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
     const hardStopMs = Math.max(4000, maxAttempts * 1500);
-    const cutPref = ((opts && (opts.cutPref || opts.direction)) === 'across') ? 'across' : 'along';
-    const cutMode = ((opts && opts.cutMode) === 'across') ? 'across' : 'along';
+    const rawPref = (opts && (opts.cutPref || opts.direction)) || 'along';
+    const cutPref = (rawPref === 'across') ? 'across' : (rawPref === 'optima' ? 'optima' : 'along');
+    const rawMode = (opts && opts.cutMode) || cutPref;
+    const cutMode = (rawMode === 'across') ? 'across' : (rawMode === 'optima' ? 'optima' : 'along');
     const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
     const minScrapH = Math.max(0, Math.round((opts && opts.minScrapH != null) ? Number(opts.minScrapH) : 100));
     const prefList = [cutPref];
 
     const packOne = (arr, pref, ms)=>{
+      if(cutMode === 'optima'){
+        if(opt.packOptima){
+          return opt.packOptima(arr, W, H, K, {
+            profile: (opts && opts.optimaxProfile) || 'D',
+            perSheetMs: ms,
+            minScrapW,
+            minScrapH,
+            isCancelled: ()=>_cancelled,
+          });
+        }
+      }
       if(cutMode === 'along' || cutMode === 'across'){
         if(opt.packStripBands){
           return opt.packStripBands(arr, W, H, K, cutMode);
@@ -259,6 +272,22 @@ try{
 
     // deterministic runs first
     let best = null;
+
+    if(cutMode === 'optima' && opt.packOptima){
+      progress.phase = 'main';
+      progress.step = 'running';
+      progress.currentAttempt = 1;
+      reportProgress(true);
+      const sheets = packOne(items, cutMode, perSheetMs);
+      const sc = scoreSheets(sheets);
+      best = { sheets, sc };
+      setBest(best);
+      progress.iters = 1;
+      progress.currentAttempt = 1;
+      progress.step = 'done-main';
+      reportProgress(true);
+      return { sheets: best.sheets, cancelled: _cancelled };
+    }
     const tryOne = (arr)=>{
       for(const pref of prefList){
         if(_cancelled) return;
