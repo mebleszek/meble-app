@@ -72,6 +72,7 @@
 - `js/app/tabs-router.js` — routing zakładek.
 - `js/app/cut-optimizer.js` — główny silnik rozkroju i eksport API Optimax.
 - `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
+- `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
 - `js/app/magazyn.js` — logika magazynu.
 - `js/app/rozrys.js` — logika zakładki rozrysu / Optimax.
 

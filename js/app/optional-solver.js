@@ -1,9 +1,9 @@
-/* optional-solver.js — solver trybu „Opcjonalnie kierunek cięcia”
+/* optional-solver.js — przebudowany solver trybu „Opcjonalnie kierunek cięcia”
    Założenia:
-   - liczy płyta po płycie,
-   - dla każdej płyty porównuje kilka rodzin wariantów,
-   - może zrobić jeden główny split i zmienić kierunek w drugiej części płyty,
-   - na końcówce dopieszcza ostatnie 2 płyty, a na sam koniec jeszcze raz ostatnią.
+   - nie rusza działających trybów pasowych (strip-solver.js),
+   - buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów,
+   - po sekcji startowej dogęszcza resztę prostokąta solverem pasowym,
+   - ocenia jakość odpadu i próbuje poprawiać końcówkę ostatnich 2 płyt.
 */
 (function(root){
   'use strict';
@@ -16,15 +16,11 @@
     const n = Math.round(Number(v));
     return Number.isFinite(n) && n > 0 ? n : fallback;
   }
-  function sumArea(items){
-    let s = 0;
-    for(const it of (items||[])) s += (Number(it.w)||0) * (Number(it.h)||0);
-    return s;
-  }
+  function itemArea(it){ return (Number(it && it.w) || 0) * (Number(it && it.h) || 0); }
   function placementArea(sheet){
     let s = 0;
-    for(const p of ((sheet && sheet.placements) || [])){
-      if(p && !p.unplaced) s += (Number(p.w)||0) * (Number(p.h)||0);
+    for(const p of (((sheet && sheet.placements) || []).filter(Boolean))){
+      if(!p.unplaced) s += (Number(p.w)||0) * (Number(p.h)||0);
     }
     return s;
   }
@@ -32,39 +28,42 @@
     return new Set((((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced).map(p=>p.id)));
   }
   function removeByIds(items, ids){
-    return (items||[]).filter(it => !ids.has(it.id));
+    return (items || []).filter(it => !ids.has(it.id));
+  }
+  function orientItem(it, rotated){
+    if(rotated){
+      return {
+        w: Number(it.h) || 0,
+        h: Number(it.w) || 0,
+        rotated: true,
+        edgeW1: it.edgeH1,
+        edgeW2: it.edgeH2,
+        edgeH1: it.edgeW1,
+        edgeH2: it.edgeW2,
+      };
+    }
+    return {
+      w: Number(it.w) || 0,
+      h: Number(it.h) || 0,
+      rotated: false,
+      edgeW1: it.edgeW1,
+      edgeW2: it.edgeW2,
+      edgeH1: it.edgeH1,
+      edgeH2: it.edgeH2,
+    };
+  }
+  function itemOrientations(it){
+    const out = [orientItem(it, false)];
+    if(it && it.rotationAllowed && Number(it.w) !== Number(it.h)) out.push(orientItem(it, true));
+    return out;
   }
   function offsetSheet(sheet, dx, dy){
     const s = clone(sheet);
     s.placements = (s.placements || []).map(p=>Object.assign({}, p, { x:(p.x||0)+dx, y:(p.y||0)+dy }));
     return s;
   }
-  function mergeSheets(boardW, boardH, parts){
-    const placements = [];
-    for(const s of (parts||[])){
-      for(const p of ((s && s.placements) || [])) placements.push(p);
-    }
-    return { boardW, boardH, placements };
-  }
-  function groupDimSupport(items, dimKey, maxDim){
-    const map = new Map();
-    for(const it of (items||[])){
-      const opts = [{ w:it.w, h:it.h }];
-      if(it.rotationAllowed && it.w !== it.h) opts.push({ w:it.h, h:it.w });
-      for(const o of opts){
-        const d = (dimKey === 'h') ? o.h : o.w;
-        if(!(d > 0 && d <= maxDim)) continue;
-        const prev = map.get(d) || { dim:d, area:0, count:0 };
-        prev.area += o.w * o.h;
-        prev.count += 1;
-        map.set(d, prev);
-      }
-    }
-    return Array.from(map.values()).sort((a,b)=>{
-      if(b.count !== a.count) return b.count - a.count;
-      if(b.area !== a.area) return b.area - a.area;
-      return b.dim - a.dim;
-    });
+  function mergePlacements(boardW, boardH, placements){
+    return { boardW, boardH, placements: (placements || []).slice() };
   }
 
   function rectIntersects(a, b){
@@ -109,774 +108,465 @@
     let free = [{ x:0, y:0, w:Number(sheet.boardW)||0, h:Number(sheet.boardH)||0 }];
     const pls = ((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced);
     for(const p of pls){
-      const placed = { x:p.x, y:p.y, w:p.w + K, h:p.h + K };
+      const placed = { x:p.x, y:p.y, w:(p.w||0) + K, h:(p.h||0) + K };
       const next = [];
       for(const fr of free){
         if(rectIntersects(fr, placed)) next.push(...splitFreeRectByIntersection(fr, placed));
         else next.push(fr);
       }
-      free = pruneFreeRects(next.filter(r=>r.w > 0 && r.h > 0));
+      free = pruneFreeRects(next.filter(r=>r.w>0 && r.h>0));
     }
     return free;
   }
-  function bandMetrics(sheet, axis){
-    const pls = ((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced);
-    const W = Number(sheet && sheet.boardW) || 1;
-    const H = Number(sheet && sheet.boardH) || 1;
-    const rows = new Map();
-    const cols = new Map();
-    for(const p of pls){
-      const rk = `${p.y||0}:${p.h||0}`;
-      const ck = `${p.x||0}:${p.w||0}`;
-      const r = rows.get(rk) || { minX:1e9, maxX:0, count:0, area:0 };
-      r.minX = Math.min(r.minX, p.x||0); r.maxX = Math.max(r.maxX, (p.x||0)+(p.w||0)); r.count += 1; r.area += (p.w||0)*(p.h||0); rows.set(rk, r);
-      const c = cols.get(ck) || { minY:1e9, maxY:0, count:0, area:0 };
-      c.minY = Math.min(c.minY, p.y||0); c.maxY = Math.max(c.maxY, (p.y||0)+(p.h||0)); c.count += 1; c.area += (p.w||0)*(p.h||0); cols.set(ck, c);
-    }
-    let closeRows = 0, closeCols = 0, singletonRows = 0, singletonCols = 0;
-    for(const r of rows.values()){
-      const tail = W - r.maxX;
-      if(r.minX <= 6 && tail <= 100) closeRows += 1;
-      if(r.count === 1 && tail > 100) singletonRows += 1;
-    }
-    for(const c of cols.values()){
-      const tail = H - c.maxY;
-      if(c.minY <= 6 && tail <= 100) closeCols += 1;
-      if(c.count === 1 && tail > 100) singletonCols += 1;
-    }
-    if(axis === 'along') return { close: closeRows, singleton: singletonRows, otherClose: closeCols, otherSingleton: singletonCols };
-    if(axis === 'across') return { close: closeCols, singleton: singletonCols, otherClose: closeRows, otherSingleton: singletonRows };
-    return { close: Math.max(closeRows, closeCols), singleton: Math.min(singletonRows, singletonCols), otherClose: Math.min(closeRows, closeCols), otherSingleton: Math.max(singletonRows, singletonCols) };
-  }
-
-  function isSmallPlacement(p){
-    const area = (Number(p && p.w) || 0) * (Number(p && p.h) || 0);
-    return Math.min(Number(p && p.w) || 0, Number(p && p.h) || 0) <= 180 || area <= 85000;
-  }
-  function smallGroupMetrics(sheet){
-    const pls = ((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced && isSmallPlacement(p));
-    const rows = new Map();
-    const cols = new Map();
-    for(const p of pls){
-      const rk = `${p.y||0}:${p.h||0}`;
-      const ck = `${p.x||0}:${p.w||0}`;
-      const r = rows.get(rk) || { count:0, span:0, min:1e9, max:0 };
-      r.count += 1; r.min = Math.min(r.min, p.x||0); r.max = Math.max(r.max, (p.x||0)+(p.w||0)); r.span = r.max - r.min; rows.set(rk, r);
-      const c = cols.get(ck) || { count:0, span:0, min:1e9, max:0 };
-      c.count += 1; c.min = Math.min(c.min, p.y||0); c.max = Math.max(c.max, (p.y||0)+(p.h||0)); c.span = c.max - c.min; cols.set(ck, c);
-    }
-    let sharedRows = 0, isolatedRows = 0, sharedCols = 0, isolatedCols = 0;
-    for(const r of rows.values()){
-      if(r.count >= 2) sharedRows += 1;
-      else isolatedRows += 1;
-    }
-    for(const c of cols.values()){
-      if(c.count >= 2) sharedCols += 1;
-      else isolatedCols += 1;
-    }
-    return { sharedRows, isolatedRows, sharedCols, isolatedCols, smallCount: pls.length };
-  }
   function scrapMetrics(freeRects){
-    const free = Array.isArray(freeRects) ? freeRects : [];
-    let disposalArea = 0, disposalCount = 0, reusableArea = 0, reusableCount = 0, longStrips = 0;
-    for(const r of free){
-      const area = (Number(r && r.w) || 0) * (Number(r && r.h) || 0);
-      const minSide = Math.min(Number(r && r.w) || 0, Number(r && r.h) || 0);
-      const maxSide = Math.max(Number(r && r.w) || 0, Number(r && r.h) || 0);
+    let disposalArea = 0, disposalCount = 0, reusableArea = 0, longThinCount = 0;
+    for(const r of (freeRects || [])){
+      const w = Number(r && r.w) || 0;
+      const h = Number(r && r.h) || 0;
+      if(w <= 0 || h <= 0) continue;
+      const area = w * h;
+      const minSide = Math.min(w, h);
+      const maxSide = Math.max(w, h);
       const reusable = minSide >= 100 && area >= 30000;
-      if(reusable){
-        reusableArea += area;
-        reusableCount += 1;
-        if(minSide < 140 && maxSide >= 600) longStrips += 1;
-      } else {
+      if(reusable) reusableArea += area;
+      else {
         disposalArea += area;
         disposalCount += 1;
       }
+      if(minSide < 110 && maxSide >= 420) longThinCount += 1;
     }
-    return { disposalArea, disposalCount, reusableArea, reusableCount, longStrips };
+    return { disposalArea, disposalCount, reusableArea, longThinCount };
   }
-  function scoreSheet(sheet, kerf, axis, lookaheadOcc){
-    const W = Number(sheet && sheet.boardW) || 0;
-    const H = Number(sheet && sheet.boardH) || 0;
-    const area = Math.max(1, W * H);
-    const used = placementArea(sheet);
-    const occ = used / area;
-    const free = calcFreeRects(sheet, kerf).filter(r=>r.w >= 25 && r.h >= 25);
-    const largestFree = free.reduce((m,r)=>Math.max(m, r.w*r.h), 0);
-    const bm = bandMetrics(sheet, axis);
+  function bandFamilyMetrics(placements, primaryAxis){
+    const groups = new Map();
+    for(const p of (placements || [])){
+      const dim = primaryAxis === 'v' ? (Number(p.w) || 0) : (Number(p.h) || 0);
+      const bucket = Math.round(dim / 10) * 10;
+      const prev = groups.get(bucket) || { bucket, count:0, area:0 };
+      prev.count += 1;
+      prev.area += (Number(p.w)||0) * (Number(p.h)||0);
+      groups.set(bucket, prev);
+    }
+    const arr = Array.from(groups.values()).sort((a,b)=> (b.count-a.count) || (b.area-a.area));
+    const dominant = arr[0] || { count:0 };
+    const singletons = arr.filter(g=>g.count === 1).length;
+    return { familyCount: arr.length, dominantCount: dominant.count || 0, singletons };
+  }
+
+  function scoreSheet(sheet, kerf, meta){
+    const area = Math.max(1, (Number(sheet.boardW)||0) * (Number(sheet.boardH)||0));
+    const occ = placementArea(sheet) / area;
+    const free = calcFreeRects(sheet, kerf).filter(r=>r.w>=20 && r.h>=20);
     const sm = scrapMetrics(free);
-    const gm = smallGroupMetrics(sheet);
-    const placements = ((sheet && sheet.placements) || []).filter(p=>p && !p.unplaced);
+    const fam = bandFamilyMetrics((sheet.placements || []).filter(p=>p && !p.unplaced), (meta && meta.primaryAxis) || 'v');
     let score = 0;
     score += occ * 1000000;
-    score += bm.close * 130000;
-    score += bm.otherClose * 50000;
-    score -= bm.singleton * 175000;
-    score -= bm.otherSingleton * 90000;
-    score += gm.sharedRows * 85000;
-    score += gm.sharedCols * 50000;
-    score -= gm.isolatedRows * 65000;
-    score -= gm.isolatedCols * 45000;
-    score -= (largestFree / area) * 140000;
-    score -= (sm.disposalArea / area) * 260000;
+    score -= (sm.disposalArea / area) * 360000;
     score -= sm.disposalCount * 42000;
-    score -= sm.longStrips * 28000;
-    score -= Math.max(0, free.length - 4) * 15000;
-    score += (sm.reusableArea / area) * 35000;
-    score += (Number(lookaheadOcc)||0) * 260000;
-    if(occ >= 0.90) score += 120000;
-    else if(occ >= 0.85) score += 65000;
-    if(gm.smallCount >= 3 && (gm.sharedRows + gm.sharedCols) === 0) score -= 90000;
-    if(placements.length <= 1) score -= 120000;
-    return { score, occ, used, freeRects: free.length, largestFree, disposalArea: sm.disposalArea, disposalCount: sm.disposalCount, reusableArea: sm.reusableArea, sharedRows: gm.sharedRows, sharedCols: gm.sharedCols };
+    score -= sm.longThinCount * 24000;
+    score += (sm.reusableArea / area) * 30000;
+    score += fam.dominantCount * 16000;
+    score -= fam.singletons * 18000;
+    if(meta && meta.seedBands){
+      for(const b of meta.seedBands){
+        score += (b.fillRatio || 0) * 180000;
+        if((b.fillRatio || 0) >= 0.90) score += 70000;
+        else if((b.fillRatio || 0) >= 0.80) score += 25000;
+        else score -= 60000;
+      }
+    }
+    if(meta && meta.kind === 'seed') score += 30000;
+    if(meta && meta.kind === 'fallback-strip') score -= 25000;
+    return {
+      score,
+      occupancy: occ,
+      disposalArea: sm.disposalArea,
+      disposalCount: sm.disposalCount,
+      reusableArea: sm.reusableArea,
+      families: fam.familyCount,
+      dominantFamily: fam.dominantCount,
+    };
+  }
+
+  function uniqueGuideDims(items, axis, maxDim, tolerance){
+    const raw = [];
+    for(const it of (items || [])){
+      for(const o of itemOrientations(it)){
+        const dim = axis === 'v' ? o.w : o.h;
+        const other = axis === 'v' ? o.h : o.w;
+        if(dim <= 0 || other <= 0) continue;
+        if(dim > maxDim) continue;
+        raw.push({ dim, area:o.w*o.h, id:it.id });
+      }
+    }
+    raw.sort((a,b)=> (b.area-a.area) || (b.dim-a.dim));
+    const used = [];
+    const out = [];
+    for(const r of raw){
+      if(used.some(v=>Math.abs(v-r.dim) <= tolerance)) continue;
+      used.push(r.dim);
+      out.push(r.dim);
+      if(out.length >= 12) break;
+    }
+    return out;
+  }
+
+  function buildBand(items, limitPrimary, limitCross, kerf, axis, guideDim, opts){
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
+    const minRatio = Number((opts && opts.minFamilyRatio) || 0.72);
+    const candidates = [];
+    for(const it of (items || [])){
+      const options = [];
+      for(const o of itemOrientations(it)){
+        const primary = axis === 'v' ? o.w : o.h;
+        const cross = axis === 'v' ? o.h : o.w;
+        if(primary <= 0 || cross <= 0) continue;
+        if(primary > limitPrimary || cross > limitCross) continue;
+        const lower = Math.min(guideDim - tol, guideDim * minRatio);
+        const similar = primary >= lower && primary <= guideDim + tol;
+        if(!similar) continue;
+        const gap = Math.abs(primary - guideDim);
+        const smallPenalty = primary < guideDim * 0.85 ? (guideDim * 0.85 - primary) * 800 : 0;
+        const score = (o.w * o.h) * 1000 - gap * 1400 - smallPenalty - cross * 30;
+        options.push({ o, score, primary, cross });
+      }
+      if(!options.length) continue;
+      options.sort((a,b)=> b.score - a.score);
+      candidates.push({ item:it, options });
+    }
+    if(!candidates.length) return null;
+
+    const cap = Math.max(0, limitCross);
+    const dp = new Array(cap + 1).fill(null);
+    dp[0] = { score:0, area:0, prev:-1, choice:null, used:new Set() };
+    for(let i=0;i<candidates.length;i++){
+      const next = dp.slice();
+      for(let used=0; used<=cap; used++){
+        const st = dp[used];
+        if(!st) continue;
+        for(const opt of candidates[i].options){
+          const add = (used > 0 ? K : 0) + opt.cross;
+          const nu = used + add;
+          if(nu > cap) continue;
+          if(st.used.has(candidates[i].item.id)) continue;
+          const nextUsed = new Set(st.used);
+          nextUsed.add(candidates[i].item.id);
+          const localScore = st.score + opt.score + ((cap - nu) <= 100 ? 90000 : -((cap - nu) * 120));
+          const prevBest = next[nu];
+          if(!prevBest || localScore > prevBest.score){
+            next[nu] = {
+              score: localScore,
+              area: st.area + (opt.o.w * opt.o.h),
+              prev: used,
+              choice: { idx:i, orient:opt.o, primary:opt.primary, cross:opt.cross },
+              used: nextUsed,
+            };
+          }
+        }
+      }
+      for(let c=0;c<=cap;c++) dp[c] = next[c];
+    }
+
+    let best = null;
+    for(let used=0; used<=cap; used++){
+      const st = dp[used];
+      if(!st || st.used.size === 0) continue;
+      let maxPrimary = 0;
+      let count = 0;
+      let cur = st;
+      while(cur && cur.choice){
+        maxPrimary = Math.max(maxPrimary, cur.choice.primary);
+        count += 1;
+        cur = dp[cur.prev];
+      }
+      if(maxPrimary <= 0) continue;
+      const fillRatio = st.area / (Math.max(1, maxPrimary) * limitCross);
+      const variancePenalty = Math.abs(maxPrimary - guideDim) * 500;
+      const totalScore = st.score + fillRatio * 220000 - variancePenalty + count * 6000;
+      if(!best || totalScore > best.totalScore){
+        best = { totalScore, usedCross:used, state:st, bandPrimary:maxPrimary, fillRatio, count };
+      }
+    }
+    if(!best) return null;
+
+    const picked = [];
+    let cur = best.state;
+    while(cur && cur.choice){
+      const rec = cur.choice;
+      picked.push({ item:candidates[rec.idx].item, orient:rec.orient, primary:rec.primary, cross:rec.cross });
+      cur = dp[cur.prev];
+    }
+    picked.reverse();
+    if(!picked.length) return null;
+
+    const bandPrimary = best.bandPrimary;
+    const placements = [];
+    let cursor = 0;
+    for(const p of picked){
+      if(axis === 'v'){
+        placements.push({
+          id:p.item.id, key:p.item.key, name:p.item.name,
+          x:0, y:cursor, w:p.orient.w, h:p.orient.h,
+          rotated:!!p.orient.rotated,
+          edgeW1:p.orient.edgeW1, edgeW2:p.orient.edgeW2,
+          edgeH1:p.orient.edgeH1, edgeH2:p.orient.edgeH2,
+        });
+        cursor += p.orient.h + K;
+      } else {
+        placements.push({
+          id:p.item.id, key:p.item.key, name:p.item.name,
+          x:cursor, y:0, w:p.orient.w, h:p.orient.h,
+          rotated:!!p.orient.rotated,
+          edgeW1:p.orient.edgeW1, edgeW2:p.orient.edgeW2,
+          edgeH1:p.orient.edgeH1, edgeH2:p.orient.edgeH2,
+        });
+        cursor += p.orient.w + K;
+      }
+    }
+
+    return {
+      axis,
+      guideDim,
+      bandPrimary,
+      fillRatio: best.fillRatio,
+      score: best.totalScore,
+      placements,
+      ids: new Set(picked.map(p=>p.item.id)),
+      usedArea: picked.reduce((s,p)=> s + p.orient.w * p.orient.h, 0),
+    };
+  }
+
+  function buildSeededCandidate(items, boardW, boardH, kerf, primaryAxis, guideA, guideB, opts){
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    const W = boardW, H = boardH;
+    const placements = [];
+    const seedBands = [];
+    let remaining = (items || []).slice();
+    let residual = { x:0, y:0, w:W, h:H };
+
+    const applyBand = (band)=>{
+      const offsetX = residual.x;
+      const offsetY = residual.y;
+      const shifted = band.placements.map(p=>Object.assign({}, p, { x:(p.x||0)+offsetX, y:(p.y||0)+offsetY }));
+      placements.push(...shifted);
+      seedBands.push({ axis:band.axis, guideDim:band.guideDim, bandPrimary:band.bandPrimary, fillRatio:band.fillRatio });
+      remaining = removeByIds(remaining, band.ids);
+      if(primaryAxis === 'v'){
+        residual = { x: residual.x + band.bandPrimary + K, y: residual.y, w: residual.w - band.bandPrimary - K, h: residual.h };
+      } else {
+        residual = { x: residual.x, y: residual.y + band.bandPrimary + K, w: residual.w, h: residual.h - band.bandPrimary - K };
+      }
+    };
+
+    const first = buildBand(remaining, primaryAxis === 'v' ? residual.w : residual.h, primaryAxis === 'v' ? residual.h : residual.w, kerf, primaryAxis, guideA, opts);
+    if(!first) return null;
+    if(first.fillRatio < 0.80) return null;
+    applyBand(first);
+
+    if(guideB && residual.w > 0 && residual.h > 0){
+      const second = buildBand(remaining, primaryAxis === 'v' ? residual.w : residual.h, primaryAxis === 'v' ? residual.h : residual.w, kerf, primaryAxis, guideB, opts);
+      if(second && second.fillRatio >= 0.90){
+        applyBand(second);
+      }
+    }
+
+    const residualCandidates = [];
+    if(residual.w > 100 && residual.h > 100 && remaining.length && strip && typeof strip.packStripBands === 'function'){
+      const directions = ['along', 'across'];
+      for(const dir of directions){
+        const packed = strip.packStripBands(remaining, residual.w, residual.h, kerf, dir) || [];
+        const firstSheet = packed[0] || { boardW: residual.w, boardH: residual.h, placements: [] };
+        const residualSheet = offsetSheet(firstSheet, residual.x, residual.y);
+        const merged = mergePlacements(W, H, placements.concat(residualSheet.placements || []));
+        residualCandidates.push({
+          kind: 'seed',
+          primaryAxis,
+          seedBands: clone(seedBands),
+          residualDirection: dir,
+          sheet: merged,
+        });
+      }
+    } else {
+      residualCandidates.push({ kind:'seed', primaryAxis, seedBands: clone(seedBands), residualDirection: 'none', sheet: mergePlacements(W, H, placements) });
+    }
+
+    let best = null;
+    for(const cand of residualCandidates){
+      const sc = scoreSheet(cand.sheet, kerf, cand);
+      if(!best || sc.score > best.sc.score) best = { cand, sc };
+    }
+    return best;
+  }
+
+  function buildFallbackStrip(items, boardW, boardH, kerf, direction){
+    if(!strip || typeof strip.packStripBands !== 'function') return null;
+    const packed = strip.packStripBands(items, boardW, boardH, kerf, direction) || [];
+    const firstSheet = packed[0] || { boardW, boardH, placements: [] };
+    const meta = { kind:'fallback-strip', primaryAxis: direction === 'along' ? 'v' : 'h', seedBands: [] };
+    return { cand: meta, sheet: firstSheet, sc: scoreSheet(firstSheet, kerf, meta) };
+  }
+
+  function buildCandidateList(items, boardW, boardH, kerf, opts){
+    const candidates = [];
+    const guidesV = uniqueGuideDims(items, 'v', boardW, opts.clusterTolerance || 75);
+    const guidesH = uniqueGuideDims(items, 'h', boardH, opts.clusterTolerance || 75);
+    const topV = guidesV.slice(0, 8);
+    const topH = guidesH.slice(0, 8);
+
+    for(let i=0;i<topV.length;i++){
+      const guideA = topV[i];
+      const solo = buildSeededCandidate(items, boardW, boardH, kerf, 'v', guideA, null, opts);
+      if(solo) candidates.push(solo);
+      for(let j=i+1;j<topV.length && j<i+4;j++){
+        const duo = buildSeededCandidate(items, boardW, boardH, kerf, 'v', guideA, topV[j], opts);
+        if(duo) candidates.push(duo);
+      }
+    }
+    for(let i=0;i<topH.length;i++){
+      const guideA = topH[i];
+      const solo = buildSeededCandidate(items, boardW, boardH, kerf, 'h', guideA, null, opts);
+      if(solo) candidates.push(solo);
+      for(let j=i+1;j<topH.length && j<i+4;j++){
+        const duo = buildSeededCandidate(items, boardW, boardH, kerf, 'h', guideA, topH[j], opts);
+        if(duo) candidates.push(duo);
+      }
+    }
+
+    const fallbackAlong = buildFallbackStrip(items, boardW, boardH, kerf, 'along');
+    if(fallbackAlong) candidates.push(fallbackAlong);
+    const fallbackAcross = buildFallbackStrip(items, boardW, boardH, kerf, 'across');
+    if(fallbackAcross) candidates.push(fallbackAcross);
+
+    return candidates;
+  }
+
+  function chooseBestCandidate(items, boardW, boardH, kerf, opts){
+    const list = buildCandidateList(items, boardW, boardH, kerf, opts);
+    let best = null;
+    for(const entry of list){
+      const cand = entry.cand || entry.meta || {};
+      const sheet = entry.sheet || cand.sheet;
+      const sc = entry.sc || scoreSheet(sheet, kerf, cand);
+      if(!best || sc.score > best.sc.score) best = { sheet, sc, meta: cand };
+    }
+    return best;
   }
 
   function scoreSheetPair(s1, s2, kerf){
-    const a = scoreSheet(s1, kerf, 'auto', 0);
-    const b = scoreSheet(s2, kerf, 'auto', 0);
-    const pairOcc = ((Number(a.used)||0) + (Number(b.used)||0)) / Math.max(1, ((Number(s1 && s1.boardW)||0)*(Number(s1 && s1.boardH)||0)) + ((Number(s2 && s2.boardW)||0)*(Number(s2 && s2.boardH)||0)));
-    const pairScore = a.score + b.score + pairOcc * 180000 - (a.disposalArea + b.disposalArea) / Math.max(1, (Number(s1 && s1.boardW)||0)*(Number(s1 && s1.boardH)||0)) * 100000;
-    return { score: pairScore, occ: pairOcc, disposalArea: (a.disposalArea||0) + (b.disposalArea||0) };
-  }
-
-  function orientForFixedDim(it, fixedDim, mode){
-    const out = [];
-    if(mode === 'hband'){
-      if((Number(it.h)||0) === fixedDim) out.push({ w:Number(it.w)||0, h:fixedDim, rotated:false });
-      if(it.rotationAllowed && (Number(it.w)||0) === fixedDim && (Number(it.h)||0) !== fixedDim) out.push({ w:Number(it.h)||0, h:fixedDim, rotated:true });
-    } else if(mode === 'vband'){
-      if((Number(it.w)||0) === fixedDim) out.push({ w:fixedDim, h:Number(it.h)||0, rotated:false });
-      if(it.rotationAllowed && (Number(it.h)||0) === fixedDim && (Number(it.w)||0) !== fixedDim) out.push({ w:fixedDim, h:Number(it.w)||0, rotated:true });
-    }
-    return out.filter(o=>o.w>0 && o.h>0);
-  }
-
-  function chooseBestBandSubset(items, fixedDim, mode, limitLen, kerf){
-    const K = Math.max(0, Math.round(Number(kerf)||0));
-    const options = [];
-    for(const it of (items||[])){
-      const oriented = orientForFixedDim(it, fixedDim, mode);
-      if(!oriented.length) continue;
-      oriented.sort((a,b)=>{
-        const al = mode === 'hband' ? a.w : a.h;
-        const bl = mode === 'hband' ? b.w : b.h;
-        if(bl !== al) return bl - al;
-        return (a.rotated?1:0) - (b.rotated?1:0);
-      });
-      const best = oriented[0];
-      const len = mode === 'hband' ? best.w : best.h;
-      if(!(len > 0 && len <= limitLen)) continue;
-      options.push({ id: it.id, len, w: best.w, h: best.h, rotated: !!best.rotated });
-    }
-    if(options.length < 2) return null;
-
-    const freq = new Map();
-    for(const o of options) freq.set(o.len, (freq.get(o.len) || 0) + 1);
-    options.sort((a,b)=>{
-      const fa = freq.get(a.len) || 0;
-      const fb = freq.get(b.len) || 0;
-      if(fb !== fa) return fb - fa;
-      if(b.len !== a.len) return b.len - a.len;
-      return String(a.id).localeCompare(String(b.id));
-    });
-
-    const trimmed = options.slice(0, Math.min(options.length, 28));
-    const dp = Array(limitLen + 1).fill(null);
-    dp[0] = { score:0, count:0, prev:-1, itemIndex:-1 };
-    for(let i=0;i<trimmed.length;i++){
-      const opt = trimmed[i];
-      for(let s=limitLen;s>=opt.len;s--){
-        const prev = dp[s - opt.len];
-        if(prev === null) continue;
-        const candScore = prev.score + (opt.len * 100) + ((freq.get(opt.len) || 0) * 1800) + (prev.count * 250);
-        const cur = dp[s];
-        if(cur === null || candScore > cur.score || (candScore === cur.score && (prev.count + 1) > cur.count)){
-          dp[s] = { score: candScore, count: prev.count + 1, prev: s - opt.len, itemIndex: i };
-        }
-      }
-    }
-
-    let bestS = -1, bestScore = -1e18;
-    for(let s=1;s<=limitLen;s++){
-      const state = dp[s];
-      if(state === null || state.count < 2) continue;
-      const consumed = s + Math.max(0, state.count - 1) * K;
-      if(consumed > limitLen) continue;
-      const leftover = limitLen - consumed;
-      let score = state.score;
-      score -= leftover * 20;
-      score += state.count * 5000;
-      if(leftover <= 80) score += 140000;
-      else if(leftover <= 120) score += 80000;
-      else if(leftover <= 180) score += 30000;
-      if(score > bestScore){ bestScore = score; bestS = s; }
-    }
-    if(bestS < 0) return null;
-
-    const usedIdx = [];
-    let cur = bestS;
-    while(cur > 0 && dp[cur] && dp[cur].itemIndex >= 0){
-      const st = dp[cur];
-      usedIdx.push(st.itemIndex);
-      cur = st.prev;
-    }
-    usedIdx.reverse();
-    const selected = usedIdx.map(i => trimmed[i]);
-    if(selected.length < 2) return null;
-    let span = 0;
-    for(let i=0;i<selected.length;i++) span += selected[i].len + (i > 0 ? K : 0);
-    return { selected, span };
-  }
-
-
-  function subsetIds(subset){
-    return new Set((((subset && subset.selected) || []).map(s => s.id)));
-  }
-
-  function subsetArea(subset){
-    let a = 0;
-    for(const s of (((subset && subset.selected) || []))) a += (Number(s.w)||0) * (Number(s.h)||0);
-    return a;
-  }
-
-  function bandOccupancy(subset, fixedDim, mode, limitLen){
-    const area = subsetArea(subset);
-    const bandArea = Math.max(1, (mode === 'hband' ? fixedDim * limitLen : fixedDim * limitLen));
-    return area / bandArea;
-  }
-
-  function buildSeededBandCandidate(items, W, H, K, startAxis){
-    const mode = startAxis === 'along' ? 'hband' : 'vband';
-    const limitLen = startAxis === 'along' ? W : H;
-    const maxDim = startAxis === 'along' ? H : W;
-    const dimKey = startAxis === 'along' ? 'h' : 'w';
-    const dims = groupDimSupport(items, dimKey, maxDim).slice(0, 10).map(v => v.dim);
-    if(!dims.length) return null;
-
-    let best = null;
-    for(const dim1 of dims){
-      const sub1 = chooseBestBandSubset(items, dim1, mode, limitLen, K);
-      if(!sub1 || !sub1.selected || !sub1.selected.length) continue;
-      const occ1 = bandOccupancy(sub1, dim1, mode, limitLen);
-      let bands = [{ subset: sub1, fixedDim: dim1, occ: occ1 }];
-      let rem = removeByIds(items, subsetIds(sub1));
-      let usedDim = dim1;
-      if(occ1 >= 0.90 && rem.length){
-        let bestSecond = null;
-        for(const dim2 of dims){
-          const second = chooseBestBandSubset(rem, dim2, mode, limitLen, K);
-          if(!second || !second.selected || !second.selected.length) continue;
-          const occ2 = bandOccupancy(second, dim2, mode, limitLen);
-          const totalNeed = usedDim + K + dim2;
-          const totalLimit = startAxis === 'along' ? H : W;
-          if(totalNeed > totalLimit) continue;
-          if(occ2 < 0.90) continue;
-          const score = occ2 * 100000 + subsetArea(second);
-          if(!bestSecond || score > bestSecond.score) bestSecond = { subset: second, fixedDim: dim2, occ: occ2, score };
-        }
-        if(bestSecond){
-          bands.push(bestSecond);
-          rem = removeByIds(rem, subsetIds(bestSecond.subset));
-          usedDim += K + bestSecond.fixedDim;
-        }
-      }
-
-      const totalLeadDim = bands.reduce((s,b)=> s + b.fixedDim, 0) + Math.max(0, bands.length - 1) * K;
-      const parts = [];
-      if(mode === 'hband'){
-        let y = 0;
-        for(const band of bands){
-          let x = 0;
-          const placements = [];
-          for(const s of band.subset.selected){
-            placements.push({ id:s.id, x, y, w:s.w, h:s.h, rotated:s.rotated });
-            x += s.w + K;
-          }
-          parts.push({ boardW:W, boardH:H, placements });
-          y += band.fixedDim + K;
-        }
-        const remH = H - totalLeadDim - K;
-        if(remH > 120 && rem.length){
-          const same = packFirstSheet(rem, W, remH, K, 'along');
-          const other = packFirstSheet(rem, W, remH, K, 'across');
-          let chosen = null;
-          for(const candidate of [same, other]){
-            if(!candidate || !candidate.placements || !candidate.placements.length) continue;
-            const sc = scoreSheet(candidate, K, 'auto', 0).score;
-            if(!chosen || sc > chosen.score) chosen = { sheet: candidate, score: sc };
-          }
-          if(chosen){
-            parts.push(offsetSheet(chosen.sheet, 0, totalLeadDim + K));
-          }
-        }
-      } else {
-        let x = 0;
-        for(const band of bands){
-          let y = 0;
-          const placements = [];
-          for(const s of band.subset.selected){
-            placements.push({ id:s.id, x, y, w:s.w, h:s.h, rotated:s.rotated });
-            y += s.h + K;
-          }
-          parts.push({ boardW:W, boardH:H, placements });
-          x += band.fixedDim + K;
-        }
-        const remW = W - totalLeadDim - K;
-        if(remW > 120 && rem.length){
-          const same = packFirstSheet(rem, remW, H, K, 'across');
-          const other = packFirstSheet(rem, remW, H, K, 'along');
-          let chosen = null;
-          for(const candidate of [same, other]){
-            if(!candidate || !candidate.placements || !candidate.placements.length) continue;
-            const sc = scoreSheet(candidate, K, 'auto', 0).score;
-            if(!chosen || sc > chosen.score) chosen = { sheet: candidate, score: sc };
-          }
-          if(chosen){
-            parts.push(offsetSheet(chosen.sheet, totalLeadDim + K, 0));
-          }
-        }
-      }
-      const merged = mergeSheets(W, H, parts);
-      const ids = usedIds(merged);
-      if(!ids.size) continue;
-      const remFinal = removeByIds(items, ids);
-      const localScore = scoreSheet(merged, K, startAxis, 0).score + occ1 * 140000 + (bands.length === 2 ? 120000 : 0);
-      if(!best || localScore > best.localScore){
-        best = {
-          kind:`seed-${startAxis}-${bands.map(b=>b.fixedDim).join('-')}`,
-          axis:startAxis,
-          sheet: merged,
-          rem: remFinal,
-          ids,
-          localScore,
-          leadBands: bands.length,
-          leadOcc: occ1,
-        };
-      }
-    }
-    return best;
-  }
-
-  function buildGroupedBandCandidate(items, W, H, K, fixedDim, mode, restDir){
-    const limitLen = mode === 'hband' ? W : H;
-    const subset = chooseBestBandSubset(items, fixedDim, mode, limitLen, K);
-    if(!subset || !subset.selected || subset.selected.length < 2) return null;
-
-    const parts = [];
-    let rem = (items || []).slice();
-    const selIds = new Set(subset.selected.map(s => s.id));
-    rem = removeByIds(rem, selIds);
-
-    const leadPlacements = [];
-    if(mode === 'hband'){
-      let x = 0;
-      for(const s of subset.selected){
-        leadPlacements.push({ id:s.id, x, y:0, w:s.w, h:s.h, rotated:s.rotated });
-        x += s.w + K;
-      }
-      parts.push({ boardW:W, boardH:H, placements: leadPlacements });
-      const usedW = subset.span;
-      const rightW = W - usedW - K;
-      if(rightW > 120 && rem.length){
-        const right = packFirstSheet(rem, rightW, fixedDim, K, restDir);
-        if(right && right.placements && right.placements.length){
-          const ids = usedIds(right);
-          rem = removeByIds(rem, ids);
-          parts.push(offsetSheet(right, usedW + K, 0));
-        }
-      }
-      const bottomH = H - fixedDim - K;
-      if(bottomH > 120 && rem.length){
-        const bottom = packFirstSheet(rem, W, bottomH, K, restDir);
-        if(bottom && bottom.placements && bottom.placements.length){
-          const ids = usedIds(bottom);
-          rem = removeByIds(rem, ids);
-          parts.push(offsetSheet(bottom, 0, fixedDim + K));
-        }
-      }
-    } else {
-      let y = 0;
-      for(const s of subset.selected){
-        leadPlacements.push({ id:s.id, x:0, y, w:s.w, h:s.h, rotated:s.rotated });
-        y += s.h + K;
-      }
-      parts.push({ boardW:W, boardH:H, placements: leadPlacements });
-      const usedH = subset.span;
-      const bottomH = H - usedH - K;
-      if(bottomH > 120 && rem.length){
-        const bottom = packFirstSheet(rem, fixedDim, bottomH, K, restDir);
-        if(bottom && bottom.placements && bottom.placements.length){
-          const ids = usedIds(bottom);
-          rem = removeByIds(rem, ids);
-          parts.push(offsetSheet(bottom, 0, usedH + K));
-        }
-      }
-      const rightW = W - fixedDim - K;
-      if(rightW > 120 && rem.length){
-        const right = packFirstSheet(rem, rightW, H, K, restDir);
-        if(right && right.placements && right.placements.length){
-          const ids = usedIds(right);
-          rem = removeByIds(rem, ids);
-          parts.push(offsetSheet(right, fixedDim + K, 0));
-        }
-      }
-    }
-
-    const merged = mergeSheets(W, H, parts);
-    const ids = usedIds(merged);
-    return { kind:`group-${mode}-${fixedDim}-${restDir}`, axis:'auto', sheet:merged, rem: removeByIds(items, ids), ids };
-  }
-
-  function packFirstSheet(items, W, H, K, dir){
-    if(!strip || typeof strip.packStripBands !== 'function') return null;
-    const sheets = strip.packStripBands(items, W, H, K, dir) || [];
-    if(!sheets.length) return null;
-    return clone(sheets[0]);
-  }
-
-  function buildFullCandidate(items, W, H, K, dir){
-    const sheet = packFirstSheet(items, W, H, K, dir);
-    if(!sheet) return null;
-    const ids = usedIds(sheet);
-    return { kind:`full-${dir}`, axis:dir, sheet, rem: removeByIds(items, ids), ids };
-  }
-
-  function scoreRectForTeacherFill(fr){
-    const area = (Number(fr && fr.w) || 0) * (Number(fr && fr.h) || 0);
-    const minSide = Math.min(Number(fr && fr.w) || 0, Number(fr && fr.h) || 0);
-    const maxSide = Math.max(Number(fr && fr.w) || 0, Number(fr && fr.h) || 0);
-    return area + (minSide >= 220 ? 60000 : 0) + (maxSide >= 600 ? 40000 : 0) - Math.max(0, 180 - minSide) * 600;
-  }
-
-  function mergePlacementSheets(baseSheet, extraParts, boardW, boardH){
-    const placements = [];
-    for(const p of (((baseSheet && baseSheet.placements) || []))) placements.push(Object.assign({}, p));
-    for(const part of (extraParts || [])){
-      for(const p of (((part && part.placements) || []))) placements.push(Object.assign({}, p));
-    }
-    return { boardW, boardH, placements };
-  }
-
-  function buildTeacherRefinedCandidate(items, W, H, K, baseDir, fillDir, maxRectsToFill){
-    const base = buildFullCandidate(items, W, H, K, baseDir);
-    if(!base || !base.sheet || !base.sheet.placements || !base.sheet.placements.length) return null;
-    const freeRects = calcFreeRects(base.sheet, K)
-      .filter(r => (Number(r && r.w) || 0) >= 140 && (Number(r && r.h) || 0) >= 140)
-      .sort((a,b)=> scoreRectForTeacherFill(b) - scoreRectForTeacherFill(a));
-    if(!freeRects.length) return base;
-
-    let rem = base.rem.slice();
-    const extraSheets = [];
-    let usedAny = false;
-    const limit = Math.max(1, Math.round(Number(maxRectsToFill) || 1));
-    for(const fr of freeRects.slice(0, limit)){
-      if(!rem.length) break;
-      const packed = packFirstSheet(rem, fr.w, fr.h, K, fillDir);
-      if(!packed || !packed.placements || !packed.placements.length) continue;
-      const ids = usedIds(packed);
-      if(!ids.size) continue;
-      usedAny = true;
-      rem = removeByIds(rem, ids);
-      extraSheets.push(offsetSheet(packed, fr.x, fr.y));
-    }
-    if(!usedAny) return base;
-    const merged = mergePlacementSheets(base.sheet, extraSheets, W, H);
-    const ids = usedIds(merged);
+    const a = scoreSheet(s1, kerf, { kind:'pair', primaryAxis:'v', seedBands:[] });
+    const b = scoreSheet(s2, kerf, { kind:'pair', primaryAxis:'v', seedBands:[] });
+    const area = Math.max(1, (Number(s1.boardW)||0) * (Number(s1.boardH)||0) + (Number(s2.boardW)||0) * (Number(s2.boardH)||0));
     return {
-      kind:`teach-${baseDir}-${fillDir}-${limit}`,
-      axis:fillDir === baseDir ? baseDir : 'auto',
-      sheet: merged,
-      rem: removeByIds(items, ids),
-      ids,
-      teacherBaseDir: baseDir,
-      teacherFillDir: fillDir,
-      teacherRects: limit,
+      score: a.score + b.score,
+      disposalArea: (a.disposalArea || 0) + (b.disposalArea || 0),
+      occupancy: (placementArea(s1) + placementArea(s2)) / area,
     };
   }
 
-  function buildHybridHorizontal(items, W, H, K, splitH, topDir, bottomDir){
-    if(!(splitH > 0 && splitH < H - 40)) return null;
-    const top = packFirstSheet(items, W, splitH, K, topDir);
-    if(!top || !top.placements || !top.placements.length) return null;
-    const topIds = usedIds(top);
-    const rem1 = removeByIds(items, topIds);
-    const restH = H - splitH - K;
-    if(restH <= 40){
-      const mergedOnly = mergeSheets(W, H, [top]);
-      const ids = usedIds(mergedOnly);
-      return { kind:`hy-h-${topDir}-${bottomDir}-${splitH}`, axis:topDir, sheet:mergedOnly, rem: removeByIds(items, ids), ids };
+  function repackTailTwoSheets(sheets, kerf, opts){
+    if(!Array.isArray(sheets) || sheets.length < 2) return sheets;
+    const out = sheets.slice();
+    const last = out[out.length - 1];
+    const prev = out[out.length - 2];
+    const ids = new Set([...(usedIds(prev)), ...(usedIds(last))]);
+    const pool = [];
+    for(const s of [prev, last]){
+      for(const p of ((s && s.placements) || []).filter(x=>x && !x.unplaced)){
+        if(ids.has(p.id) && !pool.some(v=>v.id === p.id)){
+          pool.push({
+            id:p.id, key:p.key, name:p.name,
+            w:Number(p.rotated ? p.h : p.w),
+            h:Number(p.rotated ? p.w : p.h),
+            rotationAllowed: true,
+            edgeW1:p.rotated ? p.edgeH1 : p.edgeW1,
+            edgeW2:p.rotated ? p.edgeH2 : p.edgeW2,
+            edgeH1:p.rotated ? p.edgeW1 : p.edgeH1,
+            edgeH2:p.rotated ? p.edgeW2 : p.edgeH2,
+          });
+        }
+      }
     }
-    const bottom = packFirstSheet(rem1, W, restH, K, bottomDir);
-    const bottomPart = bottom ? offsetSheet(bottom, 0, splitH + K) : null;
-    const merged = mergeSheets(W, H, [top, bottomPart].filter(Boolean));
-    const ids = usedIds(merged);
-    return { kind:`hy-h-${topDir}-${bottomDir}-${splitH}`, axis:topDir, sheet:merged, rem: removeByIds(items, ids), ids };
+    let rem = pool.slice();
+    const rebuilt = [];
+    for(let i=0;i<2;i++){
+      if(!rem.length) rebuilt.push({ boardW:last.boardW, boardH:last.boardH, placements:[] });
+      else {
+        const best = chooseBestCandidate(rem, last.boardW, last.boardH, kerf, opts);
+        if(!best) break;
+        rebuilt.push(best.sheet);
+        rem = removeByIds(rem, usedIds(best.sheet));
+      }
+    }
+    if(rebuilt.length !== 2) return sheets;
+    const oldSc = scoreSheetPair(prev, last, kerf);
+    const newSc = scoreSheetPair(rebuilt[0], rebuilt[1], kerf);
+    if(newSc.score > oldSc.score || newSc.disposalArea < oldSc.disposalArea){
+      out[out.length - 2] = rebuilt[0];
+      out[out.length - 1] = rebuilt[1];
+    }
+    return out;
   }
 
-  function buildHybridVertical(items, W, H, K, splitW, leftDir, rightDir){
-    if(!(splitW > 0 && splitW < W - 40)) return null;
-    const left = packFirstSheet(items, splitW, H, K, leftDir);
-    if(!left || !left.placements || !left.placements.length) return null;
-    const leftIds = usedIds(left);
-    const rem1 = removeByIds(items, leftIds);
-    const restW = W - splitW - K;
-    if(restW <= 40){
-      const mergedOnly = mergeSheets(W, H, [left]);
-      const ids = usedIds(mergedOnly);
-      return { kind:`hy-v-${leftDir}-${rightDir}-${splitW}`, axis:leftDir, sheet:mergedOnly, rem: removeByIds(items, ids), ids };
-    }
-    const right = packFirstSheet(rem1, restW, H, K, rightDir);
-    const rightPart = right ? offsetSheet(right, splitW + K, 0) : null;
-    const merged = mergeSheets(W, H, [left, rightPart].filter(Boolean));
-    const ids = usedIds(merged);
-    return { kind:`hy-v-${leftDir}-${rightDir}-${splitW}`, axis:leftDir, sheet:merged, rem: removeByIds(items, ids), ids };
-  }
-
-  function estimateNextOcc(items, W, H, K){
-    if(!items || !items.length) return 1;
-    const a = buildFullCandidate(items, W, H, K, 'along');
-    const b = buildFullCandidate(items, W, H, K, 'across');
-    let best = 0;
-    for(const c of [a,b]){
-      if(!c) continue;
-      const sc = scoreSheet(c.sheet, K, c.axis, 0);
-      if(sc.occ > best) best = sc.occ;
-    }
-    return best;
-  }
-
-  function candidateDimensions(items, W, H, attempts, endgame){
-    const take = endgame ? 12 : Math.max(4, Math.min(8, Math.floor(attempts / 6) || 4));
-    const hBase = groupDimSupport(items, 'h', H).slice(0, take);
-    const wBase = groupDimSupport(items, 'w', W).slice(0, take);
-    const smallHs = Array.from(new Set((items||[])
-      .filter(it => Math.min(it.w||0, it.h||0) <= 180)
-      .flatMap(it => [it.h, (it.rotationAllowed && it.w !== it.h) ? it.w : null])
-      .filter(v => v > 0 && v <= H))).slice(0, endgame ? 8 : 4);
-    const smallWs = Array.from(new Set((items||[])
-      .filter(it => Math.min(it.w||0, it.h||0) <= 180)
-      .flatMap(it => [it.w, (it.rotationAllowed && it.w !== it.h) ? it.h : null])
-      .filter(v => v > 0 && v <= W))).slice(0, endgame ? 8 : 4);
-    return {
-      hs: Array.from(new Set(hBase.map(v=>v.dim).concat(smallHs))),
-      ws: Array.from(new Set(wBase.map(v=>v.dim).concat(smallWs))),
-    };
-  }
-
-  function buildCandidateList(items, W, H, K, attempts, endgame){
-    const { hs, ws } = candidateDimensions(items, W, H, attempts, endgame);
-    const builders = [];
-    builders.push(()=>buildSeededBandCandidate(items, W, H, K, 'along'));
-    builders.push(()=>buildSeededBandCandidate(items, W, H, K, 'across'));
-    // Baselines taught by the stable strip solvers.
-    builders.push(()=>buildFullCandidate(items, W, H, K, 'along'));
-    builders.push(()=>buildFullCandidate(items, W, H, K, 'across'));
-    builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'across', 1));
-    builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'along', 1));
-    if(endgame || attempts >= 24){
-      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'across', 2));
-      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'along', 2));
-      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'along', 'along', 2));
-      builders.push(()=>buildTeacherRefinedCandidate(items, W, H, K, 'across', 'across', 2));
-    }
-    for(const h of hs.slice(0, Math.min(hs.length, endgame ? 10 : 6))){
-      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, h, 'hband', 'along'));
-      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, h, 'hband', 'across'));
-    }
-    for(const w of ws.slice(0, Math.min(ws.length, endgame ? 10 : 6))){
-      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, w, 'vband', 'along'));
-      builders.push(()=>buildGroupedBandCandidate(items, W, H, K, w, 'vband', 'across'));
-    }
-    for(const h of hs){
-      builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'along', 'across'));
-      builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'across', 'along'));
-      if(endgame){
-        builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'along', 'along'));
-        builders.push(()=>buildHybridHorizontal(items, W, H, K, h, 'across', 'across'));
+  function polishLastSheet(sheets, kerf, opts){
+    if(!Array.isArray(sheets) || !sheets.length) return sheets;
+    const out = sheets.slice();
+    const last = out[out.length - 1];
+    const pool = [];
+    for(const p of ((last && last.placements) || []).filter(x=>x && !x.unplaced)){
+      if(!pool.some(v=>v.id === p.id)){
+        pool.push({
+          id:p.id, key:p.key, name:p.name,
+          w:Number(p.rotated ? p.h : p.w),
+          h:Number(p.rotated ? p.w : p.h),
+          rotationAllowed: true,
+          edgeW1:p.rotated ? p.edgeH1 : p.edgeW1,
+          edgeW2:p.rotated ? p.edgeH2 : p.edgeW2,
+          edgeH1:p.rotated ? p.edgeW1 : p.edgeH1,
+          edgeH2:p.rotated ? p.edgeW2 : p.edgeH2,
+        });
       }
     }
-    for(const w of ws){
-      builders.push(()=>buildHybridVertical(items, W, H, K, w, 'across', 'along'));
-      builders.push(()=>buildHybridVertical(items, W, H, K, w, 'along', 'across'));
-      if(endgame){
-        builders.push(()=>buildHybridVertical(items, W, H, K, w, 'along', 'along'));
-        builders.push(()=>buildHybridVertical(items, W, H, K, w, 'across', 'across'));
-      }
-    }
-    return builders.slice(0, Math.max(4, attempts));
-  }
-
-  function chooseBestNextSheet(items, W, H, K, opts){
-    const attempts = Math.max(2, Math.round(Number(opts && opts.attempts) || 50));
-    const lookahead = !!(opts && opts.lookahead);
-    const endgame = !!(opts && opts.endgame);
-    const builders = buildCandidateList(items, W, H, K, attempts, endgame);
-    let best = null;
-    let tries = 0;
-    for(const make of builders){
-      tries += 1;
-      const cand = make();
-      if(!cand || !cand.sheet || !cand.sheet.placements || !cand.sheet.placements.length) continue;
-      const nextOcc = lookahead ? estimateNextOcc(cand.rem, W, H, K) : 0;
-      const sc = scoreSheet(cand.sheet, K, cand.axis, nextOcc);
-      cand.score = sc.score;
-      cand.metrics = sc;
-      cand.tries = tries;
-      if(cand.kind && String(cand.kind).indexOf('teach-') === 0){
-        cand.score += 55000;
-        if(cand.teacherFillDir && cand.teacherBaseDir && cand.teacherFillDir !== cand.teacherBaseDir) cand.score += 85000;
-        cand.score -= (sc.disposalCount || 0) * 12000;
-      }
-      if(cand.kind && String(cand.kind).indexOf('group-') === 0){
-        cand.score += 120000;
-        cand.score += (sc.sharedRows || 0) * 35000;
-        cand.score += (sc.sharedCols || 0) * 25000;
-        cand.score -= (sc.disposalCount || 0) * 18000;
-      }
-      if(cand.kind && String(cand.kind).indexOf('seed-') === 0){
-        cand.score += 170000;
-        cand.score += (cand.leadBands || 0) * 45000;
-        cand.score += (cand.leadOcc || 0) * 120000;
-        cand.score -= (sc.disposalCount || 0) * 22000;
-      }
-      if(!best || cand.score > best.score) best = cand;
-    }
-    return best;
-  }
-
-  function chooseBestTwoSheetTail(items, W, H, K, opts){
-    const attempts = Math.max(10, Math.round(Number(opts && opts.attempts) || 80));
-    const builders = buildCandidateList(items, W, H, K, attempts, true);
-    const firsts = [];
-    for(const make of builders){
-      const cand = make();
-      if(!cand || !cand.sheet || !cand.sheet.placements || !cand.sheet.placements.length) continue;
-      const sc = scoreSheet(cand.sheet, K, cand.axis, 0);
-      cand.score = sc.score;
-      cand.metrics = sc;
-      if(cand.kind && String(cand.kind).indexOf('teach-') === 0){
-        cand.score += 55000;
-        if(cand.teacherFillDir && cand.teacherBaseDir && cand.teacherFillDir !== cand.teacherBaseDir) cand.score += 85000;
-        cand.score -= (sc.disposalCount || 0) * 12000;
-      }
-      if(cand.kind && String(cand.kind).indexOf('group-') === 0){
-        cand.score += 120000;
-        cand.score += (sc.sharedRows || 0) * 35000;
-        cand.score += (sc.sharedCols || 0) * 25000;
-        cand.score -= (sc.disposalCount || 0) * 18000;
-      }
-      if(cand.kind && String(cand.kind).indexOf('seed-') === 0){
-        cand.score += 170000;
-        cand.score += (cand.leadBands || 0) * 45000;
-        cand.score += (cand.leadOcc || 0) * 120000;
-        cand.score -= (sc.disposalCount || 0) * 22000;
-      }
-      firsts.push(cand);
-    }
-    firsts.sort((a,b)=>b.score - a.score);
-    const take = firsts.slice(0, Math.min(12, firsts.length));
-    let best = null;
-    for(const first of take){
-      if(!first.rem.length){
-        const total = first.score + 250000;
-        if(!best || total > best.score) best = { score: total, sheets:[first.sheet], rem:first.rem };
-        continue;
-      }
-      const second = chooseBestNextSheet(first.rem, W, H, K, { attempts: Math.max(8, Math.floor(attempts / 2)), lookahead:false, endgame:true });
-      if(!second) continue;
-      const pairMetrics = scoreSheetPair(first.sheet, second.sheet, K);
-      const total = first.score + second.score + pairMetrics.score + (first.metrics.sharedRows * 30000) + (second.metrics.sharedRows * 30000) - (first.metrics.disposalCount + second.metrics.disposalCount) * 22000;
-      if(!best || total > best.score){
-        best = { score: total, sheets:[first.sheet, second.sheet], rem: second.rem };
-      }
-    }
-    return best;
-  }
-
-  function polishLastSheet(lastItems, W, H, K, attempts){
-    return chooseBestNextSheet(lastItems, W, H, K, { attempts, lookahead:false, endgame:true });
+    const rebuilt = chooseBestCandidate(pool, last.boardW, last.boardH, kerf, Object.assign({}, opts, { clusterTolerance: Math.max(75, (opts.clusterTolerance||75)) }));
+    if(!rebuilt) return sheets;
+    const oldSc = scoreSheet(last, kerf, { kind:'old-last', primaryAxis:'v', seedBands:[] });
+    const newSc = scoreSheet(rebuilt.sheet, kerf, rebuilt.meta);
+    if(newSc.score > oldSc.score || newSc.disposalArea < oldSc.disposalArea) out[out.length - 1] = rebuilt.sheet;
+    return out;
   }
 
   function packOptionalBySheet(itemsIn, boardW, boardH, kerf, opts){
     const W = clampInt(boardW, 2800);
     const H = clampInt(boardH, 2070);
     const K = Math.max(0, Math.round(Number(kerf)||0));
-    let rem = (itemsIn||[]).map(it=>Object.assign({}, it));
+    const settings = Object.assign({
+      clusterTolerance: 75,
+      minFamilyRatio: 0.72,
+      onProgress: null,
+    }, opts || {});
+
+    let remaining = (itemsIn || []).map(it=>Object.assign({}, it));
     const sheets = [];
-    const boardArea = W * H;
-    const attempts = Math.max(2, Math.round(Number(opts && opts.maxAttempts) || Number(opts && opts.attempts) || 50));
-    const endgameAttempts = Math.max(20, Math.round(Number(opts && opts.endgameAttempts) || 200));
-    const onProgress = (opts && typeof opts.onProgress === 'function') ? opts.onProgress : null;
+    let builtSheets = 0;
 
-    function emit(step){
-      if(!onProgress) return;
-      try{ onProgress({ builtSheets: sheets.length, remainingItems: rem.length, step: step || 'sheet' }); }catch(_){ }
-    }
-
-    while(rem.length){
-      const remArea = sumArea(rem);
-      const nearTail = remArea <= boardArea * 2.2 || rem.length <= 18;
-      if(nearTail){
-        const pair = chooseBestTwoSheetTail(rem, W, H, K, { attempts: Math.max(attempts, Math.floor(endgameAttempts / 2)) });
-        if(pair && pair.sheets && pair.sheets.length){
-          for(const s of pair.sheets) sheets.push(s);
-          rem = pair.rem || [];
-          emit('tail-pair');
-          break;
-        }
+    while(remaining.length){
+      if(typeof settings.onProgress === 'function'){
+        try{ settings.onProgress({ step:'sheet', builtSheets }); }catch(_){ }
       }
-      const best = chooseBestNextSheet(rem, W, H, K, { attempts, lookahead:true, endgame:false });
-      if(!best){
-        const fallback = buildFullCandidate(rem, W, H, K, 'along') || buildFullCandidate(rem, W, H, K, 'across');
-        if(!fallback) break;
-        sheets.push(fallback.sheet);
-        rem = fallback.rem;
-        emit('fallback');
-        continue;
-      }
+      const best = chooseBestCandidate(remaining, W, H, K, settings);
+      if(!best || !best.sheet || !usedIds(best.sheet).size) break;
       sheets.push(best.sheet);
-      rem = best.rem;
-      emit('sheet');
+      remaining = removeByIds(remaining, usedIds(best.sheet));
+      builtSheets += 1;
     }
 
-    if(sheets.length >= 2){
-      const penultimate = sheets[sheets.length - 2];
-      const last = sheets[sheets.length - 1];
-      const pairIds = new Set([...usedIds(penultimate), ...usedIds(last)]);
-      const pairItems = (itemsIn||[]).filter(it => pairIds.has(it.id));
-      const rebalanced = chooseBestTwoSheetTail(pairItems, W, H, K, { attempts: Math.max(attempts, Math.floor(endgameAttempts * 0.75)) });
-      if(rebalanced && rebalanced.sheets && rebalanced.sheets.length === 2){
-        const oldPair = scoreSheetPair(penultimate, last, K);
-        const newPair = scoreSheetPair(rebalanced.sheets[0], rebalanced.sheets[1], K);
-        if(newPair.score > oldPair.score + 30000 || newPair.disposalArea < oldPair.disposalArea - 20000){
-          sheets[sheets.length - 2] = rebalanced.sheets[0];
-          sheets[sheets.length - 1] = rebalanced.sheets[1];
-          emit('tail-rebalance');
-        }
-      }
-    }
-
-    if(sheets.length){
-      const last = sheets[sheets.length - 1];
-      const lastIds = usedIds(last);
-      const lastItems = (itemsIn||[]).filter(it => lastIds.has(it.id));
-      const polished = polishLastSheet(lastItems, W, H, K, endgameAttempts);
-      if(polished && polished.sheet){
-        const oldOcc = placementArea(last) / Math.max(1, boardArea);
-        const newOcc = placementArea(polished.sheet) / Math.max(1, boardArea);
-        const oldScore = scoreSheet(last, K, 'auto', 0).score;
-        const newScore = scoreSheet(polished.sheet, K, 'auto', 0).score;
-        if(newOcc > oldOcc + 0.01 || newScore > oldScore + 25000){
-          sheets[sheets.length - 1] = polished.sheet;
-          emit('last-polish');
-        }
-      }
-    }
-
-    return sheets;
+    let out = sheets;
+    out = repackTailTwoSheets(out, K, settings);
+    out = polishLastSheet(out, K, settings);
+    return out;
   }
 
   root.FC.optionalSolver = Object.assign({}, root.FC.optionalSolver || {}, {
     packOptionalBySheet,
   });
-})(typeof self !== 'undefined' ? self : (typeof window !== 'undefined' ? window : globalThis));
+})(typeof self !== 'undefined' ? self : window);
