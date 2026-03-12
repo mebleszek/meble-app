@@ -312,3 +312,9 @@ Dopiero potem go zmieniać.
 - `js/app/optional-solver.js` — solver trybu „Opcjonalnie”; od step79 uczy się od stabilnych solverów pasowych (`along/across`) przez kandydaty bazowe i dogęszczanie największych wolnych prostokątów przeciwnym kierunkiem, bez zmiany działania samych trybów pasowych.
 
 - step81: `js/app/optional-solver.js` dostał nowy typ kandydatów `seed-*` inspirowany proponowanym algorytmem pasa startowego: optional próbuje zbudować 1 mocny pas startowy z grupy podobnych formatów (oraz 2. pas tylko gdy oba są bardzo dobrze wypełnione), a dopiero resztę płyty dopycha solverem pasowym. Kandydaty `seed-*` korzystają z grupowania podobnych wymiarów i mogą używać obrotu formatek, jeśli wolno. To pierwszy krok w stronę modelu „1–2 pasy startowe + dalsze liczenie reszty płyty”.
+
+
+## 2026-03-12 — optional solver rewrite v2
+- `js/app/optional-solver.js` przepisany ponownie jako konstrukcyjny solver: 1–2 pasy startowe z klastrów podobnych wymiarów, potem dogęszczenie reszty drugim kierunkiem przez solver pasowy.
+- Nie zmieniano `js/app/strip-solver.js`; tryby wzdłuż / w poprzek pozostają bezpieczne i osobne.
+- Podbito wersję workera w `js/app/rozrys.js`, żeby przeglądarka nie trzymała starego worker cache.
