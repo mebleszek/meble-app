@@ -228,7 +228,8 @@
         const gap = Math.abs(primary - guideDim);
         const prefer = (preferredItemId && it.id === preferredItemId) ? 120000 : 0;
         const familyBonus = Math.max(0, tol - gap) * 1200;
-        const score = (o.w * o.h) * 1000 + familyBonus + prefer - gap * 1200 - cross * 25;
+        const wideBonus = (opts && opts.preferWideBand) ? primary * 900 : 0;
+        const score = (o.w * o.h) * 1000 + familyBonus + prefer + wideBonus - gap * 1200 - cross * 25;
         variants.push({ orient:o, primary, cross, score });
       }
       if(!variants.length) continue;
@@ -283,7 +284,8 @@
       }
       if(bandPrimary <= 0) continue;
       const fillRatio = st.area / Math.max(1, bandPrimary * cap);
-      const score = st.score + fillRatio * 240000 + st.count * 8000 - Math.abs(bandPrimary - guideDim) * 400;
+      const wideBandScore = (opts && opts.preferWideBand) ? bandPrimary * 500 : 0;
+      const score = st.score + fillRatio * 240000 + st.count * 8000 + wideBandScore - Math.abs(bandPrimary - guideDim) * 400;
       if(!best || score > best.score) best = { score, st, bandPrimary, fillRatio };
     }
     if(!best) return null;
@@ -440,13 +442,13 @@
 
     const threshold1 = Number((opts && opts.minBandFill) || 0.80);
     const threshold2 = Number((opts && opts.secondBandFill) || 0.90);
-    const band1 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideA, seedItem && seedItem.id, opts);
+    const band1 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideA, null, Object.assign({}, opts, { preferWideBand:true }));
     if(!band1) return null;
     applyBand(band1);
 
     // Drugi pas tylko gdy pierwszy jest naprawdę mocny i drugi też mocny.
     if((band1.fillRatio || 0) >= threshold2 && guideB && residual.w > 120 && residual.h > 120){
-      const band2 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideB, null, opts);
+      const band2 = buildClusterBand(remaining, seedAxis, seedAxis === 'v' ? residual.w : residual.h, seedAxis === 'v' ? residual.h : residual.w, kerf, guideB, null, Object.assign({}, opts, { preferWideBand:true }));
       if(band2 && (band2.fillRatio || 0) >= threshold2){
         applyBand(band2);
       }
@@ -471,32 +473,54 @@
     return { sheet, meta, sc, firstBandFill:(band1.fillRatio||0), accepted: (band1.fillRatio||0) >= threshold1 };
   }
 
+  function familyClusters(items, axis, limitPrimary, limitCross, opts){
+    const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
+    const step = Math.max(10, Math.round(tol / 2));
+    const buckets = new Map();
+    for(const it of (items || [])){
+      for(const o of itemOrientations(it)){
+        const primary = axis === 'v' ? o.w : o.h;
+        const cross = axis === 'v' ? o.h : o.w;
+        if(primary <= 0 || cross <= 0) continue;
+        if(primary > limitPrimary || cross > limitCross) continue;
+        const key = widthBucket(primary, step);
+        const prev = buckets.get(key) || { guide:key, count:0, area:0, maxPrimary:0, maxArea:0 };
+        prev.count += 1;
+        prev.area += primary * cross;
+        prev.maxPrimary = Math.max(prev.maxPrimary, primary);
+        prev.maxArea = Math.max(prev.maxArea, primary * cross);
+        buckets.set(key, prev);
+      }
+    }
+    return Array.from(buckets.values())
+      .sort((a,b)=> (b.area-a.area) || (b.maxPrimary-a.maxPrimary) || (b.count-a.count) || (b.guide-a.guide));
+  }
+
   function generateSeedPlans(items, boardW, boardH, kerf, opts){
     const W = boardW, H = boardH;
     const out = [];
-    const seeds = topSeedItems(items, opts.seedLimit || 18);
-    for(const seed of seeds){
-      for(const axis of ['v','h']){
-        const guides = guideDimsFromItem(seed, axis)
-          .filter(g=> (axis === 'v' ? g.guide <= W && g.cross <= H : g.guide <= H && g.cross <= W))
-          .sort((a,b)=> areaOf({ w:b.orient.w, h:b.orient.h }) - areaOf({ w:a.orient.w, h:a.orient.h }));
-        for(const g of guides.slice(0,2)){
-          const familyGuides = [g.guide];
-          // poszukaj drugiego podobnego prowadzącego wymiaru z pozostałych dużych elementów
-          for(const other of seeds){
-            if(other.id === seed.id) continue;
-            for(const og of guideDimsFromItem(other, axis)){
-              if(Math.abs(og.guide - g.guide) <= Math.max(75, opts.clusterTolerance || 75) && familyGuides.length < 3){
-                familyGuides.push(og.guide);
-              }
-            }
-            if(familyGuides.length >= 3) break;
-          }
-          out.push({ seed, axis, guideA:g.guide, guideB:familyGuides[1] || null });
+    const maxAttempts = Math.max(1, Math.round(Number((opts && opts.maxAttempts) || 150)));
+    const wideRatio = Math.max(0.45, Math.min(0.92, Number((opts && opts.seedWideRatio) || 0.65)));
+    for(const axis of ['v','h']){
+      const limitPrimary = axis === 'v' ? W : H;
+      const limitCross = axis === 'v' ? H : W;
+      const fams = familyClusters(items, axis, limitPrimary, limitCross, opts);
+      if(!fams.length) continue;
+      const topArea = fams[0].area || 1;
+      const maxGuide = fams.reduce((m,f)=>Math.max(m, f.guide||0), 0);
+      let strong = fams.filter(f=> (f.guide >= maxGuide * wideRatio) || (f.area >= topArea * 0.55));
+      if(!strong.length) strong = fams.slice(0, Math.min(8, fams.length));
+      strong = strong.slice(0, Math.min(10, maxAttempts));
+      for(let i=0; i<strong.length; i++){
+        const a = strong[i];
+        out.push({ axis, guideA:a.guide, guideB:null, seedWideScore: a.guide * 1000 + a.area });
+        for(let j=i+1; j<Math.min(strong.length, i+4); j++){
+          const b = strong[j];
+          out.push({ axis, guideA:a.guide, guideB:b.guide, seedWideScore: Math.max(a.guide, b.guide) * 1500 + a.area + b.area });
         }
       }
     }
-    return out;
+    return out.sort((a,b)=> (b.seedWideScore-a.seedWideScore) || ((b.guideA||0)-(a.guideA||0)));
   }
 
   function buildFallback(items, boardW, boardH, kerf){
@@ -512,11 +536,19 @@
 
   function chooseBestConstructive(items, boardW, boardH, kerf, opts){
     const plans = generateSeedPlans(items, boardW, boardH, kerf, opts);
+    const maxAttempts = Math.max(1, Math.round(Number((opts && opts.maxAttempts) || 150)));
     let bestAccepted = null;
     let bestAny = null;
+    let tries = 0;
     for(const plan of plans){
-      const built = buildConstructiveSheet(items, boardW, boardH, kerf, plan.seed, plan.axis, plan.guideA, plan.guideB, opts);
+      if(tries >= maxAttempts) break;
+      const built = buildConstructiveSheet(items, boardW, boardH, kerf, null, plan.axis, plan.guideA, plan.guideB, opts);
+      tries += 1;
+      if(typeof opts.onProgress === 'function'){
+        try{ opts.onProgress({ step:'attempt', currentAttempt:tries, maxAttempts }); }catch(_){ }
+      }
       if(!built || !usedIds(built.sheet).size) continue;
+      built.sc.score += (plan.seedWideScore || 0) * 0.02;
       if(!bestAny || built.sc.score > bestAny.sc.score) bestAny = built;
       if(built.accepted && (!bestAccepted || built.sc.score > bestAccepted.sc.score)) bestAccepted = built;
     }
@@ -616,9 +648,11 @@
       familyMinRatio: 0.74,
       minBandFill: 0.80,
       secondBandFill: 0.90,
+      seedWideRatio: 0.65,
       seedLimit: 24,
-      minOppositeResidualFill: 0.58,
+      minOppositeResidualFill: 0.66,
       onProgress: null,
+      maxAttempts: 150,
     }, opts || {});
 
     let remaining = (itemsIn || []).map(it=>Object.assign({}, it));
@@ -627,7 +661,7 @@
 
     while(remaining.length){
       if(typeof settings.onProgress === 'function'){
-        try{ settings.onProgress({ step:'sheet', builtSheets }); }catch(_){ }
+        try{ settings.onProgress({ step:'sheet', builtSheets, currentAttempt:0, maxAttempts:settings.maxAttempts }); }catch(_){ }
       }
       const best = chooseBestConstructive(remaining, W, H, K, settings);
       if(!best || !best.sheet || !usedIds(best.sheet).size) break;

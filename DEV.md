@@ -325,3 +325,5 @@ Dopiero potem go zmieniać.
 
 
 - 2026-03-12 step86: Opcjonalny residual po 1-2 pasach jest już budowany własnym konstruktorem przeciwnych pasów (`packBandsInAxis`), a nie przez miękki fallback do solvera pasowego. Dodany cache-bust v5 dla workera/solverów.
+
+- 2026-03-12: optional-solver v6 — seed plans oparte na klastrach rodzin szerokości/wysokości (z preferencją szerokich pasów), maxAttempts steruje realną liczbą sprawdzanych konstrukcyjnych wariantów; worker i cache-busting podbite do v6.

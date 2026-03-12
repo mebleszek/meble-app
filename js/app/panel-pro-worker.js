@@ -10,7 +10,7 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
-const SOLVER_VER = '20260312_optional_v5';
+const SOLVER_VER = '20260312_optional_v6';
 try{
   importScripts('strip-solver.js?v=' + SOLVER_VER, 'optional-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){
@@ -268,11 +268,19 @@ try{
         onProgress: (info)=>{
           try{
             progress.step = (info && info.step) ? String(info.step) : 'sheet';
+            if(Number.isFinite(Number(info && info.currentAttempt))){
+              progress.currentAttempt = Math.max(0, Math.round(Number(info.currentAttempt)));
+            }
+            if(Number.isFinite(Number(info && info.maxAttempts))){
+              progress.iters = Math.min(Math.round(Number(info.maxAttempts)), Math.max(progress.iters || 0, progress.currentAttempt || 0));
+            }
             self.postMessage({
               type:'progress',
               phase: progress.phase,
               step: progress.step,
               elapsedMs: Math.round(now() - started),
+              currentAttempt: progress.currentAttempt || 0,
+              maxAttempts: Number(info && info.maxAttempts) || maxAttempts,
               best: { sheets: Math.max(1, Number((info && info.builtSheets) || 1)), waste: 0 }
             });
           }catch(_){ }
