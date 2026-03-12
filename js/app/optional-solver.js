@@ -328,6 +328,135 @@
     return { selected, span };
   }
 
+
+  function subsetIds(subset){
+    return new Set((((subset && subset.selected) || []).map(s => s.id)));
+  }
+
+  function subsetArea(subset){
+    let a = 0;
+    for(const s of (((subset && subset.selected) || []))) a += (Number(s.w)||0) * (Number(s.h)||0);
+    return a;
+  }
+
+  function bandOccupancy(subset, fixedDim, mode, limitLen){
+    const area = subsetArea(subset);
+    const bandArea = Math.max(1, (mode === 'hband' ? fixedDim * limitLen : fixedDim * limitLen));
+    return area / bandArea;
+  }
+
+  function buildSeededBandCandidate(items, W, H, K, startAxis){
+    const mode = startAxis === 'along' ? 'hband' : 'vband';
+    const limitLen = startAxis === 'along' ? W : H;
+    const maxDim = startAxis === 'along' ? H : W;
+    const dimKey = startAxis === 'along' ? 'h' : 'w';
+    const dims = groupDimSupport(items, dimKey, maxDim).slice(0, 10).map(v => v.dim);
+    if(!dims.length) return null;
+
+    let best = null;
+    for(const dim1 of dims){
+      const sub1 = chooseBestBandSubset(items, dim1, mode, limitLen, K);
+      if(!sub1 || !sub1.selected || !sub1.selected.length) continue;
+      const occ1 = bandOccupancy(sub1, dim1, mode, limitLen);
+      let bands = [{ subset: sub1, fixedDim: dim1, occ: occ1 }];
+      let rem = removeByIds(items, subsetIds(sub1));
+      let usedDim = dim1;
+      if(occ1 >= 0.90 && rem.length){
+        let bestSecond = null;
+        for(const dim2 of dims){
+          const second = chooseBestBandSubset(rem, dim2, mode, limitLen, K);
+          if(!second || !second.selected || !second.selected.length) continue;
+          const occ2 = bandOccupancy(second, dim2, mode, limitLen);
+          const totalNeed = usedDim + K + dim2;
+          const totalLimit = startAxis === 'along' ? H : W;
+          if(totalNeed > totalLimit) continue;
+          if(occ2 < 0.90) continue;
+          const score = occ2 * 100000 + subsetArea(second);
+          if(!bestSecond || score > bestSecond.score) bestSecond = { subset: second, fixedDim: dim2, occ: occ2, score };
+        }
+        if(bestSecond){
+          bands.push(bestSecond);
+          rem = removeByIds(rem, subsetIds(bestSecond.subset));
+          usedDim += K + bestSecond.fixedDim;
+        }
+      }
+
+      const totalLeadDim = bands.reduce((s,b)=> s + b.fixedDim, 0) + Math.max(0, bands.length - 1) * K;
+      const parts = [];
+      if(mode === 'hband'){
+        let y = 0;
+        for(const band of bands){
+          let x = 0;
+          const placements = [];
+          for(const s of band.subset.selected){
+            placements.push({ id:s.id, x, y, w:s.w, h:s.h, rotated:s.rotated });
+            x += s.w + K;
+          }
+          parts.push({ boardW:W, boardH:H, placements });
+          y += band.fixedDim + K;
+        }
+        const remH = H - totalLeadDim - K;
+        if(remH > 120 && rem.length){
+          const same = packFirstSheet(rem, W, remH, K, 'along');
+          const other = packFirstSheet(rem, W, remH, K, 'across');
+          let chosen = null;
+          for(const candidate of [same, other]){
+            if(!candidate || !candidate.placements || !candidate.placements.length) continue;
+            const sc = scoreSheet(candidate, K, 'auto', 0).score;
+            if(!chosen || sc > chosen.score) chosen = { sheet: candidate, score: sc };
+          }
+          if(chosen){
+            parts.push(offsetSheet(chosen.sheet, 0, totalLeadDim + K));
+          }
+        }
+      } else {
+        let x = 0;
+        for(const band of bands){
+          let y = 0;
+          const placements = [];
+          for(const s of band.subset.selected){
+            placements.push({ id:s.id, x, y, w:s.w, h:s.h, rotated:s.rotated });
+            y += s.h + K;
+          }
+          parts.push({ boardW:W, boardH:H, placements });
+          x += band.fixedDim + K;
+        }
+        const remW = W - totalLeadDim - K;
+        if(remW > 120 && rem.length){
+          const same = packFirstSheet(rem, remW, H, K, 'across');
+          const other = packFirstSheet(rem, remW, H, K, 'along');
+          let chosen = null;
+          for(const candidate of [same, other]){
+            if(!candidate || !candidate.placements || !candidate.placements.length) continue;
+            const sc = scoreSheet(candidate, K, 'auto', 0).score;
+            if(!chosen || sc > chosen.score) chosen = { sheet: candidate, score: sc };
+          }
+          if(chosen){
+            parts.push(offsetSheet(chosen.sheet, totalLeadDim + K, 0));
+          }
+        }
+      }
+      const merged = mergeSheets(W, H, parts);
+      const ids = usedIds(merged);
+      if(!ids.size) continue;
+      const remFinal = removeByIds(items, ids);
+      const localScore = scoreSheet(merged, K, startAxis, 0).score + occ1 * 140000 + (bands.length === 2 ? 120000 : 0);
+      if(!best || localScore > best.localScore){
+        best = {
+          kind:`seed-${startAxis}-${bands.map(b=>b.fixedDim).join('-')}`,
+          axis:startAxis,
+          sheet: merged,
+          rem: remFinal,
+          ids,
+          localScore,
+          leadBands: bands.length,
+          leadOcc: occ1,
+        };
+      }
+    }
+    return best;
+  }
+
   function buildGroupedBandCandidate(items, W, H, K, fixedDim, mode, restDir){
     const limitLen = mode === 'hband' ? W : H;
     const subset = chooseBestBandSubset(items, fixedDim, mode, limitLen, K);
@@ -537,6 +666,8 @@
   function buildCandidateList(items, W, H, K, attempts, endgame){
     const { hs, ws } = candidateDimensions(items, W, H, attempts, endgame);
     const builders = [];
+    builders.push(()=>buildSeededBandCandidate(items, W, H, K, 'along'));
+    builders.push(()=>buildSeededBandCandidate(items, W, H, K, 'across'));
     // Baselines taught by the stable strip solvers.
     builders.push(()=>buildFullCandidate(items, W, H, K, 'along'));
     builders.push(()=>buildFullCandidate(items, W, H, K, 'across'));
@@ -602,6 +733,12 @@
         cand.score += (sc.sharedCols || 0) * 25000;
         cand.score -= (sc.disposalCount || 0) * 18000;
       }
+      if(cand.kind && String(cand.kind).indexOf('seed-') === 0){
+        cand.score += 170000;
+        cand.score += (cand.leadBands || 0) * 45000;
+        cand.score += (cand.leadOcc || 0) * 120000;
+        cand.score -= (sc.disposalCount || 0) * 22000;
+      }
       if(!best || cand.score > best.score) best = cand;
     }
     return best;
@@ -627,6 +764,12 @@
         cand.score += (sc.sharedRows || 0) * 35000;
         cand.score += (sc.sharedCols || 0) * 25000;
         cand.score -= (sc.disposalCount || 0) * 18000;
+      }
+      if(cand.kind && String(cand.kind).indexOf('seed-') === 0){
+        cand.score += 170000;
+        cand.score += (cand.leadBands || 0) * 45000;
+        cand.score += (cand.leadOcc || 0) * 120000;
+        cand.score -= (sc.disposalCount || 0) * 22000;
       }
       firsts.push(cand);
     }
