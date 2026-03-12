@@ -333,13 +333,89 @@
     };
   }
 
+
+  function familyGuidesFromRemaining(items, axis, limitPrimary, limitCross, opts){
+    const tol = Math.max(20, Math.round(Number((opts && opts.clusterTolerance) || 75)));
+    const bucketStep = Math.max(10, Math.round(tol / 2));
+    const buckets = new Map();
+    for(const it of (items || [])){
+      for(const o of itemOrientations(it)){
+        const primary = axis === 'v' ? o.w : o.h;
+        const cross = axis === 'v' ? o.h : o.w;
+        if(primary <= 0 || cross <= 0) continue;
+        if(primary > limitPrimary || cross > limitCross) continue;
+        const key = widthBucket(primary, bucketStep);
+        const prev = buckets.get(key) || { guide:key, count:0, area:0, members:0 };
+        prev.count += 1;
+        prev.area += primary * cross;
+        prev.members += 1;
+        buckets.set(key, prev);
+      }
+    }
+    return Array.from(buckets.values())
+      .sort((a,b)=> (b.count-a.count) || (b.area-a.area) || (b.guide-a.guide))
+      .map(v=>v.guide)
+      .slice(0, 10);
+  }
+
+  function packBandsInAxis(items, rect, kerf, axis, opts){
+    const K = Math.max(0, Math.round(Number(kerf)||0));
+    let remaining = (items || []).slice();
+    const placements = [];
+    let residual = { x:0, y:0, w:Number(rect.w)||0, h:Number(rect.h)||0 };
+    const ids = new Set();
+    const minFill = Math.max(0.45, Number((opts && opts.minOppositeResidualFill) || 0.58));
+    const weakStop = Math.max(0.38, minFill - 0.10);
+    let bandsMade = 0;
+
+    while(remaining.length && residual.w > 60 && residual.h > 60){
+      const limitPrimary = axis === 'v' ? residual.w : residual.h;
+      const limitCross = axis === 'v' ? residual.h : residual.w;
+      const guides = familyGuidesFromRemaining(remaining, axis, limitPrimary, limitCross, opts);
+      if(!guides.length) break;
+      let bestBand = null;
+      for(const guide of guides){
+        const band = buildClusterBand(remaining, axis, limitPrimary, limitCross, K, guide, null, opts);
+        if(!band || !band.ids || !band.ids.size) continue;
+        const tail = Math.max(0, limitCross - ((axis === 'v')
+          ? Math.max(...band.placements.map(p=> (p.y||0) + (p.h||0)), 0)
+          : Math.max(...band.placements.map(p=> (p.x||0) + (p.w||0)), 0)));
+        const score = (band.fillRatio || 0) * 100000 + (band.usedArea || 0) - tail * 120;
+        if(!bestBand || score > bestBand._score){
+          bestBand = Object.assign({ _score: score }, band);
+        }
+      }
+      if(!bestBand) break;
+      if(bandsMade > 0 && (bestBand.fillRatio || 0) < weakStop) break;
+      if(bandsMade === 0 && (bestBand.fillRatio || 0) < minFill) break;
+
+      const shifted = bestBand.placements.map(p=>Object.assign({}, p, { x:(p.x||0)+residual.x, y:(p.y||0)+residual.y }));
+      placements.push(...shifted);
+      for(const id of bestBand.ids) ids.add(id);
+      remaining = removeByIds(remaining, bestBand.ids);
+      if(axis === 'v'){
+        residual = { x: residual.x + bestBand.bandPrimary + K, y: residual.y, w: residual.w - bestBand.bandPrimary - K, h: residual.h };
+      } else {
+        residual = { x: residual.x, y: residual.y + bestBand.bandPrimary + K, w: residual.w, h: residual.h - bestBand.bandPrimary - K };
+      }
+      bandsMade += 1;
+    }
+
+    return {
+      direction: axis === 'v' ? 'along' : 'across',
+      sheet: mergePlacements(Number(rect.w)||0, Number(rect.h)||0, placements),
+      ids,
+      bandsMade,
+    };
+  }
+
   function residualFillCandidate(remaining, rect, kerf, primaryAxis, opts){
-    if(!remaining.length || !strip || typeof strip.packStripBands !== 'function') return null;
-    const preferred = primaryAxis === 'v' ? 'across' : 'along';
-    const packed = strip.packStripBands(remaining, rect.w, rect.h, kerf, preferred) || [];
-    const firstSheet = packed[0] || { boardW:rect.w, boardH:rect.h, placements:[] };
-    const sc = scoreSheet(firstSheet, kerf, { primaryAxis: preferred === 'along' ? 'v' : 'h', seedBands:[] });
-    return { direction: preferred, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0 };
+    if(!remaining.length) return null;
+    const oppositeAxis = primaryAxis === 'v' ? 'h' : 'v';
+    const direct = packBandsInAxis(remaining, rect, kerf, oppositeAxis, opts);
+    const firstSheet = (direct && direct.sheet) || { boardW:rect.w, boardH:rect.h, placements:[] };
+    const sc = scoreSheet(firstSheet, kerf, { primaryAxis: oppositeAxis, seedBands:[] });
+    return { direction: direct.direction, sheet:firstSheet, score: sc.score, sc, occ: sc.occupancy || 0, ids: direct.ids || new Set() };
   }
 
   function buildConstructiveSheet(items, boardW, boardH, kerf, seedItem, seedAxis, guideA, guideB, opts){
@@ -383,7 +459,7 @@
       if(refilled){
         const shifted = offsetSheet(refilled.sheet, residual.x, residual.y);
         placements.push(...(shifted.placements || []));
-        remaining = removeByIds(remaining, usedIds(refilled.sheet));
+        remaining = removeByIds(remaining, refilled.ids && refilled.ids.size ? refilled.ids : usedIds(refilled.sheet));
         residualDirection = refilled.direction;
       }
     }
