@@ -330,3 +330,5 @@ Dopiero potem go zmieniać.
 - 2026-03-12: optional-solver v6 — seed plans oparte na klastrach rodzin szerokości/wysokości (z preferencją szerokich pasów), maxAttempts steruje realną liczbą sprawdzanych konstrukcyjnych wariantów; worker i cache-busting podbite do v6.
 
 - 2026-03-12: Optionalnie v7: residual po pasach startowych wypełniany najpierw solverem pasowym w osi przeciwnej; wybór kandydatów preferuje wyższą zajętość arkusza i szerszy pierwszy pas; tail rebalance i polish tylko przy realnej poprawie zajętości/odpadu.
+
+- 2026-03-12 step90: usunięto tryb `Opcjonalnie` z UI ROZRYS i ścieżki workera. Kierunek cięcia został zredukowany do dwóch trybów: `Preferuj pasy wzdłuż` oraz `Preferuj pasy w poprzek`. Stare konfiguracje `auto/optional` są normalizowane do `along`, a worker nie importuje już `optional-solver.js`.

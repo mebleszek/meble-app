@@ -10,12 +10,12 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
-const SOLVER_VER = '20260312_optional_v8';
+const SOLVER_VER = '20260312_strip_only_v1';
 try{
-  importScripts('strip-solver.js?v=' + SOLVER_VER, 'optional-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
+  importScripts('strip-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){
   // fallback: try absolute from /js/app (when worker is created with different base)
-  try{ importScripts('/js/app/strip-solver.js?v=' + SOLVER_VER, '/js/app/optional-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
+  try{ importScripts('/js/app/strip-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
 }
 
 (function(){
@@ -192,14 +192,11 @@ try{
     const perSheetMs = Math.max(120, Math.round(Number(opts && opts.perSheetMs) || 420));
     const beamWidth = Math.max(40, Math.round(Number(opts && opts.beamWidth) || 220));
     const hardStopMs = Math.max(4000, maxAttempts * 1500);
-    const cutPref = (opts && (opts.cutPref || opts.direction)) || 'auto';
-    const cutMode = (opts && opts.cutMode) || 'optional';
+    const cutPref = ((opts && (opts.cutPref || opts.direction)) === 'across') ? 'across' : 'along';
+    const cutMode = ((opts && opts.cutMode) === 'across') ? 'across' : 'along';
     const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
     const minScrapH = Math.max(0, Math.round((opts && opts.minScrapH != null) ? Number(opts.minScrapH) : 100));
-    // NOTE (praktyka): "auto" w packGuillotineBeam potrafi generować układy
-    // OK procentowo, ale fatalne pod piłę (mnóstwo zmian kierunku cięcia).
-    // W Ultra "Auto" oznacza: wybierz najlepsze spośród along/across.
-    const prefList = (cutPref === 'auto') ? ['along','across'] : [cutPref];
+    const prefList = [cutPref];
 
     const packOne = (arr, pref, ms)=>{
       if(cutMode === 'along' || cutMode === 'across'){
@@ -258,40 +255,7 @@ try{
       }catch(_){ }
     }, 250);
 
-    if(cutMode === 'optional' && self.FC && self.FC.optionalSolver && typeof self.FC.optionalSolver.packOptionalBySheet === 'function'){
-      progress.phase = 'main';
-      progress.step = 'running';
-      reportProgress(true);
-      const sheets = self.FC.optionalSolver.packOptionalBySheet(items, W, H, K, {
-        maxAttempts,
-        endgameAttempts,
-        onProgress: (info)=>{
-          try{
-            progress.step = (info && info.step) ? String(info.step) : 'sheet';
-            if(Number.isFinite(Number(info && info.currentAttempt))){
-              progress.currentAttempt = Math.max(0, Math.round(Number(info.currentAttempt)));
-            }
-            if(Number.isFinite(Number(info && info.maxAttempts))){
-              progress.iters = Math.min(Math.round(Number(info.maxAttempts)), Math.max(progress.iters || 0, progress.currentAttempt || 0));
-            }
-            self.postMessage({
-              type:'progress',
-              phase: progress.phase,
-              step: progress.step,
-              elapsedMs: Math.round(now() - started),
-              currentAttempt: progress.currentAttempt || 0,
-              maxAttempts: Number(info && info.maxAttempts) || maxAttempts,
-              best: { sheets: Math.max(1, Number((info && info.builtSheets) || 1)), waste: 0 }
-            });
-          }catch(_){ }
-        }
-      });
-      const sc = scoreSheets(sheets);
-      const res = { sheets, sc };
-      setBest(res);
-      reportProgress(true);
-      return { sheets: res.sheets, cancelled: _cancelled };
-    }
+
 
     // deterministic runs first
     let best = null;
@@ -563,9 +527,7 @@ try{
       return bestLocal;
     }
 
-    if(best && !_cancelled && cutMode === 'optional'){
-      best = doCrazyPostPass(best);
-    }
+
 
     // === Optimax post-pass: strip-first + fill long strips with small parts from tail ===
     // Triggered only when opts.optimax=true.
@@ -720,13 +682,10 @@ try{
       return currentBest;
     }
 
-    if(best && !_cancelled && opts && opts.optimax && cutMode === 'optional'){
-      best = doOptimaxStripFill(best);
-      setBest(best);
-    }
+
 
     if(best) return { sheets: best.sheets, cancelled: _cancelled };
-    // Fallback: still evaluate both preferences when auto.
+    // Fallback: evaluate the normalized preferred direction once more.
     let fallbackBest = null;
     for(const pref of prefList){
       if(_cancelled) break;

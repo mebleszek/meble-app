@@ -459,7 +459,7 @@
       sheets = opt.packGuillotineBeam(items, W, H, K, {
         beamWidth: 260,
         timeMs: 30000,
-        cutPref: state.direction || 'auto',
+        cutPref: normalizeCutDirection(state.direction),
         scrapFirst: true,
       });
     }
@@ -473,21 +473,9 @@
         timeMs: 700,
       });
     } else {
-      const dir = state.direction || 'auto';
-      const toShelfDir = (d)=> (d==='along') ? 'wzdłuż' : (d==='across') ? 'wpoprz' : d;
-      if(dir === 'auto'){
-        const a = opt.packShelf(items, W, H, K, 'wzdłuż');
-        const b = opt.packShelf(items, W, H, K, 'wpoprz');
-        const score = (ss)=>{
-          const totalWaste = ss.reduce((sum,s)=>sum + opt.calcWaste(s).waste,0);
-          return { sheets: ss.length, waste: totalWaste };
-        };
-        const sa = score(a);
-        const sb = score(b);
-        sheets = (sb.sheets < sa.sheets || (sb.sheets === sa.sheets && sb.waste < sa.waste)) ? b : a;
-      } else {
-        sheets = opt.packShelf(items, W, H, K, toShelfDir(dir));
-      }
+      const dir = normalizeCutDirection(state.direction);
+      const toShelfDir = (d)=> (d==='across') ? 'wpoprz' : 'wzdłuż';
+      sheets = opt.packShelf(items, W, H, K, toShelfDir(dir));
     }
     // store meta for drawing offset
     return { sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
@@ -504,10 +492,14 @@
     return map[key] || map.D;
   }
 
+  function normalizeCutDirection(dir){
+    return (dir === 'across') ? 'across' : 'along';
+  }
+
   function directionLabel(dir){
-    if(dir === 'along') return 'Preferuj pasy wzdłuż';
-    if(dir === 'across') return 'Preferuj pasy w poprzek';
-    return 'Opcjonalnie';
+    return normalizeCutDirection(dir) === 'across'
+      ? 'Preferuj pasy w poprzek'
+      : 'Preferuj pasy wzdłuż';
   }
 
   function formatHeurLabel(st){
@@ -567,16 +559,16 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260312_optional_rewrite_v8');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260312_strip_only_v1');
       }catch(e){
         // fallback (sync, limited)
         try{
-          const cutMode = (state.direction === 'along' || state.direction === 'across') ? state.direction : 'optional';
+          const cutMode = normalizeCutDirection(state.direction);
           const minScrapW = toMm(state.minScrapW) || 0;
           const minScrapH = toMm(state.minScrapH) || 0;
-          const sheets = (cutMode !== 'optional' && opt.packStripBands)
+          const sheets = (opt.packStripBands)
             ? opt.packStripBands(items, W, H, K, cutMode)
-            : opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, cutPref: state.direction || 'auto', scrapFirst:true, minScrapW: minScrapW, minScrapH: minScrapH });
+            : opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, cutPref: cutMode, scrapFirst:true, minScrapW: minScrapW, minScrapH: minScrapH });
           return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
         }catch(_){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
@@ -650,7 +642,7 @@
       worker.addEventListener('error', onErr);
       worker.addEventListener('messageerror', onMsgErr);
 
-      const o = Object.assign({ maxAttempts: 150, endgameAttempts: 200, perSheetMs: 420, beamWidth: 220, cutPref: state.direction || 'auto' }, (panelOpts||{}));
+      const o = Object.assign({ maxAttempts: 150, endgameAttempts: 200, perSheetMs: 420, beamWidth: 220, cutPref: normalizeCutDirection(state.direction) }, (panelOpts||{}));
       const watchdogMs = Math.max(15000, Math.round(Number(o.maxAttempts)||150) * 400 + 12000);
       // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
       tmr = setTimeout(()=>{
@@ -705,7 +697,7 @@
       optimaxProfile: 'D',
       minScrapW: 0,
       minScrapH: 0,
-      direction: 'auto',
+      direction: 'along',
     };
 
     // if magazyn has hint for first material
@@ -835,8 +827,7 @@
     dirWrap.appendChild(h('label', { text:'Kierunek cięcia' }));
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
-      <option value="auto">Opcjonalnie kierunek cięcia</option>
-      <option value="along">Preferuj pasy wzdłuż arkusza</option>
+      <option value="along" selected>Preferuj pasy wzdłuż arkusza</option>
       <option value="across">Preferuj pasy w poprzek arkusza</option>
     `;
     dirWrap.appendChild(dirSel);
@@ -861,7 +852,7 @@
 
     const modeHintWrap = h('div');
     modeHintWrap.appendChild(h('label', { text:'Tryb pracy' }));
-    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Opcjonalnie = hybryda. Pozostałe tryby preferują pasy w wybranym kierunku, ale mogą lokalnie od niego odejść dla lepszego upakowania.' }));
+    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Tryb określa preferowany kierunek pasów dla arkusza. Wybierz wzdłuż albo w poprzek.' }));
     controls3.appendChild(modeHintWrap);
 
     card.appendChild(controls);
@@ -978,7 +969,7 @@
         grain: !!grainChk.checked,
         heur: 'optimax',
         optimaxProfile: heurSel.value,
-        direction: dirSel.value,
+        direction: normalizeCutDirection(dirSel.value),
       };
     }
 
@@ -1351,7 +1342,7 @@ async function generate(force){
     grain: !!grainChk.checked,
     heur: 'optimax',
     optimaxProfile: heurSel.value,
-    direction: dirSel.value,
+    direction: normalizeCutDirection(dirSel.value),
   };
 
   const cache = loadPlanCache();
@@ -1396,10 +1387,10 @@ async function generate(force){
       return;
     }
 
-    // Optimax mode: profile-driven worker with optional / strip cut styles.
+    // Optimax mode: profile-driven worker for strip-oriented cut styles.
     if(st.heur === "optimax"){
       const preset = getOptimaxProfilePreset(st.optimaxProfile);
-      const cutMode = (st.direction === 'along' || st.direction === 'across') ? st.direction : 'optional';
+      const cutMode = normalizeCutDirection(st.direction);
       const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
       const toMm2 = (v)=>{
         const n = Number(v);
@@ -1458,7 +1449,7 @@ async function generate(force){
           perSheetMs: preset.perSheetMs,
           beamWidth: preset.beamWidth,
           endgameAttempts: preset.endgameAttempts,
-          cutPref: st.direction || 'auto',
+          cutPref: cutMode,
           cutMode,
           minScrapW: minScrapW2,
           minScrapH: minScrapH2,
@@ -1513,13 +1504,13 @@ async function generate(force){
           const minScrapH2 = toMm2(st.minScrapH) || 0;
           const W2 = Math.max(10, W02 - 2*trim2);
           const H2 = Math.max(10, H02 - 2*trim2);
-          const cutMode2 = (st.direction === 'along' || st.direction === 'across') ? st.direction : 'optional';
-          const sheets2 = (cutMode2 !== 'optional' && opt2.packStripBands)
+          const cutMode2 = normalizeCutDirection(st.direction);
+          const sheets2 = (opt2.packStripBands)
             ? opt2.packStripBands(items2, W2, H2, K2, cutMode2)
             : opt2.packGuillotineBeam(items2, W2, H2, K2, {
                 beamWidth: 110,
                 timeMs: 900,
-                cutPref: st.direction || 'auto',
+                cutPref: cutMode2,
                 scrapFirst: true,
                 minScrapW: minScrapW2,
                 minScrapH: minScrapH2,
