@@ -350,3 +350,10 @@ Dopiero potem go zmieniać.
 - `js/app/optima-solver.js`: decyzja o 2. pasie startowym nie opiera się już wyłącznie na lokalnym wypełnieniu pasa. Doszedł test powierzchni (`boardShare` / `remainingShare` / relacja pola do 1. pasa), żeby odrzucać długie, cienkie drugie pasy, które formalnie mają >=90% zajętości, ale praktycznie psują układ.
 - Po odrzuceniu takiego 2. pasa top-level `Optima` próbuje najpierw zapakować główny prostokąt resztowy w osi przeciwnej (`buildForcedDirectionRectPack`), zamiast kontynuować ten sam kierunek na siłę.
 - Podbito cache-bust workera/solverów do `20260313_optima_v4`.
+
+
+## 2026-03-13 — step95
+- tryb `Preferuj pasy w poprzek arkusza` został przepięty na silnik `optima-solver.js`
+- stary ścisły solver poprzeczny nie jest już używany w aktywnej ścieżce liczenia dla tego trybu
+- `Optima` zostaje osobno jako równoległy preset do dalszego rozwoju heurystyk
+- worker cache bump: `20260313_optima_v5`

@@ -683,13 +683,15 @@
     const isCancelled = (options && typeof options.isCancelled === 'function') ? options.isCancelled : ()=>false;
     let remMaster = (itemsIn || []).map(cloneItem);
     const sheets = [];
+    const preferredDirection = String((options && options.direction) || '').toLowerCase();
+    const swapOrder = (preferredDirection === 'across') ? [true, false] : [false, true];
 
     while(remMaster.length){
       if(isCancelled()) break;
       const started = now();
       let best = null;
       const attempts = [];
-      for(const swap of [false, true]){
+      for(const swap of swapOrder){
         const BW = swap ? H : W;
         const BH = swap ? W : H;
         const seeds = buildSeedCandidates(remMaster, BW, BH, swap, cfg.seedLimit);

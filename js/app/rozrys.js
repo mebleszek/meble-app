@@ -484,7 +484,7 @@
   function getOptimaxProfilePreset(profile, direction){
     const key = String(profile || 'D').toUpperCase();
     const dir = normalizeCutDirection(direction);
-    if(dir === 'optima'){
+    if(dir === 'optima' || dir === 'across'){
       const mapOptima = {
         A: { maxAttempts: 1, perSheetMs: 5000,  beamWidth: 80,  endgameAttempts: 40 },
         B: { maxAttempts: 1, perSheetMs: 12000, beamWidth: 90,  endgameAttempts: 60 },
@@ -506,6 +506,11 @@
     if(dir === 'across') return 'across';
     if(dir === 'optima') return 'optima';
     return 'along';
+  }
+
+  function usesOptimaEngine(dir){
+    const norm = normalizeCutDirection(dir);
+    return norm === 'optima' || norm === 'across';
   }
 
   function directionLabel(dir){
@@ -572,7 +577,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260313_optima_v4');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260313_optima_v5');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -580,7 +585,7 @@
           const minScrapW = toMm(state.minScrapW) || 0;
           const minScrapH = toMm(state.minScrapH) || 0;
           let sheets = [];
-          if(cutMode === 'optima' && opt.packOptima){
+          if(usesOptimaEngine(cutMode) && opt.packOptima){
             sheets = opt.packOptima(items, W, H, K, { profile: state.optimaxProfile, minScrapW: minScrapW, minScrapH: minScrapH });
           } else {
             sheets = (opt.packStripBands)
@@ -661,7 +666,7 @@
       worker.addEventListener('messageerror', onMsgErr);
 
       const o = Object.assign({ maxAttempts: 150, endgameAttempts: 200, perSheetMs: 420, beamWidth: 220, cutPref: normalizeCutDirection(state.direction), cutMode: normalizeCutDirection(state.direction), optimaxProfile: String(state.optimaxProfile || 'D').toUpperCase(), sheetEstimate: Number(panelOpts && panelOpts.sheetEstimate) || 1 }, (panelOpts||{}));
-      const watchdogMs = (normalizeCutDirection(state.direction) === 'optima')
+      const watchdogMs = usesOptimaEngine(state.direction)
         ? Math.max(45000, Math.round(Number(o.perSheetMs)||5000) * Math.max(1, Math.round(Number(o.sheetEstimate)||1)) + 20000)
         : Math.max(15000, Math.round(Number(o.maxAttempts)||150) * 400 + 12000);
       // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
@@ -873,7 +878,7 @@
 
     const modeHintWrap = h('div');
     modeHintWrap.appendChild(h('label', { text:'Tryb pracy' }));
-    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Optima = start od 1–2 mocnych pasów, próba obrotu arkusza, naprawa słabych pasów i mocniejsze dopieszczanie końcówki. Pozostałe tryby trzymają stały kierunek pasów.' }));
+    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Optima = start od 1–2 mocnych pasów, próba obrotu arkusza, naprawa słabych pasów i mocniejsze dopieszczanie końcówki. Tryb poprzeczny korzysta teraz z tego samego silnika, ale zostaje osobno jako preset roboczy.' }));
     controls3.appendChild(modeHintWrap);
 
     card.appendChild(controls);
@@ -1530,7 +1535,7 @@ async function generate(force){
           const W2 = Math.max(10, W02 - 2*trim2);
           const H2 = Math.max(10, H02 - 2*trim2);
           const cutMode2 = normalizeCutDirection(st.direction);
-          const sheets2 = (cutMode2 === 'optima' && opt2.packOptima)
+          const sheets2 = (usesOptimaEngine(cutMode2) && opt2.packOptima)
             ? opt2.packOptima(items2, W2, H2, K2, { profile: String(st.optimaxProfile || 'D').toUpperCase(), minScrapW: minScrapW2, minScrapH: minScrapH2 })
             : ((opt2.packStripBands)
                 ? opt2.packStripBands(items2, W2, H2, K2, cutMode2)

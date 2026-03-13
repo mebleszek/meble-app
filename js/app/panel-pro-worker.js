@@ -196,15 +196,17 @@ try{
     const cutPref = (rawPref === 'across') ? 'across' : (rawPref === 'optima' ? 'optima' : 'along');
     const rawMode = (opts && opts.cutMode) || cutPref;
     const cutMode = (rawMode === 'across') ? 'across' : (rawMode === 'optima' ? 'optima' : 'along');
+    const useOptimaEngine = (cutMode === 'optima' || cutMode === 'across');
     const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
     const minScrapH = Math.max(0, Math.round((opts && opts.minScrapH != null) ? Number(opts.minScrapH) : 100));
     const prefList = [cutPref];
 
     const packOne = (arr, pref, ms)=>{
-      if(cutMode === 'optima'){
+      if(useOptimaEngine){
         if(opt.packOptima){
           return opt.packOptima(arr, W, H, K, {
             profile: (opts && opts.optimaxProfile) || 'D',
+            direction: cutMode,
             perSheetMs: ms,
             minScrapW,
             minScrapH,
@@ -273,7 +275,7 @@ try{
     // deterministic runs first
     let best = null;
 
-    if(cutMode === 'optima' && opt.packOptima){
+    if(useOptimaEngine && opt.packOptima){
       progress.phase = 'main';
       progress.step = 'running';
       progress.currentAttempt = 1;
