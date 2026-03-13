@@ -28,7 +28,10 @@
 6. **Optimax rozwijamy głównie w tych plikach:**
    - `js/app/rozrys.js`
    - `js/app/cut-optimizer.js`
-   - `js/app/strip-solver.js`
+   - `js/app/optima-core.js`
+   - `js/app/along-solver.js`
+   - `js/app/across-solver.js`
+   - `js/app/optima-solver.js`
    - Nie dokładamy tam logiki bokiem do `app.js`, poza koniecznymi mostami do istniejących danych projektu.
 
 7. **Duży `js/app.js` traktować ostrożnie.**
@@ -71,8 +74,10 @@
 - `js/app/investor-project.js` — projekt inwestora.
 - `js/app/tabs-router.js` — routing zakładek.
 - `js/app/cut-optimizer.js` — główny silnik rozkroju i eksport API Optimax.
-- `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
-- `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
+- `js/app/optima-core.js` — wspólny rdzeń wszystkich trybów Optimax: 1–2 pasy startowe, potem obowiązkowa zmiana kierunku, bez końcowego polishu po policzeniu.
+- `js/app/along-solver.js` — tryb `Preferuj pasy wzdłuż arkusza`, wymusza start pasami wzdłużnymi i dalej liczy na rdzeniu Optima.
+- `js/app/across-solver.js` — tryb `Preferuj pasy w poprzek arkusza`, wymusza start pasami poprzecznymi i dalej liczy na rdzeniu Optima.
+- `js/app/optima-solver.js` — tryb `Optima`, wybiera lepszy kierunek startu per arkusz, ale dalej używa tego samego rdzenia.
 - `js/app/magazyn.js` — logika magazynu.
 - `js/app/rozrys.js` — logika zakładki rozrysu / Optimax.
 
@@ -113,7 +118,7 @@ Dopiero potem go zmieniać.
 - **widok źle się przełącza** → `js/app/views.js`, `js/app/sections.js`, `setActiveTab()` w `js/app.js`
 - **rozjeżdżają się dane projektu** → `js/app/session.js`, `js/app/storage.js`, `js/app/validate.js`, fragmenty `js/app.js`
 - **szafki renderują się źle / znikają** → `renderCabinets()` i wszystko, co go wywołuje
-- **Optimax / rozrys działa źle** → `js/app/rozrys.js`, `js/app/cut-optimizer.js`, ewentualnie worker
+- **Optimax / rozrys działa źle** → `js/app/rozrys.js`, `js/app/cut-optimizer.js`, `js/app/optima-core.js`, `js/app/along-solver.js`, `js/app/across-solver.js`, `js/app/optima-solver.js`, ewentualnie worker
 
 ---
 
@@ -341,4 +346,15 @@ Dopiero potem go zmieniać.
 - Web Worker ma nowy cache-bust `20260312_optima_v1` i ładuje `optima-solver.js`.
 - Profile A/B/C/D dla trybu `Optima` mają większy budżet czasu na płytę niż klasyczne tryby pasowe.
 
-- 2026-03-13 step96: tryb `Preferuj pasy w poprzek` naprawdę przełączono na solver `optima-solver.js` (wcześniej worker nadal mógł lecieć starą ścieżką pasową). Dla trybu poprzecznego dodano preferencję układu w poprzek przy liczeniu oraz twarde dopieszczanie ostatniej / pojedynczej płyty: tail polish repackuje od największych elementów i przy pojedynczej ostatniej płycie wymusza wariant w poprzek, jeśli mieści się w tej samej liczbie arkuszy.
+## 2026-03-12 — krok 92: korekta trybu Optima
+- Podniesiono docelowe wypełnienie dalszych pasów z 80% do 90% i mocniej karane są końcówki pasa z dużym pustym ogonem.
+- `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
+- Podbito cache-bust workera/solverów do `20260312_optima_v3`.
+
+## 2026-03-12 — krok 93: Optima mocniej wymusza zmianę kierunku
+- `js/app/optima-solver.js` po 1–2 pasach startowych próbuje teraz obowiązkowo przejść w przeciwny kierunek, jeśli tylko da się zbudować sensowną dalszą część arkusza (`goodEnoughSwitch`).
+- Dalsza część płyty jest pakowana jako osobny wariant w prostokącie resztowym z wymuszonym przeciwnym kierunkiem, zamiast iść do końca tym samym układem pasów.
+- Wiersze / kolumny są dodatkowo normalizowane do układu od szerszych do węższych, żeby ograniczyć dziwne naprzemienne kolejności w jednym pasie.
+- Cache-bust workera/solverów podbity do `20260312_optima_v3`.
+
+- step97: uporządkowano wszystkie tryby kierunku cięcia pod jeden rdzeń `optima-core.js`. `along` i `across` mają osobne pliki wrapperów, ale liczą tym samym algorytmem co `Optima`. Usunięto legacy `strip-solver.js` z aktywnej ścieżki oraz wyrzucono końcowe `tail polish` / `last sheet polish` z aktywnego liczenia.
