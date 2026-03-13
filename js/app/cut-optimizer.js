@@ -235,19 +235,17 @@
   }
 
 
-  // ===== Strip bands (Opti-like pass mode)
-  // direction:
-  // - 'along'  => horizontal strips running along the long edge shown on screen
-  // - 'across' => same logic after swapping board axes (vertical strips in final view)
-  // The row height is defined by the anchor piece; smaller pieces may fill the tail of the strip.
-  // ===== Strip bands (wydzielony solver pasowy)
-  function packStripBands(itemsIn, boardW, boardH, kerf, direction){
-    const stripSolver = window.FC && window.FC.stripSolver;
-    if(stripSolver && typeof stripSolver.packStripBands === 'function'){
-      return stripSolver.packStripBands(itemsIn, boardW, boardH, kerf, direction);
+  // ===== Wspólny rdzeń Optimax w 3 wrapperach =====
+  function packStripBands(itemsIn, boardW, boardH, kerf, direction, options){
+    const dir = (direction === 'across') ? 'across' : 'along';
+    const alongSolver = window.FC && window.FC.alongSolver;
+    const acrossSolver = window.FC && window.FC.acrossSolver;
+    const solver = dir === 'across' ? acrossSolver : alongSolver;
+    if(solver && typeof (dir === 'across' ? solver.packAcross : solver.packAlong) === 'function'){
+      return (dir === 'across' ? solver.packAcross : solver.packAlong)(itemsIn, boardW, boardH, kerf, options || {});
     }
-    console.warn('[cut-optimizer] strip-solver.js niezaładowany; używam prostego fallbacku shelf');
-    return packShelf(itemsIn, boardW, boardH, kerf, direction === 'across' ? 'wpoprz' : 'auto');
+    console.warn('[cut-optimizer] brak nowego solvera wzdłuż/poprzek; używam fallbacku shelf');
+    return packShelf(itemsIn, boardW, boardH, kerf, dir === 'across' ? 'wpoprz' : 'auto');
   }
 
   function packOptima(itemsIn, boardW, boardH, kerf, options){
@@ -255,7 +253,7 @@
     if(optimaSolver && typeof optimaSolver.packOptima === 'function'){
       return optimaSolver.packOptima(itemsIn, boardW, boardH, kerf, options || {});
     }
-    return packStripBands(itemsIn, boardW, boardH, kerf, 'along');
+    return packStripBands(itemsIn, boardW, boardH, kerf, 'along', options);
   }
 
 

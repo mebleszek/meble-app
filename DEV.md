@@ -341,5 +341,21 @@ Dopiero potem go zmieniać.
 - Web Worker ma nowy cache-bust `20260312_optima_v1` i ładuje `optima-solver.js`.
 - Profile A/B/C/D dla trybu `Optima` mają większy budżet czasu na płytę niż klasyczne tryby pasowe.
 
-- 2026-03-13 step96: tryb `Preferuj pasy w poprzek` naprawdę przełączono na solver `optima-solver.js` (wcześniej worker nadal mógł lecieć starą ścieżką pasową). Dla trybu poprzecznego dodano preferencję układu w poprzek przy liczeniu oraz twarde dopieszczanie ostatniej / pojedynczej płyty: tail polish repackuje od największych elementów i przy pojedynczej ostatniej płycie wymusza wariant w poprzek, jeśli mieści się w tej samej liczbie arkuszy.
-- 2026-03-13 step98: naprawa pustych arkuszy w solverach `optima-solver.js` i `strip-solver.js`. Gdy heurystyka nie zbuduje wariantu, zamiast debugowego `unplaced:true` solver próbuje wymusić normalne ułożenie pojedynczego elementu na nowej płycie. Dodatkowo finalny wynik jest sanityzowany: puste arkusze są usuwane, a arkusze zawierające wyłącznie placeholdery są ratowane do realnych pojedynczych płyt, jeśli element fizycznie mieści się na arkuszu. Cache workera/ROZRYS podbity do `20260313_empty_sheet_fix_v1`.
+## 2026-03-12 — krok 92: korekta trybu Optima
+- Podniesiono docelowe wypełnienie dalszych pasów z 80% do 90% i mocniej karane są końcówki pasa z dużym pustym ogonem.
+- `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
+- Podbito cache-bust workera/solverów do `20260312_optima_v2`.
+
+## 2026-03-13 — krok 94: Optima, kontrola 2. pasa po powierzchni
+- `js/app/optima-solver.js`: decyzja o 2. pasie startowym nie opiera się już wyłącznie na lokalnym wypełnieniu pasa. Doszedł test powierzchni (`boardShare` / `remainingShare` / relacja pola do 1. pasa), żeby odrzucać długie, cienkie drugie pasy, które formalnie mają >=90% zajętości, ale praktycznie psują układ.
+- Po odrzuceniu takiego 2. pasa top-level `Optima` próbuje najpierw zapakować główny prostokąt resztowy w osi przeciwnej (`buildForcedDirectionRectPack`), zamiast kontynuować ten sam kierunek na siłę.
+- Podbito cache-bust workera/solverów do `20260313_optima_v4`.
+
+
+## 2026-03-13 step100 — cleanup rdzenia Optimax
+- Tryby `Preferuj pasy wzdłuż`, `Preferuj pasy w poprzek` i `Optima` jadą teraz przez wspólny rdzeń `js/app/optima-core.js`.
+- Nowe wrappery: `js/app/along-solver.js`, `js/app/across-solver.js`, `js/app/optima-solver.js`.
+- Usunięto aktywne użycie starych solverów `strip-solver.js` i `optional-solver.js`.
+- Z aktywnej ścieżki rozkroju wyrzucono limity czasowe i końcowe porządkowanie ostatnich płyt.
+- `Optima` zawsze buduje 1–2 pasy w jednym kierunku, potem wymusza zmianę kierunku; `wzdłuż` startuje wzdłuż, `w poprzek` startuje w poprzek.
+- Profil `D` działa bez limitu czasu; różnice A/B/C/D wynikają z szerokości przeszukiwania seedów, nie z timeoutów.

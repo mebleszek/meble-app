@@ -484,22 +484,7 @@
   function getOptimaxProfilePreset(profile, direction){
     const key = String(profile || 'D').toUpperCase();
     const dir = normalizeCutDirection(direction);
-    if(dir === 'optima'){
-      const mapOptima = {
-        A: { maxAttempts: 1, perSheetMs: 5000,  beamWidth: 80,  endgameAttempts: 40 },
-        B: { maxAttempts: 1, perSheetMs: 12000, beamWidth: 90,  endgameAttempts: 60 },
-        C: { maxAttempts: 1, perSheetMs: 20000, beamWidth: 100, endgameAttempts: 80 },
-        D: { maxAttempts: 1, perSheetMs: 30000, beamWidth: 120, endgameAttempts: 120 },
-      };
-      return mapOptima[key] || mapOptima.D;
-    }
-    const map = {
-      A: { maxAttempts: 10,  perSheetMs: 140, beamWidth: 60,  endgameAttempts: 200 },
-      B: { maxAttempts: 50,  perSheetMs: 180, beamWidth: 80,  endgameAttempts: 200 },
-      C: { maxAttempts: 100, perSheetMs: 220, beamWidth: 100, endgameAttempts: 200 },
-      D: { maxAttempts: 150, perSheetMs: 260, beamWidth: 120, endgameAttempts: 200 },
-    };
-    return map[key] || map.D;
+    return { profile: key, direction: dir };
   }
 
   function normalizeCutDirection(dir){
@@ -524,7 +509,7 @@
 
   // ===== Panel-saw PRO / Optimax in Web Worker (non-blocking) =====
   // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
-  // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
+  // Uruchamiamy worker per-run (bez re-używania singletona), ale bez automatycznych timeoutów.
   function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     return new Promise((resolve)=>{
       const opt = FC.cutOptimizer;
@@ -572,7 +557,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260313_empty_sheet_fix_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260313_cleanup_v1');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -580,11 +565,11 @@
           const minScrapW = toMm(state.minScrapW) || 0;
           const minScrapH = toMm(state.minScrapH) || 0;
           let sheets = [];
-          if((cutMode === 'optima' || cutMode === 'across') && opt.packOptima){
-            sheets = opt.packOptima(items, W, H, K, { profile: state.optimaxProfile, minScrapW: minScrapW, minScrapH: minScrapH, cutMode, preferAcross: cutMode === 'across', forceTailAcross: cutMode === 'across', seedLargestFirst: cutMode === 'across' });
+          if(cutMode === 'optima' && opt.packOptima){
+            sheets = opt.packOptima(items, W, H, K, { profile: state.optimaxProfile, minScrapW: minScrapW, minScrapH: minScrapH });
           } else {
             sheets = (opt.packStripBands)
-              ? opt.packStripBands(items, W, H, K, cutMode)
+              ? opt.packStripBands(items, W, H, K, cutMode, { profile: String(state.optimaxProfile || 'D').toUpperCase(), minScrapW: minScrapW, minScrapH: minScrapH })
               : opt.packGuillotineBeam(items, W, H, K, { beamWidth: 120, timeMs: 800, cutPref: cutMode, scrapFirst:true, minScrapW: minScrapW, minScrapH: minScrapH });
           }
           return resolve({ sheets, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -594,7 +579,6 @@
       }
 
       let settled = false;
-      let tmr = null;
 
       // allow caller to cancel this run
       const runId = (control && Number(control.runId)) ? Number(control.runId) : 0;
@@ -610,7 +594,6 @@
         try{ worker.removeEventListener('message', handle); }catch(_){ }
         try{ worker.removeEventListener('error', onErr); }catch(_){ }
         try{ worker.removeEventListener('messageerror', onMsgErr); }catch(_){ }
-        if(tmr){ try{ clearTimeout(tmr); }catch(_){ } tmr = null; }
         try{ worker.terminate(); }catch(_){ }
         worker = null;
       };
@@ -660,14 +643,7 @@
       worker.addEventListener('error', onErr);
       worker.addEventListener('messageerror', onMsgErr);
 
-      const o = Object.assign({ maxAttempts: 150, endgameAttempts: 200, perSheetMs: 420, beamWidth: 220, cutPref: normalizeCutDirection(state.direction), cutMode: normalizeCutDirection(state.direction), optimaxProfile: String(state.optimaxProfile || 'D').toUpperCase(), sheetEstimate: Number(panelOpts && panelOpts.sheetEstimate) || 1 }, (panelOpts||{}));
-      const watchdogMs = ((normalizeCutDirection(state.direction) === 'optima') || (normalizeCutDirection(state.direction) === 'across'))
-        ? Math.max(45000, Math.round(Number(o.perSheetMs)||5000) * Math.max(1, Math.round(Number(o.sheetEstimate)||1)) + 20000)
-        : Math.max(15000, Math.round(Number(o.maxAttempts)||150) * 400 + 12000);
-      // Watchdog: if worker never responds (mobile/browser edge cases), unblock UI.
-      tmr = setTimeout(()=>{
-        finish({ sheets: [], note: 'Liczenie przerwane: worker nie odpowiedział w rozsądnym czasie.', meta: { trim, boardW: W0, boardH: H0, unit } });
-      }, watchdogMs);
+      const o = Object.assign({ cutPref: normalizeCutDirection(state.direction), cutMode: normalizeCutDirection(state.direction), optimaxProfile: String(state.optimaxProfile || 'D').toUpperCase(), sheetEstimate: Number(panelOpts && panelOpts.sheetEstimate) || 1 }, (panelOpts||{}));
 
       try{
         worker.postMessage({
@@ -1429,7 +1405,6 @@ async function generate(force){
       const roughArea = (parts||[]).reduce((sum, p)=> sum + ((Number(p.w)||0) * (Number(p.h)||0) * Math.max(1, Number(p.qty)||1)), 0);
       const roughSheetsEstimate = Math.max(1, Math.ceil(roughArea / Math.max(1, W2 * H2)));
 
-      const maxAttempts = Math.max(1, Math.round(Number(preset.maxAttempts) || 150));
       const profileLabel = String(st.optimaxProfile || 'D').toUpperCase();
       const loading = renderLoadingInto(target || null, `Optimax ${profileLabel} • 0.0 s`, `Liczę materiał: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Najlepsze: —`);
       startGlobalTicker(material, profileLabel);
@@ -1468,10 +1443,6 @@ async function generate(force){
             refreshMaterialTicker();
           }catch(_){ }
         }, control, {
-          maxAttempts: maxAttempts,
-          perSheetMs: preset.perSheetMs,
-          beamWidth: preset.beamWidth,
-          endgameAttempts: preset.endgameAttempts,
           cutPref: cutMode,
           cutMode,
           minScrapW: minScrapW2,
@@ -1489,7 +1460,7 @@ async function generate(force){
         if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
       }
 
-      // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
+      // Jeśli worker się wywali albo zwróci pusty wynik — daj szybki fallback zamiast "Brak wyniku".
       if(!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0){
         try{
           const opt2 = FC.cutOptimizer;
@@ -1533,7 +1504,7 @@ async function generate(force){
           const sheets2 = (cutMode2 === 'optima' && opt2.packOptima)
             ? opt2.packOptima(items2, W2, H2, K2, { profile: String(st.optimaxProfile || 'D').toUpperCase(), minScrapW: minScrapW2, minScrapH: minScrapH2 })
             : ((opt2.packStripBands)
-                ? opt2.packStripBands(items2, W2, H2, K2, cutMode2)
+                ? opt2.packStripBands(items2, W2, H2, K2, cutMode2, { profile: String(st.optimaxProfile || 'D').toUpperCase(), minScrapW: minScrapW2, minScrapH: minScrapH2 })
                 : opt2.packGuillotineBeam(items2, W2, H2, K2, {
                     beamWidth: 110,
                     timeMs: 900,
