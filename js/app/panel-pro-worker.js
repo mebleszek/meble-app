@@ -10,7 +10,7 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
-const SOLVER_VER = '20260313_optima_v4';
+const SOLVER_VER = '20260313_optima_v6';
 try{
   importScripts('strip-solver.js?v=' + SOLVER_VER, 'optima-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){
@@ -196,25 +196,27 @@ try{
     const cutPref = (rawPref === 'across') ? 'across' : (rawPref === 'optima' ? 'optima' : 'along');
     const rawMode = (opts && opts.cutMode) || cutPref;
     const cutMode = (rawMode === 'across') ? 'across' : (rawMode === 'optima' ? 'optima' : 'along');
-    const useOptimaEngine = (cutMode === 'optima' || cutMode === 'across');
     const minScrapW = Math.max(0, Math.round((opts && opts.minScrapW != null) ? Number(opts.minScrapW) : 100));
     const minScrapH = Math.max(0, Math.round((opts && opts.minScrapH != null) ? Number(opts.minScrapH) : 100));
     const prefList = [cutPref];
 
     const packOne = (arr, pref, ms)=>{
-      if(useOptimaEngine){
+      if(cutMode === 'optima' || cutMode === 'across'){
         if(opt.packOptima){
           return opt.packOptima(arr, W, H, K, {
             profile: (opts && opts.optimaxProfile) || 'D',
-            direction: cutMode,
             perSheetMs: ms,
             minScrapW,
             minScrapH,
+            cutMode,
+            preferAcross: cutMode === 'across',
+            forceTailAcross: cutMode === 'across',
+            seedLargestFirst: cutMode === 'across',
             isCancelled: ()=>_cancelled,
           });
         }
       }
-      if(cutMode === 'along' || cutMode === 'across'){
+      if(cutMode === 'along'){
         if(opt.packStripBands){
           return opt.packStripBands(arr, W, H, K, cutMode);
         }
@@ -275,7 +277,7 @@ try{
     // deterministic runs first
     let best = null;
 
-    if(useOptimaEngine && opt.packOptima){
+    if((cutMode === 'optima' || cutMode === 'across') && opt.packOptima){
       progress.phase = 'main';
       progress.step = 'running';
       progress.currentAttempt = 1;

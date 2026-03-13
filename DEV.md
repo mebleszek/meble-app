@@ -341,19 +341,4 @@ Dopiero potem go zmieniać.
 - Web Worker ma nowy cache-bust `20260312_optima_v1` i ładuje `optima-solver.js`.
 - Profile A/B/C/D dla trybu `Optima` mają większy budżet czasu na płytę niż klasyczne tryby pasowe.
 
-## 2026-03-12 — krok 92: korekta trybu Optima
-- Podniesiono docelowe wypełnienie dalszych pasów z 80% do 90% i mocniej karane są końcówki pasa z dużym pustym ogonem.
-- `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
-- Podbito cache-bust workera/solverów do `20260312_optima_v2`.
-
-## 2026-03-13 — krok 94: Optima, kontrola 2. pasa po powierzchni
-- `js/app/optima-solver.js`: decyzja o 2. pasie startowym nie opiera się już wyłącznie na lokalnym wypełnieniu pasa. Doszedł test powierzchni (`boardShare` / `remainingShare` / relacja pola do 1. pasa), żeby odrzucać długie, cienkie drugie pasy, które formalnie mają >=90% zajętości, ale praktycznie psują układ.
-- Po odrzuceniu takiego 2. pasa top-level `Optima` próbuje najpierw zapakować główny prostokąt resztowy w osi przeciwnej (`buildForcedDirectionRectPack`), zamiast kontynuować ten sam kierunek na siłę.
-- Podbito cache-bust workera/solverów do `20260313_optima_v4`.
-
-
-## 2026-03-13 — step95
-- tryb `Preferuj pasy w poprzek arkusza` został przepięty na silnik `optima-solver.js`
-- stary ścisły solver poprzeczny nie jest już używany w aktywnej ścieżce liczenia dla tego trybu
-- `Optima` zostaje osobno jako równoległy preset do dalszego rozwoju heurystyk
-- worker cache bump: `20260313_optima_v5`
+- 2026-03-13 step96: tryb `Preferuj pasy w poprzek` naprawdę przełączono na solver `optima-solver.js` (wcześniej worker nadal mógł lecieć starą ścieżką pasową). Dla trybu poprzecznego dodano preferencję układu w poprzek przy liczeniu oraz twarde dopieszczanie ostatniej / pojedynczej płyty: tail polish repackuje od największych elementów i przy pojedynczej ostatniej płycie wymusza wariant w poprzek, jeśli mieści się w tej samej liczbie arkuszy.

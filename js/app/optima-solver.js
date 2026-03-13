@@ -78,9 +78,10 @@
     return { byH, byW };
   }
 
-  function buildSeedCandidates(rem, BW, BH, swap, limit){
+  function buildSeedCandidates(rem, BW, BH, swap, limit, mode){
     const sup = supportMaps(rem, BW, BH, swap);
     const out = [];
+    const preferLargest = !!(mode && mode.largestFirst);
     for(let idx=0; idx<rem.length; idx++){
       const it = rem[idx];
       for(const c of orientationCandidates(it, BW, BH, swap)){
@@ -88,11 +89,12 @@
         const wBucket = widthBucket(c.w);
         const supportH = sup.byH.get(hBucket) || 0;
         const supportW = sup.byW.get(wBucket) || 0;
-        const score = (c.w * c.h)
+        const area = (c.w * c.h);
+        const score = area * (preferLargest ? 3 : 1)
           + c.w * 90
           + c.h * 40
-          + supportH * 85000
-          + supportW * 25000;
+          + supportH * (preferLargest ? 65000 : 85000)
+          + supportW * (preferLargest ? 18000 : 25000);
         out.push({ idx, it, cand: c, rowH: c.h, score, hBucket, wBucket });
       }
     }
@@ -209,23 +211,17 @@
       if(!st || st.count <= 0) continue;
       const tail = maxW - used;
       const occ = st.area / Math.max(1, maxW * rowH);
-      const occPenalty = occ < 0.90 ? (0.90 - occ) * 900000 : 0;
       const total = st.score
-        + occ * 1150000
-        + (tail <= 60 ? 320000 : (tail <= 120 ? 150000 : -tail * 900))
-        + (occ >= 0.95 ? 260000 : 0)
+        + occ * 900000
+        + (tail <= 100 ? 220000 : -tail * 500)
         + (occ >= 0.90 ? 180000 : 0)
-        - occPenalty;
-      const curOcc = bestState ? (bestState.area / Math.max(1, maxW * rowH)) : 0;
-      const curTail = maxW - bestUsed;
-      const curPenalty = curOcc < 0.90 ? (0.90 - curOcc) * 900000 : 0;
+        + (occ >= 0.80 ? 80000 : 0);
       const cur = bestState ? (
         bestState.score
-        + curOcc * 1150000
-        + (curTail <= 60 ? 320000 : (curTail <= 120 ? 150000 : -(curTail * 900)))
-        + (curOcc >= 0.95 ? 260000 : 0)
-        + (curOcc >= 0.90 ? 180000 : 0)
-        - curPenalty
+        + (bestState.area / Math.max(1, maxW * rowH)) * 900000
+        + ((maxW - bestUsed) <= 100 ? 220000 : -((maxW - bestUsed) * 500))
+        + ((bestState.area / Math.max(1, maxW * rowH)) >= 0.90 ? 180000 : 0)
+        + ((bestState.area / Math.max(1, maxW * rowH)) >= 0.80 ? 80000 : 0)
       ) : -1e18;
       if(!bestState || total > cur){
         bestState = st;
@@ -274,44 +270,6 @@
       }
     }
     return bestAccepted || best;
-  }
-
-  function rowBoardShare(row, BW, BH){
-    return (Number(row && row.usedArea) || 0) / Math.max(1, BW * BH);
-  }
-
-  function rowRemainingShare(row, BW, availableH){
-    return (Number(row && row.usedArea) || 0) / Math.max(1, BW * Math.max(1, availableH));
-  }
-
-  function shouldKeepSecondSeed(seedRow, secondRow, BW, BH, availableHAfterSeed){
-    if(!seedRow || !secondRow) return false;
-    if((seedRow.occupancy || 0) < 0.90 || (secondRow.occupancy || 0) < 0.90) return false;
-    const boardShare = rowBoardShare(secondRow, BW, BH);
-    const remainingShare = rowRemainingShare(secondRow, BW, availableHAfterSeed);
-    const relativeShare = (Number(secondRow.usedArea) || 0) / Math.max(1, Number(seedRow.usedArea) || 0);
-    return boardShare >= 0.09 || remainingShare >= 0.14 || relativeShare >= 0.50;
-  }
-
-  function buildForcedDirectionRectPack(remSource, rect, K, cfg, minScrapW, minScrapH, isCancelled, forcedSwap){
-    if(!rect || rect.w <= 40 || rect.h <= 40 || !Array.isArray(remSource) || !remSource.length) return null;
-    const BW = forcedSwap ? rect.h : rect.w;
-    const BH = forcedSwap ? rect.w : rect.h;
-    const localLimit = Math.max(4, Math.min(10, Number(cfg && cfg.rowSeedLimit) || 6));
-    const seeds = buildSeedCandidates(remSource, BW, BH, forcedSwap, localLimit);
-    let best = null;
-    for(const seed of seeds){
-      if(isCancelled && isCancelled()) break;
-      const variant = buildSheetVariant(remSource, rect.w, rect.h, K, forcedSwap, seed, cfg, minScrapW, minScrapH, isCancelled, true);
-      if(!variant || !variant.sheet || !variant.sheet.placements || !variant.sheet.placements.length) continue;
-      const occ = (variant.sheet._usedArea || 0) / Math.max(1, rect.w * rect.h);
-      const score = variant.score + occ * 500000 + (occ >= 0.90 ? 180000 : (occ >= 0.82 ? 80000 : 0));
-      if(!best || score > best._forcedScore){
-        variant._forcedScore = score;
-        best = variant;
-      }
-    }
-    return best;
   }
 
   function removeSelected(rem, ids){
@@ -364,18 +322,7 @@
     return { x: r.y, y: r.x, w: r.h, h: r.w };
   }
 
-  function offsetPlacement(p, dx, dy){
-    const q = Object.assign({}, p);
-    q.x += dx;
-    q.y += dy;
-    return q;
-  }
-
-  function offsetRect(r, dx, dy){
-    return { x: r.x + dx, y: r.y + dy, w: r.w, h: r.h };
-  }
-
-  function buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH, extras){
+  function buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH){
     const placements = [];
     let usedArea = 0;
     let cursorY = 0;
@@ -407,15 +354,6 @@
       cursorY += row.rowH + K;
     }
     let freeRects = buildSheetFreeRects(rows, BW, BH, K);
-    if(extras && Array.isArray(extras.placements)){
-      for(const p of extras.placements){
-        placements.push(Object.assign({}, p));
-        usedArea += Math.max(0, Number(p && p.w) || 0) * Math.max(0, Number(p && p.h) || 0);
-      }
-    }
-    if(extras && Array.isArray(extras.freeRects)){
-      freeRects = extras.freeRects.map(r => Object.assign({}, r));
-    }
     if(swap){
       placements.forEach(swapPlacementBack);
       freeRects = freeRects.map(swapRectBack);
@@ -425,6 +363,7 @@
       boardH: swap ? H : H,
       placements,
       _usedArea: usedArea,
+      _swapUsed: !!swap,
       _freeRects: freeRects.filter(r => r.w >= minScrapW && r.h >= minScrapH),
     };
     return sheet;
@@ -438,84 +377,17 @@
     for(const row of rows){
       usedArea += row.usedArea || 0;
       occSum += row.occupancy || 0;
-      if((row.occupancy || 0) >= 0.95) strongRows += 1;
-      if((row.occupancy || 0) < 0.90) weakRows += 1;
+      if((row.occupancy || 0) >= 0.90) strongRows += 1;
+      if((row.occupancy || 0) < 0.80) weakRows += 1;
     }
     const occ = usedArea / Math.max(1, BW * BH);
     const avgRowOcc = rows.length ? occSum / rows.length : 0;
     return usedArea
-      + occ * 1500000
-      + avgRowOcc * 500000
-      + strongRows * 220000
-      - weakRows * 340000
+      + occ * 1200000
+      + avgRowOcc * 300000
+      + strongRows * 160000
+      - weakRows * 220000
       - rows.length * 4000;
-  }
-
-  function buildRectPackVariant(remSource, rect, K, cfg, minScrapW, minScrapH, isCancelled){
-    if(!rect || rect.w <= 40 || rect.h <= 40 || !remSource || !remSource.length) return null;
-    let best = null;
-    const localLimit = Math.max(4, Math.min(10, Number(cfg && cfg.rowSeedLimit) || 6));
-    for(const swap of [false, true]){
-      if(isCancelled && isCancelled()) break;
-      const BW = swap ? rect.h : rect.w;
-      const BH = swap ? rect.w : rect.h;
-      const seeds = buildSeedCandidates(remSource, BW, BH, swap, localLimit);
-      for(const seed of seeds){
-        if(isCancelled && isCancelled()) break;
-        const variant = buildSheetVariant(remSource, rect.w, rect.h, K, swap, seed, cfg, minScrapW, minScrapH, isCancelled, true);
-        if(!variant || !variant.sheet || !variant.sheet.placements || !variant.sheet.placements.length) continue;
-        const rectArea = Math.max(1, rect.w * rect.h);
-        const occ = (variant.sheet._usedArea || 0) / rectArea;
-        const score = variant.score + occ * 400000 + (occ >= 0.90 ? 160000 : 0) + ((variant.sheet.placements.length || 0) >= 2 ? 40000 : 0);
-        if(!best || score > best._rectScore){
-          variant._rectScore = score;
-          best = variant;
-        }
-      }
-    }
-    return best;
-  }
-
-  function fillResidualRects(rows, rem, BW, BH, W, H, K, swap, cfg, minScrapW, minScrapH, isCancelled){
-    const baseRects = buildSheetFreeRects(rows, BW, BH, K)
-      .filter(r => r && r.w > 80 && r.h > 80)
-      .sort((a,b)=> (b.w * b.h) - (a.w * a.h));
-    if(!baseRects.length || !rem.length) return { rem, placements: [], freeRects: baseRects, extraArea: 0, extraScore: 0 };
-
-    const placements = [];
-    const freeRects = [];
-    let extraArea = 0;
-    let extraScore = 0;
-    let remNow = rem;
-
-    for(const rect of baseRects){
-      if(isCancelled && isCancelled()) break;
-      if(!remNow.length) {
-        freeRects.push(rect);
-        continue;
-      }
-      const rectArea = rect.w * rect.h;
-      const variant = buildRectPackVariant(remNow, rect, K, cfg, minScrapW, minScrapH, isCancelled);
-      if(!variant || !variant.sheet) {
-        freeRects.push(rect);
-        continue;
-      }
-      const occ = (variant.sheet._usedArea || 0) / Math.max(1, rectArea);
-      const usedCount = (variant.sheet.placements || []).filter(p => p && !p.unplaced).length;
-      const accept = occ >= 0.90 || (rectArea <= 240000 && occ >= 0.80) || (occ >= 0.78 && usedCount >= 3);
-      if(!accept){
-        freeRects.push(rect);
-        continue;
-      }
-      remNow = variant.rem;
-      extraArea += Number(variant.sheet._usedArea) || 0;
-      extraScore += Number(variant.score) || 0;
-      for(const p of (variant.sheet.placements || [])) placements.push(offsetPlacement(p, rect.x, rect.y));
-      const localFree = (variant.sheet._freeRects || []).map(r => offsetRect(r, rect.x, rect.y));
-      if(localFree.length) freeRects.push(...localFree);
-    }
-
-    return { rem: remNow, placements, freeRects, extraArea, extraScore };
   }
 
   function repairRows(rows, rem, BW, K, swap){
@@ -563,7 +435,7 @@
     }
   }
 
-  function buildSheetVariant(remSource, W, H, K, swap, seed, cfg, minScrapW, minScrapH, isCancelled, isNestedRectPack){
+  function buildSheetVariant(remSource, W, H, K, swap, seed, cfg, minScrapW, minScrapH, isCancelled){
     const BW = swap ? H : W;
     const BH = swap ? W : H;
     const rem = remSource.map(cloneItem);
@@ -572,67 +444,34 @@
 
     const seedRow = buildRow(rem, BW, K, seed.rowH, seed, widthBucket(seed.cand.w), { swap, preferWide:true });
     if(!seedRow) return null;
-    if(!isNestedRectPack && seedRow.occupancy < 0.80) return null;
+    if(seedRow.occupancy < 0.80) return null;
     rows.push(seedRow);
     let remNow = removeSelected(rem, seedRow.items.map(v => v.it.id));
     availableH -= (seedRow.rowH + K);
 
     if(availableH > 40){
       const second = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
-      if(shouldKeepSecondSeed(seedRow, second, BW, BH, availableH)){
+      if(second && second.occupancy >= 0.90 && seedRow.occupancy >= 0.90){
         rows.push(second);
         remNow = removeSelected(remNow, second.items.map(v => v.it.id));
         availableH -= (second.rowH + K);
       }
     }
 
-    let extras = { rem: remNow, placements: [], freeRects: buildSheetFreeRects(rows, BW, BH, K), extraArea: 0, extraScore: 0 };
-
-    if(isNestedRectPack){
-      while(remNow.length && availableH > 40){
-        if(isCancelled && isCancelled()) break;
-        const row = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
-        if(!row) break;
-        rows.push(row);
-        remNow = removeSelected(remNow, row.items.map(v => v.it.id));
-        availableH -= (row.rowH + K);
-        if(row.rowH <= 0) break;
-      }
-      repairRows(rows, remNow, BW, K, swap);
-      extras = { rem: remNow, placements: [], freeRects: buildSheetFreeRects(rows, BW, BH, K), extraArea: 0, extraScore: 0 };
-    } else {
-      repairRows(rows, remNow, BW, K, swap);
-      const usedMainH = Math.max(0, BH - availableH);
-      if(remNow.length && availableH > 80){
-        const mainRect = { x: 0, y: usedMainH, w: BW, h: availableH };
-        const crossVariant = buildForcedDirectionRectPack(remNow, mainRect, K, cfg, minScrapW, minScrapH, isCancelled, !swap);
-        if(crossVariant && crossVariant.sheet && Array.isArray(crossVariant.sheet.placements) && crossVariant.sheet.placements.length){
-          const topFreeRects = buildSheetFreeRects(rows, BW, BH, K).filter(r => !(r && r.x === mainRect.x && r.y === mainRect.y && r.w === mainRect.w && r.h === mainRect.h));
-          remNow = crossVariant.rem;
-          extras = {
-            rem: remNow,
-            placements: (crossVariant.sheet.placements || []).map(p => offsetPlacement(p, mainRect.x, mainRect.y)),
-            freeRects: topFreeRects.concat((crossVariant.sheet._freeRects || []).map(r => offsetRect(r, mainRect.x, mainRect.y))),
-            extraArea: Number(crossVariant.sheet._usedArea) || 0,
-            extraScore: Number(crossVariant.score) || 0,
-          };
-        }
-      }
-      if(!(extras.placements && extras.placements.length)){
-        const residual = fillResidualRects(rows, remNow, BW, BH, W, H, K, swap, cfg, minScrapW, minScrapH, isCancelled);
-        remNow = residual.rem;
-        extras = {
-          rem: remNow,
-          placements: (extras.placements || []).concat(residual.placements || []),
-          freeRects: residual.freeRects || extras.freeRects || [],
-          extraArea: (Number(extras.extraArea) || 0) + (Number(residual.extraArea) || 0),
-          extraScore: (Number(extras.extraScore) || 0) + (Number(residual.extraScore) || 0),
-        };
-      }
+    while(remNow.length && availableH > 40){
+      if(isCancelled && isCancelled()) break;
+      const row = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.80, null);
+      if(!row) break;
+      rows.push(row);
+      remNow = removeSelected(remNow, row.items.map(v => v.it.id));
+      availableH -= (row.rowH + K);
+      if(row.rowH <= 0) break;
     }
 
-    const sheet = buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH, extras);
-    const score = scoreRows(rows, BW, BH) + (extras.extraArea || 0) + (extras.extraScore || 0);
+    repairRows(rows, remNow, BW, K, swap);
+
+    const sheet = buildSheetObject(rows, BW, BH, W, H, K, swap, minScrapW, minScrapH);
+    const score = scoreRows(rows, BW, BH);
     return { sheet, rem: remNow, rows, score, swap };
   }
 
@@ -660,7 +499,15 @@
     return out;
   }
 
-  function compareSolutions(a, b){
+  function variantRankScore(variant, preferAcross, tailBias){
+    if(!variant) return -1e18;
+    let score = Number(variant.score) || 0;
+    if(preferAcross && !variant.swap) score += tailBias ? 360000 : 140000;
+    return score;
+  }
+
+  function compareSolutions(a, b, options){
+    const preferAcross = !!(options && (options.preferAcross || options.forceTailAcross || options.cutMode === 'across'));
     if(!b) return true;
     if(a.length !== b.length) return a.length < b.length;
     const scoreA = a.reduce((sum, s)=> sum + (Number(s._usedArea) || 0), 0);
@@ -670,7 +517,13 @@
     const lastB = b[b.length - 1];
     const occA = (Number(lastA && lastA._usedArea) || 0) / Math.max(1, (Number(lastA && lastA.boardW) || 0) * (Number(lastA && lastA.boardH) || 0));
     const occB = (Number(lastB && lastB._usedArea) || 0) / Math.max(1, (Number(lastB && lastB.boardW) || 0) * (Number(lastB && lastB.boardH) || 0));
-    return occA > occB;
+    if(Math.abs(occA - occB) > 1e-9) return occA > occB;
+    if(preferAcross){
+      const aAcross = !!(lastA && lastA._swapUsed === false);
+      const bAcross = !!(lastB && lastB._swapUsed === false);
+      if(aAcross !== bAcross) return aAcross;
+    }
+    return false;
   }
 
   function packOptimaCore(itemsIn, boardW, boardH, kerf, options, skipTailPolish){
@@ -681,20 +534,22 @@
     const minScrapW = Math.max(0, Math.round((options && options.minScrapW != null) ? Number(options.minScrapW) : 100));
     const minScrapH = Math.max(0, Math.round((options && options.minScrapH != null) ? Number(options.minScrapH) : 100));
     const isCancelled = (options && typeof options.isCancelled === 'function') ? options.isCancelled : ()=>false;
+    const preferAcross = !!(options && (options.preferAcross || options.forceTailAcross || options.cutMode === 'across'));
+    const acrossOnly = !!(options && options.acrossOnly);
+    const seedLargestFirst = !!(options && options.seedLargestFirst);
     let remMaster = (itemsIn || []).map(cloneItem);
     const sheets = [];
-    const preferredDirection = String((options && options.direction) || '').toLowerCase();
-    const swapOrder = (preferredDirection === 'across') ? [true, false] : [false, true];
 
     while(remMaster.length){
       if(isCancelled()) break;
       const started = now();
       let best = null;
       const attempts = [];
+      const swapOrder = acrossOnly ? [false] : (preferAcross ? [false, true] : [false, true]);
       for(const swap of swapOrder){
         const BW = swap ? H : W;
         const BH = swap ? W : H;
-        const seeds = buildSeedCandidates(remMaster, BW, BH, swap, cfg.seedLimit);
+        const seeds = buildSeedCandidates(remMaster, BW, BH, swap, cfg.seedLimit, { largestFirst: seedLargestFirst || preferAcross });
         for(const seed of seeds) attempts.push({ swap, seed });
       }
       if(!attempts.length){
@@ -708,7 +563,8 @@
         if(now() - started > cfg.perSheetMs) break;
         const variant = buildSheetVariant(remMaster, W, H, K, attempt.swap, attempt.seed, cfg, minScrapW, minScrapH, isCancelled);
         if(!variant) continue;
-        if(!best || variant.score > best.score) best = variant;
+        const tailish = variant.rem.length === 0 || remMaster.length <= Math.max(8, Math.ceil((itemsIn || []).length * 0.2));
+        if(!best || variantRankScore(variant, preferAcross, tailish) > variantRankScore(best, preferAcross, tailish)) best = variant;
       }
       if(!best){
         const it = remMaster.shift();
@@ -730,11 +586,38 @@
           const tailItems = [];
           for(const sh of tail) tailItems.push(...placementsToItems(sh));
           if(!tailItems.length) continue;
-          const repacked = packOptimaCore(tailItems, W, H, K, Object.assign({}, options, { profile: options && options.profile ? options.profile : 'D' }), true);
-          if(repacked && repacked.length <= tailCount && compareSolutions(repacked, tail)){
+          const tailOpts = Object.assign({}, options, {
+            profile: options && options.profile ? options.profile : 'D',
+            preferAcross,
+            seedLargestFirst: seedLargestFirst || preferAcross,
+            acrossOnly: !!(preferAcross && tailCount === 1),
+          });
+          const sortedTailItems = tailItems.slice().sort((a,b)=>{
+            const areaDiff = areaOf(b) - areaOf(a);
+            if(areaDiff !== 0) return areaDiff;
+            return Math.max(b.w, b.h) - Math.max(a.w, a.h);
+          });
+          const repacked = packOptimaCore(sortedTailItems, W, H, K, tailOpts, true);
+          if(repacked && repacked.length <= tailCount && compareSolutions(repacked, tail, tailOpts)){
             sheets.splice(sheets.length - tailCount, tailCount, ...repacked);
           }
         }
+      }
+    }
+
+    if(!skipTailPolish && preferAcross && sheets.length === 1 && !isCancelled()){
+      const onlyItems = placementsToItems(sheets[0]).sort((a,b)=>{
+        const areaDiff = areaOf(b) - areaOf(a);
+        if(areaDiff !== 0) return areaDiff;
+        return Math.max(b.w, b.h) - Math.max(a.w, a.h);
+      });
+      const forcedAcross = packOptimaCore(onlyItems, W, H, K, Object.assign({}, options, {
+        preferAcross: true,
+        seedLargestFirst: true,
+        acrossOnly: true,
+      }), true);
+      if(forcedAcross && forcedAcross.length === 1 && compareSolutions(forcedAcross, sheets, { preferAcross: true, forceTailAcross: true })){
+        return forcedAcross;
       }
     }
 
