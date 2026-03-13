@@ -235,25 +235,19 @@
   }
 
 
-  // ===== Tryby pasowe oparte już wyłącznie na rdzeniu Optima
+  // ===== Strip bands (Opti-like pass mode)
+  // direction:
+  // - 'along'  => horizontal strips running along the long edge shown on screen
+  // - 'across' => same logic after swapping board axes (vertical strips in final view)
+  // The row height is defined by the anchor piece; smaller pieces may fill the tail of the strip.
+  // ===== Strip bands (wydzielony solver pasowy)
   function packStripBands(itemsIn, boardW, boardH, kerf, direction){
-    const dir = (direction === 'across' || direction === 'wpoprz') ? 'across' : 'along';
-    if(dir === 'across'){
-      const acrossSolver = window.FC && window.FC.acrossSolver;
-      if(acrossSolver && typeof acrossSolver.packAcross === 'function'){
-        return acrossSolver.packAcross(itemsIn, boardW, boardH, kerf, {});
-      }
-    } else {
-      const alongSolver = window.FC && window.FC.alongSolver;
-      if(alongSolver && typeof alongSolver.packAlong === 'function'){
-        return alongSolver.packAlong(itemsIn, boardW, boardH, kerf, {});
-      }
+    const stripSolver = window.FC && window.FC.stripSolver;
+    if(stripSolver && typeof stripSolver.packStripBands === 'function'){
+      return stripSolver.packStripBands(itemsIn, boardW, boardH, kerf, direction);
     }
-    const optimaSolver = window.FC && window.FC.optimaSolver;
-    if(optimaSolver && typeof optimaSolver.packOptima === 'function'){
-      return optimaSolver.packOptima(itemsIn, boardW, boardH, kerf, { solverMode: dir });
-    }
-    return packShelf(itemsIn, boardW, boardH, kerf, dir === 'across' ? 'wpoprz' : 'wzdłuż');
+    console.warn('[cut-optimizer] strip-solver.js niezaładowany; używam prostego fallbacku shelf');
+    return packShelf(itemsIn, boardW, boardH, kerf, direction === 'across' ? 'wpoprz' : 'auto');
   }
 
   function packOptima(itemsIn, boardW, boardH, kerf, options){

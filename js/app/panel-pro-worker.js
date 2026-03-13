@@ -10,12 +10,12 @@
 // In worker there is no `window` by default; the optimizer expects `window.FC`.
 self.window = self;
 
-const SOLVER_VER = '20260313_optima_cleanup_v1';
+const SOLVER_VER = '20260313_empty_sheet_fix_v1';
 try{
-  importScripts('optima-core.js?v=' + SOLVER_VER, 'along-solver.js?v=' + SOLVER_VER, 'across-solver.js?v=' + SOLVER_VER, 'optima-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
+  importScripts('strip-solver.js?v=' + SOLVER_VER, 'optima-solver.js?v=' + SOLVER_VER, 'cut-optimizer.js?v=' + SOLVER_VER);
 }catch(e){
   // fallback: try absolute from /js/app (when worker is created with different base)
-  try{ importScripts('/js/app/optima-core.js?v=' + SOLVER_VER, '/js/app/along-solver.js?v=' + SOLVER_VER, '/js/app/across-solver.js?v=' + SOLVER_VER, '/js/app/optima-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
+  try{ importScripts('/js/app/strip-solver.js?v=' + SOLVER_VER, '/js/app/optima-solver.js?v=' + SOLVER_VER, '/js/app/cut-optimizer.js?v=' + SOLVER_VER); }catch(_){ }
 }
 
 (function(){
@@ -201,21 +201,25 @@ try{
     const prefList = [cutPref];
 
     const packOne = (arr, pref, ms)=>{
-      if(cutMode === 'optima' && opt.packOptima){
-        return opt.packOptima(arr, W, H, K, {
-          profile: (opts && opts.optimaxProfile) || 'D',
-          perSheetMs: ms,
-          minScrapW,
-          minScrapH,
-          solverMode: 'optima',
-          isCancelled: ()=>_cancelled,
-        });
+      if(cutMode === 'optima' || cutMode === 'across'){
+        if(opt.packOptima){
+          return opt.packOptima(arr, W, H, K, {
+            profile: (opts && opts.optimaxProfile) || 'D',
+            perSheetMs: ms,
+            minScrapW,
+            minScrapH,
+            cutMode,
+            preferAcross: cutMode === 'across',
+            forceTailAcross: cutMode === 'across',
+            seedLargestFirst: cutMode === 'across',
+            isCancelled: ()=>_cancelled,
+          });
+        }
       }
-      if(cutMode === 'along' && opt.packStripBands){
-        return opt.packStripBands(arr, W, H, K, 'along');
-      }
-      if(cutMode === 'across' && opt.packStripBands){
-        return opt.packStripBands(arr, W, H, K, 'across');
+      if(cutMode === 'along'){
+        if(opt.packStripBands){
+          return opt.packStripBands(arr, W, H, K, cutMode);
+        }
       }
       return opt.packGuillotineBeam(arr, W, H, K, {
         beamWidth,
@@ -273,7 +277,7 @@ try{
     // deterministic runs first
     let best = null;
 
-    if(cutMode === 'optima' && opt.packOptima){
+    if((cutMode === 'optima' || cutMode === 'across') && opt.packOptima){
       progress.phase = 'main';
       progress.step = 'running';
       progress.currentAttempt = 1;
@@ -337,6 +341,379 @@ try{
     progress.currentAttempt = Math.min(maxAttempts, iters);
     progress.step = 'done-main';
     reportProgress(true);
+
+    // === "Przekozacki" post-pass (repair) ===
+    // Goal: reduce "pusta ostatnia płyta" by repacking the tail (last 2-3 sheets)
+    // and optionally borrowing up to 10 elements from 1-2 sheets earlier.
+    // This is intentionally local: we do NOT repack the whole solution.
+    function idsFromSheet(sheet){
+      const out = [];
+      const pls = (sheet && Array.isArray(sheet.placements)) ? sheet.placements : [];
+      for(const p of pls){
+        if(p && p.unplaced) continue;
+        if(p && (p.id!==undefined && p.id!==null)) out.push(p.id);
+      }
+      return out;
+    }
+
+    function repackTailWithBorrow(prefixSheets, tailSheets, borrowIds, cutPref){
+      // Build pool: all items that were placed on tail sheets + borrowed ids.
+      const poolIds = [];
+      for(const s of tailSheets){
+        poolIds.push(...idsFromSheet(s));
+      }
+      if(Array.isArray(borrowIds) && borrowIds.length) poolIds.push(...borrowIds);
+
+      // Map ids -> items; de-dup ids.
+      const uniq = [];
+      const seen = new Set();
+      for(const id of poolIds){
+        if(seen.has(id)) continue;
+        seen.add(id);
+        const it = itemById.get(id);
+        if(it) uniq.push(it);
+      }
+      if(!uniq.length) return null;
+
+      // Repack only the pool into new sheets.
+      const newTail = packOne(uniq, cutPref, Math.min(260, Math.max(120, Math.round(perSheetMs * 0.6))));
+
+      const combined = (prefixSheets||[]).concat(newTail||[]);
+      const sc = scoreSheets(combined);
+      return { sheets: combined, sc };
+    }
+
+    function calcSheetWasteValue(sheet){
+      try{ return opt && opt.calcWaste ? Number(opt.calcWaste(sheet).waste) || 0 : 0; }catch(_){ return 0; }
+    }
+
+    function stripTailBetter(a, b){
+      if(!b) return true;
+      if(a.sc.sheets !== b.sc.sheets) return a.sc.sheets < b.sc.sheets;
+      if(Math.abs(a.sc.waste - b.sc.waste) > 1) return a.sc.waste < b.sc.waste;
+      const aLast = a.sheets && a.sheets.length ? a.sheets[a.sheets.length-1] : null;
+      const bLast = b.sheets && b.sheets.length ? b.sheets[b.sheets.length-1] : null;
+      const aWaste = calcSheetWasteValue(aLast);
+      const bWaste = calcSheetWasteValue(bLast);
+      if(Math.abs(aWaste - bWaste) > 1) return aWaste < bWaste;
+      const aBBox = sheetBBoxArea(aLast) / Math.max(1, BW * BH);
+      const bBBox = sheetBBoxArea(bLast) / Math.max(1, BW * BH);
+      return aBBox > bBBox;
+    }
+
+    function doStripLastSheetPolish(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets) || !currentBest.sheets.length) return currentBest;
+      const lastSheet = currentBest.sheets[currentBest.sheets.length - 1];
+      const lastIds = idsFromSheet(lastSheet);
+      if(lastIds.length < 3) return currentBest;
+
+      const subset = [];
+      const seen = new Set();
+      for(const id of lastIds){
+        if(seen.has(id)) continue;
+        seen.add(id);
+        const it = itemById.get(id);
+        if(it) subset.push(Object.assign({}, it));
+      }
+      if(subset.length < 3) return currentBest;
+
+      const prefix = currentBest.sheets.slice(0, -1);
+      let bestLocal = currentBest;
+      const variants = sortVariants(subset);
+      variants.push(subset.slice().sort((a,b)=>{
+        const ak = (cutMode === 'along') ? Math.max(a.w, a.h) : Math.min(a.w, a.h);
+        const bk = (cutMode === 'along') ? Math.max(b.w, b.h) : Math.min(b.w, b.h);
+        if(bk !== ak) return bk - ak;
+        return (b.w*b.h) - (a.w*a.h);
+      }));
+      variants.push(subset.slice().sort((a,b)=>{
+        const ak = (cutMode === 'along') ? Math.min(a.w, a.h) : Math.max(a.w, a.h);
+        const bk = (cutMode === 'along') ? Math.min(b.w, b.h) : Math.max(b.w, b.h);
+        if(bk !== ak) return bk - ak;
+        return (b.w*b.h) - (a.w*a.h);
+      }));
+
+      const evalOne = (arr)=>{
+        const repacked = opt.packStripBands(arr, W, H, K, cutMode);
+        if(!repacked || repacked.length !== 1) return;
+        const cand = { sheets: prefix.concat(repacked), sc: scoreSheets(prefix.concat(repacked)) };
+        if(stripTailBetter(cand, bestLocal)) bestLocal = cand;
+        setBest(bestLocal);
+      };
+
+      let tailTries = 0;
+      progress.phase = 'tail';
+      progress.step = 'running';
+      progress.tailIters = 0;
+      progress.currentTailAttempt = endgameAttempts > 0 ? 1 : 0;
+      reportProgress(true);
+      for(const arr of variants){
+        if(_cancelled || tailTries >= endgameAttempts || (now() - started) >= hardStopMs) break;
+        progress.phase = 'tail';
+        progress.step = 'running';
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
+        evalOne(arr);
+        tailTries++;
+        progress.tailIters = tailTries;
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
+      }
+      while(!_cancelled && tailTries < endgameAttempts && (now() - started) < hardStopMs){
+        progress.phase = 'tail';
+        progress.step = 'running';
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
+        const seed = (Date.now() + tailTries*3571) >>> 0;
+        const rnd = mulberry32(seed);
+        evalOne(shuffle(subset, rnd));
+        tailTries++;
+        progress.tailIters = tailTries;
+        progress.currentTailAttempt = Math.min(endgameAttempts, tailTries + 1);
+        reportProgress(true);
+      }
+      progress.step = 'done-tail';
+      progress.currentTailAttempt = Math.min(endgameAttempts, tailTries);
+      reportProgress(true);
+      progress.phase = 'main';
+      progress.step = 'running';
+      return bestLocal;
+    }
+
+    function doCrazyPostPass(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
+
+      const sheets = currentBest.sheets;
+      if(sheets.length < 3) return currentBest;
+
+      // Only worth it when the last sheet is "light" (few items) or when we have many sheets.
+      const lastIds = idsFromSheet(sheets[sheets.length-1]);
+      if(sheets.length <= 4 && lastIds.length > 10) return currentBest;
+
+      const trials = Math.max(0, Math.round(Number(opts && opts.crazyTailTrials) || 20));
+      if(!trials) return currentBest;
+
+      let bestLocal = currentBest;
+
+      // Candidate borrow sheets: 1-2 sheets before the tail.
+      const borrowCandidates = [];
+      const idxA = sheets.length - 4;
+      const idxB = sheets.length - 5;
+      if(idxA >= 0) borrowCandidates.push(idxA);
+      if(idxB >= 0) borrowCandidates.push(idxB);
+
+      // Tail sizes: last 2 or last 3 sheets.
+      const tailSizes = [3, 2];
+
+      const startPost = now();
+      for(let t=0; t<trials; t++){
+        if(_cancelled) break;
+        // Respect remaining time budget.
+        if(now() - started > hardStopMs) break;
+
+        const seed = ((Date.now() + 1337) + t*7919) >>> 0;
+        const rnd = mulberry32(seed);
+
+        const tailSize = tailSizes[Math.floor(rnd()*tailSizes.length)];
+        const tailStart = Math.max(0, sheets.length - tailSize);
+        const prefix = sheets.slice(0, tailStart);
+        const tail = sheets.slice(tailStart);
+
+        // Borrow up to 10 ids from 1-2 candidate sheets.
+        const borrowMax = 10;
+        const borrowIds = [];
+        const borrowFromCount = (borrowCandidates.length && rnd() < 0.65) ? (rnd() < 0.35 ? 2 : 1) : 0;
+        if(borrowFromCount){
+          const cand = shuffle(borrowCandidates, rnd).slice(0, borrowFromCount);
+          for(const idx of cand){
+            const ids = idsFromSheet(sheets[idx]);
+            if(!ids.length) continue;
+            const pickCount = Math.min(borrowMax - borrowIds.length, Math.max(1, Math.floor(rnd()*Math.min(6, ids.length))));
+            const shuffledIds = shuffle(ids, rnd);
+            for(let i=0;i<pickCount && borrowIds.length<borrowMax;i++) borrowIds.push(shuffledIds[i]);
+          }
+        }
+
+        // Try different cut preferences even when overall is auto.
+        const pref = prefList[Math.floor(rnd()*prefList.length)];
+        const candRes = repackTailWithBorrow(prefix, tail, borrowIds, pref);
+        if(!candRes) continue;
+        if(better(candRes, bestLocal)) bestLocal = candRes;
+        setBest(bestLocal);
+
+        // progress ping (cheap)
+        const tt = now();
+        if(tt - startPost > 650 && (t % 5 === 4)){
+          try{
+            self.postMessage({
+              type:'progress',
+              elapsedMs: Math.round(tt - started),
+              iters: iters + t + 1,
+              best: bestLocal ? { sheets: bestLocal.sc.sheets, waste: bestLocal.sc.waste } : null,
+            });
+          }catch(_){ }
+        }
+      }
+
+      return bestLocal;
+    }
+
+
+
+    // === Optimax post-pass: strip-first + fill long strips with small parts from tail ===
+    // Triggered only when opts.optimax=true.
+    // Idea: if an earlier sheet has a long free strip (full height/width), treat it as a temporary "magazyn".
+    // Then try to pack small parts taken from the last ~35% of sheets into those strips.
+    // Finally, repack the remaining tail pool. This often removes the "pusta ostatnia płyta" and reduces waste.
+    function doOptimaxStripFill(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
+      const sheets0 = currentBest.sheets;
+      if(sheets0.length < 2) return currentBest;
+
+      const tailCount = Math.max(1, Math.ceil(sheets0.length * 0.35));
+      const tailStart = Math.max(0, sheets0.length - tailCount);
+      if(tailStart <= 0) return currentBest;
+
+      // Pool ids from tail sheets
+      const poolIds = [];
+      for(let i=tailStart;i<sheets0.length;i++) poolIds.push(...idsFromSheet(sheets0[i]));
+      if(!poolIds.length) return currentBest;
+
+      // Build pool items (small-first)
+      const poolItems = [];
+      {
+        const seen = new Set();
+        for(const id of poolIds){
+          if(seen.has(id)) continue;
+          seen.add(id);
+          const it = itemById.get(id);
+          if(it) poolItems.push(it);
+        }
+        poolItems.sort((a,b)=> (a.w*a.h) - (b.w*b.h));
+      }
+
+      // Clone prefix sheets and keep their placements; we'll add placements into strips.
+      const prefix = [];
+      for(let i=0;i<tailStart;i++){
+        const s = sheets0[i];
+        prefix.push({ boardW:s.boardW, boardH:s.boardH, placements: (s.placements||[]).slice(), _freeRects: (s._freeRects||[]).slice() });
+      }
+
+      const remainingById = new Set(poolItems.map(it=>it.id));
+      const removeFromSet = (ids)=>{ for(const id of ids){ remainingById.delete(id); } };
+
+      // Find strip-like free rects: full height/width (within 5%) and at least 30cm thickness.
+      // Dodatkowo: nie chcemy obracać "wielkiej płyty" – pas do obracania max 1000 mm.
+      const minStrip = 300; // mm
+      const maxRotateStrip = 1000; // mm
+      const strips = [];
+      for(let si=0; si<prefix.length; si++){
+        const s = prefix[si];
+        const fr = Array.isArray(s._freeRects) ? s._freeRects : [];
+        for(const r of fr){
+          if(!r || r.w<=0 || r.h<=0) continue;
+          const fullH = (r.h >= (H * 0.95)) && (r.w >= minStrip);
+          const fullW = (r.w >= (W * 0.95)) && (r.h >= minStrip);
+          // tylko pasy, które mają "grubość" <= 1 m – wtedy realnie da się je obracać.
+          const thick = fullH ? r.w : (fullW ? r.h : 1e18);
+          if((fullH || fullW) && thick <= maxRotateStrip){
+            strips.push({ sheetIndex: si, rect: r, fullH, fullW });
+          }
+        }
+      }
+      if(!strips.length) return currentBest;
+
+      // Try to fill strips with up to N small parts.
+      // We do a few rounds; keep it cheap.
+      let poolCursor = 0;
+      for(const srec of strips){
+        if(_cancelled) break;
+        if(poolCursor >= poolItems.length) break;
+
+        const rect = srec.rect;
+        // build subset of remaining small items
+        const subset = [];
+        let tries = 0;
+        while(poolCursor < poolItems.length && subset.length < 30 && tries < 120){
+          const it = poolItems[poolCursor++];
+          tries++;
+          if(!it) continue;
+          if(!remainingById.has(it.id)) continue;
+          subset.push(it);
+        }
+        if(!subset.length) continue;
+
+        // Prefer stable cut direction within a strip.
+        const stripPref = srec.fullH ? 'along' : 'across';
+        const packed = (opt.packStripBands && (cutMode === 'along' || cutMode === 'across'))
+          ? opt.packStripBands(subset, rect.w, rect.h, K, stripPref)
+          : opt.packGuillotineBeam(subset, rect.w, rect.h, K, {
+              beamWidth: Math.max(60, Math.min(140, Math.round(beamWidth*0.6))),
+              timeMs: 140,
+              cutPref: stripPref,
+              scrapFirst: false,
+              minScrapW,
+              minScrapH,
+            });
+        if(!packed || !packed[0] || !Array.isArray(packed[0].placements)) continue;
+        const pls = packed[0].placements.filter(p=>p && !p.unplaced);
+        if(!pls.length) continue;
+
+        // Apply placements into the parent sheet with offset.
+        const dst = prefix[srec.sheetIndex];
+        for(const p of pls){
+          dst.placements.push({
+            id: p.id,
+            key: p.key,
+            name: p.name,
+            x: rect.x + p.x,
+            y: rect.y + p.y,
+            w: p.w,
+            h: p.h,
+            rotated: !!p.rotated,
+            unplaced: false,
+          });
+        }
+        removeFromSet(pls.map(p=>p.id));
+
+        // progress ping
+        const tt = now();
+        if(tt - started > 800){
+          try{
+            self.postMessage({
+              type:'progress',
+              elapsedMs: Math.round(tt - started),
+              iters: iters,
+              best: _bestSoFar ? { sheets:_bestSoFar.sc.sheets, waste:_bestSoFar.sc.waste } : null,
+            });
+          }catch(_){ }
+        }
+      }
+
+      // Build remaining pool and repack into tail.
+      const remItems = [];
+      for(const it of poolItems){
+        if(remainingById.has(it.id)) remItems.push(it);
+      }
+      if(!remItems.length) {
+        // Tail eliminated.
+        const sc = scoreSheets(prefix);
+        const res = { sheets: prefix, sc };
+        if(better(res, currentBest)) return res;
+        return currentBest;
+      }
+
+      // Repack remaining tail.
+      const newTail = packOne(remItems, (opts && (opts.cutPref||opts.direction)) || 'along', Math.min(260, Math.max(140, Math.round(perSheetMs*0.7))));
+      const combined = prefix.concat(newTail||[]);
+      const sc = scoreSheets(combined);
+      const res = { sheets: combined, sc };
+      if(better(res, currentBest)) return res;
+      return currentBest;
+    }
 
 
 
