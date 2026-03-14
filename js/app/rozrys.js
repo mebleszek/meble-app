@@ -562,7 +562,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_max_plan_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_progress_ui_v2');
       }catch(e){
         // fallback (sync, limited)
         try{
@@ -869,8 +869,24 @@
     btnRow.appendChild(genBtn);
     card.appendChild(btnRow);
 
-    // Globalny status usunięty — zostaje tylko lokalny licznik przy aktualnie liczonym materiale.
-
+    const statusBox = h('div', { class:'rozrys-status', style:'display:none;margin-top:12px' });
+    const statusTop = h('div', { class:'rozrys-status-top' });
+    const statusSpinner = h('div', { class:'rozrys-spinner' });
+    const statusCopy = h('div', { class:'rozrys-status-copy' });
+    const statusMain = h('div', { class:'rozrys-status-main', text:'Liczę…' });
+    const statusSub = h('div', { class:'muted xs rozrys-status-sub', text:'' });
+    const statusProg = h('div', { class:'rozrys-progress is-indeterminate' });
+    const statusProgBar = h('div', { class:'rozrys-progress-bar' });
+    const statusMeta = h('div', { class:'muted xs rozrys-progress-meta', text:'' });
+    statusProg.appendChild(statusProgBar);
+    statusCopy.appendChild(statusMain);
+    statusCopy.appendChild(statusSub);
+    statusCopy.appendChild(statusProg);
+    statusCopy.appendChild(statusMeta);
+    statusTop.appendChild(statusSpinner);
+    statusTop.appendChild(statusCopy);
+    statusBox.appendChild(statusTop);
+    card.appendChild(statusBox);
 
     // overrides list container
     const overridesBox = h('div', { style:'margin-top:12px;display:none' });
@@ -1166,13 +1182,37 @@
       const tgt = target || out;
       tgt.innerHTML = '';
       const box = h('div', { class:'rozrys-loading' });
-      box.appendChild(h('div', { class:'rozrys-spinner' }));
+      const top = h('div', { class:'rozrys-loading-top' });
+      const spinner = h('div', { class:'rozrys-spinner' });
+      const copy = h('div', { class:'rozrys-status-copy' });
       const textEl = h('div', { class:'rozrys-loading-text', text: text || 'Liczę…' });
-      const subEl = h('div', { class:'muted xs', style:'margin-top:6px', text: subText || '' });
-      box.appendChild(textEl);
-      box.appendChild(subEl);
+      const subEl = h('div', { class:'muted xs rozrys-loading-sub', text: subText || '' });
+      const progWrap = h('div', { class:'rozrys-progress is-indeterminate' });
+      const progBar = h('div', { class:'rozrys-progress-bar' });
+      const metaEl = h('div', { class:'muted xs rozrys-progress-meta', text:'Startuję liczenie…' });
+      progWrap.appendChild(progBar);
+      copy.appendChild(textEl);
+      copy.appendChild(subEl);
+      copy.appendChild(progWrap);
+      copy.appendChild(metaEl);
+      top.appendChild(spinner);
+      top.appendChild(copy);
+      box.appendChild(top);
       tgt.appendChild(box);
-      return { box, textEl, subEl, target: tgt };
+      return {
+        box, textEl, subEl, progWrap, progBar, metaEl, target: tgt,
+        setProgress(percent, metaText){
+          const n = Number(percent);
+          if(Number.isFinite(n)) {
+            progWrap.classList.remove('is-indeterminate');
+            progBar.style.width = `${Math.max(4, Math.min(100, n))}%`;
+          } else {
+            progWrap.classList.add('is-indeterminate');
+            progBar.style.width = '';
+          }
+          if(typeof metaText === 'string') metaEl.textContent = metaText;
+        }
+      };
     }
 
     
@@ -1285,7 +1325,32 @@ function deriveAggForMode(mode){
 
 let _rozrysRunId = 0;
 let _rozrysRunning = false;
-    try{ setGlobalStatus(false); }catch(_){ }
+function setGlobalStatus(active, title, subtitle, percent, metaText){
+  try{
+    if(!active){
+      statusBox.style.display = 'none';
+      statusMain.textContent = 'Liczę…';
+      statusSub.textContent = '';
+      statusMeta.textContent = '';
+      statusProg.classList.add('is-indeterminate');
+      statusProgBar.style.width = '';
+      return;
+    }
+    statusBox.style.display = 'block';
+    statusMain.textContent = title || 'Liczę…';
+    statusSub.textContent = subtitle || '';
+    if(typeof metaText === 'string') statusMeta.textContent = metaText;
+    const n = Number(percent);
+    if(Number.isFinite(n)){
+      statusProg.classList.remove('is-indeterminate');
+      statusProgBar.style.width = `${Math.max(4, Math.min(100, n))}%`;
+    } else {
+      statusProg.classList.add('is-indeterminate');
+      statusProgBar.style.width = '';
+    }
+  }catch(_){ }
+}
+try{ setGlobalStatus(false); }catch(_){ }
 let _rozrysBtnMode = 'idle'; // idle | running | done
 let _rozrysCancelRequested = false;
 let _rozrysActiveCancel = null;
@@ -1316,6 +1381,7 @@ function setGenBtnMode(mode){
 function requestCancel(){
   if(!_rozrysRunning) return;
   _rozrysCancelRequested = true;
+  try{ setGlobalStatus(true, 'Anulowanie…', 'Wysyłam przerwanie do workera.', NaN, 'Jeśli worker nie odpowie, za chwilę wymuszę zatrzymanie.'); }catch(_){ }
   try{ _rozrysActiveCancel && _rozrysActiveCancel(); }catch(_){ }
   // twardy fallback: jeśli worker nie odpowie, terminate żeby UI nie wisiało
   if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
@@ -1331,6 +1397,10 @@ async function generate(force){
   _rozrysCancelRequested = false;
   const runId = (++_rozrysRunId);
   setGenBtnMode('running');
+  try{ await new Promise((resolve)=>{
+    try{ requestAnimationFrame(()=> resolve()); }
+    catch(_){ setTimeout(resolve, 0); }
+  }); }catch(_){ }
   try{
   const sel = matSel.value;
   const baseSt = {
@@ -1350,10 +1420,9 @@ async function generate(force){
 
   const cache = loadPlanCache();
 
-  function setGlobalStatus(){ }
   const overallStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   let _overallTick = null;
-  let _globalProgressInfo = { material:'', profile:'MAX', phase:'main', bestSheets:null };
+  let _globalProgressInfo = { material:'', profile:'MAX', phase:'main', bestSheets:null, currentSheet:0, sheetEstimate:1 };
   function fmtElapsed(ms){ return `${(Math.max(0, Number(ms)||0)/1000).toFixed(1)} s`; }
   function refreshGlobalTicker(){
     try{
@@ -1361,14 +1430,21 @@ async function generate(force){
       const prof = String(_globalProgressInfo.profile || 'MAX');
       const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - overallStartedAt;
       const bestTxt = _globalProgressInfo.bestSheets ? `${_globalProgressInfo.bestSheets} płyt` : '—';
-      setGlobalStatus(true, `${prof} • ${fmtElapsed(elapsed)}`, `Liczę materiał: ${_globalProgressInfo.material || '—'} • Najlepsze: ${bestTxt}`);
+      const estimate = Math.max(1, Number(_globalProgressInfo.sheetEstimate) || 1);
+      const currentSheet = Math.max(0, Number(_globalProgressInfo.currentSheet) || 0);
+      const pct = currentSheet > 0 ? Math.min(98, (currentSheet / Math.max(estimate, currentSheet)) * 100) : NaN;
+      const subtitle = `Liczę kolor: ${_globalProgressInfo.material || '—'} • Szacunek: ~${estimate} płyt • Najlepsze: ${bestTxt}`;
+      const meta = currentSheet > 0 ? `Postęp orientacyjny: arkusz ${currentSheet} z ~${estimate}` : 'Trwa liczenie — worker odpowiada w tle.';
+      setGlobalStatus(true, `${prof} • ${fmtElapsed(elapsed)}`, subtitle, pct, meta);
     }catch(_){ }
   }
-  function startGlobalTicker(material, profile){
+  function startGlobalTicker(material, profile, sheetEstimate){
     _globalProgressInfo.material = material || '';
     _globalProgressInfo.profile = profile || 'D';
     _globalProgressInfo.phase = 'main';
     _globalProgressInfo.bestSheets = null;
+    _globalProgressInfo.currentSheet = 0;
+    _globalProgressInfo.sheetEstimate = Math.max(1, Number(sheetEstimate) || 1);
     refreshGlobalTicker();
     if(_overallTick) return;
     _overallTick = setInterval(refreshGlobalTicker, 250);
@@ -1412,20 +1488,26 @@ async function generate(force){
       const roughSheetsEstimate = Math.max(1, Math.ceil(roughArea / Math.max(1, W2 * H2)));
 
       const profileLabel = speedLabel(st.optimaxProfile || 'max');
-      const loading = renderLoadingInto(target || null, `${profileLabel} • ${directionLabel(st.direction)} • 0.0 s`, `Liczę materiał: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Najlepsze: —`);
-      startGlobalTicker(material, profileLabel);
+      const loading = renderLoadingInto(target || null, `${profileLabel} • ${directionLabel(st.direction)} • 0.0 s`, `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Najlepsze: —`);
+      startGlobalTicker(material, profileLabel, roughSheetsEstimate);
       const materialStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      const materialProgress = { phase:'main', bestSheets:null };
+      const materialProgress = { phase:'main', bestSheets:null, currentSheet:0, sheetEstimate:roughSheetsEstimate };
       function refreshMaterialTicker(){
         try{
           const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt;
           const bestTxt = materialProgress.bestSheets ? `${materialProgress.bestSheets} płyt` : '—';
+          const currentSheet = Math.max(0, Number(materialProgress.currentSheet) || 0);
+          const est = Math.max(1, Number(materialProgress.sheetEstimate) || roughSheetsEstimate || 1);
+          const pct = currentSheet > 0 ? Math.min(98, (currentSheet / Math.max(est, currentSheet)) * 100) : NaN;
           if(loading && loading.textEl) loading.textEl.textContent = `${profileLabel} • ${directionLabel(st.direction)} • ${fmtElapsed(elapsed)}`;
-          if(loading && loading.subEl) loading.subEl.textContent = `Liczę materiał: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Najlepsze: ${bestTxt}`;
+          if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • Szacunek: ~${est} płyt • Najlepsze: ${bestTxt}`;
+          if(loading && typeof loading.setProgress === 'function') loading.setProgress(pct, currentSheet > 0 ? `Postęp orientacyjny: arkusz ${currentSheet} z ~${est}` : 'Trwa liczenie — worker odpowiada w tle.');
           _globalProgressInfo.material = material;
           _globalProgressInfo.profile = profileLabel;
           _globalProgressInfo.phase = materialProgress.phase;
           _globalProgressInfo.bestSheets = materialProgress.bestSheets;
+          _globalProgressInfo.currentSheet = currentSheet;
+          _globalProgressInfo.sheetEstimate = est;
           refreshGlobalTicker();
         }catch(_){ }
       }
@@ -1443,9 +1525,10 @@ async function generate(force){
       try{
         plan = await computePlanPanelProAsync(st, parts, (p)=>{
           try{
-            const best = (p && p.best) ? p.best : null;
             materialProgress.phase = (p && p.phase) ? String(p.phase) : 'main';
             materialProgress.bestSheets = (p && Number(p.bestSheets)) ? Number(p.bestSheets) : null;
+            materialProgress.currentSheet = (p && Number(p.currentSheet)) ? Number(p.currentSheet) : materialProgress.currentSheet;
+            materialProgress.sheetEstimate = (p && Number(p.sheetEstimate)) ? Number(p.sheetEstimate) : materialProgress.sheetEstimate;
             refreshMaterialTicker();
           }catch(_){ }
         }, control, {

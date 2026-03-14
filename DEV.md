@@ -375,3 +375,13 @@ Dopiero potem go zmieniać.
 - `js/app/rozrys.js` steruje teraz też stanem przycisku generowania: brak cache = zielony `Generuj rozkrój`, cache hit / gotowy wynik = niebieski `Generuj ponownie`, liczenie = czerwony `Anuluj`.
 
 - 2026-03-14: przebudowano `js/app/speed-max.js`, żeby `MAX` wybierał najlepszy pełny plan arkusza po ocenie całych kandydatów 1–2 pasów startowych, a nie tylko pojedynczego najlepszego pierwszego pasa. `MAX` dalej zamyka arkusz przed otwarciem następnego, trzyma obowiązkową zmianę kierunku po pasach startowych i zachowuje repair słabego pasa; podbito cache-busting do `20260314_max_plan_v1`.
+
+
+---
+
+## Ostatnie zmiany robocze
+
+- ROZRYS: dodany widoczny status liczenia z animacją, paskiem postępu orientacyjnego, licznikiem sekundowym i opisem aktualnie liczonego materiału / koloru.
+- ROZRYS: przy starcie generowania wymuszony repaint UI przed cięższą pracą, żeby przycisk szybciej przechodził w czerwony stan `Anuluj` także na telefonach.
+- ROZRYS: status pokazuje też szacunkową liczbę płyt i bieżący numer arkusza, jeśli worker raportuje postęp.
+- ROZRYS: pozostawiony fallback twardego zatrzymania workera, żeby UI nie wisiało przy anulowaniu.
