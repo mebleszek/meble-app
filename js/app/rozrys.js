@@ -863,7 +863,7 @@
     const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap' });
     const saveToMag = h('button', { class:'btn', type:'button' });
     saveToMag.textContent = 'Zapisz format do magazynu';
-    const genBtn = h('button', { class:'btn-primary', type:'button' });
+    const genBtn = h('button', { class:'btn-generate-green', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
     btnRow.appendChild(saveToMag);
     btnRow.appendChild(genBtn);
@@ -1294,18 +1294,22 @@ let _rozrysActiveTerminate = null;
 
 function setGenBtnMode(mode){
   _rozrysBtnMode = mode;
+  genBtn.classList.remove('btn-generate-green', 'btn-generate-blue', 'btn-generate-red');
   if(mode === 'running'){
-    genBtn.textContent = 'Anuluj rozkrój';
+    genBtn.textContent = 'Anuluj';
+    genBtn.classList.add('btn-generate-red');
     genBtn.disabled = false;
     return;
   }
   if(mode === 'done'){
     genBtn.textContent = 'Generuj ponownie';
+    genBtn.classList.add('btn-generate-blue');
     genBtn.disabled = false;
     return;
   }
-  // idle
+  // idle = brak zapamiętanego rozkroju dla aktualnych ustawień
   genBtn.textContent = 'Generuj rozkrój';
+  genBtn.classList.add('btn-generate-green');
   genBtn.disabled = false;
 }
 
