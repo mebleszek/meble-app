@@ -31,6 +31,18 @@
     return out;
   }
 
+  function bandSignature(band){
+    if(!band) return '';
+    const parts = (band.placements || []).map(p=>`${p.id}:${p.rotated ? 1 : 0}:${p.w}x${p.h}`).sort();
+    return `${band.axis}|${band.bandSize}|${parts.join('|')}`;
+  }
+
+  function calcBandCandidateValue(bandSize, o){
+    const similar = Math.abs(bandSize - axisThickness('along', { w:o.w, h:o.h })) <= SIMILAR_MM;
+    const closeness = Math.max(0, 1 - ((bandSize - Math.min(bandSize, o.w)) / Math.max(1, bandSize)));
+    return (o.w * o.h) * 1000 + Math.round(closeness * 100000) + (similar ? 70000 : 0);
+  }
+
   function buildDpBand(items, rect, axis, kerf, seed, options){
     const bandSize = seed.bandSize;
     const capacity = rectLength(axis, rect);
@@ -135,18 +147,19 @@
     return band;
   }
 
-  function buildBestBand(items, rect, axis, kerf, options){
+  function buildBandCandidates(items, rect, axis, kerf, options, acceptedOnly){
     const seeds = listSeedVariants(items, rect, axis);
-    let bestAccepted = null;
-    let bestAny = null;
+    const bySignature = new Map();
     for(const seed of seeds){
-      if(options.isCancelled && options.isCancelled()) return bestAccepted || bestAny;
+      if(options.isCancelled && options.isCancelled()) break;
       const band = buildDpBand(items, rect, axis, kerf, seed, options);
       if(!band) continue;
-      if(band.accepted && opt.compareBand(band, bestAccepted) > 0) bestAccepted = band;
-      if(opt.compareBand(band, bestAny) > 0) bestAny = band;
+      if(acceptedOnly && !band.accepted) continue;
+      const sig = bandSignature(band);
+      const prev = bySignature.get(sig);
+      if(opt.compareBand(band, prev) > 0) bySignature.set(sig, band);
     }
-    return bestAccepted || bestAny;
+    return Array.from(bySignature.values()).sort((a,b)=> opt.compareBand(b, a));
   }
 
   function consumeBandsRect(rect, axis, bands){
@@ -155,7 +168,19 @@
     return { x: rect.x, y: rect.y + total, w: rect.w, h: rect.h - total };
   }
 
-  function solveRect(items, rect, axis, kerf, options, depth){
+  function buildBestBand(items, rect, axis, kerf, options){
+    const candidates = buildBandCandidates(items, rect, axis, kerf, options, false);
+    let bestAccepted = null;
+    let bestAny = null;
+    for(const band of candidates){
+      if(!band) continue;
+      if(band.accepted && opt.compareBand(band, bestAccepted) > 0) bestAccepted = band;
+      if(opt.compareBand(band, bestAny) > 0) bestAny = band;
+    }
+    return bestAccepted || bestAny;
+  }
+
+  function solveResidual(items, rect, axis, kerf, options, depth){
     if(!items.length || rect.w <= 0 || rect.h <= 0) return { placements: [], ids: new Set(), usedArea: 0, primaryBands: 0 };
     const band1 = buildBestBand(items, rect, axis, kerf, options);
     if(!band1) return { placements: [], ids: new Set(), usedArea: 0, primaryBands: 0 };
@@ -184,7 +209,7 @@
     const remItems = removeByIds(items, usedIds);
     const residual = consumeBandsRect(rect, axis, bands);
     if(remItems.length && residual.w > 0 && residual.h > 0 && opt.anyItemFits(remItems, residual)){
-      const sub = solveRect(remItems, residual, opposite(axis), kerf, options, depth + 1);
+      const sub = solveResidual(remItems, residual, opposite(axis), kerf, options, depth + 1);
       for(const p of (sub.placements || [])) placements.push(p);
       for(const id of (sub.ids || [])) usedIds.add(id);
       usedArea += sub.usedArea || 0;
@@ -193,16 +218,98 @@
     return { placements, ids: usedIds, usedArea, primaryBands: bands.length };
   }
 
-  function summarizeSheets(sheets){
-    const usedArea = sheets.reduce((sum, s)=> sum + opt.placedArea(s), 0);
-    const waste = sheets.reduce((sum, s)=> sum + opt.calcWaste(s).waste, 0);
-    const placementCount = sheets.reduce((sum, s)=> sum + ((s.placements || []).filter(p=>p && !p.unplaced).length), 0);
-    return { sheets, usedArea, waste, placementCount, primaryBands: 0 };
+  function buildPlanFromStartBands(items, rect, axis, kerf, options, bands){
+    const placements = [];
+    const usedIds = new Set();
+    let usedArea = 0;
+    let startArea = 0;
+    let startOccupancySum = 0;
+    let strongStartBands = 0;
+
+    for(const band of (bands || [])){
+      for(const p of (band.placements || [])) placements.push(p);
+      for(const id of (band.ids || [])) usedIds.add(id);
+      usedArea += band.area || 0;
+      startArea += band.area || 0;
+      startOccupancySum += band.occupancy || 0;
+      if((band.occupancy || 0) >= 0.9) strongStartBands += 1;
+    }
+
+    const remItems = removeByIds(items, usedIds);
+    const residual = consumeBandsRect(rect, axis, bands || []);
+    if(remItems.length && residual.w > 0 && residual.h > 0 && opt.anyItemFits(remItems, residual)){
+      const sub = solveResidual(remItems, residual, opposite(axis), kerf, options, 1);
+      for(const p of (sub.placements || [])) placements.push(p);
+      for(const id of (sub.ids || [])) usedIds.add(id);
+      usedArea += sub.usedArea || 0;
+    }
+
+    return {
+      placements,
+      ids: usedIds,
+      usedArea,
+      primaryBands: Math.max(0, (bands || []).length),
+      startArea,
+      startOccupancySum,
+      strongStartBands,
+      firstBandSize: bands && bands[0] ? (bands[0].bandSize || 0) : 0,
+      secondBandSize: bands && bands[1] ? (bands[1].bandSize || 0) : 0,
+    };
+  }
+
+  function comparePlan(a, b, boardW, boardH){
+    if(!b) return 1;
+    if(!a) return -1;
+    const sa = {
+      usedArea: a.usedArea || 0,
+      placementCount: (a.placements || []).length,
+      waste: opt.boardArea(boardW, boardH) - (a.usedArea || 0),
+      primaryBands: a.strongStartBands || a.primaryBands || 0,
+    };
+    const sb = {
+      usedArea: b.usedArea || 0,
+      placementCount: (b.placements || []).length,
+      waste: opt.boardArea(boardW, boardH) - (b.usedArea || 0),
+      primaryBands: b.strongStartBands || b.primaryBands || 0,
+    };
+    const base = opt.compareSheetScores(sa, sb);
+    if(base !== 0) return base;
+    if((a.startArea || 0) !== (b.startArea || 0)) return (a.startArea || 0) > (b.startArea || 0) ? 1 : -1;
+    if((a.startOccupancySum || 0) !== (b.startOccupancySum || 0)) return (a.startOccupancySum || 0) > (b.startOccupancySum || 0) ? 1 : -1;
+    if((a.firstBandSize || 0) !== (b.firstBandSize || 0)) return (a.firstBandSize || 0) > (b.firstBandSize || 0) ? 1 : -1;
+    if((a.secondBandSize || 0) !== (b.secondBandSize || 0)) return (a.secondBandSize || 0) > (b.secondBandSize || 0) ? 1 : -1;
+    return 0;
+  }
+
+  function buildSheetPlan(items, boardW, boardH, kerf, options, fixedAxis){
+    const rect = { x:0, y:0, w:boardW, h:boardH };
+    const band1Candidates = buildBandCandidates(items, rect, fixedAxis, kerf, options, false);
+    let bestPlan = null;
+
+    for(const band1 of band1Candidates){
+      if(options.isCancelled && options.isCancelled()) break;
+      const plan1 = buildPlanFromStartBands(items, rect, fixedAxis, kerf, options, [band1]);
+      if(comparePlan(plan1, bestPlan, boardW, boardH) > 0) bestPlan = plan1;
+
+      if(!(band1.accepted && band1.occupancy >= 0.9)) continue;
+      const rem1 = removeByIds(items, band1.ids);
+      const rectAfter1 = consumeBandsRect(rect, fixedAxis, [band1]);
+      if(!(rectAfter1.w > 0 && rectAfter1.h > 0 && rem1.length)) continue;
+
+      const band2Candidates = buildBandCandidates(rem1, rectAfter1, fixedAxis, kerf, options, true);
+      for(const band2 of band2Candidates){
+        if(options.isCancelled && options.isCancelled()) break;
+        if(!(band2 && band2.accepted && band2.occupancy >= 0.9)) continue;
+        const plan2 = buildPlanFromStartBands(items, rect, fixedAxis, kerf, options, [band1, band2]);
+        if(comparePlan(plan2, bestPlan, boardW, boardH) > 0) bestPlan = plan2;
+      }
+    }
+
+    return bestPlan || { placements: [], ids: new Set(), usedArea: 0, primaryBands: 0, strongStartBands: 0, firstBandSize: 0, secondBandSize: 0, startArea: 0, startOccupancySum: 0 };
   }
 
   function buildSheet(items, boardW, boardH, kerf, options, fixedAxis){
-    const rect = { x:0, y:0, w:boardW, h:boardH };
-    const result = solveRect(items, rect, fixedAxis, kerf, options, 0);
+    const result = buildSheetPlan(items, boardW, boardH, kerf, options, fixedAxis);
     const sheet = opt.createSheet(boardW, boardH);
     for(const p of (result.placements || [])) sheet.placements.push(p);
     return {
@@ -212,6 +319,11 @@
       placementCount: sheet.placements.length,
       waste: opt.boardArea(boardW, boardH) - (result.usedArea || 0),
       primaryBands: result.primaryBands || 0,
+      strongStartBands: result.strongStartBands || 0,
+      startArea: result.startArea || 0,
+      startOccupancySum: result.startOccupancySum || 0,
+      firstBandSize: result.firstBandSize || 0,
+      secondBandSize: result.secondBandSize || 0,
     };
   }
 
@@ -220,6 +332,13 @@
     return startStrategy && typeof startStrategy.resolvePrimaryAxis === 'function'
       ? startStrategy.resolvePrimaryAxis({ previewAxis })
       : 'along';
+  }
+
+  function summarizeSheets(sheets){
+    const usedArea = sheets.reduce((sum, s)=> sum + opt.placedArea(s), 0);
+    const waste = sheets.reduce((sum, s)=> sum + opt.calcWaste(s).waste, 0);
+    const placementCount = sheets.reduce((sum, s)=> sum + ((s.placements || []).filter(p=>p && !p.unplaced).length), 0);
+    return { sheets, usedArea, waste, placementCount, primaryBands: 0 };
   }
 
   reg['max'] = {
