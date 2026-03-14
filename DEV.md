@@ -346,24 +346,9 @@ Dopiero potem go zmieniać.
 - `js/app/optima-solver.js` dostał dodatkowe dogęszczanie wolnych prostokątów po głównych 1–2 pasach, żeby lepiej wypełniać końce pasów i resztki po obrocie.
 - Podbito cache-bust workera/solverów do `20260312_optima_v2`.
 
-## 2026-03-13 — krok 94: Optima, kontrola 2. pasa po powierzchni
-- `js/app/optima-solver.js`: decyzja o 2. pasie startowym nie opiera się już wyłącznie na lokalnym wypełnieniu pasa. Doszedł test powierzchni (`boardShare` / `remainingShare` / relacja pola do 1. pasa), żeby odrzucać długie, cienkie drugie pasy, które formalnie mają >=90% zajętości, ale praktycznie psują układ.
-- Po odrzuceniu takiego 2. pasa top-level `Optima` próbuje najpierw zapakować główny prostokąt resztowy w osi przeciwnej (`buildForcedDirectionRectPack`), zamiast kontynuować ten sam kierunek na siłę.
-- Podbito cache-bust workera/solverów do `20260313_optima_v4`.
 
-
-## 2026-03-13 step100 — cleanup rdzenia Optimax
-- Tryby `Preferuj pasy wzdłuż`, `Preferuj pasy w poprzek` i `Optima` jadą teraz przez wspólny rdzeń `js/app/optima-core.js`.
-- Nowe wrappery: `js/app/along-solver.js`, `js/app/across-solver.js`, `js/app/optima-solver.js`.
-- Usunięto aktywne użycie starych solverów `strip-solver.js` i `optional-solver.js`.
-- Z aktywnej ścieżki rozkroju wyrzucono limity czasowe i końcowe porządkowanie ostatnich płyt.
-- `Optima` zawsze buduje 1–2 pasy w jednym kierunku, potem wymusza zmianę kierunku; `wzdłuż` startuje wzdłuż, `w poprzek` startuje w poprzek.
-- Profil `D` działa bez limitu czasu; różnice A/B/C/D wynikają z szerokości przeszukiwania seedów, nie z timeoutów.
-
-## 2026-03-14 step101 — twarde 90% powierzchni pasa + sortowanie pasów
-- `js/app/optima-core.js`: pas/wiersz jest teraz akceptowany tylko przy zajętości `>= 90%` liczonej po powierzchni pasa; helper `chooseBestRow()` nie zwraca już słabych pasów jako fallbacku.
-- `buildSheetVariant()` odrzuca warianty, w których pas startowy ma `< 90%` zajętości. Dotyczy to też kolejnych pasów i wymuszonego prostokąta po zmianie kierunku.
-- Wymuszony prostokąt po zmianie kierunku (`crossVariant`) jest przyjmowany tylko wtedy, gdy jego realne wypełnienie powierzchni wynosi `>= 90%`.
-- Wolne prostokąty (`fillResidualRects`) nie akceptują już wyjątków 80/78%; pozostał wyłącznie próg `>= 90%`.
-- Dodano `sortRowsForPassWidth()`, które porządkuje pasy malejąco po ich szerokości/grubości, żeby pierwszy układ był czytelniejszy produkcyjnie.
-- Podbito cache-bust plików Optimax do `20260314_pass_area_sort_v1`.
+## 2026-03-13 — site_step99_remove_time_limits
+- Usunięto limity czasowe z trybów Optimax (Optima / wzdłuż / w poprzek) w ścieżce workerowej.
+- Profile A/B/C/D różnią się dalej liczbą prób/seedów, ale nie timeoutem na płytę.
+- Usunięto timeout watchdoga w `computePlanPanelProAsync`, żeby worker nie kończył liczenia przedwcześnie.
+- `packGuillotineBeam` nie ucina już liczenia budżetem `timeMs`; kończy po domknięciu arkusza.
