@@ -369,3 +369,5 @@ Dopiero potem go zmieniać.
 - `js/app/rozrys.js` i `index.html` zostały przepięte na nowe opcje UI i nowe pliki.
 
 - Step 18: kept cut-direction select order as `wzdłuż -> w poprzek -> Opti-max` to match requested UI order without changing solver logic.
+
+- 2026-03-14: swapped runtime behavior of `start-along` and `start-across` for all Panel PRO speed modes (Turbo, Dokładnie, MAX) so labels stay the same but `wzdłuż` starts along board length and `w poprzek` starts across board width; bumped solver cache-busting version to `20260314_direction_fix_v2`.

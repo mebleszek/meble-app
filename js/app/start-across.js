@@ -5,6 +5,6 @@
   reg['start-across'] = {
     id: 'start-across',
     label: 'Pierwsze pasy w poprzek',
-    resolvePrimaryAxis(){ return 'across'; }
+    resolvePrimaryAxis(){ return 'along'; }
   };
 })(typeof self !== 'undefined' ? self : window);
