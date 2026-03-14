@@ -277,19 +277,17 @@
   function chooseBestRow(rem, BW, availableH, K, swap, cfg, threshold, mode){
     const seedLimit = Number.isFinite(Number(cfg && cfg.rowSeedLimit)) ? Math.max(3, Math.round(Number(cfg.rowSeedLimit))) : Number.POSITIVE_INFINITY;
     const seeds = buildSeedCandidates(rem, BW, availableH, swap, seedLimit);
-    let best = null;
     let bestAccepted = null;
     for(const seed of seeds){
       if(seed.rowH > availableH) continue;
       const preferredBucket = widthBucket(seed.cand.w);
       const row = buildRow(rem, BW, K, seed.rowH, seed, preferredBucket, Object.assign({ swap }, mode || {}));
       if(!row) continue;
-      if(!best || row.score > best.score || (row.score === best.score && row.occupancy > best.occupancy)) best = row;
       if(row.occupancy >= threshold){
         if(!bestAccepted || row.score > bestAccepted.score || (row.score === bestAccepted.score && row.occupancy > bestAccepted.occupancy)) bestAccepted = row;
       }
     }
-    return bestAccepted || best;
+    return bestAccepted;
   }
 
   function rowBoardShare(row, BW, BH){
@@ -307,6 +305,18 @@
     const remainingShare = rowRemainingShare(secondRow, BW, availableHAfterSeed);
     const relativeShare = (Number(secondRow.usedArea) || 0) / Math.max(1, Number(seedRow.usedArea) || 0);
     return boardShare >= 0.09 || remainingShare >= 0.14 || relativeShare >= 0.50;
+  }
+
+  function sortRowsForPassWidth(rows){
+    return (rows || []).slice().sort((a,b)=>{
+      const ah = Number(a && a.rowH) || 0;
+      const bh = Number(b && b.rowH) || 0;
+      if(bh !== ah) return bh - ah;
+      const aw = Math.max(...(((a && a.items) || []).map(v=> Number(v && v.cand && v.cand.w) || 0)), 0);
+      const bw = Math.max(...(((b && b.items) || []).map(v=> Number(v && v.cand && v.cand.w) || 0)), 0);
+      if(bw !== aw) return bw - aw;
+      return (Number(b && b.usedArea) || 0) - (Number(a && a.usedArea) || 0);
+    });
   }
 
   function buildForcedDirectionRectPack(remSource, rect, K, cfg, minScrapW, minScrapH, isCancelled, forcedSwap){
@@ -518,7 +528,7 @@
       }
       const occ = (variant.sheet._usedArea || 0) / Math.max(1, rectArea);
       const usedCount = (variant.sheet.placements || []).filter(p => p && !p.unplaced).length;
-      const accept = occ >= 0.90 || (rectArea <= 240000 && occ >= 0.80) || (occ >= 0.78 && usedCount >= 3);
+      const accept = occ >= 0.90;
       if(!accept){
         freeRects.push(rect);
         continue;
@@ -587,7 +597,7 @@
     let availableH = BH;
 
     const seedRow = buildRow(rem, BW, K, seed.rowH, seed, widthBucket(seed.cand.w), { swap, preferWide:true });
-    if(!seedRow) return null;
+    if(!seedRow || (seedRow.occupancy || 0) < 0.90) return null;
     rows.push(seedRow);
     let remNow = removeSelected(rem, seedRow.items.map(v => v.it.id));
     availableH -= (seedRow.rowH + K);
@@ -607,21 +617,28 @@
       while(remNow.length && availableH > 40){
         if(isCancelled && isCancelled()) break;
         const row = chooseBestRow(remNow, BW, availableH, K, swap, cfg, 0.90, { preferWide:true });
-        if(!row) break;
+        if(!row || (row.occupancy || 0) < 0.90) break;
         rows.push(row);
         remNow = removeSelected(remNow, row.items.map(v => v.it.id));
         availableH -= (row.rowH + K);
         if(row.rowH <= 0) break;
       }
       repairRows(rows, remNow, BW, K, swap);
-      extras = { rem: remNow, placements: [], freeRects: buildSheetFreeRects(rows, BW, BH, K), extraArea: 0, extraScore: 0 };
+      const orderedRows = sortRowsForPassWidth(rows);
+      extras = { rem: remNow, placements: [], freeRects: buildSheetFreeRects(orderedRows, BW, BH, K), extraArea: 0, extraScore: 0 };
+      rows.length = 0;
+      rows.push(...orderedRows);
     } else {
       repairRows(rows, remNow, BW, K, swap);
+      const orderedRows = sortRowsForPassWidth(rows);
+      rows.length = 0;
+      rows.push(...orderedRows);
       const usedMainH = Math.max(0, BH - availableH);
       if(remNow.length && availableH > 80){
         const mainRect = { x: 0, y: usedMainH, w: BW, h: availableH };
         const crossVariant = buildForcedDirectionRectPack(remNow, mainRect, K, cfg, minScrapW, minScrapH, isCancelled, !swap);
-        if(crossVariant && crossVariant.sheet && Array.isArray(crossVariant.sheet.placements) && crossVariant.sheet.placements.length){
+        const crossOcc = crossVariant && crossVariant.sheet ? ((Number(crossVariant.sheet._usedArea) || 0) / Math.max(1, mainRect.w * mainRect.h)) : 0;
+        if(crossVariant && crossVariant.sheet && Array.isArray(crossVariant.sheet.placements) && crossVariant.sheet.placements.length && crossOcc >= 0.90){
           const topFreeRects = buildSheetFreeRects(rows, BW, BH, K).filter(r => !(r && r.x === mainRect.x && r.y === mainRect.y && r.w === mainRect.w && r.h === mainRect.h));
           remNow = crossVariant.rem;
           extras = {

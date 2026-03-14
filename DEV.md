@@ -359,3 +359,11 @@ Dopiero potem go zmieniać.
 - Z aktywnej ścieżki rozkroju wyrzucono limity czasowe i końcowe porządkowanie ostatnich płyt.
 - `Optima` zawsze buduje 1–2 pasy w jednym kierunku, potem wymusza zmianę kierunku; `wzdłuż` startuje wzdłuż, `w poprzek` startuje w poprzek.
 - Profil `D` działa bez limitu czasu; różnice A/B/C/D wynikają z szerokości przeszukiwania seedów, nie z timeoutów.
+
+## 2026-03-14 step101 — twarde 90% powierzchni pasa + sortowanie pasów
+- `js/app/optima-core.js`: pas/wiersz jest teraz akceptowany tylko przy zajętości `>= 90%` liczonej po powierzchni pasa; helper `chooseBestRow()` nie zwraca już słabych pasów jako fallbacku.
+- `buildSheetVariant()` odrzuca warianty, w których pas startowy ma `< 90%` zajętości. Dotyczy to też kolejnych pasów i wymuszonego prostokąta po zmianie kierunku.
+- Wymuszony prostokąt po zmianie kierunku (`crossVariant`) jest przyjmowany tylko wtedy, gdy jego realne wypełnienie powierzchni wynosi `>= 90%`.
+- Wolne prostokąty (`fillResidualRects`) nie akceptują już wyjątków 80/78%; pozostał wyłącznie próg `>= 90%`.
+- Dodano `sortRowsForPassWidth()`, które porządkuje pasy malejąco po ich szerokości/grubości, żeby pierwszy układ był czytelniejszy produkcyjnie.
+- Podbito cache-bust plików Optimax do `20260314_pass_area_sort_v1`.

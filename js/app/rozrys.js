@@ -557,7 +557,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260313_cleanup_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_pass_area_sort_v1');
       }catch(e){
         // fallback (sync, limited)
         try{
