@@ -114,6 +114,7 @@ Dopiero potem go zmieniać.
 - **rozjeżdżają się dane projektu** → `js/app/session.js`, `js/app/storage.js`, `js/app/validate.js`, fragmenty `js/app.js`
 - **szafki renderują się źle / znikają** → `renderCabinets()` i wszystko, co go wywołuje
 - **Optimax / rozrys działa źle** → `js/app/rozrys.js`, `js/app/cut-optimizer.js`, ewentualnie worker
+- **MAX wygląda na zawieszony na starcie** → najpierw sprawdzić `js/app/rozrys.js` (start workera / fallbacki / status UI), potem `js/app/panel-pro-worker.js`; nie wpadać cicho w ciężki sync fallback na głównym wątku.
 
 ---
 

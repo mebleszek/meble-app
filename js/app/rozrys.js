@@ -519,6 +519,10 @@
     return new Promise((resolve)=>{
       const opt = FC.cutOptimizer;
       if(!opt) return resolve({ sheets: [], note: 'Brak modułu cutOptimizer.' });
+      const requestedSpeedMode = opt && typeof opt.normalizeSpeedMode === 'function'
+        ? opt.normalizeSpeedMode((panelOpts && (panelOpts.speedMode || panelOpts.optimaxProfile)) || state.optimaxProfile)
+        : String(((panelOpts && (panelOpts.speedMode || panelOpts.optimaxProfile)) || state.optimaxProfile || 'max')).toLowerCase();
+      const blockMainThreadFallback = requestedSpeedMode === 'max';
 
       const grainOn = !!state.grain;
       const overrides = loadOverrides();
@@ -562,8 +566,11 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_progress_ui_v2');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_worker_start_fix_v3');
       }catch(e){
+        if(blockMainThreadFallback){
+          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
+        }
         // fallback (sync, limited)
         try{
           const startMode = normalizeCutDirection(state.direction);
@@ -575,7 +582,7 @@
             : { sheets: opt.packShelf(items, W, H, K, 'along') };
           return resolve({ sheets: packed.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
         }catch(_){
-          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.' });
+          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.', workerFailed: true, meta: { trim, boardW: W0, boardH: H0, unit } });
         }
       }
 
@@ -629,17 +636,17 @@
           return;
         }
         if(msg.type === 'error'){
-          finish({ sheets: [], note: msg.error || 'Błąd worker', meta: { trim, boardW: W0, boardH: H0, unit } });
+          finish({ sheets: [], note: msg.error || 'Błąd worker', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
         }
       };
 
       const onErr = ()=>{
         // Worker script failed to load or runtime error
-        finish({ sheets: [], note: 'Błąd Web Workera (nie udało się wykonać obliczeń).', meta: { trim, boardW: W0, boardH: H0, unit } });
+        finish({ sheets: [], note: 'Błąd Web Workera (nie udało się wykonać obliczeń).', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
       };
 
       const onMsgErr = ()=>{
-        finish({ sheets: [], note: 'Błąd komunikacji z Web Workerem.', meta: { trim, boardW: W0, boardH: H0, unit } });
+        finish({ sheets: [], note: 'Błąd komunikacji z Web Workerem.', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
       };
 
       worker.addEventListener('message', handle);
@@ -658,7 +665,7 @@
         });
       }catch(e){
         // Posting failed: cleanup and return
-        finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', meta: { trim, boardW: W0, boardH: H0, unit } });
+        finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
       }
     });
   }
@@ -1079,7 +1086,8 @@
           ? meta.meta.unit
           : 'mm';
       if(!sheets.length){
-        tgt.appendChild(h('div', { class:'muted', text:'Brak wyniku.' }));
+        const msg = (plan && plan.note) ? String(plan.note) : 'Brak wyniku.';
+        tgt.appendChild(h('div', { class:'muted', text: msg }));
         return;
       }
 
@@ -1513,6 +1521,11 @@ async function generate(force){
       }
       const materialTicker = setInterval(refreshMaterialTicker, 250);
       refreshMaterialTicker();
+      try{
+        if(loading && typeof loading.setProgress === 'function') loading.setProgress(NaN, 'Inicjalizacja workera…');
+        if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Start workera…`;
+        setGlobalStatus(true, `${profileLabel} • ${directionLabel(st.direction)} • 0.0 s`, `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Start workera…`, NaN, 'Inicjalizacja workera…');
+      }catch(_){ }
       let plan = null;
       const control = { runId };
       _rozrysActiveCancel = ()=>{
@@ -1532,14 +1545,14 @@ async function generate(force){
             refreshMaterialTicker();
           }catch(_){ }
         }, control, {
-          maxAttempts: maxAttempts,
           beamWidth: preset.beamWidth,
           endgameAttempts: preset.endgameAttempts,
           cutPref: cutMode,
           cutMode,
           minScrapW: minScrapW2,
           minScrapH: minScrapH2,
-          optimaxProfile: profileLabel,
+          speedMode: String(st.optimaxProfile || 'max').toLowerCase(),
+          optimaxProfile: String(st.optimaxProfile || 'max').toLowerCase(),
           sheetEstimate: roughSheetsEstimate,
           optimax: true,
         });
@@ -1553,7 +1566,9 @@ async function generate(force){
       }
 
       // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
-      if(!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0){
+      // Dla MAX nie schodzimy już na synchroniczny fallback na głównym wątku,
+      // bo to zamraża UI i sprawia wrażenie zawieszenia jeszcze przed startem.
+      if((!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0) && !(plan && plan.noSyncFallback)){
         try{
           const opt2 = FC.cutOptimizer;
           const grainOn2 = !!st.grain;
