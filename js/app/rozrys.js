@@ -1213,7 +1213,7 @@
           const n = Number(percent);
           if(Number.isFinite(n)) {
             progWrap.classList.remove('is-indeterminate');
-            progBar.style.width = `${Math.max(4, Math.min(100, n))}%`;
+            progBar.style.width = `${Math.max(0, Math.min(100, n))}%`;
           } else {
             progWrap.classList.add('is-indeterminate');
             progBar.style.width = '';
@@ -1335,27 +1335,12 @@ let _rozrysRunId = 0;
 let _rozrysRunning = false;
 function setGlobalStatus(active, title, subtitle, percent, metaText){
   try{
-    if(!active){
-      statusBox.style.display = 'none';
-      statusMain.textContent = 'Liczę…';
-      statusSub.textContent = '';
-      statusMeta.textContent = '';
-      statusProg.classList.add('is-indeterminate');
-      statusProgBar.style.width = '';
-      return;
-    }
-    statusBox.style.display = 'block';
-    statusMain.textContent = title || 'Liczę…';
-    statusSub.textContent = subtitle || '';
-    if(typeof metaText === 'string') statusMeta.textContent = metaText;
-    const n = Number(percent);
-    if(Number.isFinite(n)){
-      statusProg.classList.remove('is-indeterminate');
-      statusProgBar.style.width = `${Math.max(4, Math.min(100, n))}%`;
-    } else {
-      statusProg.classList.add('is-indeterminate');
-      statusProgBar.style.width = '';
-    }
+    statusBox.style.display = 'none';
+    statusMain.textContent = 'Liczę…';
+    statusSub.textContent = '';
+    statusMeta.textContent = '';
+    statusProg.classList.add('is-indeterminate');
+    statusProgBar.style.width = '';
   }catch(_){ }
 }
 try{ setGlobalStatus(false); }catch(_){ }
@@ -1506,10 +1491,10 @@ async function generate(force){
           const bestTxt = materialProgress.bestSheets ? `${materialProgress.bestSheets} płyt` : '—';
           const currentSheet = Math.max(0, Number(materialProgress.currentSheet) || 0);
           const est = Math.max(1, Number(materialProgress.sheetEstimate) || roughSheetsEstimate || 1);
-          const pct = currentSheet > 0 ? Math.min(98, (currentSheet / Math.max(est, currentSheet)) * 100) : NaN;
+          const pct = currentSheet > 0 ? Math.min(100, (currentSheet / Math.max(1, est)) * 100) : NaN;
           if(loading && loading.textEl) loading.textEl.textContent = `${profileLabel} • ${directionLabel(st.direction)} • ${fmtElapsed(elapsed)}`;
           if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • Szacunek: ~${est} płyt • Najlepsze: ${bestTxt}`;
-          if(loading && typeof loading.setProgress === 'function') loading.setProgress(pct, currentSheet > 0 ? `Postęp orientacyjny: arkusz ${currentSheet} z ~${est}` : 'Trwa liczenie — worker odpowiada w tle.');
+          if(loading && typeof loading.setProgress === 'function') loading.setProgress(pct, currentSheet > 0 ? `Postęp: policzona płyta ${currentSheet} z ~${est}` : 'Trwa liczenie — czekam na pierwszą policzoną płytę.');
           _globalProgressInfo.material = material;
           _globalProgressInfo.profile = profileLabel;
           _globalProgressInfo.phase = materialProgress.phase;

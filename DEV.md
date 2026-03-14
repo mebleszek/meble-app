@@ -386,3 +386,5 @@ Dopiero potem go zmieniać.
 - ROZRYS: przy starcie generowania wymuszony repaint UI przed cięższą pracą, żeby przycisk szybciej przechodził w czerwony stan `Anuluj` także na telefonach.
 - ROZRYS: status pokazuje też szacunkową liczbę płyt i bieżący numer arkusza, jeśli worker raportuje postęp.
 - ROZRYS: pozostawiony fallback twardego zatrzymania workera, żeby UI nie wisiało przy anulowaniu.
+- ROZRYS: usunięto górny, zdublowany status z licznikiem; zostawiono tylko jeden status w obszarze wyniku.
+- ROZRYS: pasek postępu idzie teraz proporcjonalnie do policzonych płyt względem oszacowania (np. 3 z ~5 = 60%%).
