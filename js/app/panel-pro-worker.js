@@ -5,7 +5,7 @@
 
 self.window = self;
 
-const SOLVER_VER = '20260313_cleanup_v1';
+const SOLVER_VER = '20260314_pass_area_sort_v1';
 try{
   importScripts(
     'optima-core.js?v=' + SOLVER_VER,
