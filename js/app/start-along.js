@@ -4,7 +4,7 @@
   const reg = FC.rozkrojStarts = FC.rozkrojStarts || {};
   reg['start-along'] = {
     id: 'start-along',
-    label: 'Pierwsze pasy w poprzek',
+    label: 'Pierwsze pasy wzdłuż',
     resolvePrimaryAxis(){ return 'along'; }
   };
 })(typeof self !== 'undefined' ? self : window);

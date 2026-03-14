@@ -356,8 +356,8 @@ Dopiero potem go zmieniać.
 ## 2026-03-14 — krok 106: przebudowa rozrysu na osobne moduły kierunku i szybkości
 - Usunięto stare pliki solverów rozkroju: `js/app/strip-solver.js`, `js/app/optima-solver.js`, `js/app/optional-solver.js`.
 - Dodano osobne moduły kierunku startu:
-  - `js/app/start-along.js` → `Pierwsze pasy w poprzek`
-  - `js/app/start-across.js` → `Pierwsze pasy wzdłuż`
+  - `js/app/start-along.js` → `Pierwsze pasy wzdłuż`
+  - `js/app/start-across.js` → `Pierwsze pasy w poprzek`
   - `js/app/start-optimax.js` → `Opti-max`
 - Dodano osobne moduły szybkości liczenia:
   - `js/app/speed-turbo.js` → `Turbo` (shelf)
@@ -367,3 +367,5 @@ Dopiero potem go zmieniać.
 - `js/app/cut-optimizer.js` został uproszczony do wspólnych narzędzi i shelf fallbacku.
 - `js/app/panel-pro-worker.js` został napisany od nowa pod nowy podział start/szybkość.
 - `js/app/rozrys.js` i `index.html` zostały przepięte na nowe opcje UI i nowe pliki.
+
+- Step 18: kept cut-direction select order as `wzdłuż -> w poprzek -> Opti-max` to match requested UI order without changing solver logic.

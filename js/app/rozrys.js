@@ -500,9 +500,9 @@
 
   function directionLabel(dir){
     const norm = normalizeCutDirection(dir);
-    if(norm === 'start-across') return 'Pierwsze pasy wzdłuż';
+    if(norm === 'start-across') return 'Pierwsze pasy w poprzek';
     if(norm === 'start-optimax') return 'Opti-max';
-    return 'Pierwsze pasy w poprzek';
+    return 'Pierwsze pasy wzdłuż';
   }
 
   function formatHeurLabel(st){
@@ -825,8 +825,8 @@
     dirWrap.appendChild(h('label', { text:'Kierunek cięcia' }));
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
-      <option value="start-along">Pierwsze pasy w poprzek</option>
-      <option value="start-across">Pierwsze pasy wzdłuż</option>
+      <option value="start-along">Pierwsze pasy wzdłuż</option>
+      <option value="start-across">Pierwsze pasy w poprzek</option>
       <option value="start-optimax" selected>Opti-max</option>
     `;
     dirWrap.appendChild(dirSel);
