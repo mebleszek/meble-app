@@ -356,8 +356,8 @@ Dopiero potem go zmieniać.
 ## 2026-03-14 — krok 106: przebudowa rozrysu na osobne moduły kierunku i szybkości
 - Usunięto stare pliki solverów rozkroju: `js/app/strip-solver.js`, `js/app/optima-solver.js`, `js/app/optional-solver.js`.
 - Dodano osobne moduły kierunku startu:
-  - `js/app/start-along.js` → `Pierwsze pasy wzdłuż`
-  - `js/app/start-across.js` → `Pierwsze pasy w poprzek`
+  - `js/app/start-along.js` → `Pierwsze pasy wzdłuż` (wymusza oś `along`)
+  - `js/app/start-across.js` → `Pierwsze pasy w poprzek` (wymusza oś `across`)
   - `js/app/start-optimax.js` → `Opti-max`
 - Dodano osobne moduły szybkości liczenia:
   - `js/app/speed-turbo.js` → `Turbo` (shelf)
