@@ -232,6 +232,74 @@ try{
       if(it && (it.id!==undefined && it.id!==null)) itemById.set(it.id, it);
     }
 
+    function placedParts(sheet){
+      return (sheet && Array.isArray(sheet.placements)) ? sheet.placements.filter(p=>p && !p.unplaced) : [];
+    }
+
+    function sheetOccupancy(sheet){
+      const area = Math.max(1, (Number(sheet && sheet.boardW) || 0) * (Number(sheet && sheet.boardH) || 0));
+      const used = placedParts(sheet).reduce((sum, p)=> sum + ((Number(p.w) || 0) * (Number(p.h) || 0)), 0);
+      return used / area;
+    }
+
+    function isSparseTailSheet(sheet){
+      const cnt = placedParts(sheet).length;
+      const occ = sheetOccupancy(sheet);
+      if(cnt <= 0) return true;
+      if(cnt === 1) return true;
+      if(cnt <= 2 && occ <= 0.30) return true;
+      if(cnt <= 4 && occ <= 0.18) return true;
+      return occ <= 0.12;
+    }
+
+    function compactSparseTail(currentBest){
+      if(_cancelled) return currentBest;
+      if(!currentBest || !Array.isArray(currentBest.sheets)) return currentBest;
+      const sheets0 = currentBest.sheets;
+      if(sheets0.length < 2) return currentBest;
+
+      let tailStart = sheets0.length;
+      while(tailStart > 0 && isSparseTailSheet(sheets0[tailStart - 1])) tailStart--;
+      if(tailStart >= sheets0.length) return currentBest;
+
+      // Jeżeli tylko ostatnia płyta jest słaba, spróbuj wciągnąć jeszcze jedną wcześniejszą,
+      // o ile sama też nie jest zbyt mocna. Dzięki temu 1 mała formatka ma z czym się przeliczyć.
+      if((sheets0.length - tailStart) < 2 && tailStart > 0){
+        const prev = sheets0[tailStart - 1];
+        const prevCnt = placedParts(prev).length;
+        const prevOcc = sheetOccupancy(prev);
+        if(prevCnt <= 6 && prevOcc <= 0.62) tailStart--;
+      }
+
+      if(tailStart >= sheets0.length) return currentBest;
+      const tail = sheets0.slice(tailStart);
+      const prefix = sheets0.slice(0, tailStart);
+      const pool = [];
+      const seen = new Set();
+      for(const sh of tail){
+        for(const p of placedParts(sh)){
+          const key = String(p.id);
+          if(seen.has(key)) continue;
+          seen.add(key);
+          const it = itemById.get(p.id);
+          if(it) pool.push(it);
+        }
+      }
+      if(pool.length < 2) return currentBest;
+
+      let bestLocal = currentBest;
+      const prefs = (cutMode === 'optima') ? [cutPref] : [cutPref, cutPref === 'along' ? 'across' : 'along'];
+      for(const pref of prefs){
+        if(_cancelled) break;
+        const repacked = packOne(pool, pref);
+        if(!Array.isArray(repacked) || !repacked.length) continue;
+        const combined = prefix.concat(repacked);
+        const cand = { sheets: combined, sc: scoreSheets(combined) };
+        if(better(cand, bestLocal)) bestLocal = cand;
+      }
+      return bestLocal;
+    }
+
     const progress = { phase:'main', iters:0, tailIters:0, currentAttempt:0, currentTailAttempt:0, step:'idle' };
     let lastProgressKey = '';
     function reportProgress(force){
@@ -277,6 +345,7 @@ try{
       const sheets = packOne(items, cutMode);
       const sc = scoreSheets(sheets);
       best = { sheets, sc };
+      best = compactSparseTail(best);
       setBest(best);
       progress.iters = 1;
       progress.currentAttempt = 1;
@@ -706,7 +775,10 @@ try{
 
 
 
-    if(best) return { sheets: best.sheets, cancelled: _cancelled };
+    if(best){
+      best = compactSparseTail(best);
+      return { sheets: best.sheets, cancelled: _cancelled };
+    }
     // Fallback: evaluate the normalized preferred direction once more.
     let fallbackBest = null;
     for(const pref of prefList){
@@ -717,6 +789,7 @@ try{
       if(better(res, fallbackBest)) fallbackBest = res;
       setBest(res);
     }
+    if(fallbackBest) fallbackBest = compactSparseTail(fallbackBest);
     return { sheets: fallbackBest ? fallbackBest.sheets : [], cancelled: _cancelled };
     } finally {
       try{ if(_heartbeat) clearInterval(_heartbeat); }catch(_){ }
