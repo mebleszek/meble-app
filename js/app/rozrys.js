@@ -566,7 +566,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_worker_start_fix_v3');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260314_max_axis_variants_v4');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1415,8 +1415,36 @@ async function generate(force){
 
   const overallStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   let _overallTick = null;
-  let _globalProgressInfo = { material:'', profile:'MAX', phase:'main', bestSheets:null, currentSheet:0, sheetEstimate:1 };
+  let _globalProgressInfo = { material:'', profile:'MAX', phase:'main', bestSheets:null, currentSheet:0, nextSheet:1, remaining:null, sheetEstimate:1, axis:null, seedIndex:null, seedTotal:null };
   function fmtElapsed(ms){ return `${(Math.max(0, Number(ms)||0)/1000).toFixed(1)} s`; }
+  function axisProgressLabel(axis){ return axis === 'along' ? 'wzdłuż' : (axis === 'across' ? 'w poprzek' : '—'); }
+  function buildProgressMeta(info, estimate){
+    const phase = String(info && info.phase || 'main');
+    const currentSheet = Math.max(0, Number(info && info.currentSheet) || 0);
+    const nextSheet = Math.max(1, Number(info && info.nextSheet) || (currentSheet > 0 ? currentSheet + 1 : 1));
+    const seedIndex = Number(info && info.seedIndex) || 0;
+    const seedTotal = Number(info && info.seedTotal) || 0;
+    const axisTxt = axisProgressLabel((info && info.axis) || (info && info.to) || null);
+    const suffix = (seedIndex > 0 && seedTotal > 0) ? ` • wariant ${seedIndex}/${seedTotal}` : '';
+    if(phase === 'sheet-closed'){
+      return (Number(info && info.remaining) || 0) > 0
+        ? `Postęp: zamknięta płyta ${currentSheet} z ~${estimate} • liczę płytę ${nextSheet}`
+        : `Postęp: zamknięta płyta ${currentSheet} z ~${estimate}`;
+    }
+    if(phase === 'sheet-start') return `Start płyty ${nextSheet} z ~${estimate}`;
+    if(phase === 'mandatory-axis-switch') return `Zmiana kierunku pasów: teraz ${axisTxt}`;
+    if(phase === 'axis-switch-check') return `Brak idealnego pasa ${axisTxt} — sprawdzam drugi kierunek`;
+    if(phase === 'axis-switched') return `Przełączono kierunek pasów na ${axisTxt}`;
+    if(phase === 'fallback-band-used') return `Brak idealnego pasa — używam najlepszego dostępnego ${axisTxt}`;
+    if(phase.indexOf('start') === 0) return `Analiza pasów startowych ${axisTxt}${suffix}`;
+    if(phase.indexOf('residual') === 0) return `Domykanie arkusza pasami ${axisTxt}${suffix}`;
+    if(currentSheet > 0) return `Postęp: zamknięta płyta ${currentSheet} z ~${estimate} • liczę płytę ${nextSheet}`;
+    return 'Trwa liczenie — worker odpowiada w tle.';
+  }
+  function progressPercent(info, estimate){
+    const currentSheet = Math.max(0, Number(info && info.currentSheet) || 0);
+    return currentSheet > 0 ? Math.min(98, (currentSheet / Math.max(estimate, currentSheet)) * 100) : NaN;
+  }
   function refreshGlobalTicker(){
     try{
       if(!_rozrysRunning) return;
@@ -1424,10 +1452,9 @@ async function generate(force){
       const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - overallStartedAt;
       const bestTxt = _globalProgressInfo.bestSheets ? `${_globalProgressInfo.bestSheets} płyt` : '—';
       const estimate = Math.max(1, Number(_globalProgressInfo.sheetEstimate) || 1);
-      const currentSheet = Math.max(0, Number(_globalProgressInfo.currentSheet) || 0);
-      const pct = currentSheet > 0 ? Math.min(98, (currentSheet / Math.max(estimate, currentSheet)) * 100) : NaN;
+      const pct = progressPercent(_globalProgressInfo, estimate);
       const subtitle = `Liczę kolor: ${_globalProgressInfo.material || '—'} • Szacunek: ~${estimate} płyt • Najlepsze: ${bestTxt}`;
-      const meta = currentSheet > 0 ? `Postęp orientacyjny: arkusz ${currentSheet} z ~${estimate}` : 'Trwa liczenie — worker odpowiada w tle.';
+      const meta = buildProgressMeta(_globalProgressInfo, estimate);
       setGlobalStatus(true, `${prof} • ${fmtElapsed(elapsed)}`, subtitle, pct, meta);
     }catch(_){ }
   }
@@ -1437,7 +1464,12 @@ async function generate(force){
     _globalProgressInfo.phase = 'main';
     _globalProgressInfo.bestSheets = null;
     _globalProgressInfo.currentSheet = 0;
+    _globalProgressInfo.nextSheet = 1;
+    _globalProgressInfo.remaining = null;
     _globalProgressInfo.sheetEstimate = Math.max(1, Number(sheetEstimate) || 1);
+    _globalProgressInfo.axis = null;
+    _globalProgressInfo.seedIndex = null;
+    _globalProgressInfo.seedTotal = null;
     refreshGlobalTicker();
     if(_overallTick) return;
     _overallTick = setInterval(refreshGlobalTicker, 250);
@@ -1484,23 +1516,29 @@ async function generate(force){
       const loading = renderLoadingInto(target || null, `${profileLabel} • ${directionLabel(st.direction)} • 0.0 s`, `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Najlepsze: —`);
       startGlobalTicker(material, profileLabel, roughSheetsEstimate);
       const materialStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      const materialProgress = { phase:'main', bestSheets:null, currentSheet:0, sheetEstimate:roughSheetsEstimate };
+      const materialProgress = { phase:'main', bestSheets:null, currentSheet:0, nextSheet:1, remaining:null, sheetEstimate:roughSheetsEstimate, axis:null, seedIndex:null, seedTotal:null };
       function refreshMaterialTicker(){
         try{
           const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt;
           const bestTxt = materialProgress.bestSheets ? `${materialProgress.bestSheets} płyt` : '—';
           const currentSheet = Math.max(0, Number(materialProgress.currentSheet) || 0);
           const est = Math.max(1, Number(materialProgress.sheetEstimate) || roughSheetsEstimate || 1);
-          const pct = currentSheet > 0 ? Math.min(100, (currentSheet / Math.max(1, est)) * 100) : NaN;
+          const pct = progressPercent(materialProgress, est);
+          const metaText = buildProgressMeta(materialProgress, est);
           if(loading && loading.textEl) loading.textEl.textContent = `${profileLabel} • ${directionLabel(st.direction)} • ${fmtElapsed(elapsed)}`;
           if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • Szacunek: ~${est} płyt • Najlepsze: ${bestTxt}`;
-          if(loading && typeof loading.setProgress === 'function') loading.setProgress(pct, currentSheet > 0 ? `Postęp: policzona płyta ${currentSheet} z ~${est}` : 'Trwa liczenie — czekam na pierwszą policzoną płytę.');
+          if(loading && typeof loading.setProgress === 'function') loading.setProgress(pct, metaText);
           _globalProgressInfo.material = material;
           _globalProgressInfo.profile = profileLabel;
           _globalProgressInfo.phase = materialProgress.phase;
           _globalProgressInfo.bestSheets = materialProgress.bestSheets;
           _globalProgressInfo.currentSheet = currentSheet;
+          _globalProgressInfo.nextSheet = Math.max(1, Number(materialProgress.nextSheet) || (currentSheet > 0 ? currentSheet + 1 : 1));
+          _globalProgressInfo.remaining = materialProgress.remaining;
           _globalProgressInfo.sheetEstimate = est;
+          _globalProgressInfo.axis = materialProgress.axis;
+          _globalProgressInfo.seedIndex = materialProgress.seedIndex;
+          _globalProgressInfo.seedTotal = materialProgress.seedTotal;
           refreshGlobalTicker();
         }catch(_){ }
       }
@@ -1525,8 +1563,13 @@ async function generate(force){
           try{
             materialProgress.phase = (p && p.phase) ? String(p.phase) : 'main';
             materialProgress.bestSheets = (p && Number(p.bestSheets)) ? Number(p.bestSheets) : null;
-            materialProgress.currentSheet = (p && Number(p.currentSheet)) ? Number(p.currentSheet) : materialProgress.currentSheet;
+            materialProgress.currentSheet = (p && typeof p.currentSheet === 'number') ? Number(p.currentSheet) : materialProgress.currentSheet;
+            materialProgress.nextSheet = (p && typeof p.nextSheet === 'number') ? Number(p.nextSheet) : materialProgress.nextSheet;
+            materialProgress.remaining = (p && typeof p.remaining === 'number') ? Number(p.remaining) : materialProgress.remaining;
             materialProgress.sheetEstimate = (p && Number(p.sheetEstimate)) ? Number(p.sheetEstimate) : materialProgress.sheetEstimate;
+            materialProgress.axis = (p && p.axis) ? String(p.axis) : materialProgress.axis;
+            materialProgress.seedIndex = (p && typeof p.seedIndex === 'number') ? Number(p.seedIndex) : materialProgress.seedIndex;
+            materialProgress.seedTotal = (p && typeof p.seedTotal === 'number') ? Number(p.seedTotal) : materialProgress.seedTotal;
             refreshMaterialTicker();
           }catch(_){ }
         }, control, {

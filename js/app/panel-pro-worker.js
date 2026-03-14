@@ -2,7 +2,7 @@
    Kierunek startu i szybkość liczenia są rozdzielone na osobne moduły. */
 self.window = self;
 
-const SOLVER_VER = '20260314_worker_start_fix_v3';
+const SOLVER_VER = '20260314_max_axis_variants_v4';
 try{
   importScripts(
     'cut-optimizer.js?v=' + SOLVER_VER,
@@ -88,10 +88,16 @@ try{
           currentAttempt: 1,
           totalAttempts: 1,
           bestSheets: info && info.bestSheets ? info.bestSheets : null,
-          currentSheet: info && info.currentSheet ? info.currentSheet : 0,
+          currentSheet: info && typeof info.currentSheet === 'number' ? info.currentSheet : 0,
+          nextSheet: info && typeof info.nextSheet === 'number' ? info.nextSheet : 1,
           sheetEstimate: roughEstimate,
           phase: info && info.phase ? info.phase : 'sheet',
           remaining: info && typeof info.remaining === 'number' ? info.remaining : null,
+          axis: info && info.axis ? info.axis : null,
+          seedIndex: info && typeof info.seedIndex === 'number' ? info.seedIndex : null,
+          seedTotal: info && typeof info.seedTotal === 'number' ? info.seedTotal : null,
+          bandNo: info && typeof info.bandNo === 'number' ? info.bandNo : null,
+          occupancy: info && typeof info.occupancy === 'number' ? info.occupancy : null,
           speedMode,
           startMode,
         });

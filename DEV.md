@@ -388,3 +388,4 @@ Dopiero potem go zmieniać.
 - ROZRYS: pozostawiony fallback twardego zatrzymania workera, żeby UI nie wisiało przy anulowaniu.
 - ROZRYS: usunięto górny, zdublowany status z licznikiem; zostawiono tylko jeden status w obszarze wyniku.
 - ROZRYS: pasek postępu idzie teraz proporcjonalnie do policzonych płyt względem oszacowania (np. 3 z ~5 = 60%%).
+- 2026-03-14: przebudowano `js/app/speed-max.js` jeszcze raz pod spec użytkownika: `MAX` liczy teraz pojedynczy wariant arkusza dla zadanego startu osi, robi 1–2 idealne pasy startowe, potem obowiązkowo zmienia kierunek i domyka resztę kolejnymi idealnymi pasami; dopiero gdy w danej osi nie ma idealnego pasa, sprawdza zmianę osi i na końcu fallback do najlepszego nieidealnego pasa. `Opti-max` porównuje już tylko 1 wariant startu wzdłuż vs 1 wariant startu w poprzek. Worker i UI dostały dokładniejsze fazy progresu oraz licznik „zamknięta płyta X / liczę płytę Y”.
