@@ -414,3 +414,5 @@ Dopiero potem go zmieniać.
 - Half-sheet detection is now strict: full length + half short side only; no rotated whole-half acceptance.
 - Virtual/real half preview uses lengthwise-only logic.
 - Added dashed divider line on rendered sheets when half-board logic is active.
+
+- 2026-03-15: MAX updated: band similarity 50mm, thresholds 95%/90%, and last-sheet virtual half now re-runs normal MAX on 2800x1030 and replaces the last layout before drawing on full board. Half divider drawn as stronger dashed line above placements.

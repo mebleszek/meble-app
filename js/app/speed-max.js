@@ -4,9 +4,9 @@
   const reg = FC.rozkrojSpeeds = FC.rozkrojSpeeds || {};
   const opt = FC.cutOptimizer;
 
-  const SIMILAR_MM = 75;
-  const IDEAL_OCCUPANCY = 0.9;
-  const MIN_OK_OCCUPANCY = 0.85;
+  const SIMILAR_MM = 50;
+  const IDEAL_OCCUPANCY = 0.95;
+  const MIN_OK_OCCUPANCY = 0.9;
   const MAX_TOP_SEEDS = 5;
   const TINY_RATIO = 0.5;
   // Uwaga: w obecnym mapowaniu osi fizyczny kierunek 'po długości płyty'
@@ -650,9 +650,8 @@
     if(!Array.isArray(lastItems) || !lastItems.length) return null;
     const half = resolveHalfDims(boardW, boardH, options);
     const silentOptions = Object.assign({}, options, { reportStage:null, onProgress:null });
-    // Half sheet is only valid as a full-length board cut in half on the short side.
-    // Do not rotate the whole half-board logic or switch to the opposite axis here.
-    const preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, LENGTHWISE_AXIS);
+    const halfAxis = pickAxis(startStrategy, opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions);
+    const preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, halfAxis);
     if(preview && preview.ids && preview.ids.size === lastItems.length){
       return buildSheetFromPlan(preview, boardW, boardH, half.w, half.h, useRealHalf ? { realHalf:true } : { virtualHalf:true });
     }
@@ -663,10 +662,19 @@
     if(!built || !built.sheet || !Array.isArray(lastItems) || !lastItems.length) return;
     const halfBuilt = tryBuildHalfSheet(lastItems, boardW, boardH, kerf, Object.assign({}, options, { realHalfBoardW:0, realHalfBoardH:0 }), startStrategy, false);
     if(halfBuilt && halfBuilt.sheet && halfBuilt.usedIds && halfBuilt.usedIds.size === lastItems.length){
-      built.sheet.virtualFraction = halfBuilt.sheet.virtualFraction;
-      built.sheet.virtualHalf = true;
-      built.sheet.virtualBoardW = halfBuilt.sheet.virtualBoardW;
-      built.sheet.virtualBoardH = halfBuilt.sheet.virtualBoardH;
+      built.sheet = halfBuilt.sheet;
+      built.usedIds = halfBuilt.usedIds;
+      built.usedArea = halfBuilt.usedArea || 0;
+      built.placementCount = halfBuilt.placementCount || 0;
+      built.waste = halfBuilt.waste || 0;
+      built.primaryBands = halfBuilt.primaryBands || 0;
+      built.strongStartBands = halfBuilt.strongStartBands || 0;
+      built.startArea = halfBuilt.startArea || 0;
+      built.startOccupancySum = halfBuilt.startOccupancySum || 0;
+      built.firstBandSize = halfBuilt.firstBandSize || 0;
+      built.secondBandSize = halfBuilt.secondBandSize || 0;
+      built.totalBands = halfBuilt.totalBands || 0;
+      built.axisSwitches = halfBuilt.axisSwitches || 0;
     }
   }
 

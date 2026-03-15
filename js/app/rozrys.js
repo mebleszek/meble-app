@@ -230,19 +230,20 @@
       const halfBoardH = Math.max(0, Number(sheet && (sheet.realHalfBoardH || sheet.virtualBoardH)) || 0);
       const showHalfDivider = !!(sheet && (sheet.realHalf || sheet.realHalfFromStock || sheet.virtualHalf))
         && ((halfBoardW > 0 && halfBoardW < W) || (halfBoardH > 0 && halfBoardH < H));
-      if(showHalfDivider){
+      const drawHalfDivider = ()=>{
+        if(!showHalfDivider) return;
         ctx.save();
-        ctx.setLineDash([8, 6]);
-        ctx.strokeStyle = 'rgba(11, 31, 51, 0.45)';
+        ctx.setLineDash([10, 6]);
+        ctx.strokeStyle = 'rgba(11, 31, 51, 0.9)';
         if(halfBoardW > 0 && halfBoardW < W){
           const x = halfBoardW * scale;
-          strokeLine(x, 0, x, canvas.height, 1);
+          strokeLine(x, 0, x, canvas.height, 2);
         } else if(halfBoardH > 0 && halfBoardH < H){
           const y = halfBoardH * scale;
-          strokeLine(0, y, canvas.width, y, 1);
+          strokeLine(0, y, canvas.width, y, 2);
         }
         ctx.restore();
-      }
+      };
 
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       // Base font; for tiny parts we will temporarily shrink it.
@@ -369,6 +370,7 @@
           ctx.restore();
         }
       });
+      drawHalfDivider();
     }catch(_){ }
   }
 
@@ -604,7 +606,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_real_half_inventory_v2');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_half_reflow_v3');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
