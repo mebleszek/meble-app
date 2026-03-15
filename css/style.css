@@ -328,3 +328,44 @@
 }
 
 .tab-btn{width:100%;}
+
+
+/* Reusable confirm box */
+.confirm-backdrop{
+  position:fixed;inset:0;z-index:1200;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.45);
+  padding:16px;
+}
+.confirm-box{
+  width:min(420px, calc(100vw - 24px));
+  background:#fff;border:1px solid #e6eef6;border-radius:18px;
+  box-shadow:0 24px 64px rgba(2,6,23,.26);
+  padding:20px 18px 16px;
+}
+.confirm-title{
+  font-size:28px;line-height:1.05;font-weight:900;letter-spacing:.02em;
+  color:#0f172a;text-transform:uppercase;
+}
+.confirm-message{
+  margin-top:12px;font-size:14px;line-height:1.45;color:#475569;font-weight:700;
+}
+.confirm-actions{
+  margin-top:18px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;
+}
+.confirm-btn{
+  border:none;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer;
+  color:#fff;min-width:130px;
+}
+.confirm-btn.is-success{background:#22c55e}
+.confirm-btn.is-success:hover{background:#16a34a}
+.confirm-btn.is-danger{background:#ff4d4f}
+.confirm-btn.is-danger:hover{background:#e53935}
+.confirm-btn.is-neutral{background:#0ea5e9}
+.confirm-btn.is-neutral:hover{background:#0284c7}
+@media (max-width:600px){
+  .confirm-box{width:min(420px, calc(100vw - 20px));padding:18px 16px 14px;border-radius:16px;}
+  .confirm-title{font-size:24px;}
+  .confirm-actions{justify-content:stretch;}
+  .confirm-btn{flex:1 1 0;min-width:0;}
+}

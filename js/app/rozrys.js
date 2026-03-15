@@ -1100,13 +1100,33 @@
       }
 
       function confirmDiscardIfDirty(){
-        if(!isDirty) return true;
-        return window.confirm('Czy na pewno chcesz anulować zmiany?');
+        if(!isDirty) return Promise.resolve(true);
+        if(root.FC && root.FC.confirmBox && typeof root.FC.confirmBox.ask === 'function'){
+          return root.FC.confirmBox.ask({
+            title:'ANULOWAĆ ZMIANY?',
+            message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
+            confirmText:'✕ ANULUJ ZMIANY',
+            cancelText:'✓ WRÓĆ',
+            confirmTone:'danger',
+            cancelTone:'success'
+          });
+        }
+        return Promise.resolve(window.confirm('Czy na pewno chcesz anulować zmiany?'));
       }
 
       function confirmSaveIfDirty(){
-        if(!isDirty) return true;
-        return window.confirm('Czy zapisać zmienione opcje?');
+        if(!isDirty) return Promise.resolve(true);
+        if(root.FC && root.FC.confirmBox && typeof root.FC.confirmBox.ask === 'function'){
+          return root.FC.confirmBox.ask({
+            title:'ZAPISAĆ ZMIANY?',
+            message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
+            confirmText:'✓ ZAPISZ',
+            cancelText:'✕ WRÓĆ',
+            confirmTone:'success',
+            cancelTone:'danger'
+          });
+        }
+        return Promise.resolve(window.confirm('Czy zapisać zmienione opcje?'));
       }
 
       function wireDirty(el){
@@ -1117,17 +1137,17 @@
       [modalEdgeSel, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
       updateDirtyState();
 
-      cancelBtn.addEventListener('click', ()=>{
-        if(!confirmDiscardIfDirty()) return;
+      cancelBtn.addEventListener('click', async ()=>{
+        if(!(await confirmDiscardIfDirty())) return;
         closeModal();
       });
-      back.addEventListener('pointerdown', (e)=>{
+      back.addEventListener('pointerdown', async (e)=>{
         if(e.target !== back) return;
-        if(!confirmDiscardIfDirty()) return;
+        if(!(await confirmDiscardIfDirty())) return;
         closeModal();
       });
-      saveBtn.addEventListener('click', ()=>{
-        if(!confirmSaveIfDirty()) return;
+      saveBtn.addEventListener('click', async ()=>{
+        if(!(await confirmSaveIfDirty())) return;
         if(!isDirty){
           closeModal();
           return;
