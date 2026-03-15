@@ -163,12 +163,17 @@
   // Zasada kompensacji (zgodnie z ustaleniem):
   // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
   // - okleina na krawędziach H (left/right) zwiększa wymiar W => odejmujemy od W
-  function drawSheet(canvas, sheet, displayUnit, edgeSubMm){
+  function drawSheet(canvas, sheet, displayUnit, edgeSubMm, boardMeta){
     try{
       const ctx = canvas.getContext('2d');
       const unit = (displayUnit === 'cm') ? 'cm' : 'mm';
-      const W = sheet.boardW;
-      const H = sheet.boardH;
+      const metaBoardW = Number(boardMeta && boardMeta.boardW) || Number(sheet.fullBoardW) || Number(sheet.boardW) || 0;
+      const metaBoardH = Number(boardMeta && boardMeta.boardH) || Number(sheet.fullBoardH) || Number(sheet.boardH) || 0;
+      const trimMm = Math.max(0, Number(boardMeta && boardMeta.trim) || Number(sheet.trimMm) || 0);
+      const W = Math.max(1, metaBoardW);
+      const H = Math.max(1, metaBoardH);
+      const usableW = Math.max(1, W - 2*trimMm);
+      const usableH = Math.max(1, H - 2*trimMm);
 
       const maxW = Math.min(900, canvas.parentElement ? canvas.parentElement.clientWidth : 900);
       const scale = maxW / W;
@@ -206,6 +211,21 @@
         ctx.stroke();
       };
 
+      if(trimMm > 0){
+        const trimPx = trimMm * scale;
+        const usableRect = snapRect(trimPx, trimPx, usableW * scale, usableH * scale, 1);
+        ctx.save();
+        ctx.fillStyle = 'rgba(11, 31, 51, 0.04)';
+        ctx.fillRect(0, 0, canvas.width, trimPx);
+        ctx.fillRect(0, canvas.height - trimPx, canvas.width, trimPx);
+        ctx.fillRect(0, trimPx, trimPx, Math.max(0, canvas.height - trimPx*2));
+        ctx.fillRect(canvas.width - trimPx, trimPx, trimPx, Math.max(0, canvas.height - trimPx*2));
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
+        ctx.strokeRect(usableRect.sx, usableRect.sy, Math.max(0, usableRect.sw-1), Math.max(0, usableRect.sh-1));
+        ctx.restore();
+      }
+
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       // Base font; for tiny parts we will temporarily shrink it.
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
@@ -221,8 +241,8 @@
       };
 
       placements.forEach(p=>{
-        const x = p.x * scale;
-        const y = p.y * scale;
+        const x = (trimMm + p.x) * scale;
+        const y = (trimMm + p.y) * scale;
         const w = p.w * scale;
         const hh = p.h * scale;
 
@@ -566,7 +586,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_seed_sweep_v2');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_seed_trim_v3');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1085,6 +1105,26 @@
         : (meta && meta.meta && (meta.meta.unit === 'cm' || meta.meta.unit === 'mm'))
           ? meta.meta.unit
           : 'mm';
+
+      const getBoardMeta = (sheet)=>{
+        const boardW = Math.max(1,
+          Number((meta && meta.meta && meta.meta.boardW) || (meta && meta.boardW) || (sheet && sheet.fullBoardW) || (sheet && sheet.boardW) || 0)
+        );
+        const boardH = Math.max(1,
+          Number((meta && meta.meta && meta.meta.boardH) || (meta && meta.boardH) || (sheet && sheet.fullBoardH) || (sheet && sheet.boardH) || 0)
+        );
+        const trim = Math.max(0,
+          Number((meta && meta.meta && meta.meta.trim) || (meta && meta.trim) || (sheet && sheet.trimMm) || 0)
+        );
+        return { boardW, boardH, trim };
+      };
+      const calcDisplayWaste = (sheet)=>{
+        const bm = getBoardMeta(sheet);
+        const total = Math.max(0, bm.boardW * bm.boardH);
+        const used = opt.placedArea(sheet);
+        const waste = Math.max(0, total - used);
+        return { total, used, waste, trim: bm.trim, boardW: bm.boardW, boardH: bm.boardH };
+      };
       if(!sheets.length){
         const msg = (plan && plan.note) ? String(plan.note) : 'Brak wyniku.';
         tgt.appendChild(h('div', { class:'muted', text: msg }));
@@ -1092,8 +1132,8 @@
       }
 
       const sum = sheets.reduce((acc,s)=>{
-        const w = opt.calcWaste(s);
-        acc.area += w.areaBoard;
+        const w = calcDisplayWaste(s);
+        acc.area += w.total;
         acc.used += w.used;
         acc.waste += w.waste;
         return acc;
@@ -1134,7 +1174,7 @@
             tmp.style.left = '-99999px';
             tmp.appendChild(c);
             document.body.appendChild(tmp);
-            drawSheet(c, s, u, edgeSubMm);
+            drawSheet(c, s, u, edgeSubMm, getBoardMeta(s));
             imgs.push(c.toDataURL('image/png'));
             tmp.remove();
           });
@@ -1155,7 +1195,8 @@
         const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
         html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
         sheets.forEach((s,i)=>{
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}</div>`;
+          const bm = getBoardMeta(s);
+          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}</div>`;
           const src = imgs[i] || '';
           html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
         });
@@ -1171,14 +1212,14 @@
         const box = h('div', { class:'card', style:'margin-top:12px' });
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
           h('div', { style:'font-weight:900', text:`Arkusz ${i+1}` }),
-          h('div', { class:'muted xs', text:`${mmToUnitStr(s.boardW, u)}×${mmToUnitStr(s.boardH, u)} ${u}` })
+          h('div', { class:'muted xs', text:`${mmToUnitStr(getBoardMeta(s).boardW, u)}×${mmToUnitStr(getBoardMeta(s).boardH, u)} ${u}` })
         ]));
         const canvas = document.createElement('canvas');
         canvas.style.width = '100%';
         canvas.style.marginTop = '10px';
         box.appendChild(canvas);
         tgt.appendChild(box);
-        drawSheet(canvas, s, u, edgeSubMm);
+        drawSheet(canvas, s, u, edgeSubMm, getBoardMeta(s));
       });
     }
 

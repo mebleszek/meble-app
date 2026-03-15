@@ -258,7 +258,6 @@
   function buildBestBandForSeeds(items, rect, axis, kerf, targetOccupancy, options, phase){
     const seeds = collectSeedOptions(items, rect, axis);
     if(!seeds.length) return null;
-    let best = null;
     for(let i = 0; i < seeds.length; i++){
       if(options && options.isCancelled && options.isCancelled()) return null;
       const seed = seeds[i];
@@ -271,13 +270,14 @@
         seed: seed.signature,
       });
       const band = buildDpBand(items, rect, axis, kerf, seed, targetOccupancy, options);
+      if(!band) continue;
       if(targetOccupancy > 0){
-        if(band && band.targetMet && compareBands(band, best) > 0) best = band;
-      }else if(compareBands(band, best) > 0){
-        best = band;
+        if(band.targetMet) return band;
+        continue;
       }
+      return band;
     }
-    return best;
+    return null;
   }
 
   function buildBestBandAtTarget(items, rect, axis, kerf, targetOccupancy, options, phase){

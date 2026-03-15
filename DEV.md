@@ -397,3 +397,5 @@ Dopiero potem go zmieniać.
 - `js/app/speed-max.js`: MAX now reviews all sensible seed starts for a band (unique fitting start sizes, biggest-to-smaller) before lowering threshold or switching axis.
 - `js/app/speed-max.js`: tiny repeat parts can be paired into grouped block candidates inside a band to reduce scattered micro-strips.
 - `js/app/panel-pro-worker.js`, `js/app/rozrys.js`, `index.html`: cache-busting bumped for the new MAX solver build.
+
+- 2026-03-15: MAX now scans seeds sequentially from largest area to smaller and accepts the first seed that reaches the requested occupancy target; ROZRYS waste summary uses full board dimensions and drawing shows the trim border around the usable area.
