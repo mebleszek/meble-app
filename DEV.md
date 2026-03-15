@@ -391,3 +391,9 @@ Dopiero potem go zmieniać.
 - 2026-03-14: przebudowano `js/app/speed-max.js` jeszcze raz pod spec użytkownika: `MAX` liczy teraz pojedynczy wariant arkusza dla zadanego startu osi, robi 1–2 idealne pasy startowe, potem obowiązkowo zmienia kierunek i domyka resztę kolejnymi idealnymi pasami; dopiero gdy w danej osi nie ma idealnego pasa, sprawdza zmianę osi i na końcu fallback do najlepszego nieidealnego pasa. `Opti-max` porównuje już tylko 1 wariant startu wzdłuż vs 1 wariant startu w poprzek. Worker i UI dostały dokładniejsze fazy progresu oraz licznik „zamknięta płyta X / liczę płytę Y”.
 
 - 2026-03-14: przebudowano `js/app/speed-max.js` jeszcze raz pod doprecyzowaną specyfikację użytkownika: `MAX` buduje każdy pas od największego aktualnie pasującego elementu, sprawdza dla tego pasa obie dozwolone orientacje, dobiera formatki o tej samej grubości pasa lub mniejsze maks. o 75 mm, próbuje kolejno progi 90% i 80% (z wyjątkiem drugiego pasa startowego, który powstaje tylko przy 90%), a dopiero po niepowodzeniu zmienia kierunek lub schodzi do fallbacku. Nie ruszano działania trybów startu `wzdłuż` / `w poprzek`; podbito cache-busting do `20260314_max_user_algo_v1`.
+
+
+## 2026-03-15 — MAX seed sweep and tiny-block grouping
+- `js/app/speed-max.js`: MAX now reviews all sensible seed starts for a band (unique fitting start sizes, biggest-to-smaller) before lowering threshold or switching axis.
+- `js/app/speed-max.js`: tiny repeat parts can be paired into grouped block candidates inside a band to reduce scattered micro-strips.
+- `js/app/panel-pro-worker.js`, `js/app/rozrys.js`, `index.html`: cache-busting bumped for the new MAX solver build.

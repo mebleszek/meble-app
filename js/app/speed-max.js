@@ -7,6 +7,7 @@
   const SIMILAR_MM = 75;
   const IDEAL_OCCUPANCY = 0.9;
   const MIN_OK_OCCUPANCY = 0.8;
+  const TINY_RATIO = 0.5;
 
   function axisThickness(axis, oriented){ return axis === 'along' ? oriented.w : oriented.h; }
   function axisLength(axis, oriented){ return axis === 'along' ? oriented.h : oriented.w; }
@@ -28,32 +29,147 @@
     return 0;
   }
 
-  function pickLargestSeed(items, rect, axis){
+  function scoreSeed(seed){
+    if(!seed) return -Infinity;
+    return (seed.area || 0) * 1000 + (seed.bandSize || 0);
+  }
+
+  function collectSeedOptions(items, rect, axis){
     const sorted = opt.sortByAreaDesc(items);
+    const out = [];
+    const seen = new Set();
     for(const item of sorted){
       const ors = opt.orientations(item).filter((o)=>{
         return axisThickness(axis, o) <= rectThickness(axis, rect) && axisLength(axis, o) <= rectLength(axis, rect);
       });
-      if(ors.length) return { item, orientations: ors };
+      ors.sort((a, b) => ((b.w * b.h) - (a.w * a.h)) || (axisThickness(axis, b) - axisThickness(axis, a)) || (axisLength(axis, b) - axisLength(axis, a)));
+      for(const oriented of ors){
+        const sig = `${oriented.w}x${oriented.h}`;
+        if(seen.has(sig)) continue;
+        seen.add(sig);
+        out.push({
+          item,
+          oriented,
+          bandSize: axisThickness(axis, oriented),
+          area: oriented.w * oriented.h,
+          signature: sig,
+        });
+      }
     }
-    return null;
+    out.sort((a, b) => scoreSeed(b) - scoreSeed(a));
+    return out;
   }
 
-  function finalizeBand(chosen, rect, axis, kerf, seed, bandSize, targetOccupancy){
-    const cap = rectLength(axis, rect);
-    const area = chosen.reduce((sum, c) => sum + c.area, 0);
-    const sorted = chosen.slice().sort((a, b) => {
+  function chooseBestOrientationForBand(item, axis, bandSize, capacity){
+    let best = null;
+    for(const oriented of opt.orientations(item)){
+      const thickness = axisThickness(axis, oriented);
+      const len = axisLength(axis, oriented);
+      const diff = bandSize - thickness;
+      if(diff < 0 || diff > SIMILAR_MM) continue;
+      if(len > capacity) continue;
+      const closeness = Math.max(0, 1 - (diff / Math.max(1, SIMILAR_MM)));
+      const area = oriented.w * oriented.h;
+      const score = area * 1000 + (diff === 0 ? 100000 : 0) + Math.round(closeness * 60000) + len;
+      const cand = { item, oriented, thickness, len, area, diff, closeness, score };
+      if(!best || cand.score > best.score) best = cand;
+    }
+    return best;
+  }
+
+  function makeEntryFromParts(parts, kerf, bandSize){
+    if(!parts || !parts.length) return null;
+    const ids = parts.map(p => p.item.id);
+    const count = parts.length;
+    const len = parts.reduce((sum, p) => sum + (p.len || 0), 0) + Math.max(0, count - 1) * kerf;
+    const area = parts.reduce((sum, p) => sum + (p.area || 0), 0);
+    const avgCloseness = parts.reduce((sum, p) => sum + (p.closeness || 0), 0) / Math.max(1, count);
+    const exactMatches = parts.reduce((sum, p) => sum + (p.diff === 0 ? 1 : 0), 0);
+    return {
+      ids,
+      parts,
+      len,
+      area,
+      bandSize,
+      isBlock: count > 1,
+      value: area * 1000
+        + exactMatches * 100000
+        + Math.round(avgCloseness * 60000)
+        + Math.max.apply(null, parts.map(p => p.len || 0))
+        + (count > 1 ? (25000 + count * 5000) : 0),
+    };
+  }
+
+  function buildCandidateEntries(items, rect, axis, kerf, seed){
+    const capacity = rectLength(axis, rect);
+    const bandSize = seed.bandSize;
+    const seedArea = seed.area;
+    const grouped = new Map();
+    const singles = [];
+
+    for(const item of items){
+      if(item.id === seed.item.id) continue;
+      const chosen = chooseBestOrientationForBand(item, axis, bandSize, capacity);
+      if(!chosen) continue;
+      const sig = `${chosen.oriented.w}x${chosen.oriented.h}`;
+      if(!grouped.has(sig)) grouped.set(sig, []);
+      grouped.get(sig).push(chosen);
+    }
+
+    const entries = [];
+    grouped.forEach((group)=>{
+      group.sort((a, b) => String(a.item.id).localeCompare(String(b.item.id), 'pl'));
+      const tiny = !!group[0] && (group[0].area <= seedArea * TINY_RATIO);
+      const blockFits = !!group[0] && ((group[0].len * 2) + kerf <= capacity);
+      if(tiny && group.length >= 2 && blockFits){
+        const copy = group.slice();
+        while(copy.length >= 2){
+          const parts = [copy.shift(), copy.shift()];
+          const entry = makeEntryFromParts(parts, kerf, bandSize);
+          if(entry) entries.push(entry);
+        }
+        while(copy.length) singles.push(copy.shift());
+      }else{
+        for(const part of group) singles.push(part);
+      }
+    });
+
+    for(const part of singles){
+      const entry = makeEntryFromParts([part], kerf, bandSize);
+      if(entry) entries.push(entry);
+    }
+
+    entries.sort((a, b) => {
       if((b.area || 0) !== (a.area || 0)) return (b.area || 0) - (a.area || 0);
+      if(!!b.isBlock !== !!a.isBlock) return b.isBlock ? 1 : -1;
       if((b.len || 0) !== (a.len || 0)) return (b.len || 0) - (a.len || 0);
-      return String(a.item.id).localeCompare(String(b.item.id), 'pl');
+      return String((a.ids && a.ids[0]) || '').localeCompare(String((b.ids && b.ids[0]) || ''), 'pl');
+    });
+    return entries;
+  }
+
+  function finalizeBand(entries, rect, axis, kerf, seed, bandSize, targetOccupancy){
+    const cap = rectLength(axis, rect);
+    const area = entries.reduce((sum, e) => sum + (e.area || 0), 0);
+    const orderedEntries = entries.slice().sort((a, b) => {
+      if((b.area || 0) !== (a.area || 0)) return (b.area || 0) - (a.area || 0);
+      if(!!b.isBlock !== !!a.isBlock) return b.isBlock ? 1 : -1;
+      if((b.len || 0) !== (a.len || 0)) return (b.len || 0) - (a.len || 0);
+      return String((a.ids && a.ids[0]) || '').localeCompare(String((b.ids && b.ids[0]) || ''), 'pl');
     });
     const placements = [];
+    const ids = new Set();
+    const partsFlat = [];
     let cursor = 0;
-    for(const c of sorted){
-      const x = axis === 'along' ? rect.x : rect.x + cursor;
-      const y = axis === 'along' ? rect.y + cursor : rect.y;
-      placements.push(opt.makePlacement(c.item, x, y, c.oriented));
-      cursor += c.len + kerf;
+    for(const entry of orderedEntries){
+      for(const part of (entry.parts || [])){
+        const x = axis === 'along' ? rect.x : rect.x + cursor;
+        const y = axis === 'along' ? rect.y + cursor : rect.y;
+        placements.push(opt.makePlacement(part.item, x, y, part.oriented));
+        ids.add(part.item.id);
+        partsFlat.push(part);
+        cursor += (part.len || 0) + kerf;
+      }
     }
     const occupancy = opt.occupancyFrom(area, Math.max(1, bandSize * cap));
     return {
@@ -65,10 +181,11 @@
       accepted: occupancy >= IDEAL_OCCUPANCY,
       targetMet: occupancy >= targetOccupancy,
       placements,
-      ids: new Set(sorted.map(c => c.item.id)),
-      count: sorted.length,
+      ids,
+      count: partsFlat.length,
       firstArea: seed.area,
       targetOccupancy,
+      parts: partsFlat,
     };
   }
 
@@ -78,32 +195,27 @@
     const seedLen = axisLength(axis, seed.oriented);
     if(seedLen > capacity) return null;
     const seedArea = seed.oriented.w * seed.oriented.h;
+    const seedPart = {
+      item: seed.item,
+      oriented: seed.oriented,
+      thickness: bandSize,
+      len: seedLen,
+      area: seedArea,
+      diff: 0,
+      closeness: 1,
+      score: seedArea * 1000 + 100000 + seedLen,
+    };
+    const seedEntry = makeEntryFromParts([seedPart], kerf, bandSize);
+    const candidates = buildCandidateEntries(items, rect, axis, kerf, seed);
 
-    const candidates = [];
-    for(const item of items){
-      if(item.id === seed.item.id) continue;
-      for(const o of opt.orientations(item)){
-        const t = axisThickness(axis, o);
-        const len = axisLength(axis, o);
-        const diff = bandSize - t;
-        if(diff < 0 || diff > SIMILAR_MM) continue;
-        if(len > capacity) continue;
-        const closeness = Math.max(0, 1 - (diff / Math.max(1, SIMILAR_MM)));
-        const value = (o.w * o.h) * 1000
-          + (diff === 0 ? 100000 : 0)
-          + Math.round(closeness * 60000)
-          + len;
-        candidates.push({ item, oriented:o, len, thickness:t, area:o.w * o.h, value });
-      }
-    }
-
-    const maxCap = Math.max(0, capacity - seedLen + kerf);
+    const maxCap = Math.max(0, capacity - seedLen - kerf);
     const dp = Array(maxCap + 1).fill(null);
     dp[0] = { value: 0, picks: [] };
     for(let i = 0; i < candidates.length; i++){
       if(options && options.isCancelled && options.isCancelled()) return null;
       const cand = candidates[i];
       const weight = cand.len + kerf;
+      if(weight > maxCap) continue;
       for(let c = maxCap; c >= weight; c--){
         const prev = dp[c - weight];
         if(!prev) continue;
@@ -113,31 +225,28 @@
         }
       }
     }
-    let best = { value: -Infinity, picks: [] };
-    for(const st of dp){ if(st && st.value > best.value) best = st; }
 
-    const chosen = [{ item: seed.item, oriented: seed.oriented, area: seedArea, len: seedLen }];
-    const usedIds = new Set([seed.item.id]);
-    for(const idx of best.picks){
+    let bestState = { value: -Infinity, picks: [] };
+    for(const st of dp){ if(st && st.value > bestState.value) bestState = st; }
+
+    const chosenEntries = [seedEntry];
+    for(const idx of bestState.picks){
       const cand = candidates[idx];
-      if(usedIds.has(cand.item.id)) continue;
-      usedIds.add(cand.item.id);
-      chosen.push({ item: cand.item, oriented: cand.oriented, area: cand.area, len: cand.len });
+      if(cand) chosenEntries.push(cand);
     }
 
-    const base = finalizeBand(chosen, rect, axis, kerf, seed, bandSize, targetOccupancy);
-    if(base.occupancy >= IDEAL_OCCUPANCY) return base;
+    const base = finalizeBand(chosenEntries, rect, axis, kerf, seed, bandSize, targetOccupancy);
+    if(base.occupancy >= IDEAL_OCCUPANCY || (options && options.enableRepair === false)) return base;
     return repairBand(items, rect, axis, kerf, seed, targetOccupancy, base, options) || base;
   }
 
   function repairBand(items, rect, axis, kerf, seed, targetOccupancy, band, options){
     if(!band || band.occupancy >= IDEAL_OCCUPANCY) return band;
     const firstArea = Math.max(1, band.firstArea || seed.area || 1);
-    const chosenItems = (band.placements || []).map(p => items.find(it => it.id === p.id)).filter(Boolean);
     const tinyIds = new Set();
-    for(const it of chosenItems){
-      const ar = (Number(it.w) || 0) * (Number(it.h) || 0);
-      if(it.id !== seed.item.id && ar <= firstArea * 0.5) tinyIds.add(it.id);
+    for(const part of (band.parts || [])){
+      const ar = Number(part.area) || ((Number(part.item && part.item.w) || 0) * (Number(part.item && part.item.h) || 0));
+      if(part.item && part.item.id !== seed.item.id && ar <= firstArea * TINY_RATIO) tinyIds.add(part.item.id);
     }
     if(!tinyIds.size) return band;
     const filtered = items.filter(it => !tinyIds.has(it.id) || it.id === seed.item.id);
@@ -146,33 +255,37 @@
     return band;
   }
 
-  function buildBandForLargestSeed(items, rect, axis, kerf, targetOccupancy, options, phase){
-    const seedPack = pickLargestSeed(items, rect, axis);
-    if(!seedPack) return null;
-    const orients = seedPack.orientations || [];
+  function buildBestBandForSeeds(items, rect, axis, kerf, targetOccupancy, options, phase){
+    const seeds = collectSeedOptions(items, rect, axis);
+    if(!seeds.length) return null;
     let best = null;
-    for(let i = 0; i < orients.length; i++){
+    for(let i = 0; i < seeds.length; i++){
       if(options && options.isCancelled && options.isCancelled()) return null;
-      const oriented = orients[i];
-      emitStage(options, { phase: phase || 'band-search', axis, seedIndex: i + 1, seedTotal: orients.length, occupancyTarget: targetOccupancy });
-      const band = buildDpBand(items, rect, axis, kerf, {
-        item: seedPack.item,
-        oriented,
-        bandSize: axisThickness(axis, oriented),
-        area: oriented.w * oriented.h,
-      }, targetOccupancy, options);
-      if(compareBands(band, best) > 0) best = band;
+      const seed = seeds[i];
+      emitStage(options, {
+        phase: phase || 'band-search',
+        axis,
+        seedIndex: i + 1,
+        seedTotal: seeds.length,
+        occupancyTarget: targetOccupancy,
+        seed: seed.signature,
+      });
+      const band = buildDpBand(items, rect, axis, kerf, seed, targetOccupancy, options);
+      if(targetOccupancy > 0){
+        if(band && band.targetMet && compareBands(band, best) > 0) best = band;
+      }else if(compareBands(band, best) > 0){
+        best = band;
+      }
     }
     return best;
   }
 
   function buildBestBandAtTarget(items, rect, axis, kerf, targetOccupancy, options, phase){
-    const band = buildBandForLargestSeed(items, rect, axis, kerf, targetOccupancy, options, phase);
-    return band && band.targetMet ? band : null;
+    return buildBestBandForSeeds(items, rect, axis, kerf, targetOccupancy, options, phase);
   }
 
   function buildBestFallbackBand(items, rect, axis, kerf, options, phase){
-    return buildBandForLargestSeed(items, rect, axis, kerf, 0, options, phase);
+    return buildBestBandForSeeds(items, rect, axis, kerf, 0, options, phase);
   }
 
   function consumeBandsRect(rect, axis, bands){
@@ -345,12 +458,8 @@
 
     emitStage(options, { phase:'start-pass-1-pick', axis:startAxis, totalBands: state.totalBands });
     let firstBand = tryTargetBand(state, startAxis, kerf, IDEAL_OCCUPANCY, options, 'start-pass-1', true);
-    if(!firstBand){
-      firstBand = tryTargetBand(state, startAxis, kerf, MIN_OK_OCCUPANCY, options, 'start-pass-1-low', true);
-    }
-    if(!firstBand){
-      firstBand = tryFallbackBand(state, startAxis, kerf, options, 'start-pass-1-fallback', true);
-    }
+    if(!firstBand) firstBand = tryTargetBand(state, startAxis, kerf, MIN_OK_OCCUPANCY, options, 'start-pass-1-low', true);
+    if(!firstBand) firstBand = tryFallbackBand(state, startAxis, kerf, options, 'start-pass-1-fallback', true);
 
     if(firstBand && canContinue(state)){
       emitStage(options, { phase:'start-pass-2-pick', axis:startAxis, totalBands: state.totalBands });
@@ -367,9 +476,7 @@
   }
 
   function buildSheetPlan(items, boardW, boardH, kerf, options, fixedAxis){
-    if(fixedAxis === 'along' || fixedAxis === 'across'){
-      return buildSingleVariant(items, boardW, boardH, kerf, options, fixedAxis);
-    }
+    if(fixedAxis === 'along' || fixedAxis === 'across') return buildSingleVariant(items, boardW, boardH, kerf, options, fixedAxis);
     emitStage(options, { phase:'compare-variants', axis:'along' });
     const along = buildSingleVariant(items, boardW, boardH, kerf, options, 'along');
     emitStage(options, { phase:'compare-variants', axis:'across' });
