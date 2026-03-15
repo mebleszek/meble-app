@@ -34,9 +34,17 @@
     return ['kuchnia','szafa','pokoj','lazienka'];
   }
 
+  function parseLocaleNumber(v){
+    if(v === null || v === undefined) return NaN;
+    if(typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+    const s = String(v).trim().replace(',', '.');
+    if(!s) return NaN;
+    return Number(s);
+  }
+
   function cmToMm(v){
     // obsługa 0.1cm -> 1mm
-    const n = Number(v);
+    const n = parseLocaleNumber(v);
     if(!Number.isFinite(n)) return 0;
     return Math.round(n * 10);
   }
@@ -962,10 +970,8 @@
       const modal = h('div', { class:'modal', style:'max-width:720px' });
       modal.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
       const header = h('div', { class:'header' }, [
-        h('div', { style:'font-weight:800', text:'Opcje rozkroju' }),
-        h('button', { class:'btn', type:'button', text:'Zamknij' })
+        h('div', { style:'font-weight:800', text:'Opcje rozkroju' })
       ]);
-      const closeBtn = header.querySelector('button');
       const body = h('div', { class:'body' });
       const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
 
@@ -1023,7 +1029,7 @@
         if(prevUnit === nextUnit) return;
         const factor = (prevUnit === 'cm' && nextUnit === 'mm') ? 10 : (prevUnit === 'mm' && nextUnit === 'cm') ? 0.1 : 1;
         const conv = (el)=>{
-          const n = Number(el.value);
+          const n = parseLocaleNumber(el.value);
           if(!Number.isFinite(n)) return;
           const v = n * factor;
           el.value = (nextUnit === 'cm') ? String(Math.round(v * 10) / 10) : String(Math.round(v));
@@ -1039,11 +1045,12 @@
         convertModalNumericFields(prevUnit, nextUnit);
         modalUnitSel.dataset.prevUnit = nextUnit;
         syncModalLabels();
+        updateDirtyState();
       });
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
 
       const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap' });
-      const cancelBtn = h('button', { class:'btn', type:'button', text:'Anuluj' });
+      const cancelBtn = h('button', { class:'btn-primary', type:'button', text:'Anuluj' });
       const saveBtn = h('button', { class:'btn-primary', type:'button', text:'Zapisz opcje' });
       footer.appendChild(cancelBtn);
       footer.appendChild(saveBtn);
@@ -1059,16 +1066,78 @@
         try{ back.remove(); }catch(_){ }
         try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
       }
-      closeBtn.addEventListener('click', closeModal);
-      cancelBtn.addEventListener('click', closeModal);
-      back.addEventListener('pointerdown', (e)=>{ if(e.target === back) closeModal(); });
+
+      function normalizeLenToMm(value, unit){
+        const n = parseLocaleNumber(value);
+        if(!Number.isFinite(n)) return 0;
+        return unit === 'cm' ? Math.round(n * 10) : Math.round(n);
+      }
+      function currentModalSignature(){
+        const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
+        return JSON.stringify({
+          unit: u,
+          edge: String(modalEdgeSel.value || ''),
+          kerfMm: normalizeLenToMm(modalKerf.value, u),
+          trimMm: normalizeLenToMm(modalTrim.value, u),
+          minWMm: normalizeLenToMm(modalMinW.value, u),
+          minHMm: normalizeLenToMm(modalMinH.value, u),
+        });
+      }
+      const initialSignature = currentModalSignature();
+      let isDirty = false;
+
+      function setButtonTone(btn, tone){
+        btn.classList.remove('btn', 'btn-primary', 'btn-danger', 'btn-success');
+        if(tone === 'danger') btn.classList.add('btn-danger');
+        else if(tone === 'success') btn.classList.add('btn-success');
+        else btn.classList.add('btn-primary');
+      }
+
+      function updateDirtyState(){
+        isDirty = currentModalSignature() !== initialSignature;
+        setButtonTone(cancelBtn, isDirty ? 'danger' : 'primary');
+        setButtonTone(saveBtn, isDirty ? 'success' : 'primary');
+      }
+
+      function confirmDiscardIfDirty(){
+        if(!isDirty) return true;
+        return window.confirm('Czy na pewno chcesz anulować zmiany?');
+      }
+
+      function confirmSaveIfDirty(){
+        if(!isDirty) return true;
+        return window.confirm('Czy zapisać zmienione opcje?');
+      }
+
+      function wireDirty(el){
+        if(!el) return;
+        el.addEventListener('input', updateDirtyState);
+        el.addEventListener('change', updateDirtyState);
+      }
+      [modalEdgeSel, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
+      updateDirtyState();
+
+      cancelBtn.addEventListener('click', ()=>{
+        if(!confirmDiscardIfDirty()) return;
+        closeModal();
+      });
+      back.addEventListener('pointerdown', (e)=>{
+        if(e.target !== back) return;
+        if(!confirmDiscardIfDirty()) return;
+        closeModal();
+      });
       saveBtn.addEventListener('click', ()=>{
+        if(!confirmSaveIfDirty()) return;
+        if(!isDirty){
+          closeModal();
+          return;
+        }
         applyUnitChange(modalUnitSel.value);
         edgeSel.value = modalEdgeSel.value;
-        inK.value = String(Math.max(0, Number(modalKerf.value)||0));
-        inTrim.value = String(Math.max(0, Number(modalTrim.value)||0));
-        inMinW.value = String(Math.max(0, Number(modalMinW.value)||0));
-        inMinH.value = String(Math.max(0, Number(modalMinH.value)||0));
+        inK.value = String(Math.max(0, parseLocaleNumber(modalKerf.value)||0));
+        inTrim.value = String(Math.max(0, parseLocaleNumber(modalTrim.value)||0));
+        inMinW.value = String(Math.max(0, parseLocaleNumber(modalMinW.value)||0));
+        inMinH.value = String(Math.max(0, parseLocaleNumber(modalMinH.value)||0));
         persistOptionPrefs();
         closeModal();
         tryAutoRenderFromCache();
