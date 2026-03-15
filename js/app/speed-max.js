@@ -6,6 +6,7 @@
 
   const SIMILAR_MM = 75;
   const IDEAL_OCCUPANCY = 0.9;
+  const MIN_OK_OCCUPANCY = 0.8;
 
   function axisThickness(axis, oriented){ return axis === 'along' ? oriented.w : oriented.h; }
   function axisLength(axis, oriented){ return axis === 'along' ? oriented.h : oriented.w; }
@@ -15,31 +16,63 @@
   function removeByIds(items, set){ return items.filter(it => !set.has(it.id)); }
   function emitStage(options, payload){ try{ options && typeof options.reportStage === 'function' && options.reportStage(payload || {}); }catch(_){ } }
 
-  function listSeedVariants(items, rect, axis){
+  function compareBands(a, b){
+    if(!b) return 1;
+    if(!a) return -1;
+    if(!!a.targetMet !== !!b.targetMet) return a.targetMet ? 1 : -1;
+    if(!!a.accepted !== !!b.accepted) return a.accepted ? 1 : -1;
+    if((a.occupancy || 0) !== (b.occupancy || 0)) return (a.occupancy || 0) > (b.occupancy || 0) ? 1 : -1;
+    if((a.area || 0) !== (b.area || 0)) return (a.area || 0) > (b.area || 0) ? 1 : -1;
+    if((a.count || 0) !== (b.count || 0)) return (a.count || 0) > (b.count || 0) ? 1 : -1;
+    if((a.bandSize || 0) !== (b.bandSize || 0)) return (a.bandSize || 0) > (b.bandSize || 0) ? 1 : -1;
+    return 0;
+  }
+
+  function pickLargestSeed(items, rect, axis){
     const sorted = opt.sortByAreaDesc(items);
-    const out = [];
-    const seen = new Set();
     for(const item of sorted){
-      for(const o of opt.orientations(item)){
-        const t = axisThickness(axis, o);
-        const len = axisLength(axis, o);
-        if(t > rectThickness(axis, rect) || len > rectLength(axis, rect)) continue;
-        const key = `${item.id}|${o.rotated}|${t}|${len}`;
-        if(seen.has(key)) continue;
-        seen.add(key);
-        out.push({ item, oriented:o, bandSize:t, length:len, area:o.w * o.h });
-      }
+      const ors = opt.orientations(item).filter((o)=>{
+        return axisThickness(axis, o) <= rectThickness(axis, rect) && axisLength(axis, o) <= rectLength(axis, rect);
+      });
+      if(ors.length) return { item, orientations: ors };
     }
-    return out;
+    return null;
   }
 
-  function bandSignature(band){
-    if(!band) return '';
-    const parts = (band.placements || []).map(p => `${p.id}:${p.rotated ? 1 : 0}:${p.w}x${p.h}`).sort();
-    return `${band.axis}|${band.bandSize}|${parts.join('|')}`;
+  function finalizeBand(chosen, rect, axis, kerf, seed, bandSize, targetOccupancy){
+    const cap = rectLength(axis, rect);
+    const area = chosen.reduce((sum, c) => sum + c.area, 0);
+    const sorted = chosen.slice().sort((a, b) => {
+      if((b.area || 0) !== (a.area || 0)) return (b.area || 0) - (a.area || 0);
+      if((b.len || 0) !== (a.len || 0)) return (b.len || 0) - (a.len || 0);
+      return String(a.item.id).localeCompare(String(b.item.id), 'pl');
+    });
+    const placements = [];
+    let cursor = 0;
+    for(const c of sorted){
+      const x = axis === 'along' ? rect.x : rect.x + cursor;
+      const y = axis === 'along' ? rect.y + cursor : rect.y;
+      placements.push(opt.makePlacement(c.item, x, y, c.oriented));
+      cursor += c.len + kerf;
+    }
+    const occupancy = opt.occupancyFrom(area, Math.max(1, bandSize * cap));
+    return {
+      axis,
+      seedId: seed.item.id,
+      bandSize,
+      area,
+      occupancy,
+      accepted: occupancy >= IDEAL_OCCUPANCY,
+      targetMet: occupancy >= targetOccupancy,
+      placements,
+      ids: new Set(sorted.map(c => c.item.id)),
+      count: sorted.length,
+      firstArea: seed.area,
+      targetOccupancy,
+    };
   }
 
-  function buildDpBand(items, rect, axis, kerf, seed, options){
+  function buildDpBand(items, rect, axis, kerf, seed, targetOccupancy, options){
     const bandSize = seed.bandSize;
     const capacity = rectLength(axis, rect);
     const seedLen = axisLength(axis, seed.oriented);
@@ -52,14 +85,15 @@
       for(const o of opt.orientations(item)){
         const t = axisThickness(axis, o);
         const len = axisLength(axis, o);
-        if(t > bandSize || len > capacity) continue;
-        const similar = Math.abs(bandSize - t) <= SIMILAR_MM;
-        const closeness = Math.max(0, 1 - ((bandSize - t) / Math.max(1, bandSize)));
+        const diff = bandSize - t;
+        if(diff < 0 || diff > SIMILAR_MM) continue;
+        if(len > capacity) continue;
+        const closeness = Math.max(0, 1 - (diff / Math.max(1, SIMILAR_MM)));
         const value = (o.w * o.h) * 1000
-          + Math.round(closeness * 100000)
-          + (similar ? 70000 : 0)
+          + (diff === 0 ? 100000 : 0)
+          + Math.round(closeness * 60000)
           + len;
-        candidates.push({ item, oriented:o, len, thickness:t, area:o.w * o.h, value, similar });
+        candidates.push({ item, oriented:o, len, thickness:t, area:o.w * o.h, value });
       }
     }
 
@@ -67,6 +101,7 @@
     const dp = Array(maxCap + 1).fill(null);
     dp[0] = { value: 0, picks: [] };
     for(let i = 0; i < candidates.length; i++){
+      if(options && options.isCancelled && options.isCancelled()) return null;
       const cand = candidates[i];
       const weight = cand.len + kerf;
       for(let c = maxCap; c >= weight; c--){
@@ -81,106 +116,63 @@
     let best = { value: -Infinity, picks: [] };
     for(const st of dp){ if(st && st.value > best.value) best = st; }
 
-    const chosen = [{ item: seed.item, oriented: seed.oriented, area: seedArea, thickness: bandSize, len: seedLen }];
+    const chosen = [{ item: seed.item, oriented: seed.oriented, area: seedArea, len: seedLen }];
     const usedIds = new Set([seed.item.id]);
     for(const idx of best.picks){
       const cand = candidates[idx];
       if(usedIds.has(cand.item.id)) continue;
       usedIds.add(cand.item.id);
-      chosen.push({ item: cand.item, oriented: cand.oriented, area: cand.area, thickness: cand.thickness, len: cand.len });
+      chosen.push({ item: cand.item, oriented: cand.oriented, area: cand.area, len: cand.len });
     }
 
-    const base = finalizeBand(chosen, rect, axis, kerf, seed, bandSize);
-    if(!options.enableRepair || base.occupancy >= 0.8) return base;
-    return repairBand(items, rect, axis, kerf, seed, base) || base;
+    const base = finalizeBand(chosen, rect, axis, kerf, seed, bandSize, targetOccupancy);
+    if(base.occupancy >= IDEAL_OCCUPANCY) return base;
+    return repairBand(items, rect, axis, kerf, seed, targetOccupancy, base, options) || base;
   }
 
-  function finalizeBand(chosen, rect, axis, kerf, seed, bandSize){
-    const cap = rectLength(axis, rect);
-    const area = chosen.reduce((sum, c) => sum + c.area, 0);
-    const sorted = chosen.slice().sort((a, b) => {
-      const at = a.thickness, bt = b.thickness;
-      if(bt !== at) return bt - at;
-      if(b.area !== a.area) return b.area - a.area;
-      return String(a.item.id).localeCompare(String(b.item.id), 'pl');
-    });
-    const placements = [];
-    let cursor = 0;
-    for(const c of sorted){
-      const x = axis === 'along' ? rect.x : rect.x + cursor;
-      const y = axis === 'along' ? rect.y + cursor : rect.y;
-      placements.push(opt.makePlacement(c.item, x, y, c.oriented));
-      cursor += c.len + kerf;
-    }
-    const occupancy = opt.occupancyFrom(area, bandSize * cap);
-    return {
-      axis,
-      seedId: seed.item.id,
-      bandSize,
-      area,
-      occupancy,
-      accepted: occupancy >= IDEAL_OCCUPANCY,
-      placements,
-      ids: new Set(sorted.map(c => c.item.id)),
-      count: sorted.length,
-      firstArea: seed.area,
-    };
-  }
-
-  function repairBand(items, rect, axis, kerf, seed, band){
-    if(!band || band.occupancy >= 0.8) return band;
+  function repairBand(items, rect, axis, kerf, seed, targetOccupancy, band, options){
+    if(!band || band.occupancy >= IDEAL_OCCUPANCY) return band;
     const firstArea = Math.max(1, band.firstArea || seed.area || 1);
     const chosenItems = (band.placements || []).map(p => items.find(it => it.id === p.id)).filter(Boolean);
     const tinyIds = new Set();
     for(const it of chosenItems){
       const ar = (Number(it.w) || 0) * (Number(it.h) || 0);
-      if(ar <= firstArea * 0.5 && it.id !== seed.item.id) tinyIds.add(it.id);
+      if(it.id !== seed.item.id && ar <= firstArea * 0.5) tinyIds.add(it.id);
     }
     if(!tinyIds.size) return band;
     const filtered = items.filter(it => !tinyIds.has(it.id) || it.id === seed.item.id);
-    const retry = buildDpBand(filtered, rect, axis, kerf, seed, { enableRepair:false });
-    if(retry && retry.occupancy > band.occupancy) return retry;
+    const retry = buildDpBand(filtered, rect, axis, kerf, seed, targetOccupancy, Object.assign({}, options, { enableRepair:false }));
+    if(retry && compareBands(retry, band) > 0) return retry;
     return band;
   }
 
-  function buildBandCandidates(items, rect, axis, kerf, options, acceptedOnly, phase){
-    const seeds = listSeedVariants(items, rect, axis);
-    const bySignature = new Map();
-    const reportEvery = Math.max(8, Math.min(24, Math.round(seeds.length / 12) || 8));
-    for(let idx = 0; idx < seeds.length; idx++){
-      if(options.isCancelled && options.isCancelled()) break;
-      const seed = seeds[idx];
-      if(idx === 0 || idx === seeds.length - 1 || ((idx + 1) % reportEvery) === 0){
-        emitStage(options, { phase: phase || 'band-search', axis, seedIndex: idx + 1, seedTotal: seeds.length });
-      }
-      const band = buildDpBand(items, rect, axis, kerf, seed, options);
-      if(!band) continue;
-      if(acceptedOnly && !band.accepted) continue;
-      const sig = bandSignature(band);
-      const prev = bySignature.get(sig);
-      if(opt.compareBand(band, prev) > 0) bySignature.set(sig, band);
-      if(acceptedOnly && band.accepted && band.occupancy >= 0.999){
-        break;
-      }
+  function buildBandForLargestSeed(items, rect, axis, kerf, targetOccupancy, options, phase){
+    const seedPack = pickLargestSeed(items, rect, axis);
+    if(!seedPack) return null;
+    const orients = seedPack.orientations || [];
+    let best = null;
+    for(let i = 0; i < orients.length; i++){
+      if(options && options.isCancelled && options.isCancelled()) return null;
+      const oriented = orients[i];
+      emitStage(options, { phase: phase || 'band-search', axis, seedIndex: i + 1, seedTotal: orients.length, occupancyTarget: targetOccupancy });
+      const band = buildDpBand(items, rect, axis, kerf, {
+        item: seedPack.item,
+        oriented,
+        bandSize: axisThickness(axis, oriented),
+        area: oriented.w * oriented.h,
+      }, targetOccupancy, options);
+      if(compareBands(band, best) > 0) best = band;
     }
-    return Array.from(bySignature.values()).sort((a, b) => opt.compareBand(b, a));
+    return best;
   }
 
-  function buildBestAcceptedBand(items, rect, axis, kerf, options, phase){
-    const candidates = buildBandCandidates(items, rect, axis, kerf, options, true, phase);
-    return candidates[0] || null;
+  function buildBestBandAtTarget(items, rect, axis, kerf, targetOccupancy, options, phase){
+    const band = buildBandForLargestSeed(items, rect, axis, kerf, targetOccupancy, options, phase);
+    return band && band.targetMet ? band : null;
   }
 
-  function buildBestAnyBand(items, rect, axis, kerf, options, phase){
-    const candidates = buildBandCandidates(items, rect, axis, kerf, options, false, phase);
-    let bestAccepted = null;
-    let bestAny = null;
-    for(const band of candidates){
-      if(!band) continue;
-      if(band.accepted && opt.compareBand(band, bestAccepted) > 0) bestAccepted = band;
-      if(opt.compareBand(band, bestAny) > 0) bestAny = band;
-    }
-    return bestAccepted || bestAny;
+  function buildBestFallbackBand(items, rect, axis, kerf, options, phase){
+    return buildBandForLargestSeed(items, rect, axis, kerf, 0, options, phase);
   }
 
   function consumeBandsRect(rect, axis, bands){
@@ -230,27 +222,22 @@
     return true;
   }
 
-  function fillAxisWithIdealBands(state, axis, kerf, options, maxBands, phaseBase, isStartBand){
-    let added = 0;
-    while(canContinue(state) && added < maxBands){
-      emitStage(options, { phase: `${phaseBase || 'ideal'}-pick`, axis, bandNo: added + 1, totalBands: state.totalBands });
-      const band = buildBestAcceptedBand(state.items, state.rect, axis, kerf, options, `${phaseBase || 'ideal'}-search`);
-      if(!band) break;
-      applyBand(state, band, !!isStartBand);
-      added += 1;
-      emitStage(options, { phase: `${phaseBase || 'ideal'}-done`, axis, bandNo: added, occupancy: band.occupancy || 0, totalBands: state.totalBands });
-    }
-    return added;
+  function tryTargetBand(state, axis, kerf, targetOccupancy, options, phase, isStartBand){
+    if(!canContinue(state)) return null;
+    const band = buildBestBandAtTarget(state.items, state.rect, axis, kerf, targetOccupancy, options, phase);
+    if(!band) return null;
+    applyBand(state, band, !!isStartBand);
+    emitStage(options, { phase: `${phase || 'band'}-done`, axis, occupancy: band.occupancy || 0, occupancyTarget: targetOccupancy, bandNo: state.totalBands, totalBands: state.totalBands });
+    return band;
   }
 
-  function takeFallbackBand(state, axis, kerf, options, phaseBase, isStartBand){
-    if(!canContinue(state)) return false;
-    emitStage(options, { phase: `${phaseBase || 'fallback'}-pick`, axis, totalBands: state.totalBands });
-    const band = buildBestAnyBand(state.items, state.rect, axis, kerf, options, `${phaseBase || 'fallback'}-search`);
-    if(!band) return false;
+  function tryFallbackBand(state, axis, kerf, options, phase, isStartBand){
+    if(!canContinue(state)) return null;
+    const band = buildBestFallbackBand(state.items, state.rect, axis, kerf, options, phase);
+    if(!band) return null;
     applyBand(state, band, !!isStartBand);
-    emitStage(options, { phase: `${phaseBase || 'fallback'}-done`, axis, occupancy: band.occupancy || 0, totalBands: state.totalBands });
-    return true;
+    emitStage(options, { phase: `${phase || 'fallback'}-done`, axis, occupancy: band.occupancy || 0, occupancyTarget: 0, bandNo: state.totalBands, totalBands: state.totalBands });
+    return band;
   }
 
   function fillResidual(state, axis, kerf, options){
@@ -258,39 +245,48 @@
     let guard = 0;
     const maxGuard = Math.max(32, ((state && state.items && state.items.length) || 0) * 6 + 16);
     while(canContinue(state) && guard < maxGuard){
+      if(options && options.isCancelled && options.isCancelled()) break;
       guard += 1;
-      const idealAdded = fillAxisWithIdealBands(state, currentAxis, kerf, options, Number.POSITIVE_INFINITY, `residual-${currentAxis}`, false);
-      if(idealAdded > 0) continue;
+
+      emitStage(options, { phase:'residual-90-pick', axis: currentAxis, totalBands: state.totalBands });
+      const ideal90 = tryTargetBand(state, currentAxis, kerf, IDEAL_OCCUPANCY, options, 'residual-90', false);
+      if(ideal90) continue;
+
+      emitStage(options, { phase:'residual-80-pick', axis: currentAxis, totalBands: state.totalBands });
+      const okay80 = tryTargetBand(state, currentAxis, kerf, MIN_OK_OCCUPANCY, options, 'residual-80', false);
+      if(okay80) continue;
 
       const otherAxis = opposite(currentAxis);
       emitStage(options, { phase:'axis-switch-check', from: currentAxis, to: otherAxis, totalBands: state.totalBands });
-      const otherIdeal = buildBestAcceptedBand(state.items, state.rect, otherAxis, kerf, options, `residual-${otherAxis}-search`);
-      if(otherIdeal){
+
+      const other90 = buildBestBandAtTarget(state.items, state.rect, otherAxis, kerf, IDEAL_OCCUPANCY, options, 'residual-switch-90');
+      if(other90){
         state.axisSwitches += 1;
-        applyBand(state, otherIdeal, false);
         currentAxis = otherAxis;
-        emitStage(options, { phase:'axis-switched', axis: currentAxis, totalBands: state.totalBands });
+        applyBand(state, other90, false);
+        emitStage(options, { phase:'axis-switched', axis: currentAxis, occupancy: other90.occupancy || 0, totalBands: state.totalBands });
         continue;
       }
 
-      const fallbackCurrent = buildBestAnyBand(state.items, state.rect, currentAxis, kerf, options, `fallback-${currentAxis}-search`);
-      const fallbackOther = buildBestAnyBand(state.items, state.rect, otherAxis, kerf, options, `fallback-${otherAxis}-search`);
+      const other80 = buildBestBandAtTarget(state.items, state.rect, otherAxis, kerf, MIN_OK_OCCUPANCY, options, 'residual-switch-80');
+      if(other80){
+        state.axisSwitches += 1;
+        currentAxis = otherAxis;
+        applyBand(state, other80, false);
+        emitStage(options, { phase:'axis-switched', axis: currentAxis, occupancy: other80.occupancy || 0, totalBands: state.totalBands });
+        continue;
+      }
+
+      const fallbackCurrent = buildBestFallbackBand(state.items, state.rect, currentAxis, kerf, options, 'fallback-current');
+      const fallbackOther = buildBestFallbackBand(state.items, state.rect, otherAxis, kerf, options, 'fallback-other');
       let chosen = null;
       let chosenAxis = currentAxis;
-      if(fallbackCurrent && fallbackOther){
-        if(opt.compareBand(fallbackOther, fallbackCurrent) > 0){
-          chosen = fallbackOther;
-          chosenAxis = otherAxis;
-        }else{
-          chosen = fallbackCurrent;
-          chosenAxis = currentAxis;
-        }
-      }else if(fallbackCurrent){
-        chosen = fallbackCurrent;
-        chosenAxis = currentAxis;
-      }else if(fallbackOther){
+      if(compareBands(fallbackOther, fallbackCurrent) > 0){
         chosen = fallbackOther;
         chosenAxis = otherAxis;
+      }else{
+        chosen = fallbackCurrent;
+        chosenAxis = currentAxis;
       }
       if(!chosen) break;
       if(chosenAxis !== currentAxis) state.axisSwitches += 1;
@@ -347,9 +343,18 @@
     const state = createState(items, boardW, boardH);
     emitStage(options, { phase:'start-axis', axis:startAxis });
 
-    const startIdealBands = fillAxisWithIdealBands(state, startAxis, kerf, options, 2, 'start', true);
-    if(startIdealBands === 0){
-      takeFallbackBand(state, startAxis, kerf, options, 'start-fallback', true);
+    emitStage(options, { phase:'start-pass-1-pick', axis:startAxis, totalBands: state.totalBands });
+    let firstBand = tryTargetBand(state, startAxis, kerf, IDEAL_OCCUPANCY, options, 'start-pass-1', true);
+    if(!firstBand){
+      firstBand = tryTargetBand(state, startAxis, kerf, MIN_OK_OCCUPANCY, options, 'start-pass-1-low', true);
+    }
+    if(!firstBand){
+      firstBand = tryFallbackBand(state, startAxis, kerf, options, 'start-pass-1-fallback', true);
+    }
+
+    if(firstBand && canContinue(state)){
+      emitStage(options, { phase:'start-pass-2-pick', axis:startAxis, totalBands: state.totalBands });
+      tryTargetBand(state, startAxis, kerf, IDEAL_OCCUPANCY, options, 'start-pass-2', true);
     }
 
     if(canContinue(state)){
@@ -365,7 +370,9 @@
     if(fixedAxis === 'along' || fixedAxis === 'across'){
       return buildSingleVariant(items, boardW, boardH, kerf, options, fixedAxis);
     }
+    emitStage(options, { phase:'compare-variants', axis:'along' });
     const along = buildSingleVariant(items, boardW, boardH, kerf, options, 'along');
+    emitStage(options, { phase:'compare-variants', axis:'across' });
     const across = buildSingleVariant(items, boardW, boardH, kerf, options, 'across');
     return comparePlan(along, across, boardW, boardH) >= 0 ? along : across;
   }
@@ -392,7 +399,7 @@
   }
 
   function pickAxis(startStrategy, items, boardW, boardH, kerf, options){
-    const previewAxis = (axis) => buildSheet(items, boardW, boardH, kerf, Object.assign({}, options, { enableRepair:false, reportStage:null }), axis);
+    const previewAxis = (axis) => buildSheet(items, boardW, boardH, kerf, Object.assign({}, options, { reportStage:null }), axis);
     return startStrategy && typeof startStrategy.resolvePrimaryAxis === 'function'
       ? startStrategy.resolvePrimaryAxis({ previewAxis })
       : 'along';
@@ -418,10 +425,9 @@
 
       while(items.length){
         if(isCancelled && isCancelled()) break;
-        const axis = pickAxis(startStrategy, items, boardW, boardH, kerf, Object.assign({}, options, { enableRepair:true }));
+        const axis = pickAxis(startStrategy, items, boardW, boardH, kerf, Object.assign({}, options));
         if(onProgress) onProgress({ phase:'sheet-start', currentSheet, nextSheet: currentSheet + 1, remaining: items.length, bestSheets: sheets.length, axis });
         const built = buildSheet(items, boardW, boardH, kerf, Object.assign({}, options, {
-          enableRepair:true,
           reportStage: (info)=>{
             if(onProgress) onProgress(Object.assign({
               currentSheet,
@@ -459,7 +465,7 @@
       return summarizeSheets(sheets);
     },
     previewAxis(items, boardW, boardH, kerf, axis){
-      return buildSheet(items, boardW, boardH, kerf, { enableRepair:false }, axis);
+      return buildSheet(items, boardW, boardH, kerf, {}, axis);
     }
   };
 })(typeof self !== 'undefined' ? self : window);

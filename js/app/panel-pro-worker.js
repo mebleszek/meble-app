@@ -2,7 +2,7 @@
    Kierunek startu i szybkość liczenia są rozdzielone na osobne moduły. */
 self.window = self;
 
-const SOLVER_VER = '20260314_max_axis_variants_v4';
+const SOLVER_VER = '20260314_max_user_algo_v1';
 try{
   importScripts(
     'cut-optimizer.js?v=' + SOLVER_VER,
