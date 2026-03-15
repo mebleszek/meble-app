@@ -741,7 +741,7 @@
           }
         }), axis);
 
-        const sheet = built.sheet;
+        let sheet = built.sheet;
         if(!sheet.placements.length){
           const fallback = opt.packShelf([items[0]], boardW, boardH, kerf, axis)[0];
           if(fallback && fallback.placements && fallback.placements[0]) sheet.placements.push(fallback.placements[0]);
@@ -752,6 +752,7 @@
         const next = removeByIds(items, built.usedIds || new Set());
         if(next.length === 0 && built.usedIds && built.usedIds.size === items.length && realHalfRemaining <= 0){
           maybeApplyVirtualHalf(items, boardW, boardH, kerf, options, built, startStrategy);
+          sheet = built.sheet;
         }
         sheets.push(sheet);
         items.length = 0;

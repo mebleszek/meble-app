@@ -233,14 +233,15 @@
       const drawHalfDivider = ()=>{
         if(!showHalfDivider) return;
         ctx.save();
-        ctx.setLineDash([10, 6]);
-        ctx.strokeStyle = 'rgba(11, 31, 51, 0.9)';
+        ctx.setLineDash([12, 7]);
+        ctx.strokeStyle = 'rgba(11, 31, 51, 0.95)';
+        ctx.lineWidth = 3;
         if(halfBoardW > 0 && halfBoardW < W){
           const x = halfBoardW * scale;
-          strokeLine(x, 0, x, canvas.height, 2);
+          strokeLine(x, 0, x, canvas.height, 3);
         } else if(halfBoardH > 0 && halfBoardH < H){
           const y = halfBoardH * scale;
-          strokeLine(0, y, canvas.width, y, 2);
+          strokeLine(0, y, canvas.width, y, 3);
         }
         ctx.restore();
       };
@@ -606,7 +607,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_half_reflow_v3');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_half_reflow_v4');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
