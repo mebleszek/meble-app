@@ -406,3 +406,5 @@ Dopiero potem go zmieniać.
 - 2026-03-15: `js/app/speed-max.js` — start-pass 1 i 2 mają teraz twardą kolejność `90% -> 85% -> dopiero fallback`, z testem top 5 unikalnych seedów i obu orientacji każdego seeda; fallback został przerobiony na preferencję fizycznego cięcia po długości płyty (wewnętrzna oś `across`) z układaniem od najszerszych do najwęższych elementów.
 - 2026-03-15: `js/app/speed-max.js` — ostatni arkusz może być oznaczony jako wirtualne `0.5` płyty, jeśli komplet pozostałych elementów mieści się na połowie formatu; `js/app/rozrys.js` liczy wtedy podsumowanie i % odpadu dla tej połówki, ale nadal rysuje arkusz na pełnej płycie.
 - 2026-03-15: `js/app/panel-pro-worker.js`, `js/app/rozrys.js` — cache-busting bumped to `20260315_max_virtual_half_v1`.
+
+- 2026-03-15: magazyn rozróżnia teraz pełne i realne pół płyty przez format; ROZRYS wybiera największy format jako hint, a MAX może użyć realnej połówki z magazynu na końcówce (rysowanej nadal na pełnym arkuszu) lub tylko oznaczyć wirtualne 0,5, gdy realnej połówki brak.

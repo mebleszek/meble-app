@@ -603,15 +603,78 @@
     return { w: Math.max(1, Math.floor(boardW / 2)), h: boardH };
   }
 
-  function maybeApplyVirtualHalf(lastItems, boardW, boardH, kerf, options, built){
-    if(!built || !built.sheet || !Array.isArray(lastItems) || !lastItems.length) return;
-    const half = getVirtualHalfDims(boardW, boardH);
-    const preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, Object.assign({}, options, { reportStage:null, onProgress:null }), undefined);
+  function resolveHalfDims(boardW, boardH, options){
+    const rw = Math.round(Number(options && options.realHalfBoardW) || 0);
+    const rh = Math.round(Number(options && options.realHalfBoardH) || 0);
+    if(rw > 0 && rh > 0){
+      const fitsDirect = rw <= boardW && rh <= boardH;
+      const fitsSwap = rh <= boardW && rw <= boardH;
+      if(fitsDirect) return { w: rw, h: rh };
+      if(fitsSwap) return { w: rh, h: rw };
+    }
+    return getVirtualHalfDims(boardW, boardH);
+  }
+
+  function buildSheetFromPlan(result, fullBoardW, fullBoardH, wasteBoardW, wasteBoardH, tags){
+    const sheet = opt.createSheet(fullBoardW, fullBoardH);
+    for(const p of (result.placements || [])) sheet.placements.push(p);
+    if(tags && tags.virtualHalf){
+      sheet.virtualFraction = 0.5;
+      sheet.virtualHalf = true;
+      sheet.virtualBoardW = wasteBoardW;
+      sheet.virtualBoardH = wasteBoardH;
+    }
+    if(tags && tags.realHalf){
+      sheet.virtualFraction = 0.5;
+      sheet.realHalf = true;
+      sheet.realHalfFromStock = true;
+      sheet.realHalfBoardW = wasteBoardW;
+      sheet.realHalfBoardH = wasteBoardH;
+    }
+    return {
+      sheet,
+      usedIds: result.ids,
+      usedArea: result.usedArea || 0,
+      placementCount: sheet.placements.length,
+      waste: (wasteBoardW * wasteBoardH) - (result.usedArea || 0),
+      primaryBands: result.primaryBands || 0,
+      strongStartBands: result.strongStartBands || 0,
+      startArea: result.startArea || 0,
+      startOccupancySum: result.startOccupancySum || 0,
+      firstBandSize: result.firstBandSize || 0,
+      secondBandSize: result.secondBandSize || 0,
+      totalBands: result.totalBands || 0,
+      axisSwitches: result.axisSwitches || 0,
+    };
+  }
+
+  function tryBuildHalfSheet(lastItems, boardW, boardH, kerf, options, startStrategy, useRealHalf){
+    if(!Array.isArray(lastItems) || !lastItems.length) return null;
+    const half = resolveHalfDims(boardW, boardH, options);
+    const silentOptions = Object.assign({}, options, { reportStage:null, onProgress:null });
+    let preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, LENGTHWISE_AXIS);
+    if(!(preview && preview.ids && preview.ids.size === lastItems.length)){
+      const pickedAxis = startStrategy && typeof startStrategy.resolvePrimaryAxis === 'function'
+        ? startStrategy.resolvePrimaryAxis({ previewAxis: (axis)=> buildSheet(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, axis) })
+        : undefined;
+      if(pickedAxis && pickedAxis !== LENGTHWISE_AXIS){
+        preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, pickedAxis);
+      }
+    }
     if(preview && preview.ids && preview.ids.size === lastItems.length){
-      built.sheet.virtualFraction = 0.5;
+      return buildSheetFromPlan(preview, boardW, boardH, half.w, half.h, useRealHalf ? { realHalf:true } : { virtualHalf:true });
+    }
+    return null;
+  }
+
+  function maybeApplyVirtualHalf(lastItems, boardW, boardH, kerf, options, built, startStrategy){
+    if(!built || !built.sheet || !Array.isArray(lastItems) || !lastItems.length) return;
+    const halfBuilt = tryBuildHalfSheet(lastItems, boardW, boardH, kerf, Object.assign({}, options, { realHalfBoardW:0, realHalfBoardH:0 }), startStrategy, false);
+    if(halfBuilt && halfBuilt.sheet && halfBuilt.usedIds && halfBuilt.usedIds.size === lastItems.length){
+      built.sheet.virtualFraction = halfBuilt.sheet.virtualFraction;
       built.sheet.virtualHalf = true;
-      built.sheet.virtualBoardW = half.w;
-      built.sheet.virtualBoardH = half.h;
+      built.sheet.virtualBoardW = halfBuilt.sheet.virtualBoardW;
+      built.sheet.virtualBoardH = halfBuilt.sheet.virtualBoardH;
     }
   }
 
@@ -639,9 +702,31 @@
       const isCancelled = options && options.isCancelled;
       const onProgress = options && options.onProgress;
       let currentSheet = 0;
+      let realHalfRemaining = Math.max(0, Number(options && options.realHalfQty) || 0);
 
       while(items.length){
         if(isCancelled && isCancelled()) break;
+
+        if(realHalfRemaining > 0){
+          const realHalfBuilt = tryBuildHalfSheet(items, boardW, boardH, kerf, options, startStrategy, true);
+          if(realHalfBuilt && realHalfBuilt.usedIds && realHalfBuilt.usedIds.size === items.length){
+            if(onProgress) onProgress({ phase:'sheet-start', currentSheet, nextSheet: currentSheet + 1, remaining: items.length, bestSheets: sheets.length, axis: LENGTHWISE_AXIS });
+            sheets.push(realHalfBuilt.sheet);
+            items.length = 0;
+            realHalfRemaining -= 1;
+            currentSheet += 1;
+            if(onProgress) onProgress({
+              phase:'sheet-closed',
+              currentSheet,
+              nextSheet: currentSheet,
+              remaining: 0,
+              bestSheets: sheets.length,
+              axis: LENGTHWISE_AXIS,
+            });
+            break;
+          }
+        }
+
         const axis = pickAxis(startStrategy, items, boardW, boardH, kerf, Object.assign({}, options));
         if(onProgress) onProgress({ phase:'sheet-start', currentSheet, nextSheet: currentSheet + 1, remaining: items.length, bestSheets: sheets.length, axis });
         const built = buildSheet(items, boardW, boardH, kerf, Object.assign({}, options, {
@@ -665,8 +750,8 @@
         }
 
         const next = removeByIds(items, built.usedIds || new Set());
-        if(next.length === 0 && built.usedIds && built.usedIds.size === items.length){
-          maybeApplyVirtualHalf(items, boardW, boardH, kerf, options, built);
+        if(next.length === 0 && built.usedIds && built.usedIds.size === items.length && realHalfRemaining <= 0){
+          maybeApplyVirtualHalf(items, boardW, boardH, kerf, options, built, startStrategy);
         }
         sheets.push(sheet);
         items.length = 0;

@@ -67,6 +67,36 @@
     return data.sheets.filter(s=>String(s.material||'').trim()===m);
   }
 
+  function sortByAreaDesc(list){
+    return (Array.isArray(list) ? list.slice() : []).sort((a,b)=>{
+      const aa = (Number(a && a.width)||0) * (Number(a && a.height)||0);
+      const bb = (Number(b && b.width)||0) * (Number(b && b.height)||0);
+      if(bb !== aa) return bb - aa;
+      if((Number(b && b.width)||0) !== (Number(a && a.width)||0)) return (Number(b && b.width)||0) - (Number(a && a.width)||0);
+      return (Number(b && b.height)||0) - (Number(a && a.height)||0);
+    });
+  }
+
+  function getPreferredFormat(material){
+    const rows = sortByAreaDesc(findForMaterial(material));
+    return rows[0] || null;
+  }
+
+  function findHalfSheetsForMaterial(material, fullWidth, fullHeight){
+    const rows = findForMaterial(material).filter(s => (Number(s && s.qty)||0) > 0);
+    const fw = Math.max(1, Math.round(Number(fullWidth)||0));
+    const fh = Math.max(1, Math.round(Number(fullHeight)||0));
+    if(!(fw > 0 && fh > 0)) return [];
+    const halfA = { width: fw, height: Math.max(1, Math.floor(fh / 2)) };
+    const halfB = { width: Math.max(1, Math.floor(fw / 2)), height: fh };
+    const fits = (row, target)=>{
+      const w = Math.round(Number(row && row.width)||0);
+      const h = Math.round(Number(row && row.height)||0);
+      return (w === target.width && h === target.height) || (w === target.height && h === target.width);
+    };
+    return rows.filter(row => fits(row, halfA) || fits(row, halfB));
+  }
+
   function h(tag, attrs, children){
     const el = document.createElement(tag);
     if(attrs){
@@ -89,7 +119,7 @@
     root.innerHTML = '';
     const card = h('div', { class:'card' });
     card.appendChild(h('h3', { style:'margin:0', html:'Magazyn płyt' }));
-    card.appendChild(h('div', { class:'muted', style:'margin-top:6px', html:'Dodaj formaty płyt, żeby ROZRYS mógł je podpowiadać. (MVP)' }));
+    card.appendChild(h('div', { class:'muted', style:'margin-top:6px', html:'Dodaj formaty płyt, żeby ROZRYS mógł je podpowiadać. Możesz też dodać realną pół płytę, np. 2800×1030, żeby końcówka mogła ją wykorzystać, jeśli jest na stanie.' }));
 
     // add form
     const form = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -162,6 +192,8 @@
     upsertSheet,
     removeSheet,
     findForMaterial,
+    getPreferredFormat,
+    findHalfSheetsForMaterial,
     render,
   };
 })();

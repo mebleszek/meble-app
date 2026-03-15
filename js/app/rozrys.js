@@ -586,7 +586,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_virtual_half_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_real_half_inventory_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -731,10 +731,10 @@
     function fromDisp(v){ return state.unit === 'mm' ? Number(v) : (Number(v) * 10); }
 
     try{
-      const hint = (FC.magazyn && FC.magazyn.findForMaterial) ? FC.magazyn.findForMaterial(state.material) : [];
-      if(hint && hint[0]){
-        state.boardW = toDisp(hint[0].width || 2800);
-        state.boardH = toDisp(hint[0].height || 2070);
+      const hint = (FC.magazyn && FC.magazyn.getPreferredFormat) ? FC.magazyn.getPreferredFormat(state.material) : null;
+      if(hint){
+        state.boardW = toDisp(hint.width || 2800);
+        state.boardH = toDisp(hint.height || 2070);
       }
     }catch(_){ }
 
@@ -927,10 +927,10 @@
 
     function applyHintFromMagazyn(material){
       try{
-        const hint = (FC.magazyn && FC.magazyn.findForMaterial) ? FC.magazyn.findForMaterial(material) : [];
-        if(hint && hint[0]){
-          const wmm = hint[0].width || 2800;
-          const hmm = hint[0].height || 2070;
+        const hint = (FC.magazyn && FC.magazyn.getPreferredFormat) ? FC.magazyn.getPreferredFormat(material) : null;
+        if(hint){
+          const wmm = hint.width || 2800;
+          const hmm = hint.height || 2070;
           const u = unitSel.value;
           inW.value = String(u==='mm' ? wmm : (Math.round((wmm/10)*10)/10));
           inH.value = String(u==='mm' ? hmm : (Math.round((hmm/10)*10)/10));
@@ -939,6 +939,23 @@
     }
 
     // Helper: whether current material (by name) is marked as having grain in the price list.
+    function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
+      try{
+        const rows = (FC.magazyn && FC.magazyn.findHalfSheetsForMaterial)
+          ? FC.magazyn.findHalfSheetsForMaterial(material, fullWmm, fullHmm)
+          : [];
+        if(!rows || !rows.length) return { qty: 0, width: 0, height: 0 };
+        const row = rows.slice().sort((a,b)=> (Number(b && b.qty)||0) - (Number(a && a.qty)||0))[0];
+        return {
+          qty: Math.max(0, Number(row && row.qty) || 0),
+          width: Math.round(Number(row && row.width) || 0),
+          height: Math.round(Number(row && row.height) || 0),
+        };
+      }catch(_){
+        return { qty: 0, width: 0, height: 0 };
+      }
+    }
+
     function materialHasGrain(name){
       try{ return !!(FC && typeof FC.materialHasGrain === 'function' && FC.materialHasGrain(name)); }catch(_){ return false; }
     }
@@ -1120,12 +1137,12 @@
       };
       const calcDisplayWaste = (sheet)=>{
         const bm = getBoardMeta(sheet);
-        const wasteBoardW = Math.max(1, Number((sheet && sheet.virtualBoardW) || bm.boardW) || bm.boardW);
-        const wasteBoardH = Math.max(1, Number((sheet && sheet.virtualBoardH) || bm.boardH) || bm.boardH);
-        const total = Math.max(0, wasteBoardW * wasteBoardH);
+        const halfBoardW = Math.max(1, Number((sheet && sheet.realHalfBoardW) || (sheet && sheet.virtualBoardW) || bm.boardW) || bm.boardW);
+        const halfBoardH = Math.max(1, Number((sheet && sheet.realHalfBoardH) || (sheet && sheet.virtualBoardH) || bm.boardH) || bm.boardH);
+        const total = Math.max(0, halfBoardW * halfBoardH);
         const used = opt.placedArea(sheet);
         const waste = Math.max(0, total - used);
-        return { total, used, waste, trim: bm.trim, boardW: bm.boardW, boardH: bm.boardH, wasteBoardW, wasteBoardH, virtualHalf: !!(sheet && sheet.virtualHalf) };
+        return { total, used, waste, trim: bm.trim, boardW: bm.boardW, boardH: bm.boardH, wasteBoardW: halfBoardW, wasteBoardH: halfBoardH, virtualHalf: !!(sheet && sheet.virtualHalf), realHalf: !!(sheet && (sheet.realHalf || sheet.realHalfFromStock)) };
       };
       if(!sheets.length){
         const msg = (plan && plan.note) ? String(plan.note) : 'Brak wyniku.';
@@ -1145,12 +1162,14 @@
         acc.waste += w.waste;
         acc.count += sheetFraction(s);
         if(s && s.virtualHalf) acc.hasVirtualHalf = true;
+        if(s && (s.realHalf || s.realHalfFromStock)) acc.hasRealHalf = true;
         return acc;
-      }, { area:0, used:0, waste:0, count:0, hasVirtualHalf:false });
+      }, { area:0, used:0, waste:0, count:0, hasVirtualHalf:false, hasRealHalf:false });
 
       const pct = sum.area>0 ? (sum.waste/sum.area)*100 : 0;
 
       const cancelledNote = (meta && meta.cancelled) ? '<div class="muted xs" style="margin-top:6px;font-weight:700">Generowanie przerwane — pokazuję najlepszy wynik do tej pory.</div>' : '';
+      const realHalfNote = sum.hasRealHalf ? '<div class="muted xs" style="margin-top:6px">Końcówka policzona na realnej połówce z magazynu, ale rysowana na pełnym arkuszu.</div>' : '';
       const virtualNote = sum.hasVirtualHalf ? '<div class="muted xs" style="margin-top:6px">Ostatnia końcówka liczona wirtualnie jako 0,5 płyty, ale rysowana na pełnym arkuszu.</div>' : '';
       tgt.appendChild(h('div', { class:'card', style:'margin:0', html:`
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -1159,6 +1178,7 @@
           <div><strong>Odpad:</strong> ${pct.toFixed(1)}%</div>
         </div>
         ${cancelledNote}
+        ${realHalfNote}
         ${virtualNote}
       ` }));
 
@@ -1209,7 +1229,7 @@
           const bm = getBoardMeta(s);
           const ws = calcDisplayWaste(s);
           const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
-          const virtualTxt = ws.virtualHalf ? ' • virtual 0,5 płyty' : '';
+          const virtualTxt = ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '');
           html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}</div>`;
           const src = imgs[i] || '';
           html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
@@ -1228,7 +1248,7 @@
         const ws = calcDisplayWaste(s);
         const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
-          h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.virtualHalf ? ' • virtual 0,5 płyty' : ''}` }),
+          h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }),
           h('div', { class:'muted xs', text:`${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}` })
         ]));
         const canvas = document.createElement('canvas');
@@ -1351,6 +1371,9 @@
           heur: st.heur,
           optimaxProfile: st.optimaxProfile,
           direction: st.direction,
+          realHalfQty: Number(st.realHalfQty)||0,
+          realHalfBoardW: Number(st.realHalfBoardW)||0,
+          realHalfBoardH: Number(st.realHalfBoardH)||0,
         },
         items
       };
@@ -1540,6 +1563,18 @@ async function generate(force){
   const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
     const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
+    const unit3 = (st.unit === 'mm') ? 'mm' : 'cm';
+    const toMm3 = (v)=>{
+      const n = Number(v);
+      if(!Number.isFinite(n)) return 0;
+      return unit3 === 'mm' ? Math.round(n) : Math.round(n * 10);
+    };
+    const fullWmmForStock = toMm3(st.boardW) || 2800;
+    const fullHmmForStock = toMm3(st.boardH) || 2070;
+    const halfStock = getRealHalfStockForMaterial(material, fullWmmForStock, fullHmmForStock);
+    st.realHalfQty = Math.max(0, Number(halfStock.qty) || 0);
+    st.realHalfBoardW = Math.round(Number(halfStock.width) || 0);
+    st.realHalfBoardH = Math.round(Number(halfStock.height) || 0);
     const cacheKey = makePlanCacheKey(st, parts);
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
@@ -1641,6 +1676,9 @@ async function generate(force){
           optimaxProfile: String(st.optimaxProfile || 'max').toLowerCase(),
           sheetEstimate: roughSheetsEstimate,
           optimax: true,
+          realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
+          realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
+          realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
         });
       }catch(e){
         plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
@@ -1698,7 +1736,14 @@ async function generate(force){
           const startStrategy2 = FC.rozkrojStarts && FC.rozkrojStarts[startMode2];
           const speed2 = FC.rozkrojSpeeds && FC.rozkrojSpeeds[speedMode2];
           const packed2 = speed2 && typeof speed2.pack === 'function'
-            ? speed2.pack(items2, W2, H2, K2, { startStrategy: startStrategy2, startMode: startMode2, speedMode: speedMode2 })
+            ? speed2.pack(items2, W2, H2, K2, {
+                startStrategy: startStrategy2,
+                startMode: startMode2,
+                speedMode: speedMode2,
+                realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
+                realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
+                realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
+              })
             : { sheets: opt2.packShelf(items2, W2, H2, K2, 'along') };
           plan = { sheets: packed2.sheets || [], cancelled: !!(plan && plan.cancelled), meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
         }catch(_){ }
