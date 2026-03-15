@@ -586,7 +586,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_seed_trim_v3');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_top5_90_85_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1196,7 +1196,9 @@
         html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
         sheets.forEach((s,i)=>{
           const bm = getBoardMeta(s);
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}</div>`;
+          const ws = calcDisplayWaste(s);
+          const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
+          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%</div>`;
           const src = imgs[i] || '';
           html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
         });
@@ -1210,9 +1212,12 @@
       const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
       sheets.forEach((s,i)=>{
         const box = h('div', { class:'card', style:'margin-top:12px' });
+        const bm = getBoardMeta(s);
+        const ws = calcDisplayWaste(s);
+        const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
-          h('div', { style:'font-weight:900', text:`Arkusz ${i+1}` }),
-          h('div', { class:'muted xs', text:`${mmToUnitStr(getBoardMeta(s).boardW, u)}×${mmToUnitStr(getBoardMeta(s).boardH, u)} ${u}` })
+          h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%` }),
+          h('div', { class:'muted xs', text:`${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}` })
         ]));
         const canvas = document.createElement('canvas');
         canvas.style.width = '100%';

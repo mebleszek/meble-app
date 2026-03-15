@@ -399,3 +399,7 @@ Dopiero potem go zmieniać.
 - `js/app/panel-pro-worker.js`, `js/app/rozrys.js`, `index.html`: cache-busting bumped for the new MAX solver build.
 
 - 2026-03-15: MAX now scans seeds sequentially from largest area to smaller and accepts the first seed that reaches the requested occupancy target; ROZRYS waste summary uses full board dimensions and drawing shows the trim border around the usable area.
+
+- 2026-03-15: ROZRYS — dodano procent odpadu przy nagłówku każdego arkusza (widok i eksport PDF/druk), liczony od pełnej płyty.
+
+- 2026-03-15: `js/app/speed-max.js` tuned per user request: MAX now tests only the top 5 unique seed starts for each band (largest unique candidates first) and raises the secondary occupancy threshold from 80% to 85%; cache-busting updated to `20260315_max_top5_90_85_v1`.

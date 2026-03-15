@@ -6,7 +6,8 @@
 
   const SIMILAR_MM = 75;
   const IDEAL_OCCUPANCY = 0.9;
-  const MIN_OK_OCCUPANCY = 0.8;
+  const MIN_OK_OCCUPANCY = 0.85;
+  const MAX_TOP_SEEDS = 5;
   const TINY_RATIO = 0.5;
 
   function axisThickness(axis, oriented){ return axis === 'along' ? oriented.w : oriented.h; }
@@ -258,14 +259,15 @@
   function buildBestBandForSeeds(items, rect, axis, kerf, targetOccupancy, options, phase){
     const seeds = collectSeedOptions(items, rect, axis);
     if(!seeds.length) return null;
-    for(let i = 0; i < seeds.length; i++){
+    const seedLimit = Math.min(seeds.length, MAX_TOP_SEEDS);
+    for(let i = 0; i < seedLimit; i++){
       if(options && options.isCancelled && options.isCancelled()) return null;
       const seed = seeds[i];
       emitStage(options, {
         phase: phase || 'band-search',
         axis,
         seedIndex: i + 1,
-        seedTotal: seeds.length,
+        seedTotal: seedLimit,
         occupancyTarget: targetOccupancy,
         seed: seed.signature,
       });
@@ -365,9 +367,9 @@
       const ideal90 = tryTargetBand(state, currentAxis, kerf, IDEAL_OCCUPANCY, options, 'residual-90', false);
       if(ideal90) continue;
 
-      emitStage(options, { phase:'residual-80-pick', axis: currentAxis, totalBands: state.totalBands });
-      const okay80 = tryTargetBand(state, currentAxis, kerf, MIN_OK_OCCUPANCY, options, 'residual-80', false);
-      if(okay80) continue;
+      emitStage(options, { phase:'residual-85-pick', axis: currentAxis, totalBands: state.totalBands });
+      const okay85 = tryTargetBand(state, currentAxis, kerf, MIN_OK_OCCUPANCY, options, 'residual-85', false);
+      if(okay85) continue;
 
       const otherAxis = opposite(currentAxis);
       emitStage(options, { phase:'axis-switch-check', from: currentAxis, to: otherAxis, totalBands: state.totalBands });
@@ -381,12 +383,12 @@
         continue;
       }
 
-      const other80 = buildBestBandAtTarget(state.items, state.rect, otherAxis, kerf, MIN_OK_OCCUPANCY, options, 'residual-switch-80');
-      if(other80){
+      const other85 = buildBestBandAtTarget(state.items, state.rect, otherAxis, kerf, MIN_OK_OCCUPANCY, options, 'residual-switch-85');
+      if(other85){
         state.axisSwitches += 1;
         currentAxis = otherAxis;
-        applyBand(state, other80, false);
-        emitStage(options, { phase:'axis-switched', axis: currentAxis, occupancy: other80.occupancy || 0, totalBands: state.totalBands });
+        applyBand(state, other85, false);
+        emitStage(options, { phase:'axis-switched', axis: currentAxis, occupancy: other85.occupancy || 0, totalBands: state.totalBands });
         continue;
       }
 
@@ -458,7 +460,7 @@
 
     emitStage(options, { phase:'start-pass-1-pick', axis:startAxis, totalBands: state.totalBands });
     let firstBand = tryTargetBand(state, startAxis, kerf, IDEAL_OCCUPANCY, options, 'start-pass-1', true);
-    if(!firstBand) firstBand = tryTargetBand(state, startAxis, kerf, MIN_OK_OCCUPANCY, options, 'start-pass-1-low', true);
+    if(!firstBand) firstBand = tryTargetBand(state, startAxis, kerf, MIN_OK_OCCUPANCY, options, 'start-pass-1-85', true);
     if(!firstBand) firstBand = tryFallbackBand(state, startAxis, kerf, options, 'start-pass-1-fallback', true);
 
     if(firstBand && canContinue(state)){
