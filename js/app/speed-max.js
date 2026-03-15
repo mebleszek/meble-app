@@ -616,11 +616,17 @@
   function buildSheetFromPlan(result, fullBoardW, fullBoardH, wasteBoardW, wasteBoardH, tags){
     const sheet = opt.createSheet(fullBoardW, fullBoardH);
     for(const p of (result.placements || [])) sheet.placements.push(p);
+    const halfDividerAxis = (wasteBoardW > 0 && wasteBoardW < fullBoardW) ? 'vertical'
+      : ((wasteBoardH > 0 && wasteBoardH < fullBoardH) ? 'horizontal' : '');
+    const halfDividerPos = halfDividerAxis === 'vertical' ? wasteBoardW
+      : (halfDividerAxis === 'horizontal' ? wasteBoardH : 0);
     if(tags && tags.virtualHalf){
       sheet.virtualFraction = 0.5;
       sheet.virtualHalf = true;
       sheet.virtualBoardW = wasteBoardW;
       sheet.virtualBoardH = wasteBoardH;
+      sheet.halfDividerAxis = halfDividerAxis;
+      sheet.halfDividerPos = halfDividerPos;
     }
     if(tags && tags.realHalf){
       sheet.virtualFraction = 0.5;
@@ -628,6 +634,8 @@
       sheet.realHalfFromStock = true;
       sheet.realHalfBoardW = wasteBoardW;
       sheet.realHalfBoardH = wasteBoardH;
+      sheet.halfDividerAxis = halfDividerAxis;
+      sheet.halfDividerPos = halfDividerPos;
     }
     return {
       sheet,

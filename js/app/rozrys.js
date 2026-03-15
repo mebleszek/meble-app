@@ -228,20 +228,30 @@
 
       const halfBoardW = Math.max(0, Number(sheet && (sheet.realHalfBoardW || sheet.virtualBoardW)) || 0);
       const halfBoardH = Math.max(0, Number(sheet && (sheet.realHalfBoardH || sheet.virtualBoardH)) || 0);
+      const halfDividerAxis = String((sheet && sheet.halfDividerAxis) || '').toLowerCase();
+      const halfDividerPos = Math.max(0, Number(sheet && sheet.halfDividerPos) || 0);
       const showHalfDivider = !!(sheet && (sheet.realHalf || sheet.realHalfFromStock || sheet.virtualHalf))
-        && ((halfBoardW > 0 && halfBoardW < W) || (halfBoardH > 0 && halfBoardH < H));
+        && ((halfDividerAxis === 'vertical' && halfDividerPos > 0 && halfDividerPos < W)
+          || (halfDividerAxis === 'horizontal' && halfDividerPos > 0 && halfDividerPos < H)
+          || (!halfDividerAxis && ((halfBoardW > 0 && halfBoardW < W) || (halfBoardH > 0 && halfBoardH < H))));
       const drawHalfDivider = ()=>{
         if(!showHalfDivider) return;
         ctx.save();
-        ctx.setLineDash([12, 7]);
-        ctx.strokeStyle = 'rgba(11, 31, 51, 0.95)';
-        ctx.lineWidth = 3;
-        if(halfBoardW > 0 && halfBoardW < W){
+        ctx.setLineDash([10, 6]);
+        ctx.strokeStyle = 'rgba(11, 31, 51, 0.98)';
+        ctx.lineWidth = 2;
+        if(halfDividerAxis === 'vertical'){
+          const x = halfDividerPos * scale;
+          strokeLine(x, 0, x, canvas.height, 2);
+        } else if(halfDividerAxis === 'horizontal'){
+          const y = halfDividerPos * scale;
+          strokeLine(0, y, canvas.width, y, 2);
+        } else if(halfBoardW > 0 && halfBoardW < W){
           const x = halfBoardW * scale;
-          strokeLine(x, 0, x, canvas.height, 3);
+          strokeLine(x, 0, x, canvas.height, 2);
         } else if(halfBoardH > 0 && halfBoardH < H){
           const y = halfBoardH * scale;
-          strokeLine(0, y, canvas.width, y, 3);
+          strokeLine(0, y, canvas.width, y, 2);
         }
         ctx.restore();
       };
@@ -607,7 +617,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_half_reflow_v4');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_half_reflow_v5');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
