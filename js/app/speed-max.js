@@ -9,6 +9,9 @@
   const MIN_OK_OCCUPANCY = 0.85;
   const MAX_TOP_SEEDS = 5;
   const TINY_RATIO = 0.5;
+  // Uwaga: w obecnym mapowaniu osi fizyczny kierunek 'po długości płyty'
+  // odpowiada wewnętrznej osi 'across'. Nie zmieniać bez korekty trybów startu.
+  const LENGTHWISE_AXIS = 'across';
 
   function axisThickness(axis, oriented){ return axis === 'along' ? oriented.w : oriented.h; }
   function axisLength(axis, oriented){ return axis === 'along' ? oriented.h : oriented.w; }
@@ -286,8 +289,102 @@
     return buildBestBandForSeeds(items, rect, axis, kerf, targetOccupancy, options, phase);
   }
 
+  function chooseFallbackOrientation(item, axis, bandSize, capacity){
+    let best = null;
+    for(const oriented of opt.orientations(item)){
+      const thickness = axisThickness(axis, oriented);
+      const len = axisLength(axis, oriented);
+      if(thickness > bandSize) continue;
+      if(len > capacity) continue;
+      const area = oriented.w * oriented.h;
+      const score = thickness * 1000000 + area * 1000 + len;
+      const cand = { item, oriented, thickness, len, area, diff: Math.max(0, bandSize - thickness), closeness: bandSize > 0 ? (thickness / bandSize) : 0, score };
+      if(!best || cand.score > best.score) best = cand;
+    }
+    return best;
+  }
+
+  function buildGreedyFallbackBand(items, rect, axis, kerf, seed){
+    const bandSize = seed.bandSize;
+    const capacity = rectLength(axis, rect);
+    const seedLen = axisLength(axis, seed.oriented);
+    if(seedLen > capacity) return null;
+    const seedArea = seed.oriented.w * seed.oriented.h;
+    const seedPart = {
+      item: seed.item,
+      oriented: seed.oriented,
+      thickness: bandSize,
+      len: seedLen,
+      area: seedArea,
+      diff: 0,
+      closeness: 1,
+      score: bandSize * 1000000 + seedArea * 1000 + seedLen,
+    };
+
+    const parts = [seedPart];
+    const usedIds = new Set([seed.item.id]);
+    let cursor = seedLen;
+
+    const candidates = [];
+    for(const item of items){
+      if(usedIds.has(item.id)) continue;
+      const chosen = chooseFallbackOrientation(item, axis, bandSize, capacity);
+      if(!chosen) continue;
+      candidates.push(chosen);
+    }
+    candidates.sort((a, b) => {
+      if((b.thickness || 0) !== (a.thickness || 0)) return (b.thickness || 0) - (a.thickness || 0);
+      if((b.area || 0) !== (a.area || 0)) return (b.area || 0) - (a.area || 0);
+      if((b.len || 0) !== (a.len || 0)) return (b.len || 0) - (a.len || 0);
+      return String(b.item.id || '').localeCompare(String(a.item.id || ''), 'pl');
+    });
+
+    for(const cand of candidates){
+      const need = (parts.length ? kerf : 0) + (cand.len || 0);
+      if(cursor + need > capacity) continue;
+      parts.push(cand);
+      usedIds.add(cand.item.id);
+      cursor += need;
+    }
+
+    const entries = parts.map((part)=> makeEntryFromParts([part], kerf, bandSize)).filter(Boolean);
+    return finalizeBand(entries, rect, axis, kerf, seed, bandSize, 0);
+  }
+
+  function buildFallbackForAxis(items, rect, axis, kerf, options, phase){
+    const seeds = collectSeedOptions(items, rect, axis);
+    if(!seeds.length) return null;
+    const seedLimit = Math.min(seeds.length, MAX_TOP_SEEDS);
+    for(let i = 0; i < seedLimit; i++){
+      if(options && options.isCancelled && options.isCancelled()) return null;
+      const seed = seeds[i];
+      emitStage(options, {
+        phase: phase || 'fallback-search',
+        axis,
+        seedIndex: i + 1,
+        seedTotal: seedLimit,
+        occupancyTarget: 0,
+        seed: seed.signature,
+      });
+      const band = buildGreedyFallbackBand(items, rect, axis, kerf, seed);
+      if(band) return band;
+    }
+    return null;
+  }
+
   function buildBestFallbackBand(items, rect, axis, kerf, options, phase){
-    return buildBestBandForSeeds(items, rect, axis, kerf, 0, options, phase);
+    const axes = [];
+    const pushAxis = (ax)=>{ if(ax && !axes.includes(ax)) axes.push(ax); };
+    pushAxis(LENGTHWISE_AXIS);
+    pushAxis(axis);
+    pushAxis(opposite(axis));
+    let best = null;
+    for(const ax of axes){
+      const band = buildFallbackForAxis(items, rect, ax, kerf, options, phase ? `${phase}-${ax}` : phase);
+      if(compareBands(band, best) > 0) best = band;
+      if(best && ax === LENGTHWISE_AXIS) return best;
+    }
+    return best;
   }
 
   function consumeBandsRect(rect, axis, bands){
@@ -392,22 +489,12 @@
         continue;
       }
 
-      const fallbackCurrent = buildBestFallbackBand(state.items, state.rect, currentAxis, kerf, options, 'fallback-current');
-      const fallbackOther = buildBestFallbackBand(state.items, state.rect, otherAxis, kerf, options, 'fallback-other');
-      let chosen = null;
-      let chosenAxis = currentAxis;
-      if(compareBands(fallbackOther, fallbackCurrent) > 0){
-        chosen = fallbackOther;
-        chosenAxis = otherAxis;
-      }else{
-        chosen = fallbackCurrent;
-        chosenAxis = currentAxis;
-      }
-      if(!chosen) break;
-      if(chosenAxis !== currentAxis) state.axisSwitches += 1;
-      currentAxis = chosenAxis;
-      applyBand(state, chosen, false);
-      emitStage(options, { phase:'fallback-band-used', axis: currentAxis, occupancy: chosen.occupancy || 0, totalBands: state.totalBands });
+      const fallback = buildBestFallbackBand(state.items, state.rect, currentAxis, kerf, options, 'fallback');
+      if(!fallback) break;
+      if(fallback.axis !== currentAxis) state.axisSwitches += 1;
+      currentAxis = fallback.axis || currentAxis;
+      applyBand(state, fallback, false);
+      emitStage(options, { phase:'fallback-band-used', axis: currentAxis, occupancy: fallback.occupancy || 0, totalBands: state.totalBands });
     }
     return state;
   }
@@ -465,7 +552,9 @@
 
     if(firstBand && canContinue(state)){
       emitStage(options, { phase:'start-pass-2-pick', axis:startAxis, totalBands: state.totalBands });
-      tryTargetBand(state, startAxis, kerf, IDEAL_OCCUPANCY, options, 'start-pass-2', true);
+      let secondBand = tryTargetBand(state, startAxis, kerf, IDEAL_OCCUPANCY, options, 'start-pass-2', true);
+      if(!secondBand) secondBand = tryTargetBand(state, startAxis, kerf, MIN_OK_OCCUPANCY, options, 'start-pass-2-85', true);
+      if(!secondBand) tryFallbackBand(state, startAxis, kerf, options, 'start-pass-2-fallback', true);
     }
 
     if(canContinue(state)){
@@ -505,6 +594,25 @@
       totalBands: result.totalBands || 0,
       axisSwitches: result.axisSwitches || 0,
     };
+  }
+
+  function getVirtualHalfDims(boardW, boardH){
+    if(boardW >= boardH){
+      return { w: boardW, h: Math.max(1, Math.floor(boardH / 2)) };
+    }
+    return { w: Math.max(1, Math.floor(boardW / 2)), h: boardH };
+  }
+
+  function maybeApplyVirtualHalf(lastItems, boardW, boardH, kerf, options, built){
+    if(!built || !built.sheet || !Array.isArray(lastItems) || !lastItems.length) return;
+    const half = getVirtualHalfDims(boardW, boardH);
+    const preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, Object.assign({}, options, { reportStage:null, onProgress:null }), undefined);
+    if(preview && preview.ids && preview.ids.size === lastItems.length){
+      built.sheet.virtualFraction = 0.5;
+      built.sheet.virtualHalf = true;
+      built.sheet.virtualBoardW = half.w;
+      built.sheet.virtualBoardH = half.h;
+    }
   }
 
   function pickAxis(startStrategy, items, boardW, boardH, kerf, options){
@@ -556,8 +664,11 @@
           built.usedArea = opt.placedArea(sheet);
         }
 
-        sheets.push(sheet);
         const next = removeByIds(items, built.usedIds || new Set());
+        if(next.length === 0 && built.usedIds && built.usedIds.size === items.length){
+          maybeApplyVirtualHalf(items, boardW, boardH, kerf, options, built);
+        }
+        sheets.push(sheet);
         items.length = 0;
         for(const it of next) items.push(it);
         currentSheet += 1;

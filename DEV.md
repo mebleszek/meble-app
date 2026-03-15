@@ -403,3 +403,6 @@ Dopiero potem go zmieniać.
 - 2026-03-15: ROZRYS — dodano procent odpadu przy nagłówku każdego arkusza (widok i eksport PDF/druk), liczony od pełnej płyty.
 
 - 2026-03-15: `js/app/speed-max.js` tuned per user request: MAX now tests only the top 5 unique seed starts for each band (largest unique candidates first) and raises the secondary occupancy threshold from 80% to 85%; cache-busting updated to `20260315_max_top5_90_85_v1`.
+- 2026-03-15: `js/app/speed-max.js` — start-pass 1 i 2 mają teraz twardą kolejność `90% -> 85% -> dopiero fallback`, z testem top 5 unikalnych seedów i obu orientacji każdego seeda; fallback został przerobiony na preferencję fizycznego cięcia po długości płyty (wewnętrzna oś `across`) z układaniem od najszerszych do najwęższych elementów.
+- 2026-03-15: `js/app/speed-max.js` — ostatni arkusz może być oznaczony jako wirtualne `0.5` płyty, jeśli komplet pozostałych elementów mieści się na połowie formatu; `js/app/rozrys.js` liczy wtedy podsumowanie i % odpadu dla tej połówki, ale nadal rysuje arkusz na pełnej płycie.
+- 2026-03-15: `js/app/panel-pro-worker.js`, `js/app/rozrys.js` — cache-busting bumped to `20260315_max_virtual_half_v1`.

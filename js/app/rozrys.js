@@ -586,7 +586,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_top5_90_85_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_max_virtual_half_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1120,10 +1120,12 @@
       };
       const calcDisplayWaste = (sheet)=>{
         const bm = getBoardMeta(sheet);
-        const total = Math.max(0, bm.boardW * bm.boardH);
+        const wasteBoardW = Math.max(1, Number((sheet && sheet.virtualBoardW) || bm.boardW) || bm.boardW);
+        const wasteBoardH = Math.max(1, Number((sheet && sheet.virtualBoardH) || bm.boardH) || bm.boardH);
+        const total = Math.max(0, wasteBoardW * wasteBoardH);
         const used = opt.placedArea(sheet);
         const waste = Math.max(0, total - used);
-        return { total, used, waste, trim: bm.trim, boardW: bm.boardW, boardH: bm.boardH };
+        return { total, used, waste, trim: bm.trim, boardW: bm.boardW, boardH: bm.boardH, wasteBoardW, wasteBoardH, virtualHalf: !!(sheet && sheet.virtualHalf) };
       };
       if(!sheets.length){
         const msg = (plan && plan.note) ? String(plan.note) : 'Brak wyniku.';
@@ -1131,24 +1133,33 @@
         return;
       }
 
+      const sheetFraction = (sheet)=>{
+        const f = Number(sheet && sheet.virtualFraction);
+        return (Number.isFinite(f) && f > 0) ? f : 1;
+      };
+      const formatSheetCount = (n)=> Number.isInteger(n) ? String(n) : String(n.toFixed(1)).replace('.', ',');
       const sum = sheets.reduce((acc,s)=>{
         const w = calcDisplayWaste(s);
         acc.area += w.total;
         acc.used += w.used;
         acc.waste += w.waste;
+        acc.count += sheetFraction(s);
+        if(s && s.virtualHalf) acc.hasVirtualHalf = true;
         return acc;
-      }, { area:0, used:0, waste:0 });
+      }, { area:0, used:0, waste:0, count:0, hasVirtualHalf:false });
 
       const pct = sum.area>0 ? (sum.waste/sum.area)*100 : 0;
 
       const cancelledNote = (meta && meta.cancelled) ? '<div class="muted xs" style="margin-top:6px;font-weight:700">Generowanie przerwane — pokazuję najlepszy wynik do tej pory.</div>' : '';
+      const virtualNote = sum.hasVirtualHalf ? '<div class="muted xs" style="margin-top:6px">Ostatnia końcówka liczona wirtualnie jako 0,5 płyty, ale rysowana na pełnym arkuszu.</div>' : '';
       tgt.appendChild(h('div', { class:'card', style:'margin:0', html:`
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><strong>Materiał:</strong> ${meta.material}</div>
-          <div><strong>Płyty:</strong> ${sheets.length} szt.</div>
+          <div><strong>Płyty:</strong> ${formatSheetCount(sum.count)} szt.</div>
           <div><strong>Odpad:</strong> ${pct.toFixed(1)}%</div>
         </div>
         ${cancelledNote}
+        ${virtualNote}
       ` }));
 
       const expRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap' });
@@ -1193,12 +1204,13 @@
         </head><body>`;
         html += `<h1>Rozrys — ${meta.material}</h1>`;
         const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
-        html += `<div class="meta">Płyty: ${sheets.length} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
+        html += `<div class="meta">Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
         sheets.forEach((s,i)=>{
           const bm = getBoardMeta(s);
           const ws = calcDisplayWaste(s);
           const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%</div>`;
+          const virtualTxt = ws.virtualHalf ? ' • virtual 0,5 płyty' : '';
+          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}</div>`;
           const src = imgs[i] || '';
           html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
         });
@@ -1216,7 +1228,7 @@
         const ws = calcDisplayWaste(s);
         const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
         box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
-          h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%` }),
+          h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.virtualHalf ? ' • virtual 0,5 płyty' : ''}` }),
           h('div', { class:'muted xs', text:`${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}` })
         ]));
         const canvas = document.createElement('canvas');
