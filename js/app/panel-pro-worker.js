@@ -2,7 +2,7 @@
    Kierunek startu i szybkość liczenia są rozdzielone na osobne moduły. */
 self.window = self;
 
-const SOLVER_VER = '20260315_real_half_inventory_v1';
+const SOLVER_VER = '20260315_real_half_inventory_v2';
 try{
   importScripts(
     'cut-optimizer.js?v=' + SOLVER_VER,

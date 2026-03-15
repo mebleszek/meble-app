@@ -226,6 +226,24 @@
         ctx.restore();
       }
 
+      const halfBoardW = Math.max(0, Number(sheet && (sheet.realHalfBoardW || sheet.virtualBoardW)) || 0);
+      const halfBoardH = Math.max(0, Number(sheet && (sheet.realHalfBoardH || sheet.virtualBoardH)) || 0);
+      const showHalfDivider = !!(sheet && (sheet.realHalf || sheet.realHalfFromStock || sheet.virtualHalf))
+        && ((halfBoardW > 0 && halfBoardW < W) || (halfBoardH > 0 && halfBoardH < H));
+      if(showHalfDivider){
+        ctx.save();
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = 'rgba(11, 31, 51, 0.45)';
+        if(halfBoardW > 0 && halfBoardW < W){
+          const x = halfBoardW * scale;
+          strokeLine(x, 0, x, canvas.height, 1);
+        } else if(halfBoardH > 0 && halfBoardH < H){
+          const y = halfBoardH * scale;
+          strokeLine(0, y, canvas.width, y, 1);
+        }
+        ctx.restore();
+      }
+
       const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
       // Base font; for tiny parts we will temporarily shrink it.
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
@@ -586,7 +604,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_real_half_inventory_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_real_half_inventory_v2');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });

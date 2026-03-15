@@ -87,14 +87,26 @@
     const fw = Math.max(1, Math.round(Number(fullWidth)||0));
     const fh = Math.max(1, Math.round(Number(fullHeight)||0));
     if(!(fw > 0 && fh > 0)) return [];
-    const halfA = { width: fw, height: Math.max(1, Math.floor(fh / 2)) };
-    const halfB = { width: Math.max(1, Math.floor(fw / 2)), height: fh };
-    const fits = (row, target)=>{
+
+    // Half sheet on the shop floor means the long side stays full length
+    // and only the short side is cut roughly in half (e.g. 2800x1030).
+    const fullLong = Math.max(fw, fh);
+    const fullShort = Math.min(fw, fh);
+    const halfShort = Math.max(1, Math.floor(fullShort / 20) * 10);
+    const toleranceMm = 10;
+
+    return rows.filter(row => {
       const w = Math.round(Number(row && row.width)||0);
       const h = Math.round(Number(row && row.height)||0);
-      return (w === target.width && h === target.height) || (w === target.height && h === target.width);
-    };
-    return rows.filter(row => fits(row, halfA) || fits(row, halfB));
+      const rowLong = Math.max(w, h);
+      const rowShort = Math.min(w, h);
+      const keepsLength = rowLong === fullLong;
+      const looksLikeHalf = Math.abs(rowShort - halfShort) <= toleranceMm;
+      // Orientation matters: a real half sheet is treated as full-length x half-width,
+      // not as the same rectangle rotated the other way around.
+      const orientedLikeLengthHalf = (fw >= fh) ? (w >= h) : (h >= w);
+      return keepsLength && looksLikeHalf && orientedLikeLengthHalf;
+    });
   }
 
   function h(tag, attrs, children){

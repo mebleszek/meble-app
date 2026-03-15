@@ -598,9 +598,9 @@
 
   function getVirtualHalfDims(boardW, boardH){
     if(boardW >= boardH){
-      return { w: boardW, h: Math.max(1, Math.floor(boardH / 2)) };
+      return { w: boardW, h: Math.max(1, Math.floor(boardH / 20) * 10) };
     }
-    return { w: Math.max(1, Math.floor(boardW / 2)), h: boardH };
+    return { w: Math.max(1, Math.floor(boardW / 20) * 10), h: boardH };
   }
 
   function resolveHalfDims(boardW, boardH, options){
@@ -608,9 +608,7 @@
     const rh = Math.round(Number(options && options.realHalfBoardH) || 0);
     if(rw > 0 && rh > 0){
       const fitsDirect = rw <= boardW && rh <= boardH;
-      const fitsSwap = rh <= boardW && rw <= boardH;
       if(fitsDirect) return { w: rw, h: rh };
-      if(fitsSwap) return { w: rh, h: rw };
     }
     return getVirtualHalfDims(boardW, boardH);
   }
@@ -652,15 +650,9 @@
     if(!Array.isArray(lastItems) || !lastItems.length) return null;
     const half = resolveHalfDims(boardW, boardH, options);
     const silentOptions = Object.assign({}, options, { reportStage:null, onProgress:null });
-    let preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, LENGTHWISE_AXIS);
-    if(!(preview && preview.ids && preview.ids.size === lastItems.length)){
-      const pickedAxis = startStrategy && typeof startStrategy.resolvePrimaryAxis === 'function'
-        ? startStrategy.resolvePrimaryAxis({ previewAxis: (axis)=> buildSheet(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, axis) })
-        : undefined;
-      if(pickedAxis && pickedAxis !== LENGTHWISE_AXIS){
-        preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, pickedAxis);
-      }
-    }
+    // Half sheet is only valid as a full-length board cut in half on the short side.
+    // Do not rotate the whole half-board logic or switch to the opposite axis here.
+    const preview = buildSheetPlan(opt.cloneItems(lastItems), half.w, half.h, kerf, silentOptions, LENGTHWISE_AXIS);
     if(preview && preview.ids && preview.ids.size === lastItems.length){
       return buildSheetFromPlan(preview, boardW, boardH, half.w, half.h, useRealHalf ? { realHalf:true } : { virtualHalf:true });
     }

@@ -408,3 +408,9 @@ Dopiero potem go zmieniać.
 - 2026-03-15: `js/app/panel-pro-worker.js`, `js/app/rozrys.js` — cache-busting bumped to `20260315_max_virtual_half_v1`.
 
 - 2026-03-15: magazyn rozróżnia teraz pełne i realne pół płyty przez format; ROZRYS wybiera największy format jako hint, a MAX może użyć realnej połówki z magazynu na końcówce (rysowanej nadal na pełnym arkuszu) lub tylko oznaczyć wirtualne 0,5, gdy realnej połówki brak.
+
+
+## 2026-03-15 – real_half_inventory_v2
+- Half-sheet detection is now strict: full length + half short side only; no rotated whole-half acceptance.
+- Virtual/real half preview uses lengthwise-only logic.
+- Added dashed divider line on rendered sheets when half-board logic is active.
