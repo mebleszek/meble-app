@@ -16,6 +16,7 @@
 
   const OVERRIDE_KEY = 'fc_rozrys_overrides_v1';
   const EDGE_KEY = 'fc_edge_v1';
+  const PANEL_PREFS_KEY = 'fc_rozrys_panel_prefs_v1';
 
   function safeGetProject(){
     try{
@@ -69,6 +70,20 @@
 
   function saveOverrides(obj){
     try{ localStorage.setItem(OVERRIDE_KEY, JSON.stringify(obj || {})); }catch(_){ }
+  }
+
+  function loadPanelPrefs(){
+    try{
+      const raw = localStorage.getItem(PANEL_PREFS_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === 'object') ? obj : {};
+    }catch(_){
+      return {};
+    }
+  }
+
+  function savePanelPrefs(obj){
+    try{ localStorage.setItem(PANEL_PREFS_KEY, JSON.stringify(obj || {})); }catch(_){ }
   }
 
   function loadEdgeStore(){
@@ -730,10 +745,10 @@
     root.innerHTML = '';
 
     const card = h('div', { class:'card' });
-    card.appendChild(h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' }, [
-      h('h3', { style:'margin:0', text:'Optimax — optymalizacja rozkroju' }),
-      h('div', { class:'muted xs', text:'Nowy panel rozkroju inspirowany programami produkcyjnymi do optymalizacji płyt.' })
-    ]));
+    const panelPrefs = loadPanelPrefs();
+    const headerRow = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' });
+    headerRow.appendChild(h('h3', { style:'margin:0', text:'Optimax — optymalizacja rozkroju' }));
+    card.appendChild(headerRow);
 
     if(!agg.materials.length){
       card.appendChild(h('div', { class:'muted', style:'margin-top:10px', html:'Brak rozpiski materiałów. Dodaj szafki, żeby ROZRYS miał co ciąć.' }));
@@ -744,16 +759,16 @@
     // state (ui) — keep local per render
     const state = {
       material: agg.materials[0],
-      unit: 'mm',
+      unit: (panelPrefs.unit === 'cm' ? 'cm' : 'mm'),
       boardW: 2800,
       boardH: 2070,
-      kerf: 4,
-      edgeTrim: 20,
+      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : 4,
+      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : 20,
       grain: true,
       heur: 'optimax',
       optimaxProfile: 'max',
-      minScrapW: 0,
-      minScrapH: 0,
+      minScrapW: Number.isFinite(Number(panelPrefs.minScrapW)) ? Math.max(0, Number(panelPrefs.minScrapW)) : 0,
+      minScrapH: Number.isFinite(Number(panelPrefs.minScrapH)) ? Math.max(0, Number(panelPrefs.minScrapH)) : 0,
       direction: 'start-optimax',
     };
 
@@ -769,7 +784,7 @@
       }
     }catch(_){ }
 
-    // top row: material + units + edge compensation
+    // top row: material + format arkusza + opcje
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
     // material select
     const matWrap = h('div');
@@ -805,7 +820,7 @@
     matWrap.appendChild(matSel);
     controls.appendChild(matWrap);
 
-    // units selector
+    // hidden option controls controlled through modal
     const unitWrap = h('div');
     unitWrap.appendChild(h('label', { text:'Jednostki' }));
     const unitSel = h('select', { id:'rozUnit' });
@@ -814,9 +829,7 @@
       <option value="mm" ${state.unit==='mm'?'selected':''}>mm</option>
     `;
     unitWrap.appendChild(unitSel);
-    controls.appendChild(unitWrap);
 
-    // edge compensation selector (labels/exports only)
     const edgeWrap = h('div');
     edgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
     const edgeSel = h('select', { id:'rozEdgeSub' });
@@ -825,11 +838,8 @@
       <option value="1">Po odjęciu 1 mm okleiny</option>
       <option value="2">Po odjęciu 2 mm okleiny</option>
     `;
+    edgeSel.value = ['0','1','2'].includes(String(panelPrefs.edgeSubMm)) ? String(panelPrefs.edgeSubMm) : '0';
     edgeWrap.appendChild(edgeSel);
-    controls.appendChild(edgeWrap);
-
-    // second row: board size + kerf + trim (move format inputs lower as requested)
-    const controlsSize = h('div', { class:'grid-3', style:'margin-top:12px' });
 
     // board size
     const sizeWrap = h('div');
@@ -839,23 +849,35 @@
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     sizeRow.appendChild(inW); sizeRow.appendChild(inH);
     sizeWrap.appendChild(sizeRow);
-    controlsSize.appendChild(sizeWrap);
+    controls.appendChild(sizeWrap);
 
-    // kerf
+    const optionsWrap = h('div');
+    optionsWrap.appendChild(h('label', { text:'Ustawienia dodatkowe' }));
+    optionsWrap.appendChild(h('div', { class:'muted xs', style:'margin-bottom:8px', text:'Jednostki, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.' }));
+    const openOptionsBtnInline = h('button', { class:'btn', type:'button', text:'Opcje rozkroju' });
+    optionsWrap.appendChild(openOptionsBtnInline);
+    controls.appendChild(optionsWrap);
+
+    // hidden option inputs
     const kerfWrap = h('div');
     kerfWrap.appendChild(h('label', { text:`Rzaz piły (${state.unit})` }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
-    controlsSize.appendChild(kerfWrap);
 
-    // edge trim
     const trimWrap = h('div');
     trimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${state.unit})` }));
     const inTrim = h('input', { id:'rozTrim', type:'number', value:String(state.edgeTrim) });
     trimWrap.appendChild(inTrim);
-    controlsSize.appendChild(trimWrap);
 
-    // second row: grain + heuristic + direction
+    const minScrapWrap = h('div');
+    minScrapWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${state.unit})` }));
+    const minScrapRow = h('div', { style:'display:flex;gap:8px' });
+    const inMinW = h('input', { id:'rozMinScrapW', type:'number', value:String(state.minScrapW) });
+    const inMinH = h('input', { id:'rozMinScrapH', type:'number', value:String(state.minScrapH) });
+    minScrapRow.appendChild(inMinW);
+    minScrapRow.appendChild(inMinH);
+    minScrapWrap.appendChild(minScrapRow);
+
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
 
     const grainWrap = h('div');
@@ -890,17 +912,7 @@
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
 
-    const controls3 = h('div', { class:'grid-3', style:'margin-top:12px' });
-
-    const minScrapWrap = h('div');
-    minScrapWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${state.unit})` }));
-    const minScrapRow = h('div', { style:'display:flex;gap:8px' });
-    const inMinW = h('input', { id:'rozMinScrapW', type:'number', value:String(state.minScrapW) });
-    const inMinH = h('input', { id:'rozMinScrapH', type:'number', value:String(state.minScrapH) });
-    minScrapRow.appendChild(inMinW);
-    minScrapRow.appendChild(inMinH);
-    minScrapWrap.appendChild(minScrapRow);
-    controls3.appendChild(minScrapWrap);
+    const controls3 = h('div', { style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px' });
 
     const profileHintWrap = h('div');
     profileHintWrap.appendChild(h('label', { text:'Jak czytać tryby szybkości' }));
@@ -913,9 +925,136 @@
     controls3.appendChild(modeHintWrap);
 
     card.appendChild(controls);
-    card.appendChild(controlsSize);
     card.appendChild(controls2);
     card.appendChild(controls3);
+    function persistOptionPrefs(){
+      savePanelPrefs({
+        unit: unitSel.value,
+        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
+        kerf: Math.max(0, Number(inK.value)||0),
+        edgeTrim: Math.max(0, Number(inTrim.value)||0),
+        minScrapW: Math.max(0, Number(inMinW.value)||0),
+        minScrapH: Math.max(0, Number(inMinH.value)||0),
+      });
+    }
+
+    function applyUnitChange(next){
+      const prev = state.unit;
+      if(prev === next) return;
+      const factor = (prev==='cm' && next==='mm') ? 10 : (prev==='mm' && next==='cm') ? 0.1 : 1;
+      const conv = (el)=>{
+        const n = Number(el.value);
+        if(!Number.isFinite(n)) return;
+        const v = n * factor;
+        el.value = (next==='cm') ? String(Math.round(v*10)/10) : String(Math.round(v));
+      };
+      conv(inW); conv(inH); conv(inK); conv(inTrim); conv(inMinW); conv(inMinH);
+      state.unit = next;
+      unitSel.value = next;
+      sizeWrap.querySelector('label').textContent = `Format arkusza (${next})`;
+      kerfWrap.querySelector('label').textContent = `Rzaz piły (${next})`;
+      trimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${next})`;
+      minScrapWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${next})`;
+    }
+
+    function openOptionsModal(){
+      const back = h('div', { class:'modal-back', style:'display:flex', 'data-modal-close':'rozrys-options' });
+      const modal = h('div', { class:'modal', style:'max-width:720px' });
+      modal.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+      const header = h('div', { class:'header' }, [
+        h('div', { style:'font-weight:800', text:'Opcje rozkroju' }),
+        h('button', { class:'btn', type:'button', text:'Zamknij' })
+      ]);
+      const closeBtn = header.querySelector('button');
+      const body = h('div', { class:'body' });
+      const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
+
+      const modalUnitWrap = h('div');
+      modalUnitWrap.appendChild(h('label', { text:'Jednostki' }));
+      const modalUnitSel = h('select');
+      modalUnitSel.innerHTML = `
+        <option value="cm" ${unitSel.value==='cm'?'selected':''}>cm</option>
+        <option value="mm" ${unitSel.value==='mm'?'selected':''}>mm</option>
+      `;
+      modalUnitWrap.appendChild(modalUnitSel);
+      form.appendChild(modalUnitWrap);
+
+      const modalEdgeWrap = h('div');
+      modalEdgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
+      const modalEdgeSel = h('select');
+      modalEdgeSel.innerHTML = edgeSel.innerHTML;
+      modalEdgeSel.value = edgeSel.value;
+      modalEdgeWrap.appendChild(modalEdgeSel);
+      form.appendChild(modalEdgeWrap);
+
+      const modalKerfWrap = h('div');
+      modalKerfWrap.appendChild(h('label', { text:`Rzaz piły (${unitSel.value})` }));
+      const modalKerf = h('input', { type:'number', value:String(inK.value) });
+      modalKerfWrap.appendChild(modalKerf);
+      form.appendChild(modalKerfWrap);
+
+      const modalTrimWrap = h('div');
+      modalTrimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${unitSel.value})` }));
+      const modalTrim = h('input', { type:'number', value:String(inTrim.value) });
+      modalTrimWrap.appendChild(modalTrim);
+      form.appendChild(modalTrimWrap);
+
+      const modalMinWrap = h('div');
+      modalMinWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${unitSel.value})` }));
+      const modalMinRow = h('div', { style:'display:flex;gap:8px' });
+      const modalMinW = h('input', { type:'number', value:String(inMinW.value) });
+      const modalMinH = h('input', { type:'number', value:String(inMinH.value) });
+      modalMinRow.appendChild(modalMinW);
+      modalMinRow.appendChild(modalMinH);
+      modalMinWrap.appendChild(modalMinRow);
+      form.appendChild(modalMinWrap);
+
+      const note = h('div', { class:'muted xs', style:'grid-column:1 / -1', text:'Zapisane opcje będą pamiętane dla kolejnych wejść do panelu rozkroju.' });
+      form.appendChild(note);
+      body.appendChild(form);
+
+      function syncModalLabels(){
+        const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
+        modalKerfWrap.querySelector('label').textContent = `Rzaz piły (${u})`;
+        modalTrimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
+        modalMinWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${u})`;
+      }
+      modalUnitSel.addEventListener('change', ()=>{
+        syncModalLabels();
+      });
+
+      const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap' });
+      const cancelBtn = h('button', { class:'btn', type:'button', text:'Anuluj' });
+      const saveBtn = h('button', { class:'btn-primary', type:'button', text:'Zapisz opcje' });
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      body.appendChild(footer);
+
+      modal.appendChild(header);
+      modal.appendChild(body);
+      back.appendChild(modal);
+      document.body.appendChild(back);
+      try{ document.documentElement.classList.add('modal-lock'); document.body.classList.add('modal-lock'); }catch(_){ }
+
+      function closeModal(){
+        try{ back.remove(); }catch(_){ }
+        try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
+      }
+      closeBtn.addEventListener('click', closeModal);
+      cancelBtn.addEventListener('click', closeModal);
+      back.addEventListener('pointerdown', (e)=>{ if(e.target === back) closeModal(); });
+      saveBtn.addEventListener('click', ()=>{
+        applyUnitChange(modalUnitSel.value);
+        edgeSel.value = modalEdgeSel.value;
+        inK.value = String(Math.max(0, Number(modalKerf.value)||0));
+        inTrim.value = String(Math.max(0, Number(modalTrim.value)||0));
+        inMinW.value = String(Math.max(0, Number(modalMinW.value)||0));
+        inMinH.value = String(Math.max(0, Number(modalMinH.value)||0));
+        persistOptionPrefs();
+        closeModal();
+        tryAutoRenderFromCache();
+      });
+    }
 
     // action buttons
     const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap' });
@@ -1823,24 +1962,8 @@ async function generate(force){
 
 // events
     unitSel.addEventListener('change', ()=>{
-      const prev = state.unit;
-      const next = unitSel.value;
-      if(prev === next) return;
-      const factor = (prev==='cm' && next==='mm') ? 10 : (prev==='mm' && next==='cm') ? 0.1 : 1;
-      const conv = (el)=>{
-        const n = Number(el.value);
-        if(!Number.isFinite(n)) return;
-        const v = n * factor;
-        // keep 1 decimal max in cm
-        el.value = (next==='cm') ? String(Math.round(v*10)/10) : String(Math.round(v));
-      };
-      conv(inW); conv(inH); conv(inK); conv(inTrim); conv(inMinW); conv(inMinH);
-      state.unit = next;
-      // update labels
-      sizeWrap.querySelector('label').textContent = `Format arkusza (${next})`;
-      kerfWrap.querySelector('label').textContent = `Rzaz piły (${next})`;
-      trimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${next})`;
-      minScrapWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${next})`;
+      applyUnitChange(unitSel.value);
+      persistOptionPrefs();
       tryAutoRenderFromCache();
     });
 
@@ -1861,10 +1984,12 @@ async function generate(force){
     dirSel.addEventListener('change', ()=>{
       tryAutoRenderFromCache();
     });
-    inMinW.addEventListener('change', ()=>{ tryAutoRenderFromCache(); });
-    inMinH.addEventListener('change', ()=>{ tryAutoRenderFromCache(); });
+    openOptionsBtnInline.addEventListener('click', openOptionsModal);
+    inMinW.addEventListener('change', ()=>{ persistOptionPrefs(); tryAutoRenderFromCache(); });
+    inMinH.addEventListener('change', ()=>{ persistOptionPrefs(); tryAutoRenderFromCache(); });
 
     edgeSel.addEventListener('change', ()=>{
+      persistOptionPrefs();
       tryAutoRenderFromCache();
     });
 
@@ -1890,7 +2015,7 @@ async function generate(force){
     });
 
     // auto preview from cache when user tweaks parameters
-    [inW, inH, inK, inTrim].forEach(el=>{
+    [inW, inH].forEach(el=>{
       el.addEventListener('input', ()=>{
         tryAutoRenderFromCache();
       });
@@ -1898,8 +2023,19 @@ async function generate(force){
         tryAutoRenderFromCache();
       });
     });
+    [inK, inTrim].forEach(el=>{
+      el.addEventListener('input', ()=>{
+        persistOptionPrefs();
+        tryAutoRenderFromCache();
+      });
+      el.addEventListener('change', ()=>{
+        persistOptionPrefs();
+        tryAutoRenderFromCache();
+      });
+    });
 
     // initial
+    persistOptionPrefs();
     updateGrainAvailability();
     renderOverrides();
     tryAutoRenderFromCache();
