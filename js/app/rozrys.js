@@ -1105,10 +1105,11 @@
           return window.FC.confirmBox.ask({
             title:'ANULOWAĆ ZMIANY?',
             message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
-            confirmText:'✕ ANULUJ ZMIANY',
-            cancelText:'WRÓĆ',
+            confirmLabel:'✕ ANULUJ ZMIANY',
+            cancelLabel:'WRÓĆ',
             confirmTone:'danger',
-            cancelTone:'success'
+            cancelTone:'neutral',
+            focus:'cancel'
           });
         }
         return Promise.resolve(window.confirm('Czy na pewno chcesz anulować zmiany?'));
@@ -1120,10 +1121,10 @@
           return window.FC.confirmBox.ask({
             title:'ZAPISAĆ ZMIANY?',
             message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
-            confirmText:'✓ ZAPISZ',
-            cancelText:'WRÓĆ',
+            confirmLabel:'✓ ZAPISZ',
+            cancelLabel:'WRÓĆ',
             confirmTone:'success',
-            cancelTone:'danger'
+            cancelTone:'neutral'
           });
         }
         return Promise.resolve(window.confirm('Czy zapisać zmienione opcje?'));

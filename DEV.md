@@ -420,3 +420,6 @@ Dopiero potem go zmieniać.
 
 
 - `js/app/confirm-box.js` — współdzielony modal potwierdzeń (zamiast natywnego `confirm()`), do użycia także w innych miejscach aplikacji.
+
+
+- `js/app/confirm-box.js` — uniwersalny modal potwierdzeń z parametrami `title`, `message`, `confirmLabel`, `cancelLabel`, `confirmTone`, `cancelTone`, `focus`; do użycia także poza rozrysem.
