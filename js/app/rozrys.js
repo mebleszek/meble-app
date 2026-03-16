@@ -765,13 +765,14 @@
     }
 
     // state (ui) — keep local per render
+    const initialUnit = (panelPrefs.unit === 'cm' ? 'cm' : 'mm');
     const state = {
       material: agg.materials[0],
-      unit: (panelPrefs.unit === 'cm' ? 'cm' : 'mm'),
-      boardW: 2800,
-      boardH: 2070,
-      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : 4,
-      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : 20,
+      unit: initialUnit,
+      boardW: (initialUnit === 'cm' ? 280 : 2800),
+      boardH: (initialUnit === 'cm' ? 207 : 2070),
+      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : (initialUnit === 'cm' ? 0.4 : 4),
+      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : (initialUnit === 'cm' ? 2 : 20),
       grain: true,
       heur: 'optimax',
       optimaxProfile: 'max',
