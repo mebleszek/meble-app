@@ -1106,7 +1106,7 @@
             title:'ANULOWAĆ ZMIANY?',
             message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
             confirmText:'✕ ANULUJ ZMIANY',
-            cancelText:'✓ WRÓĆ',
+            cancelText:'WRÓĆ',
             confirmTone:'danger',
             cancelTone:'success'
           });
@@ -1121,7 +1121,7 @@
             title:'ZAPISAĆ ZMIANY?',
             message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
             confirmText:'✓ ZAPISZ',
-            cancelText:'✕ WRÓĆ',
+            cancelText:'WRÓĆ',
             confirmTone:'success',
             cancelTone:'danger'
           });
