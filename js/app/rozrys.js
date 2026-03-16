@@ -1101,8 +1101,8 @@
 
       function confirmDiscardIfDirty(){
         if(!isDirty) return Promise.resolve(true);
-        if(root.FC && root.FC.confirmBox && typeof root.FC.confirmBox.ask === 'function'){
-          return root.FC.confirmBox.ask({
+        if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
+          return window.FC.confirmBox.ask({
             title:'ANULOWAĆ ZMIANY?',
             message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
             confirmText:'✕ ANULUJ ZMIANY',
@@ -1116,8 +1116,8 @@
 
       function confirmSaveIfDirty(){
         if(!isDirty) return Promise.resolve(true);
-        if(root.FC && root.FC.confirmBox && typeof root.FC.confirmBox.ask === 'function'){
-          return root.FC.confirmBox.ask({
+        if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
+          return window.FC.confirmBox.ask({
             title:'ZAPISAĆ ZMIANY?',
             message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
             confirmText:'✓ ZAPISZ',
