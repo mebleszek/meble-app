@@ -182,6 +182,23 @@
     return el;
   }
 
+  function labelWithInfo(title, infoTitle, infoMessage){
+    const row = h('div', { class:'label-help' });
+    row.appendChild(h('span', { text:title }));
+    if(infoMessage){
+      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':`Pokaż informację: ${title}`, text:'?' });
+      btn.addEventListener('click', ()=>{
+        try{
+          if(window.FC && window.FC.infoBox && typeof window.FC.infoBox.open === 'function'){
+            window.FC.infoBox.open({ title: infoTitle || title, message: infoMessage });
+          }
+        }catch(_){ }
+      });
+      row.appendChild(btn);
+    }
+    return row;
+  }
+
   // edgeSubMm: 0 => show nominal dimensions, >0 => show "do cięcia" dims (kompensacja okleiny)
   // Zasada kompensacji (zgodnie z ustaleniem):
   // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
@@ -765,14 +782,13 @@
     }
 
     // state (ui) — keep local per render
-    const initialUnit = (panelPrefs.unit === 'cm' ? 'cm' : 'mm');
     const state = {
       material: agg.materials[0],
-      unit: initialUnit,
-      boardW: (initialUnit === 'cm' ? 280 : 2800),
-      boardH: (initialUnit === 'cm' ? 207 : 2070),
-      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : (initialUnit === 'cm' ? 0.4 : 4),
-      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : (initialUnit === 'cm' ? 2 : 20),
+      unit: (panelPrefs.unit === 'cm' ? 'cm' : 'mm'),
+      boardW: 2800,
+      boardH: 2070,
+      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : 4,
+      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : 20,
       grain: true,
       heur: 'optimax',
       optimaxProfile: 'max',
@@ -861,8 +877,7 @@
     controls.appendChild(sizeWrap);
 
     const optionsWrap = h('div');
-    optionsWrap.appendChild(h('label', { text:'Ustawienia dodatkowe' }));
-    optionsWrap.appendChild(h('div', { class:'muted xs', style:'margin-bottom:8px', text:'Jednostki, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.' }));
+    optionsWrap.appendChild(labelWithInfo('Ustawienia dodatkowe', 'Ustawienia dodatkowe', 'Jednostki, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.'));
     const openOptionsBtnInline = h('button', { class:'btn', type:'button', text:'Opcje rozkroju' });
     optionsWrap.appendChild(openOptionsBtnInline);
     controls.appendChild(optionsWrap);
@@ -890,17 +905,17 @@
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
 
     const grainWrap = h('div');
-    grainWrap.appendChild(h('label', { text:'Struktura / kierunek' }));
+    grainWrap.appendChild(labelWithInfo('Struktura / kierunek', 'Struktura / kierunek', 'Arkusz posiada strukturę — pilnuj kierunku i blokuj obrót poza wyjątkami.'));
     const grainRow = h('div', { style:'display:flex;align-items:center;gap:10px' });
     const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
     grainChk.checked = true;
     grainRow.appendChild(grainChk);
-    grainRow.appendChild(h('div', { class:'muted xs', text:'Arkusz posiada strukturę — pilnuj kierunku i blokuj obrót poza wyjątkami.' }));
+    grainRow.appendChild(h('div', { class:'muted xs', text:'Arkusz posiada strukturę' }));
     grainWrap.appendChild(grainRow);
     controls2.appendChild(grainWrap);
 
     const heurWrap = h('div');
-    heurWrap.appendChild(h('label', { text:'Szybkość liczenia' }));
+    heurWrap.appendChild(labelWithInfo('Szybkość liczenia', 'Szybkość liczenia', 'Turbo = najprostszy shelf. Dokładnie = lżejsze myślenie pasowe. MAX = Twój algorytm 1–7 bez otwierania nowej płyty przed domknięciem poprzedniej.'));
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
       <option value="turbo">Turbo</option>
@@ -911,7 +926,7 @@
     controls2.appendChild(heurWrap);
 
     const dirWrap = h('div');
-    dirWrap.appendChild(h('label', { text:'Kierunek cięcia' }));
+    dirWrap.appendChild(labelWithInfo('Kierunek cięcia', 'Kierunek startu', 'Pierwsze pasy wzdłuż / w poprzek wymuszają start. Opti-max wybiera lepszy start dla każdej płyty osobno.'));
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `
       <option value="start-along">Pierwsze pasy wzdłuż</option>
@@ -921,21 +936,8 @@
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
 
-    const controls3 = h('div', { style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px' });
-
-    const profileHintWrap = h('div');
-    profileHintWrap.appendChild(h('label', { text:'Jak czytać tryby szybkości' }));
-    profileHintWrap.appendChild(h('div', { class:'muted xs', text:'Turbo = najprostszy shelf. Dokładnie = lżejsze myślenie pasowe. MAX = Twój algorytm 1–7 bez otwierania nowej płyty przed domknięciem poprzedniej.' }));
-    controls3.appendChild(profileHintWrap);
-
-    const modeHintWrap = h('div');
-    modeHintWrap.appendChild(h('label', { text:'Kierunek startu' }));
-    modeHintWrap.appendChild(h('div', { class:'muted xs', text:'Pierwsze pasy wzdłuż / w poprzek wymuszają start. Opti-max wybiera lepszy start dla każdej płyty osobno.' }));
-    controls3.appendChild(modeHintWrap);
-
     card.appendChild(controls);
     card.appendChild(controls2);
-    card.appendChild(controls3);
     function persistOptionPrefs(){
       savePanelPrefs({
         unit: unitSel.value,
@@ -1106,11 +1108,10 @@
           return window.FC.confirmBox.ask({
             title:'ANULOWAĆ ZMIANY?',
             message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
-            confirmLabel:'✕ ANULUJ ZMIANY',
-            cancelLabel:'WRÓĆ',
+            confirmText:'✕ ANULUJ ZMIANY',
+            cancelText:'WRÓĆ',
             confirmTone:'danger',
-            cancelTone:'neutral',
-            focus:'cancel'
+            cancelTone:'success'
           });
         }
         return Promise.resolve(window.confirm('Czy na pewno chcesz anulować zmiany?'));
@@ -1122,10 +1123,10 @@
           return window.FC.confirmBox.ask({
             title:'ZAPISAĆ ZMIANY?',
             message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
-            confirmLabel:'✓ ZAPISZ',
-            cancelLabel:'WRÓĆ',
+            confirmText:'✓ ZAPISZ',
+            cancelText:'WRÓĆ',
             confirmTone:'success',
-            cancelTone:'neutral'
+            cancelTone:'danger'
           });
         }
         return Promise.resolve(window.confirm('Czy zapisać zmienione opcje?'));
