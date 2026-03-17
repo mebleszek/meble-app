@@ -184,7 +184,7 @@
 
   function labelWithInfo(title, infoTitle, infoMessage){
     const row = h('div', { class:'label-help' });
-    row.appendChild(h('span', { text:title }));
+    row.appendChild(h('span', { class:'label-help__text', text:title }));
     if(infoMessage){
       const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':`Pokaż informację: ${title}`, text:'?' });
       btn.addEventListener('click', ()=>{
@@ -782,13 +782,14 @@
     }
 
     // state (ui) — keep local per render
+    const initialUnit = (panelPrefs.unit === 'cm' ? 'cm' : 'mm');
     const state = {
       material: agg.materials[0],
-      unit: (panelPrefs.unit === 'cm' ? 'cm' : 'mm'),
-      boardW: 2800,
-      boardH: 2070,
-      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : 4,
-      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : 20,
+      unit: initialUnit,
+      boardW: (initialUnit === 'cm' ? 280 : 2800),
+      boardH: (initialUnit === 'cm' ? 207 : 2070),
+      kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : (initialUnit === 'cm' ? 0.4 : 4),
+      edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : (initialUnit === 'cm' ? 2 : 20),
       grain: true,
       heur: 'optimax',
       optimaxProfile: 'max',
@@ -812,8 +813,8 @@
     // top row: material + format arkusza + opcje
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
     // material select
-    const matWrap = h('div');
-    matWrap.appendChild(h('label', { text:'Materiał / grupa' }));
+    const matWrap = h('div', { class:'rozrys-field' });
+    matWrap.appendChild(h('label', { class:'rozrys-field__label', text:'Materiał / grupa' }));
     const matSel = h('select', { id:'rozMat' });
     // Specjalne tryby (generowanie na raz)
     [
@@ -846,8 +847,8 @@
     controls.appendChild(matWrap);
 
     // hidden option controls controlled through modal
-    const unitWrap = h('div');
-    unitWrap.appendChild(h('label', { text:'Jednostki' }));
+    const unitWrap = h('div', { class:'rozrys-field' });
+    unitWrap.appendChild(h('label', { class:'rozrys-field__label', text:'Jednostki' }));
     const unitSel = h('select', { id:'rozUnit' });
     unitSel.innerHTML = `
       <option value="cm" ${state.unit==='cm'?'selected':''}>cm</option>
@@ -855,8 +856,8 @@
     `;
     unitWrap.appendChild(unitSel);
 
-    const edgeWrap = h('div');
-    edgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
+    const edgeWrap = h('div', { class:'rozrys-field' });
+    edgeWrap.appendChild(h('label', { class:'rozrys-field__label', text:'Wymiary do cięcia' }));
     const edgeSel = h('select', { id:'rozEdgeSub' });
     edgeSel.innerHTML = `
       <option value="0">Nominalne</option>
@@ -867,35 +868,35 @@
     edgeWrap.appendChild(edgeSel);
 
     // board size
-    const sizeWrap = h('div');
-    sizeWrap.appendChild(h('label', { text:`Format arkusza (${state.unit})` }));
-    const sizeRow = h('div', { style:'display:flex;gap:8px' });
+    const sizeWrap = h('div', { class:'rozrys-field' });
+    sizeWrap.appendChild(h('label', { class:'rozrys-field__label', text:`Format arkusza (${state.unit})` }));
+    const sizeRow = h('div', { class:'rozrys-inline-row', style:'display:flex;gap:8px' });
     const inW = h('input', { id:'rozW', type:'number', value:String(state.boardW) });
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     sizeRow.appendChild(inW); sizeRow.appendChild(inH);
     sizeWrap.appendChild(sizeRow);
     controls.appendChild(sizeWrap);
 
-    const optionsWrap = h('div');
+    const optionsWrap = h('div', { class:'rozrys-field' });
     optionsWrap.appendChild(labelWithInfo('Ustawienia dodatkowe', 'Ustawienia dodatkowe', 'Jednostki, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.'));
-    const openOptionsBtnInline = h('button', { class:'btn', type:'button', text:'Opcje rozkroju' });
+    const openOptionsBtnInline = h('button', { class:'btn', type:'button', text:'Opcje rozkroju', style:'width:100%' });
     optionsWrap.appendChild(openOptionsBtnInline);
     controls.appendChild(optionsWrap);
 
     // hidden option inputs
-    const kerfWrap = h('div');
-    kerfWrap.appendChild(h('label', { text:`Rzaz piły (${state.unit})` }));
+    const kerfWrap = h('div', { class:'rozrys-field' });
+    kerfWrap.appendChild(h('label', { class:'rozrys-field__label', text:`Rzaz piły (${state.unit})` }));
     const inK = h('input', { id:'rozK', type:'number', value:String(state.kerf) });
     kerfWrap.appendChild(inK);
 
-    const trimWrap = h('div');
-    trimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${state.unit})` }));
+    const trimWrap = h('div', { class:'rozrys-field' });
+    trimWrap.appendChild(h('label', { class:'rozrys-field__label', text:`Obrównanie krawędzi — arkusz standardowy (${state.unit})` }));
     const inTrim = h('input', { id:'rozTrim', type:'number', value:String(state.edgeTrim) });
     trimWrap.appendChild(inTrim);
 
-    const minScrapWrap = h('div');
-    minScrapWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${state.unit})` }));
-    const minScrapRow = h('div', { style:'display:flex;gap:8px' });
+    const minScrapWrap = h('div', { class:'rozrys-field' });
+    minScrapWrap.appendChild(h('label', { class:'rozrys-field__label', text:`Najmniejszy użyteczny odpad (${state.unit})` }));
+    const minScrapRow = h('div', { class:'rozrys-inline-row', style:'display:flex;gap:8px' });
     const inMinW = h('input', { id:'rozMinScrapW', type:'number', value:String(state.minScrapW) });
     const inMinH = h('input', { id:'rozMinScrapH', type:'number', value:String(state.minScrapH) });
     minScrapRow.appendChild(inMinW);
@@ -904,9 +905,9 @@
 
     const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
 
-    const grainWrap = h('div');
+    const grainWrap = h('div', { class:'rozrys-field' });
     grainWrap.appendChild(labelWithInfo('Struktura / kierunek', 'Struktura / kierunek', 'Arkusz posiada strukturę — pilnuj kierunku i blokuj obrót poza wyjątkami.'));
-    const grainRow = h('div', { style:'display:flex;align-items:center;gap:10px' });
+    const grainRow = h('div', { class:'rozrys-inline-row rozrys-inline-row--grain', style:'display:flex;align-items:center;gap:10px' });
     const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
     grainChk.checked = true;
     grainRow.appendChild(grainChk);
@@ -914,7 +915,7 @@
     grainWrap.appendChild(grainRow);
     controls2.appendChild(grainWrap);
 
-    const heurWrap = h('div');
+    const heurWrap = h('div', { class:'rozrys-field' });
     heurWrap.appendChild(labelWithInfo('Szybkość liczenia', 'Szybkość liczenia', 'Turbo = najprostszy shelf. Dokładnie = lżejsze myślenie pasowe. MAX = Twój algorytm 1–7 bez otwierania nowej płyty przed domknięciem poprzedniej.'));
     const heurSel = h('select', { id:'rozHeur' });
     heurSel.innerHTML = `
@@ -925,7 +926,7 @@
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
 
-    const dirWrap = h('div');
+    const dirWrap = h('div', { class:'rozrys-field' });
     dirWrap.appendChild(labelWithInfo('Kierunek cięcia', 'Kierunek startu', 'Pierwsze pasy wzdłuż / w poprzek wymuszają start. Opti-max wybiera lepszy start dla każdej płyty osobno.'));
     const dirSel = h('select', { id:'rozDir' });
     dirSel.innerHTML = `

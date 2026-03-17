@@ -371,6 +371,43 @@
 }
 
 
+
+
+/* Rozrys panel labels / rows */
+.rozrys-field{display:flex;flex-direction:column;height:100%;}
+.rozrys-field__label,
+.label-help{
+  min-height:52px;
+  margin-bottom:8px;
+  color:#0f172a;
+  font-size:15px;
+  font-weight:800;
+  line-height:1.15;
+}
+.rozrys-field__label{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.label-help{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+}
+.label-help__text{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  min-height:100%;
+}
+.rozrys-inline-row{display:flex;align-items:stretch;gap:8px;}
+.rozrys-inline-row > *{flex:1 1 0;min-width:0;}
+.rozrys-inline-row--grain{justify-content:flex-start;}
+.rozrys-inline-row--grain > *{flex:0 0 auto;}
+
 /* Reusable info box + help triggers */
 .info-backdrop{
   position:fixed;inset:0;z-index:1190;
