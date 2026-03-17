@@ -911,7 +911,7 @@
     const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
     grainChk.checked = true;
     grainRow.appendChild(grainChk);
-    grainRow.appendChild(h('div', { class:'muted xs', text:'Arkusz posiada strukturę' }));
+    grainRow.appendChild(h('div', { class:'muted xs rozrys-grain-text', text:'Arkusz posiada strukturę' }));
     grainWrap.appendChild(grainRow);
     controls2.appendChild(grainWrap);
 
