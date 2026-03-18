@@ -109,6 +109,158 @@
     return `${p.material||''}||${p.name||''}||${p.w}x${p.h}`;
   }
 
+
+  function getRozrysScopeMode(selection){
+    if(selection === '__ALL__') return 'all';
+    if(selection === '__FRONTS__') return 'fronts';
+    if(selection === '__NO_FRONTS__') return 'nofronts';
+    return 'single';
+  }
+
+  function buildResolvedSnapshotFromParts(parts){
+    const rv = FC.rozrysValidation;
+    if(!(rv && typeof rv.rowsFromParts === 'function')) return [];
+    return rv.rowsFromParts((parts || []).map((p)=>({
+      key: partSignature({ material: p.material, name: p.name, w: p.w, h: p.h }),
+      material: p.material,
+      name: p.name,
+      w: p.w,
+      h: p.h,
+      qty: p.qty,
+    })));
+  }
+
+  function buildRawSnapshotForMaterial(targetMaterial, mode){
+    const proj = safeGetProject();
+    if(!proj || !targetMaterial) return [];
+    const rows = [];
+    const rooms = getRooms();
+    for(const room of rooms){
+      const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
+      for(const cab of cabinets){
+        if(typeof getCabinetCutList !== 'function') continue;
+        const parts = getCabinetCutList(cab, room) || [];
+        for(const p of parts){
+          const sourceMaterial = String(p.material || '').trim();
+          if(!sourceMaterial) continue;
+          const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
+          if(mode === 'fronts' && !isFront) continue;
+          if(mode === 'nofronts' && isFront) continue;
+          const materialKey = (mode === 'all') ? normalizeFrontLaminatMaterialKey(sourceMaterial) : sourceMaterial;
+          if(materialKey !== targetMaterial) continue;
+          const w = cmToMm(p.a);
+          const h = cmToMm(p.b);
+          const qty = Math.max(1, Math.round(Number(p.qty) || 0));
+          if(!(w > 0 && h > 0 && qty > 0)) continue;
+          rows.push({
+            key: partSignature({ material: materialKey, name: p.name || 'Element', w, h }),
+            material: materialKey,
+            name: String(p.name || 'Element'),
+            w,
+            h,
+            qty,
+            room,
+            source: String((cab && (cab.name || cab.label || cab.type || cab.kind)) || 'Szafka'),
+            sourceRows: 1,
+          });
+        }
+      }
+    }
+    return rows;
+  }
+
+  function buildRozrysDiagnostics(targetMaterial, mode, parts, plan){
+    const rv = FC.rozrysValidation;
+    if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function')) return null;
+    const rawRows = buildRawSnapshotForMaterial(targetMaterial, mode);
+    const resolvedRows = rawRows.length ? rv.aggregateRows(rawRows) : buildResolvedSnapshotFromParts(parts);
+    const actual = rv.summarizePlan(plan, targetMaterial);
+    const validation = rv.validate(resolvedRows, actual.rows);
+    return {
+      rawRows,
+      rawCount: rawRows.length,
+      resolvedRows,
+      actualRows: actual.rows,
+      sheets: actual.sheets,
+      validation,
+    };
+  }
+
+  function validationSummaryLabel(diag){
+    const validation = diag && diag.validation;
+    if(!validation) return { text:'Walidacja: brak danych', tone:'is-warn' };
+    if(validation.ok) return { text:'Walidacja: OK — wszystkie formatki rozpisane', tone:'is-ok' };
+    const parts = [];
+    if(validation.missingQty > 0) parts.push(`braki ${validation.missingQty} szt.`);
+    if(validation.extraQty > 0) parts.push(`nadmiary ${validation.extraQty} szt.`);
+    return { text:`Walidacja: ${parts.join(' • ')}`, tone:'is-warn' };
+  }
+
+  function makeStatusChip(status){
+    const map = {
+      ok: { cls:'is-ok', text:'OK' },
+      missing: { cls:'is-missing', text:'BRAK' },
+      extra: { cls:'is-extra', text:'NADMIAR' },
+    };
+    const cfg = map[status] || map.ok;
+    return h('span', { class:`rozrys-status-chip ${cfg.cls}`, text:cfg.text });
+  }
+
+  function buildListTable(rows, unit, mode){
+    const wrap = h('div', { class:'rozrys-list-table-wrap' });
+    const table = h('table', { class:'table-list' });
+    const thead = h('thead');
+    const headRow = h('tr');
+    const headers = mode === 'sheet'
+      ? ['Formatka', `Wymiar (${unit})`, 'Ilość']
+      : ['Formatka', `Wymiar (${unit})`, 'Potrzebne', 'Rozrysowane', 'Różnica', 'Status'];
+    headers.forEach((label)=> headRow.appendChild(h('th', { text:label })));
+    thead.appendChild(headRow);
+    const tbody = h('tbody');
+    (rows || []).forEach((row)=>{
+      const tr = h('tr');
+      tr.appendChild(h('td', { text: row.name || 'Element' }));
+      tr.appendChild(h('td', { text: `${mmToUnitStr(row.w, unit)} × ${mmToUnitStr(row.h, unit)}` }));
+      if(mode === 'sheet'){
+        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.qty) || 0)) }));
+      } else {
+        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
+        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.actualQty) || 0)) }));
+        tr.appendChild(h('td', { text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
+        const td = h('td');
+        td.appendChild(makeStatusChip(row.status));
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function openValidationListModal(material, diag, unit){
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || !diag) return;
+    const body = h('div');
+    const summary = validationSummaryLabel(diag);
+    const metaRow = h('div', { class:'rozrys-validation-summary' });
+    metaRow.appendChild(h('span', { class:`rozrys-pill ${summary.tone}`, text:summary.text }));
+    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Snapshot 1:1: ${diag.rawCount} pozycji źródłowych` }));
+    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Lista do rozkroju: ${diag.resolvedRows.length} pozycji` }));
+    body.appendChild(metaRow);
+    body.appendChild(h('div', { class:'muted xs', style:'margin:10px 0 12px', text:'Porównanie: lista wejściowa rozkroju vs to, co faktycznie trafiło na arkusze.' }));
+    body.appendChild(buildListTable(diag.validation.rows, unit, 'validation'));
+    FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px' });
+  }
+
+  function openSheetListModal(material, sheetTitle, rows, unit){
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+    const body = h('div');
+    body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Formatki pogrupowane dla tego arkusza.' }));
+    body.appendChild(buildListTable(rows || [], unit, 'sheet'));
+    FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px' });
+  }
+
   function aggregatePartsForProject(){
     const proj = safeGetProject();
     if(!proj) return { byMaterial: {}, materials: [] };
@@ -911,7 +1063,7 @@
     const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
     grainChk.checked = true;
     grainRow.appendChild(grainChk);
-    grainRow.appendChild(h('div', { class:'muted xs rozrys-grain-text', text:'Arkusz posiada strukturę' }));
+    grainRow.appendChild(h('div', { class:'muted xs', text:'Arkusz posiada strukturę' }));
     grainWrap.appendChild(grainRow);
     controls2.appendChild(grainWrap);
 
@@ -1345,7 +1497,7 @@
             const cacheKey = makePlanCacheKey(st, parts);
             if(cache[cacheKey] && cache[cacheKey].plan){
               const plan = cache[cacheKey].plan;
-              renderOutput(plan, { material: m, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, box);
+              renderOutput(plan, { material: m, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: mode }, box);
               anyHit = true;
             } else {
               allHit = false;
@@ -1377,7 +1529,7 @@
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
           const plan = cache[cacheKey].plan;
-          renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, null);
+          renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(matSel.value) }, null);
           setGenBtnMode('done');
           return true;
         }
@@ -1404,6 +1556,8 @@
         : (meta && meta.meta && (meta.meta.unit === 'cm' || meta.meta.unit === 'mm'))
           ? meta.meta.unit
           : 'mm';
+      const diagnostics = buildRozrysDiagnostics(meta && meta.material, meta && meta.scopeMode, meta && meta.parts, plan);
+      const validationLabel = validationSummaryLabel(diagnostics);
 
       const getBoardMeta = (sheet)=>{
         const boardW = Math.max(1,
@@ -1453,7 +1607,8 @@
       const cancelledNote = (meta && meta.cancelled) ? '<div class="muted xs" style="margin-top:6px;font-weight:700">Generowanie przerwane — pokazuję najlepszy wynik do tej pory.</div>' : '';
       const realHalfNote = sum.hasRealHalf ? '<div class="muted xs" style="margin-top:6px">Końcówka policzona na realnej połówce z magazynu, ale rysowana na pełnym arkuszu.</div>' : '';
       const virtualNote = sum.hasVirtualHalf ? '<div class="muted xs" style="margin-top:6px">Ostatnia końcówka liczona wirtualnie jako 0,5 płyty, ale rysowana na pełnym arkuszu.</div>' : '';
-      tgt.appendChild(h('div', { class:'card', style:'margin:0', html:`
+      const summaryCard = h('div', { class:'card', style:'margin:0' });
+      summaryCard.appendChild(h('div', { html:`
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><strong>Materiał:</strong> ${meta.material}</div>
           <div><strong>Płyty:</strong> ${formatSheetCount(sum.count)} szt.</div>
@@ -1463,8 +1618,20 @@
         ${realHalfNote}
         ${virtualNote}
       ` }));
+      const validationRow = h('div', { class:'rozrys-validation-summary' });
+      validationRow.appendChild(h('span', { class:`rozrys-pill ${validationLabel.tone}`, text:validationLabel.text }));
+      if(diagnostics){
+        validationRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Snapshot: ${diagnostics.resolvedRows.length} pozycji` }));
+      }
+      summaryCard.appendChild(validationRow);
+      tgt.appendChild(summaryCard);
 
-      const expRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap' });
+      const expRow = h('div', { class:'rozrys-list-actions', style:'justify-content:flex-end' });
+      if(diagnostics){
+        const listBtn = h('button', { class:'btn', type:'button', text:'Lista formatek' });
+        listBtn.addEventListener('click', ()=> openValidationListModal(meta.material, diagnostics, u));
+        expRow.appendChild(listBtn);
+      }
       const csvBtn = h('button', { class:'btn', type:'button' });
       csvBtn.textContent = 'Eksport CSV';
       csvBtn.addEventListener('click', ()=>{
@@ -1529,10 +1696,17 @@
         const bm = getBoardMeta(s);
         const ws = calcDisplayWaste(s);
         const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
-        box.appendChild(h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap' }, [
-          h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }),
-          h('div', { class:'muted xs', text:`${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}` })
-        ]));
+        const head = h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start' });
+        head.appendChild(h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }));
+        const tools = h('div', { class:'rozrys-sheet-tools' });
+        if(diagnostics && diagnostics.sheets && diagnostics.sheets[i]){
+          const sheetBtn = h('button', { class:'btn', type:'button', text:'Formatki arkusza' });
+          sheetBtn.addEventListener('click', ()=> openSheetListModal(meta.material, `Arkusz ${i+1}`, diagnostics.sheets[i].rows, u));
+          tools.appendChild(sheetBtn);
+        }
+        tools.appendChild(h('div', { class:'muted xs', text:`${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u}` }));
+        head.appendChild(tools);
+        box.appendChild(head);
         const canvas = document.createElement('canvas');
         canvas.style.width = '100%';
         canvas.style.marginTop = '10px';
@@ -1861,7 +2035,7 @@ async function generate(force){
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
       if(runId !== _rozrysRunId) return;
-      renderOutput(cached, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta }, target);
+      renderOutput(cached, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta, parts, scopeMode: getRozrysScopeMode(matSel.value) }, target);
       setGenBtnMode('done');
       return;
     }
@@ -2031,7 +2205,7 @@ async function generate(force){
         }catch(_){ }
       }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-      renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled }, target);
+      renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: getRozrysScopeMode(matSel.value) }, target);
       try{ setGlobalStatus(false, '', ''); }catch(_){ }
       setGenBtnMode('done');
       return;
@@ -2039,7 +2213,7 @@ async function generate(force){
 
     const plan = computePlan(st, parts);
     try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-    renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta }, target);
+    renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(matSel.value) }, target);
     setGenBtnMode('done');
   };
 

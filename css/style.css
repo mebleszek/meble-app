@@ -377,38 +377,36 @@
 .rozrys-field{display:flex;flex-direction:column;height:100%;}
 .rozrys-field__label,
 .label-help{
-  min-height:38px;
-  margin-bottom:6px;
-  color:#334155;
-  font-size:13px;
+  min-height:52px;
+  margin-bottom:8px;
+  color:#0f172a;
+  font-size:15px;
   font-weight:800;
   line-height:1.15;
 }
 .rozrys-field__label{
   display:flex;
-  align-items:flex-end;
+  align-items:center;
   justify-content:center;
   text-align:center;
 }
 .label-help{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
-  align-items:end;
+  align-items:center;
   gap:8px;
 }
 .label-help__text{
   display:flex;
-  align-items:flex-end;
+  align-items:center;
   justify-content:center;
   text-align:center;
   min-height:100%;
 }
 .rozrys-inline-row{display:flex;align-items:stretch;gap:8px;}
 .rozrys-inline-row > *{flex:1 1 0;min-width:0;}
-.rozrys-inline-row--grain{justify-content:flex-start;align-items:flex-start;}
+.rozrys-inline-row--grain{justify-content:flex-start;}
 .rozrys-inline-row--grain > *{flex:0 0 auto;}
-.rozrys-inline-row--grain > .rozrys-grain-text{flex:1 1 auto;min-width:0;}
-.rozrys-grain-text{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.15;}
 
 /* Reusable info box + help triggers */
 .info-backdrop{
@@ -442,4 +440,132 @@
 .label-help > span:first-child{display:inline-block;}
 @media (max-width:600px){
   .info-box{width:min(360px, calc(100vw - 18px));padding:15px 14px 13px;}
+}
+
+/* Rozrys validation / parts list */
+.panel-box-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(39,46,58,0.42);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:5000;
+}
+.panel-box{
+  width:min(100%, 920px);
+  max-height:min(86vh, 980px);
+  overflow:hidden;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 16px 48px rgba(15,23,42,0.24);
+  display:flex;
+  flex-direction:column;
+}
+.panel-box__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 18px;
+  border-bottom:1px solid #e5edf5;
+}
+.panel-box__title{
+  font-size:22px;
+  line-height:1.1;
+  font-weight:900;
+  color:#111827;
+}
+.panel-box__close{
+  border:1px solid #d8e2ee;
+  background:#fff;
+  color:#475569;
+  width:40px;
+  height:40px;
+  border-radius:999px;
+  font-size:28px;
+  line-height:1;
+}
+.panel-box__body{
+  padding:16px 18px 18px;
+  overflow:auto;
+}
+.rozrys-validation-summary{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-top:10px;
+}
+.rozrys-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:800;
+  border:1px solid transparent;
+}
+.rozrys-pill.is-ok{ background:#ecfdf3; color:#166534; border-color:#b7ebc8; }
+.rozrys-pill.is-warn{ background:#fff7ed; color:#b45309; border-color:#fed7aa; }
+.rozrys-pill.is-raw{ background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.rozrys-list-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:10px;
+}
+.rozrys-list-table-wrap{
+  overflow:auto;
+  border:1px solid #e5edf5;
+  border-radius:16px;
+  background:#fff;
+}
+.table-list{
+  width:100%;
+  border-collapse:collapse;
+  min-width:660px;
+}
+.table-list th,
+.table-list td{
+  padding:10px 12px;
+  border-bottom:1px solid #edf2f7;
+  font-size:14px;
+  text-align:left;
+  vertical-align:top;
+}
+.table-list thead th{
+  position:sticky;
+  top:0;
+  background:#f8fafc;
+  z-index:1;
+  font-weight:800;
+  color:#334155;
+}
+.table-list tbody tr:last-child td{ border-bottom:none; }
+.rozrys-status-chip{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:12px;
+  font-weight:800;
+}
+.rozrys-status-chip.is-ok{ background:#ecfdf3; color:#166534; }
+.rozrys-status-chip.is-missing{ background:#fef2f2; color:#b91c1c; }
+.rozrys-status-chip.is-extra{ background:#fff7ed; color:#b45309; }
+.rozrys-sheet-tools{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+@media (max-width: 640px){
+  .panel-box-backdrop{ padding:12px; align-items:flex-end; }
+  .panel-box{ width:100%; max-height:82vh; }
+  .panel-box__title{ font-size:20px; }
+  .table-list{ min-width:560px; }
 }

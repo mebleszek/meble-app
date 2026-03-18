@@ -422,3 +422,7 @@ Dopiero potem go zmieniać.
 - `js/app/confirm-box.js` — współdzielony modal potwierdzeń (zamiast natywnego `confirm()`), do użycia także w innych miejscach aplikacji.
 
 - `js/app/info-box.js` — mały, wielorazowy modal informacji/pomocy otwierany z ikon `?` przy polach paneli.
+
+
+- `js/app/panel-box.js` — uniwersalne, pływające okno z własną treścią (lista, podgląd, przyszłe narzędzia).
+- `js/app/rozrys-validation.js` — snapshot/listy rozkroju, agregacja formatek i walidacja wyniku rozkroju względem listy wejściowej.
