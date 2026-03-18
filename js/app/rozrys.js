@@ -110,6 +110,7 @@
   }
 
 
+
   function getRozrysScopeMode(selection){
     if(selection === '__ALL__') return 'all';
     if(selection === '__FRONTS__') return 'fronts';
@@ -239,16 +240,45 @@
     return wrap;
   }
 
+  function buildRawTable(rows, unit){
+    const wrap = h('div', { class:'rozrys-list-table-wrap' });
+    const table = h('table', { class:'table-list' });
+    const thead = h('thead');
+    const headRow = h('tr');
+    ['Formatka', `Wymiar (${unit})`, 'Ilość', 'Pomieszczenie', 'Źródło'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
+    thead.appendChild(headRow);
+    const tbody = h('tbody');
+    (rows || []).forEach((row)=>{
+      const tr = h('tr');
+      tr.appendChild(h('td', { text: row.name || 'Element' }));
+      tr.appendChild(h('td', { text: `${mmToUnitStr(row.w, unit)} × ${mmToUnitStr(row.h, unit)}` }));
+      tr.appendChild(h('td', { text:String(Math.max(0, Number(row.qty) || 0)) }));
+      tr.appendChild(h('td', { text:String(row.room || '—') }));
+      tr.appendChild(h('td', { text:String(row.source || '—') }));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
   function openValidationListModal(material, diag, unit){
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || !diag) return;
     const body = h('div');
     const summary = validationSummaryLabel(diag);
     const metaRow = h('div', { class:'rozrys-validation-summary' });
     metaRow.appendChild(h('span', { class:`rozrys-pill ${summary.tone}`, text:summary.text }));
-    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Snapshot 1:1: ${diag.rawCount} pozycji źródłowych` }));
+    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Raw 1:1: ${diag.rawCount} pozycji` }));
     metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Lista do rozkroju: ${diag.resolvedRows.length} pozycji` }));
     body.appendChild(metaRow);
-    body.appendChild(h('div', { class:'muted xs', style:'margin:10px 0 12px', text:'Porównanie: lista wejściowa rozkroju vs to, co faktycznie trafiło na arkusze.' }));
+    body.appendChild(h('div', { class:'muted xs', style:'margin:10px 0 0', text:'RAW SNAPSHOT 1:1 z Materiałów dla tego rozkroju.' }));
+    body.appendChild(buildRawTable(diag.rawRows, unit));
+    body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Lista do rozkroju (po scaleniu)' }));
+    body.appendChild(buildListTable((diag.resolvedRows || []).map((row)=>({
+      name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok'
+    })), unit, 'validation'));
+    body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Walidacja rozrysu' }));
     body.appendChild(buildListTable(diag.validation.rows, unit, 'validation'));
     FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px' });
   }
@@ -1063,7 +1093,7 @@
     const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
     grainChk.checked = true;
     grainRow.appendChild(grainChk);
-    grainRow.appendChild(h('div', { class:'muted xs', text:'Arkusz posiada strukturę' }));
+    grainRow.appendChild(h('div', { class:'muted xs rozrys-grain-text', text:'Arkusz posiada strukturę' }));
     grainWrap.appendChild(grainRow);
     controls2.appendChild(grainWrap);
 

@@ -377,36 +377,38 @@
 .rozrys-field{display:flex;flex-direction:column;height:100%;}
 .rozrys-field__label,
 .label-help{
-  min-height:52px;
-  margin-bottom:8px;
-  color:#0f172a;
-  font-size:15px;
+  min-height:38px;
+  margin-bottom:6px;
+  color:#334155;
+  font-size:13px;
   font-weight:800;
   line-height:1.15;
 }
 .rozrys-field__label{
   display:flex;
-  align-items:center;
+  align-items:flex-end;
   justify-content:center;
   text-align:center;
 }
 .label-help{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
-  align-items:center;
+  align-items:end;
   gap:8px;
 }
 .label-help__text{
   display:flex;
-  align-items:center;
+  align-items:flex-end;
   justify-content:center;
   text-align:center;
   min-height:100%;
 }
 .rozrys-inline-row{display:flex;align-items:stretch;gap:8px;}
 .rozrys-inline-row > *{flex:1 1 0;min-width:0;}
-.rozrys-inline-row--grain{justify-content:flex-start;}
+.rozrys-inline-row--grain{justify-content:flex-start;align-items:flex-start;}
 .rozrys-inline-row--grain > *{flex:0 0 auto;}
+.rozrys-inline-row--grain > .rozrys-grain-text{flex:1 1 auto;min-width:0;}
+.rozrys-grain-text{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.15;}
 
 /* Reusable info box + help triggers */
 .info-backdrop{
@@ -523,6 +525,7 @@
   border:1px solid #e5edf5;
   border-radius:16px;
   background:#fff;
+  margin-top:10px;
 }
 .table-list{
   width:100%;
@@ -562,6 +565,12 @@
   gap:10px;
   flex-wrap:wrap;
   align-items:center;
+}
+.rozrys-subsection-title{
+  margin-top:14px;
+  font-size:14px;
+  font-weight:900;
+  color:#0f172a;
 }
 @media (max-width: 640px){
   .panel-box-backdrop{ padding:12px; align-items:flex-end; }
