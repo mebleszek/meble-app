@@ -207,24 +207,49 @@
     return h('span', { class:`rozrys-status-chip ${cfg.cls}`, text:cfg.text });
   }
 
+
+  function buildDimNode(wMm, hMm, unit){
+    return h('span', { class:'table-dim' }, [
+      h('span', { class:'table-dim__left', text:mmToUnitStr(wMm, unit) }),
+      h('span', { class:'table-dim__x', text:'x' }),
+      h('span', { class:'table-dim__right', text:mmToUnitStr(hMm, unit) }),
+    ]);
+  }
+
   function buildListTable(rows, unit, mode){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:'table-list' });
+    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
+    if(mode === 'sheet'){
+      const colgroup = h('colgroup');
+      colgroup.appendChild(h('col', { class:'col-name' }));
+      colgroup.appendChild(h('col', { class:'col-dim' }));
+      colgroup.appendChild(h('col', { class:'col-qty' }));
+      table.appendChild(colgroup);
+    }
     const thead = h('thead');
     const headRow = h('tr');
-    const headers = mode === 'sheet'
-      ? ['Formatka', `Wymiar (${unit})`, 'Ilość']
-      : ['Formatka', `Wymiar (${unit})`, 'Potrzebne', 'Rozrysowane', 'Różnica', 'Status'];
-    headers.forEach((label)=> headRow.appendChild(h('th', { text:label })));
+    if(mode === 'sheet'){
+      headRow.appendChild(h('th', { class:'col-name', text:'Nazwa' }));
+      headRow.appendChild(h('th', { class:'col-dim', text:`Wymiar (${unit})` }));
+      headRow.appendChild(h('th', { class:'col-qty', text:'Ilość' }));
+    } else {
+      ['Formatka', `Wymiar (${unit})`, 'Potrzebne', 'Rozrysowane', 'Różnica', 'Status'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
+    }
     thead.appendChild(headRow);
     const tbody = h('tbody');
     (rows || []).forEach((row)=>{
       const tr = h('tr');
-      tr.appendChild(h('td', { text: row.name || 'Element' }));
-      tr.appendChild(h('td', { text: `${mmToUnitStr(row.w, unit)} × ${mmToUnitStr(row.h, unit)}` }));
       if(mode === 'sheet'){
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.qty) || 0)) }));
+        tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
+        const dimTd = h('td', { class:'col-dim' });
+        dimTd.appendChild(buildDimNode(row.w, row.h, unit));
+        tr.appendChild(dimTd);
+        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
       } else {
+        tr.appendChild(h('td', { text: row.name || 'Element' }));
+        const dimTd = h('td');
+        dimTd.appendChild(buildDimNode(row.w, row.h, unit));
+        tr.appendChild(dimTd);
         tr.appendChild(h('td', { text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
         tr.appendChild(h('td', { text:String(Math.max(0, Number(row.actualQty) || 0)) }));
         tr.appendChild(h('td', { text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));

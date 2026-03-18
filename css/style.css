@@ -446,18 +446,20 @@
 
 /* Rozrys validation / parts list */
 .panel-box-backdrop{
+  --panel-top-offset:clamp(56px, 18vh, 180px);
   position:fixed;
   inset:0;
   background:rgba(39,46,58,0.42);
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:center;
-  padding:18px;
+  padding:var(--panel-top-offset) 18px 18px;
+  overflow:hidden;
   z-index:5000;
 }
 .panel-box{
   width:min(100%, 920px);
-  max-height:min(86vh, 980px);
+  max-height:calc(100vh - var(--panel-top-offset) - 18px);
   overflow:hidden;
   background:#fff;
   border-radius:22px;
@@ -530,7 +532,7 @@
 .table-list{
   width:100%;
   border-collapse:collapse;
-  min-width:660px;
+  table-layout:fixed;
 }
 .table-list th,
 .table-list td{
@@ -540,6 +542,29 @@
   text-align:left;
   vertical-align:top;
 }
+.table-list--parts .col-name{ width:auto; }
+.table-list--parts .col-dim{ width:15ch; }
+.table-list--parts .col-qty{ width:72px; }
+.table-list--parts th.col-qty,
+.table-list--parts td.col-qty{ text-align:center; white-space:nowrap; }
+.table-list--parts td.col-name,
+.table-list--parts th.col-name{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.table-list--parts td.col-dim,
+.table-list--parts th.col-dim{ white-space:nowrap; }
+.table-dim{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  column-gap:0.28em;
+  width:100%;
+}
+.table-dim__left{ text-align:right; }
+.table-dim__x{ text-align:center; font-weight:800; }
+.table-dim__right{ text-align:left; }
 .table-list thead th{
   position:sticky;
   top:0;
@@ -573,8 +598,11 @@
   color:#0f172a;
 }
 @media (max-width: 640px){
-  .panel-box-backdrop{ padding:12px; align-items:flex-end; }
-  .panel-box{ width:100%; max-height:82vh; }
+  .panel-box-backdrop{ --panel-top-offset:18vh; padding:var(--panel-top-offset) 12px 12px; }
+  .panel-box{ width:100%; max-height:calc(100vh - var(--panel-top-offset) - 12px); }
   .panel-box__title{ font-size:20px; }
-  .table-list{ min-width:560px; }
+  .table-list th,
+  .table-list td{ padding:9px 10px; font-size:13px; }
+  .table-list--parts .col-dim{ width:13.5ch; }
+  .table-list--parts .col-qty{ width:60px; }
 }
