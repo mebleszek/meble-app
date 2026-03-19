@@ -1600,10 +1600,32 @@
     }
 
 
+  function splitMaterialAccordionTitle(material){
+    const raw = String(material || 'Materiał').trim();
+    if(!raw) return { line1:'Materiał', line2:'' };
+    if(raw.includes('•')){
+      const parts = raw.split('•').map(s=>String(s||'').trim()).filter(Boolean);
+      if(parts.length >= 2) return { line1:parts[0], line2:parts.slice(1).join(' • ') };
+    }
+    const tokens = raw.split(/\s+/).filter(Boolean);
+    if(tokens.length <= 2) return { line1:raw, line2:'' };
+    const third = tokens[2] || '';
+    const line1Count = /^[A-Z0-9-]{2,}$/i.test(third) && /\d/.test(third) ? 3 : 2;
+    return {
+      line1: tokens.slice(0, line1Count).join(' '),
+      line2: tokens.slice(line1Count).join(' ')
+    };
+  }
+
   function createMaterialAccordionSection(material){
     const wrap = h('div', { class:'rozrys-material-accordion' });
     const trigger = h('button', { class:'rozrys-material-accordion__trigger', type:'button' });
-    const title = h('div', { class:'rozrys-material-accordion__title', text:String(material || 'Materiał') });
+    const titleBits = splitMaterialAccordionTitle(material);
+    const title = h('div', { class:'rozrys-material-accordion__title' });
+    title.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:titleBits.line1 || 'Materiał' }));
+    if(titleBits.line2){
+      title.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:titleBits.line2 }));
+    }
     const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
     trigger.appendChild(title);
     trigger.appendChild(chevron);

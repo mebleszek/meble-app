@@ -527,16 +527,33 @@
 }
 .rozrys-material-accordion__title{
   min-width:0;
-  font-size:28px;
-  line-height:1.08;
-  font-weight:900;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  color:#0f172a;
+}
+.rozrys-material-accordion__title-line1{
+  font-size:20px;
+  line-height:1.12;
+  font-weight:800;
+  color:#0f172a;
+}
+.rozrys-material-accordion__title-line2{
+  font-size:20px;
+  line-height:1.12;
+  font-weight:800;
   color:#0f172a;
 }
 .rozrys-material-accordion__chevron{
   flex:0 0 auto;
-  font-size:18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:34px;
+  min-height:34px;
+  font-size:30px;
   line-height:1;
-  color:#475569;
+  color:#16a34a;
   transition:transform .18s ease;
 }
 .rozrys-material-accordion.is-open .rozrys-material-accordion__chevron{
@@ -549,7 +566,9 @@
 @media (max-width: 640px){
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
   .rozrys-material-accordion__trigger{ padding:16px 16px; }
-  .rozrys-material-accordion__title{ font-size:22px; }
+  .rozrys-material-accordion__title-line1,
+  .rozrys-material-accordion__title-line2{ font-size:16px; }
+  .rozrys-material-accordion__chevron{ min-width:30px; min-height:30px; font-size:26px; }
   .rozrys-material-accordion__body{ padding:0 16px 16px; }
 }
 
