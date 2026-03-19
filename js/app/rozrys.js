@@ -1558,7 +1558,7 @@
     function tryAutoRenderFromCache(){
       try{
         if(_rozrysRunning) return false;
-        const sel = matSel.value;
+        const sel = String(matSel.value || '');
         if(!sel){
           out.innerHTML = '';
           setGenBtnMode('idle');
@@ -1588,7 +1588,7 @@
           return anyHit;
         }
 
-        if(String(sel).startsWith('__')){
+        if(sel.startsWith('__')){
           out.innerHTML = '';
           setGenBtnMode('idle');
           return false;
@@ -1673,12 +1673,11 @@
 
   function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
     out.innerHTML = '';
-    const list = Array.isArray(entries) ? entries : [];
+    const list = Array.isArray(entries) ? entries.filter(e=> e && e.material && e.plan) : [];
     if(!list.length) return false;
     const accordionPref = getAccordionPref(scopeKey);
     let anyRendered = false;
     for(const entry of list){
-      if(!entry || !entry.material || !entry.plan) continue;
       const section = createMaterialAccordionSection(entry.material, {
         open: !!(accordionPref && accordionPref.open && accordionPref.material === entry.material),
         onToggle: (isOpen, materialName)=> setAccordionPref(scopeKey, materialName, isOpen)
@@ -1698,6 +1697,7 @@
     }
     return anyRendered;
   }
+
 
     function renderOutput(plan, meta, target){
       const tgt = target || out;
@@ -1938,11 +1938,11 @@
 
     function savePlanCache(cache){
       try{
-        // proste ograniczenie rozmiaru: trzymamy max 10 wpisów (ostatnie użyte)
+        // trzymamy do 100 ostatnich rozkrojów
         const entries = Object.entries(cache || {});
-        if(entries.length > 10){
+        if(entries.length > 100){
           entries.sort((a,b)=> (b[1].ts||0) - (a[1].ts||0));
-          const keep = entries.slice(0, 10);
+          const keep = entries.slice(0, 100);
           const next = {};
           for(const [k,v] of keep) next[k] = v;
           cache = next;
