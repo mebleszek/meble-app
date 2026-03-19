@@ -476,7 +476,7 @@
   border-bottom:1px solid #e5edf5;
 }
 .panel-box__title{
-  font-size:clamp(17px, 1.7vw, 20px);
+  font-size:clamp(16px, 1.7vw, 19px);
   line-height:1.14;
   font-weight:900;
   color:#0f172a;
@@ -548,13 +548,13 @@
   padding:14px 16px;
   border-bottom:1px solid #edf2f7;
   font-size:16px;
-  line-height:1.18;
+  line-height:1.25;
   font-weight:700;
   color:#0f172a;
   text-align:left;
   vertical-align:top;
   letter-spacing:0;
-  font-family:inherit;
+  font-family:Inter,system-ui,Arial,sans-serif;
 }
 .table-list--parts .col-name{ width:auto; }
 .table-list--parts .col-dim{ width:15ch; }
@@ -585,10 +585,10 @@
   background:#f8fafc;
   z-index:1;
   font-size:16px;
-  line-height:1.12;
+  line-height:1.2;
   font-weight:800;
   color:#334155;
-  font-family:inherit;
+  font-family:Inter,system-ui,Arial,sans-serif;
 }
 .table-list tbody tr:last-child td{ border-bottom:none; }
 .rozrys-status-chip{
@@ -618,11 +618,11 @@
   .panel-box-backdrop{ --panel-top-offset:18vh; padding:var(--panel-top-offset) 12px 12px; }
   .panel-box{ width:100%; max-height:calc(100vh - var(--panel-top-offset) - 12px); }
   .panel-box__head{ padding:18px 18px; }
-  .panel-box__title{ font-size:17px; }
+  .panel-box__title{ font-size:16px; }
   .panel-box__body{ padding:18px 18px 20px; font-size:16px; }
   .panel-box__close{ width:48px; height:48px; font-size:32px; }
   .table-list th,
-  .table-list td{ padding:12px 12px; font-size:16px; }
+  .table-list td{ padding:12px 12px; font-size:16px; line-height:1.25; }
   .table-list--parts .col-dim{ width:15ch; }
   .table-list--parts .col-qty{ width:68px; }
 }
