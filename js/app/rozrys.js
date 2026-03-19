@@ -1599,6 +1599,26 @@
       }
     }
 
+
+  function createMaterialAccordionSection(material){
+    const wrap = h('div', { class:'rozrys-material-accordion' });
+    const trigger = h('button', { class:'rozrys-material-accordion__trigger', type:'button' });
+    const title = h('div', { class:'rozrys-material-accordion__title', text:String(material || 'Materiał') });
+    const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
+    trigger.appendChild(title);
+    trigger.appendChild(chevron);
+    const body = h('div', { class:'rozrys-material-accordion__body', style:'display:none' });
+    trigger.addEventListener('click', ()=>{
+      const open = wrap.classList.toggle('is-open');
+      body.style.display = open ? '' : 'none';
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    trigger.setAttribute('aria-expanded', 'false');
+    wrap.appendChild(trigger);
+    wrap.appendChild(body);
+    return { wrap, body, trigger };
+  }
+
     function renderOutput(plan, meta, target){
       const tgt = target || out;
       // Always clear target; otherwise spinners can remain in WSZYSTKIE mode
@@ -2282,9 +2302,9 @@ async function generate(force){
     }
     for(const m of derived.materials){
       const parts = derived.byMaterial[m] || [];
-      const box = h("div", { style:"margin-top:12px" });
-      out.appendChild(box);
-      await runOne(m, parts, box);
+      const section = createMaterialAccordionSection(m);
+      out.appendChild(section.wrap);
+      await runOne(m, parts, section.body);
       if(_rozrysCancelRequested) break;
     }
     return;

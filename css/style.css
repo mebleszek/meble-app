@@ -476,7 +476,7 @@
   border-bottom:1px solid #e5edf5;
 }
 .panel-box__title{
-  font-size:clamp(16px, 1.7vw, 19px);
+  font-size:clamp(17px, 1.7vw, 20px);
   line-height:1.14;
   font-weight:900;
   color:#0f172a;
@@ -504,6 +504,55 @@
   font-weight:700;
   color:#0f172a;
 }
+
+.rozrys-material-accordion{
+  margin-top:14px;
+  border:1px solid #e5edf5;
+  border-radius:22px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:0 4px 18px rgba(15,23,42,.04);
+}
+.rozrys-material-accordion__trigger{
+  width:100%;
+  border:0;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:18px 20px;
+  text-align:left;
+  cursor:pointer;
+}
+.rozrys-material-accordion__title{
+  min-width:0;
+  font-size:28px;
+  line-height:1.08;
+  font-weight:900;
+  color:#0f172a;
+}
+.rozrys-material-accordion__chevron{
+  flex:0 0 auto;
+  font-size:18px;
+  line-height:1;
+  color:#475569;
+  transition:transform .18s ease;
+}
+.rozrys-material-accordion.is-open .rozrys-material-accordion__chevron{
+  transform:rotate(180deg);
+}
+.rozrys-material-accordion__body{
+  padding:0 20px 20px;
+  border-top:1px solid #edf2f7;
+}
+@media (max-width: 640px){
+  .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
+  .rozrys-material-accordion__trigger{ padding:16px 16px; }
+  .rozrys-material-accordion__title{ font-size:22px; }
+  .rozrys-material-accordion__body{ padding:0 16px 16px; }
+}
+
 .rozrys-validation-summary{
   display:flex;
   flex-wrap:wrap;
@@ -548,13 +597,13 @@
   padding:14px 16px;
   border-bottom:1px solid #edf2f7;
   font-size:16px;
-  line-height:1.25;
+  line-height:1.18;
   font-weight:700;
   color:#0f172a;
   text-align:left;
   vertical-align:top;
   letter-spacing:0;
-  font-family:Inter,system-ui,Arial,sans-serif;
+  font-family:inherit;
 }
 .table-list--parts .col-name{ width:auto; }
 .table-list--parts .col-dim{ width:15ch; }
@@ -585,10 +634,10 @@
   background:#f8fafc;
   z-index:1;
   font-size:16px;
-  line-height:1.2;
+  line-height:1.12;
   font-weight:800;
   color:#334155;
-  font-family:Inter,system-ui,Arial,sans-serif;
+  font-family:inherit;
 }
 .table-list tbody tr:last-child td{ border-bottom:none; }
 .rozrys-status-chip{
@@ -618,11 +667,11 @@
   .panel-box-backdrop{ --panel-top-offset:18vh; padding:var(--panel-top-offset) 12px 12px; }
   .panel-box{ width:100%; max-height:calc(100vh - var(--panel-top-offset) - 12px); }
   .panel-box__head{ padding:18px 18px; }
-  .panel-box__title{ font-size:16px; }
+  .panel-box__title{ font-size:17px; }
   .panel-box__body{ padding:18px 18px 20px; font-size:16px; }
   .panel-box__close{ width:48px; height:48px; font-size:32px; }
   .table-list th,
-  .table-list td{ padding:12px 12px; font-size:16px; line-height:1.25; }
+  .table-list td{ padding:12px 12px; font-size:16px; }
   .table-list--parts .col-dim{ width:15ch; }
   .table-list--parts .col-qty{ width:68px; }
 }
