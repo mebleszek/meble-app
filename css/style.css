@@ -476,10 +476,10 @@
   border-bottom:1px solid #e5edf5;
 }
 .panel-box__title{
-  font-size:clamp(24px, 2.2vw, 30px);
-  line-height:1.08;
+  font-size:clamp(17px, 1.7vw, 20px);
+  line-height:1.14;
   font-weight:900;
-  color:#111827;
+  color:#0f172a;
 }
 .panel-box__close{
   border:1px solid #d8e2ee;
@@ -548,10 +548,13 @@
   padding:14px 16px;
   border-bottom:1px solid #edf2f7;
   font-size:16px;
+  line-height:1.18;
   font-weight:700;
   color:#0f172a;
   text-align:left;
   vertical-align:top;
+  letter-spacing:0;
+  font-family:inherit;
 }
 .table-list--parts .col-name{ width:auto; }
 .table-list--parts .col-dim{ width:15ch; }
@@ -574,15 +577,18 @@
   width:100%;
 }
 .table-dim__left{ text-align:right; }
-.table-dim__x{ text-align:center; font-weight:800; }
+.table-dim__x{ text-align:center; font-weight:800; padding:0 .06em; }
 .table-dim__right{ text-align:left; }
 .table-list thead th{
   position:sticky;
   top:0;
   background:#f8fafc;
   z-index:1;
+  font-size:16px;
+  line-height:1.12;
   font-weight:800;
   color:#334155;
+  font-family:inherit;
 }
 .table-list tbody tr:last-child td{ border-bottom:none; }
 .rozrys-status-chip{
@@ -612,7 +618,7 @@
   .panel-box-backdrop{ --panel-top-offset:18vh; padding:var(--panel-top-offset) 12px 12px; }
   .panel-box{ width:100%; max-height:calc(100vh - var(--panel-top-offset) - 12px); }
   .panel-box__head{ padding:18px 18px; }
-  .panel-box__title{ font-size:22px; }
+  .panel-box__title{ font-size:17px; }
   .panel-box__body{ padding:18px 18px 20px; font-size:16px; }
   .panel-box__close{ width:48px; height:48px; font-size:32px; }
   .table-list th,
