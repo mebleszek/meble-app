@@ -1617,7 +1617,8 @@
     };
   }
 
-  function createMaterialAccordionSection(material){
+  function createMaterialAccordionSection(material, options){
+    const opts = Object.assign({ open:false }, options || {});
     const wrap = h('div', { class:'rozrys-material-accordion' });
     const trigger = h('button', { class:'rozrys-material-accordion__trigger', type:'button' });
     const titleBits = splitMaterialAccordionTitle(material);
@@ -1629,16 +1630,19 @@
     const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
     trigger.appendChild(title);
     trigger.appendChild(chevron);
-    const body = h('div', { class:'rozrys-material-accordion__body', style:'display:none' });
-    trigger.addEventListener('click', ()=>{
-      const open = wrap.classList.toggle('is-open');
+    const body = h('div', { class:'rozrys-material-accordion__body', style: opts.open ? '' : 'display:none' });
+    function setOpenState(open){
+      wrap.classList.toggle('is-open', !!open);
       body.style.display = open ? '' : 'none';
       trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    trigger.addEventListener('click', ()=>{
+      setOpenState(!wrap.classList.contains('is-open'));
     });
-    trigger.setAttribute('aria-expanded', 'false');
+    setOpenState(!!opts.open);
     wrap.appendChild(trigger);
     wrap.appendChild(body);
-    return { wrap, body, trigger };
+    return { wrap, body, trigger, setOpenState };
   }
 
     function renderOutput(plan, meta, target){
@@ -2322,9 +2326,10 @@ async function generate(force){
       out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
       return;
     }
-    for(const m of derived.materials){
+    for(let idx = 0; idx < derived.materials.length; idx += 1){
+      const m = derived.materials[idx];
       const parts = derived.byMaterial[m] || [];
-      const section = createMaterialAccordionSection(m);
+      const section = createMaterialAccordionSection(m, { open: idx === 0 });
       out.appendChild(section.wrap);
       await runOne(m, parts, section.body);
       if(_rozrysCancelRequested) break;
@@ -2334,7 +2339,10 @@ async function generate(force){
 
   const material = sel;
   const parts = agg.byMaterial[material] || [];
-  await runOne(material, parts, null);
+  out.innerHTML = "";
+  const singleSection = createMaterialAccordionSection(material, { open:true });
+  out.appendChild(singleSection.wrap);
+  await runOne(material, parts, singleSection.body);
   } finally {
     _rozrysRunning = false;
     try{ stopGlobalTicker(); }catch(_){ }
