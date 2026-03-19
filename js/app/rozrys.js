@@ -17,6 +17,7 @@
   const OVERRIDE_KEY = 'fc_rozrys_overrides_v1';
   const EDGE_KEY = 'fc_edge_v1';
   const PANEL_PREFS_KEY = 'fc_rozrys_panel_prefs_v1';
+  const ACCORDION_PREFS_KEY = 'fc_rozrys_material_accordion_v1';
 
   function safeGetProject(){
     try{
@@ -92,6 +93,39 @@
 
   function savePanelPrefs(obj){
     try{ localStorage.setItem(PANEL_PREFS_KEY, JSON.stringify(obj || {})); }catch(_){ }
+  }
+
+
+  function loadAccordionPrefs(){
+    try{
+      const raw = localStorage.getItem(ACCORDION_PREFS_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === 'object') ? obj : {};
+    }catch(_){
+      return {};
+    }
+  }
+
+  function saveAccordionPrefs(obj){
+    try{ localStorage.setItem(ACCORDION_PREFS_KEY, JSON.stringify(obj || {})); }catch(_){ }
+  }
+
+  function getAccordionPref(scopeKey){
+    try{
+      const prefs = loadAccordionPrefs();
+      const entry = prefs && typeof prefs === 'object' ? prefs[String(scopeKey || '')] : null;
+      return (entry && typeof entry === 'object') ? entry : { material:'', open:false };
+    }catch(_){
+      return { material:'', open:false };
+    }
+  }
+
+  function setAccordionPref(scopeKey, material, open){
+    try{
+      const prefs = loadAccordionPrefs();
+      prefs[String(scopeKey || '')] = { material: String(material || ''), open: !!open };
+      saveAccordionPrefs(prefs);
+    }catch(_){ }
   }
 
   function loadEdgeStore(){
@@ -1526,39 +1560,30 @@
         if(_rozrysRunning) return false;
         const sel = matSel.value;
         if(!sel){
-          // Variant B: no selection => clear output
           out.innerHTML = '';
           setGenBtnMode('idle');
           return false;
         }
 
-        // Variant B: special modes should also auto-render from cache,
-        // but never keep stale results when cache miss.
+        const cache = loadPlanCache();
+        const stBase = getBaseState();
+
         if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
-          out.innerHTML = '';
           const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
           const derived = deriveAggForMode(mode);
-          const stBase = getBaseState();
-          const cache = loadPlanCache();
-
-  function setGlobalStatus(){ }
+          const entries = [];
           let allHit = true;
-          let anyHit = false;
           for(const m of derived.materials){
             const parts = derived.byMaterial[m] || [];
-            const box = h('div', { style:'margin-top:12px' });
-            out.appendChild(box);
             const st = Object.assign({}, stBase, { material: m, grain: !!(stBase.grain && materialHasGrain(m)) });
             const cacheKey = makePlanCacheKey(st, parts);
             if(cache[cacheKey] && cache[cacheKey].plan){
-              const plan = cache[cacheKey].plan;
-              renderOutput(plan, { material: m, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: mode }, box);
-              anyHit = true;
+              entries.push({ material:m, parts, st, plan: cache[cacheKey].plan });
             } else {
               allHit = false;
-              box.innerHTML = '';
             }
           }
+          const anyHit = renderMaterialAccordionPlans(`scope:${sel}`, mode, entries);
           setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
           return anyHit;
         }
@@ -1568,27 +1593,22 @@
           setGenBtnMode('idle');
           return false;
         }
+
         const material = sel;
         const parts = agg.byMaterial[material] || [];
         if(!parts.length){
-          // Variant B: clear output when nothing to render
           out.innerHTML = '';
           setGenBtnMode('idle');
           return false;
         }
-        const base = getBaseState();
-        const st = Object.assign({}, base, { material, grain: !!(base.grain && materialHasGrain(material)) });
-        const cache = loadPlanCache();
-
-  function setGlobalStatus(){ }
+        const st = Object.assign({}, stBase, { material, grain: !!(stBase.grain && materialHasGrain(material)) });
         const cacheKey = makePlanCacheKey(st, parts);
         if(cache[cacheKey] && cache[cacheKey].plan){
-          const plan = cache[cacheKey].plan;
-          renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(matSel.value) }, null);
-          setGenBtnMode('done');
-          return true;
+          const anyHit = renderMaterialAccordionPlans(`scope:${sel}`, getRozrysScopeMode(sel), [{ material, parts, st, plan: cache[cacheKey].plan }]);
+          setGenBtnMode(anyHit ? 'done' : 'idle');
+          return anyHit;
         }
-        // Variant B: cache miss => clear view (no stale result)
+
         out.innerHTML = '';
         setGenBtnMode('idle');
         return false;
@@ -1598,6 +1618,7 @@
         return false;
       }
     }
+
 
 
   function splitMaterialAccordionTitle(material){
@@ -1618,7 +1639,7 @@
   }
 
   function createMaterialAccordionSection(material, options){
-    const opts = Object.assign({ open:false }, options || {});
+    const opts = Object.assign({ open:false, onToggle:null }, options || {});
     const wrap = h('div', { class:'rozrys-material-accordion' });
     const trigger = h('button', { class:'rozrys-material-accordion__trigger', type:'button' });
     const titleBits = splitMaterialAccordionTitle(material);
@@ -1630,19 +1651,52 @@
     const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
     trigger.appendChild(title);
     trigger.appendChild(chevron);
-    const body = h('div', { class:'rozrys-material-accordion__body', style: opts.open ? '' : 'display:none' });
-    function setOpenState(open){
-      wrap.classList.toggle('is-open', !!open);
-      body.style.display = open ? '' : 'none';
-      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const body = h('div', { class:'rozrys-material-accordion__body' });
+    function setOpenState(open, notify){
+      const isOpen = !!open;
+      wrap.classList.toggle('is-open', isOpen);
+      body.hidden = !isOpen;
+      body.style.display = isOpen ? '' : 'none';
+      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if(notify !== false && typeof opts.onToggle === 'function'){
+        try{ opts.onToggle(isOpen, material, wrap); }catch(_){ }
+      }
     }
     trigger.addEventListener('click', ()=>{
-      setOpenState(!wrap.classList.contains('is-open'));
+      setOpenState(!wrap.classList.contains('is-open'), true);
     });
-    setOpenState(!!opts.open);
+    setOpenState(!!opts.open, false);
     wrap.appendChild(trigger);
     wrap.appendChild(body);
     return { wrap, body, trigger, setOpenState };
+  }
+
+  function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
+    out.innerHTML = '';
+    const list = Array.isArray(entries) ? entries : [];
+    if(!list.length) return false;
+    const accordionPref = getAccordionPref(scopeKey);
+    let anyRendered = false;
+    for(const entry of list){
+      if(!entry || !entry.material || !entry.plan) continue;
+      const section = createMaterialAccordionSection(entry.material, {
+        open: !!(accordionPref && accordionPref.open && accordionPref.material === entry.material),
+        onToggle: (isOpen, materialName)=> setAccordionPref(scopeKey, materialName, isOpen)
+      });
+      out.appendChild(section.wrap);
+      renderOutput(entry.plan, {
+        material: entry.material,
+        kerf: entry.st && entry.st.kerf,
+        heur: entry.st ? formatHeurLabel(entry.st) : '',
+        unit: entry.st && entry.st.unit,
+        edgeSubMm: entry.st && entry.st.edgeSubMm,
+        meta: entry.plan && entry.plan.meta,
+        parts: entry.parts || [],
+        scopeMode,
+      }, section.body);
+      anyRendered = true;
+    }
+    return anyRendered;
   }
 
     function renderOutput(plan, meta, target){
@@ -2326,10 +2380,15 @@ async function generate(force){
       out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
       return;
     }
+    const accordionScopeKey = `scope:${sel}`;
+    const accordionPref = getAccordionPref(accordionScopeKey);
     for(let idx = 0; idx < derived.materials.length; idx += 1){
       const m = derived.materials[idx];
       const parts = derived.byMaterial[m] || [];
-      const section = createMaterialAccordionSection(m, { open: idx === 0 });
+      const section = createMaterialAccordionSection(m, {
+        open: !!(accordionPref && accordionPref.open && accordionPref.material === m),
+        onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen)
+      });
       out.appendChild(section.wrap);
       await runOne(m, parts, section.body);
       if(_rozrysCancelRequested) break;
@@ -2340,7 +2399,12 @@ async function generate(force){
   const material = sel;
   const parts = agg.byMaterial[material] || [];
   out.innerHTML = "";
-  const singleSection = createMaterialAccordionSection(material, { open:true });
+  const accordionScopeKey = `scope:${sel}`;
+  const accordionPref = getAccordionPref(accordionScopeKey);
+  const singleSection = createMaterialAccordionSection(material, {
+    open: !!(accordionPref && accordionPref.open && accordionPref.material === material),
+    onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen)
+  });
   out.appendChild(singleSection.wrap);
   await runOne(material, parts, singleSection.body);
   } finally {
