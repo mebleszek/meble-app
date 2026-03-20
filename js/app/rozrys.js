@@ -152,8 +152,9 @@
     return 'single';
   }
 
-  function getOrderedMaterialsForSelection(selection){
-    const allMaterials = Array.isArray(agg && agg.materials) ? agg.materials.slice() : [];
+  function getOrderedMaterialsForSelection(selection, aggregate){
+    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
+    const allMaterials = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials.slice() : [];
     if(selection === '__ALL__' || selection === '__FRONTS__' || selection === '__NO_FRONTS__') return allMaterials;
     if(!selection) return allMaterials;
     if(allMaterials.length <= 1) return selection ? [selection] : allMaterials;
@@ -161,9 +162,10 @@
     return ordered.filter(Boolean);
   }
 
-  function getAccordionScopeKey(selection){
+  function getAccordionScopeKey(selection, aggregate){
     if(selection === '__ALL__' || selection === '__FRONTS__' || selection === '__NO_FRONTS__') return `scope:${selection}`;
-    const allMaterials = Array.isArray(agg && agg.materials) ? agg.materials : [];
+    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
+    const allMaterials = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials : [];
     if(allMaterials.length > 1) return 'scope:all-materials';
     return `scope:${selection}`;
   }
@@ -1583,14 +1585,12 @@
 
         const cache = loadPlanCache();
         const stBase = getBaseState();
-        const entries = [];
-        let allHit = true;
-        let scopeMode = getRozrysScopeMode(sel);
 
         if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
           const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
-          const derived = deriveAggForMode(mode);
-          scopeMode = mode;
+          const derived = deriveAggForMode(mode, agg);
+          const entries = [];
+          let allHit = true;
           for(const m of derived.materials){
             const parts = derived.byMaterial[m] || [];
             const st = Object.assign({}, stBase, { material: m, grain: !!(stBase.grain && materialHasGrain(m)) });
@@ -1601,7 +1601,7 @@
               allHit = false;
             }
           }
-          const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(sel), scopeMode, entries);
+          const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(sel, agg), mode, entries);
           setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
           return anyHit;
         }
@@ -1612,8 +1612,9 @@
           return false;
         }
 
-        const orderedMaterials = getOrderedMaterialsForSelection(sel);
+        const orderedMaterials = getOrderedMaterialsForSelection(sel, agg);
         const sourceByMaterial = (agg && agg.byMaterial) || {};
+        const entries = [];
         for(const material of orderedMaterials){
           const parts = sourceByMaterial[material] || [];
           if(!parts.length){
@@ -1628,7 +1629,7 @@
             allHit = false;
           }
         }
-        const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(sel), scopeMode, entries);
+        const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(sel, agg), getRozrysScopeMode(sel), entries);
         setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
         return anyHit;
       }catch(_){
@@ -2010,7 +2011,7 @@
       return 'plan_' + hashStr(JSON.stringify(keyObj));
     }
 
-function deriveAggForMode(mode){
+function deriveAggForMode(mode, aggregate){
   // mode: 'all' | 'fronts' | 'nofronts'
   const accByMat = {};
   const pushPart = (matKey, p)=>{
@@ -2020,8 +2021,9 @@ function deriveAggForMode(mode){
     if(map.has(key)) map.get(key).qty += Number(p.qty)||0;
     else map.set(key, { name:p.name, w:p.w, h:p.h, qty:Number(p.qty)||1, material: matKey });
   };
-  for(const mat of agg.materials){
-    const parts = agg.byMaterial[mat] || [];
+  const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
+  for(const mat of aggRef.materials){
+    const parts = aggRef.byMaterial[mat] || [];
     for(const p of parts){
       const isFront = (p.name === "Front") || isFrontMaterialKey(p.material);
       if(mode === "fronts" && !isFront) continue;
@@ -2394,12 +2396,12 @@ async function generate(force){
   if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
     out.innerHTML = "";
     const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
-    const derived = deriveAggForMode(mode);
+    const derived = deriveAggForMode(mode, agg);
     if(!derived.materials.length){
       out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
       return;
     }
-    const accordionScopeKey = getAccordionScopeKey(sel);
+    const accordionScopeKey = `scope:${sel}`;
     const accordionPref = getAccordionPref(accordionScopeKey);
     for(let idx = 0; idx < derived.materials.length; idx += 1){
       const m = derived.materials[idx];
@@ -2416,9 +2418,9 @@ async function generate(force){
   }
 
   out.innerHTML = "";
-  const orderedMaterials = getOrderedMaterialsForSelection(sel);
+  const orderedMaterials = getOrderedMaterialsForSelection(sel, agg);
   const sourceByMaterial = (agg && agg.byMaterial) || {};
-  const accordionScopeKey = getAccordionScopeKey(sel);
+  const accordionScopeKey = getAccordionScopeKey(sel, agg);
   const accordionPref = getAccordionPref(accordionScopeKey);
   let anyParts = false;
   for(const material of orderedMaterials){
@@ -2434,7 +2436,7 @@ async function generate(force){
     if(_rozrysCancelRequested) break;
   }
   if(!anyParts){
-    out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego materiału." }));
+    out.appendChild(h('div', { class:'muted', text:'Brak elementów do wygenerowania dla wybranego materiału.' }));
   }
   } finally {
     _rozrysRunning = false;
