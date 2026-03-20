@@ -67,6 +67,20 @@
     return data.sheets.filter(s=>String(s.material||'').trim()===m);
   }
 
+  function addSheetStock(material, width, height, qtyDelta){
+    const mat = String(material || '').trim();
+    const w = Math.round(Number(width) || 0);
+    const h = Math.round(Number(height) || 0);
+    const delta = Math.max(1, Math.round(Number(qtyDelta) || 0));
+    if(!(mat && w > 0 && h > 0 && delta > 0)) return false;
+    const rows = findForMaterial(mat);
+    const exact = rows.find((row)=> Math.round(Number(row && row.width) || 0) === w && Math.round(Number(row && row.height) || 0) === h);
+    if(exact){
+      return upsertSheet({ id: exact.id, material: mat, width: w, height: h, qty: Math.max(0, Math.round(Number(exact.qty) || 0)) + delta });
+    }
+    return upsertSheet({ material: mat, width: w, height: h, qty: delta });
+  }
+
   function sortByAreaDesc(list){
     return (Array.isArray(list) ? list.slice() : []).sort((a,b)=>{
       const aa = (Number(a && a.width)||0) * (Number(a && a.height)||0);
@@ -204,6 +218,7 @@
     upsertSheet,
     removeSheet,
     findForMaterial,
+    addSheetStock,
     getPreferredFormat,
     findHalfSheetsForMaterial,
     render,

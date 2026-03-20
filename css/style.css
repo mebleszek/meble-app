@@ -528,6 +528,17 @@
 .rozrys-picker-launch__hint{margin-top:2px;text-align:left;}
 .rozrys-picker-modal{display:flex;flex-direction:column;gap:0;}
 .rozrys-picker-search{margin-bottom:14px;}
+.rozrys-format-row > .rozrys-format-input{flex:0 1 108px;min-width:96px;}
+.rozrys-format-row > .btn{flex:0 0 auto;white-space:nowrap;}
+.rozrys-picker-card{display:flex;flex-direction:column;gap:12px;}
+.rozrys-picker-check{display:block;}
+.rozrys-picker-check__top{display:flex;align-items:center;gap:10px;}
+.rozrys-picker-check__top input{width:18px;height:18px;}
+.rozrys-picker-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.rozrys-scope-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.rozrys-scope-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #dbe7f3;border-radius:999px;background:#f8fbff;color:#0f172a;font-size:13px;font-weight:800;cursor:pointer;}
+.rozrys-scope-chip input{width:16px;height:16px;margin:0;}
+.rozrys-scope-badge{display:inline-flex;align-items:center;padding:8px 10px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:13px;font-weight:800;border:1px solid #bbf7d0;}
 .rozrys-picker-section-title{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:2px 0 10px;}
 .rozrys-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
 .rozrys-picker-list{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow:auto;padding-right:2px;}

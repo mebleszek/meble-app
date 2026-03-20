@@ -145,24 +145,121 @@
 
 
 
+  function roomLabel(room){
+    const map = { kuchnia:'Kuchnia', szafa:'Szafa', pokoj:'Pokój', lazienka:'Łazienka' };
+    const key = String(room || '').trim();
+    return map[key] || key || 'Pomieszczenie';
+  }
+
+  function normalizeRoomSelection(rooms){
+    const allowed = getRooms();
+    const set = new Set((Array.isArray(rooms) ? rooms : []).map((room)=> String(room || '').trim()).filter((room)=> allowed.includes(room)));
+    return allowed.filter((room)=> set.has(room));
+  }
+
+  function encodeRoomsSelection(rooms){
+    return normalizeRoomSelection(rooms).join('|');
+  }
+
+  function decodeRoomsSelection(raw){
+    const parts = Array.isArray(raw) ? raw : String(raw || '').split('|');
+    const normalized = normalizeRoomSelection(parts);
+    return normalized.length ? normalized : getRooms().slice();
+  }
+
+  function makeMaterialScope(selection){
+    const base = Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {});
+    const kind = (base.kind === 'material' && String(base.material || '').trim()) ? 'material' : 'all';
+    const scope = {
+      kind,
+      material: kind === 'material' ? String(base.material || '').trim() : '',
+      includeFronts: base.includeFronts !== false,
+      includeCorpus: base.includeCorpus !== false,
+    };
+    if(!scope.includeFronts && !scope.includeCorpus){
+      scope.includeFronts = true;
+      scope.includeCorpus = true;
+    }
+    return scope;
+  }
+
+  function encodeMaterialScope(selection){
+    try{ return JSON.stringify(makeMaterialScope(selection)); }catch(_){ return '{"kind":"all","material":"","includeFronts":true,"includeCorpus":true}'; }
+  }
+
+  function decodeMaterialScope(raw){
+    try{ return makeMaterialScope(raw ? JSON.parse(String(raw)) : null); }
+    catch(_){ return makeMaterialScope(); }
+  }
+
+  function sortRozrysParts(list){
+    return (Array.isArray(list) ? list.slice() : []).sort((a,b)=>{
+      const aa = Math.max(Number(a && a.w) || 0, Number(a && a.h) || 0);
+      const bb = Math.max(Number(b && b.w) || 0, Number(b && b.h) || 0);
+      if(bb !== aa) return bb - aa;
+      const aw = Math.min(Number(a && a.w) || 0, Number(a && a.h) || 0);
+      const bw = Math.min(Number(b && b.w) || 0, Number(b && b.h) || 0);
+      if(bw !== aw) return bw - aw;
+      return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'pl');
+    });
+  }
+
+  function getGroupPartsForScope(group, selection){
+    const scope = makeMaterialScope(selection);
+    if(!group) return [];
+    if(scope.includeFronts && scope.includeCorpus) return Array.isArray(group.allParts) ? group.allParts.slice() : [];
+    if(scope.includeFronts) return Array.isArray(group.frontParts) ? group.frontParts.slice() : [];
+    if(scope.includeCorpus) return Array.isArray(group.corpusParts) ? group.corpusParts.slice() : [];
+    return [];
+  }
+
+  function normalizeMaterialScopeForAggregate(selection, aggregate){
+    const scope = makeMaterialScope(selection);
+    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
+    const mats = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials : [];
+    if(!mats.length) return makeMaterialScope({ kind:'all', includeFronts:true, includeCorpus:true });
+    if(scope.kind === 'material'){
+      const group = aggRef && aggRef.groups ? aggRef.groups[scope.material] : null;
+      if(!group) return makeMaterialScope({ kind:'all', includeFronts:true, includeCorpus:true });
+      if(scope.includeFronts && !group.hasFronts) scope.includeFronts = false;
+      if(scope.includeCorpus && !group.hasCorpus) scope.includeCorpus = false;
+      if(!scope.includeFronts && !scope.includeCorpus){
+        scope.includeFronts = !!group.hasFronts;
+        scope.includeCorpus = !scope.includeFronts && !!group.hasCorpus;
+      }
+      return makeMaterialScope(scope);
+    }
+    const hasAnyFronts = mats.some((mat)=> !!(aggRef.groups && aggRef.groups[mat] && aggRef.groups[mat].hasFronts));
+    const hasAnyCorpus = mats.some((mat)=> !!(aggRef.groups && aggRef.groups[mat] && aggRef.groups[mat].hasCorpus));
+    if(scope.includeFronts && !hasAnyFronts) scope.includeFronts = false;
+    if(scope.includeCorpus && !hasAnyCorpus) scope.includeCorpus = false;
+    if(!scope.includeFronts && !scope.includeCorpus){
+      scope.includeFronts = hasAnyFronts;
+      scope.includeCorpus = !scope.includeFronts && hasAnyCorpus;
+    }
+    return makeMaterialScope(scope);
+  }
+
   function getRozrysScopeMode(selection){
-    if(selection === '__ALL__') return 'all';
-    if(selection === '__FRONTS__') return 'fronts';
-    if(selection === '__NO_FRONTS__') return 'nofronts';
-    return 'single';
+    const scope = makeMaterialScope(typeof selection === 'string' ? decodeMaterialScope(selection) : selection);
+    if(scope.includeFronts && scope.includeCorpus) return 'both';
+    return scope.includeFronts ? 'fronts' : 'corpus';
   }
 
   function getOrderedMaterialsForSelection(selection, aggregate){
+    const scope = makeMaterialScope(typeof selection === 'string' ? decodeMaterialScope(selection) : selection);
     const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
     const allMaterials = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials.slice() : [];
-    if(selection === '__ALL__' || selection === '__FRONTS__' || selection === '__NO_FRONTS__') return allMaterials;
-    if(!selection) return allMaterials;
-    return selection ? [selection] : allMaterials;
+    if(scope.kind === 'material' && scope.material) return allMaterials.includes(scope.material) ? [scope.material] : [];
+    return allMaterials;
   }
 
   function getAccordionScopeKey(selection, aggregate){
-    if(selection === '__ALL__' || selection === '__FRONTS__' || selection === '__NO_FRONTS__') return `scope:${selection}`;
-    return `scope:${String(selection || 'single')}`;
+    const scope = makeMaterialScope(typeof selection === 'string' ? decodeMaterialScope(selection) : selection);
+    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
+    const roomSig = encodeRoomsSelection(aggRef && aggRef.selectedRooms ? aggRef.selectedRooms : getRooms());
+    const materialSig = scope.kind === 'material' ? scope.material : '__ALL__';
+    return `scope:${roomSig}:${materialSig}:${getRozrysScopeMode(scope)}`;
   }
 
   function buildResolvedSnapshotFromParts(parts){
@@ -178,11 +275,12 @@
     })));
   }
 
-  function buildRawSnapshotForMaterial(targetMaterial, mode){
+  function buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms){
     const proj = safeGetProject();
     if(!proj || !targetMaterial) return [];
     const rows = [];
-    const rooms = getRooms();
+    const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : getRooms());
+    const scopeMode = (mode === 'fronts' || mode === 'corpus' || mode === 'both') ? mode : 'both';
     for(const room of rooms){
       const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
       for(const cab of cabinets){
@@ -192,9 +290,9 @@
           const sourceMaterial = String(p.material || '').trim();
           if(!sourceMaterial) continue;
           const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
-          if(mode === 'fronts' && !isFront) continue;
-          if(mode === 'nofronts' && isFront) continue;
-          const materialKey = (mode === 'all') ? normalizeFrontLaminatMaterialKey(sourceMaterial) : sourceMaterial;
+          if(scopeMode === 'fronts' && !isFront) continue;
+          if(scopeMode === 'corpus' && isFront) continue;
+          const materialKey = normalizeFrontLaminatMaterialKey(sourceMaterial);
           if(materialKey !== targetMaterial) continue;
           const w = cmToMm(p.a);
           const h = cmToMm(p.b);
@@ -217,10 +315,10 @@
     return rows;
   }
 
-  function buildRozrysDiagnostics(targetMaterial, mode, parts, plan){
+  function buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms){
     const rv = FC.rozrysValidation;
     if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function')) return null;
-    const rawRows = buildRawSnapshotForMaterial(targetMaterial, mode);
+    const rawRows = buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms);
     const resolvedRows = rawRows.length ? rv.aggregateRows(rawRows) : buildResolvedSnapshotFromParts(parts);
     const actual = rv.summarizePlan(plan, targetMaterial);
     const validation = rv.validate(resolvedRows, actual.rows);
@@ -363,52 +461,82 @@
     FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px' });
   }
 
-  function aggregatePartsForProject(){
+  function aggregatePartsForProject(selectedRooms){
     const proj = safeGetProject();
-    if(!proj) return { byMaterial: {}, materials: [] };
+    const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : getRooms());
+    if(!proj) return { byMaterial: {}, materials: [], groups: {}, selectedRooms: rooms };
 
-    const byMaterial = {};
-    const rooms = getRooms();
+    const groups = {};
+    const ensureGroup = (key)=>{
+      if(!groups[key]){
+        groups[key] = {
+          key,
+          frontMap: new Map(),
+          corpusMap: new Map(),
+          sourceMaterials: new Set(),
+          rooms: new Set(),
+        };
+      }
+      return groups[key];
+    };
+
     for(const room of rooms){
       const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
       for(const cab of cabinets){
         if(typeof getCabinetCutList !== 'function') continue;
         const parts = getCabinetCutList(cab, room) || [];
         for(const p of parts){
-          const material = String(p.material||'').trim();
-          if(!material) continue;
+          const sourceMaterial = String(p.material || '').trim();
+          if(!sourceMaterial) continue;
           const w = cmToMm(p.a);
           const h = cmToMm(p.b);
-          if(!(w>0 && h>0)) continue;
-          const name = String(p.name||'Element');
+          if(!(w > 0 && h > 0)) continue;
+          const qty = Math.max(1, Math.round(Number(p.qty) || 0));
+          if(!(qty > 0)) continue;
+          const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
+          const materialKey = normalizeFrontLaminatMaterialKey(sourceMaterial);
+          const name = String(p.name || 'Element');
           const key = `${name}||${w}||${h}`;
-          byMaterial[material] = byMaterial[material] || new Map();
-          const map = byMaterial[material];
+          const group = ensureGroup(materialKey);
+          group.sourceMaterials.add(sourceMaterial);
+          group.rooms.add(room);
+          const map = isFront ? group.frontMap : group.corpusMap;
           if(map.has(key)){
-            map.get(key).qty += Number(p.qty)||0;
+            map.get(key).qty += qty;
           } else {
             map.set(key, {
               name,
               w,
               h,
-              qty: Number(p.qty)||1,
-              material,
+              qty,
+              material: materialKey,
             });
           }
         }
       }
     }
 
+    const materials = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'pl'));
     const outByMat = {};
-    const materials = Object.keys(byMaterial).sort((a,b)=>a.localeCompare(b,'pl'));
-    for(const m of materials){
-      outByMat[m] = Array.from(byMaterial[m].values()).sort((a,b)=>{
-        const aa = Math.max(a.w,a.h);
-        const bb = Math.max(b.w,b.h);
-        return bb-aa;
-      });
+    const outGroups = {};
+    for(const material of materials){
+      const group = groups[material];
+      const frontParts = sortRozrysParts(Array.from(group.frontMap.values()));
+      const corpusParts = sortRozrysParts(Array.from(group.corpusMap.values()));
+      const allParts = sortRozrysParts(frontParts.concat(corpusParts));
+      outByMat[material] = allParts;
+      outGroups[material] = {
+        key: material,
+        frontParts,
+        corpusParts,
+        allParts,
+        hasFronts: frontParts.length > 0,
+        hasCorpus: corpusParts.length > 0,
+        sourceMaterials: Array.from(group.sourceMaterials),
+        rooms: Array.from(group.rooms),
+      };
     }
-    return { byMaterial: outByMat, materials };
+    return { byMaterial: outByMat, materials, groups: outGroups, selectedRooms: rooms };
   }
 
   function isFrontMaterialKey(materialKey){
@@ -982,7 +1110,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260320_accordion_picker_fix_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260320_rozrys_rooms_materials_v2');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1090,12 +1218,13 @@
     const root = document.getElementById('rozrysRoot');
     if(!root) return;
 
-    const agg = aggregatePartsForProject();
-
     root.innerHTML = '';
 
     const card = h('div', { class:'card' });
     const panelPrefs = loadPanelPrefs();
+    let selectedRooms = decodeRoomsSelection(panelPrefs.selectedRooms);
+    let agg = aggregatePartsForProject(selectedRooms);
+    let materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(panelPrefs.materialScope), agg);
     const headerRow = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' });
     headerRow.appendChild(h('h3', { style:'margin:0', text:'Optimax — optymalizacja rozkroju' }));
     card.appendChild(headerRow);
@@ -1109,7 +1238,7 @@
     // state (ui) — keep local per render
     const initialUnit = (panelPrefs.unit === 'cm' ? 'cm' : 'mm');
     const state = {
-      material: agg.materials[0],
+      material: materialScope.kind === 'material' && materialScope.material ? materialScope.material : (agg.materials[0] || ''),
       unit: initialUnit,
       boardW: (initialUnit === 'cm' ? 280 : 2800),
       boardH: (initialUnit === 'cm' ? 207 : 2070),
@@ -1137,40 +1266,23 @@
 
     // top row: material + format arkusza + opcje
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
-    // material select
+    // room + material picker
+    const roomsWrap = h('div', { class:'rozrys-field' });
+    roomsWrap.appendChild(labelWithInfo('Pomieszczenia', 'Pomieszczenia', 'Wybierz, z których pomieszczeń mam zebrać formatki do rozrysu. Ten sam materiał z kilku pomieszczeń zostanie zsumowany.'));
+    const roomsSel = h('input', { id:'rozRooms', type:'hidden', value:encodeRoomsSelection(selectedRooms) });
+    const roomsPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch' });
+    const roomsPickerValue = h('div', { class:'rozrys-picker-launch__value' });
+    roomsPickerBtn.appendChild(roomsPickerValue);
+    roomsWrap.appendChild(roomsPickerBtn);
+    roomsWrap.appendChild(roomsSel);
+    controls.appendChild(roomsWrap);
+
     const matWrap = h('div', { class:'rozrys-field' });
-    matWrap.appendChild(h('label', { class:'rozrys-field__label', text:'Materiał / grupa' }));
-    const matSel = h('select', { id:'rozMat', style:'display:none' });
-    const specialMaterialOptions = [
-      { value:'__ALL__', title:'WSZYSTKIE', subtitle:'Wygeneruj rozkrój dla wszystkich materiałów' },
-      { value:'__FRONTS__', title:'FRONTY', subtitle:'Pokaż tylko materiały frontowe' },
-      { value:'__NO_FRONTS__', title:'BEZ FRONTÓW', subtitle:'Pokaż tylko materiały bez frontów' },
-    ];
-    specialMaterialOptions.forEach((item)=>{
-      const o = document.createElement('option');
-      o.value = item.value;
-      o.textContent = item.title;
-      matSel.appendChild(o);
-    });
-    {
-      const o = document.createElement('option');
-      o.value = '';
-      o.textContent = '────────';
-      o.disabled = true;
-      matSel.appendChild(o);
-    }
-    agg.materials.forEach((m)=>{
-      const o = document.createElement('option');
-      o.value = m;
-      o.textContent = m;
-      matSel.appendChild(o);
-    });
-    matSel.value = state.material;
+    matWrap.appendChild(labelWithInfo('Materiał / grupa', 'Materiał / grupa', 'Wybierz wszystkie materiały albo jeden kolor. Dla koloru, który ma i fronty, i korpusy, możesz zaznaczyć sam front, sam korpus albo oba.'));
+    const matSel = h('input', { id:'rozMat', type:'hidden', value:encodeMaterialScope(materialScope) });
     const matPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch' });
     const matPickerValue = h('div', { class:'rozrys-picker-launch__value' });
-    const matPickerHint = h('div', { class:'muted xs rozrys-picker-launch__hint' });
     matPickerBtn.appendChild(matPickerValue);
-    matPickerBtn.appendChild(matPickerHint);
     matWrap.appendChild(matPickerBtn);
     matWrap.appendChild(matSel);
     controls.appendChild(matWrap);
@@ -1199,10 +1311,14 @@
     // board size
     const sizeWrap = h('div', { class:'rozrys-field' });
     sizeWrap.appendChild(h('label', { class:'rozrys-field__label', text:`Format arkusza (${state.unit})` }));
-    const sizeRow = h('div', { class:'rozrys-inline-row', style:'display:flex;gap:8px' });
+    const sizeRow = h('div', { class:'rozrys-inline-row rozrys-format-row', style:'display:flex;gap:8px;align-items:stretch' });
     const inW = h('input', { id:'rozW', type:'number', value:String(state.boardW) });
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
-    sizeRow.appendChild(inW); sizeRow.appendChild(inH);
+    inW.classList.add('rozrys-format-input');
+    inH.classList.add('rozrys-format-input');
+    const saveToMag = h('button', { class:'btn', type:'button' });
+    saveToMag.textContent = 'Dodaj format';
+    sizeRow.appendChild(inW); sizeRow.appendChild(inH); sizeRow.appendChild(saveToMag);
     sizeWrap.appendChild(sizeRow);
     controls.appendChild(sizeWrap);
 
@@ -1269,14 +1385,16 @@
     card.appendChild(controls);
     card.appendChild(controls2);
     function persistOptionPrefs(){
-      savePanelPrefs({
+      savePanelPrefs(Object.assign({}, loadPanelPrefs(), {
+        selectedRooms: encodeRoomsSelection(selectedRooms),
+        materialScope: encodeMaterialScope(materialScope),
         unit: unitSel.value,
         edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
         kerf: Math.max(0, Number(inK.value)||0),
         edgeTrim: Math.max(0, Number(inTrim.value)||0),
         minScrapW: Math.max(0, Number(inMinW.value)||0),
         minScrapH: Math.max(0, Number(inMinH.value)||0),
-      });
+      }));
     }
 
     function applyUnitChange(next){
@@ -1493,11 +1611,8 @@
 
     // action buttons
     const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap' });
-    const saveToMag = h('button', { class:'btn', type:'button' });
-    saveToMag.textContent = 'Zapisz format do magazynu';
     const genBtn = h('button', { class:'btn-generate-green', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
-    btnRow.appendChild(saveToMag);
     btnRow.appendChild(genBtn);
     card.appendChild(btnRow);
 
@@ -1530,6 +1645,7 @@
 
     root.appendChild(card);
 
+
     function applyHintFromMagazyn(material){
       try{
         const hint = (FC.magazyn && FC.magazyn.getPreferredFormat) ? FC.magazyn.getPreferredFormat(material) : null;
@@ -1543,94 +1659,246 @@
       }catch(_){ }
     }
 
-    function getPickerMeta(value){
-      const special = specialMaterialOptions.find((item)=> item.value === value);
-      if(special) return { title:special.title, subtitle:special.subtitle || '' };
-      const split = splitMaterialAccordionTitle(value);
+    function getScopeSummary(scope, aggregate){
+      const normalized = normalizeMaterialScopeForAggregate(scope, aggregate);
+      const modeLabel = normalized.includeFronts && normalized.includeCorpus ? 'Fronty + korpusy' : (normalized.includeFronts ? 'Same fronty' : 'Same korpusy');
+      if(normalized.kind !== 'material'){
+        return { title:'Wszystkie materiały', subtitle:modeLabel };
+      }
+      const split = splitMaterialAccordionTitle(normalized.material);
       return {
-        title: split.line1 || String(value || 'Materiał'),
-        subtitle: split.line2 || 'Pojedynczy materiał'
+        title: split.line1 || normalized.material || 'Materiał',
+        subtitle: [split.line2 || '', modeLabel].filter(Boolean).join(' • ')
       };
     }
 
+    function getRoomsSummary(rooms){
+      const normalized = decodeRoomsSelection(rooms);
+      if(!normalized.length) return { title:'Brak pomieszczeń', subtitle:'' };
+      if(normalized.length === getRooms().length) return { title:'Wszystkie pomieszczenia', subtitle:normalized.map(roomLabel).join(' • ') };
+      if(normalized.length === 1) return { title:roomLabel(normalized[0]), subtitle:'Jedno pomieszczenie' };
+      return { title:`${normalized.length} pomieszczenia`, subtitle:normalized.map(roomLabel).join(' • ') };
+    }
+
+    function updateRoomsPickerButton(){
+      const meta = getRoomsSummary(selectedRooms);
+      roomsPickerValue.innerHTML = '';
+      roomsPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:meta.title }));
+      if(meta.subtitle) roomsPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:meta.subtitle }));
+    }
+
     function updateMaterialPickerButton(){
-      const meta = getPickerMeta(String(matSel.value || state.material || ''));
+      const meta = getScopeSummary(materialScope, agg);
       matPickerValue.innerHTML = '';
-      matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text: meta.title }));
-      if(meta.subtitle){
-        matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text: meta.subtitle }));
+      matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:meta.title }));
+      if(meta.subtitle) matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:meta.subtitle }));
+    }
+
+    function persistSelectionPrefs(){
+      savePanelPrefs(Object.assign({}, loadPanelPrefs(), {
+        selectedRooms: encodeRoomsSelection(selectedRooms),
+        materialScope: encodeMaterialScope(materialScope),
+      }));
+    }
+
+    function syncHiddenSelections(){
+      roomsSel.value = encodeRoomsSelection(selectedRooms);
+      matSel.value = encodeMaterialScope(materialScope);
+      state.material = (materialScope.kind === 'material' && materialScope.material) ? materialScope.material : (agg.materials[0] || '');
+    }
+
+    function refreshSelectionState(opts){
+      const cfg = Object.assign({ keepFormatHint:true, rerender:true }, opts || {});
+      agg = aggregatePartsForProject(selectedRooms);
+      materialScope = normalizeMaterialScopeForAggregate(materialScope, agg);
+      syncHiddenSelections();
+      updateRoomsPickerButton();
+      updateMaterialPickerButton();
+      if(cfg.keepFormatHint){
+        const hintMaterial = materialScope.kind === 'material' ? materialScope.material : (agg.materials[0] || '');
+        if(hintMaterial) applyHintFromMagazyn(hintMaterial);
       }
-      matPickerHint.textContent = 'Własny picker zakresu / materiału';
+      updateGrainAvailability();
+      renderOverrides();
+      persistSelectionPrefs();
+      if(cfg.rerender) tryAutoRenderFromCache();
+    }
+
+    function buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus){
+      const chips = h('div', { class:'rozrys-scope-chips' });
+      const bindChip = (label, key, enabled)=>{
+        if(!enabled) return null;
+        const chip = h('label', { class:'rozrys-scope-chip' });
+        const cb = h('input', { type:'checkbox' });
+        cb.checked = !!draftScope[key];
+        cb.addEventListener('change', ()=>{
+          draftScope[key] = !!cb.checked;
+          if(!draftScope.includeFronts && !draftScope.includeCorpus){
+            draftScope[key] = true;
+            cb.checked = true;
+          }
+        });
+        chip.appendChild(cb);
+        chip.appendChild(h('span', { text:label }));
+        chips.appendChild(chip);
+        return chip;
+      };
+      if(hasFronts && hasCorpus){
+        bindChip('Fronty', 'includeFronts', true);
+        bindChip('Korpusy', 'includeCorpus', true);
+      }else{
+        chips.appendChild(h('span', { class:'rozrys-scope-badge', text: hasFronts ? 'Fronty' : 'Korpusy' }));
+        draftScope.includeFronts = !!hasFronts;
+        draftScope.includeCorpus = !!hasCorpus;
+      }
+      holder.appendChild(chips);
+    }
+
+    function openRoomsPicker(){
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+      const draft = new Set(selectedRooms);
+      const body = h('div', { class:'rozrys-picker-modal' });
+      const list = h('div', { class:'rozrys-picker-list' });
+      getRooms().forEach((room)=>{
+        const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check' });
+        const top = h('div', { class:'rozrys-picker-check__top' });
+        const cb = h('input', { type:'checkbox' });
+        cb.checked = draft.has(room);
+        cb.addEventListener('change', ()=>{
+          if(cb.checked) draft.add(room);
+          else draft.delete(room);
+        });
+        top.appendChild(cb);
+        top.appendChild(h('div', { class:'rozrys-picker-option__title', text:roomLabel(room) }));
+        cardNode.appendChild(top);
+        list.appendChild(cardNode);
+      });
+      body.appendChild(list);
+
+      const footer = h('div', { class:'rozrys-picker-footer' });
+      const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' });
+      const cancelBtn = h('button', { type:'button', class:'btn', text:'Anuluj' });
+      const saveBtn = h('button', { type:'button', class:'btn-primary', text:'Zapisz' });
+      allBtn.addEventListener('click', ()=>{
+        draft.clear();
+        getRooms().forEach((room)=> draft.add(room));
+        try{ FC.panelBox.close(); }catch(_){ }
+        selectedRooms = getRooms().slice();
+        refreshSelectionState();
+      });
+      cancelBtn.addEventListener('click', ()=> FC.panelBox.close());
+      saveBtn.addEventListener('click', ()=>{
+        const nextRooms = normalizeRoomSelection(Array.from(draft));
+        if(!nextRooms.length){
+          openRozrysInfo('Brak pomieszczeń', 'Wybierz przynajmniej jedno pomieszczenie do rozrysu.');
+          return;
+        }
+        selectedRooms = nextRooms;
+        FC.panelBox.close();
+        refreshSelectionState();
+      });
+      footer.appendChild(allBtn);
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      body.appendChild(footer);
+      FC.panelBox.open({ title:'Wybierz pomieszczenia', contentNode: body, width:'720px', dismissOnOverlay:false });
     }
 
     function openMaterialPicker(){
       if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
       const body = h('div', { class:'rozrys-picker-modal' });
-      body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Wybierz zakres generowania albo jeden konkretny materiał.' }));
-      const search = h('input', { type:'text', class:'rozrys-picker-search', placeholder:'Szukaj materiału…' });
-      body.appendChild(search);
+      const list = h('div', { class:'rozrys-picker-list' });
+      const draftScope = makeMaterialScope(materialScope);
+      const cards = [];
 
-      const specialWrap = h('div');
-      specialWrap.appendChild(h('div', { class:'rozrys-picker-section-title', text:'Zakres generowania' }));
-      const specialGrid = h('div', { class:'rozrys-picker-grid' });
-      specialWrap.appendChild(specialGrid);
-      body.appendChild(specialWrap);
-
-      const materialsWrap = h('div', { style:'margin-top:16px' });
-      materialsWrap.appendChild(h('div', { class:'rozrys-picker-section-title', text:'Konkretny materiał' }));
-      const materialList = h('div', { class:'rozrys-picker-list' });
-      const emptyState = h('div', { class:'muted xs', style:'display:none;padding:10px 4px', text:'Brak materiałów pasujących do filtra.' });
-      materialsWrap.appendChild(materialList);
-      materialsWrap.appendChild(emptyState);
-      body.appendChild(materialsWrap);
-
-      const makeOptionBtn = (value, title, subtitle)=>{
-        const btn = h('button', { type:'button', class:'rozrys-picker-option' });
-        btn.dataset.value = String(value || '');
-        btn.appendChild(h('div', { class:'rozrys-picker-option__title', text:String(title || '') }));
-        if(subtitle) btn.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:String(subtitle) }));
-        if(String(matSel.value || '') === String(value || '')) btn.classList.add('is-selected');
-        btn.addEventListener('click', ()=>{
-          matSel.value = String(value || '');
-          updateMaterialPickerButton();
-          FC.panelBox.close();
-          try{ matSel.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ matSel.dispatchEvent(new Event('change')); }
+      function markSelected(){
+        cards.forEach(({ node, config })=>{
+          const active = draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material);
+          node.classList.toggle('is-selected', active);
         });
-        return btn;
+      }
+
+      const renderCard = (config)=>{
+        const cardNode = h('div', { class:'rozrys-picker-option rozrys-picker-card' });
+        const titleWrap = h('div', { class:'rozrys-picker-option__title-wrap' });
+        titleWrap.appendChild(h('div', { class:'rozrys-picker-option__title', text:config.title }));
+        if(config.subtitle) titleWrap.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:config.subtitle }));
+        cardNode.appendChild(titleWrap);
+        const scopeHolder = h('div');
+        const localScope = makeMaterialScope({ kind:config.kind, material:config.material || '', includeFronts:config.includeFronts, includeCorpus:config.includeCorpus });
+        buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus);
+        scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
+        scopeHolder.querySelectorAll('input[type="checkbox"]').forEach((cb)=>{
+          cb.addEventListener('change', ()=>{
+            draftScope.kind = config.kind;
+            draftScope.material = config.kind === 'material' ? config.material : '';
+            draftScope.includeFronts = !!localScope.includeFronts;
+            draftScope.includeCorpus = !!localScope.includeCorpus;
+            markSelected();
+          });
+        });
+        cardNode.addEventListener('click', ()=>{
+          draftScope.kind = config.kind;
+          draftScope.material = config.kind === 'material' ? config.material : '';
+          draftScope.includeFronts = !!localScope.includeFronts;
+          draftScope.includeCorpus = !!localScope.includeCorpus;
+          markSelected();
+        });
+        cardNode.appendChild(scopeHolder);
+        cards.push({ node: cardNode, config });
+        return cardNode;
       };
 
-      specialMaterialOptions.forEach((item)=>{
-        specialGrid.appendChild(makeOptionBtn(item.value, item.title, item.subtitle));
+      const anyFronts = agg.materials.some((material)=> !!(agg.groups && agg.groups[material] && agg.groups[material].hasFronts));
+      const anyCorpus = agg.materials.some((material)=> !!(agg.groups && agg.groups[material] && agg.groups[material].hasCorpus));
+      list.appendChild(renderCard({
+        kind:'all',
+        title:'Wszystkie materiały',
+        subtitle:'Zaznaczone pomieszczenia',
+        includeFronts:anyFronts,
+        includeCorpus:anyCorpus,
+        hasFronts:anyFronts,
+        hasCorpus:anyCorpus,
+      }));
+
+      agg.materials.forEach((material)=>{
+        const group = agg.groups && agg.groups[material] ? agg.groups[material] : null;
+        if(!group) return;
+        const split = splitMaterialAccordionTitle(material);
+        list.appendChild(renderCard({
+          kind:'material',
+          material,
+          title:split.line1 || material,
+          subtitle:split.line2 || '',
+          includeFronts:!!group.hasFronts,
+          includeCorpus:!!group.hasCorpus,
+          hasFronts:!!group.hasFronts,
+          hasCorpus:!!group.hasCorpus,
+        }));
       });
+      body.appendChild(list);
+      markSelected();
 
-      const materialButtons = agg.materials.map((material)=>{
-        const meta = getPickerMeta(material);
-        const btn = makeOptionBtn(material, meta.title, meta.subtitle || '');
-        materialList.appendChild(btn);
-        return { material, btn };
+      const footer = h('div', { class:'rozrys-picker-footer' });
+      const cancelBtn = h('button', { type:'button', class:'btn', text:'Anuluj' });
+      const saveBtn = h('button', { type:'button', class:'btn-primary', text:'Zapisz' });
+      cancelBtn.addEventListener('click', ()=> FC.panelBox.close());
+      saveBtn.addEventListener('click', ()=>{
+        materialScope = normalizeMaterialScopeForAggregate(draftScope, agg);
+        FC.panelBox.close();
+        refreshSelectionState();
       });
-
-      const applyFilter = ()=>{
-        const term = String(search.value || '').trim().toLowerCase();
-        let visible = 0;
-        materialButtons.forEach(({ material, btn })=>{
-          const hay = String(material || '').toLowerCase();
-          const show = !term || hay.includes(term);
-          btn.style.display = show ? '' : 'none';
-          if(show) visible += 1;
-        });
-        emptyState.style.display = visible ? 'none' : '';
-      };
-      search.addEventListener('input', applyFilter);
-      applyFilter();
-
-      FC.panelBox.open({ title:'Wybierz zakres / materiał', contentNode: body, width:'760px' });
-      setTimeout(()=>{ try{ search.focus(); }catch(_){ } }, 0);
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      body.appendChild(footer);
+      FC.panelBox.open({ title:'Wybierz materiał / grupę', contentNode: body, width:'760px', dismissOnOverlay:false });
     }
 
+    updateRoomsPickerButton();
     updateMaterialPickerButton();
+    syncHiddenSelections();
+    roomsPickerBtn.addEventListener('click', openRoomsPicker);
     matPickerBtn.addEventListener('click', openMaterialPicker);
-
     // Helper: whether current material (by name) is marked as having grain in the price list.
     function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
       try{
@@ -1654,35 +1922,29 @@
     }
 
     function updateGrainAvailability(){
-      const sel = String(matSel.value||'');
-      // For bulk modes keep the checkbox enabled; grain will apply only to materials that have grain.
-      if(sel === '__ALL__' || sel === '__FRONTS__' || sel === '__NO_FRONTS__'){
+      const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
+      if(scope.kind !== 'material'){
         grainChk.disabled = false;
         return;
       }
-      if(!sel || sel.startsWith('__')){
-        grainChk.checked = false;
-        grainChk.disabled = true;
-        return;
-      }
-      const has = materialHasGrain(sel);
+      const has = materialHasGrain(scope.material);
       if(has){
         grainChk.disabled = false;
       } else {
-        // If material has no grain, don't enforce direction and don't show overrides.
         grainChk.checked = false;
         grainChk.disabled = true;
       }
     }
 
     function renderOverrides(){
-      const sel = String(matSel.value||'');
-      const grainOn = (!!grainChk.checked) && (!!sel) && (!sel.startsWith('__')) && materialHasGrain(sel);
+      const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
+      const grainOn = (!!grainChk.checked) && (scope.kind === 'material') && materialHasGrain(scope.material);
       overridesBox.innerHTML = '';
       overridesBox.style.display = grainOn ? 'block' : 'none';
       if(!grainOn) return;
 
-      const parts = agg.byMaterial[matSel.value] || [];
+      const group = agg.groups && agg.groups[scope.material] ? agg.groups[scope.material] : null;
+      const parts = getGroupPartsForScope(group, scope);
       const overrides = loadOverrides();
 
       overridesBox.appendChild(h('div', { class:'muted xs', style:'font-weight:900;margin-bottom:6px', text:'Wyjątki: pozwól obrót dla wybranych elementów (mimo słoi)' }));
@@ -1725,11 +1987,13 @@
       };
     }
 
+
     function tryAutoRenderFromCache(){
       try{
         if(_rozrysRunning) return false;
-        const sel = String(matSel.value || '');
-        if(!sel){
+        const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
+        const entries = buildEntriesForScope(scope, agg);
+        if(!entries.length){
           out.innerHTML = '';
           setGenBtnMode('idle');
           return false;
@@ -1737,52 +2001,20 @@
 
         const cache = loadPlanCache();
         const stBase = getBaseState();
-
-        if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
-          const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
-          const derived = deriveAggForMode(mode, agg);
-          const entries = [];
-          let allHit = true;
-          for(const m of derived.materials){
-            const parts = derived.byMaterial[m] || [];
-            const st = Object.assign({}, stBase, { material: m, grain: !!(stBase.grain && materialHasGrain(m)) });
-            const cacheKey = makePlanCacheKey(st, parts);
-            if(cache[cacheKey] && cache[cacheKey].plan){
-              entries.push({ material:m, parts, st, plan: cache[cacheKey].plan });
-            } else {
-              allHit = false;
-            }
-          }
-          const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(sel, agg), mode, entries);
-          setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
-          return anyHit;
-        }
-
-        if(sel.startsWith('__')){
-          out.innerHTML = '';
-          setGenBtnMode('idle');
-          return false;
-        }
-
-        const orderedMaterials = getOrderedMaterialsForSelection(sel, agg);
-        const sourceByMaterial = (agg && agg.byMaterial) || {};
-        const entries = [];
+        const hits = [];
         let allHit = true;
-        for(const material of orderedMaterials){
-          const parts = sourceByMaterial[material] || [];
-          if(!parts.length){
-            allHit = false;
-            continue;
-          }
-          const st = Object.assign({}, stBase, { material, grain: !!(stBase.grain && materialHasGrain(material)) });
+        for(const entry of entries){
+          const material = entry.material;
+          const parts = entry.parts || [];
+          const st = Object.assign({}, stBase, { material, grain: !!(stBase.grain && materialHasGrain(material)), selectedRooms: (agg.selectedRooms || []).slice() });
           const cacheKey = makePlanCacheKey(st, parts);
           if(cache[cacheKey] && cache[cacheKey].plan){
-            entries.push({ material, parts, st, plan: cache[cacheKey].plan });
+            hits.push({ material, parts, st, plan: cache[cacheKey].plan });
           } else {
             allHit = false;
           }
         }
-        const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(sel, agg), getRozrysScopeMode(sel), entries);
+        const anyHit = renderMaterialAccordionPlans(getAccordionScopeKey(scope, agg), getRozrysScopeMode(scope), hits);
         setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
         return anyHit;
       }catch(_){
@@ -1792,6 +2024,15 @@
       }
     }
 
+    function buildEntriesForScope(selection, aggregate){
+      const scope = normalizeMaterialScopeForAggregate(selection, aggregate);
+      const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
+      const orderedMaterials = getOrderedMaterialsForSelection(scope, aggRef);
+      return orderedMaterials.map((material)=>{
+        const group = aggRef.groups && aggRef.groups[material] ? aggRef.groups[material] : null;
+        return { material, parts: getGroupPartsForScope(group, scope) };
+      }).filter((entry)=> Array.isArray(entry.parts) && entry.parts.length);
+    }
 
 
   function splitMaterialAccordionTitle(material){
@@ -1866,6 +2107,7 @@
         meta: entry.plan && entry.plan.meta,
         parts: entry.parts || [],
         scopeMode,
+        selectedRooms: (entry.st && entry.st.selectedRooms) || (entry.selectedRooms || []),
       }, section.body);
       anyRendered = true;
     }
@@ -1885,7 +2127,7 @@
         : (meta && meta.meta && (meta.meta.unit === 'cm' || meta.meta.unit === 'mm'))
           ? meta.meta.unit
           : 'mm';
-      const diagnostics = buildRozrysDiagnostics(meta && meta.material, meta && meta.scopeMode, meta && meta.parts, plan);
+      const diagnostics = buildRozrysDiagnostics(meta && meta.material, meta && meta.scopeMode, meta && meta.parts, plan, meta && meta.selectedRooms);
       const validationLabel = validationSummaryLabel(diagnostics);
 
       const getBoardMeta = (sheet)=>{
@@ -2264,7 +2506,7 @@ async function generate(force){
     catch(_){ setTimeout(resolve, 0); }
   }); }catch(_){ }
   try{
-  const sel = matSel.value;
+  const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
   const baseSt = {
     unit: unitSel.value,
     edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
@@ -2367,7 +2609,7 @@ async function generate(force){
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
       if(runId !== _rozrysRunId) return;
-      renderOutput(cached, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta, parts, scopeMode: getRozrysScopeMode(matSel.value) }, target);
+      renderOutput(cached, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
       setGenBtnMode('done');
       return;
     }
@@ -2537,7 +2779,7 @@ async function generate(force){
         }catch(_){ }
       }
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-      renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: getRozrysScopeMode(matSel.value) }, target);
+      renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
       try{ setGlobalStatus(false, '', ''); }catch(_){ }
       setGenBtnMode('done');
       return;
@@ -2545,44 +2787,22 @@ async function generate(force){
 
     const plan = computePlan(st, parts);
     try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-    renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(matSel.value) }, target);
+    renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
     setGenBtnMode('done');
   };
 
-  if(sel === "__ALL__" || sel === "__FRONTS__" || sel === "__NO_FRONTS__"){
-    out.innerHTML = "";
-    const mode = (sel === "__ALL__") ? "all" : (sel === "__FRONTS__") ? "fronts" : "nofronts";
-    const derived = deriveAggForMode(mode, agg);
-    if(!derived.materials.length){
-      out.appendChild(h("div", { class:"muted", text:"Brak elementów do wygenerowania dla wybranego trybu." }));
-      return;
-    }
-    const accordionScopeKey = `scope:${sel}`;
-    const accordionPref = getAccordionPref(accordionScopeKey);
-    for(let idx = 0; idx < derived.materials.length; idx += 1){
-      const m = derived.materials[idx];
-      const parts = derived.byMaterial[m] || [];
-      const section = createMaterialAccordionSection(m, {
-        open: !!(accordionPref && accordionPref.open && accordionPref.material === m),
-        onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen)
-      });
-      out.appendChild(section.wrap);
-      await runOne(m, parts, section.body);
-      if(_rozrysCancelRequested) break;
-    }
+  out.innerHTML = "";
+  const entries = buildEntriesForScope(scope, agg);
+  if(!entries.length){
+    out.appendChild(h('div', { class:'muted', text:'Brak elementów do wygenerowania dla wybranego zakresu.' }));
     return;
   }
-
-  out.innerHTML = "";
-  const orderedMaterials = getOrderedMaterialsForSelection(sel, agg);
-  const sourceByMaterial = (agg && agg.byMaterial) || {};
-  const accordionScopeKey = getAccordionScopeKey(sel, agg);
+  const accordionScopeKey = getAccordionScopeKey(scope, agg);
   const accordionPref = getAccordionPref(accordionScopeKey);
-  let anyParts = false;
-  for(const material of orderedMaterials){
-    const parts = sourceByMaterial[material] || [];
+  for(const entry of entries){
+    const material = entry.material;
+    const parts = entry.parts || [];
     if(!parts.length) continue;
-    anyParts = true;
     const section = createMaterialAccordionSection(material, {
       open: !!(accordionPref && accordionPref.open && accordionPref.material === material),
       onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen)
@@ -2590,9 +2810,6 @@ async function generate(force){
     out.appendChild(section.wrap);
     await runOne(material, parts, section.body);
     if(_rozrysCancelRequested) break;
-  }
-  if(!anyParts){
-    out.appendChild(h('div', { class:'muted', text:'Brak elementów do wygenerowania dla wybranego materiału.' }));
   }
   } finally {
     _rozrysRunning = false;
@@ -2610,11 +2827,13 @@ async function generate(force){
     });
 
     matSel.addEventListener('change', ()=>{
-      const v = matSel.value;
+      materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
+      syncHiddenSelections();
       updateMaterialPickerButton();
-      if(v && !String(v).startsWith('__')) applyHintFromMagazyn(v);
+      if(materialScope.kind === 'material' && materialScope.material) applyHintFromMagazyn(materialScope.material);
       updateGrainAvailability();
       renderOverrides();
+      persistSelectionPrefs();
       tryAutoRenderFromCache();
     });
     grainChk.addEventListener('change', ()=>{
@@ -2636,21 +2855,55 @@ async function generate(force){
       tryAutoRenderFromCache();
     });
 
-    saveToMag.addEventListener('click', ()=>{
-      if(!(FC.magazyn && FC.magazyn.upsertSheet)){
+    saveToMag.addEventListener('click', async ()=>{
+      if(!(FC.magazyn && (FC.magazyn.addSheetStock || FC.magazyn.upsertSheet))){
         openRozrysInfo('Brak modułu magazynu', 'Nie udało się zapisać formatu, bo moduł Magazynu nie jest dostępny.');
         return;
       }
-      const material = matSel.value;
+      const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
+      const material = scope.kind === 'material' ? scope.material : (agg.materials[0] || '');
       const u = unitSel.value;
       const w = (u==='mm') ? (Number(inW.value)||0) : Math.round((Number(inW.value)||0)*10);
       const hh = (u==='mm') ? (Number(inH.value)||0) : Math.round((Number(inH.value)||0)*10);
-      if(!(w>0 && hh>0)){
-        openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format arkusza, zanim zapiszesz go do Magazynu.');
+      if(!material){
+        openRozrysInfo('Brak materiału', 'Najpierw wybierz materiał albo grupę materiałów.');
         return;
       }
-      FC.magazyn.upsertSheet({ material, width:w, height:hh, qty:0 });
-      openRozrysInfo('Zapisano format', 'Format został zapisany w Magazynie z ilością 0 szt.');
+      if(!(w>0 && hh>0)){
+        openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format arkusza, zanim dodasz go do Magazynu.');
+        return;
+      }
+      const ok = await askRozrysConfirm({
+        title:'DODAĆ FORMAT DO MAGAZYNU?',
+        message:`Materiał: ${material}
+Format: ${w}×${hh} mm
+Dodam 1 sztukę do magazynu.`,
+        confirmText:'Zapisz',
+        cancelText:'Anuluj',
+        confirmTone:'success',
+        cancelTone:'danger'
+      });
+      if(!ok) return;
+      let saved = false;
+      try{
+        if(FC.magazyn && typeof FC.magazyn.addSheetStock === 'function'){
+          saved = !!FC.magazyn.addSheetStock(material, w, hh, 1);
+        } else {
+          const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
+          const exact = (rows || []).find((row)=> Math.round(Number(row && row.width) || 0) === Math.round(w) && Math.round(Number(row && row.height) || 0) === Math.round(hh));
+          if(exact){
+            saved = !!FC.magazyn.upsertSheet({ id: exact.id, material, width:w, height:hh, qty: Math.max(0, Math.round(Number(exact.qty) || 0)) + 1 });
+          } else {
+            saved = !!FC.magazyn.upsertSheet({ material, width:w, height:hh, qty:1 });
+          }
+        }
+      }catch(_){ saved = false; }
+      if(!saved){
+        openRozrysInfo('Nie udało się dodać formatu', 'Spróbuj ponownie.');
+        return;
+      }
+      openRozrysInfo('Dodano format', 'Format został dodany do Magazynu (+1 szt.).');
+      if(material) applyHintFromMagazyn(material);
     });
 
     genBtn.addEventListener('click', ()=>{
