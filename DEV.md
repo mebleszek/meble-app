@@ -173,6 +173,9 @@ Dopiero potem go zmieniać.
 - [ ] Zmiana ustawień rozkroju działa.
 - [ ] Worker (jeśli użyty) nie wywala błędu.
 - [ ] Magazyn nie gubi danych.
+- [ ] Picker zakresu / materiału w ROZRYS otwiera własne okno zamiast systemowej listy.
+- [ ] Wybór jednego materiału pokazuje tylko ten materiał.
+- [ ] Zwinięte accordiony po rozwinięciu dalej pokazują wszystkie arkusze.
 
 ### Trwałość danych
 - [ ] Odświeżenie strony nie gubi aktywnego projektu.

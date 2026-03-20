@@ -157,17 +157,12 @@
     const allMaterials = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials.slice() : [];
     if(selection === '__ALL__' || selection === '__FRONTS__' || selection === '__NO_FRONTS__') return allMaterials;
     if(!selection) return allMaterials;
-    if(allMaterials.length <= 1) return selection ? [selection] : allMaterials;
-    const ordered = [selection, ...allMaterials.filter((m)=> m !== selection)];
-    return ordered.filter(Boolean);
+    return selection ? [selection] : allMaterials;
   }
 
   function getAccordionScopeKey(selection, aggregate){
     if(selection === '__ALL__' || selection === '__FRONTS__' || selection === '__NO_FRONTS__') return `scope:${selection}`;
-    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
-    const allMaterials = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials : [];
-    if(allMaterials.length > 1) return 'scope:all-materials';
-    return `scope:${selection}`;
+    return `scope:${String(selection || 'single')}`;
   }
 
   function buildResolvedSnapshotFromParts(parts){
@@ -458,6 +453,72 @@
     return row;
   }
 
+  function openRozrysInfo(title, message){
+    const boxTitle = String(title || 'Informacja');
+    const boxMessage = String(message || '');
+    if(FC.infoBox && typeof FC.infoBox.open === 'function'){
+      FC.infoBox.open({ title: boxTitle, message: boxMessage });
+      return;
+    }
+    if(FC.panelBox && typeof FC.panelBox.open === 'function'){
+      FC.panelBox.open({ title: boxTitle, message: boxMessage, width:'560px' });
+      return;
+    }
+    console.warn('[ROZRYS]', boxTitle, boxMessage);
+  }
+
+  function askRozrysConfirm(opts){
+    const cfg = Object.assign({
+      title:'POTWIERDZENIE',
+      message:'Czy kontynuować?',
+      confirmText:'✓ TAK',
+      cancelText:'WRÓĆ',
+      confirmTone:'success',
+      cancelTone:'danger'
+    }, opts || {});
+    if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
+      return FC.confirmBox.ask(cfg);
+    }
+    return new Promise((resolve)=>{
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')){
+        resolve(false);
+        return;
+      }
+      const body = h('div');
+      body.appendChild(h('div', { class:'muted', style:'white-space:pre-wrap;line-height:1.5', text:String(cfg.message || '') }));
+      const actions = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap' });
+      const cancelBtn = h('button', { type:'button', class: cfg.cancelTone === 'danger' ? 'btn-danger' : 'btn-primary', text:String(cfg.cancelText || 'WRÓĆ') });
+      const confirmBtn = h('button', { type:'button', class: cfg.confirmTone === 'danger' ? 'btn-danger' : 'btn-success', text:String(cfg.confirmText || '✓ TAK') });
+      const done = (result)=>{
+        try{ FC.panelBox.close(); }catch(_){ }
+        resolve(!!result);
+      };
+      cancelBtn.addEventListener('click', ()=> done(false));
+      confirmBtn.addEventListener('click', ()=> done(true));
+      actions.appendChild(cancelBtn);
+      actions.appendChild(confirmBtn);
+      body.appendChild(actions);
+      FC.panelBox.open({ title:String(cfg.title || 'POTWIERDZENIE'), contentNode: body, width:'560px', dismissOnOverlay:false, dismissOnEsc:true });
+    });
+  }
+
+  function scheduleSheetCanvasRefresh(scope){
+    const root = (scope && typeof scope.querySelectorAll === 'function') ? scope : null;
+    if(!root) return;
+    const redraw = ()=>{
+      root.querySelectorAll('canvas[data-rozrys-sheet="1"]').forEach((canvas)=>{
+        const payload = canvas.__rozrysDrawPayload;
+        if(!payload) return;
+        try{ drawSheet(canvas, payload.sheet, payload.displayUnit, payload.edgeSubMm, payload.boardMeta); }catch(_){ }
+      });
+    };
+    try{
+      requestAnimationFrame(()=> requestAnimationFrame(redraw));
+    }catch(_){
+      setTimeout(redraw, 0);
+    }
+  }
+
   // edgeSubMm: 0 => show nominal dimensions, >0 => show "do cięcia" dims (kompensacja okleiny)
   // Zasada kompensacji (zgodnie z ustaleniem):
   // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
@@ -474,8 +535,10 @@
       const usableW = Math.max(1, W - 2*trimMm);
       const usableH = Math.max(1, H - 2*trimMm);
 
-      const maxW = Math.min(900, canvas.parentElement ? canvas.parentElement.clientWidth : 900);
-      const scale = maxW / W;
+      const measuredParentW = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+      const viewportW = (typeof window !== 'undefined' && Number(window.innerWidth) > 0) ? Math.max(320, Number(window.innerWidth) - 48) : 900;
+      const maxW = Math.min(900, measuredParentW > 180 ? measuredParentW : viewportW);
+      const scale = Math.max(0.05, maxW / W);
       canvas.width = Math.round(W * scale);
       canvas.height = Math.round(H * scale);
 
@@ -729,21 +792,24 @@
       a.remove();
       URL.revokeObjectURL(url);
     }catch(_){
-      alert('Nie udało się pobrać pliku.');
+      openRozrysInfo('Nie udało się pobrać pliku', 'Przeglądarka nie pozwoliła pobrać przygotowanego pliku.');
     }
   }
 
   function openPrintView(html){
     try{
       const w = window.open('', '_blank');
-      if(!w) return alert('Przeglądarka zablokowała okno (pop-up).');
+      if(!w){
+        openRozrysInfo('Pop-up zablokowany', 'Przeglądarka zablokowała nowe okno potrzebne do podglądu wydruku.');
+        return;
+      }
       w.document.open();
       w.document.write(html);
       w.document.close();
       w.focus();
       setTimeout(()=>{ try{ w.print(); }catch(_){ } }, 250);
     }catch(_){
-      alert('Nie udało się otworzyć podglądu PDF.');
+      openRozrysInfo('Nie udało się otworzyć podglądu', 'Nie udało się otworzyć okna do wydruku / PDF.');
     }
   }
 
@@ -916,7 +982,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260315_half_reflow_v5');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260320_accordion_picker_fix_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1074,19 +1140,18 @@
     // material select
     const matWrap = h('div', { class:'rozrys-field' });
     matWrap.appendChild(h('label', { class:'rozrys-field__label', text:'Materiał / grupa' }));
-    const matSel = h('select', { id:'rozMat' });
-    // Specjalne tryby (generowanie na raz)
-    [
-      { v:'__ALL__', t:'WSZYSTKIE' },
-      { v:'__FRONTS__', t:'FRONTY' },
-      { v:'__NO_FRONTS__', t:'BEZ FRONTÓW' },
-    ].forEach(x=>{
+    const matSel = h('select', { id:'rozMat', style:'display:none' });
+    const specialMaterialOptions = [
+      { value:'__ALL__', title:'WSZYSTKIE', subtitle:'Wygeneruj rozkrój dla wszystkich materiałów' },
+      { value:'__FRONTS__', title:'FRONTY', subtitle:'Pokaż tylko materiały frontowe' },
+      { value:'__NO_FRONTS__', title:'BEZ FRONTÓW', subtitle:'Pokaż tylko materiały bez frontów' },
+    ];
+    specialMaterialOptions.forEach((item)=>{
       const o = document.createElement('option');
-      o.value = x.v;
-      o.textContent = x.t;
+      o.value = item.value;
+      o.textContent = item.title;
       matSel.appendChild(o);
     });
-    // Separator (disabled)
     {
       const o = document.createElement('option');
       o.value = '';
@@ -1094,14 +1159,19 @@
       o.disabled = true;
       matSel.appendChild(o);
     }
-    // Konkretny materiał
-    agg.materials.forEach(m=>{
+    agg.materials.forEach((m)=>{
       const o = document.createElement('option');
       o.value = m;
       o.textContent = m;
       matSel.appendChild(o);
     });
     matSel.value = state.material;
+    const matPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch' });
+    const matPickerValue = h('div', { class:'rozrys-picker-launch__value' });
+    const matPickerHint = h('div', { class:'muted xs rozrys-picker-launch__hint' });
+    matPickerBtn.appendChild(matPickerValue);
+    matPickerBtn.appendChild(matPickerHint);
+    matWrap.appendChild(matPickerBtn);
     matWrap.appendChild(matSel);
     controls.appendChild(matWrap);
 
@@ -1364,32 +1434,26 @@
 
       function confirmDiscardIfDirty(){
         if(!isDirty) return Promise.resolve(true);
-        if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
-          return window.FC.confirmBox.ask({
-            title:'ANULOWAĆ ZMIANY?',
-            message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
-            confirmText:'✕ ANULUJ ZMIANY',
-            cancelText:'WRÓĆ',
-            confirmTone:'danger',
-            cancelTone:'success'
-          });
-        }
-        return Promise.resolve(window.confirm('Czy na pewno chcesz anulować zmiany?'));
+        return askRozrysConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'success'
+        });
       }
 
       function confirmSaveIfDirty(){
         if(!isDirty) return Promise.resolve(true);
-        if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
-          return window.FC.confirmBox.ask({
-            title:'ZAPISAĆ ZMIANY?',
-            message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
-            confirmText:'✓ ZAPISZ',
-            cancelText:'WRÓĆ',
-            confirmTone:'success',
-            cancelTone:'danger'
-          });
-        }
-        return Promise.resolve(window.confirm('Czy zapisać zmienione opcje?'));
+        return askRozrysConfirm({
+          title:'ZAPISAĆ ZMIANY?',
+          message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
+          confirmText:'✓ ZAPISZ',
+          cancelText:'WRÓĆ',
+          confirmTone:'success',
+          cancelTone:'danger'
+        });
       }
 
       function wireDirty(el){
@@ -1478,6 +1542,94 @@
         }
       }catch(_){ }
     }
+
+    function getPickerMeta(value){
+      const special = specialMaterialOptions.find((item)=> item.value === value);
+      if(special) return { title:special.title, subtitle:special.subtitle || '' };
+      const split = splitMaterialAccordionTitle(value);
+      return {
+        title: split.line1 || String(value || 'Materiał'),
+        subtitle: split.line2 || 'Pojedynczy materiał'
+      };
+    }
+
+    function updateMaterialPickerButton(){
+      const meta = getPickerMeta(String(matSel.value || state.material || ''));
+      matPickerValue.innerHTML = '';
+      matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text: meta.title }));
+      if(meta.subtitle){
+        matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text: meta.subtitle }));
+      }
+      matPickerHint.textContent = 'Własny picker zakresu / materiału';
+    }
+
+    function openMaterialPicker(){
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+      const body = h('div', { class:'rozrys-picker-modal' });
+      body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Wybierz zakres generowania albo jeden konkretny materiał.' }));
+      const search = h('input', { type:'text', class:'rozrys-picker-search', placeholder:'Szukaj materiału…' });
+      body.appendChild(search);
+
+      const specialWrap = h('div');
+      specialWrap.appendChild(h('div', { class:'rozrys-picker-section-title', text:'Zakres generowania' }));
+      const specialGrid = h('div', { class:'rozrys-picker-grid' });
+      specialWrap.appendChild(specialGrid);
+      body.appendChild(specialWrap);
+
+      const materialsWrap = h('div', { style:'margin-top:16px' });
+      materialsWrap.appendChild(h('div', { class:'rozrys-picker-section-title', text:'Konkretny materiał' }));
+      const materialList = h('div', { class:'rozrys-picker-list' });
+      const emptyState = h('div', { class:'muted xs', style:'display:none;padding:10px 4px', text:'Brak materiałów pasujących do filtra.' });
+      materialsWrap.appendChild(materialList);
+      materialsWrap.appendChild(emptyState);
+      body.appendChild(materialsWrap);
+
+      const makeOptionBtn = (value, title, subtitle)=>{
+        const btn = h('button', { type:'button', class:'rozrys-picker-option' });
+        btn.dataset.value = String(value || '');
+        btn.appendChild(h('div', { class:'rozrys-picker-option__title', text:String(title || '') }));
+        if(subtitle) btn.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:String(subtitle) }));
+        if(String(matSel.value || '') === String(value || '')) btn.classList.add('is-selected');
+        btn.addEventListener('click', ()=>{
+          matSel.value = String(value || '');
+          updateMaterialPickerButton();
+          FC.panelBox.close();
+          try{ matSel.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ matSel.dispatchEvent(new Event('change')); }
+        });
+        return btn;
+      };
+
+      specialMaterialOptions.forEach((item)=>{
+        specialGrid.appendChild(makeOptionBtn(item.value, item.title, item.subtitle));
+      });
+
+      const materialButtons = agg.materials.map((material)=>{
+        const meta = getPickerMeta(material);
+        const btn = makeOptionBtn(material, meta.title, meta.subtitle || '');
+        materialList.appendChild(btn);
+        return { material, btn };
+      });
+
+      const applyFilter = ()=>{
+        const term = String(search.value || '').trim().toLowerCase();
+        let visible = 0;
+        materialButtons.forEach(({ material, btn })=>{
+          const hay = String(material || '').toLowerCase();
+          const show = !term || hay.includes(term);
+          btn.style.display = show ? '' : 'none';
+          if(show) visible += 1;
+        });
+        emptyState.style.display = visible ? 'none' : '';
+      };
+      search.addEventListener('input', applyFilter);
+      applyFilter();
+
+      FC.panelBox.open({ title:'Wybierz zakres / materiał', contentNode: body, width:'760px' });
+      setTimeout(()=>{ try{ search.focus(); }catch(_){ } }, 0);
+    }
+
+    updateMaterialPickerButton();
+    matPickerBtn.addEventListener('click', openMaterialPicker);
 
     // Helper: whether current material (by name) is marked as having grain in the price list.
     function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
@@ -1615,6 +1767,7 @@
         const orderedMaterials = getOrderedMaterialsForSelection(sel, agg);
         const sourceByMaterial = (agg && agg.byMaterial) || {};
         const entries = [];
+        let allHit = true;
         for(const material of orderedMaterials){
           const parts = sourceByMaterial[material] || [];
           if(!parts.length){
@@ -1678,6 +1831,7 @@
       body.hidden = !isOpen;
       body.style.display = isOpen ? '' : 'none';
       trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if(isOpen) scheduleSheetCanvasRefresh(body);
       if(notify !== false && typeof opts.onToggle === 'function'){
         try{ opts.onToggle(isOpen, material, wrap); }catch(_){ }
       }
@@ -1887,6 +2041,8 @@
         canvas.style.marginTop = '10px';
         box.appendChild(canvas);
         tgt.appendChild(box);
+        canvas.dataset.rozrysSheet = '1';
+        canvas.__rozrysDrawPayload = { sheet: s, displayUnit: u, edgeSubMm, boardMeta: getBoardMeta(s) };
         drawSheet(canvas, s, u, edgeSubMm, getBoardMeta(s));
       });
     }
@@ -1934,7 +2090,7 @@
 
     
     // ===== Cache planów rozkroju (żeby nie liczyć ponownie)
-    const PLAN_CACHE_KEY = 'fc_rozrys_plan_cache_v1';
+    const PLAN_CACHE_KEY = 'fc_rozrys_plan_cache_v2';
 
     function hashStr(s){
       // szybki, stabilny hash (djb2)
@@ -2455,6 +2611,7 @@ async function generate(force){
 
     matSel.addEventListener('change', ()=>{
       const v = matSel.value;
+      updateMaterialPickerButton();
       if(v && !String(v).startsWith('__')) applyHintFromMagazyn(v);
       updateGrainAvailability();
       renderOverrides();
@@ -2480,14 +2637,20 @@ async function generate(force){
     });
 
     saveToMag.addEventListener('click', ()=>{
-      if(!(FC.magazyn && FC.magazyn.upsertSheet)) return alert('Brak modułu magazynu');
+      if(!(FC.magazyn && FC.magazyn.upsertSheet)){
+        openRozrysInfo('Brak modułu magazynu', 'Nie udało się zapisać formatu, bo moduł Magazynu nie jest dostępny.');
+        return;
+      }
       const material = matSel.value;
       const u = unitSel.value;
       const w = (u==='mm') ? (Number(inW.value)||0) : Math.round((Number(inW.value)||0)*10);
       const hh = (u==='mm') ? (Number(inH.value)||0) : Math.round((Number(inH.value)||0)*10);
-      if(!(w>0 && hh>0)) return alert('Podaj format płyty');
+      if(!(w>0 && hh>0)){
+        openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format arkusza, zanim zapiszesz go do Magazynu.');
+        return;
+      }
       FC.magazyn.upsertSheet({ material, width:w, height:hh, qty:0 });
-      alert('Zapisano format w Magazyn (ilość = 0).');
+      openRozrysInfo('Zapisano format', 'Format został zapisany w Magazynie z ilością 0 szt.');
     });
 
     genBtn.addEventListener('click', ()=>{

@@ -505,6 +505,48 @@
   color:#0f172a;
 }
 
+.rozrys-picker-launch{
+  width:100%;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  min-height:58px;
+  text-align:left;
+  padding:12px 14px;
+}
+.rozrys-picker-launch::after{
+  content:'▾';
+  flex:0 0 auto;
+  font-size:22px;
+  line-height:1;
+  color:#16a34a;
+}
+.rozrys-picker-launch__value{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.rozrys-picker-launch__title{font-weight:800;color:#0f172a;line-height:1.15;}
+.rozrys-picker-launch__subtitle{font-size:13px;color:#475569;line-height:1.2;}
+.rozrys-picker-launch__hint{margin-top:2px;text-align:left;}
+.rozrys-picker-modal{display:flex;flex-direction:column;gap:0;}
+.rozrys-picker-search{margin-bottom:14px;}
+.rozrys-picker-section-title{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:2px 0 10px;}
+.rozrys-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.rozrys-picker-list{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow:auto;padding-right:2px;}
+.rozrys-picker-option{
+  width:100%;
+  border:1px solid #dbe7f3;
+  border-radius:16px;
+  background:#fff;
+  text-align:left;
+  padding:14px 16px;
+  cursor:pointer;
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  box-shadow:0 4px 18px rgba(15,23,42,.04);
+}
+.rozrys-picker-option:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(2,6,23,0.08);}
+.rozrys-picker-option.is-selected{border-color:#16a34a;box-shadow:0 10px 28px rgba(22,163,74,.12);}
+.rozrys-picker-option__title{font-weight:800;color:#0f172a;line-height:1.15;}
+.rozrys-picker-option__subtitle{margin-top:4px;font-size:13px;line-height:1.25;color:#475569;}
+
 .rozrys-material-accordion{
   margin-top:14px;
   border:1px solid #e5edf5;
@@ -564,6 +606,9 @@
   border-top:1px solid #edf2f7;
 }
 @media (max-width: 640px){
+  .rozrys-picker-launch{padding:12px 12px;}
+  .rozrys-picker-grid{grid-template-columns:1fr;}
+  .rozrys-picker-option{padding:13px 14px;}
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
   .rozrys-material-accordion__trigger{ padding:16px 16px; }
   .rozrys-material-accordion__title-line1,
