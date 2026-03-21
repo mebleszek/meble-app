@@ -449,3 +449,6 @@ Dopiero potem go zmieniać.
 
 
 - PDF/druk ROZRYS: małe arkusze mogą trafić 2 na stronę tylko bez zmiany wspólnej skali względem pełnej płyty; nie wolno ich rozciągać do wolnego miejsca strony.
+
+
+- 2026-03-22: PDF eksport ROZRYS — wszystkie arkusze obracane o 90° w druku; małe arkusze mogą wejść 2 na stronę tylko przy tej samej skali względem pełnej płyty.

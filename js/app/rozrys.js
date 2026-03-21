@@ -2710,6 +2710,7 @@
         const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
         const escapeHtml = (value)=> String(value == null ? '' : value).replace(/[&<>"]/g, (ch)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
         const imgs = [];
+        const rotatePdfSheets = true;
         try{
           sheets.forEach((s)=>{
             const c = document.createElement('canvas');
@@ -2722,29 +2723,51 @@
             tmp.appendChild(c);
             document.body.appendChild(tmp);
             drawSheet(c, s, u, edgeSubMm, getBoardMeta(s));
-            imgs.push({ src:c.toDataURL('image/png'), width:c.width || 0, height:c.height || 0 });
+            let exportCanvas = c;
+            if(rotatePdfSheets){
+              const rotated = document.createElement('canvas');
+              rotated.width = c.height || 0;
+              rotated.height = c.width || 0;
+              const rctx = rotated.getContext('2d');
+              if(rctx){
+                rctx.translate(rotated.width / 2, rotated.height / 2);
+                rctx.rotate(Math.PI / 2);
+                rctx.drawImage(c, -(c.width || 0) / 2, -(c.height || 0) / 2);
+                exportCanvas = rotated;
+              }
+            }
+            imgs.push({ src:exportCanvas.toDataURL('image/png'), width:exportCanvas.width || 0, height:exportCanvas.height || 0 });
             tmp.remove();
           });
         }catch(_){ }
 
         const PRINT = {
-          pageW: 281,
-          pageH: 194,
-          headerH: 18,
+          pageW: 194,
+          pageH: 281,
+          headerH: 14,
           bodyPadX: 4,
           bodyPadBottom: 3,
           pageGap: 5,
           itemGap: 5,
-          metaH: 7,
+          metaH: 6,
           imgPad: 2,
         };
         const refBoard = sheets.reduce((acc, s)=>{
           const bm = getBoardMeta(s);
+          const refW = Number((bm && bm.referenceBoardW) || (bm && bm.boardW) || 0);
+          const refH = Number((bm && bm.referenceBoardH) || (bm && bm.boardH) || 0);
           return {
-            w: Math.max(acc.w, Number((bm && bm.referenceBoardW) || (bm && bm.boardW) || 0)),
-            h: Math.max(acc.h, Number((bm && bm.referenceBoardH) || (bm && bm.boardH) || 0)),
+            w: Math.max(acc.w, rotatePdfSheets ? refH : refW),
+            h: Math.max(acc.h, rotatePdfSheets ? refW : refH),
           };
-        }, { w: Math.max(1, Number((meta && meta.boardW) || (meta && meta.meta && meta.meta.boardW) || 0)), h: Math.max(1, Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0)) });
+        }, {
+          w: Math.max(1, rotatePdfSheets
+            ? Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0)
+            : Number((meta && meta.boardW) || (meta && meta.meta && meta.meta.boardW) || 0)),
+          h: Math.max(1, rotatePdfSheets
+            ? Number((meta && meta.boardW) || (meta && meta.meta && meta.meta.boardW) || 0)
+            : Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0))
+        });
         const bodyW = Math.max(10, PRINT.pageW - PRINT.bodyPadX * 2);
         const bodyH = Math.max(10, PRINT.pageH - PRINT.headerH - PRINT.bodyPadBottom);
         const globalScaleMm = Math.max(0.01, Math.min(
@@ -2760,8 +2783,10 @@
           const supply = getSupplyMeta(s);
           const supplyTxt = supply ? ` • ${supply.text}` : '';
           const img = imgs[i] || { src:'', width:0, height:0 };
-          const renderW = Math.max(6, bm.boardW * globalScaleMm);
-          const renderH = Math.max(6, bm.boardH * globalScaleMm);
+          const effectiveBoardW = rotatePdfSheets ? Number(bm.boardH || 0) : Number(bm.boardW || 0);
+          const effectiveBoardH = rotatePdfSheets ? Number(bm.boardW || 0) : Number(bm.boardH || 0);
+          const renderW = Math.max(6, effectiveBoardW * globalScaleMm);
+          const renderH = Math.max(6, effectiveBoardH * globalScaleMm);
           return {
             index: i,
             src: img.src || '',
@@ -2797,13 +2822,13 @@
           <meta name="viewport" content="width=device-width,initial-scale=1" />
           <title>Rozrys</title>
           <style>
-            @page{ size:297mm 210mm; margin:8mm; }
+            @page{ size:210mm 297mm; margin:8mm; }
             html, body{ margin:0; padding:0; }
             body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#111827; }
             .print-page{
               box-sizing:border-box;
-              width:281mm;
-              height:194mm;
+              width:194mm;
+              height:281mm;
               margin:0;
               page-break-after:always;
               break-after:page;
