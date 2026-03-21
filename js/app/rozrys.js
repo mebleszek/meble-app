@@ -1503,11 +1503,14 @@
       });
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
 
-      const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap' });
+      const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
+      const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
+      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
       const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
-      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz opcje' });
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
+      footer.appendChild(resetBtn);
+      footer.appendChild(actionWrap);
       body.appendChild(footer);
 
       modal.appendChild(header);
@@ -1542,18 +1545,32 @@
       const initialSignature = currentModalSignature();
       let isDirty = false;
 
-      function setButtonTone(btn, tone){
-        btn.classList.remove('btn', 'btn-primary', 'btn-danger', 'btn-success');
-        if(tone === 'danger') btn.classList.add('btn-danger');
-        else if(tone === 'success') btn.classList.add('btn-success');
-        else btn.classList.add('btn-primary');
+      function applyDefaultValuesToModal(){
+        const defaults = getDefaultRozrysOptionValues(modalUnitSel.value);
+        modalEdgeSel.value = defaults.edge;
+        modalBoardW.value = String(defaults.boardW);
+        modalBoardH.value = String(defaults.boardH);
+        modalKerf.value = String(defaults.kerf);
+        modalTrim.value = String(defaults.trim);
+        modalMinW.value = String(defaults.minW);
+        modalMinH.value = String(defaults.minH);
+        syncModalLabels();
+      }
+
+      function renderFooterActions(){
+        actionWrap.innerHTML = '';
+        if(isDirty){
+          actionWrap.appendChild(cancelBtn);
+          actionWrap.appendChild(saveBtn);
+        }else{
+          actionWrap.appendChild(exitBtn);
+        }
       }
 
       function updateDirtyState(){
         isDirty = currentModalSignature() !== initialSignature;
-        setButtonTone(cancelBtn, 'danger');
-        setButtonTone(saveBtn, 'success');
         saveBtn.disabled = !isDirty;
+        renderFooterActions();
       }
 
       function confirmDiscardIfDirty(){
@@ -1588,9 +1605,14 @@
       [modalEdgeSel, modalBoardW, modalBoardH, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
       updateDirtyState();
 
+      exitBtn.addEventListener('click', ()=> closeModal());
       cancelBtn.addEventListener('click', async ()=>{
         if(!(await confirmDiscardIfDirty())) return;
         closeModal();
+      });
+      resetBtn.addEventListener('click', ()=>{
+        applyDefaultValuesToModal();
+        updateDirtyState();
       });
       back.addEventListener('pointerdown', async (e)=>{
         if(e.target !== back) return;
@@ -1996,6 +2018,20 @@
       const bw = Math.round(Number(bW) || 0);
       const bh = Math.round(Number(bH) || 0);
       return (aw === bw && ah === bh) || (aw === bh && ah === bw);
+    }
+
+    function getDefaultRozrysOptionValues(unit){
+      const u = unit === 'mm' ? 'mm' : 'cm';
+      return {
+        unit: u,
+        edge: '0',
+        boardW: u === 'mm' ? 2800 : 280,
+        boardH: u === 'mm' ? 2070 : 207,
+        kerf: u === 'mm' ? 4 : 0.4,
+        trim: u === 'mm' ? 20 : 2,
+        minW: 0,
+        minH: 0,
+      };
     }
 
     function getSheetRowsForMaterial(material, opts){
@@ -2522,13 +2558,13 @@
 
       const getBoardMeta = (sheet)=>{
         const boardW = Math.max(1,
-          Number((meta && meta.meta && meta.meta.boardW) || (meta && meta.boardW) || (sheet && sheet.fullBoardW) || (sheet && sheet.boardW) || 0)
+          Number((sheet && sheet.fullBoardW) || (sheet && sheet.boardW) || (meta && meta.meta && meta.meta.boardW) || (meta && meta.boardW) || 0)
         );
         const boardH = Math.max(1,
-          Number((meta && meta.meta && meta.meta.boardH) || (meta && meta.boardH) || (sheet && sheet.fullBoardH) || (sheet && sheet.boardH) || 0)
+          Number((sheet && sheet.fullBoardH) || (sheet && sheet.boardH) || (meta && meta.meta && meta.meta.boardH) || (meta && meta.boardH) || 0)
         );
         const trim = Math.max(0,
-          Number((meta && meta.meta && meta.meta.trim) || (meta && meta.trim) || (sheet && sheet.trimMm) || 0)
+          Number((sheet && sheet.trimMm) || (meta && meta.meta && meta.meta.trim) || (meta && meta.trim) || 0)
         );
         return { boardW, boardH, trim };
       };

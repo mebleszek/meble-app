@@ -440,3 +440,5 @@ Dopiero potem go zmieniać.
 - Główny panel nie może już zmieniać bazowego formatu przez dodawanie płyty do magazynu.
 - Przycisk w ROZRYS otwiera osobny modal dodawania płyty do magazynu (materiał, format, ilość).
 - Regresja do sprawdzenia: po dodaniu małej płyty do magazynu bazowy format rozrysu ma pozostać bez zmian po odświeżeniu i po ponownym wejściu do ROZRYS.
+
+- 2026-03-22: ROZRYS — opcje rozkroju: przywróć domyślne + stan Wyjdź/Anuluj/Zapisz; wizualizacja arkuszy ma używać faktycznego rozmiaru arkusza z magazynu, nie globalnego formatu bazowego.
