@@ -1111,7 +1111,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_stock_ui_v3');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_stock_priority_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1257,7 +1257,7 @@
     function toDisp(mm){ return state.unit === 'mm' ? mm : (mm/10); }
     function fromDisp(v){ return state.unit === 'mm' ? Number(v) : (Number(v) * 10); }
 
-    // Format pełnej płyty ma pozostać pod kontrolą użytkownika / hurtowni.
+    // Format pełnej płyty ma pozostać pod kontrolą użytkownika.
     // Nie nadpisujemy go automatycznie mniejszym formatem z magazynu.
 
     // top row: material + format arkusza + opcje
@@ -1312,7 +1312,7 @@
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     inW.classList.add('rozrys-format-input');
     inH.classList.add('rozrys-format-input');
-    const saveToMag = h('button', { class:'btn', type:'button' });
+    const saveToMag = h('button', { class:'btn-primary', type:'button' });
     saveToMag.textContent = 'Dodaj format';
     sizeRow.appendChild(inW); sizeRow.appendChild(inH); sizeRow.appendChild(saveToMag);
     sizeWrap.appendChild(sizeRow);
@@ -2150,99 +2150,111 @@
     async function applySheetStockLimit(material, st, parts, plan, opts){
       const cfg = Object.assign({ onStatus:null }, opts || {});
       const basePlan = plan && typeof plan === 'object' ? plan : { sheets:[] };
-      const baseSheets = Array.isArray(basePlan.sheets) ? basePlan.sheets : [];
-      if(!baseSheets.length) return basePlan;
-
       const currentWmm = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
       const currentHmm = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
       const trimMm = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
-      const exactStock = getExactSheetStockForMaterial(material, currentWmm, currentHmm);
-      const fullFormat = getLargestSheetFormatForMaterial(material, currentWmm, currentHmm);
-      const stockQty = Math.max(0, Number(exactStock && exactStock.qty) || 0);
-      const selectedIsFull = sameSheetFormat(currentWmm, currentHmm, fullFormat.width, fullFormat.height);
-      const withSupply = (stockCount, orderCount, orderWmm, orderHmm)=>{
-        const stockSheets = clonePlanSheetsWithSupply(baseSheets.slice(0, stockCount), {
-          supplySource:'stock',
-          supplyText:'z magazynu',
-          fullBoardW: currentWmm,
-          fullBoardH: currentHmm,
-          trimMm,
+      const areaOf = (row)=> (Math.max(0, Number(row && row.width) || 0) * Math.max(0, Number(row && row.height) || 0));
+      const stockRows = getSheetRowsForMaterial(material, { includeZero:false })
+        .filter((row)=> Math.max(0, Number(row && row.qty) || 0) > 0)
+        .sort((a,b)=>{
+          const aExact = sameSheetFormat(a && a.width, a && a.height, currentWmm, currentHmm) ? 1 : 0;
+          const bExact = sameSheetFormat(b && b.width, b && b.height, currentWmm, currentHmm) ? 1 : 0;
+          if(bExact !== aExact) return bExact - aExact;
+          const aa = areaOf(a);
+          const bb = areaOf(b);
+          if(bb !== aa) return bb - aa;
+          if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
+          return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
         });
-        const orderSheets = clonePlanSheetsWithSupply(baseSheets.slice(stockCount, stockCount + orderCount), {
-          supplySource:'order',
-          supplyText:'zamówić',
-          fullBoardW: orderWmm,
-          fullBoardH: orderHmm,
-          trimMm,
-        });
-        const merged = Object.assign({}, basePlan, {
-          sheets: stockSheets.concat(orderSheets),
+
+      const stockSheets = [];
+      let remainingParts = (Array.isArray(parts) ? parts : []).map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) })).filter((part)=> part.qty > 0);
+      const notes = [];
+      let cancelled = !!(basePlan && basePlan.cancelled);
+
+      if(stockRows.length){
+        for(const row of stockRows){
+          if(!remainingParts.length) break;
+          const rowQty = Math.max(0, Math.round(Number(row && row.qty) || 0));
+          const rowW = Math.max(0, Math.round(Number(row && row.width) || 0));
+          const rowH = Math.max(0, Math.round(Number(row && row.height) || 0));
+          if(!(rowQty > 0 && rowW > 0 && rowH > 0)) continue;
+          try{
+            if(typeof cfg.onStatus === 'function') cfg.onStatus(`Sprawdzam magazyn: ${Math.round(rowW/10)}×${Math.round(rowH/10)} cm • stan ${rowQty} szt.`);
+          }catch(_){ }
+          const rowState = Object.assign({}, st, {
+            boardW: fromMmByUnit(st && st.unit, rowW),
+            boardH: fromMmByUnit(st && st.unit, rowH),
+            realHalfQty: 0,
+            realHalfBoardW: 0,
+            realHalfBoardH: 0,
+          });
+          let rowPlan = null;
+          if(sameSheetFormat(rowW, rowH, currentWmm, currentHmm)){
+            rowPlan = await computePlanWithCurrentEngine(rowState, remainingParts);
+          }else{
+            rowPlan = await computePlanWithCurrentEngine(rowState, remainingParts);
+          }
+          const rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
+          const usableCount = Math.min(rowQty, rowSheetsRaw.length);
+          if(usableCount <= 0) continue;
+          const usedSheetsRaw = rowSheetsRaw.slice(0, usableCount);
+          stockSheets.push(...clonePlanSheetsWithSupply(usedSheetsRaw, {
+            supplySource:'stock',
+            supplyText:'z magazynu',
+            fullBoardW: rowW,
+            fullBoardH: rowH,
+            trimMm,
+          }));
+          const usedMap = countPlacedPartsByKey(usedSheetsRaw);
+          remainingParts = subtractPlacedParts(remainingParts, usedMap);
+          cancelled = cancelled || !!(rowPlan && rowPlan.cancelled);
+          if(rowPlan && rowPlan.note) notes.push(rowPlan.note);
+        }
+      }
+
+      if(!remainingParts.length){
+        return Object.assign({}, basePlan, {
+          sheets: stockSheets,
+          cancelled,
+          note: notes.filter(Boolean).join(' • ') || undefined,
           meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
           stockContext: {
-            exactQty: stockQty,
             selectedBoardW: currentWmm,
             selectedBoardH: currentHmm,
-            fullBoardW: orderWmm,
-            fullBoardH: orderHmm,
+            usedStockSheets: stockSheets.length,
+            orderedSheets: 0,
           }
         });
-        return merged;
-      };
-
-      if(stockQty <= 0){
-        return withSupply(0, baseSheets.length, currentWmm, currentHmm);
-      }
-      if(baseSheets.length <= stockQty || selectedIsFull){
-        return withSupply(Math.min(stockQty, baseSheets.length), Math.max(0, baseSheets.length - stockQty), currentWmm, currentHmm);
       }
 
-      const stockSheetsRaw = baseSheets.slice(0, stockQty);
-      const usedMap = countPlacedPartsByKey(stockSheetsRaw);
-      const remainingParts = subtractPlacedParts(parts, usedMap);
-      if(!remainingParts.length){
-        return withSupply(stockSheetsRaw.length, 0, fullFormat.width, fullFormat.height);
+      let orderPlan = basePlan;
+      if(stockRows.length){
+        try{ if(typeof cfg.onStatus === 'function') cfg.onStatus('Brakujące formatki przerzucam na pełną płytę…'); }catch(_){ }
+        orderPlan = await computePlanWithCurrentEngine(st, remainingParts);
       }
-
-      try{ if(typeof cfg.onStatus === 'function') cfg.onStatus('Dopisuję brakujące płyty do zamówienia…'); }catch(_){ }
-      const orderState = Object.assign({}, st, {
-        boardW: fromMmByUnit(st && st.unit, fullFormat.width),
-        boardH: fromMmByUnit(st && st.unit, fullFormat.height),
-      });
-      const halfStock = getRealHalfStockForMaterial(material, fullFormat.width, fullFormat.height);
-      orderState.realHalfQty = Math.max(0, Number(halfStock.qty) || 0);
-      orderState.realHalfBoardW = Math.round(Number(halfStock.width) || 0);
-      orderState.realHalfBoardH = Math.round(Number(halfStock.height) || 0);
-      const extraPlan = await computePlanWithCurrentEngine(orderState, remainingParts);
-      const stockSheets = clonePlanSheetsWithSupply(stockSheetsRaw, {
-        supplySource:'stock',
-        supplyText:'z magazynu',
+      const orderSheets = clonePlanSheetsWithSupply((orderPlan && orderPlan.sheets) || [], {
+        supplySource:'order',
+        supplyText:'zamówić',
         fullBoardW: currentWmm,
         fullBoardH: currentHmm,
         trimMm,
       });
-      const orderSheets = clonePlanSheetsWithSupply((extraPlan && extraPlan.sheets) || [], {
-        supplySource:'order',
-        supplyText:'zamówić',
-        fullBoardW: fullFormat.width,
-        fullBoardH: fullFormat.height,
-        trimMm,
-      });
-      const mergedPlan = Object.assign({}, basePlan, {
+      if(orderPlan && orderPlan.note) notes.push(orderPlan.note);
+      cancelled = cancelled || !!(orderPlan && orderPlan.cancelled);
+
+      return Object.assign({}, basePlan, {
         sheets: stockSheets.concat(orderSheets),
-        cancelled: !!(basePlan && basePlan.cancelled) || !!(extraPlan && extraPlan.cancelled),
-        note: [basePlan && basePlan.note, extraPlan && extraPlan.note].filter(Boolean).join(' • ') || undefined,
+        cancelled,
+        note: notes.filter(Boolean).join(' • ') || undefined,
         meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
         stockContext: {
-          exactQty: stockQty,
           selectedBoardW: currentWmm,
           selectedBoardH: currentHmm,
-          fullBoardW: fullFormat.width,
-          fullBoardH: fullFormat.height,
           usedStockSheets: stockSheets.length,
           orderedSheets: orderSheets.length,
         }
       });
-      return mergedPlan;
     }
 
     function materialHasGrain(name){
@@ -2534,17 +2546,17 @@
 
       const expRow = h('div', { class:'rozrys-list-actions', style:'justify-content:flex-end' });
       if(diagnostics){
-        const listBtn = h('button', { class:'btn', type:'button', text:'Lista formatek' });
+        const listBtn = h('button', { class:'btn-primary', type:'button', text:'Lista formatek' });
         listBtn.addEventListener('click', ()=> openValidationListModal(meta.material, diagnostics, u));
         expRow.appendChild(listBtn);
       }
-      const csvBtn = h('button', { class:'btn', type:'button' });
+      const csvBtn = h('button', { class:'btn-primary', type:'button' });
       csvBtn.textContent = 'Eksport CSV';
       csvBtn.addEventListener('click', ()=>{
         const csv = buildCsv(sheets, meta);
         downloadText('rozrys.csv', csv, 'text/csv;charset=utf-8');
       });
-      const pdfBtn = h('button', { class:'btn', type:'button' });
+      const pdfBtn = h('button', { class:'btn-primary', type:'button' });
       pdfBtn.textContent = 'Eksport PDF (drukuj)';
       pdfBtn.addEventListener('click', ()=>{
         // proste HTML do wydruku (renderujemy tutaj, a do okna wysyłamy obrazy, żeby zachować identyczny wygląd jak ROZRYS)

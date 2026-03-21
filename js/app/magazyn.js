@@ -167,15 +167,15 @@
 
     card.appendChild(form);
     const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap' });
-    const addBtn = h('button', { class:'btn-primary', type:'button' });
+    const addBtn = h('button', { class:'btn-success', type:'button' });
     addBtn.textContent = 'Dodaj do magazynu';
     addBtn.addEventListener('click', () => {
       const mat = document.getElementById('magMat')?.value || '';
       const w = document.getElementById('magW')?.value;
       const hh = document.getElementById('magH')?.value;
       const qty = document.getElementById('magQty')?.value;
-      if(!mat.trim()) return alert('Wpisz materiał (klucz)');
-      if(!(Number(w)>0 && Number(hh)>0)) return alert('Podaj format płyty');
+      if(!mat.trim()) return (FC.infoBox && FC.infoBox.open ? FC.infoBox.open({ title:'Brak materiału', message:'Wpisz materiał (klucz).' }) : alert('Wpisz materiał (klucz)'));
+      if(!(Number(w)>0 && Number(hh)>0)) return (FC.infoBox && FC.infoBox.open ? FC.infoBox.open({ title:'Brak formatu', message:'Podaj format płyty.' }) : alert('Podaj format płyty'));
       upsertSheet({ material: mat.trim(), width: Number(w), height: Number(hh), qty: Number(qty||0) });
       render();
     });
@@ -197,10 +197,24 @@
       row.appendChild(h('div', { style:'font-weight:900', html: (s.material||'—') }));
       row.appendChild(h('div', { class:'muted xs', style:'margin-top:4px', html:`${s.width} × ${s.height} mm • ilość: ${s.qty}` }));
       const actions = h('div', { style:'display:flex;gap:8px;justify-content:flex-end;margin-top:8px' });
-      const del = h('button', { class:'btn danger', type:'button' });
+      const del = h('button', { class:'btn-danger', type:'button' });
       del.textContent = 'Usuń';
-      del.addEventListener('click', () => {
-        if(!confirm('Usunąć z magazynu?')) return;
+      del.addEventListener('click', async () => {
+        let ok = true;
+        if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
+          ok = await FC.confirmBox.ask({
+            title:'Usunąć format z magazynu?',
+            message:'Ta pozycja zostanie usunięta z magazynu płyt.',
+            confirmText:'Usuń',
+            cancelText:'Anuluj',
+            confirmTone:'danger',
+            cancelTone:'danger',
+            dismissOnOverlay:false,
+          });
+        }else{
+          ok = confirm('Usunąć z magazynu?');
+        }
+        if(!ok) return;
         removeSheet(s.id);
         render();
       });
