@@ -2,6 +2,11 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-21 — rozrys_options_buttons_v1
+- `js/app/rozrys.js` — `Opcje rozkroju` zostały przeniesione na wspólny `panelBox`, przycisk opcji trafił do rzędu akcji z generowaniem, a launchery `Pomieszczenia` / `Materiał / grupa` dostały szerszy układ z mniejszym przyciskiem pomieszczeń. W samym oknie opcji dodane są opisy pól.
+- `css/style.css` — ujednolicona typografia przycisków na wzór przycisku `Generuj ponownie`, wyrównane wysokości przycisków w rzędzie akcji ROZRYS oraz poprawiony układ launcherów wyboru pomieszczeń i materiału.
+- `index.html` — podbite cache-busting dla plików zmienionych w tej paczce.
+
 ### 2026-03-21 — rozrys_ui_pdf_guard_v1
 - `js/app/rozrys.js` — uporządkowane akcje i logika stanów `Wyjdź / Anuluj / Zapisz/Zatwierdź` w pickerach ROZRYS oraz w modalu `Dodaj płytę do magazynu`; modal dodawania płyty przeniesiony na wspólny `panelBox`; eksport PDF ma bezpieczniejsze liczenie wysokości nagłówka przy długich nazwach materiałów.
 - `js/app/panel-box.js` — `panelBox.open()` obsługuje teraz opcjonalny `beforeClose`, żeby modal mógł zablokować zamknięcie przy niezapisanych zmianach.

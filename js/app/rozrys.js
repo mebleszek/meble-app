@@ -1351,12 +1351,12 @@
     // Nie nadpisujemy go automatycznie mniejszym formatem z magazynu.
 
     // top row: material + format arkusza + opcje
-    const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
+    const controls = h('div', { class:'rozrys-selection-grid' });
     // room + material picker
     const roomsWrap = h('div', { class:'rozrys-field' });
     roomsWrap.appendChild(labelWithInfo('Pomieszczenia', 'Pomieszczenia', 'Wybierz, z których pomieszczeń mam zebrać formatki do rozrysu. Ten sam materiał z kilku pomieszczeń zostanie zsumowany.'));
     const roomsSel = h('input', { id:'rozRooms', type:'hidden', value:encodeRoomsSelection(selectedRooms) });
-    const roomsPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch' });
+    const roomsPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--compact' });
     const roomsPickerValue = h('div', { class:'rozrys-picker-launch__value' });
     roomsPickerBtn.appendChild(roomsPickerValue);
     roomsWrap.appendChild(roomsPickerBtn);
@@ -1399,13 +1399,8 @@
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     inW.classList.add('rozrys-format-input');
     inH.classList.add('rozrys-format-input');
-    const addStockBtn = h('button', { class:'btn-success', type:'button', text:'Dodaj płytę' });
-
-    const optionsWrap = h('div', { class:'rozrys-field' });
-    optionsWrap.appendChild(labelWithInfo('Ustawienia dodatkowe', 'Ustawienia dodatkowe', 'Jednostki, format bazowy arkusza, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.'));
-    const openOptionsBtnInline = h('button', { class:'btn', type:'button', text:'Opcje rozkroju', style:'width:100%' });
-    optionsWrap.appendChild(openOptionsBtnInline);
-    controls.appendChild(optionsWrap);
+    const addStockBtn = h('button', { class:'btn-success rozrys-action-btn', type:'button', text:'Dodaj płytę' });
+    const openOptionsBtn = h('button', { class:'btn rozrys-action-btn', type:'button', text:'Opcje rozkroju' });
 
     // hidden option inputs
     const kerfWrap = h('div', { class:'rozrys-field' });
@@ -1497,75 +1492,76 @@
     }
 
     function openOptionsModal(){
-      const back = h('div', { class:'modal-back', style:'display:flex', 'data-modal-close':'rozrys-options' });
-      const modal = h('div', { class:'modal', style:'max-width:720px' });
-      modal.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
-      const header = h('div', { class:'header' }, [
-        h('div', { style:'font-weight:800', text:'Opcje rozkroju' })
-      ]);
-      const body = h('div', { class:'body' });
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+
+      const body = h('div', { class:'rozrys-picker-modal' });
       const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
 
-      const modalUnitWrap = h('div');
-      modalUnitWrap.appendChild(h('label', { text:'Jednostki' }));
+      function buildOptionsField(label, description, controlNode){
+        const wrap = h('div', { class:'rozrys-field' });
+        const labelNode = h('label', { class:'rozrys-field__label', text:label });
+        wrap.appendChild(labelNode);
+        wrap.appendChild(controlNode);
+        if(description) wrap.appendChild(h('div', { class:'muted xs', style:'margin-top:6px;line-height:1.35', text:description }));
+        return { wrap, labelNode };
+      }
+
       const modalUnitSel = h('select');
       modalUnitSel.innerHTML = `
         <option value="cm" ${unitSel.value==='cm'?'selected':''}>cm</option>
         <option value="mm" ${unitSel.value==='mm'?'selected':''}>mm</option>
       `;
-      modalUnitWrap.appendChild(modalUnitSel);
-      form.appendChild(modalUnitWrap);
+      const modalUnitField = buildOptionsField('Jednostki', 'Wybiera jednostki dla wszystkich pól w tym oknie. Po zmianie wartości długości są automatycznie przeliczane między cm i mm.', modalUnitSel);
+      form.appendChild(modalUnitField.wrap);
 
-      const modalEdgeWrap = h('div');
-      modalEdgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
       const modalEdgeSel = h('select');
       modalEdgeSel.innerHTML = edgeSel.innerHTML;
       modalEdgeSel.value = edgeSel.value;
-      modalEdgeWrap.appendChild(modalEdgeSel);
-      form.appendChild(modalEdgeWrap);
+      const modalEdgeField = buildOptionsField('Wymiary do cięcia', 'Nominalne zostawia wymiary bez korekty. Opcje okleiny odejmują 1 mm lub 2 mm od wymiarów formatek do rozkroju.', modalEdgeSel);
+      form.appendChild(modalEdgeField.wrap);
 
-      const modalBoardWrap = h('div');
-      modalBoardWrap.appendChild(h('label', { text:`Format bazowy arkusza (${unitSel.value})` }));
       const modalBoardRow = h('div', { style:'display:flex;gap:8px' });
       const modalBoardW = h('input', { type:'number', value:String(inW.value) });
       const modalBoardH = h('input', { type:'number', value:String(inH.value) });
       modalBoardRow.appendChild(modalBoardW);
       modalBoardRow.appendChild(modalBoardH);
-      modalBoardWrap.appendChild(modalBoardRow);
-      form.appendChild(modalBoardWrap);
+      const modalBoardField = buildOptionsField(`Format bazowy arkusza (${unitSel.value})`, 'To pełny format standardowej płyty. ROZRYS dobiera z niego brakujące arkusze wtedy, gdy zabraknie płyt dostępnych w magazynie.', modalBoardRow);
+      form.appendChild(modalBoardField.wrap);
 
-      const modalKerfWrap = h('div');
-      modalKerfWrap.appendChild(h('label', { text:`Rzaz piły (${unitSel.value})` }));
       const modalKerf = h('input', { type:'number', value:String(inK.value) });
-      modalKerfWrap.appendChild(modalKerf);
-      form.appendChild(modalKerfWrap);
+      const modalKerfField = buildOptionsField(`Rzaz piły (${unitSel.value})`, 'Szerokość cięcia piły doliczana między elementami. Ta wartość wpływa na realne zużycie miejsca na arkuszu.', modalKerf);
+      form.appendChild(modalKerfField.wrap);
 
-      const modalTrimWrap = h('div');
-      modalTrimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${unitSel.value})` }));
       const modalTrim = h('input', { type:'number', value:String(inTrim.value) });
-      modalTrimWrap.appendChild(modalTrim);
-      form.appendChild(modalTrimWrap);
+      const modalTrimField = buildOptionsField(`Obrównanie krawędzi — arkusz standardowy (${unitSel.value})`, 'Margines odejmowany od pełnej płyty bazowej, np. na przycięcie uszkodzonej krawędzi albo wyrównanie arkusza przed cięciem.', modalTrim);
+      form.appendChild(modalTrimField.wrap);
 
-      const modalMinWrap = h('div');
-      modalMinWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${unitSel.value})` }));
       const modalMinRow = h('div', { style:'display:flex;gap:8px' });
       const modalMinW = h('input', { type:'number', value:String(inMinW.value) });
       const modalMinH = h('input', { type:'number', value:String(inMinH.value) });
       modalMinRow.appendChild(modalMinW);
       modalMinRow.appendChild(modalMinH);
-      modalMinWrap.appendChild(modalMinRow);
-      form.appendChild(modalMinWrap);
+      const modalMinField = buildOptionsField(`Najmniejszy użyteczny odpad (${unitSel.value})`, 'Minimalny wymiar odpadu, który ma zostać zachowany jako użyteczny. Mniejsze resztki są traktowane jako odpad bezużyteczny.', modalMinRow);
+      form.appendChild(modalMinField.wrap);
 
-      const note = h('div', { class:'muted xs', style:'grid-column:1 / -1', text:'Zapisane opcje będą pamiętane dla kolejnych wejść do panelu rozkroju.' });
-      form.appendChild(note);
       body.appendChild(form);
+
+      const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
+      const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
+      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
+      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
+      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
+      footer.appendChild(resetBtn);
+      footer.appendChild(actionWrap);
+      body.appendChild(footer);
 
       function syncModalLabels(){
         const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-        modalBoardWrap.querySelector('label').textContent = `Format bazowy arkusza (${u})`;
-        modalKerfWrap.querySelector('label').textContent = `Rzaz piły (${u})`;
-        modalTrimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
-        modalMinWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${u})`;
+        modalBoardField.labelNode.textContent = `Format bazowy arkusza (${u})`;
+        modalKerfField.labelNode.textContent = `Rzaz piły (${u})`;
+        modalTrimField.labelNode.textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
+        modalMinField.labelNode.textContent = `Najmniejszy użyteczny odpad (${u})`;
       }
       function convertModalNumericFields(prevUnit, nextUnit){
         if(prevUnit === nextUnit) return;
@@ -1592,27 +1588,6 @@
         updateDirtyState();
       });
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-
-      const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
-      const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
-      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
-      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
-      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
-      footer.appendChild(resetBtn);
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
-
-      modal.appendChild(header);
-      modal.appendChild(body);
-      back.appendChild(modal);
-      document.body.appendChild(back);
-      try{ document.documentElement.classList.add('modal-lock'); document.body.classList.add('modal-lock'); }catch(_){ }
-
-      function closeModal(){
-        try{ back.remove(); }catch(_){ }
-        try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
-      }
 
       function normalizeLenToMm(value, unit){
         const n = parseLocaleNumber(value);
@@ -1697,24 +1672,19 @@
       [modalEdgeSel, modalBoardW, modalBoardH, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
       updateDirtyState();
 
-      exitBtn.addEventListener('click', ()=> closeModal());
+      exitBtn.addEventListener('click', ()=>{ FC.panelBox.close(); });
       cancelBtn.addEventListener('click', async ()=>{
         if(!(await confirmDiscardIfDirty())) return;
-        closeModal();
+        FC.panelBox.close();
       });
       resetBtn.addEventListener('click', ()=>{
         applyDefaultValuesToModal();
         updateDirtyState();
       });
-      back.addEventListener('pointerdown', async (e)=>{
-        if(e.target !== back) return;
-        if(!(await confirmDiscardIfDirty())) return;
-        closeModal();
-      });
       saveBtn.addEventListener('click', async ()=>{
         if(!(await confirmSaveIfDirty())) return;
         if(!isDirty){
-          closeModal();
+          FC.panelBox.close();
           return;
         }
         applyUnitChange(modalUnitSel.value);
@@ -1726,16 +1696,25 @@
         inMinW.value = String(Math.max(0, parseLocaleNumber(modalMinW.value)||0));
         inMinH.value = String(Math.max(0, parseLocaleNumber(modalMinH.value)||0));
         persistOptionPrefs();
-        closeModal();
+        FC.panelBox.close();
         tryAutoRenderFromCache();
+      });
+
+      FC.panelBox.open({
+        title:'Opcje rozkroju',
+        contentNode: body,
+        width:'min(920px, calc(100vw - 32px))',
+        dismissOnOverlay:false,
+        beforeClose: ()=> confirmDiscardIfDirty()
       });
     }
 
     // action buttons
     const actionRow = h('div', { class:'rozrys-actions-row' });
-    const genBtn = h('button', { class:'btn-generate-green', type:'button' });
+    const genBtn = h('button', { class:'btn-generate-green rozrys-action-btn', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
     actionRow.appendChild(addStockBtn);
+    actionRow.appendChild(openOptionsBtn);
     actionRow.appendChild(genBtn);
     card.appendChild(actionRow);
 
@@ -1958,7 +1937,7 @@
       FC.panelBox.open({
         title:'Wybierz pomieszczenia',
         contentNode: body,
-        width:'720px',
+        width:'min(1040px, calc(100vw - 32px))',
         dismissOnOverlay:false,
         beforeClose: ()=> isDirty() ? askRozrysConfirm({
           title:'ANULOWAĆ ZMIANY?',
@@ -2145,7 +2124,7 @@
       FC.panelBox.open({
         title:'Wybierz materiał / grupę',
         contentNode: body,
-        width:'760px',
+        width:'min(1180px, calc(100vw - 32px))',
         dismissOnOverlay:false,
         beforeClose: ()=> isDirty() ? askRozrysConfirm({
           title:'ANULOWAĆ ZMIANY?',
@@ -3643,7 +3622,7 @@ async function generate(force){
     dirSel.addEventListener('change', ()=>{
       tryAutoRenderFromCache();
     });
-    openOptionsBtnInline.addEventListener('click', openOptionsModal);
+    openOptionsBtn.addEventListener('click', openOptionsModal);
     inMinW.addEventListener('change', ()=>{ persistOptionPrefs(); tryAutoRenderFromCache(); });
     inMinH.addEventListener('change', ()=>{ persistOptionPrefs(); tryAutoRenderFromCache(); });
 
