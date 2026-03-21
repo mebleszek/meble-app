@@ -1111,7 +1111,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_stock_ui_v2');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_stock_ui_v3');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1257,13 +1257,8 @@
     function toDisp(mm){ return state.unit === 'mm' ? mm : (mm/10); }
     function fromDisp(v){ return state.unit === 'mm' ? Number(v) : (Number(v) * 10); }
 
-    try{
-      const hint = (FC.magazyn && FC.magazyn.getPreferredFormat) ? FC.magazyn.getPreferredFormat(state.material) : null;
-      if(hint){
-        state.boardW = toDisp(hint.width || 2800);
-        state.boardH = toDisp(hint.height || 2070);
-      }
-    }catch(_){ }
+    // Format pełnej płyty ma pozostać pod kontrolą użytkownika / hurtowni.
+    // Nie nadpisujemy go automatycznie mniejszym formatem z magazynu.
 
     // top row: material + format arkusza + opcje
     const controls = h('div', { class:'grid-3', style:'margin-top:12px' });
@@ -1652,8 +1647,12 @@
     root.appendChild(card);
 
 
-    function applyHintFromMagazyn(material){
+    function applyHintFromMagazyn(material, opts){
+      const cfg = Object.assign({ onlyWhenEmpty:true }, opts || {});
       try{
+        const curW = Number(inW && inW.value);
+        const curH = Number(inH && inH.value);
+        if(cfg.onlyWhenEmpty && curW > 0 && curH > 0) return;
         const hint = (FC.magazyn && FC.magazyn.getPreferredFormat) ? FC.magazyn.getPreferredFormat(material) : null;
         if(hint){
           const wmm = hint.width || 2800;
@@ -1722,7 +1721,7 @@
       updateMaterialPickerButton();
       if(cfg.keepFormatHint){
         const hintMaterial = materialScope.kind === 'material' ? materialScope.material : (agg.materials[0] || '');
-        if(hintMaterial) applyHintFromMagazyn(hintMaterial);
+        if(hintMaterial) applyHintFromMagazyn(hintMaterial, { onlyWhenEmpty:true });
       }
       updateGrainAvailability();
       renderOverrides();
@@ -3190,7 +3189,7 @@ async function generate(force){
       materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
       syncHiddenSelections();
       updateMaterialPickerButton();
-      if(materialScope.kind === 'material' && materialScope.material) applyHintFromMagazyn(materialScope.material);
+      if(materialScope.kind === 'material' && materialScope.material) applyHintFromMagazyn(materialScope.material, { onlyWhenEmpty:true });
       updateGrainAvailability();
       renderOverrides();
       persistSelectionPrefs();
@@ -3263,7 +3262,7 @@ Dodam 1 sztukę do magazynu.`,
         return;
       }
       openRozrysInfo('Dodano format', 'Format został dodany do Magazynu (+1 szt.).');
-      if(material) applyHintFromMagazyn(material);
+      if(material) applyHintFromMagazyn(material, { onlyWhenEmpty:true });
     });
 
     genBtn.addEventListener('click', ()=>{
