@@ -528,7 +528,7 @@
 .rozrys-picker-launch__hint{margin-top:2px;text-align:left;}
 .rozrys-picker-modal{display:flex;flex-direction:column;gap:0;}
 .rozrys-picker-search{margin-bottom:14px;}
-.rozrys-format-row > .rozrys-format-input{flex:0 1 124px;min-width:112px;}
+.rozrys-format-row > .rozrys-format-input{flex:0 0 72px;min-width:72px;max-width:78px;padding-left:10px;padding-right:10px;text-align:left;}
 .rozrys-format-row > .btn{flex:0 0 auto;white-space:nowrap;}
 .rozrys-picker-card{display:flex;flex-direction:column;gap:12px;}
 .rozrys-picker-check{display:block;}
@@ -541,7 +541,7 @@
 .rozrys-scope-badge{display:inline-flex;align-items:center;padding:8px 10px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:13px;font-weight:800;border:1px solid #bbf7d0;}
 .rozrys-picker-section-title{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:2px 0 10px;}
 .rozrys-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-.rozrys-picker-list{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow:auto;padding:2px 2px 0;}
+.rozrys-picker-list{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow:auto;padding:4px 2px 2px;}
 .rozrys-picker-option{
   width:100%;
   border:1px solid #dbe7f3;
@@ -557,12 +557,12 @@
 .rozrys-picker-option.is-selected{border-color:#16a34a;box-shadow:0 10px 28px rgba(22,163,74,.12);}
 .rozrys-picker-option__title{font-weight:800;color:#0f172a;line-height:1.15;}
 .rozrys-picker-option__subtitle{margin-top:4px;font-size:13px;line-height:1.25;color:#475569;}
-.rozrys-actions-row{width:100%;}
-.rozrys-format-field-inline{flex:1 1 320px;max-width:100%;}
+.rozrys-actions-row{width:100%;justify-content:flex-end;align-items:flex-end;gap:10px;flex-wrap:nowrap;}
+.rozrys-format-field-inline{flex:0 1 auto;max-width:none;min-width:0;}
 .rozrys-format-field-inline .rozrys-field__label,
 .rozrys-format-field-inline .label-help{justify-content:flex-start;text-align:left;min-height:auto;}
 .rozrys-format-field-inline .label-help__text{justify-content:flex-start;text-align:left;}
-.rozrys-format-field-inline .rozrys-format-row{flex-wrap:wrap;}
+.rozrys-format-field-inline .rozrys-format-row{flex-wrap:nowrap;align-items:stretch;}
 .rozrys-stock-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;border:1px solid transparent;}
 .rozrys-stock-chip.is-stock{background:#ecfdf3;color:#166534;border-color:#b7ebc8;}
 .rozrys-stock-chip.is-order{background:#fef2f2;color:#b91c1c;border-color:#fecaca;}
@@ -629,9 +629,11 @@
   .rozrys-picker-launch{padding:12px 12px;}
   .rozrys-picker-grid{grid-template-columns:1fr;}
   .rozrys-picker-option{padding:13px 14px;}
-  .rozrys-actions-row{flex-direction:column;align-items:stretch;}
-  .rozrys-format-field-inline{flex:1 1 auto;}
-  .rozrys-format-field-inline .rozrys-format-row > .rozrys-format-input{flex:1 1 120px;min-width:120px;}
+  .rozrys-actions-row{justify-content:flex-end;gap:8px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
+  .rozrys-format-field-inline{flex:0 0 auto;}
+  .rozrys-format-field-inline .rozrys-format-row > .rozrys-format-input{flex:0 0 68px;min-width:68px;max-width:72px;}
+  .rozrys-format-row > .btn{padding-left:10px;padding-right:10px;}
+  .rozrys-actions-row .btn-generate-green{white-space:nowrap;}
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
   .rozrys-material-accordion__trigger{ padding:16px 16px; }
   .rozrys-material-accordion__title-line1,

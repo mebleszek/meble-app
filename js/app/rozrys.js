@@ -1111,7 +1111,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260321_rozrys_stock_ui_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_stock_ui_v2');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1616,7 +1616,7 @@
     genBtn.textContent = 'Generuj rozkrój';
     btnRow.appendChild(genBtn);
 
-    const actionRow = h('div', { class:'rozrys-actions-row', style:'display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:12px' });
+    const actionRow = h('div', { class:'rozrys-actions-row', style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:nowrap;align-items:flex-end;margin-top:12px' });
     sizeWrap.classList.add('rozrys-format-field-inline');
     actionRow.appendChild(sizeWrap);
     actionRow.appendChild(btnRow);
@@ -1828,12 +1828,36 @@
       const list = h('div', { class:'rozrys-picker-list' });
       const draftScope = makeMaterialScope({ kind:'all', material:'', includeFronts:false, includeCorpus:false }, { allowEmpty:true });
       const cards = [];
+      const getCardKey = (config)=> `${config.kind}:${config.kind === 'material' ? String(config.material || '') : 'all'}`;
       const hasDraftSelection = ()=> !!(draftScope.includeFronts || draftScope.includeCorpus);
       const setDraftScope = (config, localScope)=>{
         draftScope.kind = config.kind;
         draftScope.material = config.kind === 'material' ? String(config.material || '') : '';
         draftScope.includeFronts = !!localScope.includeFronts;
         draftScope.includeCorpus = !!localScope.includeCorpus;
+      };
+      const clearOtherSelections = (exceptKey)=>{
+        cards.forEach((entry)=>{
+          if(entry.key === exceptKey) return;
+          entry.localScope.includeFronts = false;
+          entry.localScope.includeCorpus = false;
+          entry.scopeHolder.innerHTML = '';
+          buildScopeDraftControls(entry.scopeHolder, entry.localScope, !!entry.config.hasFronts, !!entry.config.hasCorpus, {
+            allowEmpty:true,
+            onChange: ()=>{
+              if(entry.localScope.includeFronts || entry.localScope.includeCorpus){
+                clearOtherSelections(entry.key);
+                setDraftScope(entry.config, entry.localScope);
+              }else if(draftScope.kind === entry.config.kind && (entry.config.kind !== 'material' || draftScope.material === entry.config.material)){
+                draftScope.kind = 'all';
+                draftScope.material = '';
+                draftScope.includeFronts = false;
+                draftScope.includeCorpus = false;
+              }
+              markSelected();
+            }
+          });
+        });
       };
       const updateFooterState = ()=>{
         const active = hasDraftSelection();
@@ -1860,24 +1884,34 @@
         const localScope = makeMaterialScope({
           kind:config.kind,
           material:config.material || '',
-          includeFronts: config.hasFronts && !config.hasCorpus,
-          includeCorpus: config.hasCorpus && !config.hasFronts,
+          includeFronts:false,
+          includeCorpus:false,
         }, { allowEmpty:true });
+        const key = getCardKey(config);
         buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus, {
           allowEmpty:true,
           onChange: ()=>{
-            setDraftScope(config, localScope);
+            if(localScope.includeFronts || localScope.includeCorpus){
+              clearOtherSelections(key);
+              setDraftScope(config, localScope);
+            }else if(draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material)){
+              draftScope.kind = 'all';
+              draftScope.material = '';
+              draftScope.includeFronts = false;
+              draftScope.includeCorpus = false;
+            }
             markSelected();
           }
         });
         scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
         cardNode.addEventListener('click', ()=>{
           if(!localScope.includeFronts && !localScope.includeCorpus) return;
+          clearOtherSelections(key);
           setDraftScope(config, localScope);
           markSelected();
         });
         cardNode.appendChild(scopeHolder);
-        cards.push({ node: cardNode, config });
+        cards.push({ key, node: cardNode, config, localScope, scopeHolder });
         return cardNode;
       };
 
@@ -2005,10 +2039,23 @@
         if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
         return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
       });
-      const best = rows[0];
+      const best = rows[0] || null;
+      const fallbackW = Math.round(Number(fallbackWmm) || 0);
+      const fallbackH = Math.round(Number(fallbackHmm) || 0);
+      const fallbackArea = fallbackW * fallbackH;
+      const bestW = Math.round(Number(best && best.width) || 0);
+      const bestH = Math.round(Number(best && best.height) || 0);
+      const bestArea = bestW * bestH;
+      if(!(bestArea > 0) || fallbackArea >= bestArea){
+        return {
+          width: fallbackW,
+          height: fallbackH,
+          qty: Math.max(0, Number(best && best.qty) || 0),
+        };
+      }
       return {
-        width: Math.round(Number(best && best.width) || Number(fallbackWmm) || 0),
-        height: Math.round(Number(best && best.height) || Number(fallbackHmm) || 0),
+        width: bestW,
+        height: bestH,
         qty: Math.max(0, Number(best && best.qty) || 0),
       };
     }
