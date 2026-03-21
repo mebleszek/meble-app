@@ -1111,7 +1111,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_stock_priority_v1');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_baseformat_modal_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1241,8 +1241,8 @@
     const state = {
       material: materialScope.kind === 'material' && materialScope.material ? materialScope.material : (agg.materials[0] || ''),
       unit: initialUnit,
-      boardW: (initialUnit === 'cm' ? 280 : 2800),
-      boardH: (initialUnit === 'cm' ? 207 : 2070),
+      boardW: Number.isFinite(Number(panelPrefs.boardW)) ? Math.max(1, Number(panelPrefs.boardW)) : (initialUnit === 'cm' ? 280 : 2800),
+      boardH: Number.isFinite(Number(panelPrefs.boardH)) ? Math.max(1, Number(panelPrefs.boardH)) : (initialUnit === 'cm' ? 207 : 2070),
       kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : (initialUnit === 'cm' ? 0.4 : 4),
       edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : (initialUnit === 'cm' ? 2 : 20),
       grain: true,
@@ -1304,21 +1304,15 @@
     edgeSel.value = ['0','1','2'].includes(String(panelPrefs.edgeSubMm)) ? String(panelPrefs.edgeSubMm) : '0';
     edgeWrap.appendChild(edgeSel);
 
-    // board size
-    const sizeWrap = h('div', { class:'rozrys-field' });
-    sizeWrap.appendChild(h('label', { class:'rozrys-field__label', text:`Format arkusza (${state.unit})` }));
-    const sizeRow = h('div', { class:'rozrys-inline-row rozrys-format-row', style:'display:flex;gap:8px;align-items:stretch' });
+    // base board size (kept in settings modal, not in main panel)
     const inW = h('input', { id:'rozW', type:'number', value:String(state.boardW) });
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     inW.classList.add('rozrys-format-input');
     inH.classList.add('rozrys-format-input');
-    const saveToMag = h('button', { class:'btn-primary', type:'button' });
-    saveToMag.textContent = 'Dodaj format';
-    sizeRow.appendChild(inW); sizeRow.appendChild(inH); sizeRow.appendChild(saveToMag);
-    sizeWrap.appendChild(sizeRow);
+    const addStockBtn = h('button', { class:'btn-success', type:'button', text:'Dodaj płytę' });
 
     const optionsWrap = h('div', { class:'rozrys-field' });
-    optionsWrap.appendChild(labelWithInfo('Ustawienia dodatkowe', 'Ustawienia dodatkowe', 'Jednostki, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.'));
+    optionsWrap.appendChild(labelWithInfo('Ustawienia dodatkowe', 'Ustawienia dodatkowe', 'Jednostki, format bazowy arkusza, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.'));
     const openOptionsBtnInline = h('button', { class:'btn', type:'button', text:'Opcje rozkroju', style:'width:100%' });
     optionsWrap.appendChild(openOptionsBtnInline);
     controls.appendChild(optionsWrap);
@@ -1384,6 +1378,8 @@
         selectedRooms: encodeRoomsSelection(selectedRooms),
         materialScope: encodeMaterialScope(materialScope),
         unit: unitSel.value,
+        boardW: Math.max(1, Number(inW.value) || (unitSel.value === 'mm' ? 2800 : 280)),
+        boardH: Math.max(1, Number(inH.value) || (unitSel.value === 'mm' ? 2070 : 207)),
         edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
         kerf: Math.max(0, Number(inK.value)||0),
         edgeTrim: Math.max(0, Number(inTrim.value)||0),
@@ -1405,7 +1401,6 @@
       conv(inW); conv(inH); conv(inK); conv(inTrim); conv(inMinW); conv(inMinH);
       state.unit = next;
       unitSel.value = next;
-      sizeWrap.querySelector('label').textContent = `Format arkusza (${next})`;
       kerfWrap.querySelector('label').textContent = `Rzaz piły (${next})`;
       trimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${next})`;
       minScrapWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${next})`;
@@ -1439,6 +1434,16 @@
       modalEdgeWrap.appendChild(modalEdgeSel);
       form.appendChild(modalEdgeWrap);
 
+      const modalBoardWrap = h('div');
+      modalBoardWrap.appendChild(h('label', { text:`Format bazowy arkusza (${unitSel.value})` }));
+      const modalBoardRow = h('div', { style:'display:flex;gap:8px' });
+      const modalBoardW = h('input', { type:'number', value:String(inW.value) });
+      const modalBoardH = h('input', { type:'number', value:String(inH.value) });
+      modalBoardRow.appendChild(modalBoardW);
+      modalBoardRow.appendChild(modalBoardH);
+      modalBoardWrap.appendChild(modalBoardRow);
+      form.appendChild(modalBoardWrap);
+
       const modalKerfWrap = h('div');
       modalKerfWrap.appendChild(h('label', { text:`Rzaz piły (${unitSel.value})` }));
       const modalKerf = h('input', { type:'number', value:String(inK.value) });
@@ -1467,6 +1472,7 @@
 
       function syncModalLabels(){
         const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
+        modalBoardWrap.querySelector('label').textContent = `Format bazowy arkusza (${u})`;
         modalKerfWrap.querySelector('label').textContent = `Rzaz piły (${u})`;
         modalTrimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
         modalMinWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${u})`;
@@ -1480,6 +1486,8 @@
           const v = n * factor;
           el.value = (nextUnit === 'cm') ? String(Math.round(v * 10) / 10) : String(Math.round(v));
         };
+        conv(modalBoardW);
+        conv(modalBoardH);
         conv(modalKerf);
         conv(modalTrim);
         conv(modalMinW);
@@ -1523,6 +1531,8 @@
         return JSON.stringify({
           unit: u,
           edge: String(modalEdgeSel.value || ''),
+          boardWMm: normalizeLenToMm(modalBoardW.value, u),
+          boardHMm: normalizeLenToMm(modalBoardH.value, u),
           kerfMm: normalizeLenToMm(modalKerf.value, u),
           trimMm: normalizeLenToMm(modalTrim.value, u),
           minWMm: normalizeLenToMm(modalMinW.value, u),
@@ -1575,7 +1585,7 @@
         el.addEventListener('input', updateDirtyState);
         el.addEventListener('change', updateDirtyState);
       }
-      [modalEdgeSel, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
+      [modalEdgeSel, modalBoardW, modalBoardH, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
       updateDirtyState();
 
       cancelBtn.addEventListener('click', async ()=>{
@@ -1595,6 +1605,8 @@
         }
         applyUnitChange(modalUnitSel.value);
         edgeSel.value = modalEdgeSel.value;
+        inW.value = String(Math.max(1, parseLocaleNumber(modalBoardW.value)||0));
+        inH.value = String(Math.max(1, parseLocaleNumber(modalBoardH.value)||0));
         inK.value = String(Math.max(0, parseLocaleNumber(modalKerf.value)||0));
         inTrim.value = String(Math.max(0, parseLocaleNumber(modalTrim.value)||0));
         inMinW.value = String(Math.max(0, parseLocaleNumber(modalMinW.value)||0));
@@ -1605,16 +1617,12 @@
       });
     }
 
-    // action buttons + format arkusza
-    const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap' });
+    // action buttons
+    const actionRow = h('div', { class:'rozrys-actions-row', style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px' });
     const genBtn = h('button', { class:'btn-generate-green', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
-    btnRow.appendChild(genBtn);
-
-    const actionRow = h('div', { class:'rozrys-actions-row', style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:nowrap;align-items:flex-end;margin-top:12px' });
-    sizeWrap.classList.add('rozrys-format-field-inline');
-    actionRow.appendChild(sizeWrap);
-    actionRow.appendChild(btnRow);
+    actionRow.appendChild(addStockBtn);
+    actionRow.appendChild(genBtn);
     card.appendChild(actionRow);
 
     const statusBox = h('div', { class:'rozrys-status', style:'display:none;margin-top:12px' });
@@ -1648,20 +1656,10 @@
 
 
     function applyHintFromMagazyn(material, opts){
-      const cfg = Object.assign({ onlyWhenEmpty:true }, opts || {});
-      try{
-        const curW = Number(inW && inW.value);
-        const curH = Number(inH && inH.value);
-        if(cfg.onlyWhenEmpty && curW > 0 && curH > 0) return;
-        const hint = (FC.magazyn && FC.magazyn.getPreferredFormat) ? FC.magazyn.getPreferredFormat(material) : null;
-        if(hint){
-          const wmm = hint.width || 2800;
-          const hmm = hint.height || 2070;
-          const u = unitSel.value;
-          inW.value = String(u==='mm' ? wmm : (Math.round((wmm/10)*10)/10));
-          inH.value = String(u==='mm' ? hmm : (Math.round((hmm/10)*10)/10));
-        }
-      }catch(_){ }
+      // Format bazowy pozostaje pod kontrolą użytkownika w ustawieniach.
+      // Stan magazynu nie może już nadpisywać głównego formatu rozrysu.
+      void material;
+      void opts;
     }
 
     function getScopeSummary(scope, aggregate){
@@ -1721,7 +1719,6 @@
       updateMaterialPickerButton();
       if(cfg.keepFormatHint){
         const hintMaterial = materialScope.kind === 'material' ? materialScope.material : (agg.materials[0] || '');
-        if(hintMaterial) applyHintFromMagazyn(hintMaterial, { onlyWhenEmpty:true });
       }
       updateGrainAvailability();
       renderOverrides();
@@ -3249,7 +3246,6 @@ async function generate(force){
       materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
       syncHiddenSelections();
       updateMaterialPickerButton();
-      if(materialScope.kind === 'material' && materialScope.material) applyHintFromMagazyn(materialScope.material, { onlyWhenEmpty:true });
       updateGrainAvailability();
       renderOverrides();
       persistSelectionPrefs();
@@ -3274,56 +3270,127 @@ async function generate(force){
       tryAutoRenderFromCache();
     });
 
-    saveToMag.addEventListener('click', async ()=>{
+    function openAddStockModal(){
       if(!(FC.magazyn && (FC.magazyn.addSheetStock || FC.magazyn.upsertSheet))){
         openRozrysInfo('Brak modułu magazynu', 'Nie udało się zapisać formatu, bo moduł Magazynu nie jest dostępny.');
         return;
       }
+      const back = h('div', { class:'modal-back', style:'display:flex', 'data-modal-close':'rozrys-add-stock' });
+      const modal = h('div', { class:'modal', style:'max-width:640px' });
+      modal.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
       const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
-      const material = scope.kind === 'material' ? scope.material : (agg.materials[0] || '');
-      const u = unitSel.value;
-      const w = (u==='mm') ? (Number(inW.value)||0) : Math.round((Number(inW.value)||0)*10);
-      const hh = (u==='mm') ? (Number(inH.value)||0) : Math.round((Number(inH.value)||0)*10);
-      if(!material){
-        openRozrysInfo('Brak materiału', 'Najpierw wybierz materiał albo grupę materiałów.');
-        return;
+      const currentMaterial = scope.kind === 'material' && scope.material ? scope.material : '';
+      const header = h('div', { class:'header' }, [h('div', { style:'font-weight:800', text:'Dodaj płytę do magazynu' })]);
+      const body = h('div', { class:'body' });
+      const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
+
+      const materialWrap = h('div', { style:'grid-column:1 / -1' });
+      materialWrap.appendChild(h('label', { text:'Materiał' }));
+      let materialControl = null;
+      if(currentMaterial){
+        materialControl = h('input', { type:'text', value: currentMaterial, readonly:'readonly' });
+      }else{
+        const select = h('select');
+        select.appendChild(h('option', { value:'', text:'Wybierz materiał' }));
+        (agg.materials || []).forEach((material)=>{
+          const split = splitMaterialAccordionTitle(material);
+          const option = h('option', { value:material, text:[split.line1 || material, split.line2 || ''].filter(Boolean).join(' • ') });
+          select.appendChild(option);
+        });
+        materialControl = select;
       }
-      if(!(w>0 && hh>0)){
-        openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format arkusza, zanim dodasz go do Magazynu.');
-        return;
+      materialWrap.appendChild(materialControl);
+      form.appendChild(materialWrap);
+
+      const widthWrap = h('div');
+      widthWrap.appendChild(h('label', { text:`Szerokość płyty (${unitSel.value})` }));
+      const widthInput = h('input', { type:'number', value:String(inW.value || '') });
+      widthWrap.appendChild(widthInput);
+      form.appendChild(widthWrap);
+
+      const heightWrap = h('div');
+      heightWrap.appendChild(h('label', { text:`Wysokość płyty (${unitSel.value})` }));
+      const heightInput = h('input', { type:'number', value:String(inH.value || '') });
+      heightWrap.appendChild(heightInput);
+      form.appendChild(heightWrap);
+
+      const qtyWrap = h('div', { style:'grid-column:1 / -1' });
+      qtyWrap.appendChild(h('label', { text:'Ilość (szt.)' }));
+      const qtyInput = h('input', { type:'number', value:'1', min:'1' });
+      qtyWrap.appendChild(qtyInput);
+      form.appendChild(qtyWrap);
+
+      body.appendChild(form);
+
+      const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap' });
+      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
+      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      body.appendChild(footer);
+
+      modal.appendChild(header);
+      modal.appendChild(body);
+      back.appendChild(modal);
+      document.body.appendChild(back);
+      try{ document.documentElement.classList.add('modal-lock'); document.body.classList.add('modal-lock'); }catch(_){ }
+
+      function closeModal(){
+        try{ back.remove(); }catch(_){ }
+        try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
       }
-      const ok = await askRozrysConfirm({
-        title:'DODAĆ FORMAT DO MAGAZYNU?',
-        message:`Materiał: ${material}
-Format: ${w}×${hh} mm
-Dodam 1 sztukę do magazynu.`,
-        confirmText:'Zapisz',
-        cancelText:'Anuluj',
-        confirmTone:'success',
-        cancelTone:'danger'
-      });
-      if(!ok) return;
-      let saved = false;
-      try{
-        if(FC.magazyn && typeof FC.magazyn.addSheetStock === 'function'){
-          saved = !!FC.magazyn.addSheetStock(material, w, hh, 1);
-        } else {
-          const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
-          const exact = (rows || []).find((row)=> Math.round(Number(row && row.width) || 0) === Math.round(w) && Math.round(Number(row && row.height) || 0) === Math.round(hh));
-          if(exact){
-            saved = !!FC.magazyn.upsertSheet({ id: exact.id, material, width:w, height:hh, qty: Math.max(0, Math.round(Number(exact.qty) || 0)) + 1 });
-          } else {
-            saved = !!FC.magazyn.upsertSheet({ material, width:w, height:hh, qty:1 });
-          }
+
+      cancelBtn.addEventListener('click', ()=> closeModal());
+      back.addEventListener('pointerdown', (e)=>{ if(e.target === back) closeModal(); });
+      saveBtn.addEventListener('click', async ()=>{
+        const material = currentMaterial || String(materialControl && materialControl.value || '').trim();
+        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
+        const w = u==='mm' ? Math.round(Number(widthInput.value) || 0) : Math.round((Number(widthInput.value) || 0) * 10);
+        const hh = u==='mm' ? Math.round(Number(heightInput.value) || 0) : Math.round((Number(heightInput.value) || 0) * 10);
+        const qty = Math.max(1, Math.round(Number(qtyInput.value) || 1));
+        if(!material){
+          openRozrysInfo('Brak materiału', 'Najpierw wybierz konkretny materiał dla płyty magazynowej.');
+          return;
         }
-      }catch(_){ saved = false; }
-      if(!saved){
-        openRozrysInfo('Nie udało się dodać formatu', 'Spróbuj ponownie.');
-        return;
-      }
-      openRozrysInfo('Dodano format', 'Format został dodany do Magazynu (+1 szt.).');
-      if(material) applyHintFromMagazyn(material, { onlyWhenEmpty:true });
-    });
+        if(!(w > 0 && hh > 0)){
+          openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format płyty, zanim dodasz ją do Magazynu.');
+          return;
+        }
+        const ok = await askRozrysConfirm({
+          title:'DODAĆ PŁYTĘ DO MAGAZYNU?',
+          message:`Materiał: ${material}
+Format: ${w}×${hh} mm
+Dodam ${qty} szt. do magazynu.`,
+          confirmText:'Zapisz',
+          cancelText:'Anuluj',
+          confirmTone:'success',
+          cancelTone:'danger'
+        });
+        if(!ok) return;
+        let saved = false;
+        try{
+          if(FC.magazyn && typeof FC.magazyn.addSheetStock === 'function'){
+            saved = !!FC.magazyn.addSheetStock(material, w, hh, qty);
+          } else {
+            const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
+            const exact = (rows || []).find((row)=> Math.round(Number(row && row.width) || 0) === Math.round(w) && Math.round(Number(row && row.height) || 0) === Math.round(hh));
+            if(exact){
+              saved = !!FC.magazyn.upsertSheet({ id: exact.id, material, width:w, height:hh, qty: Math.max(0, Math.round(Number(exact.qty) || 0)) + qty });
+            } else {
+              saved = !!FC.magazyn.upsertSheet({ material, width:w, height:hh, qty });
+            }
+          }
+        }catch(_){ saved = false; }
+        if(!saved){
+          openRozrysInfo('Nie udało się dodać płyty', 'Spróbuj ponownie.');
+          return;
+        }
+        closeModal();
+        openRozrysInfo('Dodano płytę', `Płyta została dodana do Magazynu (+${qty} szt.).`);
+      });
+    }
+
+    addStockBtn.addEventListener('click', openAddStockModal);
 
     genBtn.addEventListener('click', ()=>{
       if(_rozrysRunning){
