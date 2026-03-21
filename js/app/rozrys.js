@@ -958,8 +958,43 @@
       w.document.open();
       w.document.write(html);
       w.document.close();
-      w.focus();
-      setTimeout(()=>{ try{ w.print(); }catch(_){ } }, 250);
+      const triggerPrint = ()=>{
+        try{
+          const imgs = Array.from(w.document.images || []);
+          if(!imgs.length){
+            w.focus();
+            setTimeout(()=>{ try{ w.print(); }catch(_){ } }, 120);
+            return;
+          }
+          let pending = 0;
+          let fired = false;
+          const fire = ()=>{
+            if(fired) return;
+            fired = true;
+            w.focus();
+            setTimeout(()=>{ try{ w.print(); }catch(_){ } }, 120);
+          };
+          const done = ()=>{
+            pending = Math.max(0, pending - 1);
+            if(pending === 0) fire();
+          };
+          imgs.forEach((img)=>{
+            if(img.complete && img.naturalWidth > 0) return;
+            pending += 1;
+            img.addEventListener('load', done, { once:true });
+            img.addEventListener('error', done, { once:true });
+          });
+          if(pending === 0){
+            fire();
+            return;
+          }
+          setTimeout(fire, 1800);
+        }catch(_){
+          try{ w.focus(); w.print(); }catch(__){ }
+        }
+      };
+      if(w.document.readyState === 'complete') triggerPrint();
+      else w.addEventListener('load', triggerPrint, { once:true });
     }catch(_){
       openRozrysInfo('Nie udało się otworzyć podglądu', 'Nie udało się otworzyć okna do wydruku / PDF.');
     }
@@ -2695,17 +2730,48 @@
           <meta name="viewport" content="width=device-width,initial-scale=1" />
           <title>Rozrys</title>
           <style>
-            @page{ size:A4 landscape; margin:10mm; }
+            @page{ size:297mm 210mm; margin:8mm; }
             html, body{ margin:0; padding:0; }
             body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#111827; }
-            .print-page{ box-sizing:border-box; width:100%; min-height:0; page-break-after:always; break-after:page; }
+            .print-page{
+              box-sizing:border-box;
+              width:281mm;
+              height:194mm;
+              margin:0;
+              page-break-after:always;
+              break-after:page;
+              page-break-inside:avoid;
+              break-inside:avoid-page;
+              overflow:hidden;
+              display:flex;
+              flex-direction:column;
+              justify-content:flex-start;
+            }
             .print-page:last-child{ page-break-after:auto; break-after:auto; }
-            .page-head{ margin:0 0 6mm; }
+            .page-head{ margin:0 0 4mm; flex:0 0 auto; }
             .title{ font-size:18px; font-weight:800; margin:0 0 2mm; }
             .meta{ font-size:12px; color:#374151; margin:0; }
-            .sheet-meta{ font-size:12px; color:#111827; margin:0 0 4mm; }
-            .img-wrap{ width:100%; text-align:center; }
-            img.sheet-img{ display:inline-block; width:auto; height:auto; max-width:100%; max-height:165mm; border:1px solid #333; border-radius:10px; }
+            .sheet-meta{ font-size:12px; color:#111827; margin:0 0 3mm; flex:0 0 auto; }
+            .img-wrap{
+              flex:1 1 auto;
+              min-height:0;
+              width:100%;
+              display:flex;
+              align-items:flex-start;
+              justify-content:center;
+              page-break-inside:avoid;
+              break-inside:avoid-page;
+              overflow:hidden;
+            }
+            img.sheet-img{
+              display:block;
+              width:auto;
+              height:auto;
+              max-width:100%;
+              max-height:150mm;
+              border:1px solid #333;
+              border-radius:10px;
+            }
           </style>
         </head><body>`;
         sheets.forEach((s,i)=>{
