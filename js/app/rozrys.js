@@ -1000,6 +1000,38 @@
     }
   }
 
+  function pxToMm(px){
+    const n = Number(px);
+    if(!Number.isFinite(n)) return 0;
+    return n * 25.4 / 96;
+  }
+
+  function measurePrintHeaderMm(titleText, metaText){
+    try{
+      const sandbox = document.createElement('div');
+      sandbox.style.position = 'absolute';
+      sandbox.style.left = '-99999px';
+      sandbox.style.top = '0';
+      sandbox.style.width = '194mm';
+      sandbox.style.visibility = 'hidden';
+      sandbox.style.pointerEvents = 'none';
+      sandbox.style.boxSizing = 'border-box';
+      sandbox.innerHTML = `
+        <div style="box-sizing:border-box;width:194mm;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
+          <div style="margin:0 0 4mm;overflow-wrap:anywhere;word-break:break-word;">
+            <div style="font-size:18px;line-height:1.2;font-weight:800;margin:0 0 2mm;overflow-wrap:anywhere;word-break:break-word;">${String(titleText || '')}</div>
+            <div style="font-size:12px;line-height:1.35;color:#374151;margin:0;overflow-wrap:anywhere;word-break:break-word;">${String(metaText || '')}</div>
+          </div>
+        </div>`;
+      document.body.appendChild(sandbox);
+      const measured = sandbox.firstElementChild ? sandbox.firstElementChild.getBoundingClientRect().height : sandbox.getBoundingClientRect().height;
+      sandbox.remove();
+      return Math.max(14, Math.ceil(pxToMm(measured) * 10) / 10 + 1);
+    }catch(_){
+      return 14;
+    }
+  }
+
   function computePlan(state, parts){
     const opt = FC.cutOptimizer;
     if(!opt) return { sheets: [], note: 'Brak modułu cutOptimizer.' };
@@ -1700,7 +1732,7 @@
     }
 
     // action buttons
-    const actionRow = h('div', { class:'rozrys-actions-row', style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px' });
+    const actionRow = h('div', { class:'rozrys-actions-row' });
     const genBtn = h('button', { class:'btn-generate-green', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
     actionRow.appendChild(addStockBtn);
@@ -1847,8 +1879,10 @@
       const body = h('div', { class:'rozrys-picker-modal' });
       const list = h('div', { class:'rozrys-picker-list' });
       const checkboxes = [];
+      const initialSignature = JSON.stringify(normalizeRoomSelection(selectedRooms));
       const nextRooms = ()=> normalizeRoomSelection(Array.from(draft));
       const hasSelection = ()=> nextRooms().length > 0;
+      const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
       getRooms().forEach((room)=>{
         const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check' });
         const top = h('div', { class:'rozrys-picker-check__top' });
@@ -1869,14 +1903,22 @@
 
       const footer = h('div', { class:'rozrys-picker-footer' });
       const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' });
-      const cancelBtn = h('button', { type:'button', class:'btn-primary', text:'Zamknij' });
+      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
+      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
       const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
-      saveBtn.disabled = !hasSelection();
+      function renderFooterActions(){
+        actionWrap.innerHTML = '';
+        if(isDirty()){
+          actionWrap.appendChild(cancelBtn);
+          actionWrap.appendChild(saveBtn);
+        }else{
+          actionWrap.appendChild(exitBtn);
+        }
+      }
       function updateFooterState(){
-        const active = hasSelection();
-        cancelBtn.textContent = active ? 'Anuluj' : 'Zamknij';
-        cancelBtn.className = active ? 'btn-danger' : 'btn-primary';
-        saveBtn.disabled = !active;
+        saveBtn.disabled = !isDirty() || !hasSelection();
+        renderFooterActions();
       }
       allBtn.addEventListener('click', ()=>{
         draft.clear();
@@ -1884,30 +1926,66 @@
         checkboxes.forEach(({ room, cb })=>{ cb.checked = draft.has(room); });
         updateFooterState();
       });
-      cancelBtn.addEventListener('click', ()=> FC.panelBox.close());
+      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
+      cancelBtn.addEventListener('click', async ()=>{
+        const ok = await askRozrysConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'success'
+        });
+        if(!ok) return;
+        FC.panelBox.close();
+      });
       saveBtn.addEventListener('click', ()=>{
         const pickedRooms = nextRooms();
-        if(!pickedRooms.length) return;
+        if(!pickedRooms.length || !isDirty()) return;
         selectedRooms = pickedRooms;
         FC.panelBox.close();
         refreshSelectionState();
       });
       updateFooterState();
       footer.appendChild(allBtn);
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      footer.appendChild(actionWrap);
       body.appendChild(footer);
-      FC.panelBox.open({ title:'Wybierz pomieszczenia', contentNode: body, width:'720px', dismissOnOverlay:false });
+      FC.panelBox.open({
+        title:'Wybierz pomieszczenia',
+        contentNode: body,
+        width:'720px',
+        dismissOnOverlay:false,
+        beforeClose: ()=> isDirty() ? askRozrysConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'success'
+        }) : true
+      });
     }
 
     function openMaterialPicker(){
       if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
       const body = h('div', { class:'rozrys-picker-modal' });
       const list = h('div', { class:'rozrys-picker-list' });
-      const draftScope = makeMaterialScope({ kind:'all', material:'', includeFronts:false, includeCorpus:false }, { allowEmpty:true });
+      const initialScope = makeMaterialScope(materialScope, { allowEmpty:true });
+      const draftScope = makeMaterialScope(initialScope, { allowEmpty:true });
       const cards = [];
       const getCardKey = (config)=> `${config.kind}:${config.kind === 'material' ? String(config.material || '') : 'all'}`;
+      const scopeSignature = (scope)=>{
+        const normalized = makeMaterialScope(scope, { allowEmpty:true });
+        return JSON.stringify({
+          kind: normalized.kind,
+          material: normalized.material || '',
+          includeFronts: !!normalized.includeFronts,
+          includeCorpus: !!normalized.includeCorpus
+        });
+      };
+      const initialSignature = scopeSignature(initialScope);
       const hasDraftSelection = ()=> !!(draftScope.includeFronts || draftScope.includeCorpus);
+      const isDirty = ()=> scopeSignature(draftScope) !== initialSignature;
       const setDraftScope = (config, localScope)=>{
         draftScope.kind = config.kind;
         draftScope.material = config.kind === 'material' ? String(config.material || '') : '';
@@ -1937,12 +2015,21 @@
           });
         });
       };
-      const updateFooterState = ()=>{
-        const active = hasDraftSelection();
-        cancelBtn.textContent = active ? 'Anuluj' : 'Zamknij';
-        cancelBtn.className = active ? 'btn-danger' : 'btn-primary';
-        saveBtn.disabled = !active;
-      };
+
+      function renderFooterActions(){
+        actionWrap.innerHTML = '';
+        if(isDirty()){
+          actionWrap.appendChild(cancelBtn);
+          actionWrap.appendChild(saveBtn);
+        }else{
+          actionWrap.appendChild(exitBtn);
+        }
+      }
+
+      function updateFooterState(){
+        saveBtn.disabled = !isDirty() || !hasDraftSelection();
+        renderFooterActions();
+      }
 
       function markSelected(){
         cards.forEach(({ node, config })=>{
@@ -1965,6 +2052,10 @@
           includeFronts:false,
           includeCorpus:false,
         }, { allowEmpty:true });
+        if(initialScope.kind === config.kind && (config.kind !== 'material' || initialScope.material === config.material)){
+          localScope.includeFronts = !!initialScope.includeFronts;
+          localScope.includeCorpus = !!initialScope.includeCorpus;
+        }
         const key = getCardKey(config);
         buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus, {
           allowEmpty:true,
@@ -2019,21 +2110,47 @@
       body.appendChild(list);
 
       const footer = h('div', { class:'rozrys-picker-footer' });
-      const cancelBtn = h('button', { type:'button', class:'btn-primary', text:'Zamknij' });
+      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
+      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
       const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
       saveBtn.disabled = true;
-      cancelBtn.addEventListener('click', ()=> FC.panelBox.close());
+      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
+      cancelBtn.addEventListener('click', async ()=>{
+        const ok = await askRozrysConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w wyborze materiału / grupy zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'success'
+        });
+        if(!ok) return;
+        FC.panelBox.close();
+      });
       saveBtn.addEventListener('click', ()=>{
-        if(!hasDraftSelection()) return;
+        if(!hasDraftSelection() || !isDirty()) return;
         materialScope = normalizeMaterialScopeForAggregate(draftScope, agg);
         FC.panelBox.close();
         refreshSelectionState();
       });
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      footer.appendChild(actionWrap);
       body.appendChild(footer);
       markSelected();
-      FC.panelBox.open({ title:'Wybierz materiał / grupę', contentNode: body, width:'760px', dismissOnOverlay:false });
+      FC.panelBox.open({
+        title:'Wybierz materiał / grupę',
+        contentNode: body,
+        width:'760px',
+        dismissOnOverlay:false,
+        beforeClose: ()=> isDirty() ? askRozrysConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w wyborze materiału / grupy zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'success'
+        }) : true
+      });
     }
 
     updateRoomsPickerButton();
@@ -2741,10 +2858,14 @@
           });
         }catch(_){ }
 
+        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
+        const printTitle = `Rozrys — ${meta.material}`;
+        const printMetaLine = `Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}`;
         const PRINT = {
           pageW: 194,
           pageH: 281,
-          headerH: 14,
+          headerH: measurePrintHeaderMm(printTitle, printMetaLine),
+          headerGap: 4,
           bodyPadX: 4,
           bodyPadBottom: 3,
           pageGap: 5,
@@ -2769,7 +2890,7 @@
             : Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0))
         });
         const bodyW = Math.max(10, PRINT.pageW - PRINT.bodyPadX * 2);
-        const bodyH = Math.max(10, PRINT.pageH - PRINT.headerH - PRINT.bodyPadBottom);
+        const bodyH = Math.max(10, PRINT.pageH - PRINT.headerH - PRINT.headerGap - PRINT.bodyPadBottom);
         const globalScaleMm = Math.max(0.01, Math.min(
           (bodyW - 2 * PRINT.imgPad) / Math.max(1, refBoard.w),
           (bodyH - PRINT.metaH - 2 * PRINT.imgPad) / Math.max(1, refBoard.h)
@@ -2817,7 +2938,6 @@
           i += 1;
         }
 
-        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
         let html = `<!doctype html><html><head><meta charset="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
           <title>Rozrys</title>
@@ -2840,18 +2960,20 @@
               justify-content:flex-start;
             }
             .print-page:last-child{ page-break-after:auto; break-after:auto; }
-            .page-head{ margin:0 0 4mm; min-height:14mm; flex:0 0 auto; }
-            .title{ font-size:18px; font-weight:800; margin:0 0 2mm; }
-            .meta{ font-size:12px; color:#374151; margin:0; }
+            .page-head{ margin:0 0 4mm; min-height:${PRINT.headerH.toFixed(2)}mm; flex:0 0 auto; overflow-wrap:anywhere; word-break:break-word; }
+            .title{ font-size:18px; font-weight:800; line-height:1.2; margin:0 0 2mm; overflow-wrap:anywhere; word-break:break-word; }
+            .meta{ font-size:12px; line-height:1.35; color:#374151; margin:0; overflow-wrap:anywhere; word-break:break-word; }
             .page-body{
               flex:1 1 auto;
               min-height:0;
               width:100%;
+              box-sizing:border-box;
+              padding:0 ${PRINT.bodyPadX.toFixed(2)}mm ${PRINT.bodyPadBottom.toFixed(2)}mm;
               display:flex;
               flex-direction:column;
               align-items:flex-start;
               justify-content:flex-start;
-              gap:5mm;
+              gap:${PRINT.itemGap.toFixed(2)}mm;
               overflow:hidden;
             }
             .sheet-card{
@@ -2886,8 +3008,8 @@
         pages.forEach((group)=>{
           html += `<section class="print-page">`;
           html += `<div class="page-head">`;
-          html += `<div class="title">Rozrys — ${escapeHtml(meta.material)}</div>`;
-          html += `<p class="meta">Płyty: ${formatSheetCount(sum.count)} • Kerf: ${escapeHtml(meta.kerf)}${escapeHtml(u)} • Heurystyka: ${escapeHtml(meta.heur)}${edgeNote}</p>`;
+          html += `<div class="title">${escapeHtml(printTitle)}</div>`;
+          html += `<p class="meta">${escapeHtml(printMetaLine)}</p>`;
           html += `</div>`;
           html += `<div class="page-body">`;
           group.forEach((item)=>{
@@ -3530,13 +3652,13 @@ async function generate(force){
         openRozrysInfo('Brak modułu magazynu', 'Nie udało się zapisać formatu, bo moduł Magazynu nie jest dostępny.');
         return;
       }
-      const back = h('div', { class:'modal-back', style:'display:flex', 'data-modal-close':'rozrys-add-stock' });
-      const modal = h('div', { class:'modal', style:'max-width:640px' });
-      modal.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')){
+        openRozrysInfo('Brak panelu', 'Nie udało się otworzyć okna dodawania płyty.');
+        return;
+      }
       const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
       const currentMaterial = scope.kind === 'material' && scope.material ? scope.material : '';
-      const header = h('div', { class:'header' }, [h('div', { style:'font-weight:800', text:'Dodaj płytę do magazynu' })]);
-      const body = h('div', { class:'body' });
+      const body = h('div');
       const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
 
       const materialWrap = h('div', { style:'grid-column:1 / -1' });
@@ -3577,32 +3699,60 @@ async function generate(force){
 
       body.appendChild(form);
 
-      const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap' });
+      const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
+      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
       const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
       const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
+      footer.appendChild(actionWrap);
       body.appendChild(footer);
 
-      modal.appendChild(header);
-      modal.appendChild(body);
-      back.appendChild(modal);
-      document.body.appendChild(back);
-      try{ document.documentElement.classList.add('modal-lock'); document.body.classList.add('modal-lock'); }catch(_){ }
+      const normalizeFieldText = (value)=> String(value == null ? '' : value).trim();
+      const currentSignature = ()=> JSON.stringify({
+        material: normalizeFieldText(currentMaterial || (materialControl && materialControl.value) || ''),
+        width: normalizeFieldText(widthInput.value),
+        height: normalizeFieldText(heightInput.value),
+        qty: normalizeFieldText(qtyInput.value)
+      });
+      const initialSignature = currentSignature();
+      const isDirty = ()=> currentSignature() !== initialSignature;
+      const updateFooterState = ()=>{
+        actionWrap.innerHTML = '';
+        saveBtn.disabled = !isDirty();
+        if(isDirty()){
+          actionWrap.appendChild(cancelBtn);
+          actionWrap.appendChild(saveBtn);
+        }else{
+          actionWrap.appendChild(exitBtn);
+        }
+      };
+      const confirmDiscard = ()=> askRozrysConfirm({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w formularzu dodawania płyty zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY',
+        cancelText:'WRÓĆ',
+        confirmTone:'danger',
+        cancelTone:'success'
+      });
+      const wireDirty = (el)=>{
+        if(!el) return;
+        el.addEventListener('input', updateFooterState);
+        el.addEventListener('change', updateFooterState);
+      };
+      [materialControl, widthInput, heightInput, qtyInput].forEach(wireDirty);
 
-      function closeModal(){
-        try{ back.remove(); }catch(_){ }
-        try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
-      }
-
-      cancelBtn.addEventListener('click', ()=> closeModal());
-      back.addEventListener('pointerdown', (e)=>{ if(e.target === back) closeModal(); });
+      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
+      cancelBtn.addEventListener('click', async ()=>{
+        const ok = await confirmDiscard();
+        if(!ok) return;
+        FC.panelBox.close();
+      });
       saveBtn.addEventListener('click', async ()=>{
         const material = currentMaterial || String(materialControl && materialControl.value || '').trim();
         const u = unitSel.value === 'cm' ? 'cm' : 'mm';
-        const w = u==='mm' ? Math.round(Number(widthInput.value) || 0) : Math.round((Number(widthInput.value) || 0) * 10);
-        const hh = u==='mm' ? Math.round(Number(heightInput.value) || 0) : Math.round((Number(heightInput.value) || 0) * 10);
-        const qty = Math.max(1, Math.round(Number(qtyInput.value) || 1));
+        const w = u==='mm' ? Math.round(parseLocaleNumber(widthInput.value) || 0) : Math.round((parseLocaleNumber(widthInput.value) || 0) * 10);
+        const hh = u==='mm' ? Math.round(parseLocaleNumber(heightInput.value) || 0) : Math.round((parseLocaleNumber(heightInput.value) || 0) * 10);
+        const qty = Math.max(1, Math.round(parseLocaleNumber(qtyInput.value) || 1));
         if(!material){
           openRozrysInfo('Brak materiału', 'Najpierw wybierz konkretny materiał dla płyty magazynowej.');
           return;
@@ -3611,6 +3761,7 @@ async function generate(force){
           openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format płyty, zanim dodasz ją do Magazynu.');
           return;
         }
+        if(!isDirty()) return;
         const ok = await askRozrysConfirm({
           title:'DODAĆ PŁYTĘ DO MAGAZYNU?',
           message:`Materiał: ${material}
@@ -3640,8 +3791,16 @@ Dodam ${qty} szt. do magazynu.`,
           openRozrysInfo('Nie udało się dodać płyty', 'Spróbuj ponownie.');
           return;
         }
-        closeModal();
+        FC.panelBox.close();
         openRozrysInfo('Dodano płytę', `Płyta została dodana do Magazynu (+${qty} szt.).`);
+      });
+      updateFooterState();
+      FC.panelBox.open({
+        title:'Dodaj płytę do magazynu',
+        contentNode: body,
+        width:'640px',
+        dismissOnOverlay:false,
+        beforeClose: ()=> isDirty() ? confirmDiscard() : true
       });
     }
 

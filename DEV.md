@@ -1,5 +1,13 @@
 # DEV — porządek rozwoju meble-app / Optimax
 
+## Ostatnia paczka zmian
+
+### 2026-03-21 — rozrys_ui_pdf_guard_v1
+- `js/app/rozrys.js` — uporządkowane akcje i logika stanów `Wyjdź / Anuluj / Zapisz/Zatwierdź` w pickerach ROZRYS oraz w modalu `Dodaj płytę do magazynu`; modal dodawania płyty przeniesiony na wspólny `panelBox`; eksport PDF ma bezpieczniejsze liczenie wysokości nagłówka przy długich nazwach materiałów.
+- `js/app/panel-box.js` — `panelBox.open()` obsługuje teraz opcjonalny `beforeClose`, żeby modal mógł zablokować zamknięcie przy niezapisanych zmianach.
+- `css/style.css` — wzmocnione zawijanie długich nazw w nagłówkach/pickerach/akordeonach oraz usunięta kolizja układu paska akcji ROZRYS między CSS a inline-style.
+- `index.html` — podbite cache-busting dla plików powiązanych z tą paczką.
+
 ## Stałe zasady pracy
 
 1. **Bez zmiany UI bez zgody użytkownika.**

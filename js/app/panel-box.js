@@ -36,6 +36,8 @@
     const width = String(opts.width || '920px');
     const dismissOnOverlay = opts.dismissOnOverlay !== false;
     const dismissOnEsc = opts.dismissOnEsc !== false;
+    const beforeClose = (typeof opts.beforeClose === 'function') ? opts.beforeClose : null;
+    let closePending = false;
 
     const overlay = el('div', { class:'panel-box-backdrop' });
     const box = el('div', { class:'panel-box', role:'dialog', 'aria-modal':'true', style:`max-width:${width}` });
@@ -56,23 +58,37 @@
     document.body.appendChild(overlay);
     try{ document.documentElement.classList.add('modal-lock'); document.body.classList.add('modal-lock'); }catch(_){ }
 
+    const requestClose = async (reason)=>{
+      if(closePending) return;
+      closePending = true;
+      try{
+        if(beforeClose){
+          const verdict = await beforeClose({ reason: String(reason || 'close') });
+          if(verdict === false) return;
+        }
+        close();
+      }finally{
+        closePending = false;
+      }
+    };
+
     const onKey = (e)=>{
       if(e.key === 'Escape' && dismissOnEsc){
         e.preventDefault();
-        close();
+        void requestClose('escape');
       }
     };
     document.addEventListener('keydown', onKey, true);
 
-    closeBtn.addEventListener('click', close);
+    closeBtn.addEventListener('click', ()=>{ void requestClose('button'); });
     overlay.addEventListener('pointerdown', (e)=>{
       if(e.target !== overlay) return;
       if(!dismissOnOverlay) return;
-      close();
+      void requestClose('overlay');
     });
     box.addEventListener('pointerdown', (e)=> e.stopPropagation());
 
-    active = { root:overlay, onKey };
+    active = { root:overlay, onKey, requestClose };
     setTimeout(()=>{ try{ closeBtn.focus(); }catch(_){ } }, 0);
   }
 
