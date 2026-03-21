@@ -2704,13 +2704,15 @@
       const pdfBtn = h('button', { class:'btn-primary', type:'button' });
       pdfBtn.textContent = 'Eksport PDF (drukuj)';
       pdfBtn.addEventListener('click', ()=>{
-        // HTML do wydruku/PDF: jedna karta = jeden arkusz, A4 landscape, bez sztucznego rozciągania obrazów.
+        // HTML do wydruku/PDF: wspólna skala dla wszystkich arkuszy, bez sztucznego powiększania.
+        // Duże arkusze idą po 1 na stronę, mniejsze mogą iść po 2 na stronę tylko wtedy,
+        // gdy mieszczą się przy tej samej proporcji względem pełnej płyty bazowej.
         const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
+        const escapeHtml = (value)=> String(value == null ? '' : value).replace(/[&<>"]/g, (ch)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
         const imgs = [];
         try{
           sheets.forEach((s)=>{
             const c = document.createElement('canvas');
-            // sztuczny kontener o szerokości zbliżonej do szerokości wydruku landscape
             const tmp = document.createElement('div');
             tmp.style.width = '1100px';
             tmp.style.position = 'absolute';
@@ -2724,6 +2726,71 @@
             tmp.remove();
           });
         }catch(_){ }
+
+        const PRINT = {
+          pageW: 281,
+          pageH: 194,
+          headerH: 18,
+          bodyPadX: 4,
+          bodyPadBottom: 3,
+          pageGap: 5,
+          itemGap: 5,
+          metaH: 7,
+          imgPad: 2,
+        };
+        const refBoard = sheets.reduce((acc, s)=>{
+          const bm = getBoardMeta(s);
+          return {
+            w: Math.max(acc.w, Number((bm && bm.referenceBoardW) || (bm && bm.boardW) || 0)),
+            h: Math.max(acc.h, Number((bm && bm.referenceBoardH) || (bm && bm.boardH) || 0)),
+          };
+        }, { w: Math.max(1, Number((meta && meta.boardW) || (meta && meta.meta && meta.meta.boardW) || 0)), h: Math.max(1, Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0)) });
+        const bodyW = Math.max(10, PRINT.pageW - PRINT.bodyPadX * 2);
+        const bodyH = Math.max(10, PRINT.pageH - PRINT.headerH - PRINT.bodyPadBottom);
+        const globalScaleMm = Math.max(0.01, Math.min(
+          (bodyW - 2 * PRINT.imgPad) / Math.max(1, refBoard.w),
+          (bodyH - PRINT.metaH - 2 * PRINT.imgPad) / Math.max(1, refBoard.h)
+        ));
+
+        const sheetItems = sheets.map((s, i)=>{
+          const bm = getBoardMeta(s);
+          const ws = calcDisplayWaste(s);
+          const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
+          const virtualTxt = ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '');
+          const supply = getSupplyMeta(s);
+          const supplyTxt = supply ? ` • ${supply.text}` : '';
+          const img = imgs[i] || { src:'', width:0, height:0 };
+          const renderW = Math.max(6, bm.boardW * globalScaleMm);
+          const renderH = Math.max(6, bm.boardH * globalScaleMm);
+          return {
+            index: i,
+            src: img.src || '',
+            renderW,
+            renderH,
+            totalBlockH: PRINT.metaH + PRINT.imgPad + renderH,
+            metaHtml: `<strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}${supplyTxt}`,
+          };
+        });
+
+        const canPairOnSamePage = (a, b)=>{
+          if(!a || !b) return false;
+          const combinedH = a.totalBlockH + b.totalBlockH + PRINT.itemGap;
+          const maxW = Math.max(a.renderW, b.renderW) + PRINT.imgPad * 2;
+          return combinedH <= bodyH && maxW <= bodyW;
+        };
+
+        const pages = [];
+        for(let i=0; i<sheetItems.length;){
+          const current = sheetItems[i];
+          const next = sheetItems[i + 1];
+          if(canPairOnSamePage(current, next)){
+            pages.push([current, next]);
+            i += 2;
+            continue;
+          }
+          pages.push([current]);
+          i += 1;
+        }
 
         const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
         let html = `<!doctype html><html><head><meta charset="utf-8" />
@@ -2748,47 +2815,63 @@
               justify-content:flex-start;
             }
             .print-page:last-child{ page-break-after:auto; break-after:auto; }
-            .page-head{ margin:0 0 4mm; flex:0 0 auto; }
+            .page-head{ margin:0 0 4mm; min-height:14mm; flex:0 0 auto; }
             .title{ font-size:18px; font-weight:800; margin:0 0 2mm; }
             .meta{ font-size:12px; color:#374151; margin:0; }
-            .sheet-meta{ font-size:12px; color:#111827; margin:0 0 3mm; flex:0 0 auto; }
-            .img-wrap{
+            .page-body{
               flex:1 1 auto;
               min-height:0;
               width:100%;
               display:flex;
+              flex-direction:column;
               align-items:flex-start;
-              justify-content:center;
+              justify-content:flex-start;
+              gap:5mm;
+              overflow:hidden;
+            }
+            .sheet-card{
+              width:100%;
+              flex:0 0 auto;
+              display:flex;
+              flex-direction:column;
+              align-items:flex-start;
               page-break-inside:avoid;
               break-inside:avoid-page;
+            }
+            .sheet-meta{ font-size:12px; color:#111827; margin:0 0 2mm; }
+            .img-wrap{
+              width:100%;
+              display:flex;
+              align-items:flex-start;
+              justify-content:flex-start;
               overflow:hidden;
             }
             img.sheet-img{
               display:block;
               width:auto;
               height:auto;
-              max-width:100%;
-              max-height:150mm;
+              max-width:none;
+              max-height:none;
               border:1px solid #333;
               border-radius:10px;
+              background:#fff;
             }
           </style>
         </head><body>`;
-        sheets.forEach((s,i)=>{
-          const bm = getBoardMeta(s);
-          const ws = calcDisplayWaste(s);
-          const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
-          const virtualTxt = ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '');
-          const supplyTxt = getSupplyMeta(s) ? ` • ${getSupplyMeta(s).text}` : '';
-          const img = imgs[i] || { src:'', width:0, height:0 };
-          const orientationClass = (img.height > img.width) ? ' is-portrait' : '';
-          html += `<section class="print-page${orientationClass}">`;
+        pages.forEach((group)=>{
+          html += `<section class="print-page">`;
           html += `<div class="page-head">`;
-          html += `<div class="title">Rozrys — ${meta.material}</div>`;
-          html += `<p class="meta">Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</p>`;
+          html += `<div class="title">Rozrys — ${escapeHtml(meta.material)}</div>`;
+          html += `<p class="meta">Płyty: ${formatSheetCount(sum.count)} • Kerf: ${escapeHtml(meta.kerf)}${escapeHtml(u)} • Heurystyka: ${escapeHtml(meta.heur)}${edgeNote}</p>`;
           html += `</div>`;
-          html += `<p class="sheet-meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}${supplyTxt}</p>`;
-          html += `<div class="img-wrap"><img class="sheet-img" src="${img.src}" alt="Arkusz ${i+1}" /></div>`;
+          html += `<div class="page-body">`;
+          group.forEach((item)=>{
+            html += `<article class="sheet-card">`;
+            html += `<p class="sheet-meta">${item.metaHtml}</p>`;
+            html += `<div class="img-wrap"><img class="sheet-img" src="${item.src}" alt="Arkusz ${item.index + 1}" style="width:${item.renderW.toFixed(2)}mm;height:${item.renderH.toFixed(2)}mm" /></div>`;
+            html += `</article>`;
+          });
+          html += `</div>`;
           html += `</section>`;
         });
         html += `</body></html>`;

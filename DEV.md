@@ -446,3 +446,6 @@ Dopiero potem go zmieniać.
 
 - 2026-03-22: `js/app/rozrys.js`, `index.html` — eksport PDF/druk ROZRYS przerobiony na strony A4 landscape, jedna strona = jeden arkusz z własnym nagłówkiem. Usunięto sztuczne rozciąganie obrazów w PDF (`img` nie ma już `width:100%`), więc małe arkusze z magazynu zachowują proporcjonalnie mniejszy rozmiar także w wydruku. Regresje do sprawdzenia: brak pustych stron między arkuszami, pierwszy arkusz nie może lądować samotnie po tytule, a mały arkusz z magazynu ma pozostać mniejszy wizualnie od pełnej płyty również w podglądzie PDF.
 - 2026-03-22: PDF/druk ROZRYS — poprawiono składanie stron: tytuł i arkusz na tej samej stronie, bez pustych stron między arkuszami; wymuszono layout A4 poziomo i czekanie na załadowanie obrazów przed otwarciem wydruku.
+
+
+- PDF/druk ROZRYS: małe arkusze mogą trafić 2 na stronę tylko bez zmiany wspólnej skali względem pełnej płyty; nie wolno ich rozciągać do wolnego miejsca strony.
