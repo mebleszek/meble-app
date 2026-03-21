@@ -36,7 +36,7 @@
     .btn-primary:hover{background:#0284c7}
     .btn-danger{background:var(--danger);color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
     .btn-success{background:#22c55e;color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
-    .btn:disabled,.btn-danger:disabled,.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn:disabled,.btn-danger:disabled,.btn-primary:disabled,.btn-success:disabled{opacity:.5;cursor:not-allowed}
     .btn-generate-green,.btn-generate-blue,.btn-generate-red{border:none;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer;color:#fff}
     .btn-generate-green{background:#22c55e}
     .btn-generate-green:hover{background:#16a34a}
@@ -332,7 +332,7 @@
 
 /* Reusable confirm box */
 .confirm-backdrop{
-  position:fixed;inset:0;z-index:1200;
+  position:fixed;inset:0;z-index:6200;
   display:flex;align-items:center;justify-content:center;
   background:rgba(15,23,42,.45);
   padding:16px;
@@ -412,7 +412,7 @@
 
 /* Reusable info box + help triggers */
 .info-backdrop{
-  position:fixed;inset:0;z-index:1190;
+  position:fixed;inset:0;z-index:6100;
   display:flex;align-items:center;justify-content:center;
   background:rgba(15,23,42,.32);
   padding:16px;
@@ -528,7 +528,7 @@
 .rozrys-picker-launch__hint{margin-top:2px;text-align:left;}
 .rozrys-picker-modal{display:flex;flex-direction:column;gap:0;}
 .rozrys-picker-search{margin-bottom:14px;}
-.rozrys-format-row > .rozrys-format-input{flex:0 1 108px;min-width:96px;}
+.rozrys-format-row > .rozrys-format-input{flex:0 1 124px;min-width:112px;}
 .rozrys-format-row > .btn{flex:0 0 auto;white-space:nowrap;}
 .rozrys-picker-card{display:flex;flex-direction:column;gap:12px;}
 .rozrys-picker-check{display:block;}
@@ -541,7 +541,7 @@
 .rozrys-scope-badge{display:inline-flex;align-items:center;padding:8px 10px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:13px;font-weight:800;border:1px solid #bbf7d0;}
 .rozrys-picker-section-title{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:2px 0 10px;}
 .rozrys-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-.rozrys-picker-list{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow:auto;padding-right:2px;}
+.rozrys-picker-list{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow:auto;padding:2px 2px 0;}
 .rozrys-picker-option{
   width:100%;
   border:1px solid #dbe7f3;
@@ -557,6 +557,15 @@
 .rozrys-picker-option.is-selected{border-color:#16a34a;box-shadow:0 10px 28px rgba(22,163,74,.12);}
 .rozrys-picker-option__title{font-weight:800;color:#0f172a;line-height:1.15;}
 .rozrys-picker-option__subtitle{margin-top:4px;font-size:13px;line-height:1.25;color:#475569;}
+.rozrys-actions-row{width:100%;}
+.rozrys-format-field-inline{flex:1 1 320px;max-width:100%;}
+.rozrys-format-field-inline .rozrys-field__label,
+.rozrys-format-field-inline .label-help{justify-content:flex-start;text-align:left;min-height:auto;}
+.rozrys-format-field-inline .label-help__text{justify-content:flex-start;text-align:left;}
+.rozrys-format-field-inline .rozrys-format-row{flex-wrap:wrap;}
+.rozrys-stock-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;border:1px solid transparent;}
+.rozrys-stock-chip.is-stock{background:#ecfdf3;color:#166534;border-color:#b7ebc8;}
+.rozrys-stock-chip.is-order{background:#fef2f2;color:#b91c1c;border-color:#fecaca;}
 
 .rozrys-material-accordion{
   margin-top:14px;
@@ -620,6 +629,9 @@
   .rozrys-picker-launch{padding:12px 12px;}
   .rozrys-picker-grid{grid-template-columns:1fr;}
   .rozrys-picker-option{padding:13px 14px;}
+  .rozrys-actions-row{flex-direction:column;align-items:stretch;}
+  .rozrys-format-field-inline{flex:1 1 auto;}
+  .rozrys-format-field-inline .rozrys-format-row > .rozrys-format-input{flex:1 1 120px;min-width:120px;}
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
   .rozrys-material-accordion__trigger{ padding:16px 16px; }
   .rozrys-material-accordion__title-line1,

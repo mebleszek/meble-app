@@ -167,7 +167,8 @@
     return normalized.length ? normalized : getRooms().slice();
   }
 
-  function makeMaterialScope(selection){
+  function makeMaterialScope(selection, opts){
+    const cfg = Object.assign({ allowEmpty:false }, opts || {});
     const base = Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {});
     const kind = (base.kind === 'material' && String(base.material || '').trim()) ? 'material' : 'all';
     const scope = {
@@ -176,7 +177,7 @@
       includeFronts: base.includeFronts !== false,
       includeCorpus: base.includeCorpus !== false,
     };
-    if(!scope.includeFronts && !scope.includeCorpus){
+    if(!cfg.allowEmpty && !scope.includeFronts && !scope.includeCorpus){
       scope.includeFronts = true;
       scope.includeCorpus = true;
     }
@@ -1110,7 +1111,7 @@
       let worker = null;
       try{
         // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260320_rozrys_rooms_materials_v2');
+        worker = new Worker('js/app/panel-pro-worker.js?v=20260321_rozrys_stock_ui_v1');
       }catch(e){
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
@@ -1320,7 +1321,6 @@
     saveToMag.textContent = 'Dodaj format';
     sizeRow.appendChild(inW); sizeRow.appendChild(inH); sizeRow.appendChild(saveToMag);
     sizeWrap.appendChild(sizeRow);
-    controls.appendChild(sizeWrap);
 
     const optionsWrap = h('div', { class:'rozrys-field' });
     optionsWrap.appendChild(labelWithInfo('Ustawienia dodatkowe', 'Ustawienia dodatkowe', 'Jednostki, wymiary do cięcia, rzaz, obrównanie i najmniejszy odpad ustawisz w oknie opcji.'));
@@ -1501,8 +1501,8 @@
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
 
       const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap' });
-      const cancelBtn = h('button', { class:'btn-primary', type:'button', text:'Anuluj' });
-      const saveBtn = h('button', { class:'btn-primary', type:'button', text:'Zapisz opcje' });
+      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
+      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz opcje' });
       footer.appendChild(cancelBtn);
       footer.appendChild(saveBtn);
       body.appendChild(footer);
@@ -1546,8 +1546,9 @@
 
       function updateDirtyState(){
         isDirty = currentModalSignature() !== initialSignature;
-        setButtonTone(cancelBtn, isDirty ? 'danger' : 'primary');
-        setButtonTone(saveBtn, isDirty ? 'success' : 'primary');
+        setButtonTone(cancelBtn, 'danger');
+        setButtonTone(saveBtn, 'success');
+        saveBtn.disabled = !isDirty;
       }
 
       function confirmDiscardIfDirty(){
@@ -1609,12 +1610,17 @@
       });
     }
 
-    // action buttons
-    const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap' });
+    // action buttons + format arkusza
+    const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap' });
     const genBtn = h('button', { class:'btn-generate-green', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
     btnRow.appendChild(genBtn);
-    card.appendChild(btnRow);
+
+    const actionRow = h('div', { class:'rozrys-actions-row', style:'display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:12px' });
+    sizeWrap.classList.add('rozrys-format-field-inline');
+    actionRow.appendChild(sizeWrap);
+    actionRow.appendChild(btnRow);
+    card.appendChild(actionRow);
 
     const statusBox = h('div', { class:'rozrys-status', style:'display:none;margin-top:12px' });
     const statusTop = h('div', { class:'rozrys-status-top' });
@@ -1724,8 +1730,10 @@
       if(cfg.rerender) tryAutoRenderFromCache();
     }
 
-    function buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus){
+    function buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts){
+      const cfg = Object.assign({ allowEmpty:false, onChange:null }, opts || {});
       const chips = h('div', { class:'rozrys-scope-chips' });
+      const notify = ()=>{ try{ if(typeof cfg.onChange === 'function') cfg.onChange(); }catch(_){ } };
       const bindChip = (label, key, enabled)=>{
         if(!enabled) return null;
         const chip = h('label', { class:'rozrys-scope-chip' });
@@ -1733,10 +1741,11 @@
         cb.checked = !!draftScope[key];
         cb.addEventListener('change', ()=>{
           draftScope[key] = !!cb.checked;
-          if(!draftScope.includeFronts && !draftScope.includeCorpus){
+          if(!cfg.allowEmpty && !draftScope.includeFronts && !draftScope.includeCorpus){
             draftScope[key] = true;
             cb.checked = true;
           }
+          notify();
         });
         chip.appendChild(cb);
         chip.appendChild(h('span', { text:label }));
@@ -1759,14 +1768,19 @@
       const draft = new Set(selectedRooms);
       const body = h('div', { class:'rozrys-picker-modal' });
       const list = h('div', { class:'rozrys-picker-list' });
+      const checkboxes = [];
+      const nextRooms = ()=> normalizeRoomSelection(Array.from(draft));
+      const hasSelection = ()=> nextRooms().length > 0;
       getRooms().forEach((room)=>{
         const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check' });
         const top = h('div', { class:'rozrys-picker-check__top' });
         const cb = h('input', { type:'checkbox' });
         cb.checked = draft.has(room);
+        checkboxes.push({ room, cb });
         cb.addEventListener('change', ()=>{
           if(cb.checked) draft.add(room);
           else draft.delete(room);
+          updateFooterState();
         });
         top.appendChild(cb);
         top.appendChild(h('div', { class:'rozrys-picker-option__title', text:roomLabel(room) }));
@@ -1777,26 +1791,30 @@
 
       const footer = h('div', { class:'rozrys-picker-footer' });
       const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' });
-      const cancelBtn = h('button', { type:'button', class:'btn', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-primary', text:'Zapisz' });
+      const cancelBtn = h('button', { type:'button', class:'btn-primary', text:'Zamknij' });
+      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+      saveBtn.disabled = !hasSelection();
+      function updateFooterState(){
+        const active = hasSelection();
+        cancelBtn.textContent = active ? 'Anuluj' : 'Zamknij';
+        cancelBtn.className = active ? 'btn-danger' : 'btn-primary';
+        saveBtn.disabled = !active;
+      }
       allBtn.addEventListener('click', ()=>{
         draft.clear();
         getRooms().forEach((room)=> draft.add(room));
-        try{ FC.panelBox.close(); }catch(_){ }
-        selectedRooms = getRooms().slice();
-        refreshSelectionState();
+        checkboxes.forEach(({ room, cb })=>{ cb.checked = draft.has(room); });
+        updateFooterState();
       });
       cancelBtn.addEventListener('click', ()=> FC.panelBox.close());
       saveBtn.addEventListener('click', ()=>{
-        const nextRooms = normalizeRoomSelection(Array.from(draft));
-        if(!nextRooms.length){
-          openRozrysInfo('Brak pomieszczeń', 'Wybierz przynajmniej jedno pomieszczenie do rozrysu.');
-          return;
-        }
-        selectedRooms = nextRooms;
+        const pickedRooms = nextRooms();
+        if(!pickedRooms.length) return;
+        selectedRooms = pickedRooms;
         FC.panelBox.close();
         refreshSelectionState();
       });
+      updateFooterState();
       footer.appendChild(allBtn);
       footer.appendChild(cancelBtn);
       footer.appendChild(saveBtn);
@@ -1808,14 +1826,28 @@
       if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
       const body = h('div', { class:'rozrys-picker-modal' });
       const list = h('div', { class:'rozrys-picker-list' });
-      const draftScope = makeMaterialScope(materialScope);
+      const draftScope = makeMaterialScope({ kind:'all', material:'', includeFronts:false, includeCorpus:false }, { allowEmpty:true });
       const cards = [];
+      const hasDraftSelection = ()=> !!(draftScope.includeFronts || draftScope.includeCorpus);
+      const setDraftScope = (config, localScope)=>{
+        draftScope.kind = config.kind;
+        draftScope.material = config.kind === 'material' ? String(config.material || '') : '';
+        draftScope.includeFronts = !!localScope.includeFronts;
+        draftScope.includeCorpus = !!localScope.includeCorpus;
+      };
+      const updateFooterState = ()=>{
+        const active = hasDraftSelection();
+        cancelBtn.textContent = active ? 'Anuluj' : 'Zamknij';
+        cancelBtn.className = active ? 'btn-danger' : 'btn-primary';
+        saveBtn.disabled = !active;
+      };
 
       function markSelected(){
         cards.forEach(({ node, config })=>{
-          const active = draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material);
+          const active = hasDraftSelection() && draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material);
           node.classList.toggle('is-selected', active);
         });
+        updateFooterState();
       }
 
       const renderCard = (config)=>{
@@ -1825,23 +1857,23 @@
         if(config.subtitle) titleWrap.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:config.subtitle }));
         cardNode.appendChild(titleWrap);
         const scopeHolder = h('div');
-        const localScope = makeMaterialScope({ kind:config.kind, material:config.material || '', includeFronts:config.includeFronts, includeCorpus:config.includeCorpus });
-        buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus);
-        scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
-        scopeHolder.querySelectorAll('input[type="checkbox"]').forEach((cb)=>{
-          cb.addEventListener('change', ()=>{
-            draftScope.kind = config.kind;
-            draftScope.material = config.kind === 'material' ? config.material : '';
-            draftScope.includeFronts = !!localScope.includeFronts;
-            draftScope.includeCorpus = !!localScope.includeCorpus;
+        const localScope = makeMaterialScope({
+          kind:config.kind,
+          material:config.material || '',
+          includeFronts: config.hasFronts && !config.hasCorpus,
+          includeCorpus: config.hasCorpus && !config.hasFronts,
+        }, { allowEmpty:true });
+        buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus, {
+          allowEmpty:true,
+          onChange: ()=>{
+            setDraftScope(config, localScope);
             markSelected();
-          });
+          }
         });
+        scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
         cardNode.addEventListener('click', ()=>{
-          draftScope.kind = config.kind;
-          draftScope.material = config.kind === 'material' ? config.material : '';
-          draftScope.includeFronts = !!localScope.includeFronts;
-          draftScope.includeCorpus = !!localScope.includeCorpus;
+          if(!localScope.includeFronts && !localScope.includeCorpus) return;
+          setDraftScope(config, localScope);
           markSelected();
         });
         cardNode.appendChild(scopeHolder);
@@ -1855,8 +1887,6 @@
         kind:'all',
         title:'Wszystkie materiały',
         subtitle:'Zaznaczone pomieszczenia',
-        includeFronts:anyFronts,
-        includeCorpus:anyCorpus,
         hasFronts:anyFronts,
         hasCorpus:anyCorpus,
       }));
@@ -1870,20 +1900,19 @@
           material,
           title:split.line1 || material,
           subtitle:split.line2 || '',
-          includeFronts:!!group.hasFronts,
-          includeCorpus:!!group.hasCorpus,
           hasFronts:!!group.hasFronts,
           hasCorpus:!!group.hasCorpus,
         }));
       });
       body.appendChild(list);
-      markSelected();
 
       const footer = h('div', { class:'rozrys-picker-footer' });
-      const cancelBtn = h('button', { type:'button', class:'btn', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-primary', text:'Zapisz' });
+      const cancelBtn = h('button', { type:'button', class:'btn-primary', text:'Zamknij' });
+      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+      saveBtn.disabled = true;
       cancelBtn.addEventListener('click', ()=> FC.panelBox.close());
       saveBtn.addEventListener('click', ()=>{
+        if(!hasDraftSelection()) return;
         materialScope = normalizeMaterialScopeForAggregate(draftScope, agg);
         FC.panelBox.close();
         refreshSelectionState();
@@ -1891,6 +1920,7 @@
       footer.appendChild(cancelBtn);
       footer.appendChild(saveBtn);
       body.appendChild(footer);
+      markSelected();
       FC.panelBox.open({ title:'Wybierz materiał / grupę', contentNode: body, width:'760px', dismissOnOverlay:false });
     }
 
@@ -1915,6 +1945,258 @@
       }catch(_){
         return { qty: 0, width: 0, height: 0 };
       }
+    }
+
+    function toMmByUnit(unit, value){
+      const u = unit === 'cm' ? 'cm' : 'mm';
+      const n = Number(value);
+      if(!Number.isFinite(n)) return 0;
+      return u === 'mm' ? Math.round(n) : Math.round(n * 10);
+    }
+
+    function fromMmByUnit(unit, valueMm){
+      const mm = Math.max(0, Math.round(Number(valueMm) || 0));
+      if((unit === 'cm')) return Math.round((mm / 10) * 10) / 10;
+      return mm;
+    }
+
+    function sameSheetFormat(aW, aH, bW, bH){
+      const aw = Math.round(Number(aW) || 0);
+      const ah = Math.round(Number(aH) || 0);
+      const bw = Math.round(Number(bW) || 0);
+      const bh = Math.round(Number(bH) || 0);
+      return (aw === bw && ah === bh) || (aw === bh && ah === bw);
+    }
+
+    function getSheetRowsForMaterial(material, opts){
+      const cfg = Object.assign({ includeZero:true }, opts || {});
+      try{
+        const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
+        return (Array.isArray(rows) ? rows : []).map((row)=>({
+          id: String((row && row.id) || ''),
+          material: String((row && row.material) || ''),
+          width: Math.max(0, Math.round(Number(row && row.width) || 0)),
+          height: Math.max(0, Math.round(Number(row && row.height) || 0)),
+          qty: Math.max(0, Math.round(Number(row && row.qty) || 0)),
+        })).filter((row)=> row.width > 0 && row.height > 0 && (cfg.includeZero || row.qty > 0));
+      }catch(_){
+        return [];
+      }
+    }
+
+    function getExactSheetStockForMaterial(material, boardWmm, boardHmm){
+      const rows = getSheetRowsForMaterial(material, { includeZero:false }).filter((row)=> sameSheetFormat(row.width, row.height, boardWmm, boardHmm));
+      if(!rows.length) return { qty:0, width:Math.round(Number(boardWmm)||0), height:Math.round(Number(boardHmm)||0) };
+      rows.sort((a,b)=> (Number(b.qty)||0) - (Number(a.qty)||0));
+      const best = rows[0];
+      return {
+        qty: Math.max(0, Number(best && best.qty) || 0),
+        width: Math.round(Number(best && best.width) || 0),
+        height: Math.round(Number(best && best.height) || 0),
+      };
+    }
+
+    function getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm){
+      const rows = getSheetRowsForMaterial(material, { includeZero:true }).slice();
+      rows.sort((a,b)=>{
+        const aa = (Number(a && a.width) || 0) * (Number(a && a.height) || 0);
+        const bb = (Number(b && b.width) || 0) * (Number(b && b.height) || 0);
+        if(bb !== aa) return bb - aa;
+        if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
+        return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
+      });
+      const best = rows[0];
+      return {
+        width: Math.round(Number(best && best.width) || Number(fallbackWmm) || 0),
+        height: Math.round(Number(best && best.height) || Number(fallbackHmm) || 0),
+        qty: Math.max(0, Number(best && best.qty) || 0),
+      };
+    }
+
+    function clonePlanSheetsWithSupply(sheets, opts){
+      const cfg = Object.assign({ supplySource:'order', supplyText:'zamówić', fullBoardW:0, fullBoardH:0, trimMm:0 }, opts || {});
+      return (Array.isArray(sheets) ? sheets : []).map((sheet)=> Object.assign({}, sheet, {
+        placements: Array.isArray(sheet && sheet.placements) ? sheet.placements.map((pl)=> Object.assign({}, pl)) : [],
+        supplySource: cfg.supplySource,
+        supplyText: cfg.supplyText,
+        fullBoardW: Math.max(0, Math.round(Number(cfg.fullBoardW) || Number(sheet && sheet.fullBoardW) || 0)),
+        fullBoardH: Math.max(0, Math.round(Number(cfg.fullBoardH) || Number(sheet && sheet.fullBoardH) || 0)),
+        trimMm: Math.max(0, Math.round(Number(cfg.trimMm) || Number(sheet && sheet.trimMm) || 0)),
+      }));
+    }
+
+    function countPlacedPartsByKey(sheets){
+      const map = new Map();
+      (Array.isArray(sheets) ? sheets : []).forEach((sheet)=>{
+        (Array.isArray(sheet && sheet.placements) ? sheet.placements : []).forEach((pl)=>{
+          if(!pl || pl.unplaced) return;
+          const key = String(pl.key || '');
+          if(!key) return;
+          map.set(key, (map.get(key) || 0) + 1);
+        });
+      });
+      return map;
+    }
+
+    function subtractPlacedParts(parts, usedMap){
+      return (Array.isArray(parts) ? parts : []).map((part)=>{
+        const sig = partSignature(part);
+        const used = Math.max(0, Number(usedMap && usedMap.get(sig)) || 0);
+        const qty = Math.max(0, Math.round(Number(part && part.qty) || 0) - used);
+        return qty > 0 ? Object.assign({}, part, { qty }) : null;
+      }).filter(Boolean);
+    }
+
+    function buildPlanMetaFromState(st){
+      const boardW = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
+      const boardH = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
+      const trim = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
+      return { trim, boardW, boardH, unit: (st && st.unit === 'cm') ? 'cm' : 'mm' };
+    }
+
+    async function computePlanWithCurrentEngine(st, parts, panelOpts){
+      if((st && st.heur) !== 'optimax') return computePlan(st, parts);
+      const preset = getOptimaxProfilePreset(st.optimaxProfile, st.direction);
+      const cutMode = normalizeCutDirection(st.direction);
+      const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
+      const toMm2 = (v)=>{
+        const n = Number(v);
+        if(!Number.isFinite(n)) return 0;
+        return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
+      };
+      const W02 = toMm2(st.boardW) || 2800;
+      const H02 = toMm2(st.boardH) || 2070;
+      const trim2 = toMm2(st.edgeTrim) || 20;
+      const minScrapW2 = toMm2(st.minScrapW) || 0;
+      const minScrapH2 = toMm2(st.minScrapH) || 0;
+      const W2 = Math.max(10, W02 - 2*trim2);
+      const H2 = Math.max(10, H02 - 2*trim2);
+      const roughArea = (parts||[]).reduce((sum, p)=> sum + ((Number(p.w)||0) * (Number(p.h)||0) * Math.max(1, Number(p.qty)||1)), 0);
+      const roughSheetsEstimate = Math.max(1, Math.ceil(roughArea / Math.max(1, W2 * H2)));
+      let plan = null;
+      const control = { runId:_rozrysRunId };
+      try{
+        plan = await computePlanPanelProAsync(st, parts, null, control, {
+          beamWidth: preset.beamWidth,
+          endgameAttempts: preset.endgameAttempts,
+          cutPref: cutMode,
+          cutMode,
+          minScrapW: minScrapW2,
+          minScrapH: minScrapH2,
+          speedMode: String(st.optimaxProfile || 'max').toLowerCase(),
+          optimaxProfile: String(st.optimaxProfile || 'max').toLowerCase(),
+          sheetEstimate: roughSheetsEstimate,
+          optimax: true,
+          realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
+          realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
+          realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
+        });
+      }catch(_){
+        plan = null;
+      }
+      if(plan && Array.isArray(plan.sheets) && plan.sheets.length) return plan;
+      const fallback = computePlan(st, parts);
+      if(!fallback.meta) fallback.meta = buildPlanMetaFromState(st);
+      if(plan && plan.note && !fallback.note) fallback.note = plan.note;
+      return fallback;
+    }
+
+    async function applySheetStockLimit(material, st, parts, plan, opts){
+      const cfg = Object.assign({ onStatus:null }, opts || {});
+      const basePlan = plan && typeof plan === 'object' ? plan : { sheets:[] };
+      const baseSheets = Array.isArray(basePlan.sheets) ? basePlan.sheets : [];
+      if(!baseSheets.length) return basePlan;
+
+      const currentWmm = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
+      const currentHmm = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
+      const trimMm = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
+      const exactStock = getExactSheetStockForMaterial(material, currentWmm, currentHmm);
+      const fullFormat = getLargestSheetFormatForMaterial(material, currentWmm, currentHmm);
+      const stockQty = Math.max(0, Number(exactStock && exactStock.qty) || 0);
+      const selectedIsFull = sameSheetFormat(currentWmm, currentHmm, fullFormat.width, fullFormat.height);
+      const withSupply = (stockCount, orderCount, orderWmm, orderHmm)=>{
+        const stockSheets = clonePlanSheetsWithSupply(baseSheets.slice(0, stockCount), {
+          supplySource:'stock',
+          supplyText:'z magazynu',
+          fullBoardW: currentWmm,
+          fullBoardH: currentHmm,
+          trimMm,
+        });
+        const orderSheets = clonePlanSheetsWithSupply(baseSheets.slice(stockCount, stockCount + orderCount), {
+          supplySource:'order',
+          supplyText:'zamówić',
+          fullBoardW: orderWmm,
+          fullBoardH: orderHmm,
+          trimMm,
+        });
+        const merged = Object.assign({}, basePlan, {
+          sheets: stockSheets.concat(orderSheets),
+          meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
+          stockContext: {
+            exactQty: stockQty,
+            selectedBoardW: currentWmm,
+            selectedBoardH: currentHmm,
+            fullBoardW: orderWmm,
+            fullBoardH: orderHmm,
+          }
+        });
+        return merged;
+      };
+
+      if(stockQty <= 0){
+        return withSupply(0, baseSheets.length, currentWmm, currentHmm);
+      }
+      if(baseSheets.length <= stockQty || selectedIsFull){
+        return withSupply(Math.min(stockQty, baseSheets.length), Math.max(0, baseSheets.length - stockQty), currentWmm, currentHmm);
+      }
+
+      const stockSheetsRaw = baseSheets.slice(0, stockQty);
+      const usedMap = countPlacedPartsByKey(stockSheetsRaw);
+      const remainingParts = subtractPlacedParts(parts, usedMap);
+      if(!remainingParts.length){
+        return withSupply(stockSheetsRaw.length, 0, fullFormat.width, fullFormat.height);
+      }
+
+      try{ if(typeof cfg.onStatus === 'function') cfg.onStatus('Dopisuję brakujące płyty do zamówienia…'); }catch(_){ }
+      const orderState = Object.assign({}, st, {
+        boardW: fromMmByUnit(st && st.unit, fullFormat.width),
+        boardH: fromMmByUnit(st && st.unit, fullFormat.height),
+      });
+      const halfStock = getRealHalfStockForMaterial(material, fullFormat.width, fullFormat.height);
+      orderState.realHalfQty = Math.max(0, Number(halfStock.qty) || 0);
+      orderState.realHalfBoardW = Math.round(Number(halfStock.width) || 0);
+      orderState.realHalfBoardH = Math.round(Number(halfStock.height) || 0);
+      const extraPlan = await computePlanWithCurrentEngine(orderState, remainingParts);
+      const stockSheets = clonePlanSheetsWithSupply(stockSheetsRaw, {
+        supplySource:'stock',
+        supplyText:'z magazynu',
+        fullBoardW: currentWmm,
+        fullBoardH: currentHmm,
+        trimMm,
+      });
+      const orderSheets = clonePlanSheetsWithSupply((extraPlan && extraPlan.sheets) || [], {
+        supplySource:'order',
+        supplyText:'zamówić',
+        fullBoardW: fullFormat.width,
+        fullBoardH: fullFormat.height,
+        trimMm,
+      });
+      const mergedPlan = Object.assign({}, basePlan, {
+        sheets: stockSheets.concat(orderSheets),
+        cancelled: !!(basePlan && basePlan.cancelled) || !!(extraPlan && extraPlan.cancelled),
+        note: [basePlan && basePlan.note, extraPlan && extraPlan.note].filter(Boolean).join(' • ') || undefined,
+        meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
+        stockContext: {
+          exactQty: stockQty,
+          selectedBoardW: currentWmm,
+          selectedBoardH: currentHmm,
+          fullBoardW: fullFormat.width,
+          fullBoardH: fullFormat.height,
+          usedStockSheets: stockSheets.length,
+          orderedSheets: orderSheets.length,
+        }
+      });
+      return mergedPlan;
     }
 
     function materialHasGrain(name){
@@ -2130,6 +2412,13 @@
       const diagnostics = buildRozrysDiagnostics(meta && meta.material, meta && meta.scopeMode, meta && meta.parts, plan, meta && meta.selectedRooms);
       const validationLabel = validationSummaryLabel(diagnostics);
 
+      const getSupplyMeta = (sheet)=>{
+        const source = String((sheet && sheet.supplySource) || '');
+        if(source === 'stock') return { text:'z magazynu', cls:'is-stock' };
+        if(source === 'order') return { text:'zamówić', cls:'is-order' };
+        return null;
+      };
+
       const getBoardMeta = (sheet)=>{
         const boardW = Math.max(1,
           Number((meta && meta.meta && meta.meta.boardW) || (meta && meta.boardW) || (sheet && sheet.fullBoardW) || (sheet && sheet.boardW) || 0)
@@ -2250,7 +2539,8 @@
           const ws = calcDisplayWaste(s);
           const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
           const virtualTxt = ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '');
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}</div>`;
+          const supplyTxt = getSupplyMeta(s) ? ` • ${getSupplyMeta(s).text}` : '';
+          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}${supplyTxt}</div>`;
           const src = imgs[i] || '';
           html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
         });
@@ -2270,6 +2560,10 @@
         const head = h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start' });
         head.appendChild(h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }));
         const tools = h('div', { class:'rozrys-sheet-tools' });
+        const supplyMeta = getSupplyMeta(s);
+        if(supplyMeta){
+          tools.appendChild(h('span', { class:`rozrys-stock-chip ${supplyMeta.cls}`, text:supplyMeta.text }));
+        }
         if(diagnostics && diagnostics.sheets && diagnostics.sheets[i]){
           const sheetBtn = h('button', { class:'btn', type:'button', text:'Formatki arkusza' });
           sheetBtn.addEventListener('click', ()=> openSheetListModal(meta.material, `Arkusz ${i+1}`, diagnostics.sheets[i].rows, u));
@@ -2403,6 +2697,10 @@
           realHalfQty: Number(st.realHalfQty)||0,
           realHalfBoardW: Number(st.realHalfBoardW)||0,
           realHalfBoardH: Number(st.realHalfBoardH)||0,
+          stockExactQty: Number(st.stockExactQty)||0,
+          stockFullBoardW: Number(st.stockFullBoardW)||0,
+          stockFullBoardH: Number(st.stockFullBoardH)||0,
+          stockPolicy: String(st.stockPolicy || ''),
         },
         items
       };
@@ -2605,6 +2903,12 @@ async function generate(force){
     st.realHalfQty = Math.max(0, Number(halfStock.qty) || 0);
     st.realHalfBoardW = Math.round(Number(halfStock.width) || 0);
     st.realHalfBoardH = Math.round(Number(halfStock.height) || 0);
+    const exactStock = getExactSheetStockForMaterial(material, fullWmmForStock, fullHmmForStock);
+    const fullStock = getLargestSheetFormatForMaterial(material, fullWmmForStock, fullHmmForStock);
+    st.stockExactQty = Math.max(0, Number(exactStock.qty) || 0);
+    st.stockFullBoardW = Math.round(Number(fullStock.width) || 0);
+    st.stockFullBoardH = Math.round(Number(fullStock.height) || 0);
+    st.stockPolicy = 'stock_limit_v1';
     const cacheKey = makePlanCacheKey(st, parts);
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;
@@ -2778,6 +3082,14 @@ async function generate(force){
           plan = { sheets: packed2.sheets || [], cancelled: !!(plan && plan.cancelled), meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
         }catch(_){ }
       }
+      plan = await applySheetStockLimit(material, st, parts, plan, {
+        onStatus: (message)=>{
+          try{
+            if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • ${message}`;
+            setGlobalStatus(true, `${profileLabel} • ${directionLabel(st.direction)} • ${fmtElapsed(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt)}`, `Liczę kolor: ${material} • ${message}`, NaN, message);
+          }catch(_){ }
+        }
+      });
       try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
       renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
       try{ setGlobalStatus(false, '', ''); }catch(_){ }
@@ -2785,7 +3097,8 @@ async function generate(force){
       return;
     }
 
-    const plan = computePlan(st, parts);
+    let plan = computePlan(st, parts);
+    plan = await applySheetStockLimit(material, st, parts, plan);
     try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
     renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
     setGenBtnMode('done');
