@@ -460,3 +460,5 @@ Dopiero potem go zmieniać.
 
 
 - 2026-03-22: PDF eksport ROZRYS — wszystkie arkusze obracane o 90° w druku; małe arkusze mogą wejść 2 na stronę tylko przy tej samej skali względem pełnej płyty.
+
+- 2026-03-21: ROZRYS picker materiałów — pojedyncze zakresy (np. samo `Korpusy` przy HDF) renderowane jako checkbox-chip w tym samym stylu co reszta opcji; usunięty zielony badge-only dla takich kart.

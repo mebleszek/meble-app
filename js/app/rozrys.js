@@ -1865,10 +1865,15 @@
       if(hasFronts && hasCorpus){
         bindChip('Fronty', 'includeFronts', true);
         bindChip('Korpusy', 'includeCorpus', true);
-      }else{
-        chips.appendChild(h('span', { class:'rozrys-scope-badge', text: hasFronts ? 'Fronty' : 'Korpusy' }));
-        draftScope.includeFronts = !!hasFronts;
-        draftScope.includeCorpus = !!hasCorpus;
+      }else if(hasFronts || hasCorpus){
+        if(hasFronts){
+          draftScope.includeCorpus = false;
+          bindChip('Fronty', 'includeFronts', true);
+        }
+        if(hasCorpus){
+          draftScope.includeFronts = false;
+          bindChip('Korpusy', 'includeCorpus', true);
+        }
       }
       holder.appendChild(chips);
     }
