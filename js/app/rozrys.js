@@ -1399,8 +1399,8 @@
     const inH = h('input', { id:'rozH', type:'number', value:String(state.boardH) });
     inW.classList.add('rozrys-format-input');
     inH.classList.add('rozrys-format-input');
-    const addStockBtn = h('button', { class:'btn-success rozrys-action-btn rozrys-action-btn--stock', type:'button', text:'Dodaj płytę' });
-    const openOptionsBtnInline = h('button', { class:'btn rozrys-action-btn rozrys-action-btn--light rozrys-action-btn--options', type:'button', text:'Opcje' });
+    const addStockBtn = h('button', { class:'btn-success rozrys-action-btn', type:'button', text:'Dodaj płytę' });
+    const openOptionsBtnInline = h('button', { class:'btn rozrys-action-btn rozrys-action-btn--light', type:'button', text:'Opcje' });
 
     // hidden option inputs
     const kerfWrap = h('div', { class:'rozrys-field' });
