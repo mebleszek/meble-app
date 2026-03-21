@@ -32,10 +32,10 @@
     .left{display:flex;align-items:center;gap:8px}
     .btn{background:var(--card);border:1px solid #e6eef6;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer}
     .btn:hover{background:#f0f5ff}
-    .btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer}
+    .btn-primary{background:var(--accent);color:#fff!important;border:none;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer}
     .btn-primary:hover{background:#0284c7}
-    .btn-danger{background:var(--danger);color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
-    .btn-success{background:#22c55e;color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
+    .btn-danger{background:var(--danger);color:#fff!important;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
+    .btn-success{background:#22c55e;color:#fff!important;border:none;padding:6px 10px;border-radius:10px;cursor:pointer}
     .btn:disabled,.btn-danger:disabled,.btn-primary:disabled,.btn-success:disabled{opacity:.5;cursor:not-allowed}
     .btn-generate-green,.btn-generate-blue,.btn-generate-red{border:none;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer;color:#fff}
     .btn-generate-green{background:#22c55e}
@@ -44,6 +44,7 @@
     .btn-generate-blue:hover{background:#0284c7}
     .btn-generate-red{background:var(--danger)}
     .btn-generate-red:hover{background:#e53935}
+.btn-primary:hover,.btn-success:hover,.btn-danger:hover{color:#fff!important}
     .btn-generate-green:disabled,.btn-generate-blue:disabled,.btn-generate-red:disabled{opacity:.5;cursor:not-allowed}
 
     .session-btns{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
@@ -355,7 +356,7 @@
 }
 .confirm-btn{
   border:none;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer;
-  color:#fff;min-width:130px;
+  color:#fff!important;min-width:130px;
 }
 .confirm-btn.is-success{background:#22c55e}
 .confirm-btn.is-success:hover{background:#16a34a}

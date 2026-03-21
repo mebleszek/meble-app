@@ -2017,6 +2017,34 @@
       }
     }
 
+    function buildStockSignatureForMaterial(material){
+      const rows = getSheetRowsForMaterial(material, { includeZero:true })
+        .sort((a,b)=>{
+          if(a.width !== b.width) return a.width - b.width;
+          if(a.height !== b.height) return a.height - b.height;
+          return a.qty - b.qty;
+        })
+        .map((row)=> `${row.width}x${row.height}:${row.qty}`);
+      return rows.join('|');
+    }
+
+    function canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate){
+      const pw = Math.max(0, Math.round(Number(part && part.w) || 0));
+      const ph = Math.max(0, Math.round(Number(part && part.h) || 0));
+      const usableW = Math.max(0, Math.round(Number(boardWmm) || 0) - 2 * Math.max(0, Math.round(Number(trimMm) || 0)));
+      const usableH = Math.max(0, Math.round(Number(boardHmm) || 0) - 2 * Math.max(0, Math.round(Number(trimMm) || 0)));
+      if(!(usableW > 0 && usableH > 0 && pw > 0 && ph > 0)) return false;
+      if(pw <= usableW && ph <= usableH) return true;
+      if(allowRotate && ph <= usableW && pw <= usableH) return true;
+      return false;
+    }
+
+    function filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn){
+      return (Array.isArray(parts) ? parts : [])
+        .map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) }))
+        .filter((part)=> part.qty > 0 && canPartFitSheet(part, boardWmm, boardHmm, trimMm, !grainOn));
+    }
+
     function getExactSheetStockForMaterial(material, boardWmm, boardHmm){
       const rows = getSheetRowsForMaterial(material, { includeZero:false }).filter((row)=> sameSheetFormat(row.width, row.height, boardWmm, boardHmm));
       if(!rows.length) return { qty:0, width:Math.round(Number(boardWmm)||0), height:Math.round(Number(boardHmm)||0) };
@@ -2159,12 +2187,12 @@
         .sort((a,b)=>{
           const aExact = sameSheetFormat(a && a.width, a && a.height, currentWmm, currentHmm) ? 1 : 0;
           const bExact = sameSheetFormat(b && b.width, b && b.height, currentWmm, currentHmm) ? 1 : 0;
-          if(bExact !== aExact) return bExact - aExact;
+          if(aExact !== bExact) return aExact - bExact;
           const aa = areaOf(a);
           const bb = areaOf(b);
-          if(bb !== aa) return bb - aa;
-          if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
-          return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
+          if(aa !== bb) return aa - bb;
+          if((Number(a && a.width) || 0) !== (Number(b && b.width) || 0)) return (Number(a && a.width) || 0) - (Number(b && b.width) || 0);
+          return (Number(a && a.height) || 0) - (Number(b && b.height) || 0);
         });
 
       const stockSheets = [];
@@ -2189,13 +2217,14 @@
             realHalfBoardW: 0,
             realHalfBoardH: 0,
           });
-          let rowPlan = null;
-          if(sameSheetFormat(rowW, rowH, currentWmm, currentHmm)){
+          const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain);
+          if(!candidateParts.length) continue;
+          let rowPlan = await computePlanWithCurrentEngine(rowState, candidateParts);
+          let rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
+          if(!rowSheetsRaw.length && candidateParts.length !== remainingParts.length){
             rowPlan = await computePlanWithCurrentEngine(rowState, remainingParts);
-          }else{
-            rowPlan = await computePlanWithCurrentEngine(rowState, remainingParts);
+            rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
           }
-          const rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
           const usableCount = Math.min(rowQty, rowSheetsRaw.length);
           if(usableCount <= 0) continue;
           const usedSheetsRaw = rowSheetsRaw.slice(0, usableCount);
@@ -2346,7 +2375,24 @@
         for(const entry of entries){
           const material = entry.material;
           const parts = entry.parts || [];
-          const st = Object.assign({}, stBase, { material, grain: !!(stBase.grain && materialHasGrain(material)), selectedRooms: (agg.selectedRooms || []).slice() });
+          const fullWmm = toMmByUnit(stBase.unit, stBase.boardW) || 2800;
+          const fullHmm = toMmByUnit(stBase.unit, stBase.boardH) || 2070;
+          const halfStock = getRealHalfStockForMaterial(material, fullWmm, fullHmm);
+          const exactStock = getExactSheetStockForMaterial(material, fullWmm, fullHmm);
+          const fullStock = getLargestSheetFormatForMaterial(material, fullWmm, fullHmm);
+          const st = Object.assign({}, stBase, {
+            material,
+            grain: !!(stBase.grain && materialHasGrain(material)),
+            selectedRooms: (agg.selectedRooms || []).slice(),
+            realHalfQty: Math.max(0, Number(halfStock.qty) || 0),
+            realHalfBoardW: Math.round(Number(halfStock.width) || 0),
+            realHalfBoardH: Math.round(Number(halfStock.height) || 0),
+            stockExactQty: Math.max(0, Number(exactStock.qty) || 0),
+            stockFullBoardW: Math.round(Number(fullStock.width) || 0),
+            stockFullBoardH: Math.round(Number(fullStock.height) || 0),
+            stockPolicy: 'stock_limit_v2',
+            stockSignature: buildStockSignatureForMaterial(material),
+          });
           const cacheKey = makePlanCacheKey(st, parts);
           if(cache[cacheKey] && cache[cacheKey].plan){
             hits.push({ material, parts, st, plan: cache[cacheKey].plan });
@@ -2759,6 +2805,7 @@
           stockFullBoardW: Number(st.stockFullBoardW)||0,
           stockFullBoardH: Number(st.stockFullBoardH)||0,
           stockPolicy: String(st.stockPolicy || ''),
+          stockSignature: String(st.stockSignature || ''),
         },
         items
       };
@@ -2966,7 +3013,8 @@ async function generate(force){
     st.stockExactQty = Math.max(0, Number(exactStock.qty) || 0);
     st.stockFullBoardW = Math.round(Number(fullStock.width) || 0);
     st.stockFullBoardH = Math.round(Number(fullStock.height) || 0);
-    st.stockPolicy = 'stock_limit_v1';
+    st.stockPolicy = 'stock_limit_v2';
+    st.stockSignature = buildStockSignatureForMaterial(material);
     const cacheKey = makePlanCacheKey(st, parts);
     if(!force && cache[cacheKey] && cache[cacheKey].plan){
       const cached = cache[cacheKey].plan;

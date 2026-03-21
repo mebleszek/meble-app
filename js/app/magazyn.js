@@ -162,7 +162,7 @@
     ]));
     form.appendChild(h('div', null, [
       h('label', { html:'Ilość (szt.)' }),
-      h('input', { id:'magQty', type:'number', placeholder:'0' })
+      h('input', { id:'magQty', type:'number', placeholder:'1', value:'1', min:'1' })
     ]));
 
     card.appendChild(form);
@@ -176,7 +176,10 @@
       const qty = document.getElementById('magQty')?.value;
       if(!mat.trim()) return (FC.infoBox && FC.infoBox.open ? FC.infoBox.open({ title:'Brak materiału', message:'Wpisz materiał (klucz).' }) : alert('Wpisz materiał (klucz)'));
       if(!(Number(w)>0 && Number(hh)>0)) return (FC.infoBox && FC.infoBox.open ? FC.infoBox.open({ title:'Brak formatu', message:'Podaj format płyty.' }) : alert('Podaj format płyty'));
-      upsertSheet({ material: mat.trim(), width: Number(w), height: Number(hh), qty: Number(qty||0) });
+      const delta = Math.max(1, Math.round(Number(qty || 1) || 1));
+      addSheetStock(mat.trim(), Number(w), Number(hh), delta);
+      const qtyEl = document.getElementById('magQty');
+      if(qtyEl) qtyEl.value = '1';
       render();
     });
     btnRow.appendChild(addBtn);
@@ -205,9 +208,9 @@
           ok = await FC.confirmBox.ask({
             title:'Usunąć format z magazynu?',
             message:'Ta pozycja zostanie usunięta z magazynu płyt.',
-            confirmText:'Usuń',
-            cancelText:'Anuluj',
-            confirmTone:'danger',
+            confirmText:'✓ TAK',
+            cancelText:'✕ NIE',
+            confirmTone:'success',
             cancelTone:'danger',
             dismissOnOverlay:false,
           });
