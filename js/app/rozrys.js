@@ -1351,22 +1351,22 @@
     // Nie nadpisujemy go automatycznie mniejszym formatem z magazynu.
 
     // top row: material + format arkusza + opcje
-    const controls = h('div', { class:'rozrys-selection-grid' });
+    const controls = h('div', { class:'rozrys-selection-grid', style:'margin-top:12px' });
     // room + material picker
-    const roomsWrap = h('div', { class:'rozrys-field' });
+    const roomsWrap = h('div', { class:'rozrys-field rozrys-selection-grid__rooms' });
     roomsWrap.appendChild(labelWithInfo('Pomieszczenia', 'Pomieszczenia', 'Wybierz, z których pomieszczeń mam zebrać formatki do rozrysu. Ten sam materiał z kilku pomieszczeń zostanie zsumowany.'));
     const roomsSel = h('input', { id:'rozRooms', type:'hidden', value:encodeRoomsSelection(selectedRooms) });
-    const roomsPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--compact' });
+    const roomsPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--rooms' });
     const roomsPickerValue = h('div', { class:'rozrys-picker-launch__value' });
     roomsPickerBtn.appendChild(roomsPickerValue);
     roomsWrap.appendChild(roomsPickerBtn);
     roomsWrap.appendChild(roomsSel);
     controls.appendChild(roomsWrap);
 
-    const matWrap = h('div', { class:'rozrys-field' });
+    const matWrap = h('div', { class:'rozrys-field rozrys-selection-grid__material' });
     matWrap.appendChild(labelWithInfo('Materiał / grupa', 'Materiał / grupa', 'Wybierz wszystkie materiały albo jeden kolor. Dla koloru, który ma i fronty, i korpusy, możesz zaznaczyć sam front, sam korpus albo oba.'));
     const matSel = h('input', { id:'rozMat', type:'hidden', value:encodeMaterialScope(materialScope) });
-    const matPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch' });
+    const matPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--material' });
     const matPickerValue = h('div', { class:'rozrys-picker-launch__value' });
     matPickerBtn.appendChild(matPickerValue);
     matWrap.appendChild(matPickerBtn);
@@ -1400,7 +1400,7 @@
     inW.classList.add('rozrys-format-input');
     inH.classList.add('rozrys-format-input');
     const addStockBtn = h('button', { class:'btn-success rozrys-action-btn', type:'button', text:'Dodaj płytę' });
-    const openOptionsBtn = h('button', { class:'btn rozrys-action-btn', type:'button', text:'Opcje rozkroju' });
+    const openOptionsBtnInline = h('button', { class:'btn rozrys-action-btn rozrys-action-btn--light', type:'button', text:'Opcje' });
 
     // hidden option inputs
     const kerfWrap = h('div', { class:'rozrys-field' });
@@ -1493,75 +1493,79 @@
 
     function openOptionsModal(){
       if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-
-      const body = h('div', { class:'rozrys-picker-modal' });
+      const body = h('div');
       const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
 
-      function buildOptionsField(label, description, controlNode){
-        const wrap = h('div', { class:'rozrys-field' });
-        const labelNode = h('label', { class:'rozrys-field__label', text:label });
-        wrap.appendChild(labelNode);
-        wrap.appendChild(controlNode);
-        if(description) wrap.appendChild(h('div', { class:'muted xs', style:'margin-top:6px;line-height:1.35', text:description }));
-        return { wrap, labelNode };
+      function appendFieldHint(wrap, text){
+        wrap.appendChild(h('div', { class:'muted xs', style:'margin-top:6px;line-height:1.35', text }));
       }
 
+      const modalUnitWrap = h('div');
+      modalUnitWrap.appendChild(h('label', { text:'Jednostki' }));
       const modalUnitSel = h('select');
       modalUnitSel.innerHTML = `
         <option value="cm" ${unitSel.value==='cm'?'selected':''}>cm</option>
         <option value="mm" ${unitSel.value==='mm'?'selected':''}>mm</option>
       `;
-      const modalUnitField = buildOptionsField('Jednostki', 'Wybiera jednostki dla wszystkich pól w tym oknie. Po zmianie wartości długości są automatycznie przeliczane między cm i mm.', modalUnitSel);
-      form.appendChild(modalUnitField.wrap);
+      modalUnitWrap.appendChild(modalUnitSel);
+      appendFieldHint(modalUnitWrap, 'Określa jednostki wyświetlane w polach opcji rozkroju.');
+      form.appendChild(modalUnitWrap);
 
+      const modalEdgeWrap = h('div');
+      modalEdgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
       const modalEdgeSel = h('select');
       modalEdgeSel.innerHTML = edgeSel.innerHTML;
       modalEdgeSel.value = edgeSel.value;
-      const modalEdgeField = buildOptionsField('Wymiary do cięcia', 'Nominalne zostawia wymiary bez korekty. Opcje okleiny odejmują 1 mm lub 2 mm od wymiarów formatek do rozkroju.', modalEdgeSel);
-      form.appendChild(modalEdgeField.wrap);
+      modalEdgeWrap.appendChild(modalEdgeSel);
+      appendFieldHint(modalEdgeWrap, 'Decyduje, czy rozrys liczy wymiar nominalny czy po odjęciu okleiny.');
+      form.appendChild(modalEdgeWrap);
 
+      const modalBoardWrap = h('div');
+      modalBoardWrap.appendChild(h('label', { text:`Format bazowy arkusza (${unitSel.value})` }));
       const modalBoardRow = h('div', { style:'display:flex;gap:8px' });
       const modalBoardW = h('input', { type:'number', value:String(inW.value) });
       const modalBoardH = h('input', { type:'number', value:String(inH.value) });
       modalBoardRow.appendChild(modalBoardW);
       modalBoardRow.appendChild(modalBoardH);
-      const modalBoardField = buildOptionsField(`Format bazowy arkusza (${unitSel.value})`, 'To pełny format standardowej płyty. ROZRYS dobiera z niego brakujące arkusze wtedy, gdy zabraknie płyt dostępnych w magazynie.', modalBoardRow);
-      form.appendChild(modalBoardField.wrap);
+      modalBoardWrap.appendChild(modalBoardRow);
+      appendFieldHint(modalBoardWrap, 'To pełny format płyty bazowej, z której dobieram brakujące arkusze.');
+      form.appendChild(modalBoardWrap);
 
+      const modalKerfWrap = h('div');
+      modalKerfWrap.appendChild(h('label', { text:`Rzaz piły (${unitSel.value})` }));
       const modalKerf = h('input', { type:'number', value:String(inK.value) });
-      const modalKerfField = buildOptionsField(`Rzaz piły (${unitSel.value})`, 'Szerokość cięcia piły doliczana między elementami. Ta wartość wpływa na realne zużycie miejsca na arkuszu.', modalKerf);
-      form.appendChild(modalKerfField.wrap);
+      modalKerfWrap.appendChild(modalKerf);
+      appendFieldHint(modalKerfWrap, 'Szerokość cięcia odejmowana między elementami i odpadami.');
+      form.appendChild(modalKerfWrap);
 
+      const modalTrimWrap = h('div');
+      modalTrimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${unitSel.value})` }));
       const modalTrim = h('input', { type:'number', value:String(inTrim.value) });
-      const modalTrimField = buildOptionsField(`Obrównanie krawędzi — arkusz standardowy (${unitSel.value})`, 'Margines odejmowany od pełnej płyty bazowej, np. na przycięcie uszkodzonej krawędzi albo wyrównanie arkusza przed cięciem.', modalTrim);
-      form.appendChild(modalTrimField.wrap);
+      modalTrimWrap.appendChild(modalTrim);
+      appendFieldHint(modalTrimWrap, 'Margines odkładany od pełnej płyty przed liczeniem rozkroju.');
+      form.appendChild(modalTrimWrap);
 
+      const modalMinWrap = h('div');
+      modalMinWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${unitSel.value})` }));
       const modalMinRow = h('div', { style:'display:flex;gap:8px' });
       const modalMinW = h('input', { type:'number', value:String(inMinW.value) });
       const modalMinH = h('input', { type:'number', value:String(inMinH.value) });
       modalMinRow.appendChild(modalMinW);
       modalMinRow.appendChild(modalMinH);
-      const modalMinField = buildOptionsField(`Najmniejszy użyteczny odpad (${unitSel.value})`, 'Minimalny wymiar odpadu, który ma zostać zachowany jako użyteczny. Mniejsze resztki są traktowane jako odpad bezużyteczny.', modalMinRow);
-      form.appendChild(modalMinField.wrap);
+      modalMinWrap.appendChild(modalMinRow);
+      appendFieldHint(modalMinWrap, 'Mniejsze odpady traktuję jako nieużyteczne i nie odkładam ich do magazynu odpadów.');
+      form.appendChild(modalMinWrap);
 
+      const note = h('div', { class:'muted xs', style:'grid-column:1 / -1;line-height:1.35', text:'Zapisane opcje będą pamiętane dla kolejnych wejść do panelu rozkroju.' });
+      form.appendChild(note);
       body.appendChild(form);
-
-      const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
-      const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
-      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
-      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
-      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
-      footer.appendChild(resetBtn);
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
 
       function syncModalLabels(){
         const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-        modalBoardField.labelNode.textContent = `Format bazowy arkusza (${u})`;
-        modalKerfField.labelNode.textContent = `Rzaz piły (${u})`;
-        modalTrimField.labelNode.textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
-        modalMinField.labelNode.textContent = `Najmniejszy użyteczny odpad (${u})`;
+        modalBoardWrap.querySelector('label').textContent = `Format bazowy arkusza (${u})`;
+        modalKerfWrap.querySelector('label').textContent = `Rzaz piły (${u})`;
+        modalTrimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
+        modalMinWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${u})`;
       }
       function convertModalNumericFields(prevUnit, nextUnit){
         if(prevUnit === nextUnit) return;
@@ -1589,6 +1593,19 @@
       });
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
 
+      const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
+      const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
+      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
+      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
+      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
+      footer.appendChild(resetBtn);
+      footer.appendChild(actionWrap);
+      body.appendChild(footer);
+
+      function closeModal(){
+        FC.panelBox.close();
+      }
 
       function normalizeLenToMm(value, unit){
         const n = parseLocaleNumber(value);
@@ -1673,10 +1690,10 @@
       [modalEdgeSel, modalBoardW, modalBoardH, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
       updateDirtyState();
 
-      exitBtn.addEventListener('click', ()=>{ FC.panelBox.close(); });
+      exitBtn.addEventListener('click', ()=> closeModal());
       cancelBtn.addEventListener('click', async ()=>{
         if(!(await confirmDiscardIfDirty())) return;
-        FC.panelBox.close();
+        closeModal();
       });
       resetBtn.addEventListener('click', ()=>{
         applyDefaultValuesToModal();
@@ -1685,7 +1702,7 @@
       saveBtn.addEventListener('click', async ()=>{
         if(!(await confirmSaveIfDirty())) return;
         if(!isDirty){
-          FC.panelBox.close();
+          closeModal();
           return;
         }
         applyUnitChange(modalUnitSel.value);
@@ -1697,14 +1714,14 @@
         inMinW.value = String(Math.max(0, parseLocaleNumber(modalMinW.value)||0));
         inMinH.value = String(Math.max(0, parseLocaleNumber(modalMinH.value)||0));
         persistOptionPrefs();
-        FC.panelBox.close();
+        closeModal();
         tryAutoRenderFromCache();
       });
 
       FC.panelBox.open({
         title:'Opcje rozkroju',
         contentNode: body,
-        width:'min(920px, calc(100vw - 32px))',
+        width:'860px',
         dismissOnOverlay:false,
         beforeClose: ()=> confirmDiscardIfDirty()
       });
@@ -1712,10 +1729,10 @@
 
     // action buttons
     const actionRow = h('div', { class:'rozrys-actions-row' });
-    const genBtn = h('button', { class:'btn-generate-green rozrys-action-btn', type:'button' });
+    const genBtn = h('button', { class:'btn-generate-green rozrys-action-btn rozrys-action-btn--generate', type:'button' });
     genBtn.textContent = 'Generuj rozkrój';
+    actionRow.appendChild(openOptionsBtnInline);
     actionRow.appendChild(addStockBtn);
-    actionRow.appendChild(openOptionsBtn);
     actionRow.appendChild(genBtn);
     card.appendChild(actionRow);
 
@@ -1938,7 +1955,7 @@
       FC.panelBox.open({
         title:'Wybierz pomieszczenia',
         contentNode: body,
-        width:'min(1040px, calc(100vw - 32px))',
+        width:'820px',
         dismissOnOverlay:false,
         beforeClose: ()=> isDirty() ? askRozrysConfirm({
           title:'ANULOWAĆ ZMIANY?',
@@ -2125,7 +2142,7 @@
       FC.panelBox.open({
         title:'Wybierz materiał / grupę',
         contentNode: body,
-        width:'min(1180px, calc(100vw - 32px))',
+        width:'980px',
         dismissOnOverlay:false,
         beforeClose: ()=> isDirty() ? askRozrysConfirm({
           title:'ANULOWAĆ ZMIANY?',
@@ -3623,7 +3640,7 @@ async function generate(force){
     dirSel.addEventListener('change', ()=>{
       tryAutoRenderFromCache();
     });
-    openOptionsBtn.addEventListener('click', openOptionsModal);
+    openOptionsBtnInline.addEventListener('click', openOptionsModal);
     inMinW.addEventListener('change', ()=>{ persistOptionPrefs(); tryAutoRenderFromCache(); });
     inMinH.addEventListener('change', ()=>{ persistOptionPrefs(); tryAutoRenderFromCache(); });
 

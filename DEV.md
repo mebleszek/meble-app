@@ -462,5 +462,4 @@ Dopiero potem go zmieniać.
 - 2026-03-22: PDF eksport ROZRYS — wszystkie arkusze obracane o 90° w druku; małe arkusze mogą wejść 2 na stronę tylko przy tej samej skali względem pełnej płyty.
 
 - 2026-03-21: ROZRYS picker materiałów — pojedyncze zakresy (np. samo `Korpusy` przy HDF) renderowane jako checkbox-chip w tym samym stylu co reszta opcji; usunięty zielony badge-only dla takich kart.
-
-- 2026-03-21: Pakiet `site_rozrys_options_retry.zip` na bazie `site_hdf_checkbox.zip`: `Opcje rozkroju` przeniesione do `panelBox`, opis działania opcji dodany w oknie, przycisk opcji przeniesiony do rzędu akcji ROZRYS, launchery Pomieszczenia/Materiał poszerzone, typografia w nowych przyciskach akcji skopiowana z `Generuj ponownie` bez globalnego powiększania wszystkich przycisków.
+- 2026-03-22: ROZRYS action row corrected from site_hdf_checkbox base: Opcje moved into shared panel-box modal with field descriptions, top extra settings block removed, action buttons ordered Opcje → Dodaj płytę → Generuj in one row, selection launchers widened with rooms more compact and material wider.
