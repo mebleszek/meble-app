@@ -663,13 +663,36 @@
       const H = Math.max(1, metaBoardH);
       const usableW = Math.max(1, W - 2*trimMm);
       const usableH = Math.max(1, H - 2*trimMm);
+      const refBoardW = Math.max(W,
+        Number(boardMeta && boardMeta.referenceBoardW) ||
+        Number(sheet && sheet.referenceBoardW) ||
+        Number(sheet && sheet.selectedBoardW) ||
+        Number(sheet && sheet.baseBoardW) ||
+        0
+      );
+      const refBoardH = Math.max(H,
+        Number(boardMeta && boardMeta.referenceBoardH) ||
+        Number(sheet && sheet.referenceBoardH) ||
+        Number(sheet && sheet.selectedBoardH) ||
+        Number(sheet && sheet.baseBoardH) ||
+        0
+      );
 
       const measuredParentW = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
       const viewportW = (typeof window !== 'undefined' && Number(window.innerWidth) > 0) ? Math.max(320, Number(window.innerWidth) - 48) : 900;
       const maxW = Math.min(900, measuredParentW > 180 ? measuredParentW : viewportW);
-      const scale = Math.max(0.05, maxW / W);
-      canvas.width = Math.round(W * scale);
-      canvas.height = Math.round(H * scale);
+      const maxH = Math.max(220, Math.min(1400, (typeof window !== 'undefined' && Number(window.innerHeight) > 0) ? Number(window.innerHeight) * 0.72 : 1400));
+      const scaleByW = maxW / refBoardW;
+      const scaleByH = maxH / refBoardH;
+      const scale = Math.max(0.05, Math.min(scaleByW, scaleByH));
+      canvas.width = Math.max(1, Math.round(W * scale));
+      canvas.height = Math.max(1, Math.round(H * scale));
+      try{
+        canvas.style.width = `${canvas.width}px`;
+        canvas.style.height = `${canvas.height}px`;
+        canvas.style.maxWidth = '100%';
+        canvas.style.display = 'block';
+      }catch(_){ }
 
       ctx.clearRect(0,0,canvas.width, canvas.height);
       ctx.lineWidth = 1;
@@ -1546,7 +1569,9 @@
       let isDirty = false;
 
       function applyDefaultValuesToModal(){
-        const defaults = getDefaultRozrysOptionValues(modalUnitSel.value);
+        const defaults = getDefaultRozrysOptionValues('cm');
+        modalUnitSel.value = defaults.unit;
+        modalUnitSel.dataset.prevUnit = defaults.unit;
         modalEdgeSel.value = defaults.edge;
         modalBoardW.value = String(defaults.boardW);
         modalBoardH.value = String(defaults.boardH);
@@ -2566,7 +2591,13 @@
         const trim = Math.max(0,
           Number((sheet && sheet.trimMm) || (meta && meta.meta && meta.meta.trim) || (meta && meta.trim) || 0)
         );
-        return { boardW, boardH, trim };
+        const referenceBoardW = Math.max(boardW,
+          Number((meta && meta.meta && meta.meta.boardW) || (meta && meta.boardW) || 0)
+        );
+        const referenceBoardH = Math.max(boardH,
+          Number((meta && meta.meta && meta.meta.boardH) || (meta && meta.boardH) || 0)
+        );
+        return { boardW, boardH, trim, referenceBoardW, referenceBoardH };
       };
       const calcDisplayWaste = (sheet)=>{
         const bm = getBoardMeta(sheet);
@@ -2710,8 +2741,9 @@
         head.appendChild(tools);
         box.appendChild(head);
         const canvas = document.createElement('canvas');
-        canvas.style.width = '100%';
         canvas.style.marginTop = '10px';
+        canvas.style.display = 'block';
+        canvas.style.maxWidth = '100%';
         box.appendChild(canvas);
         tgt.appendChild(box);
         canvas.dataset.rozrysSheet = '1';

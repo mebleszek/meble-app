@@ -442,3 +442,4 @@ Dopiero potem go zmieniać.
 - Regresja do sprawdzenia: po dodaniu małej płyty do magazynu bazowy format rozrysu ma pozostać bez zmian po odświeżeniu i po ponownym wejściu do ROZRYS.
 
 - 2026-03-22: ROZRYS — opcje rozkroju: przywróć domyślne + stan Wyjdź/Anuluj/Zapisz; wizualizacja arkuszy ma używać faktycznego rozmiaru arkusza z magazynu, nie globalnego formatu bazowego.
+- 2026-03-22: `js/app/rozrys.js`, `index.html` — naprawiono reset „Przywróć domyślne” w Opcjach rozkroju tak, żeby zawsze wracał także do jednostek `cm`. Render arkuszy używa teraz wspólnej skali względem formatu bazowego, więc mniejsze płyty z magazynu są rysowane wizualnie proporcjonalnie mniejsze zamiast rozciągać się do szerokości całej karty.
