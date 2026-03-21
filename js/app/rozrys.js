@@ -1589,6 +1589,7 @@
       });
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
 
+
       function normalizeLenToMm(value, unit){
         const n = parseLocaleNumber(value);
         if(!Number.isFinite(n)) return 0;

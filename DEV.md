@@ -2,11 +2,6 @@
 
 ## Ostatnia paczka zmian
 
-### 2026-03-21 — rozrys_options_buttons_v1
-- `js/app/rozrys.js` — `Opcje rozkroju` zostały przeniesione na wspólny `panelBox`, przycisk opcji trafił do rzędu akcji z generowaniem, a launchery `Pomieszczenia` / `Materiał / grupa` dostały szerszy układ z mniejszym przyciskiem pomieszczeń. W samym oknie opcji dodane są opisy pól.
-- `css/style.css` — ujednolicona typografia przycisków na wzór przycisku `Generuj ponownie`, wyrównane wysokości przycisków w rzędzie akcji ROZRYS oraz poprawiony układ launcherów wyboru pomieszczeń i materiału.
-- `index.html` — podbite cache-busting dla plików zmienionych w tej paczce.
-
 ### 2026-03-21 — rozrys_ui_pdf_guard_v1
 - `js/app/rozrys.js` — uporządkowane akcje i logika stanów `Wyjdź / Anuluj / Zapisz/Zatwierdź` w pickerach ROZRYS oraz w modalu `Dodaj płytę do magazynu`; modal dodawania płyty przeniesiony na wspólny `panelBox`; eksport PDF ma bezpieczniejsze liczenie wysokości nagłówka przy długich nazwach materiałów.
 - `js/app/panel-box.js` — `panelBox.open()` obsługuje teraz opcjonalny `beforeClose`, żeby modal mógł zablokować zamknięcie przy niezapisanych zmianach.
@@ -467,3 +462,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: PDF eksport ROZRYS — wszystkie arkusze obracane o 90° w druku; małe arkusze mogą wejść 2 na stronę tylko przy tej samej skali względem pełnej płyty.
 
 - 2026-03-21: ROZRYS picker materiałów — pojedyncze zakresy (np. samo `Korpusy` przy HDF) renderowane jako checkbox-chip w tym samym stylu co reszta opcji; usunięty zielony badge-only dla takich kart.
+
+- 2026-03-21: Pakiet `site_rozrys_options_retry.zip` na bazie `site_hdf_checkbox.zip`: `Opcje rozkroju` przeniesione do `panelBox`, opis działania opcji dodany w oknie, przycisk opcji przeniesiony do rzędu akcji ROZRYS, launchery Pomieszczenia/Materiał poszerzone, typografia w nowych przyciskach akcji skopiowana z `Generuj ponownie` bez globalnego powiększania wszystkich przycisków.
