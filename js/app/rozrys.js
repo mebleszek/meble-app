@@ -2669,48 +2669,61 @@
       const pdfBtn = h('button', { class:'btn-primary', type:'button' });
       pdfBtn.textContent = 'Eksport PDF (drukuj)';
       pdfBtn.addEventListener('click', ()=>{
-        // proste HTML do wydruku (renderujemy tutaj, a do okna wysyłamy obrazy, żeby zachować identyczny wygląd jak ROZRYS)
+        // HTML do wydruku/PDF: jedna karta = jeden arkusz, A4 landscape, bez sztucznego rozciągania obrazów.
         const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
         const imgs = [];
         try{
           sheets.forEach((s)=>{
             const c = document.createElement('canvas');
-            // sztuczny kontener o stałej szerokości dla spójnego skalowania
+            // sztuczny kontener o szerokości zbliżonej do szerokości wydruku landscape
             const tmp = document.createElement('div');
-            tmp.style.width = '980px';
+            tmp.style.width = '1100px';
             tmp.style.position = 'absolute';
             tmp.style.left = '-99999px';
+            tmp.style.top = '0';
+            tmp.style.pointerEvents = 'none';
             tmp.appendChild(c);
             document.body.appendChild(tmp);
             drawSheet(c, s, u, edgeSubMm, getBoardMeta(s));
-            imgs.push(c.toDataURL('image/png'));
+            imgs.push({ src:c.toDataURL('image/png'), width:c.width || 0, height:c.height || 0 });
             tmp.remove();
           });
         }catch(_){ }
 
+        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
         let html = `<!doctype html><html><head><meta charset="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
           <title>Rozrys</title>
           <style>
-            body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding:16px; }
-            h1{ font-size:18px; margin:0 0 10px; }
-            .meta{ font-size:12px; color:#333; margin-bottom:12px; }
-            .sheet{ margin:14px 0; page-break-inside:avoid; }
-            img{ width:100%; max-width:980px; border:1px solid #333; border-radius:10px; }
+            @page{ size:A4 landscape; margin:10mm; }
+            html, body{ margin:0; padding:0; }
+            body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#111827; }
+            .print-page{ box-sizing:border-box; width:100%; min-height:0; page-break-after:always; break-after:page; }
+            .print-page:last-child{ page-break-after:auto; break-after:auto; }
+            .page-head{ margin:0 0 6mm; }
+            .title{ font-size:18px; font-weight:800; margin:0 0 2mm; }
+            .meta{ font-size:12px; color:#374151; margin:0; }
+            .sheet-meta{ font-size:12px; color:#111827; margin:0 0 4mm; }
+            .img-wrap{ width:100%; text-align:center; }
+            img.sheet-img{ display:inline-block; width:auto; height:auto; max-width:100%; max-height:165mm; border:1px solid #333; border-radius:10px; }
           </style>
         </head><body>`;
-        html += `<h1>Rozrys — ${meta.material}</h1>`;
-        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
-        html += `<div class="meta">Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</div>`;
         sheets.forEach((s,i)=>{
           const bm = getBoardMeta(s);
           const ws = calcDisplayWaste(s);
           const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
           const virtualTxt = ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '');
           const supplyTxt = getSupplyMeta(s) ? ` • ${getSupplyMeta(s).text}` : '';
-          html += `<div class="sheet"><div class="meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}${supplyTxt}</div>`;
-          const src = imgs[i] || '';
-          html += `<img src="${src}" alt="Arkusz ${i+1}" /></div>`;
+          const img = imgs[i] || { src:'', width:0, height:0 };
+          const orientationClass = (img.height > img.width) ? ' is-portrait' : '';
+          html += `<section class="print-page${orientationClass}">`;
+          html += `<div class="page-head">`;
+          html += `<div class="title">Rozrys — ${meta.material}</div>`;
+          html += `<p class="meta">Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}</p>`;
+          html += `</div>`;
+          html += `<p class="sheet-meta"><strong>Arkusz ${i+1}</strong> — ${mmToUnitStr(bm.boardW, u)}×${mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}${supplyTxt}</p>`;
+          html += `<div class="img-wrap"><img class="sheet-img" src="${img.src}" alt="Arkusz ${i+1}" /></div>`;
+          html += `</section>`;
         });
         html += `</body></html>`;
         openPrintView(html);
