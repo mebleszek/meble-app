@@ -474,4 +474,4 @@ Dopiero potem go zmieniać.
 
 - 2026-03-22: ROZRYS action row buttons keep explicit 16px font on larger screens and 13px on screens <=640px; layout/order unchanged.
 
-- 2026-03-22: Wariant A przycisków ROZRYS: techniczny / czysty.
+- 2026-03-22: Wariant B przycisków ROZRYS: premium / aplikacyjny.
