@@ -596,6 +596,88 @@
     console.warn('[ROZRYS]', boxTitle, boxMessage);
   }
 
+  function getSelectOptionLabel(selectEl){
+    if(!selectEl) return '';
+    const idx = Number(selectEl.selectedIndex);
+    const opt = idx >= 0 ? selectEl.options[idx] : selectEl.options[0];
+    return opt ? String(opt.textContent || opt.label || opt.value || '') : '';
+  }
+
+  function setChoiceLaunchValue(btn, label, meta){
+    if(!btn) return;
+    const labelEl = btn.querySelector('.rozrys-choice-launch__label');
+    const metaEl = btn.querySelector('.rozrys-choice-launch__meta');
+    if(labelEl) labelEl.textContent = String(label || '');
+    if(metaEl){
+      const metaText = String(meta || '');
+      metaEl.textContent = metaText;
+      metaEl.style.display = metaText ? '' : 'none';
+    }
+  }
+
+  function createChoiceLauncher(label, meta){
+    const btn = h('button', { type:'button', class:'rozrys-choice-launch' });
+    const value = h('span', { class:'rozrys-choice-launch__value' });
+    value.appendChild(h('span', { class:'rozrys-choice-launch__label', text:String(label || '') }));
+    value.appendChild(h('span', { class:'rozrys-choice-launch__meta', text:String(meta || '') }));
+    btn.appendChild(value);
+    btn.appendChild(h('span', { class:'rozrys-choice-launch__arrow', text:'▾' }));
+    setChoiceLaunchValue(btn, label, meta);
+    return btn;
+  }
+
+  function openRozrysChoiceOverlay(opts){
+    const cfg = Object.assign({
+      title:'Wybierz opcję',
+      options:[],
+      value:'',
+      closeText:'Zamknij'
+    }, opts || {});
+    return new Promise((resolve)=>{
+      const backdrop = h('div', { class:'rozrys-choice-backdrop' });
+      const modal = h('div', { class:'rozrys-choice-modal', role:'dialog', 'aria-modal':'true', 'aria-label':String(cfg.title || 'Wybierz opcję') });
+      const header = h('div', { class:'rozrys-choice-modal__header' });
+      header.appendChild(h('div', { class:'rozrys-choice-modal__title', text:String(cfg.title || 'Wybierz opcję') }));
+      const closeBtn = h('button', { type:'button', class:'btn rozrys-choice-modal__close', text:String(cfg.closeText || 'Zamknij') });
+      header.appendChild(closeBtn);
+      modal.appendChild(header);
+      const body = h('div', { class:'rozrys-choice-modal__body' });
+      (Array.isArray(cfg.options) ? cfg.options : []).forEach((entry)=>{
+        const opt = entry || {};
+        const value = String(opt.value == null ? '' : opt.value);
+        const optionBtn = h('button', { type:'button', class:'rozrys-choice-option' + (String(cfg.value) === value ? ' is-selected' : '') });
+        optionBtn.appendChild(h('div', { class:'rozrys-choice-option__title', text:String(opt.label || value) }));
+        if(opt.description) optionBtn.appendChild(h('div', { class:'rozrys-choice-option__subtitle', text:String(opt.description) }));
+        optionBtn.addEventListener('click', ()=> done(value));
+        body.appendChild(optionBtn);
+      });
+      modal.appendChild(body);
+      backdrop.appendChild(modal);
+
+      let closed = false;
+      const onKey = (ev)=>{
+        if(ev.key === 'Escape'){
+          ev.preventDefault();
+          done(null);
+        }
+      };
+      const cleanup = ()=>{
+        if(closed) return;
+        closed = true;
+        document.removeEventListener('keydown', onKey, true);
+        if(backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      };
+      const done = (result)=>{
+        cleanup();
+        resolve(result);
+      };
+      closeBtn.addEventListener('click', ()=> done(null));
+      backdrop.addEventListener('click', (ev)=>{ if(ev.target === backdrop) done(null); });
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(backdrop);
+    });
+  }
+
   function askRozrysConfirm(opts){
     const cfg = Object.assign({
       title:'POTWIERDZENIE',
@@ -1436,23 +1518,57 @@
 
     const heurWrap = h('div', { class:'rozrys-field' });
     heurWrap.appendChild(labelWithInfo('Szybkość liczenia', 'Szybkość liczenia', 'Turbo = najprostszy shelf. Dokładnie = lżejsze myślenie pasowe. MAX = Twój algorytm 1–7 bez otwierania nowej płyty przed domknięciem poprzedniej.'));
-    const heurSel = h('select', { id:'rozHeur' });
+    const heurSel = h('select', { id:'rozHeur', hidden:'hidden' });
     heurSel.innerHTML = `
       <option value="turbo">Turbo</option>
       <option value="dokladnie">Dokładnie</option>
       <option value="max" selected>MAX</option>
     `;
+    const heurBtn = createChoiceLauncher(getSelectOptionLabel(heurSel), 'Kliknij, aby wybrać');
+    heurBtn.addEventListener('click', async ()=>{
+      const picked = await openRozrysChoiceOverlay({
+        title:'Szybkość liczenia',
+        value: heurSel.value,
+        options:[
+          { value:'turbo', label:'Turbo', description:'Najszybszy wariant. Najprostsze liczenie pasowe.' },
+          { value:'dokladnie', label:'Dokładnie', description:'Lżejsze myślenie pasowe z lepszym dopasowaniem niż Turbo.' },
+          { value:'max', label:'MAX', description:'Najmocniejsze liczenie Twoim algorytmem 1–7 bez otwierania nowej płyty przed domknięciem poprzedniej.' }
+        ]
+      });
+      if(picked == null || picked === heurSel.value) return;
+      heurSel.value = picked;
+      setChoiceLaunchValue(heurBtn, getSelectOptionLabel(heurSel), 'Kliknij, aby zmienić');
+      heurSel.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    heurWrap.appendChild(heurBtn);
     heurWrap.appendChild(heurSel);
     controls2.appendChild(heurWrap);
 
     const dirWrap = h('div', { class:'rozrys-field' });
     dirWrap.appendChild(labelWithInfo('Kierunek cięcia', 'Kierunek startu', 'Pierwsze pasy wzdłuż / w poprzek wymuszają start. Opti-max wybiera lepszy start dla każdej płyty osobno.'));
-    const dirSel = h('select', { id:'rozDir' });
+    const dirSel = h('select', { id:'rozDir', hidden:'hidden' });
     dirSel.innerHTML = `
       <option value="start-along">Pierwsze pasy wzdłuż</option>
       <option value="start-across">Pierwsze pasy w poprzek</option>
       <option value="start-optimax" selected>Opti-max</option>
     `;
+    const dirBtn = createChoiceLauncher(getSelectOptionLabel(dirSel), 'Kliknij, aby wybrać');
+    dirBtn.addEventListener('click', async ()=>{
+      const picked = await openRozrysChoiceOverlay({
+        title:'Kierunek cięcia',
+        value: dirSel.value,
+        options:[
+          { value:'start-along', label:'Pierwsze pasy wzdłuż', description:'Wymusza start od pasów wzdłuż struktury / długości arkusza.' },
+          { value:'start-across', label:'Pierwsze pasy w poprzek', description:'Wymusza start od pasów w poprzek struktury / szerokości arkusza.' },
+          { value:'start-optimax', label:'Opti-max', description:'Dla każdej płyty wybiera korzystniejszy kierunek startu.' }
+        ]
+      });
+      if(picked == null || picked === dirSel.value) return;
+      dirSel.value = picked;
+      setChoiceLaunchValue(dirBtn, getSelectOptionLabel(dirSel), 'Kliknij, aby zmienić');
+      dirSel.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    dirWrap.appendChild(dirBtn);
     dirWrap.appendChild(dirSel);
     controls2.appendChild(dirWrap);
 
@@ -1496,76 +1612,76 @@
       const body = h('div');
       const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
 
-      function appendFieldHint(wrap, text){
-        wrap.appendChild(h('div', { class:'muted xs', style:'margin-top:6px;line-height:1.35', text }));
+      function appendModalInfoLabel(wrap, title, infoTitle, infoMessage){
+        const row = labelWithInfo(title, infoTitle || title, infoMessage || '');
+        wrap.appendChild(row);
+        return row.querySelector('.label-help__text') || row.querySelector('span');
       }
 
       const modalUnitWrap = h('div');
-      modalUnitWrap.appendChild(h('label', { text:'Jednostki' }));
-      const modalUnitSel = h('select');
+      appendModalInfoLabel(modalUnitWrap, 'Jednostki', 'Jednostki', 'Określa jednostki wyświetlane w polach opcji rozkroju.');
+      const modalUnitSel = h('select', { hidden:'hidden' });
       modalUnitSel.innerHTML = `
         <option value="cm" ${unitSel.value==='cm'?'selected':''}>cm</option>
         <option value="mm" ${unitSel.value==='mm'?'selected':''}>mm</option>
       `;
+      const modalUnitBtn = createChoiceLauncher(getSelectOptionLabel(modalUnitSel), 'Kliknij, aby wybrać');
+      modalUnitWrap.appendChild(modalUnitBtn);
       modalUnitWrap.appendChild(modalUnitSel);
-      appendFieldHint(modalUnitWrap, 'Określa jednostki wyświetlane w polach opcji rozkroju.');
       form.appendChild(modalUnitWrap);
 
       const modalEdgeWrap = h('div');
-      modalEdgeWrap.appendChild(h('label', { text:'Wymiary do cięcia' }));
-      const modalEdgeSel = h('select');
+      appendModalInfoLabel(modalEdgeWrap, 'Wymiary do cięcia', 'Wymiary do cięcia', 'Decyduje, czy rozrys liczy wymiar nominalny czy po odjęciu okleiny.');
+      const modalEdgeSel = h('select', { hidden:'hidden' });
       modalEdgeSel.innerHTML = edgeSel.innerHTML;
       modalEdgeSel.value = edgeSel.value;
+      const modalEdgeBtn = createChoiceLauncher(getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
+      modalEdgeWrap.appendChild(modalEdgeBtn);
       modalEdgeWrap.appendChild(modalEdgeSel);
-      appendFieldHint(modalEdgeWrap, 'Decyduje, czy rozrys liczy wymiar nominalny czy po odjęciu okleiny.');
       form.appendChild(modalEdgeWrap);
 
       const modalBoardWrap = h('div');
-      modalBoardWrap.appendChild(h('label', { text:`Format bazowy arkusza (${unitSel.value})` }));
+      const modalBoardLabel = appendModalInfoLabel(modalBoardWrap, `Format bazowy arkusza (${unitSel.value})`, 'Format bazowy arkusza', 'To pełny format płyty bazowej, z której dobieram brakujące arkusze.');
       const modalBoardRow = h('div', { style:'display:flex;gap:8px' });
       const modalBoardW = h('input', { type:'number', value:String(inW.value) });
       const modalBoardH = h('input', { type:'number', value:String(inH.value) });
       modalBoardRow.appendChild(modalBoardW);
       modalBoardRow.appendChild(modalBoardH);
       modalBoardWrap.appendChild(modalBoardRow);
-      appendFieldHint(modalBoardWrap, 'To pełny format płyty bazowej, z której dobieram brakujące arkusze.');
       form.appendChild(modalBoardWrap);
 
       const modalKerfWrap = h('div');
-      modalKerfWrap.appendChild(h('label', { text:`Rzaz piły (${unitSel.value})` }));
+      const modalKerfLabel = appendModalInfoLabel(modalKerfWrap, `Rzaz piły (${unitSel.value})`, 'Rzaz piły', 'Szerokość cięcia odejmowana między elementami i odpadami.');
       const modalKerf = h('input', { type:'number', value:String(inK.value) });
       modalKerfWrap.appendChild(modalKerf);
-      appendFieldHint(modalKerfWrap, 'Szerokość cięcia odejmowana między elementami i odpadami.');
       form.appendChild(modalKerfWrap);
 
       const modalTrimWrap = h('div');
-      modalTrimWrap.appendChild(h('label', { text:`Obrównanie krawędzi — arkusz standardowy (${unitSel.value})` }));
+      const modalTrimLabel = appendModalInfoLabel(modalTrimWrap, `Obrównanie krawędzi — arkusz standardowy (${unitSel.value})`, 'Obrównanie krawędzi', 'Margines odkładany od pełnej płyty przed liczeniem rozkroju.');
       const modalTrim = h('input', { type:'number', value:String(inTrim.value) });
       modalTrimWrap.appendChild(modalTrim);
-      appendFieldHint(modalTrimWrap, 'Margines odkładany od pełnej płyty przed liczeniem rozkroju.');
       form.appendChild(modalTrimWrap);
 
       const modalMinWrap = h('div');
-      modalMinWrap.appendChild(h('label', { text:`Najmniejszy użyteczny odpad (${unitSel.value})` }));
+      const modalMinLabel = appendModalInfoLabel(modalMinWrap, `Najmniejszy użyteczny odpad (${unitSel.value})`, 'Najmniejszy użyteczny odpad', 'Mniejsze odpady traktuję jako nieużyteczne i nie odkładam ich do magazynu odpadów.');
       const modalMinRow = h('div', { style:'display:flex;gap:8px' });
       const modalMinW = h('input', { type:'number', value:String(inMinW.value) });
       const modalMinH = h('input', { type:'number', value:String(inMinH.value) });
       modalMinRow.appendChild(modalMinW);
       modalMinRow.appendChild(modalMinH);
       modalMinWrap.appendChild(modalMinRow);
-      appendFieldHint(modalMinWrap, 'Mniejsze odpady traktuję jako nieużyteczne i nie odkładam ich do magazynu odpadów.');
       form.appendChild(modalMinWrap);
 
-      const note = h('div', { class:'muted xs', style:'grid-column:1 / -1;line-height:1.35', text:'Zapisane opcje będą pamiętane dla kolejnych wejść do panelu rozkroju.' });
-      form.appendChild(note);
       body.appendChild(form);
 
       function syncModalLabels(){
         const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-        modalBoardWrap.querySelector('label').textContent = `Format bazowy arkusza (${u})`;
-        modalKerfWrap.querySelector('label').textContent = `Rzaz piły (${u})`;
-        modalTrimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
-        modalMinWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${u})`;
+        modalBoardLabel.textContent = `Format bazowy arkusza (${u})`;
+        modalKerfLabel.textContent = `Rzaz piły (${u})`;
+        modalTrimLabel.textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
+        modalMinLabel.textContent = `Najmniejszy użyteczny odpad (${u})`;
+        setChoiceLaunchValue(modalUnitBtn, getSelectOptionLabel(modalUnitSel), 'Kliknij, aby wybrać');
+        setChoiceLaunchValue(modalEdgeBtn, getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
       }
       function convertModalNumericFields(prevUnit, nextUnit){
         if(prevUnit === nextUnit) return;
@@ -1592,6 +1708,36 @@
         updateDirtyState();
       });
       modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
+
+      modalUnitBtn.addEventListener('click', async ()=>{
+        const picked = await openRozrysChoiceOverlay({
+          title:'Jednostki',
+          value: modalUnitSel.value,
+          options:[
+            { value:'cm', label:'cm', description:'Wartości wyświetlane w centymetrach.' },
+            { value:'mm', label:'mm', description:'Wartości wyświetlane w milimetrach.' }
+          ]
+        });
+        if(picked == null || picked === modalUnitSel.value) return;
+        modalUnitSel.value = picked;
+        modalUnitSel.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+
+      modalEdgeBtn.addEventListener('click', async ()=>{
+        const picked = await openRozrysChoiceOverlay({
+          title:'Wymiary do cięcia',
+          value: modalEdgeSel.value,
+          options:[
+            { value:'0', label:'Nominalne', description:'Rozrys liczy wymiary nominalne bez odjęcia okleiny.' },
+            { value:'1', label:'Po odjęciu 1 mm okleiny', description:'Rozrys od razu kompensuje 1 mm okleiny na odpowiednich krawędziach.' },
+            { value:'2', label:'Po odjęciu 2 mm okleiny', description:'Rozrys od razu kompensuje 2 mm okleiny na odpowiednich krawędziach.' }
+          ]
+        });
+        if(picked == null || picked === modalEdgeSel.value) return;
+        modalEdgeSel.value = picked;
+        setChoiceLaunchValue(modalEdgeBtn, getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
+        modalEdgeSel.dispatchEvent(new Event('change', { bubbles:true }));
+      });
 
       const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
       const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });

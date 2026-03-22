@@ -486,3 +486,12 @@ Dopiero potem go zmieniać.
 
 - 2026-03-22: Global button press/focus visual updated across the app: removed blue rectangular tap highlight and replaced it with a rounded white press flash matching each button's border radius.
 - 2026-03-22: Globalnie ujednolicono kolorowe przyciski (.btn-primary/.btn-success/.btn-danger/.btn-generate-* oraz confirm-btn w tonach success/danger/neutral) do wzorca z rzędu ROZRYS: jaśniejsze tła, rozjaśnione ramki, ciemny napis, wspólny biały flash, desktop 16px / mobile 13px; większe warianty (np. home-btn btn-primary) ścięto do tej samej wysokości wzorcowej.
+
+
+## 2026-03-22 — globalny system przycisków + ROZRYS popup choice v2
+- Przyciski w całej aplikacji: usunięte unoszenie przy hover/active, cień ustawiony lekko po skosie w dół/prawo, biały press flash zachowany w kształcie przycisku.
+- Kolory bazowych przycisków (.btn / .btn-* / confirm-btn / room-btn / floating-add / info-trigger) dopasowane do zaakceptowanego wzorca z rzędu ROZRYS.
+- Przyciski strony głównej (.home-btn) zachowują swoją dotychczasową wysokość/padding — cofnięto wcześniejsze spłaszczenie kolorowego CTA.
+- ROZRYS: Szybkość liczenia i Kierunek cięcia używają własnych popupów wyboru zamiast systemowych selectów.
+- Opcje rozkroju: stałe opisy pod polami usunięte; informacje są dostępne spod ikony ? przy etykietach.
+- Opcje rozkroju: Jednostki i Wymiary do cięcia też używają własnych popupów wyboru zamiast systemowych selectów.
