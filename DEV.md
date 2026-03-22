@@ -467,3 +467,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: ROZRYS action row — przywrócono poprzedni, kolorowy styl przycisków `Opcje` / `Dodaj płytę` / `Generuj ponownie` z bazy `site_rozrys_action_row_fix.zip` i dodano delikatny glow dookoła każdego z nich bez zmiany układu jednego rzędu ani wysokości wzorcowego przycisku `Generuj ponownie`.
 
 - 2026-03-22: ROZRYS action row — usunięto glow wokół przycisków `Opcje` / `Dodaj płytę` / `Generuj ponownie`, dodano subtelniejszą ciemną ramkę oraz obniżono wysokość przycisków, zachowując układ jednego rzędu i kolejność `Opcje → Dodaj płytę → Generuj ponownie`.
+
+- 2026-03-22: ROZRYS action row — obniżono wysokość przycisków `Opcje` / `Dodaj płytę` / `Generuj ponownie` o kolejne 8 px względem paczki `site_rozrys_action_border_low.zip`, bez zmiany kolejności i układu jednego rzędu.

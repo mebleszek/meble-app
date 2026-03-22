@@ -539,7 +539,7 @@
 .rozrys-picker-launch--rooms{max-width:240px;}
 .rozrys-picker-launch--material{max-width:none;}
 .rozrys-actions-row{width:100%;display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,.92fr) minmax(0,1.15fr);align-items:stretch;gap:10px;margin-top:12px;}
-.rozrys-action-btn{min-height:40px;border-radius:14px;font-weight:800;line-height:1.15;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;position:relative;border:1.5px solid rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(15,23,42,.10);transition:box-shadow .16s ease, transform .16s ease, border-color .16s ease;}
+.rozrys-action-btn{min-height:32px;border-radius:14px;font-weight:800;line-height:1.15;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;position:relative;border:1.5px solid rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(15,23,42,.10);transition:box-shadow .16s ease, transform .16s ease, border-color .16s ease;}
 .rozrys-action-btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,23,42,.12);}
 .rozrys-action-btn--light{color:#0f172a;border-color:rgba(15,23,42,.68);box-shadow:0 6px 14px rgba(148,163,184,.16);}
 .rozrys-action-btn--generate{width:100%;}
