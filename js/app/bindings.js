@@ -79,6 +79,12 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   return false;
 };
 
+const refreshSessionButtons = () => {
+  try {
+    if (FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons();
+  } catch (_) {}
+};
+
 document.addEventListener(
   'pointerup',
   (e) => {
@@ -100,6 +106,7 @@ document.addEventListener(
       // Swallow click-through after close/cancel inside modal
       armGlobal();
     }
+    refreshSessionButtons();
   },
   { capture: true, passive: false }
 );
@@ -162,6 +169,12 @@ document.addEventListener(
     bindChange('counterThickness', 'counterThickness');
     bindChange('gapHeight', 'gapHeight');
     bindChange('ceilingBlende', 'ceilingBlende');
+
+    if (!window.__FC_SESSION_BTN_WATCHERS__) {
+      window.__FC_SESSION_BTN_WATCHERS__ = true;
+      document.addEventListener('input', () => { refreshSessionButtons(); }, true);
+      document.addEventListener('change', () => { refreshSessionButtons(); }, true);
+    }
 
     const priceSearchEl = document.getElementById('priceSearch');
     if (priceSearchEl && !priceSearchEl.__fcBound) {

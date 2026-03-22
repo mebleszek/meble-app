@@ -117,12 +117,32 @@
     },
 
     // Session buttons
-    'session-cancel': ({event}) => {
-      try{ if(window.FC && window.FC.session && typeof window.FC.session.cancel === 'function') window.FC.session.cancel(); }catch(_){ }
-      // IMPORTANT: po anulowaniu musimy wyczyścić stan w pamięci (uiState/projectData),
-      // inaczej aplikacja może ponownie zapisać "nowe" dane do localStorage.
-      // Najpewniejsze i najszybsze: pełny reload do strony głównej.
-      try{ window.location.reload(); }catch(_){ }
+    'session-cancel': async ({event}) => {
+      const session = (window.FC && window.FC.session) ? window.FC.session : null;
+      const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+      if(dirty){
+        let ok = true;
+        try{
+          if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
+            ok = await window.FC.confirmBox.ask({
+              title:'ANULOWAĆ ZMIANY?',
+              message:'Niezapisane zmiany zostaną utracone. Czy na pewno chcesz wyjść?',
+              confirmText:'✕ ANULUJ ZMIANY',
+              cancelText:'WRÓĆ',
+              confirmTone:'danger',
+              cancelTone:'neutral',
+              dismissOnOverlay:false
+            });
+          }
+        }catch(_){ ok = true; }
+        if(!ok) return true;
+        try{ if(session && typeof session.cancel === 'function') session.cancel(); }catch(_){ }
+        try{ window.location.reload(); }catch(_){ }
+        return true;
+      }
+      try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
+      try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
+      try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
       return true;
     },
     'session-save': ({event}) => {

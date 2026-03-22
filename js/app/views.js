@@ -29,9 +29,35 @@
     setTopBarVisible(!!on);
   }
 
+  function refreshSessionButtons(){
+    const sb = $('sessionButtons');
+    const cancelBtn = $('sessionCancel');
+    const saveBtn = $('sessionSave');
+    if(!sb || !cancelBtn || !saveBtn) return;
+    const session = (FC && FC.session) ? FC.session : null;
+    const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+    if(dirty){
+      cancelBtn.style.display = '';
+      cancelBtn.textContent = 'Anuluj';
+      cancelBtn.className = 'btn btn-danger';
+      cancelBtn.setAttribute('data-action', 'session-cancel');
+      saveBtn.style.display = '';
+      saveBtn.textContent = 'Zapisz';
+      saveBtn.className = 'btn btn-success';
+      saveBtn.setAttribute('data-action', 'session-save');
+      return;
+    }
+    cancelBtn.style.display = '';
+    cancelBtn.textContent = 'Wyjdź';
+    cancelBtn.className = 'btn btn-primary';
+    cancelBtn.setAttribute('data-action', 'session-cancel');
+    saveBtn.style.display = 'none';
+  }
+
   function setSessionButtonsVisible(on){
     const sb = $('sessionButtons');
     if(sb) sb.style.display = on ? 'flex' : 'none';
+    if(on) refreshSessionButtons();
   }
 
   function setFloatingVisible(on){
@@ -187,4 +213,5 @@
   FC.views.openRooms = openRooms;
   FC.views.openRoom = openRoom;
   FC.views.back = back;
+  FC.views.refreshSessionButtons = refreshSessionButtons;
 })();

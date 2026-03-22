@@ -6,7 +6,7 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260322_buttons_ui_system_v3">
+<link rel="stylesheet" href="css/style.css?v=20260322_modal_typography_unify_v4">
 </head>
 <body>
 <header>
@@ -50,7 +50,7 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
       <h3 style="margin:0">Lista inwestorów</h3>
-      <button class="btn" data-action="close-investors-list">Zamknij</button>
+      <button class="window-close-btn" aria-label="Zamknij listę inwestorów" data-action="close-investors-list" type="button">×</button>
     </div>
     <div id="investorsListRoot" style="margin-top:12px"></div>
   </div>
@@ -135,13 +135,13 @@
 <div style="display:flex;gap:12px;align-items:center">
 <div id="priceModalIcon">📦</div>
 <div>
-<div id="priceModalTitle" style="font-weight:900"></div>
-<div class="muted-tag xs" id="priceModalSubtitle"></div>
+<div id="priceModalTitle" class="window-modal-title"></div>
+<div class="window-modal-subtitle" id="priceModalSubtitle"></div>
 </div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <input id="priceSearch" placeholder="Wyszukaj pozycję..." style="padding:8px;border-radius:8px;border:1px solid #eef6fb"/>
-<button type="button" class="btn" id="closePriceModal" data-action="close-price">Zamknij</button>
+<button type="button" class="window-close-btn" id="closePriceModal" aria-label="Zamknij okno cen" data-action="close-price">×</button>
 </div>
 </div>
 <div class="body">
@@ -222,13 +222,13 @@
 <div style="display:flex;gap:12px;align-items:center">
 <div id="cabinetModalIcon">➕</div>
 <div>
-<div id="cabinetModalTitle" style="font-weight:900">Dodaj</div>
-<div class="muted-tag xs" id="cabinetModalSubtitle">Wybierz rodzaj / zestaw</div>
+<div id="cabinetModalTitle" class="window-modal-title">Dodaj</div>
+<div class="window-modal-subtitle" id="cabinetModalSubtitle">Wybierz rodzaj / zestaw</div>
 </div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <button type="button" class="btn-primary" id="cabinetModalSave" style="display:none">Zatwierdź</button>
-<button type="button" class="btn" id="closeCabinetModal" data-action="close-cabinet">Zamknij</button>
+<button type="button" class="window-close-btn" id="closeCabinetModal" aria-label="Zamknij okno szafki" data-action="close-cabinet">×</button>
 </div>
 </div>
 <div class="body">

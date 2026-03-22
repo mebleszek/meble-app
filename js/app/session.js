@@ -51,6 +51,23 @@
     }catch(_){ }
   }
 
+  function getComparableKeys(){
+    const keys = new Set(Object.keys(session.snapshot || {}));
+    try{ getKeysToSnapshot().forEach((k)=> keys.add(k)); }catch(_){ }
+    return Array.from(keys);
+  }
+
+  function isDirty(){
+    if(!session.active || !session.snapshot) return false;
+    try{
+      for(const k of getComparableKeys()){
+        const before = Object.prototype.hasOwnProperty.call(session.snapshot, k) ? session.snapshot[k] : null;
+        const now = readRaw(k);
+        if(before !== now) return true;
+      }
+    }catch(_){ }
+    return false;
+  }
 
   function persistSession(){
     try{
@@ -103,7 +120,9 @@
       for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
       session.snapshot = null;
       session.active = false;
-    }
+      persistSession();
+    },
+    isDirty
   };
 
   restoreSession();

@@ -638,7 +638,7 @@
       const modal = h('div', { class:'rozrys-choice-modal', role:'dialog', 'aria-modal':'true', 'aria-label':String(cfg.title || 'Wybierz opcję') });
       const header = h('div', { class:'rozrys-choice-modal__header' });
       header.appendChild(h('div', { class:'rozrys-choice-modal__title', text:String(cfg.title || 'Wybierz opcję') }));
-      const closeBtn = h('button', { type:'button', class:'btn rozrys-choice-modal__close', text:String(cfg.closeText || 'Zamknij') });
+      const closeBtn = h('button', { type:'button', class:'rozrys-choice-modal__close', 'aria-label':'Zamknij', text:'×' });
       header.appendChild(closeBtn);
       modal.appendChild(header);
       const body = h('div', { class:'rozrys-choice-modal__body' });
@@ -685,7 +685,7 @@
       confirmText:'✓ TAK',
       cancelText:'WRÓĆ',
       confirmTone:'success',
-      cancelTone:'danger'
+      cancelTone:'neutral'
     }, opts || {});
     if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
       return FC.confirmBox.ask(cfg);
@@ -1812,7 +1812,7 @@
           confirmText:'✕ ANULUJ ZMIANY',
           cancelText:'WRÓĆ',
           confirmTone:'danger',
-          cancelTone:'success'
+          cancelTone:'neutral'
         });
       }
 
@@ -1824,7 +1824,7 @@
           confirmText:'✓ ZAPISZ',
           cancelText:'WRÓĆ',
           confirmTone:'success',
-          cancelTone:'danger'
+          cancelTone:'neutral'
         });
       }
 
@@ -2082,7 +2082,7 @@
           confirmText:'✕ ANULUJ ZMIANY',
           cancelText:'WRÓĆ',
           confirmTone:'danger',
-          cancelTone:'success'
+          cancelTone:'neutral'
         });
         if(!ok) return;
         FC.panelBox.close();
@@ -2109,7 +2109,7 @@
           confirmText:'✕ ANULUJ ZMIANY',
           cancelText:'WRÓĆ',
           confirmTone:'danger',
-          cancelTone:'success'
+          cancelTone:'neutral'
         }) : true
       });
     }
@@ -2271,7 +2271,7 @@
           confirmText:'✕ ANULUJ ZMIANY',
           cancelText:'WRÓĆ',
           confirmTone:'danger',
-          cancelTone:'success'
+          cancelTone:'neutral'
         });
         if(!ok) return;
         FC.panelBox.close();
@@ -2296,7 +2296,7 @@
           confirmText:'✕ ANULUJ ZMIANY',
           cancelText:'WRÓĆ',
           confirmTone:'danger',
-          cancelTone:'success'
+          cancelTone:'neutral'
         }) : true
       });
     }
@@ -3880,7 +3880,7 @@ async function generate(force){
         confirmText:'✕ ANULUJ ZMIANY',
         cancelText:'WRÓĆ',
         confirmTone:'danger',
-        cancelTone:'success'
+        cancelTone:'neutral'
       });
       const wireDirty = (el)=>{
         if(!el) return;

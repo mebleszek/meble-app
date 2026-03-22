@@ -497,3 +497,10 @@ Dopiero potem go zmieniać.
 - Opcje rozkroju: Jednostki i Wymiary do cięcia też używają własnych popupów wyboru zamiast systemowych selectów.
 
 - 2026-03-22: UI polish v3 — przywrócono duży font przycisków home-btn, dopieszczono górny tab `CZYNNOŚCI` (bardziej wyśrodkowany, delikatnie ciaśniejszy napis na mobile), etykiety ROZRYS wyrównano do lewej, ikony `?` dostały własny styl graficzny, a akordeony materiałów/arkuszy w ROZRYS dostały ramkę i cień zgodne z przyciskami.
+
+
+## 2026-03-22 — modal typography unify + global window close UX
+- Wszystkie okna/popupy dostały ujednoliconą typografię tytułów na wzór ROZRYS/Optimax.
+- Zamknięcia okien ujednolicone do kółka z `×` (panel-box, info-box, stare modale, lista inwestorów, choice popupy ROZRYS).
+- `Wróć` w potwierdzeniach ustawione jako niebieski wariant neutralny.
+- Górne przyciski sesji: gdy brak zmian pokazywany jest jeden niebieski `Wyjdź`; gdy są zmiany wracają `Anuluj` + `Zapisz`.
