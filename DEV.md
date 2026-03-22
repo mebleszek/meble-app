@@ -483,3 +483,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: ROZRYS action row (workshop softlight) — all button labels switched to graphite (#374151); cache-busting bumped for css/style.css.
 
 - 2026-03-22: Wariant workshop ROZRYS — przyciemniono kolor napisów przycisków z grafitu #374151 do ciemniejszego antracytu #1f2937, bez zmian układu, wysokości i tła.
+
+- 2026-03-22: Global button press/focus visual updated across the app: removed blue rectangular tap highlight and replaced it with a rounded white press flash matching each button's border radius.

@@ -47,6 +47,36 @@
 .btn-primary:hover,.btn-success:hover,.btn-danger:hover{color:#fff!important}
     .btn-generate-green:disabled,.btn-generate-blue:disabled,.btn-generate-red:disabled{opacity:.5;cursor:not-allowed}
 
+    :where(button,input[type="button"],input[type="submit"],input[type="reset"],.btn,.btn-primary,.btn-danger,.btn-success,.btn-generate-green,.btn-generate-blue,.btn-generate-red,.room-btn,.floating-add){
+      -webkit-tap-highlight-color:transparent;
+      tap-highlight-color:transparent;
+      position:relative;
+      outline:none;
+      touch-action:manipulation;
+      isolation:isolate;
+    }
+    :where(button,input[type="button"],input[type="submit"],input[type="reset"],.btn,.btn-primary,.btn-danger,.btn-success,.btn-generate-green,.btn-generate-blue,.btn-generate-red,.room-btn,.floating-add)::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      pointer-events:none;
+      opacity:0;
+      background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.08));
+      box-shadow:0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(226,232,240,0);
+      transition:opacity .14s ease, box-shadow .14s ease, background-color .14s ease;
+      z-index:1;
+    }
+    :where(button,input[type="button"],input[type="submit"],input[type="reset"],.btn,.btn-primary,.btn-danger,.btn-success,.btn-generate-green,.btn-generate-blue,.btn-generate-red,.room-btn,.floating-add):focus,
+    :where(button,input[type="button"],input[type="submit"],input[type="reset"],.btn,.btn-primary,.btn-danger,.btn-success,.btn-generate-green,.btn-generate-blue,.btn-generate-red,.room-btn,.floating-add):focus-visible{
+      outline:none;
+    }
+    :where(button,input[type="button"],input[type="submit"],input[type="reset"],.btn,.btn-primary,.btn-danger,.btn-success,.btn-generate-green,.btn-generate-blue,.btn-generate-red,.room-btn,.floating-add):focus-visible::after,
+    :where(button,input[type="button"],input[type="submit"],input[type="reset"],.btn,.btn-primary,.btn-danger,.btn-success,.btn-generate-green,.btn-generate-blue,.btn-generate-red,.room-btn,.floating-add):active::after{
+      opacity:1;
+      box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
+    }
+
     .session-btns{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 
     /* Session buttons should size to content ("Anuluj" is the longest) */
