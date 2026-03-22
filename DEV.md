@@ -477,3 +477,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: Wariant C przycisków ROZRYS: warsztatowy / panelowy.
 
 - 2026-03-22: workshop variant ROZRYS action row — fixed dark text on green action buttons locally for btn-success / btn-generate-green, including hover/active/focus.
+
+- 2026-03-22: workshop variant ROZRYS action row — wszystkie przyciski w rzędzie mają teraz ciemny napis; lekko rozjaśniono tła kolorów (zielony/niebieski/czerwony) oraz subtelnie rozjaśniono ramki, zachowując układ, wysokość i warsztatowy charakter.
