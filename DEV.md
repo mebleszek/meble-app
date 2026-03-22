@@ -485,3 +485,4 @@ Dopiero potem go zmieniać.
 - 2026-03-22: Wariant workshop ROZRYS — przyciemniono kolor napisów przycisków z grafitu #374151 do ciemniejszego antracytu #1f2937, bez zmian układu, wysokości i tła.
 
 - 2026-03-22: Global button press/focus visual updated across the app: removed blue rectangular tap highlight and replaced it with a rounded white press flash matching each button's border radius.
+- 2026-03-22: Globalnie ujednolicono kolorowe przyciski (.btn-primary/.btn-success/.btn-danger/.btn-generate-* oraz confirm-btn w tonach success/danger/neutral) do wzorca z rzędu ROZRYS: jaśniejsze tła, rozjaśnione ramki, ciemny napis, wspólny biały flash, desktop 16px / mobile 13px; większe warianty (np. home-btn btn-primary) ścięto do tej samej wysokości wzorcowej.
