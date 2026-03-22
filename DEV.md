@@ -481,3 +481,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: workshop variant ROZRYS action row — wszystkie przyciski w rzędzie mają teraz ciemny napis; lekko rozjaśniono tła kolorów (zielony/niebieski/czerwony) oraz subtelnie rozjaśniono ramki, zachowując układ, wysokość i warsztatowy charakter.
 
 - 2026-03-22: ROZRYS action row (workshop softlight) — all button labels switched to graphite (#374151); cache-busting bumped for css/style.css.
+
+- 2026-03-22: Wariant workshop ROZRYS — przyciemniono kolor napisów przycisków z grafitu #374151 do ciemniejszego antracytu #1f2937, bez zmian układu, wysokości i tła.
