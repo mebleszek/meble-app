@@ -465,3 +465,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: ROZRYS action row corrected from site_hdf_checkbox base: Opcje moved into shared panel-box modal with field descriptions, top extra settings block removed, action buttons ordered Opcje → Dodaj płytę → Generuj in one row, selection launchers widened with rooms more compact and material wider.
 
 - 2026-03-22: ROZRYS action row — przywrócono poprzedni, kolorowy styl przycisków `Opcje` / `Dodaj płytę` / `Generuj ponownie` z bazy `site_rozrys_action_row_fix.zip` i dodano delikatny glow dookoła każdego z nich bez zmiany układu jednego rzędu ani wysokości wzorcowego przycisku `Generuj ponownie`.
+
+- 2026-03-22: ROZRYS action row — usunięto glow wokół przycisków `Opcje` / `Dodaj płytę` / `Generuj ponownie`, dodano subtelniejszą ciemną ramkę oraz obniżono wysokość przycisków, zachowując układ jednego rzędu i kolejność `Opcje → Dodaj płytę → Generuj ponownie`.
