@@ -662,7 +662,7 @@
   .rozrys-format-field-inline{flex:0 0 auto;}
   .rozrys-format-field-inline .rozrys-format-row > .rozrys-format-input{flex:0 0 68px;min-width:68px;max-width:72px;}
   .rozrys-format-row > .btn{padding-left:10px;padding-right:10px;}
-  .rozrys-actions-row .rozrys-action-btn{padding-left:10px;padding-right:10px;}
+  .rozrys-actions-row .rozrys-action-btn{padding-left:10px;padding-right:10px;font-size:13px;}
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
   .rozrys-material-accordion__trigger{ padding:16px 16px; }
   .rozrys-material-accordion__title-line1,

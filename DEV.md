@@ -471,3 +471,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: ROZRYS action row — obniżono wysokość przycisków `Opcje` / `Dodaj płytę` / `Generuj ponownie` o kolejne 8 px względem paczki `site_rozrys_action_border_low.zip`, bez zmiany kolejności i układu jednego rzędu.
 
 - 2026-03-22: ROZRYS action row buttons now have explicit `font-size: 16px` in `.rozrys-action-btn` so the label style no longer depends on inherited browser/default sizing.
+
+- 2026-03-22: ROZRYS action row buttons keep explicit 16px font on larger screens and 13px on screens <=640px; layout/order unchanged.
