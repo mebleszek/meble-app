@@ -539,15 +539,18 @@
 .rozrys-picker-launch--rooms{max-width:240px;}
 .rozrys-picker-launch--material{max-width:none;}
 .rozrys-actions-row{width:100%;display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,.92fr) minmax(0,1.15fr);align-items:stretch;gap:10px;margin-top:12px;}
-.rozrys-action-btn{min-height:32px;border-radius:14px;font-size:16px;font-weight:800;line-height:1.15;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;position:relative;border:1.5px solid rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(15,23,42,.10);transition:box-shadow .16s ease, transform .16s ease, border-color .16s ease;}
-.rozrys-action-btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,23,42,.12);}
-.rozrys-action-btn--light{color:#0f172a;border-color:rgba(15,23,42,.68);box-shadow:0 6px 14px rgba(148,163,184,.16);}
-.rozrys-action-btn--generate{width:100%;}
+/* ROZRYS action row variant: technical */
+.rozrys-action-btn{min-height:32px;border-radius:12px;font-size:16px;font-weight:800;line-height:1.15;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;position:relative;border:1.5px solid rgba(15,23,42,.68);box-shadow:0 4px 10px rgba(15,23,42,.08);transition:box-shadow .16s ease, transform .16s ease, border-color .16s ease, filter .16s ease;}
+.rozrys-action-btn:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,23,42,.11);filter:saturate(1.02);}
+.rozrys-action-btn--light{color:#0f172a;background:#f8fafc;border-color:rgba(15,23,42,.62);box-shadow:0 4px 10px rgba(148,163,184,.14);}
 .rozrys-actions-row > .rozrys-action-btn{width:100%;}
-.rozrys-actions-row > .btn-success.rozrys-action-btn{border-color:rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(22,163,74,.14);}
-.rozrys-actions-row > .btn-generate-green.rozrys-action-btn{border-color:rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(22,163,74,.14);}
-.rozrys-actions-row > .btn-generate-blue.rozrys-action-btn{border-color:rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(14,165,233,.14);}
-.rozrys-actions-row > .btn-generate-red.rozrys-action-btn{border-color:rgba(15,23,42,.62);box-shadow:0 6px 14px rgba(239,68,68,.14);}
+.rozrys-actions-row > .btn-success.rozrys-action-btn{border-color:rgba(21,128,61,.48);box-shadow:0 4px 10px rgba(22,163,74,.12);}
+.rozrys-actions-row > .btn-generate-green.rozrys-action-btn{border-color:rgba(21,128,61,.48);box-shadow:0 4px 10px rgba(22,163,74,.12);}
+.rozrys-actions-row > .btn-generate-blue.rozrys-action-btn{border-color:rgba(3,105,161,.48);box-shadow:0 4px 10px rgba(14,165,233,.12);}
+.rozrys-actions-row > .btn-generate-red.rozrys-action-btn{border-color:rgba(185,28,28,.48);box-shadow:0 4px 10px rgba(239,68,68,.12);}
+@media (max-width: 640px){
+  .rozrys-actions-row .rozrys-action-btn{padding-left:10px;padding-right:10px;}
+}
 .rozrys-picker-modal{display:flex;flex-direction:column;gap:0;}
 .rozrys-picker-search{margin-bottom:14px;}
 .rozrys-format-row > .rozrys-format-input{flex:0 0 72px;min-width:72px;max-width:78px;padding-left:10px;padding-right:10px;text-align:left;}
@@ -662,7 +665,7 @@
   .rozrys-format-field-inline{flex:0 0 auto;}
   .rozrys-format-field-inline .rozrys-format-row > .rozrys-format-input{flex:0 0 68px;min-width:68px;max-width:72px;}
   .rozrys-format-row > .btn{padding-left:10px;padding-right:10px;}
-  .rozrys-actions-row .rozrys-action-btn{padding-left:10px;padding-right:10px;font-size:13px;}
+  .rozrys-actions-row .rozrys-action-btn{padding-left:10px;padding-right:10px;}
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
   .rozrys-material-accordion__trigger{ padding:16px 16px; }
   .rozrys-material-accordion__title-line1,
