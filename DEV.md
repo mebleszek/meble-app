@@ -495,3 +495,5 @@ Dopiero potem go zmieniać.
 - ROZRYS: Szybkość liczenia i Kierunek cięcia używają własnych popupów wyboru zamiast systemowych selectów.
 - Opcje rozkroju: stałe opisy pod polami usunięte; informacje są dostępne spod ikony ? przy etykietach.
 - Opcje rozkroju: Jednostki i Wymiary do cięcia też używają własnych popupów wyboru zamiast systemowych selectów.
+
+- 2026-03-22: UI polish v3 — przywrócono duży font przycisków home-btn, dopieszczono górny tab `CZYNNOŚCI` (bardziej wyśrodkowany, delikatnie ciaśniejszy napis na mobile), etykiety ROZRYS wyrównano do lewej, ikony `?` dostały własny styl graficzny, a akordeony materiałów/arkuszy w ROZRYS dostały ramkę i cień zgodne z przyciskami.
