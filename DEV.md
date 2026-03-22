@@ -475,3 +475,5 @@ Dopiero potem go zmieniać.
 - 2026-03-22: ROZRYS action row buttons keep explicit 16px font on larger screens and 13px on screens <=640px; layout/order unchanged.
 
 - 2026-03-22: Wariant C przycisków ROZRYS: warsztatowy / panelowy.
+
+- 2026-03-22: Wariant C przycisków ROZRYS dopracowany — zielone przyciski w rzędzie akcji (`Dodaj płytę`, `Generuj ponownie`) mają ciemny napis tylko lokalnie w wariancie workshop; bez zmian układu i pozostałych stylów.

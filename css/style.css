@@ -545,7 +545,9 @@
 .rozrys-action-btn--light{color:#0f172a;background:#f8fafc;border-color:rgba(15,23,42,.74);box-shadow:0 3px 0 rgba(15,23,42,.20), 0 8px 14px rgba(148,163,184,.12);}
 .rozrys-actions-row > .rozrys-action-btn{width:100%;}
 .rozrys-actions-row > .btn-success.rozrys-action-btn,
-.rozrys-actions-row > .btn-generate-green.rozrys-action-btn{border-color:rgba(20,83,45,.74);box-shadow:0 3px 0 rgba(20,83,45,.26), 0 8px 14px rgba(22,163,74,.12);}
+.rozrys-actions-row > .btn-generate-green.rozrys-action-btn{color:#0b1410;border-color:rgba(20,83,45,.74);box-shadow:0 3px 0 rgba(20,83,45,.26), 0 8px 14px rgba(22,163,74,.12);} 
+.rozrys-actions-row > .btn-success.rozrys-action-btn:hover,
+.rozrys-actions-row > .btn-generate-green.rozrys-action-btn:hover{color:#08100c;}
 .rozrys-actions-row > .btn-generate-blue.rozrys-action-btn{border-color:rgba(12,74,110,.76);box-shadow:0 3px 0 rgba(12,74,110,.24), 0 8px 14px rgba(14,165,233,.12);}
 .rozrys-actions-row > .btn-generate-red.rozrys-action-btn{border-color:rgba(127,29,29,.76);box-shadow:0 3px 0 rgba(127,29,29,.24), 0 8px 14px rgba(239,68,68,.12);}
 @media (max-width: 640px){
