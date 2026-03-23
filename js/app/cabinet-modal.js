@@ -1213,7 +1213,7 @@ if(!cabinetModalState.setPreset){
     if(saveTopBtn){
       saveTopBtn.style.display = 'inline-flex';
       saveTopBtn.disabled = false;
-      saveTopBtn.textContent = isSetEdit ? 'Zapisz zmiany' : 'Zatwierdź';
+      saveTopBtn.textContent = isSetEdit ? 'Zapisz zmiany' : 'Dodaj';
     }
 
     if(isSetEdit){
@@ -1225,7 +1225,7 @@ if(!cabinetModalState.setPreset){
       document.getElementById('setWizardTitle').textContent = 'Zestaw (edycja)';
       document.getElementById('setWizardDesc').textContent = 'Zmieniasz parametry zestawu. Program przeliczy korpusy i fronty.';
     } else {
-      document.getElementById('setWizardCreate').textContent = 'Zatwierdź';
+      document.getElementById('setWizardCreate').textContent = 'Dodaj';
       document.getElementById('setWizardTitle').textContent = 'Zestaw';
       document.getElementById('setWizardDesc').textContent = 'Wybierz standardowy układ. Program doda kilka korpusów oraz fronty.';
     }
@@ -1272,14 +1272,14 @@ if(!cabinetModalState.setPreset){
     saveTopBtn.style.display = 'inline-flex';
     saveTopBtn.disabled = false;
     // IMPORTANT: when leaving set mode, reset the CTA label so it doesn't stick as "Dodaj zestaw".
-    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Dodaj';
   }
 
   // pokazujemy Zatwierdź w nagłówku dopiero gdy jest formularz
   if(saveTopBtn){
     saveTopBtn.style.display = 'inline-flex';
     saveTopBtn.disabled = false;
-    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Zatwierdź';
+    saveTopBtn.textContent = (cabinetModalState.mode === 'edit') ? 'Zapisz zmiany' : 'Dodaj';
   }
 
   const draft = cabinetModalState.draft;

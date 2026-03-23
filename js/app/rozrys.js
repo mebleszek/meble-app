@@ -569,7 +569,7 @@
     const row = h('div', { class:'label-help' });
     row.appendChild(h('span', { class:'label-help__text', text:title }));
     if(infoMessage){
-      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':`Pokaż informację: ${title}`, text:'?' });
+      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':`Pokaż informację: ${title}` });
       btn.addEventListener('click', ()=>{
         try{
           if(window.FC && window.FC.infoBox && typeof window.FC.infoBox.open === 'function'){
@@ -1923,12 +1923,13 @@
       const normalized = normalizeMaterialScopeForAggregate(scope, aggregate);
       const modeLabel = normalized.includeFronts && normalized.includeCorpus ? 'Fronty + korpusy' : (normalized.includeFronts ? 'Same fronty' : 'Same korpusy');
       if(normalized.kind !== 'material'){
-        return { title:'Wszystkie materiały', subtitle:modeLabel };
+        return { title:'Wszystkie materiały', subtitle:'', detail:modeLabel };
       }
       const split = splitMaterialAccordionTitle(normalized.material);
       return {
         title: split.line1 || normalized.material || 'Materiał',
-        subtitle: [split.line2 || '', modeLabel].filter(Boolean).join(' • ')
+        subtitle: split.line2 || '',
+        detail: modeLabel
       };
     }
 
@@ -1952,6 +1953,7 @@
       matPickerValue.innerHTML = '';
       matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:meta.title }));
       if(meta.subtitle) matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:meta.subtitle }));
+      if(meta.detail) matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__detail', text:meta.detail }));
     }
 
     function persistSelectionPrefs(){

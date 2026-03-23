@@ -148,25 +148,29 @@
     card.appendChild(h('div', { class:'muted', style:'margin-top:6px', html:'Dodaj formaty płyt, żeby ROZRYS mógł je podpowiadać. Możesz też dodać realną pół płytę, np. 2800×1030, żeby końcówka mogła ją wykorzystać, jeśli jest na stanie.' }));
 
     // add form
-    const form = h('div', { class:'grid-3', style:'margin-top:12px' });
-    form.appendChild(h('div', null, [
+    const form = h('div', { class:'mag-stock-form', style:'margin-top:12px' });
+    const topRow = h('div', { class:'mag-stock-form__top' });
+    topRow.appendChild(h('div', { class:'mag-stock-field mag-stock-field--material' }, [
       h('label', { html:'Materiał (klucz z Materiały)' }),
       h('input', { id:'magMat', placeholder:'np. Korpus: laminat • Egger W1100' })
     ]));
-    form.appendChild(h('div', null, [
-      h('label', { html:'Format płyty (mm)' }),
-      h('div', { style:'display:flex;gap:8px' }, [
-        h('input', { id:'magW', type:'number', placeholder:'2800' }),
-        h('input', { id:'magH', type:'number', placeholder:'2070' }),
-      ])
+    form.appendChild(topRow);
+
+    const bottomRow = h('div', { class:'mag-stock-form__bottom' });
+    bottomRow.appendChild(h('div', { class:'mag-stock-field mag-stock-field--dim' }, [
+      h('label', { html:'Szer. (mm)' }),
+      h('input', { id:'magW', type:'number', placeholder:'2800' })
     ]));
-    form.appendChild(h('div', null, [
+    bottomRow.appendChild(h('div', { class:'mag-stock-field mag-stock-field--dim' }, [
+      h('label', { html:'Wys. (mm)' }),
+      h('input', { id:'magH', type:'number', placeholder:'2070' })
+    ]));
+    bottomRow.appendChild(h('div', { class:'mag-stock-field mag-stock-field--qty' }, [
       h('label', { html:'Ilość (szt.)' }),
       h('input', { id:'magQty', type:'number', placeholder:'1', value:'1', min:'1' })
     ]));
 
-    card.appendChild(form);
-    const btnRow = h('div', { style:'display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap' });
+    const btnRow = h('div', { class:'mag-stock-form__actions' });
     const addBtn = h('button', { class:'btn-success', type:'button' });
     addBtn.textContent = 'Dodaj do magazynu';
     addBtn.addEventListener('click', () => {
@@ -183,7 +187,10 @@
       render();
     });
     btnRow.appendChild(addBtn);
-    card.appendChild(btnRow);
+    bottomRow.appendChild(btnRow);
+    form.appendChild(bottomRow);
+
+    card.appendChild(form);
 
     card.appendChild(h('div', { class:'hr' }));
 

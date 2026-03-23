@@ -511,3 +511,5 @@ Dopiero potem go zmieniać.
 - Przywrócono właściwy header modala szafki: `Anuluj` + `Zatwierdź`, bez `X`.
 - Usuwanie szafki w wywiadzie korzysta z `confirmBox`, nie z systemowego `confirm()`.
 - `panel-box` dostał tytuł jak nagłówek Optimax także na mobile.
+
+- 2026-03-23: UI polish follow-up — modal szafki: przy dodawaniu zielony CTA = 'Dodaj', przy edycji = 'Zapisz zmiany'; MAGAZYN: szerokie pole materiału + dolny rząd szer./wys./ilość/przycisk; ROZRYS: lepiej wyśrodkowane etykiety względem ikon ?, czytelniejsza ikona ?, oraz 3-liniowy opis w launcherze materiału.

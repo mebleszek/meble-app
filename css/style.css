@@ -568,7 +568,8 @@
 #cabinetModal .header > div:last-child button{flex:0 0 auto;}
 .info-box__body{margin-top:10px;font-size:14px;line-height:1.45;color:#475569;font-weight:700;white-space:pre-line;}
 .info-trigger{
-  width:24px;height:24px;border:2px solid rgba(15,23,42,.44);border-radius:999px;cursor:pointer;
+  position:relative;
+  width:28px;height:28px;border:2px solid rgba(15,23,42,.44);border-radius:999px;cursor:pointer;
   background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);color:transparent;font-size:0;line-height:1;
   display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;overflow:hidden;
   box-shadow:2px 3px 0 rgba(15,23,42,.16), 4px 9px 16px rgba(148,163,184,.12);
@@ -578,16 +579,16 @@
   content:"";
   position:absolute;
   inset:4px;
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%3E%3Cpath%20d%3D%27M9.5%209.1a2.75%202.75%200%200%201%205.04%201.49c0%201.9-1.96%202.58-2.7%203.3-.37.35-.59.73-.59%201.37%27%20stroke%3D%27rgb(51%2C65%2C85)%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2717.4%27%20r%3D%271.25%27%20fill%3D%27rgb(51%2C65%2C85)%27%2F%3E%3C%2Fsvg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%3E%3Cpath%20d%3D%27M9.35%208.95a2.95%202.95%200%200%201%205.41%201.61c0%202.02-2.09%202.77-2.88%203.53-.4.39-.63.8-.63%201.5%27%20stroke%3D%27rgb(30%2C41%2C59)%27%20stroke-width%3D%272.55%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2717.55%27%20r%3D%271.45%27%20fill%3D%27rgb(30%2C41%2C59)%27%2F%3E%3C%2Fsvg%3E");
   background-repeat:no-repeat;
   background-position:center;
   background-size:contain;
-  opacity:.98;
+  opacity:1;
   z-index:2;
 }
 .info-trigger:hover{background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);border-color:rgba(15,23,42,.48);}
-.label-help{display:flex;align-items:center;gap:8px;justify-content:flex-start;}
-.label-help > span:first-child{display:inline-block;}
+.label-help{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:0;justify-content:flex-start;}
+.label-help__text{display:block;justify-self:start;text-align:left;line-height:1.08;}
 @media (max-width:600px){
   .info-box{width:min(360px, calc(100vw - 18px));padding:15px 14px 13px;}
 }
@@ -672,7 +673,8 @@
 }
 .rozrys-picker-launch__value{min-width:0;display:flex;flex-direction:column;gap:2px;}
 .rozrys-picker-launch__title{font-weight:800;color:#0f172a;line-height:1.15;overflow-wrap:anywhere;word-break:break-word;}
-.rozrys-picker-launch__subtitle{font-size:13px;color:#475569;line-height:1.2;overflow-wrap:anywhere;word-break:break-word;}
+.rozrys-picker-launch__subtitle{font-size:13px;color:#475569;line-height:1.18;overflow-wrap:anywhere;word-break:break-word;}
+.rozrys-picker-launch__detail{font-size:13px;color:#334155;line-height:1.18;font-weight:800;overflow-wrap:anywhere;word-break:break-word;}
 .rozrys-picker-launch__hint{margin-top:2px;text-align:left;}
 .rozrys-selection-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr);gap:12px;margin-top:12px;}
 .rozrys-selection-grid__rooms{min-width:0;}
@@ -778,6 +780,18 @@
 .rozrys-stock-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;border:1px solid transparent;}
 .rozrys-stock-chip.is-stock{background:#ecfdf3;color:#166534;border-color:#b7ebc8;}
 .rozrys-stock-chip.is-order{background:#fef2f2;color:#b91c1c;border-color:#fecaca;}
+
+.mag-stock-form{display:flex;flex-direction:column;gap:12px;}
+.mag-stock-form__top,.mag-stock-form__bottom{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;}
+.mag-stock-form__bottom{grid-template-columns:minmax(0,.9fr) minmax(0,.9fr) minmax(0,.7fr) auto;align-items:end;}
+.mag-stock-field{min-width:0;}
+.mag-stock-field input{width:100%;}
+.mag-stock-form__actions{display:flex;align-items:flex-end;justify-content:flex-end;}
+.mag-stock-form__actions .btn-success{white-space:nowrap;}
+@media (max-width:640px){
+  .mag-stock-form__bottom{grid-template-columns:minmax(0,.85fr) minmax(0,.85fr) minmax(0,.68fr) auto;gap:8px;}
+  .mag-stock-form__actions .btn-success{padding-left:10px;padding-right:10px;}
+}
 
 .rozrys-material-accordion{
   margin-top:14px;
