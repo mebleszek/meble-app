@@ -513,3 +513,5 @@ Dopiero potem go zmieniać.
 - `panel-box` dostał tytuł jak nagłówek Optimax także na mobile.
 
 - 2026-03-23: UI polish follow-up — modal szafki: przy dodawaniu zielony CTA = 'Dodaj', przy edycji = 'Zapisz zmiany'; MAGAZYN: szerokie pole materiału + dolny rząd szer./wys./ilość/przycisk; ROZRYS: lepiej wyśrodkowane etykiety względem ikon ?, czytelniejsza ikona ?, oraz 3-liniowy opis w launcherze materiału.
+
+- 2026-03-23: Fix mobilnego scrolla w modalach pełnoekranowych. `.modal` działa teraz jako kolumna flex z przewijalnym `.modal .body`, żeby dodawanie/edycja szafki i podobne okna dały się przewijać na telefonie.
