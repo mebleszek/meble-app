@@ -1168,8 +1168,14 @@ function wireSetParamsLiveUpdate(presetId){
 function renderCabinetModal(){
   const isSetEdit = !!cabinetModalState.setEditId;
 
-  // Zatwierdź w nagłówku: widoczne tylko gdy pokazujemy formularz szafki (nie przy wyborze typu i nie w zestawie)
+  // Nagłówek: Anuluj zawsze widoczne, Zatwierdź tylko gdy pokazujemy formularz / zestaw.
   const saveTopBtn = document.getElementById('cabinetModalSave');
+  const cancelTopBtn = document.getElementById('cabinetModalCancel');
+  if(cancelTopBtn){
+    cancelTopBtn.style.display = 'inline-flex';
+    cancelTopBtn.disabled = false;
+    cancelTopBtn.textContent = 'Anuluj';
+  }
   if(saveTopBtn){
     saveTopBtn.style.display = 'none';
     saveTopBtn.disabled = true;

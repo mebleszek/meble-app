@@ -14,6 +14,12 @@
    * Idempotentne: można wołać wielokrotnie.
    */
   FC.bindings.install = function installBindings() {
+    const refreshSessionButtons = () => {
+      try {
+        if (FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons();
+      } catch (_) {}
+    };
+
     // ===== Delegated clicks (robust against DOM re-renders / new buttons) =====
     if (!window.__FC_DELEGATION__) {
       window.__FC_DELEGATION__ = true;
@@ -78,13 +84,6 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   if (action === 'new-investor' || action === 'back-rooms' || action === 'open-room') return true;
   return false;
 };
-
-const refreshSessionButtons = () => {
-  try {
-    if (FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons();
-  } catch (_) {}
-};
-
 document.addEventListener(
   'pointerup',
   (e) => {

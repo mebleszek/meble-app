@@ -10,7 +10,7 @@
     if(typeof openCabinetModalForAdd === 'function') return openCabinetModalForAdd();
   }
 
-  function deleteCabinetById(cabId){
+  async function deleteCabinetById(cabId){
     const FC = window.FC || {};
     if(typeof uiState === 'undefined' || typeof projectData === 'undefined' || typeof STORAGE_KEYS === 'undefined') return;
     const room = uiState.roomType;
@@ -19,7 +19,23 @@
 
     const cab = (projectData[room] && projectData[room].cabinets || []).find(c => c.id === cabId);
     const label = cab ? `${cab.type || 'szafka'} ${cab.subType ? '('+cab.subType+')' : ''} ${cab.width}×${cab.height}×${cab.depth}` : 'szafkę';
-    if(!confirm(`Usunąć ${label}?`)) return;
+    let ok = true;
+    try{
+      if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
+        ok = await FC.confirmBox.ask({
+          title:'USUNĄĆ SZAFKĘ?',
+          message:`Usunąć ${label}?`,
+          confirmText:'USUŃ',
+          cancelText:'Wróć',
+          confirmTone:'danger',
+          cancelTone:'neutral',
+          dismissOnOverlay:false
+        });
+      }else{
+        ok = window.confirm(`Usunąć ${label}?`);
+      }
+    }catch(_){ ok = window.confirm(`Usunąć ${label}?`); }
+    if(!ok) return;
 
     if(typeof removeFrontsForCab === 'function') removeFrontsForCab(room, cabId);
 

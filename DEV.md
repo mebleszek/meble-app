@@ -504,3 +504,10 @@ Dopiero potem go zmieniać.
 - Zamknięcia okien ujednolicone do kółka z `×` (panel-box, info-box, stare modale, lista inwestorów, choice popupy ROZRYS).
 - `Wróć` w potwierdzeniach ustawione jako niebieski wariant neutralny.
 - Górne przyciski sesji: gdy brak zmian pokazywany jest jeden niebieski `Wyjdź`; gdy są zmiany wracają `Anuluj` + `Zapisz`.
+
+
+## 2026-03-23 — modal/session/cabinet fix
+- Naprawiono `refreshSessionButtons` w `js/app/bindings.js` (błąd zakresu po refaktorze delegacji).
+- Przywrócono właściwy header modala szafki: `Anuluj` + `Zatwierdź`, bez `X`.
+- Usuwanie szafki w wywiadzie korzysta z `confirmBox`, nie z systemowego `confirm()`.
+- `panel-box` dostał tytuł jak nagłówek Optimax także na mobile.

@@ -6,7 +6,7 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260322_modal_typography_unify_v4">
+<link rel="stylesheet" href="css/style.css?v=20260323_modal_fix_v1">
 </head>
 <body>
 <header>
@@ -226,9 +226,9 @@
 <div class="window-modal-subtitle" id="cabinetModalSubtitle">Wybierz rodzaj / zestaw</div>
 </div>
 </div>
-<div style="display:flex;gap:8px;align-items:center">
-<button type="button" class="btn-primary" id="cabinetModalSave" style="display:none">Zatwierdź</button>
-<button type="button" class="window-close-btn" id="closeCabinetModal" aria-label="Zamknij okno szafki" data-action="close-cabinet">×</button>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+<button type="button" class="btn btn-danger" id="cabinetModalCancel" data-action="cancel-cabinet">Anuluj</button>
+<button type="button" class="btn btn-success" id="cabinetModalSave" style="display:none">Zatwierdź</button>
 </div>
 </div>
 <div class="body">
@@ -395,7 +395,7 @@
 <script defer src="js/app/views.js?v=20260307_03"></script>
 <script defer src="js/app/validate.js?v=20260307_02"></script>
 <!-- bindings extracted from app.js (event wiring + delegation) -->
-<script defer src="js/app/bindings.js?v=20260307_02"></script>
+<script defer src="js/app/bindings.js?v=20260323_modal_fix_v1"></script>
 
 <!-- Actions registry MUST load before app.js init validates data-action in DOM. -->
 <script defer src="js/app/actions-register.js?v=20260307_02"></script>
@@ -409,7 +409,7 @@
 <script defer src="js/app/rozrys-validation.js?v=20260318_rozrys_validation_v2"></script>
 <script defer src="js/app/corner-sketch.js?v=20260307_02"></script>
 <script defer src="js/app/cabinet-cutlist.js?v=20260307_03"></script>
-<script defer src="js/app/cabinet-actions.js?v=20260308_01"></script>
+<script defer src="js/app/cabinet-actions.js?v=20260323_modal_fix_v1"></script>
 <script defer src="js/app/cabinet-summary.js?v=20260308_01"></script>
 <script defer src="js/app/layout-state.js?v=20260307_02"></script>
 <script defer src="js/app/tab-navigation.js?v=20260307_02"></script>
@@ -422,7 +422,7 @@
 <script defer src="js/app.js?v=20260308_08"></script>
 <script defer src="js/app/public-api.js?v=20260308_01"></script>
 <script defer src="js/app/cabinet-fronts.js?v=20260307_02"></script>
-<script defer src="js/app/cabinet-modal.js?v=20260307_02"></script>
+<script defer src="js/app/cabinet-modal.js?v=20260323_modal_fix_v1"></script>
 
 <!-- Per-investor isolated projects (cabinets/rooms/materials) -->
 <script defer src="js/app/investor-project.js?v=20260307_02"></script>

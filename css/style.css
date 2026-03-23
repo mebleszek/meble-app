@@ -565,6 +565,7 @@
 .panel-box__close:hover,
 .rozrys-choice-modal__close:hover,
 .window-close-btn:hover{background:#f8fafc;border-color:#cdd9e7;color:#334155;}
+#cabinetModal .header > div:last-child button{flex:0 0 auto;}
 .info-box__body{margin-top:10px;font-size:14px;line-height:1.45;color:#475569;font-weight:700;white-space:pre-line;}
 .info-trigger{
   width:24px;height:24px;border:2px solid rgba(15,23,42,.44);border-radius:999px;cursor:pointer;
@@ -629,6 +630,11 @@
   flex:1 1 auto;
   overflow-wrap:anywhere;
   word-break:break-word;
+  font-size:clamp(20px, 2vw, 22px);
+  line-height:1.08;
+  font-weight:900;
+  letter-spacing:-.02em;
+  color:#0f172a;
 }
 .panel-box__close{
   flex:0 0 auto;
