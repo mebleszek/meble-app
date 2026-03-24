@@ -55,6 +55,7 @@
           symbol: ensureString(m.symbol, ''),
           name: ensureString(m.name, ''),
           price: ensureFiniteNumber(m.price, 0),
+          hasGrain: !!m.hasGrain,
         }));
     }
 

@@ -515,3 +515,5 @@ Dopiero potem go zmieniać.
 - 2026-03-23: UI polish follow-up — modal szafki: przy dodawaniu zielony CTA = 'Dodaj', przy edycji = 'Zapisz zmiany'; MAGAZYN: szerokie pole materiału + dolny rząd szer./wys./ilość/przycisk; ROZRYS: lepiej wyśrodkowane etykiety względem ikon ?, czytelniejsza ikona ?, oraz 3-liniowy opis w launcherze materiału.
 
 - 2026-03-23: Fix mobilnego scrolla w modalach pełnoekranowych. `.modal` działa teraz jako kolumna flex z przewijalnym `.modal .body`, żeby dodawanie/edycja szafki i podobne okna dały się przewijać na telefonie.
+
+- 2026-03-24: ROZRYS — usunięty globalny checkbox struktury; sterowanie słojami przeniesione per materiał (accordion) z popupem wyjątków. Dodany helper js/app/rozrys-grain.js i naprawione utrwalanie hasGrain w validate.js.

@@ -800,6 +800,7 @@
   .mag-stock-form__actions .btn-success{padding-left:10px;padding-right:10px;}
 }
 
+.rozrys-secondary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 .rozrys-material-accordion{
   margin-top:14px;
   border:2px solid rgba(15,23,42,.56);
@@ -812,15 +813,16 @@
   border-color:rgba(15,23,42,.62);
   box-shadow:2px 3px 0 rgba(15,23,42,.18), 6px 12px 20px rgba(15,23,42,.12);
 }
+.rozrys-material-accordion__head{background:#fff;}
 .rozrys-material-accordion__trigger{
   width:100%;
   border:0;
   background:#fff;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
   gap:12px;
-  padding:18px 20px;
+  padding:18px 20px 8px;
   text-align:left;
   cursor:pointer;
 }
@@ -847,6 +849,64 @@
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+.rozrys-material-accordion__grain-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 20px 16px;
+}
+.rozrys-material-accordion__grain-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-size:14px;
+  font-weight:700;
+  color:#334155;
+  min-width:0;
+}
+.rozrys-material-accordion__grain-toggle input{
+  width:18px;
+  height:18px;
+  margin:0;
+  accent-color:#16a34a;
+}
+.rozrys-inline-exceptions-btn{
+  padding:6px 10px;
+  min-height:32px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.rozrys-inline-exceptions-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.rozrys-grain-exceptions-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:6px;
+}
+.rozrys-grain-exception-row{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  border:1px solid rgba(15,23,42,.12);
+  border-radius:14px;
+  padding:10px 12px;
+  background:#fff;
+}
+.rozrys-grain-exception-row input{
+  width:18px;
+  height:18px;
+  margin:2px 0 0;
+  accent-color:#16a34a;
+}
+.rozrys-grain-exception-copy{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.rozrys-grain-exception-name{font-weight:800;color:#0f172a;line-height:1.15;overflow-wrap:anywhere;word-break:break-word;}
+.rozrys-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:14px;}
 .rozrys-material-accordion__chevron{
   flex:0 0 auto;
   display:inline-flex;
@@ -878,10 +938,14 @@
   .rozrys-format-field-inline .rozrys-format-row > .rozrys-format-input{flex:0 0 68px;min-width:68px;max-width:72px;}
   .rozrys-format-row > .btn{padding-left:10px;padding-right:10px;}
   .rozrys-actions-row .rozrys-action-btn{padding-left:10px;padding-right:10px;}
+  .rozrys-secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
   .rozrys-material-accordion{ margin-top:12px; border-radius:18px; }
-  .rozrys-material-accordion__trigger{ padding:16px 16px; }
+  .rozrys-material-accordion__trigger{ padding:16px 16px 8px; }
   .rozrys-material-accordion__title-line1,
   .rozrys-material-accordion__title-line2{ font-size:16px; }
+  .rozrys-material-accordion__grain-row{padding:0 16px 14px;gap:8px;align-items:flex-start;flex-wrap:wrap;}
+  .rozrys-material-accordion__grain-toggle{font-size:13px;}
+  .rozrys-inline-exceptions-btn{min-height:30px;padding:6px 10px;}
   .rozrys-material-accordion__chevron{ min-width:30px; min-height:30px; font-size:26px; }
   .rozrys-material-accordion__body{ padding:0 16px 16px; }
 }

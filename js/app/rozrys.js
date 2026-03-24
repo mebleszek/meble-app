@@ -128,6 +128,42 @@
     }catch(_){ }
   }
 
+  function getGrainStore(){
+    return (FC && FC.rozrysGrain) || null;
+  }
+
+  function getMaterialGrainEnabled(material, hasGrain){
+    try{
+      const store = getGrainStore();
+      if(store && typeof store.getMaterialEnabled === 'function') return !!store.getMaterialEnabled(material, hasGrain);
+    }catch(_){ }
+    return !!hasGrain;
+  }
+
+  function setMaterialGrainEnabled(material, enabled, hasGrain){
+    try{
+      const store = getGrainStore();
+      if(store && typeof store.setMaterialEnabled === 'function') store.setMaterialEnabled(material, enabled, hasGrain);
+    }catch(_){ }
+  }
+
+  function getMaterialGrainExceptions(material, allowedKeys, hasGrain){
+    try{
+      const store = getGrainStore();
+      if(!store) return {};
+      if(typeof store.pruneMaterialExceptions === 'function' && Array.isArray(allowedKeys)) return store.pruneMaterialExceptions(material, allowedKeys, hasGrain);
+      if(typeof store.getMaterialExceptions === 'function') return store.getMaterialExceptions(material) || {};
+    }catch(_){ }
+    return {};
+  }
+
+  function setMaterialGrainExceptions(material, exceptions, hasGrain){
+    try{
+      const store = getGrainStore();
+      if(store && typeof store.setMaterialExceptions === 'function') store.setMaterialExceptions(material, exceptions, hasGrain);
+    }catch(_){ }
+  }
+
   function loadEdgeStore(){
     try{
       const raw = localStorage.getItem(EDGE_KEY);
@@ -1119,7 +1155,7 @@
     if(!opt) return { sheets: [], note: 'Brak modułu cutOptimizer.' };
 
     const grainOn = !!state.grain;
-    const overrides = loadOverrides();
+    const overrides = Object.assign({}, st.grainExceptions || {});
     const edgeStore = loadEdgeStore();
 
     const partsMm = (parts||[]).map(p=>{
@@ -1242,7 +1278,7 @@
       const blockMainThreadFallback = requestedSpeedMode === 'max';
 
       const grainOn = !!state.grain;
-      const overrides = loadOverrides();
+      const overrides = Object.assign({}, st.grainExceptions || {});
       const edgeStore = loadEdgeStore();
 
       const partsMm = (parts||[]).map(p=>{
@@ -1417,7 +1453,6 @@
       boardH: Number.isFinite(Number(panelPrefs.boardH)) ? Math.max(1, Number(panelPrefs.boardH)) : (initialUnit === 'cm' ? 207 : 2070),
       kerf: Number.isFinite(Number(panelPrefs.kerf)) ? Math.max(0, Number(panelPrefs.kerf)) : (initialUnit === 'cm' ? 0.4 : 4),
       edgeTrim: Number.isFinite(Number(panelPrefs.edgeTrim)) ? Math.max(0, Number(panelPrefs.edgeTrim)) : (initialUnit === 'cm' ? 2 : 20),
-      grain: true,
       heur: 'optimax',
       optimaxProfile: 'max',
       minScrapW: Number.isFinite(Number(panelPrefs.minScrapW)) ? Math.max(0, Number(panelPrefs.minScrapW)) : 0,
@@ -1504,17 +1539,7 @@
     minScrapRow.appendChild(inMinH);
     minScrapWrap.appendChild(minScrapRow);
 
-    const controls2 = h('div', { class:'grid-3', style:'margin-top:12px' });
-
-    const grainWrap = h('div', { class:'rozrys-field' });
-    grainWrap.appendChild(labelWithInfo('Struktura / kierunek', 'Struktura / kierunek', 'Arkusz posiada strukturę — pilnuj kierunku i blokuj obrót poza wyjątkami.'));
-    const grainRow = h('div', { class:'rozrys-inline-row rozrys-inline-row--grain', style:'display:flex;align-items:center;gap:10px' });
-    const grainChk = h('input', { id:'rozGrain', type:'checkbox' });
-    grainChk.checked = true;
-    grainRow.appendChild(grainChk);
-    grainRow.appendChild(h('div', { class:'muted xs rozrys-grain-text', text:'Arkusz posiada strukturę' }));
-    grainWrap.appendChild(grainRow);
-    controls2.appendChild(grainWrap);
+    const controls2 = h('div', { class:'rozrys-secondary-grid', style:'margin-top:12px' });
 
     const heurWrap = h('div', { class:'rozrys-field' });
     heurWrap.appendChild(labelWithInfo('Szybkość liczenia', 'Szybkość liczenia', 'Turbo = najprostszy shelf. Dokładnie = lżejsze myślenie pasowe. MAX = Twój algorytm 1–7 bez otwierania nowej płyty przed domknięciem poprzedniej.'));
@@ -1901,9 +1926,6 @@
     statusBox.appendChild(statusTop);
     card.appendChild(statusBox);
 
-    // overrides list container
-    const overridesBox = h('div', { style:'margin-top:12px;display:none' });
-    card.appendChild(overridesBox);
 
     // output
     const out = h('div', { style:'margin-top:12px' });
@@ -1979,8 +2001,6 @@
       if(cfg.keepFormatHint){
         const hintMaterial = materialScope.kind === 'material' ? materialScope.material : (agg.materials[0] || '');
       }
-      updateGrainAvailability();
-      renderOverrides();
       persistSelectionPrefs();
       if(cfg.rerender) tryAutoRenderFromCache();
     }
@@ -2647,55 +2667,62 @@
     }
 
     function materialHasGrain(name){
-      try{ return !!(FC && typeof FC.materialHasGrain === 'function' && FC.materialHasGrain(name)); }catch(_){ return false; }
+      try{
+        const list = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials : [];
+        return !!(FC && typeof FC.materialHasGrain === 'function' && FC.materialHasGrain(name, list));
+      }catch(_){ return false; }
     }
 
-    function updateGrainAvailability(){
-      const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
-      if(scope.kind !== 'material'){
-        grainChk.disabled = false;
+    function openMaterialGrainExceptions(material, parts){
+      const hasGrain = materialHasGrain(material);
+      const enabled = getMaterialGrainEnabled(material, hasGrain);
+      if(!hasGrain || !enabled){
+        openRozrysInfo('Wyjątki słojów', 'Najpierw włącz pilnowanie kierunku słojów dla tego materiału.');
         return;
       }
-      const has = materialHasGrain(scope.material);
-      if(has){
-        grainChk.disabled = false;
-      } else {
-        grainChk.checked = false;
-        grainChk.disabled = true;
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+      const partList = Array.isArray(parts) ? parts.slice() : [];
+      const allowedKeys = partList.map((p)=> partSignature(p));
+      const initial = getMaterialGrainExceptions(material, allowedKeys, hasGrain);
+      let draft = Object.assign({}, initial);
+      const body = h('div');
+      body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
+      const list = h('div', { class:'rozrys-grain-exceptions-list' });
+      if(!partList.length){
+        list.appendChild(h('div', { class:'muted xs', text:'Brak formatek dla tego materiału w aktualnym zakresie.' }));
       }
-    }
-
-    function renderOverrides(){
-      const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
-      const grainOn = (!!grainChk.checked) && (scope.kind === 'material') && materialHasGrain(scope.material);
-      overridesBox.innerHTML = '';
-      overridesBox.style.display = grainOn ? 'block' : 'none';
-      if(!grainOn) return;
-
-      const group = agg.groups && agg.groups[scope.material] ? agg.groups[scope.material] : null;
-      const parts = getGroupPartsForScope(group, scope);
-      const overrides = loadOverrides();
-
-      overridesBox.appendChild(h('div', { class:'muted xs', style:'font-weight:900;margin-bottom:6px', text:'Wyjątki: pozwól obrót dla wybranych elementów (mimo słoi)' }));
-      const list = h('div', { style:'display:flex;flex-direction:column;gap:6px' });
-      parts.forEach(p=>{
+      partList.forEach((p)=>{
         const sig = partSignature(p);
-        const row = h('label', { style:'display:flex;align-items:center;gap:10px' });
+        const row = h('label', { class:'rozrys-grain-exception-row' });
         const cb = h('input', { type:'checkbox' });
-        cb.checked = !!overrides[sig];
+        cb.checked = !!draft[sig];
+        const copy = h('div', { class:'rozrys-grain-exception-copy' });
+        copy.appendChild(h('div', { class:'rozrys-grain-exception-name', text:String(p.name || 'Element') }));
+        copy.appendChild(h('div', { class:'muted xs', text:`${mmToUnitStr(p.w, unitSel.value)} × ${mmToUnitStr(p.h, unitSel.value)} ${unitSel.value} • ilość ${Math.max(0, Number(p.qty) || 0)}` }));
         cb.addEventListener('change', ()=>{
-          const o = loadOverrides();
-          if(cb.checked) o[sig] = true;
-          else delete o[sig];
-          saveOverrides(o);
-          tryAutoRenderFromCache();
+          if(cb.checked) draft[sig] = true;
+          else delete draft[sig];
         });
         row.appendChild(cb);
-        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
-        row.appendChild(h('div', { class:'muted xs', text:`${p.name} • ${mmToUnitStr(p.w, u)}×${mmToUnitStr(p.h, u)} ${u} • ilość ${p.qty}` }));
+        row.appendChild(copy);
         list.appendChild(row);
       });
-      overridesBox.appendChild(list);
+      body.appendChild(list);
+      const footer = h('div', { class:'rozrys-modal-actions' });
+      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
+      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+      cancelBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
+      saveBtn.addEventListener('click', ()=>{
+        const next = {};
+        Object.keys(draft).forEach((key)=>{ if(draft[key]) next[key] = true; });
+        setMaterialGrainExceptions(material, next, hasGrain);
+        try{ FC.panelBox.close(); }catch(_){ }
+        tryAutoRenderFromCache();
+      });
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      body.appendChild(footer);
+      FC.panelBox.open({ title:`Wyjątki słojów — ${material}`, contentNode: body, width:'760px' });
     }
 
     function getBaseState(){
@@ -2708,8 +2735,6 @@
         edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
         minScrapW: Math.max(0, Number(inMinW.value)||0),
         minScrapH: Math.max(0, Number(inMinH.value)||0),
-        // Grain is applied per-material (only where the price list marks it as having grain).
-        grain: !!grainChk.checked,
         heur: 'optimax',
         optimaxProfile: heurSel.value,
         direction: normalizeCutDirection(dirSel.value),
@@ -2740,9 +2765,11 @@
           const halfStock = getRealHalfStockForMaterial(material, fullWmm, fullHmm);
           const exactStock = getExactSheetStockForMaterial(material, fullWmm, fullHmm);
           const fullStock = getLargestSheetFormatForMaterial(material, fullWmm, fullHmm);
+          const hasGrain = materialHasGrain(material);
           const st = Object.assign({}, stBase, {
             material,
-            grain: !!(stBase.grain && materialHasGrain(material)),
+            grain: !!(hasGrain && getMaterialGrainEnabled(material, hasGrain)),
+            grainExceptions: getMaterialGrainExceptions(material, parts.map((p)=> partSignature(p)), hasGrain),
             selectedRooms: (agg.selectedRooms || []).slice(),
             realHalfQty: Math.max(0, Number(halfStock.qty) || 0),
             realHalfBoardW: Math.round(Number(halfStock.width) || 0),
@@ -2798,9 +2825,11 @@
     };
   }
 
+
   function createMaterialAccordionSection(material, options){
-    const opts = Object.assign({ open:false, onToggle:null }, options || {});
+    const opts = Object.assign({ open:false, onToggle:null, grain:false, grainEnabled:false, grainDisabled:false, onGrainToggle:null, onExceptionsClick:null }, options || {});
     const wrap = h('div', { class:'rozrys-material-accordion' });
+    const head = h('div', { class:'rozrys-material-accordion__head' });
     const trigger = h('button', { class:'rozrys-material-accordion__trigger', type:'button' });
     const titleBits = splitMaterialAccordionTitle(material);
     const title = h('div', { class:'rozrys-material-accordion__title' });
@@ -2811,6 +2840,30 @@
     const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
     trigger.appendChild(title);
     trigger.appendChild(chevron);
+    const grainRow = h('div', { class:'rozrys-material-accordion__grain-row' });
+    const grainToggle = h('label', { class:'rozrys-material-accordion__grain-toggle' });
+    const grainCb = h('input', { type:'checkbox' });
+    grainCb.checked = !!opts.grainEnabled;
+    grainCb.disabled = !!opts.grainDisabled;
+    const grainText = h('span', { text:'Pilnuj kierunku słojów' });
+    grainToggle.appendChild(grainCb);
+    grainToggle.appendChild(grainText);
+    const exceptionsBtn = h('button', { type:'button', class:'btn rozrys-inline-exceptions-btn', text:'Wyjątki' });
+    exceptionsBtn.disabled = !!opts.grainDisabled || !opts.grainEnabled;
+    grainCb.addEventListener('click', (ev)=> ev.stopPropagation());
+    grainCb.addEventListener('change', (ev)=>{
+      ev.stopPropagation();
+      exceptionsBtn.disabled = !!opts.grainDisabled || !grainCb.checked;
+      try{ if(typeof opts.onGrainToggle === 'function') opts.onGrainToggle(!!grainCb.checked, material, wrap); }catch(_){ }
+    });
+    grainToggle.addEventListener('click', (ev)=> ev.stopPropagation());
+    exceptionsBtn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if(exceptionsBtn.disabled) return;
+      try{ if(typeof opts.onExceptionsClick === 'function') opts.onExceptionsClick(material, wrap); }catch(_){ }
+    });
+    grainRow.appendChild(grainToggle);
+    grainRow.appendChild(exceptionsBtn);
     const body = h('div', { class:'rozrys-material-accordion__body' });
     function setOpenState(open, notify){
       const isOpen = !!open;
@@ -2827,7 +2880,9 @@
       setOpenState(!wrap.classList.contains('is-open'), true);
     });
     setOpenState(!!opts.open, false);
-    wrap.appendChild(trigger);
+    head.appendChild(trigger);
+    head.appendChild(grainRow);
+    wrap.appendChild(head);
     wrap.appendChild(body);
     return { wrap, body, trigger, setOpenState };
   }
@@ -2839,9 +2894,19 @@
     const accordionPref = getAccordionPref(scopeKey);
     let anyRendered = false;
     for(const entry of list){
+      const hasGrain = materialHasGrain(entry.material);
+      const grainEnabled = hasGrain ? getMaterialGrainEnabled(entry.material, hasGrain) : false;
       const section = createMaterialAccordionSection(entry.material, {
         open: !!(accordionPref && accordionPref.open && accordionPref.material === entry.material),
-        onToggle: (isOpen, materialName)=> setAccordionPref(scopeKey, materialName, isOpen)
+        grain: hasGrain,
+        grainEnabled,
+        grainDisabled: !hasGrain,
+        onToggle: (isOpen, materialName)=> setAccordionPref(scopeKey, materialName, isOpen),
+        onGrainToggle: (checked)=>{
+          setMaterialGrainEnabled(entry.material, checked, hasGrain);
+          tryAutoRenderFromCache();
+        },
+        onExceptionsClick: ()=> openMaterialGrainExceptions(entry.material, entry.parts || [])
       });
       out.appendChild(section.wrap);
       renderOutput(entry.plan, {
@@ -3293,7 +3358,7 @@
 
     function makePlanCacheKey(st, parts){
       // uwzględniamy: ustawienia + lista formatek + wyjątki słojów + okleiny (wpływają na edgeSub)
-      const overrides = loadOverrides();
+      const overrides = Object.assign({}, st.grainExceptions || {});
       const edgeStore = loadEdgeStore();
       const items = (parts||[]).map(p=>{
         const sig = partSignature(p);
@@ -3443,7 +3508,6 @@ async function generate(force){
     edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
     minScrapW: Math.max(0, Number(inMinW.value)||0),
     minScrapH: Math.max(0, Number(inMinH.value)||0),
-    grain: !!grainChk.checked,
     heur: 'optimax',
     optimaxProfile: heurSel.value,
     direction: normalizeCutDirection(dirSel.value),
@@ -3519,7 +3583,8 @@ async function generate(force){
 
   const runOne = async (material, parts, target)=>{
     if(runId !== _rozrysRunId) return;
-    const st = Object.assign({}, baseSt, { material, grain: !!(baseSt.grain && materialHasGrain(material)) });
+    const hasGrain = materialHasGrain(material);
+    const st = Object.assign({}, baseSt, { material, grain: !!(hasGrain && getMaterialGrainEnabled(material, hasGrain)), grainExceptions: getMaterialGrainExceptions(material, parts.map((p)=> partSignature(p)), hasGrain) });
     const unit3 = (st.unit === 'mm') ? 'mm' : 'cm';
     const toMm3 = (v)=>{
       const n = Number(v);
@@ -3660,7 +3725,7 @@ async function generate(force){
         try{
           const opt2 = FC.cutOptimizer;
           const grainOn2 = !!st.grain;
-          const overrides2 = loadOverrides();
+          const overrides2 = Object.assign({}, st.grainExceptions || {});
           const edgeStore2 = loadEdgeStore();
           const partsMm2 = (parts||[]).map(p=>{
             const sig = partSignature(p);
@@ -3746,9 +3811,19 @@ async function generate(force){
     const material = entry.material;
     const parts = entry.parts || [];
     if(!parts.length) continue;
+    const hasGrain = materialHasGrain(material);
+    const grainEnabled = hasGrain ? getMaterialGrainEnabled(material, hasGrain) : false;
     const section = createMaterialAccordionSection(material, {
       open: !!(accordionPref && accordionPref.open && accordionPref.material === material),
-      onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen)
+      grain: hasGrain,
+      grainEnabled,
+      grainDisabled: !hasGrain,
+      onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen),
+      onGrainToggle: (checked)=>{
+        setMaterialGrainEnabled(material, checked, hasGrain);
+        tryAutoRenderFromCache();
+      },
+      onExceptionsClick: ()=> openMaterialGrainExceptions(material, parts || [])
     });
     out.appendChild(section.wrap);
     await runOne(material, parts, section.body);
@@ -3773,13 +3848,7 @@ async function generate(force){
       materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
       syncHiddenSelections();
       updateMaterialPickerButton();
-      updateGrainAvailability();
-      renderOverrides();
       persistSelectionPrefs();
-      tryAutoRenderFromCache();
-    });
-    grainChk.addEventListener('change', ()=>{
-      renderOverrides();
       tryAutoRenderFromCache();
     });
     heurSel.addEventListener('change', ()=>{
@@ -3988,8 +4057,6 @@ Dodam ${qty} szt. do magazynu.`,
 
     // initial
     persistOptionPrefs();
-    updateGrainAvailability();
-    renderOverrides();
     tryAutoRenderFromCache();
   }
 
