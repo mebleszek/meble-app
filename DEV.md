@@ -523,3 +523,5 @@ Dopiero potem go zmieniać.
 - 2026-03-25: grain modal polish v2 — sticky/footer actions for `Opcje formatki` and `Wyjątki słojów`, neutral preview for `Domyślny z materiału`, stronger disabled styling for grain controls.
 
 - 2026-03-25: grain dirs v3 — fixed visible footer actions in `Opcje formatki` and `Wyjątki słojów` by switching both modals to a `panel-box-form` layout with separate scroll area + bottom action bar; corrected `Domyślny z materiału` preview to show the default grain direction from material (axis 1 / horizontal).
+
+- 2026-03-25: panel-box large windows unified again: contentNode-based panel boxes now top-align with ~20dvh offset, internal body scroll, and sticky footer; message-only small boxes stay centered. Cache-busting updated to `20260325_panelbox_top20_v1`.
