@@ -171,8 +171,9 @@
     });
     body.appendChild(optionsWrap);
 
-    const footer = h('div', { class:'rozrys-modal-actions' });
-    const exitBtn = h('button', { type:'button', class:'btn-generate-blue', text:'Wyjdź' });
+    const footer = h('div', { class:'material-part-options__footer' });
+    const footerActions = h('div', { class:'material-part-options__footer-actions' });
+    const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
     const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zapisz' });
 
@@ -182,12 +183,12 @@
       previewRect.classList.add(`is-${normalizeDirection(draft)}`);
     }
     function renderFooter(){
-      footer.innerHTML = '';
+      footerActions.innerHTML = '';
       if(isDirty()){
-        footer.appendChild(cancelBtn);
-        footer.appendChild(saveBtn);
+        footerActions.appendChild(cancelBtn);
+        footerActions.appendChild(saveBtn);
       }else{
-        footer.appendChild(exitBtn);
+        footerActions.appendChild(exitBtn);
       }
     }
     function updateState(){
@@ -196,6 +197,7 @@
       renderFooter();
     }
     updateState();
+    footer.appendChild(footerActions);
     body.appendChild(footer);
 
     async function confirmDiscardIfDirty(){

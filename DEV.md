@@ -519,3 +519,5 @@ Dopiero potem go zmieniać.
 - 2026-03-24: ROZRYS — usunięty globalny checkbox struktury; sterowanie słojami przeniesione per materiał (accordion) z popupem wyjątków. Dodany helper js/app/rozrys-grain.js i naprawione utrwalanie hasGrain w validate.js.
 
 - 2026-03-25: Słój per formatka: dodano js/app/material-part-options.js, modal "Opcje formatki" w zakładce Materiał, kierunek słojów (domyślny/poziom/pion/bez znaczenia), oraz poprawiono modal "Wyjątki słojów" na mechanikę Wyjdź/Anuluj/Zapisz.
+
+- 2026-03-25: grain modal polish v2 — sticky/footer actions for `Opcje formatki` and `Wyjątki słojów`, neutral preview for `Domyślny z materiału`, stronger disabled styling for grain controls.
