@@ -2735,8 +2735,10 @@
       const currentSignature = ()=> Object.keys(draft).filter((key)=> draft[key]).sort().join('|');
       const initialSignature = Object.keys(initial).filter((key)=> initial[key]).sort().join('|');
       const isDirty = ()=> currentSignature() !== initialSignature;
-      const body = h('div');
-      body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
+      const body = h('div', { class:'panel-box-form' });
+      const scroll = h('div', { class:'panel-box-form__scroll' });
+      const footerShell = h('div', { class:'panel-box-form__footer' });
+      scroll.appendChild(h('div', { class:'muted xs', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
       const list = h('div', { class:'rozrys-grain-exceptions-list' });
       if(!partList.length){
         list.appendChild(h('div', { class:'muted xs', text:'Brak formatek dla tego materiału w aktualnym zakresie.' }));
@@ -2761,7 +2763,7 @@
         row.appendChild(copy);
         list.appendChild(row);
       });
-      body.appendChild(list);
+      scroll.appendChild(list);
       const footer = h('div', { class:'rozrys-grain-exceptions__footer' });
       const footerActions = h('div', { class:'rozrys-grain-exceptions__footer-actions' });
       const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
@@ -2778,7 +2780,9 @@
       }
       updateFooter();
       footer.appendChild(footerActions);
-      body.appendChild(footer);
+      footerShell.appendChild(footer);
+      body.appendChild(scroll);
+      body.appendChild(footerShell);
       const confirmDiscardIfDirty = ()=> isDirty() ? askRozrysConfirm({
         title:'ANULOWAĆ ZMIANY?',
         message:'Niezapisane zmiany w wyjątkach słojów zostaną utracone.',

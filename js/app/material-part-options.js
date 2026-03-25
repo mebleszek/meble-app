@@ -138,17 +138,19 @@
       return node;
     }
 
-    const body = h('div', { class:'material-part-options' });
+    const body = h('div', { class:'material-part-options panel-box-form' });
+    const scroll = h('div', { class:'panel-box-form__scroll' });
+    const footerShell = h('div', { class:'panel-box-form__footer' });
     const meta = h('div', { class:'material-part-options__meta' });
     meta.appendChild(h('div', { class:'material-part-options__name', text:name }));
     meta.appendChild(h('div', { class:'material-part-options__sub', text:material }));
     if(sizeText) meta.appendChild(h('div', { class:'material-part-options__sub', text:sizeText }));
-    body.appendChild(meta);
+    scroll.appendChild(meta);
 
     const preview = h('div', { class:'material-part-options__preview' });
     const previewRect = h('div', { class:'material-part-options__preview-rect' });
     preview.appendChild(previewRect);
-    body.appendChild(preview);
+    scroll.appendChild(preview);
 
     const optionsWrap = h('div', { class:'material-part-options__choices' });
     const optionDefs = [
@@ -169,7 +171,7 @@
       cards.push({ key:opt.key, btn });
       optionsWrap.appendChild(btn);
     });
-    body.appendChild(optionsWrap);
+    scroll.appendChild(optionsWrap);
 
     const footer = h('div', { class:'material-part-options__footer' });
     const footerActions = h('div', { class:'material-part-options__footer-actions' });
@@ -198,7 +200,9 @@
     }
     updateState();
     footer.appendChild(footerActions);
-    body.appendChild(footer);
+    footerShell.appendChild(footer);
+    body.appendChild(scroll);
+    body.appendChild(footerShell);
 
     async function confirmDiscardIfDirty(){
       if(!isDirty()) return true;

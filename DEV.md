@@ -521,3 +521,5 @@ Dopiero potem go zmieniać.
 - 2026-03-25: Słój per formatka: dodano js/app/material-part-options.js, modal "Opcje formatki" w zakładce Materiał, kierunek słojów (domyślny/poziom/pion/bez znaczenia), oraz poprawiono modal "Wyjątki słojów" na mechanikę Wyjdź/Anuluj/Zapisz.
 
 - 2026-03-25: grain modal polish v2 — sticky/footer actions for `Opcje formatki` and `Wyjątki słojów`, neutral preview for `Domyślny z materiału`, stronger disabled styling for grain controls.
+
+- 2026-03-25: grain dirs v3 — fixed visible footer actions in `Opcje formatki` and `Wyjątki słojów` by switching both modals to a `panel-box-form` layout with separate scroll area + bottom action bar; corrected `Domyślny z materiału` preview to show the default grain direction from material (axis 1 / horizontal).
