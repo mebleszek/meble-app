@@ -517,3 +517,5 @@ Dopiero potem go zmieniać.
 - 2026-03-23: Fix mobilnego scrolla w modalach pełnoekranowych. `.modal` działa teraz jako kolumna flex z przewijalnym `.modal .body`, żeby dodawanie/edycja szafki i podobne okna dały się przewijać na telefonie.
 
 - 2026-03-24: ROZRYS — usunięty globalny checkbox struktury; sterowanie słojami przeniesione per materiał (accordion) z popupem wyjątków. Dodany helper js/app/rozrys-grain.js i naprawione utrwalanie hasGrain w validate.js.
+
+- 2026-03-25: Słój per formatka: dodano js/app/material-part-options.js, modal "Opcje formatki" w zakładce Materiał, kierunek słojów (domyślny/poziom/pion/bez znaczenia), oraz poprawiono modal "Wyjątki słojów" na mechanikę Wyjdź/Anuluj/Zapisz.

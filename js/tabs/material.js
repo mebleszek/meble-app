@@ -31,8 +31,38 @@
       try{ localStorage.setItem(EDGE_KEY, JSON.stringify(obj||{})); }catch(_){ }
     }
     const edgeStore = loadEdgeStore();
+    const partOptionsApi = (window.FC && window.FC.materialPartOptions) || null;
+    function normalizedMaterialKey(material){
+      try{ if(partOptionsApi && typeof partOptionsApi.normalizeMaterialKey === 'function') return String(partOptionsApi.normalizeMaterialKey(material || '') || '').trim(); }catch(_){ }
+      const raw = String(material || '').trim();
+      const m = raw.match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
+      return m ? String(m[1] || '').trim() : raw;
+    }
     function partSig(p){
-      return `${String(p.material||'').trim()}||${String(p.name||'').trim()}||${cmToMmLocal(p.a)}x${cmToMmLocal(p.b)}`;
+      try{ if(partOptionsApi && typeof partOptionsApi.signatureFromPart === 'function') return String(partOptionsApi.signatureFromPart(p) || ''); }catch(_){ }
+      return `${normalizedMaterialKey(p.material)}||${String(p.name||'').trim()}||${cmToMmLocal(p.a)}x${cmToMmLocal(p.b)}`;
+    }
+    function getPartDirection(sig){
+      try{ if(partOptionsApi && typeof partOptionsApi.getDirection === 'function') return partOptionsApi.getDirection(sig); }catch(_){ }
+      return 'default';
+    }
+    function getPartDirectionLabel(sig){
+      const dir = getPartDirection(sig);
+      try{ if(partOptionsApi && typeof partOptionsApi.labelForDirection === 'function') return partOptionsApi.labelForDirection(dir); }catch(_){ }
+      return 'Domyślny z materiału';
+    }
+    function openPartOptions(part, sig){
+      try{
+        if(!(partOptionsApi && typeof partOptionsApi.openOptionsModal === 'function')) return;
+        partOptionsApi.openOptionsModal({
+          sig,
+          name: String((part && part.name) || 'Element'),
+          material: normalizedMaterialKey(part && part.material),
+          sizeText: `${fmtCm(part && part.a)} × ${fmtCm(part && part.b)} cm`,
+          initialDirection: getPartDirection(sig),
+          onSave: ()=> renderCabinets(),
+        });
+      }catch(_){ }
     }
     function defaultEdgesForPart(p, cab){
       const name = String((p && p.name) || '').toLowerCase();
@@ -277,7 +307,7 @@
         <div class="front-meta">Ilość</div>
         <div class="front-meta">Wymiar (cm)</div>
         <div class="front-meta">Materiał</div>
-        <div class="front-meta">Okleina</div>
+        <div class="front-meta">Okleina / opcje</div>
       `;
       tHead.style.display = 'grid';
       tHead.style.gridTemplateColumns = '1.15fr 0.35fr 0.70fr 0.90fr 1.30fr';
@@ -314,34 +344,42 @@
           <div class="front-meta">${p.material || ''}</div>
           <div class="front-meta" style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
             ${isBoard ? `
-              <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />
-                <span style="display:flex;flex-direction:column;line-height:1.05">
-                  <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
-                  <span class="muted" style="font-size:11px;font-weight:900">1A</span>
-                </span>
-              </label>
-              <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />
-                <span style="display:flex;flex-direction:column;line-height:1.05">
-                  <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
-                  <span class="muted" style="font-size:11px;font-weight:900">1B</span>
-                </span>
-              </label>
-              <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />
-                <span style="display:flex;flex-direction:column;line-height:1.05">
-                  <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
-                  <span class="muted" style="font-size:11px;font-weight:900">2A</span>
-                </span>
-              </label>
-              <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />
-                <span style="display:flex;flex-direction:column;line-height:1.05">
-                  <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
-                  <span class="muted" style="font-size:11px;font-weight:900">2B</span>
-                </span>
-              </label>
+              <div class="material-row-tools">
+                <div class="material-row-tools__edges">
+                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+                    <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />
+                    <span style="display:flex;flex-direction:column;line-height:1.05">
+                      <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
+                      <span class="muted" style="font-size:11px;font-weight:900">1A</span>
+                    </span>
+                  </label>
+                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+                    <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />
+                    <span style="display:flex;flex-direction:column;line-height:1.05">
+                      <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
+                      <span class="muted" style="font-size:11px;font-weight:900">1B</span>
+                    </span>
+                  </label>
+                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+                    <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />
+                    <span style="display:flex;flex-direction:column;line-height:1.05">
+                      <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
+                      <span class="muted" style="font-size:11px;font-weight:900">2A</span>
+                    </span>
+                  </label>
+                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
+                    <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />
+                    <span style="display:flex;flex-direction:column;line-height:1.05">
+                      <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
+                      <span class="muted" style="font-size:11px;font-weight:900">2B</span>
+                    </span>
+                  </label>
+                </div>
+                <div class="material-row-tools__opts">
+                  <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">Opcje</button>
+                  <div class="muted xs material-row-tools__opts-meta">Słój: ${getPartDirectionLabel(sig)}</div>
+                </div>
+              </div>
             ` : `<span class="muted xs">—</span>`}
           </div>
         `;
@@ -357,6 +395,10 @@
               renderCabinets();
             });
           });
+          const optsBtn = row.querySelector('[data-part-options]');
+          if(optsBtn){
+            optsBtn.addEventListener('click', ()=> openPartOptions(p, sig));
+          }
         }
       });
 

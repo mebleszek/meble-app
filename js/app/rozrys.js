@@ -164,6 +164,43 @@
     }catch(_){ }
   }
 
+  function getPartOptionsStore(){
+    return (FC && FC.materialPartOptions) || null;
+  }
+
+  function resolveRozrysPartFromSource(p){
+    try{
+      const store = getPartOptionsStore();
+      if(store && typeof store.resolvePartForRozrys === 'function') return store.resolvePartForRozrys(p);
+    }catch(_){ }
+    const materialKey = normalizeFrontLaminatMaterialKey(String((p && p.material) || '').trim());
+    return {
+      materialKey,
+      name: String((p && p.name) || 'Element'),
+      sourceSig: `${materialKey}||${String((p && p.name) || 'Element')}||${cmToMm(p && p.a)}x${cmToMm(p && p.b)}`,
+      direction: 'default',
+      ignoreGrain: false,
+      w: cmToMm(p && p.a),
+      h: cmToMm(p && p.b),
+      qty: Math.max(1, Math.round(Number(p && p.qty) || 0)),
+    };
+  }
+
+  function materialPartDirectionLabel(part){
+    try{
+      const store = getPartOptionsStore();
+      if(store && typeof store.labelForDirection === 'function') return store.labelForDirection(part && part.direction);
+    }catch(_){ }
+    return 'Domyślny z materiału';
+  }
+
+  function isPartRotationAllowed(part, grainOn, overrides){
+    if(!grainOn) return true;
+    if(part && part.ignoreGrain) return true;
+    const sig = partSignature(part);
+    return !!(overrides && overrides[sig]);
+  }
+
   function loadEdgeStore(){
     try{
       const raw = localStorage.getItem(EDGE_KEY);
@@ -175,7 +212,9 @@
   }
 
   function partSignature(p){
-    // stabilny klucz do override: materiał + nazwa + w/h
+    if(p && p.sourceSig){
+      return `${p.sourceSig}||${String(p.grainMode || p.direction || 'default')}||${p.w}x${p.h}`;
+    }
     return `${p.material||''}||${p.name||''}||${p.w}x${p.h}`;
   }
 
@@ -303,7 +342,7 @@
     const rv = FC.rozrysValidation;
     if(!(rv && typeof rv.rowsFromParts === 'function')) return [];
     return rv.rowsFromParts((parts || []).map((p)=>({
-      key: partSignature({ material: p.material, name: p.name, w: p.w, h: p.h }),
+      key: partSignature({ material: p.material, name: p.name, w: p.w, h: p.h, sourceSig: p.sourceSig, grainMode: p.grainMode || p.direction }),
       material: p.material,
       name: p.name,
       w: p.w,
@@ -329,16 +368,20 @@
           const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
           if(scopeMode === 'fronts' && !isFront) continue;
           if(scopeMode === 'corpus' && isFront) continue;
-          const materialKey = normalizeFrontLaminatMaterialKey(sourceMaterial);
+          const resolved = resolveRozrysPartFromSource(p);
+          const materialKey = resolved.materialKey;
           if(materialKey !== targetMaterial) continue;
-          const w = cmToMm(p.a);
-          const h = cmToMm(p.b);
-          const qty = Math.max(1, Math.round(Number(p.qty) || 0));
+          const w = resolved.w;
+          const h = resolved.h;
+          const qty = resolved.qty;
           if(!(w > 0 && h > 0 && qty > 0)) continue;
           rows.push({
-            key: partSignature({ material: materialKey, name: p.name || 'Element', w, h }),
+            key: partSignature({ material: materialKey, name: resolved.name, w, h, sourceSig: resolved.sourceSig, grainMode: resolved.direction }),
             material: materialKey,
-            name: String(p.name || 'Element'),
+            name: resolved.name,
+            sourceSig: resolved.sourceSig,
+            grainMode: resolved.direction,
+            ignoreGrain: !!resolved.ignoreGrain,
             w,
             h,
             qty,
@@ -525,15 +568,16 @@
         for(const p of parts){
           const sourceMaterial = String(p.material || '').trim();
           if(!sourceMaterial) continue;
-          const w = cmToMm(p.a);
-          const h = cmToMm(p.b);
+          const resolved = resolveRozrysPartFromSource(p);
+          const w = resolved.w;
+          const h = resolved.h;
           if(!(w > 0 && h > 0)) continue;
-          const qty = Math.max(1, Math.round(Number(p.qty) || 0));
+          const qty = resolved.qty;
           if(!(qty > 0)) continue;
-          const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
-          const materialKey = normalizeFrontLaminatMaterialKey(sourceMaterial);
-          const name = String(p.name || 'Element');
-          const key = `${name}||${w}||${h}`;
+          const isFront = (String(resolved.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
+          const materialKey = resolved.materialKey;
+          const name = resolved.name;
+          const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`;
           const group = ensureGroup(materialKey);
           group.sourceMaterials.add(sourceMaterial);
           group.rooms.add(room);
@@ -547,6 +591,9 @@
               h,
               qty,
               material: materialKey,
+              sourceSig: resolved.sourceSig,
+              grainMode: resolved.direction,
+              ignoreGrain: !!resolved.ignoreGrain,
             });
           }
         }
@@ -1155,12 +1202,12 @@
     if(!opt) return { sheets: [], note: 'Brak modułu cutOptimizer.' };
 
     const grainOn = !!state.grain;
-    const overrides = Object.assign({}, st.grainExceptions || {});
+    const overrides = Object.assign({}, state.grainExceptions || {});
     const edgeStore = loadEdgeStore();
 
     const partsMm = (parts||[]).map(p=>{
       const sig = partSignature(p);
-      const allow = grainOn ? !!overrides[sig] : true;
+      const allow = isPartRotationAllowed(p, grainOn, overrides);
       const e = edgeStore[sig] || {};
       return {
         key: sig,
@@ -1169,7 +1216,7 @@
         h: p.h,
         qty: p.qty,
         material: p.material,
-        rotationAllowed: grainOn ? allow : true,
+        rotationAllowed: allow,
         edgeW1: !!e.w1,
         edgeW2: !!e.w2,
         edgeH1: !!e.h1,
@@ -1278,12 +1325,12 @@
       const blockMainThreadFallback = requestedSpeedMode === 'max';
 
       const grainOn = !!state.grain;
-      const overrides = Object.assign({}, st.grainExceptions || {});
+      const overrides = Object.assign({}, state.grainExceptions || {});
       const edgeStore = loadEdgeStore();
 
       const partsMm = (parts||[]).map(p=>{
         const sig = partSignature(p);
-        const allow = grainOn ? !!overrides[sig] : true;
+        const allow = isPartRotationAllowed(p, grainOn, overrides);
         const e = edgeStore[sig] || {};
         return {
           key: sig,
@@ -1292,7 +1339,7 @@
           h: p.h,
           qty: p.qty,
           material: p.material,
-          rotationAllowed: grainOn ? allow : true,
+          rotationAllowed: allow,
           edgeW1: !!e.w1,
           edgeW2: !!e.w2,
           edgeH1: !!e.h1,
@@ -2419,10 +2466,10 @@
       return false;
     }
 
-    function filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn){
+    function filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn, overrides){
       return (Array.isArray(parts) ? parts : [])
         .map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) }))
-        .filter((part)=> part.qty > 0 && canPartFitSheet(part, boardWmm, boardHmm, trimMm, !grainOn));
+        .filter((part)=> part.qty > 0 && canPartFitSheet(part, boardWmm, boardHmm, trimMm, isPartRotationAllowed(part, !!grainOn, overrides || {})));
     }
 
     function getExactSheetStockForMaterial(material, boardWmm, boardHmm){
@@ -2597,7 +2644,7 @@
             realHalfBoardW: 0,
             realHalfBoardH: 0,
           });
-          const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain);
+          const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain, rowState.grainExceptions || {});
           if(!candidateParts.length) continue;
           let rowPlan = await computePlanWithCurrentEngine(rowState, candidateParts);
           let rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
@@ -2684,7 +2731,10 @@
       const partList = Array.isArray(parts) ? parts.slice() : [];
       const allowedKeys = partList.map((p)=> partSignature(p));
       const initial = getMaterialGrainExceptions(material, allowedKeys, hasGrain);
-      let draft = Object.assign({}, initial);
+      const draft = Object.assign({}, initial);
+      const currentSignature = ()=> Object.keys(draft).filter((key)=> draft[key]).sort().join('|');
+      const initialSignature = Object.keys(initial).filter((key)=> initial[key]).sort().join('|');
+      const isDirty = ()=> currentSignature() !== initialSignature;
       const body = h('div');
       body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
       const list = h('div', { class:'rozrys-grain-exceptions-list' });
@@ -2699,9 +2749,13 @@
         const copy = h('div', { class:'rozrys-grain-exception-copy' });
         copy.appendChild(h('div', { class:'rozrys-grain-exception-name', text:String(p.name || 'Element') }));
         copy.appendChild(h('div', { class:'muted xs', text:`${mmToUnitStr(p.w, unitSel.value)} × ${mmToUnitStr(p.h, unitSel.value)} ${unitSel.value} • ilość ${Math.max(0, Number(p.qty) || 0)}` }));
+        if(p && p.direction && String(p.direction) !== 'default'){
+          copy.appendChild(h('div', { class:'muted xs', text:`Ustawienie formatki: ${materialPartDirectionLabel(p)}` }));
+        }
         cb.addEventListener('change', ()=>{
           if(cb.checked) draft[sig] = true;
           else delete draft[sig];
+          updateFooter();
         });
         row.appendChild(cb);
         row.appendChild(copy);
@@ -2709,9 +2763,33 @@
       });
       body.appendChild(list);
       const footer = h('div', { class:'rozrys-modal-actions' });
+      const exitBtn = h('button', { type:'button', class:'btn-generate-blue', text:'Wyjdź' });
       const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
-      cancelBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
+      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zapisz' });
+      function updateFooter(){
+        footer.innerHTML = '';
+        if(isDirty()){
+          footer.appendChild(cancelBtn);
+          footer.appendChild(saveBtn);
+        }else{
+          footer.appendChild(exitBtn);
+        }
+      }
+      updateFooter();
+      body.appendChild(footer);
+      const confirmDiscardIfDirty = ()=> isDirty() ? askRozrysConfirm({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w wyjątkach słojów zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY',
+        cancelText:'WRÓĆ',
+        confirmTone:'danger',
+        cancelTone:'neutral'
+      }) : Promise.resolve(true);
+      exitBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
+      cancelBtn.addEventListener('click', async ()=>{
+        if(!(await confirmDiscardIfDirty())) return;
+        try{ FC.panelBox.close(); }catch(_){ }
+      });
       saveBtn.addEventListener('click', ()=>{
         const next = {};
         Object.keys(draft).forEach((key)=>{ if(draft[key]) next[key] = true; });
@@ -2719,10 +2797,7 @@
         try{ FC.panelBox.close(); }catch(_){ }
         tryAutoRenderFromCache();
       });
-      footer.appendChild(cancelBtn);
-      footer.appendChild(saveBtn);
-      body.appendChild(footer);
-      FC.panelBox.open({ title:`Wyjątki słojów — ${material}`, contentNode: body, width:'760px' });
+      FC.panelBox.open({ title:`Wyjątki słojów — ${material}`, contentNode: body, width:'760px', dismissOnOverlay:false, beforeClose: ()=> confirmDiscardIfDirty() });
     }
 
     function getBaseState(){
@@ -2846,14 +2921,17 @@
     grainCb.checked = !!opts.grainEnabled;
     grainCb.disabled = !!opts.grainDisabled;
     const grainText = h('span', { text:'Pilnuj kierunku słojów' });
+    if(opts.grainDisabled) grainText.classList.add('is-disabled');
     grainToggle.appendChild(grainCb);
     grainToggle.appendChild(grainText);
     const exceptionsBtn = h('button', { type:'button', class:'btn rozrys-inline-exceptions-btn', text:'Wyjątki' });
     exceptionsBtn.disabled = !!opts.grainDisabled || !opts.grainEnabled;
+    exceptionsBtn.classList.toggle('is-disabled', !!opts.grainDisabled || !opts.grainEnabled);
     grainCb.addEventListener('click', (ev)=> ev.stopPropagation());
     grainCb.addEventListener('change', (ev)=>{
       ev.stopPropagation();
       exceptionsBtn.disabled = !!opts.grainDisabled || !grainCb.checked;
+      exceptionsBtn.classList.toggle('is-disabled', !!opts.grainDisabled || !grainCb.checked);
       try{ if(typeof opts.onGrainToggle === 'function') opts.onGrainToggle(!!grainCb.checked, material, wrap); }catch(_){ }
     });
     grainToggle.addEventListener('click', (ev)=> ev.stopPropagation());
@@ -3362,7 +3440,7 @@
       const edgeStore = loadEdgeStore();
       const items = (parts||[]).map(p=>{
         const sig = partSignature(p);
-        const allow = st.grain ? !!overrides[sig] : true;
+        const allow = isPartRotationAllowed(p, !!st.grain, overrides);
         const e = edgeStore[sig] || {};
         return {
           k: sig,
@@ -3370,7 +3448,7 @@
           w: p.w,
           h: p.h,
           q: p.qty,
-          ra: st.grain ? allow : true,
+          ra: allow,
           ew1: !!e.w1, ew2: !!e.w2, eh1: !!e.h1, eh2: !!e.h2
         };
       }).sort((a,b)=> (a.k<b.k?-1:a.k>b.k?1:(a.w-b.w)||(a.h-b.h)));
@@ -3729,7 +3807,7 @@ async function generate(force){
           const edgeStore2 = loadEdgeStore();
           const partsMm2 = (parts||[]).map(p=>{
             const sig = partSignature(p);
-            const allow = grainOn2 ? !!overrides2[sig] : true;
+            const allow = isPartRotationAllowed(p, grainOn2, overrides2);
             const e = edgeStore2[sig] || {};
             return {
               key: sig,
@@ -3738,7 +3816,7 @@ async function generate(force){
               h: p.h,
               qty: p.qty,
               material: p.material,
-              rotationAllowed: grainOn2 ? allow : true,
+              rotationAllowed: allow,
               edgeW1: !!e.w1,
               edgeW2: !!e.w2,
               edgeH1: !!e.h1,
