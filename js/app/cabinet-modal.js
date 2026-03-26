@@ -5,10 +5,16 @@ function makeDefaultCabinetDraftForRoom(room){
   const arr = projectData[room].cabinets;
   const last = arr[arr.length - 1];
 
-  // UX: w danym pomieszczeniu pamiętaj ostatnio dodaną szafkę bez limitu czasu.
-  // Jeśli istnieje poprzednia szafka w tym pokoju, powiel ją ze wszystkimi ustawieniami.
-  const allowCloneLast = !!last;
+  // UX: domyślnie podczas dodawania otwieraj "szafkę dolną" (kuchnia: stojąca),
+  // ale jeśli użytkownik dopiero co dodał szafkę, powiel ostatnio dodaną.
+  // Dzięki temu szybkie dodawanie serii (np. górnych) działa jak wcześniej,
+  // a po przerwie startujemy od dolnej.
+  const NOW = Date.now();
+  const RECENT_WINDOW_MS = 90 * 1000; // ~1.5 min „dopiero co”
+  const recentlyAdded = (uiState && Number.isFinite(Number(uiState.lastAddedAt)) && (NOW - Number(uiState.lastAddedAt) <= RECENT_WINDOW_MS));
+  const allowCloneLast = !!last && recentlyAdded;
 
+  // powiel poprzednią ze wszystkimi ustawieniami
   if(allowCloneLast){
     const cloned = FC.utils.clone(last);
     cloned.id = null;
@@ -52,7 +58,6 @@ function openCabinetModalForAdd(){
   const m = document.getElementById('cabinetModal');
   if(m){
     m.style.display = 'flex';
-    prepareCabinetModalInputs(m);
     // Mobile click-through / "tap lands on first control" guard:
     // When the modal appears under the same tap, some Android browsers can instantly open a <select>
     // located under the finger. Temporarily disable pointer events for a split moment.
@@ -76,27 +81,6 @@ function unlockModalScroll(){
   document.body.classList.remove('modal-lock');
 }
 
-function prepareCabinetModalInputs(modalEl){
-  if(!modalEl) return;
-  modalEl.querySelectorAll('input, textarea, select').forEach(el => {
-    try{
-      if(!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'off');
-      el.setAttribute('autocorrect', 'off');
-      el.setAttribute('autocapitalize', 'off');
-      if(el.tagName === 'INPUT'){
-        const type = String(el.getAttribute('type') || 'text').toLowerCase();
-        if(type === 'number'){
-          el.setAttribute('inputmode', 'decimal');
-        }else if(type !== 'checkbox' && type !== 'radio'){
-          el.setAttribute('spellcheck', 'false');
-        }
-      }else if(el.tagName === 'TEXTAREA'){
-        el.setAttribute('spellcheck', 'false');
-      }
-    }catch(_){ }
-  });
-}
-
 function openCabinetModalForEdit(cabId){
   cabId = String(cabId);
   const room = uiState.roomType; if(!room) return;
@@ -118,7 +102,6 @@ function openCabinetModalForEdit(cabId){
   const m = document.getElementById('cabinetModal');
   if(m){
     m.style.display = 'flex';
-    prepareCabinetModalInputs(m);
     try{
       m.classList.add('modal-open-guard');
       requestAnimationFrame(() => setTimeout(() => {
@@ -147,7 +130,6 @@ function openSetWizardForEdit(setId){
   const m = document.getElementById('cabinetModal');
   if(m){
     m.style.display = 'flex';
-    prepareCabinetModalInputs(m);
     try{
       m.classList.add('modal-open-guard');
       requestAnimationFrame(() => setTimeout(() => {

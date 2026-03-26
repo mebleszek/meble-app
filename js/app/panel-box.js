@@ -46,9 +46,20 @@
     const closeBtn = el('button', { type:'button', class:'panel-box__close', 'aria-label':'Zamknij', text:'×' });
     const body = el('div', { class:'panel-box__body' });
 
-    if(opts.contentNode instanceof Node) body.appendChild(opts.contentNode);
+    if(opts.contentNode instanceof Node){
+      try{
+        if(opts.contentNode.classList && opts.contentNode.classList.contains('panel-box-form')){
+          body.classList.add('panel-box__body--form');
+        }
+      }catch(_){ }
+      body.appendChild(opts.contentNode);
+    }
     else if(typeof opts.html === 'string') body.innerHTML = opts.html;
     else if(typeof opts.message === 'string') body.textContent = opts.message;
+
+    const explicitPosition = String(opts.position || '').toLowerCase();
+    const shouldTopAlign = explicitPosition === 'top' || (!explicitPosition && (opts.contentNode instanceof Node));
+    overlay.classList.add(shouldTopAlign ? 'panel-box-backdrop--top' : 'panel-box-backdrop--center');
 
     head.appendChild(titleEl);
     head.appendChild(closeBtn);
@@ -89,7 +100,15 @@
     box.addEventListener('pointerdown', (e)=> e.stopPropagation());
 
     active = { root:overlay, onKey, requestClose };
-    setTimeout(()=>{ try{ closeBtn.focus(); }catch(_){ } }, 0);
+    requestAnimationFrame(()=>{
+      try{ overlay.scrollTop = 0; }catch(_){ }
+      try{ body.scrollTop = 0; }catch(_){ }
+      try{
+        const innerScroll = body.querySelector('.panel-box-form__scroll');
+        if(innerScroll) innerScroll.scrollTop = 0;
+      }catch(_){ }
+      try{ closeBtn.focus(); }catch(_){ }
+    });
   }
 
   root.FC.panelBox = { open, close };
