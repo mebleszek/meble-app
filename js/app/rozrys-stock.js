@@ -190,6 +190,123 @@
     return { trim, boardW, boardH, unit: (st && st.unit === 'cm') ? 'cm' : 'mm' };
   }
 
+
+  async function applySheetStockLimit(material, st, parts, plan, opts, deps){
+    const cfg = Object.assign({ onStatus:null }, opts || {});
+    const api = Object.assign({ computePlanWithCurrentEngine:null }, deps || {});
+    const basePlan = plan && typeof plan === 'object' ? plan : { sheets:[] };
+    const currentWmm = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
+    const currentHmm = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
+    const trimMm = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
+    const areaOf = (row)=> (Math.max(0, Number(row && row.width) || 0) * Math.max(0, Number(row && row.height) || 0));
+    const stockRows = getSheetRowsForMaterial(material, { includeZero:false })
+      .filter((row)=> Math.max(0, Number(row && row.qty) || 0) > 0)
+      .sort((a,b)=>{
+        const aExact = sameSheetFormat(a && a.width, a && a.height, currentWmm, currentHmm) ? 1 : 0;
+        const bExact = sameSheetFormat(b && b.width, b && b.height, currentWmm, currentHmm) ? 1 : 0;
+        if(aExact !== bExact) return aExact - bExact;
+        const aa = areaOf(a);
+        const bb = areaOf(b);
+        if(aa !== bb) return aa - bb;
+        if((Number(a && a.width) || 0) !== (Number(b && b.width) || 0)) return (Number(a && a.width) || 0) - (Number(b && b.width) || 0);
+        return (Number(a && a.height) || 0) - (Number(b && b.height) || 0);
+      });
+
+    const stockSheets = [];
+    let remainingParts = (Array.isArray(parts) ? parts : []).map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) })).filter((part)=> part.qty > 0);
+    const notes = [];
+    let cancelled = !!(basePlan && basePlan.cancelled);
+
+    if(stockRows.length){
+      for(const row of stockRows){
+        if(!remainingParts.length) break;
+        const rowQty = Math.max(0, Math.round(Number(row && row.qty) || 0));
+        const rowW = Math.max(0, Math.round(Number(row && row.width) || 0));
+        const rowH = Math.max(0, Math.round(Number(row && row.height) || 0));
+        if(!(rowQty > 0 && rowW > 0 && rowH > 0)) continue;
+        try{
+          if(typeof cfg.onStatus === 'function') cfg.onStatus(`Sprawdzam magazyn: ${Math.round(rowW/10)}×${Math.round(rowH/10)} cm • stan ${rowQty} szt.`);
+        }catch(_){ }
+        const rowState = Object.assign({}, st, {
+          boardW: fromMmByUnit(st && st.unit, rowW),
+          boardH: fromMmByUnit(st && st.unit, rowH),
+          realHalfQty: 0,
+          realHalfBoardW: 0,
+          realHalfBoardH: 0,
+        });
+        const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain, rowState.grainExceptions || {});
+        if(!candidateParts.length) continue;
+        let rowPlan = typeof api.computePlanWithCurrentEngine === 'function'
+          ? await api.computePlanWithCurrentEngine(rowState, candidateParts)
+          : null;
+        let rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
+        if(!rowSheetsRaw.length && candidateParts.length !== remainingParts.length && typeof api.computePlanWithCurrentEngine === 'function'){
+          rowPlan = await api.computePlanWithCurrentEngine(rowState, remainingParts);
+          rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
+        }
+        const usableCount = Math.min(rowQty, rowSheetsRaw.length);
+        if(usableCount <= 0) continue;
+        const usedSheetsRaw = rowSheetsRaw.slice(0, usableCount);
+        stockSheets.push(...clonePlanSheetsWithSupply(usedSheetsRaw, {
+          supplySource:'stock',
+          supplyText:'z magazynu',
+          fullBoardW: rowW,
+          fullBoardH: rowH,
+          trimMm,
+        }));
+        const usedMap = countPlacedPartsByKey(usedSheetsRaw);
+        remainingParts = subtractPlacedParts(remainingParts, usedMap);
+        cancelled = cancelled || !!(rowPlan && rowPlan.cancelled);
+        if(rowPlan && rowPlan.note) notes.push(rowPlan.note);
+      }
+    }
+
+    if(!remainingParts.length){
+      return Object.assign({}, basePlan, {
+        sheets: stockSheets,
+        cancelled,
+        note: notes.filter(Boolean).join(' • ') || undefined,
+        meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
+        stockContext: {
+          selectedBoardW: currentWmm,
+          selectedBoardH: currentHmm,
+          usedStockSheets: stockSheets.length,
+          orderedSheets: 0,
+        }
+      });
+    }
+
+    let orderPlan = basePlan;
+    if(stockRows.length){
+      try{ if(typeof cfg.onStatus === 'function') cfg.onStatus('Brakujące formatki przerzucam na pełną płytę…'); }catch(_){ }
+      orderPlan = typeof api.computePlanWithCurrentEngine === 'function'
+        ? await api.computePlanWithCurrentEngine(st, remainingParts)
+        : basePlan;
+    }
+    const orderSheets = clonePlanSheetsWithSupply((orderPlan && orderPlan.sheets) || [], {
+      supplySource:'order',
+      supplyText:'zamówić',
+      fullBoardW: currentWmm,
+      fullBoardH: currentHmm,
+      trimMm,
+    });
+    if(orderPlan && orderPlan.note) notes.push(orderPlan.note);
+    cancelled = cancelled || !!(orderPlan && orderPlan.cancelled);
+
+    return Object.assign({}, basePlan, {
+      sheets: stockSheets.concat(orderSheets),
+      cancelled,
+      note: notes.filter(Boolean).join(' • ') || undefined,
+      meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
+      stockContext: {
+        selectedBoardW: currentWmm,
+        selectedBoardH: currentHmm,
+        usedStockSheets: stockSheets.length,
+        orderedSheets: orderSheets.length,
+      }
+    });
+  }
+
   FC.rozrysStock = {
     getRealHalfStockForMaterial,
     toMmByUnit,
@@ -206,5 +323,6 @@
     countPlacedPartsByKey,
     subtractPlacedParts,
     buildPlanMetaFromState,
+    applySheetStockLimit,
   };
 })();

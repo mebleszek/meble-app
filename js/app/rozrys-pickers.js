@@ -1,0 +1,351 @@
+(function(){
+  'use strict';
+  window.FC = window.FC || {};
+  const FC = window.FC;
+
+  function h(tag, attrs, children){
+    const el = document.createElement(tag);
+    if(attrs){
+      for(const k in attrs){
+        if(k === 'class') el.className = attrs[k];
+        else if(k === 'html') el.innerHTML = attrs[k];
+        else if(k === 'text') el.textContent = attrs[k];
+        else el.setAttribute(k, attrs[k]);
+      }
+    }
+    (children || []).forEach((ch)=> el.appendChild(ch));
+    return el;
+  }
+
+  function openRoomsPicker(deps){
+    const cfg = Object.assign({
+      getSelectedRooms:null,
+      setSelectedRooms:null,
+      getRooms:null,
+      normalizeRoomSelection:null,
+      roomLabel:null,
+      askConfirm:null,
+      refreshSelectionState:null,
+    }, deps || {});
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+    const currentRooms = typeof cfg.getSelectedRooms === 'function' ? cfg.getSelectedRooms() : [];
+    const draft = new Set(Array.isArray(currentRooms) ? currentRooms : []);
+    const body = h('div', { class:'rozrys-picker-modal' });
+    const list = h('div', { class:'rozrys-picker-list' });
+    const checkboxes = [];
+    const normalizeRoomSelection = typeof cfg.normalizeRoomSelection === 'function'
+      ? cfg.normalizeRoomSelection
+      : (rooms)=> Array.isArray(rooms) ? rooms.slice() : [];
+    const getRooms = typeof cfg.getRooms === 'function' ? cfg.getRooms : ()=> [];
+    const roomLabel = typeof cfg.roomLabel === 'function' ? cfg.roomLabel : (room)=> String(room || '');
+    const initialSignature = JSON.stringify(normalizeRoomSelection(currentRooms));
+    const nextRooms = ()=> normalizeRoomSelection(Array.from(draft));
+    const hasSelection = ()=> nextRooms().length > 0;
+    const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
+
+    getRooms().forEach((room)=>{
+      const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check' });
+      const top = h('div', { class:'rozrys-picker-check__top' });
+      const cb = h('input', { type:'checkbox' });
+      cb.checked = draft.has(room);
+      checkboxes.push({ room, cb });
+      cb.addEventListener('change', ()=>{
+        if(cb.checked) draft.add(room);
+        else draft.delete(room);
+        updateFooterState();
+      });
+      top.appendChild(cb);
+      top.appendChild(h('div', { class:'rozrys-picker-option__title', text:roomLabel(room) }));
+      cardNode.appendChild(top);
+      list.appendChild(cardNode);
+    });
+    body.appendChild(list);
+
+    const footer = h('div', { class:'rozrys-picker-footer' });
+    const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' });
+    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+    const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
+    const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
+    const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+
+    function renderFooterActions(){
+      actionWrap.innerHTML = '';
+      if(isDirty()){
+        actionWrap.appendChild(cancelBtn);
+        actionWrap.appendChild(saveBtn);
+      }else{
+        actionWrap.appendChild(exitBtn);
+      }
+    }
+
+    function updateFooterState(){
+      saveBtn.disabled = !isDirty() || !hasSelection();
+      renderFooterActions();
+    }
+
+    allBtn.addEventListener('click', ()=>{
+      draft.clear();
+      getRooms().forEach((room)=> draft.add(room));
+      checkboxes.forEach(({ room, cb })=>{ cb.checked = draft.has(room); });
+      updateFooterState();
+    });
+    exitBtn.addEventListener('click', ()=> FC.panelBox.close());
+    cancelBtn.addEventListener('click', async ()=>{
+      const ok = typeof cfg.askConfirm === 'function' ? await cfg.askConfirm({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY',
+        cancelText:'WRÓĆ',
+        confirmTone:'danger',
+        cancelTone:'neutral'
+      }) : true;
+      if(!ok) return;
+      FC.panelBox.close();
+    });
+    saveBtn.addEventListener('click', ()=>{
+      const pickedRooms = nextRooms();
+      if(!pickedRooms.length || !isDirty()) return;
+      if(typeof cfg.setSelectedRooms === 'function') cfg.setSelectedRooms(pickedRooms);
+      FC.panelBox.close();
+      if(typeof cfg.refreshSelectionState === 'function') cfg.refreshSelectionState();
+    });
+    updateFooterState();
+    footer.appendChild(allBtn);
+    footer.appendChild(actionWrap);
+    body.appendChild(footer);
+    FC.panelBox.open({
+      title:'Wybierz pomieszczenia',
+      contentNode: body,
+      width:'820px',
+      dismissOnOverlay:false,
+      beforeClose: ()=> isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY',
+        cancelText:'WRÓĆ',
+        confirmTone:'danger',
+        cancelTone:'neutral'
+      }) : true) : true
+    });
+  }
+
+  function openMaterialPicker(deps){
+    const cfg = Object.assign({
+      getMaterialScope:null,
+      setMaterialScope:null,
+      makeMaterialScope:null,
+      aggregate:null,
+      splitMaterialAccordionTitle:null,
+      buildScopeDraftControls:null,
+      normalizeMaterialScopeForAggregate:null,
+      askConfirm:null,
+      refreshSelectionState:null,
+    }, deps || {});
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+    const agg = cfg.aggregate || { materials:[], groups:{} };
+    const body = h('div', { class:'rozrys-picker-modal' });
+    const list = h('div', { class:'rozrys-picker-list' });
+    const makeMaterialScope = typeof cfg.makeMaterialScope === 'function'
+      ? cfg.makeMaterialScope
+      : (scope)=> Object.assign({ kind:'all', material:'', includeFronts:false, includeCorpus:false }, scope || {});
+    const currentScope = typeof cfg.getMaterialScope === 'function' ? cfg.getMaterialScope() : null;
+    const initialScope = makeMaterialScope(currentScope, { allowEmpty:true });
+    const draftScope = makeMaterialScope(initialScope, { allowEmpty:true });
+    const cards = [];
+    const getCardKey = (config)=> `${config.kind}:${config.kind === 'material' ? String(config.material || '') : 'all'}`;
+    const splitMaterialAccordionTitle = typeof cfg.splitMaterialAccordionTitle === 'function'
+      ? cfg.splitMaterialAccordionTitle
+      : (material)=> ({ line1:String(material || 'Materiał'), line2:'' });
+    const buildScopeDraftControls = typeof cfg.buildScopeDraftControls === 'function'
+      ? cfg.buildScopeDraftControls
+      : ()=>{};
+    const normalizeMaterialScopeForAggregate = typeof cfg.normalizeMaterialScopeForAggregate === 'function'
+      ? cfg.normalizeMaterialScopeForAggregate
+      : (scope)=> scope;
+
+    const scopeSignature = (scope)=>{
+      const normalized = makeMaterialScope(scope, { allowEmpty:true });
+      return JSON.stringify({
+        kind: normalized.kind,
+        material: normalized.material || '',
+        includeFronts: !!normalized.includeFronts,
+        includeCorpus: !!normalized.includeCorpus
+      });
+    };
+    const initialSignature = scopeSignature(initialScope);
+    const hasDraftSelection = ()=> !!(draftScope.includeFronts || draftScope.includeCorpus);
+    const isDirty = ()=> scopeSignature(draftScope) !== initialSignature;
+    const setDraftScope = (config, localScope)=>{
+      draftScope.kind = config.kind;
+      draftScope.material = config.kind === 'material' ? String(config.material || '') : '';
+      draftScope.includeFronts = !!localScope.includeFronts;
+      draftScope.includeCorpus = !!localScope.includeCorpus;
+    };
+
+    function renderFooterActions(){
+      actionWrap.innerHTML = '';
+      if(isDirty()){
+        actionWrap.appendChild(cancelBtn);
+        actionWrap.appendChild(saveBtn);
+      }else{
+        actionWrap.appendChild(exitBtn);
+      }
+    }
+
+    function updateFooterState(){
+      saveBtn.disabled = !isDirty() || !hasDraftSelection();
+      renderFooterActions();
+    }
+
+    function markSelected(){
+      cards.forEach(({ node, config })=>{
+        const active = hasDraftSelection() && draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material);
+        node.classList.toggle('is-selected', active);
+      });
+      updateFooterState();
+    }
+
+    const clearOtherSelections = (exceptKey)=>{
+      cards.forEach((entry)=>{
+        if(entry.key === exceptKey) return;
+        entry.localScope.includeFronts = false;
+        entry.localScope.includeCorpus = false;
+        entry.scopeHolder.innerHTML = '';
+        buildScopeDraftControls(entry.scopeHolder, entry.localScope, !!entry.config.hasFronts, !!entry.config.hasCorpus, {
+          allowEmpty:true,
+          onChange: ()=>{
+            if(entry.localScope.includeFronts || entry.localScope.includeCorpus){
+              clearOtherSelections(entry.key);
+              setDraftScope(entry.config, entry.localScope);
+            }else if(draftScope.kind === entry.config.kind && (entry.config.kind !== 'material' || draftScope.material === entry.config.material)){
+              draftScope.kind = 'all';
+              draftScope.material = '';
+              draftScope.includeFronts = false;
+              draftScope.includeCorpus = false;
+            }
+            markSelected();
+          }
+        });
+      });
+    };
+
+    const renderCard = (config)=>{
+      const cardNode = h('div', { class:'rozrys-picker-option rozrys-picker-card' });
+      const titleWrap = h('div', { class:'rozrys-picker-option__title-wrap' });
+      titleWrap.appendChild(h('div', { class:'rozrys-picker-option__title', text:config.title }));
+      if(config.subtitle) titleWrap.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:config.subtitle }));
+      cardNode.appendChild(titleWrap);
+      const scopeHolder = h('div');
+      const localScope = makeMaterialScope({
+        kind:config.kind,
+        material:config.material || '',
+        includeFronts:false,
+        includeCorpus:false,
+      }, { allowEmpty:true });
+      if(initialScope.kind === config.kind && (config.kind !== 'material' || initialScope.material === config.material)){
+        localScope.includeFronts = !!initialScope.includeFronts;
+        localScope.includeCorpus = !!initialScope.includeCorpus;
+      }
+      const key = getCardKey(config);
+      buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus, {
+        allowEmpty:true,
+        onChange: ()=>{
+          if(localScope.includeFronts || localScope.includeCorpus){
+            clearOtherSelections(key);
+            setDraftScope(config, localScope);
+          }else if(draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material)){
+            draftScope.kind = 'all';
+            draftScope.material = '';
+            draftScope.includeFronts = false;
+            draftScope.includeCorpus = false;
+          }
+          markSelected();
+        }
+      });
+      scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
+      cardNode.addEventListener('click', ()=>{
+        if(!localScope.includeFronts && !localScope.includeCorpus) return;
+        clearOtherSelections(key);
+        setDraftScope(config, localScope);
+        markSelected();
+      });
+      cardNode.appendChild(scopeHolder);
+      cards.push({ key, node: cardNode, config, localScope, scopeHolder });
+      return cardNode;
+    };
+
+    const anyFronts = (Array.isArray(agg.materials) ? agg.materials : []).some((material)=> !!(agg.groups && agg.groups[material] && agg.groups[material].hasFronts));
+    const anyCorpus = (Array.isArray(agg.materials) ? agg.materials : []).some((material)=> !!(agg.groups && agg.groups[material] && agg.groups[material].hasCorpus));
+    list.appendChild(renderCard({
+      kind:'all',
+      title:'Wszystkie materiały',
+      subtitle:'Zaznaczone pomieszczenia',
+      hasFronts:anyFronts,
+      hasCorpus:anyCorpus,
+    }));
+
+    (Array.isArray(agg.materials) ? agg.materials : []).forEach((material)=>{
+      const group = agg.groups && agg.groups[material] ? agg.groups[material] : null;
+      if(!group) return;
+      const split = splitMaterialAccordionTitle(material);
+      list.appendChild(renderCard({
+        kind:'material',
+        material,
+        title:split.line1 || material,
+        subtitle:split.line2 || '',
+        hasFronts:!!group.hasFronts,
+        hasCorpus:!!group.hasCorpus,
+      }));
+    });
+    body.appendChild(list);
+
+    const footer = h('div', { class:'rozrys-picker-footer' });
+    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+    const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
+    const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
+    const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+    saveBtn.disabled = true;
+    exitBtn.addEventListener('click', ()=> FC.panelBox.close());
+    cancelBtn.addEventListener('click', async ()=>{
+      const ok = typeof cfg.askConfirm === 'function' ? await cfg.askConfirm({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w wyborze materiału / grupy zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY',
+        cancelText:'WRÓĆ',
+        confirmTone:'danger',
+        cancelTone:'neutral'
+      }) : true;
+      if(!ok) return;
+      FC.panelBox.close();
+    });
+    saveBtn.addEventListener('click', ()=>{
+      if(!hasDraftSelection() || !isDirty()) return;
+      const normalized = normalizeMaterialScopeForAggregate(draftScope, agg);
+      if(typeof cfg.setMaterialScope === 'function') cfg.setMaterialScope(normalized);
+      FC.panelBox.close();
+      if(typeof cfg.refreshSelectionState === 'function') cfg.refreshSelectionState();
+    });
+    footer.appendChild(actionWrap);
+    body.appendChild(footer);
+    markSelected();
+    FC.panelBox.open({
+      title:'Wybierz materiał / grupę',
+      contentNode: body,
+      width:'980px',
+      dismissOnOverlay:false,
+      beforeClose: ()=> isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w wyborze materiału / grupy zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY',
+        cancelText:'WRÓĆ',
+        confirmTone:'danger',
+        cancelTone:'neutral'
+      }) : true) : true
+    });
+  }
+
+  FC.rozrysPickers = {
+    openRoomsPicker,
+    openMaterialPicker,
+  };
+})();

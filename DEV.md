@@ -2,6 +2,14 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-26 — rozrys_module_split_v2
+- `js/app/rozrys.js` — dalsze odchudzenie przez przeniesienie pickerów, rysowania arkuszy, limitu stanów magazynowych i renderu accordionu do modułów pomocniczych bez zmiany UI.
+- `js/app/rozrys-pickers.js` — wydzielone modale wyboru pomieszczeń oraz materiału / grupy w ROZRYS.
+- `js/app/rozrys-sheet-draw.js` — wydzielone odświeżanie canvasów i rysowanie arkuszy / formatek.
+- `js/app/rozrys-stock.js` — przejęta logika `applySheetStockLimit()` dla wykorzystania stanów magazynowych przed pełną płytą.
+- `js/app/rozrys-accordion.js` — przejęty render sekcji materiałów w accordionie wyników.
+- `index.html` — dopięte nowe pliki i pełny cache-busting `20260326_rozrys_split_v2`.
+
 ### 2026-03-26 — rozrys_module_split_v1
 - `js/app/rozrys.js` — odchudzony przez delegację części funkcji do nowych modułów pomocniczych bez zmiany UI i bez zmiany solverów.
 - `js/app/rozrys-choice.js` — wydzielone launchery wyboru i overlay wyboru dla customowych dropdownów ROZRYS.
@@ -102,7 +110,7 @@
 - `js/app/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS.
 - `js/app/rozrys-cache.js` — helpery cache planów ROZRYS.
 - `js/app/rozrys-accordion.js` — helpery accordionu materiałów ROZRYS.
-- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po oddelegowaniu części odpowiedzialności do modułów pomocniczych.
+- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, rysowania arkuszy, logiki stock-limit i renderu accordionu do modułów pomocniczych.
 
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.

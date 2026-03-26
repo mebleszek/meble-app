@@ -100,8 +100,70 @@
     return { wrap, body, trigger, setOpenState };
   }
 
+  function renderMaterialAccordionPlans(scopeKey, scopeMode, entries, deps){
+    const cfg = Object.assign({
+      out:null,
+      getAccordionPref:null,
+      materialHasGrain:null,
+      getMaterialGrainEnabled:null,
+      setAccordionPref:null,
+      setMaterialGrainEnabled:null,
+      tryAutoRenderFromCache:null,
+      openMaterialGrainExceptions:null,
+      renderOutput:null,
+      formatHeurLabel:null,
+      scheduleSheetCanvasRefresh:null,
+    }, deps || {});
+    const out = cfg.out;
+    if(!out) return false;
+    out.innerHTML = '';
+    const list = Array.isArray(entries) ? entries.filter((e)=> e && e.material && e.plan) : [];
+    if(!list.length) return false;
+    const accordionPref = typeof cfg.getAccordionPref === 'function' ? cfg.getAccordionPref(scopeKey) : null;
+    let anyRendered = false;
+    for(const entry of list){
+      const hasGrain = typeof cfg.materialHasGrain === 'function' ? !!cfg.materialHasGrain(entry.material) : false;
+      const grainEnabled = hasGrain && typeof cfg.getMaterialGrainEnabled === 'function'
+        ? !!cfg.getMaterialGrainEnabled(entry.material, hasGrain)
+        : false;
+      const section = createMaterialAccordionSection(entry.material, {
+        open: !!(accordionPref && accordionPref.open && accordionPref.material === entry.material),
+        grain: hasGrain,
+        grainEnabled,
+        grainDisabled: !hasGrain,
+        onToggle: (isOpen, materialName)=>{
+          if(typeof cfg.setAccordionPref === 'function') cfg.setAccordionPref(scopeKey, materialName, isOpen);
+        },
+        onGrainToggle: (checked)=>{
+          if(typeof cfg.setMaterialGrainEnabled === 'function') cfg.setMaterialGrainEnabled(entry.material, checked, hasGrain);
+          if(typeof cfg.tryAutoRenderFromCache === 'function') cfg.tryAutoRenderFromCache();
+        },
+        onExceptionsClick: ()=>{
+          if(typeof cfg.openMaterialGrainExceptions === 'function') cfg.openMaterialGrainExceptions(entry.material, entry.parts || []);
+        }
+      }, { scheduleSheetCanvasRefresh: cfg.scheduleSheetCanvasRefresh });
+      out.appendChild(section.wrap);
+      if(typeof cfg.renderOutput === 'function'){
+        cfg.renderOutput(entry.plan, {
+          material: entry.material,
+          kerf: entry.st && entry.st.kerf,
+          heur: entry.st && typeof cfg.formatHeurLabel === 'function' ? cfg.formatHeurLabel(entry.st) : '',
+          unit: entry.st && entry.st.unit,
+          edgeSubMm: entry.st && entry.st.edgeSubMm,
+          meta: entry.plan && entry.plan.meta,
+          parts: entry.parts || [],
+          scopeMode,
+          selectedRooms: (entry.st && entry.st.selectedRooms) || (entry.selectedRooms || []),
+        }, section.body);
+      }
+      anyRendered = true;
+    }
+    return anyRendered;
+  }
+
   FC.rozrysAccordion = {
     splitMaterialAccordionTitle,
     createMaterialAccordionSection,
+    renderMaterialAccordionPlans,
   };
 })();

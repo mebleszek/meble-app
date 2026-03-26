@@ -742,19 +742,8 @@
   }
 
   function scheduleSheetCanvasRefresh(scope){
-    const root = (scope && typeof scope.querySelectorAll === 'function') ? scope : null;
-    if(!root) return;
-    const redraw = ()=>{
-      root.querySelectorAll('canvas[data-rozrys-sheet="1"]').forEach((canvas)=>{
-        const payload = canvas.__rozrysDrawPayload;
-        if(!payload) return;
-        try{ drawSheet(canvas, payload.sheet, payload.displayUnit, payload.edgeSubMm, payload.boardMeta); }catch(_){ }
-      });
-    };
-    try{
-      requestAnimationFrame(()=> requestAnimationFrame(redraw));
-    }catch(_){
-      setTimeout(redraw, 0);
+    if(FC.rozrysSheetDraw && typeof FC.rozrysSheetDraw.scheduleSheetCanvasRefresh === 'function'){
+      return FC.rozrysSheetDraw.scheduleSheetCanvasRefresh(scope, { drawSheet });
     }
   }
 
@@ -763,250 +752,9 @@
   // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
   // - okleina na krawędziach H (left/right) zwiększa wymiar W => odejmujemy od W
   function drawSheet(canvas, sheet, displayUnit, edgeSubMm, boardMeta){
-    try{
-      const ctx = canvas.getContext('2d');
-      const unit = (displayUnit === 'cm') ? 'cm' : 'mm';
-      const metaBoardW = Number(boardMeta && boardMeta.boardW) || Number(sheet.fullBoardW) || Number(sheet.boardW) || 0;
-      const metaBoardH = Number(boardMeta && boardMeta.boardH) || Number(sheet.fullBoardH) || Number(sheet.boardH) || 0;
-      const trimMm = Math.max(0, Number(boardMeta && boardMeta.trim) || Number(sheet.trimMm) || 0);
-      const W = Math.max(1, metaBoardW);
-      const H = Math.max(1, metaBoardH);
-      const usableW = Math.max(1, W - 2*trimMm);
-      const usableH = Math.max(1, H - 2*trimMm);
-      const refBoardW = Math.max(W,
-        Number(boardMeta && boardMeta.referenceBoardW) ||
-        Number(sheet && sheet.referenceBoardW) ||
-        Number(sheet && sheet.selectedBoardW) ||
-        Number(sheet && sheet.baseBoardW) ||
-        0
-      );
-      const refBoardH = Math.max(H,
-        Number(boardMeta && boardMeta.referenceBoardH) ||
-        Number(sheet && sheet.referenceBoardH) ||
-        Number(sheet && sheet.selectedBoardH) ||
-        Number(sheet && sheet.baseBoardH) ||
-        0
-      );
-
-      const measuredParentW = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
-      const viewportW = (typeof window !== 'undefined' && Number(window.innerWidth) > 0) ? Math.max(320, Number(window.innerWidth) - 48) : 900;
-      const maxW = Math.min(900, measuredParentW > 180 ? measuredParentW : viewportW);
-      const maxH = Math.max(220, Math.min(1400, (typeof window !== 'undefined' && Number(window.innerHeight) > 0) ? Number(window.innerHeight) * 0.72 : 1400));
-      const scaleByW = maxW / refBoardW;
-      const scaleByH = maxH / refBoardH;
-      const scale = Math.max(0.05, Math.min(scaleByW, scaleByH));
-      canvas.width = Math.max(1, Math.round(W * scale));
-      canvas.height = Math.max(1, Math.round(H * scale));
-      try{
-        canvas.style.width = `${canvas.width}px`;
-        canvas.style.height = `${canvas.height}px`;
-        canvas.style.maxWidth = '100%';
-        canvas.style.display = 'block';
-      }catch(_){ }
-
-      ctx.clearRect(0,0,canvas.width, canvas.height);
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = '#0b1f33';
-      ctx.strokeRect(0.5,0.5,canvas.width-1,canvas.height-1);
-
-      // Pixel-snapping helpers (reduces anti-aliasing differences: "czarne" vs "szare" linie)
-      // For odd line widths (1px) draw on half-pixel boundaries.
-      const snap = (v, lw)=>{
-        const n = Math.round(v);
-        return (lw % 2) ? (n + 0.5) : n;
-      };
-      const snapRect = (x,y,w,h,lw)=>{
-        const sx = snap(x, lw);
-        const sy = snap(y, lw);
-        // keep size consistent after snapping start
-        const sw = Math.max(0, Math.round(w));
-        const sh = Math.max(0, Math.round(h));
-        return { sx, sy, sw, sh };
-      };
-      const strokeLine = (x1,y1,x2,y2,lw)=>{
-        const sx1 = snap(x1, lw);
-        const sy1 = snap(y1, lw);
-        const sx2 = snap(x2, lw);
-        const sy2 = snap(y2, lw);
-        ctx.lineWidth = lw;
-        ctx.beginPath();
-        ctx.moveTo(sx1, sy1);
-        ctx.lineTo(sx2, sy2);
-        ctx.stroke();
-      };
-
-      if(trimMm > 0){
-        const trimPx = trimMm * scale;
-        const usableRect = snapRect(trimPx, trimPx, usableW * scale, usableH * scale, 1);
-        ctx.save();
-        ctx.fillStyle = 'rgba(11, 31, 51, 0.04)';
-        ctx.fillRect(0, 0, canvas.width, trimPx);
-        ctx.fillRect(0, canvas.height - trimPx, canvas.width, trimPx);
-        ctx.fillRect(0, trimPx, trimPx, Math.max(0, canvas.height - trimPx*2));
-        ctx.fillRect(canvas.width - trimPx, trimPx, trimPx, Math.max(0, canvas.height - trimPx*2));
-        ctx.setLineDash([6, 4]);
-        ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
-        ctx.strokeRect(usableRect.sx, usableRect.sy, Math.max(0, usableRect.sw-1), Math.max(0, usableRect.sh-1));
-        ctx.restore();
-      }
-
-      const halfBoardW = Math.max(0, Number(sheet && (sheet.realHalfBoardW || sheet.virtualBoardW)) || 0);
-      const halfBoardH = Math.max(0, Number(sheet && (sheet.realHalfBoardH || sheet.virtualBoardH)) || 0);
-      const halfDividerAxis = String((sheet && sheet.halfDividerAxis) || '').toLowerCase();
-      const halfDividerPos = Math.max(0, Number(sheet && sheet.halfDividerPos) || 0);
-      const showHalfDivider = !!(sheet && (sheet.realHalf || sheet.realHalfFromStock || sheet.virtualHalf))
-        && ((halfDividerAxis === 'vertical' && halfDividerPos > 0 && halfDividerPos < W)
-          || (halfDividerAxis === 'horizontal' && halfDividerPos > 0 && halfDividerPos < H)
-          || (!halfDividerAxis && ((halfBoardW > 0 && halfBoardW < W) || (halfBoardH > 0 && halfBoardH < H))));
-      const drawHalfDivider = ()=>{
-        if(!showHalfDivider) return;
-        ctx.save();
-        ctx.setLineDash([10, 6]);
-        ctx.strokeStyle = 'rgba(11, 31, 51, 0.98)';
-        ctx.lineWidth = 2;
-        if(halfDividerAxis === 'vertical'){
-          const x = halfDividerPos * scale;
-          strokeLine(x, 0, x, canvas.height, 2);
-        } else if(halfDividerAxis === 'horizontal'){
-          const y = halfDividerPos * scale;
-          strokeLine(0, y, canvas.width, y, 2);
-        } else if(halfBoardW > 0 && halfBoardW < W){
-          const x = halfBoardW * scale;
-          strokeLine(x, 0, x, canvas.height, 2);
-        } else if(halfBoardH > 0 && halfBoardH < H){
-          const y = halfBoardH * scale;
-          strokeLine(0, y, canvas.width, y, 2);
-        }
-        ctx.restore();
-      };
-
-      const placements = (sheet.placements||[]).filter(p=>!p.unplaced);
-      // Base font; for tiny parts we will temporarily shrink it.
-      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-      const sub = Math.max(0, Number(edgeSubMm)||0);
-      const getCutDims = (p)=>{
-        if(!(sub>0)) return { w:p.w, h:p.h };
-        const cW = (p.edgeH1?1:0) + (p.edgeH2?1:0);
-        const cH = (p.edgeW1?1:0) + (p.edgeW2?1:0);
-        // cross-dimension compensation
-        const w = Math.max(0, Math.round((p.w||0) - sub*cW));
-        const h = Math.max(0, Math.round((p.h||0) - sub*cH));
-        return { w, h };
-      };
-
-      placements.forEach(p=>{
-        const x = (trimMm + p.x) * scale;
-        const y = (trimMm + p.y) * scale;
-        const w = p.w * scale;
-        const hh = p.h * scale;
-
-        // Visual gap between parts (for readability only).
-        // Shrink each part by 1px on every side => 2px gap between adjacent parts.
-        const gap = 1;
-        // Round to whole pixels before we apply pixel-snapping.
-        // This makes left/right and top/bottom offsets visually symmetric.
-        const vx = Math.round(x + gap);
-        const vy = Math.round(y + gap);
-        const vw = Math.max(0, Math.round(w - gap*2));
-        const vh = Math.max(0, Math.round(hh - gap*2));
-
-        ctx.fillStyle = 'rgba(11, 141, 183, 0.10)';
-        ctx.fillRect(vx,vy,vw,vh);
-        ctx.strokeStyle = 'rgba(11, 31, 51, 0.55)';
-        {
-          const r = snapRect(vx, vy, vw, vh, 1);
-          ctx.lineWidth = 1;
-          // draw inside the filled rect
-          ctx.strokeRect(r.sx, r.sy, Math.max(0, r.sw-1), Math.max(0, r.sh-1));
-        }
-
-        // ===== Dimension labels + okleina (ciągła linia: 3px od krawędzi, wymiary: 6px) =====
-        // Wymiary mają być rysowane zawsze tak samo jak na "600x510":
-        // - wymiar W (wzdłuż słoja / 1) poziomo u góry
-        // - wymiar H (w poprzek / 2) pionowo po lewej (obrót 90°)
-        // Bez specjalnych wyjątków dla małych elementów (mogą wyjść poza ramkę).
-        ctx.fillStyle = '#0b1f33';
-        const cut = getCutDims(p);
-        const wLabel = `${mmToUnitStr(cut.w, unit)}`;
-        const hLabel = `${mmToUnitStr(cut.h, unit)}`;
-
-        const pad = 4;
-        // Keep a constant font size (user requirement: never rotate; keep centered even if it overflows).
-        const fontSize = 12;
-
-        // Edge banding markers (optional): solid line 3px from border; shorten by 5% so it's visible on short edges.
-        const hasEdges = !!(p.edgeW1 || p.edgeW2 || p.edgeH1 || p.edgeH2);
-        const edgeInset = 3; // px inside the part (okleina)
-        // Dimensions should sit very close to the okleina marker for readability.
-        // Requirement: digits ~1px away from okleina line.
-        // => put dimension text at (edgeInset + 1) from the same border.
-        const dimInset = edgeInset + 1;
-        if(hasEdges){
-          ctx.save();
-          ctx.setLineDash([]);
-          // Slightly lighter than the part outline so it doesn't overpower dimensions.
-          ctx.strokeStyle = 'rgba(11, 31, 51, 0.45)';
-
-          const shortPad = (len)=>{
-            const p5 = Math.max(1, Math.floor(len * 0.025)); // 2.5% each side => 95% visible
-            return p5;
-          };
-          const padX = shortPad(vw);
-          const padY = shortPad(vh);
-          // top (dim1 side A)
-          if(p.edgeW1){
-            strokeLine(vx+padX, vy+edgeInset, vx+vw-padX, vy+edgeInset, 1);
-          }
-          // bottom (dim1 side B)
-          if(p.edgeW2){
-            strokeLine(vx+padX, vy+vh-edgeInset, vx+vw-padX, vy+vh-edgeInset, 1);
-          }
-          // left (dim2 side A)
-          if(p.edgeH1){
-            strokeLine(vx+edgeInset, vy+padY, vx+edgeInset, vy+vh-padY, 1);
-          }
-          // right (dim2 side B)
-          if(p.edgeH2){
-            strokeLine(vx+vw-edgeInset, vy+padY, vx+vw-edgeInset, vy+vh-padY, 1);
-          }
-          ctx.restore();
-        }
-
-        // top label (width) — centered; visually keep ~6px from top border
-        {
-          const tw = ctx.measureText(wLabel).width;
-          const tx = vx + (vw - tw) / 2;
-          const mt = ctx.measureText('0');
-          const ascent = (mt && mt.actualBoundingBoxAscent) ? mt.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
-          const baseY = vy + dimInset + ascent;
-          ctx.fillText(wLabel, tx, baseY);
-        }
-
-        // height label — ALWAYS rotated 90° on the left, centered vertically (like "600x510").
-        // IMPORTANT: keep the visual gap to the okleina line consistent with top label.
-        // We want the nearest edge of glyphs to be ~1px from the okleina marker.
-        {
-          const mtH = ctx.measureText(hLabel);
-          const ascH = (mtH && mtH.actualBoundingBoxAscent) ? mtH.actualBoundingBoxAscent : Math.round(fontSize * 0.8);
-          const desH = (mtH && mtH.actualBoundingBoxDescent) ? mtH.actualBoundingBoxDescent : Math.round(fontSize * 0.2);
-          const textH = ascH + desH;
-
-          // Left okleina marker is at (vx + edgeInset). Keep ~1px between marker and text.
-          // When rotated, the text height becomes horizontal extent. With textBaseline='middle',
-          // half of that extent is on the left side of the origin.
-          const originX = vx + edgeInset + 1 + (textH / 2);
-
-          ctx.save();
-          ctx.translate(originX, vy + vh/2);
-          ctx.rotate(-Math.PI/2);
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(hLabel, 0, 0);
-          ctx.restore();
-        }
-      });
-      drawHalfDivider();
-    }catch(_){ }
+    if(FC.rozrysSheetDraw && typeof FC.rozrysSheetDraw.drawSheet === 'function'){
+      return FC.rozrysSheetDraw.drawSheet(canvas, sheet, displayUnit, edgeSubMm, boardMeta, { mmToUnitStr });
+    }
   }
 
   function buildCsv(sheets, meta){
@@ -1937,283 +1685,33 @@
     }
 
     function openRoomsPicker(){
-      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-      const draft = new Set(selectedRooms);
-      const body = h('div', { class:'rozrys-picker-modal' });
-      const list = h('div', { class:'rozrys-picker-list' });
-      const checkboxes = [];
-      const initialSignature = JSON.stringify(normalizeRoomSelection(selectedRooms));
-      const nextRooms = ()=> normalizeRoomSelection(Array.from(draft));
-      const hasSelection = ()=> nextRooms().length > 0;
-      const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
-      getRooms().forEach((room)=>{
-        const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check' });
-        const top = h('div', { class:'rozrys-picker-check__top' });
-        const cb = h('input', { type:'checkbox' });
-        cb.checked = draft.has(room);
-        checkboxes.push({ room, cb });
-        cb.addEventListener('change', ()=>{
-          if(cb.checked) draft.add(room);
-          else draft.delete(room);
-          updateFooterState();
+      if(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function'){
+        return FC.rozrysPickers.openRoomsPicker({
+          getSelectedRooms: ()=> selectedRooms,
+          setSelectedRooms: (rooms)=>{ selectedRooms = rooms; },
+          getRooms,
+          normalizeRoomSelection,
+          roomLabel,
+          askConfirm: askRozrysConfirm,
+          refreshSelectionState,
         });
-        top.appendChild(cb);
-        top.appendChild(h('div', { class:'rozrys-picker-option__title', text:roomLabel(room) }));
-        cardNode.appendChild(top);
-        list.appendChild(cardNode);
-      });
-      body.appendChild(list);
-
-      const footer = h('div', { class:'rozrys-picker-footer' });
-      const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' });
-      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
-      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
-      function renderFooterActions(){
-        actionWrap.innerHTML = '';
-        if(isDirty()){
-          actionWrap.appendChild(cancelBtn);
-          actionWrap.appendChild(saveBtn);
-        }else{
-          actionWrap.appendChild(exitBtn);
-        }
       }
-      function updateFooterState(){
-        saveBtn.disabled = !isDirty() || !hasSelection();
-        renderFooterActions();
-      }
-      allBtn.addEventListener('click', ()=>{
-        draft.clear();
-        getRooms().forEach((room)=> draft.add(room));
-        checkboxes.forEach(({ room, cb })=>{ cb.checked = draft.has(room); });
-        updateFooterState();
-      });
-      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
-      cancelBtn.addEventListener('click', async ()=>{
-        const ok = await askRozrysConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        });
-        if(!ok) return;
-        FC.panelBox.close();
-      });
-      saveBtn.addEventListener('click', ()=>{
-        const pickedRooms = nextRooms();
-        if(!pickedRooms.length || !isDirty()) return;
-        selectedRooms = pickedRooms;
-        FC.panelBox.close();
-        refreshSelectionState();
-      });
-      updateFooterState();
-      footer.appendChild(allBtn);
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
-      FC.panelBox.open({
-        title:'Wybierz pomieszczenia',
-        contentNode: body,
-        width:'820px',
-        dismissOnOverlay:false,
-        beforeClose: ()=> isDirty() ? askRozrysConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        }) : true
-      });
     }
 
     function openMaterialPicker(){
-      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-      const body = h('div', { class:'rozrys-picker-modal' });
-      const list = h('div', { class:'rozrys-picker-list' });
-      const initialScope = makeMaterialScope(materialScope, { allowEmpty:true });
-      const draftScope = makeMaterialScope(initialScope, { allowEmpty:true });
-      const cards = [];
-      const getCardKey = (config)=> `${config.kind}:${config.kind === 'material' ? String(config.material || '') : 'all'}`;
-      const scopeSignature = (scope)=>{
-        const normalized = makeMaterialScope(scope, { allowEmpty:true });
-        return JSON.stringify({
-          kind: normalized.kind,
-          material: normalized.material || '',
-          includeFronts: !!normalized.includeFronts,
-          includeCorpus: !!normalized.includeCorpus
+      if(FC.rozrysPickers && typeof FC.rozrysPickers.openMaterialPicker === 'function'){
+        return FC.rozrysPickers.openMaterialPicker({
+          getMaterialScope: ()=> materialScope,
+          setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
+          makeMaterialScope,
+          aggregate: agg,
+          splitMaterialAccordionTitle,
+          buildScopeDraftControls,
+          normalizeMaterialScopeForAggregate,
+          askConfirm: askRozrysConfirm,
+          refreshSelectionState,
         });
-      };
-      const initialSignature = scopeSignature(initialScope);
-      const hasDraftSelection = ()=> !!(draftScope.includeFronts || draftScope.includeCorpus);
-      const isDirty = ()=> scopeSignature(draftScope) !== initialSignature;
-      const setDraftScope = (config, localScope)=>{
-        draftScope.kind = config.kind;
-        draftScope.material = config.kind === 'material' ? String(config.material || '') : '';
-        draftScope.includeFronts = !!localScope.includeFronts;
-        draftScope.includeCorpus = !!localScope.includeCorpus;
-      };
-      const clearOtherSelections = (exceptKey)=>{
-        cards.forEach((entry)=>{
-          if(entry.key === exceptKey) return;
-          entry.localScope.includeFronts = false;
-          entry.localScope.includeCorpus = false;
-          entry.scopeHolder.innerHTML = '';
-          buildScopeDraftControls(entry.scopeHolder, entry.localScope, !!entry.config.hasFronts, !!entry.config.hasCorpus, {
-            allowEmpty:true,
-            onChange: ()=>{
-              if(entry.localScope.includeFronts || entry.localScope.includeCorpus){
-                clearOtherSelections(entry.key);
-                setDraftScope(entry.config, entry.localScope);
-              }else if(draftScope.kind === entry.config.kind && (entry.config.kind !== 'material' || draftScope.material === entry.config.material)){
-                draftScope.kind = 'all';
-                draftScope.material = '';
-                draftScope.includeFronts = false;
-                draftScope.includeCorpus = false;
-              }
-              markSelected();
-            }
-          });
-        });
-      };
-
-      function renderFooterActions(){
-        actionWrap.innerHTML = '';
-        if(isDirty()){
-          actionWrap.appendChild(cancelBtn);
-          actionWrap.appendChild(saveBtn);
-        }else{
-          actionWrap.appendChild(exitBtn);
-        }
       }
-
-      function updateFooterState(){
-        saveBtn.disabled = !isDirty() || !hasDraftSelection();
-        renderFooterActions();
-      }
-
-      function markSelected(){
-        cards.forEach(({ node, config })=>{
-          const active = hasDraftSelection() && draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material);
-          node.classList.toggle('is-selected', active);
-        });
-        updateFooterState();
-      }
-
-      const renderCard = (config)=>{
-        const cardNode = h('div', { class:'rozrys-picker-option rozrys-picker-card' });
-        const titleWrap = h('div', { class:'rozrys-picker-option__title-wrap' });
-        titleWrap.appendChild(h('div', { class:'rozrys-picker-option__title', text:config.title }));
-        if(config.subtitle) titleWrap.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:config.subtitle }));
-        cardNode.appendChild(titleWrap);
-        const scopeHolder = h('div');
-        const localScope = makeMaterialScope({
-          kind:config.kind,
-          material:config.material || '',
-          includeFronts:false,
-          includeCorpus:false,
-        }, { allowEmpty:true });
-        if(initialScope.kind === config.kind && (config.kind !== 'material' || initialScope.material === config.material)){
-          localScope.includeFronts = !!initialScope.includeFronts;
-          localScope.includeCorpus = !!initialScope.includeCorpus;
-        }
-        const key = getCardKey(config);
-        buildScopeDraftControls(scopeHolder, localScope, !!config.hasFronts, !!config.hasCorpus, {
-          allowEmpty:true,
-          onChange: ()=>{
-            if(localScope.includeFronts || localScope.includeCorpus){
-              clearOtherSelections(key);
-              setDraftScope(config, localScope);
-            }else if(draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material)){
-              draftScope.kind = 'all';
-              draftScope.material = '';
-              draftScope.includeFronts = false;
-              draftScope.includeCorpus = false;
-            }
-            markSelected();
-          }
-        });
-        scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
-        cardNode.addEventListener('click', ()=>{
-          if(!localScope.includeFronts && !localScope.includeCorpus) return;
-          clearOtherSelections(key);
-          setDraftScope(config, localScope);
-          markSelected();
-        });
-        cardNode.appendChild(scopeHolder);
-        cards.push({ key, node: cardNode, config, localScope, scopeHolder });
-        return cardNode;
-      };
-
-      const anyFronts = agg.materials.some((material)=> !!(agg.groups && agg.groups[material] && agg.groups[material].hasFronts));
-      const anyCorpus = agg.materials.some((material)=> !!(agg.groups && agg.groups[material] && agg.groups[material].hasCorpus));
-      list.appendChild(renderCard({
-        kind:'all',
-        title:'Wszystkie materiały',
-        subtitle:'Zaznaczone pomieszczenia',
-        hasFronts:anyFronts,
-        hasCorpus:anyCorpus,
-      }));
-
-      agg.materials.forEach((material)=>{
-        const group = agg.groups && agg.groups[material] ? agg.groups[material] : null;
-        if(!group) return;
-        const split = splitMaterialAccordionTitle(material);
-        list.appendChild(renderCard({
-          kind:'material',
-          material,
-          title:split.line1 || material,
-          subtitle:split.line2 || '',
-          hasFronts:!!group.hasFronts,
-          hasCorpus:!!group.hasCorpus,
-        }));
-      });
-      body.appendChild(list);
-
-      const footer = h('div', { class:'rozrys-picker-footer' });
-      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
-      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
-      saveBtn.disabled = true;
-      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
-      cancelBtn.addEventListener('click', async ()=>{
-        const ok = await askRozrysConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w wyborze materiału / grupy zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        });
-        if(!ok) return;
-        FC.panelBox.close();
-      });
-      saveBtn.addEventListener('click', ()=>{
-        if(!hasDraftSelection() || !isDirty()) return;
-        materialScope = normalizeMaterialScopeForAggregate(draftScope, agg);
-        FC.panelBox.close();
-        refreshSelectionState();
-      });
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
-      markSelected();
-      FC.panelBox.open({
-        title:'Wybierz materiał / grupę',
-        contentNode: body,
-        width:'980px',
-        dismissOnOverlay:false,
-        beforeClose: ()=> isDirty() ? askRozrysConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w wyborze materiału / grupy zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        }) : true
-      });
     }
 
     updateRoomsPickerButton();
@@ -2375,114 +1873,10 @@
     }
 
     async function applySheetStockLimit(material, st, parts, plan, opts){
-      const cfg = Object.assign({ onStatus:null }, opts || {});
-      const basePlan = plan && typeof plan === 'object' ? plan : { sheets:[] };
-      const currentWmm = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
-      const currentHmm = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
-      const trimMm = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
-      const areaOf = (row)=> (Math.max(0, Number(row && row.width) || 0) * Math.max(0, Number(row && row.height) || 0));
-      const stockRows = getSheetRowsForMaterial(material, { includeZero:false })
-        .filter((row)=> Math.max(0, Number(row && row.qty) || 0) > 0)
-        .sort((a,b)=>{
-          const aExact = sameSheetFormat(a && a.width, a && a.height, currentWmm, currentHmm) ? 1 : 0;
-          const bExact = sameSheetFormat(b && b.width, b && b.height, currentWmm, currentHmm) ? 1 : 0;
-          if(aExact !== bExact) return aExact - bExact;
-          const aa = areaOf(a);
-          const bb = areaOf(b);
-          if(aa !== bb) return aa - bb;
-          if((Number(a && a.width) || 0) !== (Number(b && b.width) || 0)) return (Number(a && a.width) || 0) - (Number(b && b.width) || 0);
-          return (Number(a && a.height) || 0) - (Number(b && b.height) || 0);
-        });
-
-      const stockSheets = [];
-      let remainingParts = (Array.isArray(parts) ? parts : []).map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) })).filter((part)=> part.qty > 0);
-      const notes = [];
-      let cancelled = !!(basePlan && basePlan.cancelled);
-
-      if(stockRows.length){
-        for(const row of stockRows){
-          if(!remainingParts.length) break;
-          const rowQty = Math.max(0, Math.round(Number(row && row.qty) || 0));
-          const rowW = Math.max(0, Math.round(Number(row && row.width) || 0));
-          const rowH = Math.max(0, Math.round(Number(row && row.height) || 0));
-          if(!(rowQty > 0 && rowW > 0 && rowH > 0)) continue;
-          try{
-            if(typeof cfg.onStatus === 'function') cfg.onStatus(`Sprawdzam magazyn: ${Math.round(rowW/10)}×${Math.round(rowH/10)} cm • stan ${rowQty} szt.`);
-          }catch(_){ }
-          const rowState = Object.assign({}, st, {
-            boardW: fromMmByUnit(st && st.unit, rowW),
-            boardH: fromMmByUnit(st && st.unit, rowH),
-            realHalfQty: 0,
-            realHalfBoardW: 0,
-            realHalfBoardH: 0,
-          });
-          const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain, rowState.grainExceptions || {});
-          if(!candidateParts.length) continue;
-          let rowPlan = await computePlanWithCurrentEngine(rowState, candidateParts);
-          let rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
-          if(!rowSheetsRaw.length && candidateParts.length !== remainingParts.length){
-            rowPlan = await computePlanWithCurrentEngine(rowState, remainingParts);
-            rowSheetsRaw = Array.isArray(rowPlan && rowPlan.sheets) ? rowPlan.sheets : [];
-          }
-          const usableCount = Math.min(rowQty, rowSheetsRaw.length);
-          if(usableCount <= 0) continue;
-          const usedSheetsRaw = rowSheetsRaw.slice(0, usableCount);
-          stockSheets.push(...clonePlanSheetsWithSupply(usedSheetsRaw, {
-            supplySource:'stock',
-            supplyText:'z magazynu',
-            fullBoardW: rowW,
-            fullBoardH: rowH,
-            trimMm,
-          }));
-          const usedMap = countPlacedPartsByKey(usedSheetsRaw);
-          remainingParts = subtractPlacedParts(remainingParts, usedMap);
-          cancelled = cancelled || !!(rowPlan && rowPlan.cancelled);
-          if(rowPlan && rowPlan.note) notes.push(rowPlan.note);
-        }
+      if(FC.rozrysStock && typeof FC.rozrysStock.applySheetStockLimit === 'function'){
+        return FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, opts, { computePlanWithCurrentEngine });
       }
-
-      if(!remainingParts.length){
-        return Object.assign({}, basePlan, {
-          sheets: stockSheets,
-          cancelled,
-          note: notes.filter(Boolean).join(' • ') || undefined,
-          meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
-          stockContext: {
-            selectedBoardW: currentWmm,
-            selectedBoardH: currentHmm,
-            usedStockSheets: stockSheets.length,
-            orderedSheets: 0,
-          }
-        });
-      }
-
-      let orderPlan = basePlan;
-      if(stockRows.length){
-        try{ if(typeof cfg.onStatus === 'function') cfg.onStatus('Brakujące formatki przerzucam na pełną płytę…'); }catch(_){ }
-        orderPlan = await computePlanWithCurrentEngine(st, remainingParts);
-      }
-      const orderSheets = clonePlanSheetsWithSupply((orderPlan && orderPlan.sheets) || [], {
-        supplySource:'order',
-        supplyText:'zamówić',
-        fullBoardW: currentWmm,
-        fullBoardH: currentHmm,
-        trimMm,
-      });
-      if(orderPlan && orderPlan.note) notes.push(orderPlan.note);
-      cancelled = cancelled || !!(orderPlan && orderPlan.cancelled);
-
-      return Object.assign({}, basePlan, {
-        sheets: stockSheets.concat(orderSheets),
-        cancelled,
-        note: notes.filter(Boolean).join(' • ') || undefined,
-        meta: Object.assign({}, basePlan.meta || buildPlanMetaFromState(st)),
-        stockContext: {
-          selectedBoardW: currentWmm,
-          selectedBoardH: currentHmm,
-          usedStockSheets: stockSheets.length,
-          orderedSheets: orderSheets.length,
-        }
-      });
+      return plan && typeof plan === 'object' ? plan : { sheets:[] };
     }
 
     function materialHasGrain(name){
@@ -2680,41 +2074,23 @@
   }
 
   function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
-    out.innerHTML = '';
-    const list = Array.isArray(entries) ? entries.filter(e=> e && e.material && e.plan) : [];
-    if(!list.length) return false;
-    const accordionPref = getAccordionPref(scopeKey);
-    let anyRendered = false;
-    for(const entry of list){
-      const hasGrain = materialHasGrain(entry.material);
-      const grainEnabled = hasGrain ? getMaterialGrainEnabled(entry.material, hasGrain) : false;
-      const section = createMaterialAccordionSection(entry.material, {
-        open: !!(accordionPref && accordionPref.open && accordionPref.material === entry.material),
-        grain: hasGrain,
-        grainEnabled,
-        grainDisabled: !hasGrain,
-        onToggle: (isOpen, materialName)=> setAccordionPref(scopeKey, materialName, isOpen),
-        onGrainToggle: (checked)=>{
-          setMaterialGrainEnabled(entry.material, checked, hasGrain);
-          tryAutoRenderFromCache();
-        },
-        onExceptionsClick: ()=> openMaterialGrainExceptions(entry.material, entry.parts || [])
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'){
+      return FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
+        out,
+        getAccordionPref,
+        materialHasGrain,
+        getMaterialGrainEnabled,
+        setAccordionPref,
+        setMaterialGrainEnabled,
+        tryAutoRenderFromCache,
+        openMaterialGrainExceptions,
+        renderOutput,
+        formatHeurLabel,
+        scheduleSheetCanvasRefresh,
       });
-      out.appendChild(section.wrap);
-      renderOutput(entry.plan, {
-        material: entry.material,
-        kerf: entry.st && entry.st.kerf,
-        heur: entry.st ? formatHeurLabel(entry.st) : '',
-        unit: entry.st && entry.st.unit,
-        edgeSubMm: entry.st && entry.st.edgeSubMm,
-        meta: entry.plan && entry.plan.meta,
-        parts: entry.parts || [],
-        scopeMode,
-        selectedRooms: (entry.st && entry.st.selectedRooms) || (entry.selectedRooms || []),
-      }, section.body);
-      anyRendered = true;
     }
-    return anyRendered;
+    out.innerHTML = '';
+    return false;
   }
 
 
