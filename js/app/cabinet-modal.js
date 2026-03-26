@@ -83,6 +83,10 @@ function unlockModalScroll(){
 
 function openCabinetModalForEdit(cabId){
   cabId = String(cabId);
+  try{
+    const listScrollMemory = window.FC && window.FC.listScrollMemory;
+    if(listScrollMemory && typeof listScrollMemory.rememberForCabinet === 'function') listScrollMemory.rememberForCabinet(uiState && uiState.activeTab, cabId);
+  }catch(_){ }
   const room = uiState.roomType; if(!room) return;
   const cab = projectData[room].cabinets.find(c => String(c.id) === cabId);
   if(!cab) return;
@@ -143,6 +147,10 @@ function openSetWizardForEdit(setId){
 function closeCabinetModal(){
   unlockModalScroll();
   document.getElementById('cabinetModal').style.display = 'none';
+  try{
+    const listScrollMemory = window.FC && window.FC.listScrollMemory;
+    if(listScrollMemory && typeof listScrollMemory.restorePending === 'function') listScrollMemory.restorePending();
+  }catch(_){ }
 }
 
 /* ===== Cabinet Modal rendering ===== */

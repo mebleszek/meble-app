@@ -431,14 +431,25 @@ function renderCabinets(){
   try{
     if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
       window.FC.tabsRouter.switchTo(uiState.activeTab, { listEl: list, room });
+      try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
       return;
     }
   }catch(_){ }
 
   // Fallback (gdyby router nie był dostępny): zachowaj minimalne działanie.
-  if(uiState.activeTab === 'material') return renderMaterialsTab(list, room);
-  if(uiState.activeTab === 'rysunek') return renderDrawingTab(list, room);
-  return renderWywiadTab(list, room);
+  if(uiState.activeTab === 'material'){
+    renderMaterialsTab(list, room);
+    try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
+    return;
+  }
+  if(uiState.activeTab === 'rysunek'){
+    renderDrawingTab(list, room);
+    try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
+    return;
+  }
+  renderWywiadTab(list, room);
+  try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
+  return;
 }
 
 // Wydzielony renderer WYWIAD — aktywny render listy szafek i szczegółów

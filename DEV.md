@@ -2,6 +2,12 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-26 — list_scroll_restore_v1
+- `js/app/list-scroll-memory.js` — nowy, mały moduł pamięci pozycji listy dla `WYWIAD` i `MATERIAŁ`; zapamiętuje aktywną szafkę i offset scrolla przed wejściem w edycję, a po `Zatwierdź / Anuluj` przywraca dokładnie ten sam rejon listy zamiast wyrzucać na górę.
+- `js/app/cabinet-modal.js` — modal szafki zapisuje kontekst listy przy wejściu w `Edytuj` i po zamknięciu próbuje odtworzyć poprzednią pozycję.
+- `js/app.js` — po przebudowie listy woła przywrócenie scrolla, żeby zapis edycji nie zrzucał użytkownika na początek.
+- `index.html` — podbite cache-busting dla wszystkich plików powiązanych z tą paczką i dodany nowy moduł listy.
+
 ### 2026-03-21 — rozrys_ui_pdf_guard_v1
 - `js/app/rozrys.js` — uporządkowane akcje i logika stanów `Wyjdź / Anuluj / Zapisz/Zatwierdź` w pickerach ROZRYS oraz w modalu `Dodaj płytę do magazynu`; modal dodawania płyty przeniesiony na wspólny `panelBox`; eksport PDF ma bezpieczniejsze liczenie wysokości nagłówka przy długich nazwach materiałów.
 - `js/app/panel-box.js` — `panelBox.open()` obsługuje teraz opcjonalny `beforeClose`, żeby modal mógł zablokować zamknięcie przy niezapisanych zmianach.
@@ -211,6 +217,8 @@ Dopiero potem go zmieniać.
 
 - `js/app/tab-navigation.js` — centralna nawigacja zakładek i skoki między WYWIAD ↔ MATERIAŁ; źródło prawdy dla `setActiveTab()` i helperów focus/scroll.
 - `js/app/layout-state.js` — helpery layoutu/wykończeń RYSUNKU i zapisu projektu; źródło prawdy dla `ensureLayout()`, `saveProject()` i pokrewnych helperów.
+
+- `js/app/list-scroll-memory.js` — cienka pamięć pozycji scrolla i kotwicy szafki przy przejściach `Edytuj ↔ lista` w `WYWIAD` i `MATERIAŁ`.
 
 
 - `js/app/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
@@ -527,3 +535,29 @@ Dopiero potem go zmieniać.
 - 2026-03-25: panel-box large windows unified again: contentNode-based panel boxes now top-align with ~20dvh offset, internal body scroll, and sticky footer; message-only small boxes stay centered. Cache-busting updated to `20260325_panelbox_top20_v1`.
 
 - 2026-03-26: panel-box forms on mobile now reset scroll on open, keep 20dvh top offset, and use inner form scroll with stable sticky footer to avoid action buttons dropping below viewport.
+
+## Propozycje dalszego porządkowania ROZRYS (bez wdrażania w tej paczce)
+
+1. `js/app/rozrys-pickers.js`
+   - wydzielić: `openRozrysChoiceOverlay()`, `openRoomsPicker()`, `openMaterialPicker()`, helpery przycisków launcherów i podsumowań zakresu;
+   - po co: to jest osobny obszar UX z własną logiką `Wyjdź / Anuluj / Zapisz`, niezależny od samego liczenia rozkroju.
+
+2. `js/app/rozrys-print.js`
+   - wydzielić: `buildCsv()`, `downloadText()`, `openPrintView()`, `pxToMm()`, `measurePrintHeaderMm()` oraz składanie HTML/PDF;
+   - po co: eksport i druk to osobny tor odpowiedzialności, łatwiejszy do poprawiania bez dotykania planowania arkuszy.
+
+3. `js/app/rozrys-sheet-draw.js`
+   - wydzielić: `scheduleSheetCanvasRefresh()`, `drawSheet()`, helpery wymiarów, etykiet i rysowania oklein;
+   - po co: warstwa canvas jest duża i wizualnie ryzykowna, więc powinna być odseparowana od logiki danych.
+
+4. `js/app/rozrys-stock.js`
+   - wydzielić: `getSheetRowsForMaterial()`, `getExactSheetStockForMaterial()`, `getLargestSheetFormatForMaterial()`, `clonePlanSheetsWithSupply()` i helpery formatu bazowego / magazynu;
+   - po co: magazyn, format bazowy i realna podaż arkuszy tworzą wspólny blok domenowy, który da się rozwijać niezależnie od UI pickerów.
+
+5. `js/app/rozrys-cache-progress.js`
+   - wydzielić: `tryAutoRenderFromCache()`, cache planów, ticker globalny, status generowania i anulowanie liczenia;
+   - po co: postęp liczenia i cache są dziś w jednym miejscu z renderem, a to utrudnia dalsze rozwijanie trybów `Super` i `Ultra`.
+
+6. `js/app/rozrys-accordion.js`
+   - wydzielić: `splitMaterialAccordionTitle()`, `createMaterialAccordionSection()`, `renderMaterialAccordionPlans()`;
+   - po co: accordion materiałów to osobna warstwa prezentacji wyników i wyjątków słojów, którą można rozwijać bez ruszania solverów.
