@@ -50,10 +50,6 @@
     else if(typeof opts.html === 'string') body.innerHTML = opts.html;
     else if(typeof opts.message === 'string') body.textContent = opts.message;
 
-    const explicitPosition = String(opts.position || '').toLowerCase();
-    const shouldTopAlign = explicitPosition === 'top' || (!explicitPosition && (opts.contentNode instanceof Node));
-    overlay.classList.add(shouldTopAlign ? 'panel-box-backdrop--top' : 'panel-box-backdrop--center');
-
     head.appendChild(titleEl);
     head.appendChild(closeBtn);
     box.appendChild(head);
