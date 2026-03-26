@@ -680,85 +680,30 @@
   }
 
   function getSelectOptionLabel(selectEl){
-    if(!selectEl) return '';
-    const idx = Number(selectEl.selectedIndex);
-    const opt = idx >= 0 ? selectEl.options[idx] : selectEl.options[0];
-    return opt ? String(opt.textContent || opt.label || opt.value || '') : '';
+    return FC.rozrysChoice && typeof FC.rozrysChoice.getSelectOptionLabel === 'function'
+      ? FC.rozrysChoice.getSelectOptionLabel(selectEl)
+      : '';
   }
 
   function setChoiceLaunchValue(btn, label, meta){
-    if(!btn) return;
-    const labelEl = btn.querySelector('.rozrys-choice-launch__label');
-    const metaEl = btn.querySelector('.rozrys-choice-launch__meta');
-    if(labelEl) labelEl.textContent = String(label || '');
-    if(metaEl){
-      const metaText = String(meta || '');
-      metaEl.textContent = metaText;
-      metaEl.style.display = metaText ? '' : 'none';
+    if(FC.rozrysChoice && typeof FC.rozrysChoice.setChoiceLaunchValue === 'function'){
+      FC.rozrysChoice.setChoiceLaunchValue(btn, label, meta);
+      return;
     }
   }
 
   function createChoiceLauncher(label, meta){
-    const btn = h('button', { type:'button', class:'rozrys-choice-launch' });
-    const value = h('span', { class:'rozrys-choice-launch__value' });
-    value.appendChild(h('span', { class:'rozrys-choice-launch__label', text:String(label || '') }));
-    value.appendChild(h('span', { class:'rozrys-choice-launch__meta', text:String(meta || '') }));
-    btn.appendChild(value);
-    btn.appendChild(h('span', { class:'rozrys-choice-launch__arrow', text:'▾' }));
-    setChoiceLaunchValue(btn, label, meta);
-    return btn;
+    if(FC.rozrysChoice && typeof FC.rozrysChoice.createChoiceLauncher === 'function'){
+      return FC.rozrysChoice.createChoiceLauncher(label, meta);
+    }
+    return h('button', { type:'button', class:'rozrys-choice-launch', text:String(label || '') });
   }
 
   function openRozrysChoiceOverlay(opts){
-    const cfg = Object.assign({
-      title:'Wybierz opcję',
-      options:[],
-      value:'',
-      closeText:'Zamknij'
-    }, opts || {});
-    return new Promise((resolve)=>{
-      const backdrop = h('div', { class:'rozrys-choice-backdrop' });
-      const modal = h('div', { class:'rozrys-choice-modal', role:'dialog', 'aria-modal':'true', 'aria-label':String(cfg.title || 'Wybierz opcję') });
-      const header = h('div', { class:'rozrys-choice-modal__header' });
-      header.appendChild(h('div', { class:'rozrys-choice-modal__title', text:String(cfg.title || 'Wybierz opcję') }));
-      const closeBtn = h('button', { type:'button', class:'rozrys-choice-modal__close', 'aria-label':'Zamknij', text:'×' });
-      header.appendChild(closeBtn);
-      modal.appendChild(header);
-      const body = h('div', { class:'rozrys-choice-modal__body' });
-      (Array.isArray(cfg.options) ? cfg.options : []).forEach((entry)=>{
-        const opt = entry || {};
-        const value = String(opt.value == null ? '' : opt.value);
-        const optionBtn = h('button', { type:'button', class:'rozrys-choice-option' + (String(cfg.value) === value ? ' is-selected' : '') });
-        optionBtn.appendChild(h('div', { class:'rozrys-choice-option__title', text:String(opt.label || value) }));
-        if(opt.description) optionBtn.appendChild(h('div', { class:'rozrys-choice-option__subtitle', text:String(opt.description) }));
-        optionBtn.addEventListener('click', ()=> done(value));
-        body.appendChild(optionBtn);
-      });
-      modal.appendChild(body);
-      backdrop.appendChild(modal);
-
-      let closed = false;
-      const onKey = (ev)=>{
-        if(ev.key === 'Escape'){
-          ev.preventDefault();
-          done(null);
-        }
-      };
-      const cleanup = ()=>{
-        if(closed) return;
-        closed = true;
-        document.removeEventListener('keydown', onKey, true);
-        if(backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
-      };
-      const done = (result)=>{
-        cleanup();
-        resolve(result);
-      };
-      closeBtn.addEventListener('click', ()=> done(null));
-      backdrop.addEventListener('click', (ev)=>{ if(ev.target === backdrop) done(null); });
-      document.addEventListener('keydown', onKey, true);
-      document.body.appendChild(backdrop);
-    });
+    if(FC.rozrysChoice && typeof FC.rozrysChoice.openRozrysChoiceOverlay === 'function'){
+      return FC.rozrysChoice.openRozrysChoiceOverlay(opts);
+    }
+    return Promise.resolve(null);
   }
 
   function askRozrysConfirm(opts){
@@ -1065,136 +1010,37 @@
   }
 
   function buildCsv(sheets, meta){
-    const lines = [];
-    lines.push(['material','sheet_no','board_w_mm','board_h_mm','item','w_mm','h_mm','x_mm','y_mm','rotated'].join(';'));
-    const sub = Math.max(0, Number(meta && meta.edgeSubMm)||0);
-    const cutDims = (p)=>{
-      if(!(sub>0)) return { w:p.w, h:p.h };
-      const cW = (p.edgeH1?1:0) + (p.edgeH2?1:0);
-      const cH = (p.edgeW1?1:0) + (p.edgeW2?1:0);
-      return {
-        w: Math.max(0, Math.round((p.w||0) - sub*cW)),
-        h: Math.max(0, Math.round((p.h||0) - sub*cH)),
-      };
-    };
-    sheets.forEach((s, i)=>{
-      (s.placements||[]).filter(p=>!p.unplaced).forEach(p=>{
-        const d = cutDims(p);
-        lines.push([
-          meta.material || '',
-          String(i+1),
-          String(s.boardW),
-          String(s.boardH),
-          (p.name||p.key||p.id||''),
-          String(d.w),
-          String(d.h),
-          String(p.x),
-          String(p.y),
-          p.rotated ? '1':'0'
-        ].join(';'));
-      });
-    });
-    return lines.join('\n');
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.buildCsv === 'function'){
+      return FC.rozrysPrint.buildCsv(sheets, meta);
+    }
+    return '';
   }
 
   function downloadText(filename, content, mime){
-    try{
-      const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }catch(_){
-      openRozrysInfo('Nie udało się pobrać pliku', 'Przeglądarka nie pozwoliła pobrać przygotowanego pliku.');
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.downloadText === 'function'){
+      return FC.rozrysPrint.downloadText(filename, content, mime, { openInfo: openRozrysInfo });
     }
   }
 
   function openPrintView(html){
-    try{
-      const w = window.open('', '_blank');
-      if(!w){
-        openRozrysInfo('Pop-up zablokowany', 'Przeglądarka zablokowała nowe okno potrzebne do podglądu wydruku.');
-        return;
-      }
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      const triggerPrint = ()=>{
-        try{
-          const imgs = Array.from(w.document.images || []);
-          if(!imgs.length){
-            w.focus();
-            setTimeout(()=>{ try{ w.print(); }catch(_){ } }, 120);
-            return;
-          }
-          let pending = 0;
-          let fired = false;
-          const fire = ()=>{
-            if(fired) return;
-            fired = true;
-            w.focus();
-            setTimeout(()=>{ try{ w.print(); }catch(_){ } }, 120);
-          };
-          const done = ()=>{
-            pending = Math.max(0, pending - 1);
-            if(pending === 0) fire();
-          };
-          imgs.forEach((img)=>{
-            if(img.complete && img.naturalWidth > 0) return;
-            pending += 1;
-            img.addEventListener('load', done, { once:true });
-            img.addEventListener('error', done, { once:true });
-          });
-          if(pending === 0){
-            fire();
-            return;
-          }
-          setTimeout(fire, 1800);
-        }catch(_){
-          try{ w.focus(); w.print(); }catch(__){ }
-        }
-      };
-      if(w.document.readyState === 'complete') triggerPrint();
-      else w.addEventListener('load', triggerPrint, { once:true });
-    }catch(_){
-      openRozrysInfo('Nie udało się otworzyć podglądu', 'Nie udało się otworzyć okna do wydruku / PDF.');
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.openPrintView === 'function'){
+      return FC.rozrysPrint.openPrintView(html, { openInfo: openRozrysInfo });
     }
   }
 
   function pxToMm(px){
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.pxToMm === 'function'){
+      return FC.rozrysPrint.pxToMm(px);
+    }
     const n = Number(px);
-    if(!Number.isFinite(n)) return 0;
-    return n * 25.4 / 96;
+    return Number.isFinite(n) ? n * 25.4 / 96 : 0;
   }
 
   function measurePrintHeaderMm(titleText, metaText){
-    try{
-      const sandbox = document.createElement('div');
-      sandbox.style.position = 'absolute';
-      sandbox.style.left = '-99999px';
-      sandbox.style.top = '0';
-      sandbox.style.width = '194mm';
-      sandbox.style.visibility = 'hidden';
-      sandbox.style.pointerEvents = 'none';
-      sandbox.style.boxSizing = 'border-box';
-      sandbox.innerHTML = `
-        <div style="box-sizing:border-box;width:194mm;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
-          <div style="margin:0 0 4mm;overflow-wrap:anywhere;word-break:break-word;">
-            <div style="font-size:18px;line-height:1.2;font-weight:800;margin:0 0 2mm;overflow-wrap:anywhere;word-break:break-word;">${String(titleText || '')}</div>
-            <div style="font-size:12px;line-height:1.35;color:#374151;margin:0;overflow-wrap:anywhere;word-break:break-word;">${String(metaText || '')}</div>
-          </div>
-        </div>`;
-      document.body.appendChild(sandbox);
-      const measured = sandbox.firstElementChild ? sandbox.firstElementChild.getBoundingClientRect().height : sandbox.getBoundingClientRect().height;
-      sandbox.remove();
-      return Math.max(14, Math.ceil(pxToMm(measured) * 10) / 10 + 1);
-    }catch(_){
-      return 14;
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.measurePrintHeaderMm === 'function'){
+      return FC.rozrysPrint.measurePrintHeaderMm(titleText, metaText);
     }
+    return 14;
   }
 
   function computePlan(state, parts){
@@ -2377,182 +2223,108 @@
     matPickerBtn.addEventListener('click', openMaterialPicker);
     // Helper: whether current material (by name) is marked as having grain in the price list.
     function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
-      try{
-        const rows = (FC.magazyn && FC.magazyn.findHalfSheetsForMaterial)
-          ? FC.magazyn.findHalfSheetsForMaterial(material, fullWmm, fullHmm)
-          : [];
-        if(!rows || !rows.length) return { qty: 0, width: 0, height: 0 };
-        const row = rows.slice().sort((a,b)=> (Number(b && b.qty)||0) - (Number(a && a.qty)||0))[0];
-        return {
-          qty: Math.max(0, Number(row && row.qty) || 0),
-          width: Math.round(Number(row && row.width) || 0),
-          height: Math.round(Number(row && row.height) || 0),
-        };
-      }catch(_){
-        return { qty: 0, width: 0, height: 0 };
+      if(FC.rozrysStock && typeof FC.rozrysStock.getRealHalfStockForMaterial === 'function'){
+        return FC.rozrysStock.getRealHalfStockForMaterial(material, fullWmm, fullHmm);
       }
+      return { qty:0, width:0, height:0 };
     }
 
     function toMmByUnit(unit, value){
-      const u = unit === 'cm' ? 'cm' : 'mm';
-      const n = Number(value);
-      if(!Number.isFinite(n)) return 0;
-      return u === 'mm' ? Math.round(n) : Math.round(n * 10);
+      if(FC.rozrysStock && typeof FC.rozrysStock.toMmByUnit === 'function'){
+        return FC.rozrysStock.toMmByUnit(unit, value);
+      }
+      return 0;
     }
 
     function fromMmByUnit(unit, valueMm){
-      const mm = Math.max(0, Math.round(Number(valueMm) || 0));
-      if((unit === 'cm')) return Math.round((mm / 10) * 10) / 10;
-      return mm;
+      if(FC.rozrysStock && typeof FC.rozrysStock.fromMmByUnit === 'function'){
+        return FC.rozrysStock.fromMmByUnit(unit, valueMm);
+      }
+      return 0;
     }
 
     function sameSheetFormat(aW, aH, bW, bH){
-      const aw = Math.round(Number(aW) || 0);
-      const ah = Math.round(Number(aH) || 0);
-      const bw = Math.round(Number(bW) || 0);
-      const bh = Math.round(Number(bH) || 0);
-      return (aw === bw && ah === bh) || (aw === bh && ah === bw);
+      if(FC.rozrysStock && typeof FC.rozrysStock.sameSheetFormat === 'function'){
+        return FC.rozrysStock.sameSheetFormat(aW, aH, bW, bH);
+      }
+      return false;
     }
 
     function getDefaultRozrysOptionValues(unit){
-      const u = unit === 'mm' ? 'mm' : 'cm';
-      return {
-        unit: u,
-        edge: '0',
-        boardW: u === 'mm' ? 2800 : 280,
-        boardH: u === 'mm' ? 2070 : 207,
-        kerf: u === 'mm' ? 4 : 0.4,
-        trim: u === 'mm' ? 20 : 2,
-        minW: 0,
-        minH: 0,
-      };
+      if(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function'){
+        return FC.rozrysStock.getDefaultRozrysOptionValues(unit);
+      }
+      return { unit:'cm', edge:'0', boardW:280, boardH:207, kerf:0.4, trim:2, minW:0, minH:0 };
     }
 
     function getSheetRowsForMaterial(material, opts){
-      const cfg = Object.assign({ includeZero:true }, opts || {});
-      try{
-        const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
-        return (Array.isArray(rows) ? rows : []).map((row)=>({
-          id: String((row && row.id) || ''),
-          material: String((row && row.material) || ''),
-          width: Math.max(0, Math.round(Number(row && row.width) || 0)),
-          height: Math.max(0, Math.round(Number(row && row.height) || 0)),
-          qty: Math.max(0, Math.round(Number(row && row.qty) || 0)),
-        })).filter((row)=> row.width > 0 && row.height > 0 && (cfg.includeZero || row.qty > 0));
-      }catch(_){
-        return [];
+      if(FC.rozrysStock && typeof FC.rozrysStock.getSheetRowsForMaterial === 'function'){
+        return FC.rozrysStock.getSheetRowsForMaterial(material, opts);
       }
+      return [];
     }
 
     function buildStockSignatureForMaterial(material){
-      const rows = getSheetRowsForMaterial(material, { includeZero:true })
-        .sort((a,b)=>{
-          if(a.width !== b.width) return a.width - b.width;
-          if(a.height !== b.height) return a.height - b.height;
-          return a.qty - b.qty;
-        })
-        .map((row)=> `${row.width}x${row.height}:${row.qty}`);
-      return rows.join('|');
+      if(FC.rozrysStock && typeof FC.rozrysStock.buildStockSignatureForMaterial === 'function'){
+        return FC.rozrysStock.buildStockSignatureForMaterial(material);
+      }
+      return '';
     }
 
     function canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate){
-      const pw = Math.max(0, Math.round(Number(part && part.w) || 0));
-      const ph = Math.max(0, Math.round(Number(part && part.h) || 0));
-      const usableW = Math.max(0, Math.round(Number(boardWmm) || 0) - 2 * Math.max(0, Math.round(Number(trimMm) || 0)));
-      const usableH = Math.max(0, Math.round(Number(boardHmm) || 0) - 2 * Math.max(0, Math.round(Number(trimMm) || 0)));
-      if(!(usableW > 0 && usableH > 0 && pw > 0 && ph > 0)) return false;
-      if(pw <= usableW && ph <= usableH) return true;
-      if(allowRotate && ph <= usableW && pw <= usableH) return true;
+      if(FC.rozrysStock && typeof FC.rozrysStock.canPartFitSheet === 'function'){
+        return FC.rozrysStock.canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate);
+      }
       return false;
     }
 
     function filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn, overrides){
-      return (Array.isArray(parts) ? parts : [])
-        .map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) }))
-        .filter((part)=> part.qty > 0 && canPartFitSheet(part, boardWmm, boardHmm, trimMm, isPartRotationAllowed(part, !!grainOn, overrides || {})));
+      if(FC.rozrysStock && typeof FC.rozrysStock.filterPartsForSheet === 'function'){
+        return FC.rozrysStock.filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn, overrides, { isPartRotationAllowed });
+      }
+      return [];
     }
 
     function getExactSheetStockForMaterial(material, boardWmm, boardHmm){
-      const rows = getSheetRowsForMaterial(material, { includeZero:false }).filter((row)=> sameSheetFormat(row.width, row.height, boardWmm, boardHmm));
-      if(!rows.length) return { qty:0, width:Math.round(Number(boardWmm)||0), height:Math.round(Number(boardHmm)||0) };
-      rows.sort((a,b)=> (Number(b.qty)||0) - (Number(a.qty)||0));
-      const best = rows[0];
-      return {
-        qty: Math.max(0, Number(best && best.qty) || 0),
-        width: Math.round(Number(best && best.width) || 0),
-        height: Math.round(Number(best && best.height) || 0),
-      };
+      if(FC.rozrysStock && typeof FC.rozrysStock.getExactSheetStockForMaterial === 'function'){
+        return FC.rozrysStock.getExactSheetStockForMaterial(material, boardWmm, boardHmm);
+      }
+      return { qty:0, width:Math.round(Number(boardWmm)||0), height:Math.round(Number(boardHmm)||0) };
     }
 
     function getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm){
-      const rows = getSheetRowsForMaterial(material, { includeZero:true }).slice();
-      rows.sort((a,b)=>{
-        const aa = (Number(a && a.width) || 0) * (Number(a && a.height) || 0);
-        const bb = (Number(b && b.width) || 0) * (Number(b && b.height) || 0);
-        if(bb !== aa) return bb - aa;
-        if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
-        return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
-      });
-      const best = rows[0] || null;
-      const fallbackW = Math.round(Number(fallbackWmm) || 0);
-      const fallbackH = Math.round(Number(fallbackHmm) || 0);
-      const fallbackArea = fallbackW * fallbackH;
-      const bestW = Math.round(Number(best && best.width) || 0);
-      const bestH = Math.round(Number(best && best.height) || 0);
-      const bestArea = bestW * bestH;
-      if(!(bestArea > 0) || fallbackArea >= bestArea){
-        return {
-          width: fallbackW,
-          height: fallbackH,
-          qty: Math.max(0, Number(best && best.qty) || 0),
-        };
+      if(FC.rozrysStock && typeof FC.rozrysStock.getLargestSheetFormatForMaterial === 'function'){
+        return FC.rozrysStock.getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm);
       }
-      return {
-        width: bestW,
-        height: bestH,
-        qty: Math.max(0, Number(best && best.qty) || 0),
-      };
+      return { width:Math.round(Number(fallbackWmm)||0), height:Math.round(Number(fallbackHmm)||0), qty:0 };
     }
 
     function clonePlanSheetsWithSupply(sheets, opts){
-      const cfg = Object.assign({ supplySource:'order', supplyText:'zamówić', fullBoardW:0, fullBoardH:0, trimMm:0 }, opts || {});
-      return (Array.isArray(sheets) ? sheets : []).map((sheet)=> Object.assign({}, sheet, {
-        placements: Array.isArray(sheet && sheet.placements) ? sheet.placements.map((pl)=> Object.assign({}, pl)) : [],
-        supplySource: cfg.supplySource,
-        supplyText: cfg.supplyText,
-        fullBoardW: Math.max(0, Math.round(Number(cfg.fullBoardW) || Number(sheet && sheet.fullBoardW) || 0)),
-        fullBoardH: Math.max(0, Math.round(Number(cfg.fullBoardH) || Number(sheet && sheet.fullBoardH) || 0)),
-        trimMm: Math.max(0, Math.round(Number(cfg.trimMm) || Number(sheet && sheet.trimMm) || 0)),
-      }));
+      if(FC.rozrysStock && typeof FC.rozrysStock.clonePlanSheetsWithSupply === 'function'){
+        return FC.rozrysStock.clonePlanSheetsWithSupply(sheets, opts);
+      }
+      return Array.isArray(sheets) ? sheets.slice() : [];
     }
 
     function countPlacedPartsByKey(sheets){
-      const map = new Map();
-      (Array.isArray(sheets) ? sheets : []).forEach((sheet)=>{
-        (Array.isArray(sheet && sheet.placements) ? sheet.placements : []).forEach((pl)=>{
-          if(!pl || pl.unplaced) return;
-          const key = String(pl.key || '');
-          if(!key) return;
-          map.set(key, (map.get(key) || 0) + 1);
-        });
-      });
-      return map;
+      if(FC.rozrysStock && typeof FC.rozrysStock.countPlacedPartsByKey === 'function'){
+        return FC.rozrysStock.countPlacedPartsByKey(sheets);
+      }
+      return new Map();
     }
 
     function subtractPlacedParts(parts, usedMap){
-      return (Array.isArray(parts) ? parts : []).map((part)=>{
-        const sig = partSignature(part);
-        const used = Math.max(0, Number(usedMap && usedMap.get(sig)) || 0);
-        const qty = Math.max(0, Math.round(Number(part && part.qty) || 0) - used);
-        return qty > 0 ? Object.assign({}, part, { qty }) : null;
-      }).filter(Boolean);
+      if(FC.rozrysStock && typeof FC.rozrysStock.subtractPlacedParts === 'function'){
+        return FC.rozrysStock.subtractPlacedParts(parts, usedMap, { partSignature });
+      }
+      return Array.isArray(parts) ? parts.slice() : [];
     }
 
     function buildPlanMetaFromState(st){
-      const boardW = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
-      const boardH = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
-      const trim = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
-      return { trim, boardW, boardH, unit: (st && st.unit === 'cm') ? 'cm' : 'mm' };
+      if(FC.rozrysStock && typeof FC.rozrysStock.buildPlanMetaFromState === 'function'){
+        return FC.rozrysStock.buildPlanMetaFromState(st);
+      }
+      return { trim:20, boardW:2800, boardH:2070, unit:'mm' };
     }
 
     async function computePlanWithCurrentEngine(st, parts, panelOpts){
@@ -2890,85 +2662,21 @@
 
 
   function splitMaterialAccordionTitle(material){
-    const raw = String(material || 'Materiał').trim();
-    if(!raw) return { line1:'Materiał', line2:'' };
-    if(raw.includes('•')){
-      const parts = raw.split('•').map(s=>String(s||'').trim()).filter(Boolean);
-      if(parts.length >= 2) return { line1:parts[0], line2:parts.slice(1).join(' • ') };
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'){
+      return FC.rozrysAccordion.splitMaterialAccordionTitle(material);
     }
-    const tokens = raw.split(/\s+/).filter(Boolean);
-    if(tokens.length <= 2) return { line1:raw, line2:'' };
-    const third = tokens[2] || '';
-    const line1Count = /^[A-Z0-9-]{2,}$/i.test(third) && /\d/.test(third) ? 3 : 2;
-    return {
-      line1: tokens.slice(0, line1Count).join(' '),
-      line2: tokens.slice(line1Count).join(' ')
-    };
+    return { line1:String(material || 'Materiał'), line2:'' };
   }
 
 
   function createMaterialAccordionSection(material, options){
-    const opts = Object.assign({ open:false, onToggle:null, grain:false, grainEnabled:false, grainDisabled:false, onGrainToggle:null, onExceptionsClick:null }, options || {});
-    const wrap = h('div', { class:'rozrys-material-accordion' });
-    const head = h('div', { class:'rozrys-material-accordion__head' });
-    const trigger = h('button', { class:'rozrys-material-accordion__trigger', type:'button' });
-    const titleBits = splitMaterialAccordionTitle(material);
-    const title = h('div', { class:'rozrys-material-accordion__title' });
-    title.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:titleBits.line1 || 'Materiał' }));
-    if(titleBits.line2){
-      title.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:titleBits.line2 }));
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'){
+      return FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh });
     }
-    const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
-    trigger.appendChild(title);
-    trigger.appendChild(chevron);
-    const grainRow = h('div', { class:'rozrys-material-accordion__grain-row' });
-    const grainToggle = h('label', { class:'rozrys-material-accordion__grain-toggle' });
-    const grainCb = h('input', { type:'checkbox' });
-    grainCb.checked = !!opts.grainEnabled;
-    grainCb.disabled = !!opts.grainDisabled;
-    const grainText = h('span', { text:'Pilnuj kierunku słojów' });
-    if(opts.grainDisabled) grainText.classList.add('is-disabled');
-    grainToggle.appendChild(grainCb);
-    grainToggle.appendChild(grainText);
-    const exceptionsBtn = h('button', { type:'button', class:'btn rozrys-inline-exceptions-btn', text:'Wyjątki' });
-    exceptionsBtn.disabled = !!opts.grainDisabled || !opts.grainEnabled;
-    exceptionsBtn.classList.toggle('is-disabled', !!opts.grainDisabled || !opts.grainEnabled);
-    grainCb.addEventListener('click', (ev)=> ev.stopPropagation());
-    grainCb.addEventListener('change', (ev)=>{
-      ev.stopPropagation();
-      exceptionsBtn.disabled = !!opts.grainDisabled || !grainCb.checked;
-      exceptionsBtn.classList.toggle('is-disabled', !!opts.grainDisabled || !grainCb.checked);
-      try{ if(typeof opts.onGrainToggle === 'function') opts.onGrainToggle(!!grainCb.checked, material, wrap); }catch(_){ }
-    });
-    grainToggle.addEventListener('click', (ev)=> ev.stopPropagation());
-    exceptionsBtn.addEventListener('click', (ev)=>{
-      ev.stopPropagation();
-      if(exceptionsBtn.disabled) return;
-      try{ if(typeof opts.onExceptionsClick === 'function') opts.onExceptionsClick(material, wrap); }catch(_){ }
-    });
-    grainRow.appendChild(grainToggle);
-    grainRow.appendChild(exceptionsBtn);
-    const body = h('div', { class:'rozrys-material-accordion__body' });
-    function setOpenState(open, notify){
-      const isOpen = !!open;
-      wrap.classList.toggle('is-open', isOpen);
-      body.hidden = !isOpen;
-      body.style.display = isOpen ? '' : 'none';
-      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if(isOpen) scheduleSheetCanvasRefresh(body);
-      if(notify !== false && typeof opts.onToggle === 'function'){
-        try{ opts.onToggle(isOpen, material, wrap); }catch(_){ }
-      }
-    }
-    trigger.addEventListener('click', ()=>{
-      setOpenState(!wrap.classList.contains('is-open'), true);
-    });
-    setOpenState(!!opts.open, false);
-    head.appendChild(trigger);
-    head.appendChild(grainRow);
-    wrap.appendChild(head);
+    const wrap = h('div');
+    const body = h('div');
     wrap.appendChild(body);
-    return { wrap, body, trigger, setOpenState };
+    return { wrap, body, trigger:null, setOpenState:()=>{} };
   }
 
   function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
@@ -3416,73 +3124,23 @@
     }
 
     function loadPlanCache(){
-      try{
-        const raw = localStorage.getItem(PLAN_CACHE_KEY);
-        const obj = raw ? JSON.parse(raw) : {};
-        return (obj && typeof obj === 'object') ? obj : {};
-      }catch(_){
-        return {};
+      if(FC.rozrysCache && typeof FC.rozrysCache.loadPlanCache === 'function'){
+        return FC.rozrysCache.loadPlanCache();
       }
+      return {};
     }
 
     function savePlanCache(cache){
-      try{
-        // trzymamy do 100 ostatnich rozkrojów
-        const entries = Object.entries(cache || {});
-        if(entries.length > 100){
-          entries.sort((a,b)=> (b[1].ts||0) - (a[1].ts||0));
-          const keep = entries.slice(0, 100);
-          const next = {};
-          for(const [k,v] of keep) next[k] = v;
-          cache = next;
-        }
-        localStorage.setItem(PLAN_CACHE_KEY, JSON.stringify(cache || {}));
-      }catch(_){}
+      if(FC.rozrysCache && typeof FC.rozrysCache.savePlanCache === 'function'){
+        FC.rozrysCache.savePlanCache(cache);
+      }
     }
 
     function makePlanCacheKey(st, parts){
-      // uwzględniamy: ustawienia + lista formatek + wyjątki słojów + okleiny (wpływają na edgeSub)
-      const overrides = Object.assign({}, st.grainExceptions || {});
-      const edgeStore = loadEdgeStore();
-      const items = (parts||[]).map(p=>{
-        const sig = partSignature(p);
-        const allow = isPartRotationAllowed(p, !!st.grain, overrides);
-        const e = edgeStore[sig] || {};
-        return {
-          k: sig,
-          n: p.name,
-          w: p.w,
-          h: p.h,
-          q: p.qty,
-          ra: allow,
-          ew1: !!e.w1, ew2: !!e.w2, eh1: !!e.h1, eh2: !!e.h2
-        };
-      }).sort((a,b)=> (a.k<b.k?-1:a.k>b.k?1:(a.w-b.w)||(a.h-b.h)));
-      const keyObj = {
-        st: {
-          material: st.material,
-          unit: st.unit,
-          edgeSubMm: st.edgeSubMm,
-          boardW: st.boardW, boardH: st.boardH,
-          kerf: st.kerf, edgeTrim: st.edgeTrim,
-          minScrapW: st.minScrapW,
-          minScrapH: st.minScrapH,
-          grain: st.grain,
-          heur: st.heur,
-          optimaxProfile: st.optimaxProfile,
-          direction: st.direction,
-          realHalfQty: Number(st.realHalfQty)||0,
-          realHalfBoardW: Number(st.realHalfBoardW)||0,
-          realHalfBoardH: Number(st.realHalfBoardH)||0,
-          stockExactQty: Number(st.stockExactQty)||0,
-          stockFullBoardW: Number(st.stockFullBoardW)||0,
-          stockFullBoardH: Number(st.stockFullBoardH)||0,
-          stockPolicy: String(st.stockPolicy || ''),
-          stockSignature: String(st.stockSignature || ''),
-        },
-        items
-      };
-      return 'plan_' + hashStr(JSON.stringify(keyObj));
+      if(FC.rozrysCache && typeof FC.rozrysCache.makePlanCacheKey === 'function'){
+        return FC.rozrysCache.makePlanCacheKey(st, parts, { partSignature, isPartRotationAllowed, loadEdgeStore });
+      }
+      return 'plan_fallback';
     }
 
 function deriveAggForMode(mode, aggregate){

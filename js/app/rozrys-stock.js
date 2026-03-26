@@ -1,0 +1,210 @@
+(function(){
+  'use strict';
+  window.FC = window.FC || {};
+  const FC = window.FC;
+
+  function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
+    try{
+      const rows = (FC.magazyn && FC.magazyn.findHalfSheetsForMaterial)
+        ? FC.magazyn.findHalfSheetsForMaterial(material, fullWmm, fullHmm)
+        : [];
+      if(!rows || !rows.length) return { qty:0, width:0, height:0 };
+      const row = rows.slice().sort((a, b)=> (Number(b && b.qty) || 0) - (Number(a && a.qty) || 0))[0];
+      return {
+        qty: Math.max(0, Number(row && row.qty) || 0),
+        width: Math.round(Number(row && row.width) || 0),
+        height: Math.round(Number(row && row.height) || 0),
+      };
+    }catch(_){
+      return { qty:0, width:0, height:0 };
+    }
+  }
+
+  function toMmByUnit(unit, value){
+    const u = unit === 'cm' ? 'cm' : 'mm';
+    const n = Number(value);
+    if(!Number.isFinite(n)) return 0;
+    return u === 'mm' ? Math.round(n) : Math.round(n * 10);
+  }
+
+  function fromMmByUnit(unit, valueMm){
+    const mm = Math.max(0, Math.round(Number(valueMm) || 0));
+    if(unit === 'cm') return Math.round((mm / 10) * 10) / 10;
+    return mm;
+  }
+
+  function sameSheetFormat(aW, aH, bW, bH){
+    const aw = Math.round(Number(aW) || 0);
+    const ah = Math.round(Number(aH) || 0);
+    const bw = Math.round(Number(bW) || 0);
+    const bh = Math.round(Number(bH) || 0);
+    return (aw === bw && ah === bh) || (aw === bh && ah === bw);
+  }
+
+  function getDefaultRozrysOptionValues(unit){
+    const u = unit === 'mm' ? 'mm' : 'cm';
+    return {
+      unit: u,
+      edge: '0',
+      boardW: u === 'mm' ? 2800 : 280,
+      boardH: u === 'mm' ? 2070 : 207,
+      kerf: u === 'mm' ? 4 : 0.4,
+      trim: u === 'mm' ? 20 : 2,
+      minW: 0,
+      minH: 0,
+    };
+  }
+
+  function getSheetRowsForMaterial(material, opts){
+    const cfg = Object.assign({ includeZero:true }, opts || {});
+    try{
+      const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
+      return (Array.isArray(rows) ? rows : []).map((row)=> ({
+        id: String(row && row.id || ''),
+        material: String(row && row.material || ''),
+        width: Math.max(0, Math.round(Number(row && row.width) || 0)),
+        height: Math.max(0, Math.round(Number(row && row.height) || 0)),
+        qty: Math.max(0, Math.round(Number(row && row.qty) || 0)),
+      })).filter((row)=> row.width > 0 && row.height > 0 && (cfg.includeZero || row.qty > 0));
+    }catch(_){
+      return [];
+    }
+  }
+
+  function buildStockSignatureForMaterial(material){
+    const rows = getSheetRowsForMaterial(material, { includeZero:true })
+      .sort((a, b)=>{
+        if(a.width !== b.width) return a.width - b.width;
+        if(a.height !== b.height) return a.height - b.height;
+        return a.qty - b.qty;
+      })
+      .map((row)=> `${row.width}x${row.height}:${row.qty}`);
+    return rows.join('|');
+  }
+
+  function canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate){
+    const pw = Math.max(0, Math.round(Number(part && part.w) || 0));
+    const ph = Math.max(0, Math.round(Number(part && part.h) || 0));
+    const usableW = Math.max(0, Math.round(Number(boardWmm) || 0) - 2 * Math.max(0, Math.round(Number(trimMm) || 0)));
+    const usableH = Math.max(0, Math.round(Number(boardHmm) || 0) - 2 * Math.max(0, Math.round(Number(trimMm) || 0)));
+    if(!(usableW > 0 && usableH > 0 && pw > 0 && ph > 0)) return false;
+    if(pw <= usableW && ph <= usableH) return true;
+    if(allowRotate && ph <= usableW && pw <= usableH) return true;
+    return false;
+  }
+
+  function filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn, overrides, deps){
+    const cfg = Object.assign({ isPartRotationAllowed:null }, deps || {});
+    return (Array.isArray(parts) ? parts : [])
+      .map((part)=> Object.assign({}, part, { qty: Math.max(0, Math.round(Number(part && part.qty) || 0)) }))
+      .filter((part)=>{
+        if(!(part.qty > 0)) return false;
+        const allowRotate = typeof cfg.isPartRotationAllowed === 'function'
+          ? !!cfg.isPartRotationAllowed(part, !!grainOn, overrides || {})
+          : true;
+        return canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate);
+      });
+  }
+
+  function getExactSheetStockForMaterial(material, boardWmm, boardHmm){
+    const rows = getSheetRowsForMaterial(material, { includeZero:false }).filter((row)=> sameSheetFormat(row.width, row.height, boardWmm, boardHmm));
+    if(!rows.length) return { qty:0, width:Math.round(Number(boardWmm) || 0), height:Math.round(Number(boardHmm) || 0) };
+    rows.sort((a, b)=> (Number(b.qty) || 0) - (Number(a.qty) || 0));
+    const best = rows[0];
+    return {
+      qty: Math.max(0, Number(best && best.qty) || 0),
+      width: Math.round(Number(best && best.width) || 0),
+      height: Math.round(Number(best && best.height) || 0),
+    };
+  }
+
+  function getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm){
+    const rows = getSheetRowsForMaterial(material, { includeZero:true }).slice();
+    rows.sort((a, b)=>{
+      const aa = (Number(a && a.width) || 0) * (Number(a && a.height) || 0);
+      const bb = (Number(b && b.width) || 0) * (Number(b && b.height) || 0);
+      if(bb !== aa) return bb - aa;
+      if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
+      return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
+    });
+    const best = rows[0] || null;
+    const fallbackW = Math.round(Number(fallbackWmm) || 0);
+    const fallbackH = Math.round(Number(fallbackHmm) || 0);
+    const fallbackArea = fallbackW * fallbackH;
+    const bestW = Math.round(Number(best && best.width) || 0);
+    const bestH = Math.round(Number(best && best.height) || 0);
+    const bestArea = bestW * bestH;
+    if(!(bestArea > 0) || fallbackArea >= bestArea){
+      return {
+        width: fallbackW,
+        height: fallbackH,
+        qty: Math.max(0, Number(best && best.qty) || 0),
+      };
+    }
+    return {
+      width: bestW,
+      height: bestH,
+      qty: Math.max(0, Number(best && best.qty) || 0),
+    };
+  }
+
+  function clonePlanSheetsWithSupply(sheets, opts){
+    const cfg = Object.assign({ supplySource:'order', supplyText:'zamówić', fullBoardW:0, fullBoardH:0, trimMm:0 }, opts || {});
+    return (Array.isArray(sheets) ? sheets : []).map((sheet)=> Object.assign({}, sheet, {
+      placements: Array.isArray(sheet && sheet.placements) ? sheet.placements.map((pl)=> Object.assign({}, pl)) : [],
+      supplySource: cfg.supplySource,
+      supplyText: cfg.supplyText,
+      fullBoardW: Math.max(0, Math.round(Number(cfg.fullBoardW) || Number(sheet && sheet.fullBoardW) || 0)),
+      fullBoardH: Math.max(0, Math.round(Number(cfg.fullBoardH) || Number(sheet && sheet.fullBoardH) || 0)),
+      trimMm: Math.max(0, Math.round(Number(cfg.trimMm) || Number(sheet && sheet.trimMm) || 0)),
+    }));
+  }
+
+  function countPlacedPartsByKey(sheets){
+    const map = new Map();
+    (Array.isArray(sheets) ? sheets : []).forEach((sheet)=>{
+      (Array.isArray(sheet && sheet.placements) ? sheet.placements : []).forEach((pl)=>{
+        if(!pl || pl.unplaced) return;
+        const key = String(pl.key || '');
+        if(!key) return;
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+    });
+    return map;
+  }
+
+  function subtractPlacedParts(parts, usedMap, deps){
+    const cfg = Object.assign({ partSignature:null }, deps || {});
+    return (Array.isArray(parts) ? parts : []).map((part)=>{
+      const sig = typeof cfg.partSignature === 'function' ? cfg.partSignature(part) : `${part && part.material || ''}||${part && part.name || ''}||${part && part.w || 0}x${part && part.h || 0}`;
+      const used = Math.max(0, Number(usedMap && usedMap.get(sig)) || 0);
+      const qty = Math.max(0, Math.round(Number(part && part.qty) || 0) - used);
+      return qty > 0 ? Object.assign({}, part, { qty }) : null;
+    }).filter(Boolean);
+  }
+
+  function buildPlanMetaFromState(st){
+    const boardW = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
+    const boardH = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
+    const trim = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
+    return { trim, boardW, boardH, unit: (st && st.unit === 'cm') ? 'cm' : 'mm' };
+  }
+
+  FC.rozrysStock = {
+    getRealHalfStockForMaterial,
+    toMmByUnit,
+    fromMmByUnit,
+    sameSheetFormat,
+    getDefaultRozrysOptionValues,
+    getSheetRowsForMaterial,
+    buildStockSignatureForMaterial,
+    canPartFitSheet,
+    filterPartsForSheet,
+    getExactSheetStockForMaterial,
+    getLargestSheetFormatForMaterial,
+    clonePlanSheetsWithSupply,
+    countPlacedPartsByKey,
+    subtractPlacedParts,
+    buildPlanMetaFromState,
+  };
+})();

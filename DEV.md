@@ -2,6 +2,15 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-26 — rozrys_module_split_v1
+- `js/app/rozrys.js` — odchudzony przez delegację części funkcji do nowych modułów pomocniczych bez zmiany UI i bez zmiany solverów.
+- `js/app/rozrys-choice.js` — wydzielone launchery wyboru i overlay wyboru dla customowych dropdownów ROZRYS.
+- `js/app/rozrys-print.js` — wydzielone CSV / pobieranie / otwieranie wydruku oraz pomiar nagłówka PDF.
+- `js/app/rozrys-stock.js` — wydzielone helpery formatu bazowego, magazynu i podaży arkuszy.
+- `js/app/rozrys-cache.js` — wydzielone helpery cache planów rozkroju.
+- `js/app/rozrys-accordion.js` — wydzielone helpery accordionu materiałów i tytułów sekcji.
+- `index.html` — podbite cache-busting dla wszystkich plików powiązanych z tą paczką i dopięte nowe moduły ROZRYS.
+
 ### 2026-03-26 — list_scroll_restore_v1
 - `js/app/list-scroll-memory.js` — nowy, mały moduł pamięci pozycji listy dla `WYWIAD` i `MATERIAŁ`; zapamiętuje aktywną szafkę i offset scrolla przed wejściem w edycję, a po `Zatwierdź / Anuluj` przywraca dokładnie ten sam rejon listy zamiast wyrzucać na górę.
 - `js/app/cabinet-modal.js` — modal szafki zapisuje kontekst listy przy wejściu w `Edytuj` i po zamknięciu próbuje odtworzyć poprzednią pozycję.
@@ -88,7 +97,12 @@
 - `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
 - `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
 - `js/app/magazyn.js` — logika magazynu.
-- `js/app/rozrys.js` — logika zakładki rozrysu / Optimax.
+- `js/app/rozrys-choice.js` — launchery i overlaye wyboru w ROZRYS.
+- `js/app/rozrys-print.js` — eksport CSV / druk / helpery PDF w ROZRYS.
+- `js/app/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS.
+- `js/app/rozrys-cache.js` — helpery cache planów ROZRYS.
+- `js/app/rozrys-accordion.js` — helpery accordionu materiałów ROZRYS.
+- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po oddelegowaniu części odpowiedzialności do modułów pomocniczych.
 
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
@@ -536,28 +550,27 @@ Dopiero potem go zmieniać.
 
 - 2026-03-26: panel-box forms on mobile now reset scroll on open, keep 20dvh top offset, and use inner form scroll with stable sticky footer to avoid action buttons dropping below viewport.
 
-## Propozycje dalszego porządkowania ROZRYS (bez wdrażania w tej paczce)
+## Dalsze propozycje porządkowania ROZRYS (częściowo wdrożone)
 
-1. `js/app/rozrys-pickers.js`
-   - wydzielić: `openRozrysChoiceOverlay()`, `openRoomsPicker()`, `openMaterialPicker()`, helpery przycisków launcherów i podsumowań zakresu;
-   - po co: to jest osobny obszar UX z własną logiką `Wyjdź / Anuluj / Zapisz`, niezależny od samego liczenia rozkroju.
+1. `js/app/rozrys-choice.js` — wdrożone w tej paczce jako pierwszy krok zamiast większego `rozrys-pickers.js`.
+   - wydzielone: `getSelectOptionLabel()`, `setChoiceLaunchValue()`, `createChoiceLauncher()`, `openRozrysChoiceOverlay()`.
+   - dalszy krok: dołożyć tu jeszcze `openRoomsPicker()` i `openMaterialPicker()`.
 
-2. `js/app/rozrys-print.js`
-   - wydzielić: `buildCsv()`, `downloadText()`, `openPrintView()`, `pxToMm()`, `measurePrintHeaderMm()` oraz składanie HTML/PDF;
-   - po co: eksport i druk to osobny tor odpowiedzialności, łatwiejszy do poprawiania bez dotykania planowania arkuszy.
+2. `js/app/rozrys-print.js` — wdrożone w tej paczce.
+   - wydzielone: `buildCsv()`, `downloadText()`, `openPrintView()`, `pxToMm()`, `measurePrintHeaderMm()`.
 
 3. `js/app/rozrys-sheet-draw.js`
    - wydzielić: `scheduleSheetCanvasRefresh()`, `drawSheet()`, helpery wymiarów, etykiet i rysowania oklein;
    - po co: warstwa canvas jest duża i wizualnie ryzykowna, więc powinna być odseparowana od logiki danych.
 
-4. `js/app/rozrys-stock.js`
-   - wydzielić: `getSheetRowsForMaterial()`, `getExactSheetStockForMaterial()`, `getLargestSheetFormatForMaterial()`, `clonePlanSheetsWithSupply()` i helpery formatu bazowego / magazynu;
-   - po co: magazyn, format bazowy i realna podaż arkuszy tworzą wspólny blok domenowy, który da się rozwijać niezależnie od UI pickerów.
+4. `js/app/rozrys-stock.js` — wdrożone częściowo w tej paczce.
+   - wydzielone: helpery formatu bazowego, magazynu i podaży arkuszy (`getSheetRowsForMaterial()`, `getExactSheetStockForMaterial()`, `getLargestSheetFormatForMaterial()`, `clonePlanSheetsWithSupply()` i powiązane funkcje).
+   - dalszy krok: przenieść tam jeszcze całe `applySheetStockLimit()`.
 
 5. `js/app/rozrys-cache-progress.js`
    - wydzielić: `tryAutoRenderFromCache()`, cache planów, ticker globalny, status generowania i anulowanie liczenia;
    - po co: postęp liczenia i cache są dziś w jednym miejscu z renderem, a to utrudnia dalsze rozwijanie trybów `Super` i `Ultra`.
 
-6. `js/app/rozrys-accordion.js`
-   - wydzielić: `splitMaterialAccordionTitle()`, `createMaterialAccordionSection()`, `renderMaterialAccordionPlans()`;
-   - po co: accordion materiałów to osobna warstwa prezentacji wyników i wyjątków słojów, którą można rozwijać bez ruszania solverów.
+6. `js/app/rozrys-accordion.js` — wdrożone częściowo w tej paczce.
+   - wydzielone: `splitMaterialAccordionTitle()`, `createMaterialAccordionSection()`.
+   - dalszy krok: przenieść tam jeszcze `renderMaterialAccordionPlans()`.
