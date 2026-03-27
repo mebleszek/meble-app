@@ -661,6 +661,16 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       minScrapH: Number.isFinite(Number(panelPrefs.minScrapH)) ? Math.max(0, Number(panelPrefs.minScrapH)) : 0,
       direction: 'start-optimax',
     };
+    const rozState = (FC.rozrysState && typeof FC.rozrysState.createStore === 'function')
+      ? FC.rozrysState.createStore({
+          selectedRooms,
+          aggregate: agg,
+          materialScope,
+          options: state,
+          ui: { buttonMode:'idle', running:false },
+          cache: { lastAutoRenderHit:false, lastScopeKey:'' },
+        })
+      : null;
 
     // if magazyn has hint for first material
     function toDisp(mm){ return state.unit === 'mm' ? mm : (mm/10); }
@@ -1186,6 +1196,14 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       roomsSel.value = encodeRoomsSelection(selectedRooms);
       matSel.value = encodeMaterialScope(materialScope);
       state.material = (materialScope.kind === 'material' && materialScope.material) ? materialScope.material : (agg.materials[0] || '');
+      try{
+        if(rozState){
+          rozState.setSelectedRooms(selectedRooms);
+          rozState.setAggregate(agg);
+          rozState.setMaterialScope(materialScope);
+          rozState.patchOptionState({ material: state.material });
+        }
+      }catch(_){ }
     }
 
     function refreshSelectionState(opts){
@@ -1197,6 +1215,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       updateMaterialPickerButton();
       if(cfg.keepFormatHint){
         const hintMaterial = materialScope.kind === 'material' ? materialScope.material : (agg.materials[0] || '');
+        void hintMaterial;
       }
       persistSelectionPrefs();
       if(cfg.rerender) tryAutoRenderFromCache();
@@ -1244,7 +1263,10 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       if(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function'){
         return FC.rozrysPickers.openRoomsPicker({
           getSelectedRooms: ()=> selectedRooms,
-          setSelectedRooms: (rooms)=>{ selectedRooms = rooms; },
+          setSelectedRooms: (rooms)=>{
+            selectedRooms = Array.isArray(rooms) ? rooms.slice() : [];
+            try{ if(rozState) rozState.setSelectedRooms(selectedRooms); }catch(_){ }
+          },
           getRooms,
           normalizeRoomSelection,
           roomLabel,
@@ -1258,7 +1280,10 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       if(FC.rozrysPickers && typeof FC.rozrysPickers.openMaterialPicker === 'function'){
         return FC.rozrysPickers.openMaterialPicker({
           getMaterialScope: ()=> materialScope,
-          setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
+          setMaterialScope: (nextScope)=>{
+            materialScope = nextScope;
+            try{ if(rozState) rozState.setMaterialScope(materialScope); }catch(_){ }
+          },
           makeMaterialScope,
           aggregate: agg,
           splitMaterialAccordionTitle,
@@ -1492,19 +1517,23 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     }
 
     function getBaseState(){
-      return {
-        unit: unitSel.value,
-        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
-        boardW: Number(inW.value)|| (unitSel.value==="mm"?2800:280),
-        boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
-        kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
-        edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
-        minScrapW: Math.max(0, Number(inMinW.value)||0),
-        minScrapH: Math.max(0, Number(inMinH.value)||0),
-        heur: 'optimax',
-        optimaxProfile: heurSel.value,
-        direction: normalizeCutDirection(dirSel.value),
-      };
+      const base = (FC.rozrysState && typeof FC.rozrysState.buildBaseStateFromControls === 'function')
+        ? FC.rozrysState.buildBaseStateFromControls({ unitSel, edgeSel, inW, inH, inK, inTrim, inMinW, inMinH, heurSel, dirSel }, { normalizeCutDirection })
+        : {
+            unit: unitSel.value,
+            edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
+            boardW: Number(inW.value)|| (unitSel.value==="mm"?2800:280),
+            boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
+            kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
+            edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
+            minScrapW: Math.max(0, Number(inMinW.value)||0),
+            minScrapH: Math.max(0, Number(inMinH.value)||0),
+            heur: 'optimax',
+            optimaxProfile: heurSel.value,
+            direction: normalizeCutDirection(dirSel.value),
+          };
+      try{ if(rozState) rozState.setOptionState(Object.assign({}, state, base)); }catch(_){ }
+      return base;
     }
 
 
@@ -1534,6 +1563,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
           getAccordionScopeKey,
           getRozrysScopeMode,
           renderMaterialAccordionPlans,
+          setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
         });
       }
       out.innerHTML = '';
@@ -1673,15 +1703,19 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       : null;
 
     function setGenBtnMode(mode){
+      try{ if(rozState) rozState.setUiState({ buttonMode: String(mode || 'idle'), running: mode === 'running' }); }catch(_){ }
       if(progressCtrl && typeof progressCtrl.setGenBtnMode === 'function') return progressCtrl.setGenBtnMode(mode);
     }
 
     function requestCancel(){
+      try{ if(rozState) rozState.setUiState({ running:false }); }catch(_){ }
       if(progressCtrl && typeof progressCtrl.requestCancel === 'function') return progressCtrl.requestCancel();
     }
 
     function isRozrysRunning(){
-      return !!(progressCtrl && typeof progressCtrl.isRunning === 'function' && progressCtrl.isRunning());
+      const running = !!(progressCtrl && typeof progressCtrl.isRunning === 'function' && progressCtrl.isRunning());
+      try{ if(rozState) rozState.setUiState({ running }); }catch(_){ }
+      return running;
     }
 
     function getRozrysBtnMode(){
@@ -1751,6 +1785,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
 
     matSel.addEventListener('change', ()=>{
       materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
+      try{ if(rozState) rozState.setMaterialScope(materialScope); }catch(_){ }
       syncHiddenSelections();
       updateMaterialPickerButton();
       persistSelectionPrefs();

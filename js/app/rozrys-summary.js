@@ -27,96 +27,6 @@
     return { text:`Walidacja: ${parts.join(' • ')}`, tone:'is-warn' };
   }
 
-  function makeStatusChip(status){
-    const map = {
-      ok: { cls:'is-ok', text:'OK' },
-      missing: { cls:'is-missing', text:'BRAK' },
-      extra: { cls:'is-extra', text:'NADMIAR' },
-    };
-    const cfg = map[status] || map.ok;
-    return h('span', { class:`rozrys-status-chip ${cfg.cls}`, text:cfg.text });
-  }
-
-  function buildDimNode(wMm, hMm, unit, mmToUnitStr){
-    return h('span', { class:'table-dim' }, [
-      h('span', { class:'table-dim__left', text:mmToUnitStr(wMm, unit) }),
-      h('span', { class:'table-dim__x', text:'x' }),
-      h('span', { class:'table-dim__right', text:mmToUnitStr(hMm, unit) }),
-    ]);
-  }
-
-  function buildListTable(rows, unit, mode, mmToUnitStr){
-    const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
-    if(mode === 'sheet'){
-      const colgroup = h('colgroup');
-      colgroup.appendChild(h('col', { class:'col-name' }));
-      colgroup.appendChild(h('col', { class:'col-dim' }));
-      colgroup.appendChild(h('col', { class:'col-qty' }));
-      table.appendChild(colgroup);
-    }
-    const thead = h('thead');
-    const headRow = h('tr');
-    if(mode === 'sheet'){
-      headRow.appendChild(h('th', { class:'col-name', text:'Nazwa' }));
-      headRow.appendChild(h('th', { class:'col-dim', text:`Wymiar (${unit})` }));
-      headRow.appendChild(h('th', { class:'col-qty', text:'Ilość' }));
-    } else {
-      ['Formatka', `Wymiar (${unit})`, 'Potrzebne', 'Rozrysowane', 'Różnica', 'Status'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
-    }
-    thead.appendChild(headRow);
-    const tbody = h('tbody');
-    (rows || []).forEach((row)=>{
-      const tr = h('tr');
-      if(mode === 'sheet'){
-        tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
-        const dimTd = h('td', { class:'col-dim' });
-        dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
-        tr.appendChild(dimTd);
-        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
-      } else {
-        tr.appendChild(h('td', { text: row.name || 'Element' }));
-        const dimTd = h('td');
-        dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
-        tr.appendChild(dimTd);
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.actualQty) || 0)) }));
-        tr.appendChild(h('td', { text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
-        const td = h('td');
-        td.appendChild(makeStatusChip(row.status));
-        tr.appendChild(td);
-      }
-      tbody.appendChild(tr);
-    });
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    return wrap;
-  }
-
-  function buildRawTable(rows, unit, mmToUnitStr){
-    const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:'table-list' });
-    const thead = h('thead');
-    const headRow = h('tr');
-    ['Formatka', `Wymiar (${unit})`, 'Ilość', 'Pomieszczenie', 'Źródło'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
-    thead.appendChild(headRow);
-    const tbody = h('tbody');
-    (rows || []).forEach((row)=>{
-      const tr = h('tr');
-      tr.appendChild(h('td', { text: row.name || 'Element' }));
-      tr.appendChild(h('td', { text: `${mmToUnitStr(row.w, unit)} × ${mmToUnitStr(row.h, unit)}` }));
-      tr.appendChild(h('td', { text:String(Math.max(0, Number(row.qty) || 0)) }));
-      tr.appendChild(h('td', { text:String(row.room || '—') }));
-      tr.appendChild(h('td', { text:String(row.source || '—') }));
-      tbody.appendChild(tr);
-    });
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    return wrap;
-  }
-
   function buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms, deps){
     const cfg = Object.assign({
       buildRawSnapshotForMaterial:null,
@@ -144,7 +54,8 @@
 
   function openValidationListModal(material, diag, unit, deps){
     const cfg = Object.assign({ mmToUnitStr:null }, deps || {});
-    if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || !diag || typeof cfg.mmToUnitStr !== 'function') return;
+    const lists = FC.rozrysLists;
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || !diag || typeof cfg.mmToUnitStr !== 'function' || !lists) return;
     const body = h('div');
     const summary = validationSummaryLabel(diag);
     const metaRow = h('div', { class:'rozrys-validation-summary' });
@@ -153,22 +64,23 @@
     metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Lista do rozkroju: ${diag.resolvedRows.length} pozycji` }));
     body.appendChild(metaRow);
     body.appendChild(h('div', { class:'muted xs', style:'margin:10px 0 0', text:'RAW SNAPSHOT 1:1 z Materiałów dla tego rozkroju.' }));
-    body.appendChild(buildRawTable(diag.rawRows, unit, cfg.mmToUnitStr));
+    body.appendChild(lists.buildRawTable(diag.rawRows, unit, cfg.mmToUnitStr));
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Lista do rozkroju (po scaleniu)' }));
-    body.appendChild(buildListTable((diag.resolvedRows || []).map((row)=>({
+    body.appendChild(lists.buildListTable((diag.resolvedRows || []).map((row)=>({
       name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok'
     })), unit, 'validation', cfg.mmToUnitStr));
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Walidacja rozrysu' }));
-    body.appendChild(buildListTable(diag.validation.rows, unit, 'validation', cfg.mmToUnitStr));
+    body.appendChild(lists.buildListTable(diag.validation.rows, unit, 'validation', cfg.mmToUnitStr));
     FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px' });
   }
 
   function openSheetListModal(material, sheetTitle, rows, unit, deps){
     const cfg = Object.assign({ mmToUnitStr:null }, deps || {});
-    if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || typeof cfg.mmToUnitStr !== 'function') return;
+    const lists = FC.rozrysLists;
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || typeof cfg.mmToUnitStr !== 'function' || !lists) return;
     const body = h('div');
     body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Formatki pogrupowane dla tego arkusza.' }));
-    body.appendChild(buildListTable(rows || [], unit, 'sheet', cfg.mmToUnitStr));
+    body.appendChild(lists.buildListTable(rows || [], unit, 'sheet', cfg.mmToUnitStr));
     FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px' });
   }
 

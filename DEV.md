@@ -124,12 +124,19 @@
 - `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
 - `js/app/magazyn.js` — logika magazynu.
 - `js/app/rozrys-choice.js` — launchery i overlaye wyboru w ROZRYS.
+- `js/app/rozrys-state.js` — centralny store stanu ROZRYS (selection/options/ui/cache) używany jako wspólne źródło prawdy dla zakładki.
 - `js/app/rozrys-print.js` — eksport CSV / druk / helpery PDF w ROZRYS.
-- `js/app/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS.
+- `js/app/rozrys-print-layout.js` — techniczny layout PDF/druk dla ROZRYS.
+- `js/app/rozrys-sheet-model.js` — model arkuszy/magazynu: dopasowanie formatów, podpisy, odejmowanie zużytych formatek, helpery podaży arkuszy.
+- `js/app/rozrys-sheet-helpers.js` — helpery canvas dla rysowania arkuszy.
+- `js/app/rozrys-sheet-draw.js` — główne rysowanie arkuszy na canvas.
+- `js/app/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS; po tej paczce deleguje model danych do `rozrys-sheet-model.js`.
 - `js/app/rozrys-cache.js` — helpery cache planów ROZRYS.
 - `js/app/rozrys-accordion.js` — helpery accordionu materiałów ROZRYS.
-- `js/app/rozrys-render.js` — helpery auto-renderu z cache, renderu wyników, listy formatek, CSV/PDF launchera i spinnera ROZRYS.
-- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, rysowania arkuszy, logiki stock-limit, auto-renderu i renderu wyników do modułów pomocniczych.
+- `js/app/rozrys-lists.js` — listy i karty wyników ROZRYS: `Lista formatek`, `Formatki arkusza`, karta podsumowania, launchery eksportu i karty arkuszy.
+- `js/app/rozrys-render.js` — helpery auto-renderu z cache, renderu wyników i spinnera ROZRYS; po tej paczce deleguje karty/listy do `rozrys-lists.js`.
+- `js/app/rozrys-summary.js` — diagnostyka i modale walidacji/list ROZRYS, oparte o `rozrys-lists.js`.
+- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, stanu, modelu arkuszy, rysowania, logiki stock-limit, auto-renderu i renderu wyników do modułów pomocniczych.
 
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
@@ -616,3 +623,21 @@ Dopiero potem go zmieniać.
 - Z `js/app/rozrys.js` wydzielono: diagnostykę/walidację list (`Lista formatek`, `lista arkusza`), stan/progres/anulowanie generowania, modal `Dodaj płytę do magazynu`, oraz przebieg generowania materiałów (`generate()` + `runOne()` jako osobny runner).
 - `index.html` dostał wspólny cache-busting `20260327_rozrys_split_v5` dla całego pakietu `rozrys-*`.
 - Cel paczki: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.
+
+
+## 2026-03-27 — ROZRYS split v7 (state + sheet-model + lists)
+- Dodano nowe moduły: `js/app/rozrys-state.js`, `js/app/rozrys-sheet-model.js`, `js/app/rozrys-lists.js`.
+- `rozrys-state.js` wprowadza centralny store stanu ROZRYS (`selection`, `options`, `ui`, `cache`) oraz helper budowy bazowego stanu z kontrolek panelu.
+- `rozrys-sheet-model.js` przejął modelowanie arkuszy/magazynu: dopasowanie formatów, podpisy formatek, odejmowanie zużytych elementów i helpery podaży arkuszy.
+- `rozrys-lists.js` przejął warstwę list/kart wyników ROZRYS: tabela `Lista formatek`, tabela `Formatki arkusza`, karta podsumowania, akcje eksportu i karty arkuszy.
+- `js/app/rozrys-stock.js` deleguje logikę modelu danych do `rozrys-sheet-model.js` zamiast trzymać wszystko w jednym pliku.
+- `js/app/rozrys-render.js` i `js/app/rozrys-summary.js` delegują UI list i kart do `rozrys-lists.js`.
+- `js/app/rozrys.js` został spięty z centralnym store stanu ROZRYS, dzięki czemu wybory zakresu, podstawowy stan opcji, status przycisku i ostatni stan cache są utrzymywane w jednym miejscu.
+- `index.html` dostał nowy wspólny cache-busting pakietu `rozrys-*`: `20260327_rozrys_split_v7`.
+
+## 2026-03-27 — ROZRYS dev tests / anty-regresja
+- Dodano `js/app/rozrys-dev-fixtures.js` — stałe scenariusze testowe dla ROZRYS (prosty plan, plan mieszany magazyn+zamówić, przypadki cache i wydruku).
+- Dodano `js/app/rozrys-dev-tests.js` — lekki runner smoke-testów sprawdzający store stanu, model arkuszy/magazynu, walidację, cache, prosty engine shelf i strukturę HTML wydruku.
+- Dodano `tools/rozrys-dev-smoke.js` — uruchamialny z Node skrypt developerski bez zależności zewnętrznych; zwraca kod błędu, jeśli któryś smoke-test nie przejdzie.
+- Dodano `dev_rozrys_smoke.html` — prostą stronę developerską do ręcznego odpalenia testów w przeglądarce, bez ingerencji w główne UI aplikacji.
+- Paczka nie zmienia UI użytkownika końcowego; dokłada techniczną siatkę bezpieczeństwa pod kolejne refaktory ROZRYS.

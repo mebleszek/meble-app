@@ -94,7 +94,7 @@
       drawSheet:null,
       cutOptimizer:null,
     }, deps || {});
-    const tgt = (cfg.target || cfg.out);
+    const tgt = cfg.target || cfg.out;
     if(!tgt) return;
     tgt.innerHTML = '';
     const opt = cfg.cutOptimizer || FC.cutOptimizer || {};
@@ -110,6 +110,7 @@
     const validationLabel = typeof cfg.validationSummaryLabel === 'function'
       ? cfg.validationSummaryLabel(diagnostics)
       : { tone:'is-muted', text:'Brak walidacji' };
+    const lists = FC.rozrysLists;
 
     const getSupplyMeta = (sheet)=>{
       const source = String((sheet && sheet.supplySource) || '');
@@ -170,73 +171,39 @@
     }, { area:0, used:0, waste:0, count:0, hasVirtualHalf:false, hasRealHalf:false });
 
     const pct = sum.area>0 ? (sum.waste/sum.area)*100 : 0;
-    const cancelledNote = (meta && meta.cancelled) ? '<div class="muted xs" style="margin-top:6px;font-weight:700">Generowanie przerwane — pokazuję najlepszy wynik do tej pory.</div>' : '';
-    const realHalfNote = sum.hasRealHalf ? '<div class="muted xs" style="margin-top:6px">Końcówka policzona na realnej połówce z magazynu, ale rysowana na pełnym arkuszu.</div>' : '';
-    const virtualNote = sum.hasVirtualHalf ? '<div class="muted xs" style="margin-top:6px">Ostatnia końcówka liczona wirtualnie jako 0,5 płyty, ale rysowana na pełnym arkuszu.</div>' : '';
-    const summaryCard = h('div', { class:'card', style:'margin:0' });
-    summaryCard.appendChild(h('div', { html:`
-      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div><strong>Materiał:</strong> ${meta.material}</div>
-        <div><strong>Płyty:</strong> ${formatSheetCount(sum.count)} szt.</div>
-        <div><strong>Odpad:</strong> ${pct.toFixed(1)}%</div>
-      </div>
-      ${cancelledNote}
-      ${realHalfNote}
-      ${virtualNote}
-    ` }));
-    const validationRow = h('div', { class:'rozrys-validation-summary' });
-    validationRow.appendChild(h('span', { class:`rozrys-pill ${validationLabel.tone}`, text:validationLabel.text }));
-    if(diagnostics){
-      validationRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Snapshot: ${diagnostics.resolvedRows.length} pozycji` }));
+    const summaryPayload = {
+      count: sum.count,
+      sheetCountText: formatSheetCount(sum.count),
+      hasVirtualHalf: sum.hasVirtualHalf,
+      hasRealHalf: sum.hasRealHalf,
+    };
+    if(lists && typeof lists.renderSummaryCard === 'function'){
+      tgt.appendChild(lists.renderSummaryCard({ meta, diagnostics, validationLabel, summary: summaryPayload, wastePct: pct }));
     }
-    summaryCard.appendChild(validationRow);
-    tgt.appendChild(summaryCard);
 
-    const expRow = h('div', { class:'rozrys-list-actions', style:'justify-content:flex-end' });
-    if(diagnostics && typeof cfg.openValidationListModal === 'function'){
-      const listBtn = h('button', { class:'btn-primary', type:'button', text:'Lista formatek' });
-      listBtn.addEventListener('click', ()=> cfg.openValidationListModal(meta.material, diagnostics, u));
-      expRow.appendChild(listBtn);
-    }
-    if(typeof cfg.buildCsv === 'function' && typeof cfg.downloadText === 'function'){
-      const csvBtn = h('button', { class:'btn-primary', type:'button' });
-      csvBtn.textContent = 'Eksport CSV';
-      csvBtn.addEventListener('click', ()=>{
-        const csv = cfg.buildCsv(sheets, meta);
-        cfg.downloadText('rozrys.csv', csv, 'text/csv;charset=utf-8');
-      });
-      expRow.appendChild(csvBtn);
-    }
-    if(typeof cfg.openPrintView === 'function' && typeof cfg.measurePrintHeaderMm === 'function' && typeof cfg.drawSheet === 'function' && typeof cfg.mmToUnitStr === 'function'){
-      const pdfBtn = h('button', { class:'btn-primary', type:'button' });
-      pdfBtn.textContent = 'Eksport PDF (drukuj)';
-      pdfBtn.addEventListener('click', ()=>{
-        const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
-        const escapeHtml = (value)=> String(value == null ? '' : value).replace(/[&<>"]/g, (ch)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
-        const imgs = [];
+    const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
+    const printLayout = FC.rozrysPrintLayout;
+    const printDeps = printLayout ? {
+      openPrint({ sheets, meta, unit, summary }){
         const rotatePdfSheets = true;
+        const imgs = [];
         try{
-          sheets.forEach((s)=>{
-            const c = document.createElement('canvas');
-            const tmp = document.createElement('div');
-            tmp.style.width = '1100px';
-            tmp.style.position = 'absolute';
-            tmp.style.left = '-99999px';
-            tmp.style.top = '0';
-            tmp.style.pointerEvents = 'none';
-            tmp.appendChild(c);
-            document.body.appendChild(tmp);
-            cfg.drawSheet(c, s, u, edgeSubMm, getBoardMeta(s));
-            let exportCanvas = c;
+          const canvasList = Array.from(tgt.querySelectorAll('canvas[data-rozrys-sheet="1"]'));
+          canvasList.forEach((cv)=>{
+            const payload = cv && cv.__rozrysDrawPayload ? cv.__rozrysDrawPayload : null;
+            if(!payload || typeof cfg.drawSheet !== 'function') return;
+            const tmp = document.createElement('canvas');
+            cfg.drawSheet(tmp, payload.sheet, payload.displayUnit || unit, payload.edgeSubMm, payload.boardMeta || null, true);
+            let exportCanvas = tmp;
             if(rotatePdfSheets){
               const rotated = document.createElement('canvas');
-              rotated.width = c.height || 0;
-              rotated.height = c.width || 0;
+              rotated.width = tmp.height;
+              rotated.height = tmp.width;
               const rctx = rotated.getContext('2d');
               if(rctx){
                 rctx.translate(rotated.width / 2, rotated.height / 2);
                 rctx.rotate(Math.PI / 2);
-                rctx.drawImage(c, -(c.width || 0) / 2, -(c.height || 0) / 2);
+                rctx.drawImage(tmp, -tmp.width / 2, -tmp.height / 2);
                 exportCanvas = rotated;
               }
             }
@@ -245,20 +212,19 @@
           });
         }catch(_){ }
 
-        const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
         const printTitle = `Rozrys — ${meta.material}`;
-        const printMetaLine = `Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}`;
-        const printLayout = FC.rozrysPrintLayout;
-        const html = (printLayout && typeof printLayout.buildPrintHtml === 'function')
+        const heurLabel = meta && meta.heur ? ` • Heurystyka: ${meta.heur}` : '';
+        const printMetaLine = `Płyty: ${summary.sheetCountText} • Kerf: ${meta.kerf}${unit}${heurLabel}${edgeSubMm>0 ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : ''}`;
+        const html = typeof printLayout.buildPrintHtml === 'function'
           ? printLayout.buildPrintHtml({
               sheets,
               imgs,
               meta,
-              unit:u,
+              unit,
               rotatePdfSheets,
               printTitle,
               printMetaLine,
-              totalSheetCount:sum.count,
+              totalSheetCount:summary.count,
             }, {
               getBoardMeta,
               calcDisplayWaste,
@@ -267,44 +233,36 @@
             })
           : '';
         if(html) cfg.openPrintView(html);
-      });
-      expRow.appendChild(pdfBtn);
-    }
-    tgt.appendChild(expRow);
+      }
+    } : null;
 
-    const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);
-    sheets.forEach((s,i)=>{
-      const box = h('div', { class:'card', style:'margin-top:12px' });
-      const bm = getBoardMeta(s);
-      const ws = calcDisplayWaste(s);
-      const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
-      const head = h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start' });
-      head.appendChild(h('div', { style:'font-weight:900', text:`Arkusz ${i+1} • odpad ${sheetWastePct.toFixed(1)}%${ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }));
-      const tools = h('div', { class:'rozrys-sheet-tools' });
-      const supplyMeta = getSupplyMeta(s);
-      if(supplyMeta){
-        tools.appendChild(h('span', { class:`rozrys-stock-chip ${supplyMeta.cls}`, text:supplyMeta.text }));
-      }
-      if(diagnostics && diagnostics.sheets && diagnostics.sheets[i] && typeof cfg.openSheetListModal === 'function'){
-        const sheetBtn = h('button', { class:'btn', type:'button', text:'Formatki arkusza' });
-        sheetBtn.addEventListener('click', ()=> cfg.openSheetListModal(meta.material, `Arkusz ${i+1}`, diagnostics.sheets[i].rows, u));
-        tools.appendChild(sheetBtn);
-      }
-      if(typeof cfg.mmToUnitStr === 'function'){
-        tools.appendChild(h('div', { class:'muted xs', text:`${cfg.mmToUnitStr(bm.boardW, u)}×${cfg.mmToUnitStr(bm.boardH, u)} ${u}` }));
-      }
-      head.appendChild(tools);
-      box.appendChild(head);
-      const canvas = document.createElement('canvas');
-      canvas.style.marginTop = '10px';
-      canvas.style.display = 'block';
-      canvas.style.maxWidth = '100%';
-      box.appendChild(canvas);
-      tgt.appendChild(box);
-      canvas.dataset.rozrysSheet = '1';
-      canvas.__rozrysDrawPayload = { sheet: s, displayUnit: u, edgeSubMm, boardMeta: getBoardMeta(s) };
-      if(typeof cfg.drawSheet === 'function') cfg.drawSheet(canvas, s, u, edgeSubMm, getBoardMeta(s));
-    });
+    if(lists && typeof lists.renderExportRow === 'function'){
+      tgt.appendChild(lists.renderExportRow({
+        diagnostics,
+        sheets,
+        meta,
+        unit:u,
+        summary: summaryPayload,
+        edgeSubMm,
+      }, {
+        openValidationListModal: cfg.openValidationListModal,
+        buildCsv: cfg.buildCsv,
+        downloadText: cfg.downloadText,
+        openPrintView: cfg.openPrintView,
+        printLayout: printDeps,
+      }));
+    }
+
+    if(lists && typeof lists.renderSheetCards === 'function'){
+      lists.renderSheetCards({ sheets, meta, diagnostics, unit:u, edgeSubMm }, {
+        drawSheet: cfg.drawSheet,
+        openSheetListModal: cfg.openSheetListModal,
+        mmToUnitStr: cfg.mmToUnitStr,
+        getSupplyMeta,
+        getBoardMeta,
+        calcDisplayWaste,
+      }).forEach((card)=> tgt.appendChild(card));
+    }
   }
 
   function tryAutoRenderFromCache(deps){
@@ -332,6 +290,7 @@
       getAccordionScopeKey:null,
       getRozrysScopeMode:null,
       renderMaterialAccordionPlans:null,
+      setCacheState:null,
     }, deps || {});
     try{
       if(cfg._rozrysRunning) return false;
@@ -342,6 +301,7 @@
       if(!entries.length){
         if(cfg.out) cfg.out.innerHTML = '';
         if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode('idle');
+        if(typeof cfg.setCacheState === 'function') cfg.setCacheState({ lastAutoRenderHit:false, lastScopeKey:'' });
         return false;
       }
 
@@ -389,10 +349,15 @@
           )
         : false;
       if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
+      if(typeof cfg.setCacheState === 'function') cfg.setCacheState({
+        lastAutoRenderHit: !!anyHit,
+        lastScopeKey: typeof cfg.getAccordionScopeKey === 'function' ? cfg.getAccordionScopeKey(scope, cfg.agg) : '',
+      });
       return anyHit;
     }catch(_){
       if(cfg.out) cfg.out.innerHTML = '';
       if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode('idle');
+      if(typeof cfg.setCacheState === 'function') cfg.setCacheState({ lastAutoRenderHit:false });
       return false;
     }
   }

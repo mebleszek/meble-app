@@ -112,3 +112,38 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 
 - `schema.js` is now the primary source of truth for project/room normalization; `app.js` keeps only a minimal emergency fallback.
 - `js/app/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
+
+## Testy developerskie ROZRYS
+
+Repo ma teraz prostą warstwę anty-regresyjną dla ROZRYS.
+
+### Wariant 1 — skrypt Node
+
+Uruchom w katalogu projektu:
+
+```bash
+node tools/rozrys-dev-smoke.js
+```
+
+Skrypt sprawdza podstawowe rzeczy bez odpalania całej aplikacji:
+- store stanu ROZRYS,
+- model arkuszy i magazynu,
+- walidację planu,
+- stabilność cache,
+- prosty plan engine,
+- strukturę HTML wydruku.
+
+Jeśli któryś test nie przejdzie, skrypt kończy się błędem.
+
+### Wariant 2 — strona developerska
+
+Otwórz w przeglądarce plik:
+
+- `dev_rozrys_smoke.html`
+
+Na stronie jest przycisk `Uruchom testy ROZRYS`, który pokazuje wynik PASS/FAIL dla przygotowanych smoke-testów.
+
+### Ważne
+
+To nie zastępuje końcowego sprawdzenia działania UI na realnych danych.
+To jest techniczna siatka bezpieczeństwa, która ma szybciej wyłapywać regresje po dużych zmianach w ROZRYS.
