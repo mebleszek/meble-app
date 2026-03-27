@@ -1874,7 +1874,7 @@
 
     async function applySheetStockLimit(material, st, parts, plan, opts){
       if(FC.rozrysStock && typeof FC.rozrysStock.applySheetStockLimit === 'function'){
-        return FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, opts, { computePlanWithCurrentEngine });
+        return FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, opts, { computePlanWithCurrentEngine, partSignature, isPartRotationAllowed });
       }
       return plan && typeof plan === 'object' ? plan : { sheets:[] };
     }
@@ -2024,7 +2024,7 @@
             stockExactQty: Math.max(0, Number(exactStock.qty) || 0),
             stockFullBoardW: Math.round(Number(fullStock.width) || 0),
             stockFullBoardH: Math.round(Number(fullStock.height) || 0),
-            stockPolicy: 'stock_limit_v2',
+            stockPolicy: 'stock_limit_v3',
             stockSignature: buildStockSignatureForMaterial(material),
           });
           const cacheKey = makePlanCacheKey(st, parts);
@@ -2720,7 +2720,7 @@ async function generate(force){
     st.stockExactQty = Math.max(0, Number(exactStock.qty) || 0);
     st.stockFullBoardW = Math.round(Number(fullStock.width) || 0);
     st.stockFullBoardH = Math.round(Number(fullStock.height) || 0);
-    st.stockPolicy = 'stock_limit_v2';
+    st.stockPolicy = 'stock_limit_v3';
     st.stockSignature = buildStockSignatureForMaterial(material);
     const cacheKey = makePlanCacheKey(st, parts);
     if(!force && cache[cacheKey] && cache[cacheKey].plan){

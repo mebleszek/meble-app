@@ -193,7 +193,7 @@
 
   async function applySheetStockLimit(material, st, parts, plan, opts, deps){
     const cfg = Object.assign({ onStatus:null }, opts || {});
-    const api = Object.assign({ computePlanWithCurrentEngine:null }, deps || {});
+    const api = Object.assign({ computePlanWithCurrentEngine:null, partSignature:null, isPartRotationAllowed:null }, deps || {});
     const basePlan = plan && typeof plan === 'object' ? plan : { sheets:[] };
     const currentWmm = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
     const currentHmm = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
@@ -234,7 +234,7 @@
           realHalfBoardW: 0,
           realHalfBoardH: 0,
         });
-        const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain, rowState.grainExceptions || {});
+        const candidateParts = filterPartsForSheet(remainingParts, rowW, rowH, trimMm, !!rowState.grain, rowState.grainExceptions || {}, { isPartRotationAllowed: api.isPartRotationAllowed });
         if(!candidateParts.length) continue;
         let rowPlan = typeof api.computePlanWithCurrentEngine === 'function'
           ? await api.computePlanWithCurrentEngine(rowState, candidateParts)
@@ -255,7 +255,7 @@
           trimMm,
         }));
         const usedMap = countPlacedPartsByKey(usedSheetsRaw);
-        remainingParts = subtractPlacedParts(remainingParts, usedMap);
+        remainingParts = subtractPlacedParts(remainingParts, usedMap, { partSignature: api.partSignature });
         cancelled = cancelled || !!(rowPlan && rowPlan.cancelled);
         if(rowPlan && rowPlan.note) notes.push(rowPlan.note);
       }

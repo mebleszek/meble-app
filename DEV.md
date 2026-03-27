@@ -2,6 +2,11 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-26 — rozrys_validation_fix_v1
+- `js/app/rozrys-stock.js` — naprawiona regresja po module split: odejmowanie formatek już wykorzystanych z magazynu znowu używa pełnego `partSignature()`, więc brakujące elementy nie są dublowane na płytach zamawianych; dodatkowo filtr dopasowania do arkusza magazynowego znowu respektuje blokadę obrotu wynikającą ze słojów.
+- `js/app/rozrys.js` — wrapper do `applySheetStockLimit()` przekazuje wymagane zależności (`partSignature`, `isPartRotationAllowed`) i podbija `stockPolicy` do `v3`, żeby nie używać błędnych planów z cache po poprzedniej paczce.
+- `index.html` — podbite cache-busting dla całego zestawu modułów ROZRYS powiązanych z tą paczką.
+
 ### 2026-03-26 — rozrys_module_split_v2
 - `js/app/rozrys.js` — dalsze odchudzenie przez przeniesienie pickerów, rysowania arkuszy, limitu stanów magazynowych i renderu accordionu do modułów pomocniczych bez zmiany UI.
 - `js/app/rozrys-pickers.js` — wydzielone modale wyboru pomieszczeń oraz materiału / grupy w ROZRYS.
