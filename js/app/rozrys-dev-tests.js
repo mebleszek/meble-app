@@ -36,8 +36,37 @@
     }
   }
 
-  function makeTest(name, fn){
-    return { name, fn };
+  function makeTest(group, name, explain, fn){
+    return { group, name, explain, fn };
+  }
+
+  function detailsToText(details){
+    if(details == null) return '';
+    if(typeof details === 'string') return details;
+    try{
+      return JSON.stringify(details, null, 2);
+    }catch(_error){
+      return String(details);
+    }
+  }
+
+  function makeClipboardReport(report){
+    const lines = [];
+    lines.push(`ROZRYS smoke testy: ${report.passed}/${report.total} OK`);
+    lines.push(`Błędy: ${report.failed}`);
+    lines.push(`Czas: ${report.durationMs} ms`);
+    report.groups.forEach((group)=>{
+      lines.push('');
+      lines.push(`[${group.name}] ${group.passed}/${group.total} OK`);
+      group.results.forEach((row)=>{
+        lines.push(`- ${row.ok ? 'OK' : 'BŁĄD'}: ${row.name}`);
+        if(row.explain) lines.push(`  Po co: ${row.explain}`);
+        if(!row.ok && row.message) lines.push(`  Powód: ${row.message}`);
+        const detailsText = !row.ok ? detailsToText(row.details) : '';
+        if(detailsText) lines.push(`  Szczegóły: ${detailsText}`);
+      });
+    });
+    return lines.join('\n');
   }
 
   function runAll(){
@@ -52,7 +81,7 @@
     assert(FC.rozrysPrintLayout, 'Brak FC.rozrysPrintLayout');
 
     const tests = [
-      makeTest('Store ROZRYS zapamiętuje selection/options/ui/cache', ()=>{
+      makeTest('Stan i wybór', 'Store ROZRYS zapamiętuje selection/options/ui/cache', 'Sprawdza, czy wspólny stan ROZRYS nie gubi wyboru pomieszczeń, zakresu materiału, opcji, UI i cache.', ()=>{
         const store = FC.rozrysState.createStore({
           selectedRooms:['Salon'],
           options:{ unit:'cm', heur:'optimax' },
@@ -69,7 +98,7 @@
         assert(store.getUiState().running === true, 'Store zgubił ui.running');
         assert(store.getCacheState().lastAutoRenderHit === true, 'Store zgubił cache flag');
       }),
-      makeTest('Model arkusza respektuje blokadę obrotu przy słojach', ()=>{
+      makeTest('Magazyn i arkusze', 'Model arkusza respektuje blokadę obrotu przy słojach', 'Sprawdza, czy formatka nie przejdzie tylko dlatego, że zmieściłaby się po niedozwolonym obrocie.', ()=>{
         const parts = [
           { key:'grain||front||600x350', name:'Front', material:'Dąb dziki', w:600, h:350, qty:2 },
           { key:'grain||wstega||350x600', name:'Wstęga', material:'Dąb dziki', w:350, h:600, qty:1 },
@@ -80,7 +109,7 @@
         assert(result.length === 1, 'Przy słojach weszła formatka tylko po obrocie albo odpadła zła liczba elementów', { result });
         assert(result[0].name === 'Front', 'Zły element przeszedł filtr słojów', { result });
       }),
-      makeTest('Model arkusza odejmuje wykorzystane formatki z magazynu', ()=>{
+      makeTest('Magazyn i arkusze', 'Model arkusza odejmuje wykorzystane formatki z magazynu', 'Sprawdza, czy element wycięty z płyty magazynowej nie wraca drugi raz do planu zamówienia.', ()=>{
         const parts = Fx.basicParts();
         const used = FC.rozrysSheetModel.countPlacedPartsByKey(Fx.mixedPlanSheets().filter((sheet)=> sheet.supplySource === 'stock'), {
           parts,
@@ -92,14 +121,14 @@
         const polka = left.find((row)=> row.name === 'Półka');
         assert(polka && polka.qty === 4, 'Odjęcie z magazynu naruszyło inne elementy', { left });
       }),
-      makeTest('Walidacja przechodzi dla planu mieszanego: magazyn + zamówić', ()=>{
+      makeTest('Walidacja', 'Walidacja przechodzi dla planu mieszanego: magazyn + zamówić', 'Sprawdza, czy plan łączący magazyn i nowe płyty nie pokazuje fałszywego nadmiaru.', ()=>{
         const parts = Fx.basicParts();
         const expected = FC.rozrysValidation.rowsFromParts(parts);
         const actual = FC.rozrysValidation.summarizePlan({ sheets: Fx.mixedPlanSheets() }, 'MDF 18 biały').rows;
         const validation = FC.rozrysValidation.validate(expected, actual);
         assert(validation.ok === true, 'Walidacja nie przechodzi dla poprawnego planu mieszanego', validation);
       }),
-      makeTest('Klucz cache jest stabilny dla tych samych danych', ()=> withIsolatedLocalStorage(()=>{
+      makeTest('Cache', 'Klucz cache jest stabilny dla tych samych danych', 'Sprawdza, czy identyczne dane dają dokładnie ten sam klucz cache.', ()=> withIsolatedLocalStorage(()=>{
         const state = Fx.cacheState('sig-a');
         const parts = Fx.basicParts();
         const keyA = FC.rozrysCache.makePlanCacheKey(state, parts, {
@@ -114,7 +143,7 @@
         });
         assert(keyA === keyB, 'Ten sam stan daje różne klucze cache', { keyA, keyB });
       })),
-      makeTest('Klucz cache zmienia się po zmianie stockSignature', ()=> withIsolatedLocalStorage(()=>{
+      makeTest('Cache', 'Klucz cache zmienia się po zmianie stockSignature', 'Sprawdza, czy zmiana stanów magazynu wymusza nowy klucz cache, a więc nowe liczenie.', ()=> withIsolatedLocalStorage(()=>{
         const parts = Fx.basicParts();
         const keyA = FC.rozrysCache.makePlanCacheKey(Fx.cacheState('sig-a'), parts, {
           partSignature: fallbackPartSignature,
@@ -128,7 +157,7 @@
         });
         assert(keyA !== keyB, 'Zmiana podpisu stanów magazynu nie zmienia klucza cache', { keyA, keyB });
       })),
-      makeTest('Engine liczy prosty plan shelf bez pustego wyniku', ()=>{
+      makeTest('Silnik planowania', 'Engine liczy prosty plan shelf bez pustego wyniku', 'Sprawdza, czy dla prostego zestawu solver zwraca realny plan zamiast pustego wyniku.', ()=>{
         const plan = FC.rozrysEngine.computePlan(Fx.baseState({ heur:'simple', direction:'auto' }), Fx.basicParts(), {
           cutOptimizer: FC.cutOptimizer,
           partSignature: fallbackPartSignature,
@@ -139,7 +168,7 @@
         const placements = plan.sheets.reduce((sum, sheet)=> sum + ((sheet && sheet.placements) || []).filter((pl)=> pl && !pl.unplaced).length, 0);
         assert(placements >= 1, 'Engine nie rozmieścił żadnej formatki', plan);
       }),
-      makeTest('Layout druku buduje HTML z tytułem i arkuszami', ()=>{
+      makeTest('Eksport i druk', 'Layout druku buduje HTML z tytułem i arkuszami', 'Sprawdza, czy wydruk składa poprawny HTML z tytułem i kartami arkuszy.', ()=>{
         const html = FC.rozrysPrintLayout.buildPrintHtml(Fx.printPayload(), {
           measurePrintHeaderMm: ()=> 14,
           mmToUnitStr: (mm)=> String(mm),
@@ -149,7 +178,7 @@
         assert(/Test rozrysu/.test(html), 'HTML wydruku nie zawiera tytułu', { html });
         assert((html.match(/class="sheet-card"/g) || []).length === 2, 'HTML wydruku nie zawiera dwóch arkuszy', { html });
       }),
-      makeTest('Save/load cache zachowuje ostatni wpis', ()=> withIsolatedLocalStorage(()=>{
+      makeTest('Cache', 'Save/load cache zachowuje ostatni wpis', 'Sprawdza, czy zapisany cache daje się odczytać bez utraty ostatniego wpisu.', ()=> withIsolatedLocalStorage(()=>{
         const cache = {
           a:{ ts:1, value:'x' },
           b:{ ts:2, value:'y' },
@@ -164,10 +193,12 @@
     const results = tests.map((test)=>{
       try{
         test.fn();
-        return { name:test.name, ok:true };
+        return { group:test.group, name:test.name, explain:test.explain, ok:true };
       }catch(error){
         return {
+          group:test.group,
           name:test.name,
+          explain:test.explain,
           ok:false,
           message:error && error.message ? error.message : String(error),
           details:error && error.details ? error.details : null,
@@ -175,14 +206,30 @@
       }
     });
     const passed = results.filter((row)=> row.ok).length;
-    return {
+    const groupsMap = new Map();
+    results.forEach((row)=>{
+      if(!groupsMap.has(row.group)) groupsMap.set(row.group, []);
+      groupsMap.get(row.group).push(row);
+    });
+    const groups = Array.from(groupsMap.entries()).map(([name, rows])=>({
+      name,
+      total: rows.length,
+      passed: rows.filter((row)=> row.ok).length,
+      failed: rows.filter((row)=> !row.ok).length,
+      results: rows,
+    }));
+    const report = {
       ok: passed === results.length,
       total: results.length,
       passed,
       failed: results.length - passed,
       durationMs: Date.now() - startedAt,
       results,
+      groups,
     };
+    report.summaryText = `${report.passed}/${report.total} OK`;
+    report.clipboardText = makeClipboardReport(report);
+    return report;
   }
 
   FC.rozrysDevTests = { runAll };

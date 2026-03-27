@@ -147,3 +147,10 @@ Na stronie jest przycisk `Uruchom testy ROZRYS`, który pokazuje wynik PASS/FAIL
 
 To nie zastępuje końcowego sprawdzenia działania UI na realnych danych.
 To jest techniczna siatka bezpieczeństwa, która ma szybciej wyłapywać regresje po dużych zmianach w ROZRYS.
+
+
+## ROZRYS — strona testowa
+
+Plik `dev_rozrys_smoke.html` uruchamia smoke-testy ROZRYS przez stronę.
+Po kliknięciu `Uruchom testy ROZRYS` pokazuje czytelny raport: co przeszło, co nie przeszło, krótki powód błędu oraz podsumowanie `X/Y OK`.
+Przycisk `Kopiuj raport` pozwala szybko skopiować wynik do wklejenia w rozmowie.

@@ -15,27 +15,46 @@
       --ok-border:#7ac48e;
       --bad:#fff0f0;
       --bad-border:#e38e8e;
+      --info:#eef4ff;
+      --info-border:#9ab3e5;
       --btn:#dfe9ff;
       --btn-border:#9ab3e5;
+      --btn-good:#e5f7ea;
+      --btn-good-border:#78bf90;
+      --shadow:0 8px 24px rgba(17,24,39,.06);
     }
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
-    .page{ max-width:980px; margin:32px auto; padding:0 16px 32px; }
-    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:0 8px 24px rgba(17,24,39,.06); }
+    .page{ max-width:1080px; margin:32px auto; padding:0 16px 32px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:var(--shadow); }
     h1{ margin:0 0 10px; font-size:28px; line-height:1.15; }
+    h2{ margin:0; font-size:18px; line-height:1.2; }
     p{ margin:0 0 10px; color:var(--muted); }
     .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
     button{ appearance:none; border:1px solid var(--btn-border); background:var(--btn); color:#162033; padding:12px 18px; border-radius:14px; font:800 16px/1.15 inherit; cursor:pointer; }
     button:active{ background:#fff; }
+    button[disabled]{ opacity:.55; cursor:not-allowed; }
+    .button-good{ background:var(--btn-good); border-color:var(--btn-good-border); }
+    .overall{ margin-top:18px; padding:16px; border-radius:16px; border:1px solid var(--info-border); background:var(--info); }
+    .overall.ok{ background:var(--ok); border-color:var(--ok-border); }
+    .overall.bad{ background:var(--bad); border-color:var(--bad-border); }
+    .overall-title{ font-size:22px; font-weight:900; margin-bottom:6px; }
     .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:18px; }
     .stat{ border:1px solid var(--border); border-radius:16px; padding:14px; background:#fafbff; }
     .stat strong{ display:block; font-size:24px; }
-    .results{ display:grid; gap:10px; margin-top:18px; }
-    .row{ border-radius:14px; padding:12px 14px; border:1px solid var(--border); background:#fafbff; }
+    .groups{ display:grid; gap:14px; margin-top:18px; }
+    .group{ border:1px solid var(--border); border-radius:16px; background:#fafbff; overflow:hidden; }
+    .group-head{ display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .group-meta{ color:var(--muted); font-weight:700; }
+    .rows{ display:grid; gap:10px; padding:14px; }
+    .row{ border-radius:14px; padding:12px 14px; border:1px solid var(--border); background:#fff; }
     .row.ok{ background:var(--ok); border-color:var(--ok-border); }
     .row.bad{ background:var(--bad); border-color:var(--bad-border); }
-    .row-title{ font-weight:800; }
-    .row-msg{ margin-top:6px; color:var(--muted); white-space:pre-wrap; }
+    .row-title{ font-weight:900; }
+    .row-explain{ margin-top:6px; color:var(--muted); }
+    .row-msg{ margin-top:8px; color:#6e1c1c; white-space:pre-wrap; font-weight:700; }
+    .row-details{ margin-top:8px; color:var(--muted); white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+    .help{ margin-top:18px; padding:14px 16px; border-radius:16px; border:1px solid var(--border); background:#fbfcff; }
     .muted{ color:var(--muted); }
   </style>
 </head>
@@ -43,30 +62,39 @@
   <main class="page">
     <section class="card">
       <h1>ROZRYS — testy developerskie</h1>
-      <p>Ta strona służy do szybkiego sprawdzenia najważniejszych technicznych rzeczy bez klikania całej aplikacji ręcznie. Testuje stan, magazyn, walidację, cache, prosty plan i strukturę wydruku.</p>
-      <p>Nie zastępuje Twojego końcowego sprawdzenia UI, ale pomaga szybciej wychwycić regresje po dużych paczkach.</p>
+      <p>Ta strona służy do szybkiego sprawdzenia najważniejszych technicznych rzeczy bez klikania całej aplikacji ręcznie.</p>
+      <p>Nie zastępuje końcowego sprawdzenia UI, ale pokazuje jasno: co przeszło, co nie przeszło i dlaczego.</p>
       <div class="toolbar">
         <button id="runTests" type="button">Uruchom testy ROZRYS</button>
+        <button id="copyReport" class="button-good" type="button" disabled>Kopiuj raport</button>
       </div>
+      <div id="overall" class="overall" hidden></div>
       <div id="summary" class="summary" hidden></div>
-      <div id="results" class="results"></div>
+      <div id="groups" class="groups"></div>
+      <div class="help">
+        <strong>Jak to czytać:</strong>
+        <div class="muted">Jeśli wszystko jest zielone i na górze widzisz np. <b>9/9 OK</b>, techniczna warstwa ROZRYS przeszła. Jeśli coś padnie, przy danym teście zobaczysz krótki powód błędu.</div>
+      </div>
     </section>
   </main>
 
-  <script src="js/app/cut-optimizer.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-validation.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-cache.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-state.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-sheet-model.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-engine.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-print-layout.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-dev-fixtures.js?v=20260327_rozrys_devtests_v1"></script>
-  <script src="js/app/rozrys-dev-tests.js?v=20260327_rozrys_devtests_v1"></script>
+  <script src="js/app/cut-optimizer.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-validation.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-cache.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-state.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-sheet-model.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-engine.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-print-layout.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-dev-fixtures.js?v=20260328_rozrys_devtests_ui_v2"></script>
+  <script src="js/app/rozrys-dev-tests.js?v=20260328_rozrys_devtests_ui_v2"></script>
   <script>
     (function(){
       const runBtn = document.getElementById('runTests');
+      const copyBtn = document.getElementById('copyReport');
+      const overall = document.getElementById('overall');
       const summary = document.getElementById('summary');
-      const results = document.getElementById('results');
+      const groups = document.getElementById('groups');
+      let lastReport = null;
 
       function stat(label, value){
         const div = document.createElement('div');
@@ -75,42 +103,118 @@
         return div;
       }
 
-      function render(report){
+      function detailsToText(details){
+        if(details == null) return '';
+        if(typeof details === 'string') return details;
+        try{ return JSON.stringify(details, null, 2); }
+        catch(_error){ return String(details); }
+      }
+
+      function renderOverall(report){
+        overall.hidden = false;
+        overall.className = `overall ${report.ok ? 'ok' : 'bad'}`;
+        const title = report.ok ? `Wynik: ${report.summaryText}` : `Wynik: ${report.summaryText} — są błędy`;
+        const desc = report.ok
+          ? 'Wszystkie testy z tej paczki przeszły.'
+          : 'Nie wszystkie testy przeszły. Niżej widać dokładnie, który test padł i dlaczego.';
+        overall.innerHTML = `<div class="overall-title">${title}</div><div class="muted">${desc}</div>`;
+      }
+
+      function renderSummary(report){
         summary.hidden = false;
         summary.innerHTML = '';
         summary.appendChild(stat('Łącznie testów', report.total));
         summary.appendChild(stat('Zaliczone', report.passed));
         summary.appendChild(stat('Błędy', report.failed));
         summary.appendChild(stat('Czas', `${report.durationMs} ms`));
+      }
 
-        results.innerHTML = '';
-        report.results.forEach((row)=>{
-          const el = document.createElement('div');
-          el.className = `row ${row.ok ? 'ok' : 'bad'}`;
-          const title = document.createElement('div');
-          title.className = 'row-title';
-          title.textContent = `${row.ok ? 'OK' : 'BŁĄD'} — ${row.name}`;
-          el.appendChild(title);
-          if(!row.ok){
-            const msg = document.createElement('div');
-            msg.className = 'row-msg';
-            msg.textContent = row.message || 'Nieznany błąd';
-            el.appendChild(msg);
-            if(row.details){
-              const details = document.createElement('div');
-              details.className = 'row-msg';
-              details.textContent = JSON.stringify(row.details, null, 2);
-              el.appendChild(details);
+      function renderGroups(report){
+        groups.innerHTML = '';
+        report.groups.forEach((group)=>{
+          const box = document.createElement('section');
+          box.className = 'group';
+          const head = document.createElement('div');
+          head.className = 'group-head';
+          head.innerHTML = `<h2>${group.name}</h2><div class="group-meta">${group.passed}/${group.total} OK</div>`;
+          box.appendChild(head);
+
+          const rows = document.createElement('div');
+          rows.className = 'rows';
+          group.results.forEach((row)=>{
+            const el = document.createElement('div');
+            el.className = `row ${row.ok ? 'ok' : 'bad'}`;
+            const title = document.createElement('div');
+            title.className = 'row-title';
+            title.textContent = `${row.ok ? 'OK' : 'BŁĄD'} — ${row.name}`;
+            el.appendChild(title);
+            if(row.explain){
+              const explain = document.createElement('div');
+              explain.className = 'row-explain';
+              explain.textContent = `Po co ten test: ${row.explain}`;
+              el.appendChild(explain);
             }
-          }
-          results.appendChild(el);
+            if(!row.ok){
+              const msg = document.createElement('div');
+              msg.className = 'row-msg';
+              msg.textContent = row.message || 'Nieznany błąd';
+              el.appendChild(msg);
+              const detailsText = detailsToText(row.details);
+              if(detailsText){
+                const details = document.createElement('div');
+                details.className = 'row-details';
+                details.textContent = detailsText;
+                el.appendChild(details);
+              }
+            }
+            rows.appendChild(el);
+          });
+          box.appendChild(rows);
+          groups.appendChild(box);
         });
       }
 
+      async function copyReport(){
+        if(!lastReport || !lastReport.clipboardText) return;
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(lastReport.clipboardText);
+          }else{
+            const ta = document.createElement('textarea');
+            ta.value = lastReport.clipboardText;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+          }
+          copyBtn.textContent = 'Raport skopiowany';
+          setTimeout(()=>{ copyBtn.textContent = 'Kopiuj raport'; }, 1500);
+        }catch(error){
+          copyBtn.textContent = 'Nie udało się skopiować';
+          setTimeout(()=>{ copyBtn.textContent = 'Kopiuj raport'; }, 1800);
+        }
+      }
+
       runBtn.addEventListener('click', ()=>{
-        const report = window.FC.rozrysDevTests.runAll();
-        render(report);
+        runBtn.disabled = true;
+        runBtn.textContent = 'Uruchamiam...';
+        copyBtn.disabled = true;
+        groups.innerHTML = '';
+        overall.hidden = true;
+        summary.hidden = true;
+        setTimeout(()=>{
+          const report = window.FC.rozrysDevTests.runAll();
+          lastReport = report;
+          renderOverall(report);
+          renderSummary(report);
+          renderGroups(report);
+          copyBtn.disabled = false;
+          runBtn.disabled = false;
+          runBtn.textContent = 'Uruchom testy ROZRYS ponownie';
+        }, 10);
       });
+
+      copyBtn.addEventListener('click', copyReport);
     })();
   </script>
 </body>

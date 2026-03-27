@@ -641,3 +641,8 @@ Dopiero potem go zmieniać.
 - Dodano `tools/rozrys-dev-smoke.js` — uruchamialny z Node skrypt developerski bez zależności zewnętrznych; zwraca kod błędu, jeśli któryś smoke-test nie przejdzie.
 - Dodano `dev_rozrys_smoke.html` — prostą stronę developerską do ręcznego odpalenia testów w przeglądarce, bez ingerencji w główne UI aplikacji.
 - Paczka nie zmienia UI użytkownika końcowego; dokłada techniczną siatkę bezpieczeństwa pod kolejne refaktory ROZRYS.
+
+
+## 2026-03-28 — dev smoke page report
+- Dopracowano `dev_rozrys_smoke.html`, żeby raport był czytelny dla użytkownika nietechnicznego.
+- Strona pokazuje teraz wynik ogólny, sekcje testów, opis po co jest dany test, powód błędu oraz przycisk `Kopiuj raport`.
