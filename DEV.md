@@ -1,5 +1,7 @@
 # DEV — porządek rozwoju meble-app / Optimax
 
+- 2026-03-28 — `site_dev_smoke_more_scenarios.zip`: rozbudowa smoke-testów ROZRYS do 18 scenariuszy; dodane testy bardziej życiowe dla wyjątków słojów, stabilności podpisu magazynu, formatu obróconego, nadmiaru walidacji, zmian klucza cache po wyjątkach/okleinach oraz układu 2 małych arkuszy na jednej stronie wydruku.
+
 ## Ostatnia paczka zmian
 
 ### 2026-03-27 — rozrys_split_v6

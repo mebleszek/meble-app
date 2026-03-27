@@ -69,6 +69,15 @@
     return lines.join('\n');
   }
 
+  function buildPrintDeps(){
+    return {
+      measurePrintHeaderMm: ()=> 14,
+      mmToUnitStr: (mm)=> String(mm),
+      getBoardMeta: (sheet)=> ({ boardW:sheet.boardW, boardH:sheet.boardH, referenceBoardW:sheet.boardW, referenceBoardH:sheet.boardH }),
+      calcDisplayWaste: ()=> ({ total:100, waste:20, realHalf:false, virtualHalf:false }),
+    };
+  }
+
   function runAll(){
     const Fx = FC.rozrysDevFixtures;
     assert(Fx, 'Brak FC.rozrysDevFixtures');
@@ -98,6 +107,21 @@
         assert(store.getUiState().running === true, 'Store zgubił ui.running');
         assert(store.getCacheState().lastAutoRenderHit === true, 'Store zgubił cache flag');
       }),
+      makeTest('Stan i wybór', 'Store scala częściowe zmiany bez gubienia reszty stanu', 'Sprawdza, czy częściowa zmiana UI albo opcji nie zeruje wcześniej zapisanego selection albo cache.', ()=>{
+        const store = FC.rozrysState.createStore({
+          selectedRooms:['Kuchnia'],
+          options:{ unit:'mm', heur:'simple', kerf:4 },
+          ui:{ buttonMode:'idle', running:false },
+          cache:{ lastAutoRenderHit:false, lastScopeKey:'scope-a' },
+        });
+        store.setUiState({ running:true });
+        store.patchOptionState({ heur:'optimax' });
+        assert(store.getSelection().selectedRooms[0] === 'Kuchnia', 'Częściowy update zgubił selection', store.getSelection());
+        assert(store.getCacheState().lastScopeKey === 'scope-a', 'Częściowy update zgubił cache', store.getCacheState());
+        assert(store.getUiState().running === true, 'UI nie przyjęło częściowego update', store.getUiState());
+        assert(store.getOptionState().heur === 'optimax', 'Options nie przyjęły częściowego update', store.getOptionState());
+        assert(store.getOptionState().kerf === 4, 'Options zgubiły poprzedni kerf', store.getOptionState());
+      }),
       makeTest('Magazyn i arkusze', 'Model arkusza respektuje blokadę obrotu przy słojach', 'Sprawdza, czy formatka nie przejdzie tylko dlatego, że zmieściłaby się po niedozwolonym obrocie.', ()=>{
         const parts = [
           { key:'grain||front||600x350', name:'Front', material:'Dąb dziki', w:600, h:350, qty:2 },
@@ -108,6 +132,32 @@
         });
         assert(result.length === 1, 'Przy słojach weszła formatka tylko po obrocie albo odpadła zła liczba elementów', { result });
         assert(result[0].name === 'Front', 'Zły element przeszedł filtr słojów', { result });
+      }),
+      makeTest('Magazyn i arkusze', 'Wyjątek słojów free dopuszcza obrót tylko dla wskazanej formatki', 'Sprawdza, czy materiał ze słojami może obrócić wyłącznie formatkę oznaczoną wyjątkiem, bez odblokowania reszty.', ()=>{
+        const part = Fx.rotationOnlyPart();
+        const withoutOverride = FC.rozrysSheetModel.filterPartsForSheet([part], 400, 800, 20, true, {}, {
+          isPartRotationAllowed: defaultRotationAllowed,
+        });
+        const withOverride = FC.rozrysSheetModel.filterPartsForSheet([part], 400, 800, 20, true, {
+          [fallbackPartSignature(part)]: 'free',
+        }, {
+          isPartRotationAllowed: defaultRotationAllowed,
+        });
+        assert(withoutOverride.length === 0, 'Formatka przeszła mimo blokady obrotu przy słojach', { withoutOverride });
+        assert(withOverride.length === 1, 'Wyjątek free nie dopuścił obrotu wskazanej formatki', { withOverride });
+      }),
+      makeTest('Magazyn i arkusze', 'Podpis magazynu jest stabilny niezależnie od kolejności wierszy', 'Sprawdza, czy te same stany magazynu nie zmieniają podpisu tylko dlatego, że wiersze są w innej kolejności.', ()=>{
+        const rowsA = Fx.stockRows();
+        const rowsB = [rowsA[2], rowsA[0], rowsA[1]];
+        const sigA = FC.rozrysSheetModel.buildStockSignatureForRows(rowsA);
+        const sigB = FC.rozrysSheetModel.buildStockSignatureForRows(rowsB);
+        assert(sigA === sigB, 'Przestawienie wierszy magazynu zmienia podpis', { sigA, sigB });
+      }),
+      makeTest('Magazyn i arkusze', 'Format magazynowy działa także po zamianie szerokości z wysokością', 'Sprawdza, czy arkusz 2800×2070 i 2070×2800 jest traktowany jako ten sam format.', ()=>{
+        const stock = FC.rozrysSheetModel.getExactSheetStockForRows([
+          { width:2070, height:2800, qty:3 },
+        ], 2800, 2070);
+        assert(stock.qty === 3, 'Obrócony format magazynowy nie został rozpoznany jako ten sam arkusz', stock);
       }),
       makeTest('Magazyn i arkusze', 'Model arkusza odejmuje wykorzystane formatki z magazynu', 'Sprawdza, czy element wycięty z płyty magazynowej nie wraca drugi raz do planu zamówienia.', ()=>{
         const parts = Fx.basicParts();
@@ -127,6 +177,14 @@
         const actual = FC.rozrysValidation.summarizePlan({ sheets: Fx.mixedPlanSheets() }, 'MDF 18 biały').rows;
         const validation = FC.rozrysValidation.validate(expected, actual);
         assert(validation.ok === true, 'Walidacja nie przechodzi dla poprawnego planu mieszanego', validation);
+      }),
+      makeTest('Walidacja', 'Walidacja łapie sztuczny nadmiar w przeprodukowanym planie', 'Sprawdza, czy przy dodatkowej formatce ponad zapotrzebowanie walidacja zgłosi nadmiar zamiast puścić błąd dalej.', ()=>{
+        const parts = Fx.basicParts();
+        const expected = FC.rozrysValidation.rowsFromParts(parts);
+        const actual = FC.rozrysValidation.summarizePlan({ sheets: Fx.overproducedPlanSheets() }, 'MDF 18 biały').rows;
+        const validation = FC.rozrysValidation.validate(expected, actual);
+        assert(validation.ok === false, 'Walidacja nie wykryła nadmiaru w przeprodukowanym planie', validation);
+        assert(Array.isArray(validation.extra) && validation.extra.length >= 1, 'Walidacja nie zwróciła listy nadmiarowych pozycji', validation);
       }),
       makeTest('Cache', 'Klucz cache jest stabilny dla tych samych danych', 'Sprawdza, czy identyczne dane dają dokładnie ten sam klucz cache.', ()=> withIsolatedLocalStorage(()=>{
         const state = Fx.cacheState('sig-a');
@@ -157,6 +215,47 @@
         });
         assert(keyA !== keyB, 'Zmiana podpisu stanów magazynu nie zmienia klucza cache', { keyA, keyB });
       })),
+      makeTest('Cache', 'Klucz cache zmienia się po zmianie wyjątków słojów', 'Sprawdza, czy zmiana wyjątku free/blocked dla formatek wymusza nowy klucz cache.', ()=> withIsolatedLocalStorage(()=>{
+        const part = Fx.rotationOnlyPart();
+        const parts = [part];
+        const sig = fallbackPartSignature(part);
+        const keyA = FC.rozrysCache.makePlanCacheKey(Fx.cacheState('sig-a', { grain:true, grainExceptions:{} }), parts, {
+          partSignature: fallbackPartSignature,
+          isPartRotationAllowed: defaultRotationAllowed,
+          loadEdgeStore: ()=>({}),
+        });
+        const keyB = FC.rozrysCache.makePlanCacheKey(Fx.cacheState('sig-a', { grain:true, grainExceptions:{ [sig]:'free' } }), parts, {
+          partSignature: fallbackPartSignature,
+          isPartRotationAllowed: defaultRotationAllowed,
+          loadEdgeStore: ()=>({}),
+        });
+        assert(keyA !== keyB, 'Zmiana wyjątków słojów nie zmienia klucza cache', { keyA, keyB });
+      })),
+      makeTest('Cache', 'Klucz cache zmienia się po zmianie oklein formatek', 'Sprawdza, czy zmiana ustawień oklein daje nowy klucz cache i nie podmienia starego wyniku.', ()=> withIsolatedLocalStorage(()=>{
+        const state = Fx.cacheState('sig-a');
+        const parts = Fx.basicParts();
+        const sig = fallbackPartSignature(parts[0]);
+        const keyA = FC.rozrysCache.makePlanCacheKey(state, parts, {
+          partSignature: fallbackPartSignature,
+          isPartRotationAllowed: defaultRotationAllowed,
+          loadEdgeStore: ()=>({}),
+        });
+        const keyB = FC.rozrysCache.makePlanCacheKey(state, parts, {
+          partSignature: fallbackPartSignature,
+          isPartRotationAllowed: defaultRotationAllowed,
+          loadEdgeStore: ()=>({ [sig]: { w1:true } }),
+        });
+        assert(keyA !== keyB, 'Zmiana oklein nie zmienia klucza cache', { keyA, keyB });
+      })),
+      makeTest('Cache', 'Save/load cache zachowuje ostatni wpis', 'Sprawdza, czy zapisany cache daje się odczytać bez utraty ostatniego wpisu.', ()=> withIsolatedLocalStorage(()=>{
+        const cache = {
+          a:{ ts:1, value:'x' },
+          b:{ ts:2, value:'y' },
+        };
+        FC.rozrysCache.savePlanCache(cache);
+        const loaded = FC.rozrysCache.loadPlanCache();
+        assert(loaded && loaded.b && loaded.b.value === 'y', 'Cache nie zapisał/odczytał wpisu', loaded);
+      })),
       makeTest('Silnik planowania', 'Engine liczy prosty plan shelf bez pustego wyniku', 'Sprawdza, czy dla prostego zestawu solver zwraca realny plan zamiast pustego wyniku.', ()=>{
         const plan = FC.rozrysEngine.computePlan(Fx.baseState({ heur:'simple', direction:'auto' }), Fx.basicParts(), {
           cutOptimizer: FC.cutOptimizer,
@@ -168,25 +267,23 @@
         const placements = plan.sheets.reduce((sum, sheet)=> sum + ((sheet && sheet.placements) || []).filter((pl)=> pl && !pl.unplaced).length, 0);
         assert(placements >= 1, 'Engine nie rozmieścił żadnej formatki', plan);
       }),
+      makeTest('Silnik planowania', 'Engine opisuje heurystykę zgodnie z trybem i kierunkiem', 'Sprawdza, czy etykieta heurystyki nie myli trybu optimax z kierunkiem pierwszych pasów.', ()=>{
+        const label = FC.rozrysEngine.formatHeurLabel({ heur:'optimax', optimaxProfile:'dokladnie', direction:'across' });
+        assert(/Dokładnie/.test(label), 'Etykieta heurystyki nie pokazuje profilu', { label });
+        assert(/w poprzek/.test(label), 'Etykieta heurystyki nie pokazuje kierunku', { label });
+      }),
       makeTest('Eksport i druk', 'Layout druku buduje HTML z tytułem i arkuszami', 'Sprawdza, czy wydruk składa poprawny HTML z tytułem i kartami arkuszy.', ()=>{
-        const html = FC.rozrysPrintLayout.buildPrintHtml(Fx.printPayload(), {
-          measurePrintHeaderMm: ()=> 14,
-          mmToUnitStr: (mm)=> String(mm),
-          getBoardMeta: (sheet)=> ({ boardW:sheet.boardW, boardH:sheet.boardH, referenceBoardW:sheet.boardW, referenceBoardH:sheet.boardH }),
-          calcDisplayWaste: ()=> ({ total:100, waste:20, realHalf:false, virtualHalf:false }),
-        });
+        const html = FC.rozrysPrintLayout.buildPrintHtml(Fx.printPayload(), buildPrintDeps());
         assert(/Test rozrysu/.test(html), 'HTML wydruku nie zawiera tytułu', { html });
         assert((html.match(/class="sheet-card"/g) || []).length === 2, 'HTML wydruku nie zawiera dwóch arkuszy', { html });
       }),
-      makeTest('Cache', 'Save/load cache zachowuje ostatni wpis', 'Sprawdza, czy zapisany cache daje się odczytać bez utraty ostatniego wpisu.', ()=> withIsolatedLocalStorage(()=>{
-        const cache = {
-          a:{ ts:1, value:'x' },
-          b:{ ts:2, value:'y' },
-        };
-        FC.rozrysCache.savePlanCache(cache);
-        const loaded = FC.rozrysCache.loadPlanCache();
-        assert(loaded && loaded.b && loaded.b.value === 'y', 'Cache nie zapisał/odczytał wpisu', loaded);
-      })),
+      makeTest('Eksport i druk', 'Dwa małe arkusze mieszczą się na jednej stronie wydruku', 'Sprawdza, czy dwa małe arkusze nie są sztucznie rozdzielane na dwie strony, jeśli mieszczą się przy tej samej skali.', ()=>{
+        const html = FC.rozrysPrintLayout.buildPrintHtml(Fx.pairPrintPayload(), buildPrintDeps());
+        const pageCount = (html.match(/class="print-page"/g) || []).length;
+        const sheetCount = (html.match(/class="sheet-card"/g) || []).length;
+        assert(sheetCount === 2, 'Testowy wydruk nie zawiera dwóch kart arkuszy', { pageCount, sheetCount, html });
+        assert(pageCount === 1, 'Dwa małe arkusze nie zostały złożone na jednej stronie', { pageCount, html });
+      }),
     ];
 
     const startedAt = Date.now();

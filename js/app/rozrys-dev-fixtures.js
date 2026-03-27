@@ -77,6 +77,16 @@
     ];
   }
 
+  function overproducedPlanSheets(){
+    const sheets = mixedPlanSheets();
+    sheets[1].placements.push({ key:'MDF 18 biały||Półka||560x300', name:'Półka', w:560, h:300 });
+    return sheets;
+  }
+
+  function rotationOnlyPart(){
+    return { key:'grain||panel||700x300', name:'Panel', material:'Dąb dziki', w:700, h:300, qty:1 };
+  }
+
   function stockRows(){
     return [
       { width:2800, height:2070, qty:1 },
@@ -103,8 +113,26 @@
     };
   }
 
-  function cacheState(stockSignature){
-    return baseState({ stockSignature: String(stockSignature || '') });
+  function pairPrintPayload(){
+    return {
+      meta: { boardW:300, boardH:100 },
+      unit: 'mm',
+      rotatePdfSheets: false,
+      printTitle: 'Małe arkusze',
+      printMetaLine: '2 arkusze testowe',
+      imgs: [
+        { src:'data:image/png;base64,CCC', width:300, height:100 },
+        { src:'data:image/png;base64,DDD', width:300, height:100 },
+      ],
+      sheets: [
+        { boardW:300, boardH:100, placements:[{ w:120, h:80 }], supplySource:'stock' },
+        { boardW:300, boardH:100, placements:[{ w:90, h:100 }], supplySource:'order' },
+      ],
+    };
+  }
+
+  function cacheState(stockSignature, overrides){
+    return baseState(Object.assign({ stockSignature: String(stockSignature || '') }, overrides || {}));
   }
 
   host.FC.rozrysDevFixtures = {
@@ -113,8 +141,11 @@
     basicParts,
     grainParts,
     mixedPlanSheets,
+    overproducedPlanSheets,
+    rotationOnlyPart,
     stockRows,
     printPayload,
+    pairPrintPayload,
     cacheState,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
