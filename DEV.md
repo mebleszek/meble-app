@@ -115,7 +115,8 @@
 - `js/app/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS.
 - `js/app/rozrys-cache.js` — helpery cache planów ROZRYS.
 - `js/app/rozrys-accordion.js` — helpery accordionu materiałów ROZRYS.
-- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, rysowania arkuszy, logiki stock-limit i renderu accordionu do modułów pomocniczych.
+- `js/app/rozrys-render.js` — helpery auto-renderu z cache, renderu wyników, listy formatek, CSV/PDF launchera i spinnera ROZRYS.
+- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, rysowania arkuszy, logiki stock-limit, auto-renderu i renderu wyników do modułów pomocniczych.
 
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
@@ -587,3 +588,11 @@ Dopiero potem go zmieniać.
 6. `js/app/rozrys-accordion.js` — wdrożone częściowo w tej paczce.
    - wydzielone: `splitMaterialAccordionTitle()`, `createMaterialAccordionSection()`.
    - dalszy krok: przenieść tam jeszcze `renderMaterialAccordionPlans()`.
+
+
+## 2026-03-27 — ROZRYS split v3 (render/cache preview)
+- Dodano `js/app/rozrys-render.js`.
+- Z `js/app/rozrys.js` wydzielono: `buildEntriesForScope()`, `tryAutoRenderFromCache()`, `renderOutput()`, `renderLoadingInto()`.
+- `index.html` dopięty do nowego modułu i cały pakiet skryptów `rozrys-*` dostał wspólny cache-busting `20260327_rozrys_split_v3`.
+- Usunięto martwy, nieużywany `deriveAggForMode()` z `js/app/rozrys.js`.
+- Efekt: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.
