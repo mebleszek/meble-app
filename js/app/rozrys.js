@@ -220,123 +220,88 @@
 
 
 
-  function roomLabel(room){
-    const map = { kuchnia:'Kuchnia', szafa:'Szafa', pokoj:'Pokój', lazienka:'Łazienka' };
-    const key = String(room || '').trim();
-    return map[key] || key || 'Pomieszczenie';
-  }
 
-  function normalizeRoomSelection(rooms){
-    const allowed = getRooms();
-    const set = new Set((Array.isArray(rooms) ? rooms : []).map((room)=> String(room || '').trim()).filter((room)=> allowed.includes(room)));
-    return allowed.filter((room)=> set.has(room));
+function roomLabel(room){
+  if(FC.rozrysScope && typeof FC.rozrysScope.roomLabel === 'function'){
+    return FC.rozrysScope.roomLabel(room);
   }
+  const key = String(room || '').trim();
+  return key || 'Pomieszczenie';
+}
 
-  function encodeRoomsSelection(rooms){
-    return normalizeRoomSelection(rooms).join('|');
+function normalizeRoomSelection(rooms){
+  if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
+    return FC.rozrysScope.normalizeRoomSelection(rooms, { getRooms });
   }
+  return Array.isArray(rooms) ? rooms.slice() : [];
+}
 
-  function decodeRoomsSelection(raw){
-    const parts = Array.isArray(raw) ? raw : String(raw || '').split('|');
-    const normalized = normalizeRoomSelection(parts);
-    return normalized.length ? normalized : getRooms().slice();
+function encodeRoomsSelection(rooms){
+  if(FC.rozrysScope && typeof FC.rozrysScope.encodeRoomsSelection === 'function'){
+    return FC.rozrysScope.encodeRoomsSelection(rooms, { getRooms });
   }
+  return '';
+}
 
-  function makeMaterialScope(selection, opts){
-    const cfg = Object.assign({ allowEmpty:false }, opts || {});
-    const base = Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {});
-    const kind = (base.kind === 'material' && String(base.material || '').trim()) ? 'material' : 'all';
-    const scope = {
-      kind,
-      material: kind === 'material' ? String(base.material || '').trim() : '',
-      includeFronts: base.includeFronts !== false,
-      includeCorpus: base.includeCorpus !== false,
-    };
-    if(!cfg.allowEmpty && !scope.includeFronts && !scope.includeCorpus){
-      scope.includeFronts = true;
-      scope.includeCorpus = true;
-    }
-    return scope;
+function decodeRoomsSelection(raw){
+  if(FC.rozrysScope && typeof FC.rozrysScope.decodeRoomsSelection === 'function'){
+    return FC.rozrysScope.decodeRoomsSelection(raw, { getRooms });
   }
+  return getRooms().slice();
+}
 
-  function encodeMaterialScope(selection){
-    try{ return JSON.stringify(makeMaterialScope(selection)); }catch(_){ return '{"kind":"all","material":"","includeFronts":true,"includeCorpus":true}'; }
-  }
+function makeMaterialScope(selection, opts){
+  if(FC.rozrysScope && typeof FC.rozrysScope.makeMaterialScope === 'function') return FC.rozrysScope.makeMaterialScope(selection, opts);
+  return Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {});
+}
 
-  function decodeMaterialScope(raw){
-    try{ return makeMaterialScope(raw ? JSON.parse(String(raw)) : null); }
-    catch(_){ return makeMaterialScope(); }
-  }
+function encodeMaterialScope(selection){
+  if(FC.rozrysScope && typeof FC.rozrysScope.encodeMaterialScope === 'function') return FC.rozrysScope.encodeMaterialScope(selection);
+  try{ return JSON.stringify(selection || {}); }catch(_){ return '{}'; }
+}
 
-  function sortRozrysParts(list){
-    return (Array.isArray(list) ? list.slice() : []).sort((a,b)=>{
-      const aa = Math.max(Number(a && a.w) || 0, Number(a && a.h) || 0);
-      const bb = Math.max(Number(b && b.w) || 0, Number(b && b.h) || 0);
-      if(bb !== aa) return bb - aa;
-      const aw = Math.min(Number(a && a.w) || 0, Number(a && a.h) || 0);
-      const bw = Math.min(Number(b && b.w) || 0, Number(b && b.h) || 0);
-      if(bw !== aw) return bw - aw;
-      return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'pl');
-    });
-  }
+function decodeMaterialScope(raw){
+  if(FC.rozrysScope && typeof FC.rozrysScope.decodeMaterialScope === 'function') return FC.rozrysScope.decodeMaterialScope(raw);
+  try{ return JSON.parse(String(raw || '')); }catch(_){ return { kind:'all', material:'', includeFronts:true, includeCorpus:true }; }
+}
 
-  function getGroupPartsForScope(group, selection){
-    const scope = makeMaterialScope(selection);
-    if(!group) return [];
-    if(scope.includeFronts && scope.includeCorpus) return Array.isArray(group.allParts) ? group.allParts.slice() : [];
-    if(scope.includeFronts) return Array.isArray(group.frontParts) ? group.frontParts.slice() : [];
-    if(scope.includeCorpus) return Array.isArray(group.corpusParts) ? group.corpusParts.slice() : [];
-    return [];
-  }
+function sortRozrysParts(list){
+  if(FC.rozrysScope && typeof FC.rozrysScope.sortRozrysParts === 'function') return FC.rozrysScope.sortRozrysParts(list);
+  return Array.isArray(list) ? list.slice() : [];
+}
 
-  function normalizeMaterialScopeForAggregate(selection, aggregate){
-    const scope = makeMaterialScope(selection);
-    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
-    const mats = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials : [];
-    if(!mats.length) return makeMaterialScope({ kind:'all', includeFronts:true, includeCorpus:true });
-    if(scope.kind === 'material'){
-      const group = aggRef && aggRef.groups ? aggRef.groups[scope.material] : null;
-      if(!group) return makeMaterialScope({ kind:'all', includeFronts:true, includeCorpus:true });
-      if(scope.includeFronts && !group.hasFronts) scope.includeFronts = false;
-      if(scope.includeCorpus && !group.hasCorpus) scope.includeCorpus = false;
-      if(!scope.includeFronts && !scope.includeCorpus){
-        scope.includeFronts = !!group.hasFronts;
-        scope.includeCorpus = !scope.includeFronts && !!group.hasCorpus;
-      }
-      return makeMaterialScope(scope);
-    }
-    const hasAnyFronts = mats.some((mat)=> !!(aggRef.groups && aggRef.groups[mat] && aggRef.groups[mat].hasFronts));
-    const hasAnyCorpus = mats.some((mat)=> !!(aggRef.groups && aggRef.groups[mat] && aggRef.groups[mat].hasCorpus));
-    if(scope.includeFronts && !hasAnyFronts) scope.includeFronts = false;
-    if(scope.includeCorpus && !hasAnyCorpus) scope.includeCorpus = false;
-    if(!scope.includeFronts && !scope.includeCorpus){
-      scope.includeFronts = hasAnyFronts;
-      scope.includeCorpus = !scope.includeFronts && hasAnyCorpus;
-    }
-    return makeMaterialScope(scope);
-  }
+function getGroupPartsForScope(group, selection){
+  if(FC.rozrysScope && typeof FC.rozrysScope.getGroupPartsForScope === 'function') return FC.rozrysScope.getGroupPartsForScope(group, selection);
+  return [];
+}
 
-  function getRozrysScopeMode(selection){
-    const scope = makeMaterialScope(typeof selection === 'string' ? decodeMaterialScope(selection) : selection);
-    if(scope.includeFronts && scope.includeCorpus) return 'both';
-    return scope.includeFronts ? 'fronts' : 'corpus';
+function normalizeMaterialScopeForAggregate(selection, aggregate){
+  if(FC.rozrysScope && typeof FC.rozrysScope.normalizeMaterialScopeForAggregate === 'function'){
+    return FC.rozrysScope.normalizeMaterialScopeForAggregate(selection, aggregate, { aggregatePartsForProject });
   }
+  return makeMaterialScope(selection);
+}
 
-  function getOrderedMaterialsForSelection(selection, aggregate){
-    const scope = makeMaterialScope(typeof selection === 'string' ? decodeMaterialScope(selection) : selection);
-    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
-    const allMaterials = Array.isArray(aggRef && aggRef.materials) ? aggRef.materials.slice() : [];
-    if(scope.kind === 'material' && scope.material) return allMaterials.includes(scope.material) ? [scope.material] : [];
-    return allMaterials;
-  }
+function getRozrysScopeMode(selection){
+  if(FC.rozrysScope && typeof FC.rozrysScope.getRozrysScopeMode === 'function') return FC.rozrysScope.getRozrysScopeMode(selection);
+  const scope = makeMaterialScope(selection);
+  return scope.includeFronts && scope.includeCorpus ? 'both' : (scope.includeFronts ? 'fronts' : 'corpus');
+}
 
-  function getAccordionScopeKey(selection, aggregate){
-    const scope = makeMaterialScope(typeof selection === 'string' ? decodeMaterialScope(selection) : selection);
-    const aggRef = aggregate && typeof aggregate === 'object' ? aggregate : aggregatePartsForProject();
-    const roomSig = encodeRoomsSelection(aggRef && aggRef.selectedRooms ? aggRef.selectedRooms : getRooms());
-    const materialSig = scope.kind === 'material' ? scope.material : '__ALL__';
-    return `scope:${roomSig}:${materialSig}:${getRozrysScopeMode(scope)}`;
+function getOrderedMaterialsForSelection(selection, aggregate){
+  if(FC.rozrysScope && typeof FC.rozrysScope.getOrderedMaterialsForSelection === 'function'){
+    return FC.rozrysScope.getOrderedMaterialsForSelection(selection, aggregate, { aggregatePartsForProject });
   }
+  return [];
+}
+
+function getAccordionScopeKey(selection, aggregate){
+  if(FC.rozrysScope && typeof FC.rozrysScope.getAccordionScopeKey === 'function'){
+    return FC.rozrysScope.getAccordionScopeKey(selection, aggregate, { getRooms });
+  }
+  return 'scope:fallback';
+}
+
 
   function buildResolvedSnapshotFromParts(parts){
     const rv = FC.rozrysValidation;
@@ -396,232 +361,46 @@
   }
 
   function buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms){
-    const rv = FC.rozrysValidation;
-    if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function')) return null;
-    const rawRows = buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms);
-    const resolvedRows = rawRows.length ? rv.aggregateRows(rawRows) : buildResolvedSnapshotFromParts(parts);
-    const actual = rv.summarizePlan(plan, targetMaterial);
-    const validation = rv.validate(resolvedRows, actual.rows);
-    return {
-      rawRows,
-      rawCount: rawRows.length,
-      resolvedRows,
-      actualRows: actual.rows,
-      sheets: actual.sheets,
-      validation,
-    };
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.buildRozrysDiagnostics === 'function'){
+      return FC.rozrysSummary.buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms, {
+        buildRawSnapshotForMaterial,
+        buildResolvedSnapshotFromParts,
+      });
+    }
+    return null;
   }
 
   function validationSummaryLabel(diag){
-    const validation = diag && diag.validation;
-    if(!validation) return { text:'Walidacja: brak danych', tone:'is-warn' };
-    if(validation.ok) return { text:'Walidacja: OK — wszystkie formatki rozpisane', tone:'is-ok' };
-    const parts = [];
-    if(validation.missingQty > 0) parts.push(`braki ${validation.missingQty} szt.`);
-    if(validation.extraQty > 0) parts.push(`nadmiary ${validation.extraQty} szt.`);
-    return { text:`Walidacja: ${parts.join(' • ')}`, tone:'is-warn' };
-  }
-
-  function makeStatusChip(status){
-    const map = {
-      ok: { cls:'is-ok', text:'OK' },
-      missing: { cls:'is-missing', text:'BRAK' },
-      extra: { cls:'is-extra', text:'NADMIAR' },
-    };
-    const cfg = map[status] || map.ok;
-    return h('span', { class:`rozrys-status-chip ${cfg.cls}`, text:cfg.text });
-  }
-
-
-  function buildDimNode(wMm, hMm, unit){
-    return h('span', { class:'table-dim' }, [
-      h('span', { class:'table-dim__left', text:mmToUnitStr(wMm, unit) }),
-      h('span', { class:'table-dim__x', text:'x' }),
-      h('span', { class:'table-dim__right', text:mmToUnitStr(hMm, unit) }),
-    ]);
-  }
-
-  function buildListTable(rows, unit, mode){
-    const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
-    if(mode === 'sheet'){
-      const colgroup = h('colgroup');
-      colgroup.appendChild(h('col', { class:'col-name' }));
-      colgroup.appendChild(h('col', { class:'col-dim' }));
-      colgroup.appendChild(h('col', { class:'col-qty' }));
-      table.appendChild(colgroup);
-    }
-    const thead = h('thead');
-    const headRow = h('tr');
-    if(mode === 'sheet'){
-      headRow.appendChild(h('th', { class:'col-name', text:'Nazwa' }));
-      headRow.appendChild(h('th', { class:'col-dim', text:`Wymiar (${unit})` }));
-      headRow.appendChild(h('th', { class:'col-qty', text:'Ilość' }));
-    } else {
-      ['Formatka', `Wymiar (${unit})`, 'Potrzebne', 'Rozrysowane', 'Różnica', 'Status'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
-    }
-    thead.appendChild(headRow);
-    const tbody = h('tbody');
-    (rows || []).forEach((row)=>{
-      const tr = h('tr');
-      if(mode === 'sheet'){
-        tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
-        const dimTd = h('td', { class:'col-dim' });
-        dimTd.appendChild(buildDimNode(row.w, row.h, unit));
-        tr.appendChild(dimTd);
-        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
-      } else {
-        tr.appendChild(h('td', { text: row.name || 'Element' }));
-        const dimTd = h('td');
-        dimTd.appendChild(buildDimNode(row.w, row.h, unit));
-        tr.appendChild(dimTd);
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.actualQty) || 0)) }));
-        tr.appendChild(h('td', { text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
-        const td = h('td');
-        td.appendChild(makeStatusChip(row.status));
-        tr.appendChild(td);
-      }
-      tbody.appendChild(tr);
-    });
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    return wrap;
-  }
-
-  function buildRawTable(rows, unit){
-    const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:'table-list' });
-    const thead = h('thead');
-    const headRow = h('tr');
-    ['Formatka', `Wymiar (${unit})`, 'Ilość', 'Pomieszczenie', 'Źródło'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
-    thead.appendChild(headRow);
-    const tbody = h('tbody');
-    (rows || []).forEach((row)=>{
-      const tr = h('tr');
-      tr.appendChild(h('td', { text: row.name || 'Element' }));
-      tr.appendChild(h('td', { text: `${mmToUnitStr(row.w, unit)} × ${mmToUnitStr(row.h, unit)}` }));
-      tr.appendChild(h('td', { text:String(Math.max(0, Number(row.qty) || 0)) }));
-      tr.appendChild(h('td', { text:String(row.room || '—') }));
-      tr.appendChild(h('td', { text:String(row.source || '—') }));
-      tbody.appendChild(tr);
-    });
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    return wrap;
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.validationSummaryLabel === 'function') return FC.rozrysSummary.validationSummaryLabel(diag);
+    return { text:'Walidacja: brak danych', tone:'is-warn' };
   }
 
   function openValidationListModal(material, diag, unit){
-    if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || !diag) return;
-    const body = h('div');
-    const summary = validationSummaryLabel(diag);
-    const metaRow = h('div', { class:'rozrys-validation-summary' });
-    metaRow.appendChild(h('span', { class:`rozrys-pill ${summary.tone}`, text:summary.text }));
-    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Raw 1:1: ${diag.rawCount} pozycji` }));
-    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Lista do rozkroju: ${diag.resolvedRows.length} pozycji` }));
-    body.appendChild(metaRow);
-    body.appendChild(h('div', { class:'muted xs', style:'margin:10px 0 0', text:'RAW SNAPSHOT 1:1 z Materiałów dla tego rozkroju.' }));
-    body.appendChild(buildRawTable(diag.rawRows, unit));
-    body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Lista do rozkroju (po scaleniu)' }));
-    body.appendChild(buildListTable((diag.resolvedRows || []).map((row)=>({
-      name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok'
-    })), unit, 'validation'));
-    body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Walidacja rozrysu' }));
-    body.appendChild(buildListTable(diag.validation.rows, unit, 'validation'));
-    FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px' });
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.openValidationListModal === 'function'){
+      return FC.rozrysSummary.openValidationListModal(material, diag, unit, { mmToUnitStr });
+    }
   }
 
   function openSheetListModal(material, sheetTitle, rows, unit){
-    if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-    const body = h('div');
-    body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Formatki pogrupowane dla tego arkusza.' }));
-    body.appendChild(buildListTable(rows || [], unit, 'sheet'));
-    FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px' });
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.openSheetListModal === 'function'){
+      return FC.rozrysSummary.openSheetListModal(material, sheetTitle, rows, unit, { mmToUnitStr });
+    }
   }
 
-  function aggregatePartsForProject(selectedRooms){
-    const proj = safeGetProject();
-    const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : getRooms());
-    if(!proj) return { byMaterial: {}, materials: [], groups: {}, selectedRooms: rooms };
 
-    const groups = {};
-    const ensureGroup = (key)=>{
-      if(!groups[key]){
-        groups[key] = {
-          key,
-          frontMap: new Map(),
-          corpusMap: new Map(),
-          sourceMaterials: new Set(),
-          rooms: new Set(),
-        };
-      }
-      return groups[key];
-    };
-
-    for(const room of rooms){
-      const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
-      for(const cab of cabinets){
-        if(typeof getCabinetCutList !== 'function') continue;
-        const parts = getCabinetCutList(cab, room) || [];
-        for(const p of parts){
-          const sourceMaterial = String(p.material || '').trim();
-          if(!sourceMaterial) continue;
-          const resolved = resolveRozrysPartFromSource(p);
-          const w = resolved.w;
-          const h = resolved.h;
-          if(!(w > 0 && h > 0)) continue;
-          const qty = resolved.qty;
-          if(!(qty > 0)) continue;
-          const isFront = (String(resolved.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
-          const materialKey = resolved.materialKey;
-          const name = resolved.name;
-          const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`;
-          const group = ensureGroup(materialKey);
-          group.sourceMaterials.add(sourceMaterial);
-          group.rooms.add(room);
-          const map = isFront ? group.frontMap : group.corpusMap;
-          if(map.has(key)){
-            map.get(key).qty += qty;
-          } else {
-            map.set(key, {
-              name,
-              w,
-              h,
-              qty,
-              material: materialKey,
-              sourceSig: resolved.sourceSig,
-              grainMode: resolved.direction,
-              ignoreGrain: !!resolved.ignoreGrain,
-            });
-          }
-        }
-      }
-    }
-
-    const materials = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'pl'));
-    const outByMat = {};
-    const outGroups = {};
-    for(const material of materials){
-      const group = groups[material];
-      const frontParts = sortRozrysParts(Array.from(group.frontMap.values()));
-      const corpusParts = sortRozrysParts(Array.from(group.corpusMap.values()));
-      const allParts = sortRozrysParts(frontParts.concat(corpusParts));
-      outByMat[material] = allParts;
-      outGroups[material] = {
-        key: material,
-        frontParts,
-        corpusParts,
-        allParts,
-        hasFronts: frontParts.length > 0,
-        hasCorpus: corpusParts.length > 0,
-        sourceMaterials: Array.from(group.sourceMaterials),
-        rooms: Array.from(group.rooms),
-      };
-    }
-    return { byMaterial: outByMat, materials, groups: outGroups, selectedRooms: rooms };
+function aggregatePartsForProject(selectedRooms){
+  if(FC.rozrysScope && typeof FC.rozrysScope.aggregatePartsForProject === 'function'){
+    return FC.rozrysScope.aggregatePartsForProject(selectedRooms, {
+      safeGetProject,
+      getRooms,
+      getCabinetCutList: (typeof getCabinetCutList === 'function') ? getCabinetCutList : null,
+      resolveRozrysPartFromSource,
+      isFrontMaterialKey,
+    });
   }
+  return { byMaterial: {}, materials: [], groups: {}, selectedRooms: Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
+}
+
 
   function isFrontMaterialKey(materialKey){
     return /^\s*Front\s*:/i.test(String(materialKey||''));
@@ -791,278 +570,60 @@
     return 14;
   }
 
-  function computePlan(state, parts){
-    const opt = FC.cutOptimizer;
-    if(!opt) return { sheets: [], note: 'Brak modułu cutOptimizer.' };
 
-    const grainOn = !!state.grain;
-    const overrides = Object.assign({}, state.grainExceptions || {});
-    const edgeStore = loadEdgeStore();
-
-    const partsMm = (parts||[]).map(p=>{
-      const sig = partSignature(p);
-      const allow = isPartRotationAllowed(p, grainOn, overrides);
-      const e = edgeStore[sig] || {};
-      return {
-        key: sig,
-        name: p.name,
-        w: p.w,
-        h: p.h,
-        qty: p.qty,
-        material: p.material,
-        rotationAllowed: allow,
-        edgeW1: !!e.w1,
-        edgeW2: !!e.w2,
-        edgeH1: !!e.h1,
-        edgeH2: !!e.h2,
-      };
-    });
-    const items = opt.makeItems(partsMm);
-
-    const unit = (state.unit === 'mm') ? 'mm' : 'cm';
-    const toMm = (v)=> {
-      const n = Number(v);
-      if(!Number.isFinite(n)) return 0;
-      return unit === 'mm' ? Math.round(n) : Math.round(n * 10);
-    };
-
-    const W0 = toMm(state.boardW) || 2800;
-    const H0 = toMm(state.boardH) || 2070;
-    const K  = toMm(state.kerf)   || 4;
-    const trim = toMm(state.edgeTrim) || 20; // default 2 cm
-
-    // usable area after edge trimming (equalizing)
-    const W = Math.max(10, W0 - 2*trim);
-    const H = Math.max(10, H0 - 2*trim);
-
-    let sheets = [];
-
-    if(state.heur === 'super'){
-      if(typeof opt.packSuper !== 'function'){
-        return { sheets: [], note: 'Brak modułu SUPER (packSuper).' };
-      }
-      // Multi-start search (few seconds). Best result by (#sheets, waste).
-      sheets = opt.packSuper(items, W, H, K, { timeMs: 2600, beamWidth: 140 });
-    }
-    else if(state.heur === 'panel30'){
-      // Panel saw friendly: guillotine-only plan with longer thinking time.
-      // Uses the existing Guillotine Beam Search (non-overlapping by construction).
-      if(typeof opt.packGuillotineBeam !== 'function'){
-        return { sheets: [], note: 'Brak modułu Gilotyna PRO (packGuillotineBeam).' };
-      }
-      sheets = opt.packGuillotineBeam(items, W, H, K, {
-        beamWidth: 260,
-        timeMs: 30000,
-        cutPref: normalizeCutDirection(state.direction),
-        scrapFirst: true,
-      });
-    }
-    else if(state.heur === 'gpro'){
-      if(typeof opt.packGuillotineBeam !== 'function'){
-        return { sheets: [], note: 'Brak modułu Gilotyna PRO (packGuillotineBeam).' };
-      }
-      // Dokładne upakowanie (szybciej niż Panel PRO, ale lepiej niż Shelf)
-      sheets = opt.packGuillotineBeam(items, W, H, K, {
-        beamWidth: 80,
-        timeMs: 700,
-      });
-    } else {
-      const dir = normalizeCutDirection(state.direction);
-      const toShelfDir = (d)=> (d==='across') ? 'wpoprz' : 'wzdłuż';
-      sheets = opt.packShelf(items, W, H, K, toShelfDir(dir));
-    }
-    // store meta for drawing offset
-    return { sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
-  }
-
-  function getOptimaxProfilePreset(){
-    return {};
-  }
-
-  function normalizeCutDirection(dir){
-    if(dir === 'start-across' || dir === 'across') return 'start-across';
-    if(dir === 'start-optimax' || dir === 'optimax' || dir === 'optima') return 'start-optimax';
-    return 'start-along';
-  }
-
-  function speedLabel(mode){
-    const m = String(mode || 'max').toLowerCase();
-    if(m === 'turbo') return 'Turbo';
-    if(m === 'dokladnie' || m === 'dokładnie') return 'Dokładnie';
-    return 'MAX';
-  }
-
-  function directionLabel(dir){
-    const norm = normalizeCutDirection(dir);
-    if(norm === 'start-across') return 'Pierwsze pasy w poprzek';
-    if(norm === 'start-optimax') return 'Opti-max';
-    return 'Pierwsze pasy wzdłuż';
-  }
-
-  function formatHeurLabel(st){
-    if(st && st.heur === 'optimax'){
-      return `${speedLabel(st.optimaxProfile || 'max')} • ${directionLabel(st.direction)}`;
-    }
-    return String((st && st.heur) || '');
-  }
-
-  // ===== Panel-saw PRO / Optimax in Web Worker (non-blocking) =====
-  // Uwaga: na mobile WebWorker potrafi "zawisnąć" sporadycznie (brak done/error).
-  // Dlatego uruchamiamy worker per-run (bez re-używania singletona) + watchdog + hard reset.
-  function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
-    return new Promise((resolve)=>{
-      const opt = FC.cutOptimizer;
-      if(!opt) return resolve({ sheets: [], note: 'Brak modułu cutOptimizer.' });
-      const requestedSpeedMode = opt && typeof opt.normalizeSpeedMode === 'function'
-        ? opt.normalizeSpeedMode((panelOpts && (panelOpts.speedMode || panelOpts.optimaxProfile)) || state.optimaxProfile)
-        : String(((panelOpts && (panelOpts.speedMode || panelOpts.optimaxProfile)) || state.optimaxProfile || 'max')).toLowerCase();
-      const blockMainThreadFallback = requestedSpeedMode === 'max';
-
-      const grainOn = !!state.grain;
-      const overrides = Object.assign({}, state.grainExceptions || {});
-      const edgeStore = loadEdgeStore();
-
-      const partsMm = (parts||[]).map(p=>{
-        const sig = partSignature(p);
-        const allow = isPartRotationAllowed(p, grainOn, overrides);
-        const e = edgeStore[sig] || {};
-        return {
-          key: sig,
-          name: p.name,
-          w: p.w,
-          h: p.h,
-          qty: p.qty,
-          material: p.material,
-          rotationAllowed: allow,
-          edgeW1: !!e.w1,
-          edgeW2: !!e.w2,
-          edgeH1: !!e.h1,
-          edgeH2: !!e.h2,
-        };
-      });
-      const items = opt.makeItems(partsMm);
-
-      const unit = (state.unit === 'mm') ? 'mm' : 'cm';
-      const toMm = (v)=> {
-        const n = Number(v);
-        if(!Number.isFinite(n)) return 0;
-        return unit === 'mm' ? Math.round(n) : Math.round(n * 10);
-      };
-
-      const W0 = toMm(state.boardW) || 2800;
-      const H0 = toMm(state.boardH) || 2070;
-      const K  = toMm(state.kerf)   || 4;
-      const trim = toMm(state.edgeTrim) || 20;
-      const W = Math.max(10, W0 - 2*trim);
-      const H = Math.max(10, H0 - 2*trim);
-
-      // worker per-run (bardziej niezawodne na telefonach)
-      let worker = null;
-      try{
-        // bump query to avoid stale cached worker on GH Pages / mobile browsers
-        worker = new Worker('js/app/panel-pro-worker.js?v=20260322_rozrys_baseformat_modal_v1');
-      }catch(e){
-        if(blockMainThreadFallback){
-          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
-        }
-        // fallback (sync, limited)
-        try{
-          const startMode = normalizeCutDirection(state.direction);
-          const speedMode = FC.cutOptimizer && FC.cutOptimizer.normalizeSpeedMode ? FC.cutOptimizer.normalizeSpeedMode(state.optimaxProfile) : 'max';
-          const startStrategy = FC.rozkrojStarts && FC.rozkrojStarts[startMode];
-          const speed = FC.rozkrojSpeeds && FC.rozkrojSpeeds[speedMode];
-          const packed = speed && typeof speed.pack === 'function'
-            ? speed.pack(items, W, H, K, { startStrategy, startMode, speedMode })
-            : { sheets: opt.packShelf(items, W, H, K, 'along') };
-          return resolve({ sheets: packed.sheets || [], meta: { trim, boardW: W0, boardH: H0, unit } });
-        }catch(_){
-          return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Worker.', workerFailed: true, meta: { trim, boardW: W0, boardH: H0, unit } });
-        }
-      }
-
-      let settled = false;
-      let tmr = null;
-
-      // allow caller to cancel this run
-      const runId = (control && Number(control.runId)) ? Number(control.runId) : 0;
-      if(control){
-        // If UI requested cancel before we managed to attach a working cancel() (race), honor it.
-        const postCancel = ()=>{ try{ worker && worker.postMessage({ cmd:'cancel', runId }); }catch(_){ } };
-        control.cancel = ()=>{ control._cancelRequested = true; postCancel(); };
-        // If cancel was requested earlier, send it immediately.
-        if(control._cancelRequested) postCancel();
-      }
-
-      const cleanup = ()=>{
-        try{ worker.removeEventListener('message', handle); }catch(_){ }
-        try{ worker.removeEventListener('error', onErr); }catch(_){ }
-        try{ worker.removeEventListener('messageerror', onMsgErr); }catch(_){ }
-        if(tmr){ try{ clearTimeout(tmr); }catch(_){ } tmr = null; }
-        try{ worker.terminate(); }catch(_){ }
-        worker = null;
-      };
-
-      const finish = (payload)=>{
-        if(settled) return;
-        settled = true;
-        cleanup();
-        resolve(payload);
-      };
-      // hard-terminate fallback (used by UI when cancel seems stuck)
-      if(control){
-        control._terminate = ()=>{
-          try{ worker && worker.terminate && worker.terminate(); }catch(_){ }
-          // unblock UI even if worker does not respond
-          try{ finish({ sheets: [], cancelled: true, note: "Generowanie przerwane.", meta: { trim, boardW: W0, boardH: H0, unit } }); }catch(_){ }
-        };
-      }
-
-
-      const handle = (ev)=>{
-        const msg = ev && ev.data ? ev.data : {};
-        if(msg.type === 'progress'){
-          try{ onProgress && onProgress(msg); }catch(_){ }
-          return;
-        }
-        if(msg.type === 'done'){
-          const result = msg.result || {};
-          finish({ sheets: result.sheets || [], cancelled: !!result.cancelled, meta: { trim, boardW: W0, boardH: H0, unit } });
-          return;
-        }
-        if(msg.type === 'error'){
-          finish({ sheets: [], note: msg.error || 'Błąd worker', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
-        }
-      };
-
-      const onErr = ()=>{
-        // Worker script failed to load or runtime error
-        finish({ sheets: [], note: 'Błąd Web Workera (nie udało się wykonać obliczeń).', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
-      };
-
-      const onMsgErr = ()=>{
-        finish({ sheets: [], note: 'Błąd komunikacji z Web Workerem.', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
-      };
-
-      worker.addEventListener('message', handle);
-      worker.addEventListener('error', onErr);
-      worker.addEventListener('messageerror', onMsgErr);
-
-      const o = Object.assign({ startMode: normalizeCutDirection(state.direction), speedMode: String(state.optimaxProfile || 'max').toLowerCase(), sheetEstimate: Number(panelOpts && panelOpts.sheetEstimate) || 1 }, (panelOpts||{}));
-
-      try{
-        worker.postMessage({
-          cmd: 'panel_pro',
-          runId,
-          items,
-          W, H, K,
-          options: o
-        });
-      }catch(e){
-        // Posting failed: cleanup and return
-        finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
-      }
+function computePlan(state, parts){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlan === 'function'){
+    return FC.rozrysEngine.computePlan(state, parts, {
+      loadEdgeStore,
+      partSignature,
+      isPartRotationAllowed,
+      cutOptimizer: FC.cutOptimizer,
     });
   }
+  return { sheets: [], note: 'Brak modułu rozrysEngine.' };
+}
+
+function getOptimaxProfilePreset(profile, direction){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.getOptimaxProfilePreset === 'function'){
+    return FC.rozrysEngine.getOptimaxProfilePreset(profile, direction);
+  }
+  return {};
+}
+
+function normalizeCutDirection(dir){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.normalizeCutDirection === 'function'){
+    return FC.rozrysEngine.normalizeCutDirection(dir);
+  }
+  return 'start-along';
+}
+
+function speedLabel(mode){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.speedLabel === 'function') return FC.rozrysEngine.speedLabel(mode);
+  return String(mode || '');
+}
+
+function directionLabel(dir){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.directionLabel === 'function') return FC.rozrysEngine.directionLabel(dir);
+  return String(dir || '');
+}
+
+function formatHeurLabel(st){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.formatHeurLabel === 'function') return FC.rozrysEngine.formatHeurLabel(st);
+  return String((st && st.heur) || '');
+}
+
+function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
+  if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlanPanelProAsync === 'function'){
+    return FC.rozrysEngine.computePlanPanelProAsync(state, parts, onProgress, control, panelOpts, {
+      loadEdgeStore,
+      partSignature,
+      isPartRotationAllowed,
+      cutOptimizer: FC.cutOptimizer,
+    });
+  }
+  return Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' });
+}
+
 
   function render(){
     const root = document.getElementById('rozrysRoot');
@@ -1583,25 +1144,20 @@
     }
 
     function getScopeSummary(scope, aggregate){
-      const normalized = normalizeMaterialScopeForAggregate(scope, aggregate);
-      const modeLabel = normalized.includeFronts && normalized.includeCorpus ? 'Fronty + korpusy' : (normalized.includeFronts ? 'Same fronty' : 'Same korpusy');
-      if(normalized.kind !== 'material'){
-        return { title:'Wszystkie materiały', subtitle:'', detail:modeLabel };
+      if(FC.rozrysScope && typeof FC.rozrysScope.getScopeSummary === 'function'){
+        return FC.rozrysScope.getScopeSummary(scope, aggregate, {
+          splitMaterialAccordionTitle,
+          aggregatePartsForProject,
+        });
       }
-      const split = splitMaterialAccordionTitle(normalized.material);
-      return {
-        title: split.line1 || normalized.material || 'Materiał',
-        subtitle: split.line2 || '',
-        detail: modeLabel
-      };
+      return { title:'Wszystkie materiały', subtitle:'', detail:'' };
     }
 
     function getRoomsSummary(rooms){
-      const normalized = decodeRoomsSelection(rooms);
-      if(!normalized.length) return { title:'Brak pomieszczeń', subtitle:'' };
-      if(normalized.length === getRooms().length) return { title:'Wszystkie pomieszczenia', subtitle:normalized.map(roomLabel).join(' • ') };
-      if(normalized.length === 1) return { title:roomLabel(normalized[0]), subtitle:'Jedno pomieszczenie' };
-      return { title:`${normalized.length} pomieszczenia`, subtitle:normalized.map(roomLabel).join(' • ') };
+      if(FC.rozrysScope && typeof FC.rozrysScope.getRoomsSummary === 'function'){
+        return FC.rozrysScope.getRoomsSummary(rooms, { getRooms });
+      }
+      return { title:'Pomieszczenia', subtitle:'' };
     }
 
     function updateRoomsPickerButton(){
@@ -1826,50 +1382,13 @@
     }
 
     async function computePlanWithCurrentEngine(st, parts, panelOpts){
-      if((st && st.heur) !== 'optimax') return computePlan(st, parts);
-      const preset = getOptimaxProfilePreset(st.optimaxProfile, st.direction);
-      const cutMode = normalizeCutDirection(st.direction);
-      const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
-      const toMm2 = (v)=>{
-        const n = Number(v);
-        if(!Number.isFinite(n)) return 0;
-        return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
-      };
-      const W02 = toMm2(st.boardW) || 2800;
-      const H02 = toMm2(st.boardH) || 2070;
-      const trim2 = toMm2(st.edgeTrim) || 20;
-      const minScrapW2 = toMm2(st.minScrapW) || 0;
-      const minScrapH2 = toMm2(st.minScrapH) || 0;
-      const W2 = Math.max(10, W02 - 2*trim2);
-      const H2 = Math.max(10, H02 - 2*trim2);
-      const roughArea = (parts||[]).reduce((sum, p)=> sum + ((Number(p.w)||0) * (Number(p.h)||0) * Math.max(1, Number(p.qty)||1)), 0);
-      const roughSheetsEstimate = Math.max(1, Math.ceil(roughArea / Math.max(1, W2 * H2)));
-      let plan = null;
-      const control = { runId:_rozrysRunId };
-      try{
-        plan = await computePlanPanelProAsync(st, parts, null, control, {
-          beamWidth: preset.beamWidth,
-          endgameAttempts: preset.endgameAttempts,
-          cutPref: cutMode,
-          cutMode,
-          minScrapW: minScrapW2,
-          minScrapH: minScrapH2,
-          speedMode: String(st.optimaxProfile || 'max').toLowerCase(),
-          optimaxProfile: String(st.optimaxProfile || 'max').toLowerCase(),
-          sheetEstimate: roughSheetsEstimate,
-          optimax: true,
-          realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
-          realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
-          realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
+      if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlanWithCurrentEngine === 'function'){
+        return FC.rozrysEngine.computePlanWithCurrentEngine(st, parts, panelOpts, {
+          computePlan,
+          computePlanPanelProAsync,
         });
-      }catch(_){
-        plan = null;
       }
-      if(plan && Array.isArray(plan.sheets) && plan.sheets.length) return plan;
-      const fallback = computePlan(st, parts);
-      if(!fallback.meta) fallback.meta = buildPlanMetaFromState(st);
-      if(plan && plan.note && !fallback.note) fallback.note = plan.note;
-      return fallback;
+      return computePlan(st, parts);
     }
 
     async function applySheetStockLimit(material, st, parts, plan, opts){
@@ -1992,7 +1511,7 @@
     function tryAutoRenderFromCache(){
       if(FC.rozrysRender && typeof FC.rozrysRender.tryAutoRenderFromCache === 'function'){
         return FC.rozrysRender.tryAutoRenderFromCache({
-          _rozrysRunning,
+          _rozrysRunning: isRozrysRunning(),
           normalizeMaterialScopeForAggregate,
           decodeMaterialScope,
           matSelValue: matSel.value,
@@ -2149,408 +1668,79 @@
       return 'plan_fallback';
     }
 
-let _rozrysRunId = 0;
-let _rozrysRunning = false;
-function setGlobalStatus(active, title, subtitle, percent, metaText){
-  try{
-    statusBox.style.display = 'none';
-    statusMain.textContent = 'Liczę…';
-    statusSub.textContent = '';
-    statusMeta.textContent = '';
-    statusProg.classList.add('is-indeterminate');
-    statusProgBar.style.width = '';
-  }catch(_){ }
-}
-try{ setGlobalStatus(false); }catch(_){ }
-let _rozrysBtnMode = 'idle'; // idle | running | done
-let _rozrysCancelRequested = false;
-let _rozrysActiveCancel = null;
-let _rozrysCancelTmr = null;
-let _rozrysActiveTerminate = null;
+    const progressCtrl = (FC.rozrysProgress && typeof FC.rozrysProgress.createController === 'function')
+      ? FC.rozrysProgress.createController({ statusBox, statusMain, statusSub, statusMeta, statusProg, statusProgBar, genBtn })
+      : null;
 
-function setGenBtnMode(mode){
-  _rozrysBtnMode = mode;
-  genBtn.classList.remove('btn-generate-green', 'btn-generate-blue', 'btn-generate-red');
-  if(mode === 'running'){
-    genBtn.textContent = 'Anuluj';
-    genBtn.classList.add('btn-generate-red');
-    genBtn.disabled = false;
-    return;
-  }
-  if(mode === 'done'){
-    genBtn.textContent = 'Generuj ponownie';
-    genBtn.classList.add('btn-generate-blue');
-    genBtn.disabled = false;
-    return;
-  }
-  // idle = brak zapamiętanego rozkroju dla aktualnych ustawień
-  genBtn.textContent = 'Generuj rozkrój';
-  genBtn.classList.add('btn-generate-green');
-  genBtn.disabled = false;
-}
-
-function requestCancel(){
-  if(!_rozrysRunning) return;
-  _rozrysCancelRequested = true;
-  try{ setGlobalStatus(true, 'Anulowanie…', 'Wysyłam przerwanie do workera.', NaN, 'Jeśli worker nie odpowie, za chwilę wymuszę zatrzymanie.'); }catch(_){ }
-  try{ _rozrysActiveCancel && _rozrysActiveCancel(); }catch(_){ }
-  // twardy fallback: jeśli worker nie odpowie, terminate żeby UI nie wisiało
-  if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
-  _rozrysCancelTmr = setTimeout(()=>{
-    if(!_rozrysRunning) return;
-    try{ _rozrysActiveTerminate && _rozrysActiveTerminate(); }catch(_){ }
-  }, 700);
-}
-
-async function generate(force){
-  if(_rozrysRunning) return;
-  _rozrysRunning = true;
-  _rozrysCancelRequested = false;
-  const runId = (++_rozrysRunId);
-  setGenBtnMode('running');
-  try{ await new Promise((resolve)=>{
-    try{ requestAnimationFrame(()=> resolve()); }
-    catch(_){ setTimeout(resolve, 0); }
-  }); }catch(_){ }
-  try{
-  const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
-  const baseSt = {
-    unit: unitSel.value,
-    edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
-    boardW: Number(inW.value)|| (unitSel.value==="mm"?2800:280),
-    boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
-    kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
-    edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?20:2),
-    minScrapW: Math.max(0, Number(inMinW.value)||0),
-    minScrapH: Math.max(0, Number(inMinH.value)||0),
-    heur: 'optimax',
-    optimaxProfile: heurSel.value,
-    direction: normalizeCutDirection(dirSel.value),
-  };
-
-  const cache = loadPlanCache();
-
-  const overallStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-  let _overallTick = null;
-  let _globalProgressInfo = { material:'', profile:'MAX', phase:'main', bestSheets:null, currentSheet:0, nextSheet:1, remaining:null, sheetEstimate:1, axis:null, seedIndex:null, seedTotal:null };
-  function fmtElapsed(ms){ return `${(Math.max(0, Number(ms)||0)/1000).toFixed(1)} s`; }
-  function axisProgressLabel(axis){ return axis === 'along' ? 'wzdłuż' : (axis === 'across' ? 'w poprzek' : '—'); }
-  function buildProgressMeta(info, estimate){
-    const phase = String(info && info.phase || 'main');
-    const currentSheet = Math.max(0, Number(info && info.currentSheet) || 0);
-    const nextSheet = Math.max(1, Number(info && info.nextSheet) || (currentSheet > 0 ? currentSheet + 1 : 1));
-    const seedIndex = Number(info && info.seedIndex) || 0;
-    const seedTotal = Number(info && info.seedTotal) || 0;
-    const axisTxt = axisProgressLabel((info && info.axis) || (info && info.to) || null);
-    const suffix = (seedIndex > 0 && seedTotal > 0) ? ` • wariant ${seedIndex}/${seedTotal}` : '';
-    if(phase === 'sheet-closed'){
-      return (Number(info && info.remaining) || 0) > 0
-        ? `Postęp: zamknięta płyta ${currentSheet} z ~${estimate} • liczę płytę ${nextSheet}`
-        : `Postęp: zamknięta płyta ${currentSheet} z ~${estimate}`;
-    }
-    if(phase === 'sheet-start') return `Start płyty ${nextSheet} z ~${estimate}`;
-    if(phase === 'mandatory-axis-switch') return `Zmiana kierunku pasów: teraz ${axisTxt}`;
-    if(phase === 'axis-switch-check') return `Brak idealnego pasa ${axisTxt} — sprawdzam drugi kierunek`;
-    if(phase === 'axis-switched') return `Przełączono kierunek pasów na ${axisTxt}`;
-    if(phase === 'fallback-band-used') return `Brak idealnego pasa — używam najlepszego dostępnego ${axisTxt}`;
-    if(phase.indexOf('start') === 0) return `Analiza pasów startowych ${axisTxt}${suffix}`;
-    if(phase.indexOf('residual') === 0) return `Domykanie arkusza pasami ${axisTxt}${suffix}`;
-    if(currentSheet > 0) return `Postęp: zamknięta płyta ${currentSheet} z ~${estimate} • liczę płytę ${nextSheet}`;
-    return 'Trwa liczenie — worker odpowiada w tle.';
-  }
-  function progressPercent(info, estimate){
-    const currentSheet = Math.max(0, Number(info && info.currentSheet) || 0);
-    return currentSheet > 0 ? Math.min(98, (currentSheet / Math.max(estimate, currentSheet)) * 100) : NaN;
-  }
-  function refreshGlobalTicker(){
-    try{
-      if(!_rozrysRunning) return;
-      const prof = String(_globalProgressInfo.profile || 'MAX');
-      const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - overallStartedAt;
-      const bestTxt = _globalProgressInfo.bestSheets ? `${_globalProgressInfo.bestSheets} płyt` : '—';
-      const estimate = Math.max(1, Number(_globalProgressInfo.sheetEstimate) || 1);
-      const pct = progressPercent(_globalProgressInfo, estimate);
-      const subtitle = `Liczę kolor: ${_globalProgressInfo.material || '—'} • Szacunek: ~${estimate} płyt • Najlepsze: ${bestTxt}`;
-      const meta = buildProgressMeta(_globalProgressInfo, estimate);
-      setGlobalStatus(true, `${prof} • ${fmtElapsed(elapsed)}`, subtitle, pct, meta);
-    }catch(_){ }
-  }
-  function startGlobalTicker(material, profile, sheetEstimate){
-    _globalProgressInfo.material = material || '';
-    _globalProgressInfo.profile = profile || 'D';
-    _globalProgressInfo.phase = 'main';
-    _globalProgressInfo.bestSheets = null;
-    _globalProgressInfo.currentSheet = 0;
-    _globalProgressInfo.nextSheet = 1;
-    _globalProgressInfo.remaining = null;
-    _globalProgressInfo.sheetEstimate = Math.max(1, Number(sheetEstimate) || 1);
-    _globalProgressInfo.axis = null;
-    _globalProgressInfo.seedIndex = null;
-    _globalProgressInfo.seedTotal = null;
-    refreshGlobalTicker();
-    if(_overallTick) return;
-    _overallTick = setInterval(refreshGlobalTicker, 250);
-  }
-  function stopGlobalTicker(){
-    try{ if(_overallTick) clearInterval(_overallTick); }catch(_){ }
-    _overallTick = null;
-  }
-
-  const runOne = async (material, parts, target)=>{
-    if(runId !== _rozrysRunId) return;
-    const hasGrain = materialHasGrain(material);
-    const st = Object.assign({}, baseSt, { material, grain: !!(hasGrain && getMaterialGrainEnabled(material, hasGrain)), grainExceptions: getMaterialGrainExceptions(material, parts.map((p)=> partSignature(p)), hasGrain) });
-    const unit3 = (st.unit === 'mm') ? 'mm' : 'cm';
-    const toMm3 = (v)=>{
-      const n = Number(v);
-      if(!Number.isFinite(n)) return 0;
-      return unit3 === 'mm' ? Math.round(n) : Math.round(n * 10);
-    };
-    const fullWmmForStock = toMm3(st.boardW) || 2800;
-    const fullHmmForStock = toMm3(st.boardH) || 2070;
-    const halfStock = getRealHalfStockForMaterial(material, fullWmmForStock, fullHmmForStock);
-    st.realHalfQty = Math.max(0, Number(halfStock.qty) || 0);
-    st.realHalfBoardW = Math.round(Number(halfStock.width) || 0);
-    st.realHalfBoardH = Math.round(Number(halfStock.height) || 0);
-    const exactStock = getExactSheetStockForMaterial(material, fullWmmForStock, fullHmmForStock);
-    const fullStock = getLargestSheetFormatForMaterial(material, fullWmmForStock, fullHmmForStock);
-    st.stockExactQty = Math.max(0, Number(exactStock.qty) || 0);
-    st.stockFullBoardW = Math.round(Number(fullStock.width) || 0);
-    st.stockFullBoardH = Math.round(Number(fullStock.height) || 0);
-    st.stockPolicy = 'stock_limit_v4';
-    st.stockSignature = buildStockSignatureForMaterial(material);
-    const cacheKey = makePlanCacheKey(st, parts);
-    if(!force && cache[cacheKey] && cache[cacheKey].plan){
-      const cached = cache[cacheKey].plan;
-      if(runId !== _rozrysRunId) return;
-      renderOutput(cached, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
-      setGenBtnMode('done');
-      return;
+    function setGenBtnMode(mode){
+      if(progressCtrl && typeof progressCtrl.setGenBtnMode === 'function') return progressCtrl.setGenBtnMode(mode);
     }
 
-    // Optimax mode: profile-driven worker for strip-oriented cut styles.
-    if(st.heur === "optimax"){
-      const preset = getOptimaxProfilePreset(st.optimaxProfile, st.direction);
-      const cutMode = normalizeCutDirection(st.direction);
-      const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
-      const toMm2 = (v)=>{
-        const n = Number(v);
-        if(!Number.isFinite(n)) return 0;
-        return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
-      };
-      const W02 = toMm2(st.boardW) || 2800;
-      const H02 = toMm2(st.boardH) || 2070;
-      const K2  = toMm2(st.kerf)   || 4;
-      const trim2 = toMm2(st.edgeTrim) || 20;
-      const minScrapW2 = toMm2(st.minScrapW) || 0;
-      const minScrapH2 = toMm2(st.minScrapH) || 0;
-      const W2 = Math.max(10, W02 - 2*trim2);
-      const H2 = Math.max(10, H02 - 2*trim2);
-      const roughArea = (parts||[]).reduce((sum, p)=> sum + ((Number(p.w)||0) * (Number(p.h)||0) * Math.max(1, Number(p.qty)||1)), 0);
-      const roughSheetsEstimate = Math.max(1, Math.ceil(roughArea / Math.max(1, W2 * H2)));
+    function requestCancel(){
+      if(progressCtrl && typeof progressCtrl.requestCancel === 'function') return progressCtrl.requestCancel();
+    }
 
-      const profileLabel = speedLabel(st.optimaxProfile || 'max');
-      const loading = renderLoadingInto(target || null, `${profileLabel} • ${directionLabel(st.direction)} • 0.0 s`, `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Najlepsze: —`);
-      startGlobalTicker(material, profileLabel, roughSheetsEstimate);
-      const materialStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      const materialProgress = { phase:'main', bestSheets:null, currentSheet:0, nextSheet:1, remaining:null, sheetEstimate:roughSheetsEstimate, axis:null, seedIndex:null, seedTotal:null };
-      function refreshMaterialTicker(){
-        try{
-          const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt;
-          const bestTxt = materialProgress.bestSheets ? `${materialProgress.bestSheets} płyt` : '—';
-          const currentSheet = Math.max(0, Number(materialProgress.currentSheet) || 0);
-          const est = Math.max(1, Number(materialProgress.sheetEstimate) || roughSheetsEstimate || 1);
-          const pct = progressPercent(materialProgress, est);
-          const metaText = buildProgressMeta(materialProgress, est);
-          if(loading && loading.textEl) loading.textEl.textContent = `${profileLabel} • ${directionLabel(st.direction)} • ${fmtElapsed(elapsed)}`;
-          if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • Szacunek: ~${est} płyt • Najlepsze: ${bestTxt}`;
-          if(loading && typeof loading.setProgress === 'function') loading.setProgress(pct, metaText);
-          _globalProgressInfo.material = material;
-          _globalProgressInfo.profile = profileLabel;
-          _globalProgressInfo.phase = materialProgress.phase;
-          _globalProgressInfo.bestSheets = materialProgress.bestSheets;
-          _globalProgressInfo.currentSheet = currentSheet;
-          _globalProgressInfo.nextSheet = Math.max(1, Number(materialProgress.nextSheet) || (currentSheet > 0 ? currentSheet + 1 : 1));
-          _globalProgressInfo.remaining = materialProgress.remaining;
-          _globalProgressInfo.sheetEstimate = est;
-          _globalProgressInfo.axis = materialProgress.axis;
-          _globalProgressInfo.seedIndex = materialProgress.seedIndex;
-          _globalProgressInfo.seedTotal = materialProgress.seedTotal;
-          refreshGlobalTicker();
-        }catch(_){ }
-      }
-      const materialTicker = setInterval(refreshMaterialTicker, 250);
-      refreshMaterialTicker();
-      try{
-        if(loading && typeof loading.setProgress === 'function') loading.setProgress(NaN, 'Inicjalizacja workera…');
-        if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Start workera…`;
-        setGlobalStatus(true, `${profileLabel} • ${directionLabel(st.direction)} • 0.0 s`, `Liczę kolor: ${material} • Szacunek: ~${roughSheetsEstimate} płyt • Start workera…`, NaN, 'Inicjalizacja workera…');
-      }catch(_){ }
-      let plan = null;
-      const control = { runId };
-      _rozrysActiveCancel = ()=>{
-        try{ control._cancelRequested = true; }catch(_){ }
-        try{ control.cancel && control.cancel(); }catch(_){ }
-      };
-      _rozrysActiveTerminate = ()=>{
-        try{ control._terminate && control._terminate(); }catch(_){ }
-      };
-      try{
-        plan = await computePlanPanelProAsync(st, parts, (p)=>{
-          try{
-            materialProgress.phase = (p && p.phase) ? String(p.phase) : 'main';
-            materialProgress.bestSheets = (p && Number(p.bestSheets)) ? Number(p.bestSheets) : null;
-            materialProgress.currentSheet = (p && typeof p.currentSheet === 'number') ? Number(p.currentSheet) : materialProgress.currentSheet;
-            materialProgress.nextSheet = (p && typeof p.nextSheet === 'number') ? Number(p.nextSheet) : materialProgress.nextSheet;
-            materialProgress.remaining = (p && typeof p.remaining === 'number') ? Number(p.remaining) : materialProgress.remaining;
-            materialProgress.sheetEstimate = (p && Number(p.sheetEstimate)) ? Number(p.sheetEstimate) : materialProgress.sheetEstimate;
-            materialProgress.axis = (p && p.axis) ? String(p.axis) : materialProgress.axis;
-            materialProgress.seedIndex = (p && typeof p.seedIndex === 'number') ? Number(p.seedIndex) : materialProgress.seedIndex;
-            materialProgress.seedTotal = (p && typeof p.seedTotal === 'number') ? Number(p.seedTotal) : materialProgress.seedTotal;
-            refreshMaterialTicker();
-          }catch(_){ }
-        }, control, {
-          beamWidth: preset.beamWidth,
-          endgameAttempts: preset.endgameAttempts,
-          cutPref: cutMode,
-          cutMode,
-          minScrapW: minScrapW2,
-          minScrapH: minScrapH2,
-          speedMode: String(st.optimaxProfile || 'max').toLowerCase(),
-          optimaxProfile: String(st.optimaxProfile || 'max').toLowerCase(),
-          sheetEstimate: roughSheetsEstimate,
-          optimax: true,
-          realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
-          realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
-          realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
-        });
-      }catch(e){
-        plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
-      } finally {
-        try{ clearInterval(materialTicker); }catch(_){ }
-        _rozrysActiveCancel = null;
-        _rozrysActiveTerminate = null;
-        if(_rozrysCancelTmr){ try{ clearTimeout(_rozrysCancelTmr); }catch(_){ } _rozrysCancelTmr = null; }
-      }
+    function isRozrysRunning(){
+      return !!(progressCtrl && typeof progressCtrl.isRunning === 'function' && progressCtrl.isRunning());
+    }
 
-      // Jeśli worker timeout/wywalił się — daj szybki fallback zamiast "Brak wyniku".
-      // Dla MAX nie schodzimy już na synchroniczny fallback na głównym wątku,
-      // bo to zamraża UI i sprawia wrażenie zawieszenia jeszcze przed startem.
-      if((!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0) && !(plan && plan.noSyncFallback)){
-        try{
-          const opt2 = FC.cutOptimizer;
-          const grainOn2 = !!st.grain;
-          const overrides2 = Object.assign({}, st.grainExceptions || {});
-          const edgeStore2 = loadEdgeStore();
-          const partsMm2 = (parts||[]).map(p=>{
-            const sig = partSignature(p);
-            const allow = isPartRotationAllowed(p, grainOn2, overrides2);
-            const e = edgeStore2[sig] || {};
-            return {
-              key: sig,
-              name: p.name,
-              w: p.w,
-              h: p.h,
-              qty: p.qty,
-              material: p.material,
-              rotationAllowed: allow,
-              edgeW1: !!e.w1,
-              edgeW2: !!e.w2,
-              edgeH1: !!e.h1,
-              edgeH2: !!e.h2,
-            };
-          });
-          const items2 = opt2.makeItems(partsMm2);
-          const unit2 = (st.unit === 'mm') ? 'mm' : 'cm';
-          const toMm2 = (v)=>{
-            const n = Number(v);
-            if(!Number.isFinite(n)) return 0;
-            return unit2 === 'mm' ? Math.round(n) : Math.round(n * 10);
-          };
-          const W02 = toMm2(st.boardW) || 2800;
-          const H02 = toMm2(st.boardH) || 2070;
-          const K2  = toMm2(st.kerf)   || 4;
-          const trim2 = toMm2(st.edgeTrim) || 20;
-          const minScrapW2 = toMm2(st.minScrapW) || 0;
-          const minScrapH2 = toMm2(st.minScrapH) || 0;
-          const W2 = Math.max(10, W02 - 2*trim2);
-          const H2 = Math.max(10, H02 - 2*trim2);
-          const startMode2 = normalizeCutDirection(st.direction);
-          const speedMode2 = FC.cutOptimizer && FC.cutOptimizer.normalizeSpeedMode ? FC.cutOptimizer.normalizeSpeedMode(st.optimaxProfile) : 'max';
-          const startStrategy2 = FC.rozkrojStarts && FC.rozkrojStarts[startMode2];
-          const speed2 = FC.rozkrojSpeeds && FC.rozkrojSpeeds[speedMode2];
-          const packed2 = speed2 && typeof speed2.pack === 'function'
-            ? speed2.pack(items2, W2, H2, K2, {
-                startStrategy: startStrategy2,
-                startMode: startMode2,
-                speedMode: speedMode2,
-                realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
-                realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
-                realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
-              })
-            : { sheets: opt2.packShelf(items2, W2, H2, K2, 'along') };
-          plan = { sheets: packed2.sheets || [], cancelled: !!(plan && plan.cancelled), meta: { trim: trim2, boardW: W02, boardH: H02, unit: unit2 }, note: plan && plan.note ? plan.note : undefined };
-        }catch(_){ }
-      }
-      plan = await applySheetStockLimit(material, st, parts, plan, {
-        onStatus: (message)=>{
-          try{
-            if(loading && loading.subEl) loading.subEl.textContent = `Liczę kolor: ${material} • ${message}`;
-            setGlobalStatus(true, `${profileLabel} • ${directionLabel(st.direction)} • ${fmtElapsed(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - materialStartedAt)}`, `Liczę kolor: ${material} • ${message}`, NaN, message);
-          }catch(_){ }
-        }
+    function getRozrysBtnMode(){
+      return progressCtrl && typeof progressCtrl.getButtonMode === 'function' ? progressCtrl.getButtonMode() : 'idle';
+    }
+
+    async function generate(force){
+      if(!(FC.rozrysRunner && typeof FC.rozrysRunner.generate === 'function')) return;
+      return FC.rozrysRunner.generate(force, {
+        progressCtrl,
+        normalizeMaterialScopeForAggregate,
+        decodeMaterialScope,
+        matSelValue: matSel.value,
+        agg,
+        unitValue: unitSel.value,
+        edgeValue: edgeSel.value,
+        boardWValue: inW.value,
+        boardHValue: inH.value,
+        kerfValue: inK.value,
+        trimValue: inTrim.value,
+        minScrapWValue: inMinW.value,
+        minScrapHValue: inMinH.value,
+        heurValue: heurSel.value,
+        directionValue: dirSel.value,
+        normalizeCutDirection,
+        loadPlanCache,
+        savePlanCache,
+        materialHasGrain,
+        getMaterialGrainEnabled,
+        getMaterialGrainExceptions,
+        partSignature,
+        getRealHalfStockForMaterial,
+        getExactSheetStockForMaterial,
+        getLargestSheetFormatForMaterial,
+        buildStockSignatureForMaterial,
+        makePlanCacheKey,
+        renderOutput,
+        formatHeurLabel,
+        getRozrysScopeMode,
+        getOptimaxProfilePreset,
+        speedLabel,
+        directionLabel,
+        renderLoadingInto,
+        computePlanPanelProAsync,
+        loadEdgeStore,
+        isPartRotationAllowed,
+        applySheetStockLimit,
+        computePlan,
+        out,
+        buildEntriesForScope,
+        getAccordionScopeKey,
+        getAccordionPref,
+        createMaterialAccordionSection,
+        setAccordionPref,
+        setMaterialGrainEnabled,
+        tryAutoRenderFromCache,
+        openMaterialGrainExceptions,
       });
-      try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-      renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
-      try{ setGlobalStatus(false, '', ''); }catch(_){ }
-      setGenBtnMode('done');
-      return;
     }
-
-    let plan = computePlan(st, parts);
-    plan = await applySheetStockLimit(material, st, parts, plan);
-    try{ cache[cacheKey] = { ts: Date.now(), plan }; savePlanCache(cache); }catch(_){}
-    renderOutput(plan, { material, kerf: st.kerf, heur: formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: getRozrysScopeMode(scope), selectedRooms: agg.selectedRooms }, target);
-    setGenBtnMode('done');
-  };
-
-  out.innerHTML = "";
-  const entries = buildEntriesForScope(scope, agg);
-  if(!entries.length){
-    out.appendChild(h('div', { class:'muted', text:'Brak elementów do wygenerowania dla wybranego zakresu.' }));
-    return;
-  }
-  const accordionScopeKey = getAccordionScopeKey(scope, agg);
-  const accordionPref = getAccordionPref(accordionScopeKey);
-  for(const entry of entries){
-    const material = entry.material;
-    const parts = entry.parts || [];
-    if(!parts.length) continue;
-    const hasGrain = materialHasGrain(material);
-    const grainEnabled = hasGrain ? getMaterialGrainEnabled(material, hasGrain) : false;
-    const section = createMaterialAccordionSection(material, {
-      open: !!(accordionPref && accordionPref.open && accordionPref.material === material),
-      grain: hasGrain,
-      grainEnabled,
-      grainDisabled: !hasGrain,
-      onToggle: (isOpen, materialName)=> setAccordionPref(accordionScopeKey, materialName, isOpen),
-      onGrainToggle: (checked)=>{
-        setMaterialGrainEnabled(material, checked, hasGrain);
-        tryAutoRenderFromCache();
-      },
-      onExceptionsClick: ()=> openMaterialGrainExceptions(material, parts || [])
-    });
-    out.appendChild(section.wrap);
-    await runOne(material, parts, section.body);
-    if(_rozrysCancelRequested) break;
-  }
-  } finally {
-    _rozrysRunning = false;
-    try{ stopGlobalTicker(); }catch(_){ }
-    try{ setGlobalStatus(false); }catch(_){ }
-    if(_rozrysBtnMode === 'running') setGenBtnMode('idle');
-  }
-}
 
 // events
     unitSel.addEventListener('change', ()=>{
@@ -2582,171 +1772,33 @@ async function generate(force){
     });
 
     function openAddStockModal(){
-      if(!(FC.magazyn && (FC.magazyn.addSheetStock || FC.magazyn.upsertSheet))){
-        openRozrysInfo('Brak modułu magazynu', 'Nie udało się zapisać formatu, bo moduł Magazynu nie jest dostępny.');
-        return;
-      }
-      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')){
-        openRozrysInfo('Brak panelu', 'Nie udało się otworzyć okna dodawania płyty.');
-        return;
-      }
-      const scope = normalizeMaterialScopeForAggregate(decodeMaterialScope(matSel.value), agg);
-      const currentMaterial = scope.kind === 'material' && scope.material ? scope.material : '';
-      const body = h('div');
-      const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
-
-      const materialWrap = h('div', { style:'grid-column:1 / -1' });
-      materialWrap.appendChild(h('label', { text:'Materiał' }));
-      let materialControl = null;
-      if(currentMaterial){
-        materialControl = h('input', { type:'text', value: currentMaterial, readonly:'readonly' });
-      }else{
-        const select = h('select');
-        select.appendChild(h('option', { value:'', text:'Wybierz materiał' }));
-        (agg.materials || []).forEach((material)=>{
-          const split = splitMaterialAccordionTitle(material);
-          const option = h('option', { value:material, text:[split.line1 || material, split.line2 || ''].filter(Boolean).join(' • ') });
-          select.appendChild(option);
+      if(FC.rozrysStockModal && typeof FC.rozrysStockModal.openAddStockModal === 'function'){
+        return FC.rozrysStockModal.openAddStockModal({
+          agg,
+          matSelValue: matSel.value,
+          unitValue: unitSel.value,
+          boardWValue: inW.value,
+          boardHValue: inH.value,
+        }, {
+          normalizeMaterialScopeForAggregate,
+          decodeMaterialScope,
+          splitMaterialAccordionTitle,
+          parseLocaleNumber,
+          openRozrysInfo,
+          askRozrysConfirm,
         });
-        materialControl = select;
       }
-      materialWrap.appendChild(materialControl);
-      form.appendChild(materialWrap);
-
-      const widthWrap = h('div');
-      widthWrap.appendChild(h('label', { text:`Szerokość płyty (${unitSel.value})` }));
-      const widthInput = h('input', { type:'number', value:String(inW.value || '') });
-      widthWrap.appendChild(widthInput);
-      form.appendChild(widthWrap);
-
-      const heightWrap = h('div');
-      heightWrap.appendChild(h('label', { text:`Wysokość płyty (${unitSel.value})` }));
-      const heightInput = h('input', { type:'number', value:String(inH.value || '') });
-      heightWrap.appendChild(heightInput);
-      form.appendChild(heightWrap);
-
-      const qtyWrap = h('div', { style:'grid-column:1 / -1' });
-      qtyWrap.appendChild(h('label', { text:'Ilość (szt.)' }));
-      const qtyInput = h('input', { type:'number', value:'1', min:'1' });
-      qtyWrap.appendChild(qtyInput);
-      form.appendChild(qtyWrap);
-
-      body.appendChild(form);
-
-      const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
-      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
-      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
-      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
-
-      const normalizeFieldText = (value)=> String(value == null ? '' : value).trim();
-      const currentSignature = ()=> JSON.stringify({
-        material: normalizeFieldText(currentMaterial || (materialControl && materialControl.value) || ''),
-        width: normalizeFieldText(widthInput.value),
-        height: normalizeFieldText(heightInput.value),
-        qty: normalizeFieldText(qtyInput.value)
-      });
-      const initialSignature = currentSignature();
-      const isDirty = ()=> currentSignature() !== initialSignature;
-      const updateFooterState = ()=>{
-        actionWrap.innerHTML = '';
-        saveBtn.disabled = !isDirty();
-        if(isDirty()){
-          actionWrap.appendChild(cancelBtn);
-          actionWrap.appendChild(saveBtn);
-        }else{
-          actionWrap.appendChild(exitBtn);
-        }
-      };
-      const confirmDiscard = ()=> askRozrysConfirm({
-        title:'ANULOWAĆ ZMIANY?',
-        message:'Niezapisane zmiany w formularzu dodawania płyty zostaną utracone.',
-        confirmText:'✕ ANULUJ ZMIANY',
-        cancelText:'WRÓĆ',
-        confirmTone:'danger',
-        cancelTone:'neutral'
-      });
-      const wireDirty = (el)=>{
-        if(!el) return;
-        el.addEventListener('input', updateFooterState);
-        el.addEventListener('change', updateFooterState);
-      };
-      [materialControl, widthInput, heightInput, qtyInput].forEach(wireDirty);
-
-      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
-      cancelBtn.addEventListener('click', async ()=>{
-        const ok = await confirmDiscard();
-        if(!ok) return;
-        FC.panelBox.close();
-      });
-      saveBtn.addEventListener('click', async ()=>{
-        const material = currentMaterial || String(materialControl && materialControl.value || '').trim();
-        const u = unitSel.value === 'cm' ? 'cm' : 'mm';
-        const w = u==='mm' ? Math.round(parseLocaleNumber(widthInput.value) || 0) : Math.round((parseLocaleNumber(widthInput.value) || 0) * 10);
-        const hh = u==='mm' ? Math.round(parseLocaleNumber(heightInput.value) || 0) : Math.round((parseLocaleNumber(heightInput.value) || 0) * 10);
-        const qty = Math.max(1, Math.round(parseLocaleNumber(qtyInput.value) || 1));
-        if(!material){
-          openRozrysInfo('Brak materiału', 'Najpierw wybierz konkretny materiał dla płyty magazynowej.');
-          return;
-        }
-        if(!(w > 0 && hh > 0)){
-          openRozrysInfo('Brak formatu płyty', 'Podaj poprawny format płyty, zanim dodasz ją do Magazynu.');
-          return;
-        }
-        if(!isDirty()) return;
-        const ok = await askRozrysConfirm({
-          title:'DODAĆ PŁYTĘ DO MAGAZYNU?',
-          message:`Materiał: ${material}
-Format: ${w}×${hh} mm
-Dodam ${qty} szt. do magazynu.`,
-          confirmText:'Zapisz',
-          cancelText:'Anuluj',
-          confirmTone:'success',
-          cancelTone:'danger'
-        });
-        if(!ok) return;
-        let saved = false;
-        try{
-          if(FC.magazyn && typeof FC.magazyn.addSheetStock === 'function'){
-            saved = !!FC.magazyn.addSheetStock(material, w, hh, qty);
-          } else {
-            const rows = (FC.magazyn && typeof FC.magazyn.findForMaterial === 'function') ? FC.magazyn.findForMaterial(material) : [];
-            const exact = (rows || []).find((row)=> Math.round(Number(row && row.width) || 0) === Math.round(w) && Math.round(Number(row && row.height) || 0) === Math.round(hh));
-            if(exact){
-              saved = !!FC.magazyn.upsertSheet({ id: exact.id, material, width:w, height:hh, qty: Math.max(0, Math.round(Number(exact.qty) || 0)) + qty });
-            } else {
-              saved = !!FC.magazyn.upsertSheet({ material, width:w, height:hh, qty });
-            }
-          }
-        }catch(_){ saved = false; }
-        if(!saved){
-          openRozrysInfo('Nie udało się dodać płyty', 'Spróbuj ponownie.');
-          return;
-        }
-        FC.panelBox.close();
-        openRozrysInfo('Dodano płytę', `Płyta została dodana do Magazynu (+${qty} szt.).`);
-      });
-      updateFooterState();
-      FC.panelBox.open({
-        title:'Dodaj płytę do magazynu',
-        contentNode: body,
-        width:'640px',
-        dismissOnOverlay:false,
-        beforeClose: ()=> isDirty() ? confirmDiscard() : true
-      });
     }
 
     addStockBtn.addEventListener('click', openAddStockModal);
 
     genBtn.addEventListener('click', ()=>{
-      if(_rozrysRunning){
+      if(isRozrysRunning()){
         requestCancel();
         return;
       }
       // "Generuj ponownie" must bypass cache and recompute.
-      const force = (_rozrysBtnMode === 'done');
+      const force = (getRozrysBtnMode() === 'done');
       generate(force);
     });
 

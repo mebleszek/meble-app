@@ -2,6 +2,14 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-27 — rozrys_split_v6
+- `js/app/rozrys-scope.js` — wydzielony zakres / selekcja ROZRYS: pomieszczenia, scope materiałów, kolejność materiałów, klucz accordionu i agregacja formatek projektu.
+- `js/app/rozrys-engine.js` — wydzielone helpery engine ROZRYS: normalizacja kierunku, etykiety heurystyk, liczenie sync, liczenie workerowe i wspólny fallback `computePlanWithCurrentEngine()`.
+- `js/app/rozrys-sheet-helpers.js` — wydzielone helpery canvas arkusza: metryki planszy, snap do pixela, trim area, divider połówki i rysowanie pojedynczej formatki.
+- `js/app/rozrys-print-layout.js` — wydzielony layout PDF/druk: dobór skali, grupowanie 1–2 arkuszy na stronę i generowanie HTML wydruku bez zmiany wyglądu.
+- `js/app/rozrys.js` + `js/app/rozrys-sheet-draw.js` + `js/app/rozrys-render.js` — przepięte na nowe moduły, dzięki czemu `rozrys.js` dalej schudł i zostało w nim mniej ciężkiej logiki domenowej.
+- `index.html` — dopięte nowe pliki i podbity pełny cache-busting pakietu `rozrys-*` do `20260327_rozrys_split_v6`.
+
 ### 2026-03-27 — rozrys_stock_validation_fix_v2
 - `js/app/rozrys-stock.js` — walidacja dla arkuszy `z magazynu` dostała dodatkowe, odporniejsze odejmowanie wykorzystanych formatek: jeśli placement z planu magazynowego nie wróci z idealnie dopasowanym `key`, moduł rozpoznaje go jeszcze po nazwie i wymiarze, więc formatki użyte na płycie magazynowej nie są już dublowane na płytach `zamówić`.
 - `js/app/rozrys.js` + `js/app/rozrys-render.js` — podbity `stockPolicy` do `v4`, żeby po tej poprawce nie wracały stare, błędne plany z cache.
@@ -601,3 +609,10 @@ Dopiero potem go zmieniać.
 - `index.html` dopięty do nowego modułu i cały pakiet skryptów `rozrys-*` dostał wspólny cache-busting `20260327_rozrys_stock_validation_v4`.
 - Usunięto martwy, nieużywany `deriveAggForMode()` z `js/app/rozrys.js`.
 - Efekt: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.
+
+
+## 2026-03-27 — ROZRYS split v5 (4 kolejne wydzielenia)
+- Dodano nowe moduły: `js/app/rozrys-summary.js`, `js/app/rozrys-progress.js`, `js/app/rozrys-stock-modal.js`, `js/app/rozrys-runner.js`.
+- Z `js/app/rozrys.js` wydzielono: diagnostykę/walidację list (`Lista formatek`, `lista arkusza`), stan/progres/anulowanie generowania, modal `Dodaj płytę do magazynu`, oraz przebieg generowania materiałów (`generate()` + `runOne()` jako osobny runner).
+- `index.html` dostał wspólny cache-busting `20260327_rozrys_split_v5` dla całego pakietu `rozrys-*`.
+- Cel paczki: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.

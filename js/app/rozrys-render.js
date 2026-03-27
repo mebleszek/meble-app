@@ -248,168 +248,25 @@
         const edgeNote = (edgeSubMm>0) ? ` • Wymiary do cięcia: TAK (${edgeSubMm}mm)` : '';
         const printTitle = `Rozrys — ${meta.material}`;
         const printMetaLine = `Płyty: ${formatSheetCount(sum.count)} • Kerf: ${meta.kerf}${u} • Heurystyka: ${meta.heur}${edgeNote}`;
-        const PRINT = {
-          pageW: 194,
-          pageH: 281,
-          headerH: cfg.measurePrintHeaderMm(printTitle, printMetaLine),
-          headerGap: 4,
-          bodyPadX: 4,
-          bodyPadBottom: 3,
-          pageGap: 5,
-          itemGap: 5,
-          metaH: 6,
-          imgPad: 2,
-        };
-        const refBoard = sheets.reduce((acc, s)=>{
-          const bm = getBoardMeta(s);
-          const refW = Number((bm && bm.referenceBoardW) || (bm && bm.boardW) || 0);
-          const refH = Number((bm && bm.referenceBoardH) || (bm && bm.boardH) || 0);
-          return {
-            w: Math.max(acc.w, rotatePdfSheets ? refH : refW),
-            h: Math.max(acc.h, rotatePdfSheets ? refW : refH),
-          };
-        }, {
-          w: Math.max(1, rotatePdfSheets
-            ? Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0)
-            : Number((meta && meta.boardW) || (meta && meta.meta && meta.meta.boardW) || 0)),
-          h: Math.max(1, rotatePdfSheets
-            ? Number((meta && meta.boardW) || (meta && meta.meta && meta.meta.boardW) || 0)
-            : Number((meta && meta.boardH) || (meta && meta.meta && meta.meta.boardH) || 0))
-        });
-        const bodyW = Math.max(10, PRINT.pageW - PRINT.bodyPadX * 2);
-        const bodyH = Math.max(10, PRINT.pageH - PRINT.headerH - PRINT.headerGap - PRINT.bodyPadBottom);
-        const globalScaleMm = Math.max(0.01, Math.min(
-          (bodyW - 2 * PRINT.imgPad) / Math.max(1, refBoard.w),
-          (bodyH - PRINT.metaH - 2 * PRINT.imgPad) / Math.max(1, refBoard.h)
-        ));
-
-        const sheetItems = sheets.map((s, i)=>{
-          const bm = getBoardMeta(s);
-          const ws = calcDisplayWaste(s);
-          const sheetWastePct = ws.total > 0 ? ((ws.waste / ws.total) * 100) : 0;
-          const virtualTxt = ws.realHalf ? ' • real 0,5 z magazynu' : (ws.virtualHalf ? ' • virtual 0,5 płyty' : '');
-          const supply = getSupplyMeta(s);
-          const supplyTxt = supply ? ` • ${supply.text}` : '';
-          const img = imgs[i] || { src:'', width:0, height:0 };
-          const effectiveBoardW = rotatePdfSheets ? Number(bm.boardH || 0) : Number(bm.boardW || 0);
-          const effectiveBoardH = rotatePdfSheets ? Number(bm.boardW || 0) : Number(bm.boardH || 0);
-          const renderW = Math.max(6, effectiveBoardW * globalScaleMm);
-          const renderH = Math.max(6, effectiveBoardH * globalScaleMm);
-          return {
-            index: i,
-            src: img.src || '',
-            renderW,
-            renderH,
-            totalBlockH: PRINT.metaH + PRINT.imgPad + renderH,
-            metaHtml: `<strong>Arkusz ${i+1}</strong> — ${cfg.mmToUnitStr(bm.boardW, u)}×${cfg.mmToUnitStr(bm.boardH, u)} ${u} • Odpad: ${sheetWastePct.toFixed(1)}%${virtualTxt}${supplyTxt}`,
-          };
-        });
-
-        const canPairOnSamePage = (a, b)=>{
-          if(!a || !b) return false;
-          const combinedH = a.totalBlockH + b.totalBlockH + PRINT.itemGap;
-          const maxW = Math.max(a.renderW, b.renderW) + PRINT.imgPad * 2;
-          return combinedH <= bodyH && maxW <= bodyW;
-        };
-
-        const pages = [];
-        for(let i=0; i<sheetItems.length;){
-          const current = sheetItems[i];
-          const next = sheetItems[i + 1];
-          if(canPairOnSamePage(current, next)){
-            pages.push([current, next]);
-            i += 2;
-            continue;
-          }
-          pages.push([current]);
-          i += 1;
-        }
-
-        let html = `<!doctype html><html><head><meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width,initial-scale=1" />
-          <title>Rozrys</title>
-          <style>
-            @page{ size:210mm 297mm; margin:8mm; }
-            html, body{ margin:0; padding:0; }
-            body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#111827; }
-            .print-page{
-              box-sizing:border-box;
-              width:194mm;
-              height:281mm;
-              margin:0;
-              page-break-after:always;
-              break-after:page;
-              page-break-inside:avoid;
-              break-inside:avoid-page;
-              overflow:hidden;
-              display:flex;
-              flex-direction:column;
-              justify-content:flex-start;
-            }
-            .print-page:last-child{ page-break-after:auto; break-after:auto; }
-            .page-head{ margin:0 0 4mm; min-height:${PRINT.headerH.toFixed(2)}mm; flex:0 0 auto; overflow-wrap:anywhere; word-break:break-word; }
-            .title{ font-size:18px; font-weight:800; line-height:1.2; margin:0 0 2mm; overflow-wrap:anywhere; word-break:break-word; }
-            .meta{ font-size:12px; line-height:1.35; color:#374151; margin:0; overflow-wrap:anywhere; word-break:break-word; }
-            .page-body{
-              flex:1 1 auto;
-              min-height:0;
-              width:100%;
-              box-sizing:border-box;
-              padding:0 ${PRINT.bodyPadX.toFixed(2)}mm ${PRINT.bodyPadBottom.toFixed(2)}mm;
-              display:flex;
-              flex-direction:column;
-              align-items:flex-start;
-              justify-content:flex-start;
-              gap:${PRINT.itemGap.toFixed(2)}mm;
-              overflow:hidden;
-            }
-            .sheet-card{
-              width:100%;
-              flex:0 0 auto;
-              display:flex;
-              flex-direction:column;
-              align-items:flex-start;
-              page-break-inside:avoid;
-              break-inside:avoid-page;
-            }
-            .sheet-meta{ font-size:12px; color:#111827; margin:0 0 2mm; }
-            .img-wrap{
-              width:100%;
-              display:flex;
-              align-items:flex-start;
-              justify-content:flex-start;
-              overflow:hidden;
-            }
-            img.sheet-img{
-              display:block;
-              width:auto;
-              height:auto;
-              max-width:none;
-              max-height:none;
-              border:1px solid #333;
-              border-radius:10px;
-              background:#fff;
-            }
-          </style>
-        </head><body>`;
-        pages.forEach((group)=>{
-          html += `<section class="print-page">`;
-          html += `<div class="page-head">`;
-          html += `<div class="title">${escapeHtml(printTitle)}</div>`;
-          html += `<p class="meta">${escapeHtml(printMetaLine)}</p>`;
-          html += `</div>`;
-          html += `<div class="page-body">`;
-          group.forEach((item)=>{
-            html += `<article class="sheet-card">`;
-            html += `<p class="sheet-meta">${item.metaHtml}</p>`;
-            html += `<div class="img-wrap"><img class="sheet-img" src="${item.src}" alt="Arkusz ${item.index + 1}" style="width:${item.renderW.toFixed(2)}mm;height:${item.renderH.toFixed(2)}mm" /></div>`;
-            html += `</article>`;
-          });
-          html += `</div>`;
-          html += `</section>`;
-        });
-        html += `</body></html>`;
-        cfg.openPrintView(html);
+        const printLayout = FC.rozrysPrintLayout;
+        const html = (printLayout && typeof printLayout.buildPrintHtml === 'function')
+          ? printLayout.buildPrintHtml({
+              sheets,
+              imgs,
+              meta,
+              unit:u,
+              rotatePdfSheets,
+              printTitle,
+              printMetaLine,
+              totalSheetCount:sum.count,
+            }, {
+              getBoardMeta,
+              calcDisplayWaste,
+              measurePrintHeaderMm: cfg.measurePrintHeaderMm,
+              mmToUnitStr: cfg.mmToUnitStr,
+            })
+          : '';
+        if(html) cfg.openPrintView(html);
       });
       expRow.appendChild(pdfBtn);
     }
