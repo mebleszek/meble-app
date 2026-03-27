@@ -2,6 +2,11 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-27 — rozrys_stock_validation_fix_v2
+- `js/app/rozrys-stock.js` — walidacja dla arkuszy `z magazynu` dostała dodatkowe, odporniejsze odejmowanie wykorzystanych formatek: jeśli placement z planu magazynowego nie wróci z idealnie dopasowanym `key`, moduł rozpoznaje go jeszcze po nazwie i wymiarze, więc formatki użyte na płycie magazynowej nie są już dublowane na płytach `zamówić`.
+- `js/app/rozrys.js` + `js/app/rozrys-render.js` — podbity `stockPolicy` do `v4`, żeby po tej poprawce nie wracały stare, błędne plany z cache.
+- `index.html` — podbite cache-busting dla całego zestawu modułów `rozrys-*` do `20260327_rozrys_stock_validation_v4`.
+
 ### 2026-03-26 — rozrys_validation_fix_v1
 - `js/app/rozrys-stock.js` — naprawiona regresja po module split: odejmowanie formatek już wykorzystanych z magazynu znowu używa pełnego `partSignature()`, więc brakujące elementy nie są dublowane na płytach zamawianych; dodatkowo filtr dopasowania do arkusza magazynowego znowu respektuje blokadę obrotu wynikającą ze słojów.
 - `js/app/rozrys.js` — wrapper do `applySheetStockLimit()` przekazuje wymagane zależności (`partSignature`, `isPartRotationAllowed`) i podbija `stockPolicy` do `v3`, żeby nie używać błędnych planów z cache po poprzedniej paczce.
@@ -593,6 +598,6 @@ Dopiero potem go zmieniać.
 ## 2026-03-27 — ROZRYS split v3 (render/cache preview)
 - Dodano `js/app/rozrys-render.js`.
 - Z `js/app/rozrys.js` wydzielono: `buildEntriesForScope()`, `tryAutoRenderFromCache()`, `renderOutput()`, `renderLoadingInto()`.
-- `index.html` dopięty do nowego modułu i cały pakiet skryptów `rozrys-*` dostał wspólny cache-busting `20260327_rozrys_split_v3`.
+- `index.html` dopięty do nowego modułu i cały pakiet skryptów `rozrys-*` dostał wspólny cache-busting `20260327_rozrys_stock_validation_v4`.
 - Usunięto martwy, nieużywany `deriveAggForMode()` z `js/app/rozrys.js`.
 - Efekt: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.

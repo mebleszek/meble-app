@@ -514,7 +514,7 @@
           stockExactQty: Math.max(0, Number(exactStock.qty) || 0),
           stockFullBoardW: Math.round(Number(fullStock.width) || 0),
           stockFullBoardH: Math.round(Number(fullStock.height) || 0),
-          stockPolicy: 'stock_limit_v3',
+          stockPolicy: 'stock_limit_v4',
           stockSignature: typeof cfg.buildStockSignatureForMaterial === 'function' ? cfg.buildStockSignatureForMaterial(material) : '',
         });
         const cacheKey = typeof cfg.makePlanCacheKey === 'function' ? cfg.makePlanCacheKey(st, parts) : '';

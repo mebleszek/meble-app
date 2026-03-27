@@ -160,25 +160,75 @@
     }));
   }
 
-  function countPlacedPartsByKey(sheets){
-    const map = new Map();
+  function partShapeKey(name, w, h){
+    const nm = String(name || 'Element').trim() || 'Element';
+    const ww = Math.max(1, Math.round(Number(w) || 0));
+    const hh = Math.max(1, Math.round(Number(h) || 0));
+    return `${nm}||${ww}x${hh}`;
+  }
+
+  function buildPartLookup(parts, deps){
+    const cfg = Object.assign({ partSignature:null }, deps || {});
+    const bySig = new Set();
+    const byShape = new Map();
+    (Array.isArray(parts) ? parts : []).forEach((part)=>{
+      if(!part) return;
+      const sig = typeof cfg.partSignature === 'function' ? cfg.partSignature(part) : `${part && part.material || ''}||${part && part.name || ''}||${part && part.w || 0}x${part && part.h || 0}`;
+      if(sig) bySig.add(String(sig));
+      const keys = new Set([
+        partShapeKey(part && part.name, part && part.w, part && part.h),
+        partShapeKey(part && part.name, part && part.h, part && part.w),
+      ]);
+      keys.forEach((shapeKey)=>{
+        if(!byShape.has(shapeKey)) byShape.set(shapeKey, []);
+        byShape.get(shapeKey).push(String(sig || ''));
+      });
+    });
+    return { bySig, byShape };
+  }
+
+  function countPlacedPartsByKey(sheets, deps){
+    const cfg = Object.assign({ parts:null, partSignature:null }, deps || {});
+    const lookup = buildPartLookup(cfg.parts, { partSignature: cfg.partSignature });
+    const exact = new Map();
+    const fallback = new Map();
     (Array.isArray(sheets) ? sheets : []).forEach((sheet)=>{
       (Array.isArray(sheet && sheet.placements) ? sheet.placements : []).forEach((pl)=>{
         if(!pl || pl.unplaced) return;
-        const key = String(pl.key || '');
-        if(!key) return;
-        map.set(key, (map.get(key) || 0) + 1);
+        const key = String(pl.key || '').trim();
+        if(key && lookup.bySig.has(key)){
+          exact.set(key, (exact.get(key) || 0) + 1);
+          return;
+        }
+        const shapeKey = partShapeKey(pl && pl.name, pl && pl.w, pl && pl.h);
+        const altShapeKey = partShapeKey(pl && pl.name, pl && pl.h, pl && pl.w);
+        const chosen = lookup.byShape.has(shapeKey) ? shapeKey : (lookup.byShape.has(altShapeKey) ? altShapeKey : shapeKey);
+        fallback.set(chosen, (fallback.get(chosen) || 0) + 1);
       });
     });
-    return map;
+    return { exact, fallback };
   }
 
   function subtractPlacedParts(parts, usedMap, deps){
     const cfg = Object.assign({ partSignature:null }, deps || {});
+    const exact = usedMap && usedMap.exact instanceof Map ? usedMap.exact : (usedMap instanceof Map ? usedMap : new Map());
+    const fallback = usedMap && usedMap.fallback instanceof Map ? new Map(usedMap.fallback) : new Map();
     return (Array.isArray(parts) ? parts : []).map((part)=>{
       const sig = typeof cfg.partSignature === 'function' ? cfg.partSignature(part) : `${part && part.material || ''}||${part && part.name || ''}||${part && part.w || 0}x${part && part.h || 0}`;
-      const used = Math.max(0, Number(usedMap && usedMap.get(sig)) || 0);
-      const qty = Math.max(0, Math.round(Number(part && part.qty) || 0) - used);
+      let qty = Math.max(0, Math.round(Number(part && part.qty) || 0) - Math.max(0, Number(exact.get(sig)) || 0));
+      if(qty > 0){
+        const primaryShape = partShapeKey(part && part.name, part && part.w, part && part.h);
+        const secondaryShape = partShapeKey(part && part.name, part && part.h, part && part.w);
+        const shapeKeys = primaryShape === secondaryShape ? [primaryShape] : [primaryShape, secondaryShape];
+        for(const shapeKey of shapeKeys){
+          if(!(qty > 0)) break;
+          const available = Math.max(0, Number(fallback.get(shapeKey)) || 0);
+          if(!(available > 0)) continue;
+          const used = Math.min(available, qty);
+          qty -= used;
+          fallback.set(shapeKey, available - used);
+        }
+      }
       return qty > 0 ? Object.assign({}, part, { qty }) : null;
     }).filter(Boolean);
   }
@@ -254,7 +304,7 @@
           fullBoardH: rowH,
           trimMm,
         }));
-        const usedMap = countPlacedPartsByKey(usedSheetsRaw);
+        const usedMap = countPlacedPartsByKey(usedSheetsRaw, { parts: remainingParts, partSignature: api.partSignature });
         remainingParts = subtractPlacedParts(remainingParts, usedMap, { partSignature: api.partSignature });
         cancelled = cancelled || !!(rowPlan && rowPlan.cancelled);
         if(rowPlan && rowPlan.note) notes.push(rowPlan.note);
