@@ -26,10 +26,27 @@
   }
 
   function getRooms(){
-    try{
-      if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS;
-    }catch(_){ }
-    return ['kuchnia','szafa','pokoj','lazienka'];
+    const defaults = (()=>{
+      try{
+        if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS.slice();
+      }catch(_){ }
+      return ['kuchnia','szafa','pokoj','lazienka'];
+    })();
+    const proj = safeGetProject();
+    if(!proj || typeof proj !== 'object') return defaults;
+    const discovered = [];
+    Object.keys(proj).forEach((key)=>{
+      const roomKey = String(key || '').trim();
+      if(!roomKey || roomKey in {'schemaVersion':1,'meta':1}) return;
+      const room = proj[key];
+      if(!room || typeof room !== 'object') return;
+      const hasRoomShape = Array.isArray(room.cabinets) || Array.isArray(room.fronts) || Array.isArray(room.sets) || (!!room.settings && typeof room.settings === 'object');
+      if(hasRoomShape) discovered.push(roomKey);
+    });
+    const ordered = [];
+    defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });
+    discovered.forEach((room)=>{ if(!ordered.includes(room)) ordered.push(room); });
+    return ordered.length ? ordered : defaults;
   }
 
   function parseLocaleNumber(v){
@@ -108,7 +125,7 @@
 
   function resolveCabinetCutListFn(){
     try{
-      if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function') return FC.cabinetCutlist.getCabinetCutList;
+      if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function') return FC.cabinetCutlist.getCabinetCutList.bind(FC.cabinetCutlist);
     }catch(_){ }
     try{
       if(typeof getCabinetCutList === 'function') return getCabinetCutList;

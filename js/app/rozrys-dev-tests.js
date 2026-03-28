@@ -164,6 +164,19 @@
         assert(Array.isArray(agg.materials) && agg.materials.includes('MDF test biały'), 'Agregacja projektu nie zbudowała materiału z prostego projektu', agg);
         assert(agg.byMaterial && Array.isArray(agg.byMaterial['MDF test biały']) && agg.byMaterial['MDF test biały'].length >= 1, 'Agregacja projektu nie zwróciła formatek materiału', agg);
       }),
+      makeTest('Projekt i agregacja', 'ROZRYS wykrywa także niestandardowe klucze pomieszczeń z projektu', 'Sprawdza, czy projekt z własnym kluczem pomieszczenia nadal dostarczy formatki do ROZRYS zamiast pustego stanu.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          salon:{ cabinets:[{ id:'cab-2', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+        };
+        const fixtureCutList = ()=> ([
+          { name:'Bok', qty:2, a:72, b:56, material:'Dąb test' },
+        ]);
+        assert(FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function', 'Brak FC.rozrys.aggregatePartsForProject');
+        const agg = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['salon']));
+        assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('salon'), 'ROZRYS nie rozpoznał własnego klucza pomieszczenia z projektu', agg);
+        assert(Array.isArray(agg.materials) && agg.materials.includes('Dąb test'), 'ROZRYS nie zbudował materiału dla własnego klucza pomieszczenia', agg);
+      }),
       makeTest('Magazyn i arkusze', 'Model arkusza respektuje blokadę obrotu przy słojach', 'Sprawdza, czy formatka nie przejdzie tylko dlatego, że zmieściłaby się po niedozwolonym obrocie.', ()=>{
         const parts = [
           { key:'grain||front||600x350', name:'Front', material:'Dąb dziki', w:600, h:350, qty:2 },
