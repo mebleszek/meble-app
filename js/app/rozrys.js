@@ -105,6 +105,20 @@
     return (FC && FC.materialPartOptions) || null;
   }
 
+
+  function resolveCabinetCutListFn(){
+    try{
+      if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function') return FC.cabinetCutlist.getCabinetCutList;
+    }catch(_){ }
+    try{
+      if(typeof getCabinetCutList === 'function') return getCabinetCutList;
+    }catch(_){ }
+    try{
+      if(typeof window.getCabinetCutList === 'function') return window.getCabinetCutList;
+    }catch(_){ }
+    return null;
+  }
+
   function resolveRozrysPartFromSource(p){
     try{
       const store = getPartOptionsStore();
@@ -255,8 +269,9 @@ function getAccordionScopeKey(selection, aggregate){
     for(const room of rooms){
       const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
       for(const cab of cabinets){
-        if(typeof getCabinetCutList !== 'function') continue;
-        const parts = getCabinetCutList(cab, room) || [];
+        const cutListFn = resolveCabinetCutListFn();
+        if(typeof cutListFn !== 'function') continue;
+        const parts = cutListFn(cab, room) || [];
         for(const p of parts){
           const sourceMaterial = String(p.material || '').trim();
           if(!sourceMaterial) continue;
@@ -323,7 +338,7 @@ function aggregatePartsForProject(selectedRooms){
     return FC.rozrysScope.aggregatePartsForProject(selectedRooms, {
       safeGetProject,
       getRooms,
-      getCabinetCutList: (typeof getCabinetCutList === 'function') ? getCabinetCutList : null,
+      getCabinetCutList: resolveCabinetCutListFn(),
       resolveRozrysPartFromSource,
       isFrontMaterialKey,
     });

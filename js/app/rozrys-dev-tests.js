@@ -69,6 +69,30 @@
     return lines.join('\n');
   }
 
+
+
+  function withPatchedProjectFixture(project, cutListFn, run){
+    const prevProject = host.projectData;
+    host.projectData = project;
+    host.FC = host.FC || {};
+    const fc = host.FC;
+    const prevNs = fc.cabinetCutlist;
+    fc.cabinetCutlist = fc.cabinetCutlist || {};
+    const prevFn = fc.cabinetCutlist.getCabinetCutList;
+    fc.cabinetCutlist.getCabinetCutList = cutListFn;
+    try{
+      return run();
+    }finally{
+      host.projectData = prevProject;
+      if(prevNs && typeof prevNs === 'object'){
+        fc.cabinetCutlist.getCabinetCutList = prevFn;
+      } else if(prevFn){
+        fc.cabinetCutlist.getCabinetCutList = prevFn;
+      } else {
+        delete fc.cabinetCutlist;
+      }
+    }
+  }
   function buildPrintDeps(){
     return {
       measurePrintHeaderMm: ()=> 14,
@@ -121,6 +145,24 @@
         assert(store.getUiState().running === true, 'UI nie przyjęło częściowego update', store.getUiState());
         assert(store.getOptionState().heur === 'optimax', 'Options nie przyjęły częściowego update', store.getOptionState());
         assert(store.getOptionState().kerf === 4, 'Options zgubiły poprzedni kerf', store.getOptionState());
+      }),
+
+      makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          kuchnia:{ cabinets:[{ id:'cab-1', width:60, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          szafa:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          pokoj:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          lazienka:{ cabinets:[], fronts:[], sets:[], settings:{} },
+        };
+        const fixtureCutList = ()=> ([
+          { name:'Bok', qty:2, a:72, b:56, material:'MDF test biały' },
+          { name:'Półka', qty:1, a:56, b:30, material:'MDF test biały' },
+        ]);
+        assert(FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function', 'Brak FC.rozrys.aggregatePartsForProject');
+        const agg = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['kuchnia']));
+        assert(Array.isArray(agg.materials) && agg.materials.includes('MDF test biały'), 'Agregacja projektu nie zbudowała materiału z prostego projektu', agg);
+        assert(agg.byMaterial && Array.isArray(agg.byMaterial['MDF test biały']) && agg.byMaterial['MDF test biały'].length >= 1, 'Agregacja projektu nie zwróciła formatek materiału', agg);
       }),
       makeTest('Magazyn i arkusze', 'Model arkusza respektuje blokadę obrotu przy słojach', 'Sprawdza, czy formatka nie przejdzie tylko dlatego, że zmieściłaby się po niedozwolonym obrocie.', ()=>{
         const parts = [

@@ -657,3 +657,11 @@ Dopiero potem go zmieniać.
 - `rozrys-grain-modal.js` przejął modal `Wyjątki słojów`, bez zmiany zachowania UI.
 - `js/app/rozrys.js` został dalej odchudzony i deleguje do nowych modułów zamiast trzymać storage + modal opcji + sterowanie pickerami + modal wyjątków w jednym pliku.
 - `index.html` dostał wspólny cache-busting pakietu `rozrys-*`: `20260328_rozrys_arch_v8`.
+
+
+## 2026-03-28 — paczka: rozrys_empty_fix_and_smoke19
+- Naprawa regresji ROZRYS, gdzie potrafił pokazać pusty stan „Brak rozpiski materiałów”, mimo że projekt miał szafki.
+- `js/app/rozrys.js` dostał bezpieczny resolver źródła cutlisty: najpierw `FC.cabinetCutlist.getCabinetCutList`, potem fallback globalny.
+- Dzięki temu agregacja formatek do ROZRYS nie zależy już od kruchego jednego mostu.
+- Warstwa smoke-testów została rozszerzona o test projektu/agregacji, który sprawdza, czy ROZRYS z prostego projektu faktycznie buduje materiał zamiast pustego stanu.
+- Aktualny wynik smoke-testów po tej paczce: 19/19 OK.

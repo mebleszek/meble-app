@@ -9,9 +9,11 @@ const files = [
   'js/app/rozrys-validation.js',
   'js/app/rozrys-cache.js',
   'js/app/rozrys-state.js',
+  'js/app/rozrys-scope.js',
   'js/app/rozrys-sheet-model.js',
   'js/app/rozrys-engine.js',
   'js/app/rozrys-print-layout.js',
+  'js/app/rozrys.js',
   'js/app/rozrys-dev-fixtures.js',
   'js/app/rozrys-dev-tests.js',
 ];

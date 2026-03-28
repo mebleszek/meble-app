@@ -154,3 +154,7 @@ To jest techniczna siatka bezpieczeństwa, która ma szybciej wyłapywać regres
 Plik `dev_rozrys_smoke.html` uruchamia smoke-testy ROZRYS przez stronę.
 Po kliknięciu `Uruchom testy ROZRYS` pokazuje czytelny raport: co przeszło, co nie przeszło, krótki powód błędu oraz podsumowanie `X/Y OK`.
 Przycisk `Kopiuj raport` pozwala szybko skopiować wynik do wklejenia w rozmowie.
+
+
+### ROZRYS smoke — dodatkowy test agregacji projektu
+Strona `dev_rozrys_smoke.html` sprawdza już nie tylko cache/walidację/magazyn, ale też regresję pustego ROZRYS: test `ROZRYS buduje materiały z projektu i resolvera cutlist` pilnuje, żeby prosty projekt z szafką nie kończył się komunikatem o braku materiałów.
