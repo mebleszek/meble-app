@@ -44,7 +44,7 @@
     const title = h('div', { class:'rozrys-material-accordion__title' });
     title.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:titleBits.line1 || 'Materiał' }));
     if(titleBits.line2) title.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:titleBits.line2 }));
-    const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;' });
+    const chevron = h('span', { class:'rozrys-material-accordion__chevron', html:'&#9662;', 'aria-hidden':'true' });
     trigger.appendChild(title);
     trigger.appendChild(chevron);
 

@@ -34,10 +34,10 @@
     const currentSignature = ()=> Object.keys(draft).filter((key)=> draft[key]).sort().join('|');
     const initialSignature = Object.keys(initial).filter((key)=> initial[key]).sort().join('|');
     const isDirty = ()=> currentSignature() !== initialSignature;
-    const body = h('div', { class:'panel-box-form' });
+    const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--grain' });
     const scroll = h('div', { class:'panel-box-form__scroll' });
     const footerShell = h('div', { class:'panel-box-form__footer' });
-    scroll.appendChild(h('div', { class:'muted xs', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
+    scroll.appendChild(h('p', { class:'rozrys-panel-note', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
     const list = h('div', { class:'rozrys-grain-exceptions-list' });
     if(!partList.length){
       list.appendChild(h('div', { class:'muted xs', text:'Brak formatek dla tego materiału w aktualnym zakresie.' }));

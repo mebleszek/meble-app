@@ -691,3 +691,10 @@ Dopiero potem go zmieniać.
 - Added fallback aggregation retry over discovered project room keys when saved room selection yields empty aggregate.
 - Expanded smoke tests to catch empty-ROZRYS regressions caused by source desync and stale room selection.
 - Smoke result after patch: 22/22 OK.
+
+
+## 2026-03-28 — ROZRYS visual reference sync
+- Dodano `css/rozrys-reference-sync.css` jako osobny moduł stylów tylko dla wizualnego ujednolicenia ROZRYS względem dwóch wzorców UI: `Wybierz materiał / grupę` oraz accordionów arkuszy.
+- Ujednolicono typografię i karty launcherów ROZRYS (`Pomieszczenia`, `Materiał / grupa`, wybory opcji), żeby miały bliższą wagę tekstu, promienie, obramowania i cienie jak wzorcowe okna ROZRYS.
+- Modale `Opcje rozkroju`, `Dodaj płytę do magazynu` i `Wyjątki słojów` dostały dodatkowe klasy (`rozrys-panel-*`), dzięki czemu ich pola i sekcje są wizualnie bliższe kartom z pickera materiałów.
+- Zielona strzałka accordionu została zastąpiona bardziej aplikacyjnym chevronem w osobnym kafelku, z zachowaniem tej samej mechaniki rozwijania.

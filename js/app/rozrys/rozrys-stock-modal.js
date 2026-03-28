@@ -53,10 +53,10 @@
       ? api.splitMaterialAccordionTitle
       : ((material)=> ({ line1:String(material || ''), line2:'' }));
 
-    const body = h('div');
-    const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
+    const body = h('div', { class:'rozrys-panel-form rozrys-panel-form--stock' });
+    const form = h('div', { class:'grid-2 rozrys-panel-grid', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
 
-    const materialWrap = h('div', { style:'grid-column:1 / -1' });
+    const materialWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full', style:'grid-column:1 / -1' });
     materialWrap.appendChild(h('label', { text:'Materiał' }));
     let materialControl = null;
     if(currentMaterial){
@@ -74,19 +74,19 @@
     materialWrap.appendChild(materialControl);
     form.appendChild(materialWrap);
 
-    const widthWrap = h('div');
+    const widthWrap = h('div', { class:'rozrys-panel-field' });
     widthWrap.appendChild(h('label', { text:`Szerokość płyty (${unit})` }));
     const widthInput = h('input', { type:'number', value:String(cfg.boardWValue || '') });
     widthWrap.appendChild(widthInput);
     form.appendChild(widthWrap);
 
-    const heightWrap = h('div');
+    const heightWrap = h('div', { class:'rozrys-panel-field' });
     heightWrap.appendChild(h('label', { text:`Wysokość płyty (${unit})` }));
     const heightInput = h('input', { type:'number', value:String(cfg.boardHValue || '') });
     heightWrap.appendChild(heightInput);
     form.appendChild(heightWrap);
 
-    const qtyWrap = h('div', { style:'grid-column:1 / -1' });
+    const qtyWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full', style:'grid-column:1 / -1' });
     qtyWrap.appendChild(h('label', { text:'Ilość (szt.)' }));
     const qtyInput = h('input', { type:'number', value:'1', min:'1' });
     qtyWrap.appendChild(qtyInput);
@@ -94,8 +94,8 @@
 
     body.appendChild(form);
 
-    const footer = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
-    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+    const footer = h('div', { class:'rozrys-panel-footer', style:'display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
+    const actionWrap = h('div', { class:'rozrys-panel-footer__actions', style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
     const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
     const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
     const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
