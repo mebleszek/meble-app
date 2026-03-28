@@ -111,36 +111,59 @@
 .rozrys-panel-form{
   display:flex;
   flex-direction:column;
-  gap:14px;
+  gap:16px;
 }
 .rozrys-panel-grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
+  gap:16px 18px;
 }
 .rozrys-panel-field{
   display:flex;
   flex-direction:column;
   gap:8px;
   min-width:0;
-  padding:16px 18px;
-  border:1.5px solid rgba(15,23,42,.12);
-  border-radius:20px;
-  background:#fff;
-  box-shadow:0 6px 18px rgba(15,23,42,.05);
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
 }
 .rozrys-panel-field--full{grid-column:1 / -1;}
 .rozrys-panel-field .label-help,
 .rozrys-panel-field > label,
 .rozrys-panel-field .rozrys-field__label{
   min-height:auto;
-  margin:0;
+  margin:0 0 4px;
   color:#475569;
-  font-size:14px;
+  font-size:15px;
   font-weight:900;
   line-height:1.18;
 }
 .rozrys-panel-field .label-help__text{font:inherit;color:inherit;}
+.rozrys-panel-field input:not([type='checkbox']):not([type='radio']),
+.rozrys-panel-field select,
+.rozrys-panel-field textarea,
+.rozrys-panel-field .fc-select,
+.rozrys-panel-field .btn-select,
+.rozrys-panel-field .rozrys-choice-launch{
+  min-height:56px;
+  border:1.5px solid rgba(15,23,42,.12);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:none;
+}
+.rozrys-panel-field input:not([type='checkbox']):not([type='radio']):focus,
+.rozrys-panel-field select:focus,
+.rozrys-panel-field textarea:focus{
+  border-color:rgba(22,163,74,.42);
+  outline:none;
+  box-shadow:0 0 0 3px rgba(22,163,74,.10);
+}
+.rozrys-panel-field .rozrys-choice-launch{
+  padding:14px 16px;
+}
+.rozrys-panel-field .rozrys-choice-launch__label{font-size:18px;}
 .rozrys-panel-inline{
   display:flex;
   gap:10px;
@@ -190,10 +213,10 @@
   min-height:40px;
   width:40px;
   height:40px;
-  border:2px solid rgba(15,23,42,.16);
+  border:2px solid rgba(22,163,74,.18);
   border-radius:14px;
-  background:linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
-  box-shadow:2px 3px 0 rgba(15,23,42,.08), 4px 9px 16px rgba(22,163,74,.12);
+  background:#f4fbf6;
+  box-shadow:2px 3px 0 rgba(15,23,42,.06), 0 6px 14px rgba(22,163,74,.08);
   color:transparent;
   font-size:0;
   line-height:1;
@@ -211,7 +234,7 @@
 .rozrys-material-accordion.is-open .rozrys-material-accordion__chevron{
   transform:rotate(180deg);
   border-color:rgba(22,163,74,.28);
-  box-shadow:2px 3px 0 rgba(15,23,42,.08), 5px 10px 18px rgba(22,163,74,.16);
+  box-shadow:2px 3px 0 rgba(15,23,42,.07), 0 8px 16px rgba(22,163,74,.12);
 }
 
 @media (max-width: 640px){
@@ -233,8 +256,8 @@
   .rozrys-picker-option__subtitle{font-size:13px;}
   .rozrys-choice-option,
   .rozrys-picker-option,
-  .rozrys-panel-field,
   .rozrys-grain-exception-row{border-radius:18px;padding:16px 16px;}
+  .rozrys-panel-field{padding:0;border:0;border-radius:0;}
   .rozrys-choice-modal__header{padding:18px 18px;}
   .rozrys-choice-modal__body{padding:18px 18px 20px;}
   .rozrys-panel-grid{grid-template-columns:1fr;gap:10px;}

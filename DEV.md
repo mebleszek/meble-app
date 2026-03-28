@@ -698,3 +698,13 @@ Dopiero potem go zmieniać.
 - Ujednolicono typografię i karty launcherów ROZRYS (`Pomieszczenia`, `Materiał / grupa`, wybory opcji), żeby miały bliższą wagę tekstu, promienie, obramowania i cienie jak wzorcowe okna ROZRYS.
 - Modale `Opcje rozkroju`, `Dodaj płytę do magazynu` i `Wyjątki słojów` dostały dodatkowe klasy (`rozrys-panel-*`), dzięki czemu ich pola i sekcje są wizualnie bliższe kartom z pickera materiałów.
 - Zielona strzałka accordionu została zastąpiona bardziej aplikacyjnym chevronem w osobnym kafelku, z zachowaniem tej samej mechaniki rozwijania.
+
+## 2026-03-28 — ROZRYS visual sync: remove frame-in-frame
+- Base: `site_rozrys_visual_sync.zip`
+- Goal: keep ROZRYS aligned with the material-picker / sheet-accordion references, but remove the extra boxed-in-boxed look introduced in option-style modals.
+- Changes:
+  - `css/rozrys-reference-sync.css`: flattened `rozrys-panel-field` containers so fields no longer render as cards inside cards
+  - toned down accordion chevron glow to better match the app
+  - kept the single-field control frame as the main visual boundary inside ROZRYS option/add-stock dialogs
+- Result:
+  - `Opcje rozkroju` and `Dodaj płytę do magazynu` no longer show a nested frame around already framed controls.
