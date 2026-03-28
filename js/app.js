@@ -289,7 +289,7 @@ function callExtracted(nsName, fnName, args, fallback){
   if(typeof fallback === 'function') return fallback.apply(null, args || []);
 }
 
-/* ===== Cabinet/front rules moved to js/app/cabinet-fronts.js ===== */
+/* ===== Cabinet/front rules moved to js/app/cabinet/cabinet-fronts.js ===== */
 function getSubTypeOptionsForType(typeVal){ return callExtracted('cabinetFronts','getSubTypeOptionsForType',[typeVal]); }
 function applyTypeRules(room, updated, typeVal){ return callExtracted('cabinetFronts','applyTypeRules',[room, updated, typeVal]); }
 function applySubTypeRules(room, updated, subTypeVal){ return callExtracted('cabinetFronts','applySubTypeRules',[room, updated, subTypeVal]); }
@@ -307,7 +307,7 @@ function applyAventosValidationUI(room, draft){ return callExtracted('cabinetFro
 function syncDraftFromCabinetModalForm(d){ return callExtracted('cabinetFronts','syncDraftFromCabinetModalForm',[d]); }
 function generateFrontsForCabinet(room, cab){ return callExtracted('cabinetFronts','generateFrontsForCabinet',[room, cab]); }
 
-/* ===== Cabinet modal + set wizard moved to js/app/cabinet-modal.js ===== */
+/* ===== Cabinet modal + set wizard moved to js/app/cabinet/cabinet-modal.js ===== */
 function makeDefaultCabinetDraftForRoom(room){ return callExtracted('cabinetModal','makeDefaultCabinetDraftForRoom',[room]); }
 function openCabinetModalForAdd(){ return callExtracted('cabinetModal','openCabinetModalForAdd',[]); }
 function lockModalScroll(){ return callExtracted('cabinetModal','lockModalScroll',[]); }
@@ -334,7 +334,7 @@ function drawCornerSketch(opts){
 }
 
 
-/* ===== add/delete cabinet actions extracted to js/app/cabinet-actions.js ===== */
+/* ===== add/delete cabinet actions extracted to js/app/cabinet/cabinet-actions.js ===== */
 function addCabinet(){
   return callExtracted('cabinetActions', 'addCabinet', []);
 }
@@ -392,7 +392,7 @@ function getCabinetCutList(cab, room){
 }
 
 function _getCabinetCutListFallback(cab, room){
-  // Fallback awaryjny celowo minimalny: właściwa logika siedzi w js/app/cabinet-cutlist.js.
+  // Fallback awaryjny celowo minimalny: właściwa logika siedzi w js/app/cabinet/cabinet-cutlist.js.
   // Zwracamy pustą listę zamiast dublować setki linii w app.js.
   return [];
 }
@@ -426,7 +426,7 @@ function renderCabinets(){
   document.getElementById('ceilingBlende').value = s.ceilingBlende;
   renderTopHeight();
 
-  // Zakładki — routing przez moduły (js/app/tabs-router.js + js/tabs/*)
+  // Zakładki — routing przez moduły (js/app/ui/tabs-router.js + js/tabs/*)
   // Dzięki temu każda zakładka ma osobny plik i minimalizujemy ryzyko psucia innych sekcji.
   try{
     if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
@@ -612,7 +612,7 @@ function renderSingleCabinetCard(list, room, cab, displayIndex){
 function renderPriceModal(){ return callExtracted('priceModal','renderPriceModal',[]); }
 
 
-// Tab/navigation helpers extracted to js/app/tab-navigation.js
+// Tab/navigation helpers extracted to js/app/ui/tab-navigation.js
 function jumpToMaterialsForCabinet(cabId){ return callExtracted('tabNavigation','jumpToMaterialsForCabinet',[cabId]); }
 
 function jumpToCabinetFromMaterials(cabId){ return callExtracted('tabNavigation','jumpToCabinetFromMaterials',[cabId]); }
@@ -639,7 +639,7 @@ function registerCoreActions(){
     FC.modal.register('cabinetModal', () => { try{ closeCabinetModal(); }catch(_){ } });
   }catch(_){}
 
-  /* Actions moved to js/app/actions-register.js */
+  /* Actions moved to js/app/ui/actions-register.js */
 
 }
 
@@ -663,7 +663,7 @@ function installProjectAutosave(){ return callExtracted('projectAutosave','insta
 function initUI(){
   uiState = uiState || __uiDefaults;
 
-  // Event wiring extracted to js/app/bindings.js
+  // Event wiring extracted to js/app/ui/bindings.js
   try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
   catch(_){ /* keep UI alive even if bindings fail */ }
 
@@ -701,7 +701,7 @@ function initUI(){
 
 
 /* ===== Set wizard minimal (reuse existing from previous version) ===== */
-/* Layout/state helpers for RYSUNEK moved to js/app/layout-state.js.
+/* Layout/state helpers for RYSUNEK moved to js/app/ui/layout-state.js.
    Global bridge is preserved there for tabs/rysunek.js and any legacy callers. */
 
 // Wydzielony renderer RYSUNEK — używany przez js/tabs/rysunek.js
@@ -730,5 +730,5 @@ function renderDrawingTab(list, room){
 
 /* init moved to boot.js (safe init) */
 
-// Expose base FC namespace; public safe APIs are attached in js/app/public-api.js
+// Expose base FC namespace; public safe APIs are attached in js/app/shared/public-api.js
 try{ window.FC = Object.assign(window.FC || {}, FC); }catch(e){}

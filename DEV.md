@@ -1,3 +1,21 @@
+## Struktura katalogów (po paczce arch_dirs_tests)
+
+- `js/app/shared/` — helpery wspólne, storage, validate, public API.
+- `js/app/ui/` — bindingi, routing zakładek, boxy, scroll-memory, layout helpers.
+- `js/app/cabinet/` — modal szafki, fronty, okucia, cutlista i szkice.
+- `js/app/investor/` — inwestor, sesja projektu, bootstrap/autosave.
+- `js/app/material/` — magazyn, registry materiałów, opcje formatek, modal cenników.
+- `js/app/optimizer/` — solver, worker, profile startu/szybkości.
+- `js/app/rozrys/` — cały ROZRYS.
+- `js/testing/` — smoke-testy developerskie (`rozrys`, `project`, `material`, `cabinet`).
+
+### Paczka 2026-03-28 — arch_dirs_tests
+- Przeniesiono płaski katalog `js/app/*` do grup domenowych i technicznych bez zmiany UI.
+- Usunięto martwy `js/app/rozrys.js.bak`.
+- Usunięto stary workflow `.github/workflows/deploy-from-zip.disabled`.
+- Dodano nową stronę `dev_app_smoke.html` oraz smoke-testy dla projektu, materiałów i szafek.
+- Dla Node dodano `tools/app-dev-smoke.js` jako szybki runner tych testów poza przeglądarką.
+
 # DEV — porządek rozwoju meble-app / Optimax
 
 - 2026-03-28 — `site_dev_smoke_more_scenarios.zip`: rozbudowa smoke-testów ROZRYS do 18 scenariuszy; dodane testy bardziej życiowe dla wyjątków słojów, stabilności podpisu magazynu, formatu obróconego, nadmiaru walidacji, zmian klucza cache po wyjątkach/okleinach oraz układu 2 małych arkuszy na jednej stronie wydruku.
@@ -5,49 +23,49 @@
 ## Ostatnia paczka zmian
 
 ### 2026-03-27 — rozrys_split_v6
-- `js/app/rozrys-scope.js` — wydzielony zakres / selekcja ROZRYS: pomieszczenia, scope materiałów, kolejność materiałów, klucz accordionu i agregacja formatek projektu.
-- `js/app/rozrys-engine.js` — wydzielone helpery engine ROZRYS: normalizacja kierunku, etykiety heurystyk, liczenie sync, liczenie workerowe i wspólny fallback `computePlanWithCurrentEngine()`.
-- `js/app/rozrys-sheet-helpers.js` — wydzielone helpery canvas arkusza: metryki planszy, snap do pixela, trim area, divider połówki i rysowanie pojedynczej formatki.
-- `js/app/rozrys-print-layout.js` — wydzielony layout PDF/druk: dobór skali, grupowanie 1–2 arkuszy na stronę i generowanie HTML wydruku bez zmiany wyglądu.
-- `js/app/rozrys.js` + `js/app/rozrys-sheet-draw.js` + `js/app/rozrys-render.js` — przepięte na nowe moduły, dzięki czemu `rozrys.js` dalej schudł i zostało w nim mniej ciężkiej logiki domenowej.
+- `js/app/rozrys/rozrys-scope.js` — wydzielony zakres / selekcja ROZRYS: pomieszczenia, scope materiałów, kolejność materiałów, klucz accordionu i agregacja formatek projektu.
+- `js/app/rozrys/rozrys-engine.js` — wydzielone helpery engine ROZRYS: normalizacja kierunku, etykiety heurystyk, liczenie sync, liczenie workerowe i wspólny fallback `computePlanWithCurrentEngine()`.
+- `js/app/rozrys/rozrys-sheet-helpers.js` — wydzielone helpery canvas arkusza: metryki planszy, snap do pixela, trim area, divider połówki i rysowanie pojedynczej formatki.
+- `js/app/rozrys/rozrys-print-layout.js` — wydzielony layout PDF/druk: dobór skali, grupowanie 1–2 arkuszy na stronę i generowanie HTML wydruku bez zmiany wyglądu.
+- `js/app/rozrys/rozrys.js` + `js/app/rozrys/rozrys-sheet-draw.js` + `js/app/rozrys/rozrys-render.js` — przepięte na nowe moduły, dzięki czemu `rozrys.js` dalej schudł i zostało w nim mniej ciężkiej logiki domenowej.
 - `index.html` — dopięte nowe pliki i podbity pełny cache-busting pakietu `rozrys-*` do `20260327_rozrys_split_v6`.
 
 ### 2026-03-27 — rozrys_stock_validation_fix_v2
-- `js/app/rozrys-stock.js` — walidacja dla arkuszy `z magazynu` dostała dodatkowe, odporniejsze odejmowanie wykorzystanych formatek: jeśli placement z planu magazynowego nie wróci z idealnie dopasowanym `key`, moduł rozpoznaje go jeszcze po nazwie i wymiarze, więc formatki użyte na płycie magazynowej nie są już dublowane na płytach `zamówić`.
-- `js/app/rozrys.js` + `js/app/rozrys-render.js` — podbity `stockPolicy` do `v4`, żeby po tej poprawce nie wracały stare, błędne plany z cache.
+- `js/app/rozrys/rozrys-stock.js` — walidacja dla arkuszy `z magazynu` dostała dodatkowe, odporniejsze odejmowanie wykorzystanych formatek: jeśli placement z planu magazynowego nie wróci z idealnie dopasowanym `key`, moduł rozpoznaje go jeszcze po nazwie i wymiarze, więc formatki użyte na płycie magazynowej nie są już dublowane na płytach `zamówić`.
+- `js/app/rozrys/rozrys.js` + `js/app/rozrys/rozrys-render.js` — podbity `stockPolicy` do `v4`, żeby po tej poprawce nie wracały stare, błędne plany z cache.
 - `index.html` — podbite cache-busting dla całego zestawu modułów `rozrys-*` do `20260327_rozrys_stock_validation_v4`.
 
 ### 2026-03-26 — rozrys_validation_fix_v1
-- `js/app/rozrys-stock.js` — naprawiona regresja po module split: odejmowanie formatek już wykorzystanych z magazynu znowu używa pełnego `partSignature()`, więc brakujące elementy nie są dublowane na płytach zamawianych; dodatkowo filtr dopasowania do arkusza magazynowego znowu respektuje blokadę obrotu wynikającą ze słojów.
-- `js/app/rozrys.js` — wrapper do `applySheetStockLimit()` przekazuje wymagane zależności (`partSignature`, `isPartRotationAllowed`) i podbija `stockPolicy` do `v3`, żeby nie używać błędnych planów z cache po poprzedniej paczce.
+- `js/app/rozrys/rozrys-stock.js` — naprawiona regresja po module split: odejmowanie formatek już wykorzystanych z magazynu znowu używa pełnego `partSignature()`, więc brakujące elementy nie są dublowane na płytach zamawianych; dodatkowo filtr dopasowania do arkusza magazynowego znowu respektuje blokadę obrotu wynikającą ze słojów.
+- `js/app/rozrys/rozrys.js` — wrapper do `applySheetStockLimit()` przekazuje wymagane zależności (`partSignature`, `isPartRotationAllowed`) i podbija `stockPolicy` do `v3`, żeby nie używać błędnych planów z cache po poprzedniej paczce.
 - `index.html` — podbite cache-busting dla całego zestawu modułów ROZRYS powiązanych z tą paczką.
 
 ### 2026-03-26 — rozrys_module_split_v2
-- `js/app/rozrys.js` — dalsze odchudzenie przez przeniesienie pickerów, rysowania arkuszy, limitu stanów magazynowych i renderu accordionu do modułów pomocniczych bez zmiany UI.
-- `js/app/rozrys-pickers.js` — wydzielone modale wyboru pomieszczeń oraz materiału / grupy w ROZRYS.
-- `js/app/rozrys-sheet-draw.js` — wydzielone odświeżanie canvasów i rysowanie arkuszy / formatek.
-- `js/app/rozrys-stock.js` — przejęta logika `applySheetStockLimit()` dla wykorzystania stanów magazynowych przed pełną płytą.
-- `js/app/rozrys-accordion.js` — przejęty render sekcji materiałów w accordionie wyników.
+- `js/app/rozrys/rozrys.js` — dalsze odchudzenie przez przeniesienie pickerów, rysowania arkuszy, limitu stanów magazynowych i renderu accordionu do modułów pomocniczych bez zmiany UI.
+- `js/app/rozrys/rozrys-pickers.js` — wydzielone modale wyboru pomieszczeń oraz materiału / grupy w ROZRYS.
+- `js/app/rozrys/rozrys-sheet-draw.js` — wydzielone odświeżanie canvasów i rysowanie arkuszy / formatek.
+- `js/app/rozrys/rozrys-stock.js` — przejęta logika `applySheetStockLimit()` dla wykorzystania stanów magazynowych przed pełną płytą.
+- `js/app/rozrys/rozrys-accordion.js` — przejęty render sekcji materiałów w accordionie wyników.
 - `index.html` — dopięte nowe pliki i pełny cache-busting `20260326_rozrys_split_v2`.
 
 ### 2026-03-26 — rozrys_module_split_v1
-- `js/app/rozrys.js` — odchudzony przez delegację części funkcji do nowych modułów pomocniczych bez zmiany UI i bez zmiany solverów.
-- `js/app/rozrys-choice.js` — wydzielone launchery wyboru i overlay wyboru dla customowych dropdownów ROZRYS.
-- `js/app/rozrys-print.js` — wydzielone CSV / pobieranie / otwieranie wydruku oraz pomiar nagłówka PDF.
-- `js/app/rozrys-stock.js` — wydzielone helpery formatu bazowego, magazynu i podaży arkuszy.
-- `js/app/rozrys-cache.js` — wydzielone helpery cache planów rozkroju.
-- `js/app/rozrys-accordion.js` — wydzielone helpery accordionu materiałów i tytułów sekcji.
+- `js/app/rozrys/rozrys.js` — odchudzony przez delegację części funkcji do nowych modułów pomocniczych bez zmiany UI i bez zmiany solverów.
+- `js/app/rozrys/rozrys-choice.js` — wydzielone launchery wyboru i overlay wyboru dla customowych dropdownów ROZRYS.
+- `js/app/rozrys/rozrys-print.js` — wydzielone CSV / pobieranie / otwieranie wydruku oraz pomiar nagłówka PDF.
+- `js/app/rozrys/rozrys-stock.js` — wydzielone helpery formatu bazowego, magazynu i podaży arkuszy.
+- `js/app/rozrys/rozrys-cache.js` — wydzielone helpery cache planów rozkroju.
+- `js/app/rozrys/rozrys-accordion.js` — wydzielone helpery accordionu materiałów i tytułów sekcji.
 - `index.html` — podbite cache-busting dla wszystkich plików powiązanych z tą paczką i dopięte nowe moduły ROZRYS.
 
 ### 2026-03-26 — list_scroll_restore_v1
-- `js/app/list-scroll-memory.js` — nowy, mały moduł pamięci pozycji listy dla `WYWIAD` i `MATERIAŁ`; zapamiętuje aktywną szafkę i offset scrolla przed wejściem w edycję, a po `Zatwierdź / Anuluj` przywraca dokładnie ten sam rejon listy zamiast wyrzucać na górę.
-- `js/app/cabinet-modal.js` — modal szafki zapisuje kontekst listy przy wejściu w `Edytuj` i po zamknięciu próbuje odtworzyć poprzednią pozycję.
+- `js/app/ui/list-scroll-memory.js` — nowy, mały moduł pamięci pozycji listy dla `WYWIAD` i `MATERIAŁ`; zapamiętuje aktywną szafkę i offset scrolla przed wejściem w edycję, a po `Zatwierdź / Anuluj` przywraca dokładnie ten sam rejon listy zamiast wyrzucać na górę.
+- `js/app/cabinet/cabinet-modal.js` — modal szafki zapisuje kontekst listy przy wejściu w `Edytuj` i po zamknięciu próbuje odtworzyć poprzednią pozycję.
 - `js/app.js` — po przebudowie listy woła przywrócenie scrolla, żeby zapis edycji nie zrzucał użytkownika na początek.
 - `index.html` — podbite cache-busting dla wszystkich plików powiązanych z tą paczką i dodany nowy moduł listy.
 
 ### 2026-03-21 — rozrys_ui_pdf_guard_v1
-- `js/app/rozrys.js` — uporządkowane akcje i logika stanów `Wyjdź / Anuluj / Zapisz/Zatwierdź` w pickerach ROZRYS oraz w modalu `Dodaj płytę do magazynu`; modal dodawania płyty przeniesiony na wspólny `panelBox`; eksport PDF ma bezpieczniejsze liczenie wysokości nagłówka przy długich nazwach materiałów.
-- `js/app/panel-box.js` — `panelBox.open()` obsługuje teraz opcjonalny `beforeClose`, żeby modal mógł zablokować zamknięcie przy niezapisanych zmianach.
+- `js/app/rozrys/rozrys.js` — uporządkowane akcje i logika stanów `Wyjdź / Anuluj / Zapisz/Zatwierdź` w pickerach ROZRYS oraz w modalu `Dodaj płytę do magazynu`; modal dodawania płyty przeniesiony na wspólny `panelBox`; eksport PDF ma bezpieczniejsze liczenie wysokości nagłówka przy długich nazwach materiałów.
+- `js/app/ui/panel-box.js` — `panelBox.open()` obsługuje teraz opcjonalny `beforeClose`, żeby modal mógł zablokować zamknięcie przy niezapisanych zmianach.
 - `css/style.css` — wzmocnione zawijanie długich nazw w nagłówkach/pickerach/akordeonach oraz usunięta kolizja układu paska akcji ROZRYS między CSS a inline-style.
 - `index.html` — podbite cache-busting dla plików powiązanych z tą paczką.
 
@@ -73,12 +91,12 @@
 
 5. **Nowe akcje UI dodajemy przez `data-action` + Actions registry.**
    - HTML: `data-action="twoja-akcja"`
-   - Rejestr: `js/app/actions-register.js`
+   - Rejestr: `js/app/ui/actions-register.js`
    - Unikać dokładania luźnych `onclick` / `addEventListener`, jeśli nie są naprawdę konieczne.
 
 6. **Optimax rozwijamy głównie w tych plikach:**
-   - `js/app/rozrys.js`
-   - `js/app/cut-optimizer.js`
+   - `js/app/rozrys/rozrys.js`
+   - `js/app/optimizer/cut-optimizer.js`
    - `js/app/strip-solver.js`
    - Nie dokładamy tam logiki bokiem do `app.js`, poza koniecznymi mostami do istniejących danych projektu.
 
@@ -89,7 +107,7 @@
 
 8. **Szczególnie uważać na regresje w:**
    - `js/app.js`
-   - `js/app/bindings.js`
+   - `js/app/ui/bindings.js`
    - modalach
    - przełączaniu widoków
    - `renderCabinets()`
@@ -106,39 +124,39 @@
 - `js/core/modals.js` — wspólna obsługa modali.
 
 ### App — aktywnie ładowane przez `index.html`
-- `js/app/constants.js` — stałe.
-- `js/app/utils.js` — helpery.
-- `js/app/storage.js` — wrappery localStorage.
-- `js/app/ui-state.js` — stan UI.
-- `js/app/session.js` — zapis / odczyt sesji projektu.
-- `js/app/investors-store.js` — dane inwestorów.
-- `js/app/investor-ui.js` — aktywne UI inwestora.
-- `js/app/sections.js` — sekcje widoków typu inwestor / rozrys / magazyn.
-- `js/app/views.js` — przełączanie widoków.
-- `js/app/validate.js` — walidacja danych.
-- `js/app/bindings.js` — listenery i delegacja zdarzeń.
-- `js/app/actions-register.js` — rejestr akcji `data-action`.
+- `js/app/shared/constants.js` — stałe.
+- `js/app/shared/utils.js` — helpery.
+- `js/app/shared/storage.js` — wrappery localStorage.
+- `js/app/shared/ui-state.js` — stan UI.
+- `js/app/investor/session.js` — zapis / odczyt sesji projektu.
+- `js/app/investor/investors-store.js` — dane inwestorów.
+- `js/app/investor/investor-ui.js` — aktywne UI inwestora.
+- `js/app/ui/sections.js` — sekcje widoków typu inwestor / rozrys / magazyn.
+- `js/app/ui/views.js` — przełączanie widoków.
+- `js/app/shared/validate.js` — walidacja danych.
+- `js/app/ui/bindings.js` — listenery i delegacja zdarzeń.
+- `js/app/ui/actions-register.js` — rejestr akcji `data-action`.
 - `js/app.js` — główny klej aplikacji + nadal część logiki domenowej; renderery `WYWIAD`, `MATERIAŁ` i `RYSUNEK` są już wydzielone do `js/tabs/*`.
-- `js/app/investor-project.js` — projekt inwestora.
-- `js/app/tabs-router.js` — routing zakładek.
-- `js/app/cut-optimizer.js` — główny silnik rozkroju i eksport API Optimax.
+- `js/app/investor/investor-project.js` — projekt inwestora.
+- `js/app/ui/tabs-router.js` — routing zakładek.
+- `js/app/optimizer/cut-optimizer.js` — główny silnik rozkroju i eksport API Optimax.
 - `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
 - `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
-- `js/app/magazyn.js` — logika magazynu.
-- `js/app/rozrys-choice.js` — launchery i overlaye wyboru w ROZRYS.
-- `js/app/rozrys-state.js` — centralny store stanu ROZRYS (selection/options/ui/cache) używany jako wspólne źródło prawdy dla zakładki.
-- `js/app/rozrys-print.js` — eksport CSV / druk / helpery PDF w ROZRYS.
-- `js/app/rozrys-print-layout.js` — techniczny layout PDF/druk dla ROZRYS.
-- `js/app/rozrys-sheet-model.js` — model arkuszy/magazynu: dopasowanie formatów, podpisy, odejmowanie zużytych formatek, helpery podaży arkuszy.
-- `js/app/rozrys-sheet-helpers.js` — helpery canvas dla rysowania arkuszy.
-- `js/app/rozrys-sheet-draw.js` — główne rysowanie arkuszy na canvas.
-- `js/app/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS; po tej paczce deleguje model danych do `rozrys-sheet-model.js`.
-- `js/app/rozrys-cache.js` — helpery cache planów ROZRYS.
-- `js/app/rozrys-accordion.js` — helpery accordionu materiałów ROZRYS.
-- `js/app/rozrys-lists.js` — listy i karty wyników ROZRYS: `Lista formatek`, `Formatki arkusza`, karta podsumowania, launchery eksportu i karty arkuszy.
-- `js/app/rozrys-render.js` — helpery auto-renderu z cache, renderu wyników i spinnera ROZRYS; po tej paczce deleguje karty/listy do `rozrys-lists.js`.
-- `js/app/rozrys-summary.js` — diagnostyka i modale walidacji/list ROZRYS, oparte o `rozrys-lists.js`.
-- `js/app/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, stanu, modelu arkuszy, rysowania, logiki stock-limit, auto-renderu i renderu wyników do modułów pomocniczych.
+- `js/app/material/magazyn.js` — logika magazynu.
+- `js/app/rozrys/rozrys-choice.js` — launchery i overlaye wyboru w ROZRYS.
+- `js/app/rozrys/rozrys-state.js` — centralny store stanu ROZRYS (selection/options/ui/cache) używany jako wspólne źródło prawdy dla zakładki.
+- `js/app/rozrys/rozrys-print.js` — eksport CSV / druk / helpery PDF w ROZRYS.
+- `js/app/rozrys/rozrys-print-layout.js` — techniczny layout PDF/druk dla ROZRYS.
+- `js/app/rozrys/rozrys-sheet-model.js` — model arkuszy/magazynu: dopasowanie formatów, podpisy, odejmowanie zużytych formatek, helpery podaży arkuszy.
+- `js/app/rozrys/rozrys-sheet-helpers.js` — helpery canvas dla rysowania arkuszy.
+- `js/app/rozrys/rozrys-sheet-draw.js` — główne rysowanie arkuszy na canvas.
+- `js/app/rozrys/rozrys-stock.js` — helpery magazynu, formatu bazowego i podaży arkuszy dla ROZRYS; po tej paczce deleguje model danych do `rozrys-sheet-model.js`.
+- `js/app/rozrys/rozrys-cache.js` — helpery cache planów ROZRYS.
+- `js/app/rozrys/rozrys-accordion.js` — helpery accordionu materiałów ROZRYS.
+- `js/app/rozrys/rozrys-lists.js` — listy i karty wyników ROZRYS: `Lista formatek`, `Formatki arkusza`, karta podsumowania, launchery eksportu i karty arkuszy.
+- `js/app/rozrys/rozrys-render.js` — helpery auto-renderu z cache, renderu wyników i spinnera ROZRYS; po tej paczce deleguje karty/listy do `rozrys-lists.js`.
+- `js/app/rozrys/rozrys-summary.js` — diagnostyka i modale walidacji/list ROZRYS, oparte o `rozrys-lists.js`.
+- `js/app/rozrys/rozrys.js` — główna logika zakładki rozrysu / Optimax po dalszym oddelegowaniu pickerów, stanu, modelu arkuszy, rysowania, logiki stock-limit, auto-renderu i renderu wyników do modułów pomocniczych.
 
 ### Zakładki aktywnie ładowane przez `index.html`
 - `js/tabs/wywiad.js — WYWIAD (pełny renderer w module)` — aktywny renderer zakładki WYWIAD.
@@ -153,11 +171,11 @@
 
 Te pliki **nie są entrypointami strony** i przed poprawkami trzeba najpierw sprawdzić, czy są naprawdę używane pośrednio:
 
-- `js/app/inwestor.js` — stary wariant UI inwestora; w praktyce aktywnym plikiem jest `investor-ui.js`.
-- `js/app/calc.js` — warstwa obliczeń pomocniczych; obecnie nieładowana z `index.html`.
-- `js/app/migrate.js` — migracje schematu; obecnie nieładowane z `index.html`.
-- `js/app/schema.js` — osobny moduł schematu; obecnie nieładowany z `index.html`.
-- `js/app/panel-pro-worker.js` — nie jest ładowany jako zwykły script, ale jest używany pośrednio jako Web Worker z `rozrys.js`.
+- `js/app/investor/inwestor.js` — stary wariant UI inwestora; w praktyce aktywnym plikiem jest `investor-ui.js`.
+- `js/app/shared/calc.js` — warstwa obliczeń pomocniczych; obecnie nieładowana z `index.html`.
+- `js/app/shared/migrate.js` — migracje schematu; obecnie nieładowane z `index.html`.
+- `js/app/shared/schema.js` — osobny moduł schematu; obecnie nieładowany z `index.html`.
+- `js/app/optimizer/panel-pro-worker.js` — nie jest ładowany jako zwykły script, ale jest używany pośrednio jako Web Worker z `rozrys.js`.
 
 ### Zasada dla takich plików
 Najpierw sprawdzić, czy plik jest:
@@ -171,14 +189,14 @@ Dopiero potem go zmieniać.
 
 ## Gdzie szukać problemów
 
-- **klik nie działa** → `js/app/bindings.js`, `js/app/actions-register.js`
-- **akcja robi złą rzecz** → `js/app/actions-register.js` + handler domenowy
+- **klik nie działa** → `js/app/ui/bindings.js`, `js/app/ui/actions-register.js`
+- **akcja robi złą rzecz** → `js/app/ui/actions-register.js` + handler domenowy
 - **modal źle się zamyka / nakłada** → `js/core/modals.js` + miejsca domenowe w `app.js`
-- **widok źle się przełącza** → `js/app/views.js`, `js/app/sections.js`, `setActiveTab()` w `js/app.js`
-- **rozjeżdżają się dane projektu** → `js/app/session.js`, `js/app/storage.js`, `js/app/validate.js`, fragmenty `js/app.js`
+- **widok źle się przełącza** → `js/app/ui/views.js`, `js/app/ui/sections.js`, `setActiveTab()` w `js/app.js`
+- **rozjeżdżają się dane projektu** → `js/app/investor/session.js`, `js/app/shared/storage.js`, `js/app/shared/validate.js`, fragmenty `js/app.js`
 - **szafki renderują się źle / znikają** → `renderCabinets()` i wszystko, co go wywołuje
-- **Optimax / rozrys działa źle** → `js/app/rozrys.js`, `js/app/cut-optimizer.js`, ewentualnie worker
-- **MAX wygląda na zawieszony na starcie** → najpierw sprawdzić `js/app/rozrys.js` (start workera / fallbacki / status UI), potem `js/app/panel-pro-worker.js`; nie wpadać cicho w ciężki sync fallback na głównym wątku.
+- **Optimax / rozrys działa źle** → `js/app/rozrys/rozrys.js`, `js/app/optimizer/cut-optimizer.js`, ewentualnie worker
+- **MAX wygląda na zawieszony na starcie** → najpierw sprawdzić `js/app/rozrys/rozrys.js` (start workera / fallbacki / status UI), potem `js/app/optimizer/panel-pro-worker.js`; nie wpadać cicho w ciężki sync fallback na głównym wątku.
 
 ---
 
@@ -188,7 +206,7 @@ Dopiero potem go zmieniać.
 2. `renderCabinets()` — centralny render części aplikacji.
 3. `setActiveTab()` — łatwo zepsuć przełączanie i odświeżanie.
 4. `initUI()` — start i spinanie całej aplikacji.
-5. `js/app/bindings.js` — łatwo dodać duble listenerów.
+5. `js/app/ui/bindings.js` — łatwo dodać duble listenerów.
 6. modale — overlay / ESC / zamykanie po akcji.
 7. zapis i przywracanie sesji projektu.
 8. mosty między główną aplikacją a zakładką rozrysu / Optimax.
@@ -261,42 +279,42 @@ Dopiero potem go zmieniać.
 4. Przy każdej większej zmianie aktualizować ten plik (`DEV.md`).
 
 
-- `js/app/price-modal.js (renderer + akcje modala cenników)` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
+- `js/app/material/price-modal.js (renderer + akcje modala cenników)` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
 - Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.
 
 
-- `js/app/tab-navigation.js` — centralna nawigacja zakładek i skoki między WYWIAD ↔ MATERIAŁ; źródło prawdy dla `setActiveTab()` i helperów focus/scroll.
-- `js/app/layout-state.js` — helpery layoutu/wykończeń RYSUNKU i zapisu projektu; źródło prawdy dla `ensureLayout()`, `saveProject()` i pokrewnych helperów.
+- `js/app/ui/tab-navigation.js` — centralna nawigacja zakładek i skoki między WYWIAD ↔ MATERIAŁ; źródło prawdy dla `setActiveTab()` i helperów focus/scroll.
+- `js/app/ui/layout-state.js` — helpery layoutu/wykończeń RYSUNKU i zapisu projektu; źródło prawdy dla `ensureLayout()`, `saveProject()` i pokrewnych helperów.
 
-- `js/app/list-scroll-memory.js` — cienka pamięć pozycji scrolla i kotwicy szafki przy przejściach `Edytuj ↔ lista` w `WYWIAD` i `MATERIAŁ`.
-
-
-- `js/app/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
-
-- `js/app/front-hardware.js` — wspólne obliczenia frontów i okuć (fronty do Materiałów, zawiasy BLUM, AVENTOS).
-- `js/app/cabinet-fronts.js` — reguły typów/podtypów, fronty, walidacja AVENTOS i generowanie frontów; źródło prawdy dla logiki frontów używanej przez modal i materiały.
-- `js/app/cabinet-modal.js` — pełna logika modala szafki i kreatora zestawów; źródło prawdy dla renderu modala, dynamicznych pól i zapisu zestawów.
+- `js/app/ui/list-scroll-memory.js` — cienka pamięć pozycji scrolla i kotwicy szafki przy przejściach `Edytuj ↔ lista` w `WYWIAD` i `MATERIAŁ`.
 
 
-- `js/app/calc.js` — aktywny moduł lekkich helperów obliczeniowych (wysokość góry, top zestawów).
+- `js/app/material/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
+
+- `js/app/cabinet/front-hardware.js` — wspólne obliczenia frontów i okuć (fronty do Materiałów, zawiasy BLUM, AVENTOS).
+- `js/app/cabinet/cabinet-fronts.js` — reguły typów/podtypów, fronty, walidacja AVENTOS i generowanie frontów; źródło prawdy dla logiki frontów używanej przez modal i materiały.
+- `js/app/cabinet/cabinet-modal.js` — pełna logika modala szafki i kreatora zestawów; źródło prawdy dla renderu modala, dynamicznych pól i zapisu zestawów.
 
 
-- `js/app/settings-ui.js` — helpery ustawień pokoju i rozwijania kart wyjęte z `app.js`.
+- `js/app/shared/calc.js` — aktywny moduł lekkich helperów obliczeniowych (wysokość góry, top zestawów).
 
 
-- `js/app/cabinet-summary.js` — helper tekstowych podsumowań szafek wydzielony z `app.js`.
+- `js/app/ui/settings-ui.js` — helpery ustawień pokoju i rozwijania kart wyjęte z `app.js`.
+
+
+- `js/app/cabinet/cabinet-summary.js` — helper tekstowych podsumowań szafek wydzielony z `app.js`.
 
 
 - Step 17: safe dead-code cleanup in `js/app.js` (removed unused `deleteSelectedCabinet()` and duplicate/trailing ballast comments).
 
 
-- `js/app/corner-sketch.js` — helper canvas szkicu narożnych szafek; wydzielony z `app.js` bez zmiany UI.
+- `js/app/cabinet/corner-sketch.js` — helper canvas szkicu narożnych szafek; wydzielony z `app.js` bez zmiany UI.
 
 
-- `js/app/cabinet-cutlist.js` — helper obliczeniowy `getCabinetCutList(cab, room)` wydzielony z `app.js` z fallbackiem wstecznym.
+- `js/app/cabinet/cabinet-cutlist.js` — helper obliczeniowy `getCabinetCutList(cab, room)` wydzielony z `app.js` z fallbackiem wstecznym.
 
 
-- `js/app/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
+- `js/app/investor/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
 
 
 - `js/app.js` ma też lekki, globalny debounce autosave projektu (`installProjectAutosave` / `scheduleProjectAutosave`) jako bezpiecznik na wypadek, gdy pojedynczy handler zmiany nie zapisze stanu od razu.
@@ -305,38 +323,38 @@ Dopiero potem go zmieniać.
 
 - Router widoków preferuje aktywny projekt (`roomType`) nad starym `entry: home`, żeby zwykły refresh nie wyrzucał na start.
 
-- `js/app.js`: fallbacki dla `drawCornerSketch()` i `getCabinetExtraSummary()` zostały uproszczone do cienkich delegatorów; źródłem prawdy są moduły `js/app/corner-sketch.js` i `js/app/cabinet-summary.js`.
+- `js/app.js`: fallbacki dla `drawCornerSketch()` i `getCabinetExtraSummary()` zostały uproszczone do cienkich delegatorów; źródłem prawdy są moduły `js/app/cabinet/corner-sketch.js` i `js/app/cabinet/cabinet-summary.js`.
 
 
-- Step 24: `app.js` odchudzone przez skrócenie dużych lokalnych wrapperów `material-common` i `front-hardware`; źródłem prawdy pozostają moduły `js/app/material-common.js` i `js/app/front-hardware.js`, a w `app.js` zostały tylko cienkie delegatory z minimalnym fallbackiem.
+- Step 24: `app.js` odchudzone przez skrócenie dużych lokalnych wrapperów `material-common` i `front-hardware`; źródłem prawdy pozostają moduły `js/app/material/material-common.js` i `js/app/cabinet/front-hardware.js`, a w `app.js` zostały tylko cienkie delegatory z minimalnym fallbackiem.
 
-- `js/app.js` trzyma już tylko minimalny awaryjny fallback dla `getCabinetCutList()`; pełna logika siedzi w `js/app/cabinet-cutlist.js`.
+- `js/app.js` trzyma już tylko minimalny awaryjny fallback dla `getCabinetCutList()`; pełna logika siedzi w `js/app/cabinet/cabinet-cutlist.js`.
 
 
-- `js/app/cabinet-actions.js` — proste akcje szafek (dodanie/usunięcie) wydzielone z `app.js`.
-- `js/app/cabinet-actions.js` i `js/app/cabinet-summary.js` są teraz również ładowane bezpośrednio przez `index.html`, więc `app.js` nie musi utrzymywać rozbudowanych fallbacków tylko z powodu braku skryptu.
+- `js/app/cabinet/cabinet-actions.js` — proste akcje szafek (dodanie/usunięcie) wydzielone z `app.js`.
+- `js/app/cabinet/cabinet-actions.js` i `js/app/cabinet/cabinet-summary.js` są teraz również ładowane bezpośrednio przez `index.html`, więc `app.js` nie musi utrzymywać rozbudowanych fallbacków tylko z powodu braku skryptu.
 
 - `project-bootstrap.js` ładowany tylko raz w `index.html`; usunięty duplikat include.
 
 - js/app.js korzysta już z preładowanych modułów constants/utils/storage/ui-state jako źródeł prawdy; w app.js zostały tylko lokalne fallbacki awaryjne.
 
 
-- `js/app/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
+- `js/app/shared/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
 
 
-- `js/app/core-failsafe.js` — awaryjne minimalne fallbacki dla `FC.actions` i `FC.modal`, ładowane przed `app.js`.
-- `js/app/dom-guard.js` — walidacja wymaganych selektorów DOM, ładowana przed `app.js`.
+- `js/app/shared/core-failsafe.js` — awaryjne minimalne fallbacki dla `FC.actions` i `FC.modal`, ładowane przed `app.js`.
+- `js/app/shared/dom-guard.js` — walidacja wymaganych selektorów DOM, ładowana przed `app.js`.
 
 
 - Step 33: trimmed app.js wrappers for dom-guard, project-bootstrap and calc/settings by delegating to preloaded modules with minimal local fallbacks.
 
-- `js/app/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
+- `js/app/investor/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
 
 
-- `js/app/material-registry.js` — registry producentów i helper `materialHasGrain()` wydzielone z `app.js`.
+- `js/app/material/material-registry.js` — registry producentów i helper `materialHasGrain()` wydzielone z `app.js`.
 
 - `schema.js` is now the primary source of truth for project/room normalization; `app.js` keeps only a minimal emergency fallback.
-- `js/app/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
+- `js/app/material/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
 
 - Step 40: przebudowa UI części ROZRYS pod Optimax (profile A→DD, kierunek opcjonalnie/wzdłuż/w poprzek, rzaz, obrównanie, minimalny użyteczny odpad) oraz nowy pasowy packer `packStripBands()` dla trybów wzdłuż/w poprzek.
 
@@ -344,11 +362,11 @@ Dopiero potem go zmieniać.
 
 
 ## Step 62
-- Rewritten `packStripBands()` in `js/app/cut-optimizer.js` for stable `wzdłuż` / `w poprzek` strip modes.
+- Rewritten `packStripBands()` in `js/app/optimizer/cut-optimizer.js` for stable `wzdłuż` / `w poprzek` strip modes.
 - Strip selection now evaluates multiple candidate strip heights and uses a width DP to choose the best-fitting group for each strip.
 - Residual free rectangles are also created under shorter pieces inside a strip, then globally filled.
 - Goal: restore practical strip behavior (group-oriented, near-full strips, <=100 mm acceptable tail waste) without relying on `optional` heuristics.
-- Step 63: tryby pasowe `wzdłuż` / `w poprzek` dostały twardą preferencję orientacji końcowej na poziomie doboru kandydatów (`preferredCandidatesForItem` w `js/app/cut-optimizer.js`). Jeśli dla elementu istnieje wariant zgodny z wybranym kierunkiem pasa, solver używa go zamiast mieszać orientacje w residual fill / planowaniu pasa.
+- Step 63: tryby pasowe `wzdłuż` / `w poprzek` dostały twardą preferencję orientacji końcowej na poziomie doboru kandydatów (`preferredCandidatesForItem` w `js/app/optimizer/cut-optimizer.js`). Jeśli dla elementu istnieje wariant zgodny z wybranym kierunkiem pasa, solver używa go zamiast mieszać orientacje w residual fill / planowaniu pasa.
 
 - Step 64: `packStripBands()` przebudowany na pełny search wariantów dla jednej płyty. Tryby `wzdłuż` / `w poprzek` porównują teraz kilka strategii budowy pasów dla całego arkusza, wybierają najlepszy cały arkusz po occupancy / dużych pustkach, a dopiero potem przechodzą do następnej płyty. To ma ograniczyć duże białe pola i monotonne słabe układy.
 
@@ -364,14 +382,14 @@ Dopiero potem go zmieniać.
 - step68: bez zmiany rdzenia algorytmu zmieniono nazwy trybów cięcia na uczciwsze (`Preferuj pasy wzdłuż/poprzek`) oraz poprawiono raportowanie postępu prób. Worker wysyła teraz osobno postęp prób głównych i końcówki ostatniego arkusza, dzięki czemu licznik nie stoi pozornie w miejscu ani nie skacze na końcu.
 
 - step69: doprecyzowano raportowanie postępu prób w Optimax. Worker wysyła teraz nie tylko liczbę ukończonych prób, ale też numer aktualnie analizowanej próby (`currentAttempt` / `currentTailAttempt`) i fazę (`main` / `tail`). UI pokazuje dzięki temu bardziej realny stan: `Ukończone ...` oraz `W toku ...`, zamiast sprawiać wrażenie, że licznik stanął.
-- step72: uproszczono UI postępu w `js/app/rozrys.js`. Usunięto górny globalny licznik/box postępu (`rozrysGlobalStatus`) i zostawiono tylko lokalny licznik przy aktualnie liczonym materiale. Z opisu zniknął też etap/faza liczenia — status pokazuje już tylko materiał i `Najlepsze`.
-- step73: wydzielono tryby pasowe do osobnego pliku `js/app/strip-solver.js`. `js/app/cut-optimizer.js` zachowuje tylko wrapper `packStripBands()` + wspólne API, a `index.html` ładuje teraz osobno solver pasowy przed silnikiem głównym. Cel: odseparować `Preferuj pasy wzdłuż / w poprzek` od ryzykownych zmian w innych heurystykach Optimax.
+- step72: uproszczono UI postępu w `js/app/rozrys/rozrys.js`. Usunięto górny globalny licznik/box postępu (`rozrysGlobalStatus`) i zostawiono tylko lokalny licznik przy aktualnie liczonym materiale. Z opisu zniknął też etap/faza liczenia — status pokazuje już tylko materiał i `Najlepsze`.
+- step73: wydzielono tryby pasowe do osobnego pliku `js/app/strip-solver.js`. `js/app/optimizer/cut-optimizer.js` zachowuje tylko wrapper `packStripBands()` + wspólne API, a `index.html` ładuje teraz osobno solver pasowy przed silnikiem głównym. Cel: odseparować `Preferuj pasy wzdłuż / w poprzek` od ryzykownych zmian w innych heurystykach Optimax.
 
 
 ## 2026-03-11 — step75
 - `js/app/strip-solver.js`: stabilny solver trybów „Preferuj pasy wzdłuż / w poprzek”; nie mieszać z optional.
 - `js/app/optional-solver.js`: nowy solver trybu „Opcjonalnie kierunek cięcia”. Liczy płyta po płycie, porównuje pełne warianty `along/across` oraz warianty hybrydowe z jednym głównym splitem i zmianą kierunku w drugiej części płyty. Końcówka dopieszcza ostatnie 2 płyty i jeszcze raz ostatnią.
-- `js/app/panel-pro-worker.js`: worker importuje teraz `optional-solver.js` i dla trybu optional korzysta z oddzielnego toru liczenia, bez dotykania solvera pasowego.
+- `js/app/optimizer/panel-pro-worker.js`: worker importuje teraz `optional-solver.js` i dla trybu optional korzysta z oddzielnego toru liczenia, bez dotykania solvera pasowego.
 
 
 - step76: optional dostał bardziej produkcyjny scoring końcówki: kara za śmieciowy odpad / utylizację (małe i pocięte resztki), premia za grupowanie drobnicy w jednym wspólnym rzędzie/pasie oraz finalny rebalance ostatnich 2 płyt przed polish ostatniej. Zmiany zamknięte wyłącznie w `js/app/optional-solver.js`; tryby pasowe w `js/app/strip-solver.js` pozostają bez zmian.
@@ -388,7 +406,7 @@ Dopiero potem go zmieniać.
 ## 2026-03-12 — optional solver rewrite v2
 - `js/app/optional-solver.js` przepisany ponownie jako konstrukcyjny solver: 1–2 pasy startowe z klastrów podobnych wymiarów, potem dogęszczenie reszty drugim kierunkiem przez solver pasowy.
 - Nie zmieniano `js/app/strip-solver.js`; tryby wzdłuż / w poprzek pozostają bezpieczne i osobne.
-- Podbito wersję workera w `js/app/rozrys.js`, żeby przeglądarka nie trzymała starego worker cache.
+- Podbito wersję workera w `js/app/rozrys/rozrys.js`, żeby przeglądarka nie trzymała starego worker cache.
 
 - 2026-03-12: optional solver v3 — naprawa cache workera (importScripts z query string), poprawka klastrów podobnych wymiarów (<= tolerancji zamiast >), mocniejsza preferencja zmiany kierunku po pasie startowym.
 
@@ -426,25 +444,25 @@ Dopiero potem go zmieniać.
 ## 2026-03-14 — krok 106: przebudowa rozrysu na osobne moduły kierunku i szybkości
 - Usunięto stare pliki solverów rozkroju: `js/app/strip-solver.js`, `js/app/optima-solver.js`, `js/app/optional-solver.js`.
 - Dodano osobne moduły kierunku startu:
-  - `js/app/start-along.js` → `Pierwsze pasy wzdłuż` (wymusza oś `along`)
-  - `js/app/start-across.js` → `Pierwsze pasy w poprzek` (wymusza oś `across`)
-  - `js/app/start-optimax.js` → `Opti-max`
+  - `js/app/optimizer/start-along.js` → `Pierwsze pasy wzdłuż` (wymusza oś `along`)
+  - `js/app/optimizer/start-across.js` → `Pierwsze pasy w poprzek` (wymusza oś `across`)
+  - `js/app/optimizer/start-optimax.js` → `Opti-max`
 - Dodano osobne moduły szybkości liczenia:
-  - `js/app/speed-turbo.js` → `Turbo` (shelf)
-  - `js/app/speed-dokladnie.js` → `Dokładnie`
-  - `js/app/speed-max.js` → `MAX`
+  - `js/app/optimizer/speed-turbo.js` → `Turbo` (shelf)
+  - `js/app/optimizer/speed-dokladnie.js` → `Dokładnie`
+  - `js/app/optimizer/speed-max.js` → `MAX`
 - `MAX` realizuje aktualny rdzeń algorytmu użytkownika: 1–2 pasy startowe, sprawdzanie pasa po powierzchni, obowiązkowa zmiana kierunku po pasach startowych, bez otwierania nowej płyty przed zamknięciem poprzedniej.
-- `js/app/cut-optimizer.js` został uproszczony do wspólnych narzędzi i shelf fallbacku.
-- `js/app/panel-pro-worker.js` został napisany od nowa pod nowy podział start/szybkość.
-- `js/app/rozrys.js` i `index.html` zostały przepięte na nowe opcje UI i nowe pliki.
+- `js/app/optimizer/cut-optimizer.js` został uproszczony do wspólnych narzędzi i shelf fallbacku.
+- `js/app/optimizer/panel-pro-worker.js` został napisany od nowa pod nowy podział start/szybkość.
+- `js/app/rozrys/rozrys.js` i `index.html` zostały przepięte na nowe opcje UI i nowe pliki.
 
 - Step 18: kept cut-direction select order as `wzdłuż -> w poprzek -> Opti-max` to match requested UI order without changing solver logic.
 
 - 2026-03-14: swapped runtime behavior of `start-along` and `start-across` for all Panel PRO speed modes (Turbo, Dokładnie, MAX) so labels stay the same but `wzdłuż` starts along board length and `w poprzek` starts across board width; bumped solver cache-busting version to `20260314_max_plan_v1`.
 
-- `js/app/rozrys.js` steruje teraz też stanem przycisku generowania: brak cache = zielony `Generuj rozkrój`, cache hit / gotowy wynik = niebieski `Generuj ponownie`, liczenie = czerwony `Anuluj`.
+- `js/app/rozrys/rozrys.js` steruje teraz też stanem przycisku generowania: brak cache = zielony `Generuj rozkrój`, cache hit / gotowy wynik = niebieski `Generuj ponownie`, liczenie = czerwony `Anuluj`.
 
-- 2026-03-14: przebudowano `js/app/speed-max.js`, żeby `MAX` wybierał najlepszy pełny plan arkusza po ocenie całych kandydatów 1–2 pasów startowych, a nie tylko pojedynczego najlepszego pierwszego pasa. `MAX` dalej zamyka arkusz przed otwarciem następnego, trzyma obowiązkową zmianę kierunku po pasach startowych i zachowuje repair słabego pasa; podbito cache-busting do `20260314_max_plan_v1`.
+- 2026-03-14: przebudowano `js/app/optimizer/speed-max.js`, żeby `MAX` wybierał najlepszy pełny plan arkusza po ocenie całych kandydatów 1–2 pasów startowych, a nie tylko pojedynczego najlepszego pierwszego pasa. `MAX` dalej zamyka arkusz przed otwarciem następnego, trzyma obowiązkową zmianę kierunku po pasach startowych i zachowuje repair słabego pasa; podbito cache-busting do `20260314_max_plan_v1`.
 
 
 ---
@@ -457,24 +475,24 @@ Dopiero potem go zmieniać.
 - ROZRYS: pozostawiony fallback twardego zatrzymania workera, żeby UI nie wisiało przy anulowaniu.
 - ROZRYS: usunięto górny, zdublowany status z licznikiem; zostawiono tylko jeden status w obszarze wyniku.
 - ROZRYS: pasek postępu idzie teraz proporcjonalnie do policzonych płyt względem oszacowania (np. 3 z ~5 = 60%%).
-- 2026-03-14: przebudowano `js/app/speed-max.js` jeszcze raz pod spec użytkownika: `MAX` liczy teraz pojedynczy wariant arkusza dla zadanego startu osi, robi 1–2 idealne pasy startowe, potem obowiązkowo zmienia kierunek i domyka resztę kolejnymi idealnymi pasami; dopiero gdy w danej osi nie ma idealnego pasa, sprawdza zmianę osi i na końcu fallback do najlepszego nieidealnego pasa. `Opti-max` porównuje już tylko 1 wariant startu wzdłuż vs 1 wariant startu w poprzek. Worker i UI dostały dokładniejsze fazy progresu oraz licznik „zamknięta płyta X / liczę płytę Y”.
+- 2026-03-14: przebudowano `js/app/optimizer/speed-max.js` jeszcze raz pod spec użytkownika: `MAX` liczy teraz pojedynczy wariant arkusza dla zadanego startu osi, robi 1–2 idealne pasy startowe, potem obowiązkowo zmienia kierunek i domyka resztę kolejnymi idealnymi pasami; dopiero gdy w danej osi nie ma idealnego pasa, sprawdza zmianę osi i na końcu fallback do najlepszego nieidealnego pasa. `Opti-max` porównuje już tylko 1 wariant startu wzdłuż vs 1 wariant startu w poprzek. Worker i UI dostały dokładniejsze fazy progresu oraz licznik „zamknięta płyta X / liczę płytę Y”.
 
-- 2026-03-14: przebudowano `js/app/speed-max.js` jeszcze raz pod doprecyzowaną specyfikację użytkownika: `MAX` buduje każdy pas od największego aktualnie pasującego elementu, sprawdza dla tego pasa obie dozwolone orientacje, dobiera formatki o tej samej grubości pasa lub mniejsze maks. o 75 mm, próbuje kolejno progi 90% i 80% (z wyjątkiem drugiego pasa startowego, który powstaje tylko przy 90%), a dopiero po niepowodzeniu zmienia kierunek lub schodzi do fallbacku. Nie ruszano działania trybów startu `wzdłuż` / `w poprzek`; podbito cache-busting do `20260314_max_user_algo_v1`.
+- 2026-03-14: przebudowano `js/app/optimizer/speed-max.js` jeszcze raz pod doprecyzowaną specyfikację użytkownika: `MAX` buduje każdy pas od największego aktualnie pasującego elementu, sprawdza dla tego pasa obie dozwolone orientacje, dobiera formatki o tej samej grubości pasa lub mniejsze maks. o 75 mm, próbuje kolejno progi 90% i 80% (z wyjątkiem drugiego pasa startowego, który powstaje tylko przy 90%), a dopiero po niepowodzeniu zmienia kierunek lub schodzi do fallbacku. Nie ruszano działania trybów startu `wzdłuż` / `w poprzek`; podbito cache-busting do `20260314_max_user_algo_v1`.
 
 
 ## 2026-03-15 — MAX seed sweep and tiny-block grouping
-- `js/app/speed-max.js`: MAX now reviews all sensible seed starts for a band (unique fitting start sizes, biggest-to-smaller) before lowering threshold or switching axis.
-- `js/app/speed-max.js`: tiny repeat parts can be paired into grouped block candidates inside a band to reduce scattered micro-strips.
-- `js/app/panel-pro-worker.js`, `js/app/rozrys.js`, `index.html`: cache-busting bumped for the new MAX solver build.
+- `js/app/optimizer/speed-max.js`: MAX now reviews all sensible seed starts for a band (unique fitting start sizes, biggest-to-smaller) before lowering threshold or switching axis.
+- `js/app/optimizer/speed-max.js`: tiny repeat parts can be paired into grouped block candidates inside a band to reduce scattered micro-strips.
+- `js/app/optimizer/panel-pro-worker.js`, `js/app/rozrys/rozrys.js`, `index.html`: cache-busting bumped for the new MAX solver build.
 
 - 2026-03-15: MAX now scans seeds sequentially from largest area to smaller and accepts the first seed that reaches the requested occupancy target; ROZRYS waste summary uses full board dimensions and drawing shows the trim border around the usable area.
 
 - 2026-03-15: ROZRYS — dodano procent odpadu przy nagłówku każdego arkusza (widok i eksport PDF/druk), liczony od pełnej płyty.
 
-- 2026-03-15: `js/app/speed-max.js` tuned per user request: MAX now tests only the top 5 unique seed starts for each band (largest unique candidates first) and raises the secondary occupancy threshold from 80% to 85%; cache-busting updated to `20260315_max_top5_90_85_v1`.
-- 2026-03-15: `js/app/speed-max.js` — start-pass 1 i 2 mają teraz twardą kolejność `90% -> 85% -> dopiero fallback`, z testem top 5 unikalnych seedów i obu orientacji każdego seeda; fallback został przerobiony na preferencję fizycznego cięcia po długości płyty (wewnętrzna oś `across`) z układaniem od najszerszych do najwęższych elementów.
-- 2026-03-15: `js/app/speed-max.js` — ostatni arkusz może być oznaczony jako wirtualne `0.5` płyty, jeśli komplet pozostałych elementów mieści się na połowie formatu; `js/app/rozrys.js` liczy wtedy podsumowanie i % odpadu dla tej połówki, ale nadal rysuje arkusz na pełnej płycie.
-- 2026-03-15: `js/app/panel-pro-worker.js`, `js/app/rozrys.js` — cache-busting bumped to `20260315_max_virtual_half_v1`.
+- 2026-03-15: `js/app/optimizer/speed-max.js` tuned per user request: MAX now tests only the top 5 unique seed starts for each band (largest unique candidates first) and raises the secondary occupancy threshold from 80% to 85%; cache-busting updated to `20260315_max_top5_90_85_v1`.
+- 2026-03-15: `js/app/optimizer/speed-max.js` — start-pass 1 i 2 mają teraz twardą kolejność `90% -> 85% -> dopiero fallback`, z testem top 5 unikalnych seedów i obu orientacji każdego seeda; fallback został przerobiony na preferencję fizycznego cięcia po długości płyty (wewnętrzna oś `across`) z układaniem od najszerszych do najwęższych elementów.
+- 2026-03-15: `js/app/optimizer/speed-max.js` — ostatni arkusz może być oznaczony jako wirtualne `0.5` płyty, jeśli komplet pozostałych elementów mieści się na połowie formatu; `js/app/rozrys/rozrys.js` liczy wtedy podsumowanie i % odpadu dla tej połówki, ale nadal rysuje arkusz na pełnej płycie.
+- 2026-03-15: `js/app/optimizer/panel-pro-worker.js`, `js/app/rozrys/rozrys.js` — cache-busting bumped to `20260315_max_virtual_half_v1`.
 
 - 2026-03-15: magazyn rozróżnia teraz pełne i realne pół płyty przez format; ROZRYS wybiera największy format jako hint, a MAX może użyć realnej połówki z magazynu na końcówce (rysowanej nadal na pełnym arkuszu) lub tylko oznaczyć wirtualne 0,5, gdy realnej połówki brak.
 
@@ -488,17 +506,17 @@ Dopiero potem go zmieniać.
 - step: uproszczono panel ROZRYS — usunięto tekst wstępny pod nagłówkiem, a opcje dodatkowe (jednostki, wymiary do cięcia, rzaz, obrównanie i minimalny użyteczny odpad) przeniesiono do pływającego okna „Opcje rozkroju” z zapisem w localStorage.
 
 
-- `js/app/confirm-box.js` — współdzielony modal potwierdzeń (zamiast natywnego `confirm()`), do użycia także w innych miejscach aplikacji.
+- `js/app/ui/confirm-box.js` — współdzielony modal potwierdzeń (zamiast natywnego `confirm()`), do użycia także w innych miejscach aplikacji.
 
-- `js/app/info-box.js` — mały, wielorazowy modal informacji/pomocy otwierany z ikon `?` przy polach paneli.
-- 2026-03-18: `js/app/panel-box.js` + `js/app/rozrys-validation.js` — dodano współdzielone okno list/diagnostyki dla ROZRYS oraz walidację rozkroju względem snapshotu; `Lista formatek` pokazuje teraz RAW snapshot 1:1 z Materiałów, listę do rozkroju po scaleniu i wynik walidacji, a każdy arkusz ma własną listę formatek.
-- 2026-03-20: `js/app/rozrys.js`, `js/app/magazyn.js`, `css/style.css`, `index.html` — przebudowano źródło wyboru ROZRYS pod jeden inwestor + wiele pomieszczeń: dodano picker pomieszczeń, nowy picker materiałów per kolor z trybem fronty/korpusy, usunięto wyszukiwarkę z pickera materiałów, a lista materiałów buduje się teraz z zaznaczonych pomieszczeń i sumuje ten sam materiał między nimi. Zapis formatu z ROZRYS do Magazynu dodaje już +1 szt. do istniejącego lub nowego formatu po własnym potwierdzeniu; pola formatu i przycisk `Dodaj format` są teraz w jednym rzędzie. Regresje do sprawdzenia: wielopomieszczeniowe sumowanie HDF i laminatów, pojedynczy materiał z samymi frontami / samym korpusem / obiema grupami, ponowne generowanie z cache po zmianie pomieszczeń i poprawne dodawanie kolejnych sztuk tego samego formatu do magazynu.
-- 2026-03-21: `js/app/rozrys.js`, `css/style.css`, `index.html` — dopracowano panel ROZRYS po przebudowie wielopomieszczeniowej. Pola formatu i przycisk `Dodaj format` zostały przeniesione przy przycisku `Generuj rozkrój`, a mobile layout przestał wypychać format poza kartę. Picker pomieszczeń i picker materiału mają teraz dynamiczne stopki: bez wyboru pokazują niebieski `Zamknij`, po wyborze czerwony `Anuluj`, a zielony `Zatwierdź` aktywuje się dopiero po realnym zaznaczeniu. W pickerze materiału karty z frontami/korpusami startują bez domyślnego zaznaczenia, a górna krawędź pierwszej karty nie jest już przycinana. Poprawiono też warstwowanie `info/confirm`, żeby komunikaty nie wpadały pod główne okno panelowe. Dodatkowo ROZRYS respektuje teraz limit stanów magazynowych dla dokładnie wybranego formatu: arkusze mieszczące się w stanie są oznaczane na zielono `z magazynu`, a brakujące na czerwono `zamówić`; przy niedoborze mniejszego formatu brakujące arkusze są doplanowywane na największym formacie dla materiału zamiast bez końca schodzić poniżej stanu. Regresje do sprawdzenia: brak zasłoniętych komunikatów przy pustym wyborze pomieszczeń, poprawne położenie sekcji `Dodaj format` obok `Generuj rozkrój`, zapis materiału dopiero po ręcznym zaznaczeniu frontów/korpusów oraz oznaczenia `z magazynu` / `zamówić` przy różnych stanach magazynowych.
+- `js/app/ui/info-box.js` — mały, wielorazowy modal informacji/pomocy otwierany z ikon `?` przy polach paneli.
+- 2026-03-18: `js/app/ui/panel-box.js` + `js/app/rozrys/rozrys-validation.js` — dodano współdzielone okno list/diagnostyki dla ROZRYS oraz walidację rozkroju względem snapshotu; `Lista formatek` pokazuje teraz RAW snapshot 1:1 z Materiałów, listę do rozkroju po scaleniu i wynik walidacji, a każdy arkusz ma własną listę formatek.
+- 2026-03-20: `js/app/rozrys/rozrys.js`, `js/app/material/magazyn.js`, `css/style.css`, `index.html` — przebudowano źródło wyboru ROZRYS pod jeden inwestor + wiele pomieszczeń: dodano picker pomieszczeń, nowy picker materiałów per kolor z trybem fronty/korpusy, usunięto wyszukiwarkę z pickera materiałów, a lista materiałów buduje się teraz z zaznaczonych pomieszczeń i sumuje ten sam materiał między nimi. Zapis formatu z ROZRYS do Magazynu dodaje już +1 szt. do istniejącego lub nowego formatu po własnym potwierdzeniu; pola formatu i przycisk `Dodaj format` są teraz w jednym rzędzie. Regresje do sprawdzenia: wielopomieszczeniowe sumowanie HDF i laminatów, pojedynczy materiał z samymi frontami / samym korpusem / obiema grupami, ponowne generowanie z cache po zmianie pomieszczeń i poprawne dodawanie kolejnych sztuk tego samego formatu do magazynu.
+- 2026-03-21: `js/app/rozrys/rozrys.js`, `css/style.css`, `index.html` — dopracowano panel ROZRYS po przebudowie wielopomieszczeniowej. Pola formatu i przycisk `Dodaj format` zostały przeniesione przy przycisku `Generuj rozkrój`, a mobile layout przestał wypychać format poza kartę. Picker pomieszczeń i picker materiału mają teraz dynamiczne stopki: bez wyboru pokazują niebieski `Zamknij`, po wyborze czerwony `Anuluj`, a zielony `Zatwierdź` aktywuje się dopiero po realnym zaznaczeniu. W pickerze materiału karty z frontami/korpusami startują bez domyślnego zaznaczenia, a górna krawędź pierwszej karty nie jest już przycinana. Poprawiono też warstwowanie `info/confirm`, żeby komunikaty nie wpadały pod główne okno panelowe. Dodatkowo ROZRYS respektuje teraz limit stanów magazynowych dla dokładnie wybranego formatu: arkusze mieszczące się w stanie są oznaczane na zielono `z magazynu`, a brakujące na czerwono `zamówić`; przy niedoborze mniejszego formatu brakujące arkusze są doplanowywane na największym formacie dla materiału zamiast bez końca schodzić poniżej stanu. Regresje do sprawdzenia: brak zasłoniętych komunikatów przy pustym wyborze pomieszczeń, poprawne położenie sekcji `Dodaj format` obok `Generuj rozkrój`, zapis materiału dopiero po ręcznym zaznaczeniu frontów/korpusów oraz oznaczenia `z magazynu` / `zamówić` przy różnych stanach magazynowych.
 
 - 2026-03-22: ROZRYS mobile/UI fix — akcje formatu utrzymane obok przycisku generowania, picker materiału działa jako pojedynczy wybór (albo Wszystkie, albo 1 materiał), a brakujące arkusze po wyczerpaniu mniejszego formatu mają przechodzić na pełny format z aktualnych pól zamiast zamawiać kolejne małe formatki.
 
-- 2026-03-22: `js/app/rozrys.js`, `js/app/magazyn.js`, `index.html` — ROZRYS zużywa teraz najpierw realne formaty dostępne w magazynie dla danego materiału (do maksymalnego stanu i tylko w takiej liczbie arkuszy, jaka naprawdę pasuje), a dopiero brakujące elementy doplanowuje na pełnej płycie z aktualnych pól ROZRYS. Poprawiono też styl akcyjnych przycisków w obszarze ROZRYS/MAGAZYN na warianty z białą czcionką oraz usunięto natywne `confirm()`/`alert()` z bieżąco poprawianego magazynu płyt. Regresje do sprawdzenia: mały format z magazynu musi być użyty przed pełną płytą, po wyczerpaniu stanu kolejne arkusze mają mieć pełny format z pól ROZRYS, a przyciski `Dodaj format`, `Dodaj do magazynu` i `Usuń` mają zachować spójny styl kolorystyczny.
-- 2026-03-22: `js/app/rozrys.js`, `js/app/magazyn.js`, `css/style.css`, `index.html` — dopięto pamiętanie ROZRYS po odświeżeniu względem stanów magazynowych: klucz cache uwzględnia teraz pełny podpis formatów i ilości z magazynu dla materiału, a auto-podgląd z cache odtwarza ten sam stan co ręczne generowanie. Logika stock-first została poprawiona tak, żeby mniejsze formaty z magazynu były testowane najpierw tylko dla formatek, które fizycznie mieszczą się na danym arkuszu; dopiero reszta idzie na pełną płytę z pól ROZRYS. W Magazynie przycisk `Dodaj do magazynu` inkrementuje istniejący format zamiast nadpisywać ilość, a potwierdzenie usuwania ma już czerwone `✕ NIE` i zielone `✓ TAK` z białą czcionką. Regresje do sprawdzenia: po odświeżeniu ten sam rozkrój ma wracać z cache przy niezmienionych ustawieniach, stan magazynu ma być zużywany najpierw dla pasujących małych arkuszy, a pozycje dodawane drugi/trzeci raz do Magazynu mają zwiększać ilość zamiast ją resetować.
+- 2026-03-22: `js/app/rozrys/rozrys.js`, `js/app/material/magazyn.js`, `index.html` — ROZRYS zużywa teraz najpierw realne formaty dostępne w magazynie dla danego materiału (do maksymalnego stanu i tylko w takiej liczbie arkuszy, jaka naprawdę pasuje), a dopiero brakujące elementy doplanowuje na pełnej płycie z aktualnych pól ROZRYS. Poprawiono też styl akcyjnych przycisków w obszarze ROZRYS/MAGAZYN na warianty z białą czcionką oraz usunięto natywne `confirm()`/`alert()` z bieżąco poprawianego magazynu płyt. Regresje do sprawdzenia: mały format z magazynu musi być użyty przed pełną płytą, po wyczerpaniu stanu kolejne arkusze mają mieć pełny format z pól ROZRYS, a przyciski `Dodaj format`, `Dodaj do magazynu` i `Usuń` mają zachować spójny styl kolorystyczny.
+- 2026-03-22: `js/app/rozrys/rozrys.js`, `js/app/material/magazyn.js`, `css/style.css`, `index.html` — dopięto pamiętanie ROZRYS po odświeżeniu względem stanów magazynowych: klucz cache uwzględnia teraz pełny podpis formatów i ilości z magazynu dla materiału, a auto-podgląd z cache odtwarza ten sam stan co ręczne generowanie. Logika stock-first została poprawiona tak, żeby mniejsze formaty z magazynu były testowane najpierw tylko dla formatek, które fizycznie mieszczą się na danym arkuszu; dopiero reszta idzie na pełną płytę z pól ROZRYS. W Magazynie przycisk `Dodaj do magazynu` inkrementuje istniejący format zamiast nadpisywać ilość, a potwierdzenie usuwania ma już czerwone `✕ NIE` i zielone `✓ TAK` z białą czcionką. Regresje do sprawdzenia: po odświeżeniu ten sam rozkrój ma wracać z cache przy niezmienionych ustawieniach, stan magazynu ma być zużywany najpierw dla pasujących małych arkuszy, a pozycje dodawane drugi/trzeci raz do Magazynu mają zwiększać ilość zamiast ją resetować.
 
 
 ## 2026-03-22 — ROZRYS / format bazowy vs magazyn
@@ -508,9 +526,9 @@ Dopiero potem go zmieniać.
 - Regresja do sprawdzenia: po dodaniu małej płyty do magazynu bazowy format rozrysu ma pozostać bez zmian po odświeżeniu i po ponownym wejściu do ROZRYS.
 
 - 2026-03-22: ROZRYS — opcje rozkroju: przywróć domyślne + stan Wyjdź/Anuluj/Zapisz; wizualizacja arkuszy ma używać faktycznego rozmiaru arkusza z magazynu, nie globalnego formatu bazowego.
-- 2026-03-22: `js/app/rozrys.js`, `index.html` — naprawiono reset „Przywróć domyślne” w Opcjach rozkroju tak, żeby zawsze wracał także do jednostek `cm`. Render arkuszy używa teraz wspólnej skali względem formatu bazowego, więc mniejsze płyty z magazynu są rysowane wizualnie proporcjonalnie mniejsze zamiast rozciągać się do szerokości całej karty.
+- 2026-03-22: `js/app/rozrys/rozrys.js`, `index.html` — naprawiono reset „Przywróć domyślne” w Opcjach rozkroju tak, żeby zawsze wracał także do jednostek `cm`. Render arkuszy używa teraz wspólnej skali względem formatu bazowego, więc mniejsze płyty z magazynu są rysowane wizualnie proporcjonalnie mniejsze zamiast rozciągać się do szerokości całej karty.
 
-- 2026-03-22: `js/app/rozrys.js`, `index.html` — eksport PDF/druk ROZRYS przerobiony na strony A4 landscape, jedna strona = jeden arkusz z własnym nagłówkiem. Usunięto sztuczne rozciąganie obrazów w PDF (`img` nie ma już `width:100%`), więc małe arkusze z magazynu zachowują proporcjonalnie mniejszy rozmiar także w wydruku. Regresje do sprawdzenia: brak pustych stron między arkuszami, pierwszy arkusz nie może lądować samotnie po tytule, a mały arkusz z magazynu ma pozostać mniejszy wizualnie od pełnej płyty również w podglądzie PDF.
+- 2026-03-22: `js/app/rozrys/rozrys.js`, `index.html` — eksport PDF/druk ROZRYS przerobiony na strony A4 landscape, jedna strona = jeden arkusz z własnym nagłówkiem. Usunięto sztuczne rozciąganie obrazów w PDF (`img` nie ma już `width:100%`), więc małe arkusze z magazynu zachowują proporcjonalnie mniejszy rozmiar także w wydruku. Regresje do sprawdzenia: brak pustych stron między arkuszami, pierwszy arkusz nie może lądować samotnie po tytule, a mały arkusz z magazynu ma pozostać mniejszy wizualnie od pełnej płyty również w podglądzie PDF.
 - 2026-03-22: PDF/druk ROZRYS — poprawiono składanie stron: tytuł i arkusz na tej samej stronie, bez pustych stron między arkuszami; wymuszono layout A4 poziomo i czekanie na załadowanie obrazów przed otwarciem wydruku.
 
 
@@ -565,7 +583,7 @@ Dopiero potem go zmieniać.
 
 
 ## 2026-03-23 — modal/session/cabinet fix
-- Naprawiono `refreshSessionButtons` w `js/app/bindings.js` (błąd zakresu po refaktorze delegacji).
+- Naprawiono `refreshSessionButtons` w `js/app/ui/bindings.js` (błąd zakresu po refaktorze delegacji).
 - Przywrócono właściwy header modala szafki: `Anuluj` + `Zatwierdź`, bez `X`.
 - Usuwanie szafki w wywiadzie korzysta z `confirmBox`, nie z systemowego `confirm()`.
 - `panel-box` dostał tytuł jak nagłówek Optimax także na mobile.
@@ -574,9 +592,9 @@ Dopiero potem go zmieniać.
 
 - 2026-03-23: Fix mobilnego scrolla w modalach pełnoekranowych. `.modal` działa teraz jako kolumna flex z przewijalnym `.modal .body`, żeby dodawanie/edycja szafki i podobne okna dały się przewijać na telefonie.
 
-- 2026-03-24: ROZRYS — usunięty globalny checkbox struktury; sterowanie słojami przeniesione per materiał (accordion) z popupem wyjątków. Dodany helper js/app/rozrys-grain.js i naprawione utrwalanie hasGrain w validate.js.
+- 2026-03-24: ROZRYS — usunięty globalny checkbox struktury; sterowanie słojami przeniesione per materiał (accordion) z popupem wyjątków. Dodany helper js/app/rozrys/rozrys-grain.js i naprawione utrwalanie hasGrain w validate.js.
 
-- 2026-03-25: Słój per formatka: dodano js/app/material-part-options.js, modal "Opcje formatki" w zakładce Materiał, kierunek słojów (domyślny/poziom/pion/bez znaczenia), oraz poprawiono modal "Wyjątki słojów" na mechanikę Wyjdź/Anuluj/Zapisz.
+- 2026-03-25: Słój per formatka: dodano js/app/material/material-part-options.js, modal "Opcje formatki" w zakładce Materiał, kierunek słojów (domyślny/poziom/pion/bez znaczenia), oraz poprawiono modal "Wyjątki słojów" na mechanikę Wyjdź/Anuluj/Zapisz.
 
 - 2026-03-25: grain modal polish v2 — sticky/footer actions for `Opcje formatki` and `Wyjątki słojów`, neutral preview for `Domyślny z materiału`, stronger disabled styling for grain controls.
 
@@ -588,18 +606,18 @@ Dopiero potem go zmieniać.
 
 ## Dalsze propozycje porządkowania ROZRYS (częściowo wdrożone)
 
-1. `js/app/rozrys-choice.js` — wdrożone w tej paczce jako pierwszy krok zamiast większego `rozrys-pickers.js`.
+1. `js/app/rozrys/rozrys-choice.js` — wdrożone w tej paczce jako pierwszy krok zamiast większego `rozrys-pickers.js`.
    - wydzielone: `getSelectOptionLabel()`, `setChoiceLaunchValue()`, `createChoiceLauncher()`, `openRozrysChoiceOverlay()`.
    - dalszy krok: dołożyć tu jeszcze `openRoomsPicker()` i `openMaterialPicker()`.
 
-2. `js/app/rozrys-print.js` — wdrożone w tej paczce.
+2. `js/app/rozrys/rozrys-print.js` — wdrożone w tej paczce.
    - wydzielone: `buildCsv()`, `downloadText()`, `openPrintView()`, `pxToMm()`, `measurePrintHeaderMm()`.
 
-3. `js/app/rozrys-sheet-draw.js`
+3. `js/app/rozrys/rozrys-sheet-draw.js`
    - wydzielić: `scheduleSheetCanvasRefresh()`, `drawSheet()`, helpery wymiarów, etykiet i rysowania oklein;
    - po co: warstwa canvas jest duża i wizualnie ryzykowna, więc powinna być odseparowana od logiki danych.
 
-4. `js/app/rozrys-stock.js` — wdrożone częściowo w tej paczce.
+4. `js/app/rozrys/rozrys-stock.js` — wdrożone częściowo w tej paczce.
    - wydzielone: helpery formatu bazowego, magazynu i podaży arkuszy (`getSheetRowsForMaterial()`, `getExactSheetStockForMaterial()`, `getLargestSheetFormatForMaterial()`, `clonePlanSheetsWithSupply()` i powiązane funkcje).
    - dalszy krok: przenieść tam jeszcze całe `applySheetStockLimit()`.
 
@@ -607,39 +625,39 @@ Dopiero potem go zmieniać.
    - wydzielić: `tryAutoRenderFromCache()`, cache planów, ticker globalny, status generowania i anulowanie liczenia;
    - po co: postęp liczenia i cache są dziś w jednym miejscu z renderem, a to utrudnia dalsze rozwijanie trybów `Super` i `Ultra`.
 
-6. `js/app/rozrys-accordion.js` — wdrożone częściowo w tej paczce.
+6. `js/app/rozrys/rozrys-accordion.js` — wdrożone częściowo w tej paczce.
    - wydzielone: `splitMaterialAccordionTitle()`, `createMaterialAccordionSection()`.
    - dalszy krok: przenieść tam jeszcze `renderMaterialAccordionPlans()`.
 
 
 ## 2026-03-27 — ROZRYS split v3 (render/cache preview)
-- Dodano `js/app/rozrys-render.js`.
-- Z `js/app/rozrys.js` wydzielono: `buildEntriesForScope()`, `tryAutoRenderFromCache()`, `renderOutput()`, `renderLoadingInto()`.
+- Dodano `js/app/rozrys/rozrys-render.js`.
+- Z `js/app/rozrys/rozrys.js` wydzielono: `buildEntriesForScope()`, `tryAutoRenderFromCache()`, `renderOutput()`, `renderLoadingInto()`.
 - `index.html` dopięty do nowego modułu i cały pakiet skryptów `rozrys-*` dostał wspólny cache-busting `20260327_rozrys_stock_validation_v4`.
-- Usunięto martwy, nieużywany `deriveAggForMode()` z `js/app/rozrys.js`.
+- Usunięto martwy, nieużywany `deriveAggForMode()` z `js/app/rozrys/rozrys.js`.
 - Efekt: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.
 
 
 ## 2026-03-27 — ROZRYS split v5 (4 kolejne wydzielenia)
-- Dodano nowe moduły: `js/app/rozrys-summary.js`, `js/app/rozrys-progress.js`, `js/app/rozrys-stock-modal.js`, `js/app/rozrys-runner.js`.
-- Z `js/app/rozrys.js` wydzielono: diagnostykę/walidację list (`Lista formatek`, `lista arkusza`), stan/progres/anulowanie generowania, modal `Dodaj płytę do magazynu`, oraz przebieg generowania materiałów (`generate()` + `runOne()` jako osobny runner).
+- Dodano nowe moduły: `js/app/rozrys/rozrys-summary.js`, `js/app/rozrys/rozrys-progress.js`, `js/app/rozrys/rozrys-stock-modal.js`, `js/app/rozrys/rozrys-runner.js`.
+- Z `js/app/rozrys/rozrys.js` wydzielono: diagnostykę/walidację list (`Lista formatek`, `lista arkusza`), stan/progres/anulowanie generowania, modal `Dodaj płytę do magazynu`, oraz przebieg generowania materiałów (`generate()` + `runOne()` jako osobny runner).
 - `index.html` dostał wspólny cache-busting `20260327_rozrys_split_v5` dla całego pakietu `rozrys-*`.
 - Cel paczki: dalsze odchudzenie `rozrys.js` bez zmiany UI i bez ruszania solverów.
 
 
 ## 2026-03-27 — ROZRYS split v7 (state + sheet-model + lists)
-- Dodano nowe moduły: `js/app/rozrys-state.js`, `js/app/rozrys-sheet-model.js`, `js/app/rozrys-lists.js`.
+- Dodano nowe moduły: `js/app/rozrys/rozrys-state.js`, `js/app/rozrys/rozrys-sheet-model.js`, `js/app/rozrys/rozrys-lists.js`.
 - `rozrys-state.js` wprowadza centralny store stanu ROZRYS (`selection`, `options`, `ui`, `cache`) oraz helper budowy bazowego stanu z kontrolek panelu.
 - `rozrys-sheet-model.js` przejął modelowanie arkuszy/magazynu: dopasowanie formatów, podpisy formatek, odejmowanie zużytych elementów i helpery podaży arkuszy.
 - `rozrys-lists.js` przejął warstwę list/kart wyników ROZRYS: tabela `Lista formatek`, tabela `Formatki arkusza`, karta podsumowania, akcje eksportu i karty arkuszy.
-- `js/app/rozrys-stock.js` deleguje logikę modelu danych do `rozrys-sheet-model.js` zamiast trzymać wszystko w jednym pliku.
-- `js/app/rozrys-render.js` i `js/app/rozrys-summary.js` delegują UI list i kart do `rozrys-lists.js`.
-- `js/app/rozrys.js` został spięty z centralnym store stanu ROZRYS, dzięki czemu wybory zakresu, podstawowy stan opcji, status przycisku i ostatni stan cache są utrzymywane w jednym miejscu.
+- `js/app/rozrys/rozrys-stock.js` deleguje logikę modelu danych do `rozrys-sheet-model.js` zamiast trzymać wszystko w jednym pliku.
+- `js/app/rozrys/rozrys-render.js` i `js/app/rozrys/rozrys-summary.js` delegują UI list i kart do `rozrys-lists.js`.
+- `js/app/rozrys/rozrys.js` został spięty z centralnym store stanu ROZRYS, dzięki czemu wybory zakresu, podstawowy stan opcji, status przycisku i ostatni stan cache są utrzymywane w jednym miejscu.
 - `index.html` dostał nowy wspólny cache-busting pakietu `rozrys-*`: `20260327_rozrys_split_v7`.
 
 ## 2026-03-27 — ROZRYS dev tests / anty-regresja
-- Dodano `js/app/rozrys-dev-fixtures.js` — stałe scenariusze testowe dla ROZRYS (prosty plan, plan mieszany magazyn+zamówić, przypadki cache i wydruku).
-- Dodano `js/app/rozrys-dev-tests.js` — lekki runner smoke-testów sprawdzający store stanu, model arkuszy/magazynu, walidację, cache, prosty engine shelf i strukturę HTML wydruku.
+- Dodano `js/testing/rozrys/fixtures.js` — stałe scenariusze testowe dla ROZRYS (prosty plan, plan mieszany magazyn+zamówić, przypadki cache i wydruku).
+- Dodano `js/testing/rozrys/tests.js` — lekki runner smoke-testów sprawdzający store stanu, model arkuszy/magazynu, walidację, cache, prosty engine shelf i strukturę HTML wydruku.
 - Dodano `tools/rozrys-dev-smoke.js` — uruchamialny z Node skrypt developerski bez zależności zewnętrznych; zwraca kod błędu, jeśli któryś smoke-test nie przejdzie.
 - Dodano `dev_rozrys_smoke.html` — prostą stronę developerską do ręcznego odpalenia testów w przeglądarce, bez ingerencji w główne UI aplikacji.
 - Paczka nie zmienia UI użytkownika końcowego; dokłada techniczną siatkę bezpieczeństwa pod kolejne refaktory ROZRYS.
@@ -650,18 +668,18 @@ Dopiero potem go zmieniać.
 - Strona pokazuje teraz wynik ogólny, sekcje testów, opis po co jest dany test, powód błędu oraz przycisk `Kopiuj raport`.
 
 ## 2026-03-28 — ROZRYS arch v8 (prefs + selection-ui + options modal + grain modal)
-- Dodano nowe moduły: `js/app/rozrys-prefs.js`, `js/app/rozrys-selection-ui.js`, `js/app/rozrys-options-modal.js`, `js/app/rozrys-grain-modal.js`.
+- Dodano nowe moduły: `js/app/rozrys/rozrys-prefs.js`, `js/app/rozrys/rozrys-selection-ui.js`, `js/app/rozrys/rozrys-options-modal.js`, `js/app/rozrys/rozrys-grain-modal.js`.
 - `rozrys-prefs.js` przejął helpery trwałości/stanu pomocniczego ROZRYS: prefs panelu, prefs accordionu, store oklein, podpis formatek oraz most do store słojów.
 - `rozrys-selection-ui.js` przejął orkiestrację wyboru zakresu: aktualizację launcherów `Pomieszczenia` i `Materiał / grupa`, sync ukrytych inputów, utrwalanie wyboru oraz otwieranie pickerów przez jeden kontroler.
 - `rozrys-options-modal.js` przejął cały modal `Opcje rozkroju` razem z logiką `Wyjdź / Anuluj / Zapisz`, resetem do domyślnych wartości i konwersją jednostek.
 - `rozrys-grain-modal.js` przejął modal `Wyjątki słojów`, bez zmiany zachowania UI.
-- `js/app/rozrys.js` został dalej odchudzony i deleguje do nowych modułów zamiast trzymać storage + modal opcji + sterowanie pickerami + modal wyjątków w jednym pliku.
+- `js/app/rozrys/rozrys.js` został dalej odchudzony i deleguje do nowych modułów zamiast trzymać storage + modal opcji + sterowanie pickerami + modal wyjątków w jednym pliku.
 - `index.html` dostał wspólny cache-busting pakietu `rozrys-*`: `20260328_rozrys_arch_v8`.
 
 
 ## 2026-03-28 — paczka: rozrys_empty_fix_and_smoke19
 - Naprawa regresji ROZRYS, gdzie potrafił pokazać pusty stan „Brak rozpiski materiałów”, mimo że projekt miał szafki.
-- `js/app/rozrys.js` dostał bezpieczny resolver źródła cutlisty: najpierw `FC.cabinetCutlist.getCabinetCutList`, potem fallback globalny.
+- `js/app/rozrys/rozrys.js` dostał bezpieczny resolver źródła cutlisty: najpierw `FC.cabinetCutlist.getCabinetCutList`, potem fallback globalny.
 - Dzięki temu agregacja formatek do ROZRYS nie zależy już od kruchego jednego mostu.
 - Warstwa smoke-testów została rozszerzona o test projektu/agregacji, który sprawdza, czy ROZRYS z prostego projektu faktycznie buduje materiał zamiast pustego stanu.
 - Aktualny wynik smoke-testów po tej paczce: 19/19 OK.

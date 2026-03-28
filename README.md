@@ -19,11 +19,11 @@ Workflow wypakuje ZIP do roota, usunie ZIP i zrobi commit.
 - `js/boot.js` — preflight + banner błędów
 - `js/core/actions.js` — Actions registry + walidacja `data-action`
 - `js/core/modals.js` — obsługa modali
-- `js/app/bindings.js` — delegacja klików + listenery
-- `js/app/actions-register.js` — rejestr akcji UI
+- `js/app/ui/bindings.js` — delegacja klików + listenery
+- `js/app/ui/actions-register.js` — rejestr akcji UI
 - `js/app.js` — główny klej aplikacji; renderery `WYWIAD`, `MATERIAŁ` i `RYSUNEK` są już przeniesione do `js/tabs/*`
-- `js/app/rozrys.js` — zakładka rozrysu / Optimax
-- `js/app/cut-optimizer.js` — silnik rozkroju
+- `js/app/rozrys/rozrys.js` — zakładka rozrysu / Optimax
+- `js/app/optimizer/cut-optimizer.js` — silnik rozkroju
 
 ## Uwaga architektoniczna
 
@@ -33,40 +33,40 @@ Przed edycją zawsze trzeba sprawdzić, czy plik jest aktywnym entrypointem, wor
 Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
-- `js/app/price-modal.js (renderer + akcje modala cenników)` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
+- `js/app/material/price-modal.js (renderer + akcje modala cenników)` — wydzielony renderer modala cenników; `app.js` ma być tu tylko delegatorem.
 - Martwy helper `renderFinishList()` został usunięty z `app.js`; aktywna logika wykończeń dla RYSUNKU ma siedzieć w module zakładki.
 
 
-- `js/app/tab-navigation.js` — centralna nawigacja zakładek i skoki między WYWIAD ↔ MATERIAŁ; źródło prawdy dla `setActiveTab()` i helperów focus/scroll.
-- `js/app/layout-state.js` — helpery layoutu/wykończeń RYSUNKU i zapisu projektu; źródło prawdy dla `ensureLayout()`, `saveProject()` i pokrewnych helperów.
+- `js/app/ui/tab-navigation.js` — centralna nawigacja zakładek i skoki między WYWIAD ↔ MATERIAŁ; źródło prawdy dla `setActiveTab()` i helperów focus/scroll.
+- `js/app/ui/layout-state.js` — helpery layoutu/wykończeń RYSUNKU i zapisu projektu; źródło prawdy dla `ensureLayout()`, `saveProject()` i pokrewnych helperów.
 
 
-- `js/app/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
+- `js/app/material/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
 
-- `js/app/front-hardware.js` — wspólne obliczenia frontów i okuć (fronty do Materiałów, zawiasy BLUM, AVENTOS).
-- `js/app/cabinet-fronts.js` — reguły typów/podtypów, fronty, walidacja AVENTOS i generowanie frontów; źródło prawdy dla logiki frontów używanej przez modal i materiały.
-- `js/app/cabinet-modal.js` — pełna logika modala szafki i kreatora zestawów; źródło prawdy dla renderu modala, dynamicznych pól i zapisu zestawów.
-
-
-- `js/app/calc.js` — aktywny moduł lekkich helperów obliczeniowych (wysokość góry, top zestawów).
+- `js/app/cabinet/front-hardware.js` — wspólne obliczenia frontów i okuć (fronty do Materiałów, zawiasy BLUM, AVENTOS).
+- `js/app/cabinet/cabinet-fronts.js` — reguły typów/podtypów, fronty, walidacja AVENTOS i generowanie frontów; źródło prawdy dla logiki frontów używanej przez modal i materiały.
+- `js/app/cabinet/cabinet-modal.js` — pełna logika modala szafki i kreatora zestawów; źródło prawdy dla renderu modala, dynamicznych pól i zapisu zestawów.
 
 
-- `js/app/settings-ui.js` — helpery ustawień pokoju i rozwijania kart wyjęte z `app.js`.
+- `js/app/shared/calc.js` — aktywny moduł lekkich helperów obliczeniowych (wysokość góry, top zestawów).
 
 
-- `js/app/cabinet-summary.js` — helper tekstowych podsumowań szafek wydzielony z `app.js`.
+- `js/app/ui/settings-ui.js` — helpery ustawień pokoju i rozwijania kart wyjęte z `app.js`.
+
+
+- `js/app/cabinet/cabinet-summary.js` — helper tekstowych podsumowań szafek wydzielony z `app.js`.
 
 
 - Step 17: safe dead-code cleanup in `js/app.js` (removed unused `deleteSelectedCabinet()` and duplicate/trailing ballast comments).
 
 
-- `js/app/corner-sketch.js` — helper canvas szkicu narożnych szafek; wydzielony z `app.js` bez zmiany UI.
+- `js/app/cabinet/corner-sketch.js` — helper canvas szkicu narożnych szafek; wydzielony z `app.js` bez zmiany UI.
 
 
-- `js/app/cabinet-cutlist.js` — helper obliczeniowy `getCabinetCutList(cab, room)` wydzielony z `app.js` z fallbackiem wstecznym.
+- `js/app/cabinet/cabinet-cutlist.js` — helper obliczeniowy `getCabinetCutList(cab, room)` wydzielony z `app.js` z fallbackiem wstecznym.
 
 
-- `js/app/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
+- `js/app/investor/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
 
 
 - `js/app.js` ma też lekki, globalny debounce autosave projektu (`installProjectAutosave` / `scheduleProjectAutosave`) jako bezpiecznik na wypadek, gdy pojedynczy handler zmiany nie zapisze stanu od razu.
@@ -75,43 +75,43 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 - Router widoków preferuje aktywny projekt (`roomType`) nad starym `entry: home`, żeby zwykły refresh nie wyrzucał na start.
 
-- `js/app.js`: fallbacki dla `drawCornerSketch()` i `getCabinetExtraSummary()` zostały uproszczone do cienkich delegatorów; źródłem prawdy są moduły `js/app/corner-sketch.js` i `js/app/cabinet-summary.js`.
+- `js/app.js`: fallbacki dla `drawCornerSketch()` i `getCabinetExtraSummary()` zostały uproszczone do cienkich delegatorów; źródłem prawdy są moduły `js/app/cabinet/corner-sketch.js` i `js/app/cabinet/cabinet-summary.js`.
 
 
 Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `front-hardware` wrappers to thin delegators with minimal fallbacks.
 
-- `js/app.js` trzyma już tylko minimalny awaryjny fallback dla `getCabinetCutList()`; pełna logika siedzi w `js/app/cabinet-cutlist.js`.
+- `js/app.js` trzyma już tylko minimalny awaryjny fallback dla `getCabinetCutList()`; pełna logika siedzi w `js/app/cabinet/cabinet-cutlist.js`.
 
 
-- `js/app/cabinet-actions.js` — proste akcje szafek (dodanie/usunięcie) wydzielone z `app.js`.
-- `js/app/cabinet-actions.js` i `js/app/cabinet-summary.js` są teraz również ładowane bezpośrednio przez `index.html`, więc `app.js` nie musi utrzymywać rozbudowanych fallbacków tylko z powodu braku skryptu.
+- `js/app/cabinet/cabinet-actions.js` — proste akcje szafek (dodanie/usunięcie) wydzielone z `app.js`.
+- `js/app/cabinet/cabinet-actions.js` i `js/app/cabinet/cabinet-summary.js` są teraz również ładowane bezpośrednio przez `index.html`, więc `app.js` nie musi utrzymywać rozbudowanych fallbacków tylko z powodu braku skryptu.
 
 - `project-bootstrap.js` ładowany tylko raz w `index.html`; usunięty duplikat include.
 
 - js/app.js korzysta już z preładowanych modułów constants/utils/storage/ui-state jako źródeł prawdy; w app.js zostały tylko lokalne fallbacki awaryjne.
 
 
-- `js/app/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
+- `js/app/shared/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
 
 
-- `js/app/core-failsafe.js` — awaryjne minimalne fallbacki dla `FC.actions` i `FC.modal`, ładowane przed `app.js`.
-- `js/app/dom-guard.js` — walidacja wymaganych selektorów DOM, ładowana przed `app.js`.
+- `js/app/shared/core-failsafe.js` — awaryjne minimalne fallbacki dla `FC.actions` i `FC.modal`, ładowane przed `app.js`.
+- `js/app/shared/dom-guard.js` — walidacja wymaganych selektorów DOM, ładowana przed `app.js`.
 
 
 - Step 33: trimmed app.js wrappers for dom-guard, project-bootstrap and calc/settings by delegating to preloaded modules with minimal local fallbacks.
 
-- `js/app/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
+- `js/app/investor/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
 
 
 ## Update
-- Aktywowane moduły techniczne przed `app.js`: `js/app/migrate.js`, `js/app/schema.js`.
+- Aktywowane moduły techniczne przed `app.js`: `js/app/shared/migrate.js`, `js/app/shared/schema.js`.
 - `app.js` deleguje teraz normalizację projektu/room do `FC.schema` z lekkim fallbackiem awaryjnym.
 
 
-- `js/app/material-registry.js` — registry producentów i helper `materialHasGrain()` wydzielone z `app.js`.
+- `js/app/material/material-registry.js` — registry producentów i helper `materialHasGrain()` wydzielone z `app.js`.
 
 - `schema.js` is now the primary source of truth for project/room normalization; `app.js` keeps only a minimal emergency fallback.
-- `js/app/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
+- `js/app/material/material-registry.js` jest źródłem prawdy dla producentów materiałów i helpera `FC.materialHasGrain(...)`.
 
 ## Testy developerskie ROZRYS
 
@@ -158,3 +158,20 @@ Przycisk `Kopiuj raport` pozwala szybko skopiować wynik do wklejenia w rozmowie
 
 ### ROZRYS smoke — dodatkowy test agregacji projektu
 Strona `dev_rozrys_smoke.html` sprawdza już nie tylko cache/walidację/magazyn, ale też regresję pustego ROZRYS: test `ROZRYS buduje materiały z projektu i resolvera cutlist` pilnuje, żeby prosty projekt z szafką nie kończył się komunikatem o braku materiałów.
+
+
+## Struktura katalogów po porządkach architektonicznych
+
+- `js/app/shared/` — helpery wspólne, storage, validate, public API, lekkie utils
+- `js/app/ui/` — routing zakładek, bindings, boxy/modale współdzielone, pamięć scrolla, helpers layoutu
+- `js/app/cabinet/` — logika szafki, frontów, okuć, cutlisty i modala szafki
+- `js/app/investor/` — inwestor, sesja projektu, bootstrap/autosave projektu
+- `js/app/material/` — rejestr materiałów, magazyn, opcje formatek, cenniki
+- `js/app/optimizer/` — solver, worker i profile szybkości/startu
+- `js/app/rozrys/` — cały obszar ROZRYS
+- `js/testing/` — strony i moduły smoke-testów developerskich
+
+### Strony testowe
+
+- `dev_rozrys_smoke.html` — smoke-testy ROZRYS
+- `dev_app_smoke.html` — smoke-testy projektu, materiałów i szafek

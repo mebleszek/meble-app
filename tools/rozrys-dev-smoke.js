@@ -5,17 +5,17 @@ const vm = require('vm');
 
 const rootDir = path.resolve(__dirname, '..');
 const files = [
-  'js/app/cut-optimizer.js',
-  'js/app/rozrys-validation.js',
-  'js/app/rozrys-cache.js',
-  'js/app/rozrys-state.js',
-  'js/app/rozrys-scope.js',
-  'js/app/rozrys-sheet-model.js',
-  'js/app/rozrys-engine.js',
-  'js/app/rozrys-print-layout.js',
-  'js/app/rozrys.js',
-  'js/app/rozrys-dev-fixtures.js',
-  'js/app/rozrys-dev-tests.js',
+  'js/app/optimizer/cut-optimizer.js',
+  'js/app/rozrys/rozrys-validation.js',
+  'js/app/rozrys/rozrys-cache.js',
+  'js/app/rozrys/rozrys-state.js',
+  'js/app/rozrys/rozrys-scope.js',
+  'js/app/rozrys/rozrys-sheet-model.js',
+  'js/app/rozrys/rozrys-engine.js',
+  'js/app/rozrys/rozrys-print-layout.js',
+  'js/app/rozrys/rozrys.js',
+  'js/testing/rozrys/fixtures.js',
+  'js/testing/rozrys/tests.js',
 ];
 
 const storageData = new Map();
@@ -61,4 +61,4 @@ for(const row of report.results){
   }
 }
 
-process.exit(report.ok ? 0 : 1);
+process.exit(report.failed > 0 ? 1 : 0);
