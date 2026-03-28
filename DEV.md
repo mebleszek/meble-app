@@ -13,7 +13,7 @@
 - Przeniesiono płaski katalog `js/app/*` do grup domenowych i technicznych bez zmiany UI.
 - Usunięto martwy `js/app/rozrys.js.bak`.
 - Usunięto stary workflow `.github/workflows/deploy-from-zip.disabled`.
-- Dodano nową stronę `dev_app_smoke.html` oraz smoke-testy dla projektu, materiałów i szafek.
+- Dodano nową stronę `dev_tests.html` oraz smoke-testy dla projektu, materiałów i szafek.
 - Dla Node dodano `tools/app-dev-smoke.js` jako szybki runner tych testów poza przeglądarką.
 
 # DEV — porządek rozwoju meble-app / Optimax
@@ -659,12 +659,12 @@ Dopiero potem go zmieniać.
 - Dodano `js/testing/rozrys/fixtures.js` — stałe scenariusze testowe dla ROZRYS (prosty plan, plan mieszany magazyn+zamówić, przypadki cache i wydruku).
 - Dodano `js/testing/rozrys/tests.js` — lekki runner smoke-testów sprawdzający store stanu, model arkuszy/magazynu, walidację, cache, prosty engine shelf i strukturę HTML wydruku.
 - Dodano `tools/rozrys-dev-smoke.js` — uruchamialny z Node skrypt developerski bez zależności zewnętrznych; zwraca kod błędu, jeśli któryś smoke-test nie przejdzie.
-- Dodano `dev_rozrys_smoke.html` — prostą stronę developerską do ręcznego odpalenia testów w przeglądarce, bez ingerencji w główne UI aplikacji.
+- Dodano `dev_tests.html` — prostą stronę developerską do ręcznego odpalenia testów w przeglądarce, bez ingerencji w główne UI aplikacji.
 - Paczka nie zmienia UI użytkownika końcowego; dokłada techniczną siatkę bezpieczeństwa pod kolejne refaktory ROZRYS.
 
 
 ## 2026-03-28 — dev smoke page report
-- Dopracowano `dev_rozrys_smoke.html`, żeby raport był czytelny dla użytkownika nietechnicznego.
+- Dopracowano `dev_tests.html`, żeby raport był czytelny dla użytkownika nietechnicznego.
 - Strona pokazuje teraz wynik ogólny, sekcje testów, opis po co jest dany test, powód błędu oraz przycisk `Kopiuj raport`.
 
 ## 2026-03-28 — ROZRYS arch v8 (prefs + selection-ui + options modal + grain modal)

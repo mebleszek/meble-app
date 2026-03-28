@@ -139,7 +139,7 @@ Jeśli któryś test nie przejdzie, skrypt kończy się błędem.
 
 Otwórz w przeglądarce plik:
 
-- `dev_rozrys_smoke.html`
+- `dev_tests.html`
 
 Na stronie jest przycisk `Uruchom testy ROZRYS`, który pokazuje wynik PASS/FAIL dla przygotowanych smoke-testów.
 
@@ -151,13 +151,13 @@ To jest techniczna siatka bezpieczeństwa, która ma szybciej wyłapywać regres
 
 ## ROZRYS — strona testowa
 
-Plik `dev_rozrys_smoke.html` uruchamia smoke-testy ROZRYS przez stronę.
+Plik `dev_tests.html` uruchamia smoke-testy ROZRYS przez stronę.
 Po kliknięciu `Uruchom testy ROZRYS` pokazuje czytelny raport: co przeszło, co nie przeszło, krótki powód błędu oraz podsumowanie `X/Y OK`.
 Przycisk `Kopiuj raport` pozwala szybko skopiować wynik do wklejenia w rozmowie.
 
 
 ### ROZRYS smoke — dodatkowy test agregacji projektu
-Strona `dev_rozrys_smoke.html` sprawdza już nie tylko cache/walidację/magazyn, ale też regresję pustego ROZRYS: test `ROZRYS buduje materiały z projektu i resolvera cutlist` pilnuje, żeby prosty projekt z szafką nie kończył się komunikatem o braku materiałów.
+Strona `dev_tests.html` sprawdza już nie tylko cache/walidację/magazyn, ale też regresję pustego ROZRYS: test `ROZRYS buduje materiały z projektu i resolvera cutlist` pilnuje, żeby prosty projekt z szafką nie kończył się komunikatem o braku materiałów.
 
 
 ## Struktura katalogów po porządkach architektonicznych
@@ -173,5 +173,5 @@ Strona `dev_rozrys_smoke.html` sprawdza już nie tylko cache/walidację/magazyn,
 
 ### Strony testowe
 
-- `dev_rozrys_smoke.html` — smoke-testy ROZRYS
-- `dev_app_smoke.html` — smoke-testy projektu, materiałów i szafek
+- `dev_tests.html` — smoke-testy ROZRYS
+- `dev_tests.html` — smoke-testy projektu, materiałów i szafek

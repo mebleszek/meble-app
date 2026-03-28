@@ -1,85 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>APP smoke testy</title>
-  <style>
-    body{font-family:Arial,sans-serif;background:#f5f7fb;color:#102033;margin:0;padding:24px;}
-    .wrap{max-width:1000px;margin:0 auto;}
-    .card{background:#fff;border:1px solid #dbe5f0;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(16,32,51,.08);}
-    .actions{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 20px;}
-    button{border:1px solid #b8cde0;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;background:#eef6fb;color:#102033;}
-    button.primary{background:#dff4e4;border-color:#b8e0c0;}
-    .summary{padding:16px;border-radius:14px;background:#f1f7ff;margin-bottom:16px;}
-    .summary-main{font-size:24px;font-weight:900;margin-bottom:8px;}
-    .summary-sub{font-size:14px;color:#35506b;}
-    .group{margin-top:18px;padding-top:8px;border-top:1px solid #e8eef5;}
-    .group h3{margin:0 0 10px;font-size:18px;}
-    .row{padding:10px 12px;border-radius:12px;margin:10px 0;}
-    .row.ok{background:#eefaf1;border:1px solid #cfe9d4;}
-    .row.fail{background:#fff1f1;border:1px solid #efc9c9;}
-    .name{font-weight:800;}
-    .explain,.reason{margin-top:6px;color:#35506b;line-height:1.4;}
-    .details{margin-top:8px;padding:10px;border-radius:10px;background:#102033;color:#f5f7fb;overflow:auto;font-size:12px;}
-  </style>
+  <meta charset="utf-8" />
+  <meta http-equiv="refresh" content="0; url=dev_tests.html#app" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Przeniesiono testy</title>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1 style="margin-top:0">APP smoke testy</h1>
-      <p style="margin:8px 0 0;color:#35506b">Szybkie testy logiki projektu, materiałów i szafek. Ta strona nie klika całego UI, ale pilnuje podstawowych regresji domenowych poza ROZRYS.</p>
-      <div class="actions">
-        <button id="runBtn" class="primary" type="button">Uruchom APP smoke testy</button>
-        <button id="copyBtn" type="button">Kopiuj raport</button>
-      </div>
-      <div id="results"></div>
-    </div>
-  </div>
-
-  <script src="js/app/shared/utils.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/app/shared/validate.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/app/material/material-common.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/app/material/material-registry.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/app/investor/investors-store.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/app/investor/project-bootstrap.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/app/cabinet/cabinet-cutlist.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/testing/shared/harness.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/testing/shared/browser-page.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/testing/project/tests.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/testing/material/tests.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script src="js/testing/cabinet/tests.js?v=20260328_arch_dirs_tests_v1"></script>
-  <script>
-    (function(){
-      let lastReport = null;
-      function mergeReports(reports){
-        const allGroups = [];
-        let total = 0, passed = 0, failed = 0, durationMs = 0;
-        reports.forEach((report)=>{
-          if(!report) return;
-          total += report.total || 0;
-          passed += report.passed || 0;
-          failed += report.failed || 0;
-          durationMs += report.durationMs || 0;
-          (report.groups || []).forEach((group)=> allGroups.push(group));
-        });
-        return { label:'APP smoke testy', total, passed, failed, durationMs, groups:allGroups };
-      }
-      document.getElementById('runBtn').addEventListener('click', ()=>{
-        const reports = [
-          window.FC.projectDevTests && window.FC.projectDevTests.runAll ? window.FC.projectDevTests.runAll() : null,
-          window.FC.materialDevTests && window.FC.materialDevTests.runAll ? window.FC.materialDevTests.runAll() : null,
-          window.FC.cabinetDevTests && window.FC.cabinetDevTests.runAll ? window.FC.cabinetDevTests.runAll() : null,
-        ].filter(Boolean);
-        lastReport = mergeReports(reports);
-        window.FC.testBrowserPage.renderReport(document.getElementById('results'), lastReport);
-      });
-      document.getElementById('copyBtn').addEventListener('click', async ()=>{
-        if(!lastReport) return;
-        const text = window.FC.testHarness.makeClipboardReport(lastReport);
-        try{ await navigator.clipboard.writeText(text); }catch(_){ }
-      });
-    })();
-  </script>
+  <p>Ta strona została scalona do jednego wejścia testowego. Przejdź do <a href="dev_tests.html#app">dev_tests.html</a>.</p>
 </body>
 </html>

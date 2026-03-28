@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Testy developerskie aplikacji</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --border:#d9deea;
+      --text:#162033;
+      --muted:#5d6b86;
+      --ok:#e9f8ef;
+      --ok-border:#7ac48e;
+      --bad:#fff0f0;
+      --bad-border:#e38e8e;
+      --info:#eef4ff;
+      --info-border:#9ab3e5;
+      --btn:#dfe9ff;
+      --btn-border:#9ab3e5;
+      --btn-good:#e5f7ea;
+      --btn-good-border:#78bf90;
+      --shadow:0 8px 24px rgba(17,24,39,.06);
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+    .page{ max-width:1180px; margin:32px auto; padding:0 16px 32px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:var(--shadow); }
+    h1{ margin:0 0 10px; font-size:28px; line-height:1.15; }
+    h2{ margin:0; font-size:20px; line-height:1.2; }
+    p{ margin:0 0 10px; color:var(--muted); }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    button{ appearance:none; border:1px solid var(--btn-border); background:var(--btn); color:#162033; padding:12px 18px; border-radius:14px; font:800 16px/1.15 inherit; cursor:pointer; }
+    button:active{ background:#fff; }
+    button[disabled]{ opacity:.55; cursor:not-allowed; }
+    .button-good{ background:var(--btn-good); border-color:var(--btn-good-border); }
+    .hint{ margin-top:14px; padding:14px 16px; border-radius:16px; border:1px solid var(--border); background:#fbfcff; color:var(--muted); }
+    .overall{ margin-top:18px; padding:16px; border-radius:16px; border:1px solid var(--info-border); background:var(--info); }
+    .overall.ok{ background:var(--ok); border-color:var(--ok-border); }
+    .overall.bad{ background:var(--bad); border-color:var(--bad-border); }
+    .overall-title{ font-size:22px; font-weight:900; margin-bottom:6px; }
+    .overall-sub{ color:var(--muted); }
+    .suite-list{ display:grid; gap:14px; margin-top:18px; }
+    .suite{ border:1px solid var(--border); border-radius:16px; background:#fafbff; overflow:hidden; }
+    .suite.ok{ border-color:var(--ok-border); }
+    .suite.bad{ border-color:var(--bad-border); }
+    .suite-head{ display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .suite-meta{ color:var(--muted); font-weight:700; margin-top:4px; }
+    .suite-badge{ font-weight:900; border:1px solid var(--border); border-radius:999px; padding:8px 12px; background:#fff; }
+    .groups{ display:grid; gap:14px; padding:14px; }
+    .group{ border:1px solid var(--border); border-radius:16px; background:#fff; overflow:hidden; }
+    .group-head{ display:flex; justify-content:space-between; gap:12px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--border); }
+    .rows{ display:grid; gap:10px; padding:12px; }
+    .row{ border-radius:14px; padding:12px 14px; border:1px solid var(--border); background:#fff; }
+    .row.ok{ background:var(--ok); border-color:var(--ok-border); }
+    .row.bad{ background:var(--bad); border-color:var(--bad-border); }
+    .row-title{ font-weight:900; }
+    .row-explain{ margin-top:6px; color:var(--muted); }
+    .row-msg{ margin-top:8px; color:#6e1c1c; white-space:pre-wrap; font-weight:700; }
+    .row-details{ margin-top:8px; color:var(--muted); white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>Testy developerskie aplikacji</h1>
+      <p>To jest jedyna strona testowa do ręcznego odpalania. Z tego miejsca uruchomisz zarówno testy ROZRYS, jak i pozostałe smoke-testy aplikacji.</p>
+      <p>Pod spodem masz podkategorie, ale do wejścia i uruchamiania jest jeden plik.</p>
+      <div class="toolbar">
+        <button id="runAllTests" data-label="Uruchom wszystkie testy" type="button">Uruchom wszystkie testy</button>
+        <button id="runRozrysTests" data-label="Tylko ROZRYS" type="button">Tylko ROZRYS</button>
+        <button id="runAppTests" data-label="Tylko APP" type="button">Tylko APP</button>
+        <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
+      </div>
+      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jedną podkategorię, ale nadal robisz to z tej jednej strony.</div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <script src="js/app/shared/utils.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/shared/validate.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/material/material-common.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/material/material-registry.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/investor/investors-store.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/investor/project-bootstrap.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/cabinet/cabinet-cutlist.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/optimizer/cut-optimizer.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-validation.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-cache.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-state.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-scope.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-engine.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-print-layout.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/shared/harness.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/rozrys/tests.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/project/tests.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/material/tests.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/cabinet/tests.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260328_dev_tests_single_v1"></script>
+  <script>
+    (function(){
+      window.FC = window.FC || {};
+      if(window.FC.devTestsPage && typeof window.FC.devTestsPage.createController === 'function'){
+        window.FC.devTestsPage.createController();
+      }
+    })();
+  </script>
+</body>
+</html>
