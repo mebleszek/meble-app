@@ -665,3 +665,11 @@ Dopiero potem go zmieniać.
 - Dzięki temu agregacja formatek do ROZRYS nie zależy już od kruchego jednego mostu.
 - Warstwa smoke-testów została rozszerzona o test projektu/agregacji, który sprawdza, czy ROZRYS z prostego projektu faktycznie buduje materiał zamiast pustego stanu.
 - Aktualny wynik smoke-testów po tej paczce: 19/19 OK.
+
+
+## 2026-03-28 — rozrys project source fallback fix
+- Start base: site_rozrys_project_rooms_fix.zip
+- Fixed ROZRYS project source resolution: prefers the richest available project source (in-memory, window.projectData, FC.project.load()).
+- Added fallback aggregation retry over discovered project room keys when saved room selection yields empty aggregate.
+- Expanded smoke tests to catch empty-ROZRYS regressions caused by source desync and stale room selection.
+- Smoke result after patch: 22/22 OK.

@@ -16,13 +16,56 @@
 
   const rozrysPrefs = FC.rozrysPrefs || null;
 
+  function discoverProjectRoomKeys(proj){
+    if(!proj || typeof proj !== 'object') return [];
+    const out = [];
+    Object.keys(proj).forEach((key)=>{
+      const roomKey = String(key || '').trim();
+      if(!roomKey || roomKey in {'schemaVersion':1,'meta':1}) return;
+      const room = proj[key];
+      if(!room || typeof room !== 'object') return;
+      const hasRoomShape = Array.isArray(room.cabinets) || Array.isArray(room.fronts) || Array.isArray(room.sets) || (!!room.settings && typeof room.settings === 'object');
+      if(hasRoomShape) out.push(roomKey);
+    });
+    return out;
+  }
+
+  function countProjectCabinets(proj){
+    return discoverProjectRoomKeys(proj).reduce((sum, roomKey)=>{
+      const room = proj && proj[roomKey];
+      const cabinets = Array.isArray(room && room.cabinets) ? room.cabinets.length : 0;
+      return sum + cabinets;
+    }, 0);
+  }
+
   function safeGetProject(){
+    const candidates = [];
     try{
-      if(typeof projectData !== 'undefined' && projectData) return projectData;
-      return (window.projectData || null);
-    }catch(_){
-      return null;
-    }
+      if(typeof projectData !== 'undefined' && projectData) candidates.push(projectData);
+    }catch(_){ }
+    try{
+      if(window.projectData) candidates.push(window.projectData);
+    }catch(_){ }
+    try{
+      if(FC.project && typeof FC.project.load === 'function'){
+        const loaded = FC.project.load();
+        if(loaded) candidates.push(loaded);
+      }
+    }catch(_){ }
+    if(!candidates.length) return null;
+    let best = null;
+    let bestScore = -1;
+    candidates.forEach((proj)=>{
+      if(!proj || typeof proj !== 'object') return;
+      const roomCount = discoverProjectRoomKeys(proj).length;
+      const cabinetCount = countProjectCabinets(proj);
+      const score = (cabinetCount * 1000) + roomCount;
+      if(score > bestScore){
+        best = proj;
+        bestScore = score;
+      }
+    });
+    return best || candidates[0] || null;
   }
 
   function getRooms(){
@@ -34,15 +77,7 @@
     })();
     const proj = safeGetProject();
     if(!proj || typeof proj !== 'object') return defaults;
-    const discovered = [];
-    Object.keys(proj).forEach((key)=>{
-      const roomKey = String(key || '').trim();
-      if(!roomKey || roomKey in {'schemaVersion':1,'meta':1}) return;
-      const room = proj[key];
-      if(!room || typeof room !== 'object') return;
-      const hasRoomShape = Array.isArray(room.cabinets) || Array.isArray(room.fronts) || Array.isArray(room.sets) || (!!room.settings && typeof room.settings === 'object');
-      if(hasRoomShape) discovered.push(roomKey);
-    });
+    const discovered = discoverProjectRoomKeys(proj);
     const ordered = [];
     defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });
     discovered.forEach((room)=>{ if(!ordered.includes(room)) ordered.push(room); });
@@ -352,16 +387,26 @@ function getAccordionScopeKey(selection, aggregate){
 
 function aggregatePartsForProject(selectedRooms){
   if(FC.rozrysScope && typeof FC.rozrysScope.aggregatePartsForProject === 'function'){
-    return FC.rozrysScope.aggregatePartsForProject(selectedRooms, {
+    const deps = {
       safeGetProject,
       getRooms,
       getCabinetCutList: resolveCabinetCutListFn(),
       resolveRozrysPartFromSource,
       isFrontMaterialKey,
-    });
+    };
+    const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, deps);
+    if(first && Array.isArray(first.materials) && first.materials.length) return first;
+    const proj = safeGetProject();
+    const discoveredRooms = discoverProjectRoomKeys(proj);
+    if(discoveredRooms.length){
+      const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, deps);
+      if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
+    }
+    return first;
   }
   return { byMaterial: {}, materials: [], groups: {}, selectedRooms: Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
 }
+
 
 
   function isFrontMaterialKey(materialKey){
@@ -1466,5 +1511,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
   FC.rozrys = {
     render,
     aggregatePartsForProject,
+    safeGetProject,
+    discoverProjectRoomKeys,
   };
 })();
