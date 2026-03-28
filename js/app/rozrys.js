@@ -14,10 +14,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const OVERRIDE_KEY = 'fc_rozrys_overrides_v1';
-  const EDGE_KEY = 'fc_edge_v1';
-  const PANEL_PREFS_KEY = 'fc_rozrys_panel_prefs_v1';
-  const ACCORDION_PREFS_KEY = 'fc_rozrys_material_accordion_v1';
+  const rozrysPrefs = FC.rozrysPrefs || null;
 
   function safeGetProject(){
     try{
@@ -36,6 +33,7 @@
   }
 
   function parseLocaleNumber(v){
+    if(rozrysPrefs && typeof rozrysPrefs.parseLocaleNumber === 'function') return rozrysPrefs.parseLocaleNumber(v);
     if(v === null || v === undefined) return NaN;
     if(typeof v === 'number') return Number.isFinite(v) ? v : NaN;
     const s = String(v).trim().replace(',', '.');
@@ -44,124 +42,63 @@
   }
 
   function cmToMm(v){
-    // obsługa 0.1cm -> 1mm
+    if(rozrysPrefs && typeof rozrysPrefs.cmToMm === 'function') return rozrysPrefs.cmToMm(v);
     const n = parseLocaleNumber(v);
     if(!Number.isFinite(n)) return 0;
     return Math.round(n * 10);
   }
 
   function mmToStr(mm){
-    const n = Math.round(Number(mm)||0);
-    return String(n);
+    if(rozrysPrefs && typeof rozrysPrefs.mmToStr === 'function') return rozrysPrefs.mmToStr(mm);
+    return String(Math.round(Number(mm) || 0));
   }
 
-  // Display length stored in millimeters in the selected unit.
-  // - mm: integer
-  // - cm: one decimal when needed, without trailing .0
   function mmToUnitStr(mm, unit){
+    if(rozrysPrefs && typeof rozrysPrefs.mmToUnitStr === 'function') return rozrysPrefs.mmToUnitStr(mm, unit);
     const u = (unit === 'cm') ? 'cm' : 'mm';
-    const n = Math.round(Number(mm)||0);
+    const n = Math.round(Number(mm) || 0);
     if(u === 'mm') return String(n);
     const cm = n / 10;
     const s = (Math.round(cm * 10) / 10).toFixed(1);
     return s.endsWith('.0') ? s.slice(0, -2) : s;
   }
 
-  function loadOverrides(){
-    try{
-      const raw = localStorage.getItem(OVERRIDE_KEY);
-      const obj = raw ? JSON.parse(raw) : {};
-      return (obj && typeof obj === 'object') ? obj : {};
-    }catch(_){
-      return {};
-    }
-  }
-
-  function saveOverrides(obj){
-    try{ localStorage.setItem(OVERRIDE_KEY, JSON.stringify(obj || {})); }catch(_){ }
-  }
-
   function loadPanelPrefs(){
-    try{
-      const raw = localStorage.getItem(PANEL_PREFS_KEY);
-      const obj = raw ? JSON.parse(raw) : {};
-      return (obj && typeof obj === 'object') ? obj : {};
-    }catch(_){
-      return {};
-    }
+    return rozrysPrefs && typeof rozrysPrefs.loadPanelPrefs === 'function' ? rozrysPrefs.loadPanelPrefs() : {};
   }
 
   function savePanelPrefs(obj){
-    try{ localStorage.setItem(PANEL_PREFS_KEY, JSON.stringify(obj || {})); }catch(_){ }
-  }
-
-
-  function loadAccordionPrefs(){
-    try{
-      const raw = localStorage.getItem(ACCORDION_PREFS_KEY);
-      const obj = raw ? JSON.parse(raw) : {};
-      return (obj && typeof obj === 'object') ? obj : {};
-    }catch(_){
-      return {};
-    }
-  }
-
-  function saveAccordionPrefs(obj){
-    try{ localStorage.setItem(ACCORDION_PREFS_KEY, JSON.stringify(obj || {})); }catch(_){ }
+    if(rozrysPrefs && typeof rozrysPrefs.savePanelPrefs === 'function') rozrysPrefs.savePanelPrefs(obj || {});
   }
 
   function getAccordionPref(scopeKey){
-    try{
-      const prefs = loadAccordionPrefs();
-      const entry = prefs && typeof prefs === 'object' ? prefs[String(scopeKey || '')] : null;
-      return (entry && typeof entry === 'object') ? entry : { material:'', open:false };
-    }catch(_){
-      return { material:'', open:false };
-    }
+    return rozrysPrefs && typeof rozrysPrefs.getAccordionPref === 'function'
+      ? rozrysPrefs.getAccordionPref(scopeKey)
+      : { material:'', open:false };
   }
 
   function setAccordionPref(scopeKey, material, open){
-    try{
-      const prefs = loadAccordionPrefs();
-      prefs[String(scopeKey || '')] = { material: String(material || ''), open: !!open };
-      saveAccordionPrefs(prefs);
-    }catch(_){ }
-  }
-
-  function getGrainStore(){
-    return (FC && FC.rozrysGrain) || null;
+    if(rozrysPrefs && typeof rozrysPrefs.setAccordionPref === 'function') rozrysPrefs.setAccordionPref(scopeKey, material, open);
   }
 
   function getMaterialGrainEnabled(material, hasGrain){
-    try{
-      const store = getGrainStore();
-      if(store && typeof store.getMaterialEnabled === 'function') return !!store.getMaterialEnabled(material, hasGrain);
-    }catch(_){ }
-    return !!hasGrain;
+    return rozrysPrefs && typeof rozrysPrefs.getMaterialGrainEnabled === 'function'
+      ? !!rozrysPrefs.getMaterialGrainEnabled(material, hasGrain)
+      : !!hasGrain;
   }
 
   function setMaterialGrainEnabled(material, enabled, hasGrain){
-    try{
-      const store = getGrainStore();
-      if(store && typeof store.setMaterialEnabled === 'function') store.setMaterialEnabled(material, enabled, hasGrain);
-    }catch(_){ }
+    if(rozrysPrefs && typeof rozrysPrefs.setMaterialGrainEnabled === 'function') rozrysPrefs.setMaterialGrainEnabled(material, enabled, hasGrain);
   }
 
   function getMaterialGrainExceptions(material, allowedKeys, hasGrain){
-    try{
-      const store = getGrainStore();
-      if(!store) return {};
-      if(typeof store.pruneMaterialExceptions === 'function' && Array.isArray(allowedKeys)) return store.pruneMaterialExceptions(material, allowedKeys, hasGrain);
-      if(typeof store.getMaterialExceptions === 'function') return store.getMaterialExceptions(material) || {};
-    }catch(_){ }
-    return {};
+    return rozrysPrefs && typeof rozrysPrefs.getMaterialGrainExceptions === 'function'
+      ? (rozrysPrefs.getMaterialGrainExceptions(material, allowedKeys, hasGrain) || {})
+      : {};
   }
 
   function setMaterialGrainExceptions(material, exceptions, hasGrain){
-    try{
-      const store = getGrainStore();
-      if(store && typeof store.setMaterialExceptions === 'function') store.setMaterialExceptions(material, exceptions, hasGrain);
-    }catch(_){ }
+    if(rozrysPrefs && typeof rozrysPrefs.setMaterialGrainExceptions === 'function') rozrysPrefs.setMaterialGrainExceptions(material, exceptions, hasGrain);
   }
 
   function getPartOptionsStore(){
@@ -202,20 +139,13 @@
   }
 
   function loadEdgeStore(){
-    try{
-      const raw = localStorage.getItem(EDGE_KEY);
-      const obj = raw ? JSON.parse(raw) : {};
-      return (obj && typeof obj === 'object') ? obj : {};
-    }catch(_){
-      return {};
-    }
+    return rozrysPrefs && typeof rozrysPrefs.loadEdgeStore === 'function' ? rozrysPrefs.loadEdgeStore() : {};
   }
 
   function partSignature(p){
-    if(p && p.sourceSig){
-      return `${p.sourceSig}||${String(p.grainMode || p.direction || 'default')}||${p.w}x${p.h}`;
-    }
-    return `${p.material||''}||${p.name||''}||${p.w}x${p.h}`;
+    return rozrysPrefs && typeof rozrysPrefs.partSignature === 'function'
+      ? rozrysPrefs.partSignature(p)
+      : `${p && p.material || ''}||${p && p.name || ''}||${p && p.w || 0}x${p && p.h || 0}`;
   }
 
 
@@ -845,269 +775,31 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     }
 
     function openOptionsModal(){
-      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-      const body = h('div');
-      const form = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
-
-      function appendModalInfoLabel(wrap, title, infoTitle, infoMessage){
-        const row = labelWithInfo(title, infoTitle || title, infoMessage || '');
-        wrap.appendChild(row);
-        return row.querySelector('.label-help__text') || row.querySelector('span');
-      }
-
-      const modalUnitWrap = h('div');
-      appendModalInfoLabel(modalUnitWrap, 'Jednostki', 'Jednostki', 'Określa jednostki wyświetlane w polach opcji rozkroju.');
-      const modalUnitSel = h('select', { hidden:'hidden' });
-      modalUnitSel.innerHTML = `
-        <option value="cm" ${unitSel.value==='cm'?'selected':''}>cm</option>
-        <option value="mm" ${unitSel.value==='mm'?'selected':''}>mm</option>
-      `;
-      const modalUnitBtn = createChoiceLauncher(getSelectOptionLabel(modalUnitSel), 'Kliknij, aby wybrać');
-      modalUnitWrap.appendChild(modalUnitBtn);
-      modalUnitWrap.appendChild(modalUnitSel);
-      form.appendChild(modalUnitWrap);
-
-      const modalEdgeWrap = h('div');
-      appendModalInfoLabel(modalEdgeWrap, 'Wymiary do cięcia', 'Wymiary do cięcia', 'Decyduje, czy rozrys liczy wymiar nominalny czy po odjęciu okleiny.');
-      const modalEdgeSel = h('select', { hidden:'hidden' });
-      modalEdgeSel.innerHTML = edgeSel.innerHTML;
-      modalEdgeSel.value = edgeSel.value;
-      const modalEdgeBtn = createChoiceLauncher(getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
-      modalEdgeWrap.appendChild(modalEdgeBtn);
-      modalEdgeWrap.appendChild(modalEdgeSel);
-      form.appendChild(modalEdgeWrap);
-
-      const modalBoardWrap = h('div');
-      const modalBoardLabel = appendModalInfoLabel(modalBoardWrap, `Format bazowy arkusza (${unitSel.value})`, 'Format bazowy arkusza', 'To pełny format płyty bazowej, z której dobieram brakujące arkusze.');
-      const modalBoardRow = h('div', { style:'display:flex;gap:8px' });
-      const modalBoardW = h('input', { type:'number', value:String(inW.value) });
-      const modalBoardH = h('input', { type:'number', value:String(inH.value) });
-      modalBoardRow.appendChild(modalBoardW);
-      modalBoardRow.appendChild(modalBoardH);
-      modalBoardWrap.appendChild(modalBoardRow);
-      form.appendChild(modalBoardWrap);
-
-      const modalKerfWrap = h('div');
-      const modalKerfLabel = appendModalInfoLabel(modalKerfWrap, `Rzaz piły (${unitSel.value})`, 'Rzaz piły', 'Szerokość cięcia odejmowana między elementami i odpadami.');
-      const modalKerf = h('input', { type:'number', value:String(inK.value) });
-      modalKerfWrap.appendChild(modalKerf);
-      form.appendChild(modalKerfWrap);
-
-      const modalTrimWrap = h('div');
-      const modalTrimLabel = appendModalInfoLabel(modalTrimWrap, `Obrównanie krawędzi — arkusz standardowy (${unitSel.value})`, 'Obrównanie krawędzi', 'Margines odkładany od pełnej płyty przed liczeniem rozkroju.');
-      const modalTrim = h('input', { type:'number', value:String(inTrim.value) });
-      modalTrimWrap.appendChild(modalTrim);
-      form.appendChild(modalTrimWrap);
-
-      const modalMinWrap = h('div');
-      const modalMinLabel = appendModalInfoLabel(modalMinWrap, `Najmniejszy użyteczny odpad (${unitSel.value})`, 'Najmniejszy użyteczny odpad', 'Mniejsze odpady traktuję jako nieużyteczne i nie odkładam ich do magazynu odpadów.');
-      const modalMinRow = h('div', { style:'display:flex;gap:8px' });
-      const modalMinW = h('input', { type:'number', value:String(inMinW.value) });
-      const modalMinH = h('input', { type:'number', value:String(inMinH.value) });
-      modalMinRow.appendChild(modalMinW);
-      modalMinRow.appendChild(modalMinH);
-      modalMinWrap.appendChild(modalMinRow);
-      form.appendChild(modalMinWrap);
-
-      body.appendChild(form);
-
-      function syncModalLabels(){
-        const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-        modalBoardLabel.textContent = `Format bazowy arkusza (${u})`;
-        modalKerfLabel.textContent = `Rzaz piły (${u})`;
-        modalTrimLabel.textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
-        modalMinLabel.textContent = `Najmniejszy użyteczny odpad (${u})`;
-        setChoiceLaunchValue(modalUnitBtn, getSelectOptionLabel(modalUnitSel), 'Kliknij, aby wybrać');
-        setChoiceLaunchValue(modalEdgeBtn, getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
-      }
-      function convertModalNumericFields(prevUnit, nextUnit){
-        if(prevUnit === nextUnit) return;
-        const factor = (prevUnit === 'cm' && nextUnit === 'mm') ? 10 : (prevUnit === 'mm' && nextUnit === 'cm') ? 0.1 : 1;
-        const conv = (el)=>{
-          const n = parseLocaleNumber(el.value);
-          if(!Number.isFinite(n)) return;
-          const v = n * factor;
-          el.value = (nextUnit === 'cm') ? String(Math.round(v * 10) / 10) : String(Math.round(v));
-        };
-        conv(modalBoardW);
-        conv(modalBoardH);
-        conv(modalKerf);
-        conv(modalTrim);
-        conv(modalMinW);
-        conv(modalMinH);
-      }
-      modalUnitSel.addEventListener('change', ()=>{
-        const prevUnit = modalUnitSel.dataset.prevUnit || unitSel.value || 'mm';
-        const nextUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-        convertModalNumericFields(prevUnit, nextUnit);
-        modalUnitSel.dataset.prevUnit = nextUnit;
-        syncModalLabels();
-        updateDirtyState();
-      });
-      modalUnitSel.dataset.prevUnit = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-
-      modalUnitBtn.addEventListener('click', async ()=>{
-        const picked = await openRozrysChoiceOverlay({
-          title:'Jednostki',
-          value: modalUnitSel.value,
-          options:[
-            { value:'cm', label:'cm', description:'Wartości wyświetlane w centymetrach.' },
-            { value:'mm', label:'mm', description:'Wartości wyświetlane w milimetrach.' }
-          ]
-        });
-        if(picked == null || picked === modalUnitSel.value) return;
-        modalUnitSel.value = picked;
-        modalUnitSel.dispatchEvent(new Event('change', { bubbles:true }));
-      });
-
-      modalEdgeBtn.addEventListener('click', async ()=>{
-        const picked = await openRozrysChoiceOverlay({
-          title:'Wymiary do cięcia',
-          value: modalEdgeSel.value,
-          options:[
-            { value:'0', label:'Nominalne', description:'Rozrys liczy wymiary nominalne bez odjęcia okleiny.' },
-            { value:'1', label:'Po odjęciu 1 mm okleiny', description:'Rozrys od razu kompensuje 1 mm okleiny na odpowiednich krawędziach.' },
-            { value:'2', label:'Po odjęciu 2 mm okleiny', description:'Rozrys od razu kompensuje 2 mm okleiny na odpowiednich krawędziach.' }
-          ]
-        });
-        if(picked == null || picked === modalEdgeSel.value) return;
-        modalEdgeSel.value = picked;
-        setChoiceLaunchValue(modalEdgeBtn, getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
-        modalEdgeSel.dispatchEvent(new Event('change', { bubbles:true }));
-      });
-
-      const footer = h('div', { style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
-      const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
-      const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-      const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
-      const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
-      const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });
-      footer.appendChild(resetBtn);
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
-
-      function closeModal(){
-        FC.panelBox.close();
-      }
-
-      function normalizeLenToMm(value, unit){
-        const n = parseLocaleNumber(value);
-        if(!Number.isFinite(n)) return 0;
-        return unit === 'cm' ? Math.round(n * 10) : Math.round(n);
-      }
-      function currentModalSignature(){
-        const u = modalUnitSel.value === 'cm' ? 'cm' : 'mm';
-        return JSON.stringify({
-          unit: u,
-          edge: String(modalEdgeSel.value || ''),
-          boardWMm: normalizeLenToMm(modalBoardW.value, u),
-          boardHMm: normalizeLenToMm(modalBoardH.value, u),
-          kerfMm: normalizeLenToMm(modalKerf.value, u),
-          trimMm: normalizeLenToMm(modalTrim.value, u),
-          minWMm: normalizeLenToMm(modalMinW.value, u),
-          minHMm: normalizeLenToMm(modalMinH.value, u),
+      if(FC.rozrysOptionsModal && typeof FC.rozrysOptionsModal.openOptionsModal === 'function'){
+        return FC.rozrysOptionsModal.openOptionsModal({
+          unitSel,
+          edgeSel,
+          inW,
+          inH,
+          inK,
+          inTrim,
+          inMinW,
+          inMinH,
+        }, {
+          h,
+          labelWithInfo,
+          createChoiceLauncher,
+          getSelectOptionLabel,
+          setChoiceLaunchValue,
+          openRozrysChoiceOverlay,
+          askRozrysConfirm,
+          parseLocaleNumber,
+          getDefaultRozrysOptionValues,
+          applyUnitChange,
+          persistOptionPrefs,
+          tryAutoRenderFromCache,
         });
       }
-      const initialSignature = currentModalSignature();
-      let isDirty = false;
-
-      function applyDefaultValuesToModal(){
-        const defaults = getDefaultRozrysOptionValues('cm');
-        modalUnitSel.value = defaults.unit;
-        modalUnitSel.dataset.prevUnit = defaults.unit;
-        modalEdgeSel.value = defaults.edge;
-        modalBoardW.value = String(defaults.boardW);
-        modalBoardH.value = String(defaults.boardH);
-        modalKerf.value = String(defaults.kerf);
-        modalTrim.value = String(defaults.trim);
-        modalMinW.value = String(defaults.minW);
-        modalMinH.value = String(defaults.minH);
-        syncModalLabels();
-      }
-
-      function renderFooterActions(){
-        actionWrap.innerHTML = '';
-        if(isDirty){
-          actionWrap.appendChild(cancelBtn);
-          actionWrap.appendChild(saveBtn);
-        }else{
-          actionWrap.appendChild(exitBtn);
-        }
-      }
-
-      function updateDirtyState(){
-        isDirty = currentModalSignature() !== initialSignature;
-        saveBtn.disabled = !isDirty;
-        renderFooterActions();
-      }
-
-      function confirmDiscardIfDirty(){
-        if(!isDirty) return Promise.resolve(true);
-        return askRozrysConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w opcjach rozkroju zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        });
-      }
-
-      function confirmSaveIfDirty(){
-        if(!isDirty) return Promise.resolve(true);
-        return askRozrysConfirm({
-          title:'ZAPISAĆ ZMIANY?',
-          message:'Zmienione opcje rozkroju zostaną zapisane i użyte przy kolejnych wejściach do panelu.',
-          confirmText:'✓ ZAPISZ',
-          cancelText:'WRÓĆ',
-          confirmTone:'success',
-          cancelTone:'neutral'
-        });
-      }
-
-      function wireDirty(el){
-        if(!el) return;
-        el.addEventListener('input', updateDirtyState);
-        el.addEventListener('change', updateDirtyState);
-      }
-      [modalEdgeSel, modalBoardW, modalBoardH, modalKerf, modalTrim, modalMinW, modalMinH].forEach(wireDirty);
-      updateDirtyState();
-
-      exitBtn.addEventListener('click', ()=> closeModal());
-      cancelBtn.addEventListener('click', async ()=>{
-        if(!(await confirmDiscardIfDirty())) return;
-        closeModal();
-      });
-      resetBtn.addEventListener('click', ()=>{
-        applyDefaultValuesToModal();
-        updateDirtyState();
-      });
-      saveBtn.addEventListener('click', async ()=>{
-        if(!(await confirmSaveIfDirty())) return;
-        if(!isDirty){
-          closeModal();
-          return;
-        }
-        applyUnitChange(modalUnitSel.value);
-        edgeSel.value = modalEdgeSel.value;
-        inW.value = String(Math.max(1, parseLocaleNumber(modalBoardW.value)||0));
-        inH.value = String(Math.max(1, parseLocaleNumber(modalBoardH.value)||0));
-        inK.value = String(Math.max(0, parseLocaleNumber(modalKerf.value)||0));
-        inTrim.value = String(Math.max(0, parseLocaleNumber(modalTrim.value)||0));
-        inMinW.value = String(Math.max(0, parseLocaleNumber(modalMinW.value)||0));
-        inMinH.value = String(Math.max(0, parseLocaleNumber(modalMinH.value)||0));
-        persistOptionPrefs();
-        closeModal();
-        tryAutoRenderFromCache();
-      });
-
-      FC.panelBox.open({
-        title:'Opcje rozkroju',
-        contentNode: body,
-        width:'860px',
-        dismissOnOverlay:false,
-        beforeClose: ()=> confirmDiscardIfDirty()
-      });
     }
 
     // action buttons
@@ -1170,129 +862,70 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       return { title:'Pomieszczenia', subtitle:'' };
     }
 
+    const selectionUi = (FC.rozrysSelectionUi && typeof FC.rozrysSelectionUi.createController === 'function')
+      ? FC.rozrysSelectionUi.createController({
+          h,
+          state,
+          roomsPickerValue,
+          matPickerValue,
+          roomsSel,
+          matSel,
+          rozState,
+          getRooms,
+          getSelectedRooms: ()=> selectedRooms,
+          setSelectedRooms: (rooms)=>{ selectedRooms = Array.isArray(rooms) ? rooms.slice() : []; },
+          getMaterialScope: ()=> materialScope,
+          setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
+          getAggregate: ()=> agg,
+          setAggregate: (nextAgg)=>{ agg = nextAgg; },
+          tryAutoRenderFromCache: ()=> tryAutoRenderFromCache(),
+        }, {
+          getScopeSummary,
+          getRoomsSummary,
+          savePanelPrefs,
+          loadPanelPrefs,
+          encodeRoomsSelection,
+          encodeMaterialScope,
+          normalizeMaterialScopeForAggregate,
+          aggregatePartsForProject,
+          askRozrysConfirm,
+          normalizeRoomSelection,
+          roomLabel,
+          splitMaterialAccordionTitle,
+          makeMaterialScope,
+        })
+      : null;
+
     function updateRoomsPickerButton(){
-      const meta = getRoomsSummary(selectedRooms);
-      roomsPickerValue.innerHTML = '';
-      roomsPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:meta.title }));
-      if(meta.subtitle) roomsPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:meta.subtitle }));
+      if(selectionUi && typeof selectionUi.updateRoomsPickerButton === 'function') selectionUi.updateRoomsPickerButton();
     }
 
     function updateMaterialPickerButton(){
-      const meta = getScopeSummary(materialScope, agg);
-      matPickerValue.innerHTML = '';
-      matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:meta.title }));
-      if(meta.subtitle) matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:meta.subtitle }));
-      if(meta.detail) matPickerValue.appendChild(h('div', { class:'rozrys-picker-launch__detail', text:meta.detail }));
+      if(selectionUi && typeof selectionUi.updateMaterialPickerButton === 'function') selectionUi.updateMaterialPickerButton();
     }
 
     function persistSelectionPrefs(){
-      savePanelPrefs(Object.assign({}, loadPanelPrefs(), {
-        selectedRooms: encodeRoomsSelection(selectedRooms),
-        materialScope: encodeMaterialScope(materialScope),
-      }));
+      if(selectionUi && typeof selectionUi.persistSelectionPrefs === 'function') selectionUi.persistSelectionPrefs();
     }
 
     function syncHiddenSelections(){
-      roomsSel.value = encodeRoomsSelection(selectedRooms);
-      matSel.value = encodeMaterialScope(materialScope);
-      state.material = (materialScope.kind === 'material' && materialScope.material) ? materialScope.material : (agg.materials[0] || '');
-      try{
-        if(rozState){
-          rozState.setSelectedRooms(selectedRooms);
-          rozState.setAggregate(agg);
-          rozState.setMaterialScope(materialScope);
-          rozState.patchOptionState({ material: state.material });
-        }
-      }catch(_){ }
+      if(selectionUi && typeof selectionUi.syncHiddenSelections === 'function') selectionUi.syncHiddenSelections();
     }
 
     function refreshSelectionState(opts){
-      const cfg = Object.assign({ keepFormatHint:true, rerender:true }, opts || {});
-      agg = aggregatePartsForProject(selectedRooms);
-      materialScope = normalizeMaterialScopeForAggregate(materialScope, agg);
-      syncHiddenSelections();
-      updateRoomsPickerButton();
-      updateMaterialPickerButton();
-      if(cfg.keepFormatHint){
-        const hintMaterial = materialScope.kind === 'material' ? materialScope.material : (agg.materials[0] || '');
-        void hintMaterial;
-      }
-      persistSelectionPrefs();
-      if(cfg.rerender) tryAutoRenderFromCache();
+      if(selectionUi && typeof selectionUi.refreshSelectionState === 'function') selectionUi.refreshSelectionState(opts);
     }
 
     function buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts){
-      const cfg = Object.assign({ allowEmpty:false, onChange:null }, opts || {});
-      const chips = h('div', { class:'rozrys-scope-chips' });
-      const notify = ()=>{ try{ if(typeof cfg.onChange === 'function') cfg.onChange(); }catch(_){ } };
-      const bindChip = (label, key, enabled)=>{
-        if(!enabled) return null;
-        const chip = h('label', { class:'rozrys-scope-chip' });
-        const cb = h('input', { type:'checkbox' });
-        cb.checked = !!draftScope[key];
-        cb.addEventListener('change', ()=>{
-          draftScope[key] = !!cb.checked;
-          if(!cfg.allowEmpty && !draftScope.includeFronts && !draftScope.includeCorpus){
-            draftScope[key] = true;
-            cb.checked = true;
-          }
-          notify();
-        });
-        chip.appendChild(cb);
-        chip.appendChild(h('span', { text:label }));
-        chips.appendChild(chip);
-        return chip;
-      };
-      if(hasFronts && hasCorpus){
-        bindChip('Fronty', 'includeFronts', true);
-        bindChip('Korpusy', 'includeCorpus', true);
-      }else if(hasFronts || hasCorpus){
-        if(hasFronts){
-          draftScope.includeCorpus = false;
-          bindChip('Fronty', 'includeFronts', true);
-        }
-        if(hasCorpus){
-          draftScope.includeFronts = false;
-          bindChip('Korpusy', 'includeCorpus', true);
-        }
-      }
-      holder.appendChild(chips);
+      if(selectionUi && typeof selectionUi.buildScopeDraftControls === 'function') return selectionUi.buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts);
     }
 
     function openRoomsPicker(){
-      if(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function'){
-        return FC.rozrysPickers.openRoomsPicker({
-          getSelectedRooms: ()=> selectedRooms,
-          setSelectedRooms: (rooms)=>{
-            selectedRooms = Array.isArray(rooms) ? rooms.slice() : [];
-            try{ if(rozState) rozState.setSelectedRooms(selectedRooms); }catch(_){ }
-          },
-          getRooms,
-          normalizeRoomSelection,
-          roomLabel,
-          askConfirm: askRozrysConfirm,
-          refreshSelectionState,
-        });
-      }
+      if(selectionUi && typeof selectionUi.openRoomsPicker === 'function') return selectionUi.openRoomsPicker();
     }
 
     function openMaterialPicker(){
-      if(FC.rozrysPickers && typeof FC.rozrysPickers.openMaterialPicker === 'function'){
-        return FC.rozrysPickers.openMaterialPicker({
-          getMaterialScope: ()=> materialScope,
-          setMaterialScope: (nextScope)=>{
-            materialScope = nextScope;
-            try{ if(rozState) rozState.setMaterialScope(materialScope); }catch(_){ }
-          },
-          makeMaterialScope,
-          aggregate: agg,
-          splitMaterialAccordionTitle,
-          buildScopeDraftControls,
-          normalizeMaterialScopeForAggregate,
-          askConfirm: askRozrysConfirm,
-          refreshSelectionState,
-        });
-      }
+      if(selectionUi && typeof selectionUi.openMaterialPicker === 'function') return selectionUi.openMaterialPicker();
     }
 
     updateRoomsPickerButton();
@@ -1431,89 +1064,25 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     }
 
     function openMaterialGrainExceptions(material, parts){
-      const hasGrain = materialHasGrain(material);
-      const enabled = getMaterialGrainEnabled(material, hasGrain);
-      if(!hasGrain || !enabled){
-        openRozrysInfo('Wyjątki słojów', 'Najpierw włącz pilnowanie kierunku słojów dla tego materiału.');
-        return;
-      }
-      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-      const partList = Array.isArray(parts) ? parts.slice() : [];
-      const allowedKeys = partList.map((p)=> partSignature(p));
-      const initial = getMaterialGrainExceptions(material, allowedKeys, hasGrain);
-      const draft = Object.assign({}, initial);
-      const currentSignature = ()=> Object.keys(draft).filter((key)=> draft[key]).sort().join('|');
-      const initialSignature = Object.keys(initial).filter((key)=> initial[key]).sort().join('|');
-      const isDirty = ()=> currentSignature() !== initialSignature;
-      const body = h('div', { class:'panel-box-form' });
-      const scroll = h('div', { class:'panel-box-form__scroll' });
-      const footerShell = h('div', { class:'panel-box-form__footer' });
-      scroll.appendChild(h('div', { class:'muted xs', style:'margin-bottom:10px', text:'Zaznaczone formatki będą traktowane tak, jakby nie miały słojów i będzie można je obracać.' }));
-      const list = h('div', { class:'rozrys-grain-exceptions-list' });
-      if(!partList.length){
-        list.appendChild(h('div', { class:'muted xs', text:'Brak formatek dla tego materiału w aktualnym zakresie.' }));
-      }
-      partList.forEach((p)=>{
-        const sig = partSignature(p);
-        const row = h('label', { class:'rozrys-grain-exception-row' });
-        const cb = h('input', { type:'checkbox' });
-        cb.checked = !!draft[sig];
-        const copy = h('div', { class:'rozrys-grain-exception-copy' });
-        copy.appendChild(h('div', { class:'rozrys-grain-exception-name', text:String(p.name || 'Element') }));
-        copy.appendChild(h('div', { class:'muted xs', text:`${mmToUnitStr(p.w, unitSel.value)} × ${mmToUnitStr(p.h, unitSel.value)} ${unitSel.value} • ilość ${Math.max(0, Number(p.qty) || 0)}` }));
-        if(p && p.direction && String(p.direction) !== 'default'){
-          copy.appendChild(h('div', { class:'muted xs', text:`Ustawienie formatki: ${materialPartDirectionLabel(p)}` }));
-        }
-        cb.addEventListener('change', ()=>{
-          if(cb.checked) draft[sig] = true;
-          else delete draft[sig];
-          updateFooter();
+      if(FC.rozrysGrainModal && typeof FC.rozrysGrainModal.openMaterialGrainExceptions === 'function'){
+        return FC.rozrysGrainModal.openMaterialGrainExceptions({
+          material,
+          parts,
+          unitValue: unitSel.value,
+          h,
+          tryAutoRenderFromCache,
+        }, {
+          askRozrysConfirm,
+          openRozrysInfo,
+          setMaterialGrainExceptions,
+          getMaterialGrainEnabled,
+          getMaterialGrainExceptions,
+          materialHasGrain,
+          partSignature,
+          materialPartDirectionLabel,
+          mmToUnitStr,
         });
-        row.appendChild(cb);
-        row.appendChild(copy);
-        list.appendChild(row);
-      });
-      scroll.appendChild(list);
-      const footer = h('div', { class:'rozrys-grain-exceptions__footer' });
-      const footerActions = h('div', { class:'rozrys-grain-exceptions__footer-actions' });
-      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
-      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zapisz' });
-      function updateFooter(){
-        footerActions.innerHTML = '';
-        if(isDirty()){
-          footerActions.appendChild(cancelBtn);
-          footerActions.appendChild(saveBtn);
-        }else{
-          footerActions.appendChild(exitBtn);
-        }
       }
-      updateFooter();
-      footer.appendChild(footerActions);
-      footerShell.appendChild(footer);
-      body.appendChild(scroll);
-      body.appendChild(footerShell);
-      const confirmDiscardIfDirty = ()=> isDirty() ? askRozrysConfirm({
-        title:'ANULOWAĆ ZMIANY?',
-        message:'Niezapisane zmiany w wyjątkach słojów zostaną utracone.',
-        confirmText:'✕ ANULUJ ZMIANY',
-        cancelText:'WRÓĆ',
-        confirmTone:'danger',
-        cancelTone:'neutral'
-      }) : Promise.resolve(true);
-      exitBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
-      cancelBtn.addEventListener('click', async ()=>{
-        if(!(await confirmDiscardIfDirty())) return;
-        try{ FC.panelBox.close(); }catch(_){ }
-      });
-      saveBtn.addEventListener('click', ()=>{
-        const next = {};
-        Object.keys(draft).forEach((key)=>{ if(draft[key]) next[key] = true; });
-        setMaterialGrainExceptions(material, next, hasGrain);
-        try{ FC.panelBox.close(); }catch(_){ }
-        tryAutoRenderFromCache();
-      });
-      FC.panelBox.open({ title:`Wyjątki słojów — ${material}`, contentNode: body, width:'760px', dismissOnOverlay:false, beforeClose: ()=> confirmDiscardIfDirty() });
     }
 
     function getBaseState(){

@@ -648,3 +648,12 @@ Dopiero potem go zmieniać.
 ## 2026-03-28 — dev smoke page report
 - Dopracowano `dev_rozrys_smoke.html`, żeby raport był czytelny dla użytkownika nietechnicznego.
 - Strona pokazuje teraz wynik ogólny, sekcje testów, opis po co jest dany test, powód błędu oraz przycisk `Kopiuj raport`.
+
+## 2026-03-28 — ROZRYS arch v8 (prefs + selection-ui + options modal + grain modal)
+- Dodano nowe moduły: `js/app/rozrys-prefs.js`, `js/app/rozrys-selection-ui.js`, `js/app/rozrys-options-modal.js`, `js/app/rozrys-grain-modal.js`.
+- `rozrys-prefs.js` przejął helpery trwałości/stanu pomocniczego ROZRYS: prefs panelu, prefs accordionu, store oklein, podpis formatek oraz most do store słojów.
+- `rozrys-selection-ui.js` przejął orkiestrację wyboru zakresu: aktualizację launcherów `Pomieszczenia` i `Materiał / grupa`, sync ukrytych inputów, utrwalanie wyboru oraz otwieranie pickerów przez jeden kontroler.
+- `rozrys-options-modal.js` przejął cały modal `Opcje rozkroju` razem z logiką `Wyjdź / Anuluj / Zapisz`, resetem do domyślnych wartości i konwersją jednostek.
+- `rozrys-grain-modal.js` przejął modal `Wyjątki słojów`, bez zmiany zachowania UI.
+- `js/app/rozrys.js` został dalej odchudzony i deleguje do nowych modułów zamiast trzymać storage + modal opcji + sterowanie pickerami + modal wyjątków w jednym pliku.
+- `index.html` dostał wspólny cache-busting pakietu `rozrys-*`: `20260328_rozrys_arch_v8`.
