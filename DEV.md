@@ -782,3 +782,5 @@ Dopiero potem go zmieniać.
 
 - 2026-03-29: selected picker/material cards in ROZRYS now share the exact same green border and shadow tokens as the accepted `Szybkość liczenia` selected card; extra green halo overlay on selected material cards was removed.
 - 2026-03-29: `site_material_picker_match_speed_exact.zip` — picker materiału w `Wybierz materiał / grupę` dostał dokładnie ten sam rytm odstępów i parametry kart co modal `Szybkość liczenia`: gap 12px, dół listy 20px pod cień, karty 18px/20px desktop i 16px/18px mobile, z tym samym zielonym border/shadow zaznaczenia.
+
+- 2026-03-29: `site_material_picker_scroll_gutter.zip` — W `Wybierz materiał / grupę` lista dużych kart dostała prawy gutter (`padding-right`) i `scrollbar-gutter: stable`, żeby pionowy scroll nie nachodził już na prawą ramkę kart; test anty-regresyjny pilnuje teraz także tego zapasu pod scrollbar.

@@ -443,7 +443,8 @@
 /* --- ROZRYS picker polish: stable selected cards + X-like tiles --- */
 .rozrys-picker-list{
   gap:12px;
-  padding:0 0 20px;
+  padding:0 10px 20px 0;
+  scrollbar-gutter:stable;
 }
 .rozrys-picker-footer{
   margin-top:0;
@@ -503,7 +504,8 @@
 @media (max-width: 640px){
   .rozrys-picker-list{
     gap:12px;
-    padding:0 0 20px;
+    padding:0 10px 20px 0;
+    scrollbar-gutter:stable;
   }
   .rozrys-picker-option{
     padding:16px 16px;

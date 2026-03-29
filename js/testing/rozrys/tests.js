@@ -334,7 +334,7 @@
 
       makeTest('UI i styl', 'Karta materiału ma dokładnie ten sam wzorzec ramki, cienia i odstępów co wybór trybu', 'Sprawdza, czy karty w Wybierz materiał / grupę kopiują realne parametry z modala Szybkość liczenia: ten sam zielony border/shadow zaznaczenia, ten sam rytm odstępów oraz ten sam zapas pod dolną kartą na cień.', ()=>{
         const css = readAssetSource('css/rozrys-reference-sync.css');
-        assert(/\.rozrys-picker-list\{[\s\S]*gap:\s*12px[\s\S]*padding:\s*0 0 20px/i.test(css), 'Lista kart materiału nie ma jeszcze tego samego rytmu 12px i dolnego zapasu 20px co wzorzec z szybkości liczenia', { css });
+        assert(/\.rozrys-picker-list\{[\s\S]*gap:\s*12px[\s\S]*padding:\s*0 10px 20px 0[\s\S]*scrollbar-gutter:\s*stable/i.test(css), 'Lista kart materiału nie ma jeszcze rytmu 12px, dolnego zapasu 20px i prawego guttera na scrollbar, więc ramka dalej może wchodzić pod scroll', { css });
         assert(/\.rozrys-picker-footer\{[\s\S]*margin-top:\s*0/i.test(css), 'Stopka wyboru materiału nadal dodaje własny odstęp zamiast opierać się na dolnym zapasie listy jak wzorzec wyboru trybu', { css });
         assert(/\.rozrys-picker-option\{[\s\S]*padding:\s*18px 18px[\s\S]*border-width:\s*1\.5px[\s\S]*border-radius:\s*20px/i.test(css), 'Desktopowa karta materiału nie używa jeszcze tych samych parametrów co karta wyboru trybu', { css });
         assert(/@media \(max-width: 640px\)\{[\s\S]*\.rozrys-picker-option\{[\s\S]*padding:\s*16px 16px[\s\S]*border-radius:\s*18px/i.test(css), 'Mobilna karta materiału nie używa jeszcze tych samych parametrów co karta wyboru trybu', { css });
