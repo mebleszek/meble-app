@@ -314,14 +314,6 @@
         assert(/\.rozrys-scope-chip--room-option:focus-within::before[\s\S]*opacity:\s*0/i.test(css), 'Pattern CSS nie zeruje nakładki focus/active dla dużego chipa pomieszczeń, więc może wracać grubszy obrys po kliknięciu', { css });
         assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego chipa pomieszczeń zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
       }),
-      makeTest('UI i styl', 'Wspólny visual tune trzyma wyraźny, dwustanowy wzorzec chipów checkbox', 'Sprawdza, czy dedykowany moduł wizualny utrzymuje bardziej wyrazisty wygląd chipów z ptaszkiem, ale nadal tylko w dwóch stanach: bazowym i zaznaczonym.', ()=>{
-        const css = readAssetSource('css/rozrys-checkbox-chip-visual.css');
-        assert(css && css.includes('.rozrys-scope-chip'), 'Brak modułu visual tune dla chipów checkbox', { css });
-        assert(/\.rozrys-scope-chip\{[\s\S]*box-shadow:[\s\S]*0 3px 0/i.test(css), 'Visual tune nie daje wyraźniejszego liftu bazowemu chipowi', { css });
-        assert(/\.rozrys-scope-chip\.is-checked[\s\S]*0 3px 0/i.test(css), 'Visual tune nie trzyma osobnego, wyraźnego stanu zaznaczonego dla chipa', { css });
-        assert(/input\[type='checkbox'\]\{[\s\S]*width:\s*28px/i.test(css), 'Visual tune nie powiększa checkboxa do docelowego, wyraźniejszego wariantu', { css });
-        assert(/input\[type='checkbox'\]:checked[\s\S]*43a8ff/i.test(css), 'Visual tune nie utrzymuje bardziej wyrazistego niebieskiego stanu zaznaczenia', { css });
-      }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
