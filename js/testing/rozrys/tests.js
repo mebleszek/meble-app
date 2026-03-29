@@ -315,11 +315,11 @@
         assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego chipa pomieszczeń zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
       }),
 
-      makeTest('UI i styl', 'Checkbox-chip ma większą wysokość bez przesuwania checkboxa w prawo', 'Sprawdza, czy pionowy luz przy przycisku z ptaszkiem został zwiększony tak, aby góra i dół miały taki sam zapas jak lewa strona, bez zmiany lewego odsunięcia checkboxa.', ()=>{
+      makeTest('UI i styl', 'Checkbox-chip ma ciaśniejszy mały wariant bez ruszania checkboxa', 'Sprawdza, czy mały checkbox-chip dostał delikatnie ciaśniejsze odstępy góra/dół i z lewej, aby lepiej mieścił się na telefonie, bez zmiany większego wariantu pomieszczeń i bez przesuwania checkboxa w prawo.', ()=>{
         const baseCss = readAssetSource('css/rozrys-reference-sync.css');
         const roomCss = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
-        assert(/\.rozrys-scope-chip\{[\s\S]*min-height:\s*48px[\s\S]*padding:\s*12px 12px/i.test(baseCss), 'Bazowy checkbox-chip nie ma jeszcze zwiększonej wysokości 12/12 dla małych przycisków', { baseCss });
-        assert(/\.rozrys-scope-chip--room-option\{[\s\S]*min-height:\s*56px[\s\S]*padding:\s*16px 16px/i.test(roomCss), 'Duży checkbox-chip pomieszczeń nie ma jeszcze zwiększonej wysokości 16/16', { roomCss });
+        assert(/\.rozrys-scope-chip\{[\s\S]*min-height:\s*46px[\s\S]*padding:\s*11px 12px 11px 11px/i.test(baseCss), 'Bazowy checkbox-chip nie ma jeszcze ciaśniejszego układu 46px i paddingu 11/12/11/11 dla małych przycisków', { baseCss });
+        assert(/\.rozrys-scope-chip--room-option\{[\s\S]*min-height:\s*56px[\s\S]*padding:\s*16px 16px/i.test(roomCss), 'Duży checkbox-chip pomieszczeń nie zachował większego wariantu 16/16', { roomCss });
         assert(/\.rozrys-room-chip__top\{[\s\S]*min-height:\s*24px/i.test(roomCss), 'Wewnętrzny rząd dużego checkbox-chipa pomieszczeń nadal wymusza zbyt wysokie minimum i psuje proporcje pionowe', { roomCss });
       }),
 

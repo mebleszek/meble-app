@@ -475,8 +475,8 @@
 .rozrys-scope-chip{
   border-width:2px;
   border-radius:14px;
-  min-height:48px;
-  padding:12px 12px;
+  min-height:46px;
+  padding:11px 12px 11px 11px;
 }
 .rozrys-scope-chip.is-checked,
 .rozrys-scope-chip:has(input[type='checkbox']:checked){
