@@ -714,3 +714,9 @@ Dopiero potem go zmieniać.
   - `Opcje rozkroju` and `Dodaj płytę do magazynu` no longer show a nested frame around already framed controls.
 
 - 2026-03-29: ROZRYS UI tweak — top label rows (Pomieszczenia / Materiał / grupa / Szybkość liczenia / Kierunek cięcia) lowered visually to align closer with the ? help triggers above the cards; no logic changes.
+
+
+## 2026-03-29 — custom checkbox style in ROZRYS
+- Added `css/rozrys-checkboxes.css`.
+- Replaced native-looking checkbox appearance in ROZRYS pickers/chips with custom app-styled square checkbox.
+- First target: `Materiał / grupa` modal, with shared ROZRYS checkbox styling available for other ROZRYS pickers.
