@@ -90,6 +90,7 @@
 #rozrysRoot .rozrys-choice-launch--compact,
 .panel-box .rozrys-choice-launch--compact{
   min-height:64px;
+  justify-content:flex-start;
 }
 #rozrysRoot .rozrys-choice-launch--compact .rozrys-choice-launch__value,
 .panel-box .rozrys-choice-launch--compact .rozrys-choice-launch__value{
@@ -103,6 +104,10 @@
 .panel-box .rozrys-choice-launch--compact .rozrys-choice-launch__label{
   font-size:20px;
   line-height:1.08;
+}
+#rozrysRoot .rozrys-choice-launch--compact .rozrys-choice-launch__arrow,
+.panel-box .rozrys-choice-launch--compact .rozrys-choice-launch__arrow{
+  display:none !important;
 }
 
 .rozrys-choice-modal{

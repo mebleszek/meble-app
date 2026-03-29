@@ -1,4 +1,5 @@
 
+- 2026-03-28 — `site_rozrys_choice_noarrow.zip`: usunięta strzałka z kompaktowych kafli `Szybkość liczenia` i `Kierunek cięcia`; zostawiony sam wystający kafel z nazwą wybranej opcji.
 - 2026-03-28 — site_rozrys_choice_clean.zip
   - ROZRYS: uproszczono kafle wyboru `Szybkość liczenia` i `Kierunek cięcia` — usunięto tekst `Kliknij, aby wybrać/zmienić`, zostawiono samą nazwę wybranej opcji oraz nowy, bardziej aplikacyjny znak klikalności po prawej.
 ## Struktura katalogów (po paczce arch_dirs_tests)
