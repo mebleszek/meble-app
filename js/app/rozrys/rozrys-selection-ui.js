@@ -77,7 +77,7 @@
       const notify = ()=>{ try{ if(typeof local.onChange === 'function') local.onChange(); }catch(_){ } };
       const bindChip = (label, key, enabled)=>{
         if(!enabled) return null;
-        const chip = ctx.h('label', { class:'rozrys-scope-chip' });
+        const chip = ctx.h('label', { class:'rozrys-scope-chip rozrys-scope-chip--room-match', 'data-role':'scope-checkbox-tile' });
         const cb = ctx.h('input', { type:'checkbox' });
         const syncChipState = ()=> chip.classList.toggle('is-checked', !!cb.checked);
         cb.checked = !!draftScope[key];

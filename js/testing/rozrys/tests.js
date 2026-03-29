@@ -50,6 +50,81 @@
     }
   }
 
+
+  function readAssetSource(relPath){
+    try{
+      if(host.__DEV_ASSETS__ && typeof host.__DEV_ASSETS__[relPath] === 'string') return host.__DEV_ASSETS__[relPath];
+    }catch(_error){}
+    try{
+      if(typeof XMLHttpRequest !== 'undefined'){
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', relPath, false);
+        xhr.send(null);
+        if((xhr.status >= 200 && xhr.status < 400) || xhr.status === 0) return String(xhr.responseText || '');
+      }
+    }catch(_error){}
+    return '';
+  }
+
+  function createFakeNode(tag, attrs){
+    const classes = String((attrs && attrs.class) || '').split(/\s+/).filter(Boolean);
+    const listeners = {};
+    const node = {
+      tagName: String(tag || '').toUpperCase(),
+      attributes: Object.assign({}, attrs || {}),
+      children: [],
+      className: classes.join(' '),
+      textContent: attrs && attrs.text ? attrs.text : '',
+      checked: !!(attrs && attrs.checked),
+      parentNode: null,
+      __listeners: listeners,
+      appendChild(child){
+        if(child) child.parentNode = node;
+        node.children.push(child);
+        return child;
+      },
+      addEventListener(type, handler){
+        listeners[type] = listeners[type] || [];
+        listeners[type].push(handler);
+      },
+      dispatch(type){
+        (listeners[type] || []).forEach((handler)=> handler({ type, target:node }));
+      },
+      setAttribute(name, value){
+        node.attributes[name] = value;
+      },
+      getAttribute(name){
+        return node.attributes[name];
+      },
+    };
+    node.classList = {
+      add(name){
+        if(!classes.includes(name)) classes.push(name);
+        node.className = classes.join(' ');
+      },
+      remove(name){
+        const idx = classes.indexOf(name);
+        if(idx >= 0) classes.splice(idx, 1);
+        node.className = classes.join(' ');
+      },
+      contains(name){
+        return classes.includes(name);
+      },
+      toggle(name, force){
+        const next = force === undefined ? !classes.includes(name) : !!force;
+        if(next){
+          if(!classes.includes(name)) classes.push(name);
+        }else{
+          const idx = classes.indexOf(name);
+          if(idx >= 0) classes.splice(idx, 1);
+        }
+        node.className = classes.join(' ');
+        return next;
+      }
+    };
+    return node;
+  }
+
   function makeClipboardReport(report){
     const lines = [];
     lines.push(`ROZRYS smoke testy: ${report.passed}/${report.total} OK`);
@@ -145,6 +220,37 @@
         assert(store.getUiState().running === true, 'UI nie przyjęło częściowego update', store.getUiState());
         assert(store.getOptionState().heur === 'optimax', 'Options nie przyjęły częściowego update', store.getOptionState());
         assert(store.getOptionState().kerf === 4, 'Options zgubiły poprzedni kerf', store.getOptionState());
+      }),
+
+
+      makeTest('UI i styl', 'Mały kafelek zakresu materiału dostaje modifier zgodny z wyborem pomieszczeń', 'Sprawdza, czy mały kafelek Fronty/Korpusy w wyborze materiału ma osobny modifier stylu zsynchronizowany z kafelkami wyboru pomieszczeń.', ()=>{
+        assert(FC.rozrysSelectionUi && typeof FC.rozrysSelectionUi.createController === 'function', 'Brak FC.rozrysSelectionUi.createController');
+        const created = [];
+        const ctx = {
+          h(tag, attrs){
+            const node = createFakeNode(tag, attrs);
+            created.push(node);
+            return node;
+          },
+        };
+        const controller = FC.rozrysSelectionUi.createController(ctx, {});
+        const holder = createFakeNode('div', {});
+        const draftScope = { includeFronts:false, includeCorpus:true };
+        controller.buildScopeDraftControls(holder, draftScope, true, true, { allowEmpty:true, onChange:()=>{} });
+        const chips = created.filter((node)=> node.classList && node.classList.contains('rozrys-scope-chip'));
+        assert(chips.length === 2, 'Builder nie utworzył dwóch małych kafelków zakresu materiału', { created: created.map((node)=> node.className || node.tagName) });
+        chips.forEach((chip)=>{
+          assert(chip.classList.contains('rozrys-scope-chip--room-match'), 'Mały kafelek nie dostał modifiera zgodnego z wyborem pomieszczeń', { className: chip.className });
+        });
+        const checkedChip = chips.find((chip)=> chip.classList.contains('is-checked'));
+        assert(checkedChip, 'Zaznaczony draft nie ustawił stanu is-checked na żadnym małym kafelku', { chips: chips.map((chip)=> chip.className), draftScope });
+      }),
+      makeTest('UI i styl', 'CSS małego kafelka materiału nadpisuje zieloną ramkę na neutralny styl kafelka pomieszczeń', 'Sprawdza, czy dedykowany plik CSS utrzymuje neutralny wygląd małego kafelka i nie wraca zielona ramka ani zielony tekst.', ()=>{
+        const css = readAssetSource('css/rozrys-scope-chip-room-sync.css');
+        assert(css && css.includes('.rozrys-scope-chip--room-match.is-checked'), 'Brak pliku albo selektora sync dla małego kafelka materiału');
+        assert(/border-color:\s*#cfd8e3/i.test(css), 'Sync CSS nie przywraca neutralnej ramki kafelka', { css });
+        assert(!/16a34a/i.test(css), 'Sync CSS zawiera zielony kolor aktywnego kafelka, więc regresja może wrócić', { css });
+        assert(/color:\s*inherit/i.test(css), 'Sync CSS nie przywraca neutralnego koloru tekstu', { css });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{

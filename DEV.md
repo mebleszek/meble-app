@@ -26,6 +26,12 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-29 — material_scope_chip_sync_v1
+- `css/rozrys-scope-chip-room-sync.css` — nowy, mały moduł CSS tylko do synchronizacji zachowania małych kafelków `Fronty/Korpusy` w pickerze `Materiał / grupa` z wzorcem kafelków wyboru pomieszczeń; usuwa zieloną ramkę / zielony tekst z małego kafelka i zostawia tylko niebieski stan samego checkboxa.
+- `js/app/rozrys/rozrys-selection-ui.js` — małe kafelki zakresu materiału dostają dedykowany modifier `rozrys-scope-chip--room-match`, żeby poprawka była punktowa i nie rozlewała się na inne checkboxy ROZRYS.
+- `js/testing/rozrys/tests.js` + `tools/rozrys-dev-smoke.js` + `dev_tests.html` — dodane testy anty-regresyjne pod ten przypadek: sprawdzenie modifiera na małym kafelku i obecności dedykowanego CSS sync.
+- `index.html` — dopięty nowy moduł CSS i podbity cache-busting dla `rozrys-selection-ui.js`.
+
 ### 2026-03-27 — rozrys_split_v6
 - `js/app/rozrys/rozrys-scope.js` — wydzielony zakres / selekcja ROZRYS: pomieszczenia, scope materiałów, kolejność materiałów, klucz accordionu i agregacja formatek projektu.
 - `js/app/rozrys/rozrys-engine.js` — wydzielone helpery engine ROZRYS: normalizacja kierunku, etykiety heurystyk, liczenie sync, liczenie workerowe i wspólny fallback `computePlanWithCurrentEngine()`.
@@ -147,6 +153,9 @@
 - `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
 - `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
 - `js/app/material/magazyn.js` — logika magazynu.
+- `css/rozrys-reference-sync.css` — wizualne ujednolicenie ROZRYS względem zaakceptowanych wzorców UI.
+- `css/rozrys-checkboxes.css` — wspólna skórka checkboxów ROZRYS bez systemowego highlightu.
+- `css/rozrys-scope-chip-room-sync.css` — punktowy override tylko dla małych kafelków zakresu materiału w pickerze `Materiał / grupa`, żeby zachowywały się jak kafelki wyboru pomieszczeń.
 - `js/app/rozrys/rozrys-choice.js` — launchery i overlaye wyboru w ROZRYS.
 - `js/app/rozrys/rozrys-state.js` — centralny store stanu ROZRYS (selection/options/ui/cache) używany jako wspólne źródło prawdy dla zakładki.
 - `js/app/rozrys/rozrys-print.js` — eksport CSV / druk / helpery PDF w ROZRYS.

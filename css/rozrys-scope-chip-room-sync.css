@@ -1,0 +1,20 @@
+/* Sync małych kafelków zakresu materiału do zachowania kafelków wyboru pomieszczeń.
+   Zostawiamy niebieski checkbox, ale sam mały kafelek ma pozostać neutralny
+   (bez zielonej ramki, bez zielonego tła i bez białej obwódki). */
+.rozrys-scope-chip--room-match.is-checked,
+.rozrys-scope-chip--room-match:has(input[type='checkbox']:checked){
+  border-color:#cfd8e3;
+  box-shadow:2px 3px 0 rgba(15,23,42,.12), 4px 9px 16px rgba(148,163,184,.12);
+  background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
+}
+
+.rozrys-scope-chip--room-match.is-checked::before,
+.rozrys-scope-chip--room-match:has(input[type='checkbox']:checked)::before{
+  opacity:0;
+  box-shadow:none;
+}
+
+.rozrys-scope-chip--room-match.is-checked span,
+.rozrys-scope-chip--room-match:has(input[type='checkbox']:checked) span{
+  color:inherit;
+}
