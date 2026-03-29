@@ -341,8 +341,9 @@
         assert(/\.rozrys-picker-card:has\(.rozrys-scope-chip input\[type='checkbox'\]:checked\)::before\{[\s\S]*opacity:\s*0[\s\S]*box-shadow:\s*none/i.test(css), 'Zaznaczona karta materiału nadal dokłada dodatkową zieloną poświatę zamiast czystej ramki jak w wyborze trybu', { css });
         assert(/\.rozrys-picker-modal\{[\s\S]*gap:\s*0/i.test(syncCss), 'Kontener pickerów nadal dokłada dodatkowy gap między listą a stopką i zostawia zbyt dużą dziurę pod kartami', { syncCss });
         assert(/\.rozrys-picker-list\{[\s\S]*gap:\s*12px[\s\S]*padding:\s*0 12px 20px 0[\s\S]*scrollbar-gutter:\s*stable/i.test(syncCss), 'Pole kart materiału nie ma jeszcze dokładnego rytmu 12px, dolnego zapasu 20px i prawego guttera na scrollbar', { syncCss });
-        assert(/\.rozrys-picker-footer\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*padding:\s*0/i.test(syncCss), 'Stopka wyboru materiału nadal ma własny pionowy padding zamiast opierać się na oddechu listy i body modala', { syncCss });
-        assert(/@media \(max-width:\s*640px\)\{[\s\S]*\.rozrys-picker-footer\{[\s\S]*padding:\s*0/i.test(syncCss), 'Mobilna stopka wyboru materiału nadal ma własny pionowy padding zamiast opierać się na oddechu listy i body modala', { syncCss });
+        assert(/\.rozrys-picker-footer\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*padding:\s*0/i.test(syncCss), 'Wspólna stopka pickerów straciła bazowe wyśrodkowanie albo zerowy pionowy padding', { syncCss });
+        assert(/\.rozrys-picker-footer--material\{[\s\S]*padding:\s*0\s+0\s+10px/i.test(syncCss), 'Stopka wyboru materiału nie dostała osobnego dolnego oddechu, który podnosi samotny przycisk Wyjdź', { syncCss });
+        assert(/@media \(max-width:\s*640px\)\{[\s\S]*\.rozrys-picker-footer--material\{[\s\S]*padding:\s*0\s+0\s+8px/i.test(syncCss), 'Mobilna stopka wyboru materiału nie ma lżejszego dolnego oddechu dla przycisku Wyjdź', { syncCss });
         assert(/\.rozrys-picker-footer-actions\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*10px/i.test(syncCss), 'Wewnętrzny rząd przycisków akcji nie zachował jeszcze wyśrodkowania i wspólnego rytmu 10px', { syncCss });
       }),
 

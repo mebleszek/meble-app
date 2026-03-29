@@ -37,6 +37,10 @@
   flex-wrap:wrap;
 }
 
+.rozrys-picker-footer--material{
+  padding:0 0 10px;
+}
+
 @media (max-width: 640px){
   .rozrys-picker-list{
     padding:0 10px 20px 0;
@@ -44,4 +48,8 @@
   .rozrys-picker-footer{
     padding:0;
   }
+  .rozrys-picker-footer--material{
+    padding:0 0 8px;
+  }
 }
+
