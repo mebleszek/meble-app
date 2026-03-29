@@ -272,7 +272,7 @@
         assert(/color:\s*inherit/i.test(css), 'Sync CSS nie przywraca neutralnego koloru tekstu', { css });
       }),
 
-      makeTest('UI i styl', 'Picker pomieszczeń używa dużego wariantu stylu scope-chip z bezpiecznym wstrzyknięciem document', 'Sprawdza, czy opcje Kuchnia/Szafa/Pokój/Łazienka renderują się jako duży wariant tego samego stylu scope-chip co Fronty/Korpusy i czy test nie mutuje window.document.', ()=>{
+      makeTest('UI i styl', 'Picker pomieszczeń używa dokładnie bazowego markupu scope-chip bez legacy picker-check', 'Sprawdza, czy opcje Kuchnia/Szafa/Pokój/Łazienka renderują się na tym samym bazowym markupie co Fronty/Korpusy, bez legacy klasy picker-check i bez mutowania window.document.', ()=>{
         assert(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function', 'Brak FC.rozrysPickers.openRoomsPicker');
         const prevPanelBox = FC.panelBox;
         const opened = [];
@@ -301,15 +301,16 @@
         chips.forEach((chip)=>{
           assert(chip.classList.contains('rozrys-scope-chip'), 'Chip pomieszczenia nie używa bazowego stylu scope-chip', { className: chip.className });
           assert(chip.classList.contains('rozrys-scope-chip--room-match'), 'Chip pomieszczenia nie używa neutralnego stanu room-match', { className: chip.className });
-          assert(chip.classList.contains('rozrys-picker-check--checkbox-chip'), 'Chip pomieszczenia nie dostał modifiera wzorca checkbox-chip', { className: chip.className });
+          assert(!chip.classList.contains('rozrys-picker-check'), 'Chip pomieszczenia nadal używa legacy klasy rozrys-picker-check zamiast bazowego markupu scope-chip', { className: chip.className });
         });
         assert(chips[0].classList.contains('is-checked'), 'Zaznaczone pomieszczenie nie dostaje klasy is-checked', { className: chips[0].className });
       }),
-      makeTest('UI i styl', 'CSS dużego chipa pomieszczeń utrzymuje jaśniejszą ramkę domyślną i ciemniejszą po zaznaczeniu', 'Sprawdza, czy duży wariant stylu scope-chip dla pomieszczeń ma taki sam język wizualny jak Fronty/Korpusy: jaśniejsza ramka w stanie neutralnym i delikatnie ciemniejsza po zaznaczeniu, bez zielonej ramki całego kafla.', ()=>{
+      makeTest('UI i styl', 'CSS dużego chipa pomieszczeń utrzymuje stan jak w materiale i nie zostawia grubszego obrysu po kliknięciu', 'Sprawdza, czy duży wariant stylu scope-chip dla pomieszczeń ma taki sam język wizualny jak Fronty/Korpusy: jaśniejsza ramka w stanie neutralnym, delikatnie ciemniejsza po zaznaczeniu i bez utrwalonej nakładki po kliknięciu.', ()=>{
         const css = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
         assert(css && css.includes('.rozrys-scope-chip--room-option'), 'Brak pliku albo wariantu room-option dla dużego chipa pomieszczeń');
         assert(/\.rozrys-scope-chip--room-option,?[\s\S]*border-color:\s*#dbe7f3/i.test(css), 'Pattern CSS nie ustawia jaśniejszej domyślnej ramki dużego chipa pomieszczeń', { css });
         assert(/\.rozrys-scope-chip--room-option\.is-checked[\s\S]*border-color:\s*#cfd8e3/i.test(css), 'Pattern CSS nie ustawia ciemniejszej ramki po zaznaczeniu dużego chipa pomieszczeń', { css });
+        assert(/\.rozrys-scope-chip--room-option:focus-within::before[\s\S]*opacity:\s*0/i.test(css), 'Pattern CSS nie zeruje nakładki focus/active dla dużego chipa pomieszczeń, więc może wracać grubszy obrys po kliknięciu', { css });
         assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego chipa pomieszczeń zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
       }),
 

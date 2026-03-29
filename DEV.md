@@ -764,3 +764,6 @@ Dopiero potem go zmieniać.
 
 
 - 2026-03-29: room picker now uses large scope-chip pattern based on the material Fronty/Korpusy chips; browser dev tests inject a fake document through deps instead of mutating window.document.
+
+
+- 2026-03-29: room chip pattern v3 — picker pomieszczeń został przepięty na dokładnie bazowy markup scope-chip jak w Material / grupa (bez legacy `rozrys-picker-check`), a duży wariant dostał wygaszenie overlay focus/active, żeby po kliknięciu nie zostawał grubszy obrys. Zaktualizowano test anty-regresyjny i wersjonowanie assetów.

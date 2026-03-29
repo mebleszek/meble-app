@@ -13,7 +13,7 @@
   gap:0;
 }
 
-.rozrys-scope-chip--room-option .rozrys-picker-check__top{
+.rozrys-scope-chip--room-option .rozrys-room-chip__top{
   width:100%;
   display:flex;
   align-items:center;
@@ -52,6 +52,14 @@
 .rozrys-scope-chip--room-option.is-checked .rozrys-room-chip__label,
 .rozrys-scope-chip--room-option:has(input[type='checkbox']:checked) .rozrys-room-chip__label{
   color:#0f172a;
+}
+
+.rozrys-scope-chip--room-option:focus-within::before,
+.rozrys-scope-chip--room-option:active::before,
+.rozrys-scope-chip--room-option.is-checked:focus-within::before,
+.rozrys-scope-chip--room-option.is-checked:active::before{
+  opacity:0;
+  box-shadow:none;
 }
 
 @media (max-width:700px){

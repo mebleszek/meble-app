@@ -18,6 +18,12 @@
     return el;
   }
 
+  function releaseChipFocus(target){
+    try{
+      if(target && typeof target.blur === 'function') target.blur();
+    }catch(_error){}
+  }
+
   function openRoomsPicker(deps){
     const cfg = Object.assign({
       getSelectedRooms:null,
@@ -46,8 +52,8 @@
     const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
 
     getRooms().forEach((room)=>{
-      const cardNode = h('label', { class:'rozrys-picker-check rozrys-picker-check--checkbox-chip rozrys-scope-chip rozrys-scope-chip--room-match rozrys-scope-chip--room-option' }, null, cfg.doc);
-      const top = h('div', { class:'rozrys-picker-check__top' }, null, cfg.doc);
+      const cardNode = h('label', { class:'rozrys-scope-chip rozrys-scope-chip--room-match rozrys-scope-chip--room-option' }, null, cfg.doc);
+      const top = h('div', { class:'rozrys-room-chip__top' }, null, cfg.doc);
       const cb = h('input', { type:'checkbox' }, null, cfg.doc);
       const titleNode = h('div', { class:'rozrys-room-chip__label', text:roomLabel(room) }, null, cfg.doc);
       const syncCardState = ()=> cardNode.classList.toggle('is-checked', !!cb.checked);
@@ -59,6 +65,8 @@
         else draft.delete(room);
         syncCardState();
         updateFooterState();
+        releaseChipFocus(cb);
+        releaseChipFocus(cardNode);
       });
       top.appendChild(cb);
       top.appendChild(titleNode);
