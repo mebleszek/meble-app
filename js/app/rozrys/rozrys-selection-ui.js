@@ -79,13 +79,16 @@
         if(!enabled) return null;
         const chip = ctx.h('label', { class:'rozrys-scope-chip' });
         const cb = ctx.h('input', { type:'checkbox' });
+        const syncChipState = ()=> chip.classList.toggle('is-checked', !!cb.checked);
         cb.checked = !!draftScope[key];
+        syncChipState();
         cb.addEventListener('change', ()=>{
           draftScope[key] = !!cb.checked;
           if(!local.allowEmpty && !draftScope.includeFronts && !draftScope.includeCorpus){
             draftScope[key] = true;
             cb.checked = true;
           }
+          syncChipState();
           notify();
         });
         chip.appendChild(cb);

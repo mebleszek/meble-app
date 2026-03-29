@@ -736,3 +736,9 @@ Dopiero potem go zmieniać.
 - Added panel-box boxClass support and marked ROZRYS panel-box modals with `panel-box--rozrys`.
 - Added ROZRYS-only gradient underline treatment for section labels and ROZRYS modal titles.
 - Added button-like shadows to picker chips/buttons and close X buttons in ROZRYS.
+
+
+## 2026-03-29 — ROZRYS picker stability + shadows polish
+- Naprawiono natychmiastowe zaznaczanie aktywnej karty w `Materiał / grupa` po kliknięciu ptaszka.
+- Karty materiałów/pomieszczeń w pickerach dostały bardziej "X-like" styl: 14px radius, delikatny gradient, stabilny cień.
+- Chipy `Fronty` / `Korpusy` zachowują cień również po zaznaczeniu i pokazują stan aktywny bez gubienia obramowania karty.

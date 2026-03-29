@@ -198,9 +198,11 @@
       renderFooterActions();
     }
 
+    const entryHasSelection = (entry)=> !!(entry && entry.localScope && (entry.localScope.includeFronts || entry.localScope.includeCorpus));
+
     function syncDraftFromCards(preferredKey){
-      const preferred = preferredKey ? cards.find((entry)=> entry.key === preferredKey && (entry.localScope.includeFronts || entry.localScope.includeCorpus)) : null;
-      const activeEntry = preferred || cards.find((entry)=> entry.localScope.includeFronts || entry.localScope.includeCorpus) || null;
+      const preferred = preferredKey ? cards.find((entry)=> entry.key === preferredKey && entryHasSelection(entry)) : null;
+      const activeEntry = preferred || cards.find((entry)=> entryHasSelection(entry)) || null;
       if(activeEntry){
         setDraftScope(activeEntry.config, activeEntry.localScope);
       }else{
@@ -209,7 +211,10 @@
         draftScope.includeFronts = false;
         draftScope.includeCorpus = false;
       }
-      cards.forEach((entry)=> entry.node.classList.toggle('is-selected', !!activeEntry && entry.key === activeEntry.key));
+      cards.forEach((entry)=> {
+        entry.node.classList.toggle('has-selection', entryHasSelection(entry));
+        entry.node.classList.toggle('is-selected', !!activeEntry && entry.key === activeEntry.key);
+      });
       updateFooterState();
     }
 
