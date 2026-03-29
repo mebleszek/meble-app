@@ -777,3 +777,5 @@ Dopiero potem go zmieniać.
 
 - 2026-03-29: Checkbox-chip proportions tuned in ROZRYS. Small chips now use 12px vertical padding with unchanged horizontal offset; room-picker chips use 16px vertical padding with a 24px inner row minimum so top/bottom spacing matches the left checkbox gutter without moving the checkbox right.
 - 2026-03-29: Checkbox-chip small variant tightened for mobile fit: base `.rozrys-scope-chip` reduced to `min-height:46px` with `padding:11px 12px 11px 11px` so three material cards fit better on narrow phone screens; large room-option variant unchanged.
+
+- 2026-03-29: checkbox-chip polish v2 — małe chipy ciaśniejsze (44px, 10/12/10/10), karty materiałów niższe o 1 px góra/dół i zaznaczone karty mają zieloną ramkę/cień jak wzorzec wyboru trybu; duże chipy pomieszczeń dostały taki sam promień narożników jak małe.

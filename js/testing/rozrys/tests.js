@@ -318,8 +318,8 @@
       makeTest('UI i styl', 'Checkbox-chip ma ciaśniejszy mały wariant bez ruszania checkboxa', 'Sprawdza, czy mały checkbox-chip dostał delikatnie ciaśniejsze odstępy góra/dół i z lewej, aby lepiej mieścił się na telefonie, bez zmiany większego wariantu pomieszczeń i bez przesuwania checkboxa w prawo.', ()=>{
         const baseCss = readAssetSource('css/rozrys-reference-sync.css');
         const roomCss = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
-        assert(/\.rozrys-scope-chip\{[\s\S]*min-height:\s*46px[\s\S]*padding:\s*11px 12px 11px 11px/i.test(baseCss), 'Bazowy checkbox-chip nie ma jeszcze ciaśniejszego układu 46px i paddingu 11/12/11/11 dla małych przycisków', { baseCss });
-        assert(/\.rozrys-scope-chip--room-option\{[\s\S]*min-height:\s*56px[\s\S]*padding:\s*16px 16px/i.test(roomCss), 'Duży checkbox-chip pomieszczeń nie zachował większego wariantu 16/16', { roomCss });
+        assert(/\.rozrys-scope-chip\{[\s\S]*min-height:\s*44px[\s\S]*padding:\s*10px 12px 10px 10px/i.test(baseCss), 'Bazowy checkbox-chip nie ma jeszcze ciaśniejszego układu 44px i paddingu 10/12/10/10 dla małych przycisków', { baseCss });
+        assert(/\.rozrys-scope-chip--room-option\{[\s\S]*min-height:\s*56px[\s\S]*padding:\s*16px 16px[\s\S]*border-radius:\s*14px/i.test(roomCss), 'Duży checkbox-chip pomieszczeń nie zachował większego wariantu 16/16 albo nadal ma zbyt okrągłe narożniki zamiast takich jak małe pola', { roomCss });
         assert(/\.rozrys-room-chip__top\{[\s\S]*min-height:\s*24px/i.test(roomCss), 'Wewnętrzny rząd dużego checkbox-chipa pomieszczeń nadal wymusza zbyt wysokie minimum i psuje proporcje pionowe', { roomCss });
       }),
 
@@ -329,6 +329,14 @@
         assert(/\.rozrys-scope-chip\.is-checked[\s\S]*linear-gradient/i.test(css), 'Accent CSS nie dodaje delikatnego gradientu całego zaznaczonego chipa', { css });
         assert(/\.rozrys-scope-chip\.is-checked[\s\S]*0 0 0 1px/i.test(css), 'Accent CSS nie wzmacnia obrysu zaznaczonego chipa', { css });
         assert(/input\[type='checkbox'\]:checked[\s\S]*linear-gradient/i.test(css), 'Accent CSS nie wzmacnia zaznaczonego checkboxa', { css });
+      }),
+
+
+      makeTest('UI i styl', 'Zaznaczona karta materiału ma zieloną ramkę i zielonkawy cień jak karta wyboru trybu', 'Sprawdza, czy karta materiału z aktywnym wyborem używa takiego samego języka zaznaczenia jak zaakceptowane karty wyboru w innych modalach ROZRYS.', ()=>{
+        const css = readAssetSource('css/rozrys-reference-sync.css');
+        assert(/\.rozrys-picker-option\{[\s\S]*padding:\s*17px 18px/i.test(css), 'Karta materiału nie ma jeszcze obniżonego pionowo paddingu 17/18 dla lepszego fitu na telefonie', { css });
+        assert(/\.rozrys-picker-option\.has-selection[\s\S]*border-color:\s*#16a34a/i.test(css), 'Karta materiału z aktywnym wyborem nie dostaje zielonej ramki', { css });
+        assert(/\.rozrys-picker-card:has\(.rozrys-scope-chip input\[type='checkbox'\]:checked\)\{[\s\S]*0 0 0 1px rgba\(34,197,94,.34\)[\s\S]*rgba\(74,222,128,.18\)/i.test(css), 'Karta materiału z aktywnym wyborem nie dostaje zielonkawego cienia jak zaakceptowany wzorzec', { css });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{

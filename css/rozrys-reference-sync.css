@@ -213,7 +213,7 @@
 .rozrys-choice-option.is-selected,
 .rozrys-picker-option.is-selected{
   border-color:#16a34a;
-  box-shadow:2px 3px 0 rgba(20,83,45,.14), 5px 10px 18px rgba(74,222,128,.18);
+  box-shadow:0 0 0 1px rgba(34,197,94,.34), 2px 3px 0 rgba(20,83,45,.14), 5px 10px 18px rgba(74,222,128,.18);
 }
 .rozrys-choice-option__title,
 .rozrys-picker-option__title{
@@ -411,8 +411,8 @@
   .rozrys-choice-option__subtitle,
   .rozrys-picker-option__subtitle{font-size:13px;}
   .rozrys-choice-option,
-  .rozrys-picker-option,
   .rozrys-grain-exception-row{border-radius:18px;padding:16px 16px;}
+  .rozrys-picker-option{border-radius:18px;padding:15px 16px;}
   .rozrys-panel-field{padding:0;border:0;border-radius:0;}
   .rozrys-choice-modal__header{padding:18px 18px;}
   .rozrys-choice-modal__body{padding:18px 18px 20px;}
@@ -442,6 +442,7 @@
 
 /* --- ROZRYS picker polish: stable selected cards + X-like tiles --- */
 .rozrys-picker-option{
+  padding:17px 18px;
   border-width:2px;
   border-radius:14px;
   background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
@@ -459,13 +460,13 @@
 .rozrys-picker-option.is-selected,
 .rozrys-picker-card:has(.rozrys-scope-chip input[type='checkbox']:checked){
   border-color:#16a34a;
-  box-shadow:0 0 0 1px rgba(34,197,94,.30), 2px 3px 0 rgba(15,23,42,.12), 5px 10px 18px rgba(148,163,184,.14);
+  box-shadow:0 0 0 1px rgba(34,197,94,.34), 2px 3px 0 rgba(20,83,45,.14), 5px 10px 18px rgba(74,222,128,.18);
 }
 .rozrys-picker-option.has-selection::before,
 .rozrys-picker-option.is-selected::before,
 .rozrys-picker-card:has(.rozrys-scope-chip input[type='checkbox']:checked)::before{
   opacity:1;
-  box-shadow:0 0 0 2px rgba(255,255,255,.68), 0 0 0 4px rgba(34,197,94,.14);
+  box-shadow:0 0 0 2px rgba(255,255,255,.72), 0 0 0 4px rgba(34,197,94,.16);
 }
 .rozrys-scope-chip,
 .rozrys-inline-exceptions-btn,
@@ -475,8 +476,8 @@
 .rozrys-scope-chip{
   border-width:2px;
   border-radius:14px;
-  min-height:46px;
-  padding:11px 12px 11px 11px;
+  min-height:44px;
+  padding:10px 12px 10px 10px;
 }
 .rozrys-scope-chip.is-checked,
 .rozrys-scope-chip:has(input[type='checkbox']:checked){
@@ -487,4 +488,10 @@
 .rozrys-scope-chip.is-checked span,
 .rozrys-scope-chip:has(input[type='checkbox']:checked) span{
   color:#0f172a;
+}
+
+@media (max-width: 640px){
+  .rozrys-picker-option{
+    padding:15px 16px;
+  }
 }
