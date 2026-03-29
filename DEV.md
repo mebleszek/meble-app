@@ -26,6 +26,11 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-03-29 — checkbox_chip_visual_v1
+- `css/rozrys-checkbox-chip-visual.css` — nowy moduł wizualny dla wszystkich chipów checkbox w ROZRYS; ustawia bardziej wyrazisty, docelowy wygląd zgodny z referencyjnymi screenami: wyraźniejszy lift, mocniejszy checkbox i tylko dwa stany (`startowy/odznaczony` oraz `zaznaczony`).
+- `index.html` — dopięty nowy moduł CSS i podbity cache-busting dla nowego pakietu wizualnego chipów.
+- `js/testing/rozrys/tests.js` + `dev_tests.html` — zaktualizowany test anty-regresyjny, który pilnuje obecności modułu visual tune i docelowego, bardziej wyrazistego wzorca checkbox/chip.
+
 ### 2026-03-29 — material_scope_chip_sync_v1
 - `css/rozrys-scope-chip-room-sync.css` — nowy, mały moduł CSS tylko do synchronizacji zachowania małych kafelków `Fronty/Korpusy` w pickerze `Materiał / grupa` z wzorcem kafelków wyboru pomieszczeń; usuwa zieloną ramkę / zielony tekst z małego kafelka i zostawia tylko niebieski stan samego checkboxa.
 - `css/rozrys-checkbox-chip-pattern.css` — wspólny wzorzec checkbox/chip dla ROZRYS z wariantem dużym; używany do kafelków wyboru pomieszczeń, żeby trzymały ten sam język wizualny co małe chipy `Fronty/Korpusy`.
