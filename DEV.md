@@ -788,3 +788,5 @@ Dopiero potem go zmieniać.
 - 2026-03-29: Wybór materiału zsynchronizowany dokładniej z modalem `Szybkość liczenia`: osobny moduł `css/rozrys-picker-exact-sync.css` pilnuje rytmu pola kart (gap 12px, prawy gutter na scrollbar, dolny zapas 20px) oraz pionowego wyśrodkowania stopki akcji.
 
 - 2026-03-30: Picker materiału i pomieszczeń — stopka akcji dostała większy, spokojniejszy oddech (60px / mobile 58px, padding 6px 0 8px), żeby pionowe osadzenie dolnych przycisków było bliżej rytmu strefy górnego przycisku X.
+
+- 2026-03-30: Picker footer spacing now follows the exact close-button math from the modal header shell (desktop 20px/20px, mobile 18px/18px) so bottom action buttons inherit the same vertical breathing as the top X.
