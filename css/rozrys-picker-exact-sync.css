@@ -20,8 +20,8 @@
   display:flex;
   justify-content:flex-end;
   align-items:center;
-  min-height:56px;
-  padding:0 0 2px;
+  min-height:60px;
+  padding:6px 0 8px;
 }
 
 .rozrys-picker-footer-actions{
@@ -38,7 +38,7 @@
     padding:0 10px 20px 0;
   }
   .rozrys-picker-footer{
-    min-height:54px;
-    padding:0 0 2px;
+    min-height:58px;
+    padding:6px 0 8px;
   }
 }

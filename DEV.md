@@ -786,3 +786,5 @@ Dopiero potem go zmieniać.
 - 2026-03-29: `site_material_picker_scroll_gutter.zip` — W `Wybierz materiał / grupę` lista dużych kart dostała prawy gutter (`padding-right`) i `scrollbar-gutter: stable`, żeby pionowy scroll nie nachodził już na prawą ramkę kart; test anty-regresyjny pilnuje teraz także tego zapasu pod scrollbar.
 
 - 2026-03-29: Wybór materiału zsynchronizowany dokładniej z modalem `Szybkość liczenia`: osobny moduł `css/rozrys-picker-exact-sync.css` pilnuje rytmu pola kart (gap 12px, prawy gutter na scrollbar, dolny zapas 20px) oraz pionowego wyśrodkowania stopki akcji.
+
+- 2026-03-30: Picker materiału i pomieszczeń — stopka akcji dostała większy, spokojniejszy oddech (60px / mobile 58px, padding 6px 0 8px), żeby pionowe osadzenie dolnych przycisków było bliżej rytmu strefy górnego przycisku X.

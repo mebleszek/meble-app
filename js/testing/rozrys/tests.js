@@ -341,7 +341,7 @@
         assert(/\.rozrys-picker-card:has\(.rozrys-scope-chip input\[type='checkbox'\]:checked\)::before\{[\s\S]*opacity:\s*0[\s\S]*box-shadow:\s*none/i.test(css), 'Zaznaczona karta materiału nadal dokłada dodatkową zieloną poświatę zamiast czystej ramki jak w wyborze trybu', { css });
         assert(/\.rozrys-picker-modal\{[\s\S]*gap:\s*12px/i.test(syncCss), 'Kontener wyboru materiału nie zachował już tego samego rytmu 12px co modal wyboru trybu', { syncCss });
         assert(/\.rozrys-picker-list\{[\s\S]*gap:\s*12px[\s\S]*padding:\s*0 12px 20px 0[\s\S]*scrollbar-gutter:\s*stable/i.test(syncCss), 'Pole kart materiału nie ma jeszcze dokładnego rytmu 12px, dolnego zapasu 20px i prawego guttera na scrollbar', { syncCss });
-        assert(/\.rozrys-picker-footer\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*min-height:\s*56px/i.test(syncCss), 'Stopka wyboru materiału nie wyśrodkowuje jeszcze pionowo przycisków akcji albo nie ma własnego pola pod kartami', { syncCss });
+        assert(/\.rozrys-picker-footer\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*min-height:\s*60px[\s\S]*padding:\s*6px\s+0\s+8px/i.test(syncCss), 'Stopka wyboru materiału nie ma jeszcze tego samego spokojnego oddechu wokół przycisków akcji co górna strefa z przyciskiem X', { syncCss });
         assert(/\.rozrys-picker-footer-actions\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*10px/i.test(syncCss), 'Wewnętrzny rząd przycisków akcji nie zachował jeszcze wyśrodkowania i wspólnego rytmu 10px', { syncCss });
       }),
 
