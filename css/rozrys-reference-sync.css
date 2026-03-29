@@ -441,20 +441,27 @@
 
 
 /* --- ROZRYS picker polish: stable selected cards + X-like tiles --- */
+.rozrys-picker-list{
+  gap:12px;
+  padding:0 0 20px;
+}
+.rozrys-picker-footer{
+  margin-top:0;
+}
 .rozrys-picker-option{
-  padding:17px 18px;
-  border-width:2px;
-  border-radius:14px;
+  padding:18px 18px;
+  border-width:1.5px;
+  border-radius:20px;
   background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
-  box-shadow:2px 3px 0 rgba(15,23,42,.12), 4px 9px 16px rgba(148,163,184,.12);
+  box-shadow:2px 3px 0 rgba(15,23,42,.10), 4px 9px 16px rgba(148,163,184,.12);
   transition:border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
 }
 .rozrys-picker-option:hover{
-  box-shadow:2px 3px 0 rgba(15,23,42,.14), 5px 10px 18px rgba(148,163,184,.14);
+  box-shadow:2px 3px 0 rgba(15,23,42,.12), 5px 10px 18px rgba(148,163,184,.14);
 }
 .rozrys-picker-check,
 .rozrys-picker-card{
-  border-radius:14px;
+  border-radius:20px;
 }
 /* Standard zaznaczonej karty/okna w ROZRYS: ten sam odcień zielonej ramki i ten sam cień
    co zaakceptowany wzorzec z modala `Szybkość liczenia`. */
@@ -494,7 +501,16 @@
 }
 
 @media (max-width: 640px){
+  .rozrys-picker-list{
+    gap:12px;
+    padding:0 0 20px;
+  }
   .rozrys-picker-option{
-    padding:15px 16px;
+    padding:16px 16px;
+    border-radius:18px;
+  }
+  .rozrys-picker-check,
+  .rozrys-picker-card{
+    border-radius:18px;
   }
 }
