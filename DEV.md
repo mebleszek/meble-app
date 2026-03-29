@@ -779,3 +779,5 @@ Dopiero potem go zmieniać.
 - 2026-03-29: Checkbox-chip small variant tightened for mobile fit: base `.rozrys-scope-chip` reduced to `min-height:46px` with `padding:11px 12px 11px 11px` so three material cards fit better on narrow phone screens; large room-option variant unchanged.
 
 - 2026-03-29: checkbox-chip polish v2 — małe chipy ciaśniejsze (44px, 10/12/10/10), karty materiałów niższe o 1 px góra/dół i zaznaczone karty mają zieloną ramkę/cień jak wzorzec wyboru trybu; duże chipy pomieszczeń dostały taki sam promień narożników jak małe.
+
+- 2026-03-29: selected picker/material cards in ROZRYS now share the exact same green border and shadow tokens as the accepted `Szybkość liczenia` selected card; extra green halo overlay on selected material cards was removed.

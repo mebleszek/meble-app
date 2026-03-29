@@ -332,11 +332,11 @@
       }),
 
 
-      makeTest('UI i styl', 'Zaznaczona karta materiału ma zieloną ramkę i zielonkawy cień jak karta wyboru trybu', 'Sprawdza, czy karta materiału z aktywnym wyborem używa takiego samego języka zaznaczenia jak zaakceptowane karty wyboru w innych modalach ROZRYS.', ()=>{
+      makeTest('UI i styl', 'Zaznaczona karta materiału ma identyczną zieloną ramkę i cień jak karta wyboru trybu', 'Sprawdza, czy karta materiału z aktywnym wyborem używa dokładnie tego samego zielonego obramowania i tego samego cienia co zaakceptowany wzorzec z modala Szybkość liczenia.', ()=>{
         const css = readAssetSource('css/rozrys-reference-sync.css');
         assert(/\.rozrys-picker-option\{[\s\S]*padding:\s*17px 18px/i.test(css), 'Karta materiału nie ma jeszcze obniżonego pionowo paddingu 17/18 dla lepszego fitu na telefonie', { css });
-        assert(/\.rozrys-picker-option\.has-selection[\s\S]*border-color:\s*#16a34a/i.test(css), 'Karta materiału z aktywnym wyborem nie dostaje zielonej ramki', { css });
-        assert(/\.rozrys-picker-card:has\(.rozrys-scope-chip input\[type='checkbox'\]:checked\)\{[\s\S]*0 0 0 1px rgba\(34,197,94,.34\)[\s\S]*rgba\(74,222,128,.18\)/i.test(css), 'Karta materiału z aktywnym wyborem nie dostaje zielonkawego cienia jak zaakceptowany wzorzec', { css });
+        assert(/\.rozrys-choice-option\.is-selected,[\s\S]*\.rozrys-picker-option\.has-selection,[\s\S]*border-color:\s*#16a34a[\s\S]*0 0 0 1px rgba\(34,197,94,.34\), 2px 3px 0 rgba\(20,83,45,.14\), 5px 10px 18px rgba\(74,222,128,.18\)/i.test(css), 'Karty materiałów nie współdzielą już dokładnie tego samego zielonego border/shadow co wybór trybu', { css });
+        assert(/\.rozrys-picker-card:has\(.rozrys-scope-chip input\[type='checkbox'\]:checked\)::before\{[\s\S]*opacity:\s*0[\s\S]*box-shadow:\s*none/i.test(css), 'Zaznaczona karta materiału nadal dokłada dodatkową zieloną poświatę zamiast czystej ramki jak w wyborze trybu', { css });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
