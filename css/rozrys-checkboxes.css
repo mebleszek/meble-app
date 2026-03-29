@@ -96,3 +96,53 @@
 .rozrys-scope-chip{
   gap:10px;
 }
+
+
+.rozrys-picker-check,
+.rozrys-scope-chip{
+  -webkit-tap-highlight-color:transparent;
+  tap-highlight-color:transparent;
+  touch-action:manipulation;
+  position:relative;
+  isolation:isolate;
+  user-select:none;
+}
+
+.rozrys-picker-check::before,
+.rozrys-scope-chip::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.08));
+  box-shadow:0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(226,232,240,0);
+  transition:opacity .14s ease, box-shadow .14s ease;
+  z-index:0;
+}
+
+.rozrys-picker-check:focus-within::before,
+.rozrys-picker-check:active::before,
+.rozrys-scope-chip:focus-within::before,
+.rozrys-scope-chip:active::before{
+  opacity:1;
+  box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
+}
+
+.rozrys-picker-check > *,
+.rozrys-scope-chip > *{
+  position:relative;
+  z-index:1;
+}
+
+.rozrys-picker-check *,
+.rozrys-scope-chip *{
+  -webkit-tap-highlight-color:transparent;
+  tap-highlight-color:transparent;
+}
+
+.rozrys-picker-check input[type='checkbox'],
+.rozrys-scope-chip input[type='checkbox']{
+  pointer-events:none;
+}

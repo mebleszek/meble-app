@@ -722,3 +722,9 @@ Dopiero potem go zmieniać.
 - First target: `Materiał / grupa` modal, with shared ROZRYS checkbox styling available for other ROZRYS pickers.
 
 - 2026-03-29: `site_rozrys_checkbox_press_fix.zip` — usunięty systemowy niebieski highlight checkboxów w ROZRYS; checkboxy dostały własny efekt naciśnięcia w stylu przycisków ROZRYS (biały, zaokrąglony press/focus ring), bez zmiany logiki zaznaczania.
+
+## 2026-03-29 — Paczka: ROZRYS checkbox press fix v3
+- Naprawa systemowego niebieskiego highlightu przy checkboxach w ROZRYS.
+- Źródłem problemu był nie tylko sam checkbox, ale też otaczające go label/chip/card.
+- Wygaszono tap highlight na wrapperach i przeniesiono efekt naciśnięcia na cały chip/card w stylu przycisków ROZRYS.
+- Checkbox wewnątrz chipa ma pointer-events:none, żeby klik przechodził przez wrapper bez systemowego efektu.
