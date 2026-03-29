@@ -466,13 +466,17 @@
 .rozrys-picker-option.is-selected,
 .rozrys-picker-card:has(.rozrys-scope-chip input[type='checkbox']:checked){
   border-color:#16a34a;
-  box-shadow:0 0 0 1px rgba(34,197,94,.30), 2px 3px 0 rgba(15,23,42,.12), 5px 10px 18px rgba(148,163,184,.14);
+  box-shadow:
+    0 0 0 1px rgba(34,197,94,.28),
+    2px 3px 0 rgba(15,23,42,.10),
+    0 10px 22px rgba(74,222,128,.18),
+    0 18px 34px rgba(148,163,184,.10);
 }
 .rozrys-picker-option.has-selection::before,
 .rozrys-picker-option.is-selected::before,
 .rozrys-picker-card:has(.rozrys-scope-chip input[type='checkbox']:checked)::before{
   opacity:1;
-  box-shadow:0 0 0 2px rgba(255,255,255,.68), 0 0 0 4px rgba(34,197,94,.14);
+  box-shadow:0 0 0 2px rgba(255,255,255,.70), 0 0 0 4px rgba(34,197,94,.12);
 }
 .rozrys-scope-chip,
 .rozrys-inline-exceptions-btn,
@@ -487,11 +491,16 @@
 }
 .rozrys-scope-chip.is-checked,
 .rozrys-scope-chip:has(input[type='checkbox']:checked){
-  border-color:#16a34a;
-  box-shadow:0 0 0 1px rgba(34,197,94,.30), 2px 3px 0 rgba(15,23,42,.12), 5px 10px 18px rgba(148,163,184,.14);
-  background:linear-gradient(180deg,#ffffff 0%, #f2fbf5 100%);
+  border-color:rgba(15,23,42,.10);
+  box-shadow:2px 3px 0 rgba(15,23,42,.10), 4px 9px 16px rgba(148,163,184,.12);
+  background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
 }
 .rozrys-scope-chip.is-checked span,
 .rozrys-scope-chip:has(input[type='checkbox']:checked) span{
-  color:#14532d;
+  color:#0f172a;
+}
+.rozrys-scope-chip.is-checked::before,
+.rozrys-scope-chip:has(input[type='checkbox']:checked)::before{
+  opacity:1;
+  box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
 }

@@ -742,3 +742,9 @@ Dopiero potem go zmieniać.
 - Naprawiono natychmiastowe zaznaczanie aktywnej karty w `Materiał / grupa` po kliknięciu ptaszka.
 - Karty materiałów/pomieszczeń w pickerach dostały bardziej "X-like" styl: 14px radius, delikatny gradient, stabilny cień.
 - Chipy `Fronty` / `Korpusy` zachowują cień również po zaznaczeniu i pokazują stan aktywny bez gubienia obramowania karty.
+
+## 2026-03-29 — ROZRYS picker chips + selected card shadow refresh
+- Base: `site_rozrys_picker_stable_shadow_sync.zip`.
+- Fixed ROZRYS material-picker chips so checked `Fronty / Korpusy` chips no longer get a green selected border/ring; they now keep the neutral app-style button look and only use the white pressed/focus ring like other ROZRYS buttons.
+- Restored a larger, softer selected shadow on active material cards while keeping the green border, so the big picker cards regain the deeper highlight the user preferred.
+- Updated cache-busting for `css/rozrys-reference-sync.css`.
