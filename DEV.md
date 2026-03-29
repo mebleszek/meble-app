@@ -774,3 +774,5 @@ Dopiero potem go zmieniać.
 - 2026-03-29: room chip pattern v3 — picker pomieszczeń został przepięty na dokładnie bazowy markup scope-chip jak w Material / grupa (bez legacy `rozrys-picker-check`), a duży wariant dostał wygaszenie overlay focus/active, żeby po kliknięciu nie zostawał grubszy obrys. Zaktualizowano test anty-regresyjny i wersjonowanie assetów.
 
 - 2026-03-29: Checkbox/chip buttons in ROZRYS now use a strict two-state visual model (base/unchecked = same as after uncheck, checked = selected). Mobile sticky-hover regression for room picker chips was fixed by gating hover styles to real hover devices and zeroing chip focus overlays.
+
+- 2026-03-29: Checkbox-chip proportions tuned in ROZRYS. Small chips now use 12px vertical padding with unchanged horizontal offset; room-picker chips use 16px vertical padding with a 24px inner row minimum so top/bottom spacing matches the left checkbox gutter without moving the checkbox right.

@@ -7,8 +7,8 @@
   width:100%;
   display:flex;
   align-items:stretch;
-  min-height:72px;
-  padding:14px 16px;
+  min-height:56px;
+  padding:16px 16px;
   border-radius:24px;
   gap:0;
   border-color:#dbe7f3;
@@ -21,7 +21,7 @@
   display:flex;
   align-items:center;
   gap:14px;
-  min-height:38px;
+  min-height:24px;
 }
 
 .rozrys-scope-chip--room-option .rozrys-room-chip__label{
@@ -63,8 +63,8 @@
 
 @media (max-width:700px){
   .rozrys-scope-chip--room-option{
-    min-height:68px;
-    padding:13px 14px;
+    min-height:52px;
+    padding:14px 14px;
   }
 
   .rozrys-scope-chip--room-option .rozrys-room-chip__label{
