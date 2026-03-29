@@ -124,16 +124,52 @@
 }
 .rozrys-choice-option,
 .rozrys-picker-option{
+  -webkit-tap-highlight-color:transparent;
+  tap-highlight-color:transparent;
+  touch-action:manipulation;
+  user-select:none;
+  position:relative;
+  isolation:isolate;
   border:1.5px solid rgba(15,23,42,.12);
   border-radius:20px;
   padding:18px 18px;
   background:#fff;
   box-shadow:0 6px 18px rgba(15,23,42,.05);
 }
+.rozrys-choice-option::before,
+.rozrys-picker-option::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.08));
+  box-shadow:0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(226,232,240,0);
+  transition:opacity .14s ease, box-shadow .14s ease;
+  z-index:0;
+}
+.rozrys-choice-option > *,
+.rozrys-picker-option > *{
+  position:relative;
+  z-index:1;
+}
+.rozrys-choice-option *,
+.rozrys-picker-option *{
+  -webkit-tap-highlight-color:transparent;
+  tap-highlight-color:transparent;
+}
 .rozrys-choice-option:hover,
 .rozrys-picker-option:hover{
   transform:none;
   box-shadow:0 10px 24px rgba(15,23,42,.08);
+}
+.rozrys-choice-option:active::before,
+.rozrys-choice-option:focus-within::before,
+.rozrys-picker-option:active::before,
+.rozrys-picker-option:focus-within::before{
+  opacity:1;
+  box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
 }
 .rozrys-choice-option.is-selected,
 .rozrys-picker-option.is-selected{

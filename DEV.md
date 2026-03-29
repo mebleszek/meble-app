@@ -728,3 +728,4 @@ Dopiero potem go zmieniać.
 - Źródłem problemu był nie tylko sam checkbox, ale też otaczające go label/chip/card.
 - Wygaszono tap highlight na wrapperach i przeniesiono efekt naciśnięcia na cały chip/card w stylu przycisków ROZRYS.
 - Checkbox wewnątrz chipa ma pointer-events:none, żeby klik przechodził przez wrapper bez systemowego efektu.
+- 2026-03-29: Fix press/highlight for material cards in `Wybierz materiał / grupę` by disabling system tap highlight on the whole picker card and adding the same white rounded press ring direction used elsewhere in ROZRYS.
