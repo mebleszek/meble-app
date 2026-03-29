@@ -790,3 +790,5 @@ Dopiero potem go zmieniać.
 - 2026-03-30: Picker materiału i pomieszczeń — stopka akcji dostała większy, spokojniejszy oddech (60px / mobile 58px, padding 6px 0 8px), żeby pionowe osadzenie dolnych przycisków było bliżej rytmu strefy górnego przycisku X.
 
 - 2026-03-30: Picker footer spacing now follows the exact close-button math from the modal header shell (desktop 20px/20px, mobile 18px/18px) so bottom action buttons inherit the same vertical breathing as the top X.
+
+- 2026-03-30: Picker footer spacing fix — removed extra picker-level gap and footer padding so bottom action buttons no longer create an oversized empty band below the card list; the list keeps the 20px shadow breathing and the modal body keeps the outer bottom breathing.
