@@ -768,7 +768,8 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       <option value="dokladnie">Dokładnie</option>
       <option value="max" selected>MAX</option>
     `;
-    const heurBtn = createChoiceLauncher(getSelectOptionLabel(heurSel), 'Kliknij, aby wybrać');
+    const heurBtn = createChoiceLauncher(getSelectOptionLabel(heurSel), '');
+    heurBtn.classList.add('rozrys-choice-launch--compact');
     heurBtn.addEventListener('click', async ()=>{
       const picked = await openRozrysChoiceOverlay({
         title:'Szybkość liczenia',
@@ -781,7 +782,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       });
       if(picked == null || picked === heurSel.value) return;
       heurSel.value = picked;
-      setChoiceLaunchValue(heurBtn, getSelectOptionLabel(heurSel), 'Kliknij, aby zmienić');
+      setChoiceLaunchValue(heurBtn, getSelectOptionLabel(heurSel), '');
       heurSel.dispatchEvent(new Event('change', { bubbles:true }));
     });
     heurWrap.appendChild(heurBtn);
@@ -796,7 +797,8 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       <option value="start-across">Pierwsze pasy w poprzek</option>
       <option value="start-optimax" selected>Opti-max</option>
     `;
-    const dirBtn = createChoiceLauncher(getSelectOptionLabel(dirSel), 'Kliknij, aby wybrać');
+    const dirBtn = createChoiceLauncher(getSelectOptionLabel(dirSel), '');
+    dirBtn.classList.add('rozrys-choice-launch--compact');
     dirBtn.addEventListener('click', async ()=>{
       const picked = await openRozrysChoiceOverlay({
         title:'Kierunek cięcia',
@@ -809,7 +811,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       });
       if(picked == null || picked === dirSel.value) return;
       dirSel.value = picked;
-      setChoiceLaunchValue(dirBtn, getSelectOptionLabel(dirSel), 'Kliknij, aby zmienić');
+      setChoiceLaunchValue(dirBtn, getSelectOptionLabel(dirSel), '');
       dirSel.dispatchEvent(new Event('change', { bubbles:true }));
     });
     dirWrap.appendChild(dirBtn);

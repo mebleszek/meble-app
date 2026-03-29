@@ -61,6 +61,50 @@
   font-size:20px;
 }
 
+#rozrysRoot .rozrys-choice-launch__arrow,
+.panel-box .rozrys-choice-launch__arrow{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:34px;
+  width:34px;
+  height:34px;
+  border:2px solid rgba(15,23,42,.14);
+  border-radius:12px;
+  background:#f8fafc;
+  box-shadow:2px 3px 0 rgba(15,23,42,.06);
+  color:transparent;
+  font-size:0;
+  position:relative;
+}
+#rozrysRoot .rozrys-choice-launch__arrow::before,
+.panel-box .rozrys-choice-launch__arrow::before{
+  content:'';
+  width:8px;
+  height:8px;
+  border-right:3px solid #475569;
+  border-bottom:3px solid #475569;
+  transform:rotate(45deg) translateY(-1px);
+  display:block;
+}
+#rozrysRoot .rozrys-choice-launch--compact,
+.panel-box .rozrys-choice-launch--compact{
+  min-height:64px;
+}
+#rozrysRoot .rozrys-choice-launch--compact .rozrys-choice-launch__value,
+.panel-box .rozrys-choice-launch--compact .rozrys-choice-launch__value{
+  gap:0;
+}
+#rozrysRoot .rozrys-choice-launch--compact .rozrys-choice-launch__meta,
+.panel-box .rozrys-choice-launch--compact .rozrys-choice-launch__meta{
+  display:none !important;
+}
+#rozrysRoot .rozrys-choice-launch--compact .rozrys-choice-launch__label,
+.panel-box .rozrys-choice-launch--compact .rozrys-choice-launch__label{
+  font-size:20px;
+  line-height:1.08;
+}
+
 .rozrys-choice-modal{
   border:1px solid #e5edf5;
   border-radius:24px;
