@@ -459,7 +459,7 @@ function aggregatePartsForProject(selectedRooms){
       return;
     }
     if(FC.panelBox && typeof FC.panelBox.open === 'function'){
-      FC.panelBox.open({ title: boxTitle, message: boxMessage, width:'560px' });
+      FC.panelBox.open({ title: boxTitle, message: boxMessage, width:'560px', boxClass:'panel-box--rozrys' });
       return;
     }
     console.warn('[ROZRYS]', boxTitle, boxMessage);
@@ -523,7 +523,7 @@ function aggregatePartsForProject(selectedRooms){
       actions.appendChild(cancelBtn);
       actions.appendChild(confirmBtn);
       body.appendChild(actions);
-      FC.panelBox.open({ title:String(cfg.title || 'POTWIERDZENIE'), contentNode: body, width:'560px', dismissOnOverlay:false, dismissOnEsc:true });
+      FC.panelBox.open({ title:String(cfg.title || 'POTWIERDZENIE'), contentNode: body, width:'560px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true });
     });
   }
 

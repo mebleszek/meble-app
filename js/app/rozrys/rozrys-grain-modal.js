@@ -102,7 +102,7 @@
       try{ cfg.panelBox.close(); }catch(_){ }
       if(typeof ctx.tryAutoRenderFromCache === 'function') ctx.tryAutoRenderFromCache();
     });
-    cfg.panelBox.open({ title:`Wyjątki słojów — ${material}`, contentNode: body, width:'760px', dismissOnOverlay:false, beforeClose: ()=> confirmDiscardIfDirty() });
+    cfg.panelBox.open({ title:`Wyjątki słojów — ${material}`, contentNode: body, width:'760px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, beforeClose: ()=> confirmDiscardIfDirty() });
   }
 
   FC.rozrysGrainModal = { openMaterialGrainExceptions };

@@ -117,6 +117,7 @@
       title:'Wybierz pomieszczenia',
       contentNode: body,
       width:'820px',
+      boxClass:'panel-box--rozrys',
       dismissOnOverlay:false,
       beforeClose: ()=> isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
         title:'ANULOWAĆ ZMIANY?',
@@ -197,12 +198,23 @@
       renderFooterActions();
     }
 
-    function markSelected(){
-      cards.forEach(({ node, config })=>{
-        const active = hasDraftSelection() && draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material);
-        node.classList.toggle('is-selected', active);
-      });
+    function syncDraftFromCards(preferredKey){
+      const preferred = preferredKey ? cards.find((entry)=> entry.key === preferredKey && (entry.localScope.includeFronts || entry.localScope.includeCorpus)) : null;
+      const activeEntry = preferred || cards.find((entry)=> entry.localScope.includeFronts || entry.localScope.includeCorpus) || null;
+      if(activeEntry){
+        setDraftScope(activeEntry.config, activeEntry.localScope);
+      }else{
+        draftScope.kind = 'all';
+        draftScope.material = '';
+        draftScope.includeFronts = false;
+        draftScope.includeCorpus = false;
+      }
+      cards.forEach((entry)=> entry.node.classList.toggle('is-selected', !!activeEntry && entry.key === activeEntry.key));
       updateFooterState();
+    }
+
+    function markSelected(preferredKey){
+      syncDraftFromCards(preferredKey);
     }
 
     const clearOtherSelections = (exceptKey)=>{
@@ -252,22 +264,17 @@
         onChange: ()=>{
           if(localScope.includeFronts || localScope.includeCorpus){
             clearOtherSelections(key);
-            setDraftScope(config, localScope);
-          }else if(draftScope.kind === config.kind && (config.kind !== 'material' || draftScope.material === config.material)){
-            draftScope.kind = 'all';
-            draftScope.material = '';
-            draftScope.includeFronts = false;
-            draftScope.includeCorpus = false;
+            syncDraftFromCards(key);
+          }else{
+            syncDraftFromCards();
           }
-          markSelected();
         }
       });
       scopeHolder.addEventListener('click', (e)=> e.stopPropagation());
       cardNode.addEventListener('click', ()=>{
         if(!localScope.includeFronts && !localScope.includeCorpus) return;
         clearOtherSelections(key);
-        setDraftScope(config, localScope);
-        markSelected();
+        syncDraftFromCards(key);
       });
       cardNode.appendChild(scopeHolder);
       cards.push({ key, node: cardNode, config, localScope, scopeHolder });
@@ -332,6 +339,7 @@
       title:'Wybierz materiał / grupę',
       contentNode: body,
       width:'980px',
+      boxClass:'panel-box--rozrys',
       dismissOnOverlay:false,
       beforeClose: ()=> isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
         title:'ANULOWAĆ ZMIANY?',

@@ -71,7 +71,7 @@
     })), unit, 'validation', cfg.mmToUnitStr));
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Walidacja rozrysu' }));
     body.appendChild(lists.buildListTable(diag.validation.rows, unit, 'validation', cfg.mmToUnitStr));
-    FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px' });
+    FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px', boxClass:'panel-box--rozrys' });
   }
 
   function openSheetListModal(material, sheetTitle, rows, unit, deps){
@@ -81,7 +81,7 @@
     const body = h('div');
     body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Formatki pogrupowane dla tego arkusza.' }));
     body.appendChild(lists.buildListTable(rows || [], unit, 'sheet', cfg.mmToUnitStr));
-    FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px' });
+    FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px', boxClass:'panel-box--rozrys' });
   }
 
   FC.rozrysSummary = {

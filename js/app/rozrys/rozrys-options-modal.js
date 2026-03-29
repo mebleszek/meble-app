@@ -278,6 +278,7 @@
       title:'Opcje rozkroju',
       contentNode: body,
       width:'860px',
+      boxClass:'panel-box--rozrys',
       dismissOnOverlay:false,
       beforeClose: ()=> confirmDiscardIfDirty()
     });

@@ -196,6 +196,7 @@
       title:'Dodaj płytę do magazynu',
       contentNode: body,
       width:'640px',
+      boxClass:'panel-box--rozrys',
       dismissOnOverlay:false,
       beforeClose: ()=> isDirty() ? confirmDiscard() : true
     });

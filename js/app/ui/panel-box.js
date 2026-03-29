@@ -46,6 +46,15 @@
     const closeBtn = el('button', { type:'button', class:'panel-box__close', 'aria-label':'Zamknij', text:'×' });
     const body = el('div', { class:'panel-box__body' });
 
+    const applyClasses = (node, value)=>{
+      if(!node || value == null) return;
+      String(value).split(/\s+/).map((token)=> token.trim()).filter(Boolean).forEach((token)=> node.classList.add(token));
+    };
+    applyClasses(overlay, opts.overlayClass);
+    applyClasses(box, opts.boxClass);
+    applyClasses(head, opts.headClass);
+    applyClasses(body, opts.bodyClass);
+
     if(opts.contentNode instanceof Node){
       try{
         if(opts.contentNode.classList && opts.contentNode.classList.contains('panel-box-form')){

@@ -729,3 +729,10 @@ Dopiero potem go zmieniać.
 - Wygaszono tap highlight na wrapperach i przeniesiono efekt naciśnięcia na cały chip/card w stylu przycisków ROZRYS.
 - Checkbox wewnątrz chipa ma pointer-events:none, żeby klik przechodził przez wrapper bez systemowego efektu.
 - 2026-03-29: Fix press/highlight for material cards in `Wybierz materiał / grupę` by disabling system tap highlight on the whole picker card and adding the same white rounded press ring direction used elsewhere in ROZRYS.
+
+
+## 2026-03-29 — ROZRYS visual polish (active picker stability + shadows + gradient headers)
+- Stabilized active green frame in Material / group picker by deriving selected card from actual local scope chips.
+- Added panel-box boxClass support and marked ROZRYS panel-box modals with `panel-box--rozrys`.
+- Added ROZRYS-only gradient underline treatment for section labels and ROZRYS modal titles.
+- Added button-like shadows to picker chips/buttons and close X buttons in ROZRYS.
