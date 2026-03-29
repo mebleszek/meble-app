@@ -3,8 +3,9 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  function h(tag, attrs, children){
-    const el = document.createElement(tag);
+  function h(tag, attrs, children, doc){
+    const resolvedDoc = doc && typeof doc.createElement === 'function' ? doc : document;
+    const el = resolvedDoc.createElement(tag);
     if(attrs){
       for(const k in attrs){
         if(k === 'class') el.className = attrs[k];
@@ -26,12 +27,13 @@
       roomLabel:null,
       askConfirm:null,
       refreshSelectionState:null,
+      doc:null,
     }, deps || {});
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const currentRooms = typeof cfg.getSelectedRooms === 'function' ? cfg.getSelectedRooms() : [];
     const draft = new Set(Array.isArray(currentRooms) ? currentRooms : []);
-    const body = h('div', { class:'rozrys-picker-modal' });
-    const list = h('div', { class:'rozrys-picker-list' });
+    const body = h('div', { class:'rozrys-picker-modal' }, null, cfg.doc);
+    const list = h('div', { class:'rozrys-picker-list' }, null, cfg.doc);
     const checkboxes = [];
     const normalizeRoomSelection = typeof cfg.normalizeRoomSelection === 'function'
       ? cfg.normalizeRoomSelection
@@ -44,10 +46,10 @@
     const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
 
     getRooms().forEach((room)=>{
-      const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check rozrys-picker-check--checkbox-chip rozrys-checkbox-chip rozrys-checkbox-chip--large' });
-      const top = h('div', { class:'rozrys-picker-check__top' });
-      const cb = h('input', { type:'checkbox' });
-      const titleNode = h('div', { class:'rozrys-picker-option__title rozrys-checkbox-chip__label', text:roomLabel(room) });
+      const cardNode = h('label', { class:'rozrys-picker-check rozrys-picker-check--checkbox-chip rozrys-scope-chip rozrys-scope-chip--room-match rozrys-scope-chip--room-option' }, null, cfg.doc);
+      const top = h('div', { class:'rozrys-picker-check__top' }, null, cfg.doc);
+      const cb = h('input', { type:'checkbox' }, null, cfg.doc);
+      const titleNode = h('div', { class:'rozrys-room-chip__label', text:roomLabel(room) }, null, cfg.doc);
       const syncCardState = ()=> cardNode.classList.toggle('is-checked', !!cb.checked);
       cb.checked = draft.has(room);
       syncCardState();
@@ -65,12 +67,12 @@
     });
     body.appendChild(list);
 
-    const footer = h('div', { class:'rozrys-picker-footer' });
-    const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' });
-    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
-    const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
-    const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
-    const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+    const footer = h('div', { class:'rozrys-picker-footer' }, null, cfg.doc);
+    const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' }, null, cfg.doc);
+    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' }, null, cfg.doc);
+    const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' }, null, cfg.doc);
+    const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' }, null, cfg.doc);
+    const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' }, null, cfg.doc);
 
     function renderFooterActions(){
       actionWrap.innerHTML = '';
@@ -151,8 +153,8 @@
     }, deps || {});
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const agg = cfg.aggregate || { materials:[], groups:{} };
-    const body = h('div', { class:'rozrys-picker-modal' });
-    const list = h('div', { class:'rozrys-picker-list' });
+    const body = h('div', { class:'rozrys-picker-modal' }, null, cfg.doc);
+    const list = h('div', { class:'rozrys-picker-list' }, null, cfg.doc);
     const makeMaterialScope = typeof cfg.makeMaterialScope === 'function'
       ? cfg.makeMaterialScope
       : (scope)=> Object.assign({ kind:'all', material:'', includeFronts:false, includeCorpus:false }, scope || {});

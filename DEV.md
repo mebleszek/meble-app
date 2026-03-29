@@ -761,3 +761,6 @@ Dopiero potem go zmieniać.
 - `js/app/rozrys/rozrys-pickers.js` nadaje teraz kafelkom pomieszczeń klasy `rozrys-checkbox-chip rozrys-checkbox-chip--large` i utrzymuje `is-checked` zgodnie z realnym stanem checkboxa.
 - Nowy wzorzec zachowuje neutralny kafelek i nie przenosi zielonej ramki na całe zaznaczone pole; stan zaznaczenia komunikuje głównie checkbox i spójny chipowy kształt.
 - Smoke/testy dostały anty-regresję sprawdzającą render dużego checkbox-chipa pomieszczeń oraz obecność neutralnego pattern CSS.
+
+
+- 2026-03-29: room picker now uses large scope-chip pattern based on the material Fronty/Korpusy chips; browser dev tests inject a fake document through deps instead of mutating window.document.

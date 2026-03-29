@@ -272,12 +272,11 @@
         assert(/color:\s*inherit/i.test(css), 'Sync CSS nie przywraca neutralnego koloru tekstu', { css });
       }),
 
-      makeTest('UI i styl', 'Picker pomieszczeń używa dużego wariantu wzorca checkbox-chip', 'Sprawdza, czy opcje Kuchnia/Szafa/Pokój/Łazienka renderują się jako duży checkbox-chip w tym samym języku wizualnym co Fronty/Korpusy.', ()=>{
+      makeTest('UI i styl', 'Picker pomieszczeń używa dużego wariantu stylu scope-chip z bezpiecznym wstrzyknięciem document', 'Sprawdza, czy opcje Kuchnia/Szafa/Pokój/Łazienka renderują się jako duży wariant tego samego stylu scope-chip co Fronty/Korpusy i czy test nie mutuje window.document.', ()=>{
         assert(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function', 'Brak FC.rozrysPickers.openRoomsPicker');
-        const prevDocument = host.document;
         const prevPanelBox = FC.panelBox;
         const opened = [];
-        host.document = { createElement:(tag)=> createFakeNode(tag, {}) };
+        const fakeDoc = { createElement:(tag)=> createFakeNode(tag, {}) };
         FC.panelBox = {
           open(config){ opened.push(config); },
           close(){}
@@ -291,26 +290,27 @@
             roomLabel: (room)=> room === 'kuchnia' ? 'Kuchnia' : 'Szafa',
             refreshSelectionState: ()=> {},
             askConfirm: ()=> true,
+            doc: fakeDoc,
           });
         }finally{
-          host.document = prevDocument;
           FC.panelBox = prevPanelBox;
         }
         assert(opened.length === 1, 'Picker pomieszczeń nie otworzył panel-boxa');
-        const chips = collectNodes(opened[0].contentNode, (node)=> node.classList && node.classList.contains('rozrys-checkbox-chip'));
-        assert(chips.length === 2, 'Picker pomieszczeń nie wyrenderował dwóch dużych checkbox-chipów', { count: chips.length });
+        const chips = collectNodes(opened[0].contentNode, (node)=> node.classList && node.classList.contains('rozrys-scope-chip--room-option'));
+        assert(chips.length === 2, 'Picker pomieszczeń nie wyrenderował dwóch dużych chipów pomieszczeń', { count: chips.length });
         chips.forEach((chip)=>{
-          assert(chip.classList.contains('rozrys-checkbox-chip--large'), 'Chip pomieszczenia nie dostał dużego wariantu stylu', { className: chip.className });
+          assert(chip.classList.contains('rozrys-scope-chip'), 'Chip pomieszczenia nie używa bazowego stylu scope-chip', { className: chip.className });
+          assert(chip.classList.contains('rozrys-scope-chip--room-match'), 'Chip pomieszczenia nie używa neutralnego stanu room-match', { className: chip.className });
           assert(chip.classList.contains('rozrys-picker-check--checkbox-chip'), 'Chip pomieszczenia nie dostał modifiera wzorca checkbox-chip', { className: chip.className });
         });
         assert(chips[0].classList.contains('is-checked'), 'Zaznaczone pomieszczenie nie dostaje klasy is-checked', { className: chips[0].className });
       }),
-      makeTest('UI i styl', 'CSS dużego checkbox-chipa pomieszczeń utrzymuje neutralny stan zaznaczenia', 'Sprawdza, czy wspólny wzorzec checkbox-chip dla dużego wariantu nie wprowadza zielonej ramki całego kafla i zachowuje neutralny, aplikacyjny wygląd.', ()=>{
+      makeTest('UI i styl', 'CSS dużego chipa pomieszczeń utrzymuje jaśniejszą ramkę domyślną i ciemniejszą po zaznaczeniu', 'Sprawdza, czy duży wariant stylu scope-chip dla pomieszczeń ma taki sam język wizualny jak Fronty/Korpusy: jaśniejsza ramka w stanie neutralnym i delikatnie ciemniejsza po zaznaczeniu, bez zielonej ramki całego kafla.', ()=>{
         const css = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
-        assert(css && css.includes('.rozrys-checkbox-chip--large'), 'Brak pliku albo wariantu large dla checkbox-chip pattern');
-        assert(/border:\s*2px solid #d6e2ee/i.test(css), 'Pattern CSS nie ustawia neutralnej ramki checkbox-chipa', { css });
-        assert(/\.rozrys-checkbox-chip\.is-checked[\s\S]*border-color:\s*#d6e2ee/i.test(css), 'Pattern CSS nie utrzymuje neutralnego stanu zaznaczenia dużego chipa', { css });
-        assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego checkbox-chipa zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
+        assert(css && css.includes('.rozrys-scope-chip--room-option'), 'Brak pliku albo wariantu room-option dla dużego chipa pomieszczeń');
+        assert(/\.rozrys-scope-chip--room-option,?[\s\S]*border-color:\s*#dbe7f3/i.test(css), 'Pattern CSS nie ustawia jaśniejszej domyślnej ramki dużego chipa pomieszczeń', { css });
+        assert(/\.rozrys-scope-chip--room-option\.is-checked[\s\S]*border-color:\s*#cfd8e3/i.test(css), 'Pattern CSS nie ustawia ciemniejszej ramki po zaznaczeniu dużego chipa pomieszczeń', { css });
+        assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego chipa pomieszczeń zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
