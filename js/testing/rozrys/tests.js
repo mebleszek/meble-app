@@ -315,6 +315,14 @@
         assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego chipa pomieszczeń zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
       }),
 
+      makeTest('UI i styl', 'Zaznaczony checkbox-chip dostaje delikatny lift i gradient bez trzeciego stanu', 'Sprawdza, czy nowy moduł akcentu wzmacnia tylko stan zaznaczony całego przycisku i samego checkboxa, bez zmiany bazowego stanu odznaczonego.', ()=>{
+        const css = readAssetSource('css/rozrys-checkbox-chip-selected-accent.css');
+        assert(css && css.includes('.rozrys-scope-chip.is-checked'), 'Brak pliku albo selektora akcentu zaznaczonego checkbox-chipa');
+        assert(/\.rozrys-scope-chip\.is-checked[\s\S]*linear-gradient/i.test(css), 'Accent CSS nie dodaje delikatnego gradientu całego zaznaczonego chipa', { css });
+        assert(/\.rozrys-scope-chip\.is-checked[\s\S]*0 0 0 1px/i.test(css), 'Accent CSS nie wzmacnia obrysu zaznaczonego chipa', { css });
+        assert(/input\[type='checkbox'\]:checked[\s\S]*linear-gradient/i.test(css), 'Accent CSS nie wzmacnia zaznaczonego checkboxa', { css });
+      }),
+
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

@@ -36,6 +36,7 @@ const context = {
   __DEV_ASSETS__: {
     'css/rozrys-scope-chip-room-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-scope-chip-room-sync.css'), 'utf8'),
     'css/rozrys-checkbox-chip-pattern.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-pattern.css'), 'utf8'),
+    'css/rozrys-checkbox-chip-selected-accent.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-selected-accent.css'), 'utf8'),
   },
 };
 context.window = context;
