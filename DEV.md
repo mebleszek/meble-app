@@ -712,3 +712,5 @@ Dopiero potem go zmieniać.
   - kept the single-field control frame as the main visual boundary inside ROZRYS option/add-stock dialogs
 - Result:
   - `Opcje rozkroju` and `Dodaj płytę do magazynu` no longer show a nested frame around already framed controls.
+
+- 2026-03-29: ROZRYS UI tweak — top label rows (Pomieszczenia / Materiał / grupa / Szybkość liczenia / Kierunek cięcia) lowered visually to align closer with the ? help triggers above the cards; no logic changes.
