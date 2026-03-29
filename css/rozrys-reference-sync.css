@@ -315,21 +315,21 @@
 }
 
 
-/* Main ROZRYS label rows: keep left aligned, but visually lower so they sit closer to the ? trigger level */
+/* Main ROZRYS label rows: keep left aligned and vertically align titles with the ? trigger */
 #rozrysRoot .rozrys-selection-grid .label-help,
 #rozrysRoot .rozrys-secondary-grid .label-help{
-  min-height:40px;
-  align-items:end;
-  padding-bottom:2px;
+  min-height:32px;
+  align-items:center;
+  padding-bottom:0;
 }
 #rozrysRoot .rozrys-selection-grid .label-help__text,
 #rozrysRoot .rozrys-secondary-grid .label-help__text{
   display:flex;
-  align-items:flex-end;
-  min-height:100%;
-  padding-bottom:2px;
+  align-items:center;
+  min-height:32px;
+  padding-bottom:0;
 }
 #rozrysRoot .rozrys-selection-grid .label-help .info-trigger,
 #rozrysRoot .rozrys-secondary-grid .label-help .info-trigger{
-  align-self:end;
+  align-self:center;
 }
