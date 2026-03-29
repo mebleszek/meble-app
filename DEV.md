@@ -743,4 +743,14 @@ Dopiero potem go zmieniać.
 - Karty materiałów/pomieszczeń w pickerach dostały bardziej "X-like" styl: 14px radius, delikatny gradient, stabilny cień.
 - Chipy `Fronty` / `Korpusy` zachowują cień również po zaznaczeniu i pokazują stan aktywny bez gubienia obramowania karty.
 
-- 2026-03-29: site_rozrys_header_gradient_field.zip — usunięto gradientowe paski pod tytułami w ROZRYS i pod etykietami sekcji; nagłówki okien ROZRYS dostały subtelne tło biały→szary z mocniejszym przejściem przy dolnych ~20%.
+## 2026-03-29 — ROZRYS picker chips + selected card shadow refresh
+- Base: `site_rozrys_picker_stable_shadow_sync.zip`.
+- Fixed ROZRYS material-picker chips so checked `Fronty / Korpusy` chips no longer get a green selected border/ring; they now keep the neutral app-style button look and only use the white pressed/focus ring like other ROZRYS buttons.
+- Restored a larger, softer selected shadow on active material cards while keeping the green border, so the big picker cards regain the deeper highlight the user preferred.
+- Updated cache-busting for `css/rozrys-reference-sync.css`.
+
+
+## 2026-03-29 — ROZRYS modal/material state sync
+- usunięto gradientowe paski pod tytułami ROZRYS i przywrócono gradientowe pole nagłówka okien ROZRYS
+- aktywne opcje w Szybkość liczenia / Kierunek cięcia oraz duże karty w Material / grupa mają cienką zieloną ramkę i delikatny zielony cień
+- małe chipy Fronty / Korpusy zachowują się jak zwykłe przyciski aplikacji, bez zielonej ramki
