@@ -44,18 +44,22 @@
     const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
 
     getRooms().forEach((room)=>{
-      const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check' });
+      const cardNode = h('label', { class:'rozrys-picker-option rozrys-picker-check rozrys-picker-check--checkbox-chip rozrys-checkbox-chip rozrys-checkbox-chip--large' });
       const top = h('div', { class:'rozrys-picker-check__top' });
       const cb = h('input', { type:'checkbox' });
+      const titleNode = h('div', { class:'rozrys-picker-option__title rozrys-checkbox-chip__label', text:roomLabel(room) });
+      const syncCardState = ()=> cardNode.classList.toggle('is-checked', !!cb.checked);
       cb.checked = draft.has(room);
-      checkboxes.push({ room, cb });
+      syncCardState();
+      checkboxes.push({ room, cb, syncCardState });
       cb.addEventListener('change', ()=>{
         if(cb.checked) draft.add(room);
         else draft.delete(room);
+        syncCardState();
         updateFooterState();
       });
       top.appendChild(cb);
-      top.appendChild(h('div', { class:'rozrys-picker-option__title', text:roomLabel(room) }));
+      top.appendChild(titleNode);
       cardNode.appendChild(top);
       list.appendChild(cardNode);
     });
@@ -86,7 +90,10 @@
     allBtn.addEventListener('click', ()=>{
       draft.clear();
       getRooms().forEach((room)=> draft.add(room));
-      checkboxes.forEach(({ room, cb })=>{ cb.checked = draft.has(room); });
+      checkboxes.forEach(({ room, cb, syncCardState })=>{
+        cb.checked = draft.has(room);
+        if(typeof syncCardState === 'function') syncCardState();
+      });
       updateFooterState();
     });
     exitBtn.addEventListener('click', ()=> FC.panelBox.close());

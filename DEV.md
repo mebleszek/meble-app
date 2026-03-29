@@ -28,6 +28,7 @@
 
 ### 2026-03-29 — material_scope_chip_sync_v1
 - `css/rozrys-scope-chip-room-sync.css` — nowy, mały moduł CSS tylko do synchronizacji zachowania małych kafelków `Fronty/Korpusy` w pickerze `Materiał / grupa` z wzorcem kafelków wyboru pomieszczeń; usuwa zieloną ramkę / zielony tekst z małego kafelka i zostawia tylko niebieski stan samego checkboxa.
+- `css/rozrys-checkbox-chip-pattern.css` — wspólny wzorzec checkbox/chip dla ROZRYS z wariantem dużym; używany do kafelków wyboru pomieszczeń, żeby trzymały ten sam język wizualny co małe chipy `Fronty/Korpusy`.
 - `js/app/rozrys/rozrys-selection-ui.js` — małe kafelki zakresu materiału dostają dedykowany modifier `rozrys-scope-chip--room-match`, żeby poprawka była punktowa i nie rozlewała się na inne checkboxy ROZRYS.
 - `js/testing/rozrys/tests.js` + `tools/rozrys-dev-smoke.js` + `dev_tests.html` — dodane testy anty-regresyjne pod ten przypadek: sprawdzenie modifiera na małym kafelku i obecności dedykowanego CSS sync.
 - `index.html` — dopięty nowy moduł CSS i podbity cache-busting dla `rozrys-selection-ui.js`.
@@ -753,3 +754,10 @@ Dopiero potem go zmieniać.
 - Chipy `Fronty` / `Korpusy` zachowują cień również po zaznaczeniu i pokazują stan aktywny bez gubienia obramowania karty.
 
 - 2026-03-29: site_rozrys_header_gradient_field.zip — usunięto gradientowe paski pod tytułami w ROZRYS i pod etykietami sekcji; nagłówki okien ROZRYS dostały subtelne tło biały→szary z mocniejszym przejściem przy dolnych ~20%.
+
+## 2026-03-29 — Paczka: room picker chip pattern
+- Start base: `site_material_scope_chip_sync.zip`.
+- Picker `Wybierz pomieszczenia` dostał duży wariant wspólnego wzorca checkbox/chip (`css/rozrys-checkbox-chip-pattern.css`) zamiast starego pełnego kafla listy.
+- `js/app/rozrys/rozrys-pickers.js` nadaje teraz kafelkom pomieszczeń klasy `rozrys-checkbox-chip rozrys-checkbox-chip--large` i utrzymuje `is-checked` zgodnie z realnym stanem checkboxa.
+- Nowy wzorzec zachowuje neutralny kafelek i nie przenosi zielonej ramki na całe zaznaczone pole; stan zaznaczenia komunikuje głównie checkbox i spójny chipowy kształt.
+- Smoke/testy dostały anty-regresję sprawdzającą render dużego checkbox-chipa pomieszczeń oraz obecność neutralnego pattern CSS.

@@ -73,9 +73,11 @@
       tagName: String(tag || '').toUpperCase(),
       attributes: Object.assign({}, attrs || {}),
       children: [],
-      className: classes.join(' '),
-      textContent: attrs && attrs.text ? attrs.text : '',
       checked: !!(attrs && attrs.checked),
+      disabled: !!(attrs && attrs.disabled),
+      value: attrs && Object.prototype.hasOwnProperty.call(attrs, 'value') ? attrs.value : '',
+      textContent: attrs && attrs.text ? attrs.text : '',
+      innerHTML: attrs && attrs.html ? attrs.html : '',
       parentNode: null,
       __listeners: listeners,
       appendChild(child){
@@ -92,11 +94,20 @@
       },
       setAttribute(name, value){
         node.attributes[name] = value;
+        if(name === 'class') node.className = value;
       },
       getAttribute(name){
         return node.attributes[name];
       },
     };
+    Object.defineProperty(node, 'className', {
+      get(){ return classes.join(' '); },
+      set(value){
+        classes.splice(0, classes.length, ...String(value || '').split(/\s+/).filter(Boolean));
+      },
+      enumerable:true,
+      configurable:true,
+    });
     node.classList = {
       add(name){
         if(!classes.includes(name)) classes.push(name);
@@ -123,6 +134,14 @@
       }
     };
     return node;
+  }
+
+  function collectNodes(node, predicate, out){
+    const bucket = out || [];
+    if(!node) return bucket;
+    if(typeof predicate === 'function' && predicate(node)) bucket.push(node);
+    (Array.isArray(node.children) ? node.children : []).forEach((child)=> collectNodes(child, predicate, bucket));
+    return bucket;
   }
 
   function makeClipboardReport(report){
@@ -251,6 +270,47 @@
         assert(/border-color:\s*#cfd8e3/i.test(css), 'Sync CSS nie przywraca neutralnej ramki kafelka', { css });
         assert(!/16a34a/i.test(css), 'Sync CSS zawiera zielony kolor aktywnego kafelka, więc regresja może wrócić', { css });
         assert(/color:\s*inherit/i.test(css), 'Sync CSS nie przywraca neutralnego koloru tekstu', { css });
+      }),
+
+      makeTest('UI i styl', 'Picker pomieszczeń używa dużego wariantu wzorca checkbox-chip', 'Sprawdza, czy opcje Kuchnia/Szafa/Pokój/Łazienka renderują się jako duży checkbox-chip w tym samym języku wizualnym co Fronty/Korpusy.', ()=>{
+        assert(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function', 'Brak FC.rozrysPickers.openRoomsPicker');
+        const prevDocument = host.document;
+        const prevPanelBox = FC.panelBox;
+        const opened = [];
+        host.document = { createElement:(tag)=> createFakeNode(tag, {}) };
+        FC.panelBox = {
+          open(config){ opened.push(config); },
+          close(){}
+        };
+        try{
+          FC.rozrysPickers.openRoomsPicker({
+            getSelectedRooms: ()=> ['kuchnia'],
+            setSelectedRooms: ()=> {},
+            getRooms: ()=> ['kuchnia', 'szafa'],
+            normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
+            roomLabel: (room)=> room === 'kuchnia' ? 'Kuchnia' : 'Szafa',
+            refreshSelectionState: ()=> {},
+            askConfirm: ()=> true,
+          });
+        }finally{
+          host.document = prevDocument;
+          FC.panelBox = prevPanelBox;
+        }
+        assert(opened.length === 1, 'Picker pomieszczeń nie otworzył panel-boxa');
+        const chips = collectNodes(opened[0].contentNode, (node)=> node.classList && node.classList.contains('rozrys-checkbox-chip'));
+        assert(chips.length === 2, 'Picker pomieszczeń nie wyrenderował dwóch dużych checkbox-chipów', { count: chips.length });
+        chips.forEach((chip)=>{
+          assert(chip.classList.contains('rozrys-checkbox-chip--large'), 'Chip pomieszczenia nie dostał dużego wariantu stylu', { className: chip.className });
+          assert(chip.classList.contains('rozrys-picker-check--checkbox-chip'), 'Chip pomieszczenia nie dostał modifiera wzorca checkbox-chip', { className: chip.className });
+        });
+        assert(chips[0].classList.contains('is-checked'), 'Zaznaczone pomieszczenie nie dostaje klasy is-checked', { className: chips[0].className });
+      }),
+      makeTest('UI i styl', 'CSS dużego checkbox-chipa pomieszczeń utrzymuje neutralny stan zaznaczenia', 'Sprawdza, czy wspólny wzorzec checkbox-chip dla dużego wariantu nie wprowadza zielonej ramki całego kafla i zachowuje neutralny, aplikacyjny wygląd.', ()=>{
+        const css = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
+        assert(css && css.includes('.rozrys-checkbox-chip--large'), 'Brak pliku albo wariantu large dla checkbox-chip pattern');
+        assert(/border:\s*2px solid #d6e2ee/i.test(css), 'Pattern CSS nie ustawia neutralnej ramki checkbox-chipa', { css });
+        assert(/\.rozrys-checkbox-chip\.is-checked[\s\S]*border-color:\s*#d6e2ee/i.test(css), 'Pattern CSS nie utrzymuje neutralnego stanu zaznaczenia dużego chipa', { css });
+        assert(!/16a34a/i.test(css), 'Pattern CSS dla dużego checkbox-chipa zawiera zielony aktywny kolor, więc regresja może wrócić', { css });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{

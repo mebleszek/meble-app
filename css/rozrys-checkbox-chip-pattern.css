@@ -1,0 +1,94 @@
+/* Domyślny wzorzec checkbox/chip dla ROZRYS.
+   Małe i duże warianty zachowują ten sam język wizualny:
+   neutralny kafelek, własny checkbox aplikacji, bez agresywnej zielonej ramki całego pola. */
+.rozrys-checkbox-chip{
+  -webkit-tap-highlight-color:transparent;
+  tap-highlight-color:transparent;
+  touch-action:manipulation;
+  user-select:none;
+  position:relative;
+  isolation:isolate;
+  border:2px solid #d6e2ee;
+  border-radius:14px;
+  background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
+  box-shadow:2px 3px 0 rgba(15,23,42,.12), 4px 9px 16px rgba(148,163,184,.12);
+  transition:border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.rozrys-checkbox-chip::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.08));
+  box-shadow:0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(226,232,240,0);
+  transition:opacity .14s ease, box-shadow .14s ease;
+  z-index:0;
+}
+
+.rozrys-checkbox-chip:hover{
+  box-shadow:2px 3px 0 rgba(15,23,42,.14), 5px 10px 18px rgba(148,163,184,.14);
+}
+
+.rozrys-checkbox-chip:active::before,
+.rozrys-checkbox-chip:focus-within::before{
+  opacity:1;
+  box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
+}
+
+.rozrys-checkbox-chip > *{
+  position:relative;
+  z-index:1;
+}
+
+.rozrys-checkbox-chip *{
+  -webkit-tap-highlight-color:transparent;
+  tap-highlight-color:transparent;
+}
+
+.rozrys-checkbox-chip.is-checked,
+.rozrys-checkbox-chip:has(input[type='checkbox']:checked){
+  border-color:#d6e2ee;
+  background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
+  box-shadow:2px 3px 0 rgba(15,23,42,.12), 5px 10px 18px rgba(148,163,184,.14);
+}
+
+.rozrys-checkbox-chip.is-checked::before,
+.rozrys-checkbox-chip:has(input[type='checkbox']:checked)::before{
+  opacity:0;
+  box-shadow:none;
+}
+
+.rozrys-checkbox-chip__label{
+  color:#0f172a;
+  font-weight:800;
+  line-height:1.12;
+  letter-spacing:-.01em;
+}
+
+.rozrys-checkbox-chip--large{
+  width:100%;
+  min-height:72px;
+  padding:14px 16px;
+}
+
+.rozrys-checkbox-chip--large .rozrys-picker-check__top{
+  gap:14px;
+  min-height:38px;
+}
+
+.rozrys-checkbox-chip--large .rozrys-checkbox-chip__label{
+  font-size:17px;
+}
+
+@media (max-width:700px){
+  .rozrys-checkbox-chip--large{
+    min-height:68px;
+    padding:13px 14px;
+  }
+  .rozrys-checkbox-chip--large .rozrys-checkbox-chip__label{
+    font-size:16px;
+  }
+}

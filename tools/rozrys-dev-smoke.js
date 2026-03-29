@@ -9,6 +9,7 @@ const files = [
   'js/app/rozrys/rozrys-validation.js',
   'js/app/rozrys/rozrys-cache.js',
   'js/app/rozrys/rozrys-state.js',
+  'js/app/rozrys/rozrys-pickers.js',
   'js/app/rozrys/rozrys-selection-ui.js',
   'js/app/rozrys/rozrys-scope.js',
   'js/app/rozrys/rozrys-sheet-model.js',
@@ -34,6 +35,7 @@ const context = {
   localStorage,
   __DEV_ASSETS__: {
     'css/rozrys-scope-chip-room-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-scope-chip-room-sync.css'), 'utf8'),
+    'css/rozrys-checkbox-chip-pattern.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-pattern.css'), 'utf8'),
   },
 };
 context.window = context;
