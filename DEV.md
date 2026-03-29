@@ -794,3 +794,5 @@ Dopiero potem go zmieniać.
 - 2026-03-30: Picker footer spacing fix — removed extra picker-level gap and footer padding so bottom action buttons no longer create an oversized empty band below the card list; the list keeps the 20px shadow breathing and the modal body keeps the outer bottom breathing.
 
 - 2026-03-30: picker footer align v1 — material picker got its own footer modifier (`.rozrys-picker-footer--material`) with a small bottom padding so the single `Wyjdź` button sits like the footer in room picker; room picker footer left unchanged. Updated `rozrys-pickers.js`, `rozrys-picker-exact-sync.css`, picker regression tests, and cache-busting.
+
+- 2026-03-30: material picker footer drop v1 — cofnięto błędne podnoszenie samotnego `Wyjdź`; stopka materiałów używa teraz górnego paddingu (`20px` desktop / `18px` mobile), żeby przycisk siedział niżej bez ruszania room pickera.

@@ -38,7 +38,7 @@
 }
 
 .rozrys-picker-footer--material{
-  padding:0 0 10px;
+  padding:20px 0 0;
 }
 
 @media (max-width: 640px){
@@ -49,7 +49,7 @@
     padding:0;
   }
   .rozrys-picker-footer--material{
-    padding:0 0 8px;
+    padding:18px 0 0;
   }
 }
 
