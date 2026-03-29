@@ -77,7 +77,7 @@
 
     const footer = h('div', { class:'rozrys-picker-footer' }, null, cfg.doc);
     const allBtn = h('button', { type:'button', class:'btn', text:'Wszystkie' }, null, cfg.doc);
-    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' }, null, cfg.doc);
+    const actionWrap = h('div', { class:'rozrys-picker-footer-actions' }, null, cfg.doc);
     const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' }, null, cfg.doc);
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' }, null, cfg.doc);
     const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' }, null, cfg.doc);
@@ -329,7 +329,7 @@
     body.appendChild(list);
 
     const footer = h('div', { class:'rozrys-picker-footer' });
-    const actionWrap = h('div', { style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+    const actionWrap = h('div', { class:'rozrys-picker-footer-actions' });
     const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
     const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });

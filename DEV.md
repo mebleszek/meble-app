@@ -784,3 +784,5 @@ Dopiero potem go zmieniać.
 - 2026-03-29: `site_material_picker_match_speed_exact.zip` — picker materiału w `Wybierz materiał / grupę` dostał dokładnie ten sam rytm odstępów i parametry kart co modal `Szybkość liczenia`: gap 12px, dół listy 20px pod cień, karty 18px/20px desktop i 16px/18px mobile, z tym samym zielonym border/shadow zaznaczenia.
 
 - 2026-03-29: `site_material_picker_scroll_gutter.zip` — W `Wybierz materiał / grupę` lista dużych kart dostała prawy gutter (`padding-right`) i `scrollbar-gutter: stable`, żeby pionowy scroll nie nachodził już na prawą ramkę kart; test anty-regresyjny pilnuje teraz także tego zapasu pod scrollbar.
+
+- 2026-03-29: Wybór materiału zsynchronizowany dokładniej z modalem `Szybkość liczenia`: osobny moduł `css/rozrys-picker-exact-sync.css` pilnuje rytmu pola kart (gap 12px, prawy gutter na scrollbar, dolny zapas 20px) oraz pionowego wyśrodkowania stopki akcji.

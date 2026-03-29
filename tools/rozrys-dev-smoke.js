@@ -35,6 +35,7 @@ const context = {
   localStorage,
   __DEV_ASSETS__: {
     'css/rozrys-reference-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-reference-sync.css'), 'utf8'),
+    'css/rozrys-picker-exact-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-picker-exact-sync.css'), 'utf8'),
     'css/rozrys-scope-chip-room-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-scope-chip-room-sync.css'), 'utf8'),
     'css/rozrys-checkbox-chip-pattern.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-pattern.css'), 'utf8'),
     'css/rozrys-checkbox-chip-selected-accent.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-selected-accent.css'), 'utf8'),

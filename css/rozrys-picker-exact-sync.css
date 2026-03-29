@@ -1,0 +1,44 @@
+/* Exact sync for material picker card field with the accepted speed-choice modal rhythm.
+   Keeps the card token itself unchanged and aligns the surrounding field, footer area,
+   and scrollbar gutter so the large material cards behave like the three cards in
+   'Szybkość liczenia', while still leaving a dedicated footer area for action buttons. */
+
+.rozrys-picker-modal{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.rozrys-picker-list{
+  gap:12px;
+  padding:0 12px 20px 0;
+  scrollbar-gutter:stable;
+}
+
+.rozrys-picker-footer{
+  margin-top:0;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  min-height:56px;
+  padding:0 0 2px;
+}
+
+.rozrys-picker-footer-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  min-height:100%;
+}
+
+@media (max-width: 640px){
+  .rozrys-picker-list{
+    padding:0 10px 20px 0;
+  }
+  .rozrys-picker-footer{
+    min-height:54px;
+    padding:0 0 2px;
+  }
+}
