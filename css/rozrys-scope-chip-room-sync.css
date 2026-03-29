@@ -1,6 +1,5 @@
-/* Sync małych kafelków zakresu materiału do zachowania kafelków wyboru pomieszczeń.
-   Zostawiamy niebieski checkbox, ale sam mały kafelek ma pozostać neutralny
-   (bez zielonej ramki, bez zielonego tła i bez białej obwódki). */
+/* Małe checkbox-chipy ROZRYS mają mieć tylko dwa stany: bazowy/odznaczony oraz zaznaczony.
+   Stan po odznaczeniu ma wracać dokładnie do bazowego; bez zielonej ramki i bez utrwalonego hover/focus. */
 .rozrys-scope-chip--room-match.is-checked,
 .rozrys-scope-chip--room-match:has(input[type='checkbox']:checked){
   border-color:#cfd8e3;

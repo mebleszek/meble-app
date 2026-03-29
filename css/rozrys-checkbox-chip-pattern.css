@@ -1,7 +1,7 @@
 /* Wzorzec checkbox/chip dla ROZRYS.
    Bazą wizualną pozostaje styl małych chipów z "Wybierz materiał / grupę".
-   Duży wariant dla wyboru pomieszczeń ma używać tej samej logiki: jaśniejsza ramka w stanie
-   neutralnym i delikatnie ciemniejsza po zaznaczeniu, bez zielonej ramki całego kafla. */
+   Duży wariant dla wyboru pomieszczeń ma używać tej samej logiki i tylko dwóch stanów:
+   bazowy/odznaczony oraz zaznaczony. Na mobile nie może zostawać przyklejony stan hover. */
 
 .rozrys-scope-chip--room-option{
   width:100%;
@@ -9,8 +9,11 @@
   align-items:stretch;
   min-height:72px;
   padding:14px 16px;
-  border-radius:16px;
+  border-radius:24px;
   gap:0;
+  border-color:#dbe7f3;
+  background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
+  box-shadow:2px 3px 0 rgba(15,23,42,.10), 4px 9px 16px rgba(148,163,184,.12);
 }
 
 .rozrys-scope-chip--room-option .rozrys-room-chip__top{
@@ -29,11 +32,11 @@
   letter-spacing:-.01em;
 }
 
-.rozrys-scope-chip--room-option,
-.rozrys-scope-chip--room-option:hover{
-  border-color:#dbe7f3;
-  background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
-  box-shadow:2px 3px 0 rgba(15,23,42,.10), 4px 9px 16px rgba(148,163,184,.12);
+@media (hover:hover) and (pointer:fine){
+  .rozrys-scope-chip--room-option:hover{
+    border-color:#d5e1ee;
+    box-shadow:2px 3px 0 rgba(15,23,42,.12), 5px 10px 18px rgba(148,163,184,.14);
+  }
 }
 
 .rozrys-scope-chip--room-option.is-checked,
@@ -44,7 +47,11 @@
 }
 
 .rozrys-scope-chip--room-option.is-checked::before,
-.rozrys-scope-chip--room-option:has(input[type='checkbox']:checked)::before{
+.rozrys-scope-chip--room-option:has(input[type='checkbox']:checked)::before,
+.rozrys-scope-chip--room-option:focus-within::before,
+.rozrys-scope-chip--room-option:active::before,
+.rozrys-scope-chip--room-option.is-checked:focus-within::before,
+.rozrys-scope-chip--room-option.is-checked:active::before{
   opacity:0;
   box-shadow:none;
 }
@@ -52,14 +59,6 @@
 .rozrys-scope-chip--room-option.is-checked .rozrys-room-chip__label,
 .rozrys-scope-chip--room-option:has(input[type='checkbox']:checked) .rozrys-room-chip__label{
   color:#0f172a;
-}
-
-.rozrys-scope-chip--room-option:focus-within::before,
-.rozrys-scope-chip--room-option:active::before,
-.rozrys-scope-chip--room-option.is-checked:focus-within::before,
-.rozrys-scope-chip--room-option.is-checked:active::before{
-  opacity:0;
-  box-shadow:none;
 }
 
 @media (max-width:700px){

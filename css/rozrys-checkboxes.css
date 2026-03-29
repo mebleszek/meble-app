@@ -75,11 +75,15 @@
 }
 
 .rozrys-picker-modal input[type='checkbox']:focus-visible::before,
-.rozrys-picker-modal input[type='checkbox']:active::before,
-.rozrys-scope-chip input[type='checkbox']:focus-visible::before,
-.rozrys-scope-chip input[type='checkbox']:active::before{
+.rozrys-picker-modal input[type='checkbox']:active::before{
   opacity:1;
   box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
+}
+
+.rozrys-scope-chip input[type='checkbox']:focus-visible::before,
+.rozrys-scope-chip input[type='checkbox']:active::before{
+  opacity:0;
+  box-shadow:none;
 }
 
 .rozrys-picker-modal input[type='checkbox']:disabled,
@@ -123,11 +127,15 @@
 }
 
 .rozrys-picker-check:focus-within::before,
-.rozrys-picker-check:active::before,
-.rozrys-scope-chip:focus-within::before,
-.rozrys-scope-chip:active::before{
+.rozrys-picker-check:active::before{
   opacity:1;
   box-shadow:0 0 0 2px rgba(255,255,255,.86), 0 0 0 4px rgba(226,232,240,.72);
+}
+
+.rozrys-scope-chip:focus-within::before,
+.rozrys-scope-chip:active::before{
+  opacity:0;
+  box-shadow:none;
 }
 
 .rozrys-picker-check > *,
