@@ -354,6 +354,23 @@
         assert(/\.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 136px\)/.test(css), 'Shell opcji nie ogranicza szerokości krótkich pól wpisywanych', { css });
       }),
 
+
+      makeTest('UI i styl', 'Dodaj płytę do magazynu używa shellu formularza zgodnego z ROZRYS', 'Sprawdza, czy modal Dodaj płytę do magazynu dostał wydzielony shell formularza, wklęsłe pola i własny rytm siatki, bez zmiany logiki pracy formularza.', ()=>{
+        const css = readAssetSource('css/rozrys-stock-modal-sync.css');
+        assert(css && css.includes('.rozrys-panel-form--stock'), 'Brak modułu stylu dla modala Dodaj płytę do magazynu', { css });
+        assert(/\.rozrys-panel-form--stock[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*linear-gradient/i.test(css), 'Pola wpisywane w modalu Dodaj płytę do magazynu nie mają wklęsłego tła', { css });
+        assert(/\.rozrys-panel-form--stock[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*box-shadow:\s*inset/i.test(css), 'Pola wpisywane w modalu Dodaj płytę do magazynu nie mają wklęsłego cienia inset', { css });
+        assert(/\.rozrys-panel-grid--stock\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Modal Dodaj płytę do magazynu nie ma jeszcze własnej dwu-kolumnowej siatki stock', { css });
+        assert(/\.rozrys-panel-form--stock \.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 168px\)/.test(css), 'Modal Dodaj płytę do magazynu nie ogranicza jeszcze sensownie szerokości pola ilości', { css });
+        const stockJs = readAssetSource('js/app/rozrys/rozrys-stock-modal.js');
+        assert(/class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie używa wspólnego shellu panel-box-form', { stockJs });
+        assert(/class:'panel-box-form__scroll'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie ma jeszcze własnej przewijalnej sekcji formularza', { stockJs });
+        assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--stock'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie używa klasy siatki stock', { stockJs });
+        assert(/class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--qty'/.test(stockJs), 'Pole ilości w modalu Dodaj płytę do magazynu nie ma jeszcze własnego pola qty', { stockJs });
+        assert(/class:'rozrys-panel-input--compact'/.test(stockJs), 'Pole ilości w modalu Dodaj płytę do magazynu nie dostało kompaktowej szerokości', { stockJs });
+        assert(/class:'panel-box-form__footer rozrys-panel-footer'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie używa stopki zgodnej z shellami ROZRYS', { stockJs });
+      }),
+
       makeTest('UI i styl', 'Karta materiału ma dokładnie ten sam wzorzec ramki, cienia i rytmu pola co wybór trybu', 'Sprawdza, czy karty w Wybierz materiał / grupę kopiują realne parametry z modala Szybkość liczenia: ten sam zielony border/shadow zaznaczenia, ten sam rytm pola kart oraz wyśrodkowaną stopkę akcji pod listą.', ()=>{
         const css = readAssetSource('css/rozrys-reference-sync.css');
         const syncCss = readAssetSource('css/rozrys-picker-exact-sync.css');

@@ -815,3 +815,5 @@ Dopiero potem go zmieniać.
 - 2026-03-30: Opcje rozkroju zachowują shell ROZRYS i wklęsłe pola, ale krótkie pola liczbowe wróciły do kompaktowych szerokości (moduł `rozrys-panel-modal-sync.css`, klasy `rozrys-panel-input--compact`, `rozrys-panel-input--compact-wide`, `rozrys-panel-inline--compact-pair`).
 
 - 2026-03-30: Opcje rozkroju — przywrócono praktyczny układ rzędów zgodnie z ustaleniem: 1) Jednostki + Wymiary do cięcia, 2) Rzaz piły + Obrównanie, 3) Format bazowy arkusza, 4) Najmniejszy użyteczny odpad. Siatka opcji ma jawnie trzymać 2 kolumny także na telefonie; launcher pól wyboru pozostaje bez helpera i bez strzałki.
+
+- 2026-03-31: ROZRYS `Dodaj płytę do magazynu` dostał własny shell formularza (`rozrys-stock-modal-sync.css`) zgodny z zatwierdzonym wzorcem ROZRYS: 2-kolumnowa siatka, wklęsłe pola, przewijalne body `panel-box-form`, kompaktowe pole ilości i stopka akcji jak w innych modalach edycyjnych.

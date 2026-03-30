@@ -37,11 +37,13 @@ const context = {
     'css/rozrys-reference-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-reference-sync.css'), 'utf8'),
     'css/rozrys-picker-exact-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-picker-exact-sync.css'), 'utf8'),
     'css/rozrys-panel-modal-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-panel-modal-sync.css'), 'utf8'),
+    'css/rozrys-stock-modal-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-stock-modal-sync.css'), 'utf8'),
     'css/rozrys-scope-chip-room-sync.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-scope-chip-room-sync.css'), 'utf8'),
     'css/rozrys-checkbox-chip-pattern.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-pattern.css'), 'utf8'),
     'css/rozrys-checkbox-chip-selected-accent.css': fs.readFileSync(path.join(rootDir, 'css/rozrys-checkbox-chip-selected-accent.css'), 'utf8'),
     'js/app/rozrys/rozrys-pickers.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-pickers.js'), 'utf8'),
     'js/app/rozrys/rozrys-options-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-options-modal.js'), 'utf8'),
+    'js/app/rozrys/rozrys-stock-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-stock-modal.js'), 'utf8'),
   },
 };
 context.window = context;
