@@ -44,6 +44,7 @@ const context = {
     'js/app/rozrys/rozrys-pickers.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-pickers.js'), 'utf8'),
     'js/app/rozrys/rozrys-options-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-options-modal.js'), 'utf8'),
     'js/app/rozrys/rozrys-stock-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-stock-modal.js'), 'utf8'),
+    'js/app/rozrys/rozrys-sheet-helpers.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-sheet-helpers.js'), 'utf8'),
   },
 };
 context.window = context;

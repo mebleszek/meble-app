@@ -7,7 +7,7 @@
 }
 
 .panel-box--rozrys .rozrys-panel-grid--options{
-  grid-template-columns:136px minmax(0, 1fr);
+  grid-template-columns:124px minmax(0, 1fr);
   gap:12px 16px;
   align-items:start;
 }
@@ -114,7 +114,9 @@
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--options-pair{
   display:grid;
-  grid-template-columns:repeat(2, minmax(0, 1fr));
+  grid-template-columns:repeat(2, minmax(0, 188px));
+  justify-content:flex-start;
+  width:min(100%, 388px);
   gap:12px;
 }
 
@@ -127,13 +129,9 @@
   width:100%;
 }
 
-.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help{
-  min-height:72px;
-}
-
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help,
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help__text{
-  min-height:72px;
-  align-items:flex-start;
+  min-height:0;
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-footer{
@@ -151,7 +149,7 @@
   }
 
   .panel-box--rozrys .rozrys-panel-grid--options{
-    grid-template-columns:124px minmax(0, 1fr);
+    grid-template-columns:118px minmax(0, 1fr);
     gap:10px 14px;
     align-items:start;
   }
@@ -179,11 +177,8 @@
   }
 
   .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--options-pair{
+    grid-template-columns:repeat(2, minmax(0, 164px));
+    width:min(100%, 340px);
     gap:12px;
-  }
-
-  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help,
-  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help__text{
-    min-height:84px;
   }
 }

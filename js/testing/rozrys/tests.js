@@ -344,7 +344,7 @@
         const optionsJs = readAssetSource('js/app/rozrys/rozrys-options-modal.js');
         assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wydzielonego shellu formularza', { optionsJs });
         assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wspólnej klasy siatki opcji', { optionsJs });
-        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:136px minmax\(0, 1fr\)/.test(css), 'Siatka opcji rozkroju nie ma węższej lewej kolumny i elastycznej prawej', { css });
+        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:124px minmax\(0, 1fr\)/.test(css), 'Siatka opcji rozkroju nie ma węższej lewej kolumny i elastycznej prawej', { css });
         assert(/rozrys-choice-launch--options-clean/.test(optionsJs), 'Modal Opcje rozkroju nie nadaje launcherom czystej klasy bez strzałek i helpera', { optionsJs });
         assert(!/Kliknij, aby wybrać/.test(optionsJs), 'Modal Opcje rozkroju nadal wstrzykuje helper „Kliknij, aby wybrać”', { optionsJs });
         assert(/rozrys-panel-input--options-left/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza jeszcze lewego pola jako węższego wariantu', { optionsJs });
@@ -352,8 +352,8 @@
         assert(/rozrys-panel-inline--options-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma równego układu par dolnych pól', { optionsJs });
         assert(/const modalBoardWrap = h\('div', \{ class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair rozrys-panel-field--options-row-c' \}\);/.test(optionsJs), 'Format bazowy arkusza nie jest już pełnym wierszem z parą pól', { optionsJs });
         assert(/form\.appendChild\(modalUnitWrap\);[\s\S]*form\.appendChild\(modalEdgeWrap\);[\s\S]*form\.appendChild\(modalKerfWrap\);[\s\S]*form\.appendChild\(modalTrimWrap\);[\s\S]*form\.appendChild\(modalBoardWrap\);[\s\S]*form\.appendChild\(modalMinWrap\);/.test(optionsJs), 'Kolejność wierszy w Opcjach rozkroju nie jest jeszcze: jednostki+wymiary, rzaz+obrównanie, format bazowy, najmniejszy odpad', { optionsJs });
-        assert(/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:72px/i.test(css), 'Shell opcji nie wyrównuje jeszcze drugiego rzędu etykiet i pól wpisywanych', { css });
-        assert(/\.rozrys-panel-inline--options-pair\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Shell opcji nie trzyma jeszcze równych dolnych par pól', { css });
+        assert(!/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:72px/i.test(css), 'Drugi rząd opcji nadal ma sztucznie zawyżoną wysokość etykiety nad polami wpisywania', { css });
+        assert(/\.rozrys-panel-inline--options-pair\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 188px\)\)[\s\S]*width:min\(100%, 388px\)/.test(css), 'Shell opcji nie trzyma jeszcze mniejszych, równych par pól formatu bazowego i najmniejszego odpadu', { css });
       }),
 
 
@@ -391,6 +391,13 @@
         assert(/\.rozrys-picker-footer-actions\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*10px/i.test(syncCss), 'Wewnętrzny rząd przycisków akcji nie zachował jeszcze wyśrodkowania i wspólnego rytmu 10px', { syncCss });
         const pickersJs = readAssetSource('js/app/rozrys/rozrys-pickers.js');
         assert(/openMaterialPicker[\s\S]*class:'rozrys-picker-footer rozrys-picker-footer--material'/.test(pickersJs), 'Modal wyboru materiału nie używa jeszcze osobnej stopki z modifierem dla scrollowanego układu materiałów', { pickersJs });
+      }),
+
+      makeTest('UI i styl', 'Podgląd arkusza zachowuje proporcje po dopasowaniu do szerokości', 'Sprawdza, czy canvas rozrysu po skalowaniu mobilnym nie dostaje już sztywnej wysokości CSS, która robi z arkusza prawie kwadrat.', ()=>{
+        const helpersJs = readAssetSource('js/app/rozrys/rozrys-sheet-helpers.js');
+        assert(/canvas\.style\.width = '100%';/.test(helpersJs), 'Helper arkusza nie ustawia szerokości canvasu responsywnie', { helpersJs });
+        assert(/canvas\.style\.maxWidth = `\$\{canvas\.width\}px`/.test(helpersJs), 'Helper arkusza nie ogranicza jeszcze maksymalnej szerokości canvasu do policzonego wymiaru', { helpersJs });
+        assert(/canvas\.style\.height = 'auto';/.test(helpersJs), 'Helper arkusza nadal nadaje sztywną wysokość CSS i może spłaszczać proporcje płyty', { helpersJs });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
