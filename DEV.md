@@ -820,6 +820,9 @@ Dopiero potem go zmieniać.
 
 - 2026-03-31: `Opcje rozkroju` dostały dokładniejszy, praktyczny układ pól bez zmiany logiki: lewa kolumna jest węższa (Jednostki jak Rzaz piły), prawa rozciąga się na resztę rzędu, drugi rząd ma wyrównane pole wejściowe mimo wielowierszowej etykiety, a dolne pary pól (`Format bazowy`, `Najmniejszy użyteczny odpad`) mają równą szerokość przez wspólny układ `rozrys-panel-inline--options-pair`.
 - 2026-03-31: ROZRYS `Dodaj płytę do magazynu` przestał używać systemowego selecta materiału; modal korzysta teraz z istniejącego aplikacyjnego launchera i overlayu wyboru (`createChoiceLauncher` + `openRozrysChoiceOverlay`) ze stylem `.rozrys-choice-launch--stock-clean`, bez helpera i bez strzałki.
-- 2026-03-31: `Opcje rozkroju` dopięto pod praktyczny układ bez zmiany logiki: etykiety `Rzaz piły` i `Obrównanie` wróciły bliżej pól, a pary pól `Format bazowy arkusza` i `Najmniejszy użyteczny odpad` są nadal równe, ale wyraźnie węższe (około 60% dawnego pełnego rozlania) przez kompaktowy wariant `rozrys-panel-inline--options-pair`.
-- 2026-03-31: ROZRYS podgląd arkuszy nie dostaje już sztywnej wysokości CSS po dopasowaniu do szerokości; `rozrys-sheet-helpers.js` ustawia canvas jako `width:100%`, `max-width:<wyliczona szerokość>`, `height:auto`, dzięki czemu proporcje płyt nie spłaszczają się na mobile.
-- 2026-03-31: Karta szafki w liście dostała spokojniejszy nagłówek w 3 rzędach (`tytuł`, `wymiary`, `akcje`) bez wypychania przycisków poza kartę; zmiana została zrobiona w istniejących plikach `js/app.js` i `css/style.css` bez dokładania nowego modułu.
+
+
+## 2026-03-31 — options/list/grain follow-up
+- ROZRYS list tables: rotated vertical headers and stacked dimensions (`Xxx / X / Yyy`).
+- `Opcje rozkroju`: choice launchers styled like app buttons; left choice field kept compact, right field fills remaining width; paired numeric rows narrowed and kept equal.
+- Auto-render from cache: no longer clears accordion on grain toggle cache miss; restores page/container scroll on full cache hits.

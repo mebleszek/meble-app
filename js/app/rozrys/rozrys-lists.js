@@ -18,11 +18,17 @@
   }
 
   function buildDimNode(wMm, hMm, unit, mmToUnitStr){
-    return h('span', { class:'table-dim' }, [
-      h('span', { class:'table-dim__left', text:mmToUnitStr(wMm, unit) }),
-      h('span', { class:'table-dim__x', text:'x' }),
-      h('span', { class:'table-dim__right', text:mmToUnitStr(hMm, unit) }),
+    return h('span', { class:'table-dim table-dim--stacked' }, [
+      h('span', { class:'table-dim__top', text:mmToUnitStr(wMm, unit) }),
+      h('span', { class:'table-dim__x', text:'X' }),
+      h('span', { class:'table-dim__bottom', text:mmToUnitStr(hMm, unit) }),
     ]);
+  }
+
+  function buildRotatedHead(label, cls){
+    const th = h('th', { class:cls || '' });
+    th.appendChild(h('span', { class:'table-head-rot', text:String(label || '') }));
+    return th;
   }
 
   function buildStatusChip(status){
@@ -37,22 +43,34 @@
 
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
+    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : 'table-list--summary'}`.trim() });
+    const colgroup = h('colgroup');
     if(mode === 'sheet'){
-      const colgroup = h('colgroup');
       colgroup.appendChild(h('col', { class:'col-name' }));
       colgroup.appendChild(h('col', { class:'col-dim' }));
       colgroup.appendChild(h('col', { class:'col-qty' }));
-      table.appendChild(colgroup);
+    }else{
+      colgroup.appendChild(h('col', { class:'col-name' }));
+      colgroup.appendChild(h('col', { class:'col-dim' }));
+      colgroup.appendChild(h('col', { class:'col-num' }));
+      colgroup.appendChild(h('col', { class:'col-num' }));
+      colgroup.appendChild(h('col', { class:'col-num' }));
+      colgroup.appendChild(h('col', { class:'col-status' }));
     }
+    table.appendChild(colgroup);
     const thead = h('thead');
     const headRow = h('tr');
     if(mode === 'sheet'){
-      headRow.appendChild(h('th', { class:'col-name', text:'Nazwa' }));
-      headRow.appendChild(h('th', { class:'col-dim', text:`Wymiar (${unit})` }));
-      headRow.appendChild(h('th', { class:'col-qty', text:'Ilość' }));
+      headRow.appendChild(buildRotatedHead('Nazwa', 'col-name is-rotated'));
+      headRow.appendChild(buildRotatedHead(`Wymiar (${unit})`, 'col-dim is-rotated'));
+      headRow.appendChild(buildRotatedHead('Ilość', 'col-qty is-rotated'));
     } else {
-      ['Formatka', `Wymiar (${unit})`, 'Potrzebne', 'Rozrysowane', 'Różnica', 'Status'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
+      headRow.appendChild(buildRotatedHead('Formatka', 'col-name is-rotated'));
+      headRow.appendChild(buildRotatedHead(`Wymiar (${unit})`, 'col-dim is-rotated'));
+      headRow.appendChild(buildRotatedHead('Potrzebne', 'col-num is-rotated'));
+      headRow.appendChild(buildRotatedHead('Rozrysowane', 'col-num is-rotated'));
+      headRow.appendChild(buildRotatedHead('Różnica', 'col-num is-rotated'));
+      headRow.appendChild(buildRotatedHead('Status', 'col-status is-rotated'));
     }
     thead.appendChild(headRow);
     const tbody = h('tbody');
@@ -86,19 +104,32 @@
 
   function buildRawTable(rows, unit, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:'table-list' });
+    const table = h('table', { class:'table-list table-list--raw' });
+    const colgroup = h('colgroup');
+    colgroup.appendChild(h('col', { class:'col-name' }));
+    colgroup.appendChild(h('col', { class:'col-dim' }));
+    colgroup.appendChild(h('col', { class:'col-num' }));
+    colgroup.appendChild(h('col', { class:'col-room' }));
+    colgroup.appendChild(h('col', { class:'col-source' }));
+    table.appendChild(colgroup);
     const thead = h('thead');
     const headRow = h('tr');
-    ['Formatka', `Wymiar (${unit})`, 'Ilość', 'Pomieszczenie', 'Źródło'].forEach((label)=> headRow.appendChild(h('th', { text:label })));
+    headRow.appendChild(buildRotatedHead('Formatka', 'col-name is-rotated'));
+    headRow.appendChild(buildRotatedHead(`Wymiar (${unit})`, 'col-dim is-rotated'));
+    headRow.appendChild(buildRotatedHead('Ilość', 'col-num is-rotated'));
+    headRow.appendChild(buildRotatedHead('Pomieszczenie', 'col-room is-rotated'));
+    headRow.appendChild(buildRotatedHead('Źródło', 'col-source is-rotated'));
     thead.appendChild(headRow);
     const tbody = h('tbody');
     (rows || []).forEach((row)=>{
       const tr = h('tr');
-      tr.appendChild(h('td', { text: row.name || 'Element' }));
-      tr.appendChild(h('td', { text: `${mmToUnitStr(row.w, unit)} × ${mmToUnitStr(row.h, unit)}` }));
-      tr.appendChild(h('td', { text:String(Math.max(0, Number(row.qty) || 0)) }));
-      tr.appendChild(h('td', { text:String(row.room || '—') }));
-      tr.appendChild(h('td', { text:String(row.source || '—') }));
+      tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
+      const dimTd = h('td', { class:'col-dim' });
+      dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
+      tr.appendChild(dimTd);
+      tr.appendChild(h('td', { class:'col-num', text:String(Math.max(0, Number(row.qty) || 0)) }));
+      tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
+      tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
       tbody.appendChild(tr);
     });
     table.appendChild(thead);

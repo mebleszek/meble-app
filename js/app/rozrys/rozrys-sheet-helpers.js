@@ -39,10 +39,9 @@
     canvas.width = Math.max(1, Math.round(boardW * scale));
     canvas.height = Math.max(1, Math.round(boardH * scale));
     try{
-      canvas.style.width = '100%';
-      canvas.style.maxWidth = `${canvas.width}px`;
-      canvas.style.height = 'auto';
-      canvas.style.aspectRatio = `${boardW} / ${boardH}`;
+      canvas.style.width = `${canvas.width}px`;
+      canvas.style.height = `${canvas.height}px`;
+      canvas.style.maxWidth = '100%';
       canvas.style.display = 'block';
     }catch(_){ }
   }
