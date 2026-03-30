@@ -810,3 +810,5 @@ Dopiero potem go zmieniać.
 - Room picker pozostawiono bez zmian.
 
 - 2026-03-30: `Opcje rozkroju` dostały reusable shell ROZRYS dla modali formularzowych (`css/rozrys-panel-modal-sync.css`): rytm jak w zatwierdzonych oknach ROZRYS oraz wklęsłe pola input dla ręcznie wpisywanych wartości.
+
+- 2026-03-30: Opcje rozkroju zachowują shell ROZRYS i wklęsłe pola, ale krótkie pola liczbowe wróciły do kompaktowych szerokości (moduł `rozrys-panel-modal-sync.css`, klasy `rozrys-panel-input--compact`, `rozrys-panel-input--compact-wide`, `rozrys-panel-inline--compact-pair`).

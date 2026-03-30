@@ -7,8 +7,9 @@
 }
 
 .panel-box--rozrys .rozrys-panel-grid--options{
-  gap:16px 18px;
+  gap:12px;
 }
+
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field{
   gap:8px;
@@ -69,7 +70,26 @@
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline{
-  gap:10px;
+  gap:8px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--compact,
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--pair{
+  align-items:flex-start;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact{
+  width:min(100%, 136px);
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact-wide{
+  width:min(100%, 188px);
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--compact-pair > *{
+  flex:0 1 136px;
+  width:min(100%, 136px);
+  min-width:0;
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-footer{
@@ -87,7 +107,7 @@
   }
 
   .panel-box--rozrys .rozrys-panel-grid--options{
-    gap:12px;
+    gap:10px;
   }
 
   .panel-box--rozrys .rozrys-panel-form--options .label-help,
@@ -104,5 +124,18 @@
     padding:0 13px;
     border-radius:16px;
     font-size:17px;
+  }
+
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact{
+    width:min(100%, 124px);
+  }
+
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact-wide{
+    width:min(100%, 168px);
+  }
+
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--compact-pair > *{
+    flex:0 1 124px;
+    width:min(100%, 124px);
   }
 }

@@ -343,6 +343,9 @@
         assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa jeszcze wydzielonego shellu formularza', { optionsJs });
         assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nadal używa inline grid zamiast wspólnej klasy opcji', { optionsJs });
         assert(/class:'rozrys-panel-footer rozrys-panel-footer--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa jeszcze wydzielonej stopki shellu', { optionsJs });
+        assert(/rozrys-panel-input--compact/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza jeszcze krótkich pól liczbowych jako kompaktowe', { optionsJs });
+        assert(/rozrys-panel-inline--compact-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma jeszcze kompaktowego układu par pól liczbowych', { optionsJs });
+        assert(/\.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 136px\)/.test(css), 'Nowy shell nie ogranicza jeszcze szerokości krótkich pól wpisywanych', { css });
       }),
 
       makeTest('UI i styl', 'Karta materiału ma dokładnie ten sam wzorzec ramki, cienia i rytmu pola co wybór trybu', 'Sprawdza, czy karty w Wybierz materiał / grupę kopiują realne parametry z modala Szybkość liczenia: ten sam zielony border/shadow zaznaczenia, ten sam rytm pola kart oraz wyśrodkowaną stopkę akcji pod listą.', ()=>{
