@@ -802,3 +802,9 @@ Dopiero potem go zmieniać.
 - Material picker footer no longer uses a dedicated modifier spacing block.
 - `Wybierz materiał / grupę` and `Wybierz pomieszczenia` now share the same base `rozrys-picker-footer` rhythm.
 - The bottom breathing under material cards stays on the list (`padding-bottom: 20px`) instead of on a separate material footer padding block.
+
+
+## 2026-03-30 — material footer restore after bad unify
+- Cofnięto regresję z unifikacji stopki `Wybierz materiał / grupę` z oknem `Wybierz pomieszczenia`.
+- Material picker znów używa własnego modifiera `.rozrys-picker-footer--material` z top paddingiem 20px desktop / 18px mobile.
+- Room picker pozostawiono bez zmian.

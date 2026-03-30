@@ -328,7 +328,7 @@
     });
     body.appendChild(list);
 
-    const footer = h('div', { class:'rozrys-picker-footer' });
+    const footer = h('div', { class:'rozrys-picker-footer rozrys-picker-footer--material' });
     const actionWrap = h('div', { class:'rozrys-picker-footer-actions' });
     const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
