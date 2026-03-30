@@ -808,3 +808,5 @@ Dopiero potem go zmieniać.
 - Cofnięto regresję z unifikacji stopki `Wybierz materiał / grupę` z oknem `Wybierz pomieszczenia`.
 - Material picker znów używa własnego modifiera `.rozrys-picker-footer--material` z top paddingiem 20px desktop / 18px mobile.
 - Room picker pozostawiono bez zmian.
+
+- 2026-03-30: `Opcje rozkroju` dostały reusable shell ROZRYS dla modali formularzowych (`css/rozrys-panel-modal-sync.css`): rytm jak w zatwierdzonych oknach ROZRYS oraz wklęsłe pola input dla ręcznie wpisywanych wartości.

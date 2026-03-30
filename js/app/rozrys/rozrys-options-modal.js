@@ -22,8 +22,8 @@
     if(!(cfg.panelBox && typeof cfg.panelBox.open === 'function')) return;
     if(!(ctx && cfg.h && cfg.labelWithInfo)) return;
     const h = cfg.h;
-    const body = h('div', { class:'rozrys-panel-form rozrys-panel-form--options' });
-    const form = h('div', { class:'grid-2 rozrys-panel-grid', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
+    const body = h('div', { class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset' });
+    const form = h('div', { class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options' });
 
     function appendModalInfoLabel(wrap, title, infoTitle, infoMessage){
       const row = cfg.labelWithInfo(title, infoTitle || title, infoMessage || '');
@@ -55,7 +55,7 @@
 
     const modalBoardWrap = h('div', { class:'rozrys-panel-field' });
     const modalBoardLabel = appendModalInfoLabel(modalBoardWrap, `Format bazowy arkusza (${ctx.unitSel.value})`, 'Format bazowy arkusza', 'To pełny format płyty bazowej, z której dobieram brakujące arkusze.');
-    const modalBoardRow = h('div', { class:'rozrys-panel-inline', style:'display:flex;gap:8px' });
+    const modalBoardRow = h('div', { class:'rozrys-panel-inline rozrys-panel-inline--options' });
     const modalBoardW = h('input', { type:'number', value:String(ctx.inW.value) });
     const modalBoardH = h('input', { type:'number', value:String(ctx.inH.value) });
     modalBoardRow.appendChild(modalBoardW);
@@ -77,7 +77,7 @@
 
     const modalMinWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
     const modalMinLabel = appendModalInfoLabel(modalMinWrap, `Najmniejszy użyteczny odpad (${ctx.unitSel.value})`, 'Najmniejszy użyteczny odpad', 'Mniejsze odpady traktuję jako nieużyteczne i nie odkładam ich do magazynu odpadów.');
-    const modalMinRow = h('div', { class:'rozrys-panel-inline', style:'display:flex;gap:8px' });
+    const modalMinRow = h('div', { class:'rozrys-panel-inline rozrys-panel-inline--options' });
     const modalMinW = h('input', { type:'number', value:String(ctx.inMinW.value) });
     const modalMinH = h('input', { type:'number', value:String(ctx.inMinH.value) });
     modalMinRow.appendChild(modalMinW);
@@ -143,9 +143,9 @@
       syncModalLabels();
     }
 
-    const footer = h('div', { class:'rozrys-panel-footer', style:'display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center' });
+    const footer = h('div', { class:'rozrys-panel-footer rozrys-panel-footer--options' });
     const resetBtn = h('button', { class:'btn', type:'button', text:'Przywróć domyślne' });
-    const actionWrap = h('div', { class:'rozrys-panel-footer__actions', style:'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center' });
+    const actionWrap = h('div', { class:'rozrys-panel-footer__actions rozrys-panel-footer__actions--options' });
     const exitBtn = h('button', { class:'btn-primary', type:'button', text:'Wyjdź' });
     const cancelBtn = h('button', { class:'btn-danger', type:'button', text:'Anuluj' });
     const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz' });

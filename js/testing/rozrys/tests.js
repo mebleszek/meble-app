@@ -332,6 +332,19 @@
       }),
 
 
+
+      makeTest('UI i styl', 'Opcje rozkroju używają wspólnego shellu ROZRYS i wklęsłych pól wejściowych', 'Sprawdza, czy modal Opcje rozkroju ma już osobny, reusable moduł stylu: ten sam shell ROZRYS co zatwierdzone modale oraz wklęsłe pola input dla wartości wpisywanych ręcznie.', ()=>{
+        const css = readAssetSource('css/rozrys-panel-modal-sync.css');
+        assert(css && css.includes('.rozrys-panel-form--options'), 'Brak nowego modułu stylu dla opcji rozkroju', { css });
+        assert(/\.rozrys-panel-form--options[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*linear-gradient/i.test(css), 'Nowy moduł nie nadaje jeszcze inputom w Opcjach rozkroju wklęsłego tła', { css });
+        assert(/\.rozrys-panel-form--options[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*box-shadow:\s*inset/i.test(css), 'Nowy moduł nie nadaje jeszcze inputom wklęsłego cienia inset', { css });
+        assert(/\.rozrys-panel-form--options[\s\S]*\.rozrys-panel-footer[\s\S]*align-items:\s*flex-end/i.test(css), 'Shell opcji rozkroju nie ustawia jeszcze dolnej strefy zgodnie z rytmem ROZRYS', { css });
+        const optionsJs = readAssetSource('js/app/rozrys/rozrys-options-modal.js');
+        assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa jeszcze wydzielonego shellu formularza', { optionsJs });
+        assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nadal używa inline grid zamiast wspólnej klasy opcji', { optionsJs });
+        assert(/class:'rozrys-panel-footer rozrys-panel-footer--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa jeszcze wydzielonej stopki shellu', { optionsJs });
+      }),
+
       makeTest('UI i styl', 'Karta materiału ma dokładnie ten sam wzorzec ramki, cienia i rytmu pola co wybór trybu', 'Sprawdza, czy karty w Wybierz materiał / grupę kopiują realne parametry z modala Szybkość liczenia: ten sam zielony border/shadow zaznaczenia, ten sam rytm pola kart oraz wyśrodkowaną stopkę akcji pod listą.', ()=>{
         const css = readAssetSource('css/rozrys-reference-sync.css');
         const syncCss = readAssetSource('css/rozrys-picker-exact-sync.css');

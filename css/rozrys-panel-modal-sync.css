@@ -1,0 +1,108 @@
+/* ROZRYS modal form sync — reusable shell for richer editor-style modals.
+   First use: Opcje rozkroju. Keeps the approved ROZRYS header/body rhythm and adds
+   inset entry fields that can be reused later in other modal forms with typed inputs. */
+
+.panel-box--rozrys .rozrys-panel-form--options{
+  gap:18px;
+}
+
+.panel-box--rozrys .rozrys-panel-grid--options{
+  gap:16px 18px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field{
+  gap:8px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .label-help,
+.panel-box--rozrys .rozrys-panel-form--options > label,
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-field__label{
+  min-height:32px;
+  margin:0 0 6px;
+  color:#475569;
+  font-size:15px;
+  font-weight:900;
+  line-height:1.14;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .label-help{
+  align-items:center;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .label-help__text{
+  display:flex;
+  align-items:center;
+  min-height:32px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-choice-launch{
+  min-height:58px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options input:not([type='checkbox']):not([type='radio']),
+.panel-box--rozrys .rozrys-panel-form--options select,
+.panel-box--rozrys .rozrys-panel-form--options textarea{
+  min-height:56px;
+  padding:0 14px;
+  border:1.5px solid rgba(15,23,42,.16);
+  border-radius:18px;
+  background:linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
+  box-shadow:inset 0 2px 6px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.94), 0 1px 0 rgba(255,255,255,.66);
+  color:#0f172a;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:-.02em;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options input::placeholder,
+.panel-box--rozrys .rozrys-panel-form--options textarea::placeholder{
+  color:#94a3b8;
+  font-weight:800;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options input:not([type='checkbox']):not([type='radio']):focus,
+.panel-box--rozrys .rozrys-panel-form--options select:focus,
+.panel-box--rozrys .rozrys-panel-form--options textarea:focus{
+  border-color:rgba(22,163,74,.38);
+  outline:none;
+  box-shadow:inset 0 2px 6px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.94), 0 0 0 3px rgba(22,163,74,.10);
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline{
+  gap:10px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-footer{
+  margin-top:4px;
+  align-items:flex-end;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-footer__actions{
+  align-items:flex-end;
+}
+
+@media (max-width: 640px){
+  .panel-box--rozrys .rozrys-panel-form--options{
+    gap:16px;
+  }
+
+  .panel-box--rozrys .rozrys-panel-grid--options{
+    gap:12px;
+  }
+
+  .panel-box--rozrys .rozrys-panel-form--options .label-help,
+  .panel-box--rozrys .rozrys-panel-form--options > label,
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-field__label{
+    margin-bottom:5px;
+    font-size:14px;
+  }
+
+  .panel-box--rozrys .rozrys-panel-form--options input:not([type='checkbox']):not([type='radio']),
+  .panel-box--rozrys .rozrys-panel-form--options select,
+  .panel-box--rozrys .rozrys-panel-form--options textarea{
+    min-height:54px;
+    padding:0 13px;
+    border-radius:16px;
+    font-size:17px;
+  }
+}
