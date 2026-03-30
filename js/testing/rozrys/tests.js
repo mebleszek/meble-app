@@ -344,10 +344,13 @@
         const optionsJs = readAssetSource('js/app/rozrys/rozrys-options-modal.js');
         assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wydzielonego shellu formularza', { optionsJs });
         assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wspólnej klasy siatki opcji', { optionsJs });
+        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Siatka opcji rozkroju nie trzyma już jawnie dwóch kolumn także na telefonie', { css });
         assert(/rozrys-choice-launch--options-clean/.test(optionsJs), 'Modal Opcje rozkroju nie nadaje launcherom czystej klasy bez strzałek i helpera', { optionsJs });
         assert(!/Kliknij, aby wybrać/.test(optionsJs), 'Modal Opcje rozkroju nadal wstrzykuje helper „Kliknij, aby wybrać”', { optionsJs });
         assert(/rozrys-panel-input--compact/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza krótkich pól liczbowych jako kompaktowe', { optionsJs });
         assert(/rozrys-panel-inline--compact-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma kompaktowego układu par pól liczbowych', { optionsJs });
+        assert(/const modalBoardWrap = h\('div', \{ class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair' \}\);/.test(optionsJs), 'Format bazowy arkusza nie jest już pełnym wierszem z parą pól', { optionsJs });
+        assert(/form\.appendChild\(modalUnitWrap\);[\s\S]*form\.appendChild\(modalEdgeWrap\);[\s\S]*form\.appendChild\(modalKerfWrap\);[\s\S]*form\.appendChild\(modalTrimWrap\);[\s\S]*form\.appendChild\(modalBoardWrap\);[\s\S]*form\.appendChild\(modalMinWrap\);/.test(optionsJs), 'Kolejność wierszy w Opcjach rozkroju nie jest jeszcze: jednostki+wymiary, rzaz+obrównanie, format bazowy, najmniejszy odpad', { optionsJs });
         assert(/\.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 136px\)/.test(css), 'Shell opcji nie ogranicza szerokości krótkich pól wpisywanych', { css });
       }),
 

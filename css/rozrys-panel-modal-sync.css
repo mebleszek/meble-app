@@ -7,6 +7,7 @@
 }
 
 .panel-box--rozrys .rozrys-panel-grid--options{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:12px;
 }
 
@@ -126,6 +127,7 @@
   }
 
   .panel-box--rozrys .rozrys-panel-grid--options{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
     gap:10px;
   }
 
