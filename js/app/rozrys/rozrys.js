@@ -1469,6 +1469,10 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
           parseLocaleNumber,
           openRozrysInfo,
           askRozrysConfirm,
+          createChoiceLauncher,
+          getSelectOptionLabel,
+          setChoiceLaunchValue,
+          openRozrysChoiceOverlay,
         });
       }
     }

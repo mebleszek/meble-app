@@ -7,8 +7,9 @@
 }
 
 .panel-box--rozrys .rozrys-panel-grid--options{
-  grid-template-columns:repeat(2, minmax(0, 1fr));
-  gap:12px;
+  grid-template-columns:136px minmax(0, 1fr);
+  gap:12px 16px;
+  align-items:start;
 }
 
 
@@ -38,8 +39,10 @@
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-choice-launch{
-  min-height:50px;
-  padding:11px 14px;
+  width:100%;
+  min-height:44px;
+  padding:9px 14px;
+  box-sizing:border-box;
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-choice-launch--options-clean{
@@ -63,8 +66,10 @@
 .panel-box--rozrys .rozrys-panel-form--options input:not([type='checkbox']):not([type='radio']),
 .panel-box--rozrys .rozrys-panel-form--options select,
 .panel-box--rozrys .rozrys-panel-form--options textarea{
-  min-height:48px;
+  width:100%;
+  min-height:44px;
   padding:0 14px;
+  box-sizing:border-box;
   border:1.5px solid rgba(15,23,42,.16);
   border-radius:18px;
   background:linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
@@ -90,7 +95,7 @@
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline{
-  gap:8px;
+  gap:12px;
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--compact,
@@ -98,18 +103,37 @@
   align-items:flex-start;
 }
 
-.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact{
-  width:min(100%, 136px);
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-left .rozrys-choice-launch,
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--options-left{
+  width:100%;
 }
 
-.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact-wide{
-  width:min(100%, 188px);
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--options-right{
+  width:100%;
 }
 
-.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--compact-pair > *{
-  flex:0 1 136px;
-  width:min(100%, 136px);
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--options-pair{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--options-pair > *{
+  width:100%;
   min-width:0;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--pair{
+  width:100%;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help{
+  min-height:72px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help__text{
+  min-height:72px;
+  align-items:flex-start;
 }
 
 .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-footer{
@@ -127,8 +151,9 @@
   }
 
   .panel-box--rozrys .rozrys-panel-grid--options{
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:10px;
+    grid-template-columns:124px minmax(0, 1fr);
+    gap:10px 14px;
+    align-items:start;
   }
 
   .panel-box--rozrys .rozrys-panel-form--options .label-help,
@@ -139,30 +164,26 @@
   }
 
   .panel-box--rozrys .rozrys-panel-form--options .rozrys-choice-launch{
-    min-height:48px;
-    padding:10px 13px;
+    min-height:42px;
+    padding:8px 13px;
     border-radius:16px;
   }
 
   .panel-box--rozrys .rozrys-panel-form--options input:not([type='checkbox']):not([type='radio']),
   .panel-box--rozrys .rozrys-panel-form--options select,
   .panel-box--rozrys .rozrys-panel-form--options textarea{
-    min-height:46px;
+    min-height:42px;
     padding:0 13px;
     border-radius:16px;
     font-size:17px;
   }
 
-  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact{
-    width:min(100%, 124px);
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--options-pair{
+    gap:12px;
   }
 
-  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-input--compact-wide{
-    width:min(100%, 168px);
-  }
-
-  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-inline--compact-pair > *{
-    flex:0 1 124px;
-    width:min(100%, 124px);
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help,
+  .panel-box--rozrys .rozrys-panel-form--options .rozrys-panel-field--options-row-b .label-help__text{
+    min-height:84px;
   }
 }

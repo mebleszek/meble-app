@@ -817,3 +817,6 @@ Dopiero potem go zmieniać.
 - 2026-03-30: Opcje rozkroju — przywrócono praktyczny układ rzędów zgodnie z ustaleniem: 1) Jednostki + Wymiary do cięcia, 2) Rzaz piły + Obrównanie, 3) Format bazowy arkusza, 4) Najmniejszy użyteczny odpad. Siatka opcji ma jawnie trzymać 2 kolumny także na telefonie; launcher pól wyboru pozostaje bez helpera i bez strzałki.
 
 - 2026-03-31: ROZRYS `Dodaj płytę do magazynu` dostał własny shell formularza (`rozrys-stock-modal-sync.css`) zgodny z zatwierdzonym wzorcem ROZRYS: 2-kolumnowa siatka, wklęsłe pola, przewijalne body `panel-box-form`, kompaktowe pole ilości i stopka akcji jak w innych modalach edycyjnych.
+
+- 2026-03-31: `Opcje rozkroju` dostały dokładniejszy, praktyczny układ pól bez zmiany logiki: lewa kolumna jest węższa (Jednostki jak Rzaz piły), prawa rozciąga się na resztę rzędu, drugi rząd ma wyrównane pole wejściowe mimo wielowierszowej etykiety, a dolne pary pól (`Format bazowy`, `Najmniejszy użyteczny odpad`) mają równą szerokość przez wspólny układ `rozrys-panel-inline--options-pair`.
+- 2026-03-31: ROZRYS `Dodaj płytę do magazynu` przestał używać systemowego selecta materiału; modal korzysta teraz z istniejącego aplikacyjnego launchera i overlayu wyboru (`createChoiceLauncher` + `openRozrysChoiceOverlay`) ze stylem `.rozrys-choice-launch--stock-clean`, bez helpera i bez strzałki.

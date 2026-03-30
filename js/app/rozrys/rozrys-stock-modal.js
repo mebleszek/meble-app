@@ -32,6 +32,10 @@
       parseLocaleNumber:null,
       openRozrysInfo:null,
       askRozrysConfirm:null,
+      createChoiceLauncher:null,
+      getSelectOptionLabel:null,
+      setChoiceLaunchValue:null,
+      openRozrysChoiceOverlay:null,
     }, deps || {});
 
     if(!(FC.magazyn && (FC.magazyn.addSheetStock || FC.magazyn.upsertSheet))){
@@ -60,10 +64,12 @@
     const materialWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--stock-material' });
     materialWrap.appendChild(h('label', { text:'Materiał' }));
     let materialControl = null;
+    let materialLauncher = null;
     if(currentMaterial){
       materialControl = h('input', { type:'text', value: currentMaterial, readonly:'readonly' });
+      materialWrap.appendChild(materialControl);
     }else{
-      const select = h('select');
+      const select = h('select', { hidden:'hidden' });
       select.appendChild(h('option', { value:'', text:'Wybierz materiał' }));
       (((cfg.agg && cfg.agg.materials) || [])).forEach((material)=>{
         const split = splitTitle(material);
@@ -71,8 +77,38 @@
         select.appendChild(option);
       });
       materialControl = select;
+      const launcherFactory = (typeof api.createChoiceLauncher === 'function') ? api.createChoiceLauncher : null;
+      const readChoiceLabel = (typeof api.getSelectOptionLabel === 'function') ? api.getSelectOptionLabel : ((sel)=> String(sel && sel.value || ''));
+      const applyChoiceLabel = (typeof api.setChoiceLaunchValue === 'function') ? api.setChoiceLaunchValue : ((btn, label)=>{ if(btn) btn.textContent = String(label || ''); });
+      if(launcherFactory && typeof api.openRozrysChoiceOverlay === 'function'){
+        materialLauncher = launcherFactory(readChoiceLabel(select) || 'Wybierz materiał', '');
+        materialLauncher.classList.add('rozrys-choice-launch--stock-clean');
+        applyChoiceLabel(materialLauncher, readChoiceLabel(select) || 'Wybierz materiał', '');
+        materialLauncher.addEventListener('click', async ()=>{
+          const picked = await api.openRozrysChoiceOverlay({
+            title:'Wybierz materiał',
+            value:String(select.value || ''),
+            options: (((cfg.agg && cfg.agg.materials) || []).map((material)=>{
+              const split = splitTitle(material);
+              return {
+                value: material,
+                label: String(split.line1 || material || ''),
+                description: String(split.line2 || '')
+              };
+            }))
+          });
+          if(picked == null) return;
+          select.value = String(picked || '');
+          applyChoiceLabel(materialLauncher, readChoiceLabel(select) || 'Wybierz materiał', '');
+          select.dispatchEvent(new Event('change', { bubbles:true }));
+        });
+        materialWrap.appendChild(materialLauncher);
+        materialWrap.appendChild(select);
+      }else{
+        select.hidden = false;
+        materialWrap.appendChild(select);
+      }
     }
-    materialWrap.appendChild(materialControl);
     form.appendChild(materialWrap);
 
     const widthWrap = h('div', { class:'rozrys-panel-field' });

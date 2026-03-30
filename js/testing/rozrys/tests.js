@@ -344,14 +344,16 @@
         const optionsJs = readAssetSource('js/app/rozrys/rozrys-options-modal.js');
         assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wydzielonego shellu formularza', { optionsJs });
         assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wspólnej klasy siatki opcji', { optionsJs });
-        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Siatka opcji rozkroju nie trzyma już jawnie dwóch kolumn także na telefonie', { css });
+        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:136px minmax\(0, 1fr\)/.test(css), 'Siatka opcji rozkroju nie ma węższej lewej kolumny i elastycznej prawej', { css });
         assert(/rozrys-choice-launch--options-clean/.test(optionsJs), 'Modal Opcje rozkroju nie nadaje launcherom czystej klasy bez strzałek i helpera', { optionsJs });
         assert(!/Kliknij, aby wybrać/.test(optionsJs), 'Modal Opcje rozkroju nadal wstrzykuje helper „Kliknij, aby wybrać”', { optionsJs });
-        assert(/rozrys-panel-input--compact/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza krótkich pól liczbowych jako kompaktowe', { optionsJs });
-        assert(/rozrys-panel-inline--compact-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma kompaktowego układu par pól liczbowych', { optionsJs });
-        assert(/const modalBoardWrap = h\('div', \{ class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair' \}\);/.test(optionsJs), 'Format bazowy arkusza nie jest już pełnym wierszem z parą pól', { optionsJs });
+        assert(/rozrys-panel-input--options-left/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza jeszcze lewego pola jako węższego wariantu', { optionsJs });
+        assert(/rozrys-panel-input--options-right/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza jeszcze prawego pola jako pełnej szerokości kolumny', { optionsJs });
+        assert(/rozrys-panel-inline--options-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma równego układu par dolnych pól', { optionsJs });
+        assert(/const modalBoardWrap = h\('div', \{ class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair rozrys-panel-field--options-row-c' \}\);/.test(optionsJs), 'Format bazowy arkusza nie jest już pełnym wierszem z parą pól', { optionsJs });
         assert(/form\.appendChild\(modalUnitWrap\);[\s\S]*form\.appendChild\(modalEdgeWrap\);[\s\S]*form\.appendChild\(modalKerfWrap\);[\s\S]*form\.appendChild\(modalTrimWrap\);[\s\S]*form\.appendChild\(modalBoardWrap\);[\s\S]*form\.appendChild\(modalMinWrap\);/.test(optionsJs), 'Kolejność wierszy w Opcjach rozkroju nie jest jeszcze: jednostki+wymiary, rzaz+obrównanie, format bazowy, najmniejszy odpad', { optionsJs });
-        assert(/\.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 136px\)/.test(css), 'Shell opcji nie ogranicza szerokości krótkich pól wpisywanych', { css });
+        assert(/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:72px/i.test(css), 'Shell opcji nie wyrównuje jeszcze drugiego rzędu etykiet i pól wpisywanych', { css });
+        assert(/\.rozrys-panel-inline--options-pair\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Shell opcji nie trzyma jeszcze równych dolnych par pól', { css });
       }),
 
 
@@ -368,6 +370,9 @@
         assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--stock'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie używa klasy siatki stock', { stockJs });
         assert(/class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--qty'/.test(stockJs), 'Pole ilości w modalu Dodaj płytę do magazynu nie ma jeszcze własnego pola qty', { stockJs });
         assert(/class:'rozrys-panel-input--compact'/.test(stockJs), 'Pole ilości w modalu Dodaj płytę do magazynu nie dostało kompaktowej szerokości', { stockJs });
+        assert(/rozrys-choice-launch--stock-clean/.test(stockJs), 'Modal Dodaj płytę do magazynu nadal nie używa aplikacyjnego launchera wyboru materiału', { stockJs });
+        assert(/openRozrysChoiceOverlay/.test(stockJs), 'Modal Dodaj płytę do magazynu nadal nie otwiera aplikacyjnego overlayu wyboru materiału', { stockJs });
+        assert(/\.rozrys-choice-launch--stock-clean \.rozrys-choice-launch__arrow[\s\S]*display:none/i.test(css), 'Launcher materiału w modalu magazynu nadal pokazuje strzałkę zamiast czystego stylu aplikacji', { css });
         assert(/class:'panel-box-form__footer rozrys-panel-footer'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie używa stopki zgodnej z shellami ROZRYS', { stockJs });
       }),
 

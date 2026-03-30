@@ -32,6 +32,31 @@
   line-height:1.14;
 }
 
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch{
+  width:100%;
+  min-height:46px;
+  padding:9px 14px;
+  box-sizing:border-box;
+}
+
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean{
+  justify-content:flex-start;
+}
+
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean .rozrys-choice-launch__value{
+  gap:0;
+}
+
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean .rozrys-choice-launch__meta,
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean .rozrys-choice-launch__arrow{
+  display:none !important;
+}
+
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean .rozrys-choice-launch__label{
+  font-size:18px;
+  line-height:1.08;
+}
+
 .panel-box--rozrys .rozrys-panel-form--stock input:not([type='checkbox']):not([type='radio']),
 .panel-box--rozrys .rozrys-panel-form--stock select,
 .panel-box--rozrys .rozrys-panel-form--stock textarea{
@@ -98,6 +123,12 @@
   .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field > label{
     margin-bottom:5px;
     font-size:14px;
+  }
+
+  .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch{
+    min-height:44px;
+    padding:8px 13px;
+    border-radius:16px;
   }
 
   .panel-box--rozrys .rozrys-panel-form--stock input:not([type='checkbox']):not([type='radio']),

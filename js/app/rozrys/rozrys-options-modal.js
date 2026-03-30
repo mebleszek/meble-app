@@ -31,7 +31,7 @@
       return row.querySelector('.label-help__text') || row.querySelector('span');
     }
 
-    const modalUnitWrap = h('div', { class:'rozrys-panel-field' });
+    const modalUnitWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--options-left rozrys-panel-field--options-row-a' });
     appendModalInfoLabel(modalUnitWrap, 'Jednostki', 'Jednostki', 'Określa jednostki wyświetlane w polach opcji rozkroju.');
     const modalUnitSel = h('select', { hidden:'hidden' });
     modalUnitSel.innerHTML = `
@@ -43,7 +43,7 @@
     modalUnitWrap.appendChild(modalUnitBtn);
     modalUnitWrap.appendChild(modalUnitSel);
 
-    const modalEdgeWrap = h('div', { class:'rozrys-panel-field' });
+    const modalEdgeWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--options-right rozrys-panel-field--options-row-a' });
     appendModalInfoLabel(modalEdgeWrap, 'Wymiary do cięcia', 'Wymiary do cięcia', 'Decyduje, czy rozrys liczy wymiar nominalny czy po odjęciu okleiny.');
     const modalEdgeSel = h('select', { hidden:'hidden' });
     modalEdgeSel.innerHTML = ctx.edgeSel.innerHTML;
@@ -53,30 +53,30 @@
     modalEdgeWrap.appendChild(modalEdgeBtn);
     modalEdgeWrap.appendChild(modalEdgeSel);
 
-    const modalBoardWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair' });
+    const modalBoardWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair rozrys-panel-field--options-row-c' });
     const modalBoardLabel = appendModalInfoLabel(modalBoardWrap, `Format bazowy arkusza (${ctx.unitSel.value})`, 'Format bazowy arkusza', 'To pełny format płyty bazowej, z której dobieram brakujące arkusze.');
-    const modalBoardRow = h('div', { class:'rozrys-panel-inline rozrys-panel-inline--options rozrys-panel-inline--compact-pair' });
-    const modalBoardW = h('input', { class:'rozrys-panel-input rozrys-panel-input--compact', type:'number', value:String(ctx.inW.value) });
-    const modalBoardH = h('input', { class:'rozrys-panel-input rozrys-panel-input--compact', type:'number', value:String(ctx.inH.value) });
+    const modalBoardRow = h('div', { class:'rozrys-panel-inline rozrys-panel-inline--options rozrys-panel-inline--compact-pair rozrys-panel-inline--options-pair' });
+    const modalBoardW = h('input', { class:'rozrys-panel-input rozrys-panel-input--pair', type:'number', value:String(ctx.inW.value) });
+    const modalBoardH = h('input', { class:'rozrys-panel-input rozrys-panel-input--pair', type:'number', value:String(ctx.inH.value) });
     modalBoardRow.appendChild(modalBoardW);
     modalBoardRow.appendChild(modalBoardH);
     modalBoardWrap.appendChild(modalBoardRow);
 
-    const modalKerfWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--compact' });
+    const modalKerfWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--compact rozrys-panel-field--options-left rozrys-panel-field--options-row-b' });
     const modalKerfLabel = appendModalInfoLabel(modalKerfWrap, `Rzaz piły (${ctx.unitSel.value})`, 'Rzaz piły', 'Szerokość cięcia odejmowana między elementami i odpadami.');
-    const modalKerf = h('input', { class:'rozrys-panel-input rozrys-panel-input--compact', type:'number', value:String(ctx.inK.value) });
+    const modalKerf = h('input', { class:'rozrys-panel-input rozrys-panel-input--options-left', type:'number', value:String(ctx.inK.value) });
     modalKerfWrap.appendChild(modalKerf);
 
-    const modalTrimWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--compact rozrys-panel-field--compact-wide' });
+    const modalTrimWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--options-right rozrys-panel-field--options-row-b' });
     const modalTrimLabel = appendModalInfoLabel(modalTrimWrap, `Obrównanie krawędzi — arkusz standardowy (${ctx.unitSel.value})`, 'Obrównanie krawędzi', 'Margines odkładany od pełnej płyty przed liczeniem rozkroju.');
-    const modalTrim = h('input', { class:'rozrys-panel-input rozrys-panel-input--compact-wide', type:'number', value:String(ctx.inTrim.value) });
+    const modalTrim = h('input', { class:'rozrys-panel-input rozrys-panel-input--options-right', type:'number', value:String(ctx.inTrim.value) });
     modalTrimWrap.appendChild(modalTrim);
 
-    const modalMinWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair' });
+    const modalMinWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair rozrys-panel-field--options-row-d' });
     const modalMinLabel = appendModalInfoLabel(modalMinWrap, `Najmniejszy użyteczny odpad (${ctx.unitSel.value})`, 'Najmniejszy użyteczny odpad', 'Mniejsze odpady traktuję jako nieużyteczne i nie odkładam ich do magazynu odpadów.');
-    const modalMinRow = h('div', { class:'rozrys-panel-inline rozrys-panel-inline--options rozrys-panel-inline--compact-pair' });
-    const modalMinW = h('input', { class:'rozrys-panel-input rozrys-panel-input--compact', type:'number', value:String(ctx.inMinW.value) });
-    const modalMinH = h('input', { class:'rozrys-panel-input rozrys-panel-input--compact', type:'number', value:String(ctx.inMinH.value) });
+    const modalMinRow = h('div', { class:'rozrys-panel-inline rozrys-panel-inline--options rozrys-panel-inline--compact-pair rozrys-panel-inline--options-pair' });
+    const modalMinW = h('input', { class:'rozrys-panel-input rozrys-panel-input--pair', type:'number', value:String(ctx.inMinW.value) });
+    const modalMinH = h('input', { class:'rozrys-panel-input rozrys-panel-input--pair', type:'number', value:String(ctx.inMinH.value) });
     modalMinRow.appendChild(modalMinW);
     modalMinRow.appendChild(modalMinH);
     modalMinWrap.appendChild(modalMinRow);
