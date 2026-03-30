@@ -333,19 +333,22 @@
 
 
 
-      makeTest('UI i styl', 'Opcje rozkroju używają wspólnego shellu ROZRYS i wklęsłych pól wejściowych', 'Sprawdza, czy modal Opcje rozkroju ma już osobny, reusable moduł stylu: ten sam shell ROZRYS co zatwierdzone modale oraz wklęsłe pola input dla wartości wpisywanych ręcznie.', ()=>{
+      makeTest('UI i styl', 'Opcje rozkroju zachowują układ, ale mają tylko dopasowany wygląd pól', 'Sprawdza, czy modal Opcje rozkroju nadal używa wspólnego shellu ROZRYS i wklęsłych pól, ale bez pomocniczych napisów „Kliknij, aby wybrać” i bez strzałek w launcherach wyboru.', ()=>{
         const css = readAssetSource('css/rozrys-panel-modal-sync.css');
-        assert(css && css.includes('.rozrys-panel-form--options'), 'Brak nowego modułu stylu dla opcji rozkroju', { css });
-        assert(/\.rozrys-panel-form--options[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*linear-gradient/i.test(css), 'Nowy moduł nie nadaje jeszcze inputom w Opcjach rozkroju wklęsłego tła', { css });
-        assert(/\.rozrys-panel-form--options[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*box-shadow:\s*inset/i.test(css), 'Nowy moduł nie nadaje jeszcze inputom wklęsłego cienia inset', { css });
-        assert(/\.rozrys-panel-form--options[\s\S]*\.rozrys-panel-footer[\s\S]*align-items:\s*flex-end/i.test(css), 'Shell opcji rozkroju nie ustawia jeszcze dolnej strefy zgodnie z rytmem ROZRYS', { css });
+        assert(css && css.includes('.rozrys-panel-form--options'), 'Brak modułu stylu dla opcji rozkroju', { css });
+        assert(/\.rozrys-panel-form--options[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*linear-gradient/i.test(css), 'Inputy w Opcjach rozkroju nie mają wklęsłego tła', { css });
+        assert(/\.rozrys-panel-form--options[\s\S]*input:not\(\[type='checkbox'\]\):not\(\[type='radio'\]\)[\s\S]*box-shadow:\s*inset/i.test(css), 'Inputy w Opcjach rozkroju nie mają wklęsłego cienia inset', { css });
+        assert(/\.rozrys-panel-form--options[\s\S]*\.rozrys-choice-launch--options-clean/.test(css), 'Launcher wyboru w Opcjach rozkroju nie ma jeszcze czystego wariantu bez dodatków', { css });
+        assert(/\.rozrys-choice-launch--options-clean \.rozrys-choice-launch__meta[\s\S]*display:none/i.test(css), 'W launcherze opcji nadal nie jest ukrywany pomocniczy napis', { css });
+        assert(/\.rozrys-choice-launch--options-clean \.rozrys-choice-launch__arrow[\s\S]*display:none/i.test(css), 'W launcherze opcji nadal nie jest ukrywana strzałka', { css });
         const optionsJs = readAssetSource('js/app/rozrys/rozrys-options-modal.js');
-        assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa jeszcze wydzielonego shellu formularza', { optionsJs });
-        assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nadal używa inline grid zamiast wspólnej klasy opcji', { optionsJs });
-        assert(/class:'rozrys-panel-footer rozrys-panel-footer--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa jeszcze wydzielonej stopki shellu', { optionsJs });
-        assert(/rozrys-panel-input--compact/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza jeszcze krótkich pól liczbowych jako kompaktowe', { optionsJs });
-        assert(/rozrys-panel-inline--compact-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma jeszcze kompaktowego układu par pól liczbowych', { optionsJs });
-        assert(/\.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 136px\)/.test(css), 'Nowy shell nie ogranicza jeszcze szerokości krótkich pól wpisywanych', { css });
+        assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wydzielonego shellu formularza', { optionsJs });
+        assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wspólnej klasy siatki opcji', { optionsJs });
+        assert(/rozrys-choice-launch--options-clean/.test(optionsJs), 'Modal Opcje rozkroju nie nadaje launcherom czystej klasy bez strzałek i helpera', { optionsJs });
+        assert(!/Kliknij, aby wybrać/.test(optionsJs), 'Modal Opcje rozkroju nadal wstrzykuje helper „Kliknij, aby wybrać”', { optionsJs });
+        assert(/rozrys-panel-input--compact/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza krótkich pól liczbowych jako kompaktowe', { optionsJs });
+        assert(/rozrys-panel-inline--compact-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma kompaktowego układu par pól liczbowych', { optionsJs });
+        assert(/\.rozrys-panel-input--compact\{[\s\S]*width:min\(100%, 136px\)/.test(css), 'Shell opcji nie ogranicza szerokości krótkich pól wpisywanych', { css });
       }),
 
       makeTest('UI i styl', 'Karta materiału ma dokładnie ten sam wzorzec ramki, cienia i rytmu pola co wybór trybu', 'Sprawdza, czy karty w Wybierz materiał / grupę kopiują realne parametry z modala Szybkość liczenia: ten sam zielony border/shadow zaznaczenia, ten sam rytm pola kart oraz wyśrodkowaną stopkę akcji pod listą.', ()=>{

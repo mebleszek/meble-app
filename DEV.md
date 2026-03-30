@@ -809,6 +809,7 @@ Dopiero potem go zmieniać.
 - Material picker znów używa własnego modifiera `.rozrys-picker-footer--material` z top paddingiem 20px desktop / 18px mobile.
 - Room picker pozostawiono bez zmian.
 
+- 2026-03-30: `Opcje rozkroju` wróciły do praktycznego układu bez zmiany funkcjonalnej siatki; launchery wyboru w tym modalu nie pokazują już helpera „Kliknij, aby wybrać” ani strzałek, a pola wpisywane mają niższy, wklęsły styl (`css/rozrys-panel-modal-sync.css`, `js/app/rozrys/rozrys-options-modal.js`, test anty-regresyjny w `js/testing/rozrys/tests.js`).
 - 2026-03-30: `Opcje rozkroju` dostały reusable shell ROZRYS dla modali formularzowych (`css/rozrys-panel-modal-sync.css`): rytm jak w zatwierdzonych oknach ROZRYS oraz wklęsłe pola input dla ręcznie wpisywanych wartości.
 
 - 2026-03-30: Opcje rozkroju zachowują shell ROZRYS i wklęsłe pola, ale krótkie pola liczbowe wróciły do kompaktowych szerokości (moduł `rozrys-panel-modal-sync.css`, klasy `rozrys-panel-input--compact`, `rozrys-panel-input--compact-wide`, `rozrys-panel-inline--compact-pair`).

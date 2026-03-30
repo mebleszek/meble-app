@@ -38,7 +38,8 @@
       <option value="cm" ${ctx.unitSel.value==='cm'?'selected':''}>cm</option>
       <option value="mm" ${ctx.unitSel.value==='mm'?'selected':''}>mm</option>
     `;
-    const modalUnitBtn = cfg.createChoiceLauncher(cfg.getSelectOptionLabel(modalUnitSel), 'Kliknij, aby wybrać');
+    const modalUnitBtn = cfg.createChoiceLauncher(cfg.getSelectOptionLabel(modalUnitSel), '');
+    modalUnitBtn.classList.add('rozrys-choice-launch--options-clean');
     modalUnitWrap.appendChild(modalUnitBtn);
     modalUnitWrap.appendChild(modalUnitSel);
     form.appendChild(modalUnitWrap);
@@ -48,7 +49,8 @@
     const modalEdgeSel = h('select', { hidden:'hidden' });
     modalEdgeSel.innerHTML = ctx.edgeSel.innerHTML;
     modalEdgeSel.value = ctx.edgeSel.value;
-    const modalEdgeBtn = cfg.createChoiceLauncher(cfg.getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
+    const modalEdgeBtn = cfg.createChoiceLauncher(cfg.getSelectOptionLabel(modalEdgeSel), '');
+    modalEdgeBtn.classList.add('rozrys-choice-launch--options-clean');
     modalEdgeWrap.appendChild(modalEdgeBtn);
     modalEdgeWrap.appendChild(modalEdgeSel);
     form.appendChild(modalEdgeWrap);
@@ -93,8 +95,8 @@
       modalKerfLabel.textContent = `Rzaz piły (${u})`;
       modalTrimLabel.textContent = `Obrównanie krawędzi — arkusz standardowy (${u})`;
       modalMinLabel.textContent = `Najmniejszy użyteczny odpad (${u})`;
-      cfg.setChoiceLaunchValue(modalUnitBtn, cfg.getSelectOptionLabel(modalUnitSel), 'Kliknij, aby wybrać');
-      cfg.setChoiceLaunchValue(modalEdgeBtn, cfg.getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
+      cfg.setChoiceLaunchValue(modalUnitBtn, cfg.getSelectOptionLabel(modalUnitSel), '');
+      cfg.setChoiceLaunchValue(modalEdgeBtn, cfg.getSelectOptionLabel(modalEdgeSel), '');
     }
 
     function convertModalNumericFields(prevUnit, nextUnit){
@@ -239,7 +241,7 @@
       });
       if(picked == null || picked === modalEdgeSel.value) return;
       modalEdgeSel.value = picked;
-      cfg.setChoiceLaunchValue(modalEdgeBtn, cfg.getSelectOptionLabel(modalEdgeSel), 'Kliknij, aby wybrać');
+      cfg.setChoiceLaunchValue(modalEdgeBtn, cfg.getSelectOptionLabel(modalEdgeSel), '');
       modalEdgeSel.dispatchEvent(new Event('change', { bubbles:true }));
     });
 
