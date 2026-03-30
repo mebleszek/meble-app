@@ -3,11 +3,9 @@
    and scrollbar gutter so the large material cards behave like the three cards in
    'Szybkość liczenia', while still leaving a dedicated footer area for action buttons.
 
-   The real footer spacing is not copied as raw padding from the header, because picker modals
-   already have body padding and the list itself keeps bottom breathing for the selected-card shadow.
-   To avoid the oversized hole under the list, the footer itself stays padding-free and reuses:
-   - list bottom breathing: 20px
-   - body bottom breathing: inherited from the modal body */
+   The material picker footer now reuses exactly the same footer rhythm as the rooms picker.
+   The list itself keeps the bottom breathing for the selected-card shadow, so the footer stays
+   padding-free in both pickers and does not create an extra gap under the cards. */
 
 .rozrys-picker-modal{
   display:flex;
@@ -37,19 +35,12 @@
   flex-wrap:wrap;
 }
 
-.rozrys-picker-footer--material{
-  padding:20px 0 0;
-}
-
 @media (max-width: 640px){
   .rozrys-picker-list{
     padding:0 10px 20px 0;
   }
   .rozrys-picker-footer{
     padding:0;
-  }
-  .rozrys-picker-footer--material{
-    padding:18px 0 0;
   }
 }
 

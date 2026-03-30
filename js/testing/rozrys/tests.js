@@ -342,9 +342,10 @@
         assert(/\.rozrys-picker-modal\{[\s\S]*gap:\s*0/i.test(syncCss), 'Kontener pickerów nadal dokłada dodatkowy gap między listą a stopką i zostawia zbyt dużą dziurę pod kartami', { syncCss });
         assert(/\.rozrys-picker-list\{[\s\S]*gap:\s*12px[\s\S]*padding:\s*0 12px 20px 0[\s\S]*scrollbar-gutter:\s*stable/i.test(syncCss), 'Pole kart materiału nie ma jeszcze dokładnego rytmu 12px, dolnego zapasu 20px i prawego guttera na scrollbar', { syncCss });
         assert(/\.rozrys-picker-footer\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*padding:\s*0/i.test(syncCss), 'Wspólna stopka pickerów straciła bazowe wyśrodkowanie albo zerowy pionowy padding', { syncCss });
-        assert(/\.rozrys-picker-footer--material\{[\s\S]*padding:\s*20px\s+0\s+0/i.test(syncCss), 'Stopka wyboru materiału nie dostała osobnego górnego paddingu 20px, który ma opuścić samotny przycisk Wyjdź', { syncCss });
-        assert(/@media \(max-width:\s*640px\)\{[\s\S]*\.rozrys-picker-footer--material\{[\s\S]*padding:\s*18px\s+0\s+0/i.test(syncCss), 'Mobilna stopka wyboru materiału nie ma górnego paddingu 18px dla przycisku Wyjdź', { syncCss });
+        assert(!/\.rozrys-picker-footer--material\{/i.test(syncCss), 'Stopka wyboru materiału nadal ma osobny modifier i nie współdzieli jeszcze dokładnie tej samej stopki co wybór pomieszczeń', { syncCss });
         assert(/\.rozrys-picker-footer-actions\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*10px/i.test(syncCss), 'Wewnętrzny rząd przycisków akcji nie zachował jeszcze wyśrodkowania i wspólnego rytmu 10px', { syncCss });
+        const pickersJs = readAssetSource('js/app/rozrys/rozrys-pickers.js');
+        assert(/openMaterialPicker[\s\S]*class:'rozrys-picker-footer'/.test(pickersJs), 'Modal wyboru materiału nadal nie używa tej samej bazowej stopki co modal wyboru pomieszczeń', { pickersJs });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
