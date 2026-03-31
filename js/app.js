@@ -414,7 +414,7 @@ function renderMaterialsTab(listEl, room){
 function renderCabinets(){
   const list = document.getElementById('cabinetsList'); list.innerHTML = '';
   const room = uiState.roomType;
-  document.getElementById('roomTitle').textContent = room ? room.charAt(0).toUpperCase()+room.slice(1) : 'Pomieszczenie';
+  document.getElementById('roomTitle').textContent = room ? ((window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getRoomLabel === 'function') ? window.FC.roomRegistry.getRoomLabel(room) : room.charAt(0).toUpperCase()+room.slice(1)) : 'Pomieszczenie';
   if(!room) return;
 
   const s = projectData[room].settings;

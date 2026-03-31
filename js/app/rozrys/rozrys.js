@@ -73,6 +73,11 @@
       try{
         if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS.slice();
       }catch(_){ }
+      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
+        const dynamicRooms = FC.roomRegistry.getActiveRoomIds();
+        if(Array.isArray(dynamicRooms) && dynamicRooms.length) return dynamicRooms;
+        if(FC.roomRegistry.hasCurrentInvestor && FC.roomRegistry.hasCurrentInvestor()) return [];
+      }
       return ['kuchnia','szafa','pokoj','lazienka'];
     })();
     const proj = safeGetProject();
@@ -320,7 +325,8 @@ function getAccordionScopeKey(selection, aggregate){
     const scopeMode = (mode === 'fronts' || mode === 'corpus' || mode === 'both') ? mode : 'both';
     for(const room of rooms){
       const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
-      for(const cab of cabinets){
+      for(let cabIndex = 0; cabIndex < cabinets.length; cabIndex += 1){
+        const cab = cabinets[cabIndex];
         const cutListFn = resolveCabinetCutListFn();
         if(typeof cutListFn !== 'function') continue;
         const parts = cutListFn(cab, room) || [];
@@ -349,6 +355,7 @@ function getAccordionScopeKey(selection, aggregate){
             qty,
             room,
             source: String((cab && (cab.name || cab.label || cab.type || cab.kind)) || 'Szafka'),
+            cabinet: `#${cabIndex + 1}`,
             sourceRows: 1,
           });
         }

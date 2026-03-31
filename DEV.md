@@ -821,8 +821,10 @@ Dopiero potem go zmieniać.
 - 2026-03-31: `Opcje rozkroju` dostały dokładniejszy, praktyczny układ pól bez zmiany logiki: lewa kolumna jest węższa (Jednostki jak Rzaz piły), prawa rozciąga się na resztę rzędu, drugi rząd ma wyrównane pole wejściowe mimo wielowierszowej etykiety, a dolne pary pól (`Format bazowy`, `Najmniejszy użyteczny odpad`) mają równą szerokość przez wspólny układ `rozrys-panel-inline--options-pair`.
 - 2026-03-31: ROZRYS `Dodaj płytę do magazynu` przestał używać systemowego selecta materiału; modal korzysta teraz z istniejącego aplikacyjnego launchera i overlayu wyboru (`createChoiceLauncher` + `openRozrysChoiceOverlay`) ze stylem `.rozrys-choice-launch--stock-clean`, bez helpera i bez strzałki.
 
-
-## 2026-03-31 — options/list/grain follow-up
-- ROZRYS list tables: rotated vertical headers and stacked dimensions (`Xxx / X / Yyy`).
-- `Opcje rozkroju`: choice launchers styled like app buttons; left choice field kept compact, right field fills remaining width; paired numeric rows narrowed and kept equal.
-- Auto-render from cache: no longer clears accordion on grain toggle cache miss; restores page/container scroll on full cache hits.
+## 2026-03-31 — rooms/lists/investor sync batch
+- Added `js/app/shared/room-registry.js` as dynamic room registry for investor/project room definitions.
+- Investor detail view now uses app-style choice launchers for `Typ` and `Status`, plus compact app-style inputs.
+- Investor quick-room section now renders dynamic rooms from current investor and exposes `Dodaj pomieszczenie`.
+- ROZRYS room discovery now prefers dynamic investor/project rooms through room registry labels.
+- Validation/list tables now support vertical headers, stacked dimensions, room/source/cabinet columns.
+- Sheet lists are enriched from raw snapshot metadata to show room/source/cabinet context when available.

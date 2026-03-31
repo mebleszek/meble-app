@@ -120,101 +120,78 @@
   function buildDetail(inv){
     const isCompany = inv.kind === 'company';
     const statusOptions = STATUS_OPTIONS.map(o => `<option value="${o.v}" ${inv.status===o.v?'selected':''}>${o.label}</option>`).join('');
+    const activeRooms = (window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getActiveRoomDefs === 'function')
+      ? window.FC.roomRegistry.getActiveRoomDefs()
+      : [];
+    const roomButtons = activeRooms.map((room)=> `<button class="btn" data-action="open-room" data-room="${escapeAttr(room.id)}">${escapeHtml(room.label || room.name || room.id)}</button>`).join('');
 
     return `
-      <div class="card">
+      <div class="card investor-card-sync">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <h3 style="margin:0">Inwestor</h3>
           ${state.allowListAccess ? '<button class="btn" data-action="back-investors">Lista</button>' : ''}
         </div>
 
-        <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
-          <label class="muted xs" style="margin:0">Typ:</label>
-          <select id="invKind">
-            <option value="person" ${!isCompany?'selected':''}>Osoba</option>
-            <option value="company" ${isCompany?'selected':''}>Firma</option>
-          </select>
-          <label class="muted xs" style="margin:0">Status:</label>
-          <select id="invStatus">${statusOptions}</select>
+        <div class="investor-choice-grid" style="margin-top:12px">
+          <div class="investor-choice-field">
+            <label class="muted xs" style="margin:0">Typ:</label>
+            <select id="invKind" hidden>
+              <option value="person" ${!isCompany?'selected':''}>Osoba</option>
+              <option value="company" ${isCompany?'selected':''}>Firma</option>
+            </select>
+            <div id="invKindLaunch"></div>
+          </div>
+          <div class="investor-choice-field">
+            <label class="muted xs" style="margin:0">Status:</label>
+            <select id="invStatus" hidden>${statusOptions}</select>
+            <div id="invStatusLaunch"></div>
+          </div>
         </div>
 
-        <div class="grid-2" style="margin-top:12px">
+        <div class="grid-2 investor-form-grid" style="margin-top:12px">
           <div>
             <label>${isCompany?'Nazwa firmy':'Imię i nazwisko'}</label>
-            <input id="invName" value="${escapeAttr(isCompany ? (inv.companyName||'') : (inv.name||''))}" />
+            <input class="investor-form-input" id="invName" value="${escapeAttr(isCompany ? (inv.companyName||'') : (inv.name||''))}" />
           </div>
           <div>
             <label>Telefon</label>
-            <input id="invPhone" value="${escapeAttr(inv.phone||'')}" />
+            <input class="investor-form-input" id="invPhone" value="${escapeAttr(inv.phone||'')}" />
           </div>
           <div>
             <label>Email</label>
-            <input id="invEmail" value="${escapeAttr(inv.email||'')}" />
+            <input class="investor-form-input" id="invEmail" value="${escapeAttr(inv.email||'')}" />
           </div>
           <div>
             <label>Miejscowość</label>
-            <input id="invCity" value="${escapeAttr(inv.city||'')}" />
+            <input class="investor-form-input" id="invCity" value="${escapeAttr(inv.city||'')}" />
           </div>
           <div style="grid-column:1/-1">
             <label>Adres</label>
-            <input id="invAddress" value="${escapeAttr(inv.address||'')}" />
+            <input class="investor-form-input" id="invAddress" value="${escapeAttr(inv.address||'')}" />
           </div>
           <div>
             <label>Źródło</label>
-            <input id="invSource" value="${escapeAttr(inv.source||'')}" placeholder="polecenie / OLX / FB..." />
+            <input class="investor-form-input" id="invSource" value="${escapeAttr(inv.source||'')}" placeholder="polecenie / OLX / FB..." />
           </div>
           <div style="grid-column:1/-1">
             <label>Notatki</label>
-            <textarea id="invNotes" rows="3">${escapeHtml(inv.notes||'')}</textarea>
+            <textarea class="investor-form-input investor-form-textarea" id="invNotes" rows="3">${escapeHtml(inv.notes||'')}</textarea>
           </div>
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
           <button class="btn-primary" data-action="assign-investor" data-inv-id="${inv.id}">Przypisz do bieżącego projektu</button>
           <button class="btn" data-action="delete-investor" data-inv-id="${inv.id}">Usuń</button>
+          <button class="btn-primary" data-action="add-room">Dodaj pomieszczenie</button>
         </div>
 
         <div class="hr"></div>
         <h4 style="margin:0 0 8px">Szybki skok do pomieszczeń</h4>
-        <div class="muted xs" style="margin-bottom:10px">Kliknij, aby przejść do edycji (WYWIAD/RYSUNEK/MATERIAŁ...)</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn" data-action="open-room" data-room="kuchnia">Kuchnia</button>
-          <button class="btn" data-action="open-room" data-room="szafa">Szafa</button>
-          <button class="btn" data-action="open-room" data-room="pokoj">Pokój</button>
-          <button class="btn" data-action="open-room" data-room="lazienka">Łazienka</button>
-        </div>
+        <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">${roomButtons || '<div class="muted">Brak dodanych pomieszczeń.</div>'}</div>
       </div>
     `;
   }
-
-  function bindList(scopeEl){
-    // IMPORTANT: do not re-render the whole card on each keypress.
-    // Replacing the <input> element causes mobile keyboards to hide after 1 char.
-    const root = scopeEl || getRoot();
-    if(!root) return;
-    const search = root.querySelector('#invSearch');
-    const itemsEl = root.querySelector('#invItems');
-    if(search && itemsEl){
-      search.addEventListener('input', () => {
-        state.query = search.value || '';
-        const list = (FC.investors && typeof FC.investors.search === 'function') ? FC.investors.search(state.query) : [];
-        itemsEl.innerHTML = (list || []).map(inv => {
-          const title = (inv.kind === 'company' ? (inv.companyName || '(Firma bez nazwy)') : (inv.name || '(Bez nazwy)'));
-          const sub = [inv.phone, inv.city].filter(Boolean).join(' • ');
-          return `
-            <div class="item" data-inv-id="${inv.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:1px solid rgba(0,0,0,.08);border-radius:12px;margin:8px 0;">
-              <div style="min-width:0">
-                <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(title)}</div>
-                <div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(sub || '')}</div>
-              </div>
-              <button class="btn" data-action="open-investor" data-inv-id="${inv.id}">Otwórz</button>
-            </div>
-          `;
-        }).join('') || '<div class="muted">Brak inwestorów.</div>';
-      }, { passive: true });
-    }
-  }
-
   function bindDetail(inv){
     const root = getRoot();
     if(!root) return;
@@ -263,7 +240,6 @@
       el.addEventListener('input', saveAll, { passive: true });
       el.addEventListener('change', () => {
         saveAll();
-        // If kind changes, rerender labels
         if(el === kind){
           const updated = FC.investors.getById(inv.id);
           if(updated){
@@ -274,6 +250,32 @@
         }
       });
     });
+
+    const choiceApi = window.FC && window.FC.rozrysChoice;
+    function wireChoice(selectEl, mountId, title){
+      const mount = document.getElementById(mountId);
+      if(!mount || !selectEl || !choiceApi || typeof choiceApi.createChoiceLauncher !== 'function' || typeof choiceApi.openRozrysChoiceOverlay !== 'function') return;
+      const label = choiceApi.getSelectOptionLabel(selectEl) || '';
+      const btn = choiceApi.createChoiceLauncher(label, '');
+      btn.classList.add('investor-choice-launch');
+      const arrow = btn.querySelector('.rozrys-choice-launch__arrow');
+      if(arrow) arrow.remove();
+      btn.addEventListener('click', async ()=>{
+        const picked = await choiceApi.openRozrysChoiceOverlay({
+          title,
+          value:String(selectEl.value || ''),
+          options:Array.from(selectEl.options || []).map((opt)=> ({ value:String(opt.value || ''), label:String(opt.textContent || opt.label || opt.value || '') }))
+        });
+        if(picked == null) return;
+        selectEl.value = String(picked || '');
+        choiceApi.setChoiceLaunchValue(btn, choiceApi.getSelectOptionLabel(selectEl) || '', '');
+        selectEl.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+      mount.innerHTML = '';
+      mount.appendChild(btn);
+    }
+    wireChoice(kind, 'invKindLaunch', 'Wybierz typ');
+    wireChoice(status, 'invStatusLaunch', 'Wybierz status');
 
     root.querySelectorAll('[data-action="back-investors"]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -286,21 +288,40 @@
       btn.addEventListener('click', () => {
         FC.investors.setCurrentId(inv.id);
         persistUIInvestorId(inv.id);
-        alert('Przypisano inwestora do bieżącej pracy (lokalnie).');
+        try{ if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.renderRoomsView === 'function') window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
       });
     });
 
     root.querySelectorAll('[data-action="delete-investor"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if(!confirm('Usunąć inwestora?')) return;
+      btn.addEventListener('click', async () => {
+        let ok = true;
+        try{
+          if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
+            ok = await window.FC.confirmBox.ask({ title:'Usunąć inwestora?', message:'Tej operacji nie cofnięsz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
+          }
+        }catch(_){ }
+        if(!ok) return;
         FC.investors.remove(inv.id);
         state.selectedId = null;
         state.mode = 'list';
         render();
       });
     });
-  }
 
+    root.querySelectorAll('[data-action="add-room"]').forEach(btn => {
+      btn.addEventListener('click', async ()=>{
+        try{
+          if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.openAddRoomModal === 'function'){
+            const room = await window.FC.roomRegistry.openAddRoomModal();
+            if(room){
+              try{ if(window.FC.roomRegistry.renderRoomsView) window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
+              render();
+            }
+          }
+        }catch(_){ }
+      });
+    });
+  }
   function escapeHtml(s){
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }

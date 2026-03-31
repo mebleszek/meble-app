@@ -29,6 +29,7 @@
       qty,
       room: row && row.room ? String(row.room) : '',
       source: row && row.source ? String(row.source) : '',
+      cabinet: row && row.cabinet ? String(row.cabinet) : '',
       sourceRows: Math.max(0, Math.round(Number(row && row.sourceRows) || 0))
     };
   }
@@ -42,6 +43,9 @@
       if(cur){
         cur.qty += n.qty;
         cur.sourceRows += Math.max(1, n.sourceRows || 1);
+        if(n.room && !cur.room.includes(n.room)) cur.room = [cur.room, n.room].filter(Boolean).join(' • ');
+        if(n.source && !cur.source.includes(n.source)) cur.source = [cur.source, n.source].filter(Boolean).join(' • ');
+        if(n.cabinet && !cur.cabinet.includes(n.cabinet)) cur.cabinet = [cur.cabinet, n.cabinet].filter(Boolean).join(' • ');
       }else{
         map.set(n.key, Object.assign({}, n, { sourceRows: Math.max(1, n.sourceRows || 1) }));
       }
@@ -77,6 +81,9 @@
           w: Math.max(1, Math.round(Number((p.rotated ? p.h : p.w) || p.w || 0))),
           h: Math.max(1, Math.round(Number((p.rotated ? p.w : p.h) || p.h || 0))),
           qty: 1,
+          room: String(p.room || ''),
+          source: String(p.source || ''),
+          cabinet: String(p.cabinet || ''),
         });
       }
     });

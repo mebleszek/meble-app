@@ -18,16 +18,16 @@
   }
 
   function buildDimNode(wMm, hMm, unit, mmToUnitStr){
-    return h('span', { class:'table-dim table-dim--stacked' }, [
-      h('span', { class:'table-dim__top', text:mmToUnitStr(wMm, unit) }),
-      h('span', { class:'table-dim__x', text:'X' }),
-      h('span', { class:'table-dim__bottom', text:mmToUnitStr(hMm, unit) }),
+    return h('span', { class:'table-dim' }, [
+      h('span', { class:'table-dim__left', text:mmToUnitStr(wMm, unit) }),
+      h('span', { class:'table-dim__x', text:'x' }),
+      h('span', { class:'table-dim__right', text:mmToUnitStr(hMm, unit) }),
     ]);
   }
 
-  function buildRotatedHead(label, cls){
-    const th = h('th', { class:cls || '' });
-    th.appendChild(h('span', { class:'table-head-rot', text:String(label || '') }));
+  function buildVerticalHead(label, cls){
+    const th = h('th', { class:`table-th-vertical ${cls || ''}`.trim() });
+    th.appendChild(h('span', { text:String(label || '') }));
     return th;
   }
 
@@ -43,34 +43,33 @@
 
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : 'table-list--summary'}`.trim() });
+    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
     const colgroup = h('colgroup');
     if(mode === 'sheet'){
-      colgroup.appendChild(h('col', { class:'col-name' }));
-      colgroup.appendChild(h('col', { class:'col-dim' }));
-      colgroup.appendChild(h('col', { class:'col-qty' }));
+      ['col-name','col-dim','col-qty','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
     }else{
-      colgroup.appendChild(h('col', { class:'col-name' }));
-      colgroup.appendChild(h('col', { class:'col-dim' }));
-      colgroup.appendChild(h('col', { class:'col-num' }));
-      colgroup.appendChild(h('col', { class:'col-num' }));
-      colgroup.appendChild(h('col', { class:'col-num' }));
-      colgroup.appendChild(h('col', { class:'col-status' }));
+      ['col-name','col-dim','col-qty','col-qty','col-diff','col-room','col-source','col-cab','col-status'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
     }
     table.appendChild(colgroup);
     const thead = h('thead');
     const headRow = h('tr');
     if(mode === 'sheet'){
-      headRow.appendChild(buildRotatedHead('Nazwa', 'col-name is-rotated'));
-      headRow.appendChild(buildRotatedHead(`Wymiar (${unit})`, 'col-dim is-rotated'));
-      headRow.appendChild(buildRotatedHead('Ilość', 'col-qty is-rotated'));
+      headRow.appendChild(buildVerticalHead('Nazwa', 'col-name'));
+      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
+      headRow.appendChild(buildVerticalHead('Ilość', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+      headRow.appendChild(buildVerticalHead('Źródło', 'col-source'));
+      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
     } else {
-      headRow.appendChild(buildRotatedHead('Formatka', 'col-name is-rotated'));
-      headRow.appendChild(buildRotatedHead(`Wymiar (${unit})`, 'col-dim is-rotated'));
-      headRow.appendChild(buildRotatedHead('Potrzebne', 'col-num is-rotated'));
-      headRow.appendChild(buildRotatedHead('Rozrysowane', 'col-num is-rotated'));
-      headRow.appendChild(buildRotatedHead('Różnica', 'col-num is-rotated'));
-      headRow.appendChild(buildRotatedHead('Status', 'col-status is-rotated'));
+      headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
+      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
+      headRow.appendChild(buildVerticalHead('Potrzebne', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Rozrysowane', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+      headRow.appendChild(buildVerticalHead('Źródło', 'col-source'));
+      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
+      headRow.appendChild(buildVerticalHead('Status', 'col-status'));
     }
     thead.appendChild(headRow);
     const tbody = h('tbody');
@@ -82,15 +81,22 @@
         dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
         tr.appendChild(dimTd);
         tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
+        tr.appendChild(h('td', { class:'col-diff', text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
+        tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
+        tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
+        tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
       } else {
-        tr.appendChild(h('td', { text: row.name || 'Element' }));
-        const dimTd = h('td');
+        tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
+        const dimTd = h('td', { class:'col-dim' });
         dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
         tr.appendChild(dimTd);
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
-        tr.appendChild(h('td', { text:String(Math.max(0, Number(row.actualQty) || 0)) }));
-        tr.appendChild(h('td', { text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
-        const td = h('td');
+        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
+        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.actualQty) || 0)) }));
+        tr.appendChild(h('td', { class:'col-diff', text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
+        tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
+        tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
+        tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
+        const td = h('td', { class:'col-status' });
         td.appendChild(buildStatusChip(row.status));
         tr.appendChild(td);
       }
@@ -104,21 +110,16 @@
 
   function buildRawTable(rows, unit, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:'table-list table-list--raw' });
+    const table = h('table', { class:'table-list' });
     const colgroup = h('colgroup');
-    colgroup.appendChild(h('col', { class:'col-name' }));
-    colgroup.appendChild(h('col', { class:'col-dim' }));
-    colgroup.appendChild(h('col', { class:'col-num' }));
-    colgroup.appendChild(h('col', { class:'col-room' }));
-    colgroup.appendChild(h('col', { class:'col-source' }));
+    ['col-name','col-dim','col-qty','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
     table.appendChild(colgroup);
     const thead = h('thead');
     const headRow = h('tr');
-    headRow.appendChild(buildRotatedHead('Formatka', 'col-name is-rotated'));
-    headRow.appendChild(buildRotatedHead(`Wymiar (${unit})`, 'col-dim is-rotated'));
-    headRow.appendChild(buildRotatedHead('Ilość', 'col-num is-rotated'));
-    headRow.appendChild(buildRotatedHead('Pomieszczenie', 'col-room is-rotated'));
-    headRow.appendChild(buildRotatedHead('Źródło', 'col-source is-rotated'));
+    ['Formatka', `Wymiar (${unit})`, 'Ilość', 'Pomieszczenie', 'Źródło', 'Szafka'].forEach((label, idx)=> {
+      const cls = ['col-name','col-dim','col-qty','col-room','col-source','col-cab'][idx];
+      headRow.appendChild(buildVerticalHead(label, cls));
+    });
     thead.appendChild(headRow);
     const tbody = h('tbody');
     (rows || []).forEach((row)=>{
@@ -127,9 +128,10 @@
       const dimTd = h('td', { class:'col-dim' });
       dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
       tr.appendChild(dimTd);
-      tr.appendChild(h('td', { class:'col-num', text:String(Math.max(0, Number(row.qty) || 0)) }));
+      tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
       tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
       tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
+      tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
       tbody.appendChild(tr);
     });
     table.appendChild(thead);

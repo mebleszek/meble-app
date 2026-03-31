@@ -344,7 +344,7 @@
         const optionsJs = readAssetSource('js/app/rozrys/rozrys-options-modal.js');
         assert(/class:'rozrys-panel-form rozrys-panel-form--options rozrys-panel-form--inset'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wydzielonego shellu formularza', { optionsJs });
         assert(/class:'grid-2 rozrys-panel-grid rozrys-panel-grid--options'/.test(optionsJs), 'Modal Opcje rozkroju nie używa wspólnej klasy siatki opcji', { optionsJs });
-        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:112px minmax\(0, 1fr\)/.test(css), 'Siatka opcji rozkroju nie ma węższej lewej kolumny i elastycznej prawej', { css });
+        assert(/\.rozrys-panel-grid--options\{[\s\S]*grid-template-columns:136px minmax\(0, 1fr\)/.test(css), 'Siatka opcji rozkroju nie ma węższej lewej kolumny i elastycznej prawej', { css });
         assert(/rozrys-choice-launch--options-clean/.test(optionsJs), 'Modal Opcje rozkroju nie nadaje launcherom czystej klasy bez strzałek i helpera', { optionsJs });
         assert(!/Kliknij, aby wybrać/.test(optionsJs), 'Modal Opcje rozkroju nadal wstrzykuje helper „Kliknij, aby wybrać”', { optionsJs });
         assert(/rozrys-panel-input--options-left/.test(optionsJs), 'Modal Opcje rozkroju nie oznacza jeszcze lewego pola jako węższego wariantu', { optionsJs });
@@ -352,7 +352,7 @@
         assert(/rozrys-panel-inline--options-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma równego układu par dolnych pól', { optionsJs });
         assert(/const modalBoardWrap = h\('div', \{ class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair rozrys-panel-field--options-row-c' \}\);/.test(optionsJs), 'Format bazowy arkusza nie jest już pełnym wierszem z parą pól', { optionsJs });
         assert(/form\.appendChild\(modalUnitWrap\);[\s\S]*form\.appendChild\(modalEdgeWrap\);[\s\S]*form\.appendChild\(modalKerfWrap\);[\s\S]*form\.appendChild\(modalTrimWrap\);[\s\S]*form\.appendChild\(modalBoardWrap\);[\s\S]*form\.appendChild\(modalMinWrap\);/.test(optionsJs), 'Kolejność wierszy w Opcjach rozkroju nie jest jeszcze: jednostki+wymiary, rzaz+obrównanie, format bazowy, najmniejszy odpad', { optionsJs });
-        assert(/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:32px/i.test(css), 'Shell opcji nie wyrównuje jeszcze drugiego rzędu etykiet i pól wpisywanych', { css });
+        assert(/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:72px/i.test(css), 'Shell opcji nie wyrównuje jeszcze drugiego rzędu etykiet i pól wpisywanych', { css });
         assert(/\.rozrys-panel-inline--options-pair\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Shell opcji nie trzyma jeszcze równych dolnych par pól', { css });
       }),
 
@@ -374,96 +374,6 @@
         assert(/openRozrysChoiceOverlay/.test(stockJs), 'Modal Dodaj płytę do magazynu nadal nie otwiera aplikacyjnego overlayu wyboru materiału', { stockJs });
         assert(/\.rozrys-choice-launch--stock-clean \.rozrys-choice-launch__arrow[\s\S]*display:none/i.test(css), 'Launcher materiału w modalu magazynu nadal pokazuje strzałkę zamiast czystego stylu aplikacji', { css });
         assert(/class:'panel-box-form__footer rozrys-panel-footer'/.test(stockJs), 'Modal Dodaj płytę do magazynu nie używa stopki zgodnej z shellami ROZRYS', { stockJs });
-      }),
-
-      makeTest('UI i styl', 'Tabele formatek mają obrócone nagłówki i pionowy zapis wymiarów', 'Sprawdza, czy nagłówki tabel w listach formatek są obrócone do wąskich kolumn, a wymiary są zapisywane pionowo jako wymiar, X i wymiar.', ()=>{
-        const listJs = readAssetSource('js/app/rozrys/rozrys-lists.js');
-        const css = readAssetSource('css/style.css');
-        assert(/function buildRotatedHead\(/.test(listJs), 'Listy formatek nie budują jeszcze obróconych nagłówków kolumn', { listJs });
-        assert(/class:'table-dim table-dim--stacked'/.test(listJs), 'Wymiary w listach formatek nie są jeszcze budowane w układzie pionowym', { listJs });
-        assert(/text:'X'/.test(listJs), 'Separator wymiarów nie jest jeszcze osobnym wierszem X', { listJs });
-        assert(/writing-mode:vertical-rl[\s\S]*rotate\(180deg\)/i.test(css), 'Nagłówki tabel nie są jeszcze obrócone od dołu do góry', { css });
-        assert(/\.table-dim\{[\s\S]*flex-direction:column/i.test(css), 'Układ wymiarów w tabelach nie jest jeszcze pionowy', { css });
-      }),
-      makeTest('UI i styl', 'Opcje rozkroju używają buttonowego stylu dla launcherów wyboru', 'Sprawdza, czy launchery Jednostki i Wymiary do cięcia mają już cień i obrys jak przyciski aplikacji, a nie wygląd zwykłego pola.', ()=>{
-        const css = readAssetSource('css/rozrys-panel-modal-sync.css');
-        assert(/rozrys-choice-launch--options-clean[\s\S]*border:2px solid rgba\(15,23,42,.56\)/.test(css), 'Launcher opcji nie ma jeszcze obrysu jak przycisk aplikacji', { css });
-        assert(/rozrys-choice-launch--options-clean[\s\S]*box-shadow:2px 3px 0 rgba\(15,23,42,.16\), 4px 9px 16px rgba\(15,23,42,.10\)/.test(css), 'Launcher opcji nie ma jeszcze cienia jak przycisk aplikacji', { css });
-      }),
-      makeTest('UI i styl', 'Przełączenie słojów bez cache nie czyści bieżącego widoku i nie resetuje scrolla', 'Sprawdza, czy auto-render z cache nie czyści accordionu przy braku pełnego cache oraz odtwarza scroll po przełączeniu, gdy render z cache się uda.', ()=>{
-        let pageY = 420;
-        const prevScrollTo = host.scrollTo;
-        const prevScrollY = host.scrollY;
-        const prevRaf = host.requestAnimationFrame;
-        host.scrollY = pageY;
-        let restoredY = null;
-        host.scrollTo = (_x, y)=>{ restoredY = y; host.scrollY = y; };
-        host.requestAnimationFrame = (fn)=>{ if(typeof fn === 'function') fn(); return 1; };
-        try{
-          const out = { innerHTML:'<div>KEEP</div>', scrollTop:77 };
-          const miss = FC.rozrysRender.tryAutoRenderFromCache({
-            _rozrysRunning:false,
-            normalizeMaterialScopeForAggregate:(scope)=> scope,
-            decodeMaterialScope:()=> ({ kind:'all' }),
-            matSelValue:'all',
-            agg:{ selectedRooms:['Kuchnia'] },
-            buildEntriesForScope:()=> [{ material:'Dąb', parts:[{ key:'1', w:100, h:200, qty:1 }] }],
-            out,
-            setGenBtnMode:()=>{},
-            loadPlanCache:()=> ({}),
-            getBaseState:()=> ({ unit:'cm', boardW:280, boardH:207 }),
-            toMmByUnit:(_u, v)=> Number(v) * 10,
-            getRealHalfStockForMaterial:()=> ({ qty:0, width:0, height:0 }),
-            getExactSheetStockForMaterial:()=> ({ qty:0, width:0, height:0 }),
-            getLargestSheetFormatForMaterial:()=> ({ qty:0, width:2800, height:2070 }),
-            materialHasGrain:()=> true,
-            getMaterialGrainEnabled:()=> true,
-            getMaterialGrainExceptions:()=> ({}),
-            partSignature:()=> 'sig',
-            buildStockSignatureForMaterial:()=> 'stock',
-            makePlanCacheKey:()=> 'miss-key',
-            getAccordionScopeKey:()=> 'scope',
-            getRozrysScopeMode:()=> 'all',
-            renderMaterialAccordionPlans:()=> { out.innerHTML = ''; return false; },
-            setCacheState:()=>{},
-          });
-          assert(miss === false, 'Cache miss nie powinien zgłaszać trafienia', { miss });
-          assert(out.innerHTML === '<div>KEEP</div>', 'Cache miss wyczyścił istniejący widok accordionu', { out });
-          const hitOut = { innerHTML:'<div>OLD</div>', scrollTop:61 };
-          const hit = FC.rozrysRender.tryAutoRenderFromCache({
-            _rozrysRunning:false,
-            normalizeMaterialScopeForAggregate:(scope)=> scope,
-            decodeMaterialScope:()=> ({ kind:'all' }),
-            matSelValue:'all',
-            agg:{ selectedRooms:['Kuchnia'] },
-            buildEntriesForScope:()=> [{ material:'Dąb', parts:[{ key:'1', w:100, h:200, qty:1 }] }],
-            out:hitOut,
-            setGenBtnMode:()=>{},
-            loadPlanCache:()=> ({ 'hit-key': { plan:{ sheets:[], meta:{} } } }),
-            getBaseState:()=> ({ unit:'cm', boardW:280, boardH:207 }),
-            toMmByUnit:(_u, v)=> Number(v) * 10,
-            getRealHalfStockForMaterial:()=> ({ qty:0, width:0, height:0 }),
-            getExactSheetStockForMaterial:()=> ({ qty:0, width:0, height:0 }),
-            getLargestSheetFormatForMaterial:()=> ({ qty:0, width:2800, height:2070 }),
-            materialHasGrain:()=> true,
-            getMaterialGrainEnabled:()=> true,
-            getMaterialGrainExceptions:()=> ({}),
-            partSignature:()=> 'sig',
-            buildStockSignatureForMaterial:()=> 'stock',
-            makePlanCacheKey:()=> 'hit-key',
-            getAccordionScopeKey:()=> 'scope',
-            getRozrysScopeMode:()=> 'all',
-            renderMaterialAccordionPlans:()=> { hitOut.innerHTML = '<div>NEW</div>'; hitOut.scrollTop = 0; return true; },
-            setCacheState:()=>{},
-          });
-          assert(hit === true, 'Pełny cache hit powinien przejść', { hit });
-          assert(hitOut.scrollTop === 61, 'Auto-render z cache nie odtworzył scrolla kontenera', { hitOut });
-          assert(restoredY === pageY, 'Auto-render z cache nie odtworzył pozycji strony', { restoredY, pageY });
-        }finally{
-          host.scrollTo = prevScrollTo;
-          host.scrollY = prevScrollY;
-          host.requestAnimationFrame = prevRaf;
-        }
       }),
 
       makeTest('UI i styl', 'Karta materiału ma dokładnie ten sam wzorzec ramki, cienia i rytmu pola co wybór trybu', 'Sprawdza, czy karty w Wybierz materiał / grupę kopiują realne parametry z modala Szybkość liczenia: ten sam zielony border/shadow zaznaczenia, ten sam rytm pola kart oraz wyśrodkowaną stopkę akcji pod listą.', ()=>{

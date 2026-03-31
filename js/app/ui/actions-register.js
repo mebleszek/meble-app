@@ -287,12 +287,32 @@
       return true;
     },
 
+
+    'add-room': async ({event}) => {
+      try{
+        if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.openAddRoomModal === 'function'){
+          const room = await window.FC.roomRegistry.openAddRoomModal();
+          if(room){
+            uiState.roomType = room.id;
+            uiState.lastRoomType = room.id;
+            uiState.activeTab = 'wywiad';
+            uiState.entry = 'app';
+            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+            try{ if(window.FC.roomRegistry.renderRoomsView) window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
+            if(FC.views && FC.views.openRoom) FC.views.openRoom(room.id);
+          }
+        }
+      }catch(_){ }
+      return true;
+    },
+
     'open-room': ({event, element}) => {
       const room = element.getAttribute('data-room');
       // Enter room editor
       uiState.roomType = room;
+      uiState.lastRoomType = room;
       // From investor screen we want a fast jump to pricing. From other placeholder screens, go to WYWIAD.
-      if(uiState.activeTab === 'inwestor') uiState.activeTab = 'wycena';
+      if(uiState.activeTab === 'inwestor') uiState.activeTab = 'wywiad';
       else if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
       uiState.entry = 'app';
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);

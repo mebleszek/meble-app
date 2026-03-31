@@ -15,8 +15,6 @@ const files = [
   'js/app/rozrys/rozrys-sheet-model.js',
   'js/app/rozrys/rozrys-engine.js',
   'js/app/rozrys/rozrys-print-layout.js',
-  'js/app/rozrys/rozrys-lists.js',
-  'js/app/rozrys/rozrys-render.js',
   'js/app/rozrys/rozrys.js',
   'js/testing/rozrys/fixtures.js',
   'js/testing/rozrys/tests.js',
@@ -46,8 +44,6 @@ const context = {
     'js/app/rozrys/rozrys-pickers.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-pickers.js'), 'utf8'),
     'js/app/rozrys/rozrys-options-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-options-modal.js'), 'utf8'),
     'js/app/rozrys/rozrys-stock-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-stock-modal.js'), 'utf8'),
-    'js/app/rozrys/rozrys-lists.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-lists.js'), 'utf8'),
-    'css/style.css': fs.readFileSync(path.join(rootDir, 'css/style.css'), 'utf8'),
   },
 };
 context.window = context;

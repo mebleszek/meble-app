@@ -93,6 +93,7 @@
     setTabsVisible(true);
     setSessionButtonsVisible(true);
     setFloatingVisible(false);
+    try{ if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.renderRoomsView === 'function') window.FC.roomRegistry.renderRoomsView(); }catch(_){}
   }
 
   function showApp(){

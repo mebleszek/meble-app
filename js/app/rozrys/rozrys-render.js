@@ -341,38 +341,17 @@
           allHit = false;
         }
       }
-      const scopeKey = typeof cfg.getAccordionScopeKey === 'function' ? cfg.getAccordionScopeKey(scope, cfg.agg) : '';
-      if(!allHit || hits.length !== entries.length){
-        if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode('idle');
-        if(typeof cfg.setCacheState === 'function') cfg.setCacheState({ lastAutoRenderHit:false, lastScopeKey:scopeKey });
-        return false;
-      }
-      const pageY = (typeof window !== 'undefined' && Number.isFinite(window.scrollY)) ? window.scrollY : 0;
-      const outScrollTop = cfg.out && Number.isFinite(cfg.out.scrollTop) ? cfg.out.scrollTop : 0;
       const anyHit = typeof cfg.renderMaterialAccordionPlans === 'function'
         ? cfg.renderMaterialAccordionPlans(
-            scopeKey,
+            typeof cfg.getAccordionScopeKey === 'function' ? cfg.getAccordionScopeKey(scope, cfg.agg) : '',
             typeof cfg.getRozrysScopeMode === 'function' ? cfg.getRozrysScopeMode(scope) : 'all',
             hits
           )
         : false;
-      if(anyHit){
-        try{ if(cfg.out && Number.isFinite(outScrollTop)) cfg.out.scrollTop = outScrollTop; }catch(_){ }
-        const restorePageScroll = ()=>{
-          try{
-            if(typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, pageY);
-          }catch(_){ }
-        };
-        if(typeof requestAnimationFrame === 'function'){
-          requestAnimationFrame(()=> requestAnimationFrame(restorePageScroll));
-        }else{
-          restorePageScroll();
-        }
-      }
-      if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode(anyHit ? 'done' : 'idle');
+      if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
       if(typeof cfg.setCacheState === 'function') cfg.setCacheState({
         lastAutoRenderHit: !!anyHit,
-        lastScopeKey: scopeKey,
+        lastScopeKey: typeof cfg.getAccordionScopeKey === 'function' ? cfg.getAccordionScopeKey(scope, cfg.agg) : '',
       });
       return anyHit;
     }catch(_){

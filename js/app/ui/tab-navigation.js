@@ -12,6 +12,17 @@
   }
 
   function setActiveTab(tabName){
+    if(tabName === 'wywiad' && !uiState.roomType){
+      const fallbackRoom = uiState.lastRoomType || null;
+      if(fallbackRoom){ uiState.roomType = fallbackRoom; }
+      else {
+        uiState.activeTab = 'inwestor';
+        if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
+          window.FC.views.applyFromState(Object.assign({}, uiState, { activeTab:'inwestor', entry:'rooms' }));
+        }
+        return;
+      }
+    }
     uiState.activeTab = tabName;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 

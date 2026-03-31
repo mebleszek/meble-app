@@ -41,6 +41,16 @@
       ? rv.aggregateRows(rawRows)
       : (typeof cfg.buildResolvedSnapshotFromParts === 'function' ? cfg.buildResolvedSnapshotFromParts(parts) : []);
     const actual = rv.summarizePlan(plan, targetMaterial);
+    const sourceByKey = new Map();
+    rawRows.forEach((row)=>{
+      const cur = sourceByKey.get(row.key) || { room:'', source:'', cabinet:'' };
+      if(row.room && !String(cur.room || '').includes(row.room)) cur.room = [cur.room, row.room].filter(Boolean).join(' • ');
+      if(row.source && !String(cur.source || '').includes(row.source)) cur.source = [cur.source, row.source].filter(Boolean).join(' • ');
+      if(row.cabinet && !String(cur.cabinet || '').includes(row.cabinet)) cur.cabinet = [cur.cabinet, row.cabinet].filter(Boolean).join(' • ');
+      sourceByKey.set(row.key, cur);
+    });
+    actual.rows = (actual.rows || []).map((row)=> Object.assign({}, row, sourceByKey.get(row.key) || {}));
+    actual.sheets = (actual.sheets || []).map((sheet)=> Object.assign({}, sheet, { rows:(sheet.rows || []).map((row)=> Object.assign({}, row, sourceByKey.get(row.key) || {})) }));
     const validation = rv.validate(resolvedRows, actual.rows);
     return {
       rawRows,
@@ -67,7 +77,7 @@
     body.appendChild(lists.buildRawTable(diag.rawRows, unit, cfg.mmToUnitStr));
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Lista do rozkroju (po scaleniu)' }));
     body.appendChild(lists.buildListTable((diag.resolvedRows || []).map((row)=>({
-      name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok'
+      name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok', room: row.room, source: row.source, cabinet: row.cabinet
     })), unit, 'validation', cfg.mmToUnitStr));
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Walidacja rozrysu' }));
     body.appendChild(lists.buildListTable(diag.validation.rows, unit, 'validation', cfg.mmToUnitStr));
