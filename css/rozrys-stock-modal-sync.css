@@ -33,10 +33,12 @@
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch{
-  width:100%;
+  width:calc(100% - 2px);
+  max-width:calc(100% - 2px);
   min-height:46px;
-  padding:9px 14px;
+  padding:8px 12px;
   box-sizing:border-box;
+  margin-right:2px;
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean{
@@ -126,9 +128,12 @@
   }
 
   .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch{
+    width:calc(100% - 2px);
+    max-width:calc(100% - 2px);
     min-height:44px;
-    padding:8px 13px;
+    padding:8px 12px;
     border-radius:16px;
+    margin-right:2px;
   }
 
   .panel-box--rozrys .rozrys-panel-form--stock input:not([type='checkbox']):not([type='radio']),

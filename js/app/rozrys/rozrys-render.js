@@ -341,6 +341,17 @@
           allHit = false;
         }
       }
+      if(!hits.length){
+        if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode('idle');
+        if(typeof cfg.setCacheState === 'function') cfg.setCacheState({
+          lastAutoRenderHit:false,
+          lastScopeKey: typeof cfg.getAccordionScopeKey === 'function' ? cfg.getAccordionScopeKey(scope, cfg.agg) : '',
+        });
+        return false;
+      }
+      const pageScroll = (typeof window !== 'undefined' && typeof window.scrollY === 'number') ? window.scrollY : 0;
+      const scrollEl = (typeof document !== 'undefined' && document.scrollingElement) ? document.scrollingElement : null;
+      const scrollTop = scrollEl ? scrollEl.scrollTop : pageScroll;
       const anyHit = typeof cfg.renderMaterialAccordionPlans === 'function'
         ? cfg.renderMaterialAccordionPlans(
             typeof cfg.getAccordionScopeKey === 'function' ? cfg.getAccordionScopeKey(scope, cfg.agg) : '',
@@ -348,6 +359,14 @@
             hits
           )
         : false;
+      try{
+        if(anyHit && typeof window !== 'undefined'){
+          window.requestAnimationFrame(()=>{
+            try{ if(scrollEl) scrollEl.scrollTop = scrollTop; }catch(_){ }
+            try{ window.scrollTo(0, pageScroll); }catch(_){ }
+          });
+        }
+      }catch(_){ }
       if(typeof cfg.setGenBtnMode === 'function') cfg.setGenBtnMode(allHit && anyHit ? 'done' : 'idle');
       if(typeof cfg.setCacheState === 'function') cfg.setCacheState({
         lastAutoRenderHit: !!anyHit,

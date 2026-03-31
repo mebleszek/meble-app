@@ -257,7 +257,7 @@
       if(!mount || !selectEl || !choiceApi || typeof choiceApi.createChoiceLauncher !== 'function' || typeof choiceApi.openRozrysChoiceOverlay !== 'function') return;
       const label = choiceApi.getSelectOptionLabel(selectEl) || '';
       const btn = choiceApi.createChoiceLauncher(label, '');
-      btn.classList.add('investor-choice-launch');
+      btn.classList.add('investor-choice-launch','app-choice-launch');
       const arrow = btn.querySelector('.rozrys-choice-launch__arrow');
       if(arrow) arrow.remove();
       btn.addEventListener('click', async ()=>{

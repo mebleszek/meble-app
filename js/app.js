@@ -486,31 +486,25 @@ function renderSingleCabinetCard(list, room, cab, displayIndex){
   const header = document.createElement('div');
   header.className = 'cabinet-header';
 
-  const left = document.createElement('div');
+  const titleRow = document.createElement('div');
+  titleRow.className = 'cabinet-header__title';
   const badge = cab.setId && typeof cab.setNumber === 'number'
     ? `<span class="badge">Zestaw ${cab.setNumber}</span>`
     : '';
-  left.innerHTML = `<div style="font-weight:900">#${displayIndex} • ${cab.type} • ${cab.subType||''}${badge}</div>
+  titleRow.innerHTML = `<div>#${displayIndex} • ${cab.type} • ${cab.subType||''}${badge}</div>
                     <div class="muted xs">${cab.frontMaterial || ''} • ${cab.frontColor || ''}</div>`;
 
-  const right = document.createElement('div');
-  right.style.display = 'flex';
-  right.style.gap = '10px';
-  right.style.alignItems = 'center';
-
   const dims = document.createElement('div');
-  dims.className = 'muted xs';
+  dims.className = 'muted xs cabinet-header__dims';
   dims.textContent = `${cab.width} × ${cab.height} × ${cab.depth}`;
 
   const actions = document.createElement('div');
-  actions.className = 'cab-actions';
+  actions.className = 'cab-actions cabinet-header__actions';
   actions.innerHTML = `<button class="btn" data-act="edit" type="button">Edytuj</button> <button class="btn" data-act="mat" type="button">Materiały</button> <button class="btn btn-danger" data-act="del" type="button">Usuń</button>`;
 
-  right.appendChild(dims);
-  right.appendChild(actions);
-
-  header.appendChild(left);
-  header.appendChild(right);
+  header.appendChild(titleRow);
+  header.appendChild(dims);
+  header.appendChild(actions);
   cabEl.appendChild(header);
 
   actions.addEventListener('click', (e) => {

@@ -82,7 +82,7 @@
       const applyChoiceLabel = (typeof api.setChoiceLaunchValue === 'function') ? api.setChoiceLaunchValue : ((btn, label)=>{ if(btn) btn.textContent = String(label || ''); });
       if(launcherFactory && typeof api.openRozrysChoiceOverlay === 'function'){
         materialLauncher = launcherFactory(readChoiceLabel(select) || 'Wybierz materiał', '');
-        materialLauncher.classList.add('rozrys-choice-launch--stock-clean');
+        materialLauncher.classList.add('rozrys-choice-launch--stock-clean','app-choice-launch');
         applyChoiceLabel(materialLauncher, readChoiceLabel(select) || 'Wybierz materiał', '');
         materialLauncher.addEventListener('click', async ()=>{
           const picked = await api.openRozrysChoiceOverlay({

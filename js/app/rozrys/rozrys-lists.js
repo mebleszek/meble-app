@@ -48,7 +48,7 @@
     if(mode === 'sheet'){
       ['col-name','col-dim','col-qty','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
     }else{
-      ['col-name','col-dim','col-qty','col-qty','col-diff','col-room','col-source','col-cab','col-status'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
+      ['col-name','col-dim','col-qty','col-qty','col-diff','col-status','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
     }
     table.appendChild(colgroup);
     const thead = h('thead');
@@ -66,10 +66,10 @@
       headRow.appendChild(buildVerticalHead('Potrzebne', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Rozrysowane', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
+      headRow.appendChild(buildVerticalHead('Status', 'col-status'));
       headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
       headRow.appendChild(buildVerticalHead('Źródło', 'col-source'));
       headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
-      headRow.appendChild(buildVerticalHead('Status', 'col-status'));
     }
     thead.appendChild(headRow);
     const tbody = h('tbody');
@@ -81,7 +81,6 @@
         dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
         tr.appendChild(dimTd);
         tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
-        tr.appendChild(h('td', { class:'col-diff', text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
         tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
         tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
         tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
@@ -93,12 +92,12 @@
         tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
         tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.actualQty) || 0)) }));
         tr.appendChild(h('td', { class:'col-diff', text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
-        tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
-        tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
-        tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
         const td = h('td', { class:'col-status' });
         td.appendChild(buildStatusChip(row.status));
         tr.appendChild(td);
+        tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
+        tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
+        tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
       }
       tbody.appendChild(tr);
     });

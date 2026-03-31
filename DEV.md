@@ -828,3 +828,12 @@ Dopiero potem go zmieniać.
 - ROZRYS room discovery now prefers dynamic investor/project rooms through room registry labels.
 - Validation/list tables now support vertical headers, stacked dimensions, room/source/cabinet columns.
 - Sheet lists are enriched from raw snapshot metadata to show room/source/cabinet context when available.
+
+## 2026-04-01 — launcher/list/room follow-up batch
+- Launchery `Jednostki`, `Wymiary do cięcia`, `Wybierz materiał` i wybory w `Inwestorze` korzystają ze wspólnego, jaśniejszego standardu `app-choice-launch` zamiast cięższej ciemnej ramki.
+- `Dodaj płytę do magazynu`: launcher materiału został minimalnie zwężony, żeby aktywny obrys nie wychodził poza panel.
+- `Opcje rozkroju`: przywrócono niższe osadzenie etykiet w drugim rzędzie (`Rzaz piły`, `Obrównanie`).
+- Karty szafek w WYWIAD wróciły do układu 3-rzędowego: tytuł, wymiary, akcje.
+- Dynamiczne pomieszczenia: nazwa jest obowiązkowa i unikalna dla inwestora; czytelne etykiety są używane zamiast surowych `room_*`; jeśli istnieją legacy dane w `projectData.kuchnia`, pojawia się pozycja `kuchnia stary program`.
+- Listy formatek/arkuszy: naprawiono układ kolumn (`Status` obok `Różnica`), usunięto błędną kolumnę z trybu per-arkusz, poszerzono `Pomieszczenie/Źródło/Szafka`, a `Szafka` pokazuje pełną nazwę `#n • typ • wariant`.
+- `Pilnuj kierunku słojów`: auto-render z cache nie czyści już widoku przy pełnym cache miss i przywraca scroll po przełączeniu.

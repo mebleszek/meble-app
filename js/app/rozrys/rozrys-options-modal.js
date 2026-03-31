@@ -39,7 +39,7 @@
       <option value="mm" ${ctx.unitSel.value==='mm'?'selected':''}>mm</option>
     `;
     const modalUnitBtn = cfg.createChoiceLauncher(cfg.getSelectOptionLabel(modalUnitSel), '');
-    modalUnitBtn.classList.add('rozrys-choice-launch--options-clean');
+    modalUnitBtn.classList.add('rozrys-choice-launch--options-clean','app-choice-launch');
     modalUnitWrap.appendChild(modalUnitBtn);
     modalUnitWrap.appendChild(modalUnitSel);
 
@@ -49,7 +49,7 @@
     modalEdgeSel.innerHTML = ctx.edgeSel.innerHTML;
     modalEdgeSel.value = ctx.edgeSel.value;
     const modalEdgeBtn = cfg.createChoiceLauncher(cfg.getSelectOptionLabel(modalEdgeSel), '');
-    modalEdgeBtn.classList.add('rozrys-choice-launch--options-clean');
+    modalEdgeBtn.classList.add('rozrys-choice-launch--options-clean','app-choice-launch');
     modalEdgeWrap.appendChild(modalEdgeBtn);
     modalEdgeWrap.appendChild(modalEdgeSel);
 
