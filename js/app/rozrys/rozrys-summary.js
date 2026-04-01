@@ -78,7 +78,7 @@
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Lista do rozkroju (po scaleniu)' }));
     body.appendChild(lists.buildListTable((diag.resolvedRows || []).map((row)=>({
       name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok', room: row.room, source: row.source, cabinet: row.cabinet
-    })), unit, 'validation', cfg.mmToUnitStr));
+    })), unit, 'resolved', cfg.mmToUnitStr));
     body.appendChild(h('div', { class:'rozrys-subsection-title', text:'Walidacja rozrysu' }));
     body.appendChild(lists.buildListTable(diag.validation.rows, unit, 'validation', cfg.mmToUnitStr));
     FC.panelBox.open({ title:`Lista formatek — ${material}`, contentNode: body, width:'960px', boxClass:'panel-box--rozrys' });

@@ -352,7 +352,7 @@
         assert(/rozrys-panel-inline--options-pair/.test(optionsJs), 'Modal Opcje rozkroju nie ma równego układu par dolnych pól', { optionsJs });
         assert(/const modalBoardWrap = h\('div', \{ class:'rozrys-panel-field rozrys-panel-field--full rozrys-panel-field--pair rozrys-panel-field--options-row-c' \}\);/.test(optionsJs), 'Format bazowy arkusza nie jest już pełnym wierszem z parą pól', { optionsJs });
         assert(/form\.appendChild\(modalUnitWrap\);[\s\S]*form\.appendChild\(modalEdgeWrap\);[\s\S]*form\.appendChild\(modalKerfWrap\);[\s\S]*form\.appendChild\(modalTrimWrap\);[\s\S]*form\.appendChild\(modalBoardWrap\);[\s\S]*form\.appendChild\(modalMinWrap\);/.test(optionsJs), 'Kolejność wierszy w Opcjach rozkroju nie jest jeszcze: jednostki+wymiary, rzaz+obrównanie, format bazowy, najmniejszy odpad', { optionsJs });
-        assert(/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:(56|60)px/i.test(css), 'Shell opcji nie wyrównuje jeszcze drugiego rzędu etykiet i pól wpisywanych', { css });
+        assert(!/\.rozrys-panel-field--options-row-b \.label-help\{[\s\S]*min-height:/i.test(css), 'Shell opcji nadal nadpisuje drugi rząd etykiet innym min-height zamiast trzymać go jak pozostałe pola', { css });
         assert(/\.rozrys-panel-inline--options-pair\{[\s\S]*grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'Shell opcji nie trzyma jeszcze równych dolnych par pól', { css });
       }),
 

@@ -180,7 +180,6 @@
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
-          <button class="btn-primary" data-action="assign-investor" data-inv-id="${inv.id}">Przypisz do bieżącego projektu</button>
           <button class="btn" data-action="delete-investor" data-inv-id="${inv.id}">Usuń</button>
           <button class="btn-primary" data-action="add-room">Dodaj pomieszczenie</button>
         </div>

@@ -484,26 +484,27 @@ function renderSingleCabinetCard(list, room, cab, displayIndex){
   if(uiState.selectedCabinetId === cab.id) cabEl.classList.add('selected');
 
   const header = document.createElement('div');
-  header.className = 'cabinet-header';
+  header.className = 'cabinet-header cabinet-header--stacked';
 
-  const titleRow = document.createElement('div');
-  titleRow.className = 'cabinet-header__title';
   const badge = cab.setId && typeof cab.setNumber === 'number'
     ? `<span class="badge">Zestaw ${cab.setNumber}</span>`
     : '';
-  titleRow.innerHTML = `<div>#${displayIndex} • ${cab.type} • ${cab.subType||''}${badge}</div>
-                    <div class="muted xs">${cab.frontMaterial || ''} • ${cab.frontColor || ''}</div>`;
-
-  const dims = document.createElement('div');
-  dims.className = 'muted xs cabinet-header__dims';
-  dims.textContent = `${cab.width} × ${cab.height} × ${cab.depth}`;
+  const bodyMeta = [cab.bodyColor || '', cab.backMaterial || ''].filter(Boolean).join(' • ') || '—';
+  const frontMeta = [cab.frontMaterial || '', cab.frontColor || ''].filter(Boolean).join(' • ') || '—';
+  const copy = document.createElement('div');
+  copy.className = 'cabinet-header__copy';
+  copy.innerHTML = `
+    <div class="cabinet-header__title">#${displayIndex} • ${cab.type} • ${cab.subType||''}${badge}</div>
+    <div class="cabinet-header__meta">Korpus: ${bodyMeta}</div>
+    <div class="cabinet-header__meta">Front: ${frontMeta}</div>
+    <div class="cabinet-header__meta">${cab.width} × ${cab.height} × ${cab.depth}</div>
+  `;
 
   const actions = document.createElement('div');
   actions.className = 'cab-actions cabinet-header__actions';
   actions.innerHTML = `<button class="btn" data-act="edit" type="button">Edytuj</button> <button class="btn" data-act="mat" type="button">Materiały</button> <button class="btn btn-danger" data-act="del" type="button">Usuń</button>`;
 
-  header.appendChild(titleRow);
-  header.appendChild(dims);
+  header.appendChild(copy);
   header.appendChild(actions);
   cabEl.appendChild(header);
 

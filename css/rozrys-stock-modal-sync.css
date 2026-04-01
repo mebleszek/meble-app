@@ -15,6 +15,14 @@
   grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:12px 14px;
 }
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field--stock-material{
+  padding-right:6px;
+}
+
+.panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field--stock-material .rozrys-choice-launch--stock-clean{
+  width:calc(100% - 2px);
+}
+
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field{
   gap:8px;
@@ -33,12 +41,10 @@
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch{
-  width:calc(100% - 2px);
-  max-width:calc(100% - 2px);
+  width:100%;
   min-height:46px;
-  padding:8px 12px;
+  padding:9px 14px;
   box-sizing:border-box;
-  margin-right:2px;
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch--stock-clean{
@@ -128,12 +134,9 @@
   }
 
   .panel-box--rozrys .rozrys-panel-form--stock .rozrys-choice-launch{
-    width:calc(100% - 2px);
-    max-width:calc(100% - 2px);
     min-height:44px;
-    padding:8px 12px;
+    padding:8px 13px;
     border-radius:16px;
-    margin-right:2px;
   }
 
   .panel-box--rozrys .rozrys-panel-form--stock input:not([type='checkbox']):not([type='radio']),

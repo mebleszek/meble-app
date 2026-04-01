@@ -29,23 +29,10 @@
     try{ if(FC.project && typeof FC.project.save === 'function') FC.project.save(proj); }catch(_){ }
   }
 
-  function readCurrentInvestorId(){
-    try{
-      if(FC.investors && typeof FC.investors.getCurrentId === 'function'){
-        const id = FC.investors.getCurrentId();
-        if(id) return id;
-      }
-    }catch(_){ }
-    try{
-      if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId) return uiState.currentInvestorId;
-    }catch(_){ }
-    return null;
-  }
-
   function getCurrentInvestor(){
     try{
-      if(FC.investors && typeof FC.investors.getById === 'function'){
-        const id = readCurrentInvestorId();
+      if(FC.investors && typeof FC.investors.getCurrentId === 'function' && typeof FC.investors.getById === 'function'){
+        const id = FC.investors.getCurrentId();
         return id ? FC.investors.getById(id) : null;
       }
     }catch(_){ }
@@ -65,10 +52,7 @@
     return Object.keys(proj).filter((key)=>{
       if(!key || key === 'schemaVersion' || key === 'meta') return false;
       const room = proj[key];
-      if(!(room && typeof room === 'object')) return false;
-      const hasContent = !!((Array.isArray(room.cabinets) && room.cabinets.length) || (Array.isArray(room.fronts) && room.fronts.length) || (Array.isArray(room.sets) && room.sets.length));
-      const isDynamic = /^room_/i.test(String(key));
-      return hasContent || isDynamic;
+      return !!(room && typeof room === 'object' && (Array.isArray(room.cabinets) || Array.isArray(room.fronts) || Array.isArray(room.sets) || room.settings));
     });
   }
 
@@ -89,29 +73,6 @@
     return 'room_' + String(baseType || 'pokoj') + '_' + slugify(name || BASE_LABELS[baseType] || 'pomieszczenie') + '_' + Date.now().toString(36).slice(-6);
   }
 
-  function hasLegacyKitchenData(proj){
-    const room = proj && proj.kuchnia;
-    if(!room || typeof room !== 'object') return false;
-    return !!((Array.isArray(room.cabinets) && room.cabinets.length) || (Array.isArray(room.fronts) && room.fronts.length) || (Array.isArray(room.sets) && room.sets.length));
-  }
-
-  function buildLegacyKitchenDef(){
-    return { id:'kuchnia', baseType:'kuchnia', name:'kuchnia stary program', label:'kuchnia stary program', legacy:true };
-  }
-
-  function prettifyDiscoveredRoom(id){
-    const key = String(id || '');
-    if(BASE_LABELS[key]) return { id:key, baseType:key, name:BASE_LABELS[key], label:BASE_LABELS[key] };
-    if(/^room_/.test(key)){
-      const parts = key.split('_').filter(Boolean);
-      const baseType = parts[1] || 'pokoj';
-      const body = parts.slice(2).join(' ').replace(/_[a-z0-9]{5,}$/i, '').replace(/_/g, ' ').trim();
-      const label = body || (BASE_LABELS[baseType] || key);
-      return { id:key, baseType, name:label, label:label };
-    }
-    return { id:key, baseType:key, name:BASE_LABELS[key] || key, label:BASE_LABELS[key] || key };
-  }
-
   function getProjectRoomDefs(proj){
     const meta = ensureProjectMeta(proj);
     const defs = [];
@@ -126,7 +87,7 @@
       });
     }
     if(defs.length) return defs;
-    return discoverProjectRoomKeys(proj).map((id)=> prettifyDiscoveredRoom(id));
+    return discoverProjectRoomKeys(proj).map((id)=> ({ id, baseType:id, name:BASE_LABELS[id] || id, label:BASE_LABELS[id] || id }));
   }
 
   function hasCurrentInvestor(){ return !!getCurrentInvestor(); }
@@ -136,39 +97,23 @@
     const inv = getCurrentInvestor();
     const metaDefs = getProjectRoomDefs(proj);
     const metaMap = new Map(metaDefs.map((d)=> [d.id, d]));
-    const rooms = [];
-    const pushRoom = (room)=>{
-      const id = String(room && room.id || '');
-      if(!id || rooms.find((x)=> x.id === id)) return;
-      rooms.push({
-        id,
-        baseType: String(room && room.baseType || 'pokoj'),
-        name: String(room && (room.name || room.label) || id),
-        label: String(room && (room.label || room.name) || id),
-        legacy: !!(room && room.legacy)
-      });
-    };
-
-    if(inv && Array.isArray(inv.rooms) && inv.rooms.length){
-      inv.rooms.forEach((room)=>{
+    if(inv){
+      if(Array.isArray(inv.rooms) && inv.rooms.length){
+        return inv.rooms.map((room)=>{
         const id = String(room && room.id || '');
         const meta = metaMap.get(id) || {};
-        pushRoom({
+        return {
           id,
           baseType: String(room && room.baseType || meta.baseType || 'pokoj'),
           name: String(room && room.name || meta.name || BASE_LABELS[room && room.baseType] || id),
-          label: String(room && room.label || room && room.name || meta.label || meta.name || BASE_LABELS[room && room.baseType] || id)
-        });
-      });
+          label: String(room && room.label || meta.label || room && room.name || meta.name || id)
+        };
+      }).filter((room)=> room.id);
+      }
+      const projectMetaRooms = metaDefs.filter((room)=> String(room.id || '').startsWith('room_'));
+      return projectMetaRooms;
     }
-
-    if(hasLegacyKitchenData(proj)) pushRoom(buildLegacyKitchenDef());
-
-    if(rooms.length) return rooms;
-
-    metaDefs.forEach((room)=> pushRoom(room));
-    if(hasLegacyKitchenData(proj)) pushRoom(buildLegacyKitchenDef());
-    return rooms;
+    return metaDefs;
   }
 
   function getActiveRoomIds(){
@@ -236,18 +181,7 @@
       function done(result){ try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); }
       cancelBtn.addEventListener('click', ()=> done(null));
       saveBtn.addEventListener('click', ()=>{
-        const name = String(nameInput.value || '').trim();
-        if(!name){
-          try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Brak nazwy pomieszczenia', message:'Nadaj nazwę pomieszczeniu, zanim je dodasz.' }); }catch(_){ }
-          try{ nameInput.focus(); }catch(_){ }
-          return;
-        }
-        const existing = getActiveRoomDefs().map((room)=> String(room.label || room.name || '').trim().toLowerCase());
-        if(existing.includes(name.toLowerCase())){
-          try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Taka nazwa już istnieje', message:'Dla tego inwestora istnieje już pomieszczenie o tej nazwie. Nadaj inną nazwę.' }); }catch(_){ }
-          try{ nameInput.focus(); nameInput.select(); }catch(_){ }
-          return;
-        }
+        const name = String(nameInput.value || '').trim() || BASE_LABELS[selectedBase] || 'Pomieszczenie';
         const id = makeRoomId(selectedBase, name);
         const proj = getProject();
         const meta = ensureProjectMeta(proj);

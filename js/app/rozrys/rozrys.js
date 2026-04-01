@@ -69,20 +69,24 @@
   }
 
   function getRooms(){
-    if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
-      const activeIds = FC.roomRegistry.getActiveRoomIds();
-      if(Array.isArray(activeIds) && activeIds.length) return activeIds.slice();
-      if(FC.roomRegistry.hasCurrentInvestor && FC.roomRegistry.hasCurrentInvestor()) return [];
-    }
-    const fallback = (()=>{
-      try{ if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS.slice(); }catch(_){ }
+    const defaults = (()=>{
+      try{
+        if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS.slice();
+      }catch(_){ }
+      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
+        const dynamicRooms = FC.roomRegistry.getActiveRoomIds();
+        if(Array.isArray(dynamicRooms) && dynamicRooms.length) return dynamicRooms;
+        if(FC.roomRegistry.hasCurrentInvestor && FC.roomRegistry.hasCurrentInvestor()) return [];
+      }
       return ['kuchnia','szafa','pokoj','lazienka'];
     })();
     const proj = safeGetProject();
-    if(!proj || typeof proj !== 'object') return fallback;
+    if(!proj || typeof proj !== 'object') return defaults;
     const discovered = discoverProjectRoomKeys(proj);
-    if(discovered.includes('kuchnia')) return ['kuchnia'];
-    return discovered.length ? discovered : fallback;
+    const ordered = [];
+    defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });
+    discovered.forEach((room)=>{ if(!ordered.includes(room)) ordered.push(room); });
+    return ordered.length ? ordered : defaults;
   }
 
   function parseLocaleNumber(v){
@@ -339,9 +343,6 @@ function getAccordionScopeKey(selection, aggregate){
           const h = resolved.h;
           const qty = resolved.qty;
           if(!(w > 0 && h > 0 && qty > 0)) continue;
-          const roomLabelText = (FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function') ? FC.roomRegistry.getRoomLabel(room) : room;
-          const sourceLabel = String((cab && (cab.type || cab.kind || cab.name || cab.label)) || 'Szafka').trim() || 'Szafka';
-          const cabinetLabel = ['#' + String(cabIndex + 1), sourceLabel, String(cab && cab.subType || '').trim()].filter(Boolean).join(' • ');
           rows.push({
             key: partSignature({ material: materialKey, name: resolved.name, w, h, sourceSig: resolved.sourceSig, grainMode: resolved.direction }),
             material: materialKey,
@@ -352,9 +353,9 @@ function getAccordionScopeKey(selection, aggregate){
             w,
             h,
             qty,
-            room: roomLabelText,
-            source: sourceLabel,
-            cabinet: cabinetLabel,
+            room,
+            source: String((cab && (cab.name || cab.label || cab.type || cab.kind)) || 'Szafka'),
+            cabinet: `#${cabIndex + 1}`,
             sourceRows: 1,
           });
         }

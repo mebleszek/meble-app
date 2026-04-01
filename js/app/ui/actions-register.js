@@ -231,11 +231,15 @@
       }catch(_){ }
       return true;
     },
-    'delete-investor': ({event, element}) => {
+    'delete-investor': async ({event, element}) => {
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
-      if(!confirm('Usunąć inwestora?')) return true;
       try{
+        let ok = true;
+        if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
+          ok = await window.FC.confirmBox.ask({ title:'Usunąć inwestora?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
+        }
+        if(!ok) return true;
         if(window.FC && window.FC.investors && typeof window.FC.investors.remove === 'function'){
           window.FC.investors.remove(id);
         }

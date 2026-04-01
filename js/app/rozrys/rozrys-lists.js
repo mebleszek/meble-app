@@ -41,15 +41,52 @@
     return h('span', { class:`rozrys-status-chip ${cfg.cls}`, text:cfg.text });
   }
 
+  function getRoomLabel(room){
+    try{
+      if(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function') return FC.roomRegistry.getRoomLabel(room);
+    }catch(_){ }
+    return String(room || '—');
+  }
+
+  function buildCabinetInfoButton(row){
+    const nums = String(row && row.cabinet || '').split('•').map((part)=> String(part || '').trim()).filter(Boolean);
+    const source = String(row && row.source || '').trim();
+    const room = String(row && row.room || '').trim();
+    if(!nums.length && !source && !room) return null;
+    const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pokaż szczegóły szafki' });
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const lines = [];
+      if(nums.length) lines.push(`Szafka: ${nums.join(' • ')}`);
+      if(source) lines.push(`Typ / źródło: ${source}`);
+      if(room) lines.push(`Pomieszczenie: ${getRoomLabel(room)}`);
+      try{
+        if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Szczegóły szafki', message:lines.join('\n') });
+      }catch(_){ }
+    });
+    return btn;
+  }
+
+  function buildCabinetCell(row){
+    const wrap = h('div', { class:'table-cabcell' });
+    const numsWrap = h('div', { class:'table-cabcell__nums' });
+    const nums = String(row && row.cabinet || '').split('•').map((part)=> String(part || '').trim()).filter(Boolean);
+    (nums.length ? nums : ['—']).forEach((num)=> numsWrap.appendChild(h('span', { text:num })));
+    wrap.appendChild(numsWrap);
+    const infoBtn = buildCabinetInfoButton(row);
+    if(infoBtn) wrap.appendChild(infoBtn);
+    return wrap;
+  }
+
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
     const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
     const colgroup = h('colgroup');
-    if(mode === 'sheet'){
-      ['col-name','col-dim','col-qty','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
-    }else{
-      ['col-name','col-dim','col-qty','col-qty','col-diff','col-status','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
-    }
+    let cols = [];
+    if(mode === 'sheet' || mode === 'raw') cols = ['col-name','col-dim','col-qty','col-cab','col-room'];
+    else if(mode === 'resolved') cols = ['col-name','col-dim','col-qty','col-qty','col-cab','col-room','col-diff','col-status'];
+    else cols = ['col-name','col-dim','col-qty','col-qty','col-diff','col-status'];
+    cols.forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
     table.appendChild(colgroup);
     const thead = h('thead');
     const headRow = h('tr');
@@ -57,9 +94,23 @@
       headRow.appendChild(buildVerticalHead('Nazwa', 'col-name'));
       headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
       headRow.appendChild(buildVerticalHead('Ilość', 'col-qty'));
-      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
-      headRow.appendChild(buildVerticalHead('Źródło', 'col-source'));
       headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+    } else if(mode === 'raw'){
+      headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
+      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
+      headRow.appendChild(buildVerticalHead('Ilość', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+    } else if(mode === 'resolved'){
+      headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
+      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
+      headRow.appendChild(buildVerticalHead('Potrzebne', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Rozrysowane', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+      headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
+      headRow.appendChild(buildVerticalHead('Status', 'col-status'));
     } else {
       headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
       headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
@@ -67,23 +118,36 @@
       headRow.appendChild(buildVerticalHead('Rozrysowane', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
       headRow.appendChild(buildVerticalHead('Status', 'col-status'));
-      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
-      headRow.appendChild(buildVerticalHead('Źródło', 'col-source'));
-      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
     }
     thead.appendChild(headRow);
     const tbody = h('tbody');
     (rows || []).forEach((row)=>{
       const tr = h('tr');
-      if(mode === 'sheet'){
+      if(mode === 'sheet' || mode === 'raw'){
         tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
         const dimTd = h('td', { class:'col-dim' });
         dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
         tr.appendChild(dimTd);
         tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
-        tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
-        tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
-        tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
+        const cabTd = h('td', { class:'col-cab' });
+        cabTd.appendChild(buildCabinetCell(row));
+        tr.appendChild(cabTd);
+        tr.appendChild(h('td', { class:'col-room', text:getRoomLabel(row.room || '—') }));
+      } else if(mode === 'resolved') {
+        tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
+        const dimTd = h('td', { class:'col-dim' });
+        dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
+        tr.appendChild(dimTd);
+        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.expectedQty) || 0)) }));
+        tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.actualQty) || 0)) }));
+        const cabTd = h('td', { class:'col-cab' });
+        cabTd.appendChild(buildCabinetCell(row));
+        tr.appendChild(cabTd);
+        tr.appendChild(h('td', { class:'col-room', text:getRoomLabel(row.room || '—') }));
+        tr.appendChild(h('td', { class:'col-diff', text:String(Number(row.diff) > 0 ? `+${row.diff}` : row.diff || 0) }));
+        const td = h('td', { class:'col-status' });
+        td.appendChild(buildStatusChip(row.status));
+        tr.appendChild(td);
       } else {
         tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
         const dimTd = h('td', { class:'col-dim' });
@@ -95,9 +159,6 @@
         const td = h('td', { class:'col-status' });
         td.appendChild(buildStatusChip(row.status));
         tr.appendChild(td);
-        tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
-        tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
-        tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
       }
       tbody.appendChild(tr);
     });
@@ -108,35 +169,7 @@
   }
 
   function buildRawTable(rows, unit, mmToUnitStr){
-    const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:'table-list' });
-    const colgroup = h('colgroup');
-    ['col-name','col-dim','col-qty','col-room','col-source','col-cab'].forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
-    table.appendChild(colgroup);
-    const thead = h('thead');
-    const headRow = h('tr');
-    ['Formatka', `Wymiar (${unit})`, 'Ilość', 'Pomieszczenie', 'Źródło', 'Szafka'].forEach((label, idx)=> {
-      const cls = ['col-name','col-dim','col-qty','col-room','col-source','col-cab'][idx];
-      headRow.appendChild(buildVerticalHead(label, cls));
-    });
-    thead.appendChild(headRow);
-    const tbody = h('tbody');
-    (rows || []).forEach((row)=>{
-      const tr = h('tr');
-      tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
-      const dimTd = h('td', { class:'col-dim' });
-      dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));
-      tr.appendChild(dimTd);
-      tr.appendChild(h('td', { class:'col-qty', text:String(Math.max(0, Number(row.qty) || 0)) }));
-      tr.appendChild(h('td', { class:'col-room', text:String(row.room || '—') }));
-      tr.appendChild(h('td', { class:'col-source', text:String(row.source || '—') }));
-      tr.appendChild(h('td', { class:'col-cab', text:String(row.cabinet || '—') }));
-      tbody.appendChild(tr);
-    });
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    return wrap;
+    return buildListTable(rows, unit, 'raw', mmToUnitStr);
   }
 
   function renderSummaryCard(ctx){
