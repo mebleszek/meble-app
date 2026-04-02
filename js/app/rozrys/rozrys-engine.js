@@ -70,7 +70,7 @@
     const unit = (state && state.unit === 'mm') ? 'mm' : 'cm';
     const W0 = toMmByStateUnit(state, state && state.boardW) || 2800;
     const H0 = toMmByStateUnit(state, state && state.boardH) || 2070;
-    const trim = toMmByStateUnit(state, state && state.edgeTrim) || 20;
+    const trim = toMmByStateUnit(state, state && state.edgeTrim) || 10;
     return { trim, boardW: W0, boardH: H0, unit };
   }
 
@@ -85,7 +85,7 @@
     const W0 = toMmByStateUnit(state, state && state.boardW) || 2800;
     const H0 = toMmByStateUnit(state, state && state.boardH) || 2070;
     const K = toMmByStateUnit(state, state && state.kerf) || 4;
-    const trim = toMmByStateUnit(state, state && state.edgeTrim) || 20;
+    const trim = toMmByStateUnit(state, state && state.edgeTrim) || 10;
     const W = Math.max(10, W0 - 2 * trim);
     const H = Math.max(10, H0 - 2 * trim);
 
@@ -127,7 +127,7 @@
       const W0 = toMmByStateUnit(state, state && state.boardW) || 2800;
       const H0 = toMmByStateUnit(state, state && state.boardH) || 2070;
       const K = toMmByStateUnit(state, state && state.kerf) || 4;
-      const trim = toMmByStateUnit(state, state && state.edgeTrim) || 20;
+      const trim = toMmByStateUnit(state, state && state.edgeTrim) || 10;
       const W = Math.max(10, W0 - 2*trim);
       const H = Math.max(10, H0 - 2*trim);
 
@@ -218,7 +218,7 @@
     const cutMode = normalizeCutDirection(state && state.direction);
     const W0 = toMmByStateUnit(state, state && state.boardW) || 2800;
     const H0 = toMmByStateUnit(state, state && state.boardH) || 2070;
-    const trim = toMmByStateUnit(state, state && state.edgeTrim) || 20;
+    const trim = toMmByStateUnit(state, state && state.edgeTrim) || 10;
     const minScrapW = toMmByStateUnit(state, state && state.minScrapW) || 0;
     const minScrapH = toMmByStateUnit(state, state && state.minScrapH) || 0;
     const W = Math.max(10, W0 - 2 * trim);

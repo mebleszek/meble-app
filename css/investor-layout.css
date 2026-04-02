@@ -1,0 +1,20 @@
+.investor-card-sync .investor-top-actions,
+.investor-card-sync .investor-bottom-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.investor-card-sync .investor-top-actions{margin-top:12px;}
+.investor-card-sync .investor-choice-grid,
+.investor-card-sync .investor-form-grid{margin-top:12px;}
+.investor-card-sync .investor-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;}
+.investor-card-sync .investor-form-grid .investor-field--full{grid-column:1/-1;}
+.investor-card-sync .investor-rooms-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;}
+.investor-card-sync .investor-room-quick-list{display:flex;gap:10px;flex-wrap:wrap;}
+.investor-card-sync .investor-room-quick-btn.is-disabled,
+.investor-card-sync .investor-add-room-btn.is-disabled,
+#topTabs.is-disabled{pointer-events:none;opacity:.52;}
+.investor-card-sync .investor-disabled-note{margin-top:10px;color:#64748b;font-size:12px;font-weight:800;}
+.investor-card-sync .investor-form-grid .investor-field-shell{display:flex;flex-direction:column;gap:6px;}
+.investor-card-sync .investor-readonly{pointer-events:none;opacity:1;}
+@media (max-width:640px){
+  .investor-card-sync .investor-form-grid,
+  .investor-card-sync .investor-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;}
+  .investor-card-sync .investor-room-quick-list{gap:8px;}
+}

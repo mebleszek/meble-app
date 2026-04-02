@@ -1052,7 +1052,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       if(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function'){
         return FC.rozrysStock.getDefaultRozrysOptionValues(unit);
       }
-      return { unit:'cm', edge:'0', boardW:280, boardH:207, kerf:0.4, trim:2, minW:0, minH:0 };
+      return { unit:'cm', edge:'0', boardW:280, boardH:207, kerf:0.4, trim:1, minW:0, minH:0 };
     }
 
     function getSheetRowsForMaterial(material, opts){
@@ -1122,7 +1122,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       if(FC.rozrysStock && typeof FC.rozrysStock.buildPlanMetaFromState === 'function'){
         return FC.rozrysStock.buildPlanMetaFromState(st);
       }
-      return { trim:20, boardW:2800, boardH:2070, unit:'mm' };
+      return { trim:10, boardW:2800, boardH:2070, unit:'mm' };
     }
 
     async function computePlanWithCurrentEngine(st, parts, panelOpts){

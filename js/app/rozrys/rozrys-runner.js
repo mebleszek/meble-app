@@ -32,7 +32,7 @@
         boardW: Number(cfg.boardWValue)|| (cfg.unitValue==="mm"?2800:280),
         boardH: Number(cfg.boardHValue)|| (cfg.unitValue==="mm"?2070:207),
         kerf: Number(cfg.kerfValue)|| (cfg.unitValue==="mm"?4:0.4),
-        edgeTrim: Number(cfg.trimValue)|| (cfg.unitValue==="mm"?20:2),
+        edgeTrim: Number(cfg.trimValue)|| (cfg.unitValue==="mm"?10:1),
         minScrapW: Math.max(0, Number(cfg.minScrapWValue)||0),
         minScrapH: Math.max(0, Number(cfg.minScrapHValue)||0),
         heur: 'optimax',
@@ -89,7 +89,7 @@
           };
           const W02 = toMm2(st.boardW) || 2800;
           const H02 = toMm2(st.boardH) || 2070;
-          const trim2 = toMm2(st.edgeTrim) || 20;
+          const trim2 = toMm2(st.edgeTrim) || 10;
           const minScrapW2 = toMm2(st.minScrapW) || 0;
           const minScrapH2 = toMm2(st.minScrapH) || 0;
           const W2 = Math.max(10, W02 - 2*trim2);
@@ -213,7 +213,7 @@
               const W02 = toMm2(st.boardW) || 2800;
               const H02 = toMm2(st.boardH) || 2070;
               const K2  = toMm2(st.kerf)   || 4;
-              const trim2 = toMm2(st.edgeTrim) || 20;
+              const trim2 = toMm2(st.edgeTrim) || 10;
               const minScrapW2 = toMm2(st.minScrapW) || 0;
               const minScrapH2 = toMm2(st.minScrapH) || 0;
               const W2 = Math.max(10, W02 - 2*trim2);

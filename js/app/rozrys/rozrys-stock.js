@@ -52,7 +52,7 @@
       boardW: u === 'mm' ? 2800 : 280,
       boardH: u === 'mm' ? 2070 : 207,
       kerf: u === 'mm' ? 4 : 0.4,
-      trim: u === 'mm' ? 20 : 2,
+      trim: u === 'mm' ? 10 : 1,
       minW: 0,
       minH: 0,
     };
@@ -177,7 +177,7 @@
   function buildPlanMetaFromState(st){
     const boardW = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
     const boardH = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
-    const trim = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
+    const trim = toMmByUnit(st && st.unit, st && st.edgeTrim) || 10;
     return { trim, boardW, boardH, unit: (st && st.unit === 'cm') ? 'cm' : 'mm' };
   }
 
@@ -188,7 +188,7 @@
     const basePlan = plan && typeof plan === 'object' ? plan : { sheets:[] };
     const currentWmm = toMmByUnit(st && st.unit, st && st.boardW) || 2800;
     const currentHmm = toMmByUnit(st && st.unit, st && st.boardH) || 2070;
-    const trimMm = toMmByUnit(st && st.unit, st && st.edgeTrim) || 20;
+    const trimMm = toMmByUnit(st && st.unit, st && st.edgeTrim) || 10;
     const areaOf = (row)=> (Math.max(0, Number(row && row.width) || 0) * Math.max(0, Number(row && row.height) || 0));
     const stockRows = getSheetRowsForMaterial(material, { includeZero:false })
       .filter((row)=> Math.max(0, Number(row && row.qty) || 0) > 0)

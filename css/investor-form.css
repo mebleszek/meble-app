@@ -1,0 +1,18 @@
+.investor-card-sync .investor-choice-grid{display:grid;grid-template-columns:minmax(120px, 160px) minmax(0,1fr);gap:12px 14px;align-items:end;}
+.investor-card-sync .investor-choice-field{display:flex;flex-direction:column;gap:6px;}
+.investor-card-sync .investor-choice-launch{width:100%;min-height:32px;padding:5px 8px;border-radius:8px;justify-content:flex-start;border-width:1px!important;box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;}
+.investor-card-sync .investor-choice-launch .rozrys-choice-launch__value{gap:0;}
+.investor-card-sync .investor-choice-launch .rozrys-choice-launch__meta,
+.investor-card-sync .investor-choice-launch .rozrys-choice-launch__arrow{display:none!important;}
+.investor-card-sync .investor-choice-launch .rozrys-choice-launch__label{font-size:12px;line-height:1.2;font-weight:600;letter-spacing:0;}
+.investor-card-sync .investor-form-grid label,
+.investor-card-sync .investor-choice-field > label{color:#64748b;font-size:13px;font-weight:800;line-height:1.15;}
+.investor-card-sync .investor-form-input{width:100%;min-height:32px;padding:5px 8px;border:1px solid rgba(148,163,184,.55);border-radius:8px;background:linear-gradient(180deg,#f6f8fb 0%,#ffffff 100%);box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9);font-size:12px;font-weight:500;line-height:1.2;color:#0f172a;}
+.investor-card-sync textarea.investor-form-input{min-height:72px;padding-top:8px;padding-bottom:8px;resize:vertical;}
+.investor-card-sync .investor-form-input:focus{outline:none;border-color:rgba(59,130,246,.34);box-shadow:inset 0 1px 3px rgba(15,23,42,.07),0 0 0 3px rgba(59,130,246,.08);}
+.investor-card-sync .investor-form-input[readonly],
+.investor-card-sync .investor-form-input:disabled{background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);color:#0f172a;}
+.investor-card-sync .investor-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:18px;}
+.investor-card-sync .investor-inline-link{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid rgba(148,163,184,.38);background:#fff;color:#0f172a;text-decoration:none;font-size:12px;box-shadow:2px 3px 0 rgba(15,23,42,.08), 4px 9px 16px rgba(148,163,184,.08);}
+.investor-card-sync .investor-inline-link:hover{background:#f8fafc;}
+.investor-card-sync .investor-room-quick-btn{min-height:32px;}

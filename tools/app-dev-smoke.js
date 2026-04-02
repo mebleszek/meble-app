@@ -8,10 +8,13 @@ const FILES = [
   'js/app/material/material-common.js',
   'js/app/material/material-registry.js',
   'js/app/investor/investors-store.js',
+  'js/app/shared/room-registry.js',
+  'js/app/investor/investor-editor-state.js',
   'js/app/investor/project-bootstrap.js',
   'js/app/cabinet/cabinet-cutlist.js',
   'js/testing/shared/harness.js',
   'js/testing/project/tests.js',
+  'js/testing/investor/tests.js',
   'js/testing/material/tests.js',
   'js/testing/cabinet/tests.js',
 ];
@@ -59,6 +62,7 @@ function mergeReports(reports){
 
 const reports = [
   sandbox.FC.projectDevTests.runAll(),
+  sandbox.FC.investorDevTests.runAll(),
   sandbox.FC.materialDevTests.runAll(),
   sandbox.FC.cabinetDevTests.runAll(),
 ];

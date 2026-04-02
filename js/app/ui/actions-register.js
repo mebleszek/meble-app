@@ -227,7 +227,7 @@
             if(window.FC && window.FC.project && typeof window.FC.project.save === 'function') window.FC.project.save(projectData);
           }
         }catch(_){ }
-        alert('Przypisano inwestora do bieżącego projektu (lokalnie).');
+        try{ if(window.FC && window.FC.infoBox && typeof window.FC.infoBox.open === 'function') window.FC.infoBox.open({ title:'Przypisano inwestora', message:'Przypisano inwestora do bieżącego projektu (lokalnie).' }); }catch(_){ }
       }catch(_){ }
       return true;
     },
@@ -294,6 +294,7 @@
 
     'add-room': async ({event}) => {
       try{
+        if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock()) return true;
         if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.openAddRoomModal === 'function'){
           const room = await window.FC.roomRegistry.openAddRoomModal();
           if(room){
@@ -311,6 +312,7 @@
     },
 
     'open-room': ({event, element}) => {
+      if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock()) return true;
       const room = element.getAttribute('data-room');
       // Enter room editor
       uiState.roomType = room;
@@ -329,6 +331,7 @@
 
     'tab': ({event, element}) => {
       const tab = element.getAttribute('data-tab');
+      if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tab !== 'inwestor') return true;
       setActiveTab(tab);
       return true;
     },

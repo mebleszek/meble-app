@@ -12,8 +12,10 @@
   }
 
   function setActiveTab(tabName){
+    if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
     if(tabName === 'wywiad' && !uiState.roomType){
-      const fallbackRoom = uiState.lastRoomType || null;
+      const activeRooms = (window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getActiveRoomIds === 'function') ? window.FC.roomRegistry.getActiveRoomIds() : [];
+      const fallbackRoom = activeRooms.includes(uiState.lastRoomType) ? uiState.lastRoomType : null;
       if(fallbackRoom){ uiState.roomType = fallbackRoom; }
       else {
         uiState.activeTab = 'inwestor';

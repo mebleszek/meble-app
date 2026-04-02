@@ -62,6 +62,7 @@
       city: (initial && initial.city) || '',
       address: (initial && initial.address) || '',
       source: (initial && initial.source) || '',
+      nip: (initial && initial.nip) || '',
       notes: (initial && initial.notes) || '',
       status: (initial && initial.status) || 'nowy',
       // lista skrótów do pomieszczeń/projektów (dla MVP: tylko pokoje w aktualnym projekcie)
@@ -98,7 +99,7 @@
     return list.filter(inv => {
       if(!inv) return false;
       const hay = [
-        inv.name, inv.companyName, inv.phone, inv.email, inv.city, inv.address, inv.notes
+        inv.name, inv.companyName, inv.phone, inv.email, inv.city, inv.address, inv.nip, inv.notes
       ].join(' ').toLowerCase();
       return hay.includes(query);
     });

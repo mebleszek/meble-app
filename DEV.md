@@ -828,3 +828,25 @@ Dopiero potem go zmieniać.
 - ROZRYS room discovery now prefers dynamic investor/project rooms through room registry labels.
 - Validation/list tables now support vertical headers, stacked dimensions, room/source/cabinet columns.
 - Sheet lists are enriched from raw snapshot metadata to show room/source/cabinet context when available.
+
+## 2026-04-02 — investor refactor + room registry hardening
+- `Inwestor` został rozdzielony na nowe moduły pomocnicze:
+  - `js/app/investor/investor-editor-state.js`
+  - `js/app/investor/investor-choice.js`
+  - `js/app/investor/investor-links.js`
+  - `js/app/investor/investor-modals.js`
+  - `js/app/investor/investor-rooms.js`
+- Dodano osobne style `css/investor-layout.css` i `css/investor-form.css` dla układu, pól, launcherów i akcji inwestora.
+- `Inwestor` ma teraz tryb podglądu/edycji:
+  - spoczynek = `Usuń` + `Edytuj`
+  - edycja bez zmian = `Wyjdź`
+  - edycja po zmianach = `Anuluj` + `Zapisz`
+- W trybie spoczynkowym `Status` można zmieniać od razu, ale tylko po potwierdzeniu przez nasz modal.
+- W trybie edycji zablokowane są górne zakładki i szybki wybór pomieszczeń inwestora.
+- `Typ` i `Status` w inwestorze używają niskich launcherów w stylu aplikacji; `NIP` pojawia się tylko dla `Firma` obok pola `Źródło`.
+- W trybie nieedytowalnym `Telefon` i `Email` pokazują ikonki akcji tylko wtedy, gdy pole ma wartość.
+- Rejestr pomieszczeń (`room-registry`) wymusza teraz nazwę pomieszczenia i blokuje duplikaty nazw dla jednego inwestora; dodano też widoczną pozycję legacy `kuchnia stary program` dla starych danych kuchni.
+- Usunięto nieużywany legacy plik `js/app/investor/inwestor.js`.
+- Domyślne `Obrównanie krawędzi` zmieniono z `2 cm` / `20 mm` na `1 cm` / `10 mm`.
+- W `Dodaj płytę do magazynu` poprawiono lewy zapas launchera `Wybierz materiał` i jego aktywny stan.
+- W tabelach rozkroju poprawiono układ komórki `Szafka` (numer + `?`) tak, żeby nie nachodziły na siebie.
