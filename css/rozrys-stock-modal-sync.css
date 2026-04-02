@@ -3,21 +3,26 @@
    uses inset entry fields, and reuses the same footer logic as other ROZRYS editor modals. */
 
 .panel-box--rozrys .rozrys-panel-form--stock{
+  --stock-left-inset:4px;
   gap:18px;
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .panel-box-form__scroll{
+  padding-left:var(--stock-left-inset);
   padding-right:2px;
   padding-bottom:max(14px, env(safe-area-inset-bottom));
+  box-sizing:border-box;
 }
 
 .panel-box--rozrys .rozrys-panel-grid--stock{
   grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:12px 14px;
+  padding-right:6px;
+  box-sizing:border-box;
 }
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field--stock-material{
-  padding-left:4px;
-  padding-right:6px;
+  padding-left:0;
+  padding-right:0;
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field--stock-material .rozrys-choice-launch--stock-clean{
@@ -28,6 +33,9 @@
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-field{
   gap:8px;
+  padding-left:0;
+  padding-right:0;
+  box-sizing:border-box;
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .label-help,
@@ -118,6 +126,9 @@
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-footer{
   margin-top:4px;
   align-items:flex-end;
+  padding-left:var(--stock-left-inset);
+  padding-right:6px;
+  box-sizing:border-box;
 }
 
 .panel-box--rozrys .rozrys-panel-form--stock .rozrys-panel-footer__actions{

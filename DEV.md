@@ -850,3 +850,7 @@ Dopiero potem go zmieniać.
 - Domyślne `Obrównanie krawędzi` zmieniono z `2 cm` / `20 mm` na `1 cm` / `10 mm`.
 - W `Dodaj płytę do magazynu` poprawiono lewy zapas launchera `Wybierz materiał` i jego aktywny stan.
 - W tabelach rozkroju poprawiono układ komórki `Szafka` (numer + `?`) tak, żeby nie nachodziły na siebie.
+
+- 2026-04-02: followup v2 — `Dodaj płytę do magazynu` dostał wspólny lewy rytm dla pól i stopki; `Lista formatek` uspokoiła kolumnę `Ilość`/`Szafka` (centrowanie ilości + rozdzielenie numeru i `?`), a `room-registry` porównuje nazwy pomieszczeń akcento-niezależnie (`dół` = `dol`). W `Inwestorze` ikonki telefonu/email dostały mocniejszy, czytelniejszy wariant.
+
+- 2026-04-02 — followup v3: domknięto zaległe poprawki po ostatnich uwagach: wyrównany lewy rytm modala dodawania płyty, wzmocnione akcje telefon/email i spłaszczony widok pól inwestora w trybie nieedytowalnym, poprawiony render kolumny Szafka także w ogólnej liście formatek, oraz dodana osłona na mobile ghost-click przy przejściach pełnoekranowych typu Otwórz inwestora / Lista inwestorów.

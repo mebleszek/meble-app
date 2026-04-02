@@ -48,8 +48,15 @@
     return String(room || '—');
   }
 
+  function parseCabinetNumbers(raw){
+    const text = String(raw || '').trim();
+    const matched = text.match(/#\s*\d+/g);
+    const nums = (matched && matched.length ? matched : text.split('•')).map((part)=> String(part || '').trim().replace(/\s+/g, ' ')).filter(Boolean);
+    return Array.from(new Set(nums));
+  }
+
   function buildCabinetInfoButton(row){
-    const nums = String(row && row.cabinet || '').split('•').map((part)=> String(part || '').trim()).filter(Boolean);
+    const nums = parseCabinetNumbers(row && row.cabinet);
     const source = String(row && row.source || '').trim();
     const room = String(row && row.room || '').trim();
     if(!nums.length && !source && !room) return null;
@@ -70,7 +77,7 @@
   function buildCabinetCell(row){
     const wrap = h('div', { class:'table-cabcell' });
     const numsWrap = h('div', { class:'table-cabcell__nums' });
-    const nums = String(row && row.cabinet || '').split('•').map((part)=> String(part || '').trim()).filter(Boolean);
+    const nums = parseCabinetNumbers(row && row.cabinet);
     (nums.length ? nums : ['—']).forEach((num)=> numsWrap.appendChild(h('span', { text:num })));
     wrap.appendChild(numsWrap);
     const infoBtn = buildCabinetInfoButton(row);
@@ -80,7 +87,7 @@
 
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
-    const table = h('table', { class:`table-list ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
+    const table = h('table', { class:`table-list table-list--${mode} ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
     const colgroup = h('colgroup');
     let cols = [];
     if(mode === 'sheet' || mode === 'raw') cols = ['col-name','col-dim','col-qty','col-cab','col-room'];

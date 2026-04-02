@@ -77,6 +77,13 @@
     return String(text || '').trim().replace(/\s+/g, ' ');
   }
 
+  function normalizeComparableLabel(text){
+    return normalizeLabel(text)
+      .toLowerCase()
+      .replace(/[ąćęłńóśźż]/g, (ch)=> ({'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'}[ch] || ch))
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
   function normalizeRoomDef(raw, fallback){
     const src = Object.assign({}, fallback || {}, raw || {});
     const baseType = String(src.baseType || src.kind || src.type || fallback && fallback.baseType || 'pokoj');
@@ -172,13 +179,13 @@
   }
 
   function isRoomNameTaken(name, investor, exceptId){
-    const normalized = normalizeLabel(name).toLowerCase();
+    const normalized = normalizeComparableLabel(name);
     if(!normalized || !investor || !Array.isArray(investor.rooms)) return false;
     return investor.rooms.some((room)=>{
       if(!room) return false;
       if(exceptId && String(room.id || '') === String(exceptId)) return false;
-      const label = normalizeLabel(room.label || room.name || '');
-      return label.toLowerCase() === normalized;
+      const label = normalizeComparableLabel(room.label || room.name || '');
+      return label === normalized;
     });
   }
 
@@ -292,6 +299,7 @@
   FC.roomRegistry = {
     BASE_LABELS,
     normalizeLabel,
+    normalizeComparableLabel,
     getActiveRoomDefs,
     getActiveRoomIds,
     getRoomLabel,
