@@ -119,12 +119,25 @@
     `;
   }
 
-  function buildChoiceField(id, label, options, value, title, disabled, extraClass){
-    const opts = (options || []).map((opt)=> `<option value="${escapeAttr(opt.value)}" ${String(opt.value) === String(value) ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('');
+  function buildChoiceField(id, label, options, value, title, disabled, extraClass, opts){
+    const cfg = Object.assign({ readonlyPreview:false }, opts || {});
+    const optsHtml = (options || []).map((opt)=> `<option value="${escapeAttr(opt.value)}" ${String(opt.value) === String(value) ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('');
+    const currentLabel = (options || []).find((opt)=> String(opt.value) === String(value))?.label || value || '';
+    if(cfg.readonlyPreview){
+      const display = String(currentLabel || '').trim() ? escapeHtml(currentLabel) : '<span class="investor-form-value__empty">—</span>';
+      return `
+        <div class="investor-choice-field investor-choice-field--readonly ${extraClass || ''}">
+          <label>${escapeHtml(label)}</label>
+          <select id="${escapeAttr(id)}" hidden>${optsHtml}</select>
+          <div class="investor-form-value investor-form-value--choice" id="${escapeAttr(id)}Preview">${display}</div>
+          <div id="${escapeAttr(id)}Launch" hidden></div>
+        </div>
+      `;
+    }
     return `
       <div class="investor-choice-field ${extraClass || ''}">
         <label>${escapeHtml(label)}</label>
-        <select id="${escapeAttr(id)}" hidden>${opts}</select>
+        <select id="${escapeAttr(id)}" hidden>${optsHtml}</select>
         <div id="${escapeAttr(id)}Launch"></div>
       </div>
     `;
@@ -194,10 +207,8 @@
           ${state.allowListAccess ? '<button class="btn" data-action="back-investors">Lista</button>' : ''}
         </div>
 
-        <div class="investor-top-actions" id="investorTopActions">${topButtons}</div>
-
         <div class="investor-choice-grid">
-          ${buildChoiceField('invKind', 'Typ', typeOptions, draft.kind || 'person', 'Wybierz typ', !isEditing, 'investor-choice-field--kind')}
+          ${buildChoiceField('invKind', 'Typ', typeOptions, draft.kind || 'person', 'Wybierz typ', !isEditing, 'investor-choice-field--kind', { readonlyPreview:!isEditing })}
           ${buildChoiceField('invStatus', 'Status', statusOptions, draft.status || 'nowy', 'Wybierz status', false, 'investor-choice-field--status')}
         </div>
 
@@ -211,6 +222,8 @@
           ${isCompany ? buildInputField('invNip', '<label>NIP</label>', draft.nip, { readonly:!isEditing }) : ''}
           ${buildInputField('invNotes', '<label>Notatki</label>', draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 })}
         </div>
+
+        <div class="investor-bottom-actions" id="investorTopActions">${topButtons}</div>
 
         <div class="hr"></div>
         <div class="investor-rooms-head">

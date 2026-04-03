@@ -1212,6 +1212,23 @@
 .table-list--raw .col-cab,.table-list--resolved .col-cab{width:142px;}
 .table-list--resolved .col-status,.table-list--validation .col-status{width:78px;}
 .table-list--validation .col-diff{width:70px;}
+.table-list--sheet,.table-list--raw,.table-list--resolved,.table-list--validation{min-width:860px;}
+.table-list--sheet thead th.table-th-vertical,
+.table-list--raw thead th.table-th-vertical,
+.table-list--resolved thead th.table-th-vertical,
+.table-list--validation thead th.table-th-vertical{height:auto;padding:12px 14px;text-align:left;vertical-align:bottom;}
+.table-list--sheet thead th.table-th-vertical > span,
+.table-list--raw thead th.table-th-vertical > span,
+.table-list--resolved thead th.table-th-vertical > span,
+.table-list--validation thead th.table-th-vertical > span{display:block;writing-mode:horizontal-tb;transform:none;white-space:normal;line-height:1.12;font-size:13px;padding:0;}
+.table-list--sheet .col-name,.table-list--raw .col-name,.table-list--resolved .col-name,.table-list--validation .col-name{width:132px;}
+.table-list--sheet .col-dim,.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim{width:100px;}
+.table-list--sheet .col-qty,.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty{width:76px;}
+.table-list--sheet .col-diff,.table-list--validation .col-diff{width:76px;}
+.table-list--sheet .col-room,.table-list--raw .col-room,.table-list--resolved .col-room{width:130px;}
+.table-list--sheet .col-cab,.table-list--raw .col-cab,.table-list--resolved .col-cab{width:156px;}
+.table-list--resolved .col-status,.table-list--validation .col-status{width:96px;}
+.table-list--sheet th.col-qty,.table-list--sheet td.col-qty,.table-list--raw th.col-qty,.table-list--raw td.col-qty,.table-list--resolved th.col-qty,.table-list--resolved td.col-qty,.table-list--validation th.col-qty,.table-list--validation td.col-qty,.table-list--sheet th.col-diff,.table-list--sheet td.col-diff,.table-list--validation th.col-diff,.table-list--validation td.col-diff,.table-list--resolved th.col-diff,.table-list--resolved td.col-diff,.table-list--sheet th.col-status,.table-list--sheet td.col-status,.table-list--resolved th.col-status,.table-list--resolved td.col-status,.table-list--validation th.col-status,.table-list--validation td.col-status{text-align:center;}
 
 .cabinet-header--stacked{display:flex;flex-direction:column;align-items:flex-start;gap:10px;cursor:default;}
 .cabinet-header__copy{display:grid;row-gap:4px;min-width:0;}
@@ -1228,4 +1245,12 @@
   .table-list .col-diff{width:58px;}
   .table-list .col-room{width:110px;}
   .table-list .col-cab{width:126px;}
+  .table-list--sheet,.table-list--raw,.table-list--resolved,.table-list--validation{min-width:820px;}
+  .table-list--sheet .col-name,.table-list--raw .col-name,.table-list--resolved .col-name,.table-list--validation .col-name{width:120px;}
+  .table-list--sheet .col-dim,.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim{width:92px;}
+  .table-list--sheet .col-qty,.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty{width:68px;}
+  .table-list--sheet .col-diff,.table-list--validation .col-diff{width:72px;}
+  .table-list--sheet .col-room,.table-list--raw .col-room,.table-list--resolved .col-room{width:118px;}
+  .table-list--sheet .col-cab,.table-list--raw .col-cab,.table-list--resolved .col-cab{width:144px;}
+  .table-list--resolved .col-status,.table-list--validation .col-status{width:90px;}
 }

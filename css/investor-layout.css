@@ -1,6 +1,7 @@
 .investor-card-sync .investor-top-actions,
 .investor-card-sync .investor-bottom-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 .investor-card-sync .investor-top-actions{margin-top:12px;}
+.investor-card-sync .investor-bottom-actions{margin-top:14px;justify-content:flex-start;}
 .investor-card-sync .investor-choice-grid,
 .investor-card-sync .investor-form-grid{margin-top:12px;}
 .investor-card-sync .investor-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;}

@@ -854,3 +854,10 @@ Dopiero potem go zmieniać.
 - 2026-04-02: followup v2 — `Dodaj płytę do magazynu` dostał wspólny lewy rytm dla pól i stopki; `Lista formatek` uspokoiła kolumnę `Ilość`/`Szafka` (centrowanie ilości + rozdzielenie numeru i `?`), a `room-registry` porównuje nazwy pomieszczeń akcento-niezależnie (`dół` = `dol`). W `Inwestorze` ikonki telefonu/email dostały mocniejszy, czytelniejszy wariant.
 
 - 2026-04-02 — followup v3: domknięto zaległe poprawki po ostatnich uwagach: wyrównany lewy rytm modala dodawania płyty, wzmocnione akcje telefon/email i spłaszczony widok pól inwestora w trybie nieedytowalnym, poprawiony render kolumny Szafka także w ogólnej liście formatek, oraz dodana osłona na mobile ghost-click przy przejściach pełnoekranowych typu Otwórz inwestora / Lista inwestorów.
+
+## 2026-04-03 — investor layout + list tables follow-up
+- Inwestor: pole Typ w podglądzie wyrównane do spłaszczonych pól readonly; akcje Usuń/Edytuj/Anuluj/Zapisz przeniesione pod blok danych.
+- Inwestor: linki telefonu i emaila dostały czytelniejsze ikonki SVG; tryb edycji nadal blokuje top nav i szybkie wejścia do pomieszczeń.
+- ROZRYS: listy formatek (ogólna / do rozkroju / arkusz) dostały stabilniejsze szerokości kolumn i poziome nagłówki dokładnie nad kolumnami.
+- ROZRYS: usunięto resztki fallbacków 2 cm; domyślne obrównanie wraca konsekwentnie do 1 cm / 10 mm.
+- Testy smoke: dopięto regresję dla accent-insensitive room names oraz default trim 1 cm / 10 mm.

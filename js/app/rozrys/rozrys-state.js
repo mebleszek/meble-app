@@ -134,7 +134,7 @@
       boardW: Number(controls && controls.inW && controls.inW.value) || (unit === 'mm' ? 2800 : 280),
       boardH: Number(controls && controls.inH && controls.inH.value) || (unit === 'mm' ? 2070 : 207),
       kerf: Number(controls && controls.inK && controls.inK.value) || (unit === 'mm' ? 4 : 0.4),
-      edgeTrim: Number(controls && controls.inTrim && controls.inTrim.value) || (unit === 'mm' ? 20 : 2),
+      edgeTrim: Number(controls && controls.inTrim && controls.inTrim.value) || (unit === 'mm' ? 10 : 1),
       minScrapW: Math.max(0, Number(controls && controls.inMinW && controls.inMinW.value) || 0),
       minScrapH: Math.max(0, Number(controls && controls.inMinH && controls.inMinH.value) || 0),
       heur: 'optimax',

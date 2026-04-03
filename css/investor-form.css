@@ -1,4 +1,4 @@
-.investor-card-sync .investor-choice-grid{display:grid;grid-template-columns:minmax(120px, 160px) minmax(0,1fr);gap:12px 14px;align-items:end;}
+.investor-card-sync .investor-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;align-items:start;}
 .investor-card-sync .investor-choice-field{display:flex;flex-direction:column;gap:6px;}
 .investor-card-sync .investor-choice-launch{width:100%;min-height:32px;padding:5px 8px;border-radius:8px;justify-content:flex-start;border-width:1px!important;box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;}
 .investor-card-sync .investor-choice-launch .rozrys-choice-launch__value{gap:0;}
@@ -77,3 +77,8 @@
   line-height:1;
   text-transform:uppercase;
 }
+
+.investor-card-sync .investor-choice-field--readonly .investor-form-value--choice{min-height:32px;padding-top:5px;padding-bottom:7px;}
+.investor-card-sync .investor-choice-field .investor-form-value--choice{display:flex;align-items:flex-end;}
+.investor-card-sync .investor-inline-link__icon{padding:0;min-width:14px;}
+.investor-card-sync .investor-inline-link__icon svg{display:block;width:14px;height:14px;}
