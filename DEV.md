@@ -856,3 +856,9 @@ Dopiero potem go zmieniać.
 - 2026-04-02 — followup v3: domknięto zaległe poprawki po ostatnich uwagach: wyrównany lewy rytm modala dodawania płyty, wzmocnione akcje telefon/email i spłaszczony widok pól inwestora w trybie nieedytowalnym, poprawiony render kolumny Szafka także w ogólnej liście formatek, oraz dodana osłona na mobile ghost-click przy przejściach pełnoekranowych typu Otwórz inwestora / Lista inwestorów.
 
 - 2026-04-03: investor follow-up — Typ readonly wrócił do spłaszczonego preview, action bar inwestora siedzi pod blokiem danych, telefon/email dostały lekkie ikony SVG i kompaktowe akcje, lista inwestorów blokuje przycisk Lista w edycji, listy formatek wróciły do pionowych nagłówków z dopasowanymi szerokościami kolumn, fallback obrównania utrzymany na 1 cm / 10 mm.
+
+
+## 2026-04-03 — site_investor_green_icons_tables_tight
+- INWESTOR: `Osoba` -> `Osoba prywatna`, poprawiona typografia labeli Telefon/Email i zielone ikonki akcji w stylu `Zapisz`.
+- INWESTOR: w trybie edycji blokowane są także górne przyciski sesji `Anuluj` / `Zapisz`.
+- LISTY FORMATek: zwężone kolumny liczbowo-statusowe, delikatniejsze pionowe separatory i ciemniejsze poziome linie w listach ogólnej / do rozkroju / arkusza.

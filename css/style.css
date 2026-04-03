@@ -1057,7 +1057,8 @@
 .table-list th,
 .table-list td{
   padding:14px 16px;
-  border-bottom:1px solid #edf2f7;
+  border-right:1px solid rgba(226,232,240,.72);
+  border-bottom:1px solid rgba(148,163,184,.42);
   font-size:16px;
   line-height:1.18;
   font-weight:700;
@@ -1067,6 +1068,8 @@
   letter-spacing:0;
   font-family:inherit;
 }
+.table-list th:last-child,
+.table-list td:last-child{border-right:none;}
 .table-list--parts .col-name{ width:auto; }
 .table-list--parts .col-dim{ width:15ch; }
 .table-list--parts .col-qty{ width:72px; }
@@ -1188,11 +1191,11 @@
 .table-list thead th{height:148px;vertical-align:bottom;padding:10px 12px;}
 .table-list thead th.table-th-vertical{padding:0 6px;text-align:center;vertical-align:bottom;}
 .table-list thead th.table-th-vertical > span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;line-height:1;font-size:14px;padding:12px 0 8px;}
-.table-list .col-dim{width:88px;}
-.table-list .col-qty{width:60px;}
+.table-list .col-dim{width:84px;}
+.table-list .col-qty{width:52px;}
 .table-list th.col-qty,
 .table-list td.col-qty{text-align:center;white-space:nowrap;}
-.table-list .col-diff{width:62px;}
+.table-list .col-diff{width:54px;}
 .table-list .col-room{width:116px;}
 .table-list .col-cab{width:136px;}
 .table-list .col-name{width:92px;}
@@ -1206,22 +1209,23 @@
 .table-list .table-cabcell__nums{min-width:0;display:flex;flex-direction:column;gap:4px;line-height:1.32;font-weight:800;flex:0 1 auto;}
 .table-list .table-cabcell__nums span{display:flex;align-items:center;min-height:1.24em;white-space:nowrap;letter-spacing:0;}
 .table-list .table-cabcell .info-trigger{width:24px;height:24px;min-width:24px;margin-top:1px;flex:0 0 auto;}
+#sessionCancel.is-disabled,#sessionSave.is-disabled{pointer-events:none;opacity:.5;}
 .table-list--raw,.table-list--resolved,.table-list--validation{min-width:760px;}
-.table-list--raw .col-qty,.table-list--resolved .col-qty{width:64px;}
+.table-list--raw .col-qty,.table-list--resolved .col-qty{width:52px;}
 .table-list--raw .col-room,.table-list--resolved .col-room{width:122px;}
 .table-list--raw .col-cab,.table-list--resolved .col-cab{width:142px;}
-.table-list--resolved .col-status,.table-list--validation .col-status{width:78px;}
-.table-list--validation .col-diff{width:70px;}
-.table-list--sheet,.table-list--raw,.table-list--resolved,.table-list--validation{min-width:860px;}
+.table-list--resolved .col-status,.table-list--validation .col-status{width:74px;}
+.table-list--validation .col-diff{width:58px;}
+.table-list--sheet,.table-list--raw,.table-list--resolved,.table-list--validation{min-width:790px;}
 .table-list--sheet .col-name,.table-list--raw .col-name,.table-list--resolved .col-name,.table-list--validation .col-name{width:132px;}
-.table-list--sheet .col-dim,.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim{width:100px;}
-.table-list--sheet .col-qty,.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty{width:76px;}
-.table-list--sheet .col-diff,.table-list--validation .col-diff{width:76px;}
-.table-list--sheet .col-room,.table-list--raw .col-room,.table-list--resolved .col-room{width:130px;}
-.table-list--sheet .col-cab,.table-list--raw .col-cab,.table-list--resolved .col-cab{width:156px;}
-.table-list--resolved .col-status,.table-list--validation .col-status{width:96px;}
-.table-list--sheet thead th.table-th-vertical,.table-list--raw thead th.table-th-vertical,.table-list--resolved thead th.table-th-vertical,.table-list--validation thead th.table-th-vertical{height:156px;padding:0 10px;text-align:center;vertical-align:bottom;box-sizing:border-box;}
-.table-list--sheet thead th.table-th-vertical > span,.table-list--raw thead th.table-th-vertical > span,.table-list--resolved thead th.table-th-vertical > span,.table-list--validation thead th.table-th-vertical > span{display:inline-flex;align-items:flex-end;justify-content:center;min-height:140px;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;line-height:1;font-size:13px;padding:10px 0 8px;}
+.table-list--sheet .col-dim,.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim{width:90px;}
+.table-list--sheet .col-qty,.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty{width:54px;}
+.table-list--sheet .col-diff,.table-list--validation .col-diff{width:58px;}
+.table-list--sheet .col-room,.table-list--raw .col-room,.table-list--resolved .col-room{width:126px;}
+.table-list--sheet .col-cab,.table-list--raw .col-cab,.table-list--resolved .col-cab{width:150px;}
+.table-list--resolved .col-status,.table-list--validation .col-status{width:78px;}
+.table-list--sheet thead th.table-th-vertical,.table-list--raw thead th.table-th-vertical,.table-list--resolved thead th.table-th-vertical,.table-list--validation thead th.table-th-vertical{height:156px;padding:0 6px;text-align:center;vertical-align:bottom;box-sizing:border-box;}
+.table-list--sheet thead th.table-th-vertical > span,.table-list--raw thead th.table-th-vertical > span,.table-list--resolved thead th.table-th-vertical > span,.table-list--validation thead th.table-th-vertical > span{display:inline-flex;align-items:flex-end;justify-content:center;min-height:140px;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;line-height:1;font-size:13px;padding:10px 0 8px;margin-inline:auto;}
 .table-list--sheet th.col-qty,.table-list--sheet td.col-qty,.table-list--raw th.col-qty,.table-list--raw td.col-qty,.table-list--resolved th.col-qty,.table-list--resolved td.col-qty,.table-list--validation th.col-qty,.table-list--validation td.col-qty,.table-list--sheet th.col-diff,.table-list--sheet td.col-diff,.table-list--validation th.col-diff,.table-list--validation td.col-diff,.table-list--resolved th.col-diff,.table-list--resolved td.col-diff,.table-list--sheet th.col-status,.table-list--sheet td.col-status,.table-list--resolved th.col-status,.table-list--resolved td.col-status,.table-list--validation th.col-status,.table-list--validation td.col-status{text-align:center;}
 
 .cabinet-header--stacked{display:flex;flex-direction:column;align-items:flex-start;gap:10px;cursor:default;}
@@ -1235,16 +1239,16 @@
   .table-list thead th{height:156px;}
   .table-list .col-name{width:92px;}
   .table-list .col-dim{width:76px;}
-  .table-list .col-qty{width:56px;}
-  .table-list .col-diff{width:58px;}
+  .table-list .col-qty{width:50px;}
+  .table-list .col-diff{width:54px;}
   .table-list .col-room{width:110px;}
   .table-list .col-cab{width:126px;}
-  .table-list--sheet,.table-list--raw,.table-list--resolved,.table-list--validation{min-width:820px;}
+  .table-list--sheet,.table-list--raw,.table-list--resolved,.table-list--validation{min-width:790px;}
   .table-list--sheet .col-name,.table-list--raw .col-name,.table-list--resolved .col-name,.table-list--validation .col-name{width:120px;}
-  .table-list--sheet .col-dim,.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim{width:92px;}
-  .table-list--sheet .col-qty,.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty{width:68px;}
-  .table-list--sheet .col-diff,.table-list--validation .col-diff{width:72px;}
-  .table-list--sheet .col-room,.table-list--raw .col-room,.table-list--resolved .col-room{width:118px;}
-  .table-list--sheet .col-cab,.table-list--raw .col-cab,.table-list--resolved .col-cab{width:144px;}
-  .table-list--resolved .col-status,.table-list--validation .col-status{width:90px;}
+  .table-list--sheet .col-dim,.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim{width:84px;}
+  .table-list--sheet .col-qty,.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty{width:50px;}
+  .table-list--sheet .col-diff,.table-list--validation .col-diff{width:54px;}
+  .table-list--sheet .col-room,.table-list--raw .col-room,.table-list--resolved .col-room{width:114px;}
+  .table-list--sheet .col-cab,.table-list--raw .col-cab,.table-list--resolved .col-cab{width:138px;}
+  .table-list--resolved .col-status,.table-list--validation .col-status{width:76px;}
 }

@@ -192,7 +192,7 @@
           : `<button class="btn-primary" type="button" data-investor-action="exit">Wyjdź</button>`);
 
     const typeOptions = [
-      { value:'person', label:'Osoba' },
+      { value:'person', label:'Osoba prywatna' },
       { value:'company', label:'Firma' },
     ];
     const statusOptions = STATUS_OPTIONS.map((o)=> ({ value:o.v, label:o.label }));
@@ -424,6 +424,14 @@
     }catch(_){ }
     try{
       document.querySelectorAll('.investor-room-quick-btn, .investor-add-room-btn').forEach((btn)=>{
+        btn.classList.toggle('is-disabled', editing);
+        btn.toggleAttribute('disabled', editing);
+      });
+    }catch(_){ }
+    try{
+      ['sessionCancel','sessionSave'].forEach((id)=>{
+        const btn = document.getElementById(id);
+        if(!btn) return;
         btn.classList.toggle('is-disabled', editing);
         btn.toggleAttribute('disabled', editing);
       });

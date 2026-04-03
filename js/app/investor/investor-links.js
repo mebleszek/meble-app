@@ -20,8 +20,8 @@
     const href = kind === 'email' ? `mailto:${encodeURIComponent(rawValue)}` : `tel:${rawValue}`;
     const icon = buildIcon(kind);
     const title = kind === 'email' ? 'Wyślij email' : 'Zadzwoń';
-    if(!rawValue) return `<div class="investor-label-row"><span>${safeLabel}</span></div>`;
-    return `<div class="investor-label-row"><span>${safeLabel}</span><a class="investor-inline-link investor-inline-link--${kind}" href="${href}" aria-label="${title}: ${safeLabel}" title="${title}"><span class="investor-inline-link__icon">${icon}</span><span class="investor-inline-link__text">${title}</span></a></div>`;
+    if(!rawValue) return `<label class="investor-label-row"><span>${safeLabel}</span></label>`;
+    return `<label class="investor-label-row"><span>${safeLabel}</span><a class="investor-inline-link investor-inline-link--${kind}" href="${href}" aria-label="${title}: ${safeLabel}" title="${title}"><span class="investor-inline-link__icon">${icon}</span><span class="investor-inline-link__text">${title}</span></a></label>`;
   }
 
   FC.investorLinks = { buildLabelWithAction };
