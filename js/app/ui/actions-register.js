@@ -155,15 +155,14 @@
     // ===== INWESTOR (UI uses delegated data-action; handlers must exist in registry) =====
     'create-investor': ({event}) => {
       try{
-        if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
-          const inv = window.FC.investors.create({ kind:'person' });
-          if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = inv.id;
-          if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-            window.FC.investorUI.state.selectedId = inv.id;
-            window.FC.investorUI.state.mode = 'detail';
-          }
-          try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
+        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
+        const inv = persistence && typeof persistence.createInvestor === 'function' ? persistence.createInvestor({ kind:'person' }) : null;
+        if(inv && typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = inv.id;
+        if(inv && window.FC && window.FC.investorUI && window.FC.investorUI.state){
+          window.FC.investorUI.state.selectedId = inv.id;
+          window.FC.investorUI.state.mode = 'detail';
         }
+        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
       }catch(_){ }
       return true;
     },
@@ -175,9 +174,8 @@
       try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
 
       try{
-        if(window.FC && window.FC.investors && typeof window.FC.investors.setCurrentId === 'function'){
-          window.FC.investors.setCurrentId(id);
-        }
+        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
+        if(persistence && typeof persistence.setCurrentInvestorId === 'function') persistence.setCurrentInvestorId(id);
         if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = id;
         // move to full workflow and open INWESTOR tab
         try{
@@ -210,9 +208,8 @@
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
       try{
-        if(window.FC && window.FC.investors && typeof window.FC.investors.setCurrentId === 'function'){
-          window.FC.investors.setCurrentId(id);
-        }
+        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
+        if(persistence && typeof persistence.setCurrentInvestorId === 'function') persistence.setCurrentInvestorId(id);
         if(typeof uiState !== 'undefined' && uiState){
           uiState.currentInvestorId = id;
           if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && typeof STORAGE_KEYS !== 'undefined'){
@@ -240,9 +237,8 @@
           ok = await window.FC.confirmBox.ask({ title:'Usunąć inwestora?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
         }
         if(!ok) return true;
-        if(window.FC && window.FC.investors && typeof window.FC.investors.remove === 'function'){
-          window.FC.investors.remove(id);
-        }
+        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
+        if(persistence && typeof persistence.removeInvestor === 'function') persistence.removeInvestor(id);
         if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId === id) uiState.currentInvestorId = null;
         if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
           window.FC.investorUI.state.selectedId = null;

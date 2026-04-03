@@ -862,3 +862,14 @@ Dopiero potem go zmieniać.
 - INWESTOR: `Osoba` -> `Osoba prywatna`, poprawiona typografia labeli Telefon/Email i zielone ikonki akcji w stylu `Zapisz`.
 - INWESTOR: w trybie edycji blokowane są także górne przyciski sesji `Anuluj` / `Zapisz`.
 - LISTY FORMATek: zwężone kolumny liczbowo-statusowe, delikatniejsze pionowe separatory i ciemniejsze poziome linie w listach ogólnej / do rozkroju / arkusza.
+
+## 2026-04-04 — site_investor_arch_sync_tables_blue
+- INWESTOR: wdrożono 4 kroki optymalizacji architektury bez zmiany ogólnego UI:
+  - `js/app/investor/investor-persistence.js` — jedno wejście do CRUD inwestora pod przyszły adapter Firestore,
+  - `js/app/investor/investor-navigation-guard.js` — jedno miejsce do blokad top nav / Lista / pokoje / sesja,
+  - `js/app/investor/investor-field-render.js` — wspólne renderowanie pól readonly/editable i sztywnych rzędów,
+  - `js/app/investor/investor-actions.js` — wydzielona logika action bara inwestora.
+- INWESTOR: karta inwestora została przestawiona na sztywne rzędy par pól (`name/phone`, `city/email`) i pełne rzędy (`adres`, `źródło`, `notatki`), żeby linie i baseline nie rozjeżdżały się między lewą i prawą kolumną.
+- INWESTOR: ikonki telefonu/email wróciły do niebieskiego tonu zgodnego z `Dodaj pomieszczenie`.
+- LISTY FORMATek: dalej zwężono kolumny liczbowe / wymiarowe i przyciemniono poziome linie na około 60% szarości.
+- ACTIONS REGISTRY: akcje create/open/assign/delete inwestora korzystają teraz z warstwy `investorPersistence`, a nie bezpośrednio z `FC.investors`.

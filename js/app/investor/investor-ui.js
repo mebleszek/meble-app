@@ -1,5 +1,5 @@
 // js/app/investor/investor-ui.js
-// UI zakładki/ekranu INWESTOR (lista + karta inwestora). Lokalny zapis.
+// UI zakładki/ekranu INWESTOR (lista + karta inwestora).
 (() => {
   'use strict';
   window.FC = window.FC || {};
@@ -31,11 +31,19 @@
   function choice(){ return FC.investorChoice || null; }
   function roomUi(){ return FC.investorRooms || null; }
   function links(){ return FC.investorLinks || null; }
+  function persistence(){ return FC.investorPersistence || null; }
+  function guard(){ return FC.investorNavigationGuard || null; }
+  function fieldRender(){ return FC.investorFieldRender || null; }
+  function actions(){ return FC.investorActions || null; }
 
   function escapeHtml(s){
-    return String(s ?? '').replace(/[&<>"']/g, (c)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const api = fieldRender();
+    return api && typeof api.escapeHtml === 'function' ? api.escapeHtml(s) : String(s ?? '');
   }
-  function escapeAttr(s){ return escapeHtml(s).replace(/\n/g,' '); }
+  function escapeAttr(s){
+    const api = fieldRender();
+    return api && typeof api.escapeAttr === 'function' ? api.escapeAttr(s) : String(s ?? '');
+  }
 
   function persistUIInvestorId(id){
     try{
@@ -55,11 +63,11 @@
   function renderListOnly(targetEl){
     const el = targetEl;
     if(!el) return;
-    if(!FC.investors){
+    if(!persistence()){
       el.innerHTML = '<div class="muted">Brak modułu bazy inwestorów.</div>';
       return;
     }
-    const list = FC.investors.search(state.query);
+    const list = persistence().searchInvestors(state.query);
     el.innerHTML = buildList(list);
     bindList(targetEl);
   }
@@ -68,26 +76,26 @@
     const root = getRoot();
     if(!root) return;
 
-    if(!FC.investors){
+    if(!persistence()){
       root.innerHTML = '<div class="card"><h3>Inwestor</h3><div class="muted">Brak modułu bazy inwestorów.</div></div>';
       return;
     }
 
-    const currentId = FC.investors.getCurrentId() || readUIInvestorId();
+    const currentId = persistence().getCurrentInvestorId() || readUIInvestorId();
     if(state.selectedId == null && currentId) state.selectedId = currentId;
     if(!state.allowListAccess && state.selectedId) state.mode = 'detail';
     if(state.mode === 'detail' && !state.selectedId) state.mode = 'list';
 
     if(state.mode === 'detail'){
-      const inv = FC.investors.getById(state.selectedId);
+      const inv = persistence().getInvestorById(state.selectedId);
       if(!inv){ state.mode = 'list'; return render(); }
       root.innerHTML = buildDetail(inv);
       bindDetail(inv);
       return;
     }
 
-    applyInvestorUiLocks(null);
-    const list = FC.investors.search(state.query);
+    try{ guard() && guard().apply(false); }catch(_){ }
+    const list = persistence().searchInvestors(state.query);
     root.innerHTML = buildList(list);
     bindList();
   }
@@ -119,61 +127,10 @@
     `;
   }
 
-  function buildChoiceField(id, label, options, value, title, disabled, extraClass, opts){
-    const cfg = Object.assign({ readonlyPreview:false }, opts || {});
-    const optsHtml = (options || []).map((opt)=> `<option value="${escapeAttr(opt.value)}" ${String(opt.value) === String(value) ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('');
-    const currentLabel = (options || []).find((opt)=> String(opt.value) === String(value))?.label || value || '';
-    if(cfg.readonlyPreview){
-      const display = String(currentLabel || '').trim() ? escapeHtml(currentLabel) : '<span class="investor-form-value__empty">—</span>';
-      return `
-        <div class="investor-choice-field investor-choice-field--readonly ${extraClass || ''}">
-          <label>${escapeHtml(label)}</label>
-          <select id="${escapeAttr(id)}" hidden>${optsHtml}</select>
-          <div class="investor-form-value investor-form-value--choice" id="${escapeAttr(id)}Preview">${display}</div>
-          <div id="${escapeAttr(id)}Launch" hidden></div>
-        </div>
-      `;
-    }
-    return `
-      <div class="investor-choice-field ${extraClass || ''}">
-        <label>${escapeHtml(label)}</label>
-        <select id="${escapeAttr(id)}" hidden>${optsHtml}</select>
-        <div id="${escapeAttr(id)}Launch"></div>
-      </div>
-    `;
-  }
-
-  function buildInputField(id, labelHtml, value, opts){
-    const cfg = Object.assign({ full:false, readonly:false, textarea:false, rows:3 }, opts || {});
-    const cls = `investor-field-shell${cfg.full ? ' investor-field--full' : ''}`;
-    const textValue = String(value == null ? '' : value);
-    if(cfg.readonly){
-      const display = textValue.trim() ? escapeHtml(textValue) : '<span class="investor-form-value__empty">—</span>';
-      return `
-        <div class="${cls}">
-          ${labelHtml}
-          <div class="investor-form-value${cfg.textarea ? ' investor-form-value--textarea' : ''}" id="${escapeAttr(id)}">${display}</div>
-        </div>
-      `;
-    }
-    if(cfg.textarea){
-      return `
-        <div class="${cls}">
-          ${labelHtml}
-          <textarea class="investor-form-input" id="${escapeAttr(id)}" rows="${cfg.rows}">${escapeHtml(textValue)}</textarea>
-        </div>
-      `;
-    }
-    return `
-      <div class="${cls}">
-        ${labelHtml}
-        <input class="investor-form-input" id="${escapeAttr(id)}" value="${escapeAttr(textValue)}" />
-      </div>
-    `;
-  }
-
   function buildDetail(inv){
     const editorApi = editor();
+    const fields = fieldRender();
+    const actionsApi = actions();
     const draft = editorApi ? editorApi.getDraft(inv) : (editorApi && editorApi.buildDraft ? editorApi.buildDraft(inv) : {});
     const isEditing = !!(editorApi && editorApi.ensureInvestor(inv).isEditing);
     const dirty = !!(editorApi && editorApi.ensureInvestor(inv).dirty);
@@ -181,15 +138,11 @@
     const linksApi = links();
     const phoneLabel = (!isEditing && linksApi && typeof linksApi.buildLabelWithAction === 'function')
       ? linksApi.buildLabelWithAction('Telefon', 'phone', draft.phone || inv.phone || '')
-      : '<label>Telefon</label>';
+      : fields.buildStaticLabel('Telefon');
     const emailLabel = (!isEditing && linksApi && typeof linksApi.buildLabelWithAction === 'function')
       ? linksApi.buildLabelWithAction('Email', 'email', draft.email || inv.email || '')
-      : '<label>Email</label>';
-    const topButtons = !isEditing
-      ? `<button class="btn-danger" type="button" data-investor-action="delete">Usuń</button><button class="btn" type="button" data-investor-action="edit">Edytuj</button>`
-      : (dirty
-          ? `<button class="btn-danger" type="button" data-investor-action="cancel">Anuluj</button><button class="btn-success" type="button" data-investor-action="save">Zapisz</button>`
-          : `<button class="btn-primary" type="button" data-investor-action="exit">Wyjdź</button>`);
+      : fields.buildStaticLabel('Email');
+    const bottomButtons = actionsApi ? actionsApi.buildActionBarHtml({ isEditing, dirty }) : '';
 
     const typeOptions = [
       { value:'person', label:'Osoba prywatna' },
@@ -200,6 +153,38 @@
       ? roomUi().buildRoomButtons(isEditing)
       : '<div class="muted">Brak pomieszczeń.</div>';
 
+    const rows = [];
+    rows.push(fields.buildPairRow(
+      fields.buildInputField('invName', fields.buildStaticLabel(isCompany ? 'Nazwa firmy' : 'Imię i nazwisko'), isCompany ? draft.companyName : draft.name, { readonly:!isEditing, compact:true }),
+      fields.buildInputField('invPhone', phoneLabel, draft.phone, { readonly:!isEditing, compact:true })
+    ));
+    rows.push(fields.buildPairRow(
+      fields.buildInputField('invCity', fields.buildStaticLabel('Miejscowość'), draft.city, { readonly:!isEditing, compact:true }),
+      fields.buildInputField('invEmail', emailLabel, draft.email, { readonly:!isEditing, compact:true })
+    ));
+    rows.push(fields.buildPairRow(
+      fields.buildInputField('invAddress', fields.buildStaticLabel('Adres'), draft.address, { readonly:!isEditing, full:true, compact:true }),
+      '',
+      { full:true }
+    ));
+    if(isCompany){
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, compact:true }),
+        fields.buildInputField('invNip', fields.buildStaticLabel('NIP'), draft.nip, { readonly:!isEditing, compact:true })
+      ));
+    }else{
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, full:true, compact:true }),
+        '',
+        { full:true }
+      ));
+    }
+    rows.push(fields.buildPairRow(
+      fields.buildInputField('invNotes', fields.buildStaticLabel('Notatki'), draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 }),
+      '',
+      { full:true }
+    ));
+
     return `
       <div class="card investor-card-sync" data-investor-editing="${isEditing ? '1' : '0'}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -208,22 +193,15 @@
         </div>
 
         <div class="investor-choice-grid">
-          ${buildChoiceField('invKind', 'Typ', typeOptions, draft.kind || 'person', 'Wybierz typ', !isEditing, 'investor-choice-field--kind', { readonlyPreview:!isEditing })}
-          ${buildChoiceField('invStatus', 'Status', statusOptions, draft.status || 'nowy', 'Wybierz status', false, 'investor-choice-field--status')}
+          ${fields.buildChoiceField('invKind', 'Typ', typeOptions, draft.kind || 'person', 'investor-choice-field--kind', { readonlyPreview:!isEditing })}
+          ${fields.buildChoiceField('invStatus', 'Status', statusOptions, draft.status || 'nowy', 'investor-choice-field--status')}
         </div>
 
-        <div class="investor-form-grid">
-          ${buildInputField('invName', `<label>${isCompany ? 'Nazwa firmy' : 'Imię i nazwisko'}</label>`, isCompany ? draft.companyName : draft.name, { readonly:!isEditing })}
-          ${buildInputField('invPhone', phoneLabel, draft.phone, { readonly:!isEditing })}
-          ${buildInputField('invCity', '<label>Miejscowość</label>', draft.city, { readonly:!isEditing })}
-          ${buildInputField('invEmail', emailLabel, draft.email, { readonly:!isEditing })}
-          ${buildInputField('invAddress', '<label>Adres</label>', draft.address, { readonly:!isEditing, full:true })}
-          ${buildInputField('invSource', '<label>Źródło</label>', draft.source, { readonly:!isEditing, full:!isCompany })}
-          ${isCompany ? buildInputField('invNip', '<label>NIP</label>', draft.nip, { readonly:!isEditing }) : ''}
-          ${buildInputField('invNotes', '<label>Notatki</label>', draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 })}
+        <div class="investor-details-rows">
+          ${rows.join('')}
         </div>
 
-        <div class="investor-bottom-actions" id="investorActionBar">${topButtons}</div>
+        <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
 
         <div class="hr"></div>
         <div class="investor-rooms-head">
@@ -250,9 +228,12 @@
     const root = getRoot();
     if(!root) return;
     const editorApi = editor();
+    const actionsApi = actions();
+    const choiceApi = choice();
+    const persistenceApi = persistence();
     if(editorApi) editorApi.ensureInvestor(inv);
 
-    applyInvestorUiLocks(inv);
+    try{ guard() && guard().apply(!!(editorApi && editorApi.state.isEditing)); }catch(_){ }
 
     const topActions = document.getElementById('investorActionBar');
     const kindSelect = document.getElementById('invKind');
@@ -260,20 +241,14 @@
     const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invSource','invNip','invNotes'];
     const fields = fieldIds.reduce((acc, id)=> { acc[id] = document.getElementById(id); return acc; }, {});
 
-    function currentInvestor(){ return FC.investors.getById(inv.id) || inv; }
+    function currentInvestor(){ return (persistenceApi && persistenceApi.getInvestorById(inv.id)) || inv; }
 
     function refreshActionBar(){
       const currentState = editorApi ? editorApi.ensureInvestor(currentInvestor()) : { isEditing:false, dirty:false };
       if(!topActions) return;
-      if(!currentState.isEditing){
-        topActions.innerHTML = '<button class="btn-danger" type="button" data-investor-action="delete">Usuń</button><button class="btn" type="button" data-investor-action="edit">Edytuj</button>';
-      }else if(currentState.dirty){
-        topActions.innerHTML = '<button class="btn-danger" type="button" data-investor-action="cancel">Anuluj</button><button class="btn-success" type="button" data-investor-action="save">Zapisz</button>';
-      }else{
-        topActions.innerHTML = '<button class="btn-primary" type="button" data-investor-action="exit">Wyjdź</button>';
-      }
+      topActions.innerHTML = actionsApi ? actionsApi.buildActionBarHtml(currentState) : '';
       bindTopActions();
-      applyInvestorUiLocks(currentInvestor());
+      try{ guard() && guard().apply(!!currentState.isEditing); }catch(_){ }
     }
 
     function patchFieldFromDom(id, key){
@@ -285,52 +260,22 @@
     }
 
     function bindTopActions(){
-      if(!topActions) return;
-      topActions.querySelectorAll('[data-investor-action]').forEach((btn)=>{
-        btn.addEventListener('click', async ()=>{
-          const action = btn.getAttribute('data-investor-action');
-          if(action === 'edit'){
-            editorApi && editorApi.enter(currentInvestor());
-            render();
-            return;
-          }
-          if(action === 'exit'){
-            editorApi && editorApi.exit(currentInvestor());
-            render();
-            return;
-          }
-          if(action === 'cancel'){
-            const ok = !(modals() && modals().confirmDiscardInvestorChanges) || await modals().confirmDiscardInvestorChanges();
-            if(!ok) return;
-            editorApi && editorApi.exit(currentInvestor());
-            render();
-            return;
-          }
-          if(action === 'save'){
-            const ok = !(modals() && modals().confirmSaveInvestorChanges) || await modals().confirmSaveInvestorChanges();
-            if(!ok) return;
-            const patch = editorApi ? editorApi.commit(currentInvestor()) : null;
-            if(patch) FC.investors.update(inv.id, patch);
-            render();
-            return;
-          }
-          if(action === 'delete'){
-            const ok = !(modals() && modals().confirmDeleteInvestor) || await modals().confirmDeleteInvestor();
-            if(!ok) return;
-            FC.investors.remove(inv.id);
-            state.selectedId = null;
-            state.mode = 'list';
-            applyInvestorUiLocks(null);
-            render();
-            return;
-          }
-        });
+      if(!(topActions && actionsApi)) return;
+      actionsApi.bindTopActions(topActions, {
+        getCurrentInvestor: currentInvestor,
+        onRender: render,
+        onDeleted: ()=> {
+          state.selectedId = null;
+          state.mode = 'list';
+          persistUIInvestorId(null);
+          try{ guard() && guard().apply(false); }catch(_){ }
+          render();
+        }
       });
     }
 
     bindTopActions();
 
-    const choiceApi = choice();
     if(choiceApi && typeof choiceApi.mountChoice === 'function'){
       choiceApi.mountChoice({
         mount: document.getElementById('invKindLaunch'),
@@ -363,7 +308,7 @@
           const nextLabel = STATUS_OPTIONS.find((opt)=> opt.v === value)?.label || value;
           const ok = !(modals() && modals().confirmStatusChange) || await modals().confirmStatusChange(prevLabel, nextLabel);
           if(!ok){ render(); return; }
-          FC.investors.update(inv.id, { status:value });
+          persistenceApi && persistenceApi.setInvestorStatus(current.id, value);
           render();
         }
       });
@@ -389,7 +334,7 @@
       btn.addEventListener('click', ()=>{
         if(editorApi && editorApi.state.isEditing) return;
         state.mode = 'list';
-        applyInvestorUiLocks(null);
+        try{ guard() && guard().apply(false); }catch(_){ }
         render();
       });
     });
@@ -410,38 +355,10 @@
     });
   }
 
-  function applyInvestorUiLocks(inv){
-    const editing = !!(editor() && editor().state.isEditing && inv && editor().state.investorId === inv.id);
-    try{
-      const topTabs = document.getElementById('topTabs');
-      if(topTabs) topTabs.classList.toggle('is-disabled', editing);
-    }catch(_){ }
-    try{
-      document.querySelectorAll('[data-action="back-investors"]').forEach((btn)=>{
-        btn.classList.toggle('is-disabled', editing);
-        btn.toggleAttribute('disabled', editing);
-      });
-    }catch(_){ }
-    try{
-      document.querySelectorAll('.investor-room-quick-btn, .investor-add-room-btn').forEach((btn)=>{
-        btn.classList.toggle('is-disabled', editing);
-        btn.toggleAttribute('disabled', editing);
-      });
-    }catch(_){ }
-    try{
-      ['sessionCancel','sessionSave'].forEach((id)=>{
-        const btn = document.getElementById(id);
-        if(!btn) return;
-        btn.classList.toggle('is-disabled', editing);
-        btn.toggleAttribute('disabled', editing);
-      });
-    }catch(_){ }
-  }
-
   FC.investorUI = {
     render,
     renderListOnly,
     state,
-    applyInvestorUiLocks,
+    applyInvestorUiLocks: (inv)=> { try{ guard() && guard().apply(!!(editor() && editor().state.isEditing && inv && editor().state.investorId === inv.id)); }catch(_){ } },
   };
 })();

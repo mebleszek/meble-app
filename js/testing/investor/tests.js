@@ -24,6 +24,12 @@
   }
 
   const tests = [
+    makeTest('Inwestor', 'Moduły architektury inwestora są podpięte', 'Pilnuje, czy po refaktorze istnieją moduły do blokad, renderu pól, akcji i centralnego zapisu inwestora.', ()=>{
+      assert(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function', 'Brak investorPersistence.saveInvestorPatch');
+      assert(FC.investorNavigationGuard && typeof FC.investorNavigationGuard.apply === 'function', 'Brak investorNavigationGuard.apply');
+      assert(FC.investorFieldRender && typeof FC.investorFieldRender.buildPairRow === 'function', 'Brak investorFieldRender.buildPairRow');
+      assert(FC.investorActions && typeof FC.investorActions.buildActionBarHtml === 'function', 'Brak investorActions.buildActionBarHtml');
+    }),
     makeTest('Inwestor', 'Stan edytora inwestora przechodzi z podglądu do edycji i wykrywa zmiany', 'Sprawdza, czy nowy moduł stanu edycji inwestora nie gubi draftu i poprawnie liczy dirty.', ()=>{
       assert(FC.investorEditorState && typeof FC.investorEditorState.enter === 'function', 'Brak investorEditorState');
       const inv = sampleInvestor();
