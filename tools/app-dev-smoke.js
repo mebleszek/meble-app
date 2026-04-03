@@ -11,6 +11,8 @@ const FILES = [
   'js/app/shared/room-registry.js',
   'js/app/investor/investor-editor-state.js',
   'js/app/investor/project-bootstrap.js',
+  'js/app/rozrys/rozrys-stock.js',
+  'js/app/rozrys/rozrys-state.js',
   'js/app/cabinet/cabinet-cutlist.js',
   'js/testing/shared/harness.js',
   'js/testing/project/tests.js',

@@ -10,7 +10,7 @@
 .investor-card-sync .investor-room-quick-list{display:flex;gap:10px;flex-wrap:wrap;}
 .investor-card-sync .investor-room-quick-btn.is-disabled,
 .investor-card-sync .investor-add-room-btn.is-disabled,
-#topTabs.is-disabled{pointer-events:none;opacity:.52;}
+#topTabs.is-disabled,.investor-card-sync [data-action="back-investors"].is-disabled{pointer-events:none;opacity:.52;}
 .investor-card-sync .investor-disabled-note{margin-top:10px;color:#64748b;font-size:12px;font-weight:800;}
 .investor-card-sync .investor-form-grid .investor-field-shell{display:flex;flex-direction:column;gap:6px;}
 .investor-card-sync .investor-readonly{pointer-events:none;opacity:1;}

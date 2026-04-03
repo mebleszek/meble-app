@@ -204,7 +204,7 @@
       <div class="card investor-card-sync" data-investor-editing="${isEditing ? '1' : '0'}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <h3 style="margin:0">Inwestor</h3>
-          ${state.allowListAccess ? '<button class="btn" data-action="back-investors">Lista</button>' : ''}
+          ${state.allowListAccess ? `<button class="btn${isEditing ? ' is-disabled' : ''}" data-action="back-investors" ${isEditing ? 'disabled' : ''}>Lista</button>` : ''}
         </div>
 
         <div class="investor-choice-grid">
@@ -223,7 +223,7 @@
           ${buildInputField('invNotes', '<label>Notatki</label>', draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 })}
         </div>
 
-        <div class="investor-bottom-actions" id="investorTopActions">${topButtons}</div>
+        <div class="investor-bottom-actions" id="investorActionBar">${topButtons}</div>
 
         <div class="hr"></div>
         <div class="investor-rooms-head">
@@ -254,7 +254,7 @@
 
     applyInvestorUiLocks(inv);
 
-    const topActions = document.getElementById('investorTopActions');
+    const topActions = document.getElementById('investorActionBar');
     const kindSelect = document.getElementById('invKind');
     const statusSelect = document.getElementById('invStatus');
     const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invSource','invNip','invNotes'];
@@ -387,6 +387,7 @@
 
     root.querySelectorAll('[data-action="back-investors"]').forEach((btn)=> {
       btn.addEventListener('click', ()=>{
+        if(editorApi && editorApi.state.isEditing) return;
         state.mode = 'list';
         applyInvestorUiLocks(null);
         render();
@@ -414,6 +415,12 @@
     try{
       const topTabs = document.getElementById('topTabs');
       if(topTabs) topTabs.classList.toggle('is-disabled', editing);
+    }catch(_){ }
+    try{
+      document.querySelectorAll('[data-action="back-investors"]').forEach((btn)=>{
+        btn.classList.toggle('is-disabled', editing);
+        btn.toggleAttribute('disabled', editing);
+      });
     }catch(_){ }
     try{
       document.querySelectorAll('.investor-room-quick-btn, .investor-add-room-btn').forEach((btn)=>{
