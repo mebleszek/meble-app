@@ -178,7 +178,13 @@
       hasRealHalf: sum.hasRealHalf,
     };
     if(lists && typeof lists.renderSummaryCard === 'function'){
-      tgt.appendChild(lists.renderSummaryCard({ meta, diagnostics, validationLabel, summary: summaryPayload, wastePct: pct }));
+      const summaryCard = lists.renderSummaryCard({ meta, diagnostics, validationLabel, summary: summaryPayload, wastePct: pct });
+      if(summaryCard instanceof Node) tgt.appendChild(summaryCard);
+      else if(typeof summaryCard === 'string' && summaryCard.trim()){
+        const shell = document.createElement('div');
+        shell.innerHTML = summaryCard.trim();
+        while(shell.firstChild) tgt.appendChild(shell.firstChild);
+      }
     }
 
     const edgeSubMm = Math.max(0, Number(meta.edgeSubMm)||0);

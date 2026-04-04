@@ -174,24 +174,42 @@
     const validationLabel = ctx && ctx.validationLabel || { tone:'is-muted', text:'Brak walidacji' };
     const summary = ctx && ctx.summary || { count:0, hasRealHalf:false, hasVirtualHalf:false };
     const pct = Number(ctx && ctx.wastePct) || 0;
-    const cancelledNote = meta && meta.cancelled ? '<div class="muted xs" style="margin-top:6px;font-weight:700">Generowanie przerwane — pokazuję ostatni spójny wynik.</div>' : '';
-    const realHalfNote = summary.hasRealHalf ? '<div class="muted xs" style="margin-top:6px">Końcówka policzona na realnej połówce z magazynu, ale rysowana na pełnym arkuszu.</div>' : '';
-    const virtualNote = summary.hasVirtualHalf ? '<div class="muted xs" style="margin-top:6px">Ostatnia końcówka liczona wirtualnie jako 0,5 płyty, ale rysowana na pełnym arkuszu.</div>' : '';
-    return `
-      <div class="build-card plan-card" style="margin-top:10px;">
-        <div class="head">${meta.title || 'Rozpiska'}</div>
-        <div class="muted" style="margin-bottom:8px">${meta.subtitle || ''}</div>
-        <div class="rozrys-validation-summary">
-          <span class="rozrys-pill ${validationLabel.tone}">${validationLabel.text}</span>
-          <span class="rozrys-pill is-raw">Arkusze: ${summary.count || 0}</span>
-          <span class="rozrys-pill is-raw">Odpad: ${pct.toFixed(1)}%</span>
-          ${diagnostics ? `<span class="rozrys-pill is-raw">Snapshot: ${diagnostics.resolvedRows.length} pozycji</span>` : ''}
-        </div>
-        ${cancelledNote}
-        ${realHalfNote}
-        ${virtualNote}
-      </div>
-    `;
+
+    const card = h('div', { class:'build-card plan-card', style:'margin-top:10px;' });
+    card.appendChild(h('div', { class:'head', text: meta.title || 'Rozpiska' }));
+    card.appendChild(h('div', { class:'muted', style:'margin-bottom:8px', text: meta.subtitle || '' }));
+
+    const summaryRow = h('div', { class:'rozrys-validation-summary' });
+    summaryRow.appendChild(h('span', { class:`rozrys-pill ${validationLabel.tone || 'is-muted'}`, text: validationLabel.text || 'Brak walidacji' }));
+    summaryRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Arkusze: ${summary.count || 0}` }));
+    summaryRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Odpad: ${pct.toFixed(1)}%` }));
+    if(diagnostics && Array.isArray(diagnostics.resolvedRows)){
+      summaryRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Snapshot: ${diagnostics.resolvedRows.length} pozycji` }));
+    }
+    card.appendChild(summaryRow);
+
+    if(meta && meta.cancelled){
+      card.appendChild(h('div', {
+        class:'muted xs',
+        style:'margin-top:6px;font-weight:700',
+        text:'Generowanie przerwane — pokazuję ostatni spójny wynik.'
+      }));
+    }
+    if(summary.hasRealHalf){
+      card.appendChild(h('div', {
+        class:'muted xs',
+        style:'margin-top:6px',
+        text:'Końcówka policzona na realnej połówce z magazynu, ale rysowana na pełnym arkuszu.'
+      }));
+    }
+    if(summary.hasVirtualHalf){
+      card.appendChild(h('div', {
+        class:'muted xs',
+        style:'margin-top:6px',
+        text:'Ostatnia końcówka liczona wirtualnie jako 0,5 płyty, ale rysowana na pełnym arkuszu.'
+      }));
+    }
+    return card;
   }
 
   function renderPlanActions(ctx){
