@@ -909,3 +909,11 @@ Dopiero potem go zmieniać.
 - 2026-04-04: site_investor_company_layout_room_labels.zip — naprawa etykiet pomieszczeń w ROZRYS (bez technicznych room_*), poprawa układu firmy w Inwestorze: właściciel pod mailem, NIP pod właścicielem, pełny rząd dla Źródła i Dodatkowych informacji, neutralniejsze tło pól oraz cache-busting dla zmienionych skryptów.
 
 - 2026-04-05: Paczka site_investor_validation_room_delete_summary_cleanup.zip — uproszczenie podsumowania ROZRYS, poprawa układu firmy w Inwestorze, modal usuwania pomieszczenia, walidacja obowiązkowych pól i ostrzeżenia o duplikatach, nowy inwestor otwierany od razu w edycji.
+
+
+## 2026-04-05 — investor followup v2
+- investor create flow moved to transient draft before first real save (no empty investor records)
+- investor top session buttons detached from investor form save/cancel path
+- room delete modal now lists full active room set including legacy rooms
+- investor rooms header tightened: Pomieszczenia + Dodaj/Usuń in one row
+- resolved table widths treated as reference for RAW/validation/sheet list widths

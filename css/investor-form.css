@@ -75,3 +75,13 @@
 .investor-card-sync .investor-inline-link__text{display:none;}
 
 .investor-card-sync .investor-details-row--full > .investor-field-shell{width:100%;}
+
+.investor-card-sync .investor-form-input:-webkit-autofill,
+.investor-card-sync .investor-form-input:-webkit-autofill:hover,
+.investor-card-sync .investor-form-input:-webkit-autofill:focus,
+.investor-card-sync .investor-form-input:-webkit-autofill:active{
+  -webkit-text-fill-color:#0f172a !important;
+  -webkit-box-shadow:0 0 0 1000px #ffffff inset !important;
+  box-shadow:0 0 0 1000px #ffffff inset !important;
+  caret-color:#0f172a;
+}

@@ -212,7 +212,12 @@
   async function openRemoveRoomModal(){
     const inv = getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
-    const rooms = Array.isArray(inv.rooms) ? inv.rooms.map((room)=> normalizeRoomDef(room)).filter((room)=> room && room.id) : [];
+    const investorRooms = Array.isArray(inv.rooms) ? inv.rooms : [];
+    const investorRoomMap = new Map(investorRooms.map((room)=> [String(room && room.id || ''), room]));
+    const rooms = getActiveRoomDefs().map((room)=> {
+      const merged = Object.assign({}, room, investorRoomMap.get(String(room && room.id || '')) || {});
+      return normalizeRoomDef(merged, room);
+    }).filter((room)=> room && room.id);
     if(!rooms.length){
       try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Najpierw dodaj pomieszczenie, żeby móc je usunąć.' }); }catch(_){ }
       return null;

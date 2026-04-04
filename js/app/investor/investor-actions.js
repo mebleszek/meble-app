@@ -24,6 +24,14 @@
     try{ return !!(ui() && ui().state && ui().state.newlyCreatedId && investor && String(ui().state.newlyCreatedId) === String(investor.id || '')); }catch(_){ return false; }
   }
 
+
+  function isTransientInvestor(investor){
+    try{
+      const transient = ui() && typeof ui().getTransientInvestor === 'function' ? ui().getTransientInvestor() : (ui() && ui().state ? ui().state.transientInvestor : null);
+      return !!(transient && investor && String(transient.id || '') === String(investor.id || ''));
+    }catch(_){ return false; }
+  }
+
   function clearNewInvestorFlag(id){
     try{
       if(ui() && ui().state && (!id || String(ui().state.newlyCreatedId || '') === String(id || ''))){
@@ -34,6 +42,11 @@
 
   function cleanupUnsavedNewInvestor(investor){
     if(!(investor && isNewInvestor(investor))) return;
+    if(isTransientInvestor(investor)){
+      try{ ui() && typeof ui().clearTransientInvestor === 'function' && ui().clearTransientInvestor(investor.id); }catch(_){ }
+      clearNewInvestorFlag(investor.id);
+      return;
+    }
     try{ persistence() && persistence().removeInvestor && persistence().removeInvestor(investor.id); }catch(_){ }
     clearNewInvestorFlag(investor.id);
   }
@@ -162,8 +175,24 @@
       const ok = !(modals() && modals().confirmSaveInvestorChanges) || await modals().confirmSaveInvestorChanges();
       if(!ok) return;
       const patch = editorApi ? editorApi.commit(investor) : null;
-      if(patch && persistence()) persistence().saveInvestorPatch(investor.id, patch);
+      let savedInvestor = null;
+      if(patch && persistence()){
+        if(isTransientInvestor(investor) && typeof persistence().createInvestor === 'function'){
+          savedInvestor = persistence().createInvestor(patch || {});
+          try{ ui() && typeof ui().clearTransientInvestor === 'function' && ui().clearTransientInvestor(investor.id); }catch(_){ }
+          try{
+            if(ui() && ui().state){
+              ui().state.selectedId = savedInvestor && savedInvestor.id ? savedInvestor.id : null;
+              ui().state.mode = 'detail';
+              ui().state.allowListAccess = false;
+            }
+          }catch(_){ }
+        }else{
+          savedInvestor = persistence().saveInvestorPatch(investor.id, patch);
+        }
+      }
       clearNewInvestorFlag(investor.id);
+      if(savedInvestor && persistence() && typeof persistence().setCurrentInvestorId === 'function') persistence().setCurrentInvestorId(savedInvestor.id);
       cfg.onRender && cfg.onRender();
       return;
     }

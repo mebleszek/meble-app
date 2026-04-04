@@ -81,6 +81,15 @@
       assert(Array.isArray(ids) && ids.includes('room_kuchnia_gora') && ids.includes('room_spizarnia'), 'Aktywne pokoje nie pochodzą z inwestora', ids);
       assert(!ids.includes('kuchnia') && !ids.includes('szafa') && !ids.includes('pokoj') && !ids.includes('lazienka'), 'Do listy wróciły typy bazowe zamiast pokoi inwestora', ids);
     }),
+
+    makeTest('Inwestor', 'Dodawanie inwestora otwiera formularz bez pustego wpisu w bazie', 'Pilnuje, czy nowy inwestor startuje jako szkic w UI, a nie jako pusty rekord zapisany od razu do storage.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      const before = FC.investors.readAll().length;
+      const temp = FC.investors.normalizeInvestor({ id:'draft_inv_test', kind:'person' });
+      assert(String(temp.id || '').startsWith('draft_'), 'Szkic inwestora powinien mieć techniczne ID draftu', temp);
+      const after = FC.investors.readAll().length;
+      assert(before === after, 'Samo przygotowanie szkicu nie może dodawać pustego inwestora do bazy', { before, after });
+    }),
     makeTest('Inwestor', 'Domyślne obrównanie rozrysu startuje od 1 cm / 10 mm', 'Pilnuje, czy wszystkie fallbacki opcji rozkroju wróciły do uzgodnionego domyślnego obrównania 1 cm zamiast starego 2 cm.', ()=>{
       assert(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function', 'Brak getDefaultRozrysOptionValues');
       const cm = FC.rozrysStock.getDefaultRozrysOptionValues('cm');

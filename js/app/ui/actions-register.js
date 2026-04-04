@@ -8,6 +8,73 @@
   const FC = window.FC;
   if (!FC.actions || typeof FC.actions.register !== 'function') return;
 
+  function buildTransientInvestorDraft(kind){
+    const store = window.FC && window.FC.investors;
+    const normalize = store && typeof store.normalizeInvestor === 'function' ? store.normalizeInvestor : null;
+    const now = Date.now();
+    const draft = {
+      id: 'draft_inv_' + now.toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+      kind: kind === 'company' ? 'company' : 'person',
+      addedDate: (()=>{ try{ return new Date(now).toISOString().slice(0, 10); }catch(_){ return ''; } })(),
+      createdAt: now,
+      updatedAt: now,
+      rooms: [],
+    };
+    return normalize ? normalize(draft) : draft;
+  }
+
+  function openInvestorDraft(kind){
+    try{
+      const inv = buildTransientInvestorDraft(kind || 'person');
+      if(window.FC && window.FC.investorPersistence && typeof window.FC.investorPersistence.setCurrentInvestorId === 'function'){
+        window.FC.investorPersistence.setCurrentInvestorId(null);
+      }
+      if(typeof uiState !== 'undefined' && uiState){
+        uiState.currentInvestorId = null;
+        uiState.entry = 'rooms';
+        uiState.roomType = null;
+        uiState.activeTab = 'inwestor';
+        uiState.selectedCabinetId = null;
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      }
+      if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+        window.FC.investorUI.state.selectedId = inv.id;
+        window.FC.investorUI.state.mode = 'detail';
+        window.FC.investorUI.state.allowListAccess = false;
+        window.FC.investorUI.state.newlyCreatedId = inv.id;
+        window.FC.investorUI.state.transientInvestor = inv;
+      }
+      try{ if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.enter === 'function') window.FC.investorEditorState.enter(inv); }catch(_){ }
+      try{ if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState); }catch(_){ }
+      try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
+      try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
+    }catch(_){ }
+  }
+
+  function exitInvestorToList(){
+    try{
+      if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ entry:'investorsList', activeTab:null, roomType:null, currentInvestorId:null });
+      else if(typeof uiState !== 'undefined' && uiState){
+        uiState.entry = 'investorsList';
+        uiState.activeTab = null;
+        uiState.roomType = null;
+        uiState.currentInvestorId = null;
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      }
+    }catch(_){ }
+    try{
+      if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+        window.FC.investorUI.state.mode = 'list';
+        window.FC.investorUI.state.allowListAccess = false;
+        window.FC.investorUI.state.selectedId = null;
+        window.FC.investorUI.state.newlyCreatedId = null;
+      }
+    }catch(_){ }
+    try{ if(window.FC && window.FC.investorUI && typeof window.FC.investorUI.clearTransientInvestor === 'function') window.FC.investorUI.clearTransientInvestor(); }catch(_){ }
+    try{ if(FC.views && FC.views.openInvestorsList) FC.views.openInvestorsList(); }catch(_){ }
+  }
+
+
   FC.actions.register({
     'close-price': ({event}) => { closePriceModal(); return true; },
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
@@ -88,31 +155,7 @@
     },
 
     'new-investor': ({event}) => {
-      try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
-      try{
-        if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
-          const inv = window.FC.investors.create({ kind:'person' });
-          if(inv && inv.id){
-            uiState.currentInvestorId = inv.id;
-            try{
-              if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-                window.FC.investorUI.state.selectedId = inv.id;
-                window.FC.investorUI.state.mode = 'detail';
-                window.FC.investorUI.state.allowListAccess = false;
-                window.FC.investorUI.state.newlyCreatedId = inv.id;
-              }
-              if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.enter === 'function') window.FC.investorEditorState.enter(inv);
-            }catch(_){ }
-          }
-        }
-      }catch(_){ }
-      uiState.entry = 'rooms';
-      uiState.roomType = null;
-      uiState.activeTab = 'inwestor';
-      uiState.selectedCabinetId = null;
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-      try{ if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function') window.FC.sections.update(); }catch(_){ }
+      openInvestorDraft('person');
       return true;
     },
 
@@ -121,26 +164,12 @@
       const session = (window.FC && window.FC.session) ? window.FC.session : null;
       const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
+      const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
-      function goToInvestorsList(){
-        try{
-          if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ entry:'investorsList', activeTab:null, roomType:null, currentInvestorId:null });
-          else {
-            uiState.entry = 'investorsList';
-            uiState.activeTab = null;
-            uiState.roomType = null;
-            uiState.currentInvestorId = null;
-            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-          }
-        }catch(_){ }
-        try{
-          if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-            window.FC.investorUI.state.mode = 'list';
-            window.FC.investorUI.state.allowListAccess = false;
-            window.FC.investorUI.state.selectedId = null;
-          }
-        }catch(_){ }
-        try{ if(FC.views && FC.views.openInvestorsList) FC.views.openInvestorsList(); }catch(_){ }
+      if(inInvestorTab){
+        if(investorEditing) return true;
+        exitInvestorToList();
+        return true;
       }
 
       if(dirty){
@@ -160,67 +189,35 @@
         }catch(_){ ok = true; }
         if(!ok) return true;
         try{ if(session && typeof session.cancel === 'function') session.cancel(); }catch(_){ }
-        if(inInvestorTab){
-          goToInvestorsList();
-          return true;
-        }
         try{ window.location.reload(); }catch(_){ }
         return true;
       }
       try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
-      if(inInvestorTab){
-        goToInvestorsList();
-        return true;
-      }
       try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
       return true;
     },
     'session-save': ({event}) => {
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
-      // Data is saved live (local). Commit just clears snapshot.
-      try{ if(window.FC && window.FC.session && typeof window.FC.session.commit === 'function') window.FC.session.commit(); }catch(_){ }
+      const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
       if(inInvestorTab){
-        try{
-          if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ entry:'investorsList', activeTab:null, roomType:null, currentInvestorId:null });
-          else {
-            uiState.entry = 'investorsList';
-            uiState.activeTab = null;
-            uiState.roomType = null;
-            uiState.currentInvestorId = null;
-            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-          }
-        }catch(_){ }
-        try{ if(FC.views && FC.views.openInvestorsList) FC.views.openInvestorsList(); }catch(_){ }
+        if(investorEditing) return true;
+        exitInvestorToList();
         return true;
       }
+      try{ if(window.FC && window.FC.session && typeof window.FC.session.commit === 'function') window.FC.session.commit(); }catch(_){ }
       try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       return true;
     },
 
     // ===== INWESTOR (UI uses delegated data-action; handlers must exist in registry) =====
     'create-investor': ({event}) => {
-      try{
-        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
-        const inv = persistence && typeof persistence.createInvestor === 'function' ? persistence.createInvestor({ kind:'person' }) : null;
-        if(inv && typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = inv.id;
-        if(inv && window.FC && window.FC.investorUI && window.FC.investorUI.state){
-          window.FC.investorUI.state.selectedId = inv.id;
-          window.FC.investorUI.state.mode = 'detail';
-          window.FC.investorUI.state.allowListAccess = false;
-          window.FC.investorUI.state.newlyCreatedId = inv.id;
-        }
-        try{ if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.enter === 'function') window.FC.investorEditorState.enter(inv); }catch(_){ }
-        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
-      }catch(_){ }
+      openInvestorDraft('person');
       return true;
     },
     'open-investor': ({event, element}) => {
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
-
-      // Start edit session snapshot (Cancel should revert investor + cabinets + room data)
-      try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
 
       try{
         const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
@@ -240,6 +237,7 @@
           window.FC.investorUI.state.mode = 'detail';
           window.FC.investorUI.state.allowListAccess = false;
           window.FC.investorUI.state.newlyCreatedId = null;
+          window.FC.investorUI.state.transientInvestor = null;
         }
         try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
       }catch(_){ }

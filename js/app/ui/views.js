@@ -139,8 +139,8 @@
     const tab = st && st.activeTab ? st.activeTab : null;
     const currentInvestorId = readCurrentInvestorId(st);
 
-    // Prefer restoring an active investor over list/home after refresh.
-    if(tab === 'inwestor' && currentInvestorId){
+    // Prefer restoring investor area over list/home after refresh.
+    if(tab === 'inwestor'){
       return showInvestor();
     }
 

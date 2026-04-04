@@ -1354,3 +1354,51 @@
   .table-list--raw,.table-list--resolved,.table-list--validation,.table-list--sheet{min-width:700px;}
   .table-list .col-cab{width:clamp(10ch, 19vw, 20ch);}
 }
+
+
+/* 2026-04-05 investor/rozrys followup: resolved-width reference for all list tables */
+.table-list--resolved,
+.table-list--raw,
+.table-list--validation,
+.table-list--sheet{
+  --ref-col-name: 8.2ch;
+  --ref-col-dim: 5.2ch;
+  --ref-col-qty: 3ch;
+  --ref-col-diff: 3.1ch;
+  --ref-col-status: 3.1ch;
+  --ref-col-room: 10.4ch;
+}
+.table-list--resolved .col-name,
+.table-list--raw .col-name,
+.table-list--validation .col-name,
+.table-list--sheet .col-name{width:var(--ref-col-name);}
+.table-list--resolved .col-dim,
+.table-list--raw .col-dim,
+.table-list--validation .col-dim,
+.table-list--sheet .col-dim{width:var(--ref-col-dim);}
+.table-list--resolved .col-qty,
+.table-list--raw .col-qty,
+.table-list--validation .col-qty,
+.table-list--sheet .col-qty{width:var(--ref-col-qty);}
+.table-list--resolved .col-diff,
+.table-list--validation .col-diff,
+.table-list--sheet .col-diff{width:var(--ref-col-diff);}
+.table-list--resolved .col-status,
+.table-list--validation .col-status,
+.table-list--sheet .col-status{width:var(--ref-col-status);}
+.table-list--resolved .col-room,
+.table-list--raw .col-room,
+.table-list--sheet .col-room{width:var(--ref-col-room);}
+@media (max-width: 760px){
+  .table-list--resolved,
+  .table-list--raw,
+  .table-list--validation,
+  .table-list--sheet{
+    --ref-col-name: 8ch;
+    --ref-col-dim: 5.1ch;
+    --ref-col-qty: 3ch;
+    --ref-col-diff: 3ch;
+    --ref-col-status: 3ch;
+    --ref-col-room: 10ch;
+  }
+}

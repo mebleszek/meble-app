@@ -23,6 +23,7 @@
     selectedId: null,
     allowListAccess: true,
     newlyCreatedId: null,
+    transientInvestor: null,
   };
 
   function $(id){ return document.getElementById(id); }
@@ -85,6 +86,36 @@
     try{ return (typeof uiState !== 'undefined' && uiState) ? (uiState.currentInvestorId || null) : null; }catch(_){ return null; }
   }
 
+
+  function getTransientInvestor(){
+    return state.transientInvestor && typeof state.transientInvestor === 'object' ? state.transientInvestor : null;
+  }
+
+  function setTransientInvestor(investor){
+    state.transientInvestor = investor && typeof investor === 'object' ? investor : null;
+    if(state.transientInvestor && state.transientInvestor.id) state.selectedId = String(state.transientInvestor.id);
+    return state.transientInvestor;
+  }
+
+  function clearTransientInvestor(id){
+    const current = getTransientInvestor();
+    if(!current) return;
+    if(id && String(current.id || '') != String(id || '')) return;
+    state.transientInvestor = null;
+    if(state.selectedId && String(state.selectedId || '') === String(current.id || '')) state.selectedId = null;
+  }
+
+  function resolveInvestorForDetail(id, fallbackId){
+    const investorId = String(id || fallbackId || '').trim();
+    const persisted = investorId && persistence() && typeof persistence().getInvestorById === 'function'
+      ? persistence().getInvestorById(investorId)
+      : null;
+    if(persisted) return persisted;
+    const transient = getTransientInvestor();
+    if(transient && (!investorId || String(transient.id || '') === investorId)) return transient;
+    return null;
+  }
+
   function renderListOnly(targetEl){
     const el = targetEl;
     if(!el) return;
@@ -99,8 +130,10 @@
 
   function ensureInvestorContext(currentId){
     const ui = (typeof uiState !== 'undefined' && uiState) ? uiState : ((FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : null);
-    if(ui && String(ui.activeTab || '') === 'inwestor' && currentId){
-      state.selectedId = currentId;
+    const transient = getTransientInvestor();
+    const detailId = currentId || (transient && transient.id) || null;
+    if(ui && String(ui.activeTab || '') === 'inwestor' && detailId){
+      state.selectedId = detailId;
       state.mode = 'detail';
       state.allowListAccess = false;
     }
@@ -116,16 +149,19 @@
     }
 
     const currentId = persistence().getCurrentInvestorId() || readUIInvestorId();
+    const transient = getTransientInvestor();
     if(state.selectedId == null && currentId) state.selectedId = currentId;
+    if(state.selectedId == null && transient && transient.id) state.selectedId = String(transient.id);
     ensureInvestorContext(currentId);
     if(!state.allowListAccess && state.selectedId) state.mode = 'detail';
     if(state.mode === 'detail' && !state.selectedId && currentId) state.selectedId = currentId;
+    if(state.mode === 'detail' && !state.selectedId && transient && transient.id) state.selectedId = String(transient.id);
     if(state.mode === 'detail' && !state.selectedId) state.mode = 'list';
 
     if(state.mode === 'detail'){
-      const inv = persistence().getInvestorById(state.selectedId || currentId);
+      const inv = resolveInvestorForDetail(state.selectedId, currentId);
       if(!inv){ state.mode = 'list'; return render(); }
-      persistUIInvestorId(inv.id);
+      persistUIInvestorId((persistence().getInvestorById(inv.id) ? inv.id : null));
       root.innerHTML = buildDetail(inv);
       bindDetail(inv);
       return;
@@ -253,7 +289,7 @@
         <div class="investor-action-divider"></div>
 
         <div class="investor-rooms-head">
-          <h4 style="margin:0">Pomieszczenia inwestora</h4>
+          <h4 style="margin:0">Pomieszczenia</h4>
           <div class="investor-room-head-actions">
             <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
             <button class="btn-danger investor-remove-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="remove-room" ${isEditing ? 'disabled' : ''}>Usuń</button>
@@ -291,7 +327,9 @@
     const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invOwnerName','invSource','invNip','invNotes','invAddedDate'];
     const fields = fieldIds.reduce((acc, id)=> { acc[id] = document.getElementById(id); return acc; }, {});
 
-    function currentInvestor(){ return (persistenceApi && persistenceApi.getInvestorById(inv.id)) || inv; }
+    function currentInvestor(){
+      return (persistenceApi && persistenceApi.getInvestorById(inv.id)) || (state.transientInvestor && String(state.transientInvestor.id || '') === String(inv.id || '') ? state.transientInvestor : null) || inv;
+    }
 
     function refreshActionBar(){
       const currentState = editorApi ? editorApi.ensureInvestor(currentInvestor()) : { isEditing:false, dirty:false };
@@ -330,6 +368,7 @@
         onDeleted: ()=> {
           state.selectedId = null;
           state.newlyCreatedId = null;
+          clearTransientInvestor();
           state.mode = 'list';
           persistUIInvestorId(null);
           try{ guard() && guard().apply(false); }catch(_){ }
@@ -340,6 +379,7 @@
           try{ persistenceApi && persistenceApi.setCurrentInvestorId && persistenceApi.setCurrentInvestorId(existingId); }catch(_){ }
           state.selectedId = existingId;
           state.newlyCreatedId = null;
+          clearTransientInvestor();
           state.mode = 'detail';
           state.allowListAccess = false;
           persistUIInvestorId(existingId);
@@ -431,6 +471,10 @@
     render,
     renderListOnly,
     state,
+    getTransientInvestor,
+    setTransientInvestor,
+    clearTransientInvestor,
+    resolveInvestorForDetail,
     applyInvestorUiLocks: (inv)=> { try{ guard() && guard().apply(!!(editor() && editor().state.isEditing && inv && editor().state.investorId === inv.id)); }catch(_){ } },
   };
 })();
