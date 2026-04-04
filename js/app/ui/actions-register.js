@@ -120,6 +120,29 @@
     'session-cancel': async ({event}) => {
       const session = (window.FC && window.FC.session) ? window.FC.session : null;
       const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+      const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
+
+      function goToInvestorsList(){
+        try{
+          if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ entry:'investorsList', activeTab:null, roomType:null, currentInvestorId:null });
+          else {
+            uiState.entry = 'investorsList';
+            uiState.activeTab = null;
+            uiState.roomType = null;
+            uiState.currentInvestorId = null;
+            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          }
+        }catch(_){ }
+        try{
+          if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+            window.FC.investorUI.state.mode = 'list';
+            window.FC.investorUI.state.allowListAccess = false;
+            window.FC.investorUI.state.selectedId = null;
+          }
+        }catch(_){ }
+        try{ if(FC.views && FC.views.openInvestorsList) FC.views.openInvestorsList(); }catch(_){ }
+      }
+
       if(dirty){
         let ok = true;
         try{
@@ -137,17 +160,40 @@
         }catch(_){ ok = true; }
         if(!ok) return true;
         try{ if(session && typeof session.cancel === 'function') session.cancel(); }catch(_){ }
+        if(inInvestorTab){
+          goToInvestorsList();
+          return true;
+        }
         try{ window.location.reload(); }catch(_){ }
         return true;
       }
       try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
+      if(inInvestorTab){
+        goToInvestorsList();
+        return true;
+      }
       try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
       return true;
     },
     'session-save': ({event}) => {
+      const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       // Data is saved live (local). Commit just clears snapshot.
       try{ if(window.FC && window.FC.session && typeof window.FC.session.commit === 'function') window.FC.session.commit(); }catch(_){ }
+      if(inInvestorTab){
+        try{
+          if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ entry:'investorsList', activeTab:null, roomType:null, currentInvestorId:null });
+          else {
+            uiState.entry = 'investorsList';
+            uiState.activeTab = null;
+            uiState.roomType = null;
+            uiState.currentInvestorId = null;
+            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          }
+        }catch(_){ }
+        try{ if(FC.views && FC.views.openInvestorsList) FC.views.openInvestorsList(); }catch(_){ }
+        return true;
+      }
       try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       return true;
     },

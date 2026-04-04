@@ -18,8 +18,8 @@
       source:'Polecenie',
       nip:'',
       notes:'abc',
-      status:'nowy',
-      rooms:[{ id:'room_kuchnia_a', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' }]
+      addedDate:'2026-04-04',
+      rooms:[{ id:'room_kuchnia_a', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'nowy' }]
     };
   }
 
@@ -41,6 +41,12 @@
       const patch = FC.investorEditorState.commit(inv);
       assert(patch.city === 'Warszawa', 'Commit nie zwrócił zmienionej wartości miasta', patch);
       assert(FC.investorEditorState.state.isEditing === false, 'Commit nie wyłączył trybu edycji');
+    }),
+    makeTest('Inwestor', 'Store inwestorów normalizuje datę dodania i status projektu', 'Pilnuje, czy inwestor ma stabilną datę dodania, a projekty/pomieszczenia dostają własny status zamiast statusu inwestora.', ()=>{
+      assert(FC.investors && typeof FC.investors.normalizeInvestor === 'function', 'Brak investors.normalizeInvestor');
+      const normalized = FC.investors.normalizeInvestor({ id:'inv_a', kind:'person', createdAt: 1712275200000, rooms:[{ id:'room_1', label:'Kuchnia dół' }] });
+      assert(/^\d{4}-\d{2}-\d{2}$/.test(String(normalized.addedDate || '')), 'Brak poprawnej daty dodania', normalized);
+      assert(Array.isArray(normalized.rooms) && normalized.rooms[0] && normalized.rooms[0].projectStatus === 'nowy', 'Pokój/projekt nie dostał domyślnego statusu', normalized);
     }),
     makeTest('Inwestor', 'Rejestr pomieszczeń wykrywa duplikat nazwy niezależnie od wielkości liter i polskich znaków', 'Pilnuje, czy dla jednego inwestora nie da się dodać dwóch pomieszczeń o tej samej nazwie także po normalizacji diakrytyków.', ()=>{
       assert(FC.roomRegistry && typeof FC.roomRegistry.isRoomNameTaken === 'function', 'Brak roomRegistry.isRoomNameTaken');

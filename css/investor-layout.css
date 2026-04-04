@@ -23,3 +23,12 @@
   .investor-card-sync .investor-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;}
   .investor-card-sync .investor-room-quick-list{gap:8px;}
 }
+.investor-card-sync .investor-room-quick-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 12px;align-items:start;}
+.investor-card-sync .investor-project-card{display:flex;flex-direction:column;gap:8px;align-items:stretch;justify-content:space-between;min-width:0;}
+.investor-card-sync .investor-project-card .investor-room-quick-btn{width:100%;justify-content:flex-start;}
+.investor-card-sync .investor-project-status-shell{display:flex;justify-content:stretch;min-width:0;}
+.investor-card-sync .investor-project-status-shell .investor-project-status-btn{width:100%;justify-content:flex-start;min-height:32px;}
+.investor-card-sync .investor-project-status-btn.is-disabled{pointer-events:none;}
+@media (max-width: 760px){
+  .investor-card-sync .investor-room-quick-list{grid-template-columns:repeat(2,minmax(0,1fr));}
+}

@@ -892,3 +892,10 @@ Dopiero potem go zmieniać.
 - SZAFKA: numery szafek renderują się po 5 pozycji w rzędzie, maksymalnie w 3 widocznych rzędach; przy większej liczbie pojawia się wewnętrzny scroll.
 - LISTY FORMATek: poziome linie zostały utrzymane wyraźniej, a pionowe pozostały delikatniejsze.
 - STATUS: statusy skrócono do krótkich form (`OK`, `BRK`, `NAD`), żeby mieściły się w węższej kolumnie bez rozwalania układu.
+
+
+## 2026-04-04 — investor_project_status + rozrys_pdf_row
+- Inwestor: usunięty status inwestora; dodana edytowalna data dodania; lista inwestorów pokazuje datę; projekty/pomieszczenia na dole mają własne statusy i wspólny układ kart.
+- Inwestor: odświeżenie w zakładce Inwestor trzyma kontekst wybranego inwestora; wyjście z widoku inwestora górnym Zapisz/Anuluj prowadzi do listy inwestorów.
+- ROZRYS: PDF skrócony do `PDF`, przyciski osadzone w rzędzie zakładek/akcji; usunięty słupek `?`; szerokości tabel ujednolicone z dynamiczną kolumną szafek.
+- Testy: app smoke 12/12 OK, rozrys smoke 31/31 OK.

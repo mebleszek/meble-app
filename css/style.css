@@ -1334,3 +1334,23 @@
   .table-list--raw .col-cab,.table-list--resolved .col-cab,.table-list--sheet .col-cab{width:23ch;}
   .table-list--raw .col-cab-info,.table-list--resolved .col-cab-info,.table-list--sheet .col-cab-info{width:2.7rem;}
 }
+
+/* 2026-04-04 followup: unified list widths, dynamic cabinet column, PDF in tabs row */
+.rozrys-list-tabs__header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.rozrys-list-tabs__actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto;}
+.rozrys-list-tabs__heads{margin-bottom:0;flex:1 1 auto;}
+.table-list--raw,.table-list--resolved,.table-list--validation,.table-list--sheet{min-width:720px;}
+.table-list--raw .col-name,.table-list--resolved .col-name,.table-list--validation .col-name,.table-list--sheet .col-name{width:8.2ch;}
+.table-list--raw .col-dim,.table-list--resolved .col-dim,.table-list--validation .col-dim,.table-list--sheet .col-dim{width:5.2ch;}
+.table-list--raw .col-qty,.table-list--resolved .col-qty,.table-list--validation .col-qty,.table-list--sheet .col-qty{width:3ch;}
+.table-list--resolved .col-diff,.table-list--validation .col-diff,.table-list--sheet .col-diff{width:3.1ch;}
+.table-list--resolved .col-status,.table-list--validation .col-status,.table-list--sheet .col-status{width:3.1ch;}
+.table-list--raw .col-room,.table-list--resolved .col-room,.table-list--sheet .col-room{width:10.4ch;}
+.table-list .col-cab{width:clamp(10.5ch, 18vw, 23ch);}
+.table-list td.col-cab{padding-left:8px;padding-right:8px;white-space:normal;font-variant-numeric:tabular-nums;}
+.table-list .table-cabcell__nums{max-height:calc(1.3em * 3 + 8px);overflow-y:auto;overflow-x:hidden;padding-right:2px;scrollbar-width:thin;}
+.table-list .table-cabcell__nums span{display:block;white-space:nowrap;letter-spacing:0;min-height:1.3em;}
+@media (max-width: 760px){
+  .table-list--raw,.table-list--resolved,.table-list--validation,.table-list--sheet{min-width:700px;}
+  .table-list .col-cab{width:clamp(10ch, 19vw, 20ch);}
+}

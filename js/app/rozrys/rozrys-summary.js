@@ -63,7 +63,7 @@
   }
 
   function escapeHtml(value){
-    return String(value == null ? '' : value).replace(/[&<>"]/g, (ch)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
+    return String(value == null ? '' : value).replace(/[&<>\"]/g, (ch)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
   }
 
   function buildTablePrintHtml(title, subtitle, tableNode){
@@ -87,21 +87,18 @@
         .table-list thead th.table-th-vertical > span{ display:inline-flex; align-items:flex-end; justify-content:center; min-height:92px; writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap; line-height:1; font-size:10px; padding:7px 0 4px; margin-inline:auto; }
         .table-list tbody tr:last-child td{ border-bottom:none; }
         .table-list .col-name{ width:15%; }
-        .table-list .col-dim{ width:7.2ch; }
-        .table-list .col-qty,.table-list .col-diff,.table-list .col-status,.table-list .col-cab-info{ text-align:center; white-space:nowrap; }
-        .table-list .col-qty{ width:3.2ch; }
-        .table-list .col-diff,.table-list .col-status{ width:3.3ch; }
-        .table-list .col-cab-info{ width:2.4rem; }
-        .table-list .col-cab{ width:25ch; }
-        .table-list .col-room{ width:11ch; }
+        .table-list .col-dim{ width:5.2ch; }
+        .table-list .col-qty,.table-list .col-diff,.table-list .col-status{ text-align:center; white-space:nowrap; }
+        .table-list .col-qty{ width:3ch; }
+        .table-list .col-diff,.table-list .col-status{ width:3.1ch; }
+        .table-list .col-cab{ width:18ch; }
+        .table-list .col-room{ width:10.4ch; }
         .table-dim{ display:grid; grid-template-columns:1fr; justify-items:center; row-gap:1px; width:100%; }
         .table-dim__left,.table-dim__right,.table-dim__x{ text-align:center; }
         .table-dim__x{ font-weight:500; font-size:.9em; padding:0; text-transform:none; }
         .table-cabcell{ display:block; min-width:0; }
-        .table-cabcell__nums{ min-width:0; display:flex; flex-direction:column; gap:2px; line-height:1.2; font-weight:800; }
+        .table-cabcell__nums{ min-width:0; display:flex; flex-direction:column; gap:2px; line-height:1.2; font-weight:800; max-height:calc(1.3em * 3 + 8px); overflow:hidden; }
         .table-cabcell__nums span{ display:block; white-space:nowrap; min-height:1.2em; }
-        .table-cabinfo{ display:flex; align-items:flex-start; justify-content:center; min-height:100%; }
-        .info-trigger{ width:18px; height:18px; min-width:18px; border:1px solid #94a3b8; border-radius:999px; background:#fff; }
         .rozrys-status-chip{ display:inline-flex; align-items:center; justify-content:center; min-width:2.6ch; border-radius:999px; padding:3px 4px; font-size:10px; font-weight:800; }
         .rozrys-status-chip.is-ok{ background:#ecfdf3; color:#166534; }
         .rozrys-status-chip.is-missing{ background:#fef2f2; color:#b91c1c; }
@@ -117,27 +114,37 @@
 
   function createPdfAction(label, title, subtitle, tableNode, openPrintView){
     if(typeof openPrintView !== 'function') return null;
-    const btn = h('button', { class:'btn-primary', type:'button', text:label || 'Eksport PDF (drukuj)' });
+    const btn = h('button', { class:'btn-primary', type:'button', text:label || 'PDF' });
     btn.addEventListener('click', ()=> openPrintView(buildTablePrintHtml(title, subtitle, tableNode)));
     return btn;
   }
 
-  function buildTabContent(actions, tableNode){
+  function buildTabContent(tableNode){
     const wrap = h('div', { class:'rozrys-list-panel' });
-    if(actions && actions.length){
-      const row = h('div', { class:'rozrys-list-actions', style:'margin:0 0 10px;justify-content:flex-end' });
-      actions.filter(Boolean).forEach((action)=> row.appendChild(action));
-      wrap.appendChild(row);
-    }
     wrap.appendChild(tableNode);
     return wrap;
   }
 
   function buildTabs(specs){
     const shell = h('div', { class:'rozrys-list-tabs' });
+    const header = h('div', { class:'rozrys-list-tabs__header' });
     const heads = h('div', { class:'rozrys-list-tabs__heads', role:'tablist', 'aria-label':'Widoki list formatek' });
+    const actionsHost = h('div', { class:'rozrys-list-tabs__actions' });
     const panels = h('div', { class:'rozrys-list-tabs__panels' });
     const items = [];
+
+    function activate(idx){
+      items.forEach((item, itemIdx)=>{
+        const active = itemIdx === idx;
+        item.btn.classList.toggle('is-active', active);
+        item.btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        item.panel.classList.toggle('is-active', active);
+      });
+      actionsHost.innerHTML = '';
+      const action = items[idx] && items[idx].action;
+      if(action) actionsHost.appendChild(action);
+    }
+
     specs.forEach((spec, idx)=>{
       const tabId = `rozrys-list-tab-${idx}`;
       const panelId = `rozrys-list-panel-${idx}`;
@@ -156,20 +163,17 @@
         id:panelId,
         'aria-labelledby':tabId
       }, [spec.content]);
-      btn.addEventListener('click', ()=>{
-        items.forEach((item, itemIdx)=>{
-          const active = itemIdx === idx;
-          item.btn.classList.toggle('is-active', active);
-          item.btn.setAttribute('aria-selected', active ? 'true' : 'false');
-          item.panel.classList.toggle('is-active', active);
-        });
-      });
-      items.push({ btn, panel });
+      btn.addEventListener('click', ()=> activate(idx));
+      items.push({ btn, panel, action:spec.action || null });
       heads.appendChild(btn);
       panels.appendChild(panel);
     });
-    shell.appendChild(heads);
+
+    header.appendChild(heads);
+    header.appendChild(actionsHost);
+    shell.appendChild(header);
     shell.appendChild(panels);
+    if(items.length) activate(0);
     return shell;
   }
 
@@ -195,19 +199,18 @@
     const tabs = buildTabs([
       {
         label:'RAW',
-        content: buildTabContent([
-          createPdfAction('Eksport PDF RAW', `Lista RAW — ${material}`, `Raw 1:1 • ${diag.rawCount} pozycji`, rawTable, cfg.openPrintView)
-        ], rawTable)
+        action:createPdfAction('PDF', `Lista RAW — ${material}`, `Raw 1:1 • ${diag.rawCount} pozycji`, rawTable, cfg.openPrintView),
+        content: buildTabContent(rawTable)
       },
       {
         label:'Skomasowana',
-        content: buildTabContent([
-          createPdfAction('Eksport PDF skomasowanej', `Lista skomasowana — ${material}`, `Po scaleniu • ${resolvedRows.length} pozycji`, resolvedTable, cfg.openPrintView)
-        ], resolvedTable)
+        action:createPdfAction('PDF', `Lista skomasowana — ${material}`, `Po scaleniu • ${resolvedRows.length} pozycji`, resolvedTable, cfg.openPrintView),
+        content: buildTabContent(resolvedTable)
       },
       {
         label:'Walidacja',
-        content: buildTabContent([], validationTable)
+        action:null,
+        content: buildTabContent(validationTable)
       }
     ]);
     body.appendChild(tabs);
@@ -219,12 +222,14 @@
     const lists = FC.rozrysLists;
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function') || typeof cfg.mmToUnitStr !== 'function' || !lists) return;
     const body = h('div');
-    body.appendChild(h('div', { class:'muted xs', style:'margin-bottom:12px', text:'Formatki pogrupowane dla tego arkusza.' }));
+    const head = h('div', { class:'rozrys-list-tabs__header', style:'margin-bottom:10px;' });
+    head.appendChild(h('div', { class:'muted xs', text:'Formatki pogrupowane dla tego arkusza.' }));
+    const actionsHost = h('div', { class:'rozrys-list-tabs__actions' });
     const sheetTable = lists.buildListTable(rows || [], unit, 'sheet', cfg.mmToUnitStr);
-    const actionRow = h('div', { class:'rozrys-list-actions', style:'margin:0 0 10px;justify-content:flex-end' });
-    const pdfBtn = createPdfAction('Eksport PDF arkusza', `${sheetTitle} — ${material}`, 'Lista formatek arkusza', sheetTable, cfg.openPrintView);
-    if(pdfBtn) actionRow.appendChild(pdfBtn);
-    body.appendChild(actionRow);
+    const pdfBtn = createPdfAction('PDF', `${sheetTitle} — ${material}`, 'Lista formatek arkusza', sheetTable, cfg.openPrintView);
+    if(pdfBtn) actionsHost.appendChild(pdfBtn);
+    head.appendChild(actionsHost);
+    body.appendChild(head);
     body.appendChild(sheetTable);
     FC.panelBox.open({ title:`${sheetTitle} — ${material}`, contentNode: body, width:'820px', boxClass:'panel-box--rozrys' });
   }

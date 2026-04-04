@@ -37,7 +37,7 @@
   }
 
   function buildInputField(id, labelHtml, value, opts){
-    const cfg = Object.assign({ full:false, readonly:false, textarea:false, rows:3, compact:false }, opts || {});
+    const cfg = Object.assign({ full:false, readonly:false, textarea:false, rows:3, compact:false, inputType:'text', displayValue:null, displayHtml:null }, opts || {});
     const classes = [
       'investor-field-shell',
       cfg.full ? 'investor-field--full' : '',
@@ -46,7 +46,9 @@
     ].filter(Boolean).join(' ');
     const textValue = String(value == null ? '' : value);
     if(cfg.readonly){
-      const display = textValue.trim() ? escapeHtml(textValue) : '<span class="investor-form-value__empty">—</span>';
+      const display = cfg.displayHtml != null
+        ? String(cfg.displayHtml)
+        : (String(cfg.displayValue != null ? cfg.displayValue : textValue).trim() ? escapeHtml(cfg.displayValue != null ? cfg.displayValue : textValue) : '<span class="investor-form-value__empty">—</span>');
       return `
         <div class="${classes}">
           ${labelHtml}
@@ -65,7 +67,7 @@
     return `
       <div class="${classes}">
         ${labelHtml}
-        <input class="investor-form-input" id="${escapeAttr(id)}" value="${escapeAttr(textValue)}" />
+        <input class="investor-form-input" type="${escapeAttr(cfg.inputType || 'text')}" id="${escapeAttr(id)}" value="${escapeAttr(textValue)}" />
       </div>
     `;
   }

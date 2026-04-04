@@ -15,6 +15,8 @@
     entry: 'home',
     activeTab: 'wywiad',
     roomType: null,
+    lastRoomType: null,
+    currentInvestorId: null,
     showPriceList: null,
     expanded: {},
     matExpandedId: null,
@@ -26,6 +28,11 @@
   function normalize(state){
     const s = Object.assign({}, DEFAULTS, state || {});
     if(!s.expanded || typeof s.expanded !== 'object') s.expanded = {};
+    s.entry = typeof s.entry === 'string' && s.entry ? s.entry : DEFAULTS.entry;
+    s.activeTab = (s.activeTab == null || s.activeTab === '') ? DEFAULTS.activeTab : String(s.activeTab);
+    s.roomType = (s.roomType == null || s.roomType === '') ? null : String(s.roomType);
+    s.lastRoomType = (s.lastRoomType == null || s.lastRoomType === '') ? null : String(s.lastRoomType);
+    s.currentInvestorId = (s.currentInvestorId == null || s.currentInvestorId === '') ? null : String(s.currentInvestorId);
     return s;
   }
 

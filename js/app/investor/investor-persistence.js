@@ -38,8 +38,18 @@
     return api.update(id, patch || {}) || null;
   }
 
-  function setInvestorStatus(id, status){
-    return saveInvestorPatch(id, { status:String(status || 'nowy') });
+  function updateInvestorRoom(id, roomId, patch){
+    const investor = getInvestorById(id);
+    if(!(investor && roomId)) return null;
+    const rooms = Array.isArray(investor.rooms) ? investor.rooms.slice() : [];
+    const idx = rooms.findIndex((room)=> room && String(room.id || '') === String(roomId));
+    if(idx < 0) return investor;
+    rooms[idx] = Object.assign({}, rooms[idx], patch || {});
+    return saveInvestorPatch(id, { rooms });
+  }
+
+  function setInvestorProjectStatus(id, roomId, status){
+    return updateInvestorRoom(id, roomId, { projectStatus:String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy') });
   }
 
   function removeInvestor(id){
@@ -61,7 +71,8 @@
     searchInvestors,
     createInvestor,
     saveInvestorPatch,
-    setInvestorStatus,
+    updateInvestorRoom,
+    setInvestorProjectStatus,
     removeInvestor,
   };
 })();

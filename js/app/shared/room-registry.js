@@ -253,7 +253,7 @@
         if(!proj[id]) proj[id] = roomTemplate(selectedBase);
         saveProject(proj);
         const rooms = Array.isArray(inv.rooms) ? inv.rooms.slice() : [];
-        rooms.push({ id, baseType:selectedBase, name, label:name });
+        rooms.push({ id, baseType:selectedBase, name, label:name, projectStatus:(FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy' });
         try{ FC.investors.update(inv.id, { rooms }); }catch(_){ }
         done({ id, baseType:selectedBase, name, label:name });
       });

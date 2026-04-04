@@ -93,7 +93,7 @@
     setTabsVisible(true);
     setSessionButtonsVisible(true);
     setFloatingVisible(false);
-    try{ if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.renderRoomsView === 'function') window.FC.roomRegistry.renderRoomsView(); }catch(_){}
+    try{ if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.renderRoomsView === 'function') window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
 
   function showApp(){
@@ -124,15 +124,27 @@
     setFloatingVisible(false);
   }
 
+  function readCurrentInvestorId(state){
+    const fromState = state && state.currentInvestorId ? String(state.currentInvestorId) : '';
+    if(fromState) return fromState;
+    try{
+      if(FC.investorPersistence && typeof FC.investorPersistence.getCurrentInvestorId === 'function') return FC.investorPersistence.getCurrentInvestorId() || null;
+    }catch(_){ }
+    return null;
+  }
+
   function applyFromState(state){
     const st = state || (FC.uiState && FC.uiState.get ? FC.uiState.get() : {});
     const entry = st && st.entry ? st.entry : 'home';
     const tab = st && st.activeTab ? st.activeTab : null;
+    const currentInvestorId = readCurrentInvestorId(st);
+
+    // Prefer restoring an active investor over list/home after refresh.
+    if(tab === 'inwestor' && currentInvestorId){
+      return showInvestor();
+    }
 
     // Prefer restoring an active project over showing Home.
-    // This prevents pull-to-refresh on mobile from throwing the user back
-    // to the start screen when roomType is already known but persisted entry
-    // is stale or still equals 'home'.
     if(st && st.roomType && (entry === 'home' || !entry)){
       return showApp();
     }
@@ -146,7 +158,6 @@
       return;
     }
     // entry rooms/app: tab may override
-    if(tab === 'inwestor') return showInvestor();
     if(tab === 'rozrys') return showRozrys();
     if(tab === 'magazyn') return showMagazyn();
     if(tab === 'pokoje') return showRooms();
@@ -167,9 +178,9 @@
 
   function openInvestorsList(){
     if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ entry:'investorsList', activeTab:null });
+      FC.uiState.set({ entry:'investorsList', activeTab:null, currentInvestorId:null });
     }
-    applyFromState({ entry:'investorsList' });
+    applyFromState({ entry:'investorsList', activeTab:null, currentInvestorId:null });
   }
 
   function openRooms(){
@@ -190,13 +201,11 @@
   function back(){
     const st = (FC.uiState && FC.uiState.get) ? FC.uiState.get() : {};
     if(st && st.entry === 'app'){
-      // back to rooms
       if(FC.uiState && FC.uiState.set){
         FC.uiState.set({ entry:'rooms', roomType:null, activeTab:'pokoje' });
       }
       return applyFromState({ entry:'rooms', roomType:null, activeTab:'pokoje' });
     }
-    // from rooms/placeholder -> home
     return openHome();
   }
 

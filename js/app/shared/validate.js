@@ -31,10 +31,25 @@
     }
 
     function validateUIState(raw){
-      const defaults = { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null };
+      const defaults = {
+        entry:'home',
+        activeTab:'wywiad',
+        roomType:null,
+        lastRoomType:null,
+        currentInvestorId:null,
+        showPriceList:null,
+        expanded:{},
+        matExpandedId:null,
+        searchTerm:'',
+        editingId:null,
+        selectedCabinetId:null
+      };
       const s = Object.assign({}, defaults, ensureObj(raw, {}));
+      s.entry = ensureString(s.entry, defaults.entry);
       s.activeTab = ensureString(s.activeTab, defaults.activeTab);
       s.roomType  = (s.roomType == null) ? null : ensureString(s.roomType, null);
+      s.lastRoomType  = (s.lastRoomType == null) ? null : ensureString(s.lastRoomType, null);
+      s.currentInvestorId = (s.currentInvestorId == null) ? null : ensureString(s.currentInvestorId, null);
       s.showPriceList = (s.showPriceList == null) ? null : ensureString(s.showPriceList, null);
       s.searchTerm = ensureString(s.searchTerm, '');
       s.editingId = (s.editingId == null) ? null : ensureString(s.editingId, null);

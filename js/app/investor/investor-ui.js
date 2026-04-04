@@ -5,16 +5,16 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const STATUS_OPTIONS = [
-    { v: 'nowy', label: 'Nowy (lead)' },
-    { v: 'wstepna_wycena', label: 'Wstępna wycena' },
-    { v: 'po_pomiarze', label: 'Po pomiarze' },
-    { v: 'wycena', label: 'Wycena' },
-    { v: 'umowa', label: 'Umowa' },
-    { v: 'produkcja', label: 'Produkcja' },
-    { v: 'montaz', label: 'Montaż' },
-    { v: 'zakonczone', label: 'Zakończone' },
-    { v: 'odrzucone', label: 'Odrzucone' },
+  const PROJECT_STATUS_OPTIONS = [
+    { value: 'nowy', label: 'Nowy' },
+    { value: 'wstepna_wycena', label: 'Wstępna wycena' },
+    { value: 'po_pomiarze', label: 'Po pomiarze' },
+    { value: 'wycena', label: 'Wycena' },
+    { value: 'umowa', label: 'Umowa' },
+    { value: 'produkcja', label: 'Produkcja' },
+    { value: 'montaz', label: 'Montaż' },
+    { value: 'zakonczone', label: 'Zakończone' },
+    { value: 'odrzucone', label: 'Odrzucone' },
   ];
 
   const state = {
@@ -27,7 +27,6 @@
   function $(id){ return document.getElementById(id); }
   function getRoot(){ return $('investorRoot') || $('investorView'); }
   function editor(){ return FC.investorEditorState || null; }
-  function modals(){ return FC.investorModals || null; }
   function choice(){ return FC.investorChoice || null; }
   function roomUi(){ return FC.investorRooms || null; }
   function links(){ return FC.investorLinks || null; }
@@ -45,8 +44,32 @@
     return api && typeof api.escapeAttr === 'function' ? api.escapeAttr(s) : String(s ?? '');
   }
 
+  function todayInput(){
+    try{ return new Date().toISOString().slice(0, 10); }catch(_){ return ''; }
+  }
+
+  function normalizeDateInput(value){
+    const text = String(value || '').trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    if(Number.isFinite(Number(value)) && Number(value) > 0){
+      try{ return new Date(Number(value)).toISOString().slice(0, 10); }catch(_){ }
+    }
+    return todayInput();
+  }
+
+  function formatDateDisplay(value){
+    const raw = normalizeDateInput(value);
+    if(!raw) return '—';
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : raw;
+  }
+
   function persistUIInvestorId(id){
     try{
+      if(window.FC && FC.uiState && typeof FC.uiState.set === 'function'){
+        uiState = FC.uiState.set({ currentInvestorId: id || null });
+        return;
+      }
       if(typeof uiState !== 'undefined' && uiState){
         uiState.currentInvestorId = id || null;
         if(FC.storage && typeof FC.storage.setJSON === 'function' && typeof STORAGE_KEYS !== 'undefined'){
@@ -57,6 +80,7 @@
   }
 
   function readUIInvestorId(){
+    try{ return (FC.uiState && typeof FC.uiState.get === 'function') ? (FC.uiState.get().currentInvestorId || null) : null; }catch(_){ }
     try{ return (typeof uiState !== 'undefined' && uiState) ? (uiState.currentInvestorId || null) : null; }catch(_){ return null; }
   }
 
@@ -72,6 +96,15 @@
     bindList(targetEl);
   }
 
+  function ensureInvestorContext(currentId){
+    const ui = (typeof uiState !== 'undefined' && uiState) ? uiState : ((FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : null);
+    if(ui && String(ui.activeTab || '') === 'inwestor' && currentId){
+      state.selectedId = currentId;
+      state.mode = 'detail';
+      state.allowListAccess = false;
+    }
+  }
+
   function render(){
     const root = getRoot();
     if(!root) return;
@@ -83,12 +116,15 @@
 
     const currentId = persistence().getCurrentInvestorId() || readUIInvestorId();
     if(state.selectedId == null && currentId) state.selectedId = currentId;
+    ensureInvestorContext(currentId);
     if(!state.allowListAccess && state.selectedId) state.mode = 'detail';
+    if(state.mode === 'detail' && !state.selectedId && currentId) state.selectedId = currentId;
     if(state.mode === 'detail' && !state.selectedId) state.mode = 'list';
 
     if(state.mode === 'detail'){
-      const inv = persistence().getInvestorById(state.selectedId);
+      const inv = persistence().getInvestorById(state.selectedId || currentId);
       if(!inv){ state.mode = 'list'; return render(); }
+      persistUIInvestorId(inv.id);
       root.innerHTML = buildDetail(inv);
       bindDetail(inv);
       return;
@@ -103,7 +139,7 @@
   function buildList(list){
     const items = (list || []).map((inv) => {
       const title = (inv.kind === 'company' ? (inv.companyName || '(Firma bez nazwy)') : (inv.name || '(Bez nazwy)'));
-      const sub = [inv.phone, inv.city].filter(Boolean).join(' • ');
+      const sub = [inv.phone, inv.city, formatDateDisplay(inv.addedDate || inv.createdAt)].filter(Boolean).join(' • ');
       return `
         <div class="item" data-inv-id="${inv.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:1px solid rgba(0,0,0,.08);border-radius:12px;margin:8px 0;">
           <div style="min-width:0">
@@ -131,9 +167,10 @@
     const editorApi = editor();
     const fields = fieldRender();
     const actionsApi = actions();
-    const draft = editorApi ? editorApi.getDraft(inv) : (editorApi && editorApi.buildDraft ? editorApi.buildDraft(inv) : {});
-    const isEditing = !!(editorApi && editorApi.ensureInvestor(inv).isEditing);
-    const dirty = !!(editorApi && editorApi.ensureInvestor(inv).dirty);
+    const draft = editorApi ? editorApi.getDraft(inv) : {};
+    const currentState = editorApi ? editorApi.ensureInvestor(inv) : { isEditing:false, dirty:false };
+    const isEditing = !!currentState.isEditing;
+    const dirty = !!currentState.dirty;
     const isCompany = String(draft.kind || inv.kind || 'person') === 'company';
     const linksApi = links();
     const phoneLabel = (!isEditing && linksApi && typeof linksApi.buildLabelWithAction === 'function')
@@ -148,10 +185,9 @@
       { value:'person', label:'Osoba prywatna' },
       { value:'company', label:'Firma' },
     ];
-    const statusOptions = STATUS_OPTIONS.map((o)=> ({ value:o.v, label:o.label }));
-    const roomButtons = roomUi() && typeof roomUi().buildRoomButtons === 'function'
-      ? roomUi().buildRoomButtons(isEditing)
-      : '<div class="muted">Brak pomieszczeń.</div>';
+    const projectCards = roomUi() && typeof roomUi().buildProjectCards === 'function'
+      ? roomUi().buildProjectCards(inv, isEditing, PROJECT_STATUS_OPTIONS)
+      : '<div class="muted">Brak dodanych pomieszczeń.</div>';
 
     const rows = [];
     rows.push(fields.buildPairRow(
@@ -189,12 +225,11 @@
       <div class="card investor-card-sync" data-investor-editing="${isEditing ? '1' : '0'}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <h3 style="margin:0">Inwestor</h3>
-          ${state.allowListAccess ? `<button class="btn${isEditing ? ' is-disabled' : ''}" data-action="back-investors" ${isEditing ? 'disabled' : ''}>Lista</button>` : ''}
         </div>
 
         <div class="investor-choice-grid">
           ${fields.buildChoiceField('invKind', 'Typ', typeOptions, draft.kind || 'person', 'investor-choice-field--kind', { readonlyPreview:!isEditing })}
-          ${fields.buildChoiceField('invStatus', 'Status', statusOptions, draft.status || 'nowy', 'investor-choice-field--status')}
+          ${fields.buildInputField('invAddedDate', fields.buildStaticLabel('Data dodania'), normalizeDateInput(draft.addedDate || inv.addedDate || inv.createdAt), { readonly:!isEditing, compact:true, inputType:'date', displayValue:formatDateDisplay(draft.addedDate || inv.addedDate || inv.createdAt) })}
         </div>
 
         <div class="investor-details-rows">
@@ -209,8 +244,8 @@
           <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj pomieszczenie</button>
         </div>
         <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
-        <div class="investor-room-quick-list">${roomButtons}</div>
-        ${isEditing ? '<div class="investor-disabled-note">W trybie edycji pomieszczenia i górna nawigacja są zablokowane.</div>' : ''}
+        <div class="investor-room-quick-list">${projectCards}</div>
+        ${isEditing ? '<div class="investor-disabled-note">W trybie edycji pomieszczenia, statusy projektów i górna nawigacja są zablokowane.</div>' : ''}
       </div>
     `;
   }
@@ -226,19 +261,18 @@
 
   function bindDetail(inv){
     const root = getRoot();
-    if(!root) return;
     const editorApi = editor();
-    const actionsApi = actions();
     const choiceApi = choice();
     const persistenceApi = persistence();
-    if(editorApi) editorApi.ensureInvestor(inv);
+    const actionsApi = actions();
+    if(!(root && editorApi && persistenceApi)) return;
 
-    try{ guard() && guard().apply(!!(editorApi && editorApi.state.isEditing)); }catch(_){ }
+    persistUIInvestorId(inv.id);
+    try{ guard() && guard().apply(!!editorApi.state.isEditing); }catch(_){ }
 
     const topActions = document.getElementById('investorActionBar');
     const kindSelect = document.getElementById('invKind');
-    const statusSelect = document.getElementById('invStatus');
-    const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invSource','invNip','invNotes'];
+    const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invSource','invNip','invNotes','invAddedDate'];
     const fields = fieldIds.reduce((acc, id)=> { acc[id] = document.getElementById(id); return acc; }, {});
 
     function currentInvestor(){ return (persistenceApi && persistenceApi.getInvestorById(inv.id)) || inv; }
@@ -249,6 +283,19 @@
       topActions.innerHTML = actionsApi ? actionsApi.buildActionBarHtml(currentState) : '';
       bindTopActions();
       try{ guard() && guard().apply(!!currentState.isEditing); }catch(_){ }
+      try{
+        if(roomUi() && typeof roomUi().mountProjectStatusChoices === 'function'){
+          roomUi().mountProjectStatusChoices(currentInvestor(), PROJECT_STATUS_OPTIONS, {
+            disabled: !!currentState.isEditing,
+            onChange: (roomId, value)=> {
+              if(currentState.isEditing) return;
+              persistenceApi.setInvestorProjectStatus(currentInvestor().id, roomId, value);
+              try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+              render();
+            }
+          });
+        }
+      }catch(_){ }
     }
 
     function patchFieldFromDom(id, key){
@@ -276,7 +323,7 @@
 
     bindTopActions();
 
-    if(choiceApi && typeof choiceApi.mountChoice === 'function'){
+    if(choiceApi && typeof choiceApi.mountChoice === 'function' && kindSelect){
       choiceApi.mountChoice({
         mount: document.getElementById('invKindLaunch'),
         selectEl: kindSelect,
@@ -286,29 +333,6 @@
         onChange: (value)=>{
           if(!(editorApi && editorApi.state.isEditing)) return;
           editorApi.setField('kind', value);
-          render();
-        }
-      });
-      choiceApi.mountChoice({
-        mount: document.getElementById('invStatusLaunch'),
-        selectEl: statusSelect,
-        title:'Wybierz status',
-        buttonClass:'investor-choice-launch',
-        disabled: false,
-        onChange: async (value)=>{
-          const current = currentInvestor();
-          const prevValue = String(current.status || 'nowy');
-          if(editorApi && editorApi.state.isEditing){
-            editorApi.setField('status', value);
-            refreshActionBar();
-            return;
-          }
-          if(value === prevValue) return;
-          const prevLabel = STATUS_OPTIONS.find((opt)=> opt.v === prevValue)?.label || prevValue;
-          const nextLabel = STATUS_OPTIONS.find((opt)=> opt.v === value)?.label || value;
-          const ok = !(modals() && modals().confirmStatusChange) || await modals().confirmStatusChange(prevLabel, nextLabel);
-          if(!ok){ render(); return; }
-          persistenceApi && persistenceApi.setInvestorStatus(current.id, value);
           render();
         }
       });
@@ -323,6 +347,7 @@
       invSource: () => patchFieldFromDom('invSource', 'source'),
       invNip: () => patchFieldFromDom('invNip', 'nip'),
       invNotes: () => patchFieldFromDom('invNotes', 'notes'),
+      invAddedDate: () => patchFieldFromDom('invAddedDate', 'addedDate'),
     }).forEach(([id, handler])=>{
       const node = fields[id];
       if(!node) return;
@@ -348,11 +373,14 @@
             if(room){
               try{ if(FC.roomRegistry.renderRoomsView) FC.roomRegistry.renderRoomsView(); }catch(_){ }
               render();
+              try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
             }
           }
         }catch(_){ }
       });
     });
+
+    refreshActionBar();
   }
 
   FC.investorUI = {

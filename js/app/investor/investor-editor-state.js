@@ -19,6 +19,11 @@
     return String(value == null ? '' : value);
   }
 
+  function normalizeDate(value){
+    const text = normalizeText(value).trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+  }
+
   function buildDraft(inv){
     const investor = inv || {};
     return {
@@ -32,7 +37,7 @@
       source: normalizeText(investor.source),
       nip: normalizeText(investor.nip),
       notes: normalizeText(investor.notes),
-      status: normalizeText(investor.status || 'nowy'),
+      addedDate: normalizeDate(investor.addedDate),
     };
   }
 
@@ -48,7 +53,7 @@
       source: normalizeText(draft && draft.source),
       nip: normalizeText(draft && draft.nip),
       notes: normalizeText(draft && draft.notes),
-      status: normalizeText(draft && draft.status),
+      addedDate: normalizeDate(draft && draft.addedDate),
     });
   }
 
@@ -92,7 +97,7 @@
 
   function setField(key, value){
     if(!state.draft) state.draft = {};
-    state.draft[key] = normalizeText(value);
+    state.draft[key] = (key === 'addedDate') ? normalizeDate(value) : normalizeText(value);
     if(key === 'kind'){
       if(state.draft.kind !== 'company') state.draft.nip = '';
       if(state.draft.kind === 'company') state.draft.name = '';
@@ -121,7 +126,7 @@
       source: normalizeText(d.source),
       nip: isCompany ? normalizeText(d.nip) : '',
       notes: normalizeText(d.notes),
-      status: normalizeText(d.status || 'nowy'),
+      addedDate: normalizeDate(d.addedDate),
     };
   }
 
