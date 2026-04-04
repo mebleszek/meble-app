@@ -26,6 +26,12 @@
 
 ## Ostatnia paczka zmian
 
+### 2026-04-04 — rozrys_lists_tabs_pdf_v1
+- `js/app/rozrys/rozrys-summary.js` — modal `Lista formatek` dostał 3 osobne zakładki (`RAW`, `Skomasowana`, `Walidacja`) zamiast jednego długiego widoku; dodane lokalne przyciski PDF dla `RAW` i `Skomasowanej` oraz PDF dla `Listy formatek arkusza`.
+- `js/app/rozrys/rozrys.js` — wrappery otwierania list przekazują teraz także `openPrintView`, żeby PDF/druk list działał z poziomu modali bez ruszania innych sekcji ROZRYS.
+- `css/style.css` — dodane lekkie style zakładek w modalu list formatek, bez zmiany zaakceptowanego wyglądu reszty ROZRYS.
+- `index.html` — podbity cache-busting dla `style.css`, `rozrys-summary.js` i `rozrys.js` dla tej paczki.
+
 ### 2026-03-29 — checkbox_chip_checked_accent_v1
 - `css/rozrys-checkbox-chip-selected-accent.css` — nowy, mały moduł wizualny tylko do stanu zaznaczonego checkbox-chipów ROZRYS; dodaje delikatny gradient, lekko mocniejszy obrys i subtelny lift całego przycisku, żeby aktywny stan był czytelniejszy bez trzeciego stanu.
 - `index.html` — dopięty nowy moduł CSS i podbity cache-busting dla tej paczki.

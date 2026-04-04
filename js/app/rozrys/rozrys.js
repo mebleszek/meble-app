@@ -381,13 +381,13 @@ function getAccordionScopeKey(selection, aggregate){
 
   function openValidationListModal(material, diag, unit){
     if(FC.rozrysSummary && typeof FC.rozrysSummary.openValidationListModal === 'function'){
-      return FC.rozrysSummary.openValidationListModal(material, diag, unit, { mmToUnitStr });
+      return FC.rozrysSummary.openValidationListModal(material, diag, unit, { mmToUnitStr, openPrintView });
     }
   }
 
   function openSheetListModal(material, sheetTitle, rows, unit){
     if(FC.rozrysSummary && typeof FC.rozrysSummary.openSheetListModal === 'function'){
-      return FC.rozrysSummary.openSheetListModal(material, sheetTitle, rows, unit, { mmToUnitStr });
+      return FC.rozrysSummary.openSheetListModal(material, sheetTitle, rows, unit, { mmToUnitStr, openPrintView });
     }
   }
 
