@@ -51,6 +51,7 @@
       kind,
       name: String(src.name || ''),
       companyName: String(src.companyName || ''),
+      ownerName: String(src.ownerName || src.companyOwner || ''),
       phone: String(src.phone || ''),
       email: String(src.email || ''),
       city: String(src.city || ''),
@@ -112,6 +113,7 @@
       kind: (initial && initial.kind) || 'person',
       name: (initial && initial.name) || '',
       companyName: (initial && initial.companyName) || '',
+      ownerName: (initial && (initial.ownerName || initial.companyOwner)) || '',
       phone: (initial && initial.phone) || '',
       email: (initial && initial.email) || '',
       city: (initial && initial.city) || '',
@@ -152,7 +154,7 @@
     return list.filter(inv => {
       if(!inv) return false;
       const hay = [
-        inv.name, inv.companyName, inv.phone, inv.email, inv.city, inv.address, inv.nip, inv.notes, inv.addedDate
+        inv.name, inv.companyName, inv.ownerName, inv.phone, inv.email, inv.city, inv.address, inv.nip, inv.notes, inv.addedDate
       ].join(' ').toLowerCase();
       return hay.includes(query);
     });

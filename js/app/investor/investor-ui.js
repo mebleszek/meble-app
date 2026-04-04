@@ -205,16 +205,21 @@
     ));
     if(isCompany){
       rows.push(fields.buildPairRow(
-        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, compact:true }),
-        fields.buildInputField('invNip', fields.buildStaticLabel('NIP'), draft.nip, { readonly:!isEditing, compact:true })
+        fields.buildInputField('invOwnerName', fields.buildStaticLabel('Właściciel — imię i nazwisko'), draft.ownerName, { readonly:!isEditing, full:true, compact:true }),
+        '',
+        { full:true }
       ));
-    }else{
       rows.push(fields.buildPairRow(
-        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, full:true, compact:true }),
+        fields.buildInputField('invNip', fields.buildStaticLabel('NIP'), draft.nip, { readonly:!isEditing, full:true, compact:true }),
         '',
         { full:true }
       ));
     }
+    rows.push(fields.buildPairRow(
+      fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, full:true, compact:true }),
+      '',
+      { full:true }
+    ));
     rows.push(fields.buildPairRow(
       fields.buildInputField('invNotes', fields.buildStaticLabel('Notatki'), draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 }),
       '',
@@ -272,7 +277,7 @@
 
     const topActions = document.getElementById('investorActionBar');
     const kindSelect = document.getElementById('invKind');
-    const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invSource','invNip','invNotes','invAddedDate'];
+    const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invOwnerName','invSource','invNip','invNotes','invAddedDate'];
     const fields = fieldIds.reduce((acc, id)=> { acc[id] = document.getElementById(id); return acc; }, {});
 
     function currentInvestor(){ return (persistenceApi && persistenceApi.getInvestorById(inv.id)) || inv; }
@@ -344,6 +349,7 @@
       invCity: () => patchFieldFromDom('invCity', 'city'),
       invEmail: () => patchFieldFromDom('invEmail', 'email'),
       invAddress: () => patchFieldFromDom('invAddress', 'address'),
+      invOwnerName: () => patchFieldFromDom('invOwnerName', 'ownerName'),
       invSource: () => patchFieldFromDom('invSource', 'source'),
       invNip: () => patchFieldFromDom('invNip', 'nip'),
       invNotes: () => patchFieldFromDom('invNotes', 'notes'),

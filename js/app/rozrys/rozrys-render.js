@@ -259,15 +259,57 @@
       }));
     }
 
+    const appendSheetCards = (cards)=>{
+      (Array.isArray(cards) ? cards : []).forEach((card)=>{
+        if(card instanceof Node) tgt.appendChild(card);
+      });
+    };
+    const buildFallbackSheetCards = ()=> sheets.map((sheet, index)=>{
+      const box = h('div', { class:'card', style:'margin-top:12px' });
+      const boardMeta = getBoardMeta(sheet);
+      const waste = calcDisplayWaste(sheet);
+      const wastePct = waste.total > 0 ? ((waste.waste / waste.total) * 100) : 0;
+      const head = h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start' });
+      head.appendChild(h('div', { style:'font-weight:900', text:`Arkusz ${index + 1} • odpad ${wastePct.toFixed(1)}%${waste.realHalf ? ' • real 0,5 z magazynu' : (waste.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }));
+      const tools = h('div', { class:'rozrys-sheet-tools' });
+      const supplyMeta = getSupplyMeta(sheet);
+      if(supplyMeta) tools.appendChild(h('span', { class:`rozrys-stock-chip ${supplyMeta.cls}`, text:supplyMeta.text }));
+      if(diagnostics && diagnostics.sheets && diagnostics.sheets[index] && typeof cfg.openSheetListModal === 'function'){
+        const sheetBtn = h('button', { class:'btn', type:'button', text:'Formatki arkusza' });
+        sheetBtn.addEventListener('click', ()=> cfg.openSheetListModal(meta.material, `Arkusz ${index + 1}`, diagnostics.sheets[index].rows, u, { openPrintView: FC.openPrintView, mmToUnitStr: FC.mmToUnitStr }));
+        tools.appendChild(sheetBtn);
+      }
+      if(typeof cfg.mmToUnitStr === 'function') tools.appendChild(h('div', { class:'muted xs', text:`${cfg.mmToUnitStr(boardMeta.boardW, u)}×${cfg.mmToUnitStr(boardMeta.boardH, u)} ${u}` }));
+      head.appendChild(tools);
+      box.appendChild(head);
+      const canvas = document.createElement('canvas');
+      canvas.style.marginTop = '10px';
+      canvas.style.display = 'block';
+      canvas.style.maxWidth = '100%';
+      canvas.dataset.rozrysSheet = '1';
+      canvas.__rozrysDrawPayload = { sheet, displayUnit: u, edgeSubMm, boardMeta };
+      box.appendChild(canvas);
+      if(typeof cfg.drawSheet === 'function') cfg.drawSheet(canvas, sheet, u, edgeSubMm, boardMeta);
+      return box;
+    });
+
+    let appendedCards = 0;
     if(lists && typeof lists.renderSheetCards === 'function'){
-      lists.renderSheetCards({ sheets, meta, diagnostics, unit:u, edgeSubMm }, {
-        drawSheet: cfg.drawSheet,
-        openSheetListModal: cfg.openSheetListModal,
-        mmToUnitStr: cfg.mmToUnitStr,
-        getSupplyMeta,
-        getBoardMeta,
-        calcDisplayWaste,
-      }).forEach((card)=> tgt.appendChild(card));
+      try{
+        const cards = lists.renderSheetCards({ sheets, meta, diagnostics, unit:u, edgeSubMm }, {
+          drawSheet: cfg.drawSheet,
+          openSheetListModal: cfg.openSheetListModal,
+          mmToUnitStr: cfg.mmToUnitStr,
+          getSupplyMeta,
+          getBoardMeta,
+          calcDisplayWaste,
+        });
+        appendedCards = Array.isArray(cards) ? cards.filter((card)=> card instanceof Node).length : 0;
+        appendSheetCards(cards);
+      }catch(_){ appendedCards = 0; }
+    }
+    if(!appendedCards && sheets.length){
+      appendSheetCards(buildFallbackSheetCards());
     }
   }
 

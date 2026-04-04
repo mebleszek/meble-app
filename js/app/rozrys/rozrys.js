@@ -69,20 +69,33 @@
   }
 
   function getRooms(){
-    const defaults = (()=>{
+    const registryRooms = (()=>{
+      try{
+        if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
+          const dynamicRooms = FC.roomRegistry.getActiveRoomIds();
+          return Array.isArray(dynamicRooms) ? dynamicRooms.filter(Boolean) : [];
+        }
+      }catch(_){ }
+      return [];
+    })();
+    const hasInvestor = (()=>{
+      try{ return !!(FC.roomRegistry && typeof FC.roomRegistry.hasCurrentInvestor === 'function' && FC.roomRegistry.hasCurrentInvestor()); }
+      catch(_){ return false; }
+    })();
+    const fallbackDefaults = (()=>{
       try{
         if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS.slice();
       }catch(_){ }
-      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
-        const dynamicRooms = FC.roomRegistry.getActiveRoomIds();
-        if(Array.isArray(dynamicRooms) && dynamicRooms.length) return dynamicRooms;
-        if(FC.roomRegistry.hasCurrentInvestor && FC.roomRegistry.hasCurrentInvestor()) return [];
-      }
       return ['kuchnia','szafa','pokoj','lazienka'];
     })();
+    const defaults = hasInvestor ? registryRooms.slice() : (registryRooms.length ? registryRooms.slice() : fallbackDefaults);
     const proj = safeGetProject();
     if(!proj || typeof proj !== 'object') return defaults;
     const discovered = discoverProjectRoomKeys(proj);
+    if(hasInvestor){
+      if(registryRooms.length) return registryRooms.slice();
+      return discovered.filter((room)=> String(room || '').startsWith('room_'));
+    }
     const ordered = [];
     defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });
     discovered.forEach((room)=>{ if(!ordered.includes(room)) ordered.push(room); });

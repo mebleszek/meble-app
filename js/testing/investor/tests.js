@@ -11,6 +11,7 @@
       kind:'person',
       name:'Jan Kowalski',
       companyName:'',
+      ownerName:'',
       phone:'123',
       email:'jan@example.com',
       city:'Łódź',
@@ -48,6 +49,14 @@
       assert(/^\d{4}-\d{2}-\d{2}$/.test(String(normalized.addedDate || '')), 'Brak poprawnej daty dodania', normalized);
       assert(Array.isArray(normalized.rooms) && normalized.rooms[0] && normalized.rooms[0].projectStatus === 'nowy', 'Pokój/projekt nie dostał domyślnego statusu', normalized);
     }),
+    makeTest('Inwestor', 'Firma przechowuje właściciela jako osobne pole', 'Pilnuje, czy dane firmy mają osobne pole właściciela, żeby można je było renderować nad NIP-em bez dokładania prowizorek w UI.', ()=>{
+      assert(FC.investors && typeof FC.investors.normalizeInvestor === 'function', 'Brak investors.normalizeInvestor');
+      const normalized = FC.investors.normalizeInvestor({ id:'inv_company', kind:'company', companyName:'ABC', ownerName:'Jan Nowak', nip:'123' });
+      assert(String(normalized.ownerName || '') === 'Jan Nowak', 'Store nie zachował ownerName firmy', normalized);
+      assert(FC.investorEditorState && typeof FC.investorEditorState.buildPatchFromDraft === 'function', 'Brak investorEditorState.buildPatchFromDraft');
+      const patch = FC.investorEditorState.buildPatchFromDraft({ kind:'company', companyName:'ABC', ownerName:'Jan Nowak', nip:'123' });
+      assert(String(patch.ownerName || '') === 'Jan Nowak', 'Patch inwestora nie zachował ownerName firmy', patch);
+    }),
     makeTest('Inwestor', 'Rejestr pomieszczeń wykrywa duplikat nazwy niezależnie od wielkości liter i polskich znaków', 'Pilnuje, czy dla jednego inwestora nie da się dodać dwóch pomieszczeń o tej samej nazwie także po normalizacji diakrytyków.', ()=>{
       assert(FC.roomRegistry && typeof FC.roomRegistry.isRoomNameTaken === 'function', 'Brak roomRegistry.isRoomNameTaken');
       const inv = sampleInvestor();
@@ -55,6 +64,22 @@
       inv.rooms.push({ id:'room_kuchnia_dol', baseType:'kuchnia', name:'kuchnia dół', label:'kuchnia dół' });
       assert(FC.roomRegistry.isRoomNameTaken('kuchnia dol', inv) === true, 'Duplikat akcento-niezależny nie został wykryty');
       assert(FC.roomRegistry.isRoomNameTaken('Łazienka', inv) === false, 'Fałszywy duplikat dla innej nazwy');
+    }),
+    makeTest('Inwestor', 'Rejestr aktywnych pomieszczeń dla inwestora nie wraca do generatorowych typów bazowych', 'Pilnuje, czy aktywne pokoje dla inwestora biorą się z rzeczywiście dodanych pomieszczeń, a nie z domyślnej listy kuchnia/szafa/pokój/łazienka.', ()=>{
+      assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');
+      assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function', 'Brak roomRegistry.getActiveRoomIds');
+      const created = FC.investors.create({
+        kind:'person',
+        name:'Test',
+        rooms:[
+          { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
+          { id:'room_spizarnia', baseType:'pokoj', name:'Spiżarnia', label:'Spiżarnia' }
+        ]
+      });
+      FC.investors.setCurrentId(created.id);
+      const ids = FC.roomRegistry.getActiveRoomIds();
+      assert(Array.isArray(ids) && ids.includes('room_kuchnia_gora') && ids.includes('room_spizarnia'), 'Aktywne pokoje nie pochodzą z inwestora', ids);
+      assert(!ids.includes('kuchnia') && !ids.includes('szafa') && !ids.includes('pokoj') && !ids.includes('lazienka'), 'Do listy wróciły typy bazowe zamiast pokoi inwestora', ids);
     }),
     makeTest('Inwestor', 'Domyślne obrównanie rozrysu startuje od 1 cm / 10 mm', 'Pilnuje, czy wszystkie fallbacki opcji rozkroju wróciły do uzgodnionego domyślnego obrównania 1 cm zamiast starego 2 cm.', ()=>{
       assert(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function', 'Brak getDefaultRozrysOptionValues');

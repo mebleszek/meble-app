@@ -30,6 +30,7 @@
       kind: investor.kind === 'company' ? 'company' : 'person',
       name: normalizeText(investor.name),
       companyName: normalizeText(investor.companyName),
+      ownerName: normalizeText(investor.ownerName || investor.companyOwner),
       phone: normalizeText(investor.phone),
       email: normalizeText(investor.email),
       city: normalizeText(investor.city),
@@ -46,6 +47,7 @@
       kind: normalizeText(draft && draft.kind),
       name: normalizeText(draft && draft.name),
       companyName: normalizeText(draft && draft.companyName),
+      ownerName: normalizeText(draft && draft.ownerName),
       phone: normalizeText(draft && draft.phone),
       email: normalizeText(draft && draft.email),
       city: normalizeText(draft && draft.city),
@@ -102,6 +104,7 @@
       if(state.draft.kind !== 'company') state.draft.nip = '';
       if(state.draft.kind === 'company') state.draft.name = '';
       if(state.draft.kind !== 'company') state.draft.companyName = '';
+      if(state.draft.kind !== 'company') state.draft.ownerName = '';
     }
     syncDirty();
     return clone(state.draft);
@@ -119,6 +122,7 @@
       kind: isCompany ? 'company' : 'person',
       name: isCompany ? '' : normalizeText(d.name),
       companyName: isCompany ? normalizeText(d.companyName) : '',
+      ownerName: isCompany ? normalizeText(d.ownerName) : '',
       phone: normalizeText(d.phone),
       email: normalizeText(d.email),
       city: normalizeText(d.city),

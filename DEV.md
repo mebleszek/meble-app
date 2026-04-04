@@ -899,3 +899,9 @@ Dopiero potem go zmieniać.
 - Inwestor: odświeżenie w zakładce Inwestor trzyma kontekst wybranego inwestora; wyjście z widoku inwestora górnym Zapisz/Anuluj prowadzi do listy inwestorów.
 - ROZRYS: PDF skrócony do `PDF`, przyciski osadzone w rzędzie zakładek/akcji; usunięty słupek `?`; szerokości tabel ujednolicone z dynamiczną kolumną szafek.
 - Testy: app smoke 12/12 OK, rozrys smoke 31/31 OK.
+
+## 2026-04-04 — site_rozrys_render_rooms_company_owner
+- ROZRYS: naprawiono regresję braku kart arkuszy/rozrysów pod podsumowaniem w accordionach materiałów; renderer ma teraz awaryjny fallback budujący karty arkuszy nawet wtedy, gdy warstwa list zwróci pusty wynik, oraz podbite wersje plików JS, żeby GitHub Pages nie trzymał starego kodu w cache.
+- ROZRYS: wybór pomieszczeń w panelu rozkroju dla inwestora bierze się z realnie dodanych pomieszczeń inwestora (`room_*`), a nie z generatorowych typów bazowych `kuchnia/szafa/pokój/łazienka`.
+- INWESTOR: dla typu `Firma` dodano osobne pole `Właściciel — imię i nazwisko`; `Źródło` i `Notatki` rozciągnięto na cały rząd, a `NIP` ma własny pełny rząd pod właścicielem.
+- TESTY: app smoke 14/14 OK; rozrys smoke 31/31 OK.
