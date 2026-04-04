@@ -160,7 +160,20 @@
 
     if(state.mode === 'detail'){
       const inv = resolveInvestorForDetail(state.selectedId, currentId);
-      if(!inv){ state.mode = 'list'; return render(); }
+      if(!inv){
+        state.mode = 'list';
+        state.allowListAccess = true;
+        state.selectedId = null;
+        state.newlyCreatedId = null;
+        clearTransientInvestor();
+        try{ persistence() && typeof persistence().setCurrentInvestorId === 'function' && persistence().setCurrentInvestorId(null); }catch(_){ }
+        persistUIInvestorId(null);
+        try{ guard() && guard().apply(false); }catch(_){ }
+        const list = persistence().searchInvestors(state.query);
+        root.innerHTML = buildList(list);
+        bindList();
+        return;
+      }
       persistUIInvestorId((persistence().getInvestorById(inv.id) ? inv.id : null));
       root.innerHTML = buildDetail(inv);
       bindDetail(inv);

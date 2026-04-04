@@ -917,3 +917,8 @@ Dopiero potem go zmieniać.
 - room delete modal now lists full active room set including legacy rooms
 - investor rooms header tightened: Pomieszczenia + Dodaj/Usuń in one row
 - resolved table widths treated as reference for RAW/validation/sheet list widths
+
+## 2026-04-05 — site_fix_investor_render_recursion
+- INWESTOR: naprawiono regresję boot-clean-1.4 z pętlą renderu w zakładce Inwestor. Gdy zapisany/current investor ID nie wskazuje już istniejącego wpisu, UI czyści kontekst detail, wyłącza blokady i bezpiecznie wraca do listy inwestorów zamiast wpadać w rekurencję render() -> render().
+- CACHE-BUSTING: podbita wersja `investor-ui.js`, żeby GitHub Pages nie trzymał starej wersji skryptu.
+- TESTY: app smoke 15/15 OK; rozrys smoke 31/31 OK.
