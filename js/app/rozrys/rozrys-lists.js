@@ -212,25 +212,74 @@
     return card;
   }
 
-  function renderPlanActions(ctx){
+  function renderExportRow(ctx, deps){
+    const cfg = Object.assign({ openValidationListModal:null, buildCsv:null, downloadText:null, openPrintView:null, printLayout:null }, deps || {});
+    const meta = ctx && ctx.meta || {};
+    const sheets = Array.isArray(ctx && ctx.sheets) ? ctx.sheets : [];
+    const diagnostics = ctx && ctx.diagnostics || null;
+    const unit = String(ctx && ctx.unit || 'mm');
+    const summary = ctx && ctx.summary || { count:0 };
+    const edgeSubMm = Math.max(0, Number(ctx && ctx.edgeSubMm) || 0);
     const row = h('div', { class:'rozrys-list-actions', style:'justify-content:flex-end' });
-    const cfg = ctx || {};
-    if(typeof cfg.onList === 'function'){
+    if(diagnostics && typeof cfg.openValidationListModal === 'function'){
       const listBtn = h('button', { class:'btn-primary', type:'button', text:'Lista formatek' });
-      listBtn.addEventListener('click', cfg.onList);
+      listBtn.addEventListener('click', ()=> cfg.openValidationListModal(meta.material, diagnostics, unit, { openPrintView:cfg.openPrintView, mmToUnitStr: FC.mmToUnitStr }));
       row.appendChild(listBtn);
     }
-    if(typeof cfg.onCsv === 'function'){
+    if(typeof cfg.buildCsv === 'function' && typeof cfg.downloadText === 'function'){
       const csvBtn = h('button', { class:'btn-primary', type:'button', text:'Eksport CSV' });
-      csvBtn.addEventListener('click', cfg.onCsv);
+      csvBtn.addEventListener('click', ()=>{
+        const csv = cfg.buildCsv(sheets, meta);
+        cfg.downloadText('rozrys.csv', csv, 'text/csv;charset=utf-8');
+      });
       row.appendChild(csvBtn);
     }
-    if(typeof cfg.onPdf === 'function'){
+    if(typeof cfg.openPrintView === 'function' && cfg.printLayout && typeof cfg.printLayout.openPrint === 'function'){
       const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
-      pdfBtn.addEventListener('click', cfg.onPdf);
+      pdfBtn.addEventListener('click', ()=> cfg.printLayout.openPrint({ sheets, meta, unit, summary, edgeSubMm }));
       row.appendChild(pdfBtn);
     }
     return row;
+  }
+
+  function renderSheetCards(ctx, deps){
+    const cfg = Object.assign({ drawSheet:null, openSheetListModal:null, mmToUnitStr:null, getSupplyMeta:null, getBoardMeta:null, calcDisplayWaste:null }, deps || {});
+    const meta = ctx && ctx.meta || {};
+    const diagnostics = ctx && ctx.diagnostics || null;
+    const unit = String(ctx && ctx.unit || 'mm');
+    const edgeSubMm = Math.max(0, Number(ctx && ctx.edgeSubMm) || 0);
+    return (Array.isArray(ctx && ctx.sheets) ? ctx.sheets : []).map((sheet, index)=>{
+      const box = h('div', { class:'card', style:'margin-top:12px' });
+      const boardMeta = typeof cfg.getBoardMeta === 'function' ? cfg.getBoardMeta(sheet) : { boardW:0, boardH:0 };
+      const waste = typeof cfg.calcDisplayWaste === 'function' ? cfg.calcDisplayWaste(sheet) : { total:0, waste:0, realHalf:false, virtualHalf:false };
+      const wastePct = waste.total > 0 ? ((waste.waste / waste.total) * 100) : 0;
+      const head = h('div', { style:'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start' });
+      head.appendChild(h('div', { style:'font-weight:900', text:`Arkusz ${index + 1} • odpad ${wastePct.toFixed(1)}%${waste.realHalf ? ' • real 0,5 z magazynu' : (waste.virtualHalf ? ' • virtual 0,5 płyty' : '')}` }));
+      const tools = h('div', { class:'rozrys-sheet-tools' });
+      const supplyMeta = typeof cfg.getSupplyMeta === 'function' ? cfg.getSupplyMeta(sheet) : null;
+      if(supplyMeta){
+        tools.appendChild(h('span', { class:`rozrys-stock-chip ${supplyMeta.cls}`, text:supplyMeta.text }));
+      }
+      if(diagnostics && diagnostics.sheets && diagnostics.sheets[index] && typeof cfg.openSheetListModal === 'function'){
+        const sheetBtn = h('button', { class:'btn', type:'button', text:'Formatki arkusza' });
+        sheetBtn.addEventListener('click', ()=> cfg.openSheetListModal(meta.material, `Arkusz ${index + 1}`, diagnostics.sheets[index].rows, unit, { openPrintView: FC.openPrintView, mmToUnitStr: FC.mmToUnitStr }));
+        tools.appendChild(sheetBtn);
+      }
+      if(typeof cfg.mmToUnitStr === 'function'){
+        tools.appendChild(h('div', { class:'muted xs', text:`${cfg.mmToUnitStr(boardMeta.boardW, unit)}×${cfg.mmToUnitStr(boardMeta.boardH, unit)} ${unit}` }));
+      }
+      head.appendChild(tools);
+      box.appendChild(head);
+      const canvas = document.createElement('canvas');
+      canvas.style.marginTop = '10px';
+      canvas.style.display = 'block';
+      canvas.style.maxWidth = '100%';
+      box.appendChild(canvas);
+      canvas.dataset.rozrysSheet = '1';
+      canvas.__rozrysDrawPayload = { sheet, displayUnit: unit, edgeSubMm, boardMeta };
+      if(typeof cfg.drawSheet === 'function') cfg.drawSheet(canvas, sheet, unit, edgeSubMm, boardMeta);
+      return box;
+    });
   }
 
   FC.rozrysLists = {
@@ -238,7 +287,8 @@
     buildListTable,
     buildRawTable,
     renderSummaryCard,
-    renderPlanActions,
+    renderExportRow,
+    renderSheetCards,
     buildStatusChip,
     parseCabinetNumbers,
   };
