@@ -873,3 +873,16 @@ Dopiero potem go zmieniać.
 - INWESTOR: ikonki telefonu/email wróciły do niebieskiego tonu zgodnego z `Dodaj pomieszczenie`.
 - LISTY FORMATek: dalej zwężono kolumny liczbowe / wymiarowe i przyciemniono poziome linie na około 60% szarości.
 - ACTIONS REGISTRY: akcje create/open/assign/delete inwestora korzystają teraz z warstwy `investorPersistence`, a nie bezpośrednio z `FC.investors`.
+
+## 2026-04-04 — site_rozrys_table_column_tuning
+- LISTY FORMATek: utrzymano kolumnę `Formatka` bez zmian i dociśnięto techniczne szerokości pod realne treści:
+  - `Wymiar` pod układ `XXX.x / x / XXX.x`,
+  - `Potrzebne` i `Rozrysowane` pod 3 cyfry,
+  - `Różnica` i `Status` pod 3 znaki.
+- LISTA DO ROZKROJU: przestawiono kolejność kolumn tak, aby `Różnica` i `Status` siedziały zaraz po `Rozrysowane`, przed sekcją `Szafka`.
+- SZAFKA: rozdzielono sekcję `Szafka` na wspólny nagłówek z dwiema kolumnami:
+  - wąska kolumna z `?`,
+  - właściwa kolumna z listą szafek.
+- SZAFKA: numery szafek renderują się po 5 pozycji w rzędzie, maksymalnie w 3 widocznych rzędach; przy większej liczbie pojawia się wewnętrzny scroll.
+- LISTY FORMATek: poziome linie zostały utrzymane wyraźniej, a pionowe pozostały delikatniejsze.
+- STATUS: statusy skrócono do krótkich form (`OK`, `BRK`, `NAD`), żeby mieściły się w węższej kolumnie bez rozwalania układu.
