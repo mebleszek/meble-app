@@ -22,6 +22,7 @@
     query: '',
     selectedId: null,
     allowListAccess: true,
+    newlyCreatedId: null,
   };
 
   function $(id){ return document.getElementById(id); }
@@ -190,34 +191,43 @@
       : '<div class="muted">Brak dodanych pomieszczeń.</div>';
 
     const rows = [];
-    rows.push(fields.buildPairRow(
-      fields.buildInputField('invName', fields.buildStaticLabel(isCompany ? 'Nazwa firmy' : 'Imię i nazwisko'), isCompany ? draft.companyName : draft.name, { readonly:!isEditing, compact:true }),
-      fields.buildInputField('invPhone', phoneLabel, draft.phone, { readonly:!isEditing, compact:true })
-    ));
-    rows.push(fields.buildPairRow(
-      fields.buildInputField('invCity', fields.buildStaticLabel('Miejscowość'), draft.city, { readonly:!isEditing, compact:true }),
-      fields.buildInputField('invEmail', emailLabel, draft.email, { readonly:!isEditing, compact:true })
-    ));
-    rows.push(fields.buildPairRow(
-      fields.buildInputField('invAddress', fields.buildStaticLabel('Adres'), draft.address, { readonly:!isEditing, full:true, compact:true }),
-      '',
-      { full:true }
-    ));
     if(isCompany){
       rows.push(fields.buildPairRow(
-        fields.buildSpacerField(),
-        fields.buildInputField('invOwnerName', fields.buildStaticLabel('Właściciel — imię i nazwisko'), draft.ownerName, { readonly:!isEditing, compact:true })
+        fields.buildInputField('invName', fields.buildStaticLabel('Nazwa firmy'), draft.companyName, { readonly:!isEditing, compact:true }),
+        fields.buildInputField('invPhone', phoneLabel, draft.phone, { readonly:!isEditing, compact:true })
       ));
       rows.push(fields.buildPairRow(
-        fields.buildSpacerField(),
+        fields.buildInputField('invOwnerName', fields.buildStaticLabel('Właściciel — imię i nazwisko'), draft.ownerName, { readonly:!isEditing, compact:true }),
+        fields.buildInputField('invEmail', emailLabel, draft.email, { readonly:!isEditing, compact:true })
+      ));
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invCity', fields.buildStaticLabel('Miejscowość'), draft.city, { readonly:!isEditing, compact:true }),
         fields.buildInputField('invNip', fields.buildStaticLabel('NIP'), draft.nip, { readonly:!isEditing, compact:true })
       ));
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invAddress', fields.buildStaticLabel('Adres'), draft.address, { readonly:!isEditing, compact:true }),
+        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, compact:true })
+      ));
+    } else {
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invName', fields.buildStaticLabel('Imię i nazwisko'), draft.name, { readonly:!isEditing, compact:true }),
+        fields.buildInputField('invPhone', phoneLabel, draft.phone, { readonly:!isEditing, compact:true })
+      ));
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invCity', fields.buildStaticLabel('Miejscowość'), draft.city, { readonly:!isEditing, compact:true }),
+        fields.buildInputField('invEmail', emailLabel, draft.email, { readonly:!isEditing, compact:true })
+      ));
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invAddress', fields.buildStaticLabel('Adres'), draft.address, { readonly:!isEditing, full:true, compact:true }),
+        '',
+        { full:true }
+      ));
+      rows.push(fields.buildPairRow(
+        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, full:true, compact:true }),
+        '',
+        { full:true }
+      ));
     }
-    rows.push(fields.buildPairRow(
-      fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, full:true, compact:true }),
-      '',
-      { full:true }
-    ));
     rows.push(fields.buildPairRow(
       fields.buildInputField('invNotes', fields.buildStaticLabel('Dodatkowe informacje'), draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 }),
       '',
@@ -240,11 +250,14 @@
         </div>
 
         <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
+        <div class="investor-action-divider"></div>
 
-        <div class="hr"></div>
         <div class="investor-rooms-head">
           <h4 style="margin:0">Pomieszczenia inwestora</h4>
-          <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj pomieszczenie</button>
+          <div class="investor-room-head-actions">
+            <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
+            <button class="btn-danger investor-remove-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="remove-room" ${isEditing ? 'disabled' : ''}>Usuń</button>
+          </div>
         </div>
         <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
         <div class="investor-room-quick-list">${projectCards}</div>
@@ -316,9 +329,20 @@
         onRender: render,
         onDeleted: ()=> {
           state.selectedId = null;
+          state.newlyCreatedId = null;
           state.mode = 'list';
           persistUIInvestorId(null);
           try{ guard() && guard().apply(false); }catch(_){ }
+          render();
+        },
+        onOpenExisting: (existingId)=> {
+          if(!existingId) return;
+          try{ persistenceApi && persistenceApi.setCurrentInvestorId && persistenceApi.setCurrentInvestorId(existingId); }catch(_){ }
+          state.selectedId = existingId;
+          state.newlyCreatedId = null;
+          state.mode = 'detail';
+          state.allowListAccess = false;
+          persistUIInvestorId(existingId);
           render();
         }
       });
@@ -375,6 +399,22 @@
           if(FC.roomRegistry && typeof FC.roomRegistry.openAddRoomModal === 'function'){
             const room = await FC.roomRegistry.openAddRoomModal();
             if(room){
+              try{ if(FC.roomRegistry.renderRoomsView) FC.roomRegistry.renderRoomsView(); }catch(_){ }
+              render();
+              try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+            }
+          }
+        }catch(_){ }
+      });
+    });
+
+    root.querySelectorAll('[data-investor-action="remove-room"]').forEach((btn)=> {
+      btn.addEventListener('click', async ()=>{
+        if(editorApi && editorApi.state.isEditing) return;
+        try{
+          if(FC.roomRegistry && typeof FC.roomRegistry.openRemoveRoomModal === 'function'){
+            const roomId = await FC.roomRegistry.openRemoveRoomModal();
+            if(roomId){
               try{ if(FC.roomRegistry.renderRoomsView) FC.roomRegistry.renderRoomsView(); }catch(_){ }
               render();
               try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }

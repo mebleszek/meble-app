@@ -907,3 +907,5 @@ Dopiero potem go zmieniać.
 - TESTY: app smoke 14/14 OK; rozrys smoke 31/31 OK.
 
 - 2026-04-04: site_investor_company_layout_room_labels.zip — naprawa etykiet pomieszczeń w ROZRYS (bez technicznych room_*), poprawa układu firmy w Inwestorze: właściciel pod mailem, NIP pod właścicielem, pełny rząd dla Źródła i Dodatkowych informacji, neutralniejsze tło pól oraz cache-busting dla zmienionych skryptów.
+
+- 2026-04-05: Paczka site_investor_validation_room_delete_summary_cleanup.zip — uproszczenie podsumowania ROZRYS, poprawa układu firmy w Inwestorze, modal usuwania pomieszczenia, walidacja obowiązkowych pól i ostrzeżenia o duplikatach, nowy inwestor otwierany od razu w edycji.

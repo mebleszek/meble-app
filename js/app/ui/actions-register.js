@@ -88,22 +88,22 @@
     },
 
     'new-investor': ({event}) => {
-      // Start "new client" session: snapshot current local data for Cancel
       try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function') window.FC.session.begin(); }catch(_){ }
-      // Create investor and open investor form (no access to list from here)
       try{
         if(window.FC && window.FC.investors && typeof window.FC.investors.create === 'function'){
           const inv = window.FC.investors.create({ kind:'person' });
           if(inv && inv.id){
             uiState.currentInvestorId = inv.id;
+            try{
+              if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
+                window.FC.investorUI.state.selectedId = inv.id;
+                window.FC.investorUI.state.mode = 'detail';
+                window.FC.investorUI.state.allowListAccess = false;
+                window.FC.investorUI.state.newlyCreatedId = inv.id;
+              }
+              if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.enter === 'function') window.FC.investorEditorState.enter(inv);
+            }catch(_){ }
           }
-          try{
-            if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-              window.FC.investorUI.state.selectedId = inv.id;
-              window.FC.investorUI.state.mode = 'detail';
-              window.FC.investorUI.state.allowListAccess = false;
-            }
-          }catch(_){ }
         }
       }catch(_){ }
       uiState.entry = 'rooms';
@@ -207,7 +207,10 @@
         if(inv && window.FC && window.FC.investorUI && window.FC.investorUI.state){
           window.FC.investorUI.state.selectedId = inv.id;
           window.FC.investorUI.state.mode = 'detail';
+          window.FC.investorUI.state.allowListAccess = false;
+          window.FC.investorUI.state.newlyCreatedId = inv.id;
         }
+        try{ if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.enter === 'function') window.FC.investorEditorState.enter(inv); }catch(_){ }
         try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
       }catch(_){ }
       return true;
@@ -236,6 +239,7 @@
           window.FC.investorUI.state.selectedId = id;
           window.FC.investorUI.state.mode = 'detail';
           window.FC.investorUI.state.allowListAccess = false;
+          window.FC.investorUI.state.newlyCreatedId = null;
         }
         try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
       }catch(_){ }

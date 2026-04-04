@@ -23,7 +23,7 @@
       document.querySelectorAll('[data-action="back-investors"]').forEach((btn)=> toggleDisabled(btn, disabled));
     }catch(_){ }
     try{
-      document.querySelectorAll('.investor-room-quick-btn, .investor-add-room-btn, .investor-project-status-btn').forEach((btn)=> toggleDisabled(btn, disabled));
+      document.querySelectorAll('.investor-room-quick-btn, .investor-add-room-btn, .investor-remove-room-btn, .investor-project-status-btn').forEach((btn)=> toggleDisabled(btn, disabled));
     }catch(_){ }
     try{
       ['sessionCancel','sessionSave'].forEach((id)=> toggleDisabled(document.getElementById(id), disabled));

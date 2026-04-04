@@ -24,7 +24,7 @@
       return `
         <div class="investor-project-card">
           <button class="btn investor-room-quick-btn${disabled ? ' is-disabled' : ''}" data-action="open-room" data-room="${escapeHtml(room.id)}" ${buttonDisabled}>${escapeHtml(room.label || room.name || room.id)}</button>
-          <div class="investor-project-status-shell">
+          <div class="investor-project-status-shell${disabled ? ' is-disabled' : ''}">
             <select id="invProjectStatus_${escapeHtml(room.id)}" hidden>${statusOptionsHtml}</select>
             <div id="invProjectStatus_${escapeHtml(room.id)}Launch"></div>
           </div>

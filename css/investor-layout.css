@@ -35,3 +35,18 @@
 }
 
 .investor-card-sync .investor-field-spacer{min-height:1px;}
+
+.investor-card-sync .investor-action-divider{margin:10px 0 14px;border-top:1px solid rgba(203,213,225,.9);}
+.investor-card-sync .investor-room-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.investor-card-sync .investor-rooms-head .investor-add-room-btn,
+.investor-card-sync .investor-rooms-head .investor-remove-room-btn{min-width:110px;}
+.investor-card-sync .investor-project-status-shell.is-disabled,
+.investor-card-sync .investor-project-status-btn.is-disabled{opacity:.52;pointer-events:none;}
+.investor-card-sync .investor-project-status-shell.is-disabled *{pointer-events:none;}
+.room-registry-remove-list{display:grid;grid-template-columns:1fr;gap:10px;}
+.room-registry-remove-btn{min-height:40px;border-radius:12px;border:1px solid rgba(148,163,184,.85);background:#fff;box-shadow:2px 3px 0 rgba(15,23,42,.14);font-weight:800;padding:10px 12px;text-align:left;}
+.room-registry-remove-btn.is-selected{border-color:rgba(34,197,94,.8);box-shadow:0 0 0 2px rgba(34,197,94,.18),2px 3px 0 rgba(15,23,42,.14);}
+.investor-duplicate-card{margin-top:12px;padding:12px 14px;border:1px solid rgba(148,163,184,.45);border-radius:12px;background:#fff;}
+.investor-duplicate-card__title{font-size:18px;font-weight:900;color:#0f172a;}
+.investor-duplicate-card__sub{margin-top:6px;color:#64748b;font-size:13px;font-weight:700;}
+.investor-duplicate-actions{gap:10px;flex-wrap:wrap;}

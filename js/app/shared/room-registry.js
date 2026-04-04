@@ -180,8 +180,10 @@
   }
 
   function getRoomLabel(id){
-    const found = getActiveRoomDefs().find((room)=> room.id === id);
-    return found ? found.label : String(id || 'Pomieszczenie');
+    const key = String(id || '');
+    const found = getActiveRoomDefs().find((room)=> room.id === key);
+    if(found) return found.label || found.name || prettifyTechnicalRoomText(key, found.baseType) || key;
+    return prettifyTechnicalRoomText(key, '') || key || 'Pomieszczenie';
   }
 
   function ensureRoomData(id, baseType){
@@ -203,6 +205,81 @@
       if(exceptId && String(room.id || '') === String(exceptId)) return false;
       const label = normalizeComparableLabel(room.label || room.name || '');
       return label === normalized;
+    });
+  }
+
+
+  async function openRemoveRoomModal(){
+    const inv = getCurrentInvestor();
+    if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
+    const rooms = Array.isArray(inv.rooms) ? inv.rooms.map((room)=> normalizeRoomDef(room)).filter((room)=> room && room.id) : [];
+    if(!rooms.length){
+      try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Najpierw dodaj pomieszczenie, żeby móc je usunąć.' }); }catch(_){ }
+      return null;
+    }
+    const h = (tag, attrs, children)=>{
+      const el = document.createElement(tag);
+      if(attrs){ Object.keys(attrs).forEach((k)=>{ if(k === 'class') el.className = attrs[k]; else if(k === 'text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]); }); }
+      (children || []).forEach((ch)=> el.appendChild(ch));
+      return el;
+    };
+    return new Promise((resolve)=>{
+      let selectedId = String(rooms[0].id || '');
+      const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
+      const scroll = h('div', { class:'panel-box-form__scroll' });
+      const list = h('div', { class:'room-registry-remove-list' });
+      const sync = ()=>{
+        list.querySelectorAll('.room-registry-remove-btn').forEach((btn)=> btn.classList.toggle('is-selected', btn.getAttribute('data-room-id') === selectedId));
+      };
+      rooms.forEach((room)=>{
+        const btn = h('button', { type:'button', class:'room-registry-remove-btn', 'data-room-id':room.id, text:room.label || room.name || room.id });
+        btn.addEventListener('click', ()=>{ selectedId = room.id; sync(); });
+        list.appendChild(btn);
+      });
+      sync();
+      scroll.appendChild(list);
+      body.appendChild(scroll);
+      const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
+      const actions = h('div', { class:'rozrys-panel-footer__actions' });
+      const cancelBtn = h('button', { type:'button', class:'btn btn-primary', text:'Wróć' });
+      const deleteBtn = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
+      actions.appendChild(cancelBtn);
+      actions.appendChild(deleteBtn);
+      footer.appendChild(actions);
+      body.appendChild(footer);
+      const done = (result)=>{ try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
+      cancelBtn.addEventListener('click', ()=> done(null));
+      deleteBtn.addEventListener('click', ()=>{
+        if(!selectedId) return;
+        const proj = getProject() || {};
+        const meta = ensureProjectMeta(proj);
+        try{ delete proj[selectedId]; }catch(_){ }
+        try{ if(meta && meta.roomDefs) delete meta.roomDefs[selectedId]; }catch(_){ }
+        try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> String(id || '') !== String(selectedId)); }catch(_){ }
+        saveProject(proj);
+        const nextRooms = rooms.filter((room)=> String(room.id || '') !== String(selectedId)).map((room)=> ({
+          id: room.id,
+          baseType: room.baseType,
+          name: room.name,
+          label: room.label,
+          projectStatus: room.projectStatus || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy'
+        }));
+        try{ FC.investors && FC.investors.update && FC.investors.update(inv.id, { rooms: nextRooms }); }catch(_){ }
+        try{
+          if(window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function' && typeof window.FC.uiState.set === 'function'){
+            const st = window.FC.uiState.get();
+            if(String(st.roomType || '') === String(selectedId)) window.FC.uiState.set({ roomType:null, lastRoomType:null });
+          }else if(typeof uiState !== 'undefined' && uiState){
+            if(String(uiState.roomType || '') === String(selectedId)){
+              uiState.roomType = null;
+              uiState.lastRoomType = null;
+              try{ FC.storage && FC.storage.setJSON && typeof STORAGE_KEYS !== 'undefined' && FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+            }
+          }
+        }catch(_){ }
+        done(selectedId);
+      });
+      FC.panelBox.open({ title:'Usuń pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
     });
   }
 
@@ -322,6 +399,7 @@
     getRoomLabel,
     ensureRoomData,
     openAddRoomModal,
+    openRemoveRoomModal,
     renderRoomsView,
     discoverProjectRoomKeys,
     hasCurrentInvestor,
