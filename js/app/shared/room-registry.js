@@ -77,6 +77,19 @@
     return String(text || '').trim().replace(/\s+/g, ' ');
   }
 
+  function prettifyTechnicalRoomText(text, fallbackBaseType){
+    const raw = String(text || '').trim();
+    if(!raw) return '';
+    const match = raw.match(/^room_([^_]+)_(.+)_([a-z0-9]{4,})$/i);
+    if(!match) return raw;
+    const baseType = String(match[1] || fallbackBaseType || '').trim();
+    let middle = String(match[2] || '').trim();
+    if(baseType && middle.toLowerCase().startsWith(baseType.toLowerCase() + '_')) middle = middle.slice(baseType.length + 1);
+    middle = middle.replace(/_/g, ' ').trim();
+    if(!middle) middle = BASE_LABELS[baseType] || baseType || raw;
+    return middle;
+  }
+
   function normalizeComparableLabel(text){
     return normalizeLabel(text)
       .toLowerCase()
@@ -88,12 +101,16 @@
     const src = Object.assign({}, fallback || {}, raw || {});
     const baseType = String(src.baseType || src.kind || src.type || fallback && fallback.baseType || 'pokoj');
     const id = String(src.id || fallback && fallback.id || '');
-    const name = normalizeLabel(src.name || src.label || fallback && fallback.name || BASE_LABELS[baseType] || id);
+    const rawName = src.name || src.label || fallback && fallback.name || BASE_LABELS[baseType] || id;
+    const safeName = prettifyTechnicalRoomText(rawName, baseType);
+    const safeLabel = prettifyTechnicalRoomText(src.label || safeName, baseType);
+    const finalName = normalizeLabel(safeName || BASE_LABELS[baseType] || id);
+    const finalLabel = normalizeLabel(safeLabel || finalName);
     return {
       id,
       baseType,
-      name,
-      label: normalizeLabel(src.label || name),
+      name: finalName,
+      label: finalLabel,
       legacy: !!src.legacy,
     };
   }

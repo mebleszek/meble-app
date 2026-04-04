@@ -205,14 +205,12 @@
     ));
     if(isCompany){
       rows.push(fields.buildPairRow(
-        fields.buildInputField('invOwnerName', fields.buildStaticLabel('Właściciel — imię i nazwisko'), draft.ownerName, { readonly:!isEditing, full:true, compact:true }),
-        '',
-        { full:true }
+        fields.buildSpacerField(),
+        fields.buildInputField('invOwnerName', fields.buildStaticLabel('Właściciel — imię i nazwisko'), draft.ownerName, { readonly:!isEditing, compact:true })
       ));
       rows.push(fields.buildPairRow(
-        fields.buildInputField('invNip', fields.buildStaticLabel('NIP'), draft.nip, { readonly:!isEditing, full:true, compact:true }),
-        '',
-        { full:true }
+        fields.buildSpacerField(),
+        fields.buildInputField('invNip', fields.buildStaticLabel('NIP'), draft.nip, { readonly:!isEditing, compact:true })
       ));
     }
     rows.push(fields.buildPairRow(
@@ -221,7 +219,7 @@
       { full:true }
     ));
     rows.push(fields.buildPairRow(
-      fields.buildInputField('invNotes', fields.buildStaticLabel('Notatki'), draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 }),
+      fields.buildInputField('invNotes', fields.buildStaticLabel('Dodatkowe informacje'), draft.notes, { readonly:!isEditing, full:true, textarea:true, rows:3 }),
       '',
       { full:true }
     ));

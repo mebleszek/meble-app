@@ -30,13 +30,27 @@
     return todayInput();
   }
 
+  function prettifyTechnicalRoomText(text, fallbackBaseType){
+    const raw = String(text || '').trim();
+    if(!raw) return '';
+    const match = raw.match(/^room_([^_]+)_(.+)_([a-z0-9]{4,})$/i);
+    if(!match) return raw;
+    const baseType = String(match[1] || fallbackBaseType || '').trim();
+    let middle = String(match[2] || '').trim();
+    if(baseType && middle.toLowerCase().startsWith(baseType.toLowerCase() + '_')) middle = middle.slice(baseType.length + 1);
+    return middle.replace(/_/g, ' ').trim() || raw;
+  }
+
   function normalizeRoom(room){
     const src = room && typeof room === 'object' ? room : {};
+    const baseType = String(src.baseType || src.kind || src.type || '');
+    const name = prettifyTechnicalRoomText(src.name || src.label || '', baseType);
+    const label = prettifyTechnicalRoomText(src.label || src.name || '', baseType);
     return {
       id: String(src.id || ''),
-      baseType: String(src.baseType || src.kind || src.type || ''),
-      name: String(src.name || src.label || ''),
-      label: String(src.label || src.name || ''),
+      baseType,
+      name: String(name || ''),
+      label: String(label || name || ''),
       projectStatus: String(src.projectStatus || src.status || DEFAULT_PROJECT_STATUS),
     };
   }

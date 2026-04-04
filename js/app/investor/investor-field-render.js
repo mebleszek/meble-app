@@ -75,7 +75,11 @@
   function buildPairRow(leftHtml, rightHtml, opts){
     const cfg = Object.assign({ full:false }, opts || {});
     if(cfg.full) return `<div class="investor-details-row investor-details-row--full">${leftHtml}</div>`;
-    return `<div class="investor-details-row">${leftHtml}${rightHtml || '<div></div>'}</div>`;
+    return `<div class="investor-details-row">${leftHtml}${rightHtml || buildSpacerField()}</div>`;
+  }
+
+  function buildSpacerField(){
+    return '<div class="investor-field-spacer" aria-hidden="true"></div>';
   }
 
   FC.investorFieldRender = {
@@ -85,5 +89,6 @@
     buildChoiceField,
     buildInputField,
     buildPairRow,
+    buildSpacerField,
   };
 })();

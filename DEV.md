@@ -905,3 +905,5 @@ Dopiero potem go zmieniać.
 - ROZRYS: wybór pomieszczeń w panelu rozkroju dla inwestora bierze się z realnie dodanych pomieszczeń inwestora (`room_*`), a nie z generatorowych typów bazowych `kuchnia/szafa/pokój/łazienka`.
 - INWESTOR: dla typu `Firma` dodano osobne pole `Właściciel — imię i nazwisko`; `Źródło` i `Notatki` rozciągnięto na cały rząd, a `NIP` ma własny pełny rząd pod właścicielem.
 - TESTY: app smoke 14/14 OK; rozrys smoke 31/31 OK.
+
+- 2026-04-04: site_investor_company_layout_room_labels.zip — naprawa etykiet pomieszczeń w ROZRYS (bez technicznych room_*), poprawa układu firmy w Inwestorze: właściciel pod mailem, NIP pod właścicielem, pełny rząd dla Źródła i Dodatkowych informacji, neutralniejsze tło pól oraz cache-busting dla zmienionych skryptów.

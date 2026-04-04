@@ -4,8 +4,14 @@
   const FC = window.FC;
 
   function roomLabel(room){
-    const map = { kuchnia:'Kuchnia', szafa:'Szafa', pokoj:'Pokój', lazienka:'Łazienka' };
     const key = String(room || '').trim();
+    try{
+      if(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
+        const label = String(FC.roomRegistry.getRoomLabel(key) || '').trim();
+        if(label && label !== key) return label;
+      }
+    }catch(_){ }
+    const map = { kuchnia:'Kuchnia', szafa:'Szafa', pokoj:'Pokój', lazienka:'Łazienka' };
     return map[key] || key || 'Pomieszczenie';
   }
 
