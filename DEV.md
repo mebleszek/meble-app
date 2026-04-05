@@ -922,3 +922,12 @@ Dopiero potem go zmieniać.
 - INWESTOR: naprawiono regresję boot-clean-1.4 z pętlą renderu w zakładce Inwestor. Gdy zapisany/current investor ID nie wskazuje już istniejącego wpisu, UI czyści kontekst detail, wyłącza blokady i bezpiecznie wraca do listy inwestorów zamiast wpadać w rekurencję render() -> render().
 - CACHE-BUSTING: podbita wersja `investor-ui.js`, żeby GitHub Pages nie trzymał starej wersji skryptu.
 - TESTY: app smoke 15/15 OK; rozrys smoke 31/31 OK.
+
+
+## 2026-04-05 — wycena start + regression bundle
+- fix ghost click/click-through on `create-investor` by swallowing follow-up global click after action dispatch on mobile-like flows.
+- investor duplicate guard now also warns when company `ownerName` matches an existing private investor `name`.
+- RAW / Walidacja / Lista arkuszy now share explicit reference col widths via `rozrys-lists.js` colgroup widths instead of relying only on CSS mode-specific rules.
+- added `js/app/wycena/wycena-core.js` as first modular quote layer: seeds AGD service defaults, collects selected-room aggregate, material sheet counts from ROZRYS cache/generation, accessory rows from cabinet cutlists and built-in AGD service rows from cabinet subtypes.
+- `tabs/wycena.js` replaced placeholder with first working estimate view and `Wyceń` action.
+- service catalog auto-seeds editable AGD installation items for future quote integration.

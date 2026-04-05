@@ -82,6 +82,14 @@
       assert(!ids.includes('kuchnia') && !ids.includes('szafa') && !ids.includes('pokoj') && !ids.includes('lazienka'), 'Do listy wróciły typy bazowe zamiast pokoi inwestora', ids);
     }),
 
+    makeTest('Inwestor', 'Firma ostrzega, gdy właściciel pasuje do istniejącej osoby prywatnej', 'Pilnuje reguły, że firma z właścicielem Jan Kowalski ma ostrzec o istniejącej osobie prywatnej Jan Kowalski.', ()=>{
+      assert(FC.investorActions && FC.investorActions._debug && typeof FC.investorActions._debug.findInvestorConflicts === 'function', 'Brak debug.findInvestorConflicts');
+      assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');
+      const created = FC.investors.create({ kind:'person', name:'Jan Kowalski', address:'Test 9' });
+      const conflicts = FC.investorActions._debug.findInvestorConflicts({ id:'draft_cmp' }, { kind:'company', companyName:'Meble Jan', ownerName:'Jan Kowalski', address:'Inna 1' });
+      assert(conflicts && conflicts.ownerPerson && String(conflicts.ownerPerson.id || '') === String(created.id || ''), 'Nie wykryto dopasowania ownerName firmy do osoby prywatnej', conflicts);
+    }),
+
     makeTest('Inwestor', 'Dodawanie inwestora otwiera formularz bez pustego wpisu w bazie', 'Pilnuje, czy nowy inwestor startuje jako szkic w UI, a nie jako pusty rekord zapisany od razu do storage.', ()=>{
       assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
       const before = FC.investors.readAll().length;

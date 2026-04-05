@@ -74,15 +74,32 @@
     return wrap;
   }
 
+
+  function getReferenceColumnDefs(mode){
+    const shared = {
+      name: { cls:'col-name', width:'8.2ch' },
+      dim: { cls:'col-dim', width:'5.2ch' },
+      qty: { cls:'col-qty', width:'3ch' },
+      diff: { cls:'col-diff', width:'3ch' },
+      status: { cls:'col-status', width:'3ch' },
+      cab: { cls:'col-cab', width:'clamp(8.8ch, 16vw, 17.6ch)' },
+      room: { cls:'col-room', width:'10.4ch' },
+    };
+    if(mode === 'raw' || mode === 'sheet') return [shared.name, shared.dim, shared.qty, shared.cab, shared.room];
+    if(mode === 'resolved') return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status, shared.cab, shared.room];
+    return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status];
+  }
+
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
     const table = h('table', { class:`table-list table-list--${mode} ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
     const colgroup = h('colgroup');
-    let cols = [];
-    if(mode === 'sheet' || mode === 'raw') cols = ['col-name','col-dim','col-qty','col-cab','col-room'];
-    else if(mode === 'resolved') cols = ['col-name','col-dim','col-qty','col-qty','col-diff','col-status','col-cab','col-room'];
-    else cols = ['col-name','col-dim','col-qty','col-qty','col-diff','col-status'];
-    cols.forEach((cls)=> colgroup.appendChild(h('col', { class:cls })));
+    const cols = getReferenceColumnDefs(mode);
+    cols.forEach((col)=> {
+      const attrs = { class:col.cls };
+      if(col.width) attrs.style = `width:${col.width}`;
+      colgroup.appendChild(h('col', attrs));
+    });
     table.appendChild(colgroup);
     const thead = h('thead');
     const headRow = h('tr');

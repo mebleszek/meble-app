@@ -7,6 +7,7 @@
   window.FC.priceModal = window.FC.priceModal || {};
 
   function renderPriceModal(){
+    try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const modal = document.getElementById('priceModal');
     const type = uiState.showPriceList;
     const wasOpen = modal && modal.style.display === 'flex';
@@ -76,6 +77,10 @@
       document.getElementById('formPrice').value = '';
       const g = document.getElementById('formHasGrain');
       if(g) g.checked = false;
+      const categoryEl = document.getElementById('formCategory');
+      if(categoryEl && !Array.from(categoryEl.options || []).some((opt)=> String(opt.value||'') === 'AGD')){
+        const agdOpt = document.createElement('option'); agdOpt.value = 'AGD'; agdOpt.textContent = 'AGD'; categoryEl.appendChild(agdOpt);
+      }
       document.getElementById('formCategory').value = 'Montaż';
       document.getElementById('formServiceName').value = '';
       document.getElementById('formServicePrice').value = '';
@@ -146,6 +151,7 @@
   }
 
   function saveServiceFromForm(){
+    try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const category = document.getElementById('formCategory').value.trim() || 'Montaż';
     const name = document.getElementById('formServiceName').value.trim();
     const price = parseFloat(document.getElementById('formServicePrice').value || 0);

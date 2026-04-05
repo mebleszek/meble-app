@@ -87,11 +87,20 @@
     const normalizedAddress = normalizeComparable(d.address);
     const normalizedName = normalizeComparable(d.name);
     const normalizedCompany = normalizeComparable(d.companyName);
+    const normalizedOwner = normalizeComparable(d.ownerName);
     const exact = list.find((item)=> {
       if(!item || String(item.id || '') === currentId) return false;
       if(String(d.kind || 'person') === 'company') return normalizeComparable(item.companyName) === normalizedCompany && !!normalizedCompany;
       return normalizeComparable(item.name) === normalizedName && normalizeComparable(item.address) === normalizedAddress && !!normalizedName && !!normalizedAddress;
     }) || null;
+    const ownerPerson = String(d.kind || 'person') === 'company'
+      ? (list.find((item)=> {
+          if(!item || String(item.id || '') === currentId) return false;
+          if(String(item.kind || 'person') !== 'person') return false;
+          if(!normalizedOwner) return false;
+          return normalizeComparable(item.name) === normalizedOwner;
+        }) || null)
+      : null;
     const sameAddress = list.find((item)=> {
       if(!item || String(item.id || '') === currentId) return false;
       if(!normalizedAddress) return false;
@@ -99,7 +108,7 @@
       if(exact && String(exact.id || '') === String(item.id || '')) return false;
       return true;
     }) || null;
-    return { exact, sameAddress };
+    return { exact, ownerPerson, sameAddress };
   }
 
   async function validateBeforeSave(investor, draft, deps){
@@ -116,6 +125,14 @@
       if(action === 'open-existing'){
         cleanupUnsavedNewInvestor(investor);
         cfg.onOpenExisting && cfg.onOpenExisting(conflicts.exact.id);
+        return false;
+      }
+      if(action !== 'add-anyway') return false;
+    } else if(conflicts.ownerPerson && modalApi && typeof modalApi.resolveDuplicateInvestor === 'function'){
+      const action = await modalApi.resolveDuplicateInvestor({ investor: conflicts.ownerPerson, mode:'owner-person', draft });
+      if(action === 'open-existing'){
+        cleanupUnsavedNewInvestor(investor);
+        cfg.onOpenExisting && cfg.onOpenExisting(conflicts.ownerPerson.id);
         return false;
       }
       if(action !== 'add-anyway') return false;
@@ -220,5 +237,9 @@
     buildActionBarHtml,
     bindTopActions,
     handleTopAction,
+    _debug: {
+      findInvestorConflicts,
+      requiredFieldErrors,
+    },
   };
 })();

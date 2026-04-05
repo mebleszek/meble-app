@@ -81,7 +81,7 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   if (action.startsWith('close-') || action.startsWith('cancel-')) return true;
   // View transitions can also suffer from "tap-through" on mobile (the synthetic click lands on
   // a newly shown element under the finger, e.g. a room tile after clicking "Nowy inwestor").
-  if (action === 'new-investor' || action === 'back-rooms' || action === 'open-room' || action === 'open-investor' || action === 'back-investors' || action === 'open-investors-list' || action === 'open-investors') return true;
+  if (action === 'new-investor' || action === 'create-investor' || action === 'back-rooms' || action === 'open-room' || action === 'open-investor' || action === 'back-investors' || action === 'open-investors-list' || action === 'open-investors') return true;
   return false;
 };
 document.addEventListener(

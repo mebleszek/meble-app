@@ -49,12 +49,20 @@
     return new Promise((resolve)=>{
       const inv = cfg.investor || {};
       const name = String(inv.kind === 'company' ? (inv.companyName || '(Firma bez nazwy)') : (inv.name || '(Bez nazwy)'));
-      const titleText = cfg.mode === 'exact' ? 'Inwestor już istnieje' : 'Ten adres już istnieje';
+      const mode = String(cfg.mode || 'exact');
+      const titleText = mode === 'exact'
+        ? 'Inwestor już istnieje'
+        : mode === 'owner-person'
+          ? 'Możliwy ten sam klient'
+          : 'Ten adres już istnieje';
       const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock investor-duplicate-modal' });
       const scroll = h('div', { class:'panel-box-form__scroll' });
-      scroll.appendChild(h('div', { class:'muted', text: cfg.mode === 'exact'
+      const introText = mode === 'exact'
         ? 'W bazie jest już inwestor o takich samych danych.'
-        : 'W bazie jest już inwestor pod tym samym adresem.' }));
+        : mode === 'owner-person'
+          ? 'Właściciel tej firmy zgadza się z imieniem i nazwiskiem istniejącej osoby prywatnej. Możesz przejść do istniejącego wpisu albo dodać firmę mimo ostrzeżenia.'
+          : 'W bazie jest już inwestor pod tym samym adresem.';
+      scroll.appendChild(h('div', { class:'muted', text:introText }));
       const card = h('div', { class:'investor-duplicate-card' });
       card.appendChild(h('div', { class:'investor-duplicate-card__title', text:name }));
       card.appendChild(h('div', { class:'investor-duplicate-card__sub', text:[inv.address, inv.phone].filter(Boolean).join(' • ') || 'Istniejący wpis' }));
