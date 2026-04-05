@@ -75,15 +75,28 @@
   }
 
 
+  function getResolvedWidthMap(){
+    return {
+      name: '8.2ch',
+      dim: '5.2ch',
+      qty: '3ch',
+      diff: '3.1ch',
+      status: '3.1ch',
+      room: '10.4ch',
+      cabMax: '23ch',
+    };
+  }
+
   function getReferenceColumnDefs(mode){
+    const resolved = getResolvedWidthMap();
     const shared = {
-      name: { cls:'col-name', width:'8.2ch' },
-      dim: { cls:'col-dim', width:'5.2ch' },
-      qty: { cls:'col-qty', width:'3ch' },
-      diff: { cls:'col-diff', width:'3.1ch' },
-      status: { cls:'col-status', width:'3.1ch' },
-      cab: { cls:'col-cab', width:'23ch' },
-      room: { cls:'col-room', width:'10.4ch' },
+      name: { cls:'col-name', width:resolved.name },
+      dim: { cls:'col-dim', width:resolved.dim },
+      qty: { cls:'col-qty', width:resolved.qty },
+      diff: { cls:'col-diff', width:resolved.diff },
+      status: { cls:'col-status', width:resolved.status },
+      cab: { cls:'col-cab', width:null, maxWidth:resolved.cabMax },
+      room: { cls:'col-room', width:resolved.room },
     };
     if(mode === 'raw' || mode === 'sheet') return [shared.name, shared.dim, shared.qty, shared.cab, shared.room];
     if(mode === 'resolved') return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status, shared.cab, shared.room];
@@ -91,19 +104,26 @@
   }
 
   function tableWidthForMode(mode){
-    return getReferenceColumnDefs(mode).map((col)=> String(col.width || 'auto')).join(' + ');
+    return getReferenceColumnDefs(mode).map((col)=> String(col.width || '0px')).join(' + ');
   }
 
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
     const table = h('table', { class:`table-list table-list--${mode} ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
     table.style.width = 'max-content';
-    table.style.minWidth = `calc(${tableWidthForMode(mode)})`;
+    if(mode === 'raw' || mode === 'sheet'){
+      table.style.minWidth = `calc(${tableWidthForMode(mode)})`;
+    } else {
+      table.style.minWidth = `calc(${tableWidthForMode(mode)})`;
+    }
     const colgroup = h('colgroup');
     const cols = getReferenceColumnDefs(mode);
     cols.forEach((col)=> {
       const attrs = { class:col.cls };
-      if(col.width) attrs.style = `width:${col.width}`;
+      const styles = [];
+      if(col.width) styles.push(`width:${col.width}`);
+      if(col.maxWidth) styles.push(`max-width:${col.maxWidth}`);
+      if(styles.length) attrs.style = styles.join(';');
       colgroup.appendChild(h('col', attrs));
     });
     table.appendChild(colgroup);

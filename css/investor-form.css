@@ -22,11 +22,26 @@
 .investor-card-sync .investor-choice-field > label,
 .investor-card-sync .investor-label-row{display:flex;align-items:flex-end;min-height:22px;margin:0;}
 .investor-card-sync .investor-label-row{position:relative;padding-right:42px;}
-.investor-card-sync .investor-form-input{width:100%;min-height:34px;padding:6px 8px;border:1px solid rgba(148,163,184,.55);border-radius:8px;background:linear-gradient(180deg,#fbfbfc 0%,#ffffff 100%);box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9);font-size:12px;font-weight:500;line-height:1.2;color:#0f172a;}
-.investor-card-sync textarea.investor-form-input{min-height:72px;padding-top:8px;padding-bottom:8px;resize:vertical;}
-.investor-card-sync .investor-form-input:focus{outline:none;border-color:rgba(59,130,246,.34);box-shadow:inset 0 1px 3px rgba(15,23,42,.07),0 0 0 3px rgba(59,130,246,.08);}
+.investor-card-sync{
+  --investor-form-control-border:rgba(148,163,184,.55);
+  --investor-form-control-border-focus:rgba(59,130,246,.34);
+  --investor-form-control-bg:linear-gradient(180deg,#fbfbfc 0%,#ffffff 100%);
+  --investor-form-control-bg-readonly:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);
+  --investor-form-control-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9);
+  --investor-form-control-focus-shadow:inset 0 1px 3px rgba(15,23,42,.07),0 0 0 3px rgba(59,130,246,.08);
+}
+.investor-card-sync .investor-form-input,
+.investor-card-sync .investor-form-control{width:100%;min-height:34px;padding:6px 8px;border:1px solid var(--investor-form-control-border);border-radius:8px;background:var(--investor-form-control-bg);box-shadow:var(--investor-form-control-shadow);font-size:12px;font-weight:500;line-height:1.2;color:#0f172a;appearance:none;-webkit-appearance:none;background-clip:padding-box;transition:border-color .12s ease, box-shadow .12s ease, background .12s ease;}
+.investor-card-sync textarea.investor-form-input,
+.investor-card-sync textarea.investor-form-control{min-height:72px;padding-top:8px;padding-bottom:8px;resize:vertical;}
+.investor-card-sync .investor-form-input:focus,
+.investor-card-sync .investor-form-control:focus,
+.investor-card-sync .investor-form-input:focus-visible,
+.investor-card-sync .investor-form-control:focus-visible{outline:none;border-color:var(--investor-form-control-border-focus);box-shadow:var(--investor-form-control-focus-shadow);}
 .investor-card-sync .investor-form-input[readonly],
-.investor-card-sync .investor-form-input:disabled{background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);color:#0f172a;}
+.investor-card-sync .investor-form-input:disabled,
+.investor-card-sync .investor-form-control[readonly],
+.investor-card-sync .investor-form-control:disabled{background:var(--investor-form-control-bg-readonly);color:#0f172a;}
 .investor-card-sync .investor-room-quick-btn{min-height:32px;}
 
 .investor-card-sync .investor-form-value{
@@ -79,11 +94,15 @@
 .investor-card-sync .investor-form-input:-webkit-autofill,
 .investor-card-sync .investor-form-input:-webkit-autofill:hover,
 .investor-card-sync .investor-form-input:-webkit-autofill:focus,
-.investor-card-sync .investor-form-input:-webkit-autofill:active{
+.investor-card-sync .investor-form-input:-webkit-autofill:active,
+.investor-card-sync .investor-form-control:-webkit-autofill,
+.investor-card-sync .investor-form-control:-webkit-autofill:hover,
+.investor-card-sync .investor-form-control:-webkit-autofill:focus,
+.investor-card-sync .investor-form-control:-webkit-autofill:active{
   -webkit-text-fill-color:#0f172a !important;
   -webkit-box-shadow:0 0 0 1000px #ffffff inset !important;
   box-shadow:0 0 0 1000px #ffffff inset !important;
   caret-color:#0f172a;
+  border:1px solid var(--investor-form-control-border) !important;
+  outline:none !important;
 }
-
-.investor-card-sync #invOwnerName.investor-form-input{background:linear-gradient(180deg,#fbfbfc 0%,#ffffff 100%)!important;-webkit-box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;}

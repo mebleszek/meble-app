@@ -60,14 +60,14 @@
       return `
         <div class="${classes}">
           ${labelHtml}
-          <textarea class="investor-form-input" id="${escapeAttr(id)}" rows="${cfg.rows}">${escapeHtml(textValue)}</textarea>
+          <textarea class="investor-form-input investor-form-control" id="${escapeAttr(id)}" rows="${cfg.rows}">${escapeHtml(textValue)}</textarea>
         </div>
       `;
     }
     return `
       <div class="${classes}">
         ${labelHtml}
-        <input class="investor-form-input" type="${escapeAttr(cfg.inputType || 'text')}" id="${escapeAttr(id)}" value="${escapeAttr(textValue)}" />
+        <input class="investor-form-input investor-form-control" type="${escapeAttr(cfg.inputType || 'text')}" id="${escapeAttr(id)}" value="${escapeAttr(textValue)}" />
       </div>
     `;
   }

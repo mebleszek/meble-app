@@ -931,3 +931,9 @@ Dopiero potem go zmieniać.
 - added `js/app/wycena/wycena-core.js` as first modular quote layer: seeds AGD service defaults, collects selected-room aggregate, material sheet counts from ROZRYS cache/generation, accessory rows from cabinet cutlists and built-in AGD service rows from cabinet subtypes.
 - `tabs/wycena.js` replaced placeholder with first working estimate view and `Wyceń` action.
 - service catalog auto-seeds editable AGD installation items for future quote integration.
+
+
+## 2026-04-05 — field unify + width sync
+- ujednolicono styl pól formularza inwestora przez wspólny wzorzec `.investor-form-control` i usunięto wyjątek dla `invOwnerName`
+- dopięto focus/autofill/read-only pod jeden system stylu dla pól formularza
+- RAW, Walidacja i Lista arkuszy korzystają z referencyjnych szerokości kolumn ze Skomasowanej; kolumna Szafka jest dynamiczna z limitem max
