@@ -78,9 +78,15 @@
       }
       // Persist into main storage key so the rest of the app reads the right project.
       try{
-        if(FC.project && typeof FC.project.save === 'function') FC.project.save(proj);
+        if(FC.project && typeof FC.project.save === 'function'){
+          FC.project.__suspendSessionTracking = true;
+          FC.project.save(proj);
+        }
         else localStorage.setItem((FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.projectData) || 'fc_project_v1', JSON.stringify(proj));
       }catch(_){ }
+      finally{
+        try{ if(FC.project) FC.project.__suspendSessionTracking = false; }catch(_){ }
+      }
 
       // Re-normalize any derived fields in app.js if available
       try{ if(typeof normalizeProjectData === 'function') normalizeProjectData(); }catch(_){ }
@@ -109,6 +115,32 @@
   }
 
   // ===== Patch investor switching to also switch project =====
+
+  function refreshSessionButtons(){
+    try{
+      if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons();
+    }catch(_){ }
+  }
+
+  function shouldTrackProjectSession(nextData){
+    try{
+      if(FC.project && FC.project.__suspendSessionTracking) return false;
+    }catch(_){ }
+    const session = FC.session;
+    if(!(session && typeof session.begin === 'function')) return false;
+    if(session.active) return false;
+    const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.projectData) || 'fc_project_v1';
+    let beforeRaw = null;
+    try{ beforeRaw = localStorage.getItem(key); }catch(_){ beforeRaw = null; }
+    let normalized = nextData;
+    try{
+      if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(nextData);
+    }catch(_){ }
+    let nextRaw = null;
+    try{ nextRaw = JSON.stringify(normalized); }catch(_){ nextRaw = null; }
+    return beforeRaw !== nextRaw;
+  }
+
   function patchInvestorsAPI(){
     if(!FC.investors) return;
 
@@ -150,9 +182,14 @@
     if(!FC.project || typeof FC.project.save !== 'function' || FC.project.__patchedInvestorMirror) return;
     const origSave = FC.project.save.bind(FC.project);
     FC.project.save = function(data){
+      const shouldBeginSession = shouldTrackProjectSession(data);
+      if(shouldBeginSession){
+        try{ FC.session && typeof FC.session.begin === 'function' && FC.session.begin(); }catch(_){ }
+      }
       const out = origSave(data);
       const id = getCurrentInvestorId();
       if(id) writeProjectFor(id, out);
+      refreshSessionButtons();
       return out;
     };
     FC.project.__patchedInvestorMirror = true;

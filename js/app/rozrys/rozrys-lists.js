@@ -80,9 +80,9 @@
       name: { cls:'col-name', width:'8.2ch' },
       dim: { cls:'col-dim', width:'5.2ch' },
       qty: { cls:'col-qty', width:'3ch' },
-      diff: { cls:'col-diff', width:'3ch' },
-      status: { cls:'col-status', width:'3ch' },
-      cab: { cls:'col-cab', width:'clamp(8.8ch, 16vw, 17.6ch)' },
+      diff: { cls:'col-diff', width:'3.1ch' },
+      status: { cls:'col-status', width:'3.1ch' },
+      cab: { cls:'col-cab', width:'23ch' },
       room: { cls:'col-room', width:'10.4ch' },
     };
     if(mode === 'raw' || mode === 'sheet') return [shared.name, shared.dim, shared.qty, shared.cab, shared.room];
@@ -90,9 +90,15 @@
     return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status];
   }
 
+  function tableWidthForMode(mode){
+    return getReferenceColumnDefs(mode).map((col)=> String(col.width || 'auto')).join(' + ');
+  }
+
   function buildListTable(rows, unit, mode, mmToUnitStr){
     const wrap = h('div', { class:'rozrys-list-table-wrap' });
     const table = h('table', { class:`table-list table-list--${mode} ${mode === 'sheet' ? 'table-list--parts' : ''}`.trim() });
+    table.style.width = 'max-content';
+    table.style.minWidth = `calc(${tableWidthForMode(mode)})`;
     const colgroup = h('colgroup');
     const cols = getReferenceColumnDefs(mode);
     cols.forEach((col)=> {

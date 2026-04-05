@@ -213,11 +213,27 @@
     const inv = getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const investorRooms = Array.isArray(inv.rooms) ? inv.rooms : [];
-    const investorRoomMap = new Map(investorRooms.map((room)=> [String(room && room.id || ''), room]));
-    const rooms = getActiveRoomDefs().map((room)=> {
-      const merged = Object.assign({}, room, investorRoomMap.get(String(room && room.id || '')) || {});
-      return normalizeRoomDef(merged, room);
-    }).filter((room)=> room && room.id);
+    const activeRooms = getActiveRoomDefs();
+    const roomMap = new Map();
+
+    activeRooms.forEach((room)=> {
+      const normalized = normalizeRoomDef(room, room);
+      if(normalized && normalized.id) roomMap.set(String(normalized.id), normalized);
+    });
+
+    investorRooms.forEach((room)=> {
+      const normalized = normalizeRoomDef(room, room);
+      if(!(normalized && normalized.id)) return;
+      const key = String(normalized.id);
+      roomMap.set(key, normalizeRoomDef(Object.assign({}, roomMap.get(key) || {}, normalized), roomMap.get(key) || normalized));
+    });
+
+    if(hasLegacyKitchen(getProject()) && !roomMap.has('kuchnia')){
+      const legacy = createLegacyKitchenDef();
+      roomMap.set('kuchnia', legacy);
+    }
+
+    const rooms = Array.from(roomMap.values()).filter((room)=> room && room.id);
     if(!rooms.length){
       try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Najpierw dodaj pomieszczenie, żeby móc je usunąć.' }); }catch(_){ }
       return null;
