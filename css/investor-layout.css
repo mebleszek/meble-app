@@ -60,3 +60,12 @@
   .investor-card-sync .investor-rooms-head .investor-add-room-btn,
   .investor-card-sync .investor-rooms-head .investor-remove-room-btn{min-width:76px;padding-left:12px;padding-right:12px;}
 }
+
+
+.investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-value,
+.investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-value--choice,
+.investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-control,
+.investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-input{
+  border-bottom-color: transparent !important;
+}
+.investor-card-sync .investor-bottom-actions{margin-top:6px;}

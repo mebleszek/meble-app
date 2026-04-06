@@ -37,14 +37,22 @@
     }catch(_){ ok = window.confirm(`Usunąć ${label}?`); }
     if(!ok) return;
 
+    try{
+      if(FC.session && typeof FC.session.begin === 'function' && !(FC.session.active)) FC.session.begin();
+    }catch(_){ }
+
     if(typeof removeFrontsForCab === 'function') removeFrontsForCab(room, cabId);
 
     projectData[room].cabinets = (projectData[room].cabinets || []).filter(c => c.id !== cabId);
 
     if(uiState.selectedCabinetId === cabId) uiState.selectedCabinetId = null;
 
-    try{ FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.projectData, projectData); }catch(_){ }
+    try{
+      if(FC.project && typeof FC.project.save === 'function') FC.project.save(projectData);
+      else FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
+    }catch(_){ }
     try{ FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+    try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
     if(typeof renderCabinets === 'function') renderCabinets();
   }
 

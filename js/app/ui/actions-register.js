@@ -82,7 +82,11 @@
     try{ if(typeof services !== 'undefined' && window.FC && FC.storage && typeof FC.storage.getJSON === 'function') services = FC.storage.getJSON(STORAGE_KEYS.services, services); }catch(_){ }
     try{ if(typeof normalizeProjectData === 'function' && typeof projectData !== 'undefined') projectData = normalizeProjectData(projectData, DEFAULT_PROJECT); }catch(_){ }
     try{ if(FC.views && typeof FC.views.applyFromState === 'function' && typeof uiState !== 'undefined') FC.views.applyFromState(uiState); }catch(_){ }
-    try{ if(typeof render === 'function') render(); }catch(_){ }
+    try{
+      if(typeof uiState !== 'undefined' && uiState && uiState.entry === 'rooms' && uiState.roomType && typeof renderCabinets === 'function') renderCabinets();
+      else if(typeof render === 'function') render();
+    }catch(_){ }
+    try{ if(window.FC && window.FC.investorUI && typeof window.FC.investorUI.render === 'function' && uiState && uiState.activeTab === 'inwestor') window.FC.investorUI.render(); }catch(_){ }
     try{ if(FC.sections && typeof FC.sections.update === 'function') FC.sections.update(); }catch(_){ }
     try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
   }

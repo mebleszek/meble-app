@@ -69,7 +69,15 @@
     const value = normalizeDirection(dir);
     if(value === 'default') delete all[key];
     else all[key] = value;
-    saveAll(all);
+    try{
+      const prevRaw = localStorage.getItem(STORAGE_KEY);
+      const nextRaw = JSON.stringify(all || {});
+      if(prevRaw !== nextRaw){
+        try{ if(root.FC && root.FC.session && typeof root.FC.session.begin === 'function' && !(root.FC.session.active)) root.FC.session.begin(); }catch(_){ }
+      }
+      localStorage.setItem(STORAGE_KEY, nextRaw);
+    }catch(_){ saveAll(all); }
+    try{ root.FC && root.FC.views && typeof root.FC.views.refreshSessionButtons === 'function' && root.FC.views.refreshSessionButtons(); }catch(_){ }
   }
 
   function resolveDimsMm(aMm, bMm, dir){
@@ -119,6 +127,7 @@
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const sig = String(cfg && cfg.sig || '').trim();
     if(!sig) return;
+    const onClose = (cfg && typeof cfg.onClose === 'function') ? cfg.onClose : null;
     const name = String((cfg && cfg.name) || 'Formatka');
     const material = String((cfg && cfg.material) || 'Materiał');
     const sizeText = String((cfg && cfg.sizeText) || '');
@@ -209,16 +218,20 @@
       return !!(await askDiscard());
     }
 
-    exitBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
+    function notifyClose(){
+      try{ if(typeof onClose === 'function') onClose(); }catch(_){ }
+    }
+
+    exitBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); } });
     cancelBtn.addEventListener('click', async ()=>{
       const ok = await confirmDiscardIfDirty();
       if(!ok) return;
-      try{ FC.panelBox.close(); }catch(_){ }
+      try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });
     saveBtn.addEventListener('click', ()=>{
       setDirection(sig, draft);
       try{ if(typeof cfg.onSave === 'function') cfg.onSave(normalizeDirection(draft)); }catch(_){ }
-      try{ FC.panelBox.close(); }catch(_){ }
+      try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });
 
     FC.panelBox.open({
@@ -226,7 +239,11 @@
       contentNode: body,
       width:'720px',
       dismissOnOverlay:false,
-      beforeClose: ()=> confirmDiscardIfDirty()
+      beforeClose: async ()=> {
+        const ok = await confirmDiscardIfDirty();
+        if(ok) notifyClose();
+        return ok;
+      }
     });
   }
 

@@ -28,7 +28,15 @@
       catch(_){ return {}; }
     }
     function saveEdgeStore(obj){
-      try{ localStorage.setItem(EDGE_KEY, JSON.stringify(obj||{})); }catch(_){ }
+      try{
+        const nextRaw = JSON.stringify(obj||{});
+        const prevRaw = localStorage.getItem(EDGE_KEY);
+        if(prevRaw !== nextRaw){
+          try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function' && !(window.FC.session.active)) window.FC.session.begin(); }catch(_){ }
+        }
+        localStorage.setItem(EDGE_KEY, nextRaw);
+      }catch(_){ }
+      try{ window.FC && window.FC.views && typeof window.FC.views.refreshSessionButtons === 'function' && window.FC.views.refreshSessionButtons(); }catch(_){ }
     }
     const edgeStore = loadEdgeStore();
     const partOptionsApi = (window.FC && window.FC.materialPartOptions) || null;
@@ -51,9 +59,10 @@
       try{ if(partOptionsApi && typeof partOptionsApi.labelForDirection === 'function') return partOptionsApi.labelForDirection(dir); }catch(_){ }
       return 'Domyślny z materiału';
     }
-    function openPartOptions(part, sig){
+    function openPartOptions(part, sig, cabId){
       try{
         if(!(partOptionsApi && typeof partOptionsApi.openOptionsModal === 'function')) return;
+        try{ window.FC && window.FC.listScrollMemory && typeof window.FC.listScrollMemory.rememberForCabinet === 'function' && window.FC.listScrollMemory.rememberForCabinet('material', cabId || uiState.selectedCabinetId || ''); }catch(_){ }
         partOptionsApi.openOptionsModal({
           sig,
           name: String((part && part.name) || 'Element'),
@@ -61,6 +70,9 @@
           sizeText: `${fmtCm(part && part.a)} × ${fmtCm(part && part.b)} cm`,
           initialDirection: getPartDirection(sig),
           onSave: ()=> renderCabinets(),
+          onClose: ()=> {
+            try{ window.FC && window.FC.listScrollMemory && typeof window.FC.listScrollMemory.restorePending === 'function' && window.FC.listScrollMemory.restorePending(); }catch(_){ }
+          },
         });
       }catch(_){ }
     }
@@ -397,7 +409,7 @@
           });
           const optsBtn = row.querySelector('[data-part-options]');
           if(optsBtn){
-            optsBtn.addEventListener('click', ()=> openPartOptions(p, sig));
+            optsBtn.addEventListener('click', ()=> openPartOptions(p, sig, cab.id));
           }
         }
       });

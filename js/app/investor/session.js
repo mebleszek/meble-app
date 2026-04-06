@@ -14,6 +14,9 @@
     'fc_current_investor_v1',
     // investor UI state
     'fc_investor_ui_v1',
+    // material tab per-part settings / edge choices
+    'fc_edge_v1',
+    'fc_material_part_options_v1',
   ];
 
   const PROJECT_INV_PREFIX = 'fc_project_inv_';

@@ -93,7 +93,7 @@
         if(!bucket.includes(root)) bucket.push(root);
       }
     }
-    const children = Array.isArray(root.children) ? root.children : [];
+    const children = root && root.children ? Array.from(root.children) : [];
     children.forEach((child)=> collectNodesByAttr(child, attrName, attrValue, bucket));
     return bucket;
   }
@@ -111,8 +111,20 @@
   }
 
   function validateRenderedSheets(host, expectedCount){
-    const cards = collectNodesByAttr(host, 'data-rozrys-sheet-card', '1');
-    const canvases = collectNodesByAttr(host, 'data-rozrys-sheet', '1');
+    let cards = [];
+    let canvases = [];
+    try{
+      if(host && typeof host.querySelectorAll === 'function'){
+        cards = Array.from(host.querySelectorAll('[data-rozrys-sheet-card="1"]'));
+        canvases = Array.from(host.querySelectorAll('canvas[data-rozrys-sheet="1"]'));
+      }else{
+        cards = collectNodesByAttr(host, 'data-rozrys-sheet-card', '1');
+        canvases = collectNodesByAttr(host, 'data-rozrys-sheet', '1');
+      }
+    }catch(_){
+      cards = collectNodesByAttr(host, 'data-rozrys-sheet-card', '1');
+      canvases = collectNodesByAttr(host, 'data-rozrys-sheet', '1');
+    }
     return {
       ok: cards.length === expectedCount && canvases.length === expectedCount && expectedCount >= 0,
       cardCount: cards.length,
