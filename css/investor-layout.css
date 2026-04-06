@@ -26,6 +26,9 @@
 }
 .investor-card-sync .investor-room-quick-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 12px;align-items:start;}
 .investor-card-sync .investor-project-card{display:flex;flex-direction:column;gap:8px;align-items:stretch;justify-content:space-between;min-width:0;}
+.investor-card-sync .investor-project-card__top{display:flex;gap:8px;align-items:center;min-width:0;}
+.investor-card-sync .investor-project-card__top .investor-room-quick-btn{flex:1 1 auto;min-width:0;}
+.investor-card-sync .investor-project-card__top .investor-edit-room-btn{flex:0 0 auto;align-self:stretch;display:inline-flex;align-items:center;justify-content:center;min-width:88px;}
 .investor-card-sync .investor-project-card .investor-room-quick-btn{width:100%;justify-content:flex-start;}
 .investor-card-sync .investor-project-status-shell{display:flex;justify-content:stretch;min-width:0;}
 .investor-card-sync .investor-project-status-shell .investor-project-status-btn{width:100%;justify-content:flex-start;min-height:32px;}
@@ -40,8 +43,7 @@
 .investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-value,
 .investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-value--choice{border-bottom-color:transparent;}
 .investor-card-sync .investor-room-head-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:nowrap;}
-.investor-card-sync .investor-rooms-head .investor-add-room-btn,
-.investor-card-sync .investor-rooms-head .investor-remove-room-btn{min-width:88px;padding-left:14px;padding-right:14px;}
+.investor-card-sync .investor-rooms-head .investor-add-room-btn{min-width:88px;padding-left:14px;padding-right:14px;}
 .investor-card-sync .investor-project-status-shell.is-disabled,
 .investor-card-sync .investor-project-status-btn.is-disabled{opacity:.52;pointer-events:none;}
 .investor-card-sync .investor-project-status-shell.is-disabled *{pointer-events:none;}
@@ -57,8 +59,7 @@
   .investor-card-sync .investor-rooms-head{grid-template-columns:minmax(0,1fr) auto;}
   .investor-card-sync .investor-rooms-head h4{font-size:16px;}
   .investor-card-sync .investor-room-head-actions{gap:6px;}
-  .investor-card-sync .investor-rooms-head .investor-add-room-btn,
-  .investor-card-sync .investor-rooms-head .investor-remove-room-btn{min-width:76px;padding-left:12px;padding-right:12px;}
+  .investor-card-sync .investor-rooms-head .investor-add-room-btn{min-width:76px;padding-left:12px;padding-right:12px;}
 }
 
 

@@ -40,32 +40,43 @@
 
   function safeGetProject(){
     const candidates = [];
+    const pushCandidate = (proj, source)=>{
+      if(!(proj && typeof proj === 'object')) return;
+      if(candidates.some((entry)=> entry.proj === proj)) return;
+      candidates.push({ proj, source: String(source || 'unknown') });
+    };
     try{
-      if(typeof projectData !== 'undefined' && projectData) candidates.push(projectData);
+      if(typeof projectData !== 'undefined' && projectData) pushCandidate(projectData, 'global');
     }catch(_){ }
     try{
-      if(window.projectData) candidates.push(window.projectData);
+      if(window.projectData) pushCandidate(window.projectData, 'window');
     }catch(_){ }
     try{
       if(FC.project && typeof FC.project.load === 'function'){
         const loaded = FC.project.load();
-        if(loaded) candidates.push(loaded);
+        if(loaded) pushCandidate(loaded, 'load');
       }
     }catch(_){ }
     if(!candidates.length) return null;
+    const direct = candidates.filter((entry)=> entry.source !== 'load');
+    const preferred = direct.some((entry)=> countProjectCabinets(entry.proj) > 0 || discoverProjectRoomKeys(entry.proj).length > 0)
+      ? direct
+      : candidates;
     let best = null;
     let bestScore = -1;
-    candidates.forEach((proj)=>{
+    preferred.forEach((entry)=>{
+      const proj = entry.proj;
       if(!proj || typeof proj !== 'object') return;
       const roomCount = discoverProjectRoomKeys(proj).length;
       const cabinetCount = countProjectCabinets(proj);
-      const score = (cabinetCount * 1000) + roomCount;
+      const sourceBias = entry.source === 'load' ? 0 : 1000000;
+      const score = sourceBias + (cabinetCount * 1000) + roomCount;
       if(score > bestScore){
         best = proj;
         bestScore = score;
       }
     });
-    return best || candidates[0] || null;
+    return best || (preferred[0] && preferred[0].proj) || null;
   }
 
   function getRooms(){

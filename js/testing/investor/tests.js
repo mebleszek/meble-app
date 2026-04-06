@@ -99,10 +99,12 @@
       assert(/Kuchnia góra/.test(String(html || '')), 'HTML PDF nie zawiera listy pomieszczeń');
       const actionBar = FC.investorActions.buildActionBarHtml({ isEditing:false, dirty:false });
       assert(/data-investor-action="pdf"/.test(String(actionBar || '')), 'Pasek akcji inwestora nie zawiera przycisku PDF', actionBar);
-      const deleteIndex = String(actionBar || '').indexOf('data-investor-action="delete"');
+      assert(!/data-investor-action="delete"/.test(String(actionBar || '')), 'Usuń inwestora nie powinno być widoczne poza edycją', actionBar);
       const editIndex = String(actionBar || '').indexOf('data-investor-action="edit"');
       const pdfIndex = String(actionBar || '').indexOf('data-investor-action="pdf"');
-      assert(deleteIndex !== -1 && editIndex !== -1 && pdfIndex !== -1 && deleteIndex < editIndex && editIndex < pdfIndex, 'Przycisk PDF nie jest dołożony jako ostatni po prawej stronie', actionBar);
+      assert(editIndex !== -1 && pdfIndex !== -1 && editIndex < pdfIndex, 'Przycisk PDF nie jest dołożony jako ostatni po prawej stronie', actionBar);
+      const editModeBar = FC.investorActions.buildActionBarHtml({ isEditing:true, dirty:false });
+      assert(/data-investor-action="delete"/.test(String(editModeBar || '')), 'Usuń inwestora powinno być dostępne po wejściu w edycję', editModeBar);
     }),
 
         makeTest('Inwestor', 'Dodawanie inwestora otwiera formularz bez pustego wpisu w bazie', 'Pilnuje, czy nowy inwestor startuje jako szkic w UI, a nie jako pusty rekord zapisany od razu do storage.', ()=>{

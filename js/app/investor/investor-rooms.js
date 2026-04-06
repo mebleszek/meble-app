@@ -23,7 +23,10 @@
       const statusOptionsHtml = optsHtml.replace(`value="${escapeHtml(status)}"`, `value="${escapeHtml(status)}" selected`);
       return `
         <div class="investor-project-card">
-          <button class="btn investor-room-quick-btn${disabled ? ' is-disabled' : ''}" data-action="open-room" data-room="${escapeHtml(room.id)}" ${buttonDisabled}>${escapeHtml(room.label || room.name || room.id)}</button>
+          <div class="investor-project-card__top">
+            <button class="btn investor-room-quick-btn${disabled ? ' is-disabled' : ''}" data-action="open-room" data-room="${escapeHtml(room.id)}" ${buttonDisabled}>${escapeHtml(room.label || room.name || room.id)}</button>
+            <button class="btn investor-edit-room-btn${disabled ? ' is-disabled' : ''}" type="button" data-investor-room-action="edit" data-room-id="${escapeHtml(room.id)}" ${buttonDisabled}>Edytuj</button>
+          </div>
           <div class="investor-project-status-shell${disabled ? ' is-disabled' : ''}">
             <select id="invProjectStatus_${escapeHtml(room.id)}" hidden>${statusOptionsHtml}</select>
             <div id="invProjectStatus_${escapeHtml(room.id)}Launch"></div>

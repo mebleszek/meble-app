@@ -952,3 +952,6 @@ Dopiero potem go zmieniać.
 - dodano smoke testy ROZRYS dla walidacji scalania oraz dla obecności sekcji/kart/canvasów w DOM.
 
 - 2026-04-06 13:xx: spacing under investor divider + session cancel reload restore fix.
+
+
+- 2026-04-07: dodano `js/app/investor/investor-room-actions.js` jako osobny binder akcji Dodaj/Edytuj dla pomieszczeń inwestora, żeby nie trzymać tej logiki w `investor-ui.js`.

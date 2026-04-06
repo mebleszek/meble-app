@@ -321,7 +321,6 @@
           <h4 style="margin:0">Pomieszczenia</h4>
           <div class="investor-room-head-actions">
             <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
-            <button class="btn-danger investor-remove-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="remove-room" ${isEditing ? 'disabled' : ''}>Usuń</button>
           </div>
         </div>
         <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
@@ -479,37 +478,18 @@
       });
     });
 
-    root.querySelectorAll('[data-investor-action="add-room"]').forEach((btn)=> {
-      btn.addEventListener('click', async ()=>{
-        if(editorApi && editorApi.state.isEditing) return;
-        try{
-          if(FC.roomRegistry && typeof FC.roomRegistry.openAddRoomModal === 'function'){
-            const room = await FC.roomRegistry.openAddRoomModal();
-            if(room){
-              try{ if(FC.roomRegistry.renderRoomsView) FC.roomRegistry.renderRoomsView(); }catch(_){ }
-              render();
-              try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-            }
+    try{
+      if(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function'){
+        FC.investorRoomActions.bindRoomActions(root, inv, {
+          isInvestorEditing: ()=> !!(editorApi && editorApi.state.isEditing),
+          onUpdated: ()=>{
+            try{ if(FC.roomRegistry && FC.roomRegistry.renderRoomsView) FC.roomRegistry.renderRoomsView(); }catch(_){ }
+            render();
+            try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
           }
-        }catch(_){ }
-      });
-    });
-
-    root.querySelectorAll('[data-investor-action="remove-room"]').forEach((btn)=> {
-      btn.addEventListener('click', async ()=>{
-        if(editorApi && editorApi.state.isEditing) return;
-        try{
-          if(FC.roomRegistry && typeof FC.roomRegistry.openRemoveRoomModal === 'function'){
-            const roomId = await FC.roomRegistry.openRemoveRoomModal();
-            if(roomId){
-              try{ if(FC.roomRegistry.renderRoomsView) FC.roomRegistry.renderRoomsView(); }catch(_){ }
-              render();
-              try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-            }
-          }
-        }catch(_){ }
-      });
-    });
+        });
+      }
+    }catch(_){ }
 
     refreshActionBar();
   }
