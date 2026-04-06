@@ -33,6 +33,7 @@
     function validateUIState(raw){
       const defaults = {
         entry:'home',
+        workMode:null,
         activeTab:'wywiad',
         roomType:null,
         lastRoomType:null,
@@ -46,6 +47,7 @@
       };
       const s = Object.assign({}, defaults, ensureObj(raw, {}));
       s.entry = ensureString(s.entry, defaults.entry);
+      s.workMode = (s.workMode == null) ? null : ensureString(s.workMode, null);
       s.activeTab = ensureString(s.activeTab, defaults.activeTab);
       s.roomType  = (s.roomType == null) ? null : ensureString(s.roomType, null);
       s.lastRoomType  = (s.lastRoomType == null) ? null : ensureString(s.lastRoomType, null);

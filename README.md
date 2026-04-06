@@ -8,6 +8,34 @@ Program do wyceny mebli i rozwijania modułów projektowania / rozkroju.
 - W paczce zawsze muszą być `README.md` i `DEV.md`.
 - Kolejne zmiany robić zawsze na ostatnim ZIP-ie wygenerowanym w rozmowie.
 
+
+## Etap architektury — 2 tryby pracy (stage 1)
+
+Program startuje teraz z 2 głównych wejść:
+- `Projekty meblowe`
+- `Drobne usługi stolarskie`
+
+W tej paczce wdrożono pierwszy bezpieczny etap rozdzielenia odpowiedzialności:
+- ekran startowy prowadzi do 2 osobnych hubów kontekstowych,
+- cenniki nie są już pokazywane jako jedno wspólne centrum na starcie,
+- katalog danych został logicznie rozdzielony na:
+  - `sheetMaterials` / materiały arkuszowe,
+  - `accessories` / akcesoria,
+  - `quoteRates` / stawki wyceny mebli,
+  - `workshopServices` / usługi stolarskie,
+  - `serviceOrders` / drobne zlecenia usługowe.
+
+### Nowe aktywne moduły stage 1
+
+- `js/app/catalog/catalog-store.js` — centralny store katalogów; rozdziela legacy `materials/services` na nowe byty i utrzymuje kompatybilność wsteczną.
+- `js/app/ui/work-mode-hub.js` — render 2 trybów pracy i kontekstowych wejść po wejściu w dany tryb.
+- `js/app/service/service-orders.js` — osobna lista i edytor drobnych zleceń usługowych.
+
+### Zakres etapu 1
+
+To jeszcze nie jest pełna przebudowa całej domeny pod chmurę.
+Etap 1 porządkuje wejścia, routing i podstawowe byty danych bez przepinania całego projektu meblowego i całej wyceny na nowy model naraz.
+
 ## Deploy (GitHub Pages)
 
 Do repo trafia pełna paczka `site.zip` w root.

@@ -4,10 +4,15 @@ const vm = require('vm');
 
 const FILES = [
   'js/app/shared/utils.js',
+  'js/app/shared/constants.js',
+  'js/app/shared/storage.js',
   'js/app/shared/validate.js',
   'js/app/material/material-common.js',
   'js/app/material/material-registry.js',
+  'js/app/catalog/catalog-store.js',
   'js/app/material/price-modal.js',
+  'js/app/ui/work-mode-hub.js',
+  'js/app/service/service-orders.js',
   'js/app/investor/investors-store.js',
   'js/app/investor/investor-persistence.js',
   'js/app/investor/investor-navigation-guard.js',

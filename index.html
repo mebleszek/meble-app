@@ -47,14 +47,16 @@
 <div id="homeView">
   <div class="card home-hero">
     <h2 style="margin:0">Start</h2>
-    <p class="muted" style="margin:6px 0 0">Wybierz co chcesz zrobić</p>
+    <p class="muted" style="margin:6px 0 0">Wybierz główny tryb pracy</p>
     <div class="home-actions" style="margin-top:14px">
-      <button class="btn home-btn" id="openMaterialsBtn" data-action="open-materials">Cennik materiałów</button>
-      <button class="btn home-btn" id="openServicesBtn" data-action="open-services">Cennik usług</button>
-      <button class="btn home-btn" id="openInvestorsBtn" data-action="open-investors-list">Lista inwestorów</button>
-      <button class="btn-primary home-btn" id="newInvestorBtn" data-action="new-investor">Nowy inwestor</button>
+      <button class="btn home-btn" id="openFurnitureProjectsBtn" data-action="open-furniture-hub">Projekty meblowe</button>
+      <button class="btn-primary home-btn" id="openWorkshopServicesBtn" data-action="open-workshop-hub">Drobne usługi stolarskie</button>
     </div>
   </div>
+</div>
+
+<div id="modeHubView" style="display:none">
+  <div id="modeHubRoot"></div>
 </div>
 
 <div id="investorsListView" style="display:none">
@@ -65,6 +67,10 @@
     </div>
     <div id="investorsListRoot" style="margin-top:12px"></div>
   </div>
+</div>
+
+<div id="serviceOrdersListView" style="display:none">
+  <div id="serviceOrdersListRoot"></div>
 </div>
 <div id="roomsView" style="display:none">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
@@ -455,6 +461,8 @@
 <script defer src="js/app/investor/session.js?v=20260406_session_fix_v2"></script>
 <script defer src="js/app/investor/investors-store.js?v=20260406_source_picker_summary_fix_v1"></script>
 <script defer src="js/app/shared/room-registry.js?v=20260407_investor_cleanup_v1"></script>
+<script defer src="js/app/catalog/catalog-store.js?v=20260406_work_modes_stage1_v1"></script>
+<script defer src="js/app/service/service-orders.js?v=20260406_work_modes_stage1_v1"></script>
 <script defer src="js/app/investor/investor-editor-state.js?v=20260404_investor_company_owner_v1"></script>
 <script defer src="js/app/investor/investor-persistence.js?v=20260404_investor_project_status_v1"></script>
 <script defer src="js/app/investor/investor-navigation-guard.js?v=20260407_investor_cleanup_v1"></script>
@@ -469,6 +477,7 @@
 <script defer src="js/app/investor/investor-ui.js?v=20260407_investor_cleanup_v1"></script>
 <script defer src="js/app/ui/sections.js?v=20260331_boot_fix_v1"></script>
 <script defer src="js/app/ui/views.js?v=20260405_investor_followup_v2"></script>
+<script defer src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
 <script defer src="js/app/shared/validate.js?v=20260404_investor_project_status_v1"></script>
 <!-- bindings extracted from app.js (event wiring + delegation) -->
 <script defer src="js/app/ui/bindings.js?v=20260405_ghostfix_v1"></script>

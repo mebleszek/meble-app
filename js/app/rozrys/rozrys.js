@@ -38,25 +38,21 @@
     }, 0);
   }
 
-  function safeGetProject(){
+  function collectProjectCandidates(){
     const candidates = [];
     const pushCandidate = (proj, source)=>{
       if(!(proj && typeof proj === 'object')) return;
       if(candidates.some((entry)=> entry.proj === proj)) return;
       candidates.push({ proj, source: String(source || 'unknown') });
     };
-    try{
-      if(typeof projectData !== 'undefined' && projectData) pushCandidate(projectData, 'global');
-    }catch(_){ }
-    try{
-      if(window.projectData) pushCandidate(window.projectData, 'window');
-    }catch(_){ }
-    try{
-      if(FC.project && typeof FC.project.load === 'function'){
-        const loaded = FC.project.load();
-        if(loaded) pushCandidate(loaded, 'load');
-      }
-    }catch(_){ }
+    try{ if(typeof projectData !== 'undefined' && projectData) pushCandidate(projectData, 'global'); }catch(_){ }
+    try{ if(window.projectData) pushCandidate(window.projectData, 'window'); }catch(_){ }
+    try{ if(FC.project && typeof FC.project.load === 'function'){ const loaded = FC.project.load(); if(loaded) pushCandidate(loaded, 'load'); } }catch(_){ }
+    return candidates;
+  }
+
+  function safeGetProject(){
+    const candidates = collectProjectCandidates();
     if(!candidates.length) return null;
     const direct = candidates.filter((entry)=> entry.source !== 'load');
     const preferred = direct.some((entry)=> countProjectCabinets(entry.proj) > 0 || discoverProjectRoomKeys(entry.proj).length > 0)
@@ -78,6 +74,7 @@
     });
     return best || (preferred[0] && preferred[0].proj) || null;
   }
+
 
   function getRooms(){
     const registryRooms = (()=>{
@@ -418,22 +415,26 @@ function getAccordionScopeKey(selection, aggregate){
 
 function aggregatePartsForProject(selectedRooms){
   if(FC.rozrysScope && typeof FC.rozrysScope.aggregatePartsForProject === 'function'){
-    const deps = {
-      safeGetProject,
+    const baseDeps = {
       getRooms,
       getCabinetCutList: resolveCabinetCutListFn(),
       resolveRozrysPartFromSource,
       isFrontMaterialKey,
     };
-    const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, deps);
-    if(first && Array.isArray(first.materials) && first.materials.length) return first;
-    const proj = safeGetProject();
-    const discoveredRooms = discoverProjectRoomKeys(proj);
-    if(discoveredRooms.length){
-      const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, deps);
-      if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
+    const candidates = collectProjectCandidates();
+    for(const entry of candidates){
+      const scopedDeps = Object.assign({}, baseDeps, { safeGetProject: ()=> entry.proj });
+      const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, scopedDeps);
+      if(first && Array.isArray(first.materials) && first.materials.length) return first;
+      const discoveredRooms = discoverProjectRoomKeys(entry.proj);
+      if(discoveredRooms.length){
+        const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, scopedDeps);
+        if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
+      }
     }
-    return first;
+    const deps = Object.assign({}, baseDeps, { safeGetProject });
+    const fallback = FC.rozrysScope.aggregatePartsForProject(selectedRooms, deps);
+    return fallback || { byMaterial:{}, materials:[], groups:{}, selectedRooms:Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
   }
   return { byMaterial: {}, materials: [], groups: {}, selectedRooms: Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
 }

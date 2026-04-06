@@ -13,6 +13,7 @@
 
   const DEFAULTS = {
     entry: 'home',
+    workMode: null,
     activeTab: 'wywiad',
     roomType: null,
     lastRoomType: null,
@@ -29,6 +30,7 @@
     const s = Object.assign({}, DEFAULTS, state || {});
     if(!s.expanded || typeof s.expanded !== 'object') s.expanded = {};
     s.entry = typeof s.entry === 'string' && s.entry ? s.entry : DEFAULTS.entry;
+    s.workMode = (s.workMode == null || s.workMode === '') ? null : String(s.workMode);
     s.activeTab = (s.activeTab == null || s.activeTab === '') ? DEFAULTS.activeTab : String(s.activeTab);
     s.roomType = (s.roomType == null || s.roomType === '') ? null : String(s.roomType);
     s.lastRoomType = (s.lastRoomType == null || s.lastRoomType === '') ? null : String(s.lastRoomType);

@@ -2,6 +2,11 @@
 const STORAGE_KEYS = (window.FC && window.FC.constants && window.FC.constants.STORAGE_KEYS) || {
   materials: 'fc_materials_v1',
   services: 'fc_services_v1',
+  sheetMaterials: 'fc_sheet_materials_v1',
+  accessories: 'fc_accessories_v1',
+  quoteRates: 'fc_quote_rates_v1',
+  workshopServices: 'fc_workshop_services_v1',
+  serviceOrders: 'fc_service_orders_v1',
   projectData: 'fc_project_v1',
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
@@ -148,13 +153,16 @@ const FC = (function(){
 const DEFAULT_PROJECT = FC.project.DEFAULT_PROJECT;
 
 /* ===== State initialization ===== */
-let materials = FC.storage.getJSON(STORAGE_KEYS.materials, [
-  { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35, hasGrain: false },
-  { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180, hasGrain: false },
-  { id: 'm3', materialType: 'akcesoria', manufacturer: 'blum', symbol: 'B1', name: 'Zawias Blum', price: 18, hasGrain: false }
-]);
+let materials = (window.FC && window.FC.catalogStore && typeof window.FC.catalogStore.getSheetMaterials === 'function')
+  ? window.FC.catalogStore.getSheetMaterials()
+  : FC.storage.getJSON(STORAGE_KEYS.materials, [
+      { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35, hasGrain: false },
+      { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180, hasGrain: false },
+    ]);
 
-let services = FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
+let services = (window.FC && window.FC.catalogStore && typeof window.FC.catalogStore.getQuoteRates === 'function')
+  ? window.FC.catalogStore.getQuoteRates()
+  : FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
 let projectData = FC.project.load();
 const __uiDefaults = ((window.FC && window.FC.uiState && typeof window.FC.uiState.defaults === 'function')
   ? window.FC.uiState.defaults()
@@ -186,8 +194,13 @@ try{
       V.persistIfPossible(STORAGE_KEYS.projectData, projectData);
       V.persistIfPossible(STORAGE_KEYS.ui, uiState);
     } else {
-      FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-      FC.storage.setJSON(STORAGE_KEYS.services, services);
+      if(window.FC && window.FC.catalogStore){
+        try{ if(typeof window.FC.catalogStore.setSheetMaterials === 'function') materials = window.FC.catalogStore.setSheetMaterials(materials); }catch(_){ FC.storage.setJSON(STORAGE_KEYS.materials, materials); }
+        try{ if(typeof window.FC.catalogStore.setQuoteRates === 'function') services = window.FC.catalogStore.setQuoteRates(services); }catch(_){ FC.storage.setJSON(STORAGE_KEYS.services, services); }
+      } else {
+        FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+        FC.storage.setJSON(STORAGE_KEYS.services, services);
+      }
       FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
   // Special top-level tabs (available even before selecting a room)

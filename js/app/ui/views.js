@@ -1,6 +1,5 @@
 // js/app/ui/views.js
-// View/router helpers: home vs rooms vs app + placeholder sections.
-// Load after ui-state.js and before js/app.js.
+// View/router helpers: start + work mode hubs + project workflow views.
 
 (() => {
   'use strict';
@@ -10,24 +9,17 @@
   function $(id){ return document.getElementById(id); }
 
   function showOnly(ids){
-    const all = ['homeView','roomsView','appView','investorView','rozrysView','magazynView','investorsListView'];
-    all.forEach(id => {
+    const all = ['homeView','modeHubView','roomsView','appView','investorView','rozrysView','magazynView','investorsListView','serviceOrdersListView'];
+    all.forEach((id)=>{
       const el = $(id);
       if(!el) return;
       el.style.display = ids.includes(id) ? 'block' : 'none';
     });
   }
 
-  function setTopBarVisible(on){
-    const tb = $('topBar');
-    if(tb) tb.style.display = on ? 'flex' : 'none';
-  }
-
-  function setTabsVisible(on){
-    const tabs = $('topTabs');
-    if(tabs) tabs.style.display = on ? 'grid' : 'none';
-    setTopBarVisible(!!on);
-  }
+  function setTopBarVisible(on){ const tb = $('topBar'); if(tb) tb.style.display = on ? 'flex' : 'none'; }
+  function setTabsVisible(on){ const tabs = $('topTabs'); if(tabs) tabs.style.display = on ? 'grid' : 'none'; setTopBarVisible(!!on); }
+  function setFloatingVisible(on){ const fab = $('floatingAdd'); if(fab) fab.style.display = on ? 'flex' : 'none'; }
 
   function refreshSessionButtons(){
     const sb = $('sessionButtons');
@@ -60,11 +52,6 @@
     if(on) refreshSessionButtons();
   }
 
-  function setFloatingVisible(on){
-    const fab = $('floatingAdd');
-    if(fab) fab.style.display = on ? 'flex' : 'none';
-  }
-
   function showHome(){
     showOnly(['homeView']);
     setTabsVisible(false);
@@ -72,20 +59,35 @@
     setFloatingVisible(false);
   }
 
+  function showModeHub(mode){
+    showOnly(['modeHubView']);
+    setTabsVisible(false);
+    setSessionButtonsVisible(false);
+    setFloatingVisible(false);
+    try{ FC.workModeHub && typeof FC.workModeHub.renderModeHub === 'function' && FC.workModeHub.renderModeHub(mode); }catch(_){ }
+  }
+
   function showInvestorsList(){
     showOnly(['investorsListView']);
     setTabsVisible(false);
     setSessionButtonsVisible(false);
     setFloatingVisible(false);
-    // best effort render for refresh
     try{
       const root = $('investorsListRoot');
-      if(root && window.FC && window.FC.investorUI && typeof window.FC.investorUI.renderListOnly === 'function'){
-        window.FC.investorUI.state.mode = 'list';
-        window.FC.investorUI.state.allowListAccess = false;
-        window.FC.investorUI.renderListOnly(root);
+      if(root && FC.investorUI && typeof FC.investorUI.renderListOnly === 'function'){
+        FC.investorUI.state.mode = 'list';
+        FC.investorUI.state.allowListAccess = false;
+        FC.investorUI.renderListOnly(root);
       }
     }catch(_){ }
+  }
+
+  function showServiceOrdersList(){
+    showOnly(['serviceOrdersListView']);
+    setTabsVisible(false);
+    setSessionButtonsVisible(false);
+    setFloatingVisible(false);
+    try{ FC.serviceOrders && typeof FC.serviceOrders.renderList === 'function' && FC.serviceOrders.renderList(); }catch(_){ }
   }
 
   function showRooms(){
@@ -93,43 +95,18 @@
     setTabsVisible(true);
     setSessionButtonsVisible(true);
     setFloatingVisible(false);
-    try{ if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.renderRoomsView === 'function') window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
+    try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
 
-  function showApp(){
-    showOnly(['appView']);
-    setTabsVisible(true);
-    setSessionButtonsVisible(true);
-    setFloatingVisible(true);
-  }
-
-  function showInvestor(){
-    showOnly(['investorView']);
-    setTabsVisible(true);
-    setSessionButtonsVisible(true);
-    setFloatingVisible(false);
-  }
-
-  function showRozrys(){
-    showOnly(['rozrysView']);
-    setTabsVisible(true);
-    setSessionButtonsVisible(true);
-    setFloatingVisible(false);
-  }
-
-  function showMagazyn(){
-    showOnly(['magazynView']);
-    setTabsVisible(true);
-    setSessionButtonsVisible(true);
-    setFloatingVisible(false);
-  }
+  function showApp(){ showOnly(['appView']); setTabsVisible(true); setSessionButtonsVisible(true); setFloatingVisible(true); }
+  function showInvestor(){ showOnly(['investorView']); setTabsVisible(true); setSessionButtonsVisible(true); setFloatingVisible(false); }
+  function showRozrys(){ showOnly(['rozrysView']); setTabsVisible(true); setSessionButtonsVisible(true); setFloatingVisible(false); }
+  function showMagazyn(){ showOnly(['magazynView']); setTabsVisible(true); setSessionButtonsVisible(true); setFloatingVisible(false); }
 
   function readCurrentInvestorId(state){
     const fromState = state && state.currentInvestorId ? String(state.currentInvestorId) : '';
     if(fromState) return fromState;
-    try{
-      if(FC.investorPersistence && typeof FC.investorPersistence.getCurrentInvestorId === 'function') return FC.investorPersistence.getCurrentInvestorId() || null;
-    }catch(_){ }
+    try{ if(FC.investorPersistence && typeof FC.investorPersistence.getCurrentInvestorId === 'function') return FC.investorPersistence.getCurrentInvestorId() || null; }catch(_){ }
     return null;
   }
 
@@ -138,80 +115,70 @@
     const entry = st && st.entry ? st.entry : 'home';
     const tab = st && st.activeTab ? st.activeTab : null;
     const currentInvestorId = readCurrentInvestorId(st);
+    const workMode = st && st.workMode ? st.workMode : null;
 
-    // Prefer restoring investor area over list/home after refresh.
-    if(tab === 'inwestor'){
-      return showInvestor();
-    }
-
-    // Prefer restoring an active project over showing Home.
-    if(st && st.roomType && (entry === 'home' || !entry)){
-      return showApp();
-    }
-
-    if(entry === 'home'){
-      showHome();
-      return;
-    }
-    if(entry === 'investorsList'){
-      showInvestorsList();
-      return;
-    }
-    // entry rooms/app: tab may override
+    if(tab === 'inwestor') return showInvestor();
+    if(st && st.roomType && (entry === 'home' || !entry)) return showApp();
+    if(entry === 'home') return showHome();
+    if(entry === 'modeHub') return showModeHub(workMode || 'furnitureProjects');
+    if(entry === 'investorsList') return showInvestorsList();
+    if(entry === 'serviceOrdersList') return showServiceOrdersList();
     if(tab === 'rozrys') return showRozrys();
     if(tab === 'magazyn') return showMagazyn();
     if(tab === 'pokoje') return showRooms();
-
-    if(entry === 'app' && st && st.roomType){
-      return showApp();
-    }
-    // fallback
-    return showRooms();
+    if(entry === 'app' && st && st.roomType) return showApp();
+    if(entry === 'rooms' || currentInvestorId) return showRooms();
+    return showHome();
   }
 
   function openHome(){
-    if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ entry: 'home', roomType: null });
-    }
-    applyFromState({ entry:'home', roomType:null, activeTab:'pokoje' });
+    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'home', roomType:null, workMode:null });
+    applyFromState({ entry:'home', roomType:null, activeTab:'pokoje', workMode:null });
+  }
+
+  function openModeHub(mode){
+    const resolved = String(mode || 'furnitureProjects');
+    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'modeHub', workMode:resolved, activeTab:null, roomType:null });
+    applyFromState({ entry:'modeHub', workMode:resolved, activeTab:null, roomType:null });
   }
 
   function openInvestorsList(){
-    if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ entry:'investorsList', activeTab:null, currentInvestorId:null });
-    }
-    applyFromState({ entry:'investorsList', activeTab:null, currentInvestorId:null });
+    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'investorsList', activeTab:null, currentInvestorId:null, workMode:'furnitureProjects' });
+    applyFromState({ entry:'investorsList', activeTab:null, currentInvestorId:null, workMode:'furnitureProjects' });
+  }
+
+  function openServiceOrdersList(){
+    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'serviceOrdersList', activeTab:null, roomType:null, currentInvestorId:null, workMode:'workshopServices' });
+    applyFromState({ entry:'serviceOrdersList', activeTab:null, roomType:null, currentInvestorId:null, workMode:'workshopServices' });
   }
 
   function openRooms(){
-    if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ entry: 'rooms', activeTab: 'pokoje' });
-    }
+    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'rooms', activeTab:'pokoje' });
     applyFromState({ entry:'rooms', activeTab:'pokoje' });
   }
 
   function openRoom(room){
     if(!room) return;
-    if(FC.uiState && FC.uiState.set){
-      FC.uiState.set({ entry:'app', roomType: room });
-    }
-    applyFromState({ entry:'app', roomType: room });
+    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'app', roomType:room });
+    applyFromState({ entry:'app', roomType:room });
   }
 
   function back(){
     const st = (FC.uiState && FC.uiState.get) ? FC.uiState.get() : {};
     if(st && st.entry === 'app'){
-      if(FC.uiState && FC.uiState.set){
-        FC.uiState.set({ entry:'rooms', roomType:null, activeTab:'pokoje' });
-      }
+      if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'rooms', roomType:null, activeTab:'pokoje' });
       return applyFromState({ entry:'rooms', roomType:null, activeTab:'pokoje' });
     }
+    if(st && st.entry === 'investorsList') return openModeHub('furnitureProjects');
+    if(st && st.entry === 'serviceOrdersList') return openModeHub('workshopServices');
     return openHome();
   }
 
   FC.views = FC.views || {};
   FC.views.showHome = showHome;
+  FC.views.showModeHub = showModeHub;
   FC.views.showInvestorsList = showInvestorsList;
+  FC.views.showServiceOrdersList = showServiceOrdersList;
   FC.views.showRooms = showRooms;
   FC.views.showApp = showApp;
   FC.views.showInvestor = showInvestor;
@@ -219,7 +186,9 @@
   FC.views.showMagazyn = showMagazyn;
   FC.views.applyFromState = applyFromState;
   FC.views.openHome = openHome;
+  FC.views.openModeHub = openModeHub;
   FC.views.openInvestorsList = openInvestorsList;
+  FC.views.openServiceOrdersList = openServiceOrdersList;
   FC.views.openRooms = openRooms;
   FC.views.openRoom = openRoom;
   FC.views.back = back;

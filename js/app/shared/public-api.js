@@ -33,7 +33,7 @@
 
     FC.openPriceListSafe = function(kind){
       try{
-        if(kind !== 'materials' && kind !== 'services') kind = 'materials';
+        if(!['materials','accessories','quoteRates','workshopServices'].includes(kind)) kind = 'materials';
         uiState.showPriceList = kind;
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         renderPriceModal();

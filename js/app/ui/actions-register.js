@@ -52,6 +52,25 @@
     }catch(_){ }
   }
 
+  function openPriceCatalog(kind){
+    try{
+      uiState.showPriceList = String(kind || 'materials');
+      if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function'){
+        uiState = window.FC.uiState.set({ showPriceList: uiState.showPriceList });
+      } else {
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      }
+      renderPriceModal();
+      FC.modal.open('priceModal');
+    }catch(_){ }
+    return true;
+  }
+
+  function openModeHub(mode){
+    try{ if(FC.views && typeof FC.views.openModeHub === 'function') FC.views.openModeHub(mode); }catch(_){ }
+    return true;
+  }
+
   function exitInvestorToList(){
     try{
       if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ entry:'investorsList', activeTab:null, roomType:null, currentInvestorId:null });
@@ -124,20 +143,13 @@
       return true;
     },
 
-    'open-materials': ({event}) => {
-      uiState.showPriceList='materials';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      renderPriceModal();
-      FC.modal.open('priceModal');
-      return true;
-    },
-    'open-services': ({event}) => {
-      uiState.showPriceList='services';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      renderPriceModal();
-      FC.modal.open('priceModal');
-      return true;
-    },
+    'open-furniture-hub': ({event}) => openModeHub('furnitureProjects'),
+    'open-workshop-hub': ({event}) => openModeHub('workshopServices'),
+    'close-mode-hub': ({event}) => { try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ } return true; },
+    'open-sheet-materials': ({event}) => openPriceCatalog('materials'),
+    'open-accessories': ({event}) => openPriceCatalog('accessories'),
+    'open-quote-rates': ({event}) => openPriceCatalog('quoteRates'),
+    'open-workshop-services': ({event}) => openPriceCatalog('workshopServices'),
 
     'open-investors-list': ({event}) => {
       // open separate investors list screen (no top tabs)
@@ -168,11 +180,25 @@
     },
 
     'close-investors-list': ({event}) => {
-      try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
+      try{ if(FC.views && FC.views.openModeHub) FC.views.openModeHub('furnitureProjects'); else if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
+      return true;
+    },
+    'open-service-orders-list': ({event}) => {
+      try{ if(FC.views && FC.views.openServiceOrdersList) FC.views.openServiceOrdersList(); }catch(_){ }
+      return true;
+    },
+    'close-service-orders-list': ({event}) => {
+      try{ if(FC.views && FC.views.openModeHub) FC.views.openModeHub('workshopServices'); else if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
+      return true;
+    },
+    'new-service-order': ({event}) => {
+      try{ if(FC.views && FC.views.openServiceOrdersList) FC.views.openServiceOrdersList(); }catch(_){ }
+      try{ if(window.FC && FC.serviceOrders && typeof FC.serviceOrders.openEditor === 'function') FC.serviceOrders.openEditor(); }catch(_){ }
       return true;
     },
 
     'new-investor': ({event}) => {
+      try{ if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set({ workMode:'furnitureProjects' }); }catch(_){ }
       openInvestorDraft('person');
       return true;
     },

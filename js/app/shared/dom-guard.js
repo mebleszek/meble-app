@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const REQUIRED = ['#roomsView','#appView','#topTabs','#backToRooms','#floatingAdd','#openMaterialsBtn','#openServicesBtn','#priceModal','#closePriceModal','#cabinetModal','#closeCabinetModal'];
+  const REQUIRED = ['#roomsView','#appView','#topTabs','#backToRooms','#floatingAdd','#openFurnitureProjectsBtn','#openWorkshopServicesBtn','#priceModal','#closePriceModal','#cabinetModal','#closeCabinetModal'];
 
   function validateRequiredDOM(){
     const missing = [];

@@ -1,5 +1,5 @@
 // js/app/material/material-registry.js
-// Shared material registry/helpers extracted from app.js.
+// Shared material/accessory registry helpers extracted from app.js.
 
 (function(){
   'use strict';
@@ -13,7 +13,17 @@
         akryl: ['Rehau','manufaktura Łomża'],
         lakier: ['elektronowa','Pol-wiór'],
         blat: ['Egger','KronoSpan','Swiss Krono','Woodeco'],
-        akcesoria: ['blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich']
+      };
+    }
+    if(!ns.ACCESSORY_MANUFACTURERS){
+      ns.ACCESSORY_MANUFACTURERS = ['blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
+    }
+
+    if(typeof ns.getManufacturersByKind !== 'function'){
+      ns.getManufacturersByKind = function(kind){
+        const key = String(kind || '').trim();
+        if(key === 'accessories') return (ns.ACCESSORY_MANUFACTURERS || []).slice();
+        return ((ns.MANUFACTURERS && ns.MANUFACTURERS[key]) || []).slice();
       };
     }
 
@@ -24,7 +34,7 @@
         try{
           const fallback = (typeof root !== 'undefined' && Array.isArray(root.materials)) ? root.materials : ((typeof window !== 'undefined' && Array.isArray(window.materials)) ? window.materials : []);
           const list = Array.isArray(materials) ? materials : fallback;
-          const it = list.find(m => String(m && m.name || '').trim() === name);
+          const it = list.find((m)=> String(m && m.name || '').trim() === name);
           return !!(it && it.hasGrain);
         }catch(_){
           return false;

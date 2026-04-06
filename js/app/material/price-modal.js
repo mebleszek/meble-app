@@ -1,6 +1,5 @@
 // js/app/material/price-modal.js
-// Renderer i kontroler modali cenników. Lista oraz formularz pozycji są rozdzielone,
-// a dodawanie/edycja działa przez osobny modal zgodny ze stylem aplikacji.
+// Kontekstowe katalogi/cenniki: materiały, akcesoria, stawki wyceny mebli, usługi stolarskie.
 
 (function(){
   'use strict';
@@ -8,43 +7,34 @@
   window.FC.priceModal = window.FC.priceModal || {};
   const FC = window.FC;
 
-  const MATERIAL_TYPES = ['laminat','akryl','lakier','blat','akcesoria'];
-  const DEFAULT_SERVICE_CATEGORIES = ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
+  const MATERIAL_TYPES = ['laminat','akryl','lakier','blat'];
+  const QUOTE_RATE_CATEGORIES = ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
+  const WORKSHOP_SERVICE_CATEGORIES = ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'];
   const runtimeState = {
-    itemModalOpen: false,
-    itemInitialSignature: '',
-    filters: {
-      materialType: '',
-      manufacturer: '',
-      serviceCategory: '',
-    },
+    itemModalOpen:false,
+    itemInitialSignature:'',
+    filters:{ materialType:'', manufacturer:'', category:'' },
   };
 
   function byId(id){ return document.getElementById(id); }
-
-  function appUiState(){
-    if(typeof uiState !== 'undefined' && uiState) return uiState;
-    FC.uiState = FC.uiState || {};
-    return FC.uiState;
+  function appUiState(){ return (typeof uiState !== 'undefined' && uiState) ? uiState : ((FC.uiState && FC.uiState.get) ? FC.uiState.get() : {}); }
+  function catalogStore(){ return FC.catalogStore || null; }
+  function currentListKind(){
+    const kind = String((appUiState() && appUiState().showPriceList) || 'materials');
+    return ['materials','accessories','quoteRates','workshopServices'].includes(kind) ? kind : 'materials';
   }
-
-  function currentListType(){
-    const state = appUiState();
-    return state && state.showPriceList === 'services' ? 'services' : 'materials';
-  }
-
-  function currentList(){
-    return currentListType() === 'materials'
-      ? (Array.isArray(typeof materials !== 'undefined' ? materials : null) ? materials : [])
-      : (Array.isArray(typeof services !== 'undefined' ? services : null) ? services : []);
-  }
-
-  function normalizeKey(value){
-    return String(value == null ? '' : value)
-      .trim()
-      .toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/\s+/g, ' ');
+  function currentConfig(){ return catalogStore() && catalogStore().getPriceConfig ? catalogStore().getPriceConfig(currentListKind()) : { key:'materials', title:'Cennik materiałów', subtitle:'', addLabel:'Dodaj', icon:'🧩', formKind:'material' }; }
+  function currentList(){ return catalogStore() && catalogStore().getPriceList ? catalogStore().getPriceList(currentListKind()) : []; }
+  function persistUi(){ try{ FC.storage.setJSON(STORAGE_KEYS.ui, appUiState()); }catch(_){ } }
+  function normalizeKey(value){ return String(value == null ? '' : value).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' '); }
+  function info(title, message){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ } }
+  function askConfirm(opts){ try{ return FC.confirmBox && FC.confirmBox.ask ? FC.confirmBox.ask(opts || {}) : Promise.resolve(true); }catch(_){ return Promise.resolve(true); } }
+  function confirmDelete(){ return askConfirm({ title:'Usunąć pozycję?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' }).then(Boolean); }
+  function confirmDiscard(){ return askConfirm({ title:'ANULOWAĆ ZMIANY?', message:'Niezapisane zmiany w tej pozycji zostaną utracone.', confirmText:'✕ ANULUJ ZMIANY', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' }).then(Boolean); }
+  function confirmSave(){
+    const isEdit = !!(appUiState() && appUiState().editingId);
+    const cfg = currentConfig();
+    return askConfirm({ title:'ZAPISAĆ ZMIANY?', message:isEdit ? 'Zapisać zmiany w tej pozycji katalogu?' : ('Dodać nową pozycję do: ' + cfg.title + '?'), confirmText:'Zapisz', cancelText:'Wróć', confirmTone:'success', cancelTone:'neutral' }).then(Boolean);
   }
 
   function ensureOption(selectEl, value, label){
@@ -67,9 +57,7 @@
       const item = entry && typeof entry === 'object' ? entry : { value:entry, label:entry };
       ensureOption(selectEl, item.value, item.label);
     });
-    if(prev && !Array.from(selectEl.options || []).some((opt)=> String(opt.value || '') === prev)){
-      ensureOption(selectEl, prev, fallbackLabel || prev);
-    }
+    if(prev && !Array.from(selectEl.options || []).some((opt)=> String(opt.value || '') === prev)) ensureOption(selectEl, prev, fallbackLabel || prev);
     selectEl.value = prev;
     if(String(selectEl.value || '') !== prev){
       const first = Array.from(selectEl.options || []).find((opt)=> String(opt.value || '') !== '') || (selectEl.options && selectEl.options[0]) || null;
@@ -80,10 +68,7 @@
   function buildOrderedValues(baseList, dynamicList, selectedValue, includeAllLabel){
     const seen = new Set();
     const out = [];
-    if(includeAllLabel != null){
-      out.push({ value:'', label:includeAllLabel });
-      seen.add('');
-    }
+    if(includeAllLabel != null){ out.push({ value:'', label:includeAllLabel }); seen.add(''); }
     function add(value){
       const raw = String(value == null ? '' : value).trim();
       if(!raw && includeAllLabel == null) return;
@@ -99,203 +84,135 @@
 
   function buildMaterialTypeOptions(selectedValue, opts){
     const cfg = Object.assign({ includeAll:false }, opts || {});
-    const fromItems = currentListType() === 'materials' ? currentList().map((item)=> item && item.materialType) : [];
+    const fromItems = currentListKind() === 'materials' ? currentList().map((item)=> item && item.materialType) : [];
     return buildOrderedValues(MATERIAL_TYPES, fromItems, selectedValue, cfg.includeAll ? 'Wszystkie typy' : null);
   }
 
-  function buildManufacturerOptions(typeVal, selectedValue, opts){
-    const cfg = Object.assign({ includeAll:false }, opts || {});
-    const registry = window.FC && window.FC.materialRegistry;
-    const manufacturers = (registry && registry.MANUFACTURERS) || {};
-    const currentType = String(typeVal || '').trim();
+  function buildManufacturerOptions(kind, typeVal, selectedValue, opts){
+    const knownKinds = ['materials','accessories','quoteRates','workshopServices'];
+    let listKind = String(kind || 'materials');
+    let currentType = typeVal;
+    let currentSelected = selectedValue;
+    let currentOpts = opts;
+    if(!knownKinds.includes(listKind)){
+      currentOpts = selectedValue;
+      currentSelected = typeVal;
+      currentType = listKind === 'akcesoria' ? '' : listKind;
+      listKind = listKind === 'akcesoria' ? 'accessories' : 'materials';
+    }
+    const cfg = Object.assign({ includeAll:false }, currentOpts || {});
+    const registry = FC.materialRegistry || {};
+    const list = listKind === currentListKind() ? currentList() : [];
     const source = [];
-    if(currentType){
-      source.push(...((manufacturers[currentType] || []).slice()));
-      (Array.isArray(typeof materials !== 'undefined' ? materials : null) ? materials : []).forEach((item)=>{
-        if(String(item && item.materialType || '') === currentType) source.push(item && item.manufacturer);
-      });
+    if(listKind === 'accessories'){
+      source.push(...((registry.ACCESSORY_MANUFACTURERS || []).slice()));
+      list.forEach((item)=> source.push(item && item.manufacturer));
+      return buildOrderedValues([], source, currentSelected, cfg.includeAll ? 'Wszyscy producenci' : null);
+    }
+    const manufacturers = registry.MANUFACTURERS || {};
+    const normalizedType = String(currentType || '').trim();
+    if(normalizedType){
+      source.push(...((manufacturers[normalizedType] || []).slice()));
+      list.forEach((item)=>{ if(String(item && item.materialType || '') === normalizedType) source.push(item && item.manufacturer); });
     }else{
       Object.keys(manufacturers).forEach((key)=> source.push(...(manufacturers[key] || [])));
-      (Array.isArray(typeof materials !== 'undefined' ? materials : null) ? materials : []).forEach((item)=> source.push(item && item.manufacturer));
+      list.forEach((item)=> source.push(item && item.manufacturer));
     }
-    return buildOrderedValues([], source, selectedValue, cfg.includeAll ? 'Wszyscy producenci' : null);
+    return buildOrderedValues([], source, currentSelected, cfg.includeAll ? 'Wszyscy producenci' : null);
   }
 
-  function buildServiceCategoryOptions(selectedValue, opts){
+  function buildCategoryOptions(kind, selectedValue, opts){
     const cfg = Object.assign({ includeAll:false }, opts || {});
-    const serviceList = Array.isArray((typeof services !== 'undefined') ? services : null) ? services : [];
-    const dynamic = serviceList.map((item)=> item && item.category);
-    return buildOrderedValues(DEFAULT_SERVICE_CATEGORIES, dynamic, selectedValue, cfg.includeAll ? 'Wszystkie kategorie' : null);
+    const base = kind === 'workshopServices' ? WORKSHOP_SERVICE_CATEGORIES : QUOTE_RATE_CATEGORIES;
+    const dynamic = currentList().map((item)=> item && item.category);
+    return buildOrderedValues(base, dynamic, selectedValue, cfg.includeAll ? 'Wszystkie kategorie' : null);
   }
 
   function mountChoice(opts){
     const cfg = Object.assign({ selectEl:null, mountId:'', title:'Wybierz', buttonClass:'investor-choice-launch', disabled:false, placeholder:'Wybierz', onChange:null }, opts || {});
     const selectEl = cfg.selectEl;
     const mount = cfg.mountId ? byId(cfg.mountId) : null;
-    if(!(mount && selectEl && window.FC && FC.investorChoice && typeof FC.investorChoice.mountChoice === 'function')) return null;
-    return FC.investorChoice.mountChoice({
-      mount,
-      selectEl,
-      title: cfg.title,
-      buttonClass: cfg.buttonClass,
-      disabled: !!cfg.disabled,
-      placeholder: cfg.placeholder,
-      onChange: cfg.onChange,
-    });
+    if(!(mount && selectEl && FC.investorChoice && typeof FC.investorChoice.mountChoice === 'function')) return null;
+    return FC.investorChoice.mountChoice({ mount, selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  function info(title, message){
-    try{
-      if(window.FC && FC.infoBox && typeof FC.infoBox.open === 'function'){
-        FC.infoBox.open({ title, message });
-        return;
-      }
-    }catch(_){ }
+  function filterMaterialWrapper(){ return byId('formMaterialTypeLaunch') && byId('formMaterialTypeLaunch').parentElement; }
+  function filterManufacturerWrapper(){ return byId('formManufacturerLaunch') && byId('formManufacturerLaunch').parentElement; }
+  function formCategoryWrapper(){ return byId('formCategoryLaunch') && byId('formCategoryLaunch').parentElement; }
+  function formServiceNameWrapper(){ return byId('formServiceName') && byId('formServiceName').parentElement; }
+  function formHasGrainRow(){ return byId('formHasGrain') && byId('formHasGrain').parentElement; }
+
+  function mountFilterChoices(){
+    const kind = currentListKind();
+    const materialTypeEl = byId('priceFilterMaterialType');
+    const manufacturerEl = byId('priceFilterManufacturer');
+    const categoryEl = byId('priceFilterCategory');
+    if(kind === 'materials'){
+      mountChoice({ selectEl:materialTypeEl, mountId:'priceFilterMaterialTypeLaunch', title:'Wybierz typ materiału', buttonClass:'investor-choice-launch', placeholder:'Wszystkie typy', onChange:(value)=>{ runtimeState.filters.materialType = String(value || ''); syncFilterSelects(); renderPriceList(); } });
+      mountChoice({ selectEl:manufacturerEl, mountId:'priceFilterManufacturerLaunch', title:'Wybierz producenta', buttonClass:'investor-choice-launch', placeholder:'Wszyscy producenci', onChange:(value)=>{ runtimeState.filters.manufacturer = String(value || ''); syncFilterSelects(); renderPriceList(); } });
+      return;
+    }
+    if(kind === 'accessories'){
+      mountChoice({ selectEl:manufacturerEl, mountId:'priceFilterManufacturerLaunch', title:'Wybierz producenta', buttonClass:'investor-choice-launch', placeholder:'Wszyscy producenci', onChange:(value)=>{ runtimeState.filters.manufacturer = String(value || ''); syncFilterSelects(); renderPriceList(); } });
+      return;
+    }
+    mountChoice({ selectEl:categoryEl, mountId:'priceFilterCategoryLaunch', title:'Wybierz kategorię', buttonClass:'investor-choice-launch', placeholder:'Wszystkie kategorie', onChange:(value)=>{ runtimeState.filters.category = String(value || ''); syncFilterSelects(); renderPriceList(); } });
   }
 
-  function askConfirm(opts){
-    try{
-      if(window.FC && FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
-        return FC.confirmBox.ask(opts || {});
-      }
-    }catch(_){ }
-    return Promise.resolve(true);
+  function syncFilterSelects(){
+    const kind = currentListKind();
+    const materialTypeEl = byId('priceFilterMaterialType');
+    const manufacturerEl = byId('priceFilterManufacturer');
+    const categoryEl = byId('priceFilterCategory');
+    if(kind === 'materials'){
+      setSelectOptions(materialTypeEl, buildMaterialTypeOptions(runtimeState.filters.materialType, { includeAll:true }), runtimeState.filters.materialType, 'Wszystkie typy');
+      setSelectOptions(manufacturerEl, buildManufacturerOptions('materials', runtimeState.filters.materialType, runtimeState.filters.manufacturer, { includeAll:true }), runtimeState.filters.manufacturer, 'Wszyscy producenci');
+    } else if(kind === 'accessories'){
+      setSelectOptions(materialTypeEl, [{ value:'', label:'Wszystkie akcesoria' }], '', 'Wszystkie akcesoria');
+      setSelectOptions(manufacturerEl, buildManufacturerOptions('accessories', '', runtimeState.filters.manufacturer, { includeAll:true }), runtimeState.filters.manufacturer, 'Wszyscy producenci');
+    } else {
+      setSelectOptions(categoryEl, buildCategoryOptions(kind, runtimeState.filters.category, { includeAll:true }), runtimeState.filters.category, 'Wszystkie kategorie');
+    }
   }
 
-  function confirmDelete(){
-    return askConfirm({
-      title:'Usunąć pozycję?',
-      message:'Tej operacji nie cofnisz.',
-      confirmText:'Usuń',
-      cancelText:'Wróć',
-      confirmTone:'danger',
-      cancelTone:'neutral'
-    }).then(Boolean);
+  function bindToolbarEvents(){
+    const search = byId('priceSearch');
+    if(search){ search.oninput = ()=> renderPriceList(); search.onchange = ()=> renderPriceList(); }
+    const clearBtn = byId('clearPriceFiltersBtn');
+    if(clearBtn) clearBtn.onclick = ()=>{
+      runtimeState.filters.materialType = '';
+      runtimeState.filters.manufacturer = '';
+      runtimeState.filters.category = '';
+      if(search) search.value = '';
+      syncFilterSelects();
+      mountFilterChoices();
+      renderPriceList();
+    };
+    const addBtn = byId('openPriceItemModalBtn');
+    if(addBtn) addBtn.onclick = ()=> openPriceItemModal();
   }
 
-  function confirmDiscardPriceItemChanges(){
-    return askConfirm({
-      title:'ANULOWAĆ ZMIANY?',
-      message:'Niezapisane zmiany w tej pozycji zostaną utracone.',
-      confirmText:'✕ ANULUJ ZMIANY',
-      cancelText:'Wróć',
-      confirmTone:'danger',
-      cancelTone:'neutral'
-    }).then(Boolean);
-  }
-
-  function confirmSavePriceItemChanges(){
-    const isEdit = !!(appUiState() && appUiState().editingId);
-    return askConfirm({
-      title:'ZAPISAĆ ZMIANY?',
-      message: isEdit ? 'Zapisać zmiany w tej pozycji cennika?' : 'Dodać nową pozycję do cennika?',
-      confirmText:'Zapisz',
-      cancelText:'Wróć',
-      confirmTone:'success',
-      cancelTone:'neutral'
-    }).then(Boolean);
-  }
-
-  function persistUi(){
-    try{ FC.storage.setJSON(STORAGE_KEYS.ui, appUiState()); }catch(_){ }
-  }
-
-  function firstNonEmptyValue(options){
-    const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== '');
-    return item ? String(item.value != null ? item.value : item) : '';
-  }
-
-  function defaultMaterialDraft(){
-    const type = firstNonEmptyValue(buildMaterialTypeOptions('laminat')) || 'laminat';
-    const manufacturer = firstNonEmptyValue(buildManufacturerOptions(type, '', { includeAll:false }));
-    return { materialType:type, manufacturer, symbol:'', name:'', price:'', hasGrain:false };
-  }
-
-  function defaultServiceDraft(){
-    return { category:firstNonEmptyValue(buildServiceCategoryOptions('Montaż')) || 'Montaż', name:'', price:'' };
-  }
-
-  function clearMaterialForm(){
-    ['formSymbol','formName','formPrice'].forEach((id)=>{ const el = byId(id); if(el) el.value = ''; });
-    const grain = byId('formHasGrain');
-    if(grain) grain.checked = false;
-  }
-
-  function clearServiceForm(){
-    ['formServiceName','formServicePrice'].forEach((id)=>{ const el = byId(id); if(el) el.value = ''; });
-  }
-
-  function applyMaterialFormState(item){
-    const typeEl = byId('formMaterialType');
-    const manufacturerEl = byId('formManufacturer');
-    const materialType = String(item && item.materialType || 'laminat');
-    setSelectOptions(typeEl, buildMaterialTypeOptions(materialType), materialType, materialType);
-    setSelectOptions(manufacturerEl, buildManufacturerOptions(materialType, item && item.manufacturer), String(item && item.manufacturer || ''), String(item && item.manufacturer || ''));
-    const symbolEl = byId('formSymbol');
-    const nameEl = byId('formName');
-    const priceEl = byId('formPrice');
-    if(symbolEl) symbolEl.value = String(item && item.symbol || '');
-    if(nameEl) nameEl.value = String(item && item.name || '');
-    if(priceEl) priceEl.value = item && item.price != null ? item.price : '';
-    const grain = byId('formHasGrain');
-    if(grain) grain.checked = !!(item && item.hasGrain);
-  }
-
-  function applyServiceFormState(item){
-    const categoryEl = byId('formCategory');
-    const category = String(item && item.category || 'Montaż');
-    setSelectOptions(categoryEl, buildServiceCategoryOptions(category), category, category);
-    const nameEl = byId('formServiceName');
-    const priceEl = byId('formServicePrice');
-    if(nameEl) nameEl.value = String(item && item.name || '');
-    if(priceEl) priceEl.value = item && item.price != null ? item.price : '';
-  }
+  function firstNonEmptyValue(options){ const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== ''); return item ? String(item.value != null ? item.value : item) : ''; }
+  function defaultMaterialDraft(){ const type = firstNonEmptyValue(buildMaterialTypeOptions('laminat')) || 'laminat'; const manufacturer = firstNonEmptyValue(buildManufacturerOptions('materials', type, '', { includeAll:false })); return { materialType:type, manufacturer, symbol:'', name:'', price:'', hasGrain:false }; }
+  function defaultAccessoryDraft(){ const manufacturer = firstNonEmptyValue(buildManufacturerOptions('accessories', '', '', { includeAll:false })); return { manufacturer, symbol:'', name:'', price:'' }; }
+  function defaultServiceDraft(kind){ return { category:firstNonEmptyValue(buildCategoryOptions(kind, kind === 'workshopServices' ? 'Cięcie' : 'Montaż', { includeAll:false })) || (kind === 'workshopServices' ? 'Cięcie' : 'Montaż'), name:'', price:'' }; }
 
   function currentEditedItem(){
-    if(!appUiState() || !appUiState().editingId) return null;
-    return currentList().find((item)=> item && item.id === appUiState().editingId) || null;
+    const editingId = appUiState() && appUiState().editingId;
+    if(!editingId) return null;
+    return currentList().find((item)=> item && item.id === editingId) || null;
   }
 
-  function normalizePriceValue(value){
-    const raw = String(value == null ? '' : value).trim();
-    if(!raw) return '';
-    const parsed = Number(raw.replace(',', '.'));
-    return Number.isFinite(parsed) ? parsed : raw;
-  }
-
-  function getCurrentMaterialDraft(){
-    return {
-      materialType: String((byId('formMaterialType') && byId('formMaterialType').value) || ''),
-      manufacturer: String((byId('formManufacturer') && byId('formManufacturer').value) || '').trim(),
-      symbol: String((byId('formSymbol') && byId('formSymbol').value) || '').trim(),
-      name: String((byId('formName') && byId('formName').value) || '').trim(),
-      price: normalizePriceValue(byId('formPrice') && byId('formPrice').value),
-      hasGrain: !!(byId('formHasGrain') && byId('formHasGrain').checked),
-    };
-  }
-
-  function getCurrentServiceDraft(){
-    return {
-      category: String((byId('formCategory') && byId('formCategory').value) || '').trim(),
-      name: String((byId('formServiceName') && byId('formServiceName').value) || '').trim(),
-      price: normalizePriceValue(byId('formServicePrice') && byId('formServicePrice').value),
-    };
-  }
-
-  function currentItemSignature(){
-    const data = currentListType() === 'materials' ? getCurrentMaterialDraft() : getCurrentServiceDraft();
-    return JSON.stringify(data);
-  }
-
-  function isItemDirty(){
-    if(!runtimeState.itemModalOpen) return false;
-    return currentItemSignature() !== String(runtimeState.itemInitialSignature || '');
-  }
+  function normalizePriceValue(value){ const raw = String(value == null ? '' : value).trim(); if(!raw) return ''; const parsed = Number(raw.replace(',', '.')); return Number.isFinite(parsed) ? parsed : raw; }
+  function getCurrentMaterialDraft(){ return { materialType:String((byId('formMaterialType') && byId('formMaterialType').value) || ''), manufacturer:String((byId('formManufacturer') && byId('formManufacturer').value) || '').trim(), symbol:String((byId('formSymbol') && byId('formSymbol').value) || '').trim(), name:String((byId('formName') && byId('formName').value) || '').trim(), price:normalizePriceValue(byId('formPrice') && byId('formPrice').value), hasGrain:!!(byId('formHasGrain') && byId('formHasGrain').checked) }; }
+  function getCurrentAccessoryDraft(){ return { manufacturer:String((byId('formManufacturer') && byId('formManufacturer').value) || '').trim(), symbol:String((byId('formSymbol') && byId('formSymbol').value) || '').trim(), name:String((byId('formName') && byId('formName').value) || '').trim(), price:normalizePriceValue(byId('formPrice') && byId('formPrice').value) }; }
+  function getCurrentServiceDraft(){ return { category:String((byId('formCategory') && byId('formCategory').value) || '').trim(), name:String((byId('formServiceName') && byId('formServiceName').value) || '').trim(), price:normalizePriceValue(byId('formServicePrice') && byId('formServicePrice').value) }; }
+  function currentItemSignature(){ const kind = currentConfig().formKind; const data = kind === 'material' ? getCurrentMaterialDraft() : (kind === 'accessory' ? getCurrentAccessoryDraft() : getCurrentServiceDraft()); return JSON.stringify(data); }
+  function isItemDirty(){ return runtimeState.itemModalOpen && currentItemSignature() !== String(runtimeState.itemInitialSignature || ''); }
 
   function updateItemActionState(){
     const dirty = isItemDirty();
     const isEdit = !!(appUiState() && appUiState().editingId);
-    const isMat = currentListType() === 'materials';
     const deleteBtn = byId('deletePriceItemBtn');
     const exitBtn = byId('priceItemExitBtn');
     const cancelBtn = byId('priceItemCancelBtn');
@@ -305,10 +222,7 @@
     if(deleteBtn) deleteBtn.style.display = isEdit ? '' : 'none';
     if(exitBtn) exitBtn.style.display = dirty ? 'none' : '';
     if(cancelBtn) cancelBtn.style.display = dirty ? '' : 'none';
-    if(saveBtn){
-      saveBtn.style.display = dirty ? '' : 'none';
-      saveBtn.textContent = isEdit ? 'Zapisz' : (isMat ? 'Dodaj' : 'Dodaj');
-    }
+    if(saveBtn){ saveBtn.style.display = dirty ? '' : 'none'; saveBtn.textContent = isEdit ? 'Zapisz' : currentConfig().addLabel.replace(/^Dodaj\s+/i, 'Dodaj '); }
   }
 
   function wireItemDirtyEvents(){
@@ -320,182 +234,88 @@
     });
   }
 
-  function syncFilterSelects(){
-    const isMat = currentListType() === 'materials';
-    const typeFilterEl = byId('priceFilterMaterialType');
-    const manufacturerFilterEl = byId('priceFilterManufacturer');
-    const categoryFilterEl = byId('priceFilterCategory');
-
-    if(isMat){
-      const nextType = String(runtimeState.filters.materialType || '');
-      setSelectOptions(typeFilterEl, buildMaterialTypeOptions(nextType, { includeAll:true }), nextType, 'Wszystkie typy');
-      const nextManufacturer = String(runtimeState.filters.manufacturer || '');
-      const manufacturerOptions = buildManufacturerOptions(nextType, nextManufacturer, { includeAll:true });
-      if(nextManufacturer && !manufacturerOptions.some((item)=> String(item && item.value || '') === nextManufacturer)) runtimeState.filters.manufacturer = '';
-      setSelectOptions(manufacturerFilterEl, manufacturerOptions, String(runtimeState.filters.manufacturer || ''), 'Wszyscy producenci');
-    }else{
-      const nextCategory = String(runtimeState.filters.serviceCategory || '');
-      setSelectOptions(categoryFilterEl, buildServiceCategoryOptions(nextCategory, { includeAll:true }), nextCategory, 'Wszystkie kategorie');
+  function setModalShellOpen(modal, wasOpen){
+    if(modal && !wasOpen){
+      try{ lockModalScroll(); }catch(_){ }
+      try{ modal.classList.add('modal-open-guard'); requestAnimationFrame(()=> setTimeout(()=>{ try{ modal.classList.remove('modal-open-guard'); }catch(_){ } }, 260)); }catch(_){ }
     }
   }
 
-  function mountFilterChoices(){
-    const isMat = currentListType() === 'materials';
-    if(isMat){
-      mountChoice({
-        selectEl: byId('priceFilterMaterialType'),
-        mountId: 'priceFilterMaterialTypeLaunch',
-        title: 'Filtruj po typie materiału',
-        placeholder: 'Wszystkie typy',
-        onChange: (value)=>{
-          runtimeState.filters.materialType = String(value || '');
-          syncFilterSelects();
-          mountFilterChoices();
-          renderPriceModal();
-        }
-      });
-      mountChoice({
-        selectEl: byId('priceFilterManufacturer'),
-        mountId: 'priceFilterManufacturerLaunch',
-        title: 'Filtruj po producencie',
-        placeholder: 'Wszyscy producenci',
-        onChange: (value)=>{
-          runtimeState.filters.manufacturer = String(value || '');
-          renderPriceModal();
-        }
-      });
-    }else{
-      mountChoice({
-        selectEl: byId('priceFilterCategory'),
-        mountId: 'priceFilterCategoryLaunch',
-        title: 'Filtruj po kategorii usługi',
-        placeholder: 'Wszystkie kategorie',
-        onChange: (value)=>{
-          runtimeState.filters.serviceCategory = String(value || '');
-          renderPriceModal();
-        }
-      });
-    }
-  }
-
-  function mountItemChoices(){
+  function applyMaterialFormState(item){
     const typeEl = byId('formMaterialType');
     const manufacturerEl = byId('formManufacturer');
+    const materialType = String(item && item.materialType || 'laminat');
+    setSelectOptions(typeEl, buildMaterialTypeOptions(materialType), materialType, materialType);
+    setSelectOptions(manufacturerEl, buildManufacturerOptions('materials', materialType, item && item.manufacturer), String(item && item.manufacturer || ''), String(item && item.manufacturer || ''));
+    if(byId('formSymbol')) byId('formSymbol').value = String(item && item.symbol || '');
+    if(byId('formName')) byId('formName').value = String(item && item.name || '');
+    if(byId('formPrice')) byId('formPrice').value = item && item.price != null ? item.price : '';
+    if(byId('formHasGrain')) byId('formHasGrain').checked = !!(item && item.hasGrain);
+  }
+  function applyAccessoryFormState(item){
+    const manufacturerEl = byId('formManufacturer');
+    setSelectOptions(manufacturerEl, buildManufacturerOptions('accessories', '', item && item.manufacturer), String(item && item.manufacturer || ''), String(item && item.manufacturer || ''));
+    if(byId('formSymbol')) byId('formSymbol').value = String(item && item.symbol || '');
+    if(byId('formName')) byId('formName').value = String(item && item.name || '');
+    if(byId('formPrice')) byId('formPrice').value = item && item.price != null ? item.price : '';
+    if(byId('formHasGrain')) byId('formHasGrain').checked = false;
+  }
+  function applyServiceFormState(item){
     const categoryEl = byId('formCategory');
-    mountChoice({
-      selectEl: typeEl,
-      mountId: 'formMaterialTypeLaunch',
-      title: 'Wybierz typ materiału',
-      placeholder: 'Wybierz typ',
-      onChange: ()=>{
-        const currentManufacturer = String((manufacturerEl && manufacturerEl.value) || '');
-        setSelectOptions(manufacturerEl, buildManufacturerOptions(typeEl && typeEl.value, currentManufacturer), currentManufacturer, currentManufacturer || '');
-        mountItemChoices();
-        updateItemActionState();
-      }
-    });
-    mountChoice({
-      selectEl: manufacturerEl,
-      mountId: 'formManufacturerLaunch',
-      title: 'Wybierz producenta',
-      placeholder: 'Wybierz producenta',
-      onChange: ()=>{ updateItemActionState(); }
-    });
-    mountChoice({
-      selectEl: categoryEl,
-      mountId: 'formCategoryLaunch',
-      title: 'Wybierz kategorię usługi',
-      placeholder: 'Wybierz kategorię',
-      onChange: ()=>{ updateItemActionState(); }
-    });
-  }
-
-  function clearFilters(){
-    runtimeState.filters.materialType = '';
-    runtimeState.filters.manufacturer = '';
-    runtimeState.filters.serviceCategory = '';
-    const search = byId('priceSearch');
-    if(search) search.value = '';
-  }
-
-  function bindToolbarEvents(){
-    const search = byId('priceSearch');
-    if(search) search.oninput = ()=>{ renderPriceModal(); };
-    const addBtn = byId('openPriceItemModalBtn');
-    if(addBtn) addBtn.onclick = ()=>{ openPriceItemModal(null); };
-    const clearBtn = byId('clearPriceFiltersBtn');
-    if(clearBtn) clearBtn.onclick = ()=>{ clearFilters(); renderPriceModal(); };
-    const closeItemBtn = byId('closePriceItemModal');
-    if(closeItemBtn) closeItemBtn.onclick = ()=>{ requestClosePriceItemModal('cancel'); };
-    const exitBtn = byId('priceItemExitBtn');
-    if(exitBtn) exitBtn.onclick = ()=>{ requestClosePriceItemModal('exit'); };
-    const cancelBtn = byId('priceItemCancelBtn');
-    if(cancelBtn) cancelBtn.onclick = ()=>{ requestClosePriceItemModal('cancel'); };
-    const saveBtn = byId('priceItemSaveBtn');
-    if(saveBtn) saveBtn.onclick = ()=>{ saveActivePriceItem(); };
-    const deleteBtn = byId('deletePriceItemBtn');
-    if(deleteBtn) deleteBtn.onclick = ()=>{ deleteActivePriceItem(); };
+    const category = String(item && item.category || (currentListKind() === 'workshopServices' ? 'Cięcie' : 'Montaż'));
+    setSelectOptions(categoryEl, buildCategoryOptions(currentListKind(), category), category, category);
+    if(byId('formServiceName')) byId('formServiceName').value = String(item && item.name || '');
+    if(byId('formServicePrice')) byId('formServicePrice').value = item && item.price != null ? item.price : '';
   }
 
   function renderItemModal(){
-    const modal = byId('priceItemModal');
-    if(!modal) return;
-    if(!runtimeState.itemModalOpen){
-      modal.style.display = 'none';
-      return;
-    }
-    const isMat = currentListType() === 'materials';
+    const kind = currentListKind();
+    const cfg = currentConfig();
+    const isEdit = !!(appUiState() && appUiState().editingId);
     const item = currentEditedItem();
-    const isEdit = !!(appUiState() && appUiState().editingId && item);
-    modal.style.display = 'flex';
-    try{
-      modal.classList.add('modal-open-guard');
-      requestAnimationFrame(()=> setTimeout(()=>{ try{ modal.classList.remove('modal-open-guard'); }catch(_){ } }, 220));
-    }catch(_){ }
+    if(byId('editingIndicator')) byId('editingIndicator').style.display = isEdit ? '' : 'none';
+    if(byId('priceItemModalTitle')) byId('priceItemModalTitle').textContent = isEdit ? 'Edytuj pozycję' : cfg.addLabel;
+    if(byId('priceItemModalSubtitle')) byId('priceItemModalSubtitle').textContent = cfg.subtitle;
+    if(byId('priceItemModalIcon')) byId('priceItemModalIcon').textContent = cfg.icon;
+    if(byId('priceFormTitle')) byId('priceFormTitle').textContent = isEdit ? 'Edytuj pozycję' : cfg.addLabel;
 
-    const title = isEdit ? 'Edytuj pozycję' : (isMat ? 'Dodaj produkt' : 'Dodaj usługę');
-    const subtitle = isMat ? 'Uzupełnij dane materiału zgodnie z cennikiem.' : 'Uzupełnij dane usługi zgodnie z cennikiem.';
-    const icon = isMat ? '🧩' : '🔧';
-    const titleEl = byId('priceItemModalTitle');
-    const subtitleEl = byId('priceItemModalSubtitle');
-    const iconEl = byId('priceItemModalIcon');
-    const formTitleEl = byId('priceFormTitle');
-    const editingEl = byId('editingIndicator');
     const materialFields = byId('materialFormFields');
     const serviceFields = byId('serviceFormFields');
-    if(titleEl) titleEl.textContent = title;
-    if(subtitleEl) subtitleEl.textContent = subtitle;
-    if(iconEl) iconEl.textContent = icon;
-    if(formTitleEl) formTitleEl.textContent = title;
-    if(editingEl) editingEl.style.display = isEdit ? 'inline-block' : 'none';
-    if(materialFields) materialFields.style.display = isMat ? 'block' : 'none';
-    if(serviceFields) serviceFields.style.display = isMat ? 'none' : 'block';
+    if(materialFields) materialFields.style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
+    if(serviceFields) serviceFields.style.display = cfg.formKind === 'service' ? '' : 'none';
 
-    if(isMat){
-      if(isEdit) applyMaterialFormState(item);
-      else {
-        applyMaterialFormState(defaultMaterialDraft());
-        clearMaterialForm();
-      }
-    }else{
-      try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
-      if(isEdit) applyServiceFormState(item);
-      else {
-        applyServiceFormState(defaultServiceDraft());
-        clearServiceForm();
-      }
+    const materialTypeWrap = filterMaterialWrapper();
+    const manufacturerWrap = filterManufacturerWrapper();
+    const grainRow = formHasGrainRow();
+    if(materialTypeWrap) materialTypeWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
+    if(manufacturerWrap) manufacturerWrap.style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
+    if(grainRow) grainRow.style.display = cfg.formKind === 'material' ? 'flex' : 'none';
+
+    if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
+    else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || defaultAccessoryDraft());
+    else applyServiceFormState(item || defaultServiceDraft(kind));
+
+    if(cfg.formKind === 'service'){
+      const categoryWrap = formCategoryWrapper();
+      const nameWrap = formServiceNameWrapper();
+      if(categoryWrap) categoryWrap.style.display = '';
+      if(nameWrap) nameWrap.style.display = '';
     }
-    mountItemChoices();
-    bindToolbarEvents();
+
     wireItemDirtyEvents();
     runtimeState.itemInitialSignature = currentItemSignature();
     updateItemActionState();
   }
 
-  function openPriceItemModal(itemId){
-    appUiState().editingId = itemId || null;
+  function openPriceItemModal(id){
+    const modal = byId('priceItemModal');
+    if(!modal) return;
+    const wasOpen = modal.style.display === 'flex';
+    appUiState().editingId = id || null;
     persistUi();
     runtimeState.itemModalOpen = true;
+    modal.style.display = 'flex';
+    setModalShellOpen(modal, wasOpen);
     renderItemModal();
   }
 
@@ -509,11 +329,10 @@
     return true;
   }
 
-  async function requestClosePriceItemModal(reason){
+  async function requestClosePriceItemModal(){
     if(!runtimeState.itemModalOpen) return true;
-    const dirty = isItemDirty();
-    if(dirty){
-      const ok = await confirmDiscardPriceItemChanges();
+    if(isItemDirty()){
+      const ok = await confirmDiscard();
       if(!ok) return false;
     }
     doClosePriceItemModal();
@@ -522,210 +341,147 @@
 
   function matchesSearch(item, query){
     if(!query) return true;
-    const haystack = [
-      item && item.name,
-      item && item.symbol,
-      item && item.manufacturer,
-      item && item.materialType,
-      item && item.category,
-    ].map((value)=> normalizeKey(value)).join(' ');
+    const haystack = [item && item.name, item && item.symbol, item && item.manufacturer, item && item.materialType, item && item.category].map((value)=> normalizeKey(value)).join(' ');
     return haystack.includes(query);
   }
 
   function filteredPriceList(){
-    const isMat = currentListType() === 'materials';
+    const kind = currentListKind();
     const q = normalizeKey((byId('priceSearch') && byId('priceSearch').value) || '');
-    const list = currentList();
-    return list.filter((item)=>{
+    return currentList().filter((item)=>{
       if(!matchesSearch(item, q)) return false;
-      if(isMat){
+      if(kind === 'materials'){
         if(runtimeState.filters.materialType && String(item && item.materialType || '') !== String(runtimeState.filters.materialType || '')) return false;
         if(runtimeState.filters.manufacturer && String(item && item.manufacturer || '') !== String(runtimeState.filters.manufacturer || '')) return false;
         return true;
       }
-      if(runtimeState.filters.serviceCategory && String(item && item.category || '') !== String(runtimeState.filters.serviceCategory || '')) return false;
+      if(kind === 'accessories'){
+        if(runtimeState.filters.manufacturer && String(item && item.manufacturer || '') !== String(runtimeState.filters.manufacturer || '')) return false;
+        return true;
+      }
+      if(runtimeState.filters.category && String(item && item.category || '') !== String(runtimeState.filters.category || '')) return false;
       return true;
     });
   }
 
   function renderPriceList(){
-    const isMat = currentListType() === 'materials';
     const container = byId('priceListItems');
     if(!container) return;
+    const kind = currentListKind();
     const filtered = filteredPriceList();
     container.innerHTML = '';
-
-    if(!filtered.length){
-      container.innerHTML = '<div class="muted" style="padding:10px">Brak pozycji dla aktualnych filtrów.</div>';
-      return;
-    }
-
+    if(!filtered.length){ container.innerHTML = '<div class="muted" style="padding:10px">Brak pozycji dla aktualnych filtrów.</div>'; return; }
     filtered.forEach((item)=>{
-      const row = document.createElement('div');
-      row.className = 'list-item price-modal-list-row';
-      const left = document.createElement('div');
-      left.className = 'price-modal-list-main';
-      left.style.minWidth = '0';
-      const grainBadge = (isMat && item && item.hasGrain) ? ' • 🌾 słoje' : '';
-      left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'}</div><div class="muted-tag xs">${isMat ? ((item.materialType || '—') + ' • ' + (item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : '') + grainBadge) : (item.category || '—')}</div>`;
-      const right = document.createElement('div');
-      right.className = 'price-modal-list-actions';
-      const price = document.createElement('div');
-      price.className = 'price-modal-list-price';
-      price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN';
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn';
-      editBtn.type = 'button';
-      editBtn.textContent = 'Edytuj';
-      right.appendChild(price);
-      right.appendChild(editBtn);
-      row.appendChild(left);
-      row.appendChild(right);
-      container.appendChild(row);
-
-      editBtn.addEventListener('click', ()=>{ openPriceItemModal(item.id); });
+      const row = document.createElement('div'); row.className = 'list-item price-modal-list-row';
+      const left = document.createElement('div'); left.className = 'price-modal-list-main'; left.style.minWidth = '0';
+      let meta = '';
+      if(kind === 'materials') meta = ((item.materialType || '—') + ' • ' + (item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : '') + (item.hasGrain ? ' • 🌾 słoje' : ''));
+      else if(kind === 'accessories') meta = ((item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : ''));
+      else meta = item.category || '—';
+      left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'}</div><div class="muted-tag xs">${meta}</div>`;
+      const right = document.createElement('div'); right.className = 'price-modal-list-actions';
+      const price = document.createElement('div'); price.className = 'price-modal-list-price'; price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN';
+      const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.type = 'button'; editBtn.textContent = 'Edytuj';
+      right.appendChild(price); right.appendChild(editBtn); row.appendChild(left); row.appendChild(right); container.appendChild(row);
+      editBtn.addEventListener('click', ()=> openPriceItemModal(item.id));
     });
   }
 
   async function closePriceModal(){
-    if(runtimeState.itemModalOpen){
-      return requestClosePriceItemModal('close-parent');
-    }
+    if(runtimeState.itemModalOpen){ const ok = await requestClosePriceItemModal(); if(!ok) return false; }
     try{ unlockModalScroll(); }catch(_){ }
-    appUiState().showPriceList = null;
-    persistUi();
-    const modal = byId('priceModal');
-    if(modal) modal.style.display = 'none';
+    appUiState().showPriceList = null; persistUi();
+    const modal = byId('priceModal'); if(modal) modal.style.display = 'none';
     return true;
   }
 
   function validateMaterialForm(data){
-    if(!String(data && data.name || '').trim()){
-      info('Brak nazwy', 'Wprowadź nazwę materiału, zanim go zapiszesz.');
-      return false;
-    }
-    if(!String(data && data.materialType || '').trim()){
-      info('Brak typu', 'Wybierz typ materiału.');
-      return false;
-    }
-    if(!String(data && data.manufacturer || '').trim()){
-      info('Brak producenta', 'Wybierz producenta dla materiału.');
-      return false;
-    }
+    if(!String(data && data.name || '').trim()){ info('Brak nazwy', 'Wprowadź nazwę materiału, zanim go zapiszesz.'); return false; }
+    if(!String(data && data.materialType || '').trim()){ info('Brak typu', 'Wybierz typ materiału.'); return false; }
+    if(!String(data && data.manufacturer || '').trim()){ info('Brak producenta', 'Wybierz producenta dla materiału.'); return false; }
+    return true;
+  }
+  function validateAccessoryForm(data){
+    if(!String(data && data.name || '').trim()){ info('Brak nazwy', 'Wprowadź nazwę akcesorium, zanim je zapiszesz.'); return false; }
+    if(!String(data && data.manufacturer || '').trim()){ info('Brak producenta', 'Wybierz producenta akcesorium.'); return false; }
+    return true;
+  }
+  function validateServiceForm(data){
+    if(!String(data && data.name || '').trim()){ info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.'); return false; }
+    if(!String(data && data.category || '').trim()){ info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
     return true;
   }
 
-  function validateServiceForm(data){
-    if(!String(data && data.name || '').trim()){
-      info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.');
-      return false;
-    }
-    if(!String(data && data.category || '').trim()){
-      info('Brak kategorii', 'Wybierz kategorię usługi.');
-      return false;
-    }
-    return true;
-  }
+  function saveCurrentList(next){ if(catalogStore() && typeof catalogStore().savePriceList === 'function') catalogStore().savePriceList(currentListKind(), next); }
 
   function saveMaterialFromForm(){
-    const data = getCurrentMaterialDraft();
-    if(!validateMaterialForm(data)) return false;
+    const data = getCurrentMaterialDraft(); if(!validateMaterialForm(data)) return false;
     const payload = Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain });
-    if(appUiState().editingId){
-      materials = (Array.isArray(materials) ? materials : []).map((m)=> m.id === appUiState().editingId ? Object.assign({}, m, payload) : m);
-    } else {
-      const id = FC.utils.uid();
-      materials = (Array.isArray(materials) ? materials : []).concat([Object.assign({ id }, payload)]);
-    }
-    FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-    doClosePriceItemModal();
-    renderPriceModal();
-    try{ renderCabinetModal(); }catch(_){ }
-    return true;
+    const next = currentList();
+    if(appUiState().editingId){ const idx = next.findIndex((item)=> item.id === appUiState().editingId); if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload); }
+    else next.push(Object.assign({ id:FC.utils.uid() }, payload));
+    saveCurrentList(next); doClosePriceItemModal(); renderPriceModal(); try{ renderCabinetModal(); }catch(_){ } return true;
   }
-
-  function saveServiceFromForm(){
-    try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
-    const data = getCurrentServiceDraft();
-    if(!validateServiceForm(data)) return false;
+  function saveAccessoryFromForm(){
+    const data = getCurrentAccessoryDraft(); if(!validateAccessoryForm(data)) return false;
     const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
-    if(appUiState().editingId){
-      services = (Array.isArray(services) ? services : []).map((s)=> s.id === appUiState().editingId ? Object.assign({}, s, payload) : s);
-    } else {
-      const id = FC.utils.uid();
-      services = (Array.isArray(services) ? services : []).concat([Object.assign({ id }, payload)]);
-    }
-    FC.storage.setJSON(STORAGE_KEYS.services, services);
-    doClosePriceItemModal();
-    renderPriceModal();
-    return true;
+    const next = currentList();
+    if(appUiState().editingId){ const idx = next.findIndex((item)=> item.id === appUiState().editingId); if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload); }
+    else next.push(Object.assign({ id:FC.utils.uid() }, payload));
+    saveCurrentList(next); doClosePriceItemModal(); renderPriceModal(); return true;
+  }
+  function saveServiceFromForm(){
+    try{ if(currentListKind() === 'quoteRates' && FC.wycenaCore && typeof FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
+    const data = getCurrentServiceDraft(); if(!validateServiceForm(data)) return false;
+    const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    const next = currentList();
+    if(appUiState().editingId){ const idx = next.findIndex((item)=> item.id === appUiState().editingId); if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload); }
+    else next.push(Object.assign({ id:FC.utils.uid() }, payload));
+    saveCurrentList(next); doClosePriceItemModal(); renderPriceModal(); return true;
   }
 
   async function saveActivePriceItem(){
     if(!runtimeState.itemModalOpen) return false;
     if(!isItemDirty()) return requestClosePriceItemModal('exit');
-    const ok = await confirmSavePriceItemChanges();
-    if(!ok) return false;
-    return currentListType() === 'materials' ? saveMaterialFromForm() : saveServiceFromForm();
+    const ok = await confirmSave(); if(!ok) return false;
+    const formKind = currentConfig().formKind;
+    if(formKind === 'material') return saveMaterialFromForm();
+    if(formKind === 'accessory') return saveAccessoryFromForm();
+    return saveServiceFromForm();
   }
 
   async function deletePriceItem(item){
-    const ok = await confirmDelete();
-    if(!ok) return false;
-    if(currentListType() === 'materials'){
-      materials = (Array.isArray(materials) ? materials : []).filter((m)=> m.id !== item.id);
-      FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-    } else {
-      services = (Array.isArray(services) ? services : []).filter((s)=> s.id !== item.id);
-      FC.storage.setJSON(STORAGE_KEYS.services, services);
-    }
+    const ok = await confirmDelete(); if(!ok) return false;
+    const next = currentList().filter((row)=> String(row.id) !== String(item && item.id));
+    saveCurrentList(next);
     if(String(appUiState().editingId || '') === String(item && item.id || '')) doClosePriceItemModal();
     renderPriceModal();
     try{ renderCabinetModal(); }catch(_){ }
     return true;
   }
-
-  function deleteActivePriceItem(){
-    const item = currentEditedItem();
-    if(!item) return false;
-    return deletePriceItem(item);
-  }
+  function deleteActivePriceItem(){ const item = currentEditedItem(); if(!item) return false; return deletePriceItem(item); }
 
   function renderPriceModal(){
-    try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const modal = byId('priceModal');
-    const type = appUiState().showPriceList;
+    const kind = currentListKind();
+    const active = String((appUiState() && appUiState().showPriceList) || '');
     const wasOpen = modal && modal.style.display === 'flex';
-    if(!type){
-      doClosePriceItemModal();
-      if(modal) modal.style.display = 'none';
-      if(wasOpen) try{ unlockModalScroll(); }catch(_){ }
-      return;
-    }
-
+    if(!active){ doClosePriceItemModal(); if(modal) modal.style.display = 'none'; if(wasOpen) try{ unlockModalScroll(); }catch(_){ } return; }
+    const cfg = currentConfig();
     if(modal) modal.style.display = 'flex';
-    if(modal && !wasOpen){
-      try{ lockModalScroll(); }catch(_){ }
-      try{
-        modal.classList.add('modal-open-guard');
-        requestAnimationFrame(()=> setTimeout(()=>{ try{ modal.classList.remove('modal-open-guard'); }catch(_){ } }, 260));
-      }catch(_){ }
-    }
+    setModalShellOpen(modal, wasOpen);
 
-    const isMat = type === 'materials';
-    const titleEl = byId('priceModalTitle');
-    const subtitleEl = byId('priceModalSubtitle');
-    const iconEl = byId('priceModalIcon');
     const materialFilters = byId('materialFilters');
     const serviceFilters = byId('serviceFilters');
     const addBtn = byId('openPriceItemModalBtn');
-    if(titleEl) titleEl.textContent = isMat ? 'Cennik materiałów' : 'Cennik usług';
-    if(subtitleEl) subtitleEl.textContent = isMat ? 'Szukaj, filtruj i zarządzaj materiałami.' : 'Szukaj, filtruj i zarządzaj usługami.';
-    if(iconEl) iconEl.textContent = isMat ? '🧩' : '🔧';
-    if(materialFilters) materialFilters.style.display = isMat ? 'grid' : 'none';
-    if(serviceFilters) serviceFilters.style.display = isMat ? 'none' : 'grid';
-    if(addBtn) addBtn.textContent = isMat ? 'Dodaj produkt' : 'Dodaj usługę';
-
+    if(byId('priceModalTitle')) byId('priceModalTitle').textContent = cfg.title;
+    if(byId('priceModalSubtitle')) byId('priceModalSubtitle').textContent = cfg.subtitle;
+    if(byId('priceModalIcon')) byId('priceModalIcon').textContent = cfg.icon;
+    if(addBtn) addBtn.textContent = cfg.addLabel;
+    if(materialFilters) materialFilters.style.display = (kind === 'materials' || kind === 'accessories') ? 'grid' : 'none';
+    if(serviceFilters) serviceFilters.style.display = (kind === 'quoteRates' || kind === 'workshopServices') ? 'grid' : 'none';
+    const materialTypeWrap = byId('priceFilterMaterialTypeLaunch') && byId('priceFilterMaterialTypeLaunch').parentElement;
+    if(materialTypeWrap) materialTypeWrap.style.display = kind === 'materials' ? '' : 'none';
     syncFilterSelects();
     mountFilterChoices();
     bindToolbarEvents();
@@ -743,11 +499,7 @@
   window.FC.priceModal.saveMaterialFromForm = saveMaterialFromForm;
   window.FC.priceModal.saveServiceFromForm = saveServiceFromForm;
   window.FC.priceModal.deletePriceItem = deletePriceItem;
-  window.FC.priceModal._debug = {
-    buildServiceCategoryOptions,
-    buildManufacturerOptions,
-    buildMaterialTypeOptions,
-    filteredPriceList,
-    runtimeState,
-  };
+  function buildServiceCategoryOptions(selectedValue, opts){ return buildCategoryOptions('quoteRates', selectedValue, opts); }
+
+  window.FC.priceModal._debug = { buildCategoryOptions, buildServiceCategoryOptions, buildManufacturerOptions, buildMaterialTypeOptions, filteredPriceList, runtimeState };
 })();
