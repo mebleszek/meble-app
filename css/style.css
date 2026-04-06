@@ -1512,3 +1512,134 @@
     --resolved-col-cab-max:20ch;
   }
 }
+
+
+/* --- 2026-04-06: Wycena + cennik + PDF inwestora --- */
+.price-modal-choice-launch{
+  width:100%;
+  min-height:42px;
+  justify-content:flex-start;
+  border-radius:12px;
+}
+.price-modal-choice-launch .rozrys-choice-launch__value{min-width:0;gap:0;}
+.price-modal-choice-launch .rozrys-choice-launch__label{
+  font-size:14px;
+  line-height:1.25;
+  font-weight:700;
+  color:#0f172a;
+  overflow-wrap:anywhere;
+}
+.price-modal-list-actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.price-modal-list-price{
+  font-weight:900;
+  white-space:nowrap;
+}
+.quote-root{
+  padding:22px;
+  text-align:left;
+}
+.quote-topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.quote-topbar__actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.quote-scope{ overflow-wrap:anywhere; }
+.quote-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.quote-list__head,
+.quote-list__row{
+  display:grid;
+  grid-template-columns:minmax(0,1.8fr) minmax(92px,.55fr) minmax(110px,.7fr) minmax(118px,.78fr);
+  gap:12px;
+  align-items:start;
+}
+.quote-list__head{
+  padding:0 6px 6px;
+  border-bottom:1px solid rgba(203,213,225,.85);
+}
+.quote-list__cell{ min-width:0; overflow-wrap:anywhere; }
+.quote-list__cell--head{
+  font-size:12px;
+  line-height:1.2;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  color:#64748b;
+}
+.quote-list__item{
+  border:1px solid rgba(226,232,240,.95);
+  border-radius:14px;
+  background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+  padding:12px 14px;
+  box-shadow:0 6px 18px rgba(15,23,42,.04);
+}
+.quote-list__cell--name{ font-weight:800; color:#0f172a; }
+.quote-list__cell--qty,
+.quote-list__cell--price,
+.quote-list__cell--total{ font-weight:700; white-space:nowrap; }
+.quote-list__meta{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px dashed rgba(203,213,225,.92);
+  font-size:12px;
+  line-height:1.4;
+  color:#64748b;
+  overflow-wrap:anywhere;
+}
+.quote-totals__row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:6px 0;
+  font-weight:700;
+}
+@media (max-width: 860px){
+  .quote-list__head,
+  .quote-list__row{
+    grid-template-columns:minmax(0,1.6fr) minmax(84px,.6fr) minmax(98px,.7fr) minmax(102px,.76fr);
+    gap:10px;
+  }
+}
+@media (max-width: 640px){
+  .quote-root{ padding:18px 14px; }
+  .quote-list__head{ display:none; }
+  .quote-list__row{
+    grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,auto));
+    gap:8px 10px;
+  }
+  .quote-list__cell--name{ grid-column:1 / -1; }
+  .quote-list__cell--qty::before,
+  .quote-list__cell--price::before,
+  .quote-list__cell--total::before{
+    display:block;
+    margin-bottom:2px;
+    font-size:11px;
+    line-height:1.2;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:#64748b;
+  }
+  .quote-list__cell--qty::before{ content:'Ilość'; }
+  .quote-list__cell--price::before{ content:'Cena'; }
+  .quote-list__cell--total::before{ content:'Wartość'; }
+  .price-modal-list-actions{ width:100%; justify-content:flex-start; }
+  .price-modal-list-price{ width:100%; }
+}

@@ -165,11 +165,13 @@
 <div class="grid-3">
 <div>
 <label>Typ materiału</label>
-<select id="formMaterialType"></select>
+<select id="formMaterialType" hidden></select>
+<div id="formMaterialTypeLaunch"></div>
 </div>
 <div>
 <label>Producent</label>
-<select id="formManufacturer"></select>
+<select id="formManufacturer" hidden></select>
+<div id="formManufacturerLaunch"></div>
 </div>
 <div>
 <label>Symbol</label>
@@ -199,7 +201,8 @@
 <div class="grid-3">
 <div>
 <label>Kategoria</label>
-<input id="formCategory" type="text" value="Montaż"/>
+<select id="formCategory" hidden></select>
+<div id="formCategoryLaunch"></div>
 </div>
 <div style="grid-column:span 2">
 <label>Nazwa</label>
@@ -407,8 +410,9 @@
 <script defer src="js/app/investor/investor-choice.js?v=20260406_session_source_fix_v1"></script>
 <script defer src="js/app/investor/investor-links.js?v=20260403_investor_arch_sync_v1"></script>
 <script defer src="js/app/investor/investor-field-render.js?v=20260406_session_source_fix_v1"></script>
-<script defer src="js/app/investor/investor-actions.js?v=20260405_dup_owner_v1"></script>
+<script defer src="js/app/investor/investor-actions.js?v=20260406_quote_ui_pdf_v1"></script>
 <script defer src="js/app/investor/investor-modals.js?v=20260405_dup_owner_v1"></script>
+<script defer src="js/app/investor/investor-pdf.js?v=20260406_quote_ui_pdf_v1"></script>
 <script defer src="js/app/investor/investor-rooms.js?v=20260405_investor_followup_v2"></script>
 <script defer src="js/app/investor/investor-ui.js?v=20260406_session_source_fix_v1"></script>
 <script defer src="js/app/ui/sections.js?v=20260331_boot_fix_v1"></script>
@@ -422,7 +426,7 @@
 
 <script defer src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script defer src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/material/price-modal.js?v=20260405_wycena_start_v1"></script>
+<script defer src="js/app/material/price-modal.js?v=20260406_quote_ui_pdf_v1"></script>
 <script defer src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/ui/info-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/ui/panel-box.js?v=20260329_rozrys_visual_polish_v1"></script>
@@ -456,8 +460,8 @@
 <script defer src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/tabs/material.js?v=20260406_session_fix_v2"></script>
 <script defer src="js/tabs/czynnosci.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/wycena/wycena-core.js?v=20260405_wycena_start_v1"></script>
-<script defer src="js/tabs/wycena.js?v=20260405_wycena_start_v1"></script>
+<script defer src="js/app/wycena/wycena-core.js?v=20260406_quote_ui_pdf_v1"></script>
+<script defer src="js/tabs/wycena.js?v=20260406_quote_ui_pdf_v1"></script>
 
 <!-- rozrys/magazyn -->
 <script defer src="js/app/optimizer/cut-optimizer.js?v=20260328_rozrys_choice_clean_v1"></script>
