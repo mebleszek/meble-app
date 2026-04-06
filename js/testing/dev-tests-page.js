@@ -99,6 +99,34 @@
     return lines.join('\n');
   }
 
+  function buildErrorsOnlyClipboardText(suites, overall){
+    const lines = [];
+    lines.push(`Testy aplikacji — tylko błędy: ${overall.failed}`);
+    if(!overall.failed){
+      lines.push('Brak błędów.');
+      return lines.join('\n');
+    }
+    suites.forEach((suite)=>{
+      const failedGroups = (suite.report.groups || []).map((group)=>({
+        name:group.name,
+        results:(group.results || []).filter((row)=> !row.ok)
+      })).filter((group)=> group.results.length);
+      if(!failedGroups.length) return;
+      lines.push('');
+      lines.push(`=== ${suite.name} ===`);
+      failedGroups.forEach((group)=>{
+        lines.push(`[${group.name}] ${group.results.length} bł.`);
+        group.results.forEach((row)=>{
+          lines.push(`- BŁĄD: ${row.name}`);
+          if(row.explain) lines.push(`  Po co: ${row.explain}`);
+          if(row.message) lines.push(`  Powód: ${row.message}`);
+          if(row.details != null) lines.push(`  Szczegóły: ${detailsToText(row.details)}`);
+        });
+      });
+    });
+    return lines.join('\n');
+  }
+
   function renderResult(target, suites){
     const overall = suites.reduce((acc, suite)=>{
       const report = suite.report;
@@ -124,8 +152,10 @@
     const runRozrysBtn = ensureButton('runRozrysTests');
     const runAppBtn = ensureButton('runAppTests');
     const copyBtn = ensureButton('copyReport');
+    const copyErrorsBtn = ensureButton('copyErrorsOnly');
     const results = ensureButton('results');
     let lastOverall = null;
+    let lastSuites = [];
 
     function setRunning(isRunning, sourceBtn){
       [runAllBtn, runRozrysBtn, runAppBtn].forEach((btn)=>{
@@ -138,6 +168,7 @@
         sourceBtn.textContent = 'Uruchamiam...';
       }
       copyBtn.disabled = isRunning || !lastOverall;
+      copyErrorsBtn.disabled = isRunning || !lastOverall;
     }
 
     function collectSuites(mode){
@@ -156,10 +187,14 @@
       results.innerHTML = '';
       try{
         const suites = collectSuites(mode);
+        lastSuites = suites.slice();
         lastOverall = renderResult(results, suites);
         copyBtn.disabled = false;
+        copyErrorsBtn.disabled = false;
       } catch(error){
+        lastSuites = [];
         lastOverall = {
+          failed:1,
           clipboardText: `Testy aplikacji: BŁĄD\n${error && error.message ? error.message : String(error)}`,
         };
         results.innerHTML = `
@@ -169,36 +204,48 @@
           </div>
         `;
         copyBtn.disabled = false;
+        copyErrorsBtn.disabled = false;
       } finally {
         setRunning(false);
       }
     }
 
-    async function copyReport(){
-      if(!lastOverall || !lastOverall.clipboardText) return;
+    async function copyText(text, button, successText){
+      if(!text) return;
       try{
         if(navigator.clipboard && navigator.clipboard.writeText){
-          await navigator.clipboard.writeText(lastOverall.clipboardText);
+          await navigator.clipboard.writeText(text);
         } else {
           const textarea = document.createElement('textarea');
-          textarea.value = lastOverall.clipboardText;
+          textarea.value = text;
           document.body.appendChild(textarea);
           textarea.select();
           document.execCommand('copy');
           textarea.remove();
         }
-        copyBtn.textContent = 'Raport skopiowany';
-        setTimeout(()=>{ copyBtn.textContent = copyBtn.dataset.label; }, 1500);
+        button.textContent = successText;
+        setTimeout(()=>{ button.textContent = button.dataset.label; }, 1500);
       } catch(_error){
-        copyBtn.textContent = 'Nie udało się skopiować';
-        setTimeout(()=>{ copyBtn.textContent = copyBtn.dataset.label; }, 1800);
+        button.textContent = 'Nie udało się skopiować';
+        setTimeout(()=>{ button.textContent = button.dataset.label; }, 1800);
       }
+    }
+
+    async function copyReport(){
+      if(!lastOverall || !lastOverall.clipboardText) return;
+      await copyText(lastOverall.clipboardText, copyBtn, 'Raport skopiowany');
+    }
+
+    async function copyErrorsOnly(){
+      if(!lastOverall) return;
+      await copyText(buildErrorsOnlyClipboardText(lastSuites, lastOverall), copyErrorsBtn, 'Błędy skopiowane');
     }
 
     runAllBtn.addEventListener('click', ()=> run('all', runAllBtn));
     runRozrysBtn.addEventListener('click', ()=> run('rozrys', runRozrysBtn));
     runAppBtn.addEventListener('click', ()=> run('app', runAppBtn));
     copyBtn.addEventListener('click', copyReport);
+    copyErrorsBtn.addEventListener('click', copyErrorsOnly);
 
     const hash = String((host.location && host.location.hash) || '').toLowerCase();
     if(hash === '#rozrys') run('rozrys', runRozrysBtn);

@@ -153,6 +153,7 @@ To jest techniczna siatka bezpieczeństwa, która ma szybciej wyłapywać regres
 
 Plik `dev_tests.html` uruchamia smoke-testy ROZRYS przez stronę.
 Po kliknięciu `Uruchom testy ROZRYS` pokazuje czytelny raport: co przeszło, co nie przeszło, krótki powód błędu oraz podsumowanie `X/Y OK`.
+Raport ma też akcje `Kopiuj raport` oraz `Kopiuj tylko błędy`, żeby łatwo przenieść samą listę niezaliczonych testów.
 Przycisk `Kopiuj raport` pozwala szybko skopiować wynik do wklejenia w rozmowie.
 
 

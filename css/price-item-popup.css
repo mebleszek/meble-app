@@ -1,0 +1,82 @@
+/* 2026-04-06 — popup override dla Dodaj/Edytuj pozycji cennika.
+   Ten modal ma działać jak prawdziwe okno aplikacji, a nie pełnoekranowa plansza. */
+
+#priceItemModal{
+  --price-item-top-offset:clamp(56px, 20dvh, 160px);
+  --price-item-bottom-offset:max(14px, env(safe-area-inset-bottom));
+  align-items:flex-start;
+  justify-content:center;
+  padding:var(--price-item-top-offset) 12px var(--price-item-bottom-offset);
+  overflow:hidden;
+}
+
+#priceItemModal .modal{
+  width:min(760px, calc(100vw - 24px));
+  max-width:760px;
+  height:auto;
+  max-height:calc(100dvh - var(--price-item-top-offset) - var(--price-item-bottom-offset));
+  border-radius:22px;
+  display:flex;
+  flex-direction:column;
+}
+
+#priceItemModal .modal .header{
+  position:static;
+  width:auto;
+  padding:18px 20px;
+}
+
+#priceItemModal .modal .body{
+  max-height:none;
+  min-height:0;
+  overflow:auto;
+  padding:20px 22px 22px;
+}
+
+#priceItemModal .modal .body > .card{
+  margin:0;
+}
+
+#priceItemModal .price-item-footer{
+  position:sticky;
+  bottom:0;
+  z-index:2;
+  padding-top:12px;
+  margin-top:14px;
+  border-top:1px solid rgba(229,237,245,.92);
+  background:#fff;
+}
+
+@media (max-width:600px){
+  #priceItemModal{
+    padding:clamp(56px, 20dvh, 160px) 12px max(14px, env(safe-area-inset-bottom));
+    align-items:flex-start;
+    justify-content:center;
+  }
+
+  #priceItemModal .modal{
+    width:calc(100vw - 24px);
+    max-width:760px;
+    height:auto;
+    max-height:calc(100dvh - var(--price-item-top-offset) - var(--price-item-bottom-offset));
+    border-radius:22px;
+    grid-template-rows:none;
+  }
+
+  #priceItemModal .modal .header{
+    padding:18px 18px;
+    flex-wrap:nowrap;
+    gap:12px;
+  }
+
+  #priceItemModal .modal .header > div:last-child{
+    width:auto;
+  }
+
+  #priceItemModal .modal .body{
+    padding:18px 18px 20px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+  }
+}

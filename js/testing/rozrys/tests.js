@@ -207,11 +207,33 @@
 
     const prevDocument = host.document;
     const prevNode = host.Node;
-    host.Node = FakeNode;
-    host.document = { createElement:(tag)=> new FakeNode(tag) };
+    const fakeDocument = { createElement:(tag)=> new FakeNode(tag) };
+    let nodePatched = false;
+    let documentReplaced = false;
+    let createElementPatched = false;
+    const prevCreateElement = prevDocument && typeof prevDocument.createElement === 'function' ? prevDocument.createElement : null;
+
+    try{
+      host.Node = FakeNode;
+      nodePatched = true;
+    }catch(_error){ }
+
+    try{
+      host.document = fakeDocument;
+      documentReplaced = true;
+    }catch(_error){
+      if(prevDocument && prevCreateElement){
+        try{
+          prevDocument.createElement = fakeDocument.createElement;
+          createElementPatched = true;
+        }catch(__error){ }
+      }
+    }
+
     return function restore(){
-      host.document = prevDocument;
-      host.Node = prevNode;
+      try{ if(documentReplaced) host.document = prevDocument; }catch(_error){}
+      try{ if(createElementPatched && prevDocument && prevCreateElement) prevDocument.createElement = prevCreateElement; }catch(_error){}
+      try{ if(nodePatched) host.Node = prevNode; }catch(_error){}
     };
   }
 

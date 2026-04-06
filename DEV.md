@@ -1,3 +1,5 @@
+- 2026-04-06 — `site_price_popup_tests_queue.zip`: `Dodaj`/`Edytuj` w cennikach dostało mobilny popup w stylu aplikacji przez osobny arkusz `css/price-item-popup.css`; `dev_tests.html` dostał przycisk `Kopiuj tylko błędy`; do testów dopięto brakujące moduły (`investor-persistence`, `rozrys-scope`, `rozrys-render`, `rozrys`) oraz poprawiono fake DOM dla render-smoke w przeglądarce.
+
 - 2026-04-06 — `site_quote_ui_pdf_price_choices.zip`: zakładka `Wycena` dostała własny, wąski layout bez odziedziczonych szerokości z list ROZRYS; cennik materiałów/usług przeszedł z systemowych selectów i `alert/confirm` na aplikacyjne launchery + nasze boxy; inwestor dostał osobny moduł `investor-pdf.js` oraz przycisk `PDF` do karty segregatorowej.
 
 - 2026-04-06 — `site_source_picker_merge_sumcheck.zip`: przywrócona produkcyjna rola listy `Skomasowana` (bez sztucznego `OK` w kolumnach), dodana osobna kontrolka sum `RAW` vs `Skomasowana`, poprawiony eksport PDF list, usunięty separator nad `Usuń/Edytuj`, nowe domyślne `BRAK` w dodatkowych informacjach nowego inwestora oraz aplikacyjna lista wyboru `Źródło`.
