@@ -27,17 +27,21 @@
     return { text:`Walidacja: ${parts.join(' • ')}`, tone:'is-warn' };
   }
 
+  function sumRowsQty(rows){
+    return (rows || []).reduce((sum, row)=> sum + Math.max(0, Number(row && row.qty) || 0), 0);
+  }
+
   function buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms, deps){
     const cfg = Object.assign({
       buildRawSnapshotForMaterial:null,
       buildResolvedSnapshotFromParts:null,
     }, deps || {});
     const rv = FC.rozrysValidation;
-    if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function' && typeof rv.validateResolution === 'function')) return null;
+    if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function')) return null;
     const rawRows = typeof cfg.buildRawSnapshotForMaterial === 'function'
       ? (cfg.buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms) || [])
       : [];
-    const resolvedRows = rawRows.length
+    const mergedRows = rawRows.length
       ? rv.aggregateRows(rawRows)
       : (typeof cfg.buildResolvedSnapshotFromParts === 'function' ? cfg.buildResolvedSnapshotFromParts(parts) : []);
     const actual = rv.summarizePlan(plan, targetMaterial);
@@ -51,13 +55,17 @@
     });
     actual.rows = (actual.rows || []).map((row)=> Object.assign({}, row, sourceByKey.get(row.key) || {}));
     actual.sheets = (actual.sheets || []).map((sheet)=> Object.assign({}, sheet, { rows:(sheet.rows || []).map((row)=> Object.assign({}, row, sourceByKey.get(row.key) || {})) }));
-    const mergeValidation = rv.validateResolution(rawRows, resolvedRows);
-    const validation = rv.validate(resolvedRows, actual.rows);
+    const validation = rv.validate(mergedRows, actual.rows);
+    const rawQtyTotal = sumRowsQty(rawRows);
+    const mergedQtyTotal = sumRowsQty(mergedRows);
     return {
       rawRows,
       rawCount: rawRows.length,
-      resolvedRows,
-      mergeValidation,
+      rawQtyTotal,
+      mergedRows,
+      mergedCount: mergedRows.length,
+      mergedQtyTotal,
+      mergedQtyMatch: rawQtyTotal === mergedQtyTotal,
       actualRows: actual.rows,
       sheets: actual.sheets,
       validation,
@@ -187,26 +195,24 @@
     const summary = validationSummaryLabel(diag);
     const metaRow = h('div', { class:'rozrys-validation-summary' });
     metaRow.appendChild(h('span', { class:`rozrys-pill ${summary.tone}`, text:summary.text }));
-    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Raw 1:1: ${diag.rawCount} pozycji` }));
-    const mergeSummary = diag.mergeValidation && diag.mergeValidation.ok
-      ? `Scalanie: OK • ${diag.resolvedRows.length} pozycji`
-      : `Scalanie: ${((diag.mergeValidation && diag.mergeValidation.missingQty) || 0)} brak / ${((diag.mergeValidation && diag.mergeValidation.extraQty) || 0)} nad`;
-    metaRow.appendChild(h('span', { class:`rozrys-pill ${diag.mergeValidation && diag.mergeValidation.ok ? 'is-ok' : 'is-warn'}`, text:mergeSummary }));
+    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`RAW 1:1: ${diag.rawCount} pozycji` }));
+    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Skomasowana: ${diag.mergedCount} pozycji` }));
+    metaRow.appendChild(h('span', { class:`rozrys-pill ${diag.mergedQtyMatch ? 'is-ok' : 'is-warn'}`, text:`Kontrola sum: RAW ${diag.rawQtyTotal} • Skomasowana ${diag.mergedQtyTotal}` }));
     body.appendChild(metaRow);
 
     const rawTable = lists.buildRawTable(diag.rawRows, unit, cfg.mmToUnitStr);
-    const resolvedTable = lists.buildListTable((diag.mergeValidation && diag.mergeValidation.rows) || [], unit, 'merged', cfg.mmToUnitStr);
+    const resolvedTable = lists.buildListTable(diag.mergedRows || [], unit, 'merged', cfg.mmToUnitStr);
     const validationTable = lists.buildListTable((diag.validation && diag.validation.rows) || [], unit, 'validation', cfg.mmToUnitStr);
 
     const tabs = buildTabs([
       {
         label:'RAW',
-        action:createPdfAction('PDF', `Lista RAW — ${material}`, `Raw 1:1 • ${diag.rawCount} pozycji`, rawTable, cfg.openPrintView),
+        action:createPdfAction('PDF', `Lista RAW — ${material}`, `RAW 1:1 • ${diag.rawCount} pozycji`, rawTable, cfg.openPrintView),
         content: buildTabContent(rawTable)
       },
       {
         label:'Skomasowana',
-        action:createPdfAction('PDF', `Lista skomasowana — ${material}`, `Kontrola scalania • ${(diag.resolvedRows || []).length} pozycji`, resolvedTable, cfg.openPrintView),
+        action:createPdfAction('PDF', `Lista skomasowana — ${material}`, `Lista produkcyjna skomasowana • ${(diag.mergedRows || []).length} pozycji`, resolvedTable, cfg.openPrintView),
         content: buildTabContent(resolvedTable)
       },
       {

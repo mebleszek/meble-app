@@ -17,6 +17,22 @@
     { value: 'odrzucone', label: 'Odrzucone' },
   ];
 
+  const INVESTOR_SOURCE_OPTIONS = [
+    { value:'Ulotka', label:'Ulotka' },
+    { value:'Wizytówka', label:'Wizytówka' },
+    { value:'Reklama na aucie', label:'Reklama na aucie' },
+    { value:'OLX', label:'OLX' },
+    { value:'Internet', label:'Internet' },
+    { value:'Facebook', label:'Facebook' },
+    { value:'Instagram', label:'Instagram' },
+    { value:'YouTube', label:'YouTube' },
+    { value:'Google', label:'Google' },
+    { value:'Polecenie', label:'Polecenie' },
+    { value:'Baner / szyld', label:'Baner / szyld' },
+    { value:'Przechodzień', label:'Przechodzień' },
+    { value:'Inne', label:'Inne' },
+  ];
+
   const state = {
     mode: 'list',
     query: '',
@@ -255,7 +271,7 @@
       ));
       rows.push(fields.buildPairRow(
         fields.buildInputField('invAddress', fields.buildStaticLabel('Adres'), draft.address, { readonly:!isEditing, compact:true }),
-        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, compact:true })
+        fields.buildChoiceField('invSource', 'Źródło', INVESTOR_SOURCE_OPTIONS, draft.source, '', { readonlyPreview:!isEditing })
       ));
     } else {
       rows.push(fields.buildPairRow(
@@ -272,7 +288,7 @@
         { full:true }
       ));
       rows.push(fields.buildPairRow(
-        fields.buildInputField('invSource', fields.buildStaticLabel('Źródło'), draft.source, { readonly:!isEditing, full:true, compact:true }),
+        fields.buildChoiceField('invSource', 'Źródło', INVESTOR_SOURCE_OPTIONS, draft.source, '', { readonlyPreview:!isEditing }),
         '',
         { full:true }
       ));
@@ -299,7 +315,6 @@
         </div>
 
         <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
-        <div class="investor-action-divider"></div>
 
         <div class="investor-rooms-head">
           <h4 style="margin:0">Pomieszczenia</h4>
@@ -414,6 +429,22 @@
           if(!(editorApi && editorApi.state.isEditing)) return;
           editorApi.setField('kind', value);
           render();
+        }
+      });
+    }
+
+    const sourceSelect = document.getElementById('invSource');
+    if(choiceApi && typeof choiceApi.mountChoice === 'function' && sourceSelect){
+      choiceApi.mountChoice({
+        mount: document.getElementById('invSourceLaunch'),
+        selectEl: sourceSelect,
+        title:'Wybierz źródło',
+        buttonClass:'investor-choice-launch',
+        disabled: !(editorApi && editorApi.state.isEditing),
+        onChange: (value)=>{
+          if(!(editorApi && editorApi.state.isEditing)) return;
+          editorApi.setField('source', value);
+          refreshActionBar();
         }
       });
     }

@@ -19,6 +19,7 @@
       createdAt: now,
       updatedAt: now,
       rooms: [],
+      notes: 'BRAK',
     };
     return normalize ? normalize(draft) : draft;
   }

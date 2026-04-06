@@ -98,8 +98,8 @@
       cab: { cls:'col-cab', width:null, maxWidth:resolved.cabMax },
       room: { cls:'col-room', width:resolved.room },
     };
-    if(mode === 'raw' || mode === 'sheet') return [shared.name, shared.dim, shared.qty, shared.cab, shared.room];
-    if(mode === 'resolved' || mode === 'merged') return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status, shared.cab, shared.room];
+    if(mode === 'raw' || mode === 'sheet' || mode === 'merged') return [shared.name, shared.dim, shared.qty, shared.cab, shared.room];
+    if(mode === 'resolved') return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status, shared.cab, shared.room];
     return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status];
   }
 
@@ -141,20 +141,17 @@
       headRow.appendChild(buildVerticalHead('Ilość', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
       headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+    } else if(mode === 'merged'){
+      headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
+      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
+      headRow.appendChild(buildVerticalHead('Ilość', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
     } else if(mode === 'resolved'){
       headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
       headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
       headRow.appendChild(buildVerticalHead('Potrzebne', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Rozrysowane', 'col-qty'));
-      headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
-      headRow.appendChild(buildVerticalHead('Status', 'col-status'));
-      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
-      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
-    } else if(mode === 'merged'){
-      headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
-      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
-      headRow.appendChild(buildVerticalHead('RAW', 'col-qty'));
-      headRow.appendChild(buildVerticalHead('Po scaleniu', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
       headRow.appendChild(buildVerticalHead('Status', 'col-status'));
       headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
@@ -171,7 +168,7 @@
     const tbody = h('tbody');
     (rows || []).forEach((row)=>{
       const tr = h('tr');
-      if(mode === 'sheet' || mode === 'raw'){
+      if(mode === 'sheet' || mode === 'raw' || mode === 'merged'){
         tr.appendChild(h('td', { class:'col-name', text: row.name || 'Element' }));
         const dimTd = h('td', { class:'col-dim' });
         dimTd.appendChild(buildDimNode(row.w, row.h, unit, mmToUnitStr));

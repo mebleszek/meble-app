@@ -1,3 +1,4 @@
+- 2026-04-06 — `site_source_picker_merge_sumcheck.zip`: przywrócona produkcyjna rola listy `Skomasowana` (bez sztucznego `OK` w kolumnach), dodana osobna kontrolka sum `RAW` vs `Skomasowana`, poprawiony eksport PDF list, usunięty separator nad `Usuń/Edytuj`, nowe domyślne `BRAK` w dodatkowych informacjach nowego inwestora oraz aplikacyjna lista wyboru `Źródło`.
 
 - 2026-03-28 — `site_rozrys_choice_noarrow.zip`: usunięta strzałka z kompaktowych kafli `Szybkość liczenia` i `Kierunek cięcia`; zostawiony sam wystający kafel z nazwą wybranej opcji.
 - 2026-03-28 — site_rozrys_choice_clean.zip

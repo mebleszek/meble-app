@@ -705,7 +705,7 @@
         assert(sheetCount === 2, 'Testowy wydruk nie zawiera dwóch kart arkuszy', { pageCount, sheetCount, html });
         assert(pageCount === 1, 'Dwa małe arkusze nie zostały złożone na jednej stronie', { pageCount, html });
       }),
-      makeTest('Render ROZRYS', 'Skomasowana lista pokazuje prawdziwą walidację scalania', 'Sprawdza, czy lista skomasowana nie jest już sztucznie ustawiona na OK, tylko korzysta z walidacji RAW → scalanie.', ()=>{
+      makeTest('Render ROZRYS', 'Walidacja scalania liczy różnice RAW → skomasowana niezależnie od tabeli produkcyjnej', 'Sprawdza, czy techniczna walidacja scalania nadal poprawnie liczy różnice RAW → skomasowana, mimo że sama tabela Skomasowana wróciła do roli listy produkcyjnej.', ()=>{
         const mergeValidation = FC.rozrysValidation.validateResolution([
           { key:'m||A||100x100', material:'M', name:'A', w:100, h:100, qty:2, cabinet:'#1', room:'Kuchnia' },
           { key:'m||A||100x100', material:'M', name:'A', w:100, h:100, qty:1, cabinet:'#2', room:'Salon' },
@@ -724,7 +724,7 @@
           const meta = { material:'MDF 18 biały', kerf:4, unit:'mm', edgeSubMm:0, parts:Fx.basicParts(), scopeMode:'both', selectedRooms:['Kuchnia'] };
           FC.rozrysRender.renderOutput(plan, meta, {
             out,
-            buildRozrysDiagnostics: ()=> ({ validation:{ ok:true, rows:[] }, mergeValidation:{ ok:true, rows:[] }, sheets:[{ rows:[] }, { rows:[] }], rawRows:[], resolvedRows:[] }),
+            buildRozrysDiagnostics: ()=> ({ validation:{ ok:true, rows:[] }, sheets:[{ rows:[] }, { rows:[] }], rawRows:[], rawCount:0, rawQtyTotal:0, mergedRows:[], mergedCount:0, mergedQtyTotal:0, mergedQtyMatch:true }),
             validationSummaryLabel: ()=> ({ tone:'is-ok', text:'Walidacja OK' }),
             openValidationListModal: ()=>{},
             openSheetListModal: ()=>{},

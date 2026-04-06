@@ -134,7 +134,7 @@
       address: (initial && initial.address) || '',
       source: (initial && initial.source) || '',
       nip: (initial && initial.nip) || '',
-      notes: (initial && initial.notes) || '',
+      notes: (initial && Object.prototype.hasOwnProperty.call(initial, 'notes')) ? (initial.notes || '') : 'BRAK',
       rooms: Array.isArray(initial && initial.rooms) ? initial.rooms : [],
       addedDate: (initial && (initial.addedDate || initial.createdDate)) || toDateInput(ts, ts),
       createdAt: ts,
