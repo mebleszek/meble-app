@@ -33,7 +33,7 @@
       buildResolvedSnapshotFromParts:null,
     }, deps || {});
     const rv = FC.rozrysValidation;
-    if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function')) return null;
+    if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function' && typeof rv.validateResolution === 'function')) return null;
     const rawRows = typeof cfg.buildRawSnapshotForMaterial === 'function'
       ? (cfg.buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms) || [])
       : [];
@@ -51,11 +51,13 @@
     });
     actual.rows = (actual.rows || []).map((row)=> Object.assign({}, row, sourceByKey.get(row.key) || {}));
     actual.sheets = (actual.sheets || []).map((sheet)=> Object.assign({}, sheet, { rows:(sheet.rows || []).map((row)=> Object.assign({}, row, sourceByKey.get(row.key) || {})) }));
+    const mergeValidation = rv.validateResolution(rawRows, resolvedRows);
     const validation = rv.validate(resolvedRows, actual.rows);
     return {
       rawRows,
       rawCount: rawRows.length,
       resolvedRows,
+      mergeValidation,
       actualRows: actual.rows,
       sheets: actual.sheets,
       validation,
@@ -186,14 +188,14 @@
     const metaRow = h('div', { class:'rozrys-validation-summary' });
     metaRow.appendChild(h('span', { class:`rozrys-pill ${summary.tone}`, text:summary.text }));
     metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Raw 1:1: ${diag.rawCount} pozycji` }));
-    metaRow.appendChild(h('span', { class:'rozrys-pill is-raw', text:`Lista do rozkroju: ${diag.resolvedRows.length} pozycji` }));
+    const mergeSummary = diag.mergeValidation && diag.mergeValidation.ok
+      ? `Scalanie: OK • ${diag.resolvedRows.length} pozycji`
+      : `Scalanie: ${((diag.mergeValidation && diag.mergeValidation.missingQty) || 0)} brak / ${((diag.mergeValidation && diag.mergeValidation.extraQty) || 0)} nad`;
+    metaRow.appendChild(h('span', { class:`rozrys-pill ${diag.mergeValidation && diag.mergeValidation.ok ? 'is-ok' : 'is-warn'}`, text:mergeSummary }));
     body.appendChild(metaRow);
 
     const rawTable = lists.buildRawTable(diag.rawRows, unit, cfg.mmToUnitStr);
-    const resolvedRows = (diag.resolvedRows || []).map((row)=>({
-      name: row.name, w: row.w, h: row.h, expectedQty: row.qty, actualQty: row.qty, diff: 0, status: 'ok', room: row.room, source: row.source, cabinet: row.cabinet
-    }));
-    const resolvedTable = lists.buildListTable(resolvedRows, unit, 'resolved', cfg.mmToUnitStr);
+    const resolvedTable = lists.buildListTable((diag.mergeValidation && diag.mergeValidation.rows) || [], unit, 'merged', cfg.mmToUnitStr);
     const validationTable = lists.buildListTable((diag.validation && diag.validation.rows) || [], unit, 'validation', cfg.mmToUnitStr);
 
     const tabs = buildTabs([
@@ -204,7 +206,7 @@
       },
       {
         label:'Skomasowana',
-        action:createPdfAction('PDF', `Lista skomasowana — ${material}`, `Po scaleniu • ${resolvedRows.length} pozycji`, resolvedTable, cfg.openPrintView),
+        action:createPdfAction('PDF', `Lista skomasowana — ${material}`, `Kontrola scalania • ${(diag.resolvedRows || []).length} pozycji`, resolvedTable, cfg.openPrintView),
         content: buildTabContent(resolvedTable)
       },
       {

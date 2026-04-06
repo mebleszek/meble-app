@@ -136,6 +136,85 @@
     return node;
   }
 
+
+  function installFakeDom(){
+    function FakeNode(tag){
+      this.tagName = String(tag || '').toUpperCase();
+      this.attributes = {};
+      this.children = [];
+      this.checked = false;
+      this.disabled = false;
+      this.value = '';
+      this.textContent = '';
+      this.innerHTML = '';
+      this.parentNode = null;
+      this.dataset = {};
+      this.style = {};
+      this.hidden = false;
+      this.__listeners = {};
+      this._className = '';
+      this.classList = {
+        add: (...names)=>{
+          const cur = new Set(String(this._className || '').split(/\s+/).filter(Boolean));
+          names.forEach((name)=> cur.add(String(name)));
+          this._className = Array.from(cur).join(' ');
+        },
+        remove: (...names)=>{
+          const cur = new Set(String(this._className || '').split(/\s+/).filter(Boolean));
+          names.forEach((name)=> cur.delete(String(name)));
+          this._className = Array.from(cur).join(' ');
+        },
+        contains: (name)=> String(this._className || '').split(/\s+/).filter(Boolean).includes(String(name)),
+        toggle: (name, force)=>{
+          const exists = String(this._className || '').split(/\s+/).filter(Boolean).includes(String(name));
+          const next = force === undefined ? !exists : !!force;
+          if(next) this.classList.add(name); else this.classList.remove(name);
+          return next;
+        }
+      };
+    }
+    FakeNode.prototype.appendChild = function(child){ if(child) child.parentNode = this; this.children.push(child); return child; };
+    FakeNode.prototype.addEventListener = function(type, handler){ (this.__listeners[type] = this.__listeners[type] || []).push(handler); };
+    FakeNode.prototype.dispatch = function(type){ (this.__listeners[type] || []).forEach((handler)=> handler({ type, target:this })); };
+    FakeNode.prototype.setAttribute = function(name, value){
+      this.attributes[name] = String(value);
+      if(name === 'class') this._className = String(value || '');
+      if(/^data-/.test(name)){
+        const key = String(name).replace(/^data-/, '').replace(/-([a-z])/g, (_m, ch)=> String(ch || '').toUpperCase());
+        this.dataset[key] = String(value);
+      }
+    };
+    FakeNode.prototype.getAttribute = function(name){ return name === 'class' ? this._className : this.attributes[name]; };
+    FakeNode.prototype.querySelectorAll = function(selector){
+      const out = [];
+      const walk = (node)=>{
+        if(!node) return;
+        const ds = node.dataset || {};
+        if(selector === '[data-rozrys-sheet-card="1"]' && String(ds.rozrysSheetCard || '') === '1') out.push(node);
+        if(selector === '[data-rozrys-sheet="1"]' && String(ds.rozrysSheet || '') === '1') out.push(node);
+        if(selector === 'canvas[data-rozrys-sheet="1"]' && node.tagName === 'CANVAS' && String(ds.rozrysSheet || '') === '1') out.push(node);
+        (node.children || []).forEach(walk);
+      };
+      walk(this);
+      return out;
+    };
+    Object.defineProperty(FakeNode.prototype, 'className', {
+      get(){ return this._className; },
+      set(value){ this._className = String(value || ''); },
+      enumerable:true,
+      configurable:true,
+    });
+
+    const prevDocument = host.document;
+    const prevNode = host.Node;
+    host.Node = FakeNode;
+    host.document = { createElement:(tag)=> new FakeNode(tag) };
+    return function restore(){
+      host.document = prevDocument;
+      host.Node = prevNode;
+    };
+  }
+
   function collectNodes(node, predicate, out){
     const bucket = out || [];
     if(!node) return bucket;
@@ -626,8 +705,58 @@
         assert(sheetCount === 2, 'Testowy wydruk nie zawiera dwóch kart arkuszy', { pageCount, sheetCount, html });
         assert(pageCount === 1, 'Dwa małe arkusze nie zostały złożone na jednej stronie', { pageCount, html });
       }),
+      makeTest('Render ROZRYS', 'Skomasowana lista pokazuje prawdziwą walidację scalania', 'Sprawdza, czy lista skomasowana nie jest już sztucznie ustawiona na OK, tylko korzysta z walidacji RAW → scalanie.', ()=>{
+        const mergeValidation = FC.rozrysValidation.validateResolution([
+          { key:'m||A||100x100', material:'M', name:'A', w:100, h:100, qty:2, cabinet:'#1', room:'Kuchnia' },
+          { key:'m||A||100x100', material:'M', name:'A', w:100, h:100, qty:1, cabinet:'#2', room:'Salon' },
+        ], [
+          { key:'m||A||100x100', material:'M', name:'A', w:100, h:100, qty:2, cabinet:'#1', room:'Kuchnia' },
+        ]);
+        assert(mergeValidation.ok === false, 'Walidacja scalania nie wykryła różnicy RAW → scalanie', mergeValidation);
+        assert(mergeValidation.rows[0] && mergeValidation.rows[0].rawQty === 3, 'Walidacja scalania nie policzyła ilości RAW', mergeValidation.rows[0]);
+        assert(mergeValidation.rows[0] && mergeValidation.rows[0].mergedQty === 2, 'Walidacja scalania nie policzyła ilości po scaleniu', mergeValidation.rows[0]);
+      }),
+      makeTest('Render ROZRYS', 'Renderer buduje osobne sekcje summary/actions/sheets i pilnuje kart arkuszy', 'Sprawdza, czy render rozrysu dzieli widok na sekcje oraz czy po renderze istnieje tyle kart i canvasów, ile arkuszy.', ()=>{
+        const restoreDom = installFakeDom();
+        try{
+          const out = host.document.createElement('div');
+          const plan = { sheets: Fx.mixedPlanSheets(), meta:{ boardW:2800, boardH:2070 } };
+          const meta = { material:'MDF 18 biały', kerf:4, unit:'mm', edgeSubMm:0, parts:Fx.basicParts(), scopeMode:'both', selectedRooms:['Kuchnia'] };
+          FC.rozrysRender.renderOutput(plan, meta, {
+            out,
+            buildRozrysDiagnostics: ()=> ({ validation:{ ok:true, rows:[] }, mergeValidation:{ ok:true, rows:[] }, sheets:[{ rows:[] }, { rows:[] }], rawRows:[], resolvedRows:[] }),
+            validationSummaryLabel: ()=> ({ tone:'is-ok', text:'Walidacja OK' }),
+            openValidationListModal: ()=>{},
+            openSheetListModal: ()=>{},
+            buildCsv: ()=> 'x',
+            downloadText: ()=>{},
+            openPrintView: ()=>{},
+            measurePrintHeaderMm: ()=> 10,
+            mmToUnitStr: (mm)=> String(mm),
+            drawSheet: (canvas)=> { canvas.__drawn = true; },
+            cutOptimizer: { placedArea: ()=> 100 },
+          });
+          const sections = collectNodes(out, (node)=> (node.dataset && node.dataset.rozrysSection));
+          assert(sections.length >= 3, 'Renderer nie zbudował osobnych sekcji summary/actions/sheets', sections.map((node)=> node.dataset && node.dataset.rozrysSection));
+          const cards = collectNodes(out, (node)=> node.dataset && node.dataset.rozrysSheetCard === '1');
+          const canvases = collectNodes(out, (node)=> node.tagName === 'CANVAS' && node.dataset && node.dataset.rozrysSheet === '1');
+          assert(cards.length === 2, 'Renderer nie zbudował tylu kart arkuszy, ile plan ma sheetów', { cards:cards.length, expected:2 });
+          assert(canvases.length === 2, 'Renderer nie zbudował tylu canvasów, ile plan ma sheetów', { canvases:canvases.length, expected:2 });
+        } finally {
+          restoreDom();
+        }
+      }),
+      makeTest('Render ROZRYS', 'Guard renderu wykrywa brak kart/canvasów', 'Sprawdza, czy mechanizm anty-regresyjny wykrywa rozjazd między liczbą arkuszy a zbudowanym DOM.', ()=>{
+        const restoreDom = installFakeDom();
+        try{
+          const hostNode = host.document.createElement('div');
+          const result = FC.rozrysRender.validateRenderedSheets(hostNode, 1);
+          assert(result.ok === false, 'Guard renderu nie wykrył braku kart/canvasów', result);
+        } finally {
+          restoreDom();
+        }
+      }),
     ];
-
     const startedAt = Date.now();
     const results = tests.map((test)=>{
       try{

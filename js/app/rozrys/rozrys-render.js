@@ -79,6 +79,55 @@
     };
   }
 
+
+  function collectNodesByAttr(root, attrName, attrValue, out){
+    const bucket = out || [];
+    if(!root || typeof root !== 'object') return bucket;
+    const attrs = root.attributes || {};
+    const direct = (typeof root.getAttribute === 'function' ? root.getAttribute(attrName) : attrs[attrName]);
+    if(direct != null && (attrValue === undefined || String(direct) === String(attrValue))) bucket.push(root);
+    const datasetKey = String(attrName || '').replace(/^data-/, '').replace(/-([a-z])/g, (_m, ch)=> String(ch || '').toUpperCase());
+    if(root.dataset && Object.prototype.hasOwnProperty.call(root.dataset, datasetKey)){
+      const datasetValue = root.dataset[datasetKey];
+      if(attrValue === undefined || String(datasetValue) == String(attrValue)){
+        if(!bucket.includes(root)) bucket.push(root);
+      }
+    }
+    const children = Array.isArray(root.children) ? root.children : [];
+    children.forEach((child)=> collectNodesByAttr(child, attrName, attrValue, bucket));
+    return bucket;
+  }
+
+  function createRenderSections(target){
+    const shell = h('div', { class:'rozrys-render-root', 'data-rozrys-render-root':'1' });
+    const summaryHost = h('div', { class:'rozrys-render-section rozrys-render-section--summary', 'data-rozrys-section':'summary' });
+    const actionsHost = h('div', { class:'rozrys-render-section rozrys-render-section--actions', 'data-rozrys-section':'actions' });
+    const sheetsHost = h('div', { class:'rozrys-render-section rozrys-render-section--sheets', 'data-rozrys-section':'sheets' });
+    shell.appendChild(summaryHost);
+    shell.appendChild(actionsHost);
+    shell.appendChild(sheetsHost);
+    target.appendChild(shell);
+    return { shell, summaryHost, actionsHost, sheetsHost };
+  }
+
+  function validateRenderedSheets(host, expectedCount){
+    const cards = collectNodesByAttr(host, 'data-rozrys-sheet-card', '1');
+    const canvases = collectNodesByAttr(host, 'data-rozrys-sheet', '1');
+    return {
+      ok: cards.length === expectedCount && canvases.length === expectedCount && expectedCount >= 0,
+      cardCount: cards.length,
+      canvasCount: canvases.length,
+      expectedCount,
+    };
+  }
+
+  function renderSheetFailSafe(host, validation){
+    const state = validation || { expectedCount:0, cardCount:0, canvasCount:0 };
+    const box = h('div', { class:'card', style:'margin-top:12px;border-color:#fecaca;background:#fff7f7' });
+    box.appendChild(h('div', { class:'muted', text:`Błąd renderu arkuszy — dane istnieją, ale widok nie został zbudowany poprawnie. Arkusze: ${state.cardCount}/${state.expectedCount}, canvasy: ${state.canvasCount}/${state.expectedCount}.` }));
+    host.appendChild(box);
+  }
+
   function renderOutput(plan, meta, deps){
     const cfg = Object.assign({
       out:null,
@@ -177,13 +226,16 @@
       hasVirtualHalf: sum.hasVirtualHalf,
       hasRealHalf: sum.hasRealHalf,
     };
-    if(lists && typeof lists.renderSummaryCard === 'function'){
+    const sections = createRenderSections(tgt);
+    if(lists && typeof lists.renderSummarySection === 'function'){
+      sections.summaryHost.appendChild(lists.renderSummarySection({ meta, diagnostics, validationLabel, summary: summaryPayload, wastePct: pct }));
+    } else if(lists && typeof lists.renderSummaryCard === 'function'){
       const summaryCard = lists.renderSummaryCard({ meta, diagnostics, validationLabel, summary: summaryPayload, wastePct: pct });
-      if(summaryCard instanceof Node) tgt.appendChild(summaryCard);
+      if(summaryCard instanceof Node) sections.summaryHost.appendChild(summaryCard);
       else if(typeof summaryCard === 'string' && summaryCard.trim()){
         const shell = document.createElement('div');
         shell.innerHTML = summaryCard.trim();
-        while(shell.firstChild) tgt.appendChild(shell.firstChild);
+        while(shell.firstChild) sections.summaryHost.appendChild(shell.firstChild);
       }
     }
 
@@ -243,7 +295,7 @@
     } : null;
 
     if(lists && typeof lists.renderExportRow === 'function'){
-      tgt.appendChild(lists.renderExportRow({
+      sections.actionsHost.appendChild(lists.renderExportRow({
         diagnostics,
         sheets,
         meta,
@@ -261,11 +313,11 @@
 
     const appendSheetCards = (cards)=>{
       (Array.isArray(cards) ? cards : []).forEach((card)=>{
-        if(card instanceof Node) tgt.appendChild(card);
+        if(card instanceof Node) sections.sheetsHost.appendChild(card);
       });
     };
     const buildFallbackSheetCards = ()=> sheets.map((sheet, index)=>{
-      const box = h('div', { class:'card', style:'margin-top:12px' });
+      const box = h('div', { class:'card rozrys-sheet-card', style:'margin-top:12px', 'data-rozrys-sheet-card':'1', 'data-sheet-index':String(index) });
       const boardMeta = getBoardMeta(sheet);
       const waste = calcDisplayWaste(sheet);
       const wastePct = waste.total > 0 ? ((waste.waste / waste.total) * 100) : 0;
@@ -287,6 +339,7 @@
       canvas.style.display = 'block';
       canvas.style.maxWidth = '100%';
       canvas.dataset.rozrysSheet = '1';
+      canvas.dataset.sheetIndex = String(index);
       canvas.__rozrysDrawPayload = { sheet, displayUnit: u, edgeSubMm, boardMeta };
       box.appendChild(canvas);
       if(typeof cfg.drawSheet === 'function') cfg.drawSheet(canvas, sheet, u, edgeSubMm, boardMeta);
@@ -310,6 +363,13 @@
     }
     if(!appendedCards && sheets.length){
       appendSheetCards(buildFallbackSheetCards());
+    }
+    let sheetRenderState = validateRenderedSheets(sections.sheetsHost, sheets.length);
+    if(!sheetRenderState.ok && sheets.length){
+      sections.sheetsHost.innerHTML = '';
+      appendSheetCards(buildFallbackSheetCards());
+      sheetRenderState = validateRenderedSheets(sections.sheetsHost, sheets.length);
+      if(!sheetRenderState.ok) renderSheetFailSafe(sections.sheetsHost, sheetRenderState);
     }
   }
 
@@ -415,5 +475,6 @@
     renderLoadingInto,
     renderOutput,
     tryAutoRenderFromCache,
+    validateRenderedSheets,
   };
 })();

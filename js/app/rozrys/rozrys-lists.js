@@ -99,7 +99,7 @@
       room: { cls:'col-room', width:resolved.room },
     };
     if(mode === 'raw' || mode === 'sheet') return [shared.name, shared.dim, shared.qty, shared.cab, shared.room];
-    if(mode === 'resolved') return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status, shared.cab, shared.room];
+    if(mode === 'resolved' || mode === 'merged') return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status, shared.cab, shared.room];
     return [shared.name, shared.dim, shared.qty, shared.qty, shared.diff, shared.status];
   }
 
@@ -146,6 +146,15 @@
       headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
       headRow.appendChild(buildVerticalHead('Potrzebne', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Rozrysowane', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
+      headRow.appendChild(buildVerticalHead('Status', 'col-status'));
+      headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
+      headRow.appendChild(buildVerticalHead('Pomieszczenie', 'col-room'));
+    } else if(mode === 'merged'){
+      headRow.appendChild(buildVerticalHead('Formatka', 'col-name'));
+      headRow.appendChild(buildVerticalHead(`Wymiar (${unit})`, 'col-dim'));
+      headRow.appendChild(buildVerticalHead('RAW', 'col-qty'));
+      headRow.appendChild(buildVerticalHead('Po scaleniu', 'col-qty'));
       headRow.appendChild(buildVerticalHead('Różnica', 'col-diff'));
       headRow.appendChild(buildVerticalHead('Status', 'col-status'));
       headRow.appendChild(buildVerticalHead('Szafka', 'col-cab'));
@@ -262,7 +271,7 @@
     const unit = String(ctx && ctx.unit || 'mm');
     const edgeSubMm = Math.max(0, Number(ctx && ctx.edgeSubMm) || 0);
     return (Array.isArray(ctx && ctx.sheets) ? ctx.sheets : []).map((sheet, index)=>{
-      const box = h('div', { class:'card', style:'margin-top:12px' });
+      const box = h('div', { class:'card rozrys-sheet-card', style:'margin-top:12px', 'data-rozrys-sheet-card':'1', 'data-sheet-index':String(index) });
       const boardMeta = typeof cfg.getBoardMeta === 'function' ? cfg.getBoardMeta(sheet) : { boardW:0, boardH:0 };
       const waste = typeof cfg.calcDisplayWaste === 'function' ? cfg.calcDisplayWaste(sheet) : { total:0, waste:0, realHalf:false, virtualHalf:false };
       const wastePct = waste.total > 0 ? ((waste.waste / waste.total) * 100) : 0;
@@ -289,10 +298,19 @@
       canvas.style.maxWidth = '100%';
       box.appendChild(canvas);
       canvas.dataset.rozrysSheet = '1';
+      canvas.dataset.sheetIndex = String(index);
       canvas.__rozrysDrawPayload = { sheet, displayUnit: unit, edgeSubMm, boardMeta };
       if(typeof cfg.drawSheet === 'function') cfg.drawSheet(canvas, sheet, unit, edgeSubMm, boardMeta);
       return box;
     });
+  }
+
+
+  function renderSummarySection(ctx){
+    const shell = h('div', { class:'rozrys-render-section rozrys-render-section--summary', 'data-rozrys-section':'summary' });
+    const summaryCard = renderSummaryCard(ctx || {});
+    if(summaryCard) shell.appendChild(summaryCard);
+    return shell;
   }
 
   FC.rozrysLists = {
@@ -302,6 +320,7 @@
     renderSummaryCard,
     renderExportRow,
     renderSheetCards,
+    renderSummarySection,
     buildStatusChip,
     parseCabinetNumbers,
   };

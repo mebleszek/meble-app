@@ -141,11 +141,56 @@
     };
   }
 
+  function validateResolution(rawRows, resolvedRows){
+    const raw = aggregateRows(rawRows);
+    const merged = aggregateRows(resolvedRows);
+    const rawMap = new Map(raw.map((row)=>[row.key, row]));
+    const mergedMap = new Map(merged.map((row)=>[row.key, row]));
+    const keys = Array.from(new Set(raw.concat(merged).map((row)=>row.key)));
+    const rows = keys.map((key)=>{
+      const r = rawMap.get(key);
+      const m = mergedMap.get(key);
+      const base = m || r || {};
+      const rawQty = Math.max(0, Math.round(Number(r && r.qty) || 0));
+      const mergedQty = Math.max(0, Math.round(Number(m && m.qty) || 0));
+      const diff = mergedQty - rawQty;
+      let status = 'ok';
+      if(diff < 0) status = 'missing';
+      else if(diff > 0) status = 'extra';
+      return {
+        key,
+        material: String(base.material || ''),
+        name: String(base.name || 'Element'),
+        w: Math.max(1, Math.round(Number(base.w) || 0)),
+        h: Math.max(1, Math.round(Number(base.h) || 0)),
+        rawQty,
+        mergedQty,
+        diff,
+        status,
+        room: String((m && m.room) || (r && r.room) || ''),
+        source: String((m && m.source) || (r && r.source) || ''),
+        cabinet: String((m && m.cabinet) || (r && r.cabinet) || ''),
+      };
+    }).sort(keySort);
+
+    const missingQty = rows.reduce((sum, row)=> sum + (row.diff < 0 ? Math.abs(row.diff) : 0), 0);
+    const extraQty = rows.reduce((sum, row)=> sum + (row.diff > 0 ? row.diff : 0), 0);
+    return {
+      ok: missingQty === 0 && extraQty === 0,
+      missingQty,
+      extraQty,
+      rows,
+      missing: rows.filter((row)=> row.status === 'missing'),
+      extra: rows.filter((row)=> row.status === 'extra'),
+    };
+  }
+
   root.FC.rozrysValidation = {
     aggregateRows,
     rowsFromParts,
     summarizeSheet,
     summarizePlan,
     validate,
+    validateResolution,
   };
 })();

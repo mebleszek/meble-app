@@ -937,3 +937,9 @@ Dopiero potem go zmieniać.
 - ujednolicono styl pól formularza inwestora przez wspólny wzorzec `.investor-form-control` i usunięto wyjątek dla `invOwnerName`
 - dopięto focus/autofill/read-only pod jeden system stylu dla pól formularza
 - RAW, Walidacja i Lista arkuszy korzystają z referencyjnych szerokości kolumn ze Skomasowanej; kolumna Szafka jest dynamiczna z limitem max
+
+## 2026-04-06 — ROZRYS anti-regression + merge validation
+- rozdzielono render ROZRYS na sekcje summary / actions / sheets oraz dodano guard po renderze kart arkuszy i canvasów,
+- przy błędzie renderu arkuszy widok próbuje fallback kart arkuszy, a dopiero potem pokazuje komunikat fail-safe,
+- lista `Skomasowana` przestała być sztucznym `OK`; korzysta teraz z rzeczywistej walidacji RAW → scalanie,
+- dodano smoke testy ROZRYS dla walidacji scalania oraz dla obecności sekcji/kart/canvasów w DOM.
