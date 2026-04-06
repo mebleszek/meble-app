@@ -21,6 +21,15 @@
     return el;
   }
 
+  function buildRowMeta(row){
+    const parts = [];
+    const note = String(row && row.note || '').trim();
+    const rooms = String(row && row.rooms || '').trim();
+    if(note) parts.push(note);
+    if(rooms && (!note || rooms !== note)) parts.push(`Pomieszczenia: ${rooms}`);
+    return parts.join(' • ');
+  }
+
   let lastQuote = null;
   let isBusy = false;
 
@@ -29,32 +38,33 @@
   }
 
   function renderSection(card, title, rows, emptyText){
-    const wrap = h('div', { class:'card', style:'margin-top:12px;padding:12px;' });
-    wrap.appendChild(h('h4', { text:title, style:'margin:0 0 8px' }));
+    const wrap = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
+    wrap.appendChild(h('h4', { text:title, style:'margin:0 0 10px' }));
     if(!rows || !rows.length){
       wrap.appendChild(h('div', { class:'muted', text:emptyText || 'Brak pozycji.' }));
       card.appendChild(wrap);
       return;
     }
-    const table = h('table', { class:'table-list table-list--resolved' });
-    table.style.width = '100%';
-    const thead = h('thead');
-    const head = h('tr');
-    ['Pozycja','Ilość','Cena','Wartość','Uwagi'].forEach((label)=> head.appendChild(h('th', { text:label })));
-    thead.appendChild(head);
-    table.appendChild(thead);
-    const tbody = h('tbody');
+
+    const list = h('div', { class:'quote-list' });
+    const head = h('div', { class:'quote-list__head' });
+    ['Pozycja','Ilość','Cena','Wartość'].forEach((label)=> head.appendChild(h('div', { class:'quote-list__cell quote-list__cell--head', text:label })));
+    list.appendChild(head);
+
     rows.forEach((row)=>{
-      const tr = h('tr');
-      tr.appendChild(h('td', { text:row.name || 'Pozycja' }));
-      tr.appendChild(h('td', { text: String(row.qty || 0) + (row.unit ? ` ${row.unit}` : '') }));
-      tr.appendChild(h('td', { text: money(row.unitPrice) }));
-      tr.appendChild(h('td', { text: money(row.total) }));
-      tr.appendChild(h('td', { text: row.note || row.rooms || '—' }));
-      tbody.appendChild(tr);
+      const item = h('article', { class:'quote-list__item' });
+      const main = h('div', { class:'quote-list__row' });
+      main.appendChild(h('div', { class:'quote-list__cell quote-list__cell--name', text:row.name || 'Pozycja' }));
+      main.appendChild(h('div', { class:'quote-list__cell quote-list__cell--qty', text:String(row.qty || 0) + (row.unit ? ` ${row.unit}` : '') }));
+      main.appendChild(h('div', { class:'quote-list__cell quote-list__cell--price', text:money(row.unitPrice) }));
+      main.appendChild(h('div', { class:'quote-list__cell quote-list__cell--total', text:money(row.total) }));
+      item.appendChild(main);
+      const metaText = buildRowMeta(row);
+      if(metaText) item.appendChild(h('div', { class:'quote-list__meta', text:metaText }));
+      list.appendChild(item);
     });
-    table.appendChild(tbody);
-    wrap.appendChild(table);
+
+    wrap.appendChild(list);
     card.appendChild(wrap);
   }
 
@@ -62,10 +72,10 @@
     const list = ctx && ctx.listEl;
     if(!list) return;
     list.innerHTML = '';
-    const card = h('div', { class:'build-card' });
-    const head = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' });
+    const card = h('div', { class:'build-card quote-root' });
+    const head = h('div', { class:'quote-topbar' });
     head.appendChild(h('h3', { text:'Wycena', style:'margin:0' }));
-    const actions = h('div', { style:'display:flex;gap:8px;align-items:center;flex-wrap:wrap' });
+    const actions = h('div', { class:'quote-topbar__actions' });
     const runBtn = h('button', { class:'btn-primary', type:'button', text: isBusy ? 'Liczę…' : 'Wyceń' });
     if(isBusy) runBtn.disabled = true;
     runBtn.addEventListener('click', async ()=>{
@@ -94,12 +104,12 @@
       card.appendChild(h('div', { class:'muted', text:lastQuote.error, style:'margin-top:10px;color:#b42318' }));
     } else {
       if(Array.isArray(lastQuote.roomLabels) && lastQuote.roomLabels.length){
-        card.appendChild(h('p', { class:'muted', text:`Zakres: ${lastQuote.roomLabels.join(', ')}`, style:'margin-top:8px' }));
+        card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres: ${lastQuote.roomLabels.join(', ')}`, style:'margin-top:8px' }));
       }
       renderSection(card, 'Materiały z ROZRYS', lastQuote.materialLines, 'Brak pozycji materiałowych.');
       renderSection(card, 'Akcesoria', lastQuote.accessoryLines, 'Brak pozycji akcesoriów.');
       renderSection(card, 'Sprzęty do zabudowy / montaż AGD', lastQuote.agdLines, 'Brak wykrytych sprzętów do zabudowy.');
-      const totals = h('div', { class:'card', style:'margin-top:12px;padding:12px;' });
+      const totals = h('div', { class:'card quote-totals', style:'margin-top:12px;padding:14px;' });
       totals.appendChild(h('h4', { text:'Podsumowanie', style:'margin:0 0 8px' }));
       [
         ['Materiały', lastQuote.totals && lastQuote.totals.materials],
@@ -107,7 +117,7 @@
         ['Montaż AGD', lastQuote.totals && lastQuote.totals.services],
         ['Razem', lastQuote.totals && lastQuote.totals.grand],
       ].forEach(([label, value])=>{
-        const row = h('div', { style:'display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-weight:700' });
+        const row = h('div', { class:'quote-totals__row' });
         row.appendChild(h('span', { text:label }));
         row.appendChild(h('span', { text:money(value) }));
         totals.appendChild(row);

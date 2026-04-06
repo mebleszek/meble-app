@@ -1,3 +1,5 @@
+- 2026-04-06 — `site_quote_ui_pdf_price_choices.zip`: zakładka `Wycena` dostała własny, wąski layout bez odziedziczonych szerokości z list ROZRYS; cennik materiałów/usług przeszedł z systemowych selectów i `alert/confirm` na aplikacyjne launchery + nasze boxy; inwestor dostał osobny moduł `investor-pdf.js` oraz przycisk `PDF` do karty segregatorowej.
+
 - 2026-04-06 — `site_source_picker_merge_sumcheck.zip`: przywrócona produkcyjna rola listy `Skomasowana` (bez sztucznego `OK` w kolumnach), dodana osobna kontrolka sum `RAW` vs `Skomasowana`, poprawiony eksport PDF list, usunięty separator nad `Usuń/Edytuj`, nowe domyślne `BRAK` w dodatkowych informacjach nowego inwestora oraz aplikacyjna lista wyboru `Źródło`.
 
 - 2026-03-28 — `site_rozrys_choice_noarrow.zip`: usunięta strzałka z kompaktowych kafli `Szybkość liczenia` i `Kierunek cięcia`; zostawiony sam wystający kafel z nazwą wybranej opcji.
@@ -12,7 +14,7 @@
 - `js/app/material/` — magazyn, registry materiałów, opcje formatek, modal cenników.
 - `js/app/optimizer/` — solver, worker, profile startu/szybkości.
 - `js/app/rozrys/` — cały ROZRYS.
-- `js/testing/` — smoke-testy developerskie (`rozrys`, `project`, `material`, `cabinet`).
+- `js/testing/` — smoke-testy developerskie (`rozrys`, `project`, `investor`, `material`, `wycena`, `cabinet`).
 
 ### Paczka 2026-03-28 — arch_dirs_tests
 - Przeniesiono płaski katalog `js/app/*` do grup domenowych i technicznych bez zmiany UI.
@@ -154,6 +156,7 @@
 - `js/app/investor/session.js` — zapis / odczyt sesji projektu.
 - `js/app/investor/investors-store.js` — dane inwestorów.
 - `js/app/investor/investor-ui.js` — aktywne UI inwestora.
+- `js/app/investor/investor-pdf.js` — karta PDF danych inwestora do druku / segregatora, generowana z modelu danych.
 - `js/app/ui/sections.js` — sekcje widoków typu inwestor / rozrys / magazyn.
 - `js/app/ui/views.js` — przełączanie widoków.
 - `js/app/shared/validate.js` — walidacja danych.
@@ -166,6 +169,7 @@
 - `js/app/strip-solver.js` — wydzielony solver trybów pasowych (`Preferuj pasy wzdłuż / w poprzek`), odseparowany od eksperymentów z trybem opcjonalnym.
 - `js/app/optional-solver.js` — przepisany solver trybu `Opcjonalnie`; buduje arkusz od 1–2 pasów startowych z grup podobnych wymiarów, a resztę prostokąta dogęszcza solverem pasowym.
 - `js/app/material/magazyn.js` — logika magazynu.
+- `js/app/material/price-modal.js` — modal cenników z aplikacyjnymi launcherami wyboru i boxami zamiast systemowych dialogów.
 - `css/rozrys-reference-sync.css` — wizualne ujednolicenie ROZRYS względem zaakceptowanych wzorców UI.
 - `css/rozrys-checkboxes.css` — wspólna skórka checkboxów ROZRYS bez systemowego highlightu.
 - `css/rozrys-scope-chip-room-sync.css` — punktowy override tylko dla małych kafelków zakresu materiału w pickerze `Materiał / grupa`, żeby zachowywały się jak kafelki wyboru pomieszczeń.
@@ -189,7 +193,7 @@
 - `js/tabs/rysunek.js` — aktywny renderer zakładki RYSUNEK.
 - `js/tabs/material.js` — aktywny renderer zakładki MATERIAŁ.
 - `js/tabs/czynnosci.js`
-- `js/tabs/wycena.js`
+- `js/tabs/wycena.js` — zakładka `Wycena` z własnym layoutem list i snapshotem wyceny.
 
 ---
 
@@ -944,3 +948,5 @@ Dopiero potem go zmieniać.
 - przy błędzie renderu arkuszy widok próbuje fallback kart arkuszy, a dopiero potem pokazuje komunikat fail-safe,
 - lista `Skomasowana` przestała być sztucznym `OK`; korzysta teraz z rzeczywistej walidacji RAW → scalanie,
 - dodano smoke testy ROZRYS dla walidacji scalania oraz dla obecności sekcji/kart/canvasów w DOM.
+
+- 2026-04-06 13:xx: spacing under investor divider + session cancel reload restore fix.

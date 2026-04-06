@@ -90,7 +90,22 @@
       assert(conflicts && conflicts.ownerPerson && String(conflicts.ownerPerson.id || '') === String(created.id || ''), 'Nie wykryto dopasowania ownerName firmy do osoby prywatnej', conflicts);
     }),
 
-    makeTest('Inwestor', 'Dodawanie inwestora otwiera formularz bez pustego wpisu w bazie', 'Pilnuje, czy nowy inwestor startuje jako szkic w UI, a nie jako pusty rekord zapisany od razu do storage.', ()=>{
+
+    makeTest('Inwestor', 'Karta PDF inwestora buduje się z danych modelu i ma własny przycisk w pasku akcji', 'Pilnuje, czy karta do segregatora nie zależy od DOM-u i czy w widoku inwestora jest osobny przycisk PDF.', ()=>{
+      assert(FC.investorPdf && typeof FC.investorPdf.buildPrintHtml === 'function', 'Brak investorPdf.buildPrintHtml');
+      const html = FC.investorPdf.buildPrintHtml(sampleInvestor());
+      assert(/Karta inwestora/.test(String(html || '')), 'HTML PDF nie zawiera tytułu karty inwestora');
+      assert(/Jan Kowalski/.test(String(html || '')), 'HTML PDF nie zawiera danych inwestora');
+      assert(/Kuchnia góra/.test(String(html || '')), 'HTML PDF nie zawiera listy pomieszczeń');
+      const actionBar = FC.investorActions.buildActionBarHtml({ isEditing:false, dirty:false });
+      assert(/data-investor-action="pdf"/.test(String(actionBar || '')), 'Pasek akcji inwestora nie zawiera przycisku PDF', actionBar);
+      const deleteIndex = String(actionBar || '').indexOf('data-investor-action="delete"');
+      const editIndex = String(actionBar || '').indexOf('data-investor-action="edit"');
+      const pdfIndex = String(actionBar || '').indexOf('data-investor-action="pdf"');
+      assert(deleteIndex !== -1 && editIndex !== -1 && pdfIndex !== -1 && deleteIndex < editIndex && editIndex < pdfIndex, 'Przycisk PDF nie jest dołożony jako ostatni po prawej stronie', actionBar);
+    }),
+
+        makeTest('Inwestor', 'Dodawanie inwestora otwiera formularz bez pustego wpisu w bazie', 'Pilnuje, czy nowy inwestor startuje jako szkic w UI, a nie jako pusty rekord zapisany od razu do storage.', ()=>{
       assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
       const before = FC.investors.readAll().length;
       const temp = FC.investors.normalizeInvestor({ id:'draft_inv_test', kind:'person' });

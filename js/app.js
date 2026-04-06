@@ -354,6 +354,7 @@ function saveMaterialFromForm(){ return callExtracted('priceModal','saveMaterial
 function saveServiceFromForm(){ return callExtracted('priceModal','saveServiceFromForm',[]); }
 
 function deletePriceItem(item){ return callExtracted('priceModal','deletePriceItem',[item]); }
+function closePriceItemModal(){ return callExtracted('priceModal','closePriceItemModal',[]); }
 
 /* ===== Cabinet Modal helpers ===== */
 function getCabinetExtraSummary(room, cab){
@@ -631,6 +632,7 @@ function registerCoreActions(){
   // Register modal close functions for ESC/overlay stack handling
   try{
     FC.modal.register('priceModal', () => { try{ closePriceModal(); }catch(_){ } });
+    FC.modal.register('priceItemModal', () => { try{ closePriceItemModal(); }catch(_){ } });
     FC.modal.register('cabinetModal', () => { try{ closeCabinetModal(); }catch(_){ } });
   }catch(_){}
 
