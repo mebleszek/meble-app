@@ -95,6 +95,10 @@
   FC.actions.register({
     'close-price': ({event}) => { closePriceModal(); return true; },
     'close-price-item': ({event}) => { try{ closePriceItemModal(); }catch(_){ } return true; },
+    'price-item-exit': ({event}) => { try{ if(window.FC && FC.priceModal && typeof FC.priceModal.requestClosePriceItemModal === 'function') FC.priceModal.requestClosePriceItemModal('exit'); else closePriceItemModal(); }catch(_){ } return true; },
+    'price-item-cancel': ({event}) => { try{ if(window.FC && FC.priceModal && typeof FC.priceModal.requestClosePriceItemModal === 'function') FC.priceModal.requestClosePriceItemModal('cancel'); else closePriceItemModal(); }catch(_){ } return true; },
+    'price-item-save': ({event}) => { try{ if(window.FC && FC.priceModal && typeof FC.priceModal.saveActivePriceItem === 'function') FC.priceModal.saveActivePriceItem(); else if(typeof saveMaterialFromForm === 'function') saveMaterialFromForm(); }catch(_){ } return true; },
+    'price-item-delete': ({event}) => { try{ if(window.FC && FC.priceModal && typeof FC.priceModal.deleteActivePriceItem === 'function') FC.priceModal.deleteActivePriceItem(); }catch(_){ } return true; },
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
@@ -106,9 +110,7 @@
       return false;
     },
     'cancel-material-edit': ({event}) => {
-      const btn = document.getElementById('cancelEditBtn');
-      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
-      uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); try{ renderPriceModal(); }catch(_){}
+      try{ if(window.FC && FC.priceModal && typeof FC.priceModal.requestClosePriceItemModal === 'function') FC.priceModal.requestClosePriceItemModal('cancel'); else closePriceItemModal(); }catch(_){ }
       return true;
     },
     'save-service': ({event}) => {
@@ -118,9 +120,7 @@
       return false;
     },
     'cancel-service-edit': ({event}) => {
-      const btn = document.getElementById('cancelServiceEditBtn');
-      if(btn && typeof btn.onclick === 'function') { btn.onclick(); return true; }
-      uiState.editingId = null; FC.storage.setJSON(STORAGE_KEYS.ui, uiState); try{ renderPriceModal(); }catch(_){}
+      try{ if(window.FC && FC.priceModal && typeof FC.priceModal.requestClosePriceItemModal === 'function') FC.priceModal.requestClosePriceItemModal('cancel'); else closePriceItemModal(); }catch(_){ }
       return true;
     },
 

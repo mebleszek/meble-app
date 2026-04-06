@@ -152,7 +152,7 @@
   function buildActionBarHtml(currentState){
     const state = currentState || { isEditing:false, dirty:false };
     if(!state.isEditing){
-      return '<button class="btn-danger" type="button" data-investor-action="delete">Usuń</button><button class="btn" type="button" data-investor-action="edit">Edytuj</button><button class="btn" type="button" data-investor-action="pdf">PDF</button>';
+      return '<button class="btn-danger" type="button" data-investor-action="delete">Usuń</button><button class="btn" type="button" data-investor-action="edit">Edytuj</button><button class="btn-primary" type="button" data-investor-action="pdf">PDF</button>';
     }
     if(state.dirty){
       return '<button class="btn-danger" type="button" data-investor-action="cancel">Anuluj</button><button class="btn-success" type="button" data-investor-action="save">Zapisz</button>';

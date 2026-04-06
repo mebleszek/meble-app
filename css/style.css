@@ -1519,17 +1519,35 @@
 .price-toolbar__main{min-width:0;}
 .price-toolbar__actions{display:flex;align-items:flex-end;justify-content:flex-end;flex-wrap:wrap;gap:8px;}
 .price-toolbar__search{min-width:0;}
+.price-modal-list-row{gap:12px;}
+.price-modal-list-main{min-width:0;flex:1 1 auto;}
 .price-modal-list-actions{
+  margin-left:auto;
   display:flex;
-  gap:8px;
+  gap:10px;
   align-items:center;
-  flex-wrap:wrap;
   justify-content:flex-end;
+  flex-wrap:nowrap;
 }
 .price-modal-list-price{
   font-weight:900;
   white-space:nowrap;
 }
+.price-item-footer{
+  margin-top:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.price-item-footer__left,.price-item-footer__right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.price-item-footer__right{margin-left:auto;justify-content:flex-end;}
 @media (max-width:760px){
   .price-toolbar{grid-template-columns:minmax(0,1fr);}
   .price-toolbar__actions{justify-content:flex-start;}
@@ -1634,6 +1652,10 @@
   .quote-list__cell--qty::before{ content:'Ilość'; }
   .quote-list__cell--price::before{ content:'Cena'; }
   .quote-list__cell--total::before{ content:'Wartość'; }
-  .price-modal-list-actions{ width:100%; justify-content:flex-start; }
-  .price-modal-list-price{ width:100%; }
+  .price-modal-list-actions{ width:100%; justify-content:space-between; flex-wrap:wrap; }
+  .price-modal-list-price{ width:auto; }
+  .price-item-footer{ flex-direction:column; align-items:stretch; }
+  .price-item-footer__left,.price-item-footer__right{ width:100%; justify-content:flex-end; }
+  .price-item-footer__left{ order:2; justify-content:flex-start; }
 }
+

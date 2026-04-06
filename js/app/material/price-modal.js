@@ -1,6 +1,6 @@
 // js/app/material/price-modal.js
 // Renderer i kontroler modali cenników. Lista oraz formularz pozycji są rozdzielone,
-// żeby dodawanie/edycja nie były doklejane do listy.
+// a dodawanie/edycja działa przez osobny modal zgodny ze stylem aplikacji.
 
 (function(){
   'use strict';
@@ -12,6 +12,7 @@
   const DEFAULT_SERVICE_CATEGORIES = ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
   const runtimeState = {
     itemModalOpen: false,
+    itemInitialSignature: '',
     filters: {
       materialType: '',
       manufacturer: '',
@@ -21,8 +22,21 @@
 
   function byId(id){ return document.getElementById(id); }
 
+  function appUiState(){
+    if(typeof uiState !== 'undefined' && uiState) return uiState;
+    FC.uiState = FC.uiState || {};
+    return FC.uiState;
+  }
+
   function currentListType(){
-    return uiState && uiState.showPriceList === 'services' ? 'services' : 'materials';
+    const state = appUiState();
+    return state && state.showPriceList === 'services' ? 'services' : 'materials';
+  }
+
+  function currentList(){
+    return currentListType() === 'materials'
+      ? (Array.isArray(typeof materials !== 'undefined' ? materials : null) ? materials : [])
+      : (Array.isArray(typeof services !== 'undefined' ? services : null) ? services : []);
   }
 
   function normalizeKey(value){
@@ -72,6 +86,7 @@
     }
     function add(value){
       const raw = String(value == null ? '' : value).trim();
+      if(!raw && includeAllLabel == null) return;
       if(seen.has(raw)) return;
       seen.add(raw);
       out.push({ value:raw, label:raw || includeAllLabel || '' });
@@ -84,7 +99,7 @@
 
   function buildMaterialTypeOptions(selectedValue, opts){
     const cfg = Object.assign({ includeAll:false }, opts || {});
-    const fromItems = (Array.isArray(typeof materials !== 'undefined' ? materials : null) ? materials : []).map((item)=> item && item.materialType);
+    const fromItems = currentListType() === 'materials' ? currentList().map((item)=> item && item.materialType) : [];
     return buildOrderedValues(MATERIAL_TYPES, fromItems, selectedValue, cfg.includeAll ? 'Wszystkie typy' : null);
   }
 
@@ -103,7 +118,7 @@
       Object.keys(manufacturers).forEach((key)=> source.push(...(manufacturers[key] || [])));
       (Array.isArray(typeof materials !== 'undefined' ? materials : null) ? materials : []).forEach((item)=> source.push(item && item.manufacturer));
     }
-    return buildOrderedValues([], source, selectedValue, cfg.includeAll ? 'Wszyscy producenci' : 'Brak / własny wpis');
+    return buildOrderedValues([], source, selectedValue, cfg.includeAll ? 'Wszyscy producenci' : null);
   }
 
   function buildServiceCategoryOptions(selectedValue, opts){
@@ -138,36 +153,76 @@
     }catch(_){ }
   }
 
-  async function confirmDelete(){
+  function askConfirm(opts){
     try{
       if(window.FC && FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
-        return !!(await FC.confirmBox.ask({
-          title:'Usunąć pozycję?',
-          message:'Tej operacji nie cofnisz.',
-          confirmText:'Usuń',
-          cancelText:'Wróć',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        }));
+        return FC.confirmBox.ask(opts || {});
       }
     }catch(_){ }
-    return true;
+    return Promise.resolve(true);
+  }
+
+  function confirmDelete(){
+    return askConfirm({
+      title:'Usunąć pozycję?',
+      message:'Tej operacji nie cofnisz.',
+      confirmText:'Usuń',
+      cancelText:'Wróć',
+      confirmTone:'danger',
+      cancelTone:'neutral'
+    }).then(Boolean);
+  }
+
+  function confirmDiscardPriceItemChanges(){
+    return askConfirm({
+      title:'ANULOWAĆ ZMIANY?',
+      message:'Niezapisane zmiany w tej pozycji zostaną utracone.',
+      confirmText:'✕ ANULUJ ZMIANY',
+      cancelText:'Wróć',
+      confirmTone:'danger',
+      cancelTone:'neutral'
+    }).then(Boolean);
+  }
+
+  function confirmSavePriceItemChanges(){
+    const isEdit = !!(appUiState() && appUiState().editingId);
+    return askConfirm({
+      title:'ZAPISAĆ ZMIANY?',
+      message: isEdit ? 'Zapisać zmiany w tej pozycji cennika?' : 'Dodać nową pozycję do cennika?',
+      confirmText:'Zapisz',
+      cancelText:'Wróć',
+      confirmTone:'success',
+      cancelTone:'neutral'
+    }).then(Boolean);
   }
 
   function persistUi(){
-    try{ FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+    try{ FC.storage.setJSON(STORAGE_KEYS.ui, appUiState()); }catch(_){ }
+  }
+
+  function firstNonEmptyValue(options){
+    const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== '');
+    return item ? String(item.value != null ? item.value : item) : '';
+  }
+
+  function defaultMaterialDraft(){
+    const type = firstNonEmptyValue(buildMaterialTypeOptions('laminat')) || 'laminat';
+    const manufacturer = firstNonEmptyValue(buildManufacturerOptions(type, '', { includeAll:false }));
+    return { materialType:type, manufacturer, symbol:'', name:'', price:'', hasGrain:false };
+  }
+
+  function defaultServiceDraft(){
+    return { category:firstNonEmptyValue(buildServiceCategoryOptions('Montaż')) || 'Montaż', name:'', price:'' };
   }
 
   function clearMaterialForm(){
-    const ids = ['formSymbol','formName','formPrice'];
-    ids.forEach((id)=>{ const el = byId(id); if(el) el.value = ''; });
+    ['formSymbol','formName','formPrice'].forEach((id)=>{ const el = byId(id); if(el) el.value = ''; });
     const grain = byId('formHasGrain');
     if(grain) grain.checked = false;
   }
 
   function clearServiceForm(){
-    const ids = ['formServiceName','formServicePrice'];
-    ids.forEach((id)=>{ const el = byId(id); if(el) el.value = ''; });
+    ['formServiceName','formServicePrice'].forEach((id)=>{ const el = byId(id); if(el) el.value = ''; });
   }
 
   function applyMaterialFormState(item){
@@ -194,6 +249,75 @@
     const priceEl = byId('formServicePrice');
     if(nameEl) nameEl.value = String(item && item.name || '');
     if(priceEl) priceEl.value = item && item.price != null ? item.price : '';
+  }
+
+  function currentEditedItem(){
+    if(!appUiState() || !appUiState().editingId) return null;
+    return currentList().find((item)=> item && item.id === appUiState().editingId) || null;
+  }
+
+  function normalizePriceValue(value){
+    const raw = String(value == null ? '' : value).trim();
+    if(!raw) return '';
+    const parsed = Number(raw.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : raw;
+  }
+
+  function getCurrentMaterialDraft(){
+    return {
+      materialType: String((byId('formMaterialType') && byId('formMaterialType').value) || ''),
+      manufacturer: String((byId('formManufacturer') && byId('formManufacturer').value) || '').trim(),
+      symbol: String((byId('formSymbol') && byId('formSymbol').value) || '').trim(),
+      name: String((byId('formName') && byId('formName').value) || '').trim(),
+      price: normalizePriceValue(byId('formPrice') && byId('formPrice').value),
+      hasGrain: !!(byId('formHasGrain') && byId('formHasGrain').checked),
+    };
+  }
+
+  function getCurrentServiceDraft(){
+    return {
+      category: String((byId('formCategory') && byId('formCategory').value) || '').trim(),
+      name: String((byId('formServiceName') && byId('formServiceName').value) || '').trim(),
+      price: normalizePriceValue(byId('formServicePrice') && byId('formServicePrice').value),
+    };
+  }
+
+  function currentItemSignature(){
+    const data = currentListType() === 'materials' ? getCurrentMaterialDraft() : getCurrentServiceDraft();
+    return JSON.stringify(data);
+  }
+
+  function isItemDirty(){
+    if(!runtimeState.itemModalOpen) return false;
+    return currentItemSignature() !== String(runtimeState.itemInitialSignature || '');
+  }
+
+  function updateItemActionState(){
+    const dirty = isItemDirty();
+    const isEdit = !!(appUiState() && appUiState().editingId);
+    const isMat = currentListType() === 'materials';
+    const deleteBtn = byId('deletePriceItemBtn');
+    const exitBtn = byId('priceItemExitBtn');
+    const cancelBtn = byId('priceItemCancelBtn');
+    const saveBtn = byId('priceItemSaveBtn');
+    const footer = byId('priceItemFooter');
+    if(footer) footer.style.display = runtimeState.itemModalOpen ? 'flex' : 'none';
+    if(deleteBtn) deleteBtn.style.display = isEdit ? '' : 'none';
+    if(exitBtn) exitBtn.style.display = dirty ? 'none' : '';
+    if(cancelBtn) cancelBtn.style.display = dirty ? '' : 'none';
+    if(saveBtn){
+      saveBtn.style.display = dirty ? '' : 'none';
+      saveBtn.textContent = isEdit ? 'Zapisz' : (isMat ? 'Dodaj' : 'Dodaj');
+    }
+  }
+
+  function wireItemDirtyEvents(){
+    ['formSymbol','formName','formPrice','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory'].forEach((id)=>{
+      const el = byId(id);
+      if(!el) return;
+      el.oninput = updateItemActionState;
+      el.onchange = updateItemActionState;
+    });
   }
 
   function syncFilterSelects(){
@@ -265,45 +389,52 @@
       placeholder: 'Wybierz typ',
       onChange: ()=>{
         const currentManufacturer = String((manufacturerEl && manufacturerEl.value) || '');
-        setSelectOptions(manufacturerEl, buildManufacturerOptions(typeEl && typeEl.value, currentManufacturer), currentManufacturer, currentManufacturer || 'Brak / własny wpis');
+        setSelectOptions(manufacturerEl, buildManufacturerOptions(typeEl && typeEl.value, currentManufacturer), currentManufacturer, currentManufacturer || '');
         mountItemChoices();
+        updateItemActionState();
       }
     });
     mountChoice({
       selectEl: manufacturerEl,
       mountId: 'formManufacturerLaunch',
       title: 'Wybierz producenta',
-      placeholder: 'Wybierz producenta'
+      placeholder: 'Wybierz producenta',
+      onChange: ()=>{ updateItemActionState(); }
     });
     mountChoice({
       selectEl: categoryEl,
       mountId: 'formCategoryLaunch',
       title: 'Wybierz kategorię usługi',
-      placeholder: 'Wybierz kategorię'
+      placeholder: 'Wybierz kategorię',
+      onChange: ()=>{ updateItemActionState(); }
     });
+  }
+
+  function clearFilters(){
+    runtimeState.filters.materialType = '';
+    runtimeState.filters.manufacturer = '';
+    runtimeState.filters.serviceCategory = '';
+    const search = byId('priceSearch');
+    if(search) search.value = '';
   }
 
   function bindToolbarEvents(){
     const search = byId('priceSearch');
-    if(search){
-      search.oninput = ()=>{ renderPriceModal(); };
-    }
+    if(search) search.oninput = ()=>{ renderPriceModal(); };
     const addBtn = byId('openPriceItemModalBtn');
-    if(addBtn){
-      addBtn.onclick = ()=>{ openPriceItemModal(null); };
-    }
+    if(addBtn) addBtn.onclick = ()=>{ openPriceItemModal(null); };
+    const clearBtn = byId('clearPriceFiltersBtn');
+    if(clearBtn) clearBtn.onclick = ()=>{ clearFilters(); renderPriceModal(); };
     const closeItemBtn = byId('closePriceItemModal');
-    if(closeItemBtn) closeItemBtn.onclick = ()=>{ closePriceItemModal(); };
-    const cancelMaterialBtn = byId('cancelEditBtn');
-    if(cancelMaterialBtn) cancelMaterialBtn.onclick = ()=>{ closePriceItemModal(); };
-    const cancelServiceBtn = byId('cancelServiceEditBtn');
-    if(cancelServiceBtn) cancelServiceBtn.onclick = ()=>{ closePriceItemModal(); };
-  }
-
-  function currentEditedItem(){
-    if(!uiState || !uiState.editingId) return null;
-    if(currentListType() === 'materials') return (Array.isArray(materials) ? materials.find((item)=> item.id === uiState.editingId) : null) || null;
-    return (Array.isArray(services) ? services.find((item)=> item.id === uiState.editingId) : null) || null;
+    if(closeItemBtn) closeItemBtn.onclick = ()=>{ requestClosePriceItemModal('cancel'); };
+    const exitBtn = byId('priceItemExitBtn');
+    if(exitBtn) exitBtn.onclick = ()=>{ requestClosePriceItemModal('exit'); };
+    const cancelBtn = byId('priceItemCancelBtn');
+    if(cancelBtn) cancelBtn.onclick = ()=>{ requestClosePriceItemModal('cancel'); };
+    const saveBtn = byId('priceItemSaveBtn');
+    if(saveBtn) saveBtn.onclick = ()=>{ saveActivePriceItem(); };
+    const deleteBtn = byId('deletePriceItemBtn');
+    if(deleteBtn) deleteBtn.onclick = ()=>{ deleteActivePriceItem(); };
   }
 
   function renderItemModal(){
@@ -315,7 +446,7 @@
     }
     const isMat = currentListType() === 'materials';
     const item = currentEditedItem();
-    const isEdit = !!(uiState && uiState.editingId && item);
+    const isEdit = !!(appUiState() && appUiState().editingId && item);
     modal.style.display = 'flex';
     try{
       modal.classList.add('modal-open-guard');
@@ -343,34 +474,50 @@
     if(isMat){
       if(isEdit) applyMaterialFormState(item);
       else {
-        applyMaterialFormState({ materialType:'laminat', manufacturer:'', symbol:'', name:'', price:'', hasGrain:false });
+        applyMaterialFormState(defaultMaterialDraft());
         clearMaterialForm();
       }
     }else{
       try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
       if(isEdit) applyServiceFormState(item);
       else {
-        applyServiceFormState({ category:'Montaż', name:'', price:'' });
+        applyServiceFormState(defaultServiceDraft());
         clearServiceForm();
       }
     }
     mountItemChoices();
     bindToolbarEvents();
+    wireItemDirtyEvents();
+    runtimeState.itemInitialSignature = currentItemSignature();
+    updateItemActionState();
   }
 
   function openPriceItemModal(itemId){
-    uiState.editingId = itemId || null;
+    appUiState().editingId = itemId || null;
     persistUi();
     runtimeState.itemModalOpen = true;
     renderItemModal();
   }
 
-  function closePriceItemModal(){
+  function doClosePriceItemModal(){
     runtimeState.itemModalOpen = false;
-    uiState.editingId = null;
+    runtimeState.itemInitialSignature = '';
+    appUiState().editingId = null;
     persistUi();
     const modal = byId('priceItemModal');
     if(modal) modal.style.display = 'none';
+    return true;
+  }
+
+  async function requestClosePriceItemModal(reason){
+    if(!runtimeState.itemModalOpen) return true;
+    const dirty = isItemDirty();
+    if(dirty){
+      const ok = await confirmDiscardPriceItemChanges();
+      if(!ok) return false;
+    }
+    doClosePriceItemModal();
+    return true;
   }
 
   function matchesSearch(item, query){
@@ -388,7 +535,7 @@
   function filteredPriceList(){
     const isMat = currentListType() === 'materials';
     const q = normalizeKey((byId('priceSearch') && byId('priceSearch').value) || '');
-    const list = isMat ? (Array.isArray(materials) ? materials : []) : (Array.isArray(services) ? services : []);
+    const list = currentList();
     return list.filter((item)=>{
       if(!matchesSearch(item, q)) return false;
       if(isMat){
@@ -415,8 +562,9 @@
 
     filtered.forEach((item)=>{
       const row = document.createElement('div');
-      row.className = 'list-item';
+      row.className = 'list-item price-modal-list-row';
       const left = document.createElement('div');
+      left.className = 'price-modal-list-main';
       left.style.minWidth = '0';
       const grainBadge = (isMat && item && item.hasGrain) ? ' • 🌾 słoje' : '';
       left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'}</div><div class="muted-tag xs">${isMat ? ((item.materialType || '—') + ' • ' + (item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : '') + grainBadge) : (item.category || '—')}</div>`;
@@ -429,29 +577,127 @@
       editBtn.className = 'btn';
       editBtn.type = 'button';
       editBtn.textContent = 'Edytuj';
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn-danger';
-      delBtn.type = 'button';
-      delBtn.textContent = 'Usuń';
       right.appendChild(price);
       right.appendChild(editBtn);
-      right.appendChild(delBtn);
       row.appendChild(left);
       row.appendChild(right);
       container.appendChild(row);
 
       editBtn.addEventListener('click', ()=>{ openPriceItemModal(item.id); });
-      delBtn.addEventListener('click', ()=>{ deletePriceItem(item); });
     });
+  }
+
+  async function closePriceModal(){
+    if(runtimeState.itemModalOpen){
+      return requestClosePriceItemModal('close-parent');
+    }
+    try{ unlockModalScroll(); }catch(_){ }
+    appUiState().showPriceList = null;
+    persistUi();
+    const modal = byId('priceModal');
+    if(modal) modal.style.display = 'none';
+    return true;
+  }
+
+  function validateMaterialForm(data){
+    if(!String(data && data.name || '').trim()){
+      info('Brak nazwy', 'Wprowadź nazwę materiału, zanim go zapiszesz.');
+      return false;
+    }
+    if(!String(data && data.materialType || '').trim()){
+      info('Brak typu', 'Wybierz typ materiału.');
+      return false;
+    }
+    if(!String(data && data.manufacturer || '').trim()){
+      info('Brak producenta', 'Wybierz producenta dla materiału.');
+      return false;
+    }
+    return true;
+  }
+
+  function validateServiceForm(data){
+    if(!String(data && data.name || '').trim()){
+      info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.');
+      return false;
+    }
+    if(!String(data && data.category || '').trim()){
+      info('Brak kategorii', 'Wybierz kategorię usługi.');
+      return false;
+    }
+    return true;
+  }
+
+  function saveMaterialFromForm(){
+    const data = getCurrentMaterialDraft();
+    if(!validateMaterialForm(data)) return false;
+    const payload = Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain });
+    if(appUiState().editingId){
+      materials = (Array.isArray(materials) ? materials : []).map((m)=> m.id === appUiState().editingId ? Object.assign({}, m, payload) : m);
+    } else {
+      const id = FC.utils.uid();
+      materials = (Array.isArray(materials) ? materials : []).concat([Object.assign({ id }, payload)]);
+    }
+    FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+    doClosePriceItemModal();
+    renderPriceModal();
+    try{ renderCabinetModal(); }catch(_){ }
+    return true;
+  }
+
+  function saveServiceFromForm(){
+    try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
+    const data = getCurrentServiceDraft();
+    if(!validateServiceForm(data)) return false;
+    const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    if(appUiState().editingId){
+      services = (Array.isArray(services) ? services : []).map((s)=> s.id === appUiState().editingId ? Object.assign({}, s, payload) : s);
+    } else {
+      const id = FC.utils.uid();
+      services = (Array.isArray(services) ? services : []).concat([Object.assign({ id }, payload)]);
+    }
+    FC.storage.setJSON(STORAGE_KEYS.services, services);
+    doClosePriceItemModal();
+    renderPriceModal();
+    return true;
+  }
+
+  async function saveActivePriceItem(){
+    if(!runtimeState.itemModalOpen) return false;
+    if(!isItemDirty()) return requestClosePriceItemModal('exit');
+    const ok = await confirmSavePriceItemChanges();
+    if(!ok) return false;
+    return currentListType() === 'materials' ? saveMaterialFromForm() : saveServiceFromForm();
+  }
+
+  async function deletePriceItem(item){
+    const ok = await confirmDelete();
+    if(!ok) return false;
+    if(currentListType() === 'materials'){
+      materials = (Array.isArray(materials) ? materials : []).filter((m)=> m.id !== item.id);
+      FC.storage.setJSON(STORAGE_KEYS.materials, materials);
+    } else {
+      services = (Array.isArray(services) ? services : []).filter((s)=> s.id !== item.id);
+      FC.storage.setJSON(STORAGE_KEYS.services, services);
+    }
+    if(String(appUiState().editingId || '') === String(item && item.id || '')) doClosePriceItemModal();
+    renderPriceModal();
+    try{ renderCabinetModal(); }catch(_){ }
+    return true;
+  }
+
+  function deleteActivePriceItem(){
+    const item = currentEditedItem();
+    if(!item) return false;
+    return deletePriceItem(item);
   }
 
   function renderPriceModal(){
     try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const modal = byId('priceModal');
-    const type = uiState.showPriceList;
+    const type = appUiState().showPriceList;
     const wasOpen = modal && modal.style.display === 'flex';
     if(!type){
-      closePriceItemModal();
+      doClosePriceItemModal();
       if(modal) modal.style.display = 'none';
       if(wasOpen) try{ unlockModalScroll(); }catch(_){ }
       return;
@@ -487,79 +733,13 @@
     renderItemModal();
   }
 
-  function closePriceModal(){
-    closePriceItemModal();
-    try{ unlockModalScroll(); }catch(_){ }
-    uiState.showPriceList = null;
-    persistUi();
-    const modal = byId('priceModal');
-    if(modal) modal.style.display = 'none';
-  }
-
-  function saveMaterialFromForm(){
-    const type = String((byId('formMaterialType') && byId('formMaterialType').value) || 'laminat');
-    const manufacturer = String((byId('formManufacturer') && byId('formManufacturer').value) || '').trim();
-    const symbol = String((byId('formSymbol') && byId('formSymbol').value) || '').trim();
-    const name = String((byId('formName') && byId('formName').value) || '').trim();
-    const price = parseFloat((byId('formPrice') && byId('formPrice').value) || 0);
-    const hasGrain = !!(byId('formHasGrain') && byId('formHasGrain').checked);
-    if(!name){
-      info('Brak nazwy', 'Wprowadź nazwę materiału, zanim go zapiszesz.');
-      return;
-    }
-    const data = { materialType:type, manufacturer, symbol, name, price, hasGrain };
-    if(uiState.editingId){
-      materials = (Array.isArray(materials) ? materials : []).map((m)=> m.id === uiState.editingId ? Object.assign({}, m, data) : m);
-    } else {
-      const id = FC.utils.uid();
-      materials = (Array.isArray(materials) ? materials : []).concat([Object.assign({ id }, data)]);
-    }
-    FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-    closePriceItemModal();
-    renderPriceModal();
-    try{ renderCabinetModal(); }catch(_){ }
-  }
-
-  function saveServiceFromForm(){
-    try{ if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') window.FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
-    const category = String((byId('formCategory') && byId('formCategory').value) || '').trim() || 'Montaż';
-    const name = String((byId('formServiceName') && byId('formServiceName').value) || '').trim();
-    const price = parseFloat((byId('formServicePrice') && byId('formServicePrice').value) || 0);
-    if(!name){
-      info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.');
-      return;
-    }
-    const data = { category, name, price };
-    if(uiState.editingId){
-      services = (Array.isArray(services) ? services : []).map((s)=> s.id === uiState.editingId ? Object.assign({}, s, data) : s);
-    } else {
-      const id = FC.utils.uid();
-      services = (Array.isArray(services) ? services : []).concat([Object.assign({ id }, data)]);
-    }
-    FC.storage.setJSON(STORAGE_KEYS.services, services);
-    closePriceItemModal();
-    renderPriceModal();
-  }
-
-  async function deletePriceItem(item){
-    const ok = await confirmDelete();
-    if(!ok) return;
-    if(currentListType() === 'materials'){
-      materials = (Array.isArray(materials) ? materials : []).filter((m)=> m.id !== item.id);
-      FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-    } else {
-      services = (Array.isArray(services) ? services : []).filter((s)=> s.id !== item.id);
-      FC.storage.setJSON(STORAGE_KEYS.services, services);
-    }
-    if(String(uiState.editingId || '') === String(item && item.id || '')) closePriceItemModal();
-    renderPriceModal();
-    try{ renderCabinetModal(); }catch(_){ }
-  }
-
   window.FC.priceModal.renderPriceModal = renderPriceModal;
   window.FC.priceModal.closePriceModal = closePriceModal;
   window.FC.priceModal.openPriceItemModal = openPriceItemModal;
-  window.FC.priceModal.closePriceItemModal = closePriceItemModal;
+  window.FC.priceModal.closePriceItemModal = requestClosePriceItemModal;
+  window.FC.priceModal.requestClosePriceItemModal = requestClosePriceItemModal;
+  window.FC.priceModal.saveActivePriceItem = saveActivePriceItem;
+  window.FC.priceModal.deleteActivePriceItem = deleteActivePriceItem;
   window.FC.priceModal.saveMaterialFromForm = saveMaterialFromForm;
   window.FC.priceModal.saveServiceFromForm = saveServiceFromForm;
   window.FC.priceModal.deletePriceItem = deletePriceItem;

@@ -6,7 +6,7 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260405_field_unify_width_sync_v1">
+<link rel="stylesheet" href="css/style.css?v=20260406_price_modal_fix_v2">
 <link rel="stylesheet" href="css/investor-layout.css?v=20260406_session_fix_v3">
 <link rel="stylesheet" href="css/investor-form.css?v=20260405_field_unify_width_sync_v1">
 <link rel="stylesheet" href="css/rozrys-reference-sync.css?v=20260329_material_picker_scroll_gutter_v1">
@@ -182,6 +182,7 @@
 </div>
 </div>
 <div class="price-toolbar__actions">
+<button class="btn" id="clearPriceFiltersBtn" type="button">Wyczyść filtry</button>
 <button class="btn-primary" id="openPriceItemModalBtn" type="button">Dodaj</button>
 </div>
 </div>
@@ -239,15 +240,9 @@
   <input id="formHasGrain" type="checkbox" />
   <label for="formHasGrain" class="muted-tag xs" style="margin:0">Ma słoje (ROZRYS: pilnuj kierunku)</label>
 </div>
-<div class="grid-2" style="margin-top:10px">
-<div>
+<div style="margin-top:10px">
 <label>Cena (PLN)</label>
 <input id="formPrice" class="investor-form-input" step="0.01" type="number"/>
-</div>
-<div style="display:flex;align-items:end;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-<button class="btn" id="cancelEditBtn" data-action="cancel-material-edit" type="button">Anuluj</button>
-<button class="btn-success" id="savePriceBtn" data-action="save-material" type="button">Zapisz</button>
-</div>
 </div>
 </div>
 <div id="serviceFormFields" style="display:none">
@@ -262,15 +257,19 @@
 <input id="formServiceName" class="investor-form-input" type="text"/>
 </div>
 </div>
-<div class="grid-2" style="margin-top:10px">
-<div>
+<div style="margin-top:10px">
 <label>Cena (PLN)</label>
 <input id="formServicePrice" class="investor-form-input" step="0.01" type="number"/>
 </div>
-<div style="display:flex;align-items:end;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-<button class="btn" id="cancelServiceEditBtn" data-action="cancel-service-edit" type="button">Anuluj</button>
-<button class="btn-success" id="saveServiceBtn" data-action="save-service" type="button">Zapisz</button>
 </div>
+<div class="price-item-footer" id="priceItemFooter">
+<div class="price-item-footer__left">
+<button class="btn-danger" id="deletePriceItemBtn" data-action="price-item-delete" type="button" style="display:none">Usuń</button>
+</div>
+<div class="price-item-footer__right">
+<button class="btn-primary" id="priceItemExitBtn" data-action="price-item-exit" type="button">Wyjdź</button>
+<button class="btn-danger" id="priceItemCancelBtn" data-action="price-item-cancel" type="button" style="display:none">Anuluj</button>
+<button class="btn-success" id="priceItemSaveBtn" data-action="price-item-save" type="button" style="display:none">Zapisz</button>
 </div>
 </div>
 </div>
@@ -461,7 +460,7 @@
 <script defer src="js/app/investor/investor-choice.js?v=20260406_session_source_fix_v1"></script>
 <script defer src="js/app/investor/investor-links.js?v=20260403_investor_arch_sync_v1"></script>
 <script defer src="js/app/investor/investor-field-render.js?v=20260406_session_source_fix_v1"></script>
-<script defer src="js/app/investor/investor-actions.js?v=20260406_quote_ui_pdf_v1"></script>
+<script defer src="js/app/investor/investor-actions.js?v=20260406_price_modal_fix_v2"></script>
 <script defer src="js/app/investor/investor-modals.js?v=20260405_dup_owner_v1"></script>
 <script defer src="js/app/investor/investor-pdf.js?v=20260406_quote_ui_pdf_v1"></script>
 <script defer src="js/app/investor/investor-rooms.js?v=20260405_investor_followup_v2"></script>
@@ -477,7 +476,7 @@
 
 <script defer src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script defer src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/material/price-modal.js?v=20260406_quote_ui_pdf_v1"></script>
+<script defer src="js/app/material/price-modal.js?v=20260406_price_modal_fix_v2"></script>
 <script defer src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/ui/info-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/ui/panel-box.js?v=20260329_rozrys_visual_polish_v1"></script>
