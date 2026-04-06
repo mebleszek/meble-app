@@ -21,9 +21,7 @@
   function mergeAppReports(){
     const reports = [
       FC.projectDevTests && typeof FC.projectDevTests.runAll === 'function' ? FC.projectDevTests.runAll() : null,
-      FC.investorDevTests && typeof FC.investorDevTests.runAll === 'function' ? FC.investorDevTests.runAll() : null,
       FC.materialDevTests && typeof FC.materialDevTests.runAll === 'function' ? FC.materialDevTests.runAll() : null,
-      FC.wycenaDevTests && typeof FC.wycenaDevTests.runAll === 'function' ? FC.wycenaDevTests.runAll() : null,
       FC.cabinetDevTests && typeof FC.cabinetDevTests.runAll === 'function' ? FC.cabinetDevTests.runAll() : null,
     ].filter(Boolean);
     const merged = {

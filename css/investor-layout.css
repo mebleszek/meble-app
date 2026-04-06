@@ -7,7 +7,7 @@
 .investor-card-sync .investor-details-rows{display:flex;flex-direction:column;gap:12px;}
 .investor-card-sync .investor-details-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;align-items:start;}
 .investor-card-sync .investor-details-row--full{grid-template-columns:minmax(0,1fr);}
-.investor-card-sync .investor-rooms-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 12px;margin:14px 0 8px;}
+.investor-card-sync .investor-rooms-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 12px;margin:0 0 8px;}
 .investor-card-sync .investor-room-quick-list{display:flex;gap:10px;flex-wrap:wrap;}
 .investor-card-sync .investor-room-quick-btn.is-disabled,
 .investor-card-sync .investor-add-room-btn.is-disabled,

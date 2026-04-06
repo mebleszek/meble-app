@@ -200,9 +200,7 @@
         }catch(_){ ok = true; }
         if(!ok) return true;
         try{ if(session && typeof session.cancel === 'function') session.cancel(); }catch(_){ }
-        try{ if(typeof uiState !== 'undefined' && window.FC && FC.storage && typeof FC.storage.setJSON === 'function') FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
-        try{ restoreProjectUiAfterSessionChange(); }catch(_){ }
-        try{ window.location.reload(); }catch(_){ }
+        restoreProjectUiAfterSessionChange();
         return true;
       }
 
