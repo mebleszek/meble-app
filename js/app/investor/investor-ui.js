@@ -271,7 +271,7 @@
       ));
       rows.push(fields.buildPairRow(
         fields.buildInputField('invAddress', fields.buildStaticLabel('Adres'), draft.address, { readonly:!isEditing, compact:true }),
-        fields.buildChoiceField('invSource', 'Źródło', INVESTOR_SOURCE_OPTIONS, draft.source, '', { readonlyPreview:!isEditing })
+        fields.buildChoiceField('invSource', 'Źródło', INVESTOR_SOURCE_OPTIONS, draft.source, '', { readonlyPreview:!isEditing, allowEmpty:true })
       ));
     } else {
       rows.push(fields.buildPairRow(
@@ -288,7 +288,7 @@
         { full:true }
       ));
       rows.push(fields.buildPairRow(
-        fields.buildChoiceField('invSource', 'Źródło', INVESTOR_SOURCE_OPTIONS, draft.source, '', { readonlyPreview:!isEditing }),
+        fields.buildChoiceField('invSource', 'Źródło', INVESTOR_SOURCE_OPTIONS, draft.source, '', { readonlyPreview:!isEditing, allowEmpty:true }),
         '',
         { full:true }
       ));
@@ -315,6 +315,7 @@
         </div>
 
         <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
+        <div class="investor-action-divider" aria-hidden="true"></div>
 
         <div class="investor-rooms-head">
           <h4 style="margin:0">Pomieszczenia</h4>
@@ -425,6 +426,7 @@
         title:'Wybierz typ',
         buttonClass:'investor-choice-launch',
         disabled: !(editorApi && editorApi.state.isEditing),
+        placeholder:'Wybierz typ',
         onChange: (value)=>{
           if(!(editorApi && editorApi.state.isEditing)) return;
           editorApi.setField('kind', value);
@@ -441,6 +443,7 @@
         title:'Wybierz źródło',
         buttonClass:'investor-choice-launch',
         disabled: !(editorApi && editorApi.state.isEditing),
+        placeholder:'Wybierz typ',
         onChange: (value)=>{
           if(!(editorApi && editorApi.state.isEditing)) return;
           editorApi.setField('source', value);

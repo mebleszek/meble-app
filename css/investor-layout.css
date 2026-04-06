@@ -36,7 +36,9 @@
 
 .investor-card-sync .investor-field-spacer{min-height:1px;}
 
-.investor-card-sync .investor-action-divider{margin:10px 0 14px;border-top:1px solid rgba(203,213,225,.9);}
+.investor-card-sync .investor-action-divider{margin:10px 0 0;border-top:1px solid rgba(203,213,225,.9);}
+.investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-value,
+.investor-card-sync .investor-details-rows > .investor-details-row:last-child .investor-form-value--choice{border-bottom-color:transparent;}
 .investor-card-sync .investor-room-head-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:nowrap;}
 .investor-card-sync .investor-rooms-head .investor-add-room-btn,
 .investor-card-sync .investor-rooms-head .investor-remove-room-btn{min-width:88px;padding-left:14px;padding-right:14px;}

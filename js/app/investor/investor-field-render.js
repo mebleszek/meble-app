@@ -13,9 +13,13 @@
   }
 
   function buildChoiceField(id, label, options, value, extraClass, opts){
-    const cfg = Object.assign({ readonlyPreview:false }, opts || {});
-    const optsHtml = (options || []).map((opt)=> `<option value="${escapeAttr(opt.value)}" ${String(opt.value) === String(value) ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('');
-    const currentLabel = (options || []).find((opt)=> String(opt.value) === String(value))?.label || value || '';
+    const cfg = Object.assign({ readonlyPreview:false, allowEmpty:false, emptyLabel:'' }, opts || {});
+    const baseOptions = Array.isArray(options) ? options.slice() : [];
+    const finalOptions = cfg.allowEmpty && !baseOptions.some((opt)=> String(opt && opt.value) === '')
+      ? [{ value:'', label:String(cfg.emptyLabel || '') }].concat(baseOptions)
+      : baseOptions;
+    const optsHtml = finalOptions.map((opt)=> `<option value="${escapeAttr(opt.value)}" ${String(opt.value) === String(value) ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('');
+    const currentLabel = finalOptions.find((opt)=> String(opt.value) === String(value))?.label || value || '';
     if(cfg.readonlyPreview){
       const display = String(currentLabel || '').trim() ? escapeHtml(currentLabel) : '<span class="investor-form-value__empty">—</span>';
       return `

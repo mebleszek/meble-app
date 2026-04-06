@@ -4,10 +4,10 @@
   const FC = window.FC;
 
   function mountChoice(opts){
-    const cfg = Object.assign({ mount:null, selectEl:null, title:'Wybierz', buttonClass:'', disabled:false, onChange:null }, opts || {});
+    const cfg = Object.assign({ mount:null, selectEl:null, title:'Wybierz', buttonClass:'', disabled:false, onChange:null, placeholder:'' }, opts || {});
     const choiceApi = window.FC && window.FC.rozrysChoice;
     if(!cfg.mount || !cfg.selectEl || !(choiceApi && typeof choiceApi.createChoiceLauncher === 'function' && typeof choiceApi.openRozrysChoiceOverlay === 'function')) return null;
-    const label = choiceApi.getSelectOptionLabel(cfg.selectEl) || '';
+    const label = choiceApi.getSelectOptionLabel(cfg.selectEl) || String(cfg.placeholder || '');
     const btn = choiceApi.createChoiceLauncher(label, '');
     if(cfg.buttonClass) String(cfg.buttonClass).split(/\s+/).filter(Boolean).forEach((cls)=> btn.classList.add(cls));
     const arrow = btn.querySelector('.rozrys-choice-launch__arrow');
@@ -22,7 +22,7 @@
       });
       if(picked == null || String(picked) === String(cfg.selectEl.value || '')) return;
       cfg.selectEl.value = String(picked || '');
-      choiceApi.setChoiceLaunchValue(btn, choiceApi.getSelectOptionLabel(cfg.selectEl) || '', '');
+      choiceApi.setChoiceLaunchValue(btn, choiceApi.getSelectOptionLabel(cfg.selectEl) || String(cfg.placeholder || ''), '');
       if(typeof cfg.onChange === 'function') cfg.onChange(String(cfg.selectEl.value || ''), btn);
       cfg.selectEl.dispatchEvent(new Event('change', { bubbles:true }));
     });

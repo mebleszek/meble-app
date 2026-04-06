@@ -75,6 +75,18 @@
     try{ if(FC.views && FC.views.openInvestorsList) FC.views.openInvestorsList(); }catch(_){ }
   }
 
+  function restoreProjectUiAfterSessionChange(){
+    try{ if(typeof uiState !== 'undefined' && window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function') uiState = window.FC.uiState.get(); }catch(_){ }
+    try{ if(typeof projectData !== 'undefined' && window.FC && FC.project && typeof FC.project.load === 'function') projectData = FC.project.load(); }catch(_){ }
+    try{ if(typeof materials !== 'undefined' && window.FC && FC.storage && typeof FC.storage.getJSON === 'function') materials = FC.storage.getJSON(STORAGE_KEYS.materials, materials); }catch(_){ }
+    try{ if(typeof services !== 'undefined' && window.FC && FC.storage && typeof FC.storage.getJSON === 'function') services = FC.storage.getJSON(STORAGE_KEYS.services, services); }catch(_){ }
+    try{ if(typeof normalizeProjectData === 'function' && typeof projectData !== 'undefined') projectData = normalizeProjectData(projectData, DEFAULT_PROJECT); }catch(_){ }
+    try{ if(FC.views && typeof FC.views.applyFromState === 'function' && typeof uiState !== 'undefined') FC.views.applyFromState(uiState); }catch(_){ }
+    try{ if(typeof render === 'function') render(); }catch(_){ }
+    try{ if(FC.sections && typeof FC.sections.update === 'function') FC.sections.update(); }catch(_){ }
+    try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+  }
+
 
   FC.actions.register({
     'close-price': ({event}) => { closePriceModal(); return true; },
@@ -167,19 +179,13 @@
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
-      if(inInvestorTab){
-        if(investorEditing) return true;
-        exitInvestorToList();
-        return true;
-      }
-
       if(dirty){
         let ok = true;
         try{
           if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
             ok = await window.FC.confirmBox.ask({
               title:'ANULOWAĆ ZMIANY?',
-              message:'Niezapisane zmiany zostaną utracone. Czy na pewno chcesz wyjść?',
+              message:'Niezapisane zmiany zostaną utracone. Czy na pewno chcesz cofnąć zmiany?',
               confirmText:'✕ ANULUJ ZMIANY',
               cancelText:'WRÓĆ',
               confirmTone:'danger',
@@ -190,23 +196,39 @@
         }catch(_){ ok = true; }
         if(!ok) return true;
         try{ if(session && typeof session.cancel === 'function') session.cancel(); }catch(_){ }
-        try{ window.location.reload(); }catch(_){ }
+        restoreProjectUiAfterSessionChange();
         return true;
       }
+
+      if(inInvestorTab){
+        if(investorEditing) return true;
+        exitInvestorToList();
+        return true;
+      }
+
       try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
       try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
       return true;
     },
     'session-save': ({event}) => {
+      const session = (window.FC && window.FC.session) ? window.FC.session : null;
+      const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
+
+      if(dirty){
+        try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
+        try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+        return true;
+      }
+
       if(inInvestorTab){
         if(investorEditing) return true;
         exitInvestorToList();
         return true;
       }
-      try{ if(window.FC && window.FC.session && typeof window.FC.session.commit === 'function') window.FC.session.commit(); }catch(_){ }
+      try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
       try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ }
       return true;
     },
