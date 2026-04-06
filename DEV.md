@@ -944,3 +944,5 @@ Dopiero potem go zmieniać.
 - przy błędzie renderu arkuszy widok próbuje fallback kart arkuszy, a dopiero potem pokazuje komunikat fail-safe,
 - lista `Skomasowana` przestała być sztucznym `OK`; korzysta teraz z rzeczywistej walidacji RAW → scalanie,
 - dodano smoke testy ROZRYS dla walidacji scalania oraz dla obecności sekcji/kart/canvasów w DOM.
+
+- 2026-04-06 13:xx: spacing under investor divider + session cancel reload restore fix.
