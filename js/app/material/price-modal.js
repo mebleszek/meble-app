@@ -7,9 +7,10 @@
   window.FC.priceModal = window.FC.priceModal || {};
   const FC = window.FC;
 
-  const MATERIAL_TYPES = ['laminat','akryl','lakier','blat'];
-  const QUOTE_RATE_CATEGORIES = ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
-  const WORKSHOP_SERVICE_CATEGORIES = ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'];
+  const catalogDomain = FC.catalogDomain || {};
+  const MATERIAL_TYPES = Array.isArray(catalogDomain.SHEET_MATERIAL_TYPES) ? catalogDomain.SHEET_MATERIAL_TYPES.slice() : ['laminat','akryl','lakier','blat'];
+  const QUOTE_RATE_CATEGORIES = Array.isArray(catalogDomain.QUOTE_RATE_CATEGORIES) ? catalogDomain.QUOTE_RATE_CATEGORIES.slice() : ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
+  const WORKSHOP_SERVICE_CATEGORIES = Array.isArray(catalogDomain.WORKSHOP_SERVICE_CATEGORIES) ? catalogDomain.WORKSHOP_SERVICE_CATEGORIES.slice() : ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'];
   const runtimeState = {
     itemModalOpen:false,
     itemInitialSignature:'',
@@ -23,7 +24,11 @@
     const kind = String((appUiState() && appUiState().showPriceList) || 'materials');
     return ['materials','accessories','quoteRates','workshopServices'].includes(kind) ? kind : 'materials';
   }
-  function currentConfig(){ return catalogStore() && catalogStore().getPriceConfig ? catalogStore().getPriceConfig(currentListKind()) : { key:'materials', title:'Cennik materiałów', subtitle:'', addLabel:'Dodaj', icon:'🧩', formKind:'material' }; }
+  function currentConfig(){
+    if(catalogStore() && catalogStore().getPriceConfig) return catalogStore().getPriceConfig(currentListKind());
+    if(catalogDomain && typeof catalogDomain.getCatalogConfig === 'function') return catalogDomain.getCatalogConfig(currentListKind());
+    return { key:'materials', title:'Materiały', subtitle:'', addLabel:'Dodaj', icon:'🧩', formKind:'material' };
+  }
   function currentList(){ return catalogStore() && catalogStore().getPriceList ? catalogStore().getPriceList(currentListKind()) : []; }
   function persistUi(){ try{ FC.storage.setJSON(STORAGE_KEYS.ui, appUiState()); }catch(_){ } }
   function normalizeKey(value){ return String(value == null ? '' : value).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' '); }

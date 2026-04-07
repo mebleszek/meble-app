@@ -21,14 +21,12 @@
       });
     });
 
-    root.querySelectorAll('[data-investor-room-action="edit"]').forEach((btn)=> {
+    root.querySelectorAll('[data-investor-action="manage-rooms"]').forEach((btn)=> {
       btn.addEventListener('click', async ()=>{
         if(isLocked()) return;
-        const roomId = btn.getAttribute('data-room-id');
-        if(!roomId) return;
         try{
-          if(FC.roomRegistry && typeof FC.roomRegistry.openEditRoomModal === 'function'){
-            const result = await FC.roomRegistry.openEditRoomModal(roomId, investor);
+          if(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function'){
+            const result = await FC.roomRegistry.openManageRoomsModal(investor);
             if(result) refresh();
           }
         }catch(_){ }

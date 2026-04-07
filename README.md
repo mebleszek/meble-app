@@ -204,3 +204,9 @@ Strona `dev_tests.html` sprawdza już nie tylko cache/walidację/magazyn, ale te
 
 - `dev_tests.html` — smoke-testy ROZRYS
 - `dev_tests.html` — smoke-testy projektu, materiałów i szafek
+
+
+## 2026-04-07 — etap 2 trybów pracy
+- Dodano moduły `js/app/catalog/catalog-domain.js` i `js/app/catalog/catalog-migration.js` jako wspólną warstwę domeny katalogów oraz migracji legacy danych.
+- `catalog-store.js` korzysta teraz z tych modułów i publiczne `migrateLegacy()` domyślnie przebudowuje split z legacy danych, a init aplikacji zachowuje bezpieczne preferowanie już rozdzielonych katalogów.
+- Dodano wspólny modal zarządzania pomieszczeniami inwestora przez `roomRegistry.openManageRoomsModal()`.

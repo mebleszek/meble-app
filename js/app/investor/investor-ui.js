@@ -321,6 +321,7 @@
           <h4 style="margin:0">Pomieszczenia</h4>
           <div class="investor-room-head-actions">
             <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
+            <button class="btn investor-manage-rooms-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="manage-rooms" ${isEditing ? 'disabled' : ''}>Edytuj</button>
           </div>
         </div>
         <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>

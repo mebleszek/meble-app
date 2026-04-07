@@ -8,6 +8,8 @@
     getJSON(_key, fallback){ return JSON.parse(JSON.stringify(fallback)); },
     setJSON(){ }
   };
+  const domain = FC.catalogDomain || {};
+  const migration = FC.catalogMigration || {};
 
   const DEFAULT_SHEET_MATERIALS = [
     { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:35, hasGrain:false },
@@ -24,43 +26,11 @@
   ];
   const DEFAULT_SERVICE_ORDERS = [];
 
-  const PRICE_LIST_CONFIG = {
-    materials: {
-      key:'materials',
-      storageKey:'sheetMaterials',
-      title:'Cennik materiałów',
-      subtitle:'Szukaj, filtruj i zarządzaj materiałami.',
-      addLabel:'Dodaj produkt',
-      icon:'🧩',
-      formKind:'material',
-    },
-    accessories: {
-      key:'accessories',
-      storageKey:'accessories',
-      title:'Akcesoria',
-      subtitle:'Szukaj, filtruj i zarządzaj akcesoriami.',
-      addLabel:'Dodaj akcesorium',
-      icon:'🧷',
-      formKind:'accessory',
-    },
-    quoteRates: {
-      key:'quoteRates',
-      storageKey:'quoteRates',
-      title:'Stawki wyceny mebli',
-      subtitle:'Szukaj, filtruj i zarządzaj stawkami wyceny mebli.',
-      addLabel:'Dodaj stawkę',
-      icon:'💲',
-      formKind:'service',
-    },
-    workshopServices: {
-      key:'workshopServices',
-      storageKey:'workshopServices',
-      title:'Usługi stolarskie',
-      subtitle:'Szukaj, filtruj i zarządzaj usługami stolarskimi.',
-      addLabel:'Dodaj usługę',
-      icon:'🔧',
-      formKind:'service',
-    },
+  const PRICE_LIST_CONFIG = (domain && domain.PRICE_LIST_CONFIG) || {
+    materials: { key:'materials', storageKey:'sheetMaterials', title:'Materiały', subtitle:'', addLabel:'Dodaj materiał', icon:'🧩', formKind:'material' },
+    accessories: { key:'accessories', storageKey:'accessories', title:'Akcesoria', subtitle:'', addLabel:'Dodaj akcesorium', icon:'🧷', formKind:'accessory' },
+    quoteRates: { key:'quoteRates', storageKey:'quoteRates', title:'Stawki wyceny mebli', subtitle:'', addLabel:'Dodaj stawkę', icon:'💲', formKind:'service' },
+    workshopServices: { key:'workshopServices', storageKey:'workshopServices', title:'Usługi stolarskie', subtitle:'', addLabel:'Dodaj usługę', icon:'🔧', formKind:'service' },
   };
 
   function clone(value){
@@ -143,38 +113,66 @@
     return arr.map((row)=> rowNormalizer(row)).filter((row)=> !!normalizeText(row.name || row.title));
   }
 
-  function migrateLegacy(preferLegacy){
-    const legacyMaterials = normalizeList(readList('materials', DEFAULT_SHEET_MATERIALS.concat(DEFAULT_ACCESSORIES.map((row)=> Object.assign({ materialType:'akcesoria', hasGrain:false }, row)))), normalizeMaterialRow, DEFAULT_SHEET_MATERIALS);
+  function resolvePreferStoredSplit(arg){
+    if(arg && typeof arg === 'object' && Object.prototype.hasOwnProperty.call(arg, 'preferStoredSplit')) return !!arg.preferStoredSplit;
+    if(typeof arg === 'boolean'){
+      // Backward compatibility: old signature was preferLegacy. false meant keep split keys, true meant rebuild from legacy.
+      return !arg;
+    }
+    return false;
+  }
+
+  function splitLegacyMaterials(list){
+    try{
+      if(domain && typeof domain.splitLegacyMaterials === 'function') return domain.splitLegacyMaterials(list);
+    }catch(_){ }
+    const rows = normalizeList(list, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS);
+    const out = { sheetMaterials:[], accessories:[] };
+    rows.forEach((row)=>{
+      if(String(row.materialType || '').trim().toLowerCase() === 'akcesoria') out.accessories.push({ id:row.id, manufacturer:row.manufacturer, symbol:row.symbol, name:row.name, price:row.price });
+      else out.sheetMaterials.push(row);
+    });
+    return out;
+  }
+
+  function migrateLegacy(options){
+    const preferStoredSplit = resolvePreferStoredSplit(options);
+    const legacyDefaults = DEFAULT_SHEET_MATERIALS.concat(DEFAULT_ACCESSORIES.map((row)=> Object.assign({ materialType:'akcesoria', hasGrain:false }, row)));
+    const legacyMaterials = normalizeList(readList('materials', legacyDefaults), normalizeMaterialRow, legacyDefaults);
     const legacyServices = normalizeList(readList('services', DEFAULT_QUOTE_RATES), normalizeServiceRow, DEFAULT_QUOTE_RATES);
 
-    const storedSheetMaterialsRaw = readList('sheetMaterials', null);
-    const storedAccessoriesRaw = readList('accessories', null);
-    const storedQuoteRatesRaw = readList('quoteRates', null);
-    const storedWorkshopServicesRaw = readList('workshopServices', null);
-    const storedServiceOrdersRaw = readList('serviceOrders', null);
+    const seeds = migration && typeof migration.buildSeeds === 'function'
+      ? migration.buildSeeds({
+          preferStoredSplit,
+          legacyMaterials,
+          legacyServices,
+          storedSheetMaterials: readList('sheetMaterials', null),
+          storedAccessories: readList('accessories', null),
+          storedQuoteRates: readList('quoteRates', null),
+          storedWorkshopServices: readList('workshopServices', null),
+          storedServiceOrders: readList('serviceOrders', null),
+          defaults: {
+            sheetMaterials: DEFAULT_SHEET_MATERIALS,
+            accessories: DEFAULT_ACCESSORIES,
+            quoteRates: DEFAULT_QUOTE_RATES,
+            workshopServices: DEFAULT_WORKSHOP_SERVICES,
+            serviceOrders: DEFAULT_SERVICE_ORDERS,
+          },
+          splitLegacyMaterials,
+        })
+      : {
+          sheetMaterials: preferStoredSplit ? readList('sheetMaterials', DEFAULT_SHEET_MATERIALS) : splitLegacyMaterials(legacyMaterials).sheetMaterials,
+          accessories: preferStoredSplit ? readList('accessories', DEFAULT_ACCESSORIES) : splitLegacyMaterials(legacyMaterials).accessories,
+          quoteRates: preferStoredSplit ? readList('quoteRates', DEFAULT_QUOTE_RATES) : legacyServices,
+          workshopServices: readList('workshopServices', DEFAULT_WORKSHOP_SERVICES),
+          serviceOrders: readList('serviceOrders', DEFAULT_SERVICE_ORDERS),
+        };
 
-    const preferLegacySplit = !!preferLegacy;
-    const nextSheetSeed = preferLegacySplit
-      ? legacyMaterials.filter((row)=> normalizeText(row.materialType).toLowerCase() !== 'akcesoria')
-      : (Array.isArray(storedSheetMaterialsRaw) ? storedSheetMaterialsRaw : legacyMaterials.filter((row)=> normalizeText(row.materialType).toLowerCase() !== 'akcesoria'));
-    const nextAccessoriesSeed = preferLegacySplit
-      ? legacyMaterials.filter((row)=> normalizeText(row.materialType).toLowerCase() === 'akcesoria').map((row)=> ({ id:row.id, manufacturer:row.manufacturer, symbol:row.symbol, name:row.name, price:row.price }))
-      : (Array.isArray(storedAccessoriesRaw) ? storedAccessoriesRaw : legacyMaterials.filter((row)=> normalizeText(row.materialType).toLowerCase() === 'akcesoria').map((row)=> ({ id:row.id, manufacturer:row.manufacturer, symbol:row.symbol, name:row.name, price:row.price })));
-    const nextQuoteRatesSeed = preferLegacySplit ? legacyServices : (Array.isArray(storedQuoteRatesRaw) ? storedQuoteRatesRaw : legacyServices);
-
-    const sheetMaterials = normalizeList(
-      nextSheetSeed,
-      normalizeMaterialRow,
-      DEFAULT_SHEET_MATERIALS
-    );
-    const accessories = normalizeList(
-      nextAccessoriesSeed,
-      normalizeAccessoryRow,
-      DEFAULT_ACCESSORIES
-    );
-    const quoteRates = normalizeList(nextQuoteRatesSeed, normalizeServiceRow, DEFAULT_QUOTE_RATES);
-    const workshopServices = normalizeList(Array.isArray(storedWorkshopServicesRaw) ? storedWorkshopServicesRaw : DEFAULT_WORKSHOP_SERVICES, normalizeServiceRow, DEFAULT_WORKSHOP_SERVICES);
-    const serviceOrders = normalizeList(Array.isArray(storedServiceOrdersRaw) ? storedServiceOrdersRaw : DEFAULT_SERVICE_ORDERS, normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
+    const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
+    const accessories = normalizeList(seeds.accessories, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
+    const quoteRates = normalizeList(seeds.quoteRates, normalizeServiceRow, DEFAULT_QUOTE_RATES);
+    const workshopServices = normalizeList(seeds.workshopServices, normalizeServiceRow, DEFAULT_WORKSHOP_SERVICES);
+    const serviceOrders = normalizeList(seeds.serviceOrders, normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
 
     writeList('sheetMaterials', sheetMaterials);
     writeList('accessories', accessories);
@@ -186,10 +184,12 @@
     writeList('materials', sheetMaterials);
     writeList('services', quoteRates);
 
+    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders };
+    syncRuntimeGlobals();
     return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders };
   }
 
-  let cache = migrateLegacy(false);
+  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[] };
 
   function syncRuntimeGlobals(){
     try{ if(typeof materials !== 'undefined') materials = cache.sheetMaterials.slice(); }catch(_){ }
@@ -198,7 +198,7 @@
     try{ window.services = cache.quoteRates.slice(); }catch(_){ }
   }
 
-  syncRuntimeGlobals();
+  cache = migrateLegacy(false);
 
   function getPriceList(kind){
     const key = String(kind || 'materials');
@@ -212,7 +212,7 @@
   function savePriceList(kind, list){
     const key = String(kind || 'materials');
     if(key === 'materials'){
-      cache.sheetMaterials = normalizeList(list, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS);
+      cache.sheetMaterials = normalizeList(list, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
       writeList('sheetMaterials', cache.sheetMaterials);
       writeList('materials', cache.sheetMaterials);
     }
@@ -239,58 +239,32 @@
     writeList('serviceOrders', cache.serviceOrders);
     return getServiceOrders();
   }
-
-  function upsertServiceOrder(row){
-    const payload = normalizeServiceOrderRow(row);
+  function upsertServiceOrder(payload){
+    const row = normalizeServiceOrderRow(payload || {});
     const next = getServiceOrders();
-    const idx = next.findIndex((item)=> String(item.id) === String(payload.id));
-    if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload, { updatedAt:Date.now() });
-    else next.push(Object.assign({}, payload, { updatedAt:Date.now() }));
+    const idx = next.findIndex((item)=> String(item.id || '') === String(row.id || ''));
+    if(idx >= 0) next[idx] = Object.assign({}, next[idx], row, { updatedAt:Date.now() });
+    else next.unshift(Object.assign({}, row, { updatedAt:Date.now() }));
     return saveServiceOrders(next);
   }
-
   function removeServiceOrder(id){
-    return saveServiceOrders(getServiceOrders().filter((row)=> String(row.id) !== String(id)));
+    const key = normalizeText(id);
+    return saveServiceOrders(getServiceOrders().filter((item)=> normalizeText(item && item.id) !== key));
   }
 
   function getPriceConfig(kind){
-    return PRICE_LIST_CONFIG[String(kind || 'materials')] || PRICE_LIST_CONFIG.materials;
+    const key = String(kind || 'materials');
+    return clone((PRICE_LIST_CONFIG && PRICE_LIST_CONFIG[key]) || (domain && domain.getCatalogConfig ? domain.getCatalogConfig(key) : PRICE_LIST_CONFIG.materials));
   }
 
-  function getSheetMaterials(){ return getPriceList('materials'); }
-  function setSheetMaterials(list){ return savePriceList('materials', list); }
-  function getAccessories(){ return getPriceList('accessories'); }
-  function setAccessories(list){ return savePriceList('accessories', list); }
-  function getQuoteRates(){ return getPriceList('quoteRates'); }
-  function setQuoteRates(list){ return savePriceList('quoteRates', list); }
-  function getWorkshopServices(){ return getPriceList('workshopServices'); }
-  function setWorkshopServices(list){ return savePriceList('workshopServices', list); }
-
-  function reload(){ cache = migrateLegacy(true); syncRuntimeGlobals(); return Object.assign({}, cache); }
-
   FC.catalogStore = {
-    DEFAULT_SHEET_MATERIALS,
-    DEFAULT_ACCESSORIES,
-    DEFAULT_QUOTE_RATES,
-    DEFAULT_WORKSHOP_SERVICES,
-    DEFAULT_SERVICE_ORDERS,
-    getPriceConfig,
     getPriceList,
     savePriceList,
-    getSheetMaterials,
-    setSheetMaterials,
-    getAccessories,
-    setAccessories,
-    getQuoteRates,
-    setQuoteRates,
-    getWorkshopServices,
-    setWorkshopServices,
+    getPriceConfig,
     getServiceOrders,
     saveServiceOrders,
     upsertServiceOrder,
     removeServiceOrder,
-    migrateLegacy: reload,
-    syncRuntimeGlobals,
-    _debug: { normalizeMaterialRow, normalizeAccessoryRow, normalizeServiceRow, normalizeServiceOrderRow, migrateLegacy }
+    migrateLegacy,
   };
 })();

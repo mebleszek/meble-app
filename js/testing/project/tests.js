@@ -85,6 +85,15 @@
           try{ FC.catalogStore.migrateLegacy(); }catch(_){ }
         }
       }),
+      H.makeTest('Projekt', 'Domena katalogów rozdziela materiały arkuszowe od akcesoriów', 'Sprawdza, czy helper domenowy potrafi wydzielić akcesoria ze starych materiałów zanim dane trafią do store pod dalszą migrację do chmury.', ()=>{
+        H.assert(FC.catalogDomain && typeof FC.catalogDomain.splitLegacyMaterials === 'function', 'Brak FC.catalogDomain.splitLegacyMaterials');
+        const split = FC.catalogDomain.splitLegacyMaterials([
+          { id:'m_lam', materialType:'laminat', name:'Płyta test' },
+          { id:'m_acc', materialType:'akcesoria', name:'Zawias test' },
+        ]);
+        H.assert(Array.isArray(split.sheetMaterials) && split.sheetMaterials.length === 1, 'Domena katalogów nie wydzieliła materiałów arkuszowych', split);
+        H.assert(Array.isArray(split.accessories) && split.accessories.length === 1, 'Domena katalogów nie wydzieliła akcesoriów', split);
+      }),
       H.makeTest('Projekt', 'Tryby pracy mają rozłączne, kontekstowe wejścia', 'Sprawdza, czy ekran startowy prowadzi do dwóch osobnych trybów z różnymi akcjami zamiast jednego wspólnego centrum cenników.', ()=>{
         H.assert(FC.workModeHub && typeof FC.workModeHub.getModeConfig === 'function', 'Brak FC.workModeHub.getModeConfig');
         const furniture = FC.workModeHub.getModeConfig('furnitureProjects');

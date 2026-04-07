@@ -31,6 +31,10 @@
       assert(FC.investorFieldRender && typeof FC.investorFieldRender.buildPairRow === 'function', 'Brak investorFieldRender.buildPairRow');
       assert(FC.investorActions && typeof FC.investorActions.buildActionBarHtml === 'function', 'Brak investorActions.buildActionBarHtml');
     }),
+    makeTest('Inwestor', 'Rejestr pomieszczeń ma wspólny modal zarządzania', 'Pilnuje, czy sekcja pomieszczeń inwestora ma jedno wspólne wejście do zarządzania nazwami i usuwaniem zamiast akcji porozrzucanych po kartach.', ()=>{
+      assert(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function', 'Brak roomRegistry.openManageRoomsModal');
+      assert(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function', 'Brak investorRoomActions.bindRoomActions');
+    }),
     makeTest('Inwestor', 'Stan edytora inwestora przechodzi z podglądu do edycji i wykrywa zmiany', 'Sprawdza, czy nowy moduł stanu edycji inwestora nie gubi draftu i poprawnie liczy dirty.', ()=>{
       assert(FC.investorEditorState && typeof FC.investorEditorState.enter === 'function', 'Brak investorEditorState');
       const inv = sampleInvestor();
