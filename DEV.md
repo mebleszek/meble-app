@@ -966,3 +966,16 @@ Dopiero potem go zmieniać.
 
 
 - 2026-04-07 stage2 fix v2: rozdzielono draft wspólnego modala pomieszczeń od sesji projektu/inwestora, `Anuluj` w modalu pomieszczeń resetuje tylko lokalne zmiany bez zamykania okna, a `dev_tests.html` ładuje już `constants.js` i `storage.js`, dzięki czemu testy katalogów używają prawdziwych kluczy storage. Dodatkowo ROZRYS dopuszcza retry dla niestandardowych kluczy pomieszczeń także przy aktywnym inwestorze.
+
+## 2026-04-08 — etap 3 architektury: domeny projektu / usług / wyceny
+- Dodano `js/app/project/project-model.js`, `js/app/project/project-store.js` i `js/app/project/project-bridge.js`.
+  - `project-model` normalizuje dane projektu niezależnie od widoku,
+  - `project-store` trzyma osobne rekordy projektów powiązane z inwestorem,
+  - bridge utrzymuje zgodność z dotychczasowym `FC.project`, więc reszta aplikacji nadal działa bez masowego przepinania.
+- Dodano `js/app/service/service-order-store.js` jako osobny store dla `serviceOrders`; `catalog-store` zachowuje tylko mostki kompatybilności dla starego API.
+- Dodano `js/app/catalog/catalog-selectors.js` jako wspólną warstwę odczytu katalogów dla dalszej chmury i dla wyceny.
+- Dodano `js/app/quote/quote-snapshot.js` jako pierwszy czysty model snapshotu wyceny meblowej, niezależny od DOM.
+- `wycena-core.js` korzysta już z selektorów katalogów i buduje snapshot bez mieszania `workshopServices` do wyceny mebli.
+- `service-orders.js` korzysta bezpośrednio z `serviceOrderStore`, więc drobne zlecenia nie wiszą już logicznie pod katalogami.
+- `investor-project.js` synchronizuje projekt inwestora także do `project-store`, przygotowując grunt pod przyszłe rozdzielenie `investor` i `project` jako osobnych bytów domenowych.
+- `dev_tests.html` i smoke-runner Node ładują nowe moduły domenowe; smoke po zmianach: app 27/27 OK, rozrys 34/34 OK.

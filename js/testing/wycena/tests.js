@@ -33,6 +33,22 @@
         const materialTypes = FC.priceModal._debug.buildMaterialTypeOptions('akcesoria', { includeAll:true });
         H.assert(materialTypes.some((item)=> String(item && item.value || '') === 'akcesoria'), 'Lista typów materiału nie zawiera akcesoriów', materialTypes);
       }),
+      H.makeTest('Wycena', 'Snapshot wyceny buduje czysty model danych z katalogów meblowych', 'Pilnuje, czy wycena może budować niezależny snapshot z materiałów, akcesoriów i stawek meblowych bez mieszania usług stolarskich.', ()=>{
+        H.assert(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function', 'Brak FC.quoteSnapshot.buildSnapshot');
+        H.assert(FC.catalogSelectors && typeof FC.catalogSelectors.getFurnitureCatalogSnapshot === 'function', 'Brak FC.catalogSelectors.getFurnitureCatalogSnapshot');
+        const snapshot = FC.quoteSnapshot.buildSnapshot({
+          selectedRooms:['room_kuchnia_gora'],
+          roomLabels:['Kuchnia góra'],
+          materialLines:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
+          accessoryLines:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
+          agdLines:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
+          totals:{ materials:70, accessories:72, services:120, grand:262 },
+          generatedAt:1712500000000,
+        });
+        H.assert(snapshot && snapshot.lines && Array.isArray(snapshot.lines.materials) && snapshot.lines.materials.length === 1, 'Snapshot wyceny nie zachował linii materiałowych', snapshot);
+        H.assert(snapshot.catalogs && Array.isArray(snapshot.catalogs.sheetMaterials), 'Snapshot wyceny nie zawiera katalogów meblowych', snapshot);
+        H.assert(!snapshot.catalogs.workshopServices, 'Snapshot wyceny nie powinien mieszać usług stolarskich z wyceną mebli', snapshot.catalogs);
+      }),
     ]);
   }
 

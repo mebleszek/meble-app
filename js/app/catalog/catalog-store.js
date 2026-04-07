@@ -10,6 +10,7 @@
   };
   const domain = FC.catalogDomain || {};
   const migration = FC.catalogMigration || {};
+  const serviceOrderStore = FC.serviceOrderStore || null;
 
   const DEFAULT_SHEET_MATERIALS = [
     { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:35, hasGrain:false },
@@ -93,6 +94,9 @@
   }
 
   function normalizeServiceOrderRow(row){
+    try{
+      if(serviceOrderStore && typeof serviceOrderStore.normalizeOrder === 'function') return serviceOrderStore.normalizeOrder(row);
+    }catch(_){ }
     const src = row && typeof row === 'object' ? row : {};
     const now = Date.now();
     return {
@@ -178,7 +182,10 @@
     writeList('accessories', accessories);
     writeList('quoteRates', quoteRates);
     writeList('workshopServices', workshopServices);
-    writeList('serviceOrders', serviceOrders);
+    try{
+      if(serviceOrderStore && typeof serviceOrderStore.writeAll === 'function') serviceOrderStore.writeAll(serviceOrders);
+      else writeList('serviceOrders', serviceOrders);
+    }catch(_){ writeList('serviceOrders', serviceOrders); }
 
     // Legacy compatibility while old modules still read these keys.
     writeList('materials', sheetMaterials);

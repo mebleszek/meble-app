@@ -56,6 +56,45 @@
         });
       }),
 
+
+      H.makeTest('Projekt', 'Project store trzyma osobny rekord projektu powiązany z inwestorem', 'Sprawdza, czy dane projektu meblowego są już utrzymywane jako osobny byt powiązany z inwestorem, gotowy pod dalszą migrację do chmury.', ()=>{
+        H.assert(FC.projectStore && typeof FC.projectStore.ensureForInvestor === 'function', 'Brak FC.projectStore.ensureForInvestor');
+        const prevProjects = FC.projectStore.readAll ? FC.projectStore.readAll() : [];
+        const prevCurrentProjectId = FC.projectStore.getCurrentProjectId ? FC.projectStore.getCurrentProjectId() : '';
+        try{
+          if(FC.projectStore.writeAll) FC.projectStore.writeAll([]);
+          withInvestorStorage((inv)=>{
+            const created = inv.create({ name:'Projektowy test' });
+            const record = FC.projectStore.ensureForInvestor(created.id, { projectData:{ kuchnia:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} } } });
+            H.assert(record && record.id && String(record.investorId || '') === String(created.id || ''), 'Project store nie utworzył rekordu powiązanego z inwestorem', record);
+            const saved = FC.projectStore.saveProjectDataForInvestor(created.id, { kuchnia:{ cabinets:[{ id:'cab_b' }, { id:'cab_c' }], fronts:[], sets:[], settings:{} } });
+            H.assert(saved && Number(saved.cabinetCount) === 2, 'Project store nie przeliczył liczby szafek po zapisie projektu', saved);
+            const loaded = FC.projectStore.loadProjectDataForInvestor(created.id);
+            H.assert(Array.isArray(loaded.kuchnia && loaded.kuchnia.cabinets) && loaded.kuchnia.cabinets.length === 2, 'Project store nie zwrócił zapisanych danych projektu', loaded);
+          });
+        } finally {
+          if(FC.projectStore.writeAll) FC.projectStore.writeAll(prevProjects);
+          if(FC.projectStore.setCurrentProjectId) FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+        }
+      }),
+      H.makeTest('Projekt', 'Store zleceń usługowych działa poza katalogami i inwestorami', 'Sprawdza, czy serviceOrders mają własny store danych zamiast być tylko dodatkiem do katalogów albo inwestorów.', ()=>{
+        H.assert(FC.serviceOrderStore && typeof FC.serviceOrderStore.upsert === 'function', 'Brak FC.serviceOrderStore.upsert');
+        const prevOrders = FC.serviceOrderStore.readAll();
+        const inv = FC.investors;
+        const prevAll = inv && inv.readAll ? inv.readAll() : [];
+        try{
+          if(inv && inv.writeAll) inv.writeAll([{ id:'inv_only', kind:'person', name:'Jan Investor', rooms:[] }]);
+          FC.serviceOrderStore.writeAll([]);
+          const saved = FC.serviceOrderStore.upsert({ title:'Naprawa frontu', clientName:'Adam Klient', phone:'500600700', address:'Łódź' });
+          H.assert(saved && saved.id && String(saved.clientName || '') === 'Adam Klient', 'Store zleceń usługowych nie zapisał podstawowych danych klienta', saved);
+          const orders = FC.serviceOrderStore.readAll();
+          H.assert(Array.isArray(orders) && orders.length === 1, 'Store zleceń usługowych nie zwrócił zapisanego zlecenia', orders);
+          H.assert(inv && inv.readAll && inv.readAll().length === 1 && inv.readAll()[0].id === 'inv_only', 'Zapis zlecenia usługowego naruszył listę inwestorów', { investors: inv.readAll(), orders });
+        } finally {
+          FC.serviceOrderStore.writeAll(prevOrders);
+          if(inv && inv.writeAll) inv.writeAll(prevAll);
+        }
+      }),
       H.makeTest('Projekt', 'Katalogi rozdzielają legacy materiały, akcesoria i stawki meblowe', 'Sprawdza, czy architektura danych nie trzyma już akcesoriów jako typu materiału i czy stare usługi trafiają do stawek wyceny mebli.', ()=>{
         H.assert(FC.catalogStore && typeof FC.catalogStore.migrateLegacy === 'function', 'Brak FC.catalogStore.migrateLegacy');
         const keys = (FC.constants && FC.constants.STORAGE_KEYS) || {};

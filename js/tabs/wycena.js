@@ -83,7 +83,9 @@
       isBusy = true;
       render(ctx);
       try{
-        if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.collectQuoteData === 'function'){
+        if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.buildQuoteSnapshot === 'function'){
+          lastQuote = await window.FC.wycenaCore.buildQuoteSnapshot();
+        } else if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.collectQuoteData === 'function'){
           lastQuote = await window.FC.wycenaCore.collectQuoteData();
         }
       }catch(err){
@@ -103,12 +105,16 @@
     } else if(lastQuote.error){
       card.appendChild(h('div', { class:'muted', text:lastQuote.error, style:'margin-top:10px;color:#b42318' }));
     } else {
-      if(Array.isArray(lastQuote.roomLabels) && lastQuote.roomLabels.length){
-        card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres: ${lastQuote.roomLabels.join(', ')}`, style:'margin-top:8px' }));
+      const roomLabels = Array.isArray(lastQuote.roomLabels) ? lastQuote.roomLabels : (lastQuote.scope && Array.isArray(lastQuote.scope.roomLabels) ? lastQuote.scope.roomLabels : []);
+      const materialLines = Array.isArray(lastQuote.materialLines) ? lastQuote.materialLines : (lastQuote.lines && Array.isArray(lastQuote.lines.materials) ? lastQuote.lines.materials : []);
+      const accessoryLines = Array.isArray(lastQuote.accessoryLines) ? lastQuote.accessoryLines : (lastQuote.lines && Array.isArray(lastQuote.lines.accessories) ? lastQuote.lines.accessories : []);
+      const agdLines = Array.isArray(lastQuote.agdLines) ? lastQuote.agdLines : (lastQuote.lines && Array.isArray(lastQuote.lines.agdServices) ? lastQuote.lines.agdServices : []);
+      if(Array.isArray(roomLabels) && roomLabels.length){
+        card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres: ${roomLabels.join(', ')}`, style:'margin-top:8px' }));
       }
-      renderSection(card, 'Materiały z ROZRYS', lastQuote.materialLines, 'Brak pozycji materiałowych.');
-      renderSection(card, 'Akcesoria', lastQuote.accessoryLines, 'Brak pozycji akcesoriów.');
-      renderSection(card, 'Sprzęty do zabudowy / montaż AGD', lastQuote.agdLines, 'Brak wykrytych sprzętów do zabudowy.');
+      renderSection(card, 'Materiały z ROZRYS', materialLines, 'Brak pozycji materiałowych.');
+      renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.');
+      renderSection(card, 'Sprzęty do zabudowy / montaż AGD', agdLines, 'Brak wykrytych sprzętów do zabudowy.');
       const totals = h('div', { class:'card quote-totals', style:'margin-top:12px;padding:14px;' });
       totals.appendChild(h('h4', { text:'Podsumowanie', style:'margin:0 0 8px' }));
       [

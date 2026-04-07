@@ -11,11 +11,14 @@
 
   function byId(id){ return document.getElementById(id); }
   function escapeHtml(value){ return String(value == null ? '' : value).replace(/[&<>"']/g, (ch)=> ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch] || ch)); }
-  function store(){ return FC.catalogStore || null; }
+  function store(){ return FC.serviceOrderStore || FC.catalogStore || null; }
   function info(title, message){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ } }
   async function ask(cfg){ try{ return !!(await (FC.confirmBox && FC.confirmBox.ask ? FC.confirmBox.ask(cfg) : true)); }catch(_){ return true; } }
 
-  function getOrders(){ return store() && typeof store().getServiceOrders === 'function' ? store().getServiceOrders() : []; }
+  function getOrders(){
+    if(store() && typeof store().readAll === 'function') return store().readAll();
+    return store() && typeof store().getServiceOrders === 'function' ? store().getServiceOrders() : [];
+  }
 
   function renderList(){
     const root = byId('serviceOrdersListRoot');
@@ -132,14 +135,16 @@
         status:statusSelect.value,
         description:description.value,
       };
-      store() && store().upsertServiceOrder && store().upsertServiceOrder(payload);
+      if(store() && typeof store().upsert === 'function') store().upsert(payload);
+      else store() && store().upsertServiceOrder && store().upsertServiceOrder(payload);
       close();
       renderList();
     });
     deleteBtn.addEventListener('click', async ()=>{
       const ok = await ask({ title:'Usunąć zlecenie?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
       if(!ok) return;
-      store() && store().removeServiceOrder && store().removeServiceOrder(current.id);
+      if(store() && typeof store().remove === 'function') store().remove(current.id);
+      else store() && store().removeServiceOrder && store().removeServiceOrder(current.id);
       close();
       renderList();
     });

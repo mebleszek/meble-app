@@ -115,14 +115,37 @@
   }
 
   function materialPriceLookup(materialName){
-    const list = Array.isArray(typeof materials !== 'undefined' ? materials : []) ? materials : [];
     const key = normalizeText(materialName);
+    try{
+      if(FC.catalogSelectors && typeof FC.catalogSelectors.findSheetMaterial === 'function'){
+        const found = FC.catalogSelectors.findSheetMaterial(key);
+        if(found) return found;
+      }
+    }catch(_){ }
+    const list = Array.isArray(typeof materials !== 'undefined' ? materials : []) ? materials : [];
     return list.find((item)=> normalizeText(item && item.name) === key || normalizeText(item && item.symbol) === key) || null;
   }
 
+  function accessoryPriceLookup(accessoryName){
+    const key = normalizeText(accessoryName);
+    try{
+      if(FC.catalogSelectors && typeof FC.catalogSelectors.findAccessory === 'function'){
+        const found = FC.catalogSelectors.findAccessory(key);
+        if(found) return found;
+      }
+    }catch(_){ }
+    return null;
+  }
+
   function servicePriceLookup(serviceName){
-    const list = ensureServiceCatalogInRuntime();
     const key = normalizeText(serviceName);
+    try{
+      if(FC.catalogSelectors && typeof FC.catalogSelectors.findQuoteRate === 'function'){
+        const found = FC.catalogSelectors.findQuoteRate(key);
+        if(found) return found;
+      }
+    }catch(_){ }
+    const list = ensureServiceCatalogInRuntime();
     return list.find((item)=> normalizeText(item && item.name) === key) || null;
   }
 
@@ -163,7 +186,7 @@
         const prev = rows.get(key) || { key, type:'accessory', name, qty:0, unitPrice:0, total:0, rooms:new Set() };
         prev.qty += qty;
         prev.rooms.add(rl);
-        const priceItem = materialPriceLookup(mat) || materialPriceLookup(name);
+        const priceItem = accessoryPriceLookup(mat) || accessoryPriceLookup(name) || materialPriceLookup(mat) || materialPriceLookup(name);
         prev.unitPrice = Number(priceItem && priceItem.price) || prev.unitPrice || 0;
         prev.total = prev.qty * prev.unitPrice;
         rows.set(key, prev);
@@ -338,11 +361,20 @@
     };
   }
 
+  async function buildQuoteSnapshot(){
+    const data = await collectQuoteData();
+    try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(data);
+    }catch(_){ }
+    return data;
+  }
+
   FC.wycenaCore = {
     AGD_SERVICE_DEFAULTS,
     ensureServiceCatalog,
     ensureServiceCatalogInRuntime,
     collectQuoteData,
+    buildQuoteSnapshot,
   };
 
   try{ ensureServiceCatalogInRuntime(); }catch(_){ }

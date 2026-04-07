@@ -13,6 +13,7 @@
 
   const PREFIX = 'fc_project_inv_';
   const SUFFIX = '_v1';
+  const projectStore = FC.projectStore || null;
 
   function invKey(id){ return id ? (PREFIX + String(id) + SUFFIX) : null; }
 
@@ -33,6 +34,7 @@
     const k = invKey(id);
     if(!k) return;
     try{ localStorage.setItem(k, JSON.stringify(projectObj)); }catch(_){ }
+    try{ if(projectStore && typeof projectStore.saveProjectDataForInvestor === 'function') projectStore.saveProjectDataForInvestor(id, projectObj, { meta:{ source:'investor-project-slot' } }); }catch(_){ }
   }
 
   function normalizeProject(obj){
@@ -50,6 +52,12 @@
   }
 
   function loadProjectFor(id){
+    try{
+      if(projectStore && typeof projectStore.loadProjectDataForInvestor === 'function'){
+        const fromStore = projectStore.loadProjectDataForInvestor(id, null);
+        if(fromStore) return normalizeProject(fromStore);
+      }
+    }catch(_){ }
     const raw = readProjectRawFor(id);
     if(raw){
       try{ return normalizeProject(JSON.parse(raw)); }catch(_){ }
@@ -110,6 +118,7 @@
       const proj = normalizeProject(freshProject());
       try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
       writeProjectFor(id, proj);
+      try{ if(projectStore && typeof projectStore.ensureForInvestor === 'function') projectStore.ensureForInvestor(id, { projectData:proj, title:'' }); }catch(_){ }
       setActiveProjectFromInvestor(id);
     }
   }
@@ -169,11 +178,24 @@
           const proj = normalizeProject(freshProject());
           try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = inv.id; }catch(_){ }
           writeProjectFor(inv.id, proj);
+          try{ if(projectStore && typeof projectStore.ensureForInvestor === 'function') projectStore.ensureForInvestor(inv.id, { projectData:proj, title:'' }); }catch(_){ }
           setActiveProjectFromInvestor(inv.id);
         }
         return inv;
       };
       FC.investors.__patchedCreateProject = true;
+    }
+
+    // Patch remove to also delete separated project record
+    if(typeof FC.investors.remove === 'function' && !FC.investors.__patchedRemoveProject){
+      const origRemove = FC.investors.remove.bind(FC.investors);
+      FC.investors.remove = function(id){
+        try{ if(projectStore && typeof projectStore.removeByInvestorId === 'function') projectStore.removeByInvestorId(id); }catch(_){ }
+        const key = invKey(id);
+        try{ if(key) localStorage.removeItem(key); }catch(_){ }
+        return origRemove(id);
+      };
+      FC.investors.__patchedRemoveProject = true;
     }
   }
 

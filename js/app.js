@@ -7,6 +7,8 @@ const STORAGE_KEYS = (window.FC && window.FC.constants && window.FC.constants.ST
   quoteRates: 'fc_quote_rates_v1',
   workshopServices: 'fc_workshop_services_v1',
   serviceOrders: 'fc_service_orders_v1',
+  projects: 'fc_projects_v1',
+  currentProjectId: 'fc_current_project_id_v1',
   projectData: 'fc_project_v1',
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
@@ -104,50 +106,53 @@ const FC = (function(){
     return out;
   }
 
-  const project = {
-    CURRENT_SCHEMA_VERSION,
-    DEFAULT_PROJECT,
-    load(){
-      // Robust load: try primary; if corrupted/empty, fall back to backup.
-      const rawPrimary = storage.getRaw(STORAGE_KEYS.projectData);
-      const rawBackup  = storage.getRaw(STORAGE_KEYS.projectBackup);
+  const project = (window.FC && window.FC.project && typeof window.FC.project.load === 'function' && typeof window.FC.project.save === 'function')
+    ? window.FC.project
+    : {
+        CURRENT_SCHEMA_VERSION,
+        DEFAULT_PROJECT,
+        load(){
+          // Robust load: try primary; if corrupted/empty, fall back to backup.
+          const rawPrimary = storage.getRaw(STORAGE_KEYS.projectData);
+          const rawBackup  = storage.getRaw(STORAGE_KEYS.projectBackup);
 
-      function parseOrNull(raw){
-        if (!raw) return null;
-        try{ return JSON.parse(raw); }catch(e){ return null; }
-      }
+          function parseOrNull(raw){
+            if (!raw) return null;
+            try{ return JSON.parse(raw); }catch(e){ return null; }
+          }
 
-      const primaryObj = parseOrNull(rawPrimary);
-      const backupObj  = parseOrNull(rawBackup);
+          const primaryObj = parseOrNull(rawPrimary);
+          const backupObj  = parseOrNull(rawBackup);
 
-      // If primary is missing/corrupt but backup exists, restore from backup.
-      const chosen = primaryObj || backupObj || DEFAULT_PROJECT;
+          // If primary is missing/corrupt but backup exists, restore from backup.
+          const chosen = primaryObj || backupObj || DEFAULT_PROJECT;
 
-      // If we had to fall back to backup, try to repair primary storage.
-      if (!primaryObj && backupObj){
-        storage.setRaw(STORAGE_KEYS.projectData, rawBackup);
-      }
+          // If we had to fall back to backup, try to repair primary storage.
+          if (!primaryObj && backupObj){
+            storage.setRaw(STORAGE_KEYS.projectData, rawBackup);
+          }
 
-      return normalizeProject(chosen);
-    },
-    save(data){
-      // Robust save: keep last-good backup before overwriting.
-      const normalized = normalizeProject(data);
+          return normalizeProject(chosen);
+        },
+        save(data){
+          // Robust save: keep last-good backup before overwriting.
+          const normalized = normalizeProject(data);
 
-      // Backup current primary (if any) before overwriting.
-      const currentRaw = storage.getRaw(STORAGE_KEYS.projectData);
-      if (currentRaw){
-        storage.setRaw(STORAGE_KEYS.projectBackup, currentRaw);
-        storage.setJSON(STORAGE_KEYS.projectBackupMeta, { savedAt: Date.now() });
-      }
+          // Backup current primary (if any) before overwriting.
+          const currentRaw = storage.getRaw(STORAGE_KEYS.projectData);
+          if (currentRaw){
+            storage.setRaw(STORAGE_KEYS.projectBackup, currentRaw);
+            storage.setJSON(STORAGE_KEYS.projectBackupMeta, { savedAt: Date.now() });
+          }
 
-      // Write new state.
-      storage.setJSON(STORAGE_KEYS.projectData, normalized);
-      return normalized;
-    },
-    normalize: normalizeProject,
-  };
+          // Write new state.
+          storage.setJSON(STORAGE_KEYS.projectData, normalized);
+          return normalized;
+        },
+        normalize: normalizeProject,
+      };
 
+  try{ window.FC.project = project; }catch(_){ }
   return { utils, storage, project };
 })();
 const DEFAULT_PROJECT = FC.project.DEFAULT_PROJECT;

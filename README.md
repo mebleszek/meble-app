@@ -213,3 +213,14 @@ Strona `dev_tests.html` sprawdza już nie tylko cache/walidację/magazyn, ale te
 
 
 - 2026-04-07 stage2 fix v2: rozdzielono draft wspólnego modala pomieszczeń od sesji projektu/inwestora, `Anuluj` w modalu pomieszczeń resetuje tylko lokalne zmiany bez zamykania okna, a `dev_tests.html` ładuje już `constants.js` i `storage.js`, dzięki czemu testy katalogów używają prawdziwych kluczy storage. Dodatkowo ROZRYS dopuszcza retry dla niestandardowych kluczy pomieszczeń także przy aktywnym inwestorze.
+
+## Etap 3 architektury — rozdzielenie domen
+
+Aplikacja ma teraz dodatkową warstwę przygotowującą ją pod chmurę i dalszy rozwój bez mieszania odpowiedzialności:
+
+- `project-model / project-store` — oddzielają dane projektu meblowego od samego inwestora,
+- `service-order-store` — daje osobny byt dla drobnych zleceń usługowych,
+- `catalog-selectors` — daje wspólne selektory katalogów dla modułów biznesowych,
+- `quote-snapshot` — buduje czysty snapshot wyceny meblowej z materiałów, akcesoriów i stawek.
+
+Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie architektury danych, warstw pośrednich i antyregresji. Dzięki temu kolejne kroki (np. PDF wyceny, historia wycen, chmura, wieloprojektowość) można wdrażać bez rozpruwania całej aplikacji.
