@@ -102,7 +102,7 @@
     const discovered = discoverProjectRoomKeys(proj);
     if(hasInvestor){
       if(registryRooms.length) return registryRooms.slice();
-      return discovered.filter((room)=> String(room || '').startsWith('room_'));
+      return discovered.length ? discovered.slice() : [];
     }
     const ordered = [];
     defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });

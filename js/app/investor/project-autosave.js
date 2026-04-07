@@ -15,6 +15,19 @@
     }, 180);
   }
 
+  function shouldIgnoreTarget(t){
+    try{
+      if(!t || !t.closest) return true;
+      if(t.closest('#priceModal')) return true;
+      if(t.closest('#investorRoot')) return true;
+      if(t.closest('.panel-box')) return true;
+      if(t.closest('.panel-box-backdrop')) return true;
+      if(t.closest('.confirm-box')) return true;
+      if(t.closest('.info-box')) return true;
+    }catch(_){ }
+    return false;
+  }
+
   function installProjectAutosave(){
     if(window.__fcProjectAutosaveInstalled) return;
     window.__fcProjectAutosaveInstalled = true;
@@ -22,9 +35,7 @@
     const handler = function(ev){
       try{
         const t = ev && ev.target;
-        if(!t || !t.closest) return;
-        if(t.closest('#priceModal')) return;
-        if(t.closest('#investorRoot')) return;
+        if(shouldIgnoreTarget(t)) return;
         scheduleProjectAutosave();
       }catch(_){ }
     };
@@ -33,9 +44,7 @@
     root.addEventListener('click', function(ev){
       try{
         const t = ev && ev.target;
-        if(!t || !t.closest) return;
-        if(t.closest('#priceModal')) return;
-        if(t.closest('#investorRoot')) return;
+        if(shouldIgnoreTarget(t)) return;
         if(t.closest('[data-action]') || t.closest('[data-act]') || t.closest('.tab-btn') || t.closest('.room-card') || t.closest('button')){
           scheduleProjectAutosave();
         }

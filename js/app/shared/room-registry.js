@@ -21,12 +21,21 @@
     return null;
   }
 
-  function saveProject(proj){
+  function saveProject(proj, opts){
+    const cfg = Object.assign({ suspendSessionTracking:true }, opts || {});
     try{
       if(typeof projectData !== 'undefined') projectData = proj;
       window.projectData = proj;
     }catch(_){ }
-    try{ if(FC.project && typeof FC.project.save === 'function') FC.project.save(proj); }catch(_){ }
+    try{
+      if(FC.project && typeof FC.project.save === 'function'){
+        const shouldSuspend = !!cfg.suspendSessionTracking;
+        const previous = !!FC.project.__suspendSessionTracking;
+        if(shouldSuspend) FC.project.__suspendSessionTracking = true;
+        try{ FC.project.save(proj); }
+        finally{ FC.project.__suspendSessionTracking = previous; }
+      }
+    }catch(_){ }
   }
 
   function getCurrentInvestor(){
@@ -482,9 +491,11 @@
       return el;
     };
     return new Promise((resolve)=>{
-      let drafts = rooms.map((room)=> ({ id:room.id, baseType:room.baseType, name:room.name, label:room.label, legacy:!!room.legacy }));
-      const initialSignature = ()=> JSON.stringify(drafts.map((room)=> ({ id:room.id, baseType:room.baseType, name:normalizeLabel(room.name), label:normalizeLabel(room.label) })));
-      let initial = initialSignature();
+      const cloneDrafts = (list)=> (Array.isArray(list) ? list.map((room)=> ({ id:room.id, baseType:room.baseType, name:room.name, label:room.label, legacy:!!room.legacy })) : []);
+      const serializeDrafts = (list)=> JSON.stringify((Array.isArray(list) ? list : []).map((room)=> ({ id:room.id, baseType:room.baseType, name:normalizeLabel(room.name), label:normalizeLabel(room.label) })));
+      let drafts = cloneDrafts(rooms);
+      let initialDrafts = cloneDrafts(drafts);
+      let initial = serializeDrafts(initialDrafts);
       const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal room-registry-manage-modal' });
       const scroll = h('div', { class:'panel-box-form__scroll' });
       const intro = h('div', { class:'muted', text:'Tutaj zarządzasz wszystkimi pomieszczeniami tego inwestora. Możesz zmienić ich nazwy albo usunąć wybrane pozycje.' });
@@ -505,7 +516,7 @@
       footer.appendChild(actions);
       body.appendChild(footer);
 
-      const isDirty = ()=> initialSignature() !== initial;
+      const isDirty = ()=> serializeDrafts(drafts) !== initial;
       const refreshFooter = ()=>{
         const dirty = isDirty();
         exitBtn.style.display = dirty ? 'none' : '';
@@ -564,7 +575,16 @@
         }
       };
       exitBtn.addEventListener('click', ()=> done(null));
-      cancelBtn.addEventListener('click', async ()=>{ if(await askDiscard()) done(null); });
+      cancelBtn.addEventListener('click', async ()=>{
+        if(!(await askDiscard())) return;
+        drafts = cloneDrafts(initialDrafts);
+        renderRows();
+        refreshFooter();
+        try{
+          const firstInput = body.querySelector('input');
+          firstInput && firstInput.focus();
+        }catch(_){ }
+      });
       saveBtn.addEventListener('click', async ()=>{
         if(!drafts.length){
           try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Nie możesz zapisać pustej listy. Dodaj nowe pomieszczenie albo wróć.' }); }catch(_){ }
@@ -592,7 +612,8 @@
         }catch(_){ }
         if(!ok) return;
         applyManageRoomsDraft(inv, drafts);
-        initial = initialSignature();
+        initialDrafts = cloneDrafts(drafts);
+        initial = serializeDrafts(initialDrafts);
         done({ saved:true, rooms:drafts.map((room)=> Object.assign({}, room)) });
       });
       renderRows();

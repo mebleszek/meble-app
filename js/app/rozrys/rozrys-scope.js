@@ -18,7 +18,9 @@
   function normalizeRoomSelection(rooms, deps){
     const cfg = Object.assign({ getRooms:null }, deps || {});
     const allowed = typeof cfg.getRooms === 'function' ? cfg.getRooms() : [];
-    const set = new Set((Array.isArray(rooms) ? rooms : []).map((room)=> String(room || '').trim()).filter((room)=> allowed.includes(room)));
+    const normalized = (Array.isArray(rooms) ? rooms : []).map((room)=> String(room || '').trim()).filter(Boolean);
+    if(!allowed.length) return Array.from(new Set(normalized));
+    const set = new Set(normalized.filter((room)=> allowed.includes(room)));
     return allowed.filter((room)=> set.has(room));
   }
 
