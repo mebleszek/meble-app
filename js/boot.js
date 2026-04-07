@@ -104,18 +104,73 @@
     if (!init) return false;
     window.__APP_STARTED__ = true;
     try { init(); }
-    catch(err){ showError('❌ Błąd podczas startu aplikacji:\n' + (err?.stack || String(err))); }
+    catch(err){
+      window.__APP_STARTED__ = false;
+      showError('❌ Błąd podczas startu aplikacji\n' + (err?.stack || String(err)));
+      return false;
+    }
     return true;
+  }
+
+  function findScriptSrc(match){
+    try{
+      const scripts = Array.from(document.scripts || []);
+      const hit = scripts.find((script) => {
+        const src = script && script.getAttribute ? (script.getAttribute('src') || '') : '';
+        return src && src.includes(match);
+      });
+      return hit ? (hit.getAttribute('src') || '') : '';
+    }catch(_){ return ''; }
+  }
+
+  function appendRecoveryScript(src){
+    return new Promise((resolve) => {
+      if (!src) { resolve(false); return; }
+      try{
+        const script = document.createElement('script');
+        script.defer = true;
+        script.async = false;
+        script.src = src + (src.includes('?') ? '&' : '?') + 'boot_recover=' + Date.now();
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+      }catch(_){ resolve(false); }
+    });
+  }
+
+  let recoveryPromise = null;
+  function attemptRecovery(){
+    if (recoveryPromise) return recoveryPromise;
+    recoveryPromise = (async () => {
+      const appSrc = findScriptSrc('js/app.js');
+      const publicApiSrc = findScriptSrc('js/app/shared/public-api.js');
+      if (appSrc && typeof window.initApp !== 'function' && !(window.FC && typeof window.FC.init === 'function')) {
+        await appendRecoveryScript(appSrc);
+      }
+      if (publicApiSrc && !(window.FC && typeof window.FC.init === 'function') && !(window.App && typeof window.App.init === 'function')) {
+        await appendRecoveryScript(publicApiSrc);
+      }
+      return true;
+    })().catch(() => false);
+    return recoveryPromise;
   }
 
   function boot(){
     let tries = 0;
-    const timer = setInterval(() => {
+    let recoveryTriggered = false;
+    const timer = setInterval(async () => {
       tries++;
       if (startOnce()) { clearInterval(timer); return; }
+      if (!recoveryTriggered && tries >= 12) {
+        recoveryTriggered = true;
+        await attemptRecovery();
+        if (startOnce()) { clearInterval(timer); return; }
+      }
       if (tries > 60) {
         clearInterval(timer);
-        showError(`❌ Nie znaleziono funkcji startowej aplikacji.\nBoot.js version: ${BOOT_VERSION}\nSzukam: FC.init(), App.init(), initApp(), initUI().`);
+        showError(`❌ Nie znaleziono funkcji startowej aplikacji.
+Boot.js version: ${BOOT_VERSION}
+Szukam: FC.init(), App.init(), initApp(), initUI().`);
       }
     }, 50);
   }

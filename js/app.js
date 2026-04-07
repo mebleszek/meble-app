@@ -746,4 +746,9 @@ function renderDrawingTab(list, room){
 /* init moved to boot.js (safe init) */
 
 // Expose base FC namespace; public safe APIs are attached in js/app/shared/public-api.js
-try{ window.FC = Object.assign(window.FC || {}, FC); }catch(e){}
+try{
+  window.FC = Object.assign(window.FC || {}, FC, { init: initApp });
+  window.App = Object.assign(window.App || {}, { init: initApp });
+  window.initApp = initApp;
+  window.initUI = initUI;
+}catch(e){}

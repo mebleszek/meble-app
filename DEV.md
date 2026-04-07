@@ -979,3 +979,8 @@ Dopiero potem go zmieniać.
 - `service-orders.js` korzysta bezpośrednio z `serviceOrderStore`, więc drobne zlecenia nie wiszą już logicznie pod katalogami.
 - `investor-project.js` synchronizuje projekt inwestora także do `project-store`, przygotowując grunt pod przyszłe rozdzielenie `investor` i `project` jako osobnych bytów domenowych.
 - `dev_tests.html` i smoke-runner Node ładują nowe moduły domenowe; smoke po zmianach: app 27/27 OK, rozrys 34/34 OK.
+
+
+## 2026-04-08 boot fix
+- Przywrócono jawne wystawianie startu aplikacji (`FC.init`, `App.init`, `initApp`, `initUI`) z `js/app.js`.
+- `js/boot.js` dostał awaryjne doładowanie `js/app.js` i `js/app/shared/public-api.js`, jeśli po starcie strony nie ma funkcji init.

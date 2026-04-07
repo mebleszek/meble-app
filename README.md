@@ -224,3 +224,8 @@ Aplikacja ma teraz dodatkową warstwę przygotowującą ją pod chmurę i dalszy
 - `quote-snapshot` — buduje czysty snapshot wyceny meblowej z materiałów, akcesoriów i stawek.
 
 Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie architektury danych, warstw pośrednich i antyregresji. Dzięki temu kolejne kroki (np. PDF wyceny, historia wycen, chmura, wieloprojektowość) można wdrażać bez rozpruwania całej aplikacji.
+
+
+## 2026-04-08 boot fix
+- Przywrócono jawne wystawianie startu aplikacji (`FC.init`, `App.init`, `initApp`, `initUI`) z `js/app.js`.
+- `js/boot.js` dostał awaryjne doładowanie `js/app.js` i `js/app/shared/public-api.js`, jeśli po starcie strony nie ma funkcji init.
