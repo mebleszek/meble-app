@@ -157,6 +157,15 @@ const FC = (function(){
 })();
 const DEFAULT_PROJECT = FC.project.DEFAULT_PROJECT;
 
+// Wystaw init jak najwcześniej, zanim niższe sekcje pliku dotkną storage / stanu projektu.
+// Dzięki temu boot nie zgłasza fałszywie „brak init”, jeśli później wyłoży się np. niepełny stan danych.
+try{
+  window.FC = Object.assign(window.FC || {}, FC, { init: initApp });
+  window.App = Object.assign(window.App || {}, { init: initApp });
+  window.initApp = initApp;
+  window.initUI = initUI;
+}catch(_){ }
+
 /* ===== State initialization ===== */
 let materials = (window.FC && window.FC.catalogStore && typeof window.FC.catalogStore.getSheetMaterials === 'function')
   ? window.FC.catalogStore.getSheetMaterials()
@@ -431,12 +440,44 @@ function renderMaterialsTab(listEl, room){
 // RYZYKO REGRESJI: centralny render szafek.
 // Każda zmiana tutaj może psuć kilka widoków naraz, więc testować dodawanie/edycję/usuwanie oraz przełączanie zakładek.
 function renderCabinets(){
-  const list = document.getElementById('cabinetsList'); list.innerHTML = '';
-  const room = uiState.roomType;
-  document.getElementById('roomTitle').textContent = room ? ((window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getRoomLabel === 'function') ? window.FC.roomRegistry.getRoomLabel(room) : room.charAt(0).toUpperCase()+room.slice(1)) : 'Pomieszczenie';
-  if(!room) return;
+  const list = document.getElementById('cabinetsList');
+  if(!list) return;
+  list.innerHTML = '';
+  const requestedRoom = String((uiState && uiState.roomType) || '').trim();
+  const roomData = requestedRoom && projectData && projectData[requestedRoom] && typeof projectData[requestedRoom] === 'object'
+    ? projectData[requestedRoom]
+    : null;
+  const room = roomData ? requestedRoom : '';
+  const roomTitleEl = document.getElementById('roomTitle');
+  if(roomTitleEl){
+    roomTitleEl.textContent = room
+      ? ((window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getRoomLabel === 'function')
+          ? window.FC.roomRegistry.getRoomLabel(room)
+          : room.charAt(0).toUpperCase()+room.slice(1))
+      : 'Pomieszczenie';
+  }
+  if(!room){
+    if(requestedRoom){
+      const hasInvestorContext = !!((uiState && uiState.currentInvestorId)
+        || (window.FC && window.FC.investors && typeof window.FC.investors.getCurrentId === 'function' && window.FC.investors.getCurrentId()));
+      const nextState = Object.assign({}, uiState || {}, {
+        roomType: null,
+        selectedCabinetId: null,
+        expanded: {},
+        entry: hasInvestorContext ? 'rooms' : ((uiState && uiState.workMode) ? 'modeHub' : 'home'),
+      });
+      if(nextState.activeTab === 'wywiad' || nextState.activeTab === 'rysunek' || nextState.activeTab === 'material') nextState.activeTab = 'pokoje';
+      uiState = nextState;
+      try{
+        if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set(nextState);
+        else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      }catch(_){ }
+      try{ if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function') window.FC.views.applyFromState(uiState); }catch(_){ }
+    }
+    return;
+  }
 
-  const s = projectData[room].settings;
+  const s = roomData.settings || {};
   document.getElementById('roomHeight').value = s.roomHeight;
   document.getElementById('bottomHeight').value = s.bottomHeight;
   document.getElementById('legHeight').value = s.legHeight;
