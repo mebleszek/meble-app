@@ -364,6 +364,7 @@
   async function buildQuoteSnapshot(){
     const data = await collectQuoteData();
     try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.saveSnapshot === 'function') return FC.quoteSnapshot.saveSnapshot(data);
       if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(data);
     }catch(_){ }
     return data;

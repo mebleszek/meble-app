@@ -49,6 +49,25 @@
         H.assert(snapshot.catalogs && Array.isArray(snapshot.catalogs.sheetMaterials), 'Snapshot wyceny nie zawiera katalogów meblowych', snapshot);
         H.assert(!snapshot.catalogs.workshopServices, 'Snapshot wyceny nie powinien mieszać usług stolarskich z wyceną mebli', snapshot.catalogs);
       }),
+      H.makeTest('Wycena', 'Store snapshotów wyceny zapisuje historię dla projektu', 'Pilnuje, czy wycena ma już własny magazyn snapshotów powiązanych z projektem, gotowy pod późniejszy PDF i historię wycen.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function', 'Brak FC.quoteSnapshotStore.save');
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const saved = FC.quoteSnapshotStore.save({
+            investor:{ id:'inv_hist', name:'Jan Test' },
+            project:{ id:'proj_hist', investorId:'inv_hist', title:'Projekt testowy' },
+            lines:{ materials:[{ name:'Płyta test', total:100 }], accessories:[], agdServices:[] },
+            totals:{ materials:100, accessories:0, services:0, grand:100 },
+            generatedAt:1712600000000,
+          });
+          const latest = FC.quoteSnapshotStore.getLatestForProject('proj_hist');
+          H.assert(saved && saved.id, 'Store snapshotów nie zwrócił zapisanego rekordu', saved);
+          H.assert(latest && String(latest.id || '') === String(saved.id || ''), 'Store snapshotów nie zwrócił najnowszego snapshotu dla projektu', { saved, latest, all:FC.quoteSnapshotStore.readAll() });
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
     ]);
   }
 

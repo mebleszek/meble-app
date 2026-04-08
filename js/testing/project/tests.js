@@ -45,7 +45,9 @@
       }),
       H.makeTest('Projekt', 'Store inwestorów tworzy, wyszukuje i aktualizuje wpis bez gubienia bieżącego ID', 'Sprawdza, czy lokalna baza inwestorów działa stabilnie przy tworzeniu i edycji.', ()=>{
         withInvestorStorage((inv)=>{
-          const created = inv.create({ name:'Jan Test', email:'jan@test.pl', city:'Łódź' });
+          const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
+            ? FC.testDataManager.createInvestor({ name:'Jan Test', email:'jan@test.pl', city:'Łódź' })
+            : inv.create({ name:'Jan Test', email:'jan@test.pl', city:'Łódź' }));
           H.assert(created && created.id, 'Nie utworzono inwestora', created);
           H.assert(inv.getCurrentId() === created.id, 'Nie ustawiono current investor', { current:inv.getCurrentId(), created });
           const found = inv.search('jan@test.pl');
@@ -64,7 +66,9 @@
         try{
           if(FC.projectStore.writeAll) FC.projectStore.writeAll([]);
           withInvestorStorage((inv)=>{
-            const created = inv.create({ name:'Projektowy test' });
+            const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
+              ? FC.testDataManager.createInvestor({ name:'Projektowy test' })
+              : inv.create({ name:'Projektowy test' }));
             const record = FC.projectStore.ensureForInvestor(created.id, { projectData:{ kuchnia:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} } } });
             H.assert(record && record.id && String(record.investorId || '') === String(created.id || ''), 'Project store nie utworzył rekordu powiązanego z inwestorem', record);
             const saved = FC.projectStore.saveProjectDataForInvestor(created.id, { kuchnia:{ cabinets:[{ id:'cab_b' }, { id:'cab_c' }], fronts:[], sets:[], settings:{} } });
@@ -85,7 +89,9 @@
         try{
           if(inv && inv.writeAll) inv.writeAll([{ id:'inv_only', kind:'person', name:'Jan Investor', rooms:[] }]);
           FC.serviceOrderStore.writeAll([]);
-          const saved = FC.serviceOrderStore.upsert({ title:'Naprawa frontu', clientName:'Adam Klient', phone:'500600700', address:'Łódź' });
+          const saved = (FC.testDataManager && typeof FC.testDataManager.createServiceOrder === 'function'
+            ? FC.testDataManager.createServiceOrder({ title:'Naprawa frontu', clientName:'Adam Klient', phone:'500600700', address:'Łódź' })
+            : FC.serviceOrderStore.upsert({ title:'Naprawa frontu', clientName:'Adam Klient', phone:'500600700', address:'Łódź' }));
           H.assert(saved && saved.id && String(saved.clientName || '') === 'Adam Klient', 'Store zleceń usługowych nie zapisał podstawowych danych klienta', saved);
           const orders = FC.serviceOrderStore.readAll();
           H.assert(Array.isArray(orders) && orders.length === 1, 'Store zleceń usługowych nie zwrócił zapisanego zlecenia', orders);
@@ -140,6 +146,32 @@
         H.assert(Array.isArray(furniture.actions) && furniture.actions.some((item)=> item.action === 'open-sheet-materials') && furniture.actions.some((item)=> item.action === 'open-investors-list'), 'Tryb projektów meblowych nie ma oczekiwanych wejść', furniture);
         H.assert(Array.isArray(workshop.actions) && workshop.actions.some((item)=> item.action === 'open-workshop-services') && workshop.actions.some((item)=> item.action === 'open-service-orders-list'), 'Tryb usług stolarskich nie ma oczekiwanych wejść', workshop);
         H.assert(!furniture.actions.some((item)=> item.action === 'open-service-orders-list'), 'Tryb projektów meblowych miesza się ze zleceniami usługowymi', furniture);
+      }),
+      H.makeTest('Projekt', 'Cleanup danych testowych usuwa tylko oznaczone rekordy', 'Sprawdza, czy po testach da się bezpiecznie usunąć wyłącznie testowych inwestorów, projekty i zlecenia usługowe bez naruszania prawdziwych danych.', ()=>{
+        H.assert(FC.testDataManager && typeof FC.testDataManager.cleanup === 'function', 'Brak FC.testDataManager.cleanup');
+        const prevInvestors = FC.investors.readAll();
+        const prevProjects = FC.projectStore.readAll();
+        const prevOrders = FC.serviceOrderStore.readAll();
+        try{
+          FC.investors.writeAll([{ id:'inv_real', kind:'person', name:'Prawdziwy', rooms:[], meta:{} }]);
+          FC.projectStore.writeAll([{ id:'proj_real', investorId:'inv_real', title:'Projekt realny', projectData:{ kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } }, meta:{} }]);
+          FC.serviceOrderStore.writeAll([{ id:'so_real', title:'Prawdziwe zlecenie', clientName:'Realny klient', meta:{} }]);
+          const testInvestor = FC.testDataManager.createInvestor({ name:'Test cleanup' });
+          FC.projectStore.saveProjectDataForInvestor(testInvestor.id, { kuchnia:{ cabinets:[{ id:'cab_cleanup' }], fronts:[], sets:[], settings:{} } }, { meta: FC.testDataManager.buildMeta('project') });
+          FC.testDataManager.createServiceOrder({ title:'Testowe zlecenie cleanup' });
+          const result = FC.testDataManager.cleanup();
+          const investors = FC.investors.readAll();
+          const projects = FC.projectStore.readAll();
+          const orders = FC.serviceOrderStore.readAll();
+          H.assert(result && result.investors >= 1, 'Cleanup nie zgłosił usunięcia testowego inwestora', result);
+          H.assert(investors.length === 1 && investors[0].id === 'inv_real', 'Cleanup naruszył prawdziwych inwestorów albo nie usunął testowych', investors);
+          H.assert(projects.length === 1 && projects[0].id === 'proj_real', 'Cleanup nie usunął projektów testowych albo naruszył realne', projects);
+          H.assert(orders.length === 1 && orders[0].id === 'so_real', 'Cleanup nie usunął testowych zleceń albo naruszył realne', orders);
+        } finally {
+          FC.investors.writeAll(prevInvestors);
+          FC.projectStore.writeAll(prevProjects);
+          FC.serviceOrderStore.writeAll(prevOrders);
+        }
       }),
       H.makeTest('Projekt', 'Lista zleceń usługowych działa niezależnie od inwestorów', 'Sprawdza, czy drobne zlecenia usługowe mają własny byt danych i nie używają listy inwestorów.', ()=>{
         H.assert(FC.catalogStore && typeof FC.catalogStore.upsertServiceOrder === 'function', 'Brak FC.catalogStore.upsertServiceOrder');

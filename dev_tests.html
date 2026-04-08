@@ -73,6 +73,7 @@
         <button id="runAppTests" data-label="Tylko APP" type="button">Tylko APP</button>
         <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
         <button id="copyErrorsOnly" data-label="Kopiuj tylko błędy" type="button" disabled>Kopiuj tylko błędy</button>
+        <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
       </div>
       <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jedną podkategorię, ale nadal robisz to z tej jednej strony.</div>
       <div id="results"></div>
@@ -81,20 +82,20 @@
 
   <script src="js/app/shared/utils.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/shared/validate.js?v=20260328_dev_tests_single_v1"></script>
-  <script src="js/app/shared/constants.js?v=20260407_stage2_fix_v2"></script>
+  <script src="js/app/shared/constants.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/shared/storage.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/shared/schema.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/project/project-model.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/project/project-store.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/service/service-order-store.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/app/service/service-order-store.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/catalog/catalog-store.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/catalog/catalog-selectors.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/material/material-common.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/material/material-registry.js?v=20260328_dev_tests_single_v1"></script>
-  <script src="js/app/investor/investors-store.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/investor/investors-store.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/investor/investor-persistence.js?v=20260407_investor_cleanup_v1"></script>
   <script src="js/app/investor/project-bootstrap.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/investor/investor-editor-state.js?v=20260406_price_modal_fix_v2"></script>
@@ -107,8 +108,9 @@
   <script src="js/app/investor/investor-rooms.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/service/service-orders.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
-  <script src="js/app/quote/quote-snapshot.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/wycena/wycena-core.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/app/quote/quote-snapshot-store.js?v=20260408_stage4_cleanup_v1"></script>
+  <script src="js/app/quote/quote-snapshot.js?v=20260408_stage4_cleanup_v1"></script>
+  <script src="js/app/wycena/wycena-core.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/material/price-modal.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/cabinet/cabinet-cutlist.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/optimizer/cut-optimizer.js?v=20260328_dev_tests_single_v1"></script>
@@ -126,14 +128,15 @@
   <script src="js/app/rozrys/rozrys-selection-ui.js?v=20260329_material_scope_chip_sync_v1"></script>
   <script src="js/testing/shared/harness.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/test-data-manager.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/rozrys/tests.js?v=20260406_price_item_popup_v1"></script>
-  <script src="js/testing/project/tests.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/testing/investor/tests.js?v=20260407_stage2_fix_v2"></script>
+  <script src="js/testing/project/tests.js?v=20260408_stage4_cleanup_v1"></script>
+  <script src="js/testing/investor/tests.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/testing/material/tests.js?v=20260406_quote_ui_pdf_v1"></script>
-  <script src="js/testing/wycena/tests.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/testing/wycena/tests.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/testing/cabinet/tests.js?v=20260406_quote_ui_pdf_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260406_price_item_popup_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260408_stage4_cleanup_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};

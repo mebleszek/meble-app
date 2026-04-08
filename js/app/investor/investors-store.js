@@ -55,6 +55,18 @@
     };
   }
 
+
+  function normalizeMeta(meta){
+    const src = meta && typeof meta === 'object' ? meta : {};
+    return {
+      testData: !!src.testData,
+      testOwner: String(src.testOwner || ''),
+      testRunId: String(src.testRunId || ''),
+      createdBy: String(src.createdBy || ''),
+      source: String(src.source || ''),
+    };
+  }
+
   function normalizeInvestor(inv){
     const src = inv && typeof inv === 'object' ? inv : {};
     const createdAt = Number(src.createdAt) > 0 ? Number(src.createdAt) : now();
@@ -77,6 +89,7 @@
       addedDate: toDateInput(src.addedDate || src.createdDate, createdAt),
       createdAt,
       updatedAt,
+      meta: normalizeMeta(src.meta),
     };
   }
 
@@ -139,6 +152,7 @@
       addedDate: (initial && (initial.addedDate || initial.createdDate)) || toDateInput(ts, ts),
       createdAt: ts,
       updatedAt: ts,
+      meta: initial && initial.meta,
     });
     const list = readAll();
     list.unshift(inv);

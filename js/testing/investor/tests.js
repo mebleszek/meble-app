@@ -72,14 +72,23 @@
     makeTest('Inwestor', 'Rejestr aktywnych pomieszczeń dla inwestora nie wraca do generatorowych typów bazowych', 'Pilnuje, czy aktywne pokoje dla inwestora biorą się z rzeczywiście dodanych pomieszczeń, a nie z domyślnej listy kuchnia/szafa/pokój/łazienka.', ()=>{
       assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');
       assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function', 'Brak roomRegistry.getActiveRoomIds');
-      const created = FC.investors.create({
-        kind:'person',
-        name:'Test',
-        rooms:[
-          { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
-          { id:'room_spizarnia', baseType:'pokoj', name:'Spiżarnia', label:'Spiżarnia' }
-        ]
-      });
+      const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
+        ? FC.testDataManager.createInvestor({
+          kind:'person',
+          name:'Test',
+          rooms:[
+            { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
+            { id:'room_spizarnia', baseType:'pokoj', name:'Spiżarnia', label:'Spiżarnia' }
+          ]
+        })
+        : FC.investors.create({
+          kind:'person',
+          name:'Test',
+          rooms:[
+            { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
+            { id:'room_spizarnia', baseType:'pokoj', name:'Spiżarnia', label:'Spiżarnia' }
+          ]
+        }));
       FC.investors.setCurrentId(created.id);
       const ids = FC.roomRegistry.getActiveRoomIds();
       assert(Array.isArray(ids) && ids.includes('room_kuchnia_gora') && ids.includes('room_spizarnia'), 'Aktywne pokoje nie pochodzą z inwestora', ids);
@@ -89,7 +98,9 @@
     makeTest('Inwestor', 'Firma ostrzega, gdy właściciel pasuje do istniejącej osoby prywatnej', 'Pilnuje reguły, że firma z właścicielem Jan Kowalski ma ostrzec o istniejącej osobie prywatnej Jan Kowalski.', ()=>{
       assert(FC.investorActions && FC.investorActions._debug && typeof FC.investorActions._debug.findInvestorConflicts === 'function', 'Brak debug.findInvestorConflicts');
       assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');
-      const created = FC.investors.create({ kind:'person', name:'Jan Kowalski', address:'Test 9' });
+      const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
+        ? FC.testDataManager.createInvestor({ kind:'person', name:'Jan Kowalski', address:'Test 9' })
+        : FC.investors.create({ kind:'person', name:'Jan Kowalski', address:'Test 9' }));
       const conflicts = FC.investorActions._debug.findInvestorConflicts({ id:'draft_cmp' }, { kind:'company', companyName:'Meble Jan', ownerName:'Jan Kowalski', address:'Inna 1' });
       assert(conflicts && conflicts.ownerPerson && String(conflicts.ownerPerson.id || '') === String(created.id || ''), 'Nie wykryto dopasowania ownerName firmy do osoby prywatnej', conflicts);
     }),

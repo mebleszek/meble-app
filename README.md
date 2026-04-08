@@ -231,3 +231,9 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - `js/boot.js` dostał awaryjne doładowanie `js/app.js` i `js/app/shared/public-api.js`, jeśli po starcie strony nie ma funkcji init.
 
 - 2026-04-08: Boot/start hardening: app now exposes init earlier, and stale roomType after deleted investor/test cleanup falls back safely instead of crashing renderCabinets.
+
+## 2026-04-08 — etap 4 cleanup + snapshoty
+- testy developerskie oznaczają dane testowe markerem `meta.testData` i sprzątają je po uruchomieniu, bez ruszania realnych danych;
+- `dev_tests.html` ma też ręczny przycisk `Usuń dane testowe`;
+- wycena ma osobny magazyn snapshotów (`quoteSnapshotStore`) przygotowany pod późniejszy PDF klienta i historię wycen;
+- `serviceOrderStore` i `investors` zachowują metadane rekordów, co ułatwia późniejszą migrację do chmury i bezpieczny cleanup.

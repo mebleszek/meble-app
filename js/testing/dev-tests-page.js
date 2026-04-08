@@ -153,6 +153,7 @@
     const runAppBtn = ensureButton('runAppTests');
     const copyBtn = ensureButton('copyReport');
     const copyErrorsBtn = ensureButton('copyErrorsOnly');
+    const cleanupBtn = ensureButton('cleanupTestData');
     const results = ensureButton('results');
     let lastOverall = null;
     let lastSuites = [];
@@ -169,6 +170,7 @@
       }
       copyBtn.disabled = isRunning || !lastOverall;
       copyErrorsBtn.disabled = isRunning || !lastOverall;
+      cleanupBtn.disabled = isRunning;
     }
 
     function collectSuites(mode){
@@ -182,13 +184,41 @@
       return suites;
     }
 
+    function cleanupTestData(silent){
+      try{
+        if(!(FC.testDataManager && typeof FC.testDataManager.cleanup === 'function')) return { investors:0, projects:0, serviceOrders:0 };
+        const summary = FC.testDataManager.cleanup() || { investors:0, projects:0, serviceOrders:0 };
+        if(!silent){
+          results.innerHTML = `
+            <div class="overall ok">
+              <div class="overall-title">Usunięto dane testowe</div>
+              <div class="overall-sub">Inwestorzy: ${summary.investors || 0} • projekty: ${summary.projects || 0} • zlecenia usługowe: ${summary.serviceOrders || 0}</div>
+            </div>
+          `;
+        }
+        return summary;
+      }catch(error){
+        if(!silent){
+          results.innerHTML = `
+            <div class="overall bad">
+              <div class="overall-title">Błąd czyszczenia danych testowych</div>
+              <div class="overall-sub">${error && error.message ? error.message : String(error)}</div>
+            </div>
+          `;
+        }
+        return { investors:0, projects:0, serviceOrders:0 };
+      }
+    }
+
     function run(mode, sourceBtn){
       setRunning(true, sourceBtn);
       results.innerHTML = '';
       try{
+        cleanupTestData(true);
         const suites = collectSuites(mode);
         lastSuites = suites.slice();
         lastOverall = renderResult(results, suites);
+        cleanupTestData(true);
         copyBtn.disabled = false;
         copyErrorsBtn.disabled = false;
       } catch(error){
@@ -203,6 +233,7 @@
             <div class="overall-sub">${error && error.message ? error.message : String(error)}</div>
           </div>
         `;
+        cleanupTestData(true);
         copyBtn.disabled = false;
         copyErrorsBtn.disabled = false;
       } finally {
@@ -246,6 +277,7 @@
     runAppBtn.addEventListener('click', ()=> run('app', runAppBtn));
     copyBtn.addEventListener('click', copyReport);
     copyErrorsBtn.addEventListener('click', copyErrorsOnly);
+    cleanupBtn.addEventListener('click', ()=> cleanupTestData(false));
 
     const hash = String((host.location && host.location.hash) || '').toLowerCase();
     if(hash === '#rozrys') run('rozrys', runRozrysBtn);

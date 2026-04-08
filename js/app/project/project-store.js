@@ -75,6 +75,11 @@
     return readAll().find((row)=> String(row.investorId || '') === key) || null;
   }
 
+  function getCurrentRecord(){
+    const id = getCurrentProjectId();
+    return id ? getById(id) : null;
+  }
+
   function upsert(record){
     const normalized = normalizeRecord(record);
     if(!normalized) return null;
@@ -178,6 +183,7 @@
     normalizeRecord,
     getById,
     getByInvestorId,
+    getCurrentRecord,
     ensureForInvestor,
     upsert,
     saveProjectDataForInvestor,

@@ -15,6 +15,10 @@
 
   function currentProjectRecord(){
     try{
+      if(FC.projectStore && typeof FC.projectStore.getCurrentRecord === 'function'){
+        const current = FC.projectStore.getCurrentRecord();
+        if(current) return current;
+      }
       const inv = currentInvestor();
       return inv && FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function' ? FC.projectStore.getByInvestorId(inv.id) : null;
     }catch(_){ return null; }
@@ -69,8 +73,17 @@
     return buildSnapshot(data);
   }
 
+  function saveSnapshot(snapshot){
+    const normalized = buildSnapshot(snapshot);
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function') return FC.quoteSnapshotStore.save(normalized);
+    }catch(_){ }
+    return normalized;
+  }
+
   FC.quoteSnapshot = {
     buildSnapshot,
     buildFromCore,
+    saveSnapshot,
   };
 })();

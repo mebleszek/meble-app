@@ -28,6 +28,17 @@
     return text;
   }
 
+  function normalizeMeta(meta){
+    const src = meta && typeof meta === 'object' ? meta : {};
+    return {
+      testData: !!src.testData,
+      testOwner: normalizeText(src.testOwner),
+      testRunId: normalizeText(src.testRunId),
+      createdBy: normalizeText(src.createdBy),
+      source: normalizeText(src.source),
+    };
+  }
+
   function normalizeOrder(order){
     const src = order && typeof order === 'object' ? order : {};
     const now = Date.now();
@@ -57,6 +68,7 @@
       addedDate: normalizeText(src.addedDate) || (()=>{ try{ return new Date(createdAt).toISOString().slice(0, 10); }catch(_){ return ''; } })(),
       createdAt,
       updatedAt,
+      meta: normalizeMeta(src.meta),
     };
   }
 
