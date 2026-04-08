@@ -68,6 +68,24 @@
           FC.quoteSnapshotStore.writeAll(prev);
         }
       }),
+      H.makeTest('Wycena', 'PDF wyceny buduje dokument z zapisanym snapshotem zamiast z DOM-u', 'Pilnuje, czy dokument dla klienta korzysta z quoteSnapshot i ma podstawowe sekcje wyceny bez zależności od aktualnego widoku ekranu.', ()=>{
+        H.assert(FC.quotePdf && typeof FC.quotePdf.buildPrintHtml === 'function', 'Brak FC.quotePdf.buildPrintHtml');
+        const html = FC.quotePdf.buildPrintHtml({
+          investor:{ id:'inv_pdf', name:'Jan Test' },
+          project:{ id:'proj_pdf', investorId:'inv_pdf', title:'Kuchnia testowa', status:'wycena ostateczna' },
+          scope:{ roomLabels:['Kuchnia dół'] },
+          lines:{
+            materials:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
+            accessories:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
+            agdServices:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
+          },
+          totals:{ materials:70, accessories:72, services:120, grand:262 },
+          generatedAt:1712700000000,
+        });
+        H.assert(/Wycena dla klienta/.test(String(html || '')), 'PDF wyceny nie zawiera nagłówka dokumentu handlowego', html);
+        H.assert(/Kuchnia testowa/.test(String(html || '')), 'PDF wyceny nie zawiera tytułu projektu', html);
+        H.assert(/Zawias Blum/.test(String(html || '')) && /Piekarnik do zabudowy/.test(String(html || '')), 'PDF wyceny nie zawiera pozycji z zapisanych linii snapshotu', html);
+      }),
     ]);
   }
 

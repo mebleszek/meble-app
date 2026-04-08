@@ -1,5 +1,5 @@
 // js/tabs/wycena.js
-// Zakładka WYCENA — pierwszy szkielet oparty o Materiały, ROZRYS i Cennik usług.
+// Zakładka WYCENA — snapshot, PDF klienta i historia wycen w obrębie projektu.
 
 (function(){
   'use strict';
@@ -30,8 +30,57 @@
     return parts.join(' • ');
   }
 
+  function formatDateTime(value){
+    const ts = Number(value) > 0 ? Number(value) : Date.parse(String(value || ''));
+    if(!Number.isFinite(ts) || ts <= 0) return '—';
+    try{
+      const d = new Date(ts);
+      const pad = (n)=> String(n).padStart(2, '0');
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }catch(_){ return '—'; }
+  }
+
+  function getCurrentProjectId(){
+    try{ return window.FC.projectStore && typeof window.FC.projectStore.getCurrentProjectId === 'function' ? window.FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
+  }
+
+  function getCurrentInvestorId(){
+    try{ return window.FC.investors && typeof window.FC.investors.getCurrentId === 'function' ? String(window.FC.investors.getCurrentId() || '') : ''; }catch(_){ return ''; }
+  }
+
+  function getSnapshotHistory(){
+    try{
+      if(!(window.FC.quoteSnapshotStore && typeof window.FC.quoteSnapshotStore.listForProject === 'function')) return [];
+      const projectId = String(getCurrentProjectId() || '');
+      if(projectId) return window.FC.quoteSnapshotStore.listForProject(projectId);
+      const investorId = String(getCurrentInvestorId() || '');
+      if(investorId && typeof window.FC.quoteSnapshotStore.listForInvestor === 'function') return window.FC.quoteSnapshotStore.listForInvestor(investorId);
+    }catch(_){ }
+    return [];
+  }
+
+  function normalizeSnapshot(source){
+    const snap = source && typeof source === 'object' ? source : null;
+    if(!snap) return null;
+    if(snap.lines && snap.totals) return snap;
+    try{
+      if(window.FC.quoteSnapshot && typeof window.FC.quoteSnapshot.buildSnapshot === 'function') return window.FC.quoteSnapshot.buildSnapshot(snap);
+    }catch(_){ }
+    return snap;
+  }
+
   let lastQuote = null;
   let isBusy = false;
+
+  function resolveDisplayedQuote(){
+    if(lastQuote) return normalizeSnapshot(lastQuote);
+    const history = getSnapshotHistory();
+    if(history.length){
+      lastQuote = history[0];
+      return normalizeSnapshot(lastQuote);
+    }
+    return null;
+  }
 
   function renderEmpty(card){
     card.appendChild(h('p', { class:'muted', text:'Wycena pobiera materiały z działu Materiał, liczbę arkuszy z aktualnego ROZRYS dla wybranych pomieszczeń oraz pozycje AGD z dodanych szafek.' }));
@@ -68,6 +117,48 @@
     card.appendChild(wrap);
   }
 
+  function renderHistory(card, ctx){
+    const history = getSnapshotHistory();
+    const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
+    section.appendChild(h('h4', { text:'Historia wycen', style:'margin:0 0 10px' }));
+    if(!history.length){
+      section.appendChild(h('div', { class:'muted', text:'Brak zapisanych snapshotów wyceny dla tego projektu.' }));
+      card.appendChild(section);
+      return;
+    }
+    const wrap = h('div', { class:'quote-history' });
+    history.slice(0, 8).forEach((snapshot, index)=>{
+      const snap = normalizeSnapshot(snapshot) || {};
+      const item = h('article', { class:'quote-history__item' });
+      const top = h('div', { class:'quote-history__top' });
+      const titleBox = h('div', { class:'quote-history__content' });
+      const roomLabels = Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
+      titleBox.appendChild(h('div', { class:'quote-history__title', text:index === 0 ? `Ostatni snapshot — ${formatDateTime(snap.generatedAt)}` : formatDateTime(snap.generatedAt) }));
+      const meta = [];
+      if(roomLabels.length) meta.push(`Zakres: ${roomLabels.join(', ')}`);
+      meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
+      top.appendChild(titleBox);
+      titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
+      const actions = h('div', { class:'quote-history__actions' });
+      const openBtn = h('button', { class:'btn', type:'button', text:'Podgląd' });
+      openBtn.addEventListener('click', ()=>{
+        lastQuote = snap;
+        render(ctx);
+      });
+      actions.appendChild(openBtn);
+      const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
+      pdfBtn.addEventListener('click', ()=>{
+        try{ window.FC.quotePdf && typeof window.FC.quotePdf.openQuotePdf === 'function' && window.FC.quotePdf.openQuotePdf(snap); }catch(_){ }
+      });
+      actions.appendChild(pdfBtn);
+      top.appendChild(actions);
+      item.appendChild(top);
+      wrap.appendChild(item);
+    });
+    section.appendChild(wrap);
+    card.appendChild(section);
+  }
+
   function render(ctx){
     const list = ctx && ctx.listEl;
     if(!list) return;
@@ -97,20 +188,32 @@
       }
     });
     actions.appendChild(runBtn);
+
+    const currentQuote = resolveDisplayedQuote();
+    const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
+    if(!currentQuote || currentQuote.error) pdfBtn.disabled = true;
+    pdfBtn.addEventListener('click', ()=>{
+      try{ window.FC.quotePdf && typeof window.FC.quotePdf.openQuotePdf === 'function' && window.FC.quotePdf.openQuotePdf(currentQuote); }catch(_){ }
+    });
+    actions.appendChild(pdfBtn);
     head.appendChild(actions);
     card.appendChild(head);
 
-    if(!lastQuote){
+    if(!currentQuote){
       renderEmpty(card);
-    } else if(lastQuote.error){
-      card.appendChild(h('div', { class:'muted', text:lastQuote.error, style:'margin-top:10px;color:#b42318' }));
+    } else if(currentQuote.error){
+      card.appendChild(h('div', { class:'muted', text:currentQuote.error, style:'margin-top:10px;color:#b42318' }));
     } else {
-      const roomLabels = Array.isArray(lastQuote.roomLabels) ? lastQuote.roomLabels : (lastQuote.scope && Array.isArray(lastQuote.scope.roomLabels) ? lastQuote.scope.roomLabels : []);
-      const materialLines = Array.isArray(lastQuote.materialLines) ? lastQuote.materialLines : (lastQuote.lines && Array.isArray(lastQuote.lines.materials) ? lastQuote.lines.materials : []);
-      const accessoryLines = Array.isArray(lastQuote.accessoryLines) ? lastQuote.accessoryLines : (lastQuote.lines && Array.isArray(lastQuote.lines.accessories) ? lastQuote.lines.accessories : []);
-      const agdLines = Array.isArray(lastQuote.agdLines) ? lastQuote.agdLines : (lastQuote.lines && Array.isArray(lastQuote.lines.agdServices) ? lastQuote.lines.agdServices : []);
+      const roomLabels = Array.isArray(currentQuote.roomLabels) ? currentQuote.roomLabels : (currentQuote.scope && Array.isArray(currentQuote.scope.roomLabels) ? currentQuote.scope.roomLabels : []);
+      const materialLines = Array.isArray(currentQuote.materialLines) ? currentQuote.materialLines : (currentQuote.lines && Array.isArray(currentQuote.lines.materials) ? currentQuote.lines.materials : []);
+      const accessoryLines = Array.isArray(currentQuote.accessoryLines) ? currentQuote.accessoryLines : (currentQuote.lines && Array.isArray(currentQuote.lines.accessories) ? currentQuote.lines.accessories : []);
+      const agdLines = Array.isArray(currentQuote.agdLines) ? currentQuote.agdLines : (currentQuote.lines && Array.isArray(currentQuote.lines.agdServices) ? currentQuote.lines.agdServices : []);
+      const generatedAt = currentQuote.generatedAt || currentQuote.generatedDate || null;
+      if(generatedAt){
+        card.appendChild(h('p', { class:'muted quote-scope', text:`Snapshot: ${formatDateTime(generatedAt)}`, style:'margin-top:8px' }));
+      }
       if(Array.isArray(roomLabels) && roomLabels.length){
-        card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres: ${roomLabels.join(', ')}`, style:'margin-top:8px' }));
+        card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres: ${roomLabels.join(', ')}`, style:'margin-top:6px' }));
       }
       renderSection(card, 'Materiały z ROZRYS', materialLines, 'Brak pozycji materiałowych.');
       renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.');
@@ -118,10 +221,10 @@
       const totals = h('div', { class:'card quote-totals', style:'margin-top:12px;padding:14px;' });
       totals.appendChild(h('h4', { text:'Podsumowanie', style:'margin:0 0 8px' }));
       [
-        ['Materiały', lastQuote.totals && lastQuote.totals.materials],
-        ['Akcesoria', lastQuote.totals && lastQuote.totals.accessories],
-        ['Montaż AGD', lastQuote.totals && lastQuote.totals.services],
-        ['Razem', lastQuote.totals && lastQuote.totals.grand],
+        ['Materiały', currentQuote.totals && currentQuote.totals.materials],
+        ['Akcesoria', currentQuote.totals && currentQuote.totals.accessories],
+        ['Montaż AGD', currentQuote.totals && currentQuote.totals.services],
+        ['Razem', currentQuote.totals && currentQuote.totals.grand],
       ].forEach(([label, value])=>{
         const row = h('div', { class:'quote-totals__row' });
         row.appendChild(h('span', { text:label }));
@@ -130,6 +233,7 @@
       });
       card.appendChild(totals);
     }
+    renderHistory(card, ctx);
     list.appendChild(card);
   }
 

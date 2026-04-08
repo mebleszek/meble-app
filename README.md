@@ -237,3 +237,8 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - `dev_tests.html` ma też ręczny przycisk `Usuń dane testowe`;
 - wycena ma osobny magazyn snapshotów (`quoteSnapshotStore`) przygotowany pod późniejszy PDF klienta i historię wycen;
 - `serviceOrderStore` i `investors` zachowują metadane rekordów, co ułatwia późniejszą migrację do chmury i bezpieczny cleanup.
+
+
+## 2026-04-08 — Stage 5: quote PDF + snapshot history
+- W zakładce Wycena dodano niebieski przycisk PDF oparty o zapisany quoteSnapshot, a nie o DOM.
+- Dodano historię snapshotów wyceny dla bieżącego projektu z akcjami Podgląd i PDF.

@@ -992,3 +992,9 @@ Dopiero potem go zmieniać.
 - `dev_tests.html` ma też ręczny przycisk `Usuń dane testowe`;
 - wycena ma osobny magazyn snapshotów (`quoteSnapshotStore`) przygotowany pod późniejszy PDF klienta i historię wycen;
 - `serviceOrderStore` i `investors` zachowują metadane rekordów, co ułatwia późniejszą migrację do chmury i bezpieczny cleanup.
+
+
+## 2026-04-08 — Stage 5: quote PDF + snapshot history
+- Nowy moduł: `js/app/quote/quote-pdf.js` — buduje drukowalny PDF wyceny z snapshotu.
+- `js/tabs/wycena.js` pokazuje ostatni snapshot, historię snapshotów projektu oraz akcje Podgląd/PDF.
+- `js/testing/wycena/tests.js` dostał test PDF wyceny oparty o snapshot.

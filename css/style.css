@@ -1615,6 +1615,47 @@
   color:#64748b;
   overflow-wrap:anywhere;
 }
+
+.quote-history{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.quote-history__item{
+  border:1px solid rgba(226,232,240,.95);
+  border-radius:14px;
+  background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+  padding:12px 14px;
+  box-shadow:0 6px 18px rgba(15,23,42,.04);
+}
+.quote-history__top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.quote-history__content{
+  min-width:0;
+  flex:1 1 240px;
+}
+.quote-history__title{
+  font-weight:800;
+  color:#0f172a;
+}
+.quote-history__meta{
+  margin-top:6px;
+  font-size:12px;
+  line-height:1.4;
+  color:#64748b;
+  overflow-wrap:anywhere;
+}
+.quote-history__actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
 .quote-totals__row{
   display:flex;
   justify-content:space-between;
@@ -1631,6 +1672,8 @@
 }
 @media (max-width: 640px){
   .quote-root{ padding:18px 14px; }
+  .quote-history__top{ flex-direction:column; }
+  .quote-history__actions{ width:100%; justify-content:flex-start; }
   .quote-list__head{ display:none; }
   .quote-list__row{
     grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,auto));
