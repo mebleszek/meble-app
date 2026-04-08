@@ -242,3 +242,9 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 ## 2026-04-08 — Stage 5: quote PDF + snapshot history
 - W zakładce Wycena dodano niebieski przycisk PDF oparty o zapisany quoteSnapshot, a nie o DOM.
 - Dodano historię snapshotów wyceny dla bieżącego projektu z akcjami Podgląd i PDF.
+
+
+## 2026-04-08 — Stage 5B: quote history UX polish
+- `Historia wycen` w `Wycena` ma teraz zwarte, niskie karty zamiast wysokich pustych pól.
+- Kliknięcie `Podgląd` wyraźnie oznacza oglądany snapshot i automatycznie przewija do aktywnego podglądu wyceny.
+- Aktywny wpis historii ma wyróżniony stan i nie udaje, że nic się nie stało po przełączeniu snapshotu.

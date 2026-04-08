@@ -71,6 +71,11 @@
 
   let lastQuote = null;
   let isBusy = false;
+  let shouldScrollToPreview = false;
+
+  function getSnapshotId(snapshot){
+    try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
+  }
 
   function resolveDisplayedQuote(){
     if(lastQuote) return normalizeSnapshot(lastQuote);
@@ -117,8 +122,9 @@
     card.appendChild(wrap);
   }
 
-  function renderHistory(card, ctx){
+  function renderHistory(card, ctx, currentQuote){
     const history = getSnapshotHistory();
+    const activeId = getSnapshotId(currentQuote);
     const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
     section.appendChild(h('h4', { text:'Historia wycen', style:'margin:0 0 10px' }));
     if(!history.length){
@@ -129,20 +135,28 @@
     const wrap = h('div', { class:'quote-history' });
     history.slice(0, 8).forEach((snapshot, index)=>{
       const snap = normalizeSnapshot(snapshot) || {};
-      const item = h('article', { class:'quote-history__item' });
+      const snapId = getSnapshotId(snap);
+      const isActive = !!activeId && snapId === activeId;
+      const item = h('article', { class:`quote-history__item${isActive ? ' is-active' : ''}` });
       const top = h('div', { class:'quote-history__top' });
       const titleBox = h('div', { class:'quote-history__content' });
       const roomLabels = Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
-      titleBox.appendChild(h('div', { class:'quote-history__title', text:index === 0 ? `Ostatni snapshot — ${formatDateTime(snap.generatedAt)}` : formatDateTime(snap.generatedAt) }));
+      const titleRow = h('div', { class:'quote-history__title-row' });
+      titleRow.appendChild(h('div', { class:'quote-history__title', text:index === 0 ? `Ostatni snapshot — ${formatDateTime(snap.generatedAt)}` : formatDateTime(snap.generatedAt) }));
+      if(isActive) titleRow.appendChild(h('span', { class:'quote-history__badge', text:'Oglądany' }));
+      titleBox.appendChild(titleRow);
       const meta = [];
       if(roomLabels.length) meta.push(`Zakres: ${roomLabels.join(', ')}`);
       meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
-      top.appendChild(titleBox);
       titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
+      top.appendChild(titleBox);
+      item.appendChild(top);
       const actions = h('div', { class:'quote-history__actions' });
-      const openBtn = h('button', { class:'btn', type:'button', text:'Podgląd' });
+      const openBtn = h('button', { class:isActive ? 'btn-primary' : 'btn', type:'button', text:isActive ? 'Wyświetlany' : 'Podgląd' });
+      if(isActive) openBtn.disabled = true;
       openBtn.addEventListener('click', ()=>{
         lastQuote = snap;
+        shouldScrollToPreview = true;
         render(ctx);
       });
       actions.appendChild(openBtn);
@@ -151,8 +165,7 @@
         try{ window.FC.quotePdf && typeof window.FC.quotePdf.openQuotePdf === 'function' && window.FC.quotePdf.openQuotePdf(snap); }catch(_){ }
       });
       actions.appendChild(pdfBtn);
-      top.appendChild(actions);
-      item.appendChild(top);
+      item.appendChild(actions);
       wrap.appendChild(item);
     });
     section.appendChild(wrap);
@@ -163,7 +176,7 @@
     const list = ctx && ctx.listEl;
     if(!list) return;
     list.innerHTML = '';
-    const card = h('div', { class:'build-card quote-root' });
+    const card = h('div', { class:'build-card quote-root', id:'quoteActivePreview' });
     const head = h('div', { class:'quote-topbar' });
     head.appendChild(h('h3', { text:'Wycena', style:'margin:0' }));
     const actions = h('div', { class:'quote-topbar__actions' });
@@ -210,7 +223,11 @@
       const agdLines = Array.isArray(currentQuote.agdLines) ? currentQuote.agdLines : (currentQuote.lines && Array.isArray(currentQuote.lines.agdServices) ? currentQuote.lines.agdServices : []);
       const generatedAt = currentQuote.generatedAt || currentQuote.generatedDate || null;
       if(generatedAt){
-        card.appendChild(h('p', { class:'muted quote-scope', text:`Snapshot: ${formatDateTime(generatedAt)}`, style:'margin-top:8px' }));
+        const isLatest = getSnapshotId(currentQuote) === getSnapshotId(getSnapshotHistory()[0]);
+        const previewMeta = h('div', { class:'quote-preview-meta' });
+        previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualny snapshot' : 'Oglądany snapshot z historii' }));
+        previewMeta.appendChild(h('p', { class:'muted quote-scope', text:`Snapshot: ${formatDateTime(generatedAt)}` }));
+        card.appendChild(previewMeta);
       }
       if(Array.isArray(roomLabels) && roomLabels.length){
         card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres: ${roomLabels.join(', ')}`, style:'margin-top:6px' }));
@@ -233,8 +250,19 @@
       });
       card.appendChild(totals);
     }
-    renderHistory(card, ctx);
+    renderHistory(card, ctx, currentQuote);
     list.appendChild(card);
+    if(shouldScrollToPreview){
+      shouldScrollToPreview = false;
+      try{
+        requestAnimationFrame(()=>{
+          try{
+            const target = document.getElementById('quoteActivePreview');
+            target && target.scrollIntoView && target.scrollIntoView({ behavior:'smooth', block:'start' });
+          }catch(_){ }
+        });
+      }catch(_){ }
+    }
   }
 
   (window.FC.tabsRouter || window.FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });

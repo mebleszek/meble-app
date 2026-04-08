@@ -998,3 +998,9 @@ Dopiero potem go zmieniać.
 - Nowy moduł: `js/app/quote/quote-pdf.js` — buduje drukowalny PDF wyceny z snapshotu.
 - `js/tabs/wycena.js` pokazuje ostatni snapshot, historię snapshotów projektu oraz akcje Podgląd/PDF.
 - `js/testing/wycena/tests.js` dostał test PDF wyceny oparty o snapshot.
+
+
+## 2026-04-08 — Stage 5B: quote history UX polish
+- `Historia wycen` w `Wycena` ma teraz zwarte, niskie karty zamiast wysokich pustych pól.
+- Kliknięcie `Podgląd` wyraźnie oznacza oglądany snapshot i automatycznie przewija do aktywnego podglądu wyceny.
+- Aktywny wpis historii ma wyróżniony stan i nie udaje, że nic się nie stało po przełączeniu snapshotu.

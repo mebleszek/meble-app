@@ -1569,7 +1569,34 @@
   align-items:center;
   flex-wrap:wrap;
 }
-.quote-scope{ overflow-wrap:anywhere; }
+.quote-scope{ overflow-wrap:anywhere; margin:0; }
+
+.quote-preview-meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px 12px;
+  margin-top:8px;
+}
+.quote-preview-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid rgba(14,165,233,.28);
+  background:rgba(224,242,254,.9);
+  color:#0c4a6e;
+  font-size:12px;
+  line-height:1.2;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.quote-preview-badge.is-latest{
+  border-color:rgba(34,197,94,.25);
+  background:rgba(220,252,231,.9);
+  color:#166534;
+}
 .quote-list{
   display:flex;
   flex-direction:column;
@@ -1633,15 +1660,35 @@
   justify-content:space-between;
   align-items:flex-start;
   gap:10px;
-  flex-wrap:wrap;
 }
 .quote-history__content{
   min-width:0;
-  flex:1 1 240px;
+  flex:1 1 auto;
+}
+.quote-history__title-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
 }
 .quote-history__title{
   font-weight:800;
   color:#0f172a;
+}
+.quote-history__badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:4px 10px;
+  border-radius:999px;
+  background:rgba(14,165,233,.12);
+  color:#0c4a6e;
+  border:1px solid rgba(14,165,233,.24);
+  font-size:11px;
+  line-height:1.2;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
 }
 .quote-history__meta{
   margin-top:6px;
@@ -1655,6 +1702,12 @@
   gap:8px;
   align-items:center;
   flex-wrap:wrap;
+  margin-top:10px;
+}
+.quote-history__item.is-active{
+  border-color:rgba(14,165,233,.38);
+  box-shadow:0 8px 18px rgba(14,165,233,.10);
+  background:linear-gradient(180deg,#f0f9ff 0%,#ffffff 100%);
 }
 .quote-totals__row{
   display:flex;
@@ -1674,6 +1727,7 @@
   .quote-root{ padding:18px 14px; }
   .quote-history__top{ flex-direction:column; }
   .quote-history__actions{ width:100%; justify-content:flex-start; }
+  .quote-preview-meta{ align-items:flex-start; }
   .quote-list__head{ display:none; }
   .quote-list__row{
     grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,auto));
