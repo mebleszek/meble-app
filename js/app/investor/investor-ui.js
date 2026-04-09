@@ -11,6 +11,7 @@
     { value: 'po_pomiarze', label: 'Po pomiarze' },
     { value: 'wycena', label: 'Wycena' },
     { value: 'umowa', label: 'Umowa' },
+    { value: 'zaakceptowany', label: 'Zaakceptowany' },
     { value: 'produkcja', label: 'Produkcja' },
     { value: 'montaz', label: 'Montaż' },
     { value: 'zakonczone', label: 'Zakończone' },

@@ -105,6 +105,53 @@
     try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
   }
 
+  function isSelectedSnapshot(snapshot){
+    try{ return !!(snapshot && snapshot.meta && snapshot.meta.selectedByClient); }catch(_){ return false; }
+  }
+
+  async function askConfirm(cfg){
+    try{
+      if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') return !!(await FC.confirmBox.ask(cfg));
+    }catch(_){ }
+    return true;
+  }
+
+  function setProjectAcceptedFromSnapshot(snapshot){
+    const snap = normalizeSnapshot(snapshot) || {};
+    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
+    const investorId = String(snap && snap.investor && snap.investor.id || getCurrentInvestorId() || '');
+    try{
+      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
+        const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
+        if(record){
+          FC.projectStore.upsert(Object.assign({}, record, { status:'zaakceptowany', updatedAt:Date.now() }));
+        }
+      }
+    }catch(_){ }
+    try{
+      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function' && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
+        const investor = FC.investorPersistence.getInvestorById(investorId);
+        if(investor && Array.isArray(investor.rooms) && investor.rooms.length){
+          const rooms = investor.rooms.map((room)=> Object.assign({}, room, { projectStatus:'zaakceptowany' }));
+          FC.investorPersistence.saveInvestorPatch(investorId, { rooms });
+        }
+      }
+    }catch(_){ }
+  }
+
+  function buildOfferSummary(draft){
+    const data = draft && typeof draft === 'object' ? draft : {};
+    const commercial = data.commercial || {};
+    const rates = Array.isArray(data.rateSelections) ? data.rateSelections.filter((row)=> num(row && row.qty, 0) > 0) : [];
+    const parts = [];
+    if(rates.length) parts.push(`Stawki: ${rates.length}`);
+    if(Number(commercial.discountPercent) > 0) parts.push(`Rabat ${Number(commercial.discountPercent).toFixed(2)}%`);
+    else if(Number(commercial.discountAmount) > 0) parts.push(`Rabat ${money(commercial.discountAmount)}`);
+    if(String(commercial.offerValidity || '').trim()) parts.push(`Ważność: ${String(commercial.offerValidity).trim()}`);
+    if(String(commercial.leadTime || '').trim()) parts.push(`Termin: ${String(commercial.leadTime).trim()}`);
+    return parts.join(' • ') || 'Brak dodatkowych ustawień oferty';
+  }
+
   function buildSelectionMap(draft){
     const out = Object.create(null);
     const rows = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
@@ -212,87 +259,105 @@
     })).filter((row)=> row.rateId);
   }
 
-  function renderOfferEditor(card){
+  function renderOfferEditor(card, ctx){
     const draft = getOfferDraft();
     const commercial = draft && draft.commercial || {};
     const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
     const selectionMap = buildSelectionMap(draft);
-    const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
-    const top = h('div', { class:'quote-topbar' });
-    top.appendChild(h('h4', { text:'Ustawienia oferty do nowej wyceny', style:'margin:0' }));
-    top.appendChild(h('span', { class:'quote-preview-badge', text:'Wpływa na kolejny snapshot' }));
-    section.appendChild(top);
-    section.appendChild(h('p', { class:'muted', text:'Tutaj ustawiasz robociznę, rabat i warunki handlowe. Zostaną zapisane w nowym snapshotcie po kliknięciu „Wyceń”.', style:'margin:8px 0 0' }));
+    const section = h('section', { class:`card quote-offer-accordion${offerEditorOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
+    const trigger = h('button', { class:'quote-offer-accordion__trigger', type:'button' });
+    const head = h('div', { class:'quote-offer-accordion__head' });
+    const titleBox = h('div', { class:'quote-offer-accordion__titlebox' });
+    titleBox.appendChild(h('div', { class:'quote-offer-accordion__title', text:'Ustawienia oferty do nowej wyceny' }));
+    titleBox.appendChild(h('div', { class:'quote-offer-accordion__summary', text:buildOfferSummary(draft) }));
+    head.appendChild(titleBox);
+    const headMeta = h('div', { class:'quote-offer-accordion__meta' });
+    headMeta.appendChild(h('span', { class:'quote-preview-badge', text:'Wpływa na kolejny snapshot' }));
+    headMeta.appendChild(h('span', { class:'quote-offer-accordion__chevron', text: offerEditorOpen ? '▴' : '▾', 'aria-hidden':'true' }));
+    head.appendChild(headMeta);
+    trigger.appendChild(head);
+    trigger.addEventListener('click', ()=>{
+      offerEditorOpen = !offerEditorOpen;
+      render(ctx);
+    });
+    section.appendChild(trigger);
 
-    const rateShell = h('div', { class:'quote-rate-editor' });
-    if(!catalog.length){
-      rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w katalogu „Stawki wyceny mebli”.' }));
-    } else {
-      catalog.forEach((rate)=>{
-        const item = h('article', { class:'quote-rate-editor__item' });
-        const info = h('div', { class:'quote-rate-editor__info' });
-        info.appendChild(h('div', { class:'quote-rate-editor__title', text:String(rate && rate.name || 'Stawka') }));
-        info.appendChild(h('div', { class:'quote-rate-editor__meta', text:[String(rate && rate.category || '').trim(), money(rate && rate.price)].filter(Boolean).join(' • ') }));
-        item.appendChild(info);
-        const qtyWrap = h('div', { class:'quote-rate-editor__qty' });
-        qtyWrap.appendChild(h('label', { text:'Ilość' }));
-        const qtyInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'1', value:String(Math.max(0, num(selectionMap[String(rate && rate.id || '')], 0))) });
-        qtyInput.addEventListener('input', ()=>{
-          const nextMap = buildSelectionMap(getOfferDraft());
-          const qty = Math.max(0, num(qtyInput.value, 0));
-          nextMap[String(rate && rate.id || '')] = qty;
-          saveRateSelectionRows(makeRateSelectionRows(catalog, nextMap));
+    if(offerEditorOpen){
+      const body = h('div', { class:'quote-offer-accordion__body' });
+      body.appendChild(h('p', { class:'muted', text:'Tutaj ustawiasz robociznę, rabat i warunki handlowe. Zostaną zapisane w nowym snapshotcie po kliknięciu „Wyceń”.', style:'margin:0 0 8px' }));
+
+      const rateShell = h('div', { class:'quote-rate-editor' });
+      if(!catalog.length){
+        rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w katalogu „Stawki wyceny mebli”.' }));
+      } else {
+        catalog.forEach((rate)=>{
+          const item = h('article', { class:'quote-rate-editor__item' });
+          const info = h('div', { class:'quote-rate-editor__info' });
+          info.appendChild(h('div', { class:'quote-rate-editor__title', text:String(rate && rate.name || 'Stawka') }));
+          info.appendChild(h('div', { class:'quote-rate-editor__meta', text:[String(rate && rate.category || '').trim(), money(rate && rate.price)].filter(Boolean).join(' • ') }));
+          item.appendChild(info);
+          const qtyWrap = h('div', { class:'quote-rate-editor__qty' });
+          qtyWrap.appendChild(h('label', { text:'Ilość' }));
+          const qtyInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'1', value:String(Math.max(0, num(selectionMap[String(rate && rate.id || '')], 0))) });
+          qtyInput.addEventListener('input', ()=>{
+            const nextMap = buildSelectionMap(getOfferDraft());
+            const qty = Math.max(0, num(qtyInput.value, 0));
+            nextMap[String(rate && rate.id || '')] = qty;
+            saveRateSelectionRows(makeRateSelectionRows(catalog, nextMap));
+          });
+          qtyWrap.appendChild(qtyInput);
+          item.appendChild(qtyWrap);
+          rateShell.appendChild(item);
         });
-        qtyWrap.appendChild(qtyInput);
-        item.appendChild(qtyWrap);
-        rateShell.appendChild(item);
-      });
-    }
-    section.appendChild(h('div', { class:'quote-subsection-title', text:'Robocizna / stawki wyceny mebli', style:'margin-top:14px' }));
-    section.appendChild(rateShell);
+      }
+      body.appendChild(h('div', { class:'quote-subsection-title', text:'Robocizna / stawki wyceny mebli', style:'margin-top:14px' }));
+      body.appendChild(rateShell);
 
-    const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
-    const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });
-    const discountAmountInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountAmount, 0) || '') });
-    const validityInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.offerValidity || '') });
-    const leadTimeInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.leadTime || '') });
-    const deliveryInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
-    deliveryInput.value = String(commercial.deliveryTerms || '');
-    const noteInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
-    noteInput.value = String(commercial.customerNote || '');
+      const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
+      const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });
+      const discountAmountInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountAmount, 0) || '') });
+      const validityInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.offerValidity || '') });
+      const leadTimeInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.leadTime || '') });
+      const deliveryInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
+      deliveryInput.value = String(commercial.deliveryTerms || '');
+      const noteInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
+      noteInput.value = String(commercial.customerNote || '');
 
-    const syncCommercial = ()=>{
-      const next = {
-        discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
-        discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
-        offerValidity: validityInput.value,
-        leadTime: leadTimeInput.value,
-        deliveryTerms: deliveryInput.value,
-        customerNote: noteInput.value,
+      const syncCommercial = ()=>{
+        const next = {
+          discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
+          discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
+          offerValidity: validityInput.value,
+          leadTime: leadTimeInput.value,
+          deliveryTerms: deliveryInput.value,
+          customerNote: noteInput.value,
+        };
+        patchOfferDraft({ commercial: next });
       };
-      patchOfferDraft({ commercial: next });
-    };
-    discountPercentInput.addEventListener('input', ()=>{
-      if(num(discountPercentInput.value, 0) > 0 && num(discountAmountInput.value, 0) > 0) discountAmountInput.value = '';
-      syncCommercial();
-    });
-    discountAmountInput.addEventListener('input', ()=>{
-      if(num(discountAmountInput.value, 0) > 0 && num(discountPercentInput.value, 0) > 0) discountPercentInput.value = '';
-      syncCommercial();
-    });
-    [validityInput, leadTimeInput, deliveryInput, noteInput].forEach((field)=>{
-      field.addEventListener('input', syncCommercial);
-      field.addEventListener('change', syncCommercial);
-    });
+      discountPercentInput.addEventListener('input', ()=>{
+        if(num(discountPercentInput.value, 0) > 0 && num(discountAmountInput.value, 0) > 0) discountAmountInput.value = '';
+        syncCommercial();
+      });
+      discountAmountInput.addEventListener('input', ()=>{
+        if(num(discountAmountInput.value, 0) > 0 && num(discountPercentInput.value, 0) > 0) discountPercentInput.value = '';
+        syncCommercial();
+      });
+      [validityInput, leadTimeInput, deliveryInput, noteInput].forEach((field)=>{
+        field.addEventListener('input', syncCommercial);
+        field.addEventListener('change', syncCommercial);
+      });
 
-    grid.appendChild(buildField('Rabat %', discountPercentInput));
-    grid.appendChild(buildField('Rabat kwotowy (PLN)', discountAmountInput));
-    grid.appendChild(buildField('Ważność oferty', validityInput));
-    grid.appendChild(buildField('Termin realizacji', leadTimeInput));
-    grid.appendChild(buildField('Warunki montażu / transportu', deliveryInput, true));
-    grid.appendChild(buildField('Notatka dla klienta', noteInput, true));
-    section.appendChild(h('div', { class:'quote-subsection-title', text:'Pola handlowe', style:'margin-top:14px' }));
-    section.appendChild(grid);
+      grid.appendChild(buildField('Rabat %', discountPercentInput));
+      grid.appendChild(buildField('Rabat kwotowy (PLN)', discountAmountInput));
+      grid.appendChild(buildField('Ważność oferty', validityInput));
+      grid.appendChild(buildField('Termin realizacji', leadTimeInput));
+      grid.appendChild(buildField('Warunki montażu / transportu', deliveryInput, true));
+      grid.appendChild(buildField('Notatka dla klienta', noteInput, true));
+      body.appendChild(h('div', { class:'quote-subsection-title', text:'Pola handlowe', style:'margin-top:14px' }));
+      body.appendChild(grid);
+      section.appendChild(body);
+    }
+
     card.appendChild(section);
   }
 
@@ -311,17 +376,20 @@
       const snap = normalizeSnapshot(snapshot) || {};
       const snapId = getSnapshotId(snap);
       const isActive = !!activeId && snapId === activeId;
-      const item = h('article', { class:`quote-history__item${isActive ? ' is-active' : ''}` });
+      const isSelected = isSelectedSnapshot(snap);
+      const item = h('article', { class:`quote-history__item${isActive ? ' is-active' : ''}${isSelected ? ' is-selected' : ''}` });
       const top = h('div', { class:'quote-history__top' });
       const titleBox = h('div', { class:'quote-history__content' });
       const roomLabels = Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
       const titleRow = h('div', { class:'quote-history__title-row' });
       titleRow.appendChild(h('div', { class:'quote-history__title', text:index === 0 ? `Ostatni snapshot — ${formatDateTime(snap.generatedAt)}` : formatDateTime(snap.generatedAt) }));
       if(isActive) titleRow.appendChild(h('span', { class:'quote-history__badge', text:'Oglądany' }));
+      if(isSelected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--selected', text:'Wybrana przez klienta' }));
       titleBox.appendChild(titleRow);
       const meta = [];
       if(roomLabels.length) meta.push(`Zakres: ${roomLabels.join(', ')}`);
       meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
+      if(isSelected && Number(snap.meta && snap.meta.acceptedAt) > 0) meta.push(`Wybrana: ${formatDateTime(snap.meta.acceptedAt)}`);
       titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
       top.appendChild(titleBox);
       item.appendChild(top);
@@ -334,11 +402,56 @@
         render(ctx);
       });
       actions.appendChild(openBtn);
+      const chooseBtn = h('button', { class:'btn-success', type:'button', text:isSelected ? 'Wybrana' : 'Klient wybrał' });
+      if(isSelected) chooseBtn.disabled = true;
+      chooseBtn.addEventListener('click', async ()=>{
+        const confirmed = await askConfirm({
+          title:'OZNACZYĆ OFERTĘ?',
+          message:'Ta wersja zostanie oznaczona jako wybrana przez klienta, a status projektu zmieni się na „zaakceptowany”.',
+          confirmText:'Oznacz jako wybraną',
+          cancelText:'Wróć',
+          confirmTone:'success',
+          cancelTone:'neutral'
+        });
+        if(!confirmed) return;
+        let selected = null;
+        try{
+          selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
+            ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId)
+            : snap;
+        }catch(_){ selected = snap; }
+        if(selected){
+          setProjectAcceptedFromSnapshot(selected);
+          lastQuote = selected;
+          shouldScrollToPreview = true;
+          render(ctx);
+        }
+      });
+      actions.appendChild(chooseBtn);
       const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
       pdfBtn.addEventListener('click', ()=>{
         try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(snap); }catch(_){ }
       });
       actions.appendChild(pdfBtn);
+      const deleteBtn = h('button', { class:'btn-danger', type:'button', text:'Usuń' });
+      deleteBtn.addEventListener('click', async ()=>{
+        const confirmed = await askConfirm({
+          title:'USUNĄĆ OFERTĘ?',
+          message:'Ta wersja oferty zostanie trwale usunięta z historii.',
+          confirmText:'Usuń ofertę',
+          cancelText:'Wróć',
+          confirmTone:'danger',
+          cancelTone:'neutral'
+        });
+        if(!confirmed) return;
+        try{
+          if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
+        }catch(_){ }
+        const nextHistory = getSnapshotHistory();
+        if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory[0] || null;
+        render(ctx);
+      });
+      actions.appendChild(deleteBtn);
       item.appendChild(actions);
       wrap.appendChild(item);
     });
@@ -349,6 +462,7 @@
   let lastQuote = null;
   let isBusy = false;
   let shouldScrollToPreview = false;
+  let offerEditorOpen = false;
 
   function render(ctx){
     const list = ctx && ctx.listEl;
@@ -387,7 +501,7 @@
     head.appendChild(actions);
     card.appendChild(head);
 
-    renderOfferEditor(card);
+    renderOfferEditor(card, ctx);
 
     if(!currentQuote){
       renderEmpty(card);
@@ -405,6 +519,7 @@
         const isLatest = getSnapshotId(currentQuote) === getSnapshotId(getSnapshotHistory()[0]);
         const previewMeta = h('div', { class:'quote-preview-meta' });
         previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualny snapshot' : 'Oglądany snapshot z historii' }));
+        if(isSelectedSnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--selected', text:'Wybrana przez klienta' }));
         previewMeta.appendChild(h('p', { class:'muted quote-scope', text:`Snapshot: ${formatDateTime(generatedAt)}` }));
         card.appendChild(previewMeta);
       }

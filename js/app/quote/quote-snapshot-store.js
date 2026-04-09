@@ -32,7 +32,11 @@
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor,
       project,
-      meta: Object.assign({}, src.meta || {}, { source:String(src.meta && src.meta.source || 'quote-snapshot-store') }),
+      meta: Object.assign({}, src.meta || {}, {
+        source:String(src.meta && src.meta.source || 'quote-snapshot-store'),
+        selectedByClient: !!(src.meta && src.meta.selectedByClient),
+        acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
+      }),
     });
   }
 
@@ -56,6 +60,52 @@
     return normalized;
   }
 
+
+  function getById(id){
+    const key = String(id || '');
+    if(!key) return null;
+    return readAll().find((row)=> String(row && row.id || '') === key) || null;
+  }
+
+  function remove(id){
+    const key = String(id || '');
+    if(!key) return false;
+    const list = readAll();
+    const next = list.filter((row)=> String(row && row.id || '') !== key);
+    if(next.length === list.length) return false;
+    writeAll(next);
+    return true;
+  }
+
+  function markSelectedForProject(projectId, snapshotId){
+    const pid = String(projectId || '');
+    const sid = String(snapshotId || '');
+    if(!pid || !sid) return null;
+    const list = readAll();
+    let selected = null;
+    const acceptedAt = Date.now();
+    list.forEach((row)=> {
+      if(String(row && row.project && row.project.id || '') !== pid) return;
+      const isTarget = String(row && row.id || '') === sid;
+      row.meta = Object.assign({}, row && row.meta || {}, {
+        selectedByClient: isTarget,
+        acceptedAt: isTarget ? acceptedAt : 0,
+      });
+      if(isTarget){
+        row.project = Object.assign({}, row && row.project || {}, { status:'zaakceptowany' });
+        selected = normalizeSnapshot(row);
+      }
+    });
+    writeAll(list);
+    return selected ? getById(selected.id) : null;
+  }
+
+  function getSelectedForProject(projectId){
+    const pid = String(projectId || '');
+    if(!pid) return null;
+    return listForProject(pid).find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+  }
+
   function listForProject(projectId){
     const key = String(projectId || '');
     if(!key) return [];
@@ -77,9 +127,13 @@
     normalizeSnapshot,
     readAll,
     writeAll,
+    getById,
     save,
+    remove,
+    markSelectedForProject,
     listForProject,
     listForInvestor,
     getLatestForProject,
+    getSelectedForProject,
   };
 })();

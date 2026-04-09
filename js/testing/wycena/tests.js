@@ -94,6 +94,24 @@
           FC.quoteSnapshotStore.writeAll(prev);
         }
       }),
+      H.makeTest('Wycena', 'Historia wycen pozwala oznaczyć wybraną ofertę klienta i usuwać snapshoty', 'Pilnuje, czy magazyn snapshotów potrafi oznaczyć jedną ofertę jako wybraną przez klienta i usuwać konkretne wersje z historii.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        H.assert(typeof FC.quoteSnapshotStore.remove === 'function', 'Brak FC.quoteSnapshotStore.remove');
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const a = FC.quoteSnapshotStore.save({ investor:{ id:'inv_sel' }, project:{ id:'proj_sel', investorId:'inv_sel', title:'Projekt A' }, totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712800000000 });
+          const b = FC.quoteSnapshotStore.save({ investor:{ id:'inv_sel' }, project:{ id:'proj_sel', investorId:'inv_sel', title:'Projekt A' }, totals:{ materials:120, accessories:0, services:0, quoteRates:0, subtotal:120, discount:0, grand:120 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712800100000 });
+          const marked = FC.quoteSnapshotStore.markSelectedForProject('proj_sel', a.id);
+          const selected = FC.quoteSnapshotStore.getSelectedForProject('proj_sel');
+          H.assert(marked && String(marked.id || '') === String(a.id || ''), 'Store nie zwrócił oznaczonego snapshotu', { marked, a, b });
+          H.assert(selected && String(selected.id || '') === String(a.id || ''), 'Store nie oznaczył właściwej oferty jako wybranej', { selected, all:FC.quoteSnapshotStore.listForProject('proj_sel') });
+          H.assert(FC.quoteSnapshotStore.remove(b.id) === true, 'Store nie usunął snapshotu z historii', { a, b, all:FC.quoteSnapshotStore.readAll() });
+          H.assert(FC.quoteSnapshotStore.getById(b.id) == null, 'Usunięty snapshot nadal istnieje w historii', FC.quoteSnapshotStore.readAll());
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
       H.makeTest('Wycena', 'PDF wyceny buduje ofertę handlową z zapisanym snapshotem', 'Pilnuje, czy dokument dla klienta korzysta z quoteSnapshot, zawiera robociznę, warunki oferty i końcową sumę z rabatem.', ()=>{
         H.assert(FC.quotePdf && typeof FC.quotePdf.buildPrintHtml === 'function', 'Brak FC.quotePdf.buildPrintHtml');
         const html = FC.quotePdf.buildPrintHtml({

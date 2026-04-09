@@ -74,6 +74,7 @@
     const lines = snap && snap.lines || {};
     const totals = snap && snap.totals || {};
     const commercial = snap && snap.commercial || {};
+    const selectedByClient = !!(snap && snap.meta && snap.meta.selectedByClient);
     const title = normalizeText(project && project.title) || normalizeText(investor && (investor.companyName || investor.name)) || 'Wycena projektu';
     const investorLabel = normalizeText(investor && (investor.companyName || investor.name));
     const subtotal = Number(totals && totals.subtotal) || 0;
@@ -123,7 +124,7 @@
       <div>
         <div class="eyebrow">Oferta dla klienta</div>
         <h1 class="title">${escapeHtml(title)}</h1>
-        <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.</p>
+        <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.${selectedByClient ? ' Ta wersja została oznaczona jako wybrana przez klienta.' : ''}</p>
       </div>
     </div>
 
@@ -144,6 +145,7 @@
         ${row('Klient', investorLabel || '—')}
         ${row('Projekt', title)}
         ${row('Status projektu', project && project.status)}
+        ${row('Status oferty', selectedByClient ? 'Wybrana przez klienta' : 'Wersja robocza / podglądowa')}
       </div>
       <div class="section">
         <h2 class="section-title">Podsumowanie</h2>
