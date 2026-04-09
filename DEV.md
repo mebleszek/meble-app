@@ -1007,4 +1007,4 @@ Dopiero potem go zmieniać.
 
 - Stage 6: quote-offer-store trzyma draft oferty (stawki + pola handlowe) per projekt; quote snapshot i PDF drukują dokładnie tę wersję wyceny.
 
-- Etap historii ofert: sekcja handlowa w Wycena działa jako accordion; snapshot oferty można usunąć lub oznaczyć jako wybrany przez klienta, co ustawia status projektu na `zaakceptowany`.
+- Etap historii ofert: sekcja handlowa w Wycena działa jako accordion; snapshot oferty można usunąć lub oznaczyć jako zaakceptowany, co ustawia status projektu na `zaakceptowany`.

@@ -119,7 +119,12 @@
   function setProjectAcceptedFromSnapshot(snapshot){
     const snap = normalizeSnapshot(snapshot) || {};
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const investorId = String(snap && snap.investor && snap.investor.id || getCurrentInvestorId() || '');
+    const investorId = String(
+      snap && snap.investor && snap.investor.id
+      || snap && snap.project && snap.project.investorId
+      || getCurrentInvestorId()
+      || ''
+    );
     try{
       if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
         const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
@@ -128,15 +133,59 @@
         }
       }
     }catch(_){ }
+
+    let investor = null;
     try{
-      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function' && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
-        const investor = FC.investorPersistence.getInvestorById(investorId);
-        if(investor && Array.isArray(investor.rooms) && investor.rooms.length){
-          const rooms = investor.rooms.map((room)=> Object.assign({}, room, { projectStatus:'zaakceptowany' }));
-          FC.investorPersistence.saveInvestorPatch(investorId, { rooms });
+      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function'){
+        investor = FC.investorPersistence.getInvestorById(investorId);
+      }
+      if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function'){
+        investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
+      }
+    }catch(_){ investor = null; }
+
+    try{
+      if(investor && FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
+        const roomMap = new Map();
+        const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
+        currentRooms.forEach((room)=>{
+          const key = String(room && room.id || '');
+          if(!key) return;
+          roomMap.set(key, Object.assign({}, room, { projectStatus:'zaakceptowany' }));
+        });
+        try{
+          if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
+            const defs = FC.roomRegistry.getActiveRoomDefs() || [];
+            defs.forEach((room)=>{
+              const key = String(room && room.id || '');
+              if(!key) return;
+              roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key, projectStatus:'zaakceptowany' }));
+            });
+          }
+        }catch(_){ }
+        const rooms = Array.from(roomMap.values());
+        if(rooms.length) FC.investorPersistence.saveInvestorPatch(investor.id, { rooms });
+      }
+    }catch(_){ }
+
+    try{
+      if(FC.project && typeof FC.project.load === 'function' && typeof FC.project.save === 'function'){
+        const proj = FC.project.load() || {};
+        const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
+        if(meta && meta.roomDefs && typeof meta.roomDefs === 'object'){
+          Object.keys(meta.roomDefs).forEach((roomId)=>{
+            const row = meta.roomDefs[roomId];
+            if(!row || typeof row !== 'object') return;
+            meta.roomDefs[roomId] = Object.assign({}, row, { projectStatus:'zaakceptowany' });
+          });
+          FC.project.save(proj);
         }
       }
     }catch(_){ }
+
+    try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+    try{ if(FC.investorUI && typeof FC.investorUI.render === 'function') FC.investorUI.render(); }catch(_){ }
+    try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
 
   function buildOfferSummary(draft){
@@ -384,12 +433,12 @@
       const titleRow = h('div', { class:'quote-history__title-row' });
       titleRow.appendChild(h('div', { class:'quote-history__title', text:index === 0 ? `Ostatni snapshot — ${formatDateTime(snap.generatedAt)}` : formatDateTime(snap.generatedAt) }));
       if(isActive) titleRow.appendChild(h('span', { class:'quote-history__badge', text:'Oglądany' }));
-      if(isSelected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--selected', text:'Wybrana przez klienta' }));
+      if(isSelected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--selected', text:'Zaakceptowana' }));
       titleBox.appendChild(titleRow);
       const meta = [];
       if(roomLabels.length) meta.push(`Zakres: ${roomLabels.join(', ')}`);
       meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
-      if(isSelected && Number(snap.meta && snap.meta.acceptedAt) > 0) meta.push(`Wybrana: ${formatDateTime(snap.meta.acceptedAt)}`);
+      if(isSelected && Number(snap.meta && snap.meta.acceptedAt) > 0) meta.push(`Zaakceptowana: ${formatDateTime(snap.meta.acceptedAt)}`);
       titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
       top.appendChild(titleBox);
       item.appendChild(top);
@@ -402,13 +451,13 @@
         render(ctx);
       });
       actions.appendChild(openBtn);
-      const chooseBtn = h('button', { class:'btn-success', type:'button', text:isSelected ? 'Wybrana' : 'Klient wybrał' });
+      const chooseBtn = h('button', { class:'btn-success', type:'button', text:isSelected ? 'Zaakceptowana' : 'Zaakceptuj' });
       if(isSelected) chooseBtn.disabled = true;
       chooseBtn.addEventListener('click', async ()=>{
         const confirmed = await askConfirm({
           title:'OZNACZYĆ OFERTĘ?',
-          message:'Ta wersja zostanie oznaczona jako wybrana przez klienta, a status projektu zmieni się na „zaakceptowany”.',
-          confirmText:'Oznacz jako wybraną',
+          message:'Ta wersja zostanie oznaczona jako zaakceptowana, a status projektu zmieni się na „zaakceptowany”.',
+          confirmText:'Oznacz jako zaakceptowaną',
           cancelText:'Wróć',
           confirmTone:'success',
           cancelTone:'neutral'
@@ -519,7 +568,7 @@
         const isLatest = getSnapshotId(currentQuote) === getSnapshotId(getSnapshotHistory()[0]);
         const previewMeta = h('div', { class:'quote-preview-meta' });
         previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualny snapshot' : 'Oglądany snapshot z historii' }));
-        if(isSelectedSnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--selected', text:'Wybrana przez klienta' }));
+        if(isSelectedSnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--selected', text:'Zaakceptowana' }));
         previewMeta.appendChild(h('p', { class:'muted quote-scope', text:`Snapshot: ${formatDateTime(generatedAt)}` }));
         card.appendChild(previewMeta);
       }

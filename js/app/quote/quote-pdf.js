@@ -124,7 +124,7 @@
       <div>
         <div class="eyebrow">Oferta dla klienta</div>
         <h1 class="title">${escapeHtml(title)}</h1>
-        <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.${selectedByClient ? ' Ta wersja została oznaczona jako wybrana przez klienta.' : ''}</p>
+        <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.${selectedByClient ? ' Ta wersja została oznaczona jako zaakceptowana.' : ''}</p>
       </div>
     </div>
 
@@ -145,7 +145,7 @@
         ${row('Klient', investorLabel || '—')}
         ${row('Projekt', title)}
         ${row('Status projektu', project && project.status)}
-        ${row('Status oferty', selectedByClient ? 'Wybrana przez klienta' : 'Wersja robocza / podglądowa')}
+        ${row('Status oferty', selectedByClient ? 'Zaakceptowana' : 'Wersja robocza / podglądowa')}
       </div>
       <div class="section">
         <h2 class="section-title">Podsumowanie</h2>

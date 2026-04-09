@@ -94,7 +94,7 @@
           FC.quoteSnapshotStore.writeAll(prev);
         }
       }),
-      H.makeTest('Wycena', 'Historia wycen pozwala oznaczyć wybraną ofertę klienta i usuwać snapshoty', 'Pilnuje, czy magazyn snapshotów potrafi oznaczyć jedną ofertę jako wybraną przez klienta i usuwać konkretne wersje z historii.', ()=>{
+      H.makeTest('Wycena', 'Historia wycen pozwala oznaczyć zaakceptowaną ofertę i usuwać snapshoty', 'Pilnuje, czy magazyn snapshotów potrafi oznaczyć jedną ofertę jako zaakceptowaną i usuwać konkretne wersje z historii.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         H.assert(typeof FC.quoteSnapshotStore.remove === 'function', 'Brak FC.quoteSnapshotStore.remove');
         const prev = FC.quoteSnapshotStore.readAll();
@@ -105,7 +105,7 @@
           const marked = FC.quoteSnapshotStore.markSelectedForProject('proj_sel', a.id);
           const selected = FC.quoteSnapshotStore.getSelectedForProject('proj_sel');
           H.assert(marked && String(marked.id || '') === String(a.id || ''), 'Store nie zwrócił oznaczonego snapshotu', { marked, a, b });
-          H.assert(selected && String(selected.id || '') === String(a.id || ''), 'Store nie oznaczył właściwej oferty jako wybranej', { selected, all:FC.quoteSnapshotStore.listForProject('proj_sel') });
+          H.assert(selected && String(selected.id || '') === String(a.id || ''), 'Store nie oznaczył właściwej oferty jako zaakceptowanej', { selected, all:FC.quoteSnapshotStore.listForProject('proj_sel') });
           H.assert(FC.quoteSnapshotStore.remove(b.id) === true, 'Store nie usunął snapshotu z historii', { a, b, all:FC.quoteSnapshotStore.readAll() });
           H.assert(FC.quoteSnapshotStore.getById(b.id) == null, 'Usunięty snapshot nadal istnieje w historii', FC.quoteSnapshotStore.readAll());
         } finally {
