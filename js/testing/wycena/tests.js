@@ -33,21 +33,45 @@
         const materialTypes = FC.priceModal._debug.buildMaterialTypeOptions('akcesoria', { includeAll:true });
         H.assert(materialTypes.some((item)=> String(item && item.value || '') === 'akcesoria'), 'Lista typów materiału nie zawiera akcesoriów', materialTypes);
       }),
-      H.makeTest('Wycena', 'Snapshot wyceny buduje czysty model danych z katalogów meblowych', 'Pilnuje, czy wycena może budować niezależny snapshot z materiałów, akcesoriów i stawek meblowych bez mieszania usług stolarskich.', ()=>{
+      H.makeTest('Wycena', 'Store oferty zapamiętuje pola handlowe i ilości stawek dla projektu', 'Pilnuje, czy rabat, warunki oferty i ilości stawek wyceny mebli są trzymane per projekt i gotowe do zapisania w snapshotcie.', ()=>{
+        H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.saveCurrentDraft === 'function', 'Brak FC.quoteOfferStore.saveCurrentDraft');
+        const prevProjectStore = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];
+        const prevCurrentProjectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : '';
+        const prevDrafts = FC.quoteOfferStore.readAll();
+        try{
+          FC.projectStore.writeAll([{ id:'proj_offer', investorId:'inv_offer', title:'Projekt oferty', projectData:{ kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } } }]);
+          FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId('proj_offer');
+          const saved = FC.quoteOfferStore.saveCurrentDraft({
+            rateSelections:[{ rateId:'rate_1', qty:2 }],
+            commercial:{ discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' }
+          });
+          const current = FC.quoteOfferStore.getCurrentDraft();
+          H.assert(saved && String(saved.projectId || '') === 'proj_offer', 'Store oferty nie zapisał draftu dla bieżącego projektu', saved);
+          H.assert(Array.isArray(current.rateSelections) && current.rateSelections.length === 1 && Number(current.rateSelections[0].qty) === 2, 'Store oferty nie zachował ilości stawek', current);
+          H.assert(String(current.commercial.offerValidity || '') === '14 dni' && Number(current.commercial.discountPercent) === 10, 'Store oferty nie zachował pól handlowych', current);
+        } finally {
+          FC.quoteOfferStore.writeAll(prevDrafts);
+          FC.projectStore.writeAll(prevProjectStore);
+          FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+        }
+      }),
+      H.makeTest('Wycena', 'Snapshot wyceny zapisuje stawki meblowe i pola handlowe wraz z podsumowaniem po rabacie', 'Pilnuje, czy zapisany snapshot oferty jest już dokumentem handlowym: ma robociznę, rabat i końcową sumę z jednej wersji danych.', ()=>{
         H.assert(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function', 'Brak FC.quoteSnapshot.buildSnapshot');
-        H.assert(FC.catalogSelectors && typeof FC.catalogSelectors.getFurnitureCatalogSnapshot === 'function', 'Brak FC.catalogSelectors.getFurnitureCatalogSnapshot');
         const snapshot = FC.quoteSnapshot.buildSnapshot({
           selectedRooms:['room_kuchnia_gora'],
           roomLabels:['Kuchnia góra'],
           materialLines:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
           accessoryLines:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
           agdLines:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
-          totals:{ materials:70, accessories:72, services:120, grand:262 },
+          quoteRateLines:[{ name:'Montaż zabudowy', category:'Montaż', qty:1, unit:'x', unitPrice:400, total:400 }],
+          commercial:{ discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Transport po stronie wykonawcy', customerNote:'Oferta testowa' },
           generatedAt:1712500000000,
         });
-        H.assert(snapshot && snapshot.lines && Array.isArray(snapshot.lines.materials) && snapshot.lines.materials.length === 1, 'Snapshot wyceny nie zachował linii materiałowych', snapshot);
-        H.assert(snapshot.catalogs && Array.isArray(snapshot.catalogs.sheetMaterials), 'Snapshot wyceny nie zawiera katalogów meblowych', snapshot);
-        H.assert(!snapshot.catalogs.workshopServices, 'Snapshot wyceny nie powinien mieszać usług stolarskich z wyceną mebli', snapshot.catalogs);
+        H.assert(snapshot && snapshot.lines && Array.isArray(snapshot.lines.quoteRates) && snapshot.lines.quoteRates.length === 1, 'Snapshot wyceny nie zachował linii robocizny / stawek meblowych', snapshot);
+        H.assert(snapshot.commercial && String(snapshot.commercial.offerValidity || '') === '14 dni', 'Snapshot wyceny nie zachował pól handlowych', snapshot);
+        H.assert(Math.abs(Number(snapshot.totals.subtotal || 0) - 662) < 0.001, 'Snapshot wyceny nie policzył sumy przed rabatem', snapshot.totals);
+        H.assert(Math.abs(Number(snapshot.totals.discount || 0) - 66.2) < 0.001, 'Snapshot wyceny nie policzył rabatu', snapshot.totals);
+        H.assert(Math.abs(Number(snapshot.totals.grand || 0) - 595.8) < 0.001, 'Snapshot wyceny nie policzył końcowej wartości oferty', snapshot.totals);
       }),
       H.makeTest('Wycena', 'Store snapshotów wyceny zapisuje historię dla projektu', 'Pilnuje, czy wycena ma już własny magazyn snapshotów powiązanych z projektem, gotowy pod późniejszy PDF i historię wycen.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function', 'Brak FC.quoteSnapshotStore.save');
@@ -57,18 +81,20 @@
           const saved = FC.quoteSnapshotStore.save({
             investor:{ id:'inv_hist', name:'Jan Test' },
             project:{ id:'proj_hist', investorId:'inv_hist', title:'Projekt testowy' },
-            lines:{ materials:[{ name:'Płyta test', total:100 }], accessories:[], agdServices:[] },
-            totals:{ materials:100, accessories:0, services:0, grand:100 },
+            lines:{ materials:[{ name:'Płyta test', total:100 }], accessories:[], agdServices:[], quoteRates:[{ name:'Montaż test', total:50 }] },
+            commercial:{ offerValidity:'14 dni' },
+            totals:{ materials:100, accessories:0, services:0, quoteRates:50, subtotal:150, discount:0, grand:150 },
             generatedAt:1712600000000,
           });
           const latest = FC.quoteSnapshotStore.getLatestForProject('proj_hist');
           H.assert(saved && saved.id, 'Store snapshotów nie zwrócił zapisanego rekordu', saved);
           H.assert(latest && String(latest.id || '') === String(saved.id || ''), 'Store snapshotów nie zwrócił najnowszego snapshotu dla projektu', { saved, latest, all:FC.quoteSnapshotStore.readAll() });
+          H.assert(Array.isArray(latest.lines.quoteRates) && latest.lines.quoteRates.length === 1, 'Store snapshotów zgubił linie robocizny', latest);
         } finally {
           FC.quoteSnapshotStore.writeAll(prev);
         }
       }),
-      H.makeTest('Wycena', 'PDF wyceny buduje dokument z zapisanym snapshotem zamiast z DOM-u', 'Pilnuje, czy dokument dla klienta korzysta z quoteSnapshot i ma podstawowe sekcje wyceny bez zależności od aktualnego widoku ekranu.', ()=>{
+      H.makeTest('Wycena', 'PDF wyceny buduje ofertę handlową z zapisanym snapshotem', 'Pilnuje, czy dokument dla klienta korzysta z quoteSnapshot, zawiera robociznę, warunki oferty i końcową sumę z rabatem.', ()=>{
         H.assert(FC.quotePdf && typeof FC.quotePdf.buildPrintHtml === 'function', 'Brak FC.quotePdf.buildPrintHtml');
         const html = FC.quotePdf.buildPrintHtml({
           investor:{ id:'inv_pdf', name:'Jan Test' },
@@ -78,13 +104,16 @@
             materials:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
             accessories:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
             agdServices:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
+            quoteRates:[{ name:'Montaż zabudowy', qty:1, unit:'x', unitPrice:400, total:400, category:'Montaż' }],
           },
-          totals:{ materials:70, accessories:72, services:120, grand:262 },
+          commercial:{ discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' },
+          totals:{ materials:70, accessories:72, services:120, quoteRates:400, subtotal:662, discount:66.2, grand:595.8 },
           generatedAt:1712700000000,
         });
-        H.assert(/Wycena dla klienta/.test(String(html || '')), 'PDF wyceny nie zawiera nagłówka dokumentu handlowego', html);
-        H.assert(/Kuchnia testowa/.test(String(html || '')), 'PDF wyceny nie zawiera tytułu projektu', html);
-        H.assert(/Zawias Blum/.test(String(html || '')) && /Piekarnik do zabudowy/.test(String(html || '')), 'PDF wyceny nie zawiera pozycji z zapisanych linii snapshotu', html);
+        H.assert(/Oferta dla klienta/.test(String(html || '')), 'PDF wyceny nie zawiera nagłówka dokumentu handlowego', html);
+        H.assert(/Montaż zabudowy/.test(String(html || '')), 'PDF wyceny nie zawiera pozycji robocizny', html);
+        H.assert(/Warunki oferty/.test(String(html || '')) && /14 dni/.test(String(html || '')) && /4 tygodnie/.test(String(html || '')), 'PDF wyceny nie zawiera pól handlowych', html);
+        H.assert(/595\.80 PLN/.test(String(html || '')), 'PDF wyceny nie zawiera końcowej sumy po rabacie', html);
       }),
     ]);
   }

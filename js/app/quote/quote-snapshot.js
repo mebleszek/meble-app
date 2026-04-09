@@ -8,6 +8,11 @@
     catch(_){ return JSON.parse(JSON.stringify(value || null)); }
   }
 
+  function num(value, fallback){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function currentInvestor(){
     try{ return FC.investors && typeof FC.investors.getById === 'function' && typeof FC.investors.getCurrentId === 'function' ? FC.investors.getById(FC.investors.getCurrentId()) : null; }
     catch(_){ return null; }
@@ -24,6 +29,67 @@
     }catch(_){ return null; }
   }
 
+  function normalizeLine(line){
+    const row = line && typeof line === 'object' ? line : {};
+    return {
+      key: String(row.key || row.id || ''),
+      type: String(row.type || ''),
+      category: String(row.category || ''),
+      name: String(row.name || ''),
+      qty: Math.max(0, num(row.qty, 0)),
+      unit: String(row.unit || ''),
+      unitPrice: Math.max(0, num(row.unitPrice, 0)),
+      total: Math.max(0, num(row.total, 0)),
+      rooms: String(row.rooms || '').trim(),
+      note: String(row.note || '').trim(),
+    };
+  }
+
+  function normalizeLines(rows){
+    return Array.isArray(rows) ? rows.map(normalizeLine) : [];
+  }
+
+  function normalizeCommercial(src){
+    const value = src && typeof src === 'object' ? src : {};
+    let discountPercent = Math.max(0, num(value.discountPercent, 0));
+    let discountAmount = Math.max(0, num(value.discountAmount, 0));
+    if(discountPercent > 0) discountAmount = 0;
+    if(discountAmount > 0) discountPercent = 0;
+    return {
+      discountPercent,
+      discountAmount,
+      offerValidity: String(value.offerValidity || '').trim(),
+      leadTime: String(value.leadTime || '').trim(),
+      deliveryTerms: String(value.deliveryTerms || '').trim(),
+      customerNote: String(value.customerNote || '').trim(),
+    };
+  }
+
+  function computeTotals(raw, lines, commercial){
+    const base = raw && typeof raw === 'object' ? raw : {};
+    const materials = Math.max(0, num(base.materials, lines.materials.reduce((sum, row)=> sum + row.total, 0)));
+    const accessories = Math.max(0, num(base.accessories, lines.accessories.reduce((sum, row)=> sum + row.total, 0)));
+    const services = Math.max(0, num(base.services, lines.agdServices.reduce((sum, row)=> sum + row.total, 0)));
+    const quoteRates = Math.max(0, num(base.quoteRates, lines.quoteRates.reduce((sum, row)=> sum + row.total, 0)));
+    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates));
+    let discount = Math.max(0, num(base.discount, 0));
+    if(!(discount > 0)){
+      if(commercial.discountPercent > 0) discount = subtotal * (commercial.discountPercent / 100);
+      else if(commercial.discountAmount > 0) discount = commercial.discountAmount;
+    }
+    discount = Math.min(subtotal, Math.max(0, discount));
+    const grand = Math.max(0, num(base.grand, subtotal - discount));
+    return {
+      materials,
+      accessories,
+      services,
+      quoteRates,
+      subtotal,
+      discount,
+      grand,
+    };
+  }
+
   function buildSnapshot(payload){
     const src = payload && typeof payload === 'object' ? payload : {};
     const investor = src.investor || currentInvestor() || null;
@@ -31,12 +97,16 @@
     const roomIds = Array.isArray(src.selectedRooms) ? src.selectedRooms.slice() : [];
     const roomLabels = Array.isArray(src.roomLabels) ? src.roomLabels.slice() : [];
     const generatedAt = Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now();
-    const materialLines = Array.isArray(src.materialLines) ? clone(src.materialLines) : [];
-    const accessoryLines = Array.isArray(src.accessoryLines) ? clone(src.accessoryLines) : [];
-    const agdLines = Array.isArray(src.agdLines) ? clone(src.agdLines) : [];
-    const totals = clone(src.totals || {});
+    const lines = {
+      materials: normalizeLines(src.materialLines || (src.lines && src.lines.materials)),
+      accessories: normalizeLines(src.accessoryLines || (src.lines && src.lines.accessories)),
+      agdServices: normalizeLines(src.agdLines || (src.lines && src.lines.agdServices)),
+      quoteRates: normalizeLines(src.quoteRateLines || (src.lines && src.lines.quoteRates)),
+    };
+    const commercial = normalizeCommercial(src.commercial || {});
+    const totals = computeTotals(src.totals || {}, lines, commercial);
     return {
-      version: 1,
+      version: 2,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {
@@ -58,11 +128,8 @@
       catalogs: FC.catalogSelectors && typeof FC.catalogSelectors.getFurnitureCatalogSnapshot === 'function'
         ? FC.catalogSelectors.getFurnitureCatalogSnapshot()
         : null,
-      lines: {
-        materials: materialLines,
-        accessories: accessoryLines,
-        agdServices: agdLines,
-      },
+      lines,
+      commercial,
       totals,
     };
   }
@@ -85,5 +152,7 @@
     buildSnapshot,
     buildFromCore,
     saveSnapshot,
+    normalizeCommercial,
+    computeTotals,
   };
 })();

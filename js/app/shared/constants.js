@@ -19,6 +19,7 @@
         workshopServices: 'fc_workshop_services_v1',
         serviceOrders: 'fc_service_orders_v1',
         quoteSnapshots: 'fc_quote_snapshots_v1',
+        quoteOfferDrafts: 'fc_quote_offer_drafts_v1',
         projects: 'fc_projects_v1',
         currentProjectId: 'fc_current_project_id_v1',
         sheets: 'fc_sheets_v1',

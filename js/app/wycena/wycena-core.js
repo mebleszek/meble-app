@@ -137,6 +137,17 @@
     return null;
   }
 
+  function quoteRateLookup(rateName){
+    const key = normalizeText(rateName);
+    try{
+      if(FC.catalogSelectors && typeof FC.catalogSelectors.findQuoteRate === 'function'){
+        const found = FC.catalogSelectors.findQuoteRate(key);
+        if(found) return found;
+      }
+    }catch(_){ }
+    return null;
+  }
+
   function servicePriceLookup(serviceName){
     const key = normalizeText(serviceName);
     try{
@@ -337,25 +348,78 @@
     return lines;
   }
 
+  function getOfferDraft(){
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function') return FC.quoteOfferStore.getCurrentDraft();
+    }catch(_){ }
+    return { rateSelections:[], commercial:{} };
+  }
+
+  function collectQuoteRateLines(){
+    const draft = getOfferDraft();
+    const selections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
+    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    return selections.map((row)=>{
+      const rate = (Array.isArray(catalog) ? catalog : []).find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
+      if(!rate) return null;
+      const qty = Math.max(0, Number(row && row.qty) || 0);
+      if(!(qty > 0)) return null;
+      const unitPrice = Math.max(0, Number(rate && rate.price) || 0);
+      return {
+        key: slug(rate && rate.name || rate && rate.id || ''),
+        type:'quote-rate',
+        category: String(rate && rate.category || ''),
+        name: String(rate && rate.name || 'Stawka wyceny'),
+        qty,
+        unit:'x',
+        unitPrice,
+        total: qty * unitPrice,
+        note: String(rate && rate.category || '').trim(),
+      };
+    }).filter(Boolean);
+  }
+
+  function collectCommercialDraft(){
+    const draft = getOfferDraft();
+    return FC.quoteSnapshot && typeof FC.quoteSnapshot.normalizeCommercial === 'function'
+      ? FC.quoteSnapshot.normalizeCommercial(draft && draft.commercial)
+      : (draft && draft.commercial) || {};
+  }
+
   async function collectQuoteData(){
     const selectedRooms = decodeSelectedRooms();
     const aggregate = getSelectedAggregate();
     const materialLines = await collectMaterialLines(aggregate);
     const accessoryLines = collectAccessories(selectedRooms);
     const agdLines = collectBuiltInAppliances(selectedRooms);
-    const all = materialLines.concat(accessoryLines, agdLines);
-    const totals = {
-      materials: materialLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
-      accessories: accessoryLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
-      services: agdLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
-    };
-    totals.grand = totals.materials + totals.accessories + totals.services;
+    const quoteRateLines = collectQuoteRateLines();
+    const commercial = collectCommercialDraft();
+    const totals = FC.quoteSnapshot && typeof FC.quoteSnapshot.computeTotals === 'function'
+      ? FC.quoteSnapshot.computeTotals({}, {
+          materials: materialLines,
+          accessories: accessoryLines,
+          agdServices: agdLines,
+          quoteRates: quoteRateLines,
+        }, commercial)
+      : {
+          materials: materialLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          accessories: accessoryLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          services: agdLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          quoteRates: quoteRateLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          subtotal: 0,
+          discount: 0,
+          grand: 0,
+        };
+    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates;
+    if(!(totals.grand >= 0)) totals.grand = Math.max(0, totals.subtotal - (totals.discount || 0));
     return {
       selectedRooms,
       roomLabels: selectedRooms.map(roomLabel),
       materialLines,
       accessoryLines,
       agdLines,
+      quoteRateLines,
+      commercial,
       totals,
       generatedAt: Date.now(),
     };
@@ -376,6 +440,8 @@
     ensureServiceCatalogInRuntime,
     collectQuoteData,
     buildQuoteSnapshot,
+    collectQuoteRateLines,
+    collectCommercialDraft,
   };
 
   try{ ensureServiceCatalogInRuntime(); }catch(_){ }

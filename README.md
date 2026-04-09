@@ -248,3 +248,5 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - `Historia wycen` w `Wycena` ma teraz zwarte, niskie karty zamiast wysokich pustych pól.
 - Kliknięcie `Podgląd` wyraźnie oznacza oglądany snapshot i automatycznie przewija do aktywnego podglądu wyceny.
 - Aktywny wpis historii ma wyróżniony stan i nie udaje, że nic się nie stało po przełączeniu snapshotu.
+
+- Stage 6: Wycena ma pola handlowe, robociznę/stawki meblowe, snapshot oferty i PDF klienta zgodny z wybraną wersją.

@@ -31,6 +31,7 @@ const FILES = [
   'js/app/investor/investor-room-actions.js',
   'js/app/investor/investor-editor-state.js',
   'js/app/investor/project-bootstrap.js',
+  'js/app/quote/quote-offer-store.js',
   'js/app/quote/quote-snapshot-store.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',

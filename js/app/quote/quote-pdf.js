@@ -4,59 +4,66 @@
   const FC = window.FC;
 
   function escapeHtml(value){
-    return String(value == null ? '' : value).replace(/[&<>"']/g, (char)=> ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    return String(value == null ? '' : value).replace(/[&<>"']/g, (ch)=> ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch] || ch));
   }
 
-  function normalizeText(value){
-    return String(value == null ? '' : value).trim();
-  }
+  function money(v){ return `${(Number(v)||0).toFixed(2)} PLN`; }
 
-  function money(value){
-    return `${(Number(value) || 0).toFixed(2)} PLN`;
-  }
+  function normalizeText(v){ return String(v == null ? '' : v).trim(); }
 
   function formatDateTime(value){
     const ts = Number(value) > 0 ? Number(value) : Date.parse(String(value || ''));
     if(!Number.isFinite(ts) || ts <= 0) return '—';
     try{
-      const date = new Date(ts);
+      const d = new Date(ts);
       const pad = (n)=> String(n).padStart(2, '0');
-      return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    }catch(_){
-      return '—';
-    }
-  }
-
-  function row(label, value){
-    return `<div class="quote-pdf-row"><div class="quote-pdf-row__label">${escapeHtml(label)}</div><div class="quote-pdf-row__value">${escapeHtml(normalizeText(value) || '—')}</div></div>`;
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }catch(_){ return '—'; }
   }
 
   function normalizeSnapshot(snapshot){
-    const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
-    if(src.lines && src.totals) return src;
+    if(snapshot && snapshot.lines && snapshot.totals) return snapshot;
     try{
-      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(src);
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(snapshot);
     }catch(_){ }
-    return src;
+    return snapshot || null;
   }
 
-  function tableRows(lines, emptyText){
-    const rows = Array.isArray(lines) ? lines : [];
-    if(!rows.length) return `<tr><td colspan="5" class="quote-pdf-empty">${escapeHtml(emptyText || 'Brak pozycji.')}</td></tr>`;
-    return rows.map((line)=>{
+  function row(label, value){
+    return `<div class="quote-pdf-row"><div class="quote-pdf-row__label">${escapeHtml(label)}</div><div class="quote-pdf-row__value">${escapeHtml(value || '—')}</div></div>`;
+  }
+
+  function tableRows(rows, emptyLabel){
+    const list = Array.isArray(rows) ? rows : [];
+    if(!list.length){
+      return `<tr><td colspan="5" class="quote-pdf-empty">${escapeHtml(emptyLabel || 'Brak pozycji.')}</td></tr>`;
+    }
+    return list.map((line)=>{
       const noteParts = [];
       const note = normalizeText(line && line.note);
       const rooms = normalizeText(line && line.rooms);
       if(note) noteParts.push(note);
       if(rooms && (!note || rooms !== note)) noteParts.push(`Pomieszczenia: ${rooms}`);
       return `<tr>
-        <td>${escapeHtml(normalizeText(line && line.name) || 'Pozycja')}</td>
+        <td>${escapeHtml(line && line.name || 'Pozycja')}</td>
         <td>${escapeHtml(`${Number(line && line.qty) || 0}${line && line.unit ? ` ${line.unit}` : ''}`)}</td>
         <td>${escapeHtml(money(line && line.unitPrice))}</td>
         <td>${escapeHtml(money(line && line.total))}</td>
         <td>${escapeHtml(noteParts.join(' • ') || '—')}</td>
       </tr>`;
     }).join('');
+  }
+
+  function buildCommercialRows(commercial){
+    const rows = [];
+    const data = commercial && typeof commercial === 'object' ? commercial : {};
+    if(Number(data.discountPercent) > 0) rows.push(row('Rabat', `${Number(data.discountPercent).toFixed(2)}%`));
+    else if(Number(data.discountAmount) > 0) rows.push(row('Rabat', money(data.discountAmount)));
+    if(normalizeText(data.offerValidity)) rows.push(row('Ważność oferty', data.offerValidity));
+    if(normalizeText(data.leadTime)) rows.push(row('Termin realizacji', data.leadTime));
+    if(normalizeText(data.deliveryTerms)) rows.push(row('Warunki montażu / transportu', data.deliveryTerms));
+    if(normalizeText(data.customerNote)) rows.push(row('Notatka dla klienta', data.customerNote));
+    return rows.join('') || '<div class="quote-pdf-empty">Brak dodatkowych pól handlowych.</div>';
   }
 
   function buildPrintHtml(snapshot){
@@ -66,8 +73,11 @@
     const roomLabels = Array.isArray(snap && snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
     const lines = snap && snap.lines || {};
     const totals = snap && snap.totals || {};
+    const commercial = snap && snap.commercial || {};
     const title = normalizeText(project && project.title) || normalizeText(investor && (investor.companyName || investor.name)) || 'Wycena projektu';
     const investorLabel = normalizeText(investor && (investor.companyName || investor.name));
+    const subtotal = Number(totals && totals.subtotal) || 0;
+    const discount = Number(totals && totals.discount) || 0;
     return `<!doctype html>
 <html lang="pl">
 <head>
@@ -99,6 +109,7 @@
   .quote-pdf-empty{ color:#64748b; font-style:italic; }
   .totals{ margin-top:6px; }
   .totals__row{ display:flex; justify-content:space-between; gap:10px; padding:6px 0; font-weight:700; }
+  .totals__row--final{ margin-top:4px; padding-top:10px; border-top:1px solid #dbe5ef; font-size:16px; font-weight:900; }
   .footer{ margin-top:12px; font-size:11px; color:#64748b; text-align:right; }
   @media print{
     body{ background:#fff; }
@@ -110,7 +121,7 @@
   <main class="sheet">
     <div class="topbar">
       <div>
-        <div class="eyebrow">Wycena dla klienta</div>
+        <div class="eyebrow">Oferta dla klienta</div>
         <h1 class="title">${escapeHtml(title)}</h1>
         <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.</p>
       </div>
@@ -139,8 +150,11 @@
         <div class="totals">
           <div class="totals__row"><span>Materiały</span><span>${escapeHtml(money(totals && totals.materials))}</span></div>
           <div class="totals__row"><span>Akcesoria</span><span>${escapeHtml(money(totals && totals.accessories))}</span></div>
+          <div class="totals__row"><span>Robocizna / stawki wyceny</span><span>${escapeHtml(money(totals && totals.quoteRates))}</span></div>
           <div class="totals__row"><span>Montaż AGD</span><span>${escapeHtml(money(totals && totals.services))}</span></div>
-          <div class="totals__row"><span>Razem</span><span>${escapeHtml(money(totals && totals.grand))}</span></div>
+          <div class="totals__row"><span>Suma przed rabatem</span><span>${escapeHtml(money(subtotal))}</span></div>
+          <div class="totals__row"><span>Rabat</span><span>${escapeHtml(money(discount))}</span></div>
+          <div class="totals__row totals__row--final"><span>Razem</span><span>${escapeHtml(money(totals && totals.grand))}</span></div>
         </div>
       </div>
     </section>
@@ -162,11 +176,24 @@
     </section>
 
     <section class="section full">
+      <h2 class="section-title">Robocizna / stawki wyceny mebli</h2>
+      <table>
+        <thead><tr><th>Pozycja</th><th>Ilość</th><th>Cena</th><th>Wartość</th><th>Uwagi</th></tr></thead>
+        <tbody>${tableRows(lines && lines.quoteRates, 'Brak pozycji robocizny.')}</tbody>
+      </table>
+    </section>
+
+    <section class="section full">
       <h2 class="section-title">Sprzęty do zabudowy / montaż AGD</h2>
       <table>
         <thead><tr><th>Pozycja</th><th>Ilość</th><th>Cena</th><th>Wartość</th><th>Uwagi</th></tr></thead>
         <tbody>${tableRows(lines && lines.agdServices, 'Brak pozycji AGD.')}</tbody>
       </table>
+    </section>
+
+    <section class="section full">
+      <h2 class="section-title">Warunki oferty</h2>
+      ${buildCommercialRows(commercial)}
     </section>
 
     <div class="footer">Wygenerowano z meble-app</div>
@@ -196,7 +223,7 @@
 
   function openQuotePdf(snapshot){
     const snap = normalizeSnapshot(snapshot);
-    const hasLines = !!(snap && snap.lines && (Array.isArray(snap.lines.materials) || Array.isArray(snap.lines.accessories) || Array.isArray(snap.lines.agdServices)));
+    const hasLines = !!(snap && snap.lines && (Array.isArray(snap.lines.materials) || Array.isArray(snap.lines.accessories) || Array.isArray(snap.lines.agdServices) || Array.isArray(snap.lines.quoteRates)));
     if(!hasLines){
       try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak snapshotu wyceny', message:'Najpierw wygeneruj wycenę, aby przygotować PDF dla klienta.' }); }catch(_){ }
       return false;

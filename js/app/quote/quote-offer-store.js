@@ -1,0 +1,156 @@
+(function(){
+  'use strict';
+  window.FC = window.FC || {};
+  const FC = window.FC;
+  const keys = (FC.constants && FC.constants.STORAGE_KEYS) || {};
+  const storage = FC.storage || {
+    getJSON(_key, fallback){ return JSON.parse(JSON.stringify(fallback)); },
+    setJSON(){}
+  };
+
+  const DRAFT_KEY = keys.quoteOfferDrafts || 'fc_quote_offer_drafts_v1';
+
+  function clone(value){
+    try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
+    catch(_){ return JSON.parse(JSON.stringify(value || null)); }
+  }
+
+  function num(value, fallback){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function getCurrentProjectId(){
+    try{ return FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? String(FC.projectStore.getCurrentProjectId() || '') : ''; }
+    catch(_){ return ''; }
+  }
+
+  function getCurrentInvestorId(){
+    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }
+    catch(_){ return ''; }
+  }
+
+  function makeScope(projectId, investorId){
+    return {
+      projectId: String(projectId || getCurrentProjectId() || ''),
+      investorId: String(investorId || getCurrentInvestorId() || ''),
+    };
+  }
+
+  function normalizeRateSelections(rows){
+    if(Array.isArray(rows)){
+      return rows.map((row)=> ({
+        rateId: String(row && row.rateId || row && row.id || ''),
+        qty: Math.max(0, num(row && row.qty, 0)),
+      })).filter((row)=> row.rateId);
+    }
+    if(rows && typeof rows === 'object'){
+      return Object.keys(rows).map((key)=> ({ rateId:String(key), qty:Math.max(0, num(rows[key], 0)) })).filter((row)=> row.rateId);
+    }
+    return [];
+  }
+
+  function normalizeCommercial(src){
+    const value = src && typeof src === 'object' ? src : {};
+    let discountPercent = Math.max(0, num(value.discountPercent, 0));
+    let discountAmount = Math.max(0, num(value.discountAmount, 0));
+    if(discountPercent > 0) discountAmount = 0;
+    if(discountAmount > 0) discountPercent = 0;
+    return {
+      discountPercent,
+      discountAmount,
+      offerValidity: String(value.offerValidity || '').trim(),
+      leadTime: String(value.leadTime || '').trim(),
+      deliveryTerms: String(value.deliveryTerms || '').trim(),
+      customerNote: String(value.customerNote || '').trim(),
+    };
+  }
+
+  function normalizeDraft(draft, scope){
+    const src = draft && typeof draft === 'object' ? draft : {};
+    const resolved = makeScope(scope && scope.projectId || src.projectId, scope && scope.investorId || src.investorId);
+    return {
+      projectId: resolved.projectId,
+      investorId: resolved.investorId,
+      rateSelections: normalizeRateSelections(src.rateSelections),
+      commercial: normalizeCommercial(src.commercial),
+      updatedAt: Math.max(0, num(src.updatedAt, Date.now())),
+    };
+  }
+
+  function readAll(){
+    const rows = storage.getJSON(DRAFT_KEY, []);
+    return Array.isArray(rows) ? rows.map((row)=> normalizeDraft(row)) : [];
+  }
+
+  function writeAll(list){
+    const rows = Array.isArray(list) ? list.map((row)=> normalizeDraft(row)) : [];
+    storage.setJSON(DRAFT_KEY, rows);
+    return rows;
+  }
+
+  function findIndex(list, scope){
+    const projectId = String(scope && scope.projectId || '');
+    const investorId = String(scope && scope.investorId || '');
+    return (Array.isArray(list) ? list : []).findIndex((row)=>{
+      if(projectId && String(row && row.projectId || '') === projectId) return true;
+      return !projectId && investorId && String(row && row.investorId || '') === investorId;
+    });
+  }
+
+  function getDraft(scope){
+    const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
+    const list = readAll();
+    const idx = findIndex(list, resolved);
+    if(idx >= 0) return normalizeDraft(list[idx], resolved);
+    return normalizeDraft({}, resolved);
+  }
+
+  function saveDraft(draft, scope){
+    const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
+    const normalized = normalizeDraft(draft, resolved);
+    const list = readAll();
+    const idx = findIndex(list, normalized);
+    if(idx >= 0) list[idx] = normalized;
+    else list.unshift(normalized);
+    writeAll(list.slice(0, 50));
+    return normalized;
+  }
+
+  function patchDraft(patch, scope){
+    const current = getDraft(scope);
+    const next = normalizeDraft({
+      projectId: current.projectId,
+      investorId: current.investorId,
+      rateSelections: Array.isArray(patch && patch.rateSelections) ? patch.rateSelections : current.rateSelections,
+      commercial: patch && patch.commercial ? Object.assign({}, current.commercial, patch.commercial) : current.commercial,
+      updatedAt: Date.now(),
+    }, scope || current);
+    return saveDraft(next, next);
+  }
+
+  function clearDraft(scope){
+    const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
+    const list = readAll();
+    const idx = findIndex(list, resolved);
+    if(idx < 0) return false;
+    list.splice(idx, 1);
+    writeAll(list);
+    return true;
+  }
+
+  FC.quoteOfferStore = {
+    DRAFT_KEY,
+    normalizeDraft,
+    readAll,
+    writeAll,
+    getDraft,
+    getCurrentDraft(){ return getDraft(); },
+    saveDraft,
+    saveCurrentDraft(draft){ return saveDraft(draft); },
+    patchDraft,
+    patchCurrentDraft(patch){ return patchDraft(patch); },
+    clearDraft,
+    clearCurrentDraft(){ return clearDraft(); },
+  };
+})();

@@ -1,9 +1,10 @@
 // js/tabs/wycena.js
-// Zakładka WYCENA — snapshot, PDF klienta i historia wycen w obrębie projektu.
+// Zakładka WYCENA — handlowy snapshot oferty, PDF klienta i historia wersji.
 
 (function(){
   'use strict';
   window.FC = window.FC || {};
+  const FC = window.FC;
 
   function money(v){ return `${(Number(v)||0).toFixed(2)} PLN`; }
 
@@ -21,11 +22,18 @@
     return el;
   }
 
+  function num(value, fallback){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function buildRowMeta(row){
     const parts = [];
+    const category = String(row && row.category || '').trim();
     const note = String(row && row.note || '').trim();
     const rooms = String(row && row.rooms || '').trim();
-    if(note) parts.push(note);
+    if(category) parts.push(category);
+    if(note && (!category || note !== category)) parts.push(note);
     if(rooms && (!note || rooms !== note)) parts.push(`Pomieszczenia: ${rooms}`);
     return parts.join(' • ');
   }
@@ -41,20 +49,20 @@
   }
 
   function getCurrentProjectId(){
-    try{ return window.FC.projectStore && typeof window.FC.projectStore.getCurrentProjectId === 'function' ? window.FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
+    try{ return FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
   }
 
   function getCurrentInvestorId(){
-    try{ return window.FC.investors && typeof window.FC.investors.getCurrentId === 'function' ? String(window.FC.investors.getCurrentId() || '') : ''; }catch(_){ return ''; }
+    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }catch(_){ return ''; }
   }
 
   function getSnapshotHistory(){
     try{
-      if(!(window.FC.quoteSnapshotStore && typeof window.FC.quoteSnapshotStore.listForProject === 'function')) return [];
+      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
       const projectId = String(getCurrentProjectId() || '');
-      if(projectId) return window.FC.quoteSnapshotStore.listForProject(projectId);
+      if(projectId) return FC.quoteSnapshotStore.listForProject(projectId);
       const investorId = String(getCurrentInvestorId() || '');
-      if(investorId && typeof window.FC.quoteSnapshotStore.listForInvestor === 'function') return window.FC.quoteSnapshotStore.listForInvestor(investorId);
+      if(investorId && typeof FC.quoteSnapshotStore.listForInvestor === 'function') return FC.quoteSnapshotStore.listForInvestor(investorId);
     }catch(_){ }
     return [];
   }
@@ -64,17 +72,23 @@
     if(!snap) return null;
     if(snap.lines && snap.totals) return snap;
     try{
-      if(window.FC.quoteSnapshot && typeof window.FC.quoteSnapshot.buildSnapshot === 'function') return window.FC.quoteSnapshot.buildSnapshot(snap);
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(snap);
     }catch(_){ }
     return snap;
   }
 
-  let lastQuote = null;
-  let isBusy = false;
-  let shouldScrollToPreview = false;
+  function getOfferDraft(){
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function') return FC.quoteOfferStore.getCurrentDraft();
+    }catch(_){ }
+    return { rateSelections:[], commercial:{} };
+  }
 
-  function getSnapshotId(snapshot){
-    try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
+  function patchOfferDraft(patch){
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function') return FC.quoteOfferStore.patchCurrentDraft(patch);
+    }catch(_){ }
+    return null;
   }
 
   function resolveDisplayedQuote(){
@@ -87,8 +101,27 @@
     return null;
   }
 
+  function getSnapshotId(snapshot){
+    try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
+  }
+
+  function buildSelectionMap(draft){
+    const out = Object.create(null);
+    const rows = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
+    rows.forEach((row)=>{
+      const key = String(row && row.rateId || '');
+      if(!key) return;
+      out[key] = Math.max(0, num(row && row.qty, 0));
+    });
+    return out;
+  }
+
+  function saveRateSelectionRows(selections){
+    patchOfferDraft({ rateSelections: selections.map((row)=> ({ rateId:String(row.rateId || ''), qty:Math.max(0, num(row.qty, 0)) })).filter((row)=> row.rateId) });
+  }
+
   function renderEmpty(card){
-    card.appendChild(h('p', { class:'muted', text:'Wycena pobiera materiały z działu Materiał, liczbę arkuszy z aktualnego ROZRYS dla wybranych pomieszczeń oraz pozycje AGD z dodanych szafek.' }));
+    card.appendChild(h('p', { class:'muted', text:'Wycena pobiera materiały z działu Materiał, liczbę arkuszy z aktualnego ROZRYS dla wybranych pomieszczeń oraz pozycje AGD z dodanych szafek. Dodaj także stawki wyceny i pola handlowe, aby wygenerować ofertę dla klienta.' }));
   }
 
   function renderSection(card, title, rows, emptyText){
@@ -120,6 +153,147 @@
 
     wrap.appendChild(list);
     card.appendChild(wrap);
+  }
+
+  function renderCommercialSection(card, snapshot){
+    const commercial = snapshot && snapshot.commercial || {};
+    const totals = snapshot && snapshot.totals || {};
+    const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
+    section.appendChild(h('h4', { text:'Warunki oferty', style:'margin:0 0 10px' }));
+    const list = h('div', { class:'quote-commercial-list' });
+    const addRow = (label, value, strong)=>{
+      const text = String(value || '').trim();
+      if(!text) return;
+      const row = h('div', { class:'quote-commercial-list__row' });
+      row.appendChild(h('div', { class:'quote-commercial-list__label', text:label }));
+      row.appendChild(h('div', { class:`quote-commercial-list__value${strong ? ' is-strong' : ''}`, text }));
+      list.appendChild(row);
+    };
+    if(Number(commercial.discountPercent) > 0) addRow('Rabat', `${Number(commercial.discountPercent).toFixed(2)}%`, true);
+    else if(Number(commercial.discountAmount) > 0) addRow('Rabat', money(commercial.discountAmount), true);
+    addRow('Ważność oferty', commercial.offerValidity);
+    addRow('Termin realizacji', commercial.leadTime);
+    addRow('Warunki montażu / transportu', commercial.deliveryTerms);
+    addRow('Notatka dla klienta', commercial.customerNote);
+    if(!list.childNodes.length) list.appendChild(h('div', { class:'muted', text:'Brak dodatkowych pól handlowych dla tej wersji oferty.' }));
+    section.appendChild(list);
+    const totalsCard = h('div', { class:'card quote-totals', style:'margin-top:12px;padding:14px;' });
+    totalsCard.appendChild(h('h4', { text:'Podsumowanie', style:'margin:0 0 8px' }));
+    [
+      ['Materiały', totals.materials],
+      ['Akcesoria', totals.accessories],
+      ['Robocizna / stawki wyceny', totals.quoteRates],
+      ['Montaż AGD', totals.services],
+      ['Suma przed rabatem', totals.subtotal],
+      ['Rabat', totals.discount],
+      ['Razem', totals.grand],
+    ].forEach(([label, value], index, arr)=>{
+      const row = h('div', { class:`quote-totals__row${index === arr.length - 1 ? ' quote-totals__row--grand' : ''}` });
+      row.appendChild(h('span', { text:label }));
+      row.appendChild(h('span', { text:money(value) }));
+      totalsCard.appendChild(row);
+    });
+    card.appendChild(section);
+    card.appendChild(totalsCard);
+  }
+
+  function buildField(labelText, inputNode, full){
+    const wrap = h('div', { class:'investor-choice-field quote-offer-field' });
+    if(full) wrap.style.gridColumn = '1 / -1';
+    wrap.appendChild(h('label', { text:labelText }));
+    wrap.appendChild(inputNode);
+    return wrap;
+  }
+
+  function makeRateSelectionRows(catalog, selectionMap){
+    return (Array.isArray(catalog) ? catalog : []).map((rate)=> ({
+      rateId: String(rate && rate.id || ''),
+      qty: Math.max(0, num(selectionMap[String(rate && rate.id || '')], 0)),
+    })).filter((row)=> row.rateId);
+  }
+
+  function renderOfferEditor(card){
+    const draft = getOfferDraft();
+    const commercial = draft && draft.commercial || {};
+    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    const selectionMap = buildSelectionMap(draft);
+    const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
+    const top = h('div', { class:'quote-topbar' });
+    top.appendChild(h('h4', { text:'Ustawienia oferty do nowej wyceny', style:'margin:0' }));
+    top.appendChild(h('span', { class:'quote-preview-badge', text:'Wpływa na kolejny snapshot' }));
+    section.appendChild(top);
+    section.appendChild(h('p', { class:'muted', text:'Tutaj ustawiasz robociznę, rabat i warunki handlowe. Zostaną zapisane w nowym snapshotcie po kliknięciu „Wyceń”.', style:'margin:8px 0 0' }));
+
+    const rateShell = h('div', { class:'quote-rate-editor' });
+    if(!catalog.length){
+      rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w katalogu „Stawki wyceny mebli”.' }));
+    } else {
+      catalog.forEach((rate)=>{
+        const item = h('article', { class:'quote-rate-editor__item' });
+        const info = h('div', { class:'quote-rate-editor__info' });
+        info.appendChild(h('div', { class:'quote-rate-editor__title', text:String(rate && rate.name || 'Stawka') }));
+        info.appendChild(h('div', { class:'quote-rate-editor__meta', text:[String(rate && rate.category || '').trim(), money(rate && rate.price)].filter(Boolean).join(' • ') }));
+        item.appendChild(info);
+        const qtyWrap = h('div', { class:'quote-rate-editor__qty' });
+        qtyWrap.appendChild(h('label', { text:'Ilość' }));
+        const qtyInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'1', value:String(Math.max(0, num(selectionMap[String(rate && rate.id || '')], 0))) });
+        qtyInput.addEventListener('input', ()=>{
+          const nextMap = buildSelectionMap(getOfferDraft());
+          const qty = Math.max(0, num(qtyInput.value, 0));
+          nextMap[String(rate && rate.id || '')] = qty;
+          saveRateSelectionRows(makeRateSelectionRows(catalog, nextMap));
+        });
+        qtyWrap.appendChild(qtyInput);
+        item.appendChild(qtyWrap);
+        rateShell.appendChild(item);
+      });
+    }
+    section.appendChild(h('div', { class:'quote-subsection-title', text:'Robocizna / stawki wyceny mebli', style:'margin-top:14px' }));
+    section.appendChild(rateShell);
+
+    const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
+    const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });
+    const discountAmountInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountAmount, 0) || '') });
+    const validityInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.offerValidity || '') });
+    const leadTimeInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.leadTime || '') });
+    const deliveryInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
+    deliveryInput.value = String(commercial.deliveryTerms || '');
+    const noteInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
+    noteInput.value = String(commercial.customerNote || '');
+
+    const syncCommercial = ()=>{
+      const next = {
+        discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
+        discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
+        offerValidity: validityInput.value,
+        leadTime: leadTimeInput.value,
+        deliveryTerms: deliveryInput.value,
+        customerNote: noteInput.value,
+      };
+      patchOfferDraft({ commercial: next });
+    };
+    discountPercentInput.addEventListener('input', ()=>{
+      if(num(discountPercentInput.value, 0) > 0 && num(discountAmountInput.value, 0) > 0) discountAmountInput.value = '';
+      syncCommercial();
+    });
+    discountAmountInput.addEventListener('input', ()=>{
+      if(num(discountAmountInput.value, 0) > 0 && num(discountPercentInput.value, 0) > 0) discountPercentInput.value = '';
+      syncCommercial();
+    });
+    [validityInput, leadTimeInput, deliveryInput, noteInput].forEach((field)=>{
+      field.addEventListener('input', syncCommercial);
+      field.addEventListener('change', syncCommercial);
+    });
+
+    grid.appendChild(buildField('Rabat %', discountPercentInput));
+    grid.appendChild(buildField('Rabat kwotowy (PLN)', discountAmountInput));
+    grid.appendChild(buildField('Ważność oferty', validityInput));
+    grid.appendChild(buildField('Termin realizacji', leadTimeInput));
+    grid.appendChild(buildField('Warunki montażu / transportu', deliveryInput, true));
+    grid.appendChild(buildField('Notatka dla klienta', noteInput, true));
+    section.appendChild(h('div', { class:'quote-subsection-title', text:'Pola handlowe', style:'margin-top:14px' }));
+    section.appendChild(grid);
+    card.appendChild(section);
   }
 
   function renderHistory(card, ctx, currentQuote){
@@ -162,7 +336,7 @@
       actions.appendChild(openBtn);
       const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
       pdfBtn.addEventListener('click', ()=>{
-        try{ window.FC.quotePdf && typeof window.FC.quotePdf.openQuotePdf === 'function' && window.FC.quotePdf.openQuotePdf(snap); }catch(_){ }
+        try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(snap); }catch(_){ }
       });
       actions.appendChild(pdfBtn);
       item.appendChild(actions);
@@ -171,6 +345,10 @@
     section.appendChild(wrap);
     card.appendChild(section);
   }
+
+  let lastQuote = null;
+  let isBusy = false;
+  let shouldScrollToPreview = false;
 
   function render(ctx){
     const list = ctx && ctx.listEl;
@@ -187,14 +365,11 @@
       isBusy = true;
       render(ctx);
       try{
-        if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.buildQuoteSnapshot === 'function'){
-          lastQuote = await window.FC.wycenaCore.buildQuoteSnapshot();
-        } else if(window.FC && window.FC.wycenaCore && typeof window.FC.wycenaCore.collectQuoteData === 'function'){
-          lastQuote = await window.FC.wycenaCore.collectQuoteData();
-        }
+        if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') lastQuote = await FC.wycenaCore.buildQuoteSnapshot();
+        else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') lastQuote = await FC.wycenaCore.collectQuoteData();
       }catch(err){
         try{ console.error('[wycena] collect failed', err); }catch(_){ }
-        lastQuote = { error: String(err && err.message || err || 'Błąd wyceny'), materialLines:[], accessoryLines:[], agdLines:[], totals:{ materials:0, accessories:0, services:0, grand:0 }, roomLabels:[] };
+        lastQuote = { error: String(err && err.message || err || 'Błąd wyceny'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
       }finally{
         isBusy = false;
         render(ctx);
@@ -206,11 +381,13 @@
     const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
     if(!currentQuote || currentQuote.error) pdfBtn.disabled = true;
     pdfBtn.addEventListener('click', ()=>{
-      try{ window.FC.quotePdf && typeof window.FC.quotePdf.openQuotePdf === 'function' && window.FC.quotePdf.openQuotePdf(currentQuote); }catch(_){ }
+      try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(currentQuote); }catch(_){ }
     });
     actions.appendChild(pdfBtn);
     head.appendChild(actions);
     card.appendChild(head);
+
+    renderOfferEditor(card);
 
     if(!currentQuote){
       renderEmpty(card);
@@ -218,9 +395,11 @@
       card.appendChild(h('div', { class:'muted', text:currentQuote.error, style:'margin-top:10px;color:#b42318' }));
     } else {
       const roomLabels = Array.isArray(currentQuote.roomLabels) ? currentQuote.roomLabels : (currentQuote.scope && Array.isArray(currentQuote.scope.roomLabels) ? currentQuote.scope.roomLabels : []);
-      const materialLines = Array.isArray(currentQuote.materialLines) ? currentQuote.materialLines : (currentQuote.lines && Array.isArray(currentQuote.lines.materials) ? currentQuote.lines.materials : []);
-      const accessoryLines = Array.isArray(currentQuote.accessoryLines) ? currentQuote.accessoryLines : (currentQuote.lines && Array.isArray(currentQuote.lines.accessories) ? currentQuote.lines.accessories : []);
-      const agdLines = Array.isArray(currentQuote.agdLines) ? currentQuote.agdLines : (currentQuote.lines && Array.isArray(currentQuote.lines.agdServices) ? currentQuote.lines.agdServices : []);
+      const lines = currentQuote.lines || {};
+      const materialLines = Array.isArray(currentQuote.materialLines) ? currentQuote.materialLines : (Array.isArray(lines.materials) ? lines.materials : []);
+      const accessoryLines = Array.isArray(currentQuote.accessoryLines) ? currentQuote.accessoryLines : (Array.isArray(lines.accessories) ? lines.accessories : []);
+      const agdLines = Array.isArray(currentQuote.agdLines) ? currentQuote.agdLines : (Array.isArray(lines.agdServices) ? lines.agdServices : []);
+      const quoteRateLines = Array.isArray(currentQuote.quoteRateLines) ? currentQuote.quoteRateLines : (Array.isArray(lines.quoteRates) ? lines.quoteRates : []);
       const generatedAt = currentQuote.generatedAt || currentQuote.generatedDate || null;
       if(generatedAt){
         const isLatest = getSnapshotId(currentQuote) === getSnapshotId(getSnapshotHistory()[0]);
@@ -234,21 +413,9 @@
       }
       renderSection(card, 'Materiały z ROZRYS', materialLines, 'Brak pozycji materiałowych.');
       renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.');
+      renderSection(card, 'Robocizna / stawki wyceny mebli', quoteRateLines, 'Brak pozycji robocizny.');
       renderSection(card, 'Sprzęty do zabudowy / montaż AGD', agdLines, 'Brak wykrytych sprzętów do zabudowy.');
-      const totals = h('div', { class:'card quote-totals', style:'margin-top:12px;padding:14px;' });
-      totals.appendChild(h('h4', { text:'Podsumowanie', style:'margin:0 0 8px' }));
-      [
-        ['Materiały', currentQuote.totals && currentQuote.totals.materials],
-        ['Akcesoria', currentQuote.totals && currentQuote.totals.accessories],
-        ['Montaż AGD', currentQuote.totals && currentQuote.totals.services],
-        ['Razem', currentQuote.totals && currentQuote.totals.grand],
-      ].forEach(([label, value])=>{
-        const row = h('div', { class:'quote-totals__row' });
-        row.appendChild(h('span', { text:label }));
-        row.appendChild(h('span', { text:money(value) }));
-        totals.appendChild(row);
-      });
-      card.appendChild(totals);
+      renderCommercialSection(card, currentQuote);
     }
     renderHistory(card, ctx, currentQuote);
     list.appendChild(card);
@@ -265,5 +432,5 @@
     }
   }
 
-  (window.FC.tabsRouter || window.FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
+  (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
 })();

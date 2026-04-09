@@ -1004,3 +1004,5 @@ Dopiero potem go zmieniać.
 - `Historia wycen` w `Wycena` ma teraz zwarte, niskie karty zamiast wysokich pustych pól.
 - Kliknięcie `Podgląd` wyraźnie oznacza oglądany snapshot i automatycznie przewija do aktywnego podglądu wyceny.
 - Aktywny wpis historii ma wyróżniony stan i nie udaje, że nic się nie stało po przełączeniu snapshotu.
+
+- Stage 6: quote-offer-store trzyma draft oferty (stawki + pola handlowe) per projekt; quote snapshot i PDF drukują dokładnie tę wersję wyceny.
