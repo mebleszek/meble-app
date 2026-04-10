@@ -90,13 +90,24 @@
     return rows;
   }
 
+  function findIndexByProject(list, projectId){
+    const key = String(projectId || '');
+    if(!key) return -1;
+    return (Array.isArray(list) ? list : []).findIndex((row)=> String(row && row.projectId || '') === key);
+  }
+
+  function findIndexByInvestor(list, investorId){
+    const key = String(investorId || '');
+    if(!key) return -1;
+    return (Array.isArray(list) ? list : []).findIndex((row)=> String(row && row.investorId || '') === key);
+  }
+
   function findIndex(list, scope){
     const projectId = String(scope && scope.projectId || '');
     const investorId = String(scope && scope.investorId || '');
-    return (Array.isArray(list) ? list : []).findIndex((row)=>{
-      if(projectId && String(row && row.projectId || '') === projectId) return true;
-      return !projectId && investorId && String(row && row.investorId || '') === investorId;
-    });
+    const byProject = findIndexByProject(list, projectId);
+    if(byProject >= 0) return byProject;
+    return findIndexByInvestor(list, investorId);
   }
 
   function getDraft(scope){

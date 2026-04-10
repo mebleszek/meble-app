@@ -55,6 +55,25 @@
           FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
         }
       }),
+
+      H.makeTest('Wycena', 'Draft oferty przechodzi z zakresu inwestora na projekt bez gubienia flagi wstępnej', 'Pilnuje, czy po pojawieniu się projectId draft zapisany wcześniej dla inwestora nadal jest odczytywany i nie gubi ustawień oferty.', ()=>{
+        H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.saveDraft === 'function', 'Brak FC.quoteOfferStore.saveDraft');
+        const prevProjectStore = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];
+        const prevCurrentProjectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : '';
+        const prevDrafts = FC.quoteOfferStore.readAll();
+        try{
+          FC.projectStore.writeAll([{ id:'proj_scope', investorId:'inv_scope', title:'Projekt scope', projectData:{ kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } } }]);
+          FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId('');
+          FC.quoteOfferStore.saveDraft({ commercial:{ preliminary:true, offerValidity:'7 dni' } }, { investorId:'inv_scope' });
+          FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId('proj_scope');
+          const current = FC.quoteOfferStore.getCurrentDraft();
+          H.assert(current && current.commercial && current.commercial.preliminary === true && String(current.commercial.offerValidity || '') === '7 dni', 'Draft oferty zniknął po przejściu z zakresu inwestora na projekt', current);
+        } finally {
+          FC.quoteOfferStore.writeAll(prevDrafts);
+          FC.projectStore.writeAll(prevProjectStore);
+          FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+        }
+      }),
       H.makeTest('Wycena', 'Snapshot wyceny zapisuje stawki meblowe i pola handlowe wraz z podsumowaniem po rabacie', 'Pilnuje, czy zapisany snapshot oferty jest już dokumentem handlowym: ma robociznę, rabat i końcową sumę z jednej wersji danych.', ()=>{
         H.assert(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function', 'Brak FC.quoteSnapshot.buildSnapshot');
         const snapshot = FC.quoteSnapshot.buildSnapshot({
@@ -127,6 +146,25 @@
           H.assert(FC.quoteSnapshotStore.getSelectedForProject('proj_flow') == null, 'Przejście projektu na etap wyceny nie wyczyściło zaakceptowanej wyceny wstępnej', FC.quoteSnapshotStore.listForProject('proj_flow'));
           const syncedFinal = FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'zaakceptowany');
           H.assert(syncedFinal && String(syncedFinal.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał właściwej wyceny po pomiarze', { syncedFinal, all:FC.quoteSnapshotStore.listForProject('proj_flow') });
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
+
+      H.makeTest('Wycena', 'Wycena po pomiarze nie wygasza nowszej wyceny wstępnej i oznacza starszą po pojawieniu się nowej zwykłej wyceny', 'Pilnuje, czy historia ofert nie chowa świeżo zapisanej wyceny wstępnej przez starszą zwykłą wycenę, a wygasza tylko starsze wersje wstępne po pojawieniu się nowej normalnej wyceny.', ()=>{
+        const preliminary = (snap)=> !!(snap && snap.meta && snap.meta.preliminary);
+        const archive = (snap, list)=> !!(preliminary(snap) && list.some((row)=> !preliminary(row) && Number(row && row.generatedAt || 0) > Number(snap && snap.generatedAt || 0)));
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const olderFinal = FC.quoteSnapshotStore.save({ investor:{ id:'inv_arch' }, project:{ id:'proj_arch', investorId:'inv_arch', title:'Projekt arch' }, totals:{ materials:150, accessories:0, services:0, quoteRates:0, subtotal:150, discount:0, grand:150 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810000000 });
+          const newerPrelim = FC.quoteSnapshotStore.save({ investor:{ id:'inv_arch' }, project:{ id:'proj_arch', investorId:'inv_arch', title:'Projekt arch' }, commercial:{ preliminary:true }, totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810100000 });
+          let list = FC.quoteSnapshotStore.listForProject('proj_arch');
+          H.assert(archive(newerPrelim, list) === false, 'Nowsza wycena wstępna została błędnie wygaszona przez starszą zwykłą wycenę', list);
+          const newestFinal = FC.quoteSnapshotStore.save({ investor:{ id:'inv_arch' }, project:{ id:'proj_arch', investorId:'inv_arch', title:'Projekt arch' }, totals:{ materials:170, accessories:0, services:0, quoteRates:0, subtotal:170, discount:0, grand:170 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810200000 });
+          list = FC.quoteSnapshotStore.listForProject('proj_arch');
+          H.assert(archive(newerPrelim, list) === true, 'Starsza wycena wstępna nie została wygaszona po pojawieniu się nowszej zwykłej wyceny', list);
+          H.assert(archive(newestFinal, list) === false && archive(olderFinal, list) === false, 'Zwykłe wyceny nie powinny być wygaszane przez ten mechanizm', list);
         } finally {
           FC.quoteSnapshotStore.writeAll(prev);
         }

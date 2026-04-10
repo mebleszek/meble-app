@@ -113,13 +113,12 @@
     nowy:0,
     wstepna_wycena:1,
     pomiar:2,
-    po_pomiarze:3,
-    wycena:4,
-    zaakceptowany:5,
-    umowa:6,
-    produkcja:7,
-    montaz:8,
-    zakonczone:9,
+    wycena:3,
+    zaakceptowany:4,
+    umowa:5,
+    produkcja:6,
+    montaz:7,
+    zakonczone:8,
     odrzucone:-1,
   };
 
@@ -145,7 +144,9 @@
 
   function isArchivedPreliminary(snapshot, history){
     const list = Array.isArray(history) ? history : getSnapshotHistory();
-    return !!(isPreliminarySnapshot(snapshot) && list.some((row)=> !isPreliminarySnapshot(row)));
+    if(!isPreliminarySnapshot(snapshot)) return false;
+    const generatedAt = Number(snapshot && snapshot.generatedAt || 0);
+    return list.some((row)=> !isPreliminarySnapshot(row) && Number(row && row.generatedAt || 0) > generatedAt);
   }
 
   function currentProjectStatus(snapshot){
@@ -347,7 +348,7 @@
       row.appendChild(h('div', { class:`quote-commercial-list__value${strong ? ' is-strong' : ''}`, text }));
       list.appendChild(row);
     };
-    addRow('Typ oferty', commercial.preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena po pomiarze');
+    addRow('Typ oferty', commercial.preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena');
     if(Number(commercial.discountPercent) > 0) addRow('Rabat', `${Number(commercial.discountPercent).toFixed(2)}%`, true);
     else if(Number(commercial.discountAmount) > 0) addRow('Rabat', money(commercial.discountAmount), true);
     addRow('Ważność oferty', commercial.offerValidity);
@@ -556,7 +557,7 @@
         render(ctx);
       });
       actions.appendChild(openBtn);
-      const acceptLabel = isSelected ? 'Zaakceptowana' : (isPreliminary ? 'Zaakceptuj wstępną' : 'Zaakceptuj');
+      const acceptLabel = isSelected ? 'Zaakceptowana' : 'Zaakceptuj';
       const chooseBtn = h('button', { class:'btn-success', type:'button', text:acceptLabel });
       if(isSelected || isArchived) chooseBtn.disabled = true;
       chooseBtn.addEventListener('click', async ()=>{
@@ -564,9 +565,9 @@
         const confirmed = await askConfirm({
           title:'OZNACZYĆ OFERTĘ?',
           message:isPreliminary
-            ? 'Ta wersja zostanie oznaczona jako zaakceptowana wycena wstępna, a status projektu zmieni się na „Pomiar”.'
-            : 'Ta wersja zostanie oznaczona jako zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
-          confirmText:isPreliminary ? 'Oznacz jako wstępną zaakceptowaną' : 'Oznacz jako zaakceptowaną',
+            ? 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Pomiar”.'
+            : 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
+          confirmText:'Zaakceptuj ofertę',
           cancelText:'Wróć',
           confirmTone:'success',
           cancelTone:'neutral'

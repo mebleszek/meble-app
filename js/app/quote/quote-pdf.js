@@ -57,7 +57,7 @@
   function buildCommercialRows(commercial){
     const rows = [];
     const data = commercial && typeof commercial === 'object' ? commercial : {};
-    rows.push(row('Typ oferty', data.preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena po pomiarze'));
+    rows.push(row('Typ oferty', data.preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena'));
     if(Number(data.discountPercent) > 0) rows.push(row('Rabat', `${Number(data.discountPercent).toFixed(2)}%`));
     else if(Number(data.discountAmount) > 0) rows.push(row('Rabat', money(data.discountAmount)));
     if(normalizeText(data.offerValidity)) rows.push(row('Ważność oferty', data.offerValidity));
@@ -147,8 +147,8 @@
         ${row('Klient', investorLabel || '—')}
         ${row('Projekt', title)}
         ${row('Status projektu', project && project.status)}
-        ${row('Typ oferty', preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena po pomiarze')}
-        ${row('Status oferty', selectedByClient ? (preliminary ? 'Zaakceptowana wstępna — pomiar' : 'Zaakceptowana') : 'Wersja robocza / podglądowa')}
+        ${row('Typ oferty', preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena')}
+        ${row('Status oferty', selectedByClient ? 'Zaakceptowana' : 'Wersja robocza / podglądowa')}
       </div>
       <div class="section">
         <h2 class="section-title">Podsumowanie</h2>

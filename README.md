@@ -256,3 +256,9 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 ## 2026-04 quote status sync
 - Wycena obsługuje flagę wstępnej wyceny, akceptację wstępnej -> Pomiar oraz akceptację właściwej wyceny -> Zaakceptowany.
 - Ręczna zmiana statusu projektu w Inwestorze synchronizuje stan zaakceptowanej oferty w Wycena.
+
+
+## 2026-04-10 preliminary quote fix
+- removed project status `Po pomiarze`; after measurement use `Wycena` directly
+- preliminary quote drafts now survive scope switch from investor-only to project-bound draft
+- preliminary history entries are archived only when a newer normal quote exists
