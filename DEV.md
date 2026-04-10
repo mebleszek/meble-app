@@ -1038,3 +1038,11 @@ Dopiero potem go zmieniać.
 - WYCENA: badge `Wstępna` jest pomarańczowy, badge `Zaakceptowana` czerwony.
 - WYCENA: przy zaakceptowanej wycenie wstępnej pojawia się mały przycisk `Do końcowej`, który przygotowuje draft zwykłej wyceny na bazie tej wersji i przełącza projekt na etap `Wycena`.
 - TESTY: smoke testy Wycena dostały kontrolę domyślnych nazw wersji (`Oferta` / `Wstępna oferta`).
+
+## 2026-04-11 — stage11_quote_followup_v1
+- WYCENA: `Oglądany` i `Zaakceptowana` zostały rozdzielone — zielona obwódka dotyczy już tylko aktualnie oglądanej karty, a sama akceptacja zostaje oznaczona czerwonym badge'em i stanem przycisku.
+- WYCENA: akcje `Zaakceptuj`, `Usuń` i `Końcowa` zapamiętują pozycję scrolla; tylko `Podgląd` przewija do górnego podglądu oferty.
+- WYCENA UI: zielone zaznaczenie aktywnej karty historii dostało dokładny promień, obrys i cień jak zaznaczona karta w ROZRYS (`MAX` / picker-option), zamiast wcześniejszego przybliżenia.
+- WYCENA: `Końcowa` nie przerzuca już do obcego draftu — konwertuje tę samą zaakceptowaną wycenę wstępną na zwykłą końcową ofertę i ustawia status projektu na `zaakceptowany`.
+- WYCENA: po zaakceptowaniu zwykłej oferty wszystkie wyceny wstępne są wygaszane spójnie dla całej historii, niezależnie od pozycji nad/pod ofertą końcową.
+- TESTY: smoke testy Wycena sprawdzają teraz także konwersję wstępnej oferty do końcowej oraz wygaszanie wycen wstępnych po zaakceptowaniu zwykłej oferty.

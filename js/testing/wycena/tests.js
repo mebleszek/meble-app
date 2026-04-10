@@ -173,6 +173,38 @@
         }
       }),
 
+      H.makeTest('Wycena', 'Akceptacja końcowa potrafi przekonwertować zaakceptowaną wycenę wstępną na zwykłą ofertę', 'Pilnuje, czy przycisk konwersji nie tworzy obcej wersji, tylko zamienia tę samą wstępną ofertę w zwykłą końcową z etapem zaakceptowanym.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function', 'Brak FC.quoteSnapshotStore.convertPreliminaryToFinal');
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const prelim = FC.quoteSnapshotStore.save({ id:'snap_convert_prelim', investor:{ id:'inv_convert' }, project:{ id:'proj_convert', investorId:'inv_convert', title:'Projekt convert' }, commercial:{ preliminary:true, versionName:'Wstępna oferta' }, meta:{ selectedByClient:true, acceptedAt:1712810300000, acceptedStage:'pomiar' }, totals:{ materials:210, accessories:0, services:0, quoteRates:0, subtotal:210, discount:0, grand:210 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810300000 });
+          const converted = FC.quoteSnapshotStore.convertPreliminaryToFinal('proj_convert', prelim.id);
+          H.assert(converted && String(converted.id || '') === String(prelim.id || ''), 'Konwersja nie zwróciła tej samej oferty', { prelim, converted });
+          H.assert(converted && converted.commercial && converted.commercial.preliminary === false, 'Konwersja nie zdjęła flagi wstępnej z oferty handlowej', converted);
+          H.assert(converted && converted.meta && converted.meta.preliminary === false && converted.meta.selectedByClient === true && String(converted.meta.acceptedStage || '') === 'zaakceptowany', 'Konwersja nie ustawiła końcowego stanu zaakceptowania', converted);
+          H.assert(String(converted.commercial && converted.commercial.versionName || '') === 'Oferta', 'Konwersja nie podmieniła domyślnej nazwy na zwykłą ofertę', converted);
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
+
+      H.makeTest('Wycena', 'Zaakceptowana zwykła oferta wygasza wszystkie wyceny wstępne niezależnie od kolejności', 'Pilnuje, czy po akceptacji końcowej wyceny wstępne nie zostają aktywne tylko dlatego, że są wyżej na liście niż zaakceptowana zwykła oferta.', ()=>{
+        const preliminary = (snap)=> !!(snap && snap.meta && snap.meta.preliminary);
+        const archive = (snap, list)=> !!(preliminary(snap) && list.some((row)=> !preliminary(row) && row && row.meta && row.meta.selectedByClient));
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const olderFinal = FC.quoteSnapshotStore.save({ id:'snap_arch_sel_final', investor:{ id:'inv_arch_sel' }, project:{ id:'proj_arch_sel', investorId:'inv_arch_sel', title:'Projekt arch sel' }, totals:{ materials:150, accessories:0, services:0, quoteRates:0, subtotal:150, discount:0, grand:150 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810000000 });
+          const newerPrelim = FC.quoteSnapshotStore.save({ id:'snap_arch_sel_prelim', investor:{ id:'inv_arch_sel' }, project:{ id:'proj_arch_sel', investorId:'inv_arch_sel', title:'Projekt arch sel' }, commercial:{ preliminary:true }, totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810100000 });
+          FC.quoteSnapshotStore.markSelectedForProject('proj_arch_sel', olderFinal.id, { status:'zaakceptowany' });
+          const list = FC.quoteSnapshotStore.listForProject('proj_arch_sel');
+          H.assert(archive(newerPrelim, list) === true, 'Po zaakceptowaniu zwykłej oferty nowsza wycena wstępna nie została wygaszona', list);
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
+
       H.makeTest('Wycena', 'Wycena po pomiarze nie wygasza nowszej wyceny wstępnej i oznacza starszą po pojawieniu się nowej zwykłej wyceny', 'Pilnuje, czy historia ofert nie chowa świeżo zapisanej wyceny wstępnej przez starszą zwykłą wycenę, a wygasza tylko starsze wersje wstępne po pojawieniu się nowej normalnej wyceny.', ()=>{
         const preliminary = (snap)=> !!(snap && snap.meta && snap.meta.preliminary);
         const archive = (snap, list)=> !!(preliminary(snap) && list.some((row)=> !preliminary(row) && Number(row && row.generatedAt || 0) > Number(snap && snap.generatedAt || 0)));

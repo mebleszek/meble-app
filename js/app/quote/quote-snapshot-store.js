@@ -222,6 +222,45 @@
     return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'nowy';
   }
 
+  function convertPreliminaryToFinal(projectId, snapshotId){
+    const pid = String(projectId || '');
+    const sid = String(snapshotId || '');
+    if(!pid || !sid) return null;
+    const list = readAll();
+    const target = list.find((row)=> String(row && row.project && row.project.id || '') === pid && String(row && row.id || '') === sid) || null;
+    if(!target || !isPreliminarySnapshot(target)) return null;
+    const acceptedAt = Number(target && target.meta && target.meta.acceptedAt) > 0 ? Number(target.meta.acceptedAt) : Date.now();
+    const currentName = String(target && target.commercial && target.commercial.versionName || target && target.meta && target.meta.versionName || '').trim();
+    const nextVersionName = (!currentName || currentName === defaultVersionName(true)) ? defaultVersionName(false) : currentName;
+    list.forEach((row)=> {
+      if(String(row && row.project && row.project.id || '') !== pid) return;
+      const isTarget = String(row && row.id || '') === sid;
+      const project = Object.assign({}, row && row.project || {}, { status:'zaakceptowany' });
+      const commercial = Object.assign({}, row && row.commercial || {});
+      const meta = Object.assign({}, row && row.meta || {});
+      if(isTarget){
+        commercial.preliminary = false;
+        commercial.versionName = nextVersionName;
+        meta.preliminary = false;
+        meta.versionName = nextVersionName;
+        meta.selectedByClient = true;
+        meta.acceptedAt = acceptedAt;
+        meta.acceptedStage = 'zaakceptowany';
+      } else {
+        meta.selectedByClient = false;
+        meta.acceptedAt = 0;
+        meta.acceptedStage = '';
+        meta.preliminary = isPreliminarySnapshot(row);
+        meta.versionName = String(meta.versionName || commercial.versionName || defaultVersionName(!!commercial.preliminary)).trim();
+      }
+      row.project = project;
+      row.commercial = commercial;
+      row.meta = meta;
+    });
+    writeAll(list);
+    return getById(sid);
+  }
+
   FC.quoteSnapshotStore = {
     SNAPSHOT_KEY,
     FINAL_STATUSES,
@@ -234,6 +273,7 @@
     markSelectedForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,
+    convertPreliminaryToFinal,
     listForProject,
     listForInvestor,
     getLatestForProject,
