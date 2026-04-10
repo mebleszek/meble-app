@@ -57,6 +57,7 @@
   function buildCommercialRows(commercial){
     const rows = [];
     const data = commercial && typeof commercial === 'object' ? commercial : {};
+    rows.push(row('Typ oferty', data.preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena po pomiarze'));
     if(Number(data.discountPercent) > 0) rows.push(row('Rabat', `${Number(data.discountPercent).toFixed(2)}%`));
     else if(Number(data.discountAmount) > 0) rows.push(row('Rabat', money(data.discountAmount)));
     if(normalizeText(data.offerValidity)) rows.push(row('Ważność oferty', data.offerValidity));
@@ -75,6 +76,7 @@
     const totals = snap && snap.totals || {};
     const commercial = snap && snap.commercial || {};
     const selectedByClient = !!(snap && snap.meta && snap.meta.selectedByClient);
+    const preliminary = !!(snap && ((snap.meta && snap.meta.preliminary) || (snap.commercial && snap.commercial.preliminary)));
     const title = normalizeText(project && project.title) || normalizeText(investor && (investor.companyName || investor.name)) || 'Wycena projektu';
     const investorLabel = normalizeText(investor && (investor.companyName || investor.name));
     const subtotal = Number(totals && totals.subtotal) || 0;
@@ -124,7 +126,7 @@
       <div>
         <div class="eyebrow">Oferta dla klienta</div>
         <h1 class="title">${escapeHtml(title)}</h1>
-        <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.${selectedByClient ? ' Ta wersja została oznaczona jako zaakceptowana.' : ''}</p>
+        <p class="subtitle">Dokument handlowy wygenerowany z zapisanego snapshotu wyceny.${preliminary ? ' Ta wersja jest wyceną wstępną bez pomiaru.' : ''}${selectedByClient ? (preliminary ? ' Została zaakceptowana i prowadzi do etapu pomiaru.' : ' Ta wersja została oznaczona jako zaakceptowana.') : ''}</p>
       </div>
     </div>
 
@@ -145,7 +147,8 @@
         ${row('Klient', investorLabel || '—')}
         ${row('Projekt', title)}
         ${row('Status projektu', project && project.status)}
-        ${row('Status oferty', selectedByClient ? 'Zaakceptowana' : 'Wersja robocza / podglądowa')}
+        ${row('Typ oferty', preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena po pomiarze')}
+        ${row('Status oferty', selectedByClient ? (preliminary ? 'Zaakceptowana wstępna — pomiar' : 'Zaakceptowana') : 'Wersja robocza / podglądowa')}
       </div>
       <div class="section">
         <h2 class="section-title">Podsumowanie</h2>

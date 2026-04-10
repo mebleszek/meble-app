@@ -49,7 +49,44 @@
   }
 
   function setInvestorProjectStatus(id, roomId, status){
-    return updateInvestorRoom(id, roomId, { projectStatus:String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy') });
+    const nextStatus = String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
+    const investor = updateInvestorRoom(id, roomId, { projectStatus:nextStatus });
+    syncProjectAndQuoteStatus(String(id || ''), nextStatus);
+    return investor;
+  }
+
+
+  function syncProjectAndQuoteStatus(investorId, status){
+    const nextStatus = String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
+    try{
+      if(investorId && FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function' && typeof FC.projectStore.upsert === 'function'){
+        const record = FC.projectStore.getByInvestorId(investorId);
+        if(record) FC.projectStore.upsert(Object.assign({}, record, { status:nextStatus, updatedAt:Date.now() }));
+      }
+    }catch(_){ }
+    try{
+      if(FC.project && typeof FC.project.load === 'function' && typeof FC.project.save === 'function'){
+        const proj = FC.project.load() || {};
+        const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
+        if(meta){
+          meta.projectStatus = nextStatus;
+          if(meta.roomDefs && typeof meta.roomDefs === 'object'){
+            Object.keys(meta.roomDefs).forEach((roomId)=>{
+              const row = meta.roomDefs[roomId];
+              if(!row || typeof row !== 'object') return;
+              meta.roomDefs[roomId] = Object.assign({}, row, { projectStatus: nextStatus });
+            });
+          }
+          FC.project.save(proj);
+        }
+      }
+    }catch(_){ }
+    try{
+      if(investorId && FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function' && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
+        const record = FC.projectStore.getByInvestorId(investorId);
+        if(record && record.id) FC.quoteSnapshotStore.syncSelectionForProjectStatus(record.id, nextStatus);
+      }
+    }catch(_){ }
   }
 
   function removeInvestor(id){

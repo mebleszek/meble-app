@@ -1008,3 +1008,7 @@ Dopiero potem go zmieniać.
 - Stage 6: quote-offer-store trzyma draft oferty (stawki + pola handlowe) per projekt; quote snapshot i PDF drukują dokładnie tę wersję wyceny.
 
 - Etap historii ofert: sekcja handlowa w Wycena działa jako accordion; snapshot oferty można usunąć lub oznaczyć jako zaakceptowany, co ustawia status projektu na `zaakceptowany`.
+
+## 2026-04 quote status sync
+- Wycena obsługuje flagę wstępnej wyceny, akceptację wstępnej -> Pomiar oraz akceptację właściwej wyceny -> Zaakceptowany.
+- Ręczna zmiana statusu projektu w Inwestorze synchronizuje stan zaakceptowanej oferty w Wycena.

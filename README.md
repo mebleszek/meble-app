@@ -252,3 +252,7 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - Stage 6: Wycena ma pola handlowe, robociznę/stawki meblowe, snapshot oferty i PDF klienta zgodny z wybraną wersją.
 
 - Etap historii ofert: sekcja handlowa w Wycena działa jako accordion; snapshot oferty można usunąć lub oznaczyć jako zaakceptowany, co ustawia status projektu na `zaakceptowany`.
+
+## 2026-04 quote status sync
+- Wycena obsługuje flagę wstępnej wyceny, akceptację wstępnej -> Pomiar oraz akceptację właściwej wyceny -> Zaakceptowany.
+- Ręczna zmiana statusu projektu w Inwestorze synchronizuje stan zaakceptowanej oferty w Wycena.

@@ -5,12 +5,20 @@
 
   const STATUS_LABELS = {
     nowy:'Nowy',
+    wstepna_wycena:'Wstępna wycena',
     pomiar:'Pomiar',
+    po_pomiarze:'Po pomiarze',
+    wycena:'Wycena',
+    zaakceptowany:'Zaakceptowany',
+    umowa:'Umowa',
+    produkcja:'Produkcja',
+    montaz:'Montaż',
+    zakonczone:'Zakończone',
+    odrzucone:'Odrzucone',
     'wycena wstępna':'Wycena wstępna',
     'po pomiarze':'Po pomiarze',
     'wycena ostateczna':'Wycena ostateczna',
     'do poprawki':'Do poprawki',
-    zaakceptowany:'Zaakceptowany',
     'w produkcji':'W produkcji',
     montaż:'Montaż',
     zakończony:'Zakończony'

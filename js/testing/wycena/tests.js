@@ -43,12 +43,12 @@
           FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId('proj_offer');
           const saved = FC.quoteOfferStore.saveCurrentDraft({
             rateSelections:[{ rateId:'rate_1', qty:2 }],
-            commercial:{ discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' }
+            commercial:{ preliminary:true, discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' }
           });
           const current = FC.quoteOfferStore.getCurrentDraft();
           H.assert(saved && String(saved.projectId || '') === 'proj_offer', 'Store oferty nie zapisał draftu dla bieżącego projektu', saved);
           H.assert(Array.isArray(current.rateSelections) && current.rateSelections.length === 1 && Number(current.rateSelections[0].qty) === 2, 'Store oferty nie zachował ilości stawek', current);
-          H.assert(String(current.commercial.offerValidity || '') === '14 dni' && Number(current.commercial.discountPercent) === 10, 'Store oferty nie zachował pól handlowych', current);
+          H.assert(String(current.commercial.offerValidity || '') === '14 dni' && Number(current.commercial.discountPercent) === 10 && current.commercial.preliminary === true, 'Store oferty nie zachował pól handlowych albo flagi wyceny wstępnej', current);
         } finally {
           FC.quoteOfferStore.writeAll(prevDrafts);
           FC.projectStore.writeAll(prevProjectStore);
@@ -64,11 +64,11 @@
           accessoryLines:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
           agdLines:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
           quoteRateLines:[{ name:'Montaż zabudowy', category:'Montaż', qty:1, unit:'x', unitPrice:400, total:400 }],
-          commercial:{ discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Transport po stronie wykonawcy', customerNote:'Oferta testowa' },
+          commercial:{ preliminary:true, discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Transport po stronie wykonawcy', customerNote:'Oferta testowa' },
           generatedAt:1712500000000,
         });
         H.assert(snapshot && snapshot.lines && Array.isArray(snapshot.lines.quoteRates) && snapshot.lines.quoteRates.length === 1, 'Snapshot wyceny nie zachował linii robocizny / stawek meblowych', snapshot);
-        H.assert(snapshot.commercial && String(snapshot.commercial.offerValidity || '') === '14 dni', 'Snapshot wyceny nie zachował pól handlowych', snapshot);
+        H.assert(snapshot.commercial && String(snapshot.commercial.offerValidity || '') === '14 dni' && snapshot.commercial.preliminary === true && snapshot.meta.preliminary === true, 'Snapshot wyceny nie zachował pól handlowych albo flagi wyceny wstępnej', snapshot);
         H.assert(Math.abs(Number(snapshot.totals.subtotal || 0) - 662) < 0.001, 'Snapshot wyceny nie policzył sumy przed rabatem', snapshot.totals);
         H.assert(Math.abs(Number(snapshot.totals.discount || 0) - 66.2) < 0.001, 'Snapshot wyceny nie policzył rabatu', snapshot.totals);
         H.assert(Math.abs(Number(snapshot.totals.grand || 0) - 595.8) < 0.001, 'Snapshot wyceny nie policzył końcowej wartości oferty', snapshot.totals);
@@ -108,6 +108,25 @@
           H.assert(selected && String(selected.id || '') === String(a.id || ''), 'Store nie oznaczył właściwej oferty jako zaakceptowanej', { selected, all:FC.quoteSnapshotStore.listForProject('proj_sel') });
           H.assert(FC.quoteSnapshotStore.remove(b.id) === true, 'Store nie usunął snapshotu z historii', { a, b, all:FC.quoteSnapshotStore.readAll() });
           H.assert(FC.quoteSnapshotStore.getById(b.id) == null, 'Usunięty snapshot nadal istnieje w historii', FC.quoteSnapshotStore.readAll());
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
+
+      H.makeTest('Wycena', 'Status projektu synchronizuje zaakceptowaną ofertę w obie strony', 'Pilnuje, czy zaakceptowanie wyceny wstępnej daje etap pomiaru, a ręczna zmiana statusu projektu czyści lub przywraca właściwy stan ofert.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        H.assert(typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function', 'Brak FC.quoteSnapshotStore.syncSelectionForProjectStatus');
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const prelim = FC.quoteSnapshotStore.save({ investor:{ id:'inv_flow' }, project:{ id:'proj_flow', investorId:'inv_flow', title:'Projekt flow' }, commercial:{ preliminary:true }, totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810000000 });
+          const finalQuote = FC.quoteSnapshotStore.save({ investor:{ id:'inv_flow' }, project:{ id:'proj_flow', investorId:'inv_flow', title:'Projekt flow' }, totals:{ materials:150, accessories:0, services:0, quoteRates:0, subtotal:150, discount:0, grand:150 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712810100000 });
+          const acceptedPrelim = FC.quoteSnapshotStore.markSelectedForProject('proj_flow', prelim.id, { status:'pomiar' });
+          H.assert(acceptedPrelim && acceptedPrelim.meta && acceptedPrelim.meta.selectedByClient === true && acceptedPrelim.meta.acceptedStage === 'pomiar', 'Akceptacja wyceny wstępnej nie ustawiła etapu pomiaru', acceptedPrelim);
+          FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'wycena');
+          H.assert(FC.quoteSnapshotStore.getSelectedForProject('proj_flow') == null, 'Przejście projektu na etap wyceny nie wyczyściło zaakceptowanej wyceny wstępnej', FC.quoteSnapshotStore.listForProject('proj_flow'));
+          const syncedFinal = FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'zaakceptowany');
+          H.assert(syncedFinal && String(syncedFinal.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał właściwej wyceny po pomiarze', { syncedFinal, all:FC.quoteSnapshotStore.listForProject('proj_flow') });
         } finally {
           FC.quoteSnapshotStore.writeAll(prev);
         }

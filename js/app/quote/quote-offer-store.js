@@ -57,6 +57,7 @@
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     return {
+      preliminary: !!value.preliminary,
       discountPercent,
       discountAmount,
       offerValidity: String(value.offerValidity || '').trim(),

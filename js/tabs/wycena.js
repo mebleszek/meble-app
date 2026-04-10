@@ -92,11 +92,15 @@
   }
 
   function resolveDisplayedQuote(){
-    if(lastQuote) return normalizeSnapshot(lastQuote);
     const history = getSnapshotHistory();
-    if(history.length){
-      lastQuote = history[0];
-      return normalizeSnapshot(lastQuote);
+    const firstActive = history.find((row)=> !isArchivedPreliminary(row, history)) || history[0] || null;
+    if(lastQuote){
+      const normalized = normalizeSnapshot(lastQuote);
+      if(normalized && !isArchivedPreliminary(normalized, history)) return normalized;
+    }
+    if(firstActive){
+      lastQuote = firstActive;
+      return normalizeSnapshot(firstActive);
     }
     return null;
   }
@@ -105,8 +109,63 @@
     try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
   }
 
+  const STATUS_RANK = {
+    nowy:0,
+    wstepna_wycena:1,
+    pomiar:2,
+    po_pomiarze:3,
+    wycena:4,
+    zaakceptowany:5,
+    umowa:6,
+    produkcja:7,
+    montaz:8,
+    zakonczone:9,
+    odrzucone:-1,
+  };
+
+  function normalizeStatusKey(value){
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function statusRank(value){
+    const key = normalizeStatusKey(value);
+    return Object.prototype.hasOwnProperty.call(STATUS_RANK, key) ? STATUS_RANK[key] : -99;
+  }
+
   function isSelectedSnapshot(snapshot){
     try{ return !!(snapshot && snapshot.meta && snapshot.meta.selectedByClient); }catch(_){ return false; }
+  }
+
+  function isPreliminarySnapshot(snapshot){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isPreliminarySnapshot === 'function') return !!FC.quoteSnapshotStore.isPreliminarySnapshot(snapshot);
+    }catch(_){ }
+    return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
+  }
+
+  function isArchivedPreliminary(snapshot, history){
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    return !!(isPreliminarySnapshot(snapshot) && list.some((row)=> !isPreliminarySnapshot(row)));
+  }
+
+  function currentProjectStatus(snapshot){
+    const snap = normalizeSnapshot(snapshot) || {};
+    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
+    const investorId = String(snap && snap.project && snap.project.investorId || snap && snap.investor && snap.investor.id || getCurrentInvestorId() || '');
+    try{
+      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function'){
+        const record = FC.projectStore.getById(projectId);
+        if(record && record.status) return normalizeStatusKey(record.status);
+      }
+    }catch(_){ }
+    try{
+      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function'){
+        const investor = FC.investorPersistence.getInvestorById(investorId);
+        const room = investor && Array.isArray(investor.rooms) && investor.rooms[0];
+        if(room && (room.projectStatus || room.status)) return normalizeStatusKey(room.projectStatus || room.status);
+      }
+    }catch(_){ }
+    return normalizeStatusKey(snap && snap.project && snap.project.status || '');
   }
 
   async function askConfirm(cfg){
@@ -116,8 +175,11 @@
     return true;
   }
 
-  function setProjectAcceptedFromSnapshot(snapshot){
+  function setProjectStatusFromSnapshot(snapshot, status, options){
     const snap = normalizeSnapshot(snapshot) || {};
+    const nextStatus = normalizeStatusKey(status);
+    if(!nextStatus) return;
+    const syncSelection = !!(options && options.syncSelection);
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
     const investorId = String(
       snap && snap.investor && snap.investor.id
@@ -129,7 +191,7 @@
       if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
         const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
         if(record){
-          FC.projectStore.upsert(Object.assign({}, record, { status:'zaakceptowany', updatedAt:Date.now() }));
+          FC.projectStore.upsert(Object.assign({}, record, { status:nextStatus, updatedAt:Date.now() }));
         }
       }
     }catch(_){ }
@@ -151,7 +213,7 @@
         currentRooms.forEach((room)=>{
           const key = String(room && room.id || '');
           if(!key) return;
-          roomMap.set(key, Object.assign({}, room, { projectStatus:'zaakceptowany' }));
+          roomMap.set(key, Object.assign({}, room, { projectStatus:nextStatus }));
         });
         try{
           if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
@@ -159,7 +221,7 @@
             defs.forEach((room)=>{
               const key = String(room && room.id || '');
               if(!key) return;
-              roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key, projectStatus:'zaakceptowany' }));
+              roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key, projectStatus:nextStatus }));
             });
           }
         }catch(_){ }
@@ -172,14 +234,23 @@
       if(FC.project && typeof FC.project.load === 'function' && typeof FC.project.save === 'function'){
         const proj = FC.project.load() || {};
         const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
-        if(meta && meta.roomDefs && typeof meta.roomDefs === 'object'){
-          Object.keys(meta.roomDefs).forEach((roomId)=>{
-            const row = meta.roomDefs[roomId];
-            if(!row || typeof row !== 'object') return;
-            meta.roomDefs[roomId] = Object.assign({}, row, { projectStatus:'zaakceptowany' });
-          });
+        if(meta){
+          meta.projectStatus = nextStatus;
+          if(meta.roomDefs && typeof meta.roomDefs === 'object'){
+            Object.keys(meta.roomDefs).forEach((roomId)=>{
+              const row = meta.roomDefs[roomId];
+              if(!row || typeof row !== 'object') return;
+              meta.roomDefs[roomId] = Object.assign({}, row, { projectStatus:nextStatus });
+            });
+          }
           FC.project.save(proj);
         }
+      }
+    }catch(_){ }
+
+    try{
+      if(syncSelection && projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
+        FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus);
       }
     }catch(_){ }
 
@@ -188,11 +259,22 @@
     try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
 
+  function syncGeneratedQuoteStatus(snapshot){
+    const snap = normalizeSnapshot(snapshot);
+    if(!snap || !snap.project) return;
+    const preliminary = isPreliminarySnapshot(snap);
+    const targetStatus = preliminary ? 'wstepna_wycena' : 'wycena';
+    const currentStatus = currentProjectStatus(snap);
+    if(statusRank(currentStatus) > statusRank(targetStatus)) return;
+    setProjectStatusFromSnapshot(snap, targetStatus, { syncSelection:true });
+  }
+
   function buildOfferSummary(draft){
     const data = draft && typeof draft === 'object' ? draft : {};
     const commercial = data.commercial || {};
     const rates = Array.isArray(data.rateSelections) ? data.rateSelections.filter((row)=> num(row && row.qty, 0) > 0) : [];
     const parts = [];
+    if(commercial.preliminary) parts.push('Wstępna wycena');
     if(rates.length) parts.push(`Stawki: ${rates.length}`);
     if(Number(commercial.discountPercent) > 0) parts.push(`Rabat ${Number(commercial.discountPercent).toFixed(2)}%`);
     else if(Number(commercial.discountAmount) > 0) parts.push(`Rabat ${money(commercial.discountAmount)}`);
@@ -265,6 +347,7 @@
       row.appendChild(h('div', { class:`quote-commercial-list__value${strong ? ' is-strong' : ''}`, text }));
       list.appendChild(row);
     };
+    addRow('Typ oferty', commercial.preliminary ? 'Wstępna wycena (bez pomiaru)' : 'Wycena po pomiarze');
     if(Number(commercial.discountPercent) > 0) addRow('Rabat', `${Number(commercial.discountPercent).toFixed(2)}%`, true);
     else if(Number(commercial.discountAmount) > 0) addRow('Rabat', money(commercial.discountAmount), true);
     addRow('Ważność oferty', commercial.offerValidity);
@@ -335,6 +418,22 @@
       const body = h('div', { class:'quote-offer-accordion__body' });
       body.appendChild(h('p', { class:'muted', text:'Tutaj ustawiasz robociznę, rabat i warunki handlowe. Zostaną zapisane w nowym snapshotcie po kliknięciu „Wyceń”.', style:'margin:0 0 8px' }));
 
+      const preliminaryWrap = h('div', { class:'quote-offer-preliminary' });
+      const preliminaryChip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match quote-preliminary-chip${commercial.preliminary ? ' is-checked' : ''}` });
+      const preliminaryInput = h('input', { type:'checkbox' });
+      preliminaryInput.checked = !!commercial.preliminary;
+      const preliminaryText = h('span', { text:'Wstępna wycena (bez pomiaru)' });
+      preliminaryInput.addEventListener('change', ()=>{
+        if(preliminaryInput.checked) preliminaryChip.classList.add('is-checked');
+        else preliminaryChip.classList.remove('is-checked');
+        syncCommercial();
+      });
+      preliminaryChip.appendChild(preliminaryInput);
+      preliminaryChip.appendChild(preliminaryText);
+      preliminaryWrap.appendChild(preliminaryChip);
+      preliminaryWrap.appendChild(h('div', { class:'muted quote-preliminary-help', text:'Oznacz tę opcję dla rozmowy z klientem przed pomiarem. Akceptacja takiej oferty ustawi status projektu na „Pomiar”.' }));
+      body.appendChild(preliminaryWrap);
+
       const rateShell = h('div', { class:'quote-rate-editor' });
       if(!catalog.length){
         rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w katalogu „Stawki wyceny mebli”.' }));
@@ -374,6 +473,7 @@
 
       const syncCommercial = ()=>{
         const next = {
+          preliminary: !!preliminaryInput.checked,
           discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
           discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
           offerValidity: validityInput.value,
@@ -426,38 +526,47 @@
       const snapId = getSnapshotId(snap);
       const isActive = !!activeId && snapId === activeId;
       const isSelected = isSelectedSnapshot(snap);
-      const item = h('article', { class:`quote-history__item${isActive ? ' is-active' : ''}${isSelected ? ' is-selected' : ''}` });
+      const isPreliminary = isPreliminarySnapshot(snap);
+      const isArchived = isArchivedPreliminary(snap, history);
+      const item = h('article', { class:`quote-history__item${isActive ? ' is-active' : ''}${isSelected ? ' is-selected' : ''}${isArchived ? ' is-archived' : ''}` });
       const top = h('div', { class:'quote-history__top' });
       const titleBox = h('div', { class:'quote-history__content' });
       const roomLabels = Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
       const titleRow = h('div', { class:'quote-history__title-row' });
       titleRow.appendChild(h('div', { class:'quote-history__title', text:index === 0 ? `Ostatni snapshot — ${formatDateTime(snap.generatedAt)}` : formatDateTime(snap.generatedAt) }));
       if(isActive) titleRow.appendChild(h('span', { class:'quote-history__badge', text:'Oglądany' }));
+      if(isPreliminary) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--preliminary', text:'Wstępna' }));
       if(isSelected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--selected', text:'Zaakceptowana' }));
+      if(isArchived) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--archived', text:'Archiwalna po pomiarze' }));
       titleBox.appendChild(titleRow);
       const meta = [];
       if(roomLabels.length) meta.push(`Zakres: ${roomLabels.join(', ')}`);
       meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
       if(isSelected && Number(snap.meta && snap.meta.acceptedAt) > 0) meta.push(`Zaakceptowana: ${formatDateTime(snap.meta.acceptedAt)}`);
+      if(isArchived) meta.push('Ta wycena wstępna została wygaszona po stworzeniu wyceny po pomiarze.');
       titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
       top.appendChild(titleBox);
       item.appendChild(top);
       const actions = h('div', { class:'quote-history__actions' });
       const openBtn = h('button', { class:isActive ? 'btn-primary' : 'btn', type:'button', text:isActive ? 'Wyświetlany' : 'Podgląd' });
-      if(isActive) openBtn.disabled = true;
+      if(isActive || isArchived) openBtn.disabled = true;
       openBtn.addEventListener('click', ()=>{
         lastQuote = snap;
         shouldScrollToPreview = true;
         render(ctx);
       });
       actions.appendChild(openBtn);
-      const chooseBtn = h('button', { class:'btn-success', type:'button', text:isSelected ? 'Zaakceptowana' : 'Zaakceptuj' });
-      if(isSelected) chooseBtn.disabled = true;
+      const acceptLabel = isSelected ? 'Zaakceptowana' : (isPreliminary ? 'Zaakceptuj wstępną' : 'Zaakceptuj');
+      const chooseBtn = h('button', { class:'btn-success', type:'button', text:acceptLabel });
+      if(isSelected || isArchived) chooseBtn.disabled = true;
       chooseBtn.addEventListener('click', async ()=>{
+        const targetStatus = isPreliminary ? 'pomiar' : 'zaakceptowany';
         const confirmed = await askConfirm({
           title:'OZNACZYĆ OFERTĘ?',
-          message:'Ta wersja zostanie oznaczona jako zaakceptowana, a status projektu zmieni się na „zaakceptowany”.',
-          confirmText:'Oznacz jako zaakceptowaną',
+          message:isPreliminary
+            ? 'Ta wersja zostanie oznaczona jako zaakceptowana wycena wstępna, a status projektu zmieni się na „Pomiar”.'
+            : 'Ta wersja zostanie oznaczona jako zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
+          confirmText:isPreliminary ? 'Oznacz jako wstępną zaakceptowaną' : 'Oznacz jako zaakceptowaną',
           cancelText:'Wróć',
           confirmTone:'success',
           cancelTone:'neutral'
@@ -466,11 +575,11 @@
         let selected = null;
         try{
           selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
-            ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId)
+            ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId, { status:targetStatus })
             : snap;
         }catch(_){ selected = snap; }
         if(selected){
-          setProjectAcceptedFromSnapshot(selected);
+          setProjectStatusFromSnapshot(selected, targetStatus);
           lastQuote = selected;
           shouldScrollToPreview = true;
           render(ctx);
@@ -478,6 +587,7 @@
       });
       actions.appendChild(chooseBtn);
       const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
+      if(isArchived) pdfBtn.disabled = true;
       pdfBtn.addEventListener('click', ()=>{
         try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(snap); }catch(_){ }
       });
@@ -497,7 +607,7 @@
           if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
         }catch(_){ }
         const nextHistory = getSnapshotHistory();
-        if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory[0] || null;
+        if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory.find((row)=> !isArchivedPreliminary(row, nextHistory)) || nextHistory[0] || null;
         render(ctx);
       });
       actions.appendChild(deleteBtn);
@@ -530,6 +640,7 @@
       try{
         if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') lastQuote = await FC.wycenaCore.buildQuoteSnapshot();
         else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') lastQuote = await FC.wycenaCore.collectQuoteData();
+        if(lastQuote && !lastQuote.error) syncGeneratedQuoteStatus(lastQuote);
       }catch(err){
         try{ console.error('[wycena] collect failed', err); }catch(_){ }
         lastQuote = { error: String(err && err.message || err || 'Błąd wyceny'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
@@ -568,6 +679,7 @@
         const isLatest = getSnapshotId(currentQuote) === getSnapshotId(getSnapshotHistory()[0]);
         const previewMeta = h('div', { class:'quote-preview-meta' });
         previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualny snapshot' : 'Oglądany snapshot z historii' }));
+        if(isPreliminarySnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--preliminary', text:'Wstępna wycena' }));
         if(isSelectedSnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--selected', text:'Zaakceptowana' }));
         previewMeta.appendChild(h('p', { class:'muted quote-scope', text:`Snapshot: ${formatDateTime(generatedAt)}` }));
         card.appendChild(previewMeta);

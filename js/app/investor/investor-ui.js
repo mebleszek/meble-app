@@ -8,6 +8,7 @@
   const PROJECT_STATUS_OPTIONS = [
     { value: 'nowy', label: 'Nowy' },
     { value: 'wstepna_wycena', label: 'Wstępna wycena' },
+    { value: 'pomiar', label: 'Pomiar' },
     { value: 'po_pomiarze', label: 'Po pomiarze' },
     { value: 'wycena', label: 'Wycena' },
     { value: 'zaakceptowany', label: 'Zaakceptowany' },

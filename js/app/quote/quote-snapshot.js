@@ -56,6 +56,7 @@
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     return {
+      preliminary: !!value.preliminary,
       discountPercent,
       discountAmount,
       offerValidity: String(value.offerValidity || '').trim(),
@@ -106,7 +107,7 @@
     const commercial = normalizeCommercial(src.commercial || {});
     const totals = computeTotals(src.totals || {}, lines, commercial);
     return {
-      version: 2,
+      version: 3,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {
@@ -131,6 +132,13 @@
       lines,
       commercial,
       totals,
+      meta: {
+        source:'quote-snapshot',
+        preliminary: !!commercial.preliminary,
+        selectedByClient: !!(src.meta && src.meta.selectedByClient),
+        acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
+        acceptedStage: String(src.meta && src.meta.acceptedStage || ''),
+      },
     };
   }
 
