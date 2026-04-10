@@ -1018,3 +1018,13 @@ Dopiero potem go zmieniać.
 - removed project status `Po pomiarze`; after measurement use `Wycena` directly
 - preliminary quote drafts now survive scope switch from investor-only to project-bound draft
 - preliminary history entries are archived only when a newer normal quote exists
+
+## 2026-04-10 — stage9_quote_sync_v1
+- WYCENA: domknięto draft oferty o `selection` (pomieszczenia + zakres korpusy/fronty) oraz `commercial.versionName`.
+- WYCENA: snapshot i historia zapisują nazwę wersji oferty oraz zakres elementów (`materialScope`, `materialScopeMode`).
+- WYCENA: tab `Wycena` dostał własny wybór pomieszczeń i zakresu bez wchodzenia do ROZRYS; `Wyceń` używa tego wyboru do rozkroju w tle.
+- WYCENA: historia ofert i podgląd zostały zsynchronizowane ze statusem projektu (`wstepna_wycena`, `pomiar`, `wycena`, statusy finalne).
+- WYCENA: po usunięciu snapshotu wykorzystywany jest rekomendowany status projektu, żeby nie zostawał błędny stary etap.
+- WYCENA UI: aktywna oferta i stany zaakceptowane korzystają z zielonych akcentów; accordion i info-box wzorowane na istniejących kierunkach z ROZRYS.
+- PDF: dopracowano layout PDF oferty bez zmiany logiki danych snapshotu.
+- TESTY: rozszerzono smoke testy Wycena o zapis wyboru pomieszczeń/zakresu, nazwę wersji oferty, status po usunięciu oferty oraz zawartość PDF.

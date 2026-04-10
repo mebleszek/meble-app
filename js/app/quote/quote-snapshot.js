@@ -42,6 +42,7 @@
       total: Math.max(0, num(row.total, 0)),
       rooms: String(row.rooms || '').trim(),
       note: String(row.note || '').trim(),
+      source: String(row.source || '').trim(),
     };
   }
 
@@ -56,6 +57,7 @@
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     return {
+      versionName: String(value.versionName || '').trim(),
       preliminary: !!value.preliminary,
       discountPercent,
       discountAmount,
@@ -64,6 +66,29 @@
       deliveryTerms: String(value.deliveryTerms || '').trim(),
       customerNote: String(value.customerNote || '').trim(),
     };
+  }
+
+  function normalizeMaterialScope(value){
+    try{
+      if(FC.rozrysScope && typeof FC.rozrysScope.encodeMaterialScope === 'function' && typeof FC.rozrysScope.decodeMaterialScope === 'function'){
+        return FC.rozrysScope.decodeMaterialScope(FC.rozrysScope.encodeMaterialScope(value || {}));
+      }
+    }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    const includeFronts = src.includeFronts !== false;
+    const includeCorpus = src.includeCorpus !== false;
+    return {
+      kind:(src.kind === 'material' && String(src.material || '').trim()) ? 'material' : 'all',
+      material:(src.kind === 'material' && String(src.material || '').trim()) ? String(src.material || '').trim() : '',
+      includeFronts: includeFronts || (!includeFronts && !includeCorpus),
+      includeCorpus: includeCorpus || (!includeFronts && !includeCorpus),
+    };
+  }
+
+  function materialScopeMode(scope){
+    const src = normalizeMaterialScope(scope);
+    if(src.includeFronts && src.includeCorpus) return 'both';
+    return src.includeFronts ? 'fronts' : 'corpus';
   }
 
   function computeTotals(raw, lines, commercial){
@@ -95,8 +120,8 @@
     const src = payload && typeof payload === 'object' ? payload : {};
     const investor = src.investor || currentInvestor() || null;
     const projectRecord = src.projectRecord || currentProjectRecord() || null;
-    const roomIds = Array.isArray(src.selectedRooms) ? src.selectedRooms.slice() : [];
-    const roomLabels = Array.isArray(src.roomLabels) ? src.roomLabels.slice() : [];
+    const roomIds = Array.isArray(src.selectedRooms) ? src.selectedRooms.slice() : (src.scope && Array.isArray(src.scope.selectedRooms) ? src.scope.selectedRooms.slice() : []);
+    const roomLabels = Array.isArray(src.roomLabels) ? src.roomLabels.slice() : (src.scope && Array.isArray(src.scope.roomLabels) ? src.scope.roomLabels.slice() : []);
     const generatedAt = Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now();
     const lines = {
       materials: normalizeLines(src.materialLines || (src.lines && src.lines.materials)),
@@ -106,8 +131,10 @@
     };
     const commercial = normalizeCommercial(src.commercial || {});
     const totals = computeTotals(src.totals || {}, lines, commercial);
+    const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
+    const scopeMode = materialScopeMode(materialScope);
     return {
-      version: 3,
+      version: 4,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {
@@ -125,6 +152,8 @@
       scope: {
         selectedRooms: roomIds,
         roomLabels,
+        materialScope: clone(materialScope),
+        materialScopeMode: scopeMode,
       },
       catalogs: FC.catalogSelectors && typeof FC.catalogSelectors.getFurnitureCatalogSnapshot === 'function'
         ? FC.catalogSelectors.getFurnitureCatalogSnapshot()
@@ -135,6 +164,7 @@
       meta: {
         source:'quote-snapshot',
         preliminary: !!commercial.preliminary,
+        versionName: commercial.versionName,
         selectedByClient: !!(src.meta && src.meta.selectedByClient),
         acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
         acceptedStage: String(src.meta && src.meta.acceptedStage || ''),
@@ -162,5 +192,7 @@
     saveSnapshot,
     normalizeCommercial,
     computeTotals,
+    normalizeMaterialScope,
+    materialScopeMode,
   };
 })();

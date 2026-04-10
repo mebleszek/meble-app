@@ -74,7 +74,42 @@
     try{ return (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function') ? FC.roomRegistry.getActiveRoomIds() : []; }catch(_){ return []; }
   }
 
-  function decodeSelectedRooms(){
+  function normalizeMaterialScope(value){
+    try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.normalizeMaterialScope === 'function') return FC.quoteSnapshot.normalizeMaterialScope(value);
+    }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    const includeFronts = src.includeFronts !== false;
+    const includeCorpus = src.includeCorpus !== false;
+    return {
+      kind:(src.kind === 'material' && String(src.material || '').trim()) ? 'material' : 'all',
+      material:(src.kind === 'material' && String(src.material || '').trim()) ? String(src.material || '').trim() : '',
+      includeFronts: includeFronts || (!includeFronts && !includeCorpus),
+      includeCorpus: includeCorpus || (!includeFronts && !includeCorpus),
+    };
+  }
+
+  function normalizeQuoteSelection(selection){
+    const src = selection && typeof selection === 'object' ? selection : {};
+    const activeRooms = getActiveRooms();
+    let selectedRooms = [];
+    try{
+      if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
+        selectedRooms = FC.rozrysScope.normalizeRoomSelection(Array.isArray(src.selectedRooms) ? src.selectedRooms : [], { getRooms:()=> activeRooms });
+      }
+    }catch(_){ }
+    if(!Array.isArray(selectedRooms) || !selectedRooms.length){
+      selectedRooms = activeRooms.slice();
+    }
+    return {
+      selectedRooms,
+      materialScope: normalizeMaterialScope(src.materialScope),
+    };
+  }
+
+  function decodeSelectedRooms(selectionOverride){
+    const normalizedOverride = normalizeQuoteSelection(selectionOverride);
+    if(Array.isArray(normalizedOverride.selectedRooms) && normalizedOverride.selectedRooms.length) return normalizedOverride.selectedRooms;
     try{
       const prefs = FC.rozrysPrefs && typeof FC.rozrysPrefs.loadPanelPrefs === 'function' ? (FC.rozrysPrefs.loadPanelPrefs() || {}) : {};
       const decoded = FC.rozrysScope && typeof FC.rozrysScope.decodeRoomsSelection === 'function'
@@ -86,7 +121,9 @@
     }
   }
 
-  function decodeMaterialScope(){
+  function decodeMaterialScope(selectionOverride){
+    const normalizedOverride = normalizeQuoteSelection(selectionOverride);
+    if(normalizedOverride && normalizedOverride.materialScope) return normalizedOverride.materialScope;
     try{
       const prefs = FC.rozrysPrefs && typeof FC.rozrysPrefs.loadPanelPrefs === 'function' ? (FC.rozrysPrefs.loadPanelPrefs() || {}) : {};
       if(FC.rozrysScope && typeof FC.rozrysScope.decodeMaterialScope === 'function') return FC.rozrysScope.decodeMaterialScope(prefs.materialScope);
@@ -94,8 +131,8 @@
     return { kind:'all', includeFronts:true, includeCorpus:true };
   }
 
-  function getSelectedAggregate(){
-    const rooms = decodeSelectedRooms();
+  function getSelectedAggregate(selectionOverride){
+    const rooms = decodeSelectedRooms(selectionOverride);
     try{
       return FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function'
         ? FC.rozrys.aggregatePartsForProject(rooms)
@@ -105,10 +142,11 @@
     }
   }
 
-  function getScopedMaterials(aggregate){
+  function getScopedMaterials(aggregate, selectionOverride){
+    const scope = decodeMaterialScope(selectionOverride);
     try{
       if(FC.rozrysScope && typeof FC.rozrysScope.getOrderedMaterialsForSelection === 'function'){
-        return FC.rozrysScope.getOrderedMaterialsForSelection(decodeMaterialScope(), aggregate, { aggregatePartsForProject:()=> aggregate });
+        return FC.rozrysScope.getOrderedMaterialsForSelection(scope, aggregate, { aggregatePartsForProject:()=> aggregate });
       }
     }catch(_){ }
     return Array.isArray(aggregate && aggregate.materials) ? aggregate.materials.slice() : [];
@@ -316,9 +354,9 @@
     return { plan, source:'generated' };
   }
 
-  async function collectMaterialLines(aggregate){
-    const scope = decodeMaterialScope();
-    const materialsOrdered = getScopedMaterials(aggregate);
+  async function collectMaterialLines(aggregate, selectionOverride){
+    const scope = decodeMaterialScope(selectionOverride);
+    const materialsOrdered = getScopedMaterials(aggregate, selectionOverride);
     const lines = [];
     for(const material of materialsOrdered){
       const group = aggregate && aggregate.groups ? aggregate.groups[material] : null;
@@ -379,21 +417,23 @@
     }).filter(Boolean);
   }
 
-  function collectCommercialDraft(){
-    const draft = getOfferDraft();
+  function collectCommercialDraft(draftOverride){
+    const draft = draftOverride || getOfferDraft();
     return FC.quoteSnapshot && typeof FC.quoteSnapshot.normalizeCommercial === 'function'
       ? FC.quoteSnapshot.normalizeCommercial(draft && draft.commercial)
       : (draft && draft.commercial) || {};
   }
 
-  async function collectQuoteData(){
-    const selectedRooms = decodeSelectedRooms();
-    const aggregate = getSelectedAggregate();
-    const materialLines = await collectMaterialLines(aggregate);
+  async function collectQuoteData(options){
+    const draft = getOfferDraft();
+    const normalizedSelection = normalizeQuoteSelection((options && options.selection) || (draft && draft.selection));
+    const selectedRooms = decodeSelectedRooms(normalizedSelection);
+    const aggregate = getSelectedAggregate(normalizedSelection);
+    const materialLines = await collectMaterialLines(aggregate, normalizedSelection);
     const accessoryLines = collectAccessories(selectedRooms);
     const agdLines = collectBuiltInAppliances(selectedRooms);
     const quoteRateLines = collectQuoteRateLines();
-    const commercial = collectCommercialDraft();
+    const commercial = collectCommercialDraft(draft);
     const totals = FC.quoteSnapshot && typeof FC.quoteSnapshot.computeTotals === 'function'
       ? FC.quoteSnapshot.computeTotals({}, {
           materials: materialLines,
@@ -415,6 +455,8 @@
     return {
       selectedRooms,
       roomLabels: selectedRooms.map(roomLabel),
+      materialScope: normalizedSelection.materialScope,
+      selection: normalizedSelection,
       materialLines,
       accessoryLines,
       agdLines,
@@ -425,8 +467,8 @@
     };
   }
 
-  async function buildQuoteSnapshot(){
-    const data = await collectQuoteData();
+  async function buildQuoteSnapshot(options){
+    const data = await collectQuoteData(options);
     try{
       if(FC.quoteSnapshot && typeof FC.quoteSnapshot.saveSnapshot === 'function') return FC.quoteSnapshot.saveSnapshot(data);
       if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(data);
@@ -438,6 +480,7 @@
     AGD_SERVICE_DEFAULTS,
     ensureServiceCatalog,
     ensureServiceCatalogInRuntime,
+    normalizeQuoteSelection,
     collectQuoteData,
     buildQuoteSnapshot,
     collectQuoteRateLines,

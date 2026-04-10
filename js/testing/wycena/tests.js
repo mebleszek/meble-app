@@ -43,12 +43,15 @@
           FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId('proj_offer');
           const saved = FC.quoteOfferStore.saveCurrentDraft({
             rateSelections:[{ rateId:'rate_1', qty:2 }],
-            commercial:{ preliminary:true, discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' }
+            selection:{ selectedRooms:['room_kuchnia_gora'], materialScope:{ includeFronts:false, includeCorpus:true } },
+            commercial:{ versionName:'Wersja A', preliminary:true, discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' }
           });
           const current = FC.quoteOfferStore.getCurrentDraft();
           H.assert(saved && String(saved.projectId || '') === 'proj_offer', 'Store oferty nie zapisał draftu dla bieżącego projektu', saved);
           H.assert(Array.isArray(current.rateSelections) && current.rateSelections.length === 1 && Number(current.rateSelections[0].qty) === 2, 'Store oferty nie zachował ilości stawek', current);
-          H.assert(String(current.commercial.offerValidity || '') === '14 dni' && Number(current.commercial.discountPercent) === 10 && current.commercial.preliminary === true, 'Store oferty nie zachował pól handlowych albo flagi wyceny wstępnej', current);
+          H.assert(String(current.commercial.offerValidity || '') === '14 dni' && Number(current.commercial.discountPercent) === 10 && current.commercial.preliminary === true && String(current.commercial.versionName || '') === 'Wersja A', 'Store oferty nie zachował pól handlowych, nazwy wersji albo flagi wyceny wstępnej', current);
+          H.assert(Array.isArray(current.selection && current.selection.selectedRooms) && current.selection.selectedRooms[0] === 'room_kuchnia_gora', 'Store oferty nie zachował wyboru pomieszczeń', current);
+          H.assert(current.selection && current.selection.materialScope && current.selection.materialScope.includeCorpus === true && current.selection.materialScope.includeFronts === false, 'Store oferty nie zachował zakresu korpusy/fronty', current);
         } finally {
           FC.quoteOfferStore.writeAll(prevDrafts);
           FC.projectStore.writeAll(prevProjectStore);
@@ -79,15 +82,17 @@
         const snapshot = FC.quoteSnapshot.buildSnapshot({
           selectedRooms:['room_kuchnia_gora'],
           roomLabels:['Kuchnia góra'],
+          materialScope:{ includeFronts:false, includeCorpus:true },
           materialLines:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
           accessoryLines:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
           agdLines:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
           quoteRateLines:[{ name:'Montaż zabudowy', category:'Montaż', qty:1, unit:'x', unitPrice:400, total:400 }],
-          commercial:{ preliminary:true, discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Transport po stronie wykonawcy', customerNote:'Oferta testowa' },
+          commercial:{ versionName:'Wersja B', preliminary:true, discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Transport po stronie wykonawcy', customerNote:'Oferta testowa' },
           generatedAt:1712500000000,
         });
         H.assert(snapshot && snapshot.lines && Array.isArray(snapshot.lines.quoteRates) && snapshot.lines.quoteRates.length === 1, 'Snapshot wyceny nie zachował linii robocizny / stawek meblowych', snapshot);
-        H.assert(snapshot.commercial && String(snapshot.commercial.offerValidity || '') === '14 dni' && snapshot.commercial.preliminary === true && snapshot.meta.preliminary === true, 'Snapshot wyceny nie zachował pól handlowych albo flagi wyceny wstępnej', snapshot);
+        H.assert(snapshot.commercial && String(snapshot.commercial.offerValidity || '') === '14 dni' && snapshot.commercial.preliminary === true && snapshot.meta.preliminary === true && String(snapshot.commercial.versionName || '') === 'Wersja B', 'Snapshot wyceny nie zachował pól handlowych, nazwy wersji albo flagi wyceny wstępnej', snapshot);
+        H.assert(snapshot.scope && snapshot.scope.materialScopeMode === 'corpus', 'Snapshot wyceny nie zapisał trybu zakresu elementów', snapshot.scope);
         H.assert(Math.abs(Number(snapshot.totals.subtotal || 0) - 662) < 0.001, 'Snapshot wyceny nie policzył sumy przed rabatem', snapshot.totals);
         H.assert(Math.abs(Number(snapshot.totals.discount || 0) - 66.2) < 0.001, 'Snapshot wyceny nie policzył rabatu', snapshot.totals);
         H.assert(Math.abs(Number(snapshot.totals.grand || 0) - 595.8) < 0.001, 'Snapshot wyceny nie policzył końcowej wartości oferty', snapshot.totals);
@@ -145,7 +150,10 @@
           FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'wycena');
           H.assert(FC.quoteSnapshotStore.getSelectedForProject('proj_flow') == null, 'Przejście projektu na etap wyceny nie wyczyściło zaakceptowanej wyceny wstępnej', FC.quoteSnapshotStore.listForProject('proj_flow'));
           const syncedFinal = FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'zaakceptowany');
-          H.assert(syncedFinal && String(syncedFinal.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał właściwej wyceny po pomiarze', { syncedFinal, all:FC.quoteSnapshotStore.listForProject('proj_flow') });
+          H.assert(syncedFinal && String(syncedFinal.id || '') === String(finalQuote.id || '') , 'Status zaakceptowany nie wskazał właściwej wyceny po pomiarze', { syncedFinal, all:FC.quoteSnapshotStore.listForProject('proj_flow') });
+          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject('proj_flow', 'zaakceptowany') === 'zaakceptowany', 'Rekomendowany status po zaakceptowanej finalnej ofercie jest błędny', FC.quoteSnapshotStore.listForProject('proj_flow'));
+          FC.quoteSnapshotStore.remove(finalQuote.id);
+          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject('proj_flow', 'zaakceptowany') === 'wstepna_wycena', 'Po usunięciu zwykłej oferty status nie wrócił do wstępnej wyceny', FC.quoteSnapshotStore.listForProject('proj_flow'));
         } finally {
           FC.quoteSnapshotStore.writeAll(prev);
         }
@@ -174,20 +182,21 @@
         const html = FC.quotePdf.buildPrintHtml({
           investor:{ id:'inv_pdf', name:'Jan Test' },
           project:{ id:'proj_pdf', investorId:'inv_pdf', title:'Kuchnia testowa', status:'wycena ostateczna' },
-          scope:{ roomLabels:['Kuchnia dół'] },
+          scope:{ roomLabels:['Kuchnia dół'], materialScopeMode:'corpus', materialScope:{ includeFronts:false, includeCorpus:true } },
           lines:{
             materials:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
             accessories:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
             agdServices:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
             quoteRates:[{ name:'Montaż zabudowy', qty:1, unit:'x', unitPrice:400, total:400, category:'Montaż' }],
           },
-          commercial:{ discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' },
+          commercial:{ versionName:'Wersja PDF A', discountPercent:10, offerValidity:'14 dni', leadTime:'4 tygodnie', deliveryTerms:'Montaż w cenie', customerNote:'Oferta testowa' },
           totals:{ materials:70, accessories:72, services:120, quoteRates:400, subtotal:662, discount:66.2, grand:595.8 },
           generatedAt:1712700000000,
         });
         H.assert(/Oferta dla klienta/.test(String(html || '')), 'PDF wyceny nie zawiera nagłówka dokumentu handlowego', html);
         H.assert(/Montaż zabudowy/.test(String(html || '')), 'PDF wyceny nie zawiera pozycji robocizny', html);
         H.assert(/Warunki oferty/.test(String(html || '')) && /14 dni/.test(String(html || '')) && /4 tygodnie/.test(String(html || '')), 'PDF wyceny nie zawiera pól handlowych', html);
+        H.assert(/Wersja PDF A/.test(String(html || '')) && /Same korpusy/.test(String(html || '')), 'PDF wyceny nie zawiera nazwy wersji albo zakresu elementów', html);
         H.assert(/595\.80 PLN/.test(String(html || '')), 'PDF wyceny nie zawiera końcowej sumy po rabacie', html);
       }),
     ]);

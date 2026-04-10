@@ -25,6 +25,27 @@
     return String(value || '').trim().toLowerCase();
   }
 
+  function normalizeMaterialScope(value){
+    try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.normalizeMaterialScope === 'function') return FC.quoteSnapshot.normalizeMaterialScope(value);
+    }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    const includeFronts = src.includeFronts !== false;
+    const includeCorpus = src.includeCorpus !== false;
+    return {
+      kind:(src.kind === 'material' && String(src.material || '').trim()) ? 'material' : 'all',
+      material:(src.kind === 'material' && String(src.material || '').trim()) ? String(src.material || '').trim() : '',
+      includeFronts: includeFronts || (!includeFronts && !includeCorpus),
+      includeCorpus: includeCorpus || (!includeFronts && !includeCorpus),
+    };
+  }
+
+  function materialScopeMode(scope){
+    const src = normalizeMaterialScope(scope);
+    if(src.includeFronts && src.includeCorpus) return 'both';
+    return src.includeFronts ? 'fronts' : 'corpus';
+  }
+
   function isPreliminarySnapshot(snapshot){
     return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
   }
@@ -33,18 +54,26 @@
     const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const preliminary = isPreliminarySnapshot(src);
     const acceptedStage = String(src.meta && src.meta.acceptedStage || (src.meta && src.meta.selectedByClient ? (preliminary ? 'pomiar' : 'zaakceptowany') : '') || '');
+    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim();
+    const materialScope = normalizeMaterialScope(src.scope && src.scope.materialScope);
     return {
       id: String(src.id || uid()),
       generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
       investor: src.investor ? clone(src.investor) : null,
       project: src.project ? clone(src.project) : null,
-      scope: clone(src.scope || {}),
+      scope: Object.assign({}, clone(src.scope || {}), {
+        selectedRooms: Array.isArray(src.scope && src.scope.selectedRooms) ? src.scope.selectedRooms.slice() : [],
+        roomLabels: Array.isArray(src.scope && src.scope.roomLabels) ? src.scope.roomLabels.slice() : [],
+        materialScope,
+        materialScopeMode: String(src.scope && src.scope.materialScopeMode || materialScopeMode(materialScope) || ''),
+      }),
       catalogs: clone(src.catalogs || null),
       lines: clone(src.lines || {}),
-      commercial: clone(src.commercial || {}),
+      commercial: Object.assign({}, clone(src.commercial || {}), { versionName }),
       totals: clone(src.totals || {}),
       meta: {
         source:String(src.meta && src.meta.source || 'quote-snapshot-store'),
+        versionName,
         selectedByClient: !!(src.meta && src.meta.selectedByClient),
         acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
         acceptedStage,
@@ -136,6 +165,7 @@
       if(String(row && row.project && row.project.id || '') !== pid) return;
       const isTarget = !!(candidate && String(row && row.id || '') === String(candidate.id || ''));
       row.meta = Object.assign({}, row && row.meta || {}, {
+        versionName: String(row && row.meta && row.meta.versionName || row && row.commercial && row.commercial.versionName || '').trim(),
         preliminary: isPreliminarySnapshot(row),
         selectedByClient: isTarget,
         acceptedAt: isTarget ? (Number(row && row.meta && row.meta.acceptedAt) > 0 ? Number(row.meta.acceptedAt) : stamp) : 0,
@@ -169,8 +199,25 @@
     return updateSelectionForProject(pid, ()=> null, normalizedStatus, '');
   }
 
+  function getRecommendedStatusForProject(projectId, currentStatus){
+    const pid = String(projectId || '');
+    const normalizedCurrent = normalizeStatus(currentStatus);
+    if(!pid) return normalizedCurrent || 'nowy';
+    const rows = listForProject(pid);
+    const selected = rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+    if(selected){
+      if(isPreliminarySnapshot(selected)) return 'pomiar';
+      if(FINAL_STATUSES.has(normalizedCurrent)) return normalizedCurrent;
+      return 'zaakceptowany';
+    }
+    if(rows.some((row)=> !isPreliminarySnapshot(row))) return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'wycena';
+    if(rows.some((row)=> isPreliminarySnapshot(row))) return 'wstepna_wycena';
+    return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'nowy';
+  }
+
   FC.quoteSnapshotStore = {
     SNAPSHOT_KEY,
+    FINAL_STATUSES,
     normalizeSnapshot,
     readAll,
     writeAll,
@@ -179,6 +226,7 @@
     remove,
     markSelectedForProject,
     syncSelectionForProjectStatus,
+    getRecommendedStatusForProject,
     listForProject,
     listForInvestor,
     getLatestForProject,

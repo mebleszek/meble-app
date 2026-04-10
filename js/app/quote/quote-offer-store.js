@@ -50,6 +50,47 @@
     return [];
   }
 
+  function normalizeMaterialScope(value){
+    try{
+      if(FC.rozrysScope && typeof FC.rozrysScope.encodeMaterialScope === 'function' && typeof FC.rozrysScope.decodeMaterialScope === 'function'){
+        return FC.rozrysScope.decodeMaterialScope(FC.rozrysScope.encodeMaterialScope(value || {}));
+      }
+    }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    const includeFronts = src.includeFronts !== false;
+    const includeCorpus = src.includeCorpus !== false;
+    return {
+      kind:(src.kind === 'material' && String(src.material || '').trim()) ? 'material' : 'all',
+      material:(src.kind === 'material' && String(src.material || '').trim()) ? String(src.material || '').trim() : '',
+      includeFronts: includeFronts || (!includeFronts && !includeCorpus),
+      includeCorpus: includeCorpus || (!includeFronts && !includeCorpus),
+    };
+  }
+
+  function normalizeRoomSelection(rows){
+    const raw = Array.isArray(rows) ? rows : [];
+    const cleaned = raw.map((room)=> String(room || '').trim()).filter(Boolean);
+    try{
+      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
+        const allowed = FC.roomRegistry.getActiveRoomIds() || [];
+        if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
+          return FC.rozrysScope.normalizeRoomSelection(cleaned, { getRooms:()=> allowed });
+        }
+        const set = new Set(cleaned);
+        return allowed.filter((room)=> set.has(room));
+      }
+    }catch(_){ }
+    return Array.from(new Set(cleaned));
+  }
+
+  function normalizeSelection(src){
+    const value = src && typeof src === 'object' ? src : {};
+    return {
+      selectedRooms: normalizeRoomSelection(value.selectedRooms),
+      materialScope: normalizeMaterialScope(value.materialScope),
+    };
+  }
+
   function normalizeCommercial(src){
     const value = src && typeof src === 'object' ? src : {};
     let discountPercent = Math.max(0, num(value.discountPercent, 0));
@@ -57,6 +98,7 @@
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     return {
+      versionName: String(value.versionName || '').trim(),
       preliminary: !!value.preliminary,
       discountPercent,
       discountAmount,
@@ -74,6 +116,7 @@
       projectId: resolved.projectId,
       investorId: resolved.investorId,
       rateSelections: normalizeRateSelections(src.rateSelections),
+      selection: normalizeSelection(src.selection),
       commercial: normalizeCommercial(src.commercial),
       updatedAt: Math.max(0, num(src.updatedAt, Date.now())),
     };
@@ -135,6 +178,7 @@
       projectId: current.projectId,
       investorId: current.investorId,
       rateSelections: Array.isArray(patch && patch.rateSelections) ? patch.rateSelections : current.rateSelections,
+      selection: patch && patch.selection ? Object.assign({}, current.selection || {}, clone(patch.selection)) : current.selection,
       commercial: patch && patch.commercial ? Object.assign({}, current.commercial, patch.commercial) : current.commercial,
       updatedAt: Date.now(),
     }, scope || current);
@@ -154,6 +198,8 @@
   FC.quoteOfferStore = {
     DRAFT_KEY,
     normalizeDraft,
+    normalizeSelection,
+    normalizeCommercial,
     readAll,
     writeAll,
     getDraft,
