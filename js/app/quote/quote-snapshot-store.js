@@ -50,11 +50,18 @@
     return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
   }
 
+  function defaultVersionName(preliminary){
+    try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.defaultVersionName === 'function') return FC.quoteSnapshot.defaultVersionName(preliminary);
+    }catch(_){ }
+    return preliminary ? 'Wstępna oferta' : 'Oferta';
+  }
+
   function normalizeSnapshot(snapshot){
     const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const preliminary = isPreliminarySnapshot(src);
     const acceptedStage = String(src.meta && src.meta.acceptedStage || (src.meta && src.meta.selectedByClient ? (preliminary ? 'pomiar' : 'zaakceptowany') : '') || '');
-    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim();
+    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || defaultVersionName(preliminary);
     const materialScope = normalizeMaterialScope(src.scope && src.scope.materialScope);
     return {
       id: String(src.id || uid()),
@@ -232,6 +239,7 @@
     getLatestForProject,
     getSelectedForProject,
     hasFinalQuote,
+    defaultVersionName,
     isPreliminarySnapshot,
   };
 })();

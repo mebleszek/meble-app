@@ -91,15 +91,21 @@
     };
   }
 
+  function defaultVersionName(preliminary){
+    return preliminary ? 'Wstępna oferta' : 'Oferta';
+  }
+
   function normalizeCommercial(src){
     const value = src && typeof src === 'object' ? src : {};
     let discountPercent = Math.max(0, num(value.discountPercent, 0));
     let discountAmount = Math.max(0, num(value.discountAmount, 0));
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
+    const preliminary = !!value.preliminary;
+    const versionName = String(value.versionName || '').trim() || defaultVersionName(preliminary);
     return {
-      versionName: String(value.versionName || '').trim(),
-      preliminary: !!value.preliminary,
+      versionName,
+      preliminary,
       discountPercent,
       discountAmount,
       offerValidity: String(value.offerValidity || '').trim(),
@@ -199,6 +205,7 @@
     DRAFT_KEY,
     normalizeDraft,
     normalizeSelection,
+    defaultVersionName,
     normalizeCommercial,
     readAll,
     writeAll,

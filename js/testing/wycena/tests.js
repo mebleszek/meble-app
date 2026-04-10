@@ -33,6 +33,20 @@
         const materialTypes = FC.priceModal._debug.buildMaterialTypeOptions('akcesoria', { includeAll:true });
         H.assert(materialTypes.some((item)=> String(item && item.value || '') === 'akcesoria'), 'Lista typów materiału nie zawiera akcesoriów', materialTypes);
       }),
+
+      H.makeTest('Wycena', 'Domyślne nazwy wersji ustawiają się jako Oferta i Wstępna oferta', 'Pilnuje, czy puste nazwy wersji nie zapisują się jako pusty string i dostają domyślne etykiety zgodne z typem oferty.', ()=>{
+        H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.normalizeCommercial === 'function', 'Brak FC.quoteOfferStore.normalizeCommercial');
+        H.assert(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function', 'Brak FC.quoteSnapshot.buildSnapshot');
+        const prelimDraft = FC.quoteOfferStore.normalizeCommercial({ preliminary:true, versionName:'' });
+        const finalDraft = FC.quoteOfferStore.normalizeCommercial({ preliminary:false, versionName:'' });
+        H.assert(String(prelimDraft.versionName || '') === 'Wstępna oferta', 'Domyślna nazwa wstępnej oferty jest błędna', prelimDraft);
+        H.assert(String(finalDraft.versionName || '') === 'Oferta', 'Domyślna nazwa zwykłej oferty jest błędna', finalDraft);
+        const prelimSnap = FC.quoteSnapshot.buildSnapshot({ commercial:{ preliminary:true, versionName:'' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
+        const finalSnap = FC.quoteSnapshot.buildSnapshot({ commercial:{ preliminary:false, versionName:'' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
+        H.assert(String(prelimSnap.commercial && prelimSnap.commercial.versionName || '') === 'Wstępna oferta', 'Snapshot nie ustawił domyślnej nazwy dla wyceny wstępnej', prelimSnap);
+        H.assert(String(finalSnap.commercial && finalSnap.commercial.versionName || '') === 'Oferta', 'Snapshot nie ustawił domyślnej nazwy dla zwykłej oferty', finalSnap);
+      }),
+
       H.makeTest('Wycena', 'Store oferty zapamiętuje pola handlowe i ilości stawek dla projektu', 'Pilnuje, czy rabat, warunki oferty i ilości stawek wyceny mebli są trzymane per projekt i gotowe do zapisania w snapshotcie.', ()=>{
         H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.saveCurrentDraft === 'function', 'Brak FC.quoteOfferStore.saveCurrentDraft');
         const prevProjectStore = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];

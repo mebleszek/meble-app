@@ -1028,3 +1028,13 @@ Dopiero potem go zmieniać.
 - WYCENA UI: aktywna oferta i stany zaakceptowane korzystają z zielonych akcentów; accordion i info-box wzorowane na istniejących kierunkach z ROZRYS.
 - PDF: dopracowano layout PDF oferty bez zmiany logiki danych snapshotu.
 - TESTY: rozszerzono smoke testy Wycena o zapis wyboru pomieszczeń/zakresu, nazwę wersji oferty, status po usunięciu oferty oraz zawartość PDF.
+
+
+## 2026-04-10 — stage10_quote_polish_v1
+- WYCENA: klik `Podgląd` naprawdę przełącza oglądany snapshot i tylko ten klik przewija do górnego podglądu; pozostałe akcje nie mają już sztucznego skoku scrolla.
+- WYCENA: po ręcznym cofnięciu statusu przed etap `Wycena` wcześniejsze wyceny wstępne znowu są odblokowane zamiast zostawać na siłę wygaszone przez późniejszą wycenę końcową.
+- WYCENA UI: launcher pomieszczeń ukrywa obcy mały trójkąt; chip `Wpływa na kolejny snapshot`, zielone zaznaczenie aktywnej historii i chevron accordiona zostały podciągnięte bliżej realnych wzorców z ROZRYS.
+- WYCENA: domyślne nazwy wersji to teraz `Oferta` i `Wstępna oferta`; kliknięcie pola nazwy zaznacza całą wartość, więc można od razu pisać nad starą nazwą.
+- WYCENA: badge `Wstępna` jest pomarańczowy, badge `Zaakceptowana` czerwony.
+- WYCENA: przy zaakceptowanej wycenie wstępnej pojawia się mały przycisk `Do końcowej`, który przygotowuje draft zwykłej wyceny na bazie tej wersji i przełącza projekt na etap `Wycena`.
+- TESTY: smoke testy Wycena dostały kontrolę domyślnych nazw wersji (`Oferta` / `Wstępna oferta`).

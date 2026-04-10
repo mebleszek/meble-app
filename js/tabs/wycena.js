@@ -94,10 +94,17 @@
   function resolveDisplayedQuote(){
     const history = getSnapshotHistory();
     const selected = history.find((row)=> isSelectedSnapshot(row)) || null;
-    const firstActive = history.find((row)=> !isArchivedPreliminary(row, history)) || history[0] || null;
-    const status = currentProjectStatus(selected || firstActive || lastQuote || null);
+    const firstActive = history.find((row)=> !isArchivedPreliminary(row, history, getProjectStatusForHistory(history))) || history[0] || null;
+    const status = getProjectStatusForHistory(history);
     const latestPreliminary = history.find((row)=> isPreliminarySnapshot(row)) || null;
     const latestFinal = history.find((row)=> !isPreliminarySnapshot(row)) || null;
+    const preview = snapshotById(previewSnapshotId, history);
+
+    if(preview){
+      lastQuote = preview;
+      return normalizeSnapshot(preview);
+    }
+    if(previewSnapshotId) previewSnapshotId = '';
 
     if(status === 'pomiar'){
       const candidate = (selected && isPreliminarySnapshot(selected) ? selected : null) || latestPreliminary;
@@ -181,9 +188,11 @@
     return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
   }
 
-  function isArchivedPreliminary(snapshot, history){
+  function isArchivedPreliminary(snapshot, history, projectStatus){
     const list = Array.isArray(history) ? history : getSnapshotHistory();
     if(!isPreliminarySnapshot(snapshot)) return false;
+    const currentStatus = normalizeStatusKey(projectStatus || currentProjectStatus(snapshot));
+    if(statusRank(currentStatus) < statusRank('wycena')) return false;
     const generatedAt = Number(snapshot && snapshot.generatedAt || 0);
     return list.some((row)=> !isPreliminarySnapshot(row) && Number(row && row.generatedAt || 0) > generatedAt);
   }
@@ -230,9 +239,16 @@
     return row;
   }
 
+  function defaultVersionName(preliminary){
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function') return FC.quoteOfferStore.defaultVersionName(!!preliminary);
+    }catch(_){ }
+    return preliminary ? 'Wstępna oferta' : 'Oferta';
+  }
+
   function getVersionName(snapshot){
     const snap = normalizeSnapshot(snapshot) || {};
-    return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim();
+    return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim() || defaultVersionName(isPreliminarySnapshot(snap));
   }
 
   function getMaterialScopeMode(snapshotOrScope){
@@ -281,6 +297,18 @@
     };
   }
 
+  function snapshotById(id, history){
+    const key = String(id || '');
+    if(!key) return null;
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    return list.find((row)=> getSnapshotId(row) === key) || null;
+  }
+
+  function getProjectStatusForHistory(history){
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    return currentProjectStatus(list.find((row)=> isSelectedSnapshot(row)) || list[0] || lastQuote || null);
+  }
+
   function openQuoteRoomsPicker(ctx){
     const draft = getOfferDraft();
     const selection = normalizeDraftSelection(draft);
@@ -319,6 +347,7 @@
     const roomsBtn = FC.rozrysChoice && typeof FC.rozrysChoice.createChoiceLauncher === 'function'
       ? FC.rozrysChoice.createChoiceLauncher(summary.roomsText, `${summary.roomLabels.length || 0} wybrane`)
       : h('button', { type:'button', class:'btn', text:summary.roomsText });
+    roomsBtn.classList && roomsBtn.classList.add('rozrys-choice-launch--compact', 'quote-selection-launch--rooms');
     roomsBtn.addEventListener('click', ()=> openQuoteRoomsPicker(ctx));
     roomsField.appendChild(roomsBtn);
     grid.appendChild(roomsField);
@@ -589,7 +618,11 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     const preliminaryInput = h('input', { type:'checkbox' });
     preliminaryInput.checked = !!commercial.preliminary;
     preliminaryInput.addEventListener('change', ()=>{
-      patchOfferDraft({ commercial:{ preliminary:!!preliminaryInput.checked } });
+      const nextPreliminary = !!preliminaryInput.checked;
+      const currentVersionName = String(commercial.versionName || '').trim();
+      const prevDefault = defaultVersionName(!!commercial.preliminary);
+      const nextDefault = defaultVersionName(nextPreliminary);
+      patchOfferDraft({ commercial:{ preliminary:nextPreliminary, versionName:(!currentVersionName || currentVersionName === prevDefault) ? nextDefault : currentVersionName } });
       render(ctx);
     });
     preliminaryChip.appendChild(preliminaryInput);
@@ -605,8 +638,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     titleBox.appendChild(h('div', { class:'quote-offer-accordion__summary', text:buildOfferSummary(draft) }));
     head.appendChild(titleBox);
     const headMeta = h('div', { class:'quote-offer-accordion__meta' });
-    headMeta.appendChild(h('span', { class:'quote-selection-info-pill', text:'Wpływa na kolejny snapshot' }));
-    headMeta.appendChild(h('span', { class:`quote-offer-accordion__chevron${offerEditorOpen ? ' is-open' : ''}`, 'aria-hidden':'true' }));
+    headMeta.appendChild(h('span', { class:'rozrys-pill is-raw quote-selection-info-pill', text:'Wpływa na kolejny snapshot' }));
+    headMeta.appendChild(h('span', { class:`rozrys-material-accordion__chevron quote-offer-accordion__chevron${offerEditorOpen ? ' is-open' : ''}`, html:'&#9662;', 'aria-hidden':'true' }));
     head.appendChild(headMeta);
     trigger.appendChild(head);
     trigger.addEventListener('click', ()=>{
@@ -617,9 +650,12 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
 
     if(offerEditorOpen){
       const body = h('div', { class:'quote-offer-accordion__body' });
-      const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || '') });
-      versionInput.addEventListener('change', ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() } }));
-      versionInput.addEventListener('blur', ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() } }));
+      const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || defaultVersionName(!!commercial.preliminary) || '') });
+      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!preliminaryInput.checked) } });
+      versionInput.addEventListener('focus', ()=>{ try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
+      versionInput.addEventListener('pointerup', (ev)=>{ try{ ev.preventDefault(); }catch(_){ } try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
+      versionInput.addEventListener('change', syncVersionName);
+      versionInput.addEventListener('blur', syncVersionName);
       body.appendChild(buildField('Nazwa wersji oferty', versionInput, true));
 
       const rateShell = h('div', { class:'quote-rate-editor' });
@@ -703,6 +739,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
   function renderHistory(card, ctx, currentQuote){
     const history = getSnapshotHistory();
     const activeId = getSnapshotId(currentQuote);
+    const projectStatus = getProjectStatusForHistory(history);
     const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
     section.appendChild(h('h4', { text:'Historia wycen', style:'margin:0 0 10px' }));
     if(!history.length){
@@ -717,7 +754,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       const isActive = !!activeId && snapId === activeId;
       const isSelected = isSelectedSnapshot(snap);
       const isPreliminary = isPreliminarySnapshot(snap);
-      const isArchived = isArchivedPreliminary(snap, history);
+      const isArchived = isArchivedPreliminary(snap, history, projectStatus);
       const item = h('article', { class:`quote-history__item${isActive ? ' is-active' : ''}${isSelected ? ' is-selected' : ''}${isArchived ? ' is-archived' : ''}` });
       const top = h('div', { class:'quote-history__top' });
       const titleBox = h('div', { class:'quote-history__content' });
@@ -744,6 +781,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       const openBtn = h('button', { class:isActive ? 'btn-success' : 'btn', type:'button', text:isActive ? 'Wyświetlany' : 'Podgląd' });
       if(isActive || isArchived) openBtn.disabled = true;
       openBtn.addEventListener('click', ()=>{
+        previewSnapshotId = snapId;
         lastQuote = snap;
         shouldScrollToPreview = true;
         render(ctx);
@@ -772,9 +810,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
             : snap;
         }catch(_){ selected = snap; }
         if(selected){
+          previewSnapshotId = '';
           setProjectStatusFromSnapshot(selected, targetStatus);
           lastQuote = selected;
-          shouldScrollToPreview = true;
           render(ctx);
         }
       });
@@ -785,6 +823,26 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(snap); }catch(_){ }
       });
       actions.appendChild(pdfBtn);
+      if(isPreliminary && isSelected && !isArchived){
+        const convertBtn = h('button', { class:'btn quote-history__convert-btn', type:'button', text:'Do końcowej' });
+        convertBtn.addEventListener('click', ()=>{
+          const nextVersionName = (()=>{
+            const currentName = getVersionName(snap);
+            return (!currentName || currentName === defaultVersionName(true)) ? defaultVersionName(false) : currentName;
+          })();
+          patchOfferDraft({
+            selection:{
+              selectedRooms:Array.isArray(snap.scope && snap.scope.selectedRooms) ? snap.scope.selectedRooms.slice() : [],
+              materialScope:Object.assign({}, snap.scope && snap.scope.materialScope || {}),
+            },
+            commercial:Object.assign({}, snap.commercial || {}, { preliminary:false, versionName:nextVersionName })
+          });
+          previewSnapshotId = '';
+          setProjectStatusFromSnapshot(snap, 'wycena', { syncSelection:true });
+          render(ctx);
+        });
+        actions.appendChild(convertBtn);
+      }
       const deleteBtn = h('button', { class:'btn-danger', type:'button', text:'Usuń' });
       deleteBtn.addEventListener('click', async ()=>{
         const confirmed = await askConfirm({
@@ -808,7 +866,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           }
         }
         const nextHistory = getSnapshotHistory();
-        if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory.find((row)=> !isArchivedPreliminary(row, nextHistory)) || nextHistory[0] || null;
+        if(previewSnapshotId === snapId) previewSnapshotId = '';
+        if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory.find((row)=> !isArchivedPreliminary(row, nextHistory, getProjectStatusForHistory(nextHistory))) || nextHistory[0] || null;
         render(ctx);
       });
       actions.appendChild(deleteBtn);
@@ -820,6 +879,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
   }
 
   let lastQuote = null;
+  let previewSnapshotId = '';
+  let lastKnownProjectStatus = '';
   let isBusy = false;
   let shouldScrollToPreview = false;
   let offerEditorOpen = false;
@@ -852,6 +913,13 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       }
     });
     actions.appendChild(runBtn);
+
+    const liveStatus = getProjectStatusForHistory(getSnapshotHistory());
+    if(lastKnownProjectStatus && liveStatus !== lastKnownProjectStatus){
+      previewSnapshotId = '';
+      lastQuote = null;
+    }
+    lastKnownProjectStatus = liveStatus;
 
     const currentQuote = resolveDisplayedQuote();
     const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
