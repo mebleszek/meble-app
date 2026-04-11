@@ -1795,15 +1795,15 @@
 .quote-preliminary-chip{align-self:flex-start;}
 .quote-preliminary-help{margin-top:0;}
 .quote-offer-accordion{padding:0;overflow:hidden;}
+.quote-offer-accordion__head{background:#fff;}
 .quote-offer-accordion__trigger{width:100%;text-align:left;}
 .quote-offer-accordion__titlebox{min-width:0;flex:1 1 auto;}
-.quote-offer-accordion__title{font-size:20px;line-height:1.12;font-weight:800;color:#0f172a;}
-.quote-offer-accordion__summary{margin-top:6px;font-size:14px;line-height:1.35;font-weight:700;color:#64748b;overflow-wrap:anywhere;word-break:break-word;}
-.quote-offer-accordion__meta{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;flex:0 0 auto;margin-top:2px;}
+.quote-offer-accordion__summary-line{font-size:14px !important;line-height:1.35 !important;font-weight:700 !important;color:#64748b !important;overflow-wrap:anywhere;word-break:break-word;}
+.quote-offer-accordion__head-row{justify-content:flex-start;gap:10px;flex-wrap:wrap;padding-top:0;padding-bottom:14px;}
+.quote-selection-info-pill{max-width:100%;}
 .quote-offer-accordion__body{padding:0 20px 18px;}
 @media (max-width:768px){
-  .quote-offer-accordion__trigger{align-items:flex-start;}
-  .quote-offer-accordion__meta{justify-content:space-between;align-self:stretch;}
+  .quote-offer-accordion__head-row{padding:0 16px 14px;}
 }
 
 /* stage9_quote_sync_ui */
@@ -1852,3 +1852,4 @@
   border-color:rgba(15,23,42,.22);
   color:#0f172a;
 }
+#quotePreviewStart,#quoteActivePreview{scroll-margin-top:96px;}

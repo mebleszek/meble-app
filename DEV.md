@@ -1048,3 +1048,5 @@ Dopiero potem go zmieniać.
 - TESTY: smoke testy Wycena sprawdzają teraz także konwersję wstępnej oferty do końcowej oraz wygaszanie wycen wstępnych po zaakceptowaniu zwykłej oferty.
 
 - 2026-04-11: `js/tabs/wycena.js`, `css/style.css`, `index.html`, `dev_tests.html` — Wycena dostała polskie etykiety `Wersja oferty`, żeńskie formy dla oferty, usunięty badge `Oglądany`, scroll akcji historii oparty o przywracanie pozycji jak w działających częściach programu oraz accordion ustawień oferty przepięty wizualnie na shell i chevron z ROZRYS.
+
+- 2026-04-11: `js/tabs/wycena.js`, `css/style.css`, `index.html` — Wycena: naprawione rozjechanie bloku „Ustawienia oferty do nowej wyceny” przez przepięcie headera accordiona na układ wzorowany na ROZRYS (trigger + osobny dolny rząd meta), poprawione przewijanie `Podgląd` do początku sekcji podglądu oraz przywracanie scrolla po akcjach historii z fallbackiem do sąsiedniej karty / sekcji historii zamiast skoku na górę.

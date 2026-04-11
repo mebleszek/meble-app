@@ -310,6 +310,25 @@
     return key ? `quoteHistoryItem-${key}` : '';
   }
 
+  function getQuoteHistoryNeighborDomId(snapshotId){
+    try{
+      const currentId = getQuoteHistoryItemDomId(snapshotId);
+      const current = currentId ? document.getElementById(currentId) : null;
+      if(!current) return 'quoteHistorySection';
+      let next = current.nextElementSibling;
+      while(next){
+        if(next.matches && next.matches('[data-quote-history-id]') && next.id) return next.id;
+        next = next.nextElementSibling;
+      }
+      let prev = current.previousElementSibling;
+      while(prev){
+        if(prev.matches && prev.matches('[data-quote-history-id]') && prev.id) return prev.id;
+        prev = prev.previousElementSibling;
+      }
+    }catch(_){ }
+    return 'quoteHistorySection';
+  }
+
   function getScrollY(){
     try{
       if(typeof window.scrollY === 'number') return Math.max(0, Math.round(window.scrollY));
@@ -318,17 +337,19 @@
     }catch(_){ return 0; }
   }
 
-  function rememberQuoteScroll(anchorId){
+  function rememberQuoteScroll(anchorId, fallbackAnchorId){
     const scrollY = getScrollY();
     let domId = String(anchorId || '').trim();
+    let fallbackDomId = String(fallbackAnchorId || '').trim();
     let anchor = domId ? document.getElementById(domId) : null;
+    if(!anchor && fallbackDomId) anchor = document.getElementById(fallbackDomId);
     if(!anchor){
       try{
         const focused = document.activeElement;
         anchor = focused && typeof focused.closest === 'function'
-          ? focused.closest('[data-quote-history-id], #quotePreviewStart, #quoteActivePreview')
+          ? focused.closest('[data-quote-history-id], #quotePreviewStart, #quoteActivePreview, #quoteHistorySection')
           : null;
-        domId = String(anchor && anchor.id || domId || '').trim();
+        if(anchor && !domId) domId = String(anchor.id || '').trim();
       }catch(_){ anchor = null; }
     }
     let offset = 0;
@@ -339,9 +360,14 @@
         offset = scrollY - absoluteTop;
       }catch(_){ offset = 0; }
     }
+    try{
+      const active = document.activeElement;
+      if(active && typeof active.blur === 'function') active.blur();
+    }catch(_){ }
     pendingScrollRestore = {
       scrollY: Math.max(0, Math.round(scrollY)),
       domId,
+      fallbackDomId,
       offset: Number.isFinite(offset) ? offset : 0,
       ts: Date.now(),
     };
@@ -359,21 +385,21 @@
     if(!snapshot) return;
     const apply = ()=>{
       try{
-        const anchor = snapshot.domId ? document.getElementById(snapshot.domId) : null;
-        if(anchor){
-          const baseTop = getScrollY() + anchor.getBoundingClientRect().top;
-          window.scrollTo(0, Math.max(0, Math.round(baseTop + (Number(snapshot.offset) || 0))));
-          return;
-        }
-      }catch(_){ }
-      try{ window.scrollTo(0, Math.max(0, Math.round(Number(snapshot.scrollY) || 0))); }catch(_){ }
+        const anchor = (snapshot.domId && document.getElementById(snapshot.domId))
+          || (snapshot.fallbackDomId && document.getElementById(snapshot.fallbackDomId));
+        const baseTop = anchor
+          ? (getScrollY() + anchor.getBoundingClientRect().top)
+          : (Number(snapshot.scrollY) || 0);
+        const targetTop = Math.max(0, Math.round(baseTop + (Number(snapshot.offset) || 0)));
+        window.scrollTo(0, targetTop);
+      }catch(_){
+        try{ window.scrollTo(0, Math.max(0, Math.round(Number(snapshot.scrollY) || 0))); }catch(__){ }
+      }
     };
     try{
       requestAnimationFrame(()=> requestAnimationFrame(apply));
-      setTimeout(apply, 80);
-      setTimeout(apply, 180);
     }catch(_){
-      try{ apply(); }catch(__){ }
+      setTimeout(apply, 0);
     }
   }
 
@@ -704,20 +730,23 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     card.appendChild(preliminaryWrap);
 
     const section = h('section', { class:`quote-offer-accordion rozrys-material-accordion${offerEditorOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
-    const trigger = h('button', { class:'quote-offer-accordion__trigger rozrys-material-accordion__trigger', type:'button' });
-    const titleBox = h('div', { class:'quote-offer-accordion__titlebox rozrys-material-accordion__title' });
-    titleBox.appendChild(h('div', { class:'quote-offer-accordion__title rozrys-material-accordion__title-line1', text:'Ustawienia oferty do nowej wyceny' }));
-    titleBox.appendChild(h('div', { class:'quote-offer-accordion__summary', text:buildOfferSummary(draft) }));
-    const headMeta = h('div', { class:'quote-offer-accordion__meta' });
-    headMeta.appendChild(h('span', { class:'rozrys-pill is-raw quote-selection-info-pill', text:'Wpływa na kolejną wersję oferty' }));
-    headMeta.appendChild(h('span', { class:`quote-offer-accordion__chevron rozrys-material-accordion__chevron${offerEditorOpen ? ' is-open' : ''}`, html:'&#9662;', 'aria-hidden':'true' }));
+    const head = h('div', { class:'quote-offer-accordion__head' });
+    const trigger = h('button', { class:'rozrys-material-accordion__trigger quote-offer-accordion__trigger', type:'button' });
+    const titleBox = h('div', { class:'rozrys-material-accordion__title quote-offer-accordion__titlebox' });
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:'Ustawienia oferty do nowej wyceny' }));
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2 quote-offer-accordion__summary-line', text:buildOfferSummary(draft) }));
+    const chevron = h('span', { class:`rozrys-material-accordion__chevron${offerEditorOpen ? ' is-open' : ''}`, html:'&#9662;', 'aria-hidden':'true' });
     trigger.appendChild(titleBox);
-    trigger.appendChild(headMeta);
+    trigger.appendChild(chevron);
     trigger.addEventListener('click', ()=>{
       offerEditorOpen = !offerEditorOpen;
       render(ctx);
     });
-    section.appendChild(trigger);
+    head.appendChild(trigger);
+    const headRow = h('div', { class:'quote-offer-accordion__head-row rozrys-material-accordion__grain-row' });
+    headRow.appendChild(h('span', { class:'rozrys-pill is-raw quote-selection-info-pill', text:'Wpływa na kolejną wersję oferty' }));
+    head.appendChild(headRow);
+    section.appendChild(head);
 
     if(offerEditorOpen){
       const body = h('div', { class:'quote-offer-accordion__body rozrys-material-accordion__body' });
@@ -818,7 +847,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       card.appendChild(section);
       return;
     }
-    const wrap = h('div', { class:'quote-history' });
+    const wrap = h('div', { class:'quote-history', id:'quoteHistorySection' });
     history.slice(0, 8).forEach((snapshot, index)=>{
       const snap = normalizeSnapshot(snapshot) || {};
       const snapId = getSnapshotId(snap);
@@ -906,7 +935,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           cancelTone:'neutral'
         });
         if(!confirmed) return;
-        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
+        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId), getQuoteHistoryNeighborDomId(snapId));
         const currentStatus = currentProjectStatus(snap);
         const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
         try{
@@ -1050,7 +1079,11 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         requestAnimationFrame(()=>{
           try{
             const target = document.getElementById('quotePreviewStart') || document.getElementById('quoteActivePreview');
-            target && target.scrollIntoView && target.scrollIntoView({ behavior:'smooth', block:'start' });
+            if(target){
+              const absoluteTop = getScrollY() + target.getBoundingClientRect().top;
+              const targetTop = Math.max(0, Math.round(absoluteTop - 96));
+              window.scrollTo({ top:targetTop, behavior:'smooth' });
+            }
           }catch(_){ }
         });
       }catch(_){ }
