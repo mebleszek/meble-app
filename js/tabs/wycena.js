@@ -383,24 +383,36 @@
     const snapshot = pendingScrollRestore && typeof pendingScrollRestore === 'object' ? Object.assign({}, pendingScrollRestore) : null;
     clearRememberedQuoteScroll();
     if(!snapshot) return;
-    const apply = ()=>{
+
+    const resolveTargetTop = ()=>{
       try{
         const anchor = (snapshot.domId && document.getElementById(snapshot.domId))
           || (snapshot.fallbackDomId && document.getElementById(snapshot.fallbackDomId));
         const baseTop = anchor
           ? (getScrollY() + anchor.getBoundingClientRect().top)
           : (Number(snapshot.scrollY) || 0);
-        const targetTop = Math.max(0, Math.round(baseTop + (Number(snapshot.offset) || 0)));
-        window.scrollTo(0, targetTop);
+        return Math.max(0, Math.round(baseTop + (Number(snapshot.offset) || 0)));
       }catch(_){
-        try{ window.scrollTo(0, Math.max(0, Math.round(Number(snapshot.scrollY) || 0))); }catch(__){ }
+        return Math.max(0, Math.round(Number(snapshot.scrollY) || 0));
       }
     };
-    try{
-      requestAnimationFrame(()=> requestAnimationFrame(apply));
-    }catch(_){
-      setTimeout(apply, 0);
-    }
+
+    const applyOnce = ()=>{
+      try{
+        const targetTop = resolveTargetTop();
+        if(Math.abs(getScrollY() - targetTop) > 1) window.scrollTo(0, targetTop);
+      }catch(_){ }
+    };
+
+    const delayed = [0, 16, 48, 120, 240, 420];
+    delayed.forEach((delay)=>{
+      try{
+        if(delay === 0) requestAnimationFrame(()=> requestAnimationFrame(applyOnce));
+        else setTimeout(applyOnce, delay);
+      }catch(_){
+        try{ setTimeout(applyOnce, delay); }catch(__){ }
+      }
+    });
   }
 
   function getProjectStatusForHistory(history){
@@ -892,6 +904,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       if(isSelected || isArchived) chooseBtn.disabled = true;
       chooseBtn.addEventListener('click', async ()=>{
         const targetStatus = isPreliminary ? 'pomiar' : 'zaakceptowany';
+        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
         const confirmed = await askConfirm({
           title:'OZNACZYĆ OFERTĘ?',
           message:isPreliminary
@@ -902,8 +915,10 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           confirmTone:'success',
           cancelTone:'neutral'
         });
-        if(!confirmed) return;
-        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
+        if(!confirmed){
+          clearRememberedQuoteScroll();
+          return;
+        }
         let selected = null;
         try{
           selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
@@ -926,6 +941,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       actions.appendChild(pdfBtn);
       const deleteBtn = h('button', { class:'btn-danger', type:'button', text:'Usuń' });
       deleteBtn.addEventListener('click', async ()=>{
+        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId), getQuoteHistoryNeighborDomId(snapId));
         const confirmed = await askConfirm({
           title:'USUNĄĆ OFERTĘ?',
           message:'Ta wersja oferty zostanie trwale usunięta z historii.',
@@ -934,8 +950,10 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           confirmTone:'danger',
           cancelTone:'neutral'
         });
-        if(!confirmed) return;
-        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId), getQuoteHistoryNeighborDomId(snapId));
+        if(!confirmed){
+          clearRememberedQuoteScroll();
+          return;
+        }
         const currentStatus = currentProjectStatus(snap);
         const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
         try{
