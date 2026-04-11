@@ -1046,3 +1046,5 @@ Dopiero potem go zmieniać.
 - WYCENA: `Końcowa` nie przerzuca już do obcego draftu — konwertuje tę samą zaakceptowaną wycenę wstępną na zwykłą końcową ofertę i ustawia status projektu na `zaakceptowany`.
 - WYCENA: po zaakceptowaniu zwykłej oferty wszystkie wyceny wstępne są wygaszane spójnie dla całej historii, niezależnie od pozycji nad/pod ofertą końcową.
 - TESTY: smoke testy Wycena sprawdzają teraz także konwersję wstępnej oferty do końcowej oraz wygaszanie wycen wstępnych po zaakceptowaniu zwykłej oferty.
+
+- 2026-04-11: `js/tabs/wycena.js`, `css/style.css`, `index.html`, `dev_tests.html` — Wycena dostała polskie etykiety `Wersja oferty`, żeńskie formy dla oferty, usunięty badge `Oglądany`, scroll akcji historii oparty o przywracanie pozycji jak w działających częściach programu oraz accordion ustawień oferty przepięty wizualnie na shell i chevron z ROZRYS.
