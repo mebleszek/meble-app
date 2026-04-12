@@ -574,6 +574,36 @@
         assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('inne'), 'ROZRYS nie zrobił retry po realnych pokojach projektu', agg);
         assert(Array.isArray(agg.materials) && agg.materials.includes('Jesion test'), 'ROZRYS po retry nadal nie zbudował materiału', agg);
       }),
+      makeTest('Projekt i agregacja', 'ROZRYS filtruje pokoje z tego samego projektu także przy pierwszym przebiegu', 'Pilnuje, czy agregacja i lista dopuszczalnych pokoi korzystają z tego samego kandydata projektu zamiast mieszać fixture z globalnymi domyślnymi pokojami.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          salon:{ cabinets:[{ id:'cab-4', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+        };
+        const fixtureCutList = ()=> ([
+          { name:'Bok', qty:2, a:72, b:56, material:'Scoped salon test' },
+        ]);
+        const prevSchemaRooms = FC.schema && Array.isArray(FC.schema.ROOMS) ? FC.schema.ROOMS.slice() : null;
+        const prevWindowProject = host.window && host.window.projectData;
+        const prevRoomRegistry = FC.roomRegistry;
+        FC.roomRegistry = {
+          hasCurrentInvestor: ()=> false,
+          getActiveRoomIds: ()=> [],
+        };
+        if(FC.schema) FC.schema.ROOMS = ['kuchnia','szafa','pokoj','lazienka'];
+        if(host.window) host.window.projectData = { schemaVersion:9, kuchnia:{ cabinets:[{ id:'stale-cab', width:60, height:72, depth:56 }], fronts:[], sets:[], settings:{} } };
+        try{
+          const agg = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['salon']));
+          assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('salon'), 'ROZRYS odfiltrował pokój fixture po globalnych pokojach zamiast po scoped projekcie', agg);
+          assert(Array.isArray(agg.materials) && agg.materials.includes('Scoped salon test'), 'ROZRYS nie zbudował materiału po scoped wyborze pokoju', agg);
+        } finally {
+          if(FC.schema){
+            if(prevSchemaRooms) FC.schema.ROOMS = prevSchemaRooms;
+            else delete FC.schema.ROOMS;
+          }
+          if(host.window) host.window.projectData = prevWindowProject;
+          FC.roomRegistry = prevRoomRegistry;
+        }
+      }),
       makeTest('Magazyn i arkusze', 'Model arkusza respektuje blokadę obrotu przy słojach', 'Sprawdza, czy formatka nie przejdzie tylko dlatego, że zmieściłaby się po niedozwolonym obrocie.', ()=>{
         const parts = [
           { key:'grain||front||600x350', name:'Front', material:'Dąb dziki', w:600, h:350, qty:2 },

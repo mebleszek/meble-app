@@ -1063,3 +1063,5 @@ Dopiero potem go zmieniać.
 - 2026-04-12: PDF klienta w Wycena bez listy formatek / elementów technicznych. Dokument pokazuje tylko handlowe sekcje: materiały / kolory, akcesoria z ilościami, usługi, AGD i cenę końcową. Dodany regresyjny smoke test PDF bez `Elementy w ofercie`.
 
 - 2026-04-12: zaległe testy działowe — dodano `js/testing/service/tests.js` z osobną sekcją `USŁUGI` dla store zleceń usługowych, listy statusów, upsertu bez duplikatów i cleanup testowych rekordów. `dev_tests.html` dostał osobne przyciski uruchamiania działów: PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI, USŁUGI, a runner Node `tools/app-dev-smoke.js` został rozszerzony o nową sekcję testów.
+
+- 2026-04-12: ROZRYS first-run scoped rooms fix — aggregatePartsForProject spina teraz safeGetProject i listę pokoi z tego samego scoped projektu, więc pierwszy przebieg testów nie filtruje już `salon` / `inne` po globalnych domyślnych pokojach. Retry po pokojach używa discovered rooms z tego samego kandydata projektu. Dodany regresyjny smoke test na pierwszy przebieg ze scoped pokojami.

@@ -80,7 +80,7 @@
   }
 
 
-  function getRooms(){
+  function getRoomsForProject(proj){
     const registryRooms = (()=>{
       try{
         if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
@@ -101,7 +101,6 @@
       return ['kuchnia','szafa','pokoj','lazienka'];
     })();
     const defaults = hasInvestor ? registryRooms.slice() : (registryRooms.length ? registryRooms.slice() : fallbackDefaults);
-    const proj = safeGetProject();
     if(!proj || typeof proj !== 'object') return defaults;
     const discovered = discoverProjectRoomKeys(proj);
     if(hasInvestor){
@@ -112,6 +111,10 @@
     defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });
     discovered.forEach((room)=>{ if(!ordered.includes(room)) ordered.push(room); });
     return ordered.length ? ordered : defaults;
+  }
+
+  function getRooms(){
+    return getRoomsForProject(safeGetProject());
   }
 
   function parseLocaleNumber(v){
@@ -427,10 +430,14 @@ function aggregatePartsForProject(selectedRooms){
     };
     const candidates = collectProjectCandidates();
     for(const entry of candidates){
-      const scopedDeps = Object.assign({}, baseDeps, { safeGetProject: ()=> entry.proj });
+      const scopedGetRooms = ()=> getRoomsForProject(entry.proj);
+      const scopedDeps = Object.assign({}, baseDeps, {
+        safeGetProject: ()=> entry.proj,
+        getRooms: scopedGetRooms,
+      });
       const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, scopedDeps);
       if(first && Array.isArray(first.materials) && first.materials.length) return first;
-      const discoveredRooms = discoverProjectRoomKeys(entry.proj);
+      const discoveredRooms = scopedGetRooms();
       if(discoveredRooms.length){
         const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, scopedDeps);
         if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
