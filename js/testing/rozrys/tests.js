@@ -297,6 +297,17 @@
       }
     }
   }
+
+
+  function withPatchedRoomRegistry(registryPatch, run){
+    const prevRoomRegistry = FC.roomRegistry;
+    FC.roomRegistry = Object.assign({}, prevRoomRegistry || {}, registryPatch || {});
+    try{
+      return run();
+    }finally{
+      FC.roomRegistry = prevRoomRegistry;
+    }
+  }
   function buildPrintDeps(){
     return {
       measurePrintHeaderMm: ()=> 14,
@@ -529,7 +540,10 @@
           { name:'Bok', qty:2, a:72, b:56, material:'Dąb test' },
         ]);
         assert(FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function', 'Brak FC.rozrys.aggregatePartsForProject');
-        const agg = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['salon']));
+        const agg = withPatchedRoomRegistry({
+          hasCurrentInvestor: ()=> true,
+          getActiveRoomIds: ()=> ['kuchnia'],
+        }, ()=> withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['salon'])));
         assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('salon'), 'ROZRYS nie rozpoznał własnego klucza pomieszczenia z projektu', agg);
         assert(Array.isArray(agg.materials) && agg.materials.includes('Dąb test'), 'ROZRYS nie zbudował materiału dla własnego klucza pomieszczenia', agg);
       }),
@@ -570,9 +584,28 @@
         const fixtureCutList = ()=> ([
           { name:'Bok', qty:2, a:72, b:56, material:'Jesion test' },
         ]);
-        const agg = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['kuchnia']));
+        const agg = withPatchedRoomRegistry({
+          hasCurrentInvestor: ()=> true,
+          getActiveRoomIds: ()=> ['kuchnia'],
+        }, ()=> withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['kuchnia'])));
         assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('inne'), 'ROZRYS nie zrobił retry po realnych pokojach projektu', agg);
         assert(Array.isArray(agg.materials) && agg.materials.includes('Jesion test'), 'ROZRYS po retry nadal nie zbudował materiału', agg);
+      }),
+
+      makeTest('Projekt i agregacja', 'ROZRYS przy aktywnym roomRegistry nie gubi pokojów odkrytych w projekcie', 'Pilnuje first-click regresji, w której aktywny inwestor zwracał stare pokoje z registry i blokował materiały z faktycznego projektu.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          salon:{ cabinets:[{ id:'cab-5', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+        };
+        const fixtureCutList = ()=> ([
+          { name:'Półka', qty:3, a:56, b:30, material:'First click test' },
+        ]);
+        const agg = withPatchedRoomRegistry({
+          hasCurrentInvestor: ()=> true,
+          getActiveRoomIds: ()=> ['kuchnia'],
+        }, ()=> withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['salon'])));
+        assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('salon'), 'ROZRYS nie dopuścił pokoju odkrytego w projekcie przy aktywnym roomRegistry', agg);
+        assert(Array.isArray(agg.materials) && agg.materials.includes('First click test'), 'ROZRYS nadal zgubił materiały przy pierwszym przebiegu z aktywnym roomRegistry', agg);
       }),
       makeTest('Projekt i agregacja', 'ROZRYS filtruje pokoje z tego samego projektu także przy pierwszym przebiegu', 'Pilnuje, czy agregacja i lista dopuszczalnych pokoi korzystają z tego samego kandydata projektu zamiast mieszać fixture z globalnymi domyślnymi pokojami.', ()=>{
         const fixtureProject = {

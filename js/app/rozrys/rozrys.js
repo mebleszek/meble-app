@@ -103,14 +103,17 @@
     const defaults = hasInvestor ? registryRooms.slice() : (registryRooms.length ? registryRooms.slice() : fallbackDefaults);
     if(!proj || typeof proj !== 'object') return defaults;
     const discovered = discoverProjectRoomKeys(proj);
-    if(hasInvestor){
-      if(registryRooms.length) return registryRooms.slice();
-      return discovered.length ? discovered.slice() : [];
-    }
     const ordered = [];
-    defaults.forEach((room)=>{ if(discovered.includes(room)) ordered.push(room); });
-    discovered.forEach((room)=>{ if(!ordered.includes(room)) ordered.push(room); });
-    return ordered.length ? ordered : defaults;
+    const preferredOrder = defaults.length ? defaults : discovered;
+    preferredOrder.forEach((room)=>{
+      if(discovered.includes(room) && !ordered.includes(room)) ordered.push(room);
+    });
+    discovered.forEach((room)=>{
+      if(!ordered.includes(room)) ordered.push(room);
+    });
+    if(ordered.length) return ordered;
+    if(hasInvestor) return registryRooms.length ? registryRooms.slice() : [];
+    return defaults;
   }
 
   function getRooms(){
