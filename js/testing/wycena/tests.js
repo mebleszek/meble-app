@@ -315,6 +315,7 @@
             lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
             generatedAt:1712820300000,
           });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, snapshot.id, { status:'pomiar' });
           FC.wycenaTabDebug.setProjectStatusFromSnapshot(snapshot, 'pomiar');
           const investor = FC.investors.getById(investorId);
           const kitchen = (investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
@@ -368,6 +369,23 @@
         });
       }),
 
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Zmiana zaakceptowanej wyceny wspólnej na jednopomieszczeniową cofa pozostałe pokoje', 'Pilnuje regresję, w której po przełączeniu akceptacji z wyceny wspólnej na wycenę jednego pokoju inne pomieszczenia błędnie zostawały na statusie pomiar.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przełączenie' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:210 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820450000 });
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_kitchen_pre_only', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przełączenie' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:105 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820460000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar' });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(sharedPre, 'pomiar');
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar' });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(kitchenPre, 'pomiar');
+          const investor = FC.investors.getById(investorId);
+          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Pokój z nowo zaakceptowaną wyceną jednopomieszczeniową stracił status pomiar', investor.rooms);
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wstepna_wycena', 'Pokój zdjęty z akceptacji nie wrócił do własnego statusu scoped po wyłączeniu wspólnej wyceny', { rooms:investor.rooms, all:FC.quoteSnapshotStore.listForProject(projectId) });
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Status wyceny scoped nie zależy od pierwszego pokoju inwestora', 'Pilnuje, czy odczyt statusu oferty bierze pokoje z zakresu snapshotu zamiast przypadkowego pierwszego pomieszczenia inwestora.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.currentProjectStatus === 'function', 'Brak FC.wycenaTabDebug.currentProjectStatus');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
@@ -396,7 +414,7 @@
           const investor = FC.investors.getById(investorId);
           const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
           const selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
-          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'nowy', 'Ręczna zmiana statusu salonu nadpisała kuchnię', investor.rooms);
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'wstepna_wycena', 'Ręczna zmiana statusu salonu zignorowała scoped historię kuchni albo nadpisała ją błędnym statusem', investor.rooms);
           H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'pomiar', 'Ręczna zmiana statusu salonu nie zapisała się w docelowym pokoju', investor.rooms);
           H.assert(selected && String(selected.id || '') === String(salonPre.id || ''), 'Synchronizacja Wycena po ręcznej zmianie pokoju wybrała złą ofertę scoped', { selected, kitchenPre, salonPre, all:FC.quoteSnapshotStore.listForProject(projectId) });
         });

@@ -241,6 +241,64 @@
     return best || normalizeStatusKey(fallback);
   }
 
+
+  function getRoomStatusMap(roomIds, sources){
+    const ids = normalizeRoomIds(roomIds);
+    const map = {};
+    ids.forEach((roomId)=> {
+      const status = collectRoomStatuses([roomId], sources)[0] || '';
+      if(status) map[roomId] = status;
+    });
+    return map;
+  }
+
+  function getKnownProjectRoomIds(projectId, investor, loadedProject, fallbackRoomIds){
+    const set = new Set(normalizeRoomIds(fallbackRoomIds));
+    const investorRooms = investor && Array.isArray(investor.rooms) ? investor.rooms : [];
+    investorRooms.forEach((room)=> {
+      const key = String(room && room.id || '');
+      if(key) set.add(key);
+    });
+    try{
+      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function'){
+        const record = FC.projectStore.getById(projectId);
+        const defs = record && record.projectData && record.projectData.meta && record.projectData.meta.roomDefs;
+        if(defs && typeof defs === 'object') Object.keys(defs).forEach((roomId)=> { if(roomId) set.add(roomId); });
+      }
+    }catch(_){ }
+    try{
+      const defs = loadedProject && loadedProject.meta && loadedProject.meta.roomDefs;
+      if(defs && typeof defs === 'object') Object.keys(defs).forEach((roomId)=> { if(roomId) set.add(roomId); });
+    }catch(_){ }
+    try{
+      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
+        normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()).forEach((roomId)=> set.add(roomId));
+      }
+    }catch(_){ }
+    return Array.from(set);
+  }
+
+  function buildRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, fallbackRoomIds, fallbackStatus){
+    const ids = normalizeRoomIds(roomIds);
+    const targetSet = new Set(normalizeRoomIds(fallbackRoomIds));
+    const map = {};
+    try{
+      if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
+        Object.assign(map, FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids) || {});
+      }
+    }catch(_){ }
+    ids.forEach((roomId)=> {
+      const key = String(roomId || '');
+      const current = normalizeStatusKey(currentStatusMap && currentStatusMap[key] || '');
+      const suggested = normalizeStatusKey(map[key] || '');
+      if(suggested){
+        map[key] = suggested;
+        return;
+      }
+      map[key] = targetSet.has(key) ? normalizeStatusKey(fallbackStatus || current || '') : current;
+    });
+    return map;
+  }
   function isArchivedPreliminary(snapshot, history, projectStatus){
     const list = Array.isArray(history) ? history : getSnapshotHistory();
     if(!isPreliminarySnapshot(snapshot)) return false;
@@ -665,6 +723,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     card.appendChild(section);
   }
 
+
   function setProjectStatusFromSnapshot(snapshot, status, options){
     const snap = normalizeSnapshot(snapshot) || {};
     const nextStatus = normalizeStatusKey(status);
@@ -679,33 +738,52 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     );
     const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
 
+    if(syncSelection){
+      try{
+        if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
+          FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus, targetRoomIds.length ? { roomIds:targetRoomIds } : undefined);
+        }
+      }catch(_){ }
+    }
+
     let investor = null;
     try{
       if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') investor = FC.investorPersistence.getInvestorById(investorId);
       if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function') investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
     }catch(_){ investor = null; }
 
+    let loadedProject = null;
+    try{
+      if(FC.project && typeof FC.project.load === 'function') loadedProject = FC.project.load() || null;
+    }catch(_){ loadedProject = null; }
+
+    const knownRoomIds = getKnownProjectRoomIds(projectId, investor, loadedProject, targetRoomIds);
+    const currentStatusMap = getRoomStatusMap(knownRoomIds, {
+      investorRooms: investor && investor.rooms,
+      roomDefs: loadedProject && loadedProject.meta && loadedProject.meta.roomDefs,
+    });
+    const roomStatusMap = buildRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, targetRoomIds, nextStatus);
+
     let nextInvestor = investor;
     try{
       if(investor && FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
-        const allowed = targetRoomIds.length ? new Set(targetRoomIds) : null;
         const roomMap = new Map();
         const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
         currentRooms.forEach((room)=>{
           const key = String(room && room.id || '');
           if(!key) return;
-          const nextRoom = allowed && !allowed.has(key)
-            ? Object.assign({}, room)
-            : Object.assign({}, room, { projectStatus:nextStatus });
-          roomMap.set(key, nextRoom);
+          const resolvedStatus = normalizeStatusKey(roomStatusMap[key] || room && (room.projectStatus || room.status) || '');
+          roomMap.set(key, Object.assign({}, room, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
         });
         try{
           if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
             const defs = FC.roomRegistry.getActiveRoomDefs() || [];
             defs.forEach((room)=>{
               const key = String(room && room.id || '');
-              if(!key || (allowed && !allowed.has(key))) return;
-              roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key, projectStatus:nextStatus }));
+              if(!key) return;
+              const resolvedStatus = normalizeStatusKey(roomStatusMap[key] || '');
+              if(!resolvedStatus && roomMap.has(key)) return;
+              roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key }, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
             });
           }
         }catch(_){ }
@@ -719,7 +797,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       if(FC.investorPersistence && FC.investorPersistence._debug && typeof FC.investorPersistence._debug.getAggregateInvestorStatus === 'function'){
         aggregateStatus = normalizeStatusKey(FC.investorPersistence._debug.getAggregateInvestorStatus(nextInvestor || investor, nextStatus) || nextStatus);
       } else {
-        aggregateStatus = getAggregateStatus(collectRoomStatuses(getAllActiveRoomIds(), { investorRooms: nextInvestor && nextInvestor.rooms }), nextStatus);
+        aggregateStatus = getAggregateStatus(collectRoomStatuses(knownRoomIds, { investorRooms: nextInvestor && nextInvestor.rooms }), nextStatus);
       }
     }catch(_){ aggregateStatus = nextStatus; }
 
@@ -733,18 +811,17 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     }catch(_){ }
 
     try{
-      if(FC.project && typeof FC.project.load === 'function' && typeof FC.project.save === 'function'){
-        const proj = FC.project.load() || {};
+      if(FC.project && typeof FC.project.save === 'function'){
+        const proj = loadedProject || {};
         const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
         if(meta){
           meta.projectStatus = aggregateStatus;
           if(meta.roomDefs && typeof meta.roomDefs === 'object'){
-            const allowed = targetRoomIds.length ? new Set(targetRoomIds) : null;
             Object.keys(meta.roomDefs).forEach((roomId)=>{
-              if(allowed && !allowed.has(roomId)) return;
               const row = meta.roomDefs[roomId];
               if(!row || typeof row !== 'object') return;
-              meta.roomDefs[roomId] = Object.assign({}, row, { projectStatus:nextStatus });
+              const resolvedStatus = normalizeStatusKey(roomStatusMap[roomId] || row.projectStatus || row.status || '');
+              meta.roomDefs[roomId] = Object.assign({}, row, resolvedStatus ? { projectStatus:resolvedStatus } : {});
             });
           }
           FC.project.save(proj);
@@ -752,17 +829,10 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       }
     }catch(_){ }
 
-    try{
-      if(syncSelection && projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
-        FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus, targetRoomIds.length ? { roomIds:targetRoomIds } : undefined);
-      }
-    }catch(_){ }
-
     try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
     try{ if(FC.investorUI && typeof FC.investorUI.render === 'function') FC.investorUI.render(); }catch(_){ }
     try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
-
   function syncGeneratedQuoteStatus(snapshot){
     const snap = normalizeSnapshot(snapshot);
     if(!snap || !snap.project) return;

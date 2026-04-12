@@ -244,6 +244,22 @@
     return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'nowy';
   }
 
+  function getRecommendedStatusMapForProject(projectId, currentStatusesByRoom, roomIds){
+    const pid = String(projectId || '');
+    const ids = normalizeRoomIds(roomIds);
+    const out = {};
+    if(!pid || !ids.length) return out;
+    const projectRows = listForProject(pid);
+    ids.forEach((roomId)=> {
+      const key = String(roomId || '');
+      if(!key) return;
+      const current = normalizeStatus(currentStatusesByRoom && currentStatusesByRoom[key] || '');
+      const scopedRows = filterRowsByRoomScope(projectRows, [key]);
+      out[key] = scopedRows.length ? getRecommendedStatusForProject(pid, current, { roomIds:[key] }) : current;
+    });
+    return out;
+  }
+
   function convertPreliminaryToFinal(projectId, snapshotId){
     const pid = String(projectId || '');
     const sid = String(snapshotId || '');
@@ -295,6 +311,7 @@
     markSelectedForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,
+    getRecommendedStatusMapForProject,
     convertPreliminaryToFinal,
     listForProject,
     listForInvestor,
