@@ -1,3 +1,10 @@
+
+## 2026-04-12 — foundation tests follow-up
+- rozszerzone smoke testy działowe dla `Inwestor`, `Materiały` i `Usługi`
+- `Inwestor`: status projektu z poziomu inwestora synchronizuje `projectStore` i wybór oferty; aktualizacja jednego pomieszczenia nie narusza pozostałych i odświeża etykietę rejestru
+- `Materiały`: zapis listy płyt nie przepuszcza akcesoriów do materiałów arkuszowych; `migrateLegacy({ preferStoredSplit:true })` trzyma rozdzielone listy zamiast wskrzesić legacy dane
+- `Usługi`: `catalogStore` i `serviceOrderStore` są testowane jako jedno źródło danych; szkic zlecenia nie zapisuje pustego rekordu przy pierwszym wejściu
+- lokalny runner `APP` po zmianach: 53/53 OK
 - 2026-04-06 — `site_two_mode_stage1.zip`: wdrożony etap 1 architektury 2 trybów pracy. Start pokazuje tylko `Projekty meblowe` i `Drobne usługi stolarskie`; dodane kontekstowe huby wejść, nowy `catalog-store.js` z rozdzieleniem `sheetMaterials/accessories/quoteRates/workshopServices/serviceOrders`, osobny moduł `service-orders.js` oraz poprawki testów/ROZRYS pod tę przebudowę.
 
 - 2026-04-06 — `site_price_popup_tests_queue.zip`: `Dodaj`/`Edytuj` w cennikach dostało mobilny popup w stylu aplikacji przez osobny arkusz `css/price-item-popup.css`; `dev_tests.html` dostał przycisk `Kopiuj tylko błędy`; do testów dopięto brakujące moduły (`investor-persistence`, `rozrys-scope`, `rozrys-render`, `rozrys`) oraz poprawiono fake DOM dla render-smoke w przeglądarce.

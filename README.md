@@ -266,3 +266,9 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - 2026-04-12: zaległe testy działowe — dodano `js/testing/service/tests.js` z osobną sekcją `USŁUGI` dla store zleceń usługowych, listy statusów, upsertu bez duplikatów i cleanup testowych rekordów. `dev_tests.html` dostał osobne przyciski uruchamiania działów: PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI, USŁUGI, a runner Node `tools/app-dev-smoke.js` został rozszerzony o nową sekcję testów.
 
 - 2026-04-12: cross smoke tests for `Wycena` now cover status sync with `Inwestor`, room selection filtered through `ROZRYS`, and final client PDF after converting a preliminary quote.
+
+
+### Dodatkowe testy fundamentu danych
+- `INWESTOR`: smoke testy obejmują teraz synchronizację statusu projektu z `projectStore` i historią ofert oraz bezpieczną aktualizację pojedynczego pomieszczenia.
+- `MATERIAŁY`: smoke testy pilnują, że zapis płyt nie miesza akcesoriów z materiałami arkuszowymi i że migracja `preferStoredSplit` nie przywraca legacy danych przy pierwszym starcie.
+- `USŁUGI`: smoke testy obejmują spójność `catalogStore` ↔ `serviceOrderStore` oraz brak pustego rekordu przy tworzeniu szkicu zlecenia.

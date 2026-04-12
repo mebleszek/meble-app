@@ -78,6 +78,31 @@
           FC.serviceOrderStore.writeAll(prevOrders);
         }
       }),
+
+      H.makeTest('Usługi', 'Katalog usługowych zleceń z catalogStore pozostaje zsynchronizowany ze store zleceń', 'Pilnuje, czy warstwa katalogowa czyta i zapisuje te same zlecenia usługowe co właściwy store, bez rozjechania źródeł danych.', ()=>{
+        H.assert(FC.catalogStore && typeof FC.catalogStore.getServiceOrders === 'function', 'Brak FC.catalogStore.getServiceOrders');
+        H.assert(FC.catalogStore && typeof FC.catalogStore.upsertServiceOrder === 'function', 'Brak FC.catalogStore.upsertServiceOrder');
+        withOrdersStorage(()=>{
+          FC.catalogStore.upsertServiceOrder({ id:'so_catalog', title:'Montaż AGD', clientName:'Ala', status:'nowe' });
+          const fromCatalog = FC.catalogStore.getServiceOrders();
+          const fromStore = FC.serviceOrderStore.readAll();
+          H.assert(Array.isArray(fromCatalog) && fromCatalog.length === 1, 'catalogStore nie zwrócił zlecenia usługowego', fromCatalog);
+          H.assert(Array.isArray(fromStore) && fromStore.length === 1 && String(fromStore[0].id || '') === 'so_catalog', 'catalogStore nie zapisał zlecenia do właściwego store', fromStore);
+          FC.catalogStore.removeServiceOrder('so_catalog');
+          H.assert(Array.isArray(FC.serviceOrderStore.readAll()) && FC.serviceOrderStore.readAll().length === 0, 'Usunięcie z catalogStore nie wyczyściło store zleceń', FC.serviceOrderStore.readAll());
+        });
+      }),
+      H.makeTest('Usługi', 'Szkic zlecenia usługowego nie zapisuje pustego rekordu przy pierwszym wejściu', 'Pilnuje, czy samo otwarcie formularza usług nie tworzy pustego wpisu w storage przed pierwszym zapisem użytkownika.', ()=>{
+        H.assert(FC.serviceOrderStore && typeof FC.serviceOrderStore.createDraft === 'function', 'Brak FC.serviceOrderStore.createDraft');
+        withOrdersStorage(()=>{
+          const before = FC.serviceOrderStore.readAll().length;
+          const draft = FC.serviceOrderStore.createDraft({ clientName:'Test' });
+          const after = FC.serviceOrderStore.readAll().length;
+          H.assert(String(draft.id || '') !== '', 'Szkic zlecenia nie dostał technicznego ID', draft);
+          H.assert(before === 0 && after === 0, 'Samo przygotowanie szkicu zapisało pusty rekord do store', { before, after, draft });
+          H.assert(String(draft.status || '') === 'nowe', 'Szkic zlecenia nie dostał domyślnego statusu nowe', draft);
+        });
+      }),
     ]);
   }
 

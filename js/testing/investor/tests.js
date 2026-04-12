@@ -130,6 +130,94 @@
       const after = FC.investors.readAll().length;
       assert(before === after, 'Samo przygotowanie szkicu nie może dodawać pustego inwestora do bazy', { before, after });
     }),
+
+    makeTest('Inwestor', 'Zmiana statusu z inwestora synchronizuje projekt i aktywną ofertę', 'Pilnuje, czy zmiana etapu projektu z poziomu inwestora ustawia status rekordu projektu i wybiera właściwą ofertę bez ręcznego poprawiania Wycena.', ()=>{
+      assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak investorPersistence.setInvestorProjectStatus');
+      assert(FC.projectStore && typeof FC.projectStore.ensureForInvestor === 'function', 'Brak FC.projectStore.ensureForInvestor');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function', 'Brak FC.quoteSnapshotStore.save');
+      const prevInvestors = FC.investors.readAll();
+      const prevCurrentInvestorId = FC.investors.getCurrentId();
+      const prevProjects = FC.projectStore.readAll();
+      const prevCurrentProjectId = FC.projectStore.getCurrentProjectId ? FC.projectStore.getCurrentProjectId() : '';
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      try{
+        FC.investors.writeAll([]);
+        FC.projectStore.writeAll([]);
+        FC.quoteSnapshotStore.writeAll([]);
+        const investor = FC.investors.create({
+          id:'inv_sync_status',
+          kind:'person',
+          name:'Sync test',
+          rooms:[{ id:'room_sync', baseType:'kuchnia', name:'Kuchnia test', label:'Kuchnia test', projectStatus:'nowy' }]
+        });
+        FC.investors.setCurrentId(investor.id);
+        const project = FC.projectStore.ensureForInvestor(investor.id, {
+          status:'nowy',
+          projectData:{ room_sync:{ cabinets:[{ id:'cab_sync' }], fronts:[], sets:[], settings:{} } }
+        });
+        FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(project.id);
+        FC.quoteSnapshotStore.save({
+          id:'snap_pre',
+          investor:{ id:investor.id, name:investor.name },
+          project:{ id:project.id, investorId:investor.id, status:'wstepna_wycena' },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta' },
+          generatedAt: 100,
+        });
+        FC.quoteSnapshotStore.save({
+          id:'snap_final',
+          investor:{ id:investor.id, name:investor.name },
+          project:{ id:project.id, investorId:investor.id, status:'wycena' },
+          commercial:{ preliminary:false, versionName:'Oferta' },
+          meta:{ preliminary:false, versionName:'Oferta' },
+          generatedAt: 200,
+        });
+        FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'pomiar');
+        const afterPomiarInvestor = FC.investors.getById(investor.id);
+        const afterPomiarProject = FC.projectStore.getById(project.id);
+        const selectedPre = FC.quoteSnapshotStore.getSelectedForProject(project.id);
+        assert(String(afterPomiarInvestor.rooms[0].projectStatus || '') === 'pomiar', 'Pokój inwestora nie dostał statusu pomiar', afterPomiarInvestor);
+        assert(String(afterPomiarProject.status || '') === 'pomiar', 'Project store nie zsynchronizował statusu pomiar', afterPomiarProject);
+        assert(selectedPre && String(selectedPre.id || '') === 'snap_pre', 'Zmiana statusu na pomiar nie wybrała oferty wstępnej', selectedPre || FC.quoteSnapshotStore.listForProject(project.id));
+        FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'zaakceptowany');
+        const afterFinalProject = FC.projectStore.getById(project.id);
+        const selectedFinal = FC.quoteSnapshotStore.getSelectedForProject(project.id);
+        assert(String(afterFinalProject.status || '') === 'zaakceptowany', 'Project store nie zsynchronizował statusu zaakceptowany', afterFinalProject);
+        assert(selectedFinal && String(selectedFinal.id || '') === 'snap_final', 'Zmiana statusu na zaakceptowany nie wybrała oferty końcowej', selectedFinal || FC.quoteSnapshotStore.listForProject(project.id));
+      } finally {
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+        FC.projectStore.writeAll(prevProjects);
+        FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+        FC.investors.writeAll(prevInvestors);
+        FC.investors.setCurrentId(prevCurrentInvestorId);
+      }
+    }),
+    makeTest('Inwestor', 'Aktualizacja jednego pomieszczenia nie narusza pozostałych i odświeża etykietę rejestru', 'Pilnuje, czy edycja nazwy jednego pokoju nie nadpisuje innych wpisów inwestora i czy rejestr od razu zwraca nową etykietę.', ()=>{
+      assert(FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function', 'Brak investorPersistence.updateInvestorRoom');
+      assert(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function', 'Brak roomRegistry.getRoomLabel');
+      const prevInvestors = FC.investors.readAll();
+      const prevCurrentInvestorId = FC.investors.getCurrentId();
+      try{
+        FC.investors.writeAll([]);
+        const investor = FC.investors.create({
+          id:'inv_room_patch',
+          kind:'person',
+          name:'Room patch',
+          rooms:[
+            { id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'nowy' },
+            { id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'nowy' },
+          ]
+        });
+        FC.investors.setCurrentId(investor.id);
+        const updated = FC.investorPersistence.updateInvestorRoom(investor.id, 'room_b', { name:'Spiżarnia', label:'Spiżarnia' });
+        const labels = (updated.rooms || []).map((room)=> String(room && room.label || room && room.name || ''));
+        assert(labels.includes('Kuchnia A') && labels.includes('Spiżarnia'), 'Aktualizacja pokoju naruszyła listę pomieszczeń inwestora', updated.rooms);
+        assert(String(FC.roomRegistry.getRoomLabel('room_b') || '') === 'Spiżarnia', 'Rejestr pomieszczeń nie zwrócił zaktualizowanej etykiety', { rooms: updated.rooms, active: FC.roomRegistry.getActiveRoomDefs && FC.roomRegistry.getActiveRoomDefs() });
+      } finally {
+        FC.investors.writeAll(prevInvestors);
+        FC.investors.setCurrentId(prevCurrentInvestorId);
+      }
+    }),
     makeTest('Inwestor', 'Domyślne obrównanie rozrysu startuje od 1 cm / 10 mm', 'Pilnuje, czy wszystkie fallbacki opcji rozkroju wróciły do uzgodnionego domyślnego obrównania 1 cm zamiast starego 2 cm.', ()=>{
       assert(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function', 'Brak getDefaultRozrysOptionValues');
       const cm = FC.rozrysStock.getDefaultRozrysOptionValues('cm');
