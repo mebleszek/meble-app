@@ -46,6 +46,7 @@ const FILES = [
   'js/testing/wycena/tests.js',
   'js/testing/material/tests.js',
   'js/testing/cabinet/tests.js',
+  'js/testing/service/tests.js',
 ];
 
 function makeStorage(){
@@ -95,6 +96,7 @@ const reports = [
   sandbox.FC.materialDevTests.runAll(),
   sandbox.FC.wycenaDevTests.runAll(),
   sandbox.FC.cabinetDevTests.runAll(),
+  sandbox.FC.serviceDevTests.runAll(),
 ];
 const final = mergeReports(reports);
 const text = sandbox.FC.testHarness.makeClipboardReport(final);

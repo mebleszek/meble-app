@@ -262,3 +262,5 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - removed project status `Po pomiarze`; after measurement use `Wycena` directly
 - preliminary quote drafts now survive scope switch from investor-only to project-bound draft
 - preliminary history entries are archived only when a newer normal quote exists
+
+- 2026-04-12: zaległe testy działowe — dodano `js/testing/service/tests.js` z osobną sekcją `USŁUGI` dla store zleceń usługowych, listy statusów, upsertu bez duplikatów i cleanup testowych rekordów. `dev_tests.html` dostał osobne przyciski uruchamiania działów: PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI, USŁUGI, a runner Node `tools/app-dev-smoke.js` został rozszerzony o nową sekcję testów.

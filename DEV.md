@@ -1061,3 +1061,5 @@ Dopiero potem go zmieniać.
 - 2026-04-12: Wycena — zapis wyboru pomieszczeń został uszczelniony na wzór ROZRYS: quoteOfferStore i wycenaCore nie czyszczą już jawnie wybranego zestawu pokoi tylko dlatego, że roomRegistry chwilowo zwróci pustą lub niepełną listę; dodatkowo górny checkbox/pole `Wstępna wycena (bez pomiaru)` został wyśrodkowany w osi lewo-prawo. Smoke testy Wycena dostały regresję na pusty roomRegistry przy zachowaniu selectedRooms.
 
 - 2026-04-12: PDF klienta w Wycena bez listy formatek / elementów technicznych. Dokument pokazuje tylko handlowe sekcje: materiały / kolory, akcesoria z ilościami, usługi, AGD i cenę końcową. Dodany regresyjny smoke test PDF bez `Elementy w ofercie`.
+
+- 2026-04-12: zaległe testy działowe — dodano `js/testing/service/tests.js` z osobną sekcją `USŁUGI` dla store zleceń usługowych, listy statusów, upsertu bez duplikatów i cleanup testowych rekordów. `dev_tests.html` dostał osobne przyciski uruchamiania działów: PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI, USŁUGI, a runner Node `tools/app-dev-smoke.js` został rozszerzony o nową sekcję testów.

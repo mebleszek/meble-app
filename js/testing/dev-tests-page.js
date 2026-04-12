@@ -18,14 +18,20 @@
     catch(_error){ return String(details); }
   }
 
+  function getSuiteRegistry(){
+    return [
+      { key:'rozrys', name:'ROZRYS', inApp:false, run: FC.rozrysDevTests && typeof FC.rozrysDevTests.runAll === 'function' ? ()=> FC.rozrysDevTests.runAll() : null },
+      { key:'project', name:'PROJEKT', inApp:true, run: FC.projectDevTests && typeof FC.projectDevTests.runAll === 'function' ? ()=> FC.projectDevTests.runAll() : null },
+      { key:'investor', name:'INWESTOR', inApp:true, run: FC.investorDevTests && typeof FC.investorDevTests.runAll === 'function' ? ()=> FC.investorDevTests.runAll() : null },
+      { key:'material', name:'MATERIAŁY', inApp:true, run: FC.materialDevTests && typeof FC.materialDevTests.runAll === 'function' ? ()=> FC.materialDevTests.runAll() : null },
+      { key:'wycena', name:'WYCENA', inApp:true, run: FC.wycenaDevTests && typeof FC.wycenaDevTests.runAll === 'function' ? ()=> FC.wycenaDevTests.runAll() : null },
+      { key:'cabinet', name:'SZAFKI', inApp:true, run: FC.cabinetDevTests && typeof FC.cabinetDevTests.runAll === 'function' ? ()=> FC.cabinetDevTests.runAll() : null },
+      { key:'service', name:'USŁUGI', inApp:true, run: FC.serviceDevTests && typeof FC.serviceDevTests.runAll === 'function' ? ()=> FC.serviceDevTests.runAll() : null },
+    ].filter((entry)=> typeof entry.run === 'function');
+  }
+
   function mergeAppReports(){
-    const reports = [
-      FC.projectDevTests && typeof FC.projectDevTests.runAll === 'function' ? FC.projectDevTests.runAll() : null,
-      FC.investorDevTests && typeof FC.investorDevTests.runAll === 'function' ? FC.investorDevTests.runAll() : null,
-      FC.materialDevTests && typeof FC.materialDevTests.runAll === 'function' ? FC.materialDevTests.runAll() : null,
-      FC.wycenaDevTests && typeof FC.wycenaDevTests.runAll === 'function' ? FC.wycenaDevTests.runAll() : null,
-      FC.cabinetDevTests && typeof FC.cabinetDevTests.runAll === 'function' ? FC.cabinetDevTests.runAll() : null,
-    ].filter(Boolean);
+    const reports = getSuiteRegistry().filter((entry)=> entry.inApp).map((entry)=> entry.run()).filter(Boolean);
     const merged = {
       label:'APP smoke testy',
       total:0,
@@ -151,6 +157,7 @@
     const runAllBtn = ensureButton('runAllTests');
     const runRozrysBtn = ensureButton('runRozrysTests');
     const runAppBtn = ensureButton('runAppTests');
+    const runButtons = Array.from(document.querySelectorAll('[data-run-mode]'));
     const copyBtn = ensureButton('copyReport');
     const copyErrorsBtn = ensureButton('copyErrorsOnly');
     const cleanupBtn = ensureButton('cleanupTestData');
@@ -159,7 +166,7 @@
     let lastSuites = [];
 
     function setRunning(isRunning, sourceBtn){
-      [runAllBtn, runRozrysBtn, runAppBtn].forEach((btn)=>{
+      runButtons.forEach((btn)=>{
         btn.disabled = isRunning;
         if(!isRunning){
           btn.textContent = btn.dataset.label;
@@ -175,12 +182,19 @@
 
     function collectSuites(mode){
       const suites = [];
-      if((mode === 'all' || mode === 'rozrys') && FC.rozrysDevTests && typeof FC.rozrysDevTests.runAll === 'function'){
-        suites.push({ name:'ROZRYS', report: FC.rozrysDevTests.runAll() });
-      }
-      if((mode === 'all' || mode === 'app')){
+      const registry = getSuiteRegistry();
+      if(mode === 'all'){
+        const rozrys = registry.find((entry)=> entry.key === 'rozrys');
+        if(rozrys) suites.push({ name:rozrys.name, report: rozrys.run() });
         suites.push({ name:'APP', report: mergeAppReports() });
+        return suites;
       }
+      if(mode === 'app'){
+        suites.push({ name:'APP', report: mergeAppReports() });
+        return suites;
+      }
+      const single = registry.find((entry)=> entry.key === mode);
+      if(single) suites.push({ name:single.name, report: single.run() });
       return suites;
     }
 
@@ -272,17 +286,30 @@
       await copyText(buildErrorsOnlyClipboardText(lastSuites, lastOverall), copyErrorsBtn, 'Błędy skopiowane');
     }
 
-    runAllBtn.addEventListener('click', ()=> run('all', runAllBtn));
-    runRozrysBtn.addEventListener('click', ()=> run('rozrys', runRozrysBtn));
-    runAppBtn.addEventListener('click', ()=> run('app', runAppBtn));
+    runButtons.forEach((btn)=>{
+      btn.addEventListener('click', ()=> run(String(btn.dataset.runMode || ''), btn));
+    });
     copyBtn.addEventListener('click', copyReport);
     copyErrorsBtn.addEventListener('click', copyErrorsOnly);
     cleanupBtn.addEventListener('click', ()=> cleanupTestData(false));
 
     const hash = String((host.location && host.location.hash) || '').toLowerCase();
-    if(hash === '#rozrys') run('rozrys', runRozrysBtn);
-    else if(hash === '#app') run('app', runAppBtn);
-    else if(hash === '#all') run('all', runAllBtn);
+    const hashModeMap = {
+      '#all':'all',
+      '#app':'app',
+      '#rozrys':'rozrys',
+      '#project':'project',
+      '#investor':'investor',
+      '#material':'material',
+      '#wycena':'wycena',
+      '#cabinet':'cabinet',
+      '#service':'service',
+    };
+    const modeFromHash = hashModeMap[hash] || '';
+    if(modeFromHash){
+      const sourceBtn = runButtons.find((btn)=> String(btn.dataset.runMode || '') === modeFromHash) || runAllBtn;
+      run(modeFromHash, sourceBtn);
+    }
   }
 
   FC.devTestsPage = { createController };

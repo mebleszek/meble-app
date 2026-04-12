@@ -68,14 +68,20 @@
       <p>To jest jedyna strona testowa do ręcznego odpalania. Z tego miejsca uruchomisz zarówno testy ROZRYS, jak i pozostałe smoke-testy aplikacji.</p>
       <p>Pod spodem masz podkategorie, ale do wejścia i uruchamiania jest jeden plik.</p>
       <div class="toolbar">
-        <button id="runAllTests" data-label="Uruchom wszystkie testy" type="button">Uruchom wszystkie testy</button>
-        <button id="runRozrysTests" data-label="Tylko ROZRYS" type="button">Tylko ROZRYS</button>
-        <button id="runAppTests" data-label="Tylko APP" type="button">Tylko APP</button>
+        <button id="runAllTests" data-run-mode="all" data-label="Uruchom wszystkie testy" type="button">Uruchom wszystkie testy</button>
+        <button id="runRozrysTests" data-run-mode="rozrys" data-label="Tylko ROZRYS" type="button">Tylko ROZRYS</button>
+        <button id="runAppTests" data-run-mode="app" data-label="Tylko APP" type="button">Tylko APP</button>
+        <button id="runProjectTests" data-run-mode="project" data-label="Tylko PROJEKT" type="button">Tylko PROJEKT</button>
+        <button id="runInvestorTests" data-run-mode="investor" data-label="Tylko INWESTOR" type="button">Tylko INWESTOR</button>
+        <button id="runMaterialTests" data-run-mode="material" data-label="Tylko MATERIAŁY" type="button">Tylko MATERIAŁY</button>
+        <button id="runWycenaTests" data-run-mode="wycena" data-label="Tylko WYCENA" type="button">Tylko WYCENA</button>
+        <button id="runCabinetTests" data-run-mode="cabinet" data-label="Tylko SZAFKI" type="button">Tylko SZAFKI</button>
+        <button id="runServiceTests" data-run-mode="service" data-label="Tylko USŁUGI" type="button">Tylko USŁUGI</button>
         <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
         <button id="copyErrorsOnly" data-label="Kopiuj tylko błędy" type="button" disabled>Kopiuj tylko błędy</button>
         <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
       </div>
-      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jedną podkategorię, ale nadal robisz to z tej jednej strony.</div>
+      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
       <div id="results"></div>
     </section>
   </main>
@@ -138,7 +144,8 @@
   <script src="js/testing/material/tests.js?v=20260406_quote_ui_pdf_v1"></script>
   <script src="js/testing/wycena/tests.js?v=20260412_quote_pdf_client_v1"></script>
   <script src="js/testing/cabinet/tests.js?v=20260406_quote_ui_pdf_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260408_stage4_cleanup_v1"></script>
+  <script src="js/testing/service/tests.js?v=20260412_service_suite_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260412_service_suite_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};
