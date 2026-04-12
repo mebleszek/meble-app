@@ -6,6 +6,68 @@
   const H = FC.testHarness;
   if(!H) throw new Error('Brak FC.testHarness');
 
+  function clone(value){
+    try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; }
+  }
+
+  function withInvestorProjectFixture(options, run){
+    const cfg = options && typeof options === 'object' ? options : {};
+    const prevInvestors = FC.investors && typeof FC.investors.readAll === 'function' ? FC.investors.readAll() : [];
+    const prevCurrentInvestorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? FC.investors.getCurrentId() : '';
+    const prevProjects = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];
+    const prevCurrentProjectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : '';
+    const prevSnapshots = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : [];
+    const prevDrafts = FC.quoteOfferStore && typeof FC.quoteOfferStore.readAll === 'function' ? FC.quoteOfferStore.readAll() : [];
+    const prevOverride = FC.rozrys && FC.rozrys.__projectOverride;
+    const prevProjectData = Object.prototype.hasOwnProperty.call(host, 'projectData') ? host.projectData : undefined;
+    const prevCutList = FC.cabinetCutlist && FC.cabinetCutlist.getCabinetCutList;
+    const investorId = String(cfg.investorId || 'inv_cross');
+    const projectId = String(cfg.projectId || 'proj_cross');
+    const rooms = Array.isArray(cfg.rooms) && cfg.rooms.length ? clone(cfg.rooms) : [
+      { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'nowy' },
+      { id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'nowy' },
+    ];
+    const projectData = clone(cfg.projectData || {
+      schemaVersion: 2,
+      meta: {
+        roomDefs: rooms.reduce((acc, room)=>{
+          acc[room.id] = { id:room.id, baseType:room.baseType, name:room.name, label:room.label };
+          return acc;
+        }, {}),
+        roomOrder: rooms.map((room)=> room.id),
+      },
+      room_kuchnia_gora: { cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
+      room_salon: { cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
+    });
+    const investor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
+    const projectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
+    try{
+      FC.investors && FC.investors.writeAll && FC.investors.writeAll([investor]);
+      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
+      FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll([projectRecord]);
+      FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(projectId);
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function') FC.quoteSnapshotStore.writeAll([]);
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.writeAll === 'function') FC.quoteOfferStore.writeAll([]);
+      host.projectData = clone(projectData);
+      if(FC.rozrys) FC.rozrys.__projectOverride = host.projectData;
+      if(typeof cfg.cutListFn === 'function' && FC.cabinetCutlist){
+        FC.cabinetCutlist.getCabinetCutList = cfg.cutListFn;
+      }
+      return run({ investorId, projectId, rooms:clone(rooms), projectData:host.projectData });
+    } finally {
+      if(FC.cabinetCutlist && prevCutList) FC.cabinetCutlist.getCabinetCutList = prevCutList;
+      if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;
+      if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
+      else host.projectData = prevProjectData;
+      FC.quoteOfferStore && FC.quoteOfferStore.writeAll && FC.quoteOfferStore.writeAll(prevDrafts);
+      FC.quoteSnapshotStore && FC.quoteSnapshotStore.writeAll && FC.quoteSnapshotStore.writeAll(prevSnapshots);
+      FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll(prevProjects);
+      FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+      FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
+      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
+    }
+  }
+
   function runAll(){
     return H.runSuite('WYCENA smoke testy', [
       H.makeTest('Wycena', 'Katalog usług AGD uzupełnia brakujące pozycje bez duplikowania istniejących', 'Pilnuje, czy Wycena zawsze ma osobne pozycje montażu AGD i czy kolejne przebiegi nie rozmnażają usług.', ()=>{
@@ -208,6 +270,102 @@
           H.assert(converted && converted.commercial && converted.commercial.preliminary === false, 'Konwersja nie zdjęła flagi wstępnej z oferty handlowej', converted);
           H.assert(converted && converted.meta && converted.meta.preliminary === false && converted.meta.selectedByClient === true && String(converted.meta.acceptedStage || '') === 'zaakceptowany', 'Konwersja nie ustawiła końcowego stanu zaakceptowania', converted);
           H.assert(String(converted.commercial && converted.commercial.versionName || '') === 'Oferta', 'Konwersja nie podmieniła domyślnej nazwy na zwykłą ofertę', converted);
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
+
+
+      H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana statusu inwestora przełącza wskazaną ofertę i status projektu', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor korzysta z tej samej logiki co Wycena i nie rozjeżdża store projektu oraz historii ofert.', ()=>{
+        H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const prelim = FC.quoteSnapshotStore.save({ id:'snap_cross_prelim', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt testowy' }, commercial:{ preliminary:true }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820000000 });
+          const finalQuote = FC.quoteSnapshotStore.save({ id:'snap_cross_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt testowy' }, totals:{ grand:150 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820100000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, prelim.id, { status:'pomiar' });
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'pomiar');
+          let selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
+          let record = FC.projectStore.getByInvestorId(investorId);
+          H.assert(selected && String(selected.id || '') === String(prelim.id || ''), 'Status pomiar nie utrzymał zaakceptowanej oferty wstępnej', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(record && String(record.status || '') === 'pomiar', 'Status pomiar nie zapisał się do projectStore', record);
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'wycena');
+          selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
+          record = FC.projectStore.getByInvestorId(investorId);
+          H.assert(selected == null, 'Status wycena nie wyczyścił wskazanej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(record && String(record.status || '') === 'wycena', 'Status wycena nie zapisał się do projectStore', record);
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'zaakceptowany');
+          selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
+          record = FC.projectStore.getByInvestorId(investorId);
+          H.assert(selected && String(selected.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał finalnej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(record && String(record.status || '') === 'zaakceptowany', 'Status zaakceptowany nie zapisał się do projectStore', record);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Wycena filtruje elementy dokładnie po zapisanym wyborze pomieszczeń', 'Pilnuje, czy po wyborze pokoi w Wycena agregacja bierze tylko te pokoje, a nie dorzuca formatek z innych pomieszczeń aktywnego projektu.', ()=>{
+        H.assert(FC.wycenaCore && typeof FC.wycenaCore.collectElementLines === 'function', 'Brak FC.wycenaCore.collectElementLines');
+        H.assert(FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function', 'Brak FC.rozrys.aggregatePartsForProject');
+        withInvestorProjectFixture({
+          cutListFn(cabinet, roomId){
+            if(String(roomId || '') === 'room_kuchnia_gora') return [{ name:'Bok kuchnia', material:'Dąb kuchnia', a:72, b:56, qty:2 }];
+            if(String(roomId || '') === 'room_salon') return [{ name:'Bok salon', material:'Jesion salon', a:60, b:40, qty:3 }];
+            return [];
+          }
+        }, ()=>{
+          const agg = FC.rozrys.aggregatePartsForProject(['room_salon']);
+          const lines = FC.wycenaCore.collectElementLines({ selectedRooms:['room_salon'], materialScope:{ includeFronts:false, includeCorpus:true } });
+          H.assert(Array.isArray(agg.materials) && agg.materials.length === 1 && String(agg.materials[0] || '') === 'Jesion salon', 'ROZRYS nie ograniczył agregacji do wybranego pokoju', agg);
+          H.assert(Array.isArray(lines) && lines.length === 1, 'Wycena nie ograniczyła listy elementów do wybranego pokoju', lines);
+          H.assert(String(lines[0].name || '') === 'Bok salon' && String(lines[0].materialLabel || '') === 'Jesion salon' && Number(lines[0].qty) === 3, 'Wycena zwróciła elementy z niewłaściwego pokoju albo złą ilość', lines[0]);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Pusty wybór pokoi w Wycena wraca do wszystkich aktywnych pomieszczeń bieżącego projektu', 'Pilnuje, czy gdy zapisany wybór jest pusty, Wycena bierze komplet realnych pokoi aktywnego inwestora, a nie pusty stan albo domyślne typy bazowe.', ()=>{
+        H.assert(FC.wycenaCore && typeof FC.wycenaCore.collectElementLines === 'function', 'Brak FC.wycenaCore.collectElementLines');
+        withInvestorProjectFixture({
+          cutListFn(cabinet, roomId){
+            if(String(roomId || '') === 'room_kuchnia_gora') return [{ name:'Kuchnia bok', material:'Biały mat', a:72, b:56, qty:1 }];
+            if(String(roomId || '') === 'room_salon') return [{ name:'Salon bok', material:'Dąb artisan', a:65, b:45, qty:2 }];
+            return [];
+          }
+        }, ()=>{
+          const normalized = FC.wycenaCore.normalizeQuoteSelection({ selectedRooms:[], materialScope:{ includeFronts:false, includeCorpus:true } });
+          const lines = FC.wycenaCore.collectElementLines({ selectedRooms:[], materialScope:{ includeFronts:false, includeCorpus:true } });
+          H.assert(Array.isArray(normalized.selectedRooms) && normalized.selectedRooms.includes('room_kuchnia_gora') && normalized.selectedRooms.includes('room_salon'), 'Wycena nie wróciła do wszystkich aktywnych pokoi projektu', normalized);
+          H.assert(Array.isArray(lines) && lines.length === 2, 'Wycena nie zebrała elementów ze wszystkich aktywnych pokoi po pustym wyborze', lines);
+          H.assert(lines.some((row)=> String(row.name || '') === 'Kuchnia bok') && lines.some((row)=> String(row.name || '') === 'Salon bok'), 'Po pustym wyborze brakuje elementów z któregoś pokoju', lines);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ PDF', 'PDF budowany z zapisanej końcowej oferty zachowuje handlowy charakter po konwersji z wstępnej', 'Pilnuje, czy po konwersji zaakceptowanej wyceny wstępnej na końcową PDF nadal bierze tę samą wersję oferty, pokazuje pomieszczenia i nie wraca do technicznych formatek.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function', 'Brak FC.quoteSnapshotStore.convertPreliminaryToFinal');
+        H.assert(FC.quotePdf && typeof FC.quotePdf.buildPrintHtml === 'function', 'Brak FC.quotePdf.buildPrintHtml');
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const prelim = FC.quoteSnapshotStore.save({
+            id:'snap_pdf_cross_prelim',
+            investor:{ id:'inv_pdf_cross', name:'Jan Test' },
+            project:{ id:'proj_pdf_cross', investorId:'inv_pdf_cross', title:'Projekt PDF cross', status:'pomiar' },
+            scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'], materialScopeMode:'corpus', materialScope:{ includeFronts:false, includeCorpus:true } },
+            commercial:{ preliminary:true, versionName:'Wstępna oferta' },
+            meta:{ selectedByClient:true, acceptedAt:1712820200000, acceptedStage:'pomiar' },
+            lines:{
+              elements:[{ name:'Bok', qty:2, width:720, height:560, materialLabel:'Biały mat' }],
+              materials:[{ name:'Biały mat', qty:1, unit:'ark.' }],
+              accessories:[{ name:'Zawias Blum', qty:4 }],
+              agdServices:[{ name:'Piekarnik do zabudowy', qty:1 }],
+              quoteRates:[{ name:'Montaż zabudowy', qty:1, unit:'x' }],
+            },
+            totals:{ grand:999, subtotal:999, discount:0, materials:0, accessories:0, services:0, quoteRates:0 },
+            generatedAt:1712820200000,
+          });
+          FC.quoteSnapshotStore.convertPreliminaryToFinal('proj_pdf_cross', prelim.id);
+          const selected = FC.quoteSnapshotStore.getSelectedForProject('proj_pdf_cross');
+          const html = FC.quotePdf.buildPrintHtml(selected);
+          H.assert(selected && selected.commercial && selected.commercial.preliminary === false, 'Konwersja nie zostawiła finalnej zapisanej oferty do PDF', selected);
+          H.assert(/Wycena końcowa/.test(String(html || '')) && /Kuchnia góra/.test(String(html || '')), 'PDF po konwersji nie pokazuje końcowego typu oferty albo pomieszczeń', html);
+          H.assert(/Biały mat/.test(String(html || '')) && /Zawias Blum/.test(String(html || '')) && /Montaż zabudowy/.test(String(html || '')) && /Piekarnik do zabudowy/.test(String(html || '')), 'PDF po konwersji zgubił handlowe sekcje materiałów / akcesoriów / usług / AGD', html);
+          H.assert(!/Elementy w ofercie/.test(String(html || '')) && !/720 × 560 mm/.test(String(html || '')), 'PDF po konwersji wrócił do technicznej listy formatek', html);
         } finally {
           FC.quoteSnapshotStore.writeAll(prev);
         }

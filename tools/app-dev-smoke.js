@@ -37,6 +37,8 @@ const FILES = [
   'js/app/quote/quote-pdf.js',
   'js/app/wycena/wycena-core.js',
   'js/app/rozrys/rozrys-stock.js',
+  'js/app/rozrys/rozrys-scope.js',
+  'js/app/rozrys/rozrys.js',
   'js/app/rozrys/rozrys-state.js',
   'js/app/cabinet/cabinet-cutlist.js',
   'js/testing/shared/harness.js',
