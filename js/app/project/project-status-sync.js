@@ -179,6 +179,7 @@
       const defs = loadedProject && loadedProject.meta && loadedProject.meta.roomDefs;
       if(defs && typeof defs === 'object') Object.keys(defs).forEach((roomId)=> { if(roomId) set.add(roomId); });
     }catch(_){ }
+    if(set.size) return Array.from(set);
     try{
       if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
         normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()).forEach((roomId)=> set.add(roomId));
@@ -213,10 +214,11 @@
     if(!(investor && investor.id)) return investor || null;
     const roomMap = new Map();
     const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
+    const explicitStatusMap = roomStatusMap && typeof roomStatusMap === 'object' ? roomStatusMap : {};
     currentRooms.forEach((room)=> {
       const key = String(room && room.id || '');
       if(!key) return;
-      const resolvedStatus = normalizeStatus(roomStatusMap && roomStatusMap[key] || room && (room.projectStatus || room.status) || '');
+      const resolvedStatus = normalizeStatus(explicitStatusMap[key] || room && (room.projectStatus || room.status) || '');
       roomMap.set(key, Object.assign({}, room, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
     });
     try{
@@ -225,9 +227,13 @@
         defs.forEach((room)=> {
           const key = String(room && room.id || '');
           if(!key) return;
-          const resolvedStatus = normalizeStatus(roomStatusMap && roomStatusMap[key] || '');
-          if(!resolvedStatus && roomMap.has(key)) return;
-          roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key }, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
+          const hasExplicitStatus = Object.prototype.hasOwnProperty.call(explicitStatusMap, key);
+          const resolvedStatus = normalizeStatus(hasExplicitStatus ? explicitStatusMap[key] : '');
+          if(roomMap.has(key) && !hasExplicitStatus) return;
+          if(!roomMap.has(key) && !hasExplicitStatus) return;
+          const nextRoom = Object.assign({}, room || {}, roomMap.get(key) || {}, { id:key });
+          if(resolvedStatus) nextRoom.projectStatus = resolvedStatus;
+          roomMap.set(key, nextRoom);
         });
       }
     }catch(_){ }
@@ -345,7 +351,8 @@
     });
 
     const nextInvestor = saveInvestorRooms(investor, roomStatusMap) || investor;
-    const aggregateStatus = getAggregateStatus(collectRoomStatuses(knownRoomIds, {
+    const aggregateRoomIds = targetRoomIds.length ? targetRoomIds : knownRoomIds;
+    const aggregateStatus = getAggregateStatus(collectRoomStatuses(aggregateRoomIds, {
       investorRooms: nextInvestor && nextInvestor.rooms,
       roomDefs: mergedRoomDefs,
     }), nextStatus);

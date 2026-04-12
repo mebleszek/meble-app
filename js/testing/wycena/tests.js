@@ -356,6 +356,38 @@
         });
       }),
 
+
+      H.makeTest('Wycena ↔ Centralny status', 'Centralny status ignoruje stare statusy z roomRegistry przy zapisie projektu', 'Pilnuje regresję z ETAPU 3: obce albo stare statusy wiszące w roomRegistry nie mogą nadpisywać projectStore.status ani statusów pokoi przy zmianie scoped.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        H.assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak FC.roomRegistry.getActiveRoomDefs');
+        H.assert(typeof FC.roomRegistry.getActiveRoomIds === 'function', 'Brak FC.roomRegistry.getActiveRoomIds');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const prelim = FC.quoteSnapshotStore.save({ id:'snap_registry_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt registry' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Registry pre' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820280000 });
+          const prevGetActiveRoomDefs = FC.roomRegistry.getActiveRoomDefs;
+          const prevGetActiveRoomIds = FC.roomRegistry.getActiveRoomIds;
+          const staleDefs = [
+            { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'wycena' },
+            { id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'wycena' },
+            { id:'room_stale', baseType:'pokoj', name:'Stary pokój', label:'Stary pokój', projectStatus:'wycena' },
+          ];
+          FC.roomRegistry.getActiveRoomDefs = ()=> clone(staleDefs);
+          FC.roomRegistry.getActiveRoomIds = ()=> staleDefs.map((room)=> String(room && room.id || '')).filter(Boolean);
+          try{
+            FC.projectStatusSync.setStatusFromSnapshot(prelim, 'pomiar', { syncSelection:true, refreshUi:false });
+            const investor = FC.investors.getById(investorId);
+            const project = FC.projectStore.getById(projectId);
+            const kitchen = (investor && investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
+            const salon = (investor && investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_salon');
+            H.assert(String(kitchen && kitchen.projectStatus || '') === 'pomiar', 'Brudny roomRegistry nadpisał status aktywnego pokoju', investor && investor.rooms);
+            H.assert(String(salon && salon.projectStatus || '') === 'nowy', 'Brudny roomRegistry nadpisał status innego pokoju projektu', investor && investor.rooms);
+            H.assert(project && String(project.status || '') === 'pomiar', 'Brudny roomRegistry nadpisał zagregowany status projectStore', project);
+          } finally {
+            FC.roomRegistry.getActiveRoomDefs = prevGetActiveRoomDefs;
+            FC.roomRegistry.getActiveRoomIds = prevGetActiveRoomIds;
+          }
+        });
+      }),
+
       H.makeTest('Wycena ↔ Centralny status', 'Sprzątanie ETAPU 3 nie wraca do starego lokalnego patchowania statusów', 'Pilnuje ETAP 3: wejścia statusów nie mają już po centralizacji dopalać starej ścieżki updateInvestorRoom jako drugiego mechanizmu zapisu.', ()=>{
         H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function', 'Brak FC.projectStatusSync.setInvestorRoomStatus');
         H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
