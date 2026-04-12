@@ -1792,6 +1792,7 @@
 .quote-history__item.is-archived .quote-history__actions .btn-primary,
 .quote-history__item.is-archived .quote-history__actions .btn-success{opacity:.55;}
 .quote-offer-preliminary{display:flex;flex-direction:column;gap:8px;margin:2px 0 14px;}
+.quote-offer-preliminary--topbar{margin:10px 0 2px;}
 .quote-preliminary-chip{align-self:flex-start;}
 .quote-preliminary-help{margin-top:0;}
 .quote-offer-accordion{padding:0;overflow:hidden;}
@@ -1811,14 +1812,22 @@
 .floating-add:hover,.floating-add:active,.floating-add:focus{background:#66e28f;color:#1f2937;border-color:rgba(22,101,52,.6);}
 
 .quote-selection-card{border-color:rgba(226,232,240,.95);background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.04);}
-.quote-selection-grid{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:10px;align-items:start;margin-top:12px;}
+.quote-selection-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:10px;align-items:start;margin-top:12px;}
 .quote-selection-grid .label-help{min-height:32px;align-items:center;}
 .quote-selection-grid .label-help__text{display:flex;align-items:center;min-height:32px;}
 .quote-selection-grid .label-help .info-trigger{align-self:center;}
 .quote-selection-field{min-width:0;display:flex;flex-direction:column;gap:10px;}
 .quote-selection-field .rozrys-picker-launch,
 .quote-selection-field .rozrys-choice-launch{width:100%;max-width:none;}
-.quote-selection-chips{margin-top:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}
+.quote-selection-launch--rooms,
+.quote-selection-launch--scope{justify-content:flex-start;max-width:none;}
+.quote-selection-launch--rooms .rozrys-picker-launch__value,
+.quote-selection-launch--scope .rozrys-picker-launch__value{width:100%;}
+.quote-selection-launch--rooms .rozrys-picker-launch__title,
+.quote-selection-launch--scope .rozrys-picker-launch__title{font-size:18px;line-height:1.12;}
+.quote-selection-launch--rooms .rozrys-picker-launch__subtitle,
+.quote-selection-launch--scope .rozrys-picker-launch__subtitle,
+.quote-selection-launch--scope .rozrys-picker-launch__detail{font-size:13px;line-height:1.18;}
 .quote-scope-info{margin-top:14px;padding:12px 14px;border-radius:16px;border:1px solid rgba(14,165,233,.22);background:linear-gradient(180deg,#eff8ff 0%,#f8fbff 100%);box-shadow:0 8px 18px rgba(14,165,233,.08);}
 .quote-scope-info__title{font-size:13px;line-height:1.2;font-weight:900;color:#0c4a6e;letter-spacing:.03em;text-transform:uppercase;}
 .quote-scope-info__body{margin-top:7px;font-size:13px;line-height:1.45;font-weight:700;color:#334155;white-space:pre-line;}
@@ -1826,18 +1835,11 @@
 .quote-preview-badge--version{background:rgba(14,165,233,.12);border-color:rgba(14,165,233,.24);color:#0c4a6e;}
 .quote-history__item.is-active .quote-history__title{color:#0f172a;}
 .quote-offer-accordion__chevron.is-open{transform:rotate(180deg);}
-
-.quote-selection-launch--rooms{
-  min-height:64px;
-  justify-content:flex-start;
-}
-.quote-selection-launch--rooms .rozrys-choice-launch__value{gap:0;}
-.quote-selection-launch--rooms .rozrys-choice-launch__label{font-size:20px;line-height:1.08;}
-.quote-selection-launch--rooms .rozrys-choice-launch__arrow{display:none!important;}
+.quote-scope-picker-chips{margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 @media (max-width:640px){
-  .quote-selection-grid{grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:10px;}
-  .quote-selection-chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .quote-selection-grid{grid-template-columns:minmax(0,1fr);gap:10px;}
   .quote-selection-field{gap:8px;}
+  .quote-scope-picker-chips{grid-template-columns:minmax(0,1fr);gap:10px;}
 }
 .quote-history__convert-btn{
   min-height:32px;

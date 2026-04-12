@@ -417,11 +417,69 @@
     }).filter(Boolean);
   }
 
-  function collectCommercialDraft(draftOverride){
-    const draft = draftOverride || getOfferDraft();
-    return FC.quoteSnapshot && typeof FC.quoteSnapshot.normalizeCommercial === 'function'
-      ? FC.quoteSnapshot.normalizeCommercial(draft && draft.commercial)
-      : (draft && draft.commercial) || {};
+  function collectElementLines(selectionOverride){
+    const normalizedSelection = normalizeQuoteSelection(selectionOverride);
+    const aggregate = getSelectedAggregate(normalizedSelection);
+    const scope = normalizedSelection.materialScope;
+    const materialsOrdered = getScopedMaterials(aggregate, normalizedSelection);
+    const rows = new Map();
+    materialsOrdered.forEach((material)=>{
+      const group = aggregate && aggregate.groups ? aggregate.groups[material] : null;
+      const selectedParts = FC.rozrysScope && typeof FC.rozrysScope.getGroupPartsForScope === 'function'
+        ? FC.rozrysScope.getGroupPartsForScope(group, scope)
+        : ((group && group.parts) || []);
+      (Array.isArray(selectedParts) ? selectedParts : []).forEach((part)=>{
+        const qty = Math.max(0, Number(part && part.qty) || 0);
+        if(!(qty > 0)) return;
+        const width = Math.max(0, Math.round(Number(part && part.w) || 0));
+        const height = Math.max(0, Math.round(Number(part && part.h) || 0));
+        const name = String(part && part.name || 'Element').trim() || 'Element';
+        const key = `${material}||${name}||${width}||${height}`;
+        const prev = rows.get(key) || {
+          key: slug(key),
+          type:'element',
+          category:'Element',
+          name,
+          qty:0,
+          unit:'szt.',
+          unitPrice:0,
+          total:0,
+          materialLabel:String(material || '').trim(),
+          width,
+          height,
+          rooms:(aggregate && Array.isArray(aggregate.selectedRooms) ? aggregate.selectedRooms : []).map(roomLabel).join(', '),
+          note:'',
+        };
+        prev.qty += qty;
+        rows.set(key, prev);
+      });
+    });
+    return Array.from(rows.values()).sort((a,b)=>{
+      const an = String(a && a.name || '');
+      const bn = String(b && b.name || '');
+      const cmp = an.localeCompare(bn, 'pl');
+      if(cmp !== 0) return cmp;
+      if((Number(b && b.width) || 0) !== (Number(a && a.width) || 0)) return (Number(b && b.width) || 0) - (Number(a && a.width) || 0);
+      return (Number(b && b.height) || 0) - (Number(a && a.height) || 0);
+    });
+  }
+
+  function collectClientPdfDetails(selectionOverride){
+    const normalizedSelection = normalizeQuoteSelection(selectionOverride);
+    return {
+      elements: collectElementLines(normalizedSelection),
+      materials: (function(){
+        const aggregate = getSelectedAggregate(normalizedSelection);
+        return getScopedMaterials(aggregate, normalizedSelection).map((material)=> ({
+          key: slug(material),
+          type:'material-summary',
+          name:String(material || '').trim(),
+        })).filter((row)=> row.name);
+      })(),
+      accessories: collectAccessories(decodeSelectedRooms(normalizedSelection)),
+      services: collectQuoteRateLines(),
+      agd: collectBuiltInAppliances(decodeSelectedRooms(normalizedSelection)),
+    };
   }
 
   async function collectQuoteData(options){
@@ -430,6 +488,7 @@
     const selectedRooms = decodeSelectedRooms(normalizedSelection);
     const aggregate = getSelectedAggregate(normalizedSelection);
     const materialLines = await collectMaterialLines(aggregate, normalizedSelection);
+    const elementLines = collectElementLines(normalizedSelection);
     const accessoryLines = collectAccessories(selectedRooms);
     const agdLines = collectBuiltInAppliances(selectedRooms);
     const quoteRateLines = collectQuoteRateLines();
@@ -458,6 +517,7 @@
       materialScope: normalizedSelection.materialScope,
       selection: normalizedSelection,
       materialLines,
+      elementLines,
       accessoryLines,
       agdLines,
       quoteRateLines,
@@ -485,6 +545,8 @@
     buildQuoteSnapshot,
     collectQuoteRateLines,
     collectCommercialDraft,
+    collectElementLines,
+    collectClientPdfDetails,
   };
 
   try{ ensureServiceCatalogInRuntime(); }catch(_){ }

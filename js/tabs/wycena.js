@@ -289,10 +289,39 @@
     }).filter(Boolean);
   }
 
-  function buildSelectionSummary(selection){
+  function getRoomsPickerMeta(selection){
+    try{
+      if(FC.rozrysScope && typeof FC.rozrysScope.getRoomsSummary === 'function'){
+        return FC.rozrysScope.getRoomsSummary(selection && selection.selectedRooms, {
+          getRooms: ()=> {
+            try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? FC.roomRegistry.getActiveRoomIds() : []; }catch(_){ return []; }
+          }
+        }) || { title:'Brak pomieszczeń', subtitle:'' };
+      }
+    }catch(_){ }
     const roomLabels = getRoomLabelsFromSelection(selection);
     return {
+      title: roomLabels.length ? roomLabels.join(', ') : 'Brak pomieszczeń',
+      subtitle: roomLabels.length ? `${roomLabels.length} wybrane` : '',
+    };
+  }
+
+  function getScopePickerMeta(selection){
+    return {
+      title:'Zakres wyceny',
+      subtitle:getMaterialScopeLabel(selection),
+      detail:'Wybór jak w ROZRYS',
+    };
+  }
+
+  function buildSelectionSummary(selection){
+    const roomLabels = getRoomLabelsFromSelection(selection);
+    const roomsMeta = getRoomsPickerMeta(selection);
+    const scopeMeta = getScopePickerMeta(selection);
+    return {
       roomLabels,
+      roomsMeta,
+      scopeMeta,
       roomsText: roomLabels.length ? roomLabels.join(', ') : 'Brak pomieszczeń',
       scopeText: getMaterialScopeLabel(selection),
     };
@@ -446,6 +475,100 @@
     }catch(_){ }
   }
 
+  function openQuoteScopePicker(ctx){
+    const draft = getOfferDraft();
+    const selection = normalizeDraftSelection(draft);
+    const currentScope = Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection && selection.materialScope || {});
+    try{
+      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+      const body = h('div', { class:'rozrys-picker-modal' });
+      const list = h('div', { class:'rozrys-picker-list' });
+      const cardNode = h('div', { class:'rozrys-picker-option rozrys-picker-card is-selected' });
+      const titleWrap = h('div', { class:'rozrys-picker-option__title-wrap' });
+      titleWrap.appendChild(h('div', { class:'rozrys-picker-option__title', text:'Zakres elementów do wyceny' }));
+      titleWrap.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:'Wybierz dokładnie tak samo jak w ROZRYS, co ma wejść do tej wyceny.' }));
+      cardNode.appendChild(titleWrap);
+      const chips = h('div', { class:'rozrys-scope-chips quote-scope-picker-chips' });
+      const draftScope = Object.assign({}, currentScope);
+      const bindChip = (label, key)=>{
+        const chip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match${draftScope[key] ? ' is-checked' : ''}` });
+        const cb = h('input', { type:'checkbox' });
+        cb.checked = !!draftScope[key];
+        cb.addEventListener('change', ()=>{
+          draftScope[key] = !!cb.checked;
+          if(!draftScope.includeFronts && !draftScope.includeCorpus){
+            draftScope[key] = true;
+            cb.checked = true;
+          }
+          chip.classList.toggle('is-checked', !!cb.checked);
+          updateFooterState();
+        });
+        chip.appendChild(cb);
+        chip.appendChild(h('span', { text:label }));
+        chips.appendChild(chip);
+      };
+      bindChip('Fronty', 'includeFronts');
+      bindChip('Korpusy', 'includeCorpus');
+      cardNode.appendChild(chips);
+      list.appendChild(cardNode);
+      body.appendChild(list);
+
+      const footer = h('div', { class:'rozrys-picker-footer rozrys-picker-footer--material' });
+      const actionWrap = h('div', { class:'rozrys-picker-footer-actions' });
+      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
+      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
+      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
+      const isDirty = ()=> (!!draftScope.includeFronts !== !!currentScope.includeFronts) || (!!draftScope.includeCorpus !== !!currentScope.includeCorpus);
+      const updateFooterState = ()=>{
+        actionWrap.innerHTML = '';
+        if(isDirty()){
+          saveBtn.disabled = !(draftScope.includeFronts || draftScope.includeCorpus);
+          actionWrap.appendChild(cancelBtn);
+          actionWrap.appendChild(saveBtn);
+        }else{
+          actionWrap.appendChild(exitBtn);
+        }
+      };
+      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
+      cancelBtn.addEventListener('click', async ()=>{
+        const ok = await askConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w wyborze zakresu wyceny zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'neutral'
+        });
+        if(!ok) return;
+        FC.panelBox.close();
+      });
+      saveBtn.addEventListener('click', ()=>{
+        if(!(draftScope.includeFronts || draftScope.includeCorpus)) return;
+        patchOfferDraft({ selection:{ materialScope:Object.assign({}, draftScope) } });
+        FC.panelBox.close();
+        render(ctx);
+      });
+      updateFooterState();
+      footer.appendChild(actionWrap);
+      body.appendChild(footer);
+      FC.panelBox.open({
+        title:'Wybierz zakres wyceny',
+        contentNode: body,
+        width:'820px',
+        boxClass:'panel-box--rozrys',
+        dismissOnOverlay:false,
+        beforeClose: ()=> isDirty() ? askConfirm({
+          title:'ANULOWAĆ ZMIANY?',
+          message:'Niezapisane zmiany w wyborze zakresu wyceny zostaną utracone.',
+          confirmText:'✕ ANULUJ ZMIANY',
+          cancelText:'WRÓĆ',
+          confirmTone:'danger',
+          cancelTone:'neutral'
+        }) : true
+      });
+    }catch(_){ }
+  }
+
   function renderQuoteSelectionSection(card, ctx){
     const draft = getOfferDraft();
     const selection = normalizeDraftSelection(draft);
@@ -455,36 +578,25 @@
 
     const roomsField = h('div', { class:'quote-selection-field rozrys-field rozrys-selection-grid__rooms' });
     roomsField.appendChild(labelWithInfo('Pomieszczenia do wyceny', 'Pomieszczenia do wyceny', 'Wybierz pomieszczenia bez wchodzenia do ROZRYS. Kliknięcie „Wyceń” uruchomi rozkrój w tle dokładnie dla tego zakresu.'));
-    const roomsBtn = FC.rozrysChoice && typeof FC.rozrysChoice.createChoiceLauncher === 'function'
-      ? FC.rozrysChoice.createChoiceLauncher(summary.roomsText, `${summary.roomLabels.length || 0} wybrane`)
-      : h('button', { type:'button', class:'btn', text:summary.roomsText });
-    roomsBtn.classList && roomsBtn.classList.add('rozrys-choice-launch--compact', 'quote-selection-launch--rooms');
+    const roomsBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--rooms quote-selection-launch--rooms' });
+    const roomsValue = h('div', { class:'rozrys-picker-launch__value' });
+    roomsValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:String(summary.roomsMeta && summary.roomsMeta.title || summary.roomsText) }));
+    if(summary.roomsMeta && summary.roomsMeta.subtitle) roomsValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:String(summary.roomsMeta.subtitle || '') }));
+    roomsBtn.appendChild(roomsValue);
     roomsBtn.addEventListener('click', ()=> openQuoteRoomsPicker(ctx));
     roomsField.appendChild(roomsBtn);
     grid.appendChild(roomsField);
 
     const scopeField = h('div', { class:'quote-selection-field rozrys-field rozrys-selection-grid__material' });
     scopeField.appendChild(labelWithInfo('Zakres elementów do wyceny', 'Zakres elementów do wyceny', 'Zakres działa jak w ROZRYS: możesz liczyć korpusy i fronty razem albo tylko jedną z tych grup.'));
-    const chips = h('div', { class:'rozrys-scope-chips quote-selection-chips' });
-    const materialScope = Object.assign({ includeFronts:true, includeCorpus:true }, selection.materialScope || {});
-    [['Fronty','includeFronts'],['Korpusy','includeCorpus']].forEach(([label, key])=>{
-      const chip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match${materialScope[key] ? ' is-checked' : ''}` });
-      const cb = h('input', { type:'checkbox' });
-      cb.checked = !!materialScope[key];
-      cb.addEventListener('change', ()=>{
-        const nextScope = Object.assign({}, materialScope, { [key]:!!cb.checked });
-        if(!nextScope.includeFronts && !nextScope.includeCorpus){
-          nextScope[key] = true;
-          cb.checked = true;
-        }
-        patchOfferDraft({ selection:{ materialScope:nextScope } });
-        render(ctx);
-      });
-      chip.appendChild(cb);
-      chip.appendChild(h('span', { text:label }));
-      chips.appendChild(chip);
-    });
-    scopeField.appendChild(chips);
+    const scopeBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--material quote-selection-launch--scope' });
+    const scopeValue = h('div', { class:'rozrys-picker-launch__value' });
+    scopeValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:String(summary.scopeMeta && summary.scopeMeta.title || summary.scopeText) }));
+    if(summary.scopeMeta && summary.scopeMeta.subtitle) scopeValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:String(summary.scopeMeta.subtitle || '') }));
+    if(summary.scopeMeta && summary.scopeMeta.detail) scopeValue.appendChild(h('div', { class:'rozrys-picker-launch__detail', text:String(summary.scopeMeta.detail || '') }));
+    scopeBtn.appendChild(scopeValue);
+    scopeBtn.addEventListener('click', ()=> openQuoteScopePicker(ctx));
+    scopeField.appendChild(scopeBtn);
     grid.appendChild(scopeField);
     section.appendChild(grid);
 
@@ -718,13 +830,10 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     })).filter((row)=> row.rateId);
   }
 
-  function renderOfferEditor(card, ctx){
+  function renderPreliminaryToggle(card, ctx){
     const draft = getOfferDraft();
     const commercial = draft && draft.commercial || {};
-    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
-    const selectionMap = buildSelectionMap(draft);
-
-    const preliminaryWrap = h('div', { class:'quote-offer-preliminary' });
+    const preliminaryWrap = h('div', { class:'quote-offer-preliminary quote-offer-preliminary--topbar' });
     const preliminaryChip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match quote-preliminary-chip${commercial.preliminary ? ' is-checked' : ''}` });
     const preliminaryInput = h('input', { type:'checkbox' });
     preliminaryInput.checked = !!commercial.preliminary;
@@ -740,6 +849,13 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     preliminaryChip.appendChild(h('span', { text:'Wstępna wycena (bez pomiaru)' }));
     preliminaryWrap.appendChild(preliminaryChip);
     card.appendChild(preliminaryWrap);
+  }
+
+  function renderOfferEditor(card, ctx){
+    const draft = getOfferDraft();
+    const commercial = draft && draft.commercial || {};
+    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    const selectionMap = buildSelectionMap(draft);
 
     const section = h('section', { class:`quote-offer-accordion rozrys-material-accordion${offerEditorOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
     const head = h('div', { class:'quote-offer-accordion__head' });
@@ -763,7 +879,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     if(offerEditorOpen){
       const body = h('div', { class:'quote-offer-accordion__body rozrys-material-accordion__body' });
       const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || defaultVersionName(!!commercial.preliminary) || '') });
-      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!preliminaryInput.checked) } });
+      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!commercial.preliminary) } });
       versionInput.addEventListener('focus', ()=>{ try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
       versionInput.addEventListener('pointerup', (ev)=>{ try{ ev.preventDefault(); }catch(_){ } try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
       versionInput.addEventListener('change', syncVersionName);
@@ -1052,6 +1168,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     head.appendChild(actions);
     card.appendChild(head);
 
+    renderPreliminaryToggle(card, ctx);
     renderQuoteSelectionSection(card, ctx);
     renderOfferEditor(card, ctx);
 

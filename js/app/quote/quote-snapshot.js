@@ -43,6 +43,9 @@
       rooms: String(row.rooms || '').trim(),
       note: String(row.note || '').trim(),
       source: String(row.source || '').trim(),
+      width: Math.max(0, num(row.width, 0)),
+      height: Math.max(0, num(row.height, 0)),
+      materialLabel: String(row.materialLabel || '').trim(),
     };
   }
 
@@ -131,6 +134,7 @@
     const generatedAt = Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now();
     const lines = {
       materials: normalizeLines(src.materialLines || (src.lines && src.lines.materials)),
+      elements: normalizeLines(src.elementLines || (src.lines && src.lines.elements)),
       accessories: normalizeLines(src.accessoryLines || (src.lines && src.lines.accessories)),
       agdServices: normalizeLines(src.agdLines || (src.lines && src.lines.agdServices)),
       quoteRates: normalizeLines(src.quoteRateLines || (src.lines && src.lines.quoteRates)),
@@ -140,7 +144,7 @@
     const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
     const scopeMode = materialScopeMode(materialScope);
     return {
-      version: 4,
+      version: 5,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {
