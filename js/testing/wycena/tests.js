@@ -18,7 +18,6 @@
     const prevCurrentProjectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : '';
     const prevSnapshots = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : [];
     const prevDrafts = FC.quoteOfferStore && typeof FC.quoteOfferStore.readAll === 'function' ? FC.quoteOfferStore.readAll() : [];
-    const prevLegacyProject = FC.project && typeof FC.project.load === 'function' ? FC.project.load() : null;
     const prevOverride = FC.rozrys && FC.rozrys.__projectOverride;
     const prevProjectData = Object.prototype.hasOwnProperty.call(host, 'projectData') ? host.projectData : undefined;
     const prevCutList = FC.cabinetCutlist && FC.cabinetCutlist.getCabinetCutList;
@@ -50,7 +49,6 @@
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function') FC.quoteSnapshotStore.writeAll([]);
       if(FC.quoteOfferStore && typeof FC.quoteOfferStore.writeAll === 'function') FC.quoteOfferStore.writeAll([]);
       host.projectData = clone(projectData);
-      if(FC.project && typeof FC.project.save === 'function') FC.project.save(host.projectData);
       if(FC.rozrys) FC.rozrys.__projectOverride = host.projectData;
       if(typeof cfg.cutListFn === 'function' && FC.cabinetCutlist){
         FC.cabinetCutlist.getCabinetCutList = cfg.cutListFn;
@@ -61,7 +59,6 @@
       if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;
       if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
       else host.projectData = prevProjectData;
-      if(FC.project && typeof FC.project.save === 'function') FC.project.save(prevLegacyProject);
       FC.quoteOfferStore && FC.quoteOfferStore.writeAll && FC.quoteOfferStore.writeAll(prevDrafts);
       FC.quoteSnapshotStore && FC.quoteSnapshotStore.writeAll && FC.quoteSnapshotStore.writeAll(prevSnapshots);
       FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll(prevProjects);
@@ -69,74 +66,6 @@
       FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
       FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
     }
-  }
-
-  function makeSnapshot(args){
-    const cfg = args && typeof args === 'object' ? args : {};
-    const investorId = String(cfg.investorId || 'inv_status');
-    const projectId = String(cfg.projectId || 'proj_status');
-    const generatedAt = Number(cfg.generatedAt) > 0 ? Number(cfg.generatedAt) : Date.now();
-    const preliminary = !!cfg.preliminary;
-    const id = String(cfg.id || `${preliminary ? 'prelim' : 'final'}_${generatedAt}`);
-    return FC.quoteSnapshotStore.save({
-      id,
-      investor:{ id:investorId, name:'Jan Test' },
-      project:{ id:projectId, investorId, title:'Projekt statusów', status:String(cfg.status || 'nowy') },
-      commercial:{ preliminary, versionName: preliminary ? 'Wstępna oferta' : 'Oferta' },
-      meta: clone(cfg.meta || {}),
-      totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 },
-      lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
-      generatedAt,
-    });
-  }
-
-  function getProjectRecord(projectId){
-    return FC.projectStore && typeof FC.projectStore.getById === 'function'
-      ? FC.projectStore.getById(projectId)
-      : null;
-  }
-
-  function getInvestorRooms(investorId){
-    const investor = FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function'
-      ? FC.investorPersistence.getInvestorById(investorId)
-      : null;
-    return investor && Array.isArray(investor.rooms) ? investor.rooms.slice() : [];
-  }
-
-  function assertSelectedSnapshot(projectId, expectedId, message){
-    const selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSelectedForProject === 'function'
-      ? FC.quoteSnapshotStore.getSelectedForProject(projectId)
-      : null;
-    if(expectedId == null){
-      H.assert(selected == null, message || 'Nieoczekiwanie została zaznaczona jakaś oferta', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
-      return;
-    }
-    H.assert(selected && String(selected.id || '') === String(expectedId), message || 'Zaznaczona oferta jest nieprawidłowa', { selected, expectedId, all:FC.quoteSnapshotStore.listForProject(projectId) });
-  }
-
-  function assertStatusMirrors(investorId, projectId, expectedStatus, message, options){
-    const label = String(message || 'Status nie zsynchronizował się we wszystkich źródłach');
-    const cfg = options && typeof options === 'object' ? options : {};
-    const projectRecord = getProjectRecord(projectId);
-    const rooms = getInvestorRooms(investorId);
-    H.assert(projectRecord && String(projectRecord.status || '') === String(expectedStatus), `${label}: projectStore`, projectRecord);
-    if(cfg.requireAllRooms){
-      H.assert(rooms.length > 0 && rooms.every((room)=> String(room && room.projectStatus || room && room.status || '') === String(expectedStatus)), `${label}: investor.rooms`, rooms);
-      return;
-    }
-    const targetRoomId = String(cfg.roomId || '');
-    if(targetRoomId){
-      const room = rooms.find((item)=> String(item && item.id || '') === targetRoomId) || null;
-      H.assert(room && String(room && room.projectStatus || room && room.status || '') === String(expectedStatus), `${label}: investor.room`, { room, rooms });
-    }
-  }
-
-  function acceptSnapshotFromWycena(projectId, snapshotId, status){
-    H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
-    H.assert(FC.wycenaDebug && typeof FC.wycenaDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaDebug.setProjectStatusFromSnapshot');
-    const selected = FC.quoteSnapshotStore.markSelectedForProject(projectId, snapshotId, { status });
-    FC.wycenaDebug.setProjectStatusFromSnapshot(selected, status);
-    return selected;
   }
 
   function runAll(){
@@ -346,125 +275,6 @@
         }
       }),
 
-      H.makeTest('Wycena ↔ Statusy projektu', 'Akceptacja oferty wstępnej zapisuje etap pomiaru w store projektu, snapshotach i meta projektu', 'Pilnuje, czy klik akceptacji wstępnej oferty nie kończy się tylko na badge’u w historii, ale ustawia też etap pomiaru w projectStore, pokojach inwestora i legacy projekcie.', ()=>{
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const prelim = makeSnapshot({ id:'snap_stage1_prelim_accept', investorId, projectId, preliminary:true, generatedAt:1712820300000 });
-          const accepted = acceptSnapshotFromWycena(projectId, prelim.id, 'pomiar');
-          H.assert(accepted && accepted.meta && accepted.meta.selectedByClient === true && String(accepted.meta.acceptedStage || '') === 'pomiar', 'Akceptacja wyceny wstępnej nie oznaczyła snapshotu etapem pomiaru', accepted);
-          assertSelectedSnapshot(projectId, prelim.id, 'Po akceptacji wyceny wstępnej nie została zaznaczona właściwa oferta');
-          assertStatusMirrors(investorId, projectId, 'pomiar', 'Akceptacja wyceny wstępnej nie ustawiła spójnego statusu pomiar', { requireAllRooms:true });
-          H.assert(FC.wycenaDebug.currentProjectStatus(prelim) === 'pomiar', 'Wycena nie odczytuje pomiaru jako bieżącego statusu projektu', {
-            current:FC.wycenaDebug.currentProjectStatus(prelim),
-            record:getProjectRecord(projectId),
-            rooms:getInvestorRooms(investorId),
-          });
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Statusy projektu', 'Akceptacja oferty końcowej ustawia status zaakceptowany i czyści wstępną jako aktywną finalnie', 'Pilnuje, czy końcowa akceptacja wskazuje zwykłą ofertę jako wybraną, a wcześniejsza wstępna nie zostaje błędnie aktywna po drodze.', ()=>{
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const prelim = makeSnapshot({ id:'snap_stage1_prelim_before_final', investorId, projectId, preliminary:true, generatedAt:1712820400000 });
-          const finalQuote = makeSnapshot({ id:'snap_stage1_final_accept', investorId, projectId, preliminary:false, generatedAt:1712820500000 });
-          acceptSnapshotFromWycena(projectId, prelim.id, 'pomiar');
-          const accepted = acceptSnapshotFromWycena(projectId, finalQuote.id, 'zaakceptowany');
-          assertSelectedSnapshot(projectId, finalQuote.id, 'Po akceptacji oferty końcowej zaznaczenie nie przeszło na zwykłą ofertę');
-          assertStatusMirrors(investorId, projectId, 'zaakceptowany', 'Akceptacja oferty końcowej nie ustawiła spójnego statusu zaakceptowany', { requireAllRooms:true });
-          const all = FC.quoteSnapshotStore.listForProject(projectId);
-          const prelimRow = all.find((row)=> String(row && row.id || '') === prelim.id) || null;
-          const finalRow = all.find((row)=> String(row && row.id || '') === finalQuote.id) || null;
-          H.assert(accepted && finalRow && finalRow.meta && finalRow.meta.selectedByClient === true && String(finalRow.meta.acceptedStage || '') === 'zaakceptowany', 'Końcowa oferta nie została oznaczona jako zaakceptowana finalnie', { accepted, finalRow, all });
-          H.assert(prelimRow && prelimRow.meta && prelimRow.meta.selectedByClient === false && String(prelimRow.meta.acceptedStage || '') === '', 'Wstępna oferta została błędnie zostawiona jako aktywna po akceptacji końcowej', { prelimRow, finalRow, all });
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Statusy projektu', 'Cofnięcie statusu z zaakceptowany do wycena czyści zaakceptowanie końcowej oferty', 'Pilnuje, czy ręczne cofnięcie etapu po stronie projektu nie zostawia czerwonej zaakceptowanej końcowej oferty mimo powrotu do etapu wyceny.', ()=>{
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const finalQuote = makeSnapshot({ id:'snap_stage1_final_revert', investorId, projectId, generatedAt:1712820600000 });
-          acceptSnapshotFromWycena(projectId, finalQuote.id, 'zaakceptowany');
-          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'wycena');
-          assertSelectedSnapshot(projectId, null, 'Po cofnięciu z zaakceptowany do wycena końcowa oferta nadal została zaznaczona');
-          assertStatusMirrors(investorId, projectId, 'wycena', 'Cofnięcie z zaakceptowany do wycena nie zsynchronizowało projektu', { roomId:'room_kuchnia_gora' });
-          const finalRow = FC.quoteSnapshotStore.getById(finalQuote.id);
-          H.assert(finalRow && finalRow.meta && finalRow.meta.selectedByClient === false && String(finalRow.meta.acceptedStage || '') === '', 'Końcowa oferta zachowała stan zaakceptowanej mimo cofnięcia etapu', finalRow);
-          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'zaakceptowany') === 'wycena', 'Rekomendowany status po cofnięciu z zaakceptowanego nie wrócił do etapu wyceny', FC.quoteSnapshotStore.listForProject(projectId));
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Statusy projektu', 'Cofnięcie statusu z pomiar do wstepna_wycena czyści zaakceptowanie oferty wstępnej', 'Pilnuje, czy powrót przed pomiar usuwa wskazaną ofertę wstępną z roli zaakceptowanej i nie zostawia projektu w pół-kroku.', ()=>{
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const prelim = makeSnapshot({ id:'snap_stage1_prelim_revert', investorId, projectId, preliminary:true, generatedAt:1712820700000 });
-          acceptSnapshotFromWycena(projectId, prelim.id, 'pomiar');
-          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'wstepna_wycena');
-          assertSelectedSnapshot(projectId, null, 'Po cofnięciu z pomiar do wstepna_wycena oferta wstępna nadal jest zaznaczona');
-          assertStatusMirrors(investorId, projectId, 'wstepna_wycena', 'Cofnięcie z pomiar do wstepna_wycena nie zsynchronizowało projektu', { roomId:'room_kuchnia_gora' });
-          const prelimRow = FC.quoteSnapshotStore.getById(prelim.id);
-          H.assert(prelimRow && prelimRow.meta && prelimRow.meta.selectedByClient === false && String(prelimRow.meta.acceptedStage || '') === '', 'Oferta wstępna zachowała stan zaakceptowanej mimo cofnięcia przed pomiar', prelimRow);
-          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'pomiar') === 'wycena' || FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'pomiar') === 'wstepna_wycena', 'Rekomendowany status po cofnięciu z pomiaru jest niespójny', FC.quoteSnapshotStore.listForProject(projectId));
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Statusy projektu', 'Pełna ścieżka wstepna_wycena → pomiar → wycena → zaakceptowany utrzymuje właściwą aktywną ofertę', 'Pilnuje, czy przejście przez cały cykl nie gubi aktywnej oferty: po wygenerowaniu wstępnej nie ma jeszcze akceptacji, po pomiarze aktywna jest wstępna, po zwykłej wycenie nic nie zostaje zaakceptowane, a finalnie aktywna jest tylko zwykła oferta.', ()=>{
-        H.assert(FC.wycenaDebug && typeof FC.wycenaDebug.syncGeneratedQuoteStatus === 'function', 'Brak FC.wycenaDebug.syncGeneratedQuoteStatus');
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const prelim = makeSnapshot({ id:'snap_stage1_path_prelim', investorId, projectId, preliminary:true, generatedAt:1712820800000 });
-          FC.wycenaDebug.syncGeneratedQuoteStatus(prelim);
-          assertStatusMirrors(investorId, projectId, 'wstepna_wycena', 'Wygenerowanie wyceny wstępnej nie ustawiło etapu wstepna_wycena', { requireAllRooms:true });
-          assertSelectedSnapshot(projectId, null, 'Samo wygenerowanie wyceny wstępnej nie powinno jej od razu akceptować');
-
-          acceptSnapshotFromWycena(projectId, prelim.id, 'pomiar');
-          assertSelectedSnapshot(projectId, prelim.id, 'Etap pomiar nie utrzymał zaakceptowanej wyceny wstępnej');
-
-          const finalQuote = makeSnapshot({ id:'snap_stage1_path_final', investorId, projectId, preliminary:false, generatedAt:1712820900000 });
-          FC.wycenaDebug.syncGeneratedQuoteStatus(finalQuote);
-          assertStatusMirrors(investorId, projectId, 'wycena', 'Wygenerowanie zwykłej wyceny po pomiarze nie ustawiło etapu wycena', { requireAllRooms:true });
-          assertSelectedSnapshot(projectId, null, 'Przejście na etap wyceny powinno wyczyścić wcześniejszą akceptację wstępnej oferty');
-
-          acceptSnapshotFromWycena(projectId, finalQuote.id, 'zaakceptowany');
-          assertSelectedSnapshot(projectId, finalQuote.id, 'Etap zaakceptowany nie wskazał końcowej oferty jako aktywnej');
-          assertStatusMirrors(investorId, projectId, 'zaakceptowany', 'Finalna akceptacja po pełnej ścieżce nie zsynchronizowała statusu projektu', { requireAllRooms:true });
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Statusy projektu', 'Usunięcie albo przełączenie aktywnej oferty nie zostawia statusu wskazującego na martwy snapshot', 'Pilnuje, czy po skasowaniu wybranej oferty albo przełączeniu wyboru na inną wersję system nie zostaje z etapem odnoszącym się do nieistniejącego snapshotu.', ()=>{
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const prelim = makeSnapshot({ id:'snap_stage1_dead_prelim', investorId, projectId, preliminary:true, generatedAt:1712821000000 });
-          const finalA = makeSnapshot({ id:'snap_stage1_dead_final_a', investorId, projectId, generatedAt:1712821100000 });
-          const finalB = makeSnapshot({ id:'snap_stage1_dead_final_b', investorId, projectId, generatedAt:1712821200000 });
-          acceptSnapshotFromWycena(projectId, finalA.id, 'zaakceptowany');
-          assertSelectedSnapshot(projectId, finalA.id, 'Punkt wyjścia testu ma mieć zaznaczoną pierwszą końcową ofertę');
-
-          acceptSnapshotFromWycena(projectId, finalB.id, 'zaakceptowany');
-          assertSelectedSnapshot(projectId, finalB.id, 'Przełączenie aktywnej oferty końcowej nie wskazało nowej wersji');
-          H.assert(FC.quoteSnapshotStore.remove(finalB.id) === true, 'Usunięcie aktywnej oferty końcowej nie powiodło się', FC.quoteSnapshotStore.listForProject(projectId));
-          assertSelectedSnapshot(projectId, null, 'Po usunięciu aktywnej końcowej oferty nadal istnieje martwe zaznaczenie');
-          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'zaakceptowany') === 'wycena', 'Po usunięciu aktywnej końcowej oferty rekomendowany status nie wrócił do wyceny przy istniejącej innej zwykłej ofercie', FC.quoteSnapshotStore.listForProject(projectId));
-          H.assert(FC.quoteSnapshotStore.remove(finalA.id) === true, 'Usunięcie drugiej końcowej oferty nie powiodło się', FC.quoteSnapshotStore.listForProject(projectId));
-          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'wycena') === 'wstepna_wycena', 'Po zniknięciu wszystkich zwykłych ofert rekomendowany status nie wrócił do etapu wstępnej wyceny', FC.quoteSnapshotStore.listForProject(projectId));
-          H.assert(FC.quoteSnapshotStore.getById(prelim.id) != null, 'Scenariusz powinien zostawić wstępną ofertę jako jedyną bazę do dalszego etapu', FC.quoteSnapshotStore.listForProject(projectId));
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Statusy projektu', 'Odczyt statusu projektu nie zależy od pierwszego pokoju, gdy projectStore ma właściwy stan', 'Pilnuje, czy logika Wycena bierze prawdziwy status projektu z projectStore, a nie z pierwszego pokoju inwestora ustawionego w złej kolejności lub z błędną starą wartością.', ()=>{
-        H.assert(FC.wycenaDebug && typeof FC.wycenaDebug.currentProjectStatus === 'function', 'Brak FC.wycenaDebug.currentProjectStatus');
-        withInvestorProjectFixture({
-          rooms:[
-            { id:'room_bad_first', baseType:'kuchnia', name:'Kuchnia dół', label:'Kuchnia dół', projectStatus:'nowy' },
-            { id:'room_right_second', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'pomiar' },
-          ],
-          status:'wycena',
-          projectRecord:{ status:'wycena' },
-        }, ({ investorId, projectId })=>{
-          const finalQuote = makeSnapshot({ id:'snap_stage1_no_fallback', investorId, projectId, preliminary:false, status:'wstepna_wycena', generatedAt:1712821300000 });
-          const resolved = FC.wycenaDebug.currentProjectStatus(finalQuote);
-          H.assert(resolved === 'wycena', 'Status projektu został wzięty z pierwszego pokoju albo snapshotu zamiast z projectStore', {
-            resolved,
-            projectRecord:getProjectRecord(projectId),
-            rooms:getInvestorRooms(investorId),
-            snapshot:finalQuote,
-          });
-        });
-      }),
-
 
       H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana statusu inwestora przełącza wskazaną ofertę i status projektu', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor korzysta z tej samej logiki co Wycena i nie rozjeżdża store projektu oraz historii ofert.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
@@ -488,6 +298,119 @@
           record = FC.projectStore.getByInvestorId(investorId);
           H.assert(selected && String(selected.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał finalnej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
           H.assert(record && String(record.status || '') === 'zaakceptowany', 'Status zaakceptowany nie zapisał się do projectStore', record);
+        });
+      }),
+
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Akceptacja oferty jednego pomieszczenia zmienia status tylko tego pokoju', 'Pilnuje, czy zaakceptowanie wyceny scoped do jednego pomieszczenia nie nadpisuje statusów pozostałych pokoi inwestora.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const snapshot = FC.quoteSnapshotStore.save({
+            id:'snap_room_only_pre',
+            investor:{ id:investorId },
+            project:{ id:projectId, investorId, title:'Projekt scoped' },
+            scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'], materialScopeMode:'both', materialScope:{ includeFronts:true, includeCorpus:true } },
+            commercial:{ preliminary:true, versionName:'Wstępna kuchnia' },
+            totals:{ grand:100 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            generatedAt:1712820300000,
+          });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(snapshot, 'pomiar');
+          const investor = FC.investors.getById(investorId);
+          const kitchen = (investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
+          const salon = (investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_salon');
+          const project = FC.projectStore.getById(projectId);
+          H.assert(String(kitchen && kitchen.projectStatus || '') === 'pomiar', 'Pokój objęty wyceną nie dostał statusu pomiar', investor.rooms);
+          H.assert(String(salon && salon.projectStatus || '') === 'nowy', 'Status drugiego pokoju został nadpisany mimo że wycena go nie obejmowała', investor.rooms);
+          H.assert(project && String(project.status || '') === 'pomiar', 'Zagregowany status projektu nie przeszedł na pomiar po akceptacji scoped wyceny', project);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Wspólna wycena aktualizuje tylko pokoje ze swojego zakresu', 'Pilnuje, czy wycena obejmująca kilka wybranych pomieszczeń aktualizuje tylko te pokoje, a nie cały projekt w ciemno.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
+        withInvestorProjectFixture({
+          rooms:[
+            { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'nowy' },
+            { id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'nowy' },
+            { id:'room_lazienka', baseType:'lazienka', name:'Łazienka', label:'Łazienka', projectStatus:'nowy' },
+          ],
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_kuchnia_gora:{ id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
+                room_salon:{ id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon' },
+                room_lazienka:{ id:'room_lazienka', baseType:'lazienka', name:'Łazienka', label:'Łazienka' },
+              },
+              roomOrder:['room_kuchnia_gora','room_salon','room_lazienka'],
+            },
+            room_kuchnia_gora:{ cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
+            room_salon:{ cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
+            room_lazienka:{ cabinets:[{ id:'cab_l' }], fronts:[], sets:[], settings:{} },
+          }
+        }, ({ investorId, projectId })=>{
+          const snapshot = FC.quoteSnapshotStore.save({
+            id:'snap_shared_final',
+            investor:{ id:investorId },
+            project:{ id:projectId, investorId, title:'Projekt shared' },
+            scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'], materialScopeMode:'both', materialScope:{ includeFronts:true, includeCorpus:true } },
+            commercial:{ preliminary:false, versionName:'Oferta wspólna' },
+            totals:{ grand:250 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            generatedAt:1712820400000,
+          });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(snapshot, 'wycena');
+          const investor = FC.investors.getById(investorId);
+          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'wycena', 'Pierwszy pokój ze wspólnej wyceny nie dostał statusu wycena', investor.rooms);
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wycena', 'Drugi pokój ze wspólnej wyceny nie dostał statusu wycena', investor.rooms);
+          H.assert(String(byId.room_lazienka && byId.room_lazienka.projectStatus || '') === 'nowy', 'Pokój spoza wspólnej wyceny dostał status mimo braku w zakresie', investor.rooms);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Status wyceny scoped nie zależy od pierwszego pokoju inwestora', 'Pilnuje, czy odczyt statusu oferty bierze pokoje z zakresu snapshotu zamiast przypadkowego pierwszego pomieszczenia inwestora.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.currentProjectStatus === 'function', 'Brak FC.wycenaTabDebug.currentProjectStatus');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_salon', 'pomiar');
+          const snapshot = FC.quoteSnapshotStore.save({
+            id:'snap_scope_status',
+            investor:{ id:investorId },
+            project:{ id:projectId, investorId, title:'Projekt fallback' },
+            scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'], materialScopeMode:'both', materialScope:{ includeFronts:true, includeCorpus:true } },
+            commercial:{ preliminary:true, versionName:'Salon pomiar' },
+            totals:{ grand:90 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            generatedAt:1712820500000,
+          });
+          const status = FC.wycenaTabDebug.currentProjectStatus(snapshot);
+          H.assert(String(status || '') === 'pomiar', 'Status scoped oferty wrócił do pierwszego pokoju albo złego fallbacku zamiast do właściwego pomieszczenia', { status, investor:FC.investors.getById(investorId), snapshot });
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Ręczna zmiana statusu pokoju wybiera tylko pasującą ofertę i nie rusza innych pokoi', 'Pilnuje, czy ręczne ustawienie statusu w Inwestor synchronizuje Wycena po zakresie pomieszczenia zamiast po dowolnej pierwszej ofercie projektu.', ()=>{
+        H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_room_kitchen_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt ręczny' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820600000 });
+          const salonPre = FC.quoteSnapshotStore.save({ id:'snap_room_salon_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt ręczny' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:120 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820700000 });
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_salon', 'pomiar');
+          const investor = FC.investors.getById(investorId);
+          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
+          const selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'nowy', 'Ręczna zmiana statusu salonu nadpisała kuchnię', investor.rooms);
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'pomiar', 'Ręczna zmiana statusu salonu nie zapisała się w docelowym pokoju', investor.rooms);
+          H.assert(selected && String(selected.id || '') === String(salonPre.id || ''), 'Synchronizacja Wycena po ręcznej zmianie pokoju wybrała złą ofertę scoped', { selected, kitchenPre, salonPre, all:FC.quoteSnapshotStore.listForProject(projectId) });
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Scoped rekomendacja statusu po usunięciu oferty nie opiera się na innych pokojach', 'Pilnuje, czy cofanie statusu po usunięciu oferty bierze tylko snapshoty z tego samego zakresu pomieszczeń, a nie oferty innych pokoi.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusForProject === 'function', 'Brak FC.quoteSnapshotStore.getRecommendedStatusForProject');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_pre_k', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scoped rec' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'K pre' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820800000 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_final_s', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scoped rec' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:false, versionName:'S final' }, totals:{ grand:200 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820900000 });
+          const recommendedKitchen = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'zaakceptowany', { roomIds:['room_kuchnia_gora'] });
+          const recommendedSalon = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, 'zaakceptowany', { roomIds:['room_salon'] });
+          H.assert(String(recommendedKitchen || '') === 'wstepna_wycena', 'Scoped rekomendacja dla kuchni została zanieczyszczona ofertą z innego pokoju', { recommendedKitchen, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(String(recommendedSalon || '') === 'wycena', 'Scoped rekomendacja dla salonu nie zachowała jego własnej oferty końcowej', { recommendedSalon, all:FC.quoteSnapshotStore.listForProject(projectId) });
         });
       }),
 

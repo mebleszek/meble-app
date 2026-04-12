@@ -188,6 +188,59 @@
     return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
   }
 
+  function normalizeRoomIds(roomIds){
+    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.normalizeRoomIds === 'function'){
+      try{ return FC.quoteSnapshotStore.normalizeRoomIds(roomIds); }catch(_){ }
+    }
+    return Array.isArray(roomIds)
+      ? Array.from(new Set(roomIds.map((item)=> String(item || '').trim()).filter(Boolean)))
+      : [];
+  }
+
+  function getSnapshotRoomIds(snapshot){
+    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSnapshotRoomIds === 'function'){
+      try{ return FC.quoteSnapshotStore.getSnapshotRoomIds(snapshot); }catch(_){ }
+    }
+    return normalizeRoomIds(snapshot && snapshot.scope && snapshot.scope.selectedRooms);
+  }
+
+  function getAllActiveRoomIds(){
+    try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()) : []; }catch(_){ return []; }
+  }
+
+  function getTargetRoomIdsFromSnapshot(snapshot){
+    const scoped = getSnapshotRoomIds(snapshot);
+    return scoped.length ? scoped : getAllActiveRoomIds();
+  }
+
+  function collectRoomStatuses(roomIds, sources){
+    const ids = normalizeRoomIds(roomIds);
+    const out = [];
+    ids.forEach((roomId)=> {
+      let status = '';
+      const investorRooms = sources && Array.isArray(sources.investorRooms) ? sources.investorRooms : [];
+      const investorRoom = investorRooms.find((room)=> String(room && room.id || '') === roomId);
+      if(investorRoom && (investorRoom.projectStatus || investorRoom.status)) status = normalizeStatusKey(investorRoom.projectStatus || investorRoom.status);
+      if(!status){
+        const roomDefs = sources && sources.roomDefs && typeof sources.roomDefs === 'object' ? sources.roomDefs : null;
+        const row = roomDefs && roomDefs[roomId];
+        if(row && (row.projectStatus || row.status)) status = normalizeStatusKey(row.projectStatus || row.status);
+      }
+      if(status) out.push(status);
+    });
+    return out;
+  }
+
+  function getAggregateStatus(statuses, fallback){
+    const rows = Array.isArray(statuses) ? statuses.filter(Boolean).map((value)=> normalizeStatusKey(value)).filter(Boolean) : [];
+    if(!rows.length) return normalizeStatusKey(fallback);
+    let best = rows[0];
+    rows.forEach((status)=> {
+      if(statusRank(status) > statusRank(best)) best = status;
+    });
+    return best || normalizeStatusKey(fallback);
+  }
+
   function isArchivedPreliminary(snapshot, history, projectStatus){
     const list = Array.isArray(history) ? history : getSnapshotHistory();
     if(!isPreliminarySnapshot(snapshot)) return false;
@@ -202,19 +255,22 @@
     const snap = normalizeSnapshot(snapshot) || {};
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
     const investorId = String(snap && snap.project && snap.project.investorId || snap && snap.investor && snap.investor.id || getCurrentInvestorId() || '');
+    const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
+    let projectRecord = null;
     try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function'){
-        const record = FC.projectStore.getById(projectId);
-        if(record && record.status) return normalizeStatusKey(record.status);
-      }
-    }catch(_){ }
+      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function') projectRecord = FC.projectStore.getById(projectId);
+    }catch(_){ projectRecord = null; }
+    let investor = null;
     try{
-      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function'){
-        const investor = FC.investorPersistence.getInvestorById(investorId);
-        const room = investor && Array.isArray(investor.rooms) && investor.rooms[0];
-        if(room && (room.projectStatus || room.status)) return normalizeStatusKey(room.projectStatus || room.status);
-      }
-    }catch(_){ }
+      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') investor = FC.investorPersistence.getInvestorById(investorId);
+      if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function') investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
+    }catch(_){ investor = null; }
+    const scopedStatuses = collectRoomStatuses(targetRoomIds, {
+      investorRooms: investor && investor.rooms,
+      roomDefs: projectRecord && projectRecord.projectData && projectRecord.projectData.meta && projectRecord.projectData.meta.roomDefs,
+    });
+    if(scopedStatuses.length) return getAggregateStatus(scopedStatuses, snap && snap.project && snap.project.status);
+    if(projectRecord && projectRecord.status) return normalizeStatusKey(projectRecord.status);
     return normalizeStatusKey(snap && snap.project && snap.project.status || '');
   }
 
@@ -621,46 +677,58 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       || getCurrentInvestorId()
       || ''
     );
-    try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
-        const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
-        if(record){
-          FC.projectStore.upsert(Object.assign({}, record, { status:nextStatus, updatedAt:Date.now() }));
-        }
-      }
-    }catch(_){ }
+    const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
 
     let investor = null;
     try{
-      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function'){
-        investor = FC.investorPersistence.getInvestorById(investorId);
-      }
-      if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function'){
-        investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
-      }
+      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') investor = FC.investorPersistence.getInvestorById(investorId);
+      if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function') investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
     }catch(_){ investor = null; }
 
+    let nextInvestor = investor;
     try{
       if(investor && FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
+        const allowed = targetRoomIds.length ? new Set(targetRoomIds) : null;
         const roomMap = new Map();
         const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
         currentRooms.forEach((room)=>{
           const key = String(room && room.id || '');
           if(!key) return;
-          roomMap.set(key, Object.assign({}, room, { projectStatus:nextStatus }));
+          const nextRoom = allowed && !allowed.has(key)
+            ? Object.assign({}, room)
+            : Object.assign({}, room, { projectStatus:nextStatus });
+          roomMap.set(key, nextRoom);
         });
         try{
           if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
             const defs = FC.roomRegistry.getActiveRoomDefs() || [];
             defs.forEach((room)=>{
               const key = String(room && room.id || '');
-              if(!key) return;
+              if(!key || (allowed && !allowed.has(key))) return;
               roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key, projectStatus:nextStatus }));
             });
           }
         }catch(_){ }
         const rooms = Array.from(roomMap.values());
-        if(rooms.length) FC.investorPersistence.saveInvestorPatch(investor.id, { rooms });
+        if(rooms.length) nextInvestor = FC.investorPersistence.saveInvestorPatch(investor.id, { rooms }) || Object.assign({}, investor, { rooms });
+      }
+    }catch(_){ }
+
+    let aggregateStatus = nextStatus;
+    try{
+      if(FC.investorPersistence && FC.investorPersistence._debug && typeof FC.investorPersistence._debug.getAggregateInvestorStatus === 'function'){
+        aggregateStatus = normalizeStatusKey(FC.investorPersistence._debug.getAggregateInvestorStatus(nextInvestor || investor, nextStatus) || nextStatus);
+      } else {
+        aggregateStatus = getAggregateStatus(collectRoomStatuses(getAllActiveRoomIds(), { investorRooms: nextInvestor && nextInvestor.rooms }), nextStatus);
+      }
+    }catch(_){ aggregateStatus = nextStatus; }
+
+    try{
+      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
+        const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
+        if(record){
+          FC.projectStore.upsert(Object.assign({}, record, { status:aggregateStatus, updatedAt:Date.now() }));
+        }
       }
     }catch(_){ }
 
@@ -669,9 +737,11 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         const proj = FC.project.load() || {};
         const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
         if(meta){
-          meta.projectStatus = nextStatus;
+          meta.projectStatus = aggregateStatus;
           if(meta.roomDefs && typeof meta.roomDefs === 'object'){
+            const allowed = targetRoomIds.length ? new Set(targetRoomIds) : null;
             Object.keys(meta.roomDefs).forEach((roomId)=>{
+              if(allowed && !allowed.has(roomId)) return;
               const row = meta.roomDefs[roomId];
               if(!row || typeof row !== 'object') return;
               meta.roomDefs[roomId] = Object.assign({}, row, { projectStatus:nextStatus });
@@ -684,7 +754,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
 
     try{
       if(syncSelection && projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
-        FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus);
+        FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus, targetRoomIds.length ? { roomIds:targetRoomIds } : undefined);
       }
     }catch(_){ }
 
@@ -1076,7 +1146,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
         }catch(_){ }
         if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusForProject === 'function'){
-          const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus);
+          const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus, { roomIds:getTargetRoomIdsFromSnapshot(snap) });
           if(recommendedStatus && recommendedStatus !== currentStatus){
             setProjectStatusFromSnapshot(snap, recommendedStatus, { syncSelection:true });
           }
@@ -1227,12 +1297,12 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     }
   }
 
-  FC.wycenaDebug = Object.assign({}, FC.wycenaDebug || {}, {
+  FC.wycenaTabDebug = Object.assign({}, FC.wycenaTabDebug || {}, {
     currentProjectStatus,
-    getProjectStatusForHistory,
     setProjectStatusFromSnapshot,
-    syncGeneratedQuoteStatus,
-    isArchivedPreliminary,
+    getTargetRoomIdsFromSnapshot,
+    getAggregateStatus,
+    collectRoomStatuses,
   });
 
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });

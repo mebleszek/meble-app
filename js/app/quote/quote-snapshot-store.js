@@ -152,6 +152,27 @@
     return listForProject(projectId).some((row)=> !isPreliminarySnapshot(row));
   }
 
+  function normalizeRoomIds(roomIds){
+    return Array.isArray(roomIds)
+      ? Array.from(new Set(roomIds.map((item)=> String(item || '').trim()).filter(Boolean)))
+      : [];
+  }
+
+  function getSnapshotRoomIds(snapshot){
+    return normalizeRoomIds(snapshot && snapshot.scope && snapshot.scope.selectedRooms);
+  }
+
+  function filterRowsByRoomScope(rows, roomIds){
+    const targets = normalizeRoomIds(roomIds);
+    const list = Array.isArray(rows) ? rows : [];
+    if(!targets.length) return list.slice();
+    return list.filter((row)=> {
+      const snapshotRooms = getSnapshotRoomIds(row);
+      if(!snapshotRooms.length) return true;
+      return targets.every((roomId)=> snapshotRooms.includes(roomId));
+    });
+  }
+
   function pickCandidate(projectRows, predicate){
     const rows = Array.isArray(projectRows) ? projectRows : [];
     return rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient) && predicate(row))
@@ -159,12 +180,13 @@
       || null;
   }
 
-  function updateSelectionForProject(projectId, chooser, projectStatus, acceptedStage){
+  function updateSelectionForProject(projectId, chooser, projectStatus, acceptedStage, options){
     const pid = String(projectId || '');
     if(!pid) return null;
     const list = readAll();
     const projectRows = list.filter((row)=> String(row && row.project && row.project.id || '') === pid);
-    const candidate = chooser(projectRows);
+    const scopedRows = filterRowsByRoomScope(projectRows, options && options.roomIds);
+    const candidate = chooser(scopedRows, projectRows, options || {});
     const normalizedProjectStatus = normalizeStatus(projectStatus || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
     const normalizedAcceptedStage = normalizeStatus(acceptedStage || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
     const stamp = Date.now();
@@ -190,27 +212,27 @@
     const pid = String(projectId || '');
     const sid = String(snapshotId || '');
     const explicit = normalizeStatus(options && options.status || '');
-    return updateSelectionForProject(pid, (rows)=> rows.find((row)=> String(row && row.id || '') === sid) || null, explicit, explicit || 'zaakceptowany');
+    return updateSelectionForProject(pid, (rows)=> rows.find((row)=> String(row && row.id || '') === sid) || null, explicit, explicit || 'zaakceptowany', options);
   }
 
-  function syncSelectionForProjectStatus(projectId, status){
+  function syncSelectionForProjectStatus(projectId, status, options){
     const pid = String(projectId || '');
     const normalizedStatus = normalizeStatus(status);
     if(!pid) return null;
     if(normalizedStatus === 'pomiar'){
-      return updateSelectionForProject(pid, (rows)=> pickCandidate(rows, (row)=> isPreliminarySnapshot(row)), 'pomiar', 'pomiar');
+      return updateSelectionForProject(pid, (rows)=> pickCandidate(rows, (row)=> isPreliminarySnapshot(row)), 'pomiar', 'pomiar', options);
     }
     if(FINAL_STATUSES.has(normalizedStatus)){
-      return updateSelectionForProject(pid, (rows)=> pickCandidate(rows, (row)=> !isPreliminarySnapshot(row)), normalizedStatus, 'zaakceptowany');
+      return updateSelectionForProject(pid, (rows)=> pickCandidate(rows, (row)=> !isPreliminarySnapshot(row)), normalizedStatus, 'zaakceptowany', options);
     }
-    return updateSelectionForProject(pid, ()=> null, normalizedStatus, '');
+    return updateSelectionForProject(pid, ()=> null, normalizedStatus, '', options);
   }
 
-  function getRecommendedStatusForProject(projectId, currentStatus){
+  function getRecommendedStatusForProject(projectId, currentStatus, options){
     const pid = String(projectId || '');
     const normalizedCurrent = normalizeStatus(currentStatus);
     if(!pid) return normalizedCurrent || 'nowy';
-    const rows = listForProject(pid);
+    const rows = filterRowsByRoomScope(listForProject(pid), options && options.roomIds);
     const selected = rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
     if(selected){
       if(isPreliminarySnapshot(selected)) return 'pomiar';
@@ -281,5 +303,8 @@
     hasFinalQuote,
     defaultVersionName,
     isPreliminarySnapshot,
+    normalizeRoomIds,
+    getSnapshotRoomIds,
+    filterRowsByRoomScope,
   };
 })();
