@@ -272,3 +272,5 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - `INWESTOR`: smoke testy obejmują teraz synchronizację statusu projektu z `projectStore` i historią ofert oraz bezpieczną aktualizację pojedynczego pomieszczenia.
 - `MATERIAŁY`: smoke testy pilnują, że zapis płyt nie miesza akcesoriów z materiałami arkuszowymi i że migracja `preferStoredSplit` nie przywraca legacy danych przy pierwszym starcie.
 - `USŁUGI`: smoke testy obejmują spójność `catalogStore` ↔ `serviceOrderStore` oraz brak pustego rekordu przy tworzeniu szkicu zlecenia.
+
+- 2026-04-12: Naprawiono synchronizację `catalogStore` ↔ `serviceOrderStore` dla zleceń usługowych i dodano regresję pod odczyt po bezpośrednim zapisie do store.

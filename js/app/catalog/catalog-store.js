@@ -240,11 +240,26 @@
     return getPriceList(key);
   }
 
-  function getServiceOrders(){ return cache.serviceOrders.slice(); }
+  function readServiceOrdersFromStore(){
+    try{
+      if(serviceOrderStore && typeof serviceOrderStore.readAll === 'function'){
+        return normalizeList(serviceOrderStore.readAll(), normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
+      }
+    }catch(_){ }
+    return normalizeList(readList('serviceOrders', cache.serviceOrders), normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
+  }
+
+  function getServiceOrders(){
+    cache.serviceOrders = readServiceOrdersFromStore();
+    return cache.serviceOrders.slice();
+  }
   function saveServiceOrders(list){
     cache.serviceOrders = normalizeList(list, normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
-    writeList('serviceOrders', cache.serviceOrders);
-    return getServiceOrders();
+    try{
+      if(serviceOrderStore && typeof serviceOrderStore.writeAll === 'function') serviceOrderStore.writeAll(cache.serviceOrders);
+      else writeList('serviceOrders', cache.serviceOrders);
+    }catch(_){ writeList('serviceOrders', cache.serviceOrders); }
+    return cache.serviceOrders.slice();
   }
   function upsertServiceOrder(payload){
     const row = normalizeServiceOrderRow(payload || {});

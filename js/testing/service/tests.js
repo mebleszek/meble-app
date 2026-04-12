@@ -88,7 +88,10 @@
           const fromStore = FC.serviceOrderStore.readAll();
           H.assert(Array.isArray(fromCatalog) && fromCatalog.length === 1, 'catalogStore nie zwrócił zlecenia usługowego', fromCatalog);
           H.assert(Array.isArray(fromStore) && fromStore.length === 1 && String(fromStore[0].id || '') === 'so_catalog', 'catalogStore nie zapisał zlecenia do właściwego store', fromStore);
-          FC.catalogStore.removeServiceOrder('so_catalog');
+          FC.serviceOrderStore.writeAll([{ id:'so_external', title:'Zewnętrzny zapis', clientName:'Ela', status:'nowe' }]);
+          const synced = FC.catalogStore.getServiceOrders();
+          H.assert(Array.isArray(synced) && synced.length === 1 && String(synced[0].id || '') === 'so_external', 'catalogStore nie zsynchronizował odczytu po bezpośrednim zapisie do store', synced);
+          FC.catalogStore.removeServiceOrder('so_external');
           H.assert(Array.isArray(FC.serviceOrderStore.readAll()) && FC.serviceOrderStore.readAll().length === 0, 'Usunięcie z catalogStore nie wyczyściło store zleceń', FC.serviceOrderStore.readAll());
         });
       }),

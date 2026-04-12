@@ -1074,3 +1074,5 @@ Dopiero potem go zmieniać.
 - 2026-04-12: ROZRYS first-run scoped rooms fix — aggregatePartsForProject spina teraz safeGetProject i listę pokoi z tego samego scoped projektu, więc pierwszy przebieg testów nie filtruje już `salon` / `inne` po globalnych domyślnych pokojach. Retry po pokojach używa discovered rooms z tego samego kandydata projektu. Dodany regresyjny smoke test na pierwszy przebieg ze scoped pokojami.
 
 - 2026-04-12: Testy przekrojowe Wycena — rozszerzono `js/testing/wycena/tests.js` o scenariusze `Wycena ↔ Inwestor`, `Wycena ↔ Pomieszczenia ↔ ROZRYS` oraz `Wycena ↔ PDF`: ręczna zmiana statusu inwestora synchronizuje projectStore i wskazaną ofertę, wybór pokoi w Wycena filtruje elementy dokładnie po aktywnych pomieszczeniach projektu, pusty wybór wraca do wszystkich realnych pokoi inwestora, a PDF zapisanej końcowej oferty po konwersji z wstępnej zachowuje handlowy charakter bez technicznej listy formatek.
+
+- 2026-04-12: Hotfix testów USŁUGI — catalogStore.serviceOrders czyta teraz zawsze aktualny stan z serviceOrderStore zamiast wiszącego cache; dodany regres na synchronizację po bezpośrednim zapisie do store.
