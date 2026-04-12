@@ -1227,5 +1227,13 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     }
   }
 
+  FC.wycenaDebug = Object.assign({}, FC.wycenaDebug || {}, {
+    currentProjectStatus,
+    getProjectStatusForHistory,
+    setProjectStatusFromSnapshot,
+    syncGeneratedQuoteStatus,
+    isArchivedPreliminary,
+  });
+
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
 })();
