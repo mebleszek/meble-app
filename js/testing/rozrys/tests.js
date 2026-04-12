@@ -271,6 +271,10 @@
     host.projectData = project;
     host.FC = host.FC || {};
     const fc = host.FC;
+    const prevRozrysOverride = fc.rozrys && fc.rozrys.__projectOverride;
+    if(fc.rozrys && typeof fc.rozrys === 'object') fc.rozrys.__projectOverride = project;
+    const prevLoad = fc.project && fc.project.load;
+    if(fc.project && typeof fc.project.load === 'function') fc.project.load = ()=> project;
     const prevNs = fc.cabinetCutlist;
     fc.cabinetCutlist = fc.cabinetCutlist || {};
     const prevFn = fc.cabinetCutlist.getCabinetCutList;
@@ -279,6 +283,11 @@
       return run();
     }finally{
       host.projectData = prevProject;
+      if(fc.rozrys && typeof fc.rozrys === 'object'){
+        if(prevRozrysOverride) fc.rozrys.__projectOverride = prevRozrysOverride;
+        else delete fc.rozrys.__projectOverride;
+      }
+      if(fc.project && typeof fc.project === 'object') fc.project.load = prevLoad;
       if(prevNs && typeof prevNs === 'object'){
         fc.cabinetCutlist.getCabinetCutList = prevFn;
       } else if(prevFn){

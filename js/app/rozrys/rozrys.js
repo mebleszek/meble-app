@@ -45,6 +45,10 @@
       if(candidates.some((entry)=> entry.proj === proj)) return;
       candidates.push({ proj, source: String(source || 'unknown') });
     };
+    try{
+      const override = FC.rozrys && FC.rozrys.__projectOverride;
+      if(override) pushCandidate(override, 'override');
+    }catch(_){ }
     try{ if(typeof projectData !== 'undefined' && projectData) pushCandidate(projectData, 'global'); }catch(_){ }
     try{ if(window.projectData) pushCandidate(window.projectData, 'window'); }catch(_){ }
     try{ if(FC.project && typeof FC.project.load === 'function'){ const loaded = FC.project.load(); if(loaded) pushCandidate(loaded, 'load'); } }catch(_){ }
