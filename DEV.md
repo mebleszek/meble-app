@@ -1059,3 +1059,5 @@ Dopiero potem go zmieniać.
 - 2026-04-12: ROZRYS test fixture isolation + first-run room retry fix — dodałem override projektu dla testów ROZRYS, żeby aggregatePartsForProject i retry po pokojach nie łapały starego projektu przy pierwszym uruchomieniu testów; podbite wersje rozrys.js i js/testing/rozrys/tests.js.
 
 - 2026-04-12: Wycena — zapis wyboru pomieszczeń został uszczelniony na wzór ROZRYS: quoteOfferStore i wycenaCore nie czyszczą już jawnie wybranego zestawu pokoi tylko dlatego, że roomRegistry chwilowo zwróci pustą lub niepełną listę; dodatkowo górny checkbox/pole `Wstępna wycena (bez pomiaru)` został wyśrodkowany w osi lewo-prawo. Smoke testy Wycena dostały regresję na pusty roomRegistry przy zachowaniu selectedRooms.
+
+- 2026-04-12: PDF klienta w Wycena bez listy formatek / elementów technicznych. Dokument pokazuje tylko handlowe sekcje: materiały / kolory, akcesoria z ilościami, usługi, AGD i cenę końcową. Dodany regresyjny smoke test PDF bez `Elementy w ofercie`.

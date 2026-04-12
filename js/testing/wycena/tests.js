@@ -247,13 +247,14 @@
           FC.quoteSnapshotStore.writeAll(prev);
         }
       }),
-      H.makeTest('Wycena', 'PDF wyceny buduje ofertę handlową z zapisanym snapshotem', 'Pilnuje, czy dokument dla klienta korzysta z quoteSnapshot, zawiera robociznę, warunki oferty i końcową sumę z rabatem.', ()=>{
+      H.makeTest('Wycena', 'PDF wyceny buduje handlową ofertę bez technicznej listy formatek', 'Pilnuje, czy PDF dla klienta pokazuje tylko handlowe sekcje: materiały, akcesoria, usługi, AGD i cenę końcową, bez technicznej listy elementów / formatek.', ()=>{
         H.assert(FC.quotePdf && typeof FC.quotePdf.buildPrintHtml === 'function', 'Brak FC.quotePdf.buildPrintHtml');
         const html = FC.quotePdf.buildPrintHtml({
           investor:{ id:'inv_pdf', name:'Jan Test' },
           project:{ id:'proj_pdf', investorId:'inv_pdf', title:'Kuchnia testowa', status:'wycena ostateczna' },
           scope:{ roomLabels:['Kuchnia dół'], materialScopeMode:'corpus', materialScope:{ includeFronts:false, includeCorpus:true } },
           lines:{
+            elements:[{ name:'Bok', qty:2, width:720, height:560, materialLabel:'Egger W1100 ST9 Biały Alpejski' }],
             materials:[{ name:'Egger W1100 ST9 Biały Alpejski', qty:2, unit:'ark.', unitPrice:35, total:70 }],
             accessories:[{ name:'Zawias Blum', qty:4, unitPrice:18, total:72 }],
             agdServices:[{ name:'Piekarnik do zabudowy', qty:1, unitPrice:120, total:120 }],
@@ -268,6 +269,10 @@
         H.assert(/Warunki oferty/.test(String(html || '')) && /14 dni/.test(String(html || '')) && /4 tygodnie/.test(String(html || '')), 'PDF wyceny nie zawiera pól handlowych', html);
         H.assert(/Wersja PDF A/.test(String(html || '')) && /Same korpusy/.test(String(html || '')), 'PDF wyceny nie zawiera nazwy wersji albo zakresu elementów', html);
         H.assert(/595\.80 PLN/.test(String(html || '')), 'PDF wyceny nie zawiera końcowej sumy po rabacie', html);
+        H.assert(/Materiały \/ kolory/.test(String(html || '')) && /Egger W1100 ST9 Biały Alpejski/.test(String(html || '')), 'PDF wyceny nie zawiera listy materiałów / kolorów', html);
+        H.assert(/Zawias Blum/.test(String(html || '')) && /4 szt\./.test(String(html || '')), 'PDF wyceny nie zawiera akcesoriów z ilościami', html);
+        H.assert(/Piekarnik do zabudowy/.test(String(html || '')), 'PDF wyceny nie zawiera listy montowanych sprzętów AGD', html);
+        H.assert(!/Elementy w ofercie/.test(String(html || '')) && !/720 × 560 mm/.test(String(html || '')) && !/Bok/.test(String(html || '')), 'PDF wyceny nadal pokazuje techniczną listę formatek / elementów', html);
       }),
     ]);
   }

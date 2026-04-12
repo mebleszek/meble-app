@@ -128,7 +128,6 @@
     const scopeLabel = scopeModeLabel(scope && scope.materialScopeMode);
     const badge = preliminary ? 'Wstępna wycena' : 'Wycena końcowa';
     const clientPdf = getClientPdfData(snap);
-    const elementsHtml = (clientPdf.elements || []).map(formatElementLine).join('');
     const materialsHtml = (clientPdf.materials || []).map(formatMaterialLine).join('');
     const accessoriesHtml = (clientPdf.accessories || []).map((row)=> formatSimpleLine(row, 'szt.')).join('');
     const servicesHtml = (clientPdf.services || []).map((row)=> formatSimpleLine(row, 'x')).join('');
@@ -227,7 +226,6 @@
       </div>
     </section>
 
-    ${buildListSection('Elementy w ofercie', elementsHtml, 'Brak zapisanych elementów dla tej oferty.')}
     ${buildListSection('Materiały / kolory', materialsHtml, 'Brak materiałów w tej ofercie.')}
     ${buildListSection('Akcesoria', accessoriesHtml, 'Brak akcesoriów w tej ofercie.')}
     ${buildListSection('Usługi / zakres prac', servicesHtml, 'Brak dodatkowych usług w tej ofercie.')}
