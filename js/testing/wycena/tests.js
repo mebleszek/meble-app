@@ -356,6 +356,28 @@
         });
       }),
 
+      H.makeTest('Wycena ↔ Centralny status', 'Sprzątanie ETAPU 3 nie wraca do starego lokalnego patchowania statusów', 'Pilnuje ETAP 3: wejścia statusów nie mają już po centralizacji dopalać starej ścieżki updateInvestorRoom jako drugiego mechanizmu zapisu.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function', 'Brak FC.projectStatusSync.setInvestorRoomStatus');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        H.assert(FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function', 'Brak FC.investorPersistence.updateInvestorRoom');
+        const prevUpdateInvestorRoom = FC.investorPersistence.updateInvestorRoom;
+        let fallbackCalls = 0;
+        FC.investorPersistence.updateInvestorRoom = function(){
+          fallbackCalls += 1;
+          return prevUpdateInvestorRoom.apply(this, arguments);
+        };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const prelim = FC.quoteSnapshotStore.save({ id:'snap_cleanup_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup pre' }, totals:{ grand:101 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820285000 });
+            FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'pomiar');
+            FC.wycenaTabDebug.setProjectStatusFromSnapshot(prelim, 'pomiar', { syncSelection:true });
+          });
+          H.assert(fallbackCalls === 0, 'Po sprzątaniu statusów wróciło stare lokalne patchowanie updateInvestorRoom', { fallbackCalls });
+        } finally {
+          FC.investorPersistence.updateInvestorRoom = prevUpdateInvestorRoom;
+        }
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Akceptacja oferty jednego pomieszczenia zmienia status tylko tego pokoju', 'Pilnuje, czy zaakceptowanie wyceny scoped do jednego pomieszczenia nie nadpisuje statusów pozostałych pokoi inwestora.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{

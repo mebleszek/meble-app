@@ -213,92 +213,15 @@
     return scoped.length ? scoped : getAllActiveRoomIds();
   }
 
-  function collectRoomStatuses(roomIds, sources){
-    const ids = normalizeRoomIds(roomIds);
-    const out = [];
-    ids.forEach((roomId)=> {
-      let status = '';
-      const investorRooms = sources && Array.isArray(sources.investorRooms) ? sources.investorRooms : [];
-      const investorRoom = investorRooms.find((room)=> String(room && room.id || '') === roomId);
-      if(investorRoom && (investorRoom.projectStatus || investorRoom.status)) status = normalizeStatusKey(investorRoom.projectStatus || investorRoom.status);
-      if(!status){
-        const roomDefs = sources && sources.roomDefs && typeof sources.roomDefs === 'object' ? sources.roomDefs : null;
-        const row = roomDefs && roomDefs[roomId];
-        if(row && (row.projectStatus || row.status)) status = normalizeStatusKey(row.projectStatus || row.status);
-      }
-      if(status) out.push(status);
-    });
-    return out;
-  }
-
-  function getAggregateStatus(statuses, fallback){
-    const rows = Array.isArray(statuses) ? statuses.filter(Boolean).map((value)=> normalizeStatusKey(value)).filter(Boolean) : [];
-    if(!rows.length) return normalizeStatusKey(fallback);
-    let best = rows[0];
-    rows.forEach((status)=> {
-      if(statusRank(status) > statusRank(best)) best = status;
-    });
-    return best || normalizeStatusKey(fallback);
-  }
-
-
-  function getRoomStatusMap(roomIds, sources){
-    const ids = normalizeRoomIds(roomIds);
-    const map = {};
-    ids.forEach((roomId)=> {
-      const status = collectRoomStatuses([roomId], sources)[0] || '';
-      if(status) map[roomId] = status;
-    });
-    return map;
-  }
-
-  function getKnownProjectRoomIds(projectId, investor, loadedProject, fallbackRoomIds){
-    const set = new Set(normalizeRoomIds(fallbackRoomIds));
-    const investorRooms = investor && Array.isArray(investor.rooms) ? investor.rooms : [];
-    investorRooms.forEach((room)=> {
-      const key = String(room && room.id || '');
-      if(key) set.add(key);
-    });
+  function warnMissingProjectStatusSync(){
     try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function'){
-        const record = FC.projectStore.getById(projectId);
-        const defs = record && record.projectData && record.projectData.meta && record.projectData.meta.roomDefs;
-        if(defs && typeof defs === 'object') Object.keys(defs).forEach((roomId)=> { if(roomId) set.add(roomId); });
+      if(!warnMissingProjectStatusSync._done && typeof console !== 'undefined' && console && typeof console.warn === 'function'){
+        warnMissingProjectStatusSync._done = true;
+        console.warn('[Wycena] Brak FC.projectStatusSync — używam ograniczonego fallbacku statusów.');
       }
     }catch(_){ }
-    try{
-      const defs = loadedProject && loadedProject.meta && loadedProject.meta.roomDefs;
-      if(defs && typeof defs === 'object') Object.keys(defs).forEach((roomId)=> { if(roomId) set.add(roomId); });
-    }catch(_){ }
-    try{
-      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
-        normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()).forEach((roomId)=> set.add(roomId));
-      }
-    }catch(_){ }
-    return Array.from(set);
   }
 
-  function buildRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, fallbackRoomIds, fallbackStatus){
-    const ids = normalizeRoomIds(roomIds);
-    const targetSet = new Set(normalizeRoomIds(fallbackRoomIds));
-    const map = {};
-    try{
-      if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
-        Object.assign(map, FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids) || {});
-      }
-    }catch(_){ }
-    ids.forEach((roomId)=> {
-      const key = String(roomId || '');
-      const current = normalizeStatusKey(currentStatusMap && currentStatusMap[key] || '');
-      const suggested = normalizeStatusKey(map[key] || '');
-      if(suggested){
-        map[key] = suggested;
-        return;
-      }
-      map[key] = targetSet.has(key) ? normalizeStatusKey(fallbackStatus || current || '') : current;
-    });
-    return map;
-  }
   function isArchivedPreliminary(snapshot, history, projectStatus){
     const list = Array.isArray(history) ? history : getSnapshotHistory();
     if(!isPreliminarySnapshot(snapshot)) return false;
@@ -315,27 +238,18 @@
         return normalizeStatusKey(FC.projectStatusSync.resolveCurrentProjectStatus(snapshot));
       }
     }catch(_){ }
+    warnMissingProjectStatusSync();
     const snap = normalizeSnapshot(snapshot) || {};
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const investorId = String(snap && snap.project && snap.project.investorId || snap && snap.investor && snap.investor.id || getCurrentInvestorId() || '');
-    const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
-    let projectRecord = null;
     try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function') projectRecord = FC.projectStore.getById(projectId);
-    }catch(_){ projectRecord = null; }
-    let investor = null;
-    try{
-      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') investor = FC.investorPersistence.getInvestorById(investorId);
-      if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function') investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
-    }catch(_){ investor = null; }
-    const scopedStatuses = collectRoomStatuses(targetRoomIds, {
-      investorRooms: investor && investor.rooms,
-      roomDefs: projectRecord && projectRecord.projectData && projectRecord.projectData.meta && projectRecord.projectData.meta.roomDefs,
-    });
-    if(scopedStatuses.length) return getAggregateStatus(scopedStatuses, snap && snap.project && snap.project.status);
-    if(projectRecord && projectRecord.status) return normalizeStatusKey(projectRecord.status);
+      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function'){
+        const projectRecord = FC.projectStore.getById(projectId);
+        if(projectRecord && projectRecord.status) return normalizeStatusKey(projectRecord.status);
+      }
+    }catch(_){ }
     return normalizeStatusKey(snap && snap.project && snap.project.status || '');
   }
+
 
   async function askConfirm(cfg){
     try{
@@ -739,6 +653,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         return;
       }
     }catch(_){ }
+
+    warnMissingProjectStatusSync();
     const syncSelection = !!(options && options.syncSelection);
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
     const investorId = String(
@@ -757,82 +673,33 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       }catch(_){ }
     }
 
-    let investor = null;
     try{
-      if(investorId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') investor = FC.investorPersistence.getInvestorById(investorId);
-      if(!investor && FC.investorPersistence && typeof FC.investorPersistence.getSelectedInvestor === 'function') investor = FC.investorPersistence.getSelectedInvestor(investorId || null);
-    }catch(_){ investor = null; }
-
-    let loadedProject = null;
-    try{
-      if(FC.project && typeof FC.project.load === 'function') loadedProject = FC.project.load() || null;
-    }catch(_){ loadedProject = null; }
-
-    const knownRoomIds = getKnownProjectRoomIds(projectId, investor, loadedProject, targetRoomIds);
-    const currentStatusMap = getRoomStatusMap(knownRoomIds, {
-      investorRooms: investor && investor.rooms,
-      roomDefs: loadedProject && loadedProject.meta && loadedProject.meta.roomDefs,
-    });
-    const roomStatusMap = buildRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, targetRoomIds, nextStatus);
-
-    let nextInvestor = investor;
-    try{
-      if(investor && FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
-        const roomMap = new Map();
-        const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
-        currentRooms.forEach((room)=> {
-          const key = String(room && room.id || '');
-          if(!key) return;
-          const resolvedStatus = normalizeStatusKey(roomStatusMap[key] || room && (room.projectStatus || room.status) || '');
-          roomMap.set(key, Object.assign({}, room, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
+      if(investorId && targetRoomIds.length && FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function'){
+        targetRoomIds.forEach((roomId)=> {
+          const key = String(roomId || '');
+          if(key) FC.investorPersistence.updateInvestorRoom(investorId, key, { projectStatus:nextStatus });
         });
-        try{
-          if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
-            const defs = FC.roomRegistry.getActiveRoomDefs() || [];
-            defs.forEach((room)=> {
-              const key = String(room && room.id || '');
-              if(!key) return;
-              const resolvedStatus = normalizeStatusKey(roomStatusMap[key] || '');
-              if(!resolvedStatus && roomMap.has(key)) return;
-              roomMap.set(key, Object.assign({}, roomMap.get(key) || {}, room || {}, { id:key }, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
-            });
-          }
-        }catch(_){ }
-        const rooms = Array.from(roomMap.values());
-        if(rooms.length) nextInvestor = FC.investorPersistence.saveInvestorPatch(investor.id, { rooms }) || Object.assign({}, investor, { rooms });
       }
     }catch(_){ }
-
-    let aggregateStatus = nextStatus;
-    try{
-      if(FC.investorPersistence && FC.investorPersistence._debug && typeof FC.investorPersistence._debug.getAggregateInvestorStatus === 'function'){
-        aggregateStatus = normalizeStatusKey(FC.investorPersistence._debug.getAggregateInvestorStatus(nextInvestor || investor, nextStatus) || nextStatus);
-      } else {
-        aggregateStatus = getAggregateStatus(collectRoomStatuses(knownRoomIds, { investorRooms: nextInvestor && nextInvestor.rooms }), nextStatus);
-      }
-    }catch(_){ aggregateStatus = nextStatus; }
 
     try{
       if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
         const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
-        if(record){
-          FC.projectStore.upsert(Object.assign({}, record, { status:aggregateStatus, updatedAt:Date.now() }));
-        }
+        if(record) FC.projectStore.upsert(Object.assign({}, record, { status:nextStatus, updatedAt:Date.now() }));
       }
     }catch(_){ }
 
     try{
       if(FC.project && typeof FC.project.save === 'function'){
-        const proj = loadedProject || {};
+        const proj = FC.project.load ? (FC.project.load() || {}) : {};
         const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
         if(meta){
-          meta.projectStatus = aggregateStatus;
+          meta.projectStatus = nextStatus;
           if(meta.roomDefs && typeof meta.roomDefs === 'object'){
-            Object.keys(meta.roomDefs).forEach((roomId)=>{
-              const row = meta.roomDefs[roomId];
-              if(!row || typeof row !== 'object') return;
-              const resolvedStatus = normalizeStatusKey(roomStatusMap[roomId] || row.projectStatus || row.status || '');
-              meta.roomDefs[roomId] = Object.assign({}, row, resolvedStatus ? { projectStatus:resolvedStatus } : {});
+            targetRoomIds.forEach((roomId)=> {
+              const key = String(roomId || '');
+              const row = meta.roomDefs[key];
+              if(row && typeof row === 'object') meta.roomDefs[key] = Object.assign({}, row, { projectStatus:nextStatus });
             });
           }
           FC.project.save(proj);
@@ -844,6 +711,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     try{ if(FC.investorUI && typeof FC.investorUI.render === 'function') FC.investorUI.render(); }catch(_){ }
     try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
+
   function syncGeneratedQuoteStatus(snapshot){
     const snap = normalizeSnapshot(snapshot);
     if(!snap || !snap.project) return;
@@ -1382,8 +1250,6 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     currentProjectStatus,
     setProjectStatusFromSnapshot,
     getTargetRoomIdsFromSnapshot,
-    getAggregateStatus,
-    collectRoomStatuses,
   });
 
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
