@@ -450,10 +450,10 @@
     const draft = getOfferDraft();
     const selection = normalizeDraftSelection(draft);
     const summary = buildSelectionSummary(selection);
-    const section = h('section', { class:'card quote-selection-card', style:'margin-top:12px;padding:14px;' });
-    const grid = h('div', { class:'quote-selection-grid' });
+    const section = h('section', { class:'card quote-selection-card panel-box--rozrys', style:'margin-top:12px;padding:14px;' });
+    const grid = h('div', { class:'quote-selection-grid rozrys-selection-grid' });
 
-    const roomsField = h('div', { class:'quote-selection-field' });
+    const roomsField = h('div', { class:'quote-selection-field rozrys-field rozrys-selection-grid__rooms' });
     roomsField.appendChild(labelWithInfo('Pomieszczenia do wyceny', 'Pomieszczenia do wyceny', 'Wybierz pomieszczenia bez wchodzenia do ROZRYS. Kliknięcie „Wyceń” uruchomi rozkrój w tle dokładnie dla tego zakresu.'));
     const roomsBtn = FC.rozrysChoice && typeof FC.rozrysChoice.createChoiceLauncher === 'function'
       ? FC.rozrysChoice.createChoiceLauncher(summary.roomsText, `${summary.roomLabels.length || 0} wybrane`)
@@ -463,7 +463,7 @@
     roomsField.appendChild(roomsBtn);
     grid.appendChild(roomsField);
 
-    const scopeField = h('div', { class:'quote-selection-field' });
+    const scopeField = h('div', { class:'quote-selection-field rozrys-field rozrys-selection-grid__material' });
     scopeField.appendChild(labelWithInfo('Zakres elementów do wyceny', 'Zakres elementów do wyceny', 'Zakres działa jak w ROZRYS: możesz liczyć korpusy i fronty razem albo tylko jedną z tych grup.'));
     const chips = h('div', { class:'rozrys-scope-chips quote-selection-chips' });
     const materialScope = Object.assign({ includeFronts:true, includeCorpus:true }, selection.materialScope || {});
