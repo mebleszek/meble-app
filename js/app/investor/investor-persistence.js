@@ -128,6 +128,12 @@
   }
   function setInvestorProjectStatus(id, roomId, status){
     const nextStatus = String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function'){
+        const result = FC.projectStatusSync.setInvestorRoomStatus(String(id || ''), roomId, nextStatus, { syncSelection:true });
+        return result && result.investor ? result.investor : getInvestorById(id);
+      }
+    }catch(_){ }
     const investor = updateInvestorRoom(id, roomId, { projectStatus:nextStatus });
     syncProjectAndQuoteStatus(String(id || ''), nextStatus, { roomIds:[roomId], investor });
     return investor;
@@ -137,6 +143,16 @@
 
   function syncProjectAndQuoteStatus(investorId, status, options){
     const nextStatus = String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.applyProjectStatusChange === 'function'){
+        const result = FC.projectStatusSync.applyProjectStatusChange(Object.assign({}, options || {}, {
+          investorId:String(investorId || ''),
+          status:nextStatus,
+          syncSelection: options && Object.prototype.hasOwnProperty.call(options, 'syncSelection') ? !!options.syncSelection : true,
+        }));
+        return result && result.investor ? result.investor : getInvestorById(investorId);
+      }
+    }catch(_){ }
     const roomIds = normalizeRoomIds(options && options.roomIds);
     let investor = options && options.investor ? options.investor : getInvestorById(investorId);
     let projectRecord = null;

@@ -33,6 +33,7 @@ const FILES = [
   'js/app/investor/project-bootstrap.js',
   'js/app/quote/quote-offer-store.js',
   'js/app/quote/quote-snapshot-store.js',
+  'js/app/project/project-status-sync.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',
   'js/app/wycena/wycena-core.js',

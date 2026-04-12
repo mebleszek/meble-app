@@ -302,6 +302,60 @@
       }),
 
 
+
+      H.makeTest('Wycena ↔ Centralny status', 'Inwestor i Wycena wołają jeden wspólny mechanizm statusów', 'Pilnuje ETAP 2: oba wejścia do zmiany statusu mają przechodzić przez centralny serwis zamiast przez dwie niezależne ścieżki.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function', 'Brak FC.projectStatusSync.setInvestorRoomStatus');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        const prevSetInvestorRoomStatus = FC.projectStatusSync.setInvestorRoomStatus;
+        const prevSetStatusFromSnapshot = FC.projectStatusSync.setStatusFromSnapshot;
+        let investorCalls = 0;
+        let snapshotCalls = 0;
+        FC.projectStatusSync.setInvestorRoomStatus = function(){
+          investorCalls += 1;
+          return prevSetInvestorRoomStatus.apply(this, arguments);
+        };
+        FC.projectStatusSync.setStatusFromSnapshot = function(){
+          snapshotCalls += 1;
+          return prevSetStatusFromSnapshot.apply(this, arguments);
+        };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const prelim = FC.quoteSnapshotStore.save({ id:'snap_central_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt centralny' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Central pre' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820255000 });
+            FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'pomiar');
+            FC.wycenaTabDebug.setProjectStatusFromSnapshot(prelim, 'pomiar', { syncSelection:true });
+          });
+          H.assert(investorCalls === 1, 'Wejście z Inwestor nie przeszło przez centralny serwis statusów', { investorCalls, snapshotCalls });
+          H.assert(snapshotCalls === 1, 'Wejście z Wycena nie przeszło przez centralny serwis statusów', { investorCalls, snapshotCalls });
+        } finally {
+          FC.projectStatusSync.setInvestorRoomStatus = prevSetInvestorRoomStatus;
+          FC.projectStatusSync.setStatusFromSnapshot = prevSetStatusFromSnapshot;
+        }
+      }),
+
+      H.makeTest('Wycena ↔ Centralny status', 'Centralny serwis statusów synchronizuje inwestora, projekt i wybór oferty', 'Pilnuje ETAP 2: jedna centralna ścieżka ma ustawić statusy pokoi, store projektu i zaakceptowaną ofertę bez potrzeby wywoływania osobnych mostków.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const prelim = FC.quoteSnapshotStore.save({ id:'snap_central_sync_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt central sync' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Central sync pre' }, totals:{ grand:101 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820260000 });
+          const finalQuote = FC.quoteSnapshotStore.save({ id:'snap_central_sync_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt central sync' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Central sync final' }, totals:{ grand:151 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820270000 });
+          FC.projectStatusSync.setStatusFromSnapshot(prelim, 'pomiar', { syncSelection:true, refreshUi:false });
+          let investor = FC.investors.getById(investorId);
+          let project = FC.projectStore.getById(projectId);
+          let selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
+          const kitchenAfterPomiar = (investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
+          H.assert(String(kitchenAfterPomiar && kitchenAfterPomiar.projectStatus || '') === 'pomiar', 'Centralny serwis nie ustawił statusu pokoju na pomiar', investor && investor.rooms);
+          H.assert(project && String(project.status || '') === 'pomiar', 'Centralny serwis nie zsynchronizował projectStore na pomiar', project);
+          H.assert(selected && String(selected.id || '') === String(prelim.id || ''), 'Centralny serwis nie wskazał zaakceptowanej oferty wstępnej', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          FC.projectStatusSync.setStatusFromSnapshot(finalQuote, 'zaakceptowany', { syncSelection:true, refreshUi:false });
+          investor = FC.investors.getById(investorId);
+          project = FC.projectStore.getById(projectId);
+          selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
+          const kitchenAfterFinal = (investor.rooms || []).find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
+          H.assert(String(kitchenAfterFinal && kitchenAfterFinal.projectStatus || '') === 'zaakceptowany', 'Centralny serwis nie ustawił statusu pokoju na zaakceptowany', investor && investor.rooms);
+          H.assert(project && String(project.status || '') === 'zaakceptowany', 'Centralny serwis nie zsynchronizował projectStore na zaakceptowany', project);
+          H.assert(selected && String(selected.id || '') === String(finalQuote.id || ''), 'Centralny serwis nie przełączył zaakceptowanej oferty na końcową', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Akceptacja oferty jednego pomieszczenia zmienia status tylko tego pokoju', 'Pilnuje, czy zaakceptowanie wyceny scoped do jednego pomieszczenia nie nadpisuje statusów pozostałych pokoi inwestora.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{

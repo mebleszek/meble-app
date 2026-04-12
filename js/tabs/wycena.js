@@ -310,6 +310,11 @@
   }
 
   function currentProjectStatus(snapshot){
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.resolveCurrentProjectStatus === 'function'){
+        return normalizeStatusKey(FC.projectStatusSync.resolveCurrentProjectStatus(snapshot));
+      }
+    }catch(_){ }
     const snap = normalizeSnapshot(snapshot) || {};
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
     const investorId = String(snap && snap.project && snap.project.investorId || snap && snap.investor && snap.investor.id || getCurrentInvestorId() || '');
@@ -728,6 +733,12 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     const snap = normalizeSnapshot(snapshot) || {};
     const nextStatus = normalizeStatusKey(status);
     if(!nextStatus) return;
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function'){
+        FC.projectStatusSync.setStatusFromSnapshot(snap, nextStatus, options || {});
+        return;
+      }
+    }catch(_){ }
     const syncSelection = !!(options && options.syncSelection);
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
     const investorId = String(
@@ -769,7 +780,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       if(investor && FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function'){
         const roomMap = new Map();
         const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
-        currentRooms.forEach((room)=>{
+        currentRooms.forEach((room)=> {
           const key = String(room && room.id || '');
           if(!key) return;
           const resolvedStatus = normalizeStatusKey(roomStatusMap[key] || room && (room.projectStatus || room.status) || '');
@@ -778,7 +789,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         try{
           if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
             const defs = FC.roomRegistry.getActiveRoomDefs() || [];
-            defs.forEach((room)=>{
+            defs.forEach((room)=> {
               const key = String(room && room.id || '');
               if(!key) return;
               const resolvedStatus = normalizeStatusKey(roomStatusMap[key] || '');
