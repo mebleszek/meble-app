@@ -1792,8 +1792,9 @@
 .quote-history__item.is-archived .quote-history__actions .btn-primary,
 .quote-history__item.is-archived .quote-history__actions .btn-success{opacity:.55;}
 .quote-offer-preliminary{display:flex;flex-direction:column;gap:8px;margin:2px 0 14px;}
-.quote-offer-preliminary--topbar{margin:10px 0 2px;}
+.quote-offer-preliminary--topbar{margin:10px 0 2px;align-items:center;}
 .quote-preliminary-chip{align-self:flex-start;}
+.quote-offer-preliminary--topbar .quote-preliminary-chip{align-self:center;}
 .quote-preliminary-help{margin-top:0;}
 .quote-offer-accordion{padding:0;overflow:hidden;}
 .quote-offer-accordion__head{background:#fff;}

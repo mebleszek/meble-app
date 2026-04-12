@@ -73,6 +73,30 @@
         }
       }),
 
+
+      H.makeTest('Wycena', 'Store oferty nie gubi wyboru pomieszczeń, gdy lista aktywnych pomieszczeń chwilowo zwróci pusty stan', 'Pilnuje, czy zapis wyboru pokoi w Wycena nie jest czyszczony tylko dlatego, że roomRegistry na chwilę odda pustą listę podczas normalizacji draftu.', ()=>{
+        H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.normalizeSelection === 'function', 'Brak FC.quoteOfferStore.normalizeSelection');
+        H.assert(FC.wycenaCore && typeof FC.wycenaCore.normalizeQuoteSelection === 'function', 'Brak FC.wycenaCore.normalizeQuoteSelection');
+        const prevRoomRegistry = FC.roomRegistry;
+        try{
+          FC.roomRegistry = Object.assign({}, prevRoomRegistry, {
+            getActiveRoomIds(){ return []; }
+          });
+          const storeSelection = FC.quoteOfferStore.normalizeSelection({
+            selectedRooms:['room_kuchnia_gora'],
+            materialScope:{ includeFronts:true, includeCorpus:true }
+          });
+          H.assert(Array.isArray(storeSelection.selectedRooms) && storeSelection.selectedRooms[0] === 'room_kuchnia_gora', 'Store oferty wyczyścił zapis wyboru pomieszczeń przy pustym roomRegistry', storeSelection);
+          const runtimeSelection = FC.wycenaCore.normalizeQuoteSelection({
+            selectedRooms:['room_kuchnia_gora'],
+            materialScope:{ includeFronts:true, includeCorpus:true }
+          });
+          H.assert(Array.isArray(runtimeSelection.selectedRooms) && runtimeSelection.selectedRooms[0] === 'room_kuchnia_gora', 'Wycena nie odtworzyła jawnie zapisanego wyboru pomieszczeń', runtimeSelection);
+        } finally {
+          FC.roomRegistry = prevRoomRegistry;
+        }
+      }),
+
       H.makeTest('Wycena', 'Draft oferty przechodzi z zakresu inwestora na projekt bez gubienia flagi wstępnej', 'Pilnuje, czy po pojawieniu się projectId draft zapisany wcześniej dla inwestora nadal jest odczytywany i nie gubi ustawień oferty.', ()=>{
         H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.saveDraft === 'function', 'Brak FC.quoteOfferStore.saveDraft');
         const prevProjectStore = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];

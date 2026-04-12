@@ -92,12 +92,18 @@
   function normalizeQuoteSelection(selection){
     const src = selection && typeof selection === 'object' ? selection : {};
     const activeRooms = getActiveRooms();
+    const explicitRooms = Array.isArray(src.selectedRooms)
+      ? Array.from(new Set(src.selectedRooms.map((room)=> String(room || '').trim()).filter(Boolean)))
+      : [];
     let selectedRooms = [];
     try{
       if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
-        selectedRooms = FC.rozrysScope.normalizeRoomSelection(Array.isArray(src.selectedRooms) ? src.selectedRooms : [], { getRooms:()=> activeRooms });
+        selectedRooms = FC.rozrysScope.normalizeRoomSelection(explicitRooms, { getRooms:()=> activeRooms });
       }
     }catch(_){ }
+    if((!Array.isArray(selectedRooms) || !selectedRooms.length) && explicitRooms.length){
+      selectedRooms = explicitRooms.slice();
+    }
     if(!Array.isArray(selectedRooms) || !selectedRooms.length){
       selectedRooms = activeRooms.slice();
     }

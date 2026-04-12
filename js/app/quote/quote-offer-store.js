@@ -69,18 +69,23 @@
 
   function normalizeRoomSelection(rows){
     const raw = Array.isArray(rows) ? rows : [];
-    const cleaned = raw.map((room)=> String(room || '').trim()).filter(Boolean);
+    const cleaned = Array.from(new Set(raw.map((room)=> String(room || '').trim()).filter(Boolean)));
+    if(!cleaned.length) return [];
     try{
       if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
         const allowed = FC.roomRegistry.getActiveRoomIds() || [];
-        if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
-          return FC.rozrysScope.normalizeRoomSelection(cleaned, { getRooms:()=> allowed });
+        if(Array.isArray(allowed) && allowed.length){
+          if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
+            const normalized = FC.rozrysScope.normalizeRoomSelection(cleaned, { getRooms:()=> allowed });
+            if(Array.isArray(normalized) && normalized.length) return normalized;
+          }
+          const set = new Set(cleaned);
+          const filtered = allowed.filter((room)=> set.has(room));
+          return filtered.length ? filtered : cleaned;
         }
-        const set = new Set(cleaned);
-        return allowed.filter((room)=> set.has(room));
       }
     }catch(_){ }
-    return Array.from(new Set(cleaned));
+    return cleaned;
   }
 
   function normalizeSelection(src){
