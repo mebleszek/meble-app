@@ -386,6 +386,32 @@
     return lines;
   }
 
+  function collectCommercialDraft(draft){
+    const src = draft && typeof draft === 'object' ? draft : {};
+    const commercial = src && typeof src.commercial === 'object' ? src.commercial : {};
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.normalizeCommercial === 'function'){
+        return FC.quoteOfferStore.normalizeCommercial(commercial);
+      }
+    }catch(_){ }
+    let discountPercent = Math.max(0, Number(commercial && commercial.discountPercent) || 0);
+    let discountAmount = Math.max(0, Number(commercial && commercial.discountAmount) || 0);
+    if(discountPercent > 0) discountAmount = 0;
+    if(discountAmount > 0) discountPercent = 0;
+    const preliminary = !!(commercial && commercial.preliminary);
+    const versionName = String(commercial && commercial.versionName || '').trim() || (preliminary ? 'Wstępna oferta' : 'Oferta');
+    return {
+      versionName,
+      preliminary,
+      discountPercent,
+      discountAmount,
+      offerValidity: String(commercial && commercial.offerValidity || '').trim(),
+      leadTime: String(commercial && commercial.leadTime || '').trim(),
+      deliveryTerms: String(commercial && commercial.deliveryTerms || '').trim(),
+      customerNote: String(commercial && commercial.customerNote || '').trim(),
+    };
+  }
+
   function getOfferDraft(){
     try{
       if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function') return FC.quoteOfferStore.getCurrentDraft();
