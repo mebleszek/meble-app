@@ -49,17 +49,29 @@
   }
 
 
-  function setInvestorProjectStatus(id, roomId, status){
+  function setInvestorProjectStatus(id, roomId, status, options){
     const investorId = String(id || '');
     const targetRoomId = String(roomId || '');
     const nextStatus = String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
+    const opts = options && typeof options === 'object' ? options : {};
+    const currentInvestor = getInvestorById(investorId);
+    try{
+      if(!opts.skipGuard && FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function'){
+        const validation = FC.projectStatusManualGuard.validateManualStatusChange(investorId, targetRoomId, nextStatus);
+        if(validation && validation.blocked){
+          return opts.returnDetails ? { applied:false, blocked:true, investor:currentInvestor, validation } : currentInvestor;
+        }
+      }
+    }catch(_){ }
     try{
       if(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function'){
         const result = FC.projectStatusSync.setInvestorRoomStatus(investorId, targetRoomId, nextStatus, { syncSelection:true });
-        return result && result.investor ? result.investor : getInvestorById(investorId);
+        const investor = result && result.investor ? result.investor : getInvestorById(investorId);
+        return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
       }
     }catch(_){ }
-    return updateInvestorRoom(investorId, targetRoomId, { projectStatus:nextStatus });
+    const investor = updateInvestorRoom(investorId, targetRoomId, { projectStatus:nextStatus });
+    return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
   }
 
   function removeInvestor(id){

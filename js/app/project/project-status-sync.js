@@ -194,7 +194,7 @@
     const map = {};
     try{
       if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
-        Object.assign(map, FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids) || {});
+        Object.assign(map, FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids, { matchMode:'exact', fallbackStatus:'nowy', allowProjectWideExact: ids.length === 1 }) || {});
       }
     }catch(_){ }
     ids.forEach((roomId)=> {
@@ -205,7 +205,7 @@
         map[key] = suggested;
         return;
       }
-      map[key] = targetSet.has(key) ? normalizeStatus(fallbackStatus || current || '') : current;
+      map[key] = targetSet.has(key) ? normalizeStatus(fallbackStatus || current || '') : (current || 'nowy');
     });
     return map;
   }

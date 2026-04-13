@@ -280,9 +280,9 @@
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const prelim = FC.quoteSnapshotStore.save({ id:'snap_cross_prelim', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt testowy' }, commercial:{ preliminary:true }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820000000 });
-          const finalQuote = FC.quoteSnapshotStore.save({ id:'snap_cross_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt testowy' }, totals:{ grand:150 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820100000 });
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, prelim.id, { status:'pomiar' });
+          const prelim = FC.quoteSnapshotStore.save({ id:'snap_cross_prelim', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt testowy' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820000000 });
+          const finalQuote = FC.quoteSnapshotStore.save({ id:'snap_cross_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt testowy' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, totals:{ grand:150 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820100000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, prelim.id, { status:'pomiar', roomIds:['room_kuchnia_gora'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'pomiar');
           let selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
           let record = FC.projectStore.getByInvestorId(investorId);
@@ -293,6 +293,7 @@
           record = FC.projectStore.getByInvestorId(investorId);
           H.assert(selected == null, 'Status wycena nie wyczyścił wskazanej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
           H.assert(record && String(record.status || '') === 'wycena', 'Status wycena nie zapisał się do projectStore', record);
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, finalQuote.id, { status:'zaakceptowany', roomIds:['room_kuchnia_gora'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'zaakceptowany');
           selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
           record = FC.projectStore.getByInvestorId(investorId);
@@ -321,6 +322,7 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const prelim = FC.quoteSnapshotStore.save({ id:'snap_central_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt centralny' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Central pre' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820255000 });
+            FC.quoteSnapshotStore.markSelectedForProject(projectId, prelim.id, { status:'pomiar', roomIds:['room_kuchnia_gora'] });
             FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'pomiar');
             FC.wycenaTabDebug.setProjectStatusFromSnapshot(prelim, 'pomiar', { syncSelection:true });
           });
@@ -401,6 +403,7 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const prelim = FC.quoteSnapshotStore.save({ id:'snap_cleanup_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup pre' }, totals:{ grand:101 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820285000 });
+            FC.quoteSnapshotStore.markSelectedForProject(projectId, prelim.id, { status:'pomiar', roomIds:['room_kuchnia_gora'] });
             FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'pomiar');
             FC.wycenaTabDebug.setProjectStatusFromSnapshot(prelim, 'pomiar', { syncSelection:true });
           });
@@ -490,13 +493,71 @@
           const investor = FC.investors.getById(investorId);
           const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
           H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Pokój z nowo zaakceptowaną wyceną jednopomieszczeniową stracił status pomiar', investor.rooms);
-          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wstepna_wycena', 'Pokój zdjęty z akceptacji nie wrócił do własnego statusu scoped po wyłączeniu wspólnej wyceny', { rooms:investor.rooms, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'nowy', 'Pokój zdjęty z akceptacji nie wrócił do wcześniejszego stanu, gdy nie ma własnej wyceny solo', { rooms:investor.rooms, all:FC.quoteSnapshotStore.listForProject(projectId) });
+        });
+      }),
+
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Po rozpięciu wspólnej akceptacji pokój z własną wyceną solo wraca do wstępnej wyceny', 'Pilnuje, czy po odpięciu wspólnej oferty system wraca dla pokoju do jego własnej historii solo, zamiast trzymać status po starej wycenie wspólnej albo cofać go za daleko.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przywrócenie' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:210 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820465000 });
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_kitchen_pre_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przywrócenie' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:105 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820466000 });
+          const salonPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przywrócenie' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:115 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820467000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar' });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(sharedPre, 'pomiar');
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar' });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(kitchenPre, 'pomiar');
+          const investor = FC.investors.getById(investorId);
+          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Pokój z nowo zaakceptowaną wyceną solo stracił status pomiar', investor.rooms);
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wstepna_wycena', 'Pokój z własną wyceną solo nie wrócił do wstępnej wyceny po odpięciu wspólnej akceptacji', { rooms:investor.rooms, all:FC.quoteSnapshotStore.listForProject(projectId), salonPre });
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar jest blokowana bez zaakceptowanej wyceny wstępnej solo', 'Pilnuje, czy Inwestor nie podniesie pokoju na Pomiar tylko dlatego, że istnieje niezaakceptowana albo wspólna wycena zamiast zaakceptowanej podstawy solo.', ()=>{
+        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_shared_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:220 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820468000 });
+          const validationMissing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationMissing && validationMissing.blocked === true && validationMissing.requiresGeneration === true && String(validationMissing.generationKind || '') === 'preliminary', 'Brak wyceny solo nie zablokował wejścia na Pomiar z propozycją wygenerowania wstępnej wyceny', validationMissing);
+          const soloPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:118 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820469000 });
+          const validationUnaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationUnaccepted && validationUnaccepted.blocked === true && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała ręcznego wejścia na Pomiar', { validationUnaccepted, soloPre });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
+          const validationAccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationAccepted && validationAccepted.ok === true && validationAccepted.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała ręcznego wejścia na Pomiar', validationAccepted);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na zaakceptowany jest blokowana bez zaakceptowanej wyceny końcowej solo', 'Pilnuje, czy Inwestor nie ustawi pokoju jako zaakceptowany bez osobnej zaakceptowanej oferty końcowej dla tego pomieszczenia.', ()=>{
+        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const validationMissing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'zaakceptowany');
+          H.assert(validationMissing && validationMissing.blocked === true && validationMissing.requiresGeneration === true && String(validationMissing.generationKind || '') === 'final', 'Brak wyceny końcowej solo nie zablokował wejścia na Zaakceptowany z propozycją wygenerowania końcowej wyceny', validationMissing);
+          const soloFinal = FC.quoteSnapshotStore.save({ id:'snap_salon_final_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt final guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:false, versionName:'Salon final' }, totals:{ grand:180 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820470000 });
+          const validationUnaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'zaakceptowany');
+          H.assert(validationUnaccepted && validationUnaccepted.blocked === true && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena końcowa solo nie zablokowała wejścia na Zaakceptowany', { validationUnaccepted, soloFinal });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloFinal.id, { status:'zaakceptowany', roomIds:['room_salon'] });
+          const validationAccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'zaakceptowany');
+          H.assert(validationAccepted && validationAccepted.ok === true && validationAccepted.blocked === false, 'Zaakceptowana wycena końcowa solo nie odblokowała wejścia na Zaakceptowany', validationAccepted);
         });
       }),
 
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Status wyceny scoped nie zależy od pierwszego pokoju inwestora', 'Pilnuje, czy odczyt statusu oferty bierze pokoje z zakresu snapshotu zamiast przypadkowego pierwszego pomieszczenia inwestora.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.currentProjectStatus === 'function', 'Brak FC.wycenaTabDebug.currentProjectStatus');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const salonPre = FC.quoteSnapshotStore.save({
+            id:'snap_scope_status_pre',
+            investor:{ id:investorId },
+            project:{ id:projectId, investorId, title:'Projekt fallback' },
+            scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'], materialScopeMode:'both', materialScope:{ includeFronts:true, includeCorpus:true } },
+            commercial:{ preliminary:true, versionName:'Salon pomiar' },
+            totals:{ grand:90 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            generatedAt:1712820495000,
+          });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, salonPre.id, { status:'pomiar', roomIds:['room_salon'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_salon', 'pomiar');
           const snapshot = FC.quoteSnapshotStore.save({
             id:'snap_scope_status',
@@ -518,6 +579,7 @@
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
           const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_room_kitchen_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt ręczny' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820600000 });
           const salonPre = FC.quoteSnapshotStore.save({ id:'snap_room_salon_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt ręczny' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:120 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820700000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, salonPre.id, { status:'pomiar', roomIds:['room_salon'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_salon', 'pomiar');
           const investor = FC.investors.getById(investorId);
           const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));

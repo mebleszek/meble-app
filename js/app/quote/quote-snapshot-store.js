@@ -162,13 +162,25 @@
     return normalizeRoomIds(snapshot && snapshot.scope && snapshot.scope.selectedRooms);
   }
 
-  function filterRowsByRoomScope(rows, roomIds){
+  function sameRoomScope(a, b){
+    const left = normalizeRoomIds(a);
+    const right = normalizeRoomIds(b);
+    if(left.length !== right.length) return false;
+    return left.every((roomId, idx)=> roomId === right[idx]);
+  }
+
+  function filterRowsByRoomScope(rows, roomIds, options){
     const targets = normalizeRoomIds(roomIds);
     const list = Array.isArray(rows) ? rows : [];
+    const mode = String(options && options.matchMode || 'includes').trim().toLowerCase();
     if(!targets.length) return list.slice();
     return list.filter((row)=> {
       const snapshotRooms = getSnapshotRoomIds(row);
-      if(!snapshotRooms.length) return true;
+      if(!snapshotRooms.length){
+        if(mode !== 'exact') return true;
+        return !!(options && options.allowProjectWideExact && targets.length === 1);
+      }
+      if(mode === 'exact') return sameRoomScope(snapshotRooms, targets);
       return targets.every((roomId)=> snapshotRooms.includes(roomId));
     });
   }
@@ -231,8 +243,9 @@
   function getRecommendedStatusForProject(projectId, currentStatus, options){
     const pid = String(projectId || '');
     const normalizedCurrent = normalizeStatus(currentStatus);
-    if(!pid) return normalizedCurrent || 'nowy';
-    const rows = filterRowsByRoomScope(listForProject(pid), options && options.roomIds);
+    const normalizedFallback = normalizeStatus(options && options.fallbackStatus);
+    if(!pid) return normalizedFallback || normalizedCurrent || 'nowy';
+    const rows = filterRowsByRoomScope(listForProject(pid), options && options.roomIds, options);
     const selected = rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
     if(selected){
       if(isPreliminarySnapshot(selected)) return 'pomiar';
@@ -241,21 +254,21 @@
     }
     if(rows.some((row)=> !isPreliminarySnapshot(row))) return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'wycena';
     if(rows.some((row)=> isPreliminarySnapshot(row))) return 'wstepna_wycena';
-    return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'nowy';
+    return normalizedCurrent === 'odrzucone' ? 'odrzucone' : (normalizedFallback || normalizedCurrent || 'nowy');
   }
 
-  function getRecommendedStatusMapForProject(projectId, currentStatusesByRoom, roomIds){
+  function getRecommendedStatusMapForProject(projectId, currentStatusesByRoom, roomIds, options){
     const pid = String(projectId || '');
     const ids = normalizeRoomIds(roomIds);
     const out = {};
+    const opts = options && typeof options === 'object' ? options : {};
     if(!pid || !ids.length) return out;
-    const projectRows = listForProject(pid);
     ids.forEach((roomId)=> {
       const key = String(roomId || '');
       if(!key) return;
       const current = normalizeStatus(currentStatusesByRoom && currentStatusesByRoom[key] || '');
-      const scopedRows = filterRowsByRoomScope(projectRows, [key]);
-      out[key] = scopedRows.length ? getRecommendedStatusForProject(pid, current, { roomIds:[key] }) : current;
+      const fallbackStatus = Object.prototype.hasOwnProperty.call(opts, 'fallbackStatus') ? opts.fallbackStatus : 'nowy';
+      out[key] = getRecommendedStatusForProject(pid, current, Object.assign({}, opts, { roomIds:[key], fallbackStatus }));
     });
     return out;
   }
@@ -323,5 +336,6 @@
     normalizeRoomIds,
     getSnapshotRoomIds,
     filterRowsByRoomScope,
+    sameRoomScope,
   };
 })();

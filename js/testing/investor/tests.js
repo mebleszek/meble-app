@@ -172,6 +172,7 @@
           meta:{ preliminary:false, versionName:'Oferta' },
           generatedAt: 200,
         });
+        FC.quoteSnapshotStore.markSelectedForProject(project.id, 'snap_pre', { status:'pomiar', roomIds:['room_sync'] });
         FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'pomiar');
         const afterPomiarInvestor = FC.investors.getById(investor.id);
         const afterPomiarProject = FC.projectStore.getById(project.id);
@@ -179,6 +180,7 @@
         assert(String(afterPomiarInvestor.rooms[0].projectStatus || '') === 'pomiar', 'Pokój inwestora nie dostał statusu pomiar', afterPomiarInvestor);
         assert(String(afterPomiarProject.status || '') === 'pomiar', 'Project store nie zsynchronizował statusu pomiar', afterPomiarProject);
         assert(selectedPre && String(selectedPre.id || '') === 'snap_pre', 'Zmiana statusu na pomiar nie wybrała oferty wstępnej', selectedPre || FC.quoteSnapshotStore.listForProject(project.id));
+        FC.quoteSnapshotStore.markSelectedForProject(project.id, 'snap_final', { status:'zaakceptowany', roomIds:['room_sync'] });
         FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'zaakceptowany');
         const afterFinalProject = FC.projectStore.getById(project.id);
         const selectedFinal = FC.quoteSnapshotStore.getSelectedForProject(project.id);
