@@ -544,6 +544,44 @@
         });
       }),
 
+
+      H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na wycena jest blokowana bez zaakceptowanej wyceny wstępnej solo', 'Pilnuje, czy Inwestor nie przeskoczy ręcznie do statusu Wycena dla jednego pomieszczenia bez własnej zaakceptowanej wyceny wstępnej.', ()=>{
+        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const validationMissing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
+          H.assert(validationMissing && validationMissing.blocked === true && validationMissing.requiresGeneration === true && String(validationMissing.generationKind || '') === 'preliminary', 'Brak wyceny wstępnej solo nie zablokował ręcznego wejścia na Wycena', validationMissing);
+          const soloPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_wycena_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt wycena guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre wycena' }, totals:{ grand:119 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820471000 });
+          const validationUnaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
+          H.assert(validationUnaccepted && validationUnaccepted.blocked === true && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała ręcznego wejścia na Wycena', { validationUnaccepted, soloPre });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
+          const validationAccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
+          H.assert(validationAccepted && validationAccepted.ok === true && validationAccepted.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała ręcznego wejścia na Wycena', validationAccepted);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Rozbicie wspólnej akceptacji odrzuca ofertę wspólną i odblokowuje solo wstępne', 'Pilnuje, czy po cofnięciu jednego pokoju z zaakceptowanej oferty wspólnej stara oferta wspólna traci akceptację jako odrzucona po zmianie zakresu, a solo wstępna wraca jako aktywny kandydat.', ()=>{
+        H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isRejectedSnapshot === 'function', 'Brak FC.quoteSnapshotStore.isRejectedSnapshot');
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.isArchivedPreliminary === 'function', 'Brak FC.wycenaTabDebug.isArchivedPreliminary');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre_reject', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt reject' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:230 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820472000 });
+          const salonPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_reject', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt reject' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:117 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820473000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar' });
+          FC.wycenaTabDebug.setProjectStatusFromSnapshot(sharedPre, 'pomiar');
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'wstepna_wycena');
+          const all = FC.quoteSnapshotStore.listForProject(projectId);
+          const sharedAfter = all.find((row)=> String(row && row.id || '') === 'snap_shared_pre_reject');
+          const salonAfter = all.find((row)=> String(row && row.id || '') === 'snap_salon_pre_reject');
+          const investor = FC.investors.getById(investorId);
+          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
+          H.assert(sharedAfter && sharedAfter.meta && sharedAfter.meta.selectedByClient === false, 'Wspólna oferta nadal wisi jako zaakceptowana po rozbiciu zakresu', sharedAfter || all);
+          H.assert(sharedAfter && FC.quoteSnapshotStore.isRejectedSnapshot(sharedAfter) === true && String(sharedAfter.meta && sharedAfter.meta.rejectedReason || '') === 'scope_changed', 'Wspólna oferta nie została oznaczona jako odrzucona po zmianie zakresu', sharedAfter || all);
+          H.assert(salonAfter && FC.wycenaTabDebug.isArchivedPreliminary(salonAfter, all) === false && FC.quoteSnapshotStore.isRejectedSnapshot(salonAfter) === false, 'Solo wycena wstępna nadal jest zablokowana mimo odrzucenia wspólnej oferty', { salonAfter, all });
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'wstepna_wycena', 'Pokój cofnięty z oferty wspólnej nie wrócił do statusu wstępnej wyceny', investor.rooms);
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wstepna_wycena', 'Drugi pokój nie wrócił do własnej historii solo po odrzuceniu wspólnej oferty', investor.rooms);
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Status wyceny scoped nie zależy od pierwszego pokoju inwestora', 'Pilnuje, czy odczyt statusu oferty bierze pokoje z zakresu snapshotu zamiast przypadkowego pierwszego pomieszczenia inwestora.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.currentProjectStatus === 'function', 'Brak FC.wycenaTabDebug.currentProjectStatus');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{

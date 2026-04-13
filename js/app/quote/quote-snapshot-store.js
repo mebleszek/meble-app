@@ -84,6 +84,8 @@
         selectedByClient: !!(src.meta && src.meta.selectedByClient),
         acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
         acceptedStage,
+        rejectedAt: Number(src.meta && src.meta.rejectedAt) > 0 ? Number(src.meta.rejectedAt) : 0,
+        rejectedReason: String(src.meta && src.meta.rejectedReason || '').trim().toLowerCase(),
         preliminary,
       }
     };
@@ -169,6 +171,35 @@
     return left.every((roomId, idx)=> roomId === right[idx]);
   }
 
+  function snapshotScopeOverlaps(snapshot, roomIds){
+    const targets = normalizeRoomIds(roomIds);
+    if(!targets.length) return true;
+    const snapshotRooms = getSnapshotRoomIds(snapshot);
+    if(!snapshotRooms.length) return true;
+    return targets.some((roomId)=> snapshotRooms.includes(roomId));
+  }
+
+  function isRejectedSnapshot(snapshot){
+    return !!(snapshot && snapshot.meta && (Number(snapshot.meta.rejectedAt) > 0 || String(snapshot.meta.rejectedReason || '').trim()));
+  }
+
+  function shouldRejectPreviousSelection(previouslySelected, candidate, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    if(!previouslySelected) return false;
+    if(Object.prototype.hasOwnProperty.call(opts, 'rejectPreviousSelection')) return !!opts.rejectPreviousSelection;
+    const targetRoomIds = normalizeRoomIds(opts.roomIds);
+    if(candidate) return !sameRoomScope(getSnapshotRoomIds(previouslySelected), getSnapshotRoomIds(candidate));
+    if(targetRoomIds.length) return snapshotScopeOverlaps(previouslySelected, targetRoomIds);
+    return false;
+  }
+
+  function getRejectReason(candidate, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const explicit = String(opts.rejectReason || '').trim().toLowerCase();
+    if(explicit) return explicit;
+    return candidate ? 'scope_changed' : 'scope_changed';
+  }
+
   function filterRowsByRoomScope(rows, roomIds, options){
     const targets = normalizeRoomIds(roomIds);
     const list = Array.isArray(rows) ? rows : [];
@@ -201,16 +232,24 @@
     const candidate = chooser(scopedRows, projectRows, options || {});
     const normalizedProjectStatus = normalizeStatus(projectStatus || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
     const normalizedAcceptedStage = normalizeStatus(acceptedStage || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
+    const previouslySelected = projectRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+    const shouldRejectPrevious = shouldRejectPreviousSelection(previouslySelected, candidate, options);
+    const rejectReason = shouldRejectPrevious ? getRejectReason(candidate, options) : '';
     const stamp = Date.now();
     list.forEach((row)=> {
       if(String(row && row.project && row.project.id || '') !== pid) return;
       const isTarget = !!(candidate && String(row && row.id || '') === String(candidate.id || ''));
+      const isPreviousSelected = !!(previouslySelected && String(previouslySelected.id || '') === String(row && row.id || ''));
+      const preservedRejectedAt = Number(row && row.meta && row.meta.rejectedAt) > 0 ? Number(row.meta.rejectedAt) : 0;
+      const preservedRejectedReason = String(row && row.meta && row.meta.rejectedReason || '').trim().toLowerCase();
       row.meta = Object.assign({}, row && row.meta || {}, {
         versionName: String(row && row.meta && row.meta.versionName || row && row.commercial && row.commercial.versionName || '').trim(),
         preliminary: isPreliminarySnapshot(row),
         selectedByClient: isTarget,
         acceptedAt: isTarget ? (Number(row && row.meta && row.meta.acceptedAt) > 0 ? Number(row.meta.acceptedAt) : stamp) : 0,
         acceptedStage: isTarget ? normalizedAcceptedStage : '',
+        rejectedAt: isTarget ? 0 : (isPreviousSelected && shouldRejectPrevious ? (preservedRejectedAt || stamp) : preservedRejectedAt),
+        rejectedReason: isTarget ? '' : (isPreviousSelected && shouldRejectPrevious ? (rejectReason || preservedRejectedReason) : preservedRejectedReason),
       });
       row.project = Object.assign({}, row && row.project || {}, {
         status: normalizedProjectStatus || String(row && row.project && row.project.status || '')
@@ -337,5 +376,7 @@
     getSnapshotRoomIds,
     filterRowsByRoomScope,
     sameRoomScope,
+    snapshotScopeOverlaps,
+    isRejectedSnapshot,
   };
 })();

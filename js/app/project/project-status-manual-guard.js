@@ -153,6 +153,26 @@
       });
     }
 
+    if(nextStatus === 'wycena'){
+      if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
+      if(basis.hasPreliminary){
+        return buildResult(base, {
+          ok:false,
+          blocked:true,
+          title:'Wycena wstępna nie jest zaakceptowana',
+          message:`Dla pomieszczenia „${basis.roomLabel}” istnieje wycena wstępna, ale nie została zaakceptowana. Nie można ręcznie przejść do statusu „Wycena”, dopóki nie ma zaakceptowanej wyceny wstępnej dla tego pomieszczenia.`,
+        });
+      }
+      return buildResult(base, {
+        ok:false,
+        blocked:true,
+        requiresGeneration:true,
+        generationKind:'preliminary',
+        title:'Brak wyceny wstępnej',
+        message:`Dla pomieszczenia „${basis.roomLabel}” nie ma wyceny wstępnej. Nie można ustawić statusu „Wycena”. Czy wygenerować teraz wycenę wstępną tylko dla tego pomieszczenia?`,
+      });
+    }
+
     if(FINAL_MANUAL_TARGETS.has(nextStatus)){
       if(basis.hasAcceptedFinal) return buildResult(base, { ok:true, blocked:false });
       if(basis.hasFinal){

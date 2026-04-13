@@ -181,6 +181,17 @@
     try{ return !!(snapshot && snapshot.meta && snapshot.meta.selectedByClient); }catch(_){ return false; }
   }
 
+  function isRejectedSnapshot(snapshot){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isRejectedSnapshot === 'function') return !!FC.quoteSnapshotStore.isRejectedSnapshot(snapshot);
+    }catch(_){ }
+    return !!(snapshot && snapshot.meta && (Number(snapshot.meta.rejectedAt) > 0 || String(snapshot.meta.rejectedReason || '').trim()));
+  }
+
+  function getRejectedReason(snapshot){
+    try{ return String(snapshot && snapshot.meta && snapshot.meta.rejectedReason || '').trim().toLowerCase(); }catch(_){ return ''; }
+  }
+
   function isPreliminarySnapshot(snapshot){
     try{
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isPreliminarySnapshot === 'function') return !!FC.quoteSnapshotStore.isPreliminarySnapshot(snapshot);
@@ -213,6 +224,21 @@
     return scoped.length ? scoped : getAllActiveRoomIds();
   }
 
+  function getComparableHistoryForSnapshot(snapshot, history){
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    const targetRooms = getSnapshotRoomIds(snapshot);
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.sameRoomScope === 'function'){
+        return list.filter((row)=> FC.quoteSnapshotStore.sameRoomScope(getSnapshotRoomIds(row), targetRooms));
+      }
+    }catch(_){ }
+    return list.filter((row)=> {
+      const rowRooms = getSnapshotRoomIds(row);
+      if(rowRooms.length !== targetRooms.length) return false;
+      return rowRooms.every((roomId, idx)=> roomId === targetRooms[idx]);
+    });
+  }
+
   function warnMissingProjectStatusSync(){
     try{
       if(!warnMissingProjectStatusSync._done && typeof console !== 'undefined' && console && typeof console.warn === 'function'){
@@ -223,13 +249,13 @@
   }
 
   function isArchivedPreliminary(snapshot, history, projectStatus){
-    const list = Array.isArray(history) ? history : getSnapshotHistory();
-    if(!isPreliminarySnapshot(snapshot)) return false;
-    const currentStatus = normalizeStatusKey(projectStatus || currentProjectStatus(snapshot));
+    if(!isPreliminarySnapshot(snapshot) || isRejectedSnapshot(snapshot)) return false;
+    const list = getComparableHistoryForSnapshot(snapshot, history);
+    const currentStatus = normalizeStatusKey(currentProjectStatus(snapshot));
     if(statusRank(currentStatus) < statusRank('wycena')) return false;
-    if(list.some((row)=> !isPreliminarySnapshot(row) && isSelectedSnapshot(row))) return true;
+    if(list.some((row)=> !isPreliminarySnapshot(row) && !isRejectedSnapshot(row) && isSelectedSnapshot(row))) return true;
     const generatedAt = Number(snapshot && snapshot.generatedAt || 0);
-    return list.some((row)=> !isPreliminarySnapshot(row) && Number(row && row.generatedAt || 0) > generatedAt);
+    return list.some((row)=> !isPreliminarySnapshot(row) && !isRejectedSnapshot(row) && Number(row && row.generatedAt || 0) > generatedAt);
   }
 
   function currentProjectStatus(snapshot){
@@ -1000,6 +1026,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       const snapId = getSnapshotId(snap);
       const isActive = !!activeId && snapId === activeId;
       const isSelected = isSelectedSnapshot(snap);
+      const isRejected = isRejectedSnapshot(snap);
       const isPreliminary = isPreliminarySnapshot(snap);
       const isArchived = isArchivedPreliminary(snap, history, projectStatus);
       const item = h('article', { id:getQuoteHistoryItemDomId(snapId), 'data-quote-history-id':snapId, class:`quote-history__item${isActive ? ' is-active' : ''}${isArchived ? ' is-archived' : ''}` });
@@ -1011,6 +1038,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       titleRow.appendChild(h('div', { class:'quote-history__title', text:versionName || (index === 0 ? 'Ostatnia wersja oferty' : 'Wersja oferty') }));
       if(isPreliminary) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--preliminary', text:'Wstępna' }));
       if(isSelected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--selected', text:'Zaakceptowana' }));
+      if(isRejected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--archived', text:'Odrzucona' }));
       if(isArchived) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--archived', text:'Archiwalna po pomiarze' }));
       titleBox.appendChild(titleRow);
       const meta = [];
@@ -1019,6 +1047,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       meta.push(`Zakres: ${getMaterialScopeLabel(snap)}`);
       meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
       if(isSelected && Number(snap.meta && snap.meta.acceptedAt) > 0) meta.push(`Zaakceptowana: ${formatDateTime(snap.meta.acceptedAt)}`);
+      if(isRejected) meta.push(getRejectedReason(snap) === 'scope_changed'
+        ? 'Ta oferta została odrzucona po zmianie zakresu zaakceptowanej wyceny.'
+        : 'Ta oferta została odrzucona i nie jest już aktywną podstawą statusów.');
       if(isArchived) meta.push('Ta wycena wstępna została wygaszona po stworzeniu wyceny po pomiarze.');
       titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
       top.appendChild(titleBox);
@@ -1034,9 +1065,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         render(ctx);
       });
       actions.appendChild(openBtn);
-      const acceptLabel = isSelected ? 'Zaakceptowana' : 'Zaakceptuj';
+      const acceptLabel = isSelected ? 'Zaakceptowana' : (isRejected ? 'Odrzucona' : 'Zaakceptuj');
       const chooseBtn = h('button', { class:'btn-success', type:'button', text:acceptLabel });
-      if(isSelected || isArchived) chooseBtn.disabled = true;
+      if(isSelected || isArchived || isRejected) chooseBtn.disabled = true;
       chooseBtn.addEventListener('click', async ()=>{
         const targetStatus = isPreliminary ? 'pomiar' : 'zaakceptowany';
         rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
@@ -1250,6 +1281,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     currentProjectStatus,
     setProjectStatusFromSnapshot,
     getTargetRoomIdsFromSnapshot,
+    isArchivedPreliminary,
+    isRejectedSnapshot,
   });
 
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
