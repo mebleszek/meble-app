@@ -236,6 +236,21 @@
           FC.quoteSnapshotStore.writeAll(prev);
         }
       }),
+      H.makeTest('Wycena', 'Podgląd oferty pokazuje akcję akceptacji tylko dla wersji, które wolno zaakceptować', 'Pilnuje, czy nowy przycisk pod podsumowaniem korzysta z tej samej kwalifikacji co historia: znika dla zaakceptowanej albo odrzuconej oferty.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.canAcceptSnapshot === 'function', 'Brak helpera FC.wycenaTabDebug.canAcceptSnapshot', FC.wycenaTabDebug);
+        const prev = FC.quoteSnapshotStore.readAll();
+        try{
+          FC.quoteSnapshotStore.writeAll([]);
+          const active = FC.quoteSnapshotStore.save({ investor:{ id:'inv_accept' }, project:{ id:'proj_accept', investorId:'inv_accept', title:'Projekt accept' }, commercial:{ preliminary:true }, scope:{ selectedRooms:['room_a'], roomLabels:['Kuchnia A'] }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712800200000 });
+          H.assert(FC.wycenaTabDebug.canAcceptSnapshot(active) === true, 'Aktywna niezaakceptowana oferta nie kwalifikuje się do przycisku akceptacji', active);
+          const selected = FC.quoteSnapshotStore.markSelectedForProject('proj_accept', active.id, { status:'pomiar' });
+          H.assert(FC.wycenaTabDebug.canAcceptSnapshot(selected) === false, 'Zaakceptowana oferta nadal kwalifikuje się do przycisku akceptacji', selected);
+          const rejected = FC.quoteSnapshotStore.save({ investor:{ id:'inv_accept' }, project:{ id:'proj_accept', investorId:'inv_accept', title:'Projekt accept' }, commercial:{ preliminary:true }, scope:{ selectedRooms:['room_a'], roomLabels:['Kuchnia A'] }, meta:{ rejectedAt:1712800300000, rejectedReason:'scope_changed' }, totals:{ grand:120 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712800300000 });
+          H.assert(FC.wycenaTabDebug.canAcceptSnapshot(rejected) === false, 'Odrzucona oferta nadal kwalifikuje się do przycisku akceptacji', rejected);
+        } finally {
+          FC.quoteSnapshotStore.writeAll(prev);
+        }
+      }),
 
 
       H.makeTest('Wycena', 'Usunięcie ostatniej wyceny wstępnej przywraca status nowy', 'Pilnuje, czy po skasowaniu ostatniej wstępnej oferty pokój nie zostaje sztucznie na etapie wstępnej wyceny.', ()=> withInvestorProjectFixture({

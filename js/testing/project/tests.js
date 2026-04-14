@@ -178,6 +178,34 @@
         H.assert(FC.appView.shouldHideRoomSettingsForTab('wycena') === true, 'Karta parametrów pokoju nie jest ukrywana dla WYCENA');
         H.assert(FC.appView.shouldHideRoomSettingsForTab('wywiad') === false, 'Karta parametrów pokoju została ukryta także dla WYWIAD');
       }),
+      H.makeTest('Projekt', 'Wejście zakładką WYCENA bez wybranego pomieszczenia omija ekran wyboru pokoju', 'Sprawdza, czy kliknięcie zakładki WYCENA przy aktywnym inwestorze może otworzyć appView bez wymuszania ekranu „Wybierz pomieszczenie”.', ()=>{
+        if(!(FC.views && typeof FC.views.shouldOpenRoomlessWycena === 'function')){
+          H.assert(typeof document === 'undefined', 'Brak helpera roomless WYCENA', FC.views);
+          return;
+        }
+        H.assert(FC.views.shouldOpenRoomlessWycena({ entry:'rooms', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' }) === true, 'Helper roomless WYCENA nie rozpoznaje wejścia z inwestora');
+        if(typeof document === 'undefined' || !(typeof FC.views.applyFromState === 'function')) return;
+        const roomsView = document.getElementById('roomsView');
+        const appView = document.getElementById('appView');
+        H.assert(roomsView && appView, 'Brak wymaganych widoków DOM dla testu wejścia do WYCENA', { roomsView, appView });
+        const prevRooms = roomsView ? roomsView.style.display : '';
+        const prevApp = appView ? appView.style.display : '';
+        try{
+          FC.views.applyFromState({ entry:'rooms', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' });
+          H.assert(appView.style.display === 'block', 'appView nie otworzył się dla roomless WYCENA', { app:appView.style.display, rooms:roomsView.style.display });
+          H.assert(roomsView.style.display === 'none', 'roomsView nadal został pokazany zamiast WYCENA', { app:appView.style.display, rooms:roomsView.style.display });
+        } finally {
+          if(roomsView) roomsView.style.display = prevRooms;
+          if(appView) appView.style.display = prevApp;
+        }
+      }),
+      H.makeTest('Projekt', 'Kolejność przycisków zakładek zgadza się z nowym układem', 'Pilnuje, czy paski zakładek mają zamienione MATERIAŁ z RYSUNEK oraz dolny rząd zaczyna się od INWESTOR.', ()=>{
+        if(typeof document === 'undefined') return;
+        const order = Array.from(document.querySelectorAll('#topTabs .tab-btn')).map((btn)=> String(btn && btn.dataset && btn.dataset.tab || ''));
+        H.assert(order.length >= 8, 'Brak pełnego zestawu zakładek do testu kolejności', order);
+        H.assert(order.slice(0, 4).join(',') === 'wywiad,material,rysunek,czynnosci', 'Górny rząd zakładek ma złą kolejność', order);
+        H.assert(order.slice(4, 8).join(',') === 'inwestor,wycena,rozrys,magazyn', 'Dolny rząd zakładek ma złą kolejność', order);
+      }),
       H.makeTest('Projekt', 'Zablokowane opcje statusu niosą stan disabled do overlayu', 'Sprawdza, czy overlay wyboru statusu dostaje klasę disabled także dla aktualnie zaznaczonej opcji, żeby UI mogło ją wyszarzyć zamiast pokazywać na zielono.', ()=>{
         H.assert(FC.rozrysChoice && typeof FC.rozrysChoice.buildChoiceOptionClass === 'function', 'Brak helpera klas opcji overlayu', FC.rozrysChoice);
         const cls = FC.rozrysChoice.buildChoiceOptionClass('zaakceptowany', 'zaakceptowany', true);

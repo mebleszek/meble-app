@@ -1,3 +1,9 @@
+## 2026-04-15 — quote accept + roomless wycena + tab order
+- `js/tabs/wycena.js` — dodany wspólny helper akceptacji oferty i nowy przycisk `Zaakceptuj ofertę` pod `Podsumowanie`, podpięty do tej samej logiki co karta historii.
+- `js/app/ui/views.js` + `js/app/ui/tab-navigation.js` + `js/app.js` — wejście zakładką `WYCENA` bez wybranego pokoju otwiera teraz od razu moduł wyceny zamiast ekranu `Wybierz pomieszczenie`; render tabów działa też dla roomless `WYCENA`.
+- `index.html` — przestawiona kolejność zakładek: u góry `MATERIAŁ` przed `RYSUNEK`, na dole `INWESTOR`, `WYCENA`, `ROZRYS`, `MAGAZYN`; podbity cache-busting zmienionych plików.
+- `js/testing/project/tests.js` + `js/testing/wycena/tests.js` — dodane antyregresje dla roomless wejścia do `WYCENA`, kolejności zakładek oraz kwalifikacji przycisku akceptacji w podglądzie oferty.
+
 
 ## 2026-04-12 — foundation tests follow-up
 - rozszerzone smoke testy działowe dla `Inwestor`, `Materiały` i `Usługi`

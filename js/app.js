@@ -461,6 +461,16 @@ function renderCabinets(){
       : 'Pomieszczenie';
   }
   if(!room){
+    const roomlessTab = String(uiState && uiState.activeTab || '').trim().toLowerCase();
+    if(roomlessTab === 'wycena'){
+      try{
+        if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
+          window.FC.tabsRouter.switchTo('wycena', { listEl: list, room:'' });
+          try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
+          return;
+        }
+      }catch(_){ }
+    }
     if(requestedRoom){
       const hasInvestorContext = !!((uiState && uiState.currentInvestorId)
         || (window.FC && window.FC.investors && typeof window.FC.investors.getCurrentId === 'function' && window.FC.investors.getCurrentId()));

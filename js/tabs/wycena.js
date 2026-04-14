@@ -284,6 +284,52 @@
     return true;
   }
 
+  function canAcceptSnapshot(snapshot, history){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap || !getSnapshotId(snap)) return false;
+    if(isSelectedSnapshot(snap) || isRejectedSnapshot(snap)) return false;
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    const projectStatus = getProjectStatusForHistory(list);
+    return !isArchivedPreliminary(snap, list, projectStatus);
+  }
+
+  async function acceptSnapshot(snapshot, ctx, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return false;
+    const snapId = getSnapshotId(snap);
+    const opts = options && typeof options === 'object' ? options : {};
+    const history = Array.isArray(opts.history) ? opts.history : getSnapshotHistory();
+    if(!canAcceptSnapshot(snap, history)) return false;
+    const targetStatus = isPreliminarySnapshot(snap) ? 'pomiar' : 'zaakceptowany';
+    if(opts.rememberScroll) rememberQuoteScroll(String(opts.anchorId || ''), String(opts.fallbackAnchorId || ''));
+    const confirmed = await askConfirm({
+      title:'OZNACZYĆ OFERTĘ?',
+      message:isPreliminarySnapshot(snap)
+        ? 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Pomiar”.'
+        : 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
+      confirmText:'Zaakceptuj ofertę',
+      cancelText:'Wróć',
+      confirmTone:'success',
+      cancelTone:'neutral'
+    });
+    if(!confirmed){
+      if(opts.rememberScroll) clearRememberedQuoteScroll();
+      return false;
+    }
+    let selected = null;
+    try{
+      selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
+        ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId, { status:targetStatus })
+        : snap;
+    }catch(_){ selected = snap; }
+    if(!selected) return false;
+    previewSnapshotId = snapId;
+    setProjectStatusFromSnapshot(selected, targetStatus);
+    lastQuote = selected;
+    render(ctx);
+    return true;
+  }
+
   function labelWithInfo(title, infoTitle, infoMessage){
     const row = h('div', { class:'label-help' });
     row.appendChild(h('span', { class:'label-help__text', text:title }));
@@ -815,7 +861,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     card.appendChild(wrap);
   }
 
-  function renderCommercialSection(card, snapshot){
+  function renderCommercialSection(card, snapshot, ctx){
     const commercial = snapshot && snapshot.commercial || {};
     const totals = snapshot && snapshot.totals || {};
     const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
@@ -856,6 +902,13 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       row.appendChild(h('span', { text:money(value) }));
       totalsCard.appendChild(row);
     });
+    if(canAcceptSnapshot(snapshot)){
+      const previewActions = h('div', { class:'quote-preview-actions' });
+      const acceptBtn = h('button', { class:'btn-success', type:'button', text:'Zaakceptuj ofertę' });
+      acceptBtn.addEventListener('click', ()=> { void acceptSnapshot(snapshot, ctx); });
+      previewActions.appendChild(acceptBtn);
+      totalsCard.appendChild(previewActions);
+    }
     card.appendChild(section);
     card.appendChild(totalsCard);
   }
@@ -1067,36 +1120,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       actions.appendChild(openBtn);
       const acceptLabel = isSelected ? 'Zaakceptowana' : (isRejected ? 'Odrzucona' : 'Zaakceptuj');
       const chooseBtn = h('button', { class:'btn-success', type:'button', text:acceptLabel });
-      if(isSelected || isArchived || isRejected) chooseBtn.disabled = true;
-      chooseBtn.addEventListener('click', async ()=>{
-        const targetStatus = isPreliminary ? 'pomiar' : 'zaakceptowany';
-        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
-        const confirmed = await askConfirm({
-          title:'OZNACZYĆ OFERTĘ?',
-          message:isPreliminary
-            ? 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Pomiar”.'
-            : 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
-          confirmText:'Zaakceptuj ofertę',
-          cancelText:'Wróć',
-          confirmTone:'success',
-          cancelTone:'neutral'
-        });
-        if(!confirmed){
-          clearRememberedQuoteScroll();
-          return;
-        }
-        let selected = null;
-        try{
-          selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
-            ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId, { status:targetStatus })
-            : snap;
-        }catch(_){ selected = snap; }
-        if(selected){
-          previewSnapshotId = snapId;
-          setProjectStatusFromSnapshot(selected, targetStatus);
-          lastQuote = selected;
-          render(ctx);
-        }
+      if(!canAcceptSnapshot(snap, history)) chooseBtn.disabled = true;
+      chooseBtn.addEventListener('click', ()=> {
+        void acceptSnapshot(snap, ctx, { rememberScroll:true, anchorId:getQuoteHistoryItemDomId(snapId), history });
       });
       actions.appendChild(chooseBtn);
       const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
@@ -1257,7 +1283,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.');
       renderSection(card, 'Robocizna / stawki wyceny mebli', quoteRateLines, 'Brak pozycji robocizny.');
       renderSection(card, 'Sprzęty do zabudowy / montaż AGD', agdLines, 'Brak wykrytych sprzętów do zabudowy.');
-      renderCommercialSection(card, currentQuote);
+      renderCommercialSection(card, currentQuote, ctx);
     }
     renderHistory(card, ctx, currentQuote);
     list.appendChild(card);
@@ -1296,6 +1322,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     getTargetRoomIdsFromSnapshot,
     isArchivedPreliminary,
     isRejectedSnapshot,
+    canAcceptSnapshot,
     showSnapshotPreview,
   });
 

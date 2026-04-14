@@ -1754,6 +1754,7 @@
   padding:6px 0;
   font-weight:700;
 }
+.quote-preview-actions{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(226,232,240,.92);}
 @media (max-width: 860px){
   .quote-list__head,
   .quote-list__row{

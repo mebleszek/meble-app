@@ -110,6 +110,14 @@
     return null;
   }
 
+  function shouldOpenRoomlessWycena(state){
+    const st = state && typeof state === 'object' ? state : {};
+    const tab = String(st.activeTab || '').trim().toLowerCase();
+    const entry = String(st.entry || '').trim().toLowerCase();
+    const hasInvestorContext = !!readCurrentInvestorId(st);
+    return tab === 'wycena' && !st.roomType && (entry === 'app' || entry === 'rooms' || hasInvestorContext);
+  }
+
   function applyFromState(state){
     const st = state || (FC.uiState && FC.uiState.get ? FC.uiState.get() : {});
     const entry = st && st.entry ? st.entry : 'home';
@@ -119,6 +127,7 @@
 
     if(tab === 'inwestor') return showInvestor();
     if(st && st.roomType && (entry === 'home' || !entry)) return showApp();
+    if(shouldOpenRoomlessWycena(st)) return showApp();
     if(entry === 'home') return showHome();
     if(entry === 'modeHub') return showModeHub(workMode || 'furnitureProjects');
     if(entry === 'investorsList') return showInvestorsList();
@@ -193,4 +202,5 @@
   FC.views.openRoom = openRoom;
   FC.views.back = back;
   FC.views.refreshSessionButtons = refreshSessionButtons;
+  FC.views.shouldOpenRoomlessWycena = shouldOpenRoomlessWycena;
 })();

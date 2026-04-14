@@ -25,6 +25,7 @@
         return;
       }
     }
+    if(tabName === 'wycena' && !uiState.roomType && (uiState.entry === 'rooms' || uiState.currentInvestorId)) uiState.entry = 'app';
     uiState.activeTab = tabName;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
