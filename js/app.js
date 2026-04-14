@@ -450,6 +450,8 @@ function renderCabinets(){
     ? projectData[requestedRoom]
     : null;
   const room = roomData ? requestedRoom : '';
+  const roomSettingsCardEl = document.getElementById('roomSettingsCard');
+  if(roomSettingsCardEl) roomSettingsCardEl.style.display = shouldHideRoomSettingsForTab(uiState && uiState.activeTab) ? 'none' : '';
   const roomTitleEl = document.getElementById('roomTitle');
   if(roomTitleEl){
     roomTitleEl.textContent = room
@@ -678,6 +680,16 @@ function jumpToCabinetFromMaterials(cabId){ return callExtracted('tabNavigation'
 // RYZYKO REGRESJI: przełączanie zakładek wpływa też na odświeżanie danych i render.
 // Nie zmieniać kolejności efektów ubocznych bez testu całego przepływu projektu.
 function setActiveTab(tabName){ return callExtracted('tabNavigation','setActiveTab',[tabName]); }
+
+function shouldHideRoomSettingsForTab(tabName){
+  return String(tabName || '') === 'wycena';
+}
+
+try{
+  window.FC = window.FC || {};
+  window.FC.appView = window.FC.appView || {};
+  window.FC.appView.shouldHideRoomSettingsForTab = shouldHideRoomSettingsForTab;
+}catch(_){ }
 
 
 /* ===== UI wiring & init ===== */

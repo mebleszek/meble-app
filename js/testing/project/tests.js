@@ -173,6 +173,18 @@
           FC.serviceOrderStore.writeAll(prevOrders);
         }
       }),
+      H.makeTest('Projekt', 'WYCENA ukrywa kartę parametrów pomieszczenia', 'Sprawdza, czy karta z parametrami pomieszczenia nie pokazuje się już w zakładce WYCENA, ale nadal może działać w innych zakładkach.', ()=>{
+        H.assert(FC.appView && typeof FC.appView.shouldHideRoomSettingsForTab === 'function', 'Brak helpera widoczności karty parametrów pokoju', FC.appView);
+        H.assert(FC.appView.shouldHideRoomSettingsForTab('wycena') === true, 'Karta parametrów pokoju nie jest ukrywana dla WYCENA');
+        H.assert(FC.appView.shouldHideRoomSettingsForTab('wywiad') === false, 'Karta parametrów pokoju została ukryta także dla WYWIAD');
+      }),
+      H.makeTest('Projekt', 'Zablokowane opcje statusu niosą stan disabled do overlayu', 'Sprawdza, czy overlay wyboru statusu dostaje klasę disabled także dla aktualnie zaznaczonej opcji, żeby UI mogło ją wyszarzyć zamiast pokazywać na zielono.', ()=>{
+        H.assert(FC.rozrysChoice && typeof FC.rozrysChoice.buildChoiceOptionClass === 'function', 'Brak helpera klas opcji overlayu', FC.rozrysChoice);
+        const cls = FC.rozrysChoice.buildChoiceOptionClass('zaakceptowany', 'zaakceptowany', true);
+        H.assert(/is-selected/.test(String(cls || '')), 'Zablokowana bieżąca opcja utraciła klasę selected potrzebną do identyfikacji stanu', { cls });
+        H.assert(/is-disabled/.test(String(cls || '')), 'Zablokowana opcja nie niesie klasy disabled do overlayu', { cls });
+      }),
+
       H.makeTest('Projekt', 'Lista zleceń usługowych działa niezależnie od inwestorów', 'Sprawdza, czy drobne zlecenia usługowe mają własny byt danych i nie używają listy inwestorów.', ()=>{
         H.assert(FC.catalogStore && typeof FC.catalogStore.upsertServiceOrder === 'function', 'Brak FC.catalogStore.upsertServiceOrder');
         const beforeOrders = FC.catalogStore.getServiceOrders();

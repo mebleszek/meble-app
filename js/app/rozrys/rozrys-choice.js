@@ -36,6 +36,12 @@
     }
   }
 
+  function buildChoiceOptionClass(currentValue, optionValue, disabled){
+    return 'rozrys-choice-option'
+      + (String(currentValue || '') === String(optionValue || '') ? ' is-selected' : '')
+      + (disabled ? ' is-disabled' : '');
+  }
+
   function createChoiceLauncher(label, meta){
     const btn = h('button', { type:'button', class:'rozrys-choice-launch' });
     const value = h('span', { class:'rozrys-choice-launch__value' });
@@ -67,7 +73,7 @@
         const opt = entry || {};
         const value = String(opt.value == null ? '' : opt.value);
         const disabled = !!opt.disabled;
-        const optionBtn = h('button', { type:'button', class:'rozrys-choice-option' + (String(cfg.value) === value ? ' is-selected' : '') + (disabled ? ' is-disabled' : ''), disabled: disabled ? 'disabled' : null });
+        const optionBtn = h('button', { type:'button', class:buildChoiceOptionClass(cfg.value, value, disabled), disabled: disabled ? 'disabled' : null });
         optionBtn.appendChild(h('div', { class:'rozrys-choice-option__title', text:String(opt.label || value) }));
         if(opt.description) optionBtn.appendChild(h('div', { class:'rozrys-choice-option__subtitle', text:String(opt.description) }));
         if(!disabled) optionBtn.addEventListener('click', ()=> done(value));
@@ -103,6 +109,7 @@
   FC.rozrysChoice = {
     getSelectOptionLabel,
     setChoiceLaunchValue,
+    buildChoiceOptionClass,
     createChoiceLauncher,
     openRozrysChoiceOverlay,
   };

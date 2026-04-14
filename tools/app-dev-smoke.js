@@ -38,6 +38,8 @@ const FILES = [
   'js/app/quote/quote-snapshot-store.js',
   'js/app/project/project-status-sync.js',
   'js/app/project/project-status-manual-guard.js',
+  'js/app/rozrys/rozrys-choice.js',
+  'js/app.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',
   'js/app/wycena/wycena-core.js',
