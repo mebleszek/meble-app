@@ -559,6 +559,24 @@
         });
       }),
 
+      H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar i wycena pozostaje zablokowana także przy błędnie wyższym statusie pokoju', 'Pilnuje antyregresyjnie, czy pokój z omyłkowo wyższym statusem nie może już ręcznie wskoczyć na Pomiar albo Wycena bez własnej zaakceptowanej wyceny wstępnej solo.', ()=>{
+        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
+        H.assert(FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function', 'Brak FC.investorPersistence.updateInvestorRoom');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const soloPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_guard_high', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard high' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre high' }, totals:{ grand:119 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820471100 });
+          FC.investorPersistence.updateInvestorRoom(investorId, 'room_salon', { projectStatus:'wycena' });
+          const blockedPomiar = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          const blockedWycena = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
+          H.assert(blockedPomiar && blockedPomiar.blocked === true && blockedPomiar.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała wejścia na Pomiar przy błędnie wyższym statusie pokoju', { blockedPomiar, soloPre });
+          H.assert(blockedWycena && blockedWycena.blocked === true && blockedWycena.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała wejścia na Wycena przy błędnie wyższym statusie pokoju', { blockedWycena, soloPre });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
+          const unlockedPomiar = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          const unlockedWycena = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
+          H.assert(unlockedPomiar && unlockedPomiar.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała wejścia na Pomiar przy wyższym bieżącym statusie', unlockedPomiar);
+          H.assert(unlockedWycena && unlockedWycena.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała wejścia na Wycena przy wyższym bieżącym statusie', unlockedWycena);
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Rozbicie wspólnej akceptacji odrzuca ofertę wspólną i odblokowuje solo wstępne', 'Pilnuje, czy po cofnięciu jednego pokoju z zaakceptowanej oferty wspólnej stara oferta wspólna traci akceptację jako odrzucona po zmianie zakresu, a solo wstępna wraca jako aktywny kandydat.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isRejectedSnapshot === 'function', 'Brak FC.quoteSnapshotStore.isRejectedSnapshot');

@@ -66,10 +66,11 @@
       (Array.isArray(cfg.options) ? cfg.options : []).forEach((entry)=>{
         const opt = entry || {};
         const value = String(opt.value == null ? '' : opt.value);
-        const optionBtn = h('button', { type:'button', class:'rozrys-choice-option' + (String(cfg.value) === value ? ' is-selected' : '') });
+        const disabled = !!opt.disabled;
+        const optionBtn = h('button', { type:'button', class:'rozrys-choice-option' + (String(cfg.value) === value ? ' is-selected' : '') + (disabled ? ' is-disabled' : ''), disabled: disabled ? 'disabled' : null });
         optionBtn.appendChild(h('div', { class:'rozrys-choice-option__title', text:String(opt.label || value) }));
         if(opt.description) optionBtn.appendChild(h('div', { class:'rozrys-choice-option__subtitle', text:String(opt.description) }));
-        optionBtn.addEventListener('click', ()=> done(value));
+        if(!disabled) optionBtn.addEventListener('click', ()=> done(value));
         body.appendChild(optionBtn);
       });
       modal.appendChild(body);

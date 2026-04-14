@@ -131,8 +131,6 @@
     const movingUp = nextRank > currentRank;
     const base = { investorId:basis.investorId, projectId:basis.projectId, roomId:basis.roomId, roomLabel:basis.roomLabel, currentStatus:basis.currentStatus, targetStatus:nextStatus, basis };
 
-    if(!movingUp) return buildResult(base, { ok:true, blocked:false });
-
     if(nextStatus === 'pomiar'){
       if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
       if(basis.hasPreliminary){
@@ -193,6 +191,7 @@
       });
     }
 
+    if(!movingUp) return buildResult(base, { ok:true, blocked:false });
     return buildResult(base, { ok:true, blocked:false });
   }
 
