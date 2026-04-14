@@ -1097,3 +1097,8 @@ Dopiero potem go zmieniać.
 - 2026-04-14: Usługi stolarskie dostały uproszczony detal cięcia oparty na silniku ROZRYS (nowe pliki w js/app/service/cutting/). Poprawiono też scoped rekomendację statusu po odrzuceniu wspólnej oferty oraz zamieniono kolory przycisków na ekranie Start.
 
 - 2026-04-14: Hotfix ręcznych statusów w `Inwestor` — `js/app/project/project-status-manual-guard.js` przestał traktować blokady tylko jako ruch „w górę”. Statusy wymagające podstawy ofertowej (`pomiar`, `wycena`, końcowe) są teraz walidowane zawsze względem własnej zaakceptowanej oferty solo dla danego pokoju, nawet jeśli bieżący status pokoju był omyłkowo wyższy. Dzięki temu nie da się już ręcznie wskoczyć ani wrócić na `Pomiar` / `Wycena` bez zaakceptowanej wyceny wstępnej solo. `js/app/investor/investor-choice.js`, `js/app/investor/investor-rooms.js` i `js/app/rozrys/rozrys-choice.js` dostały zgodne wsparcie dla zablokowanych opcji w overlayu wyboru statusu, a `js/testing/wycena/tests.js` dostał regresję na pokój z błędnie wyższym statusem, który bez zaakceptowanej wyceny wstępnej solo nie może już przejść na `Pomiar` ani `Wycena`.
+
+
+## 2026-04-14 — choice click fix
+- Naprawa overlayu wyboru statusu: tylko faktycznie zablokowane opcje dostają disabled; dozwolone znów klikają się poprawnie.
+- Dodany lekki helper js/app/ui/app-view.js eksportujący FC.appView.shouldHideRoomSettingsForTab także dla dev_tests bez ładowania całego js/app.js.

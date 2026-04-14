@@ -7,10 +7,13 @@
     const el = document.createElement(tag);
     if(attrs){
       for(const k in attrs){
-        if(k === 'class') el.className = attrs[k];
-        else if(k === 'html') el.innerHTML = attrs[k];
-        else if(k === 'text') el.textContent = attrs[k];
-        else el.setAttribute(k, attrs[k]);
+        const value = attrs[k];
+        if(value == null || value === false) continue;
+        if(k === 'class') el.className = value;
+        else if(k === 'html') el.innerHTML = value;
+        else if(k === 'text') el.textContent = value;
+        else if(value === true) el.setAttribute(k, k);
+        else el.setAttribute(k, value);
       }
     }
     (children || []).forEach((ch)=> el.appendChild(ch));
