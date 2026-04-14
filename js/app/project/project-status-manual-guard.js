@@ -201,41 +201,34 @@
     if(!basis.projectId) throw new Error('Brak projektu dla inwestora');
     const preliminary = String(kind || '').trim().toLowerCase() !== 'final';
     const roomIds = [String(roomId || '')].filter(Boolean);
-    const projectId = basis.projectId;
+    if(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function'){
+      const result = await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+        investorId:String(investorId || ''),
+        projectId:basis.projectId,
+        roomIds,
+        preliminary,
+        status: preliminary ? 'wstepna_wycena' : 'wycena',
+        openTab: opts.openTab !== false,
+      });
+      return Object.assign({
+        investorId:String(investorId || ''),
+        projectId:basis.projectId,
+        roomId:String(roomId || ''),
+        roomLabel:basis.roomLabel,
+        preliminary,
+      }, result || {});
+    }
 
     if(FC.investors && typeof FC.investors.setCurrentId === 'function') FC.investors.setCurrentId(String(investorId || ''));
-    if(FC.projectStore && typeof FC.projectStore.setCurrentProjectId === 'function') FC.projectStore.setCurrentProjectId(projectId);
-
-    let nextVersionName = preliminary ? 'Wstępna oferta' : 'Oferta';
-    try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function' && typeof FC.quoteOfferStore.defaultVersionName === 'function'){
-        const draft = FC.quoteOfferStore.getCurrentDraft() || {};
-        const currentName = String(draft && draft.commercial && draft.commercial.versionName || '').trim();
-        const prelimDefault = FC.quoteOfferStore.defaultVersionName(true);
-        const finalDefault = FC.quoteOfferStore.defaultVersionName(false);
-        nextVersionName = (!currentName || currentName === prelimDefault || currentName === finalDefault)
-          ? FC.quoteOfferStore.defaultVersionName(preliminary)
-          : currentName;
-      }
-    }catch(_){ }
-
+    if(FC.projectStore && typeof FC.projectStore.setCurrentProjectId === 'function') FC.projectStore.setCurrentProjectId(basis.projectId);
     if(!(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function')) throw new Error('Brak quoteOfferStore.patchCurrentDraft');
     FC.quoteOfferStore.patchCurrentDraft({
       selection:{ selectedRooms:roomIds },
-      commercial:{ preliminary, versionName:nextVersionName },
+      commercial:{ preliminary, versionName: preliminary ? 'Wstępna oferta' : 'Oferta' },
     });
-
     if(!(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function')) throw new Error('Brak wycenaCore.buildQuoteSnapshot');
     const snapshot = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:roomIds } });
-
-    if(opts.openTab !== false){
-      try{
-        if(typeof window.setActiveTab === 'function') window.setActiveTab('wycena');
-        else if(FC.tabNavigation && typeof FC.tabNavigation.setActiveTab === 'function') FC.tabNavigation.setActiveTab('wycena');
-      }catch(_){ }
-    }
-
-    return { snapshot, investorId:String(investorId || ''), projectId, roomId:String(roomId || ''), roomLabel:basis.roomLabel, preliminary };
+    return { snapshot, investorId:String(investorId || ''), projectId:basis.projectId, roomId:String(roomId || ''), roomLabel:basis.roomLabel, preliminary };
   }
 
   FC.projectStatusManualGuard = {

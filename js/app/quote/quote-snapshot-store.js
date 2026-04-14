@@ -216,6 +216,33 @@
     });
   }
 
+  function filterRowsByQuoteType(rows, options){
+    const list = Array.isArray(rows) ? rows : [];
+    const opts = options && typeof options === 'object' ? options : {};
+    const hasPreliminary = Object.prototype.hasOwnProperty.call(opts, 'preliminary');
+    const includeRejected = opts.includeRejected === true;
+    return list.filter((row)=> {
+      if(!includeRejected && isRejectedSnapshot(row)) return false;
+      if(!hasPreliminary) return true;
+      return isPreliminarySnapshot(row) === !!opts.preliminary;
+    });
+  }
+
+  function listExactScopeSnapshots(projectId, roomIds, options){
+    const pid = String(projectId || '');
+    const ids = normalizeRoomIds(roomIds);
+    const opts = options && typeof options === 'object' ? options : {};
+    if(!pid || !ids.length) return [];
+    const projectRows = listForProject(pid);
+    const scopedRows = filterRowsByRoomScope(projectRows, ids, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact });
+    return filterRowsByQuoteType(scopedRows, opts);
+  }
+
+  function findExactScopeSnapshot(projectId, roomIds, options){
+    const rows = listExactScopeSnapshots(projectId, roomIds, options);
+    return rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || rows[0] || null;
+  }
+
   function pickCandidate(projectRows, predicate){
     const rows = Array.isArray(projectRows) ? projectRows : [];
     return rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient) && predicate(row))
@@ -376,6 +403,8 @@
     normalizeRoomIds,
     getSnapshotRoomIds,
     filterRowsByRoomScope,
+    listExactScopeSnapshots,
+    findExactScopeSnapshot,
     sameRoomScope,
     snapshotScopeOverlaps,
     isRejectedSnapshot,

@@ -1277,12 +1277,22 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     }
   }
 
+  function showSnapshotPreview(snapshotId){
+    const snap = snapshotById(snapshotId, getSnapshotHistory());
+    if(!snap) return false;
+    previewSnapshotId = String(snapshotId || '');
+    lastQuote = snap;
+    shouldScrollToPreview = true;
+    return true;
+  }
+
   FC.wycenaTabDebug = Object.assign({}, FC.wycenaTabDebug || {}, {
     currentProjectStatus,
     setProjectStatusFromSnapshot,
     getTargetRoomIdsFromSnapshot,
     isArchivedPreliminary,
     isRejectedSnapshot,
+    showSnapshotPreview,
   });
 
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });

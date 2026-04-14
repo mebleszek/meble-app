@@ -418,6 +418,29 @@
                   }
                 }
               }catch(_){ }
+              if(String(value || '') === 'wstepna_wycena' && FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function'){
+                try{
+                  const scopeEntry = await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+                    investorId,
+                    projectId: (function(){ try{ return FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function' ? String((FC.projectStore.getByInvestorId(investorId) || {}).id || '') : ''; }catch(_){ return ''; } })(),
+                    fallbackRoomId: roomId,
+                    preliminary:true,
+                    status:'wstepna_wycena',
+                    openTab:true,
+                  });
+                  if(scopeEntry && scopeEntry.cancelled){
+                    render();
+                    return;
+                  }
+                  try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+                  render();
+                  return;
+                }catch(err){
+                  try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się otworzyć wyceny wstępnej', message:String(err && err.message || err || 'Błąd wejścia do wyceny wstępnej.') }); }catch(_){ }
+                  render();
+                  return;
+                }
+              }
               persistenceApi.setInvestorProjectStatus(investorId, roomId, value, { skipGuard:true });
               try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
               render();

@@ -1102,3 +1102,12 @@ Dopiero potem go zmieniać.
 ## 2026-04-14 — choice click fix
 - Naprawa overlayu wyboru statusu: tylko faktycznie zablokowane opcje dostają disabled; dozwolone znów klikają się poprawnie.
 - Dodany lekki helper js/app/ui/app-view.js eksportujący FC.appView.shouldHideRoomSettingsForTab także dla dev_tests bez ładowania całego js/app.js.
+
+## 2026-04-14: Scope-aware entry do Wstępnej wyceny
+- Dodano nowy moduł `js/app/quote/quote-scope-entry.js` jako jedno źródło prawdy dla wejścia do wyceny scoped. Moduł rozpoznaje dokładny `scope.selectedRooms`, odróżnia solo od kombinacji A+B, umie znaleźć istniejącą wycenę tego samego typu i scope oraz prowadzi flow `Otwórz istniejącą` / `Utwórz nową` z drugim krokiem nadania nazwy wariantowi.
+- `js/app/quote/quote-snapshot-store.js` dostał helpery exact-scope (`listExactScopeSnapshots`, `findExactScopeSnapshot`) filtrowane po typie wyceny i dokładnym zestawie pomieszczeń, bez mieszania scope solo i wspólnego.
+- `js/app/investor/investor-ui.js` przechwytuje wejście na status `wstepna_wycena` i zamiast ślepo tylko przestawiać status otwiera scoped flow wyceny. Jeżeli draft Wyceny ma zaznaczoną kombinację pomieszczeń zawierającą kliknięty pokój, flow używa tej kombinacji; w przeciwnym razie spada do scope solo.
+- `js/app/project/project-status-manual-guard.js` został przepięty na nowe scoped wejście przy generowaniu wyceny z blokad ręcznych statusów, dzięki czemu także ścieżka guardów korzysta z tych samych reguł exact-scope i nie robi cichych duplikatów.
+- `js/tabs/wycena.js` dostał helper `showSnapshotPreview`, żeby flow `Otwórz istniejącą` mogło otworzyć dokładnie wskazaną wersję w historii bez generowania nowego snapshotu.
+- `css/style.css` dostał lokalny styl modali scope-entry, a `index.html` / `dev_tests.html` zostały zaktualizowane o nowy moduł i cache-busting.
+- `js/testing/wycena/tests.js` rozszerzono o regresje na: istniejącą wycenę solo, istniejącą wycenę wspólną dla konkretnej kombinacji, brak exact-scope dla innego zakresu, rozróżnienie A od A+B, podpowiedź nazwy kolejnego wariantu oraz otwarcie istniejącej wyceny bez tworzenia duplikatu.
