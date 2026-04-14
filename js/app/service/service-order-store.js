@@ -39,6 +39,43 @@
     };
   }
 
+  function normalizeCuttingPart(part, index){
+    const src = part && typeof part === 'object' ? part : {};
+    const name = normalizeText(src.name) || `Formatka ${Number(index) + 1}`;
+    const qty = Math.max(1, Number(src.qty) || 1);
+    const along = Math.max(0, Number(src.along) || Number(src.width) || 0);
+    const across = Math.max(0, Number(src.across) || Number(src.height) || 0);
+    const edgesAlong = Math.max(0, Math.min(2, Number(src.edgesAlong) || 0));
+    const edgesAcross = Math.max(0, Math.min(2, Number(src.edgesAcross) || 0));
+    return {
+      id: normalizeText(src.id) || uid(),
+      name,
+      qty,
+      along,
+      across,
+      edgesAlong,
+      edgesAcross,
+    };
+  }
+
+  function normalizeCutting(cutting){
+    const src = cutting && typeof cutting === 'object' ? cutting : {};
+    return {
+      enabled: src.enabled !== false,
+      materialMode: normalizeText(src.materialMode || 'catalog') === 'client' ? 'client' : 'catalog',
+      materialId: normalizeText(src.materialId),
+      materialName: normalizeText(src.materialName),
+      boardW: Math.max(0, Number(src.boardW) || 2800),
+      boardH: Math.max(0, Number(src.boardH) || 2070),
+      unit: normalizeText(src.unit || 'mm') === 'cm' ? 'cm' : 'mm',
+      kerf: Math.max(0, Number(src.kerf) || 4),
+      edgeTrim: Math.max(0, Number(src.edgeTrim) || 10),
+      parts: Array.isArray(src.parts) ? src.parts.map(normalizeCuttingPart).filter(Boolean) : [],
+      plan: src.plan && typeof src.plan === 'object' ? clone(src.plan) : null,
+      generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : 0,
+    };
+  }
+
   function normalizeOrder(order){
     const src = order && typeof order === 'object' ? order : {};
     const now = Date.now();
@@ -68,6 +105,7 @@
       addedDate: normalizeText(src.addedDate) || (()=>{ try{ return new Date(createdAt).toISOString().slice(0, 10); }catch(_){ return ''; } })(),
       createdAt,
       updatedAt,
+      cutting: normalizeCutting(src.cutting),
       meta: normalizeMeta(src.meta),
     };
   }
@@ -106,7 +144,7 @@
   }
 
   function createDraft(initial){
-    return normalizeOrder(Object.assign({ id:'', title:'', clientName:'', phone:'', city:'', address:'', description:'', orderType:'', items:[], total:0, status:'nowe' }, initial || {}));
+    return normalizeOrder(Object.assign({ id:'', title:'', clientName:'', phone:'', city:'', address:'', description:'', orderType:'', items:[], total:0, status:'nowe', cutting:{ enabled:true, materialMode:'catalog', materialId:'', materialName:'', boardW:2800, boardH:2070, unit:'mm', kerf:4, edgeTrim:10, parts:[], plan:null, generatedAt:0 } }, initial || {}));
   }
 
   FC.serviceOrderStore = {

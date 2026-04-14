@@ -285,14 +285,15 @@
     const normalizedFallback = normalizeStatus(options && options.fallbackStatus);
     if(!pid) return normalizedFallback || normalizedCurrent || 'nowy';
     const rows = filterRowsByRoomScope(listForProject(pid), options && options.roomIds, options);
-    const selected = rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+    const activeRows = rows.filter((row)=> !isRejectedSnapshot(row));
+    const selected = activeRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
     if(selected){
       if(isPreliminarySnapshot(selected)) return 'pomiar';
       if(FINAL_STATUSES.has(normalizedCurrent)) return normalizedCurrent;
       return 'zaakceptowany';
     }
-    if(rows.some((row)=> !isPreliminarySnapshot(row))) return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'wycena';
-    if(rows.some((row)=> isPreliminarySnapshot(row))) return 'wstepna_wycena';
+    if(activeRows.some((row)=> !isPreliminarySnapshot(row))) return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'wycena';
+    if(activeRows.some((row)=> isPreliminarySnapshot(row))) return 'wstepna_wycena';
     return normalizedCurrent === 'odrzucone' ? 'odrzucone' : (normalizedFallback || normalizedCurrent || 'nowy');
   }
 
