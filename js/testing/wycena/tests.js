@@ -237,6 +237,100 @@
         }
       }),
 
+
+      H.makeTest('Wycena', 'Usunięcie ostatniej wyceny wstępnej przywraca status nowy', 'Pilnuje, czy po skasowaniu ostatniej wstępnej oferty pokój nie zostaje sztucznie na etapie wstępnej wyceny.', ()=> withInvestorProjectFixture({
+        investorId:'inv_delete_prelim',
+        projectId:'proj_delete_prelim',
+        rooms:[{ id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' }],
+        status:'wstepna_wycena',
+        projectData:{
+          schemaVersion:2,
+          meta:{
+            projectStatus:'wstepna_wycena',
+            roomDefs:{ room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' } },
+            roomOrder:['room_a'],
+          },
+          room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+        }
+      }, ({ investorId, projectId })=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function', 'Brak FC.projectStatusSync.reconcileProjectStatuses');
+        FC.quoteSnapshotStore.writeAll([]);
+        const prelim = FC.quoteSnapshotStore.save({
+          investor:{ id:investorId, name:'Jan Test' },
+          project:{ id:projectId, investorId, status:'wstepna_wycena' },
+          scope:{ selectedRooms:['room_a'], roomLabels:['Kuchnia A'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+          generatedAt:1712815000000,
+        });
+        H.assert(FC.quoteSnapshotStore.remove(prelim.id) === true, 'Nie udało się usunąć ostatniej wyceny wstępnej', prelim);
+        const result = FC.projectStatusSync.reconcileProjectStatuses({ projectId, investorId, fallbackStatus:'nowy', refreshUi:false });
+        const investor = FC.investors.getById(investorId);
+        const project = FC.projectStore.getById(projectId);
+        H.assert(result && String(result.aggregateStatus || '') === 'nowy', 'Rekonsyliacja po usunięciu ostatniej wyceny nie zwróciła statusu nowy', result);
+        H.assert(investor && investor.rooms && String(investor.rooms[0].projectStatus || '') === 'nowy', 'Pokój nadal wisi na wstępnej wycenie po usunięciu wszystkich ofert wstępnych', investor);
+        H.assert(project && String(project.status || '') === 'nowy', 'Projekt nadal wisi na wstępnej wycenie po usunięciu wszystkich ofert wstępnych', project);
+      })),
+
+      H.makeTest('Wycena', 'Rekonsyliacja po usunięciu scope A+B nie zeruje solo A', 'Pilnuje, czy po skasowaniu wspólnej wyceny dla A+B system nadal zachowuje solo A zamiast zrzucać oba pokoje do nowego.', ()=> withInvestorProjectFixture({
+        investorId:'inv_scope_delete',
+        projectId:'proj_scope_delete',
+        rooms:[
+          { id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+          { id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'wstepna_wycena' },
+        ],
+        status:'wstepna_wycena',
+        projectData:{
+          schemaVersion:2,
+          meta:{
+            projectStatus:'wstepna_wycena',
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+              room_b:{ id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'wstepna_wycena' },
+            },
+            roomOrder:['room_a','room_b'],
+          },
+          room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+          room_b:{ cabinets:[{ id:'cab_b' }], fronts:[], sets:[], settings:{} },
+        }
+      }, ({ investorId, projectId })=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function', 'Brak FC.projectStatusSync.reconcileProjectStatuses');
+        FC.quoteSnapshotStore.writeAll([]);
+        FC.quoteSnapshotStore.save({
+          id:'snap_scope_solo_a',
+          investor:{ id:investorId, name:'Jan Test' },
+          project:{ id:projectId, investorId, status:'wstepna_wycena' },
+          scope:{ selectedRooms:['room_a'], roomLabels:['Kuchnia A'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+          generatedAt:1712816000000,
+        });
+        FC.quoteSnapshotStore.save({
+          id:'snap_scope_ab',
+          investor:{ id:investorId, name:'Jan Test' },
+          project:{ id:projectId, investorId, status:'wstepna_wycena' },
+          scope:{ selectedRooms:['room_a','room_b'], roomLabels:['Kuchnia A','Pokój B'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta wariant 2' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta wariant 2' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+          generatedAt:1712816100000,
+        });
+        H.assert(FC.quoteSnapshotStore.remove('snap_scope_ab') === true, 'Nie udało się usunąć scope A+B', FC.quoteSnapshotStore.readAll());
+        const result = FC.projectStatusSync.reconcileProjectStatuses({ projectId, investorId, fallbackStatus:'nowy', refreshUi:false });
+        const investor = FC.investors.getById(investorId);
+        const roomA = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_a');
+        const roomB = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_b');
+        H.assert(result && String(result.roomStatusMap && result.roomStatusMap.room_a || '') === 'wstepna_wycena', 'Solo A zniknęło po usunięciu wspólnej wyceny A+B', result);
+        H.assert(result && String(result.roomStatusMap && result.roomStatusMap.room_b || '') === 'nowy', 'Pokój B nie wrócił do nowego po usunięciu wspólnej wyceny A+B', result);
+        H.assert(roomA && String(roomA.projectStatus || '') === 'wstepna_wycena', 'Status pokoju A nie zachował solo wyceny wstępnej', investor);
+        H.assert(roomB && String(roomB.projectStatus || '') === 'nowy', 'Status pokoju B nie wrócił do nowego po skasowaniu scope A+B', investor);
+      })),
+
       H.makeTest('Wycena', 'Status projektu synchronizuje zaakceptowaną ofertę w obie strony', 'Pilnuje, czy zaakceptowanie wyceny wstępnej daje etap pomiaru, a ręczna zmiana statusu projektu czyści lub przywraca właściwy stan ofert.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         H.assert(typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function', 'Brak FC.quoteSnapshotStore.syncSelectionForProjectStatus');

@@ -95,6 +95,67 @@
       assert(!ids.includes('kuchnia') && !ids.includes('szafa') && !ids.includes('pokoj') && !ids.includes('lazienka'), 'Do listy wróciły typy bazowe zamiast pokoi inwestora', ids);
     }),
 
+    makeTest('Inwestor', 'Zarządzanie pomieszczeniami pozwala zapisać pustą listę i czyści zakres wyceny', 'Pilnuje, czy usunięcie wszystkich pokoi naprawdę zapisuje pustego inwestora, czyści scope draftu Wycena i nie zostawia projektu na starym statusie.', ()=>{
+      assert(FC.roomRegistry && FC.roomRegistry._debug && typeof FC.roomRegistry._debug.applyManageRoomsDraft === 'function', 'Brak roomRegistry._debug.applyManageRoomsDraft');
+      assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function', 'Brak FC.quoteOfferStore.patchCurrentDraft');
+      assert(FC.projectStore && typeof FC.projectStore.ensureForInvestor === 'function', 'Brak FC.projectStore.ensureForInvestor');
+      const prevInvestors = FC.investors.readAll();
+      const prevCurrentInvestorId = FC.investors.getCurrentId();
+      const prevProjects = FC.projectStore.readAll();
+      const prevCurrentProjectId = FC.projectStore.getCurrentProjectId ? FC.projectStore.getCurrentProjectId() : '';
+      const prevProjectData = Object.prototype.hasOwnProperty.call(root, 'projectData') ? root.projectData : undefined;
+      const prevDrafts = FC.quoteOfferStore.readAll();
+      try{
+        FC.investors.writeAll([]);
+        FC.projectStore.writeAll([]);
+        FC.quoteOfferStore.writeAll([]);
+        const investor = FC.investors.create({
+          id:'inv_empty_rooms',
+          kind:'person',
+          name:'Puste pokoje',
+          rooms:[
+            { id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+            { id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'nowy' },
+          ]
+        });
+        FC.investors.setCurrentId(investor.id);
+        const projectData = {
+          schemaVersion:2,
+          meta:{
+            projectStatus:'wstepna_wycena',
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+              room_b:{ id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'nowy' },
+            },
+            roomOrder:['room_a','room_b'],
+          },
+          room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+          room_b:{ cabinets:[{ id:'cab_b' }], fronts:[], sets:[], settings:{} },
+        };
+        const project = FC.projectStore.ensureForInvestor(investor.id, { status:'wstepna_wycena', projectData });
+        FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(project.id);
+        root.projectData = JSON.parse(JSON.stringify(projectData));
+        FC.quoteOfferStore.patchCurrentDraft({ selection:{ selectedRooms:['room_a','room_b'] } });
+        FC.roomRegistry._debug.applyManageRoomsDraft(investor, []);
+        const updatedInvestor = FC.investors.getById(investor.id);
+        const updatedProject = FC.projectStore.getById(project.id);
+        const draft = FC.quoteOfferStore.getCurrentDraft();
+        const activeRoomIds = FC.roomRegistry.getActiveRoomIds();
+        assert(updatedInvestor && Array.isArray(updatedInvestor.rooms) && updatedInvestor.rooms.length === 0, 'Usunięcie wszystkich pokoi nie zapisało pustej listy inwestora', updatedInvestor);
+        assert(updatedProject && String(updatedProject.status || '') === 'nowy', 'Projekt nie wrócił do statusu nowy po usunięciu wszystkich pokoi', updatedProject);
+        assert(Array.isArray(draft && draft.selection && draft.selection.selectedRooms) && draft.selection.selectedRooms.length === 0, 'Draft Wycena nie wyczyścił zaznaczonych pokoi po usunięciu całej listy', draft);
+        assert(Array.isArray(activeRoomIds) && activeRoomIds.length === 0, 'Rejestr aktywnych pokoi nadal zwraca usunięte pomieszczenia', activeRoomIds);
+      } finally {
+        FC.quoteOfferStore.writeAll(prevDrafts);
+        if(prevProjectData === undefined) { try{ delete root.projectData; }catch(_){ root.projectData = undefined; } }
+        else root.projectData = prevProjectData;
+        FC.projectStore.writeAll(prevProjects);
+        FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+        FC.investors.writeAll(prevInvestors);
+        FC.investors.setCurrentId(prevCurrentInvestorId);
+      }
+    }),
+
     makeTest('Inwestor', 'Firma ostrzega, gdy właściciel pasuje do istniejącej osoby prywatnej', 'Pilnuje reguły, że firma z właścicielem Jan Kowalski ma ostrzec o istniejącej osobie prywatnej Jan Kowalski.', ()=>{
       assert(FC.investorActions && FC.investorActions._debug && typeof FC.investorActions._debug.findInvestorConflicts === 'function', 'Brak debug.findInvestorConflicts');
       assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');

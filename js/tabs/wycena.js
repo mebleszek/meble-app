@@ -1125,12 +1125,16 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         try{
           if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
         }catch(_){ }
-        if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusForProject === 'function'){
-          const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus, { roomIds:getTargetRoomIdsFromSnapshot(snap) });
-          if(recommendedStatus && recommendedStatus !== currentStatus){
-            setProjectStatusFromSnapshot(snap, recommendedStatus, { syncSelection:true });
+        try{
+          if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
+            FC.projectStatusSync.reconcileProjectStatuses({ projectId, fallbackStatus:'nowy', refreshUi:false });
+          }else if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusForProject === 'function'){
+            const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus, { roomIds:getTargetRoomIdsFromSnapshot(snap), fallbackStatus:'nowy' });
+            if(recommendedStatus && recommendedStatus !== currentStatus){
+              setProjectStatusFromSnapshot(snap, recommendedStatus, { syncSelection:true });
+            }
           }
-        }
+        }catch(_){ }
         const nextHistory = getSnapshotHistory();
         if(previewSnapshotId === snapId) previewSnapshotId = '';
         if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory.find((row)=> !isArchivedPreliminary(row, nextHistory, getProjectStatusForHistory(nextHistory))) || nextHistory[0] || null;

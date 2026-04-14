@@ -36,6 +36,7 @@ const FILES = [
   'js/app/investor/project-bootstrap.js',
   'js/app/quote/quote-offer-store.js',
   'js/app/quote/quote-snapshot-store.js',
+  'js/app/quote/quote-scope-entry.js',
   'js/app/project/project-status-sync.js',
   'js/app/project/project-status-manual-guard.js',
   'js/app/rozrys/rozrys-choice.js',

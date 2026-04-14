@@ -321,7 +321,8 @@
     }
     if(activeRows.some((row)=> !isPreliminarySnapshot(row))) return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'wycena';
     if(activeRows.some((row)=> isPreliminarySnapshot(row))) return 'wstepna_wycena';
-    return normalizedCurrent === 'odrzucone' ? 'odrzucone' : (normalizedFallback || normalizedCurrent || 'nowy');
+    if(normalizedCurrent === 'odrzucone') return 'odrzucone';
+    return normalizedFallback || 'nowy';
   }
 
   function getRecommendedStatusMapForProject(projectId, currentStatusesByRoom, roomIds, options){

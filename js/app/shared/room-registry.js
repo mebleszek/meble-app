@@ -233,6 +233,48 @@
     }catch(_){ }
   }
 
+  function syncQuoteDraftSelectionAfterRoomChange(keepIds){
+    const allowed = new Set(Array.isArray(keepIds) ? keepIds.map((id)=> String(id || '').trim()).filter(Boolean) : []);
+    try{
+      if(!(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function' && typeof FC.quoteOfferStore.patchCurrentDraft === 'function')) return;
+      const draft = FC.quoteOfferStore.getCurrentDraft();
+      const current = Array.isArray(draft && draft.selection && draft.selection.selectedRooms) ? draft.selection.selectedRooms.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+      const next = current.filter((id)=> allowed.has(id));
+      if(current.length !== next.length) FC.quoteOfferStore.patchCurrentDraft({ selection:{ selectedRooms:next } });
+    }catch(_){ }
+  }
+
+  function reconcileStatusesAfterRoomSetChange(inv, keepIds){
+    const ids = Array.isArray(keepIds) ? keepIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+    syncQuoteDraftSelectionAfterRoomChange(ids);
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
+        FC.projectStatusSync.reconcileProjectStatuses({
+          investorId: inv && inv.id,
+          roomIds: ids,
+          restrictToRoomIds:true,
+          fallbackStatus:'nowy',
+          refreshUi:false,
+        });
+        return;
+      }
+    }catch(_){ }
+    try{
+      if(FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function'){
+        const record = FC.projectStore.getByInvestorId(inv && inv.id || '');
+        if(record && FC.projectStore && typeof FC.projectStore.upsert === 'function'){
+          FC.projectStore.upsert(Object.assign({}, record, { status:'nowy', updatedAt:Date.now() }));
+        }
+      }
+    }catch(_){ }
+    try{
+      const proj = getProject() || {};
+      const meta = ensureProjectMeta(proj);
+      if(meta) meta.projectStatus = 'nowy';
+      saveProject(proj);
+    }catch(_){ }
+  }
+
   function updateInvestorRooms(inv, rooms){
     try{ FC.investors && FC.investors.update && FC.investors.update(inv.id, { rooms }); }catch(_){ }
   }
@@ -257,6 +299,7 @@
     }));
     updateInvestorRooms(inv, nextRooms);
     syncRoomSelectionAfterRemoval(selectedId);
+    reconcileStatusesAfterRoomSetChange(inv, nextRooms.map((room)=> room.id));
     return selectedId;
   }
 
@@ -318,6 +361,7 @@
       };
     });
     updateInvestorRooms(inv, nextRooms);
+    reconcileStatusesAfterRoomSetChange(inv, nextRooms.map((room)=> room.id));
     return nextRooms;
   }
 
@@ -586,10 +630,6 @@
         }catch(_){ }
       });
       saveBtn.addEventListener('click', async ()=>{
-        if(!drafts.length){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Nie możesz zapisać pustej listy. Dodaj nowe pomieszczenie albo wróć.' }); }catch(_){ }
-          return;
-        }
         const seen = new Map();
         for(const room of drafts){
           const name = normalizeLabel(room.label || room.name || '');
@@ -823,5 +863,11 @@
     isRoomNameTaken,
     hasLegacyKitchen,
     createLegacyKitchenDef,
+    _debug:{
+      applyManageRoomsDraft,
+      removeRoomById,
+      syncQuoteDraftSelectionAfterRoomChange,
+      reconcileStatusesAfterRoomSetChange,
+    },
   };
 })();
