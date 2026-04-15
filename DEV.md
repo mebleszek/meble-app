@@ -1148,3 +1148,5 @@ Dopiero potem go zmieniać.
 - `js/testing/dev-tests-page.js` zbiera raporty asynchronicznie; `APP` czeka teraz na pełne zakończenie suite zamiast scalać niegotowe obietnice.
 - `js/app/ui/views.js` traktuje `entry:'home'` jako nadrzędne wobec helpera roomless `WYCENA`, więc po wyjściu na stronę główną i odświeżeniu nie powinno już wskakiwać z powrotem do `WYCENA` tylko dlatego, że zachował się `currentInvestorId`.
 - `js/testing/project/tests.js` ma regresję pilnującą, że zapisany kontekst inwestora nie otwiera roomless `WYCENA` z ekranu głównego.
+
+- 2026-04-15: Fix test fixture in `js/testing/wycena/tests.js` so explicit `rooms: []` stays empty instead of falling back to default rooms; this restores the `no_rooms` regression path for quote validation tests.

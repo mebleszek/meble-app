@@ -23,7 +23,7 @@
     const prevCutList = FC.cabinetCutlist && FC.cabinetCutlist.getCabinetCutList;
     const investorId = String(cfg.investorId || 'inv_cross');
     const projectId = String(cfg.projectId || 'proj_cross');
-    const rooms = Array.isArray(cfg.rooms) && cfg.rooms.length ? clone(cfg.rooms) : [
+    const rooms = Array.isArray(cfg.rooms) ? clone(cfg.rooms) : [
       { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'nowy' },
       { id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'nowy' },
     ];
