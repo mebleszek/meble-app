@@ -41,6 +41,18 @@
     });
     const investor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
     const projectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
+    const cleanup = ()=>{
+      if(FC.cabinetCutlist && prevCutList) FC.cabinetCutlist.getCabinetCutList = prevCutList;
+      if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;
+      if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
+      else host.projectData = prevProjectData;
+      FC.quoteOfferStore && FC.quoteOfferStore.writeAll && FC.quoteOfferStore.writeAll(prevDrafts);
+      FC.quoteSnapshotStore && FC.quoteSnapshotStore.writeAll && FC.quoteSnapshotStore.writeAll(prevSnapshots);
+      FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll(prevProjects);
+      FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+      FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
+      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
+    };
     try{
       FC.investors && FC.investors.writeAll && FC.investors.writeAll([investor]);
       FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
@@ -53,18 +65,13 @@
       if(typeof cfg.cutListFn === 'function' && FC.cabinetCutlist){
         FC.cabinetCutlist.getCabinetCutList = cfg.cutListFn;
       }
-      return run({ investorId, projectId, rooms:clone(rooms), projectData:host.projectData });
-    } finally {
-      if(FC.cabinetCutlist && prevCutList) FC.cabinetCutlist.getCabinetCutList = prevCutList;
-      if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;
-      if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
-      else host.projectData = prevProjectData;
-      FC.quoteOfferStore && FC.quoteOfferStore.writeAll && FC.quoteOfferStore.writeAll(prevDrafts);
-      FC.quoteSnapshotStore && FC.quoteSnapshotStore.writeAll && FC.quoteSnapshotStore.writeAll(prevSnapshots);
-      FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll(prevProjects);
-      FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
-      FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
-      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
+      const result = run({ investorId, projectId, rooms:clone(rooms), projectData:host.projectData });
+      if(result && typeof result.then === 'function') return result.finally(cleanup);
+      cleanup();
+      return result;
+    } catch(err) {
+      cleanup();
+      throw err;
     }
   }
 
@@ -654,6 +661,56 @@
           FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_kuchnia_gora','room_salon'] }, commercial:{ preliminary:true, versionName:'Roboczy draft' } });
           const ids = FC.quoteScopeEntry.getScopeRoomIds({ fallbackRoomId:'room_salon' });
           H.assert(Array.isArray(ids) && ids.join('|') === 'room_kuchnia_gora|room_salon', 'Wejście statusowe nie przejęło zaznaczonej kombinacji pokoi z draftu', ids);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Scope wejścia', 'Nowa wycena wstępna pokazuje prostą informację tylko przy faktycznym utworzeniu', 'Pilnuje, czy po utworzeniu nowej wstępnej wyceny system daje prosty sygnał sukcesu, a przy zwykłej wycenie końcowej nie odpala tego komunikatu.', async ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function', 'Brak FC.quoteScopeEntry.ensureScopedQuoteEntry');
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+          const prevBuild = FC.wycenaCore && FC.wycenaCore.buildQuoteSnapshot;
+          let prelimNotice = null;
+          let finalNotice = null;
+          try{
+            H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+              id:`snap_pre_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt notice pre' },
+              scope:{ selectedRooms:Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.slice() : ['room_salon'], roomLabels:['Salon'] },
+              commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' },
+              totals:{ grand:0 },
+              lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            });
+            await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+              investorId,
+              projectId,
+              roomIds:['room_salon'],
+              preliminary:true,
+              openTab:false,
+              notifyCreated:(scope)=> { prelimNotice = scope; }
+            });
+            H.assert(prelimNotice && Array.isArray(prelimNotice.roomIds) && prelimNotice.roomIds.join('|') === 'room_salon', 'Nowa wycena wstępna nie wywołała prostego potwierdzenia utworzenia', prelimNotice);
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+              id:`snap_final_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt notice final' },
+              scope:{ selectedRooms:Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.slice() : ['room_salon'], roomLabels:['Salon'] },
+              commercial:{ preliminary:false, versionName:'Oferta — Salon' },
+              totals:{ grand:0 },
+              lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            });
+            await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+              investorId,
+              projectId,
+              roomIds:['room_salon'],
+              preliminary:false,
+              openTab:false,
+              notifyCreated:(scope)=> { finalNotice = scope; }
+            });
+            H.assert(finalNotice == null, 'Komunikat utworzenia odpalił się także dla zwykłej wyceny zamiast tylko dla wstępnej', finalNotice);
+          } finally {
+            if(FC.wycenaCore) FC.wycenaCore.buildQuoteSnapshot = prevBuild;
+          }
         });
       }),
 

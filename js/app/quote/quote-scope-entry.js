@@ -213,6 +213,38 @@
     }catch(_){ }
   }
 
+  function openCreatedPreliminaryInfo(scope){
+    const summary = scope && typeof scope === 'object' ? scope : getScopeSummary([]);
+    return openModal((dialog)=>{
+      const title = h('div', { class:'quote-scope-entry-modal__title', text:'NOWA WYCENA WSTĘPNA' });
+      const head = h('div', { class:'quote-scope-entry-modal__head quote-scope-entry-modal__head--single' }, [title]);
+      const body = h('div', { class:'quote-scope-entry-modal__body' });
+      body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:'Powstała nowa wycena wstępna.' }));
+      if(summary && summary.scopeLabel){
+        body.appendChild(h('div', { class:'quote-scope-entry-modal__scope', text:`Pomieszczenia: ${summary.scopeLabel}` }));
+      }
+      const actions = h('div', { class:'quote-scope-entry-modal__actions quote-scope-entry-modal__actions--single' });
+      const okBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-modal__action', text:'OK' });
+      actions.appendChild(okBtn);
+      dialog.appendChild(head);
+      dialog.appendChild(body);
+      dialog.appendChild(actions);
+      okBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:false, action:'acknowledged' }));
+      setTimeout(()=>{ try{ okBtn.focus(); }catch(_){ } }, 0);
+    });
+  }
+
+  async function notifyCreatedPreliminary(scope, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    if(opts.notifyCreated === false) return;
+    if(typeof opts.notifyCreated === 'function'){
+      await opts.notifyCreated(clone(scope || {}));
+      return;
+    }
+    if(typeof document === 'undefined' || !document || !document.body) return;
+    await openCreatedPreliminaryInfo(scope);
+  }
+
   function syncScopeStatus(snapshot, status){
     try{
       if(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function') FC.wycenaTabDebug.setProjectStatusFromSnapshot(snapshot, status, { syncSelection:true });
@@ -243,16 +275,19 @@
   async function createNewSnapshot(projectId, investorId, roomIds, preliminary, versionName, options){
     const ids = normalizeRoomIds(roomIds);
     if(!ids.length) throw new Error('Brak wybranego zakresu pomieszczeń');
+    const opts = options && typeof options === 'object' ? options : {};
+    const scopeSummary = getScopeSummary(ids);
     if(FC.investors && typeof FC.investors.setCurrentId === 'function' && investorId) FC.investors.setCurrentId(String(investorId || ''));
     if(FC.projectStore && typeof FC.projectStore.setCurrentProjectId === 'function' && projectId) FC.projectStore.setCurrentProjectId(String(projectId || ''));
     patchDraftForScope(ids, preliminary, versionName, { versionName:true });
     if(!(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function')) throw new Error('Brak wycenaCore.buildQuoteSnapshot');
     const snapshot = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms: ids } });
     if(!snapshot || snapshot.error) throw new Error(String(snapshot && snapshot.error || 'Nie udało się utworzyć wyceny.'));
-    if(options && options.status) syncScopeStatus(snapshot, options.status);
+    if(opts.status) syncScopeStatus(snapshot, opts.status);
     previewSnapshot(String(snapshot && snapshot.id || ''));
-    if(!(options && options.openTab === false)) openWycenaTab();
-    return { action:'created-new', cancelled:false, snapshot, roomIds:ids, preliminary:!!preliminary };
+    if(!(opts.openTab === false)) openWycenaTab();
+    if(preliminary) await notifyCreatedPreliminary(scopeSummary, opts);
+    return { action:'created-new', cancelled:false, snapshot, roomIds:ids, preliminary:!!preliminary, scope:scopeSummary };
   }
 
   function openExistingOrCreateModal(scope, preliminary, existingSnapshot){
@@ -359,10 +394,10 @@
         ? await opts.chooseName({ projectId, investorId, scope:clone(scope), preliminary, suggestedVersionName:buildSuggestedVersionName(projectId, scope.roomIds, preliminary) })
         : await openNameModal(projectId, scope, preliminary);
       if(!naming || naming.cancelled) return { cancelled:true, action:'cancelled', roomIds:scope.roomIds, preliminary };
-      return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, naming.versionName, { status, openTab: opts.openTab !== false });
+      return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, naming.versionName, { status, openTab: opts.openTab !== false, notifyCreated: opts.notifyCreated });
     }
     const initialName = buildSuggestedVersionName(projectId, scope.roomIds, preliminary);
-    return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, initialName, { status, openTab: opts.openTab !== false });
+    return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, initialName, { status, openTab: opts.openTab !== false, notifyCreated: opts.notifyCreated });
   }
 
   function describeScopeMatch(projectId, roomIds, options){

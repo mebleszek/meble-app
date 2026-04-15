@@ -83,6 +83,34 @@
       </div>
       <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
       <div id="results"></div>
+      <div id="devTestsAppFixture" aria-hidden="true" style="display:none">
+        <div id="homeView"></div>
+        <div id="modeHubView"></div>
+        <div id="investorsListView"><div id="investorsListRoot"></div></div>
+        <div id="serviceOrdersListView"><div id="serviceOrdersListRoot"></div></div>
+        <div id="roomsView"></div>
+        <div id="investorView"><div id="investorRoot"></div></div>
+        <div id="rozrysView"><div id="rozrysRoot"></div></div>
+        <div id="magazynView"><div id="magazynRoot"></div></div>
+        <div id="appView"></div>
+        <button id="floatingAdd" type="button"></button>
+        <div id="topBar" style="display:none">
+          <div id="sessionButtons" style="display:none">
+            <button id="sessionCancel" type="button"></button>
+            <button id="sessionSave" type="button"></button>
+          </div>
+          <nav id="topTabs" class="top-tabs">
+            <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
+            <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
+            <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
+            <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
+            <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
+            <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
+            <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
+            <button class="btn tab-btn" data-tab="magazyn" data-action="tab">MAGAZYN</button>
+          </nav>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -119,9 +147,10 @@
   <script src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
+  <script src="js/app/ui/views.js?v=20260416_dev_tests_views_fix_v1"></script>
   <script src="js/app/quote/quote-offer-store.js?v=20260415_quote_scope_names_v1"></script>
   <script src="js/app/quote/quote-snapshot-store.js?v=20260414_room_cleanup_v1"></script>
-<script src="js/app/quote/quote-scope-entry.js?v=20260415_quote_scope_names_v1"></script>
+<script src="js/app/quote/quote-scope-entry.js?v=20260415_quote_create_notice_v1"></script>
   <script src="js/app/project/project-status-sync.js?v=20260414_room_cleanup_v1"></script>
   <script src="js/app/project/project-status-manual-guard.js?v=20260415_quote_scope_names_v1"></script>
   <script src="js/app/quote/quote-snapshot.js?v=20260415_quote_scope_names_v1"></script>
@@ -148,13 +177,13 @@
   <script src="js/testing/test-data-manager.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/rozrys/tests.js?v=20260412_rozrys_first_click_fix_v1"></script>
-  <script src="js/testing/project/tests.js?v=20260408_stage4_cleanup_v1"></script>
+  <script src="js/testing/project/tests.js?v=20260416_dev_tests_fixture_v1"></script>
   <script src="js/testing/investor/tests.js?v=20260414_room_cleanup_v1"></script>
   <script src="js/testing/material/tests.js?v=20260412_foundation_tests_v1"></script>
-  <script src="js/testing/wycena/tests.js?v=20260414_room_cleanup_v1"></script>
+  <script src="js/testing/wycena/tests.js?v=20260415_quote_create_notice_v1"></script>
   <script src="js/testing/cabinet/tests.js?v=20260406_quote_ui_pdf_v1"></script>
   <script src="js/testing/service/tests.js?v=20260414_service_cutting_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260412_service_suite_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260416_dev_tests_fixture_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};

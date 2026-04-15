@@ -578,6 +578,7 @@
 .quote-scope-entry-backdrop{position:fixed;inset:0;z-index:10010;background:rgba(15,23,42,.46);display:flex;align-items:center;justify-content:center;padding:24px 16px;}
 .quote-scope-entry-modal{width:min(560px,calc(100vw - 24px));max-width:100%;max-height:min(78vh,760px);overflow:auto;background:#fff;border:1px solid #dbe7f3;border-radius:22px;box-shadow:0 24px 72px rgba(15,23,42,.24);padding:20px 18px 16px;}
 .quote-scope-entry-modal__head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.quote-scope-entry-modal__head--single{justify-content:center;}
 .quote-scope-entry-modal__title{font-size:24px;line-height:1.08;font-weight:900;letter-spacing:.02em;color:#0f172a;}
 .quote-scope-entry-modal__close{appearance:none;border:1px solid #dbe7f3;background:#fff;color:#0f172a;width:44px;height:44px;border-radius:14px;font-size:30px;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(15,23,42,.14);cursor:pointer;flex:0 0 auto;}
 .quote-scope-entry-modal__body{margin-top:14px;display:grid;gap:12px;}
@@ -588,6 +589,7 @@
 .quote-scope-entry-modal__input{min-height:48px;}
 .quote-scope-entry-modal__hint{font-size:13px;line-height:1.45;color:#64748b;font-weight:700;}
 .quote-scope-entry-modal__actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+.quote-scope-entry-modal__actions--single{grid-template-columns:minmax(140px,220px);justify-content:center;}
 .quote-scope-entry-modal__actions--stacked{grid-template-columns:1fr;}
 .quote-scope-entry-modal__action{min-height:48px;justify-content:center;}
 @media (max-width:640px){
@@ -1754,7 +1756,8 @@
   padding:6px 0;
   font-weight:700;
 }
-.quote-preview-actions{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(226,232,240,.92);}
+.quote-preview-actions{display:flex;justify-content:stretch;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(226,232,240,.92);width:100%;}
+.quote-preview-actions > .btn-success{display:flex;align-items:center;justify-content:center;flex:1 1 100%;width:100%;}
 @media (max-width: 860px){
   .quote-list__head,
   .quote-list__row{

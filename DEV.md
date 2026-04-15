@@ -1121,3 +1121,11 @@ Dopiero potem go zmieniać.
 - `js/testing/wycena/tests.js` rozszerzono o regresje na: istniejącą wycenę solo, istniejącą wycenę wspólną dla konkretnej kombinacji, brak exact-scope dla innego zakresu, rozróżnienie A od A+B, podpowiedź nazwy kolejnego wariantu oraz otwarcie istniejącej wyceny bez tworzenia duplikatu.
 
 - 2026-04-14: Room cleanup + status fallback fix — `js/app/shared/room-registry.js` pozwala teraz zapisać pustą listę pomieszczeń w modalu zarządzania, czyści zaznaczenie pokoi w draftcie `Wycena` po usunięciu pokoi i po zmianie zestawu pokojów przelicza statusy projektu/pokoi bez zostawiania starych etapów. `js/app/project/project-status-sync.js` dostał helper `reconcileProjectStatuses`, używany do pełnego przeliczenia statusów po sprzątaniu danych zamiast ręcznego nadpisywania tylko jednego scope. `js/app/quote/quote-snapshot-store.js` nie zostawia już statusu `wstepna_wycena` po skasowaniu ostatniej oferty — bez aktywnych ofert fallback wraca do `nowy` (poza `odrzucone`). `js/tabs/wycena.js` po usunięciu snapshotu woła pełną rekonsyliację statusów projektu, dzięki czemu usunięcie scope A+B nie zeruje błędnie solo A. `js/testing/investor/tests.js` i `js/testing/wycena/tests.js` dostały regresje na: zapis pustej listy pomieszczeń, czyszczenie scope draftu, powrót statusu do `nowy` po usunięciu ostatniej wyceny wstępnej oraz zachowanie solo A po usunięciu wspólnej wyceny A+B. `tools/app-dev-smoke.js` ładuje też `js/app/quote/quote-scope-entry.js`, więc pełny smoke node obejmuje teraz również testy scope-entry.
+
+
+### 2026-04-16 — dev_tests fixture sync
+- `dev_tests.html` now includes hidden app-view fixture nodes (`topTabs`, `roomsView`, `appView`, session/floating controls) so project smoke tests can validate tab order and roomless WYCENA entry against a stable DOM.
+- `js/app/ui/views.js` is loaded in `dev_tests.html`, because project tests assert `FC.views.shouldOpenRoomlessWycena()` and `FC.views.applyFromState()` directly.
+
+- WYCENA: po faktycznym utworzeniu nowej wyceny wstępnej `quote-scope-entry` pokazuje prosty modal tylko z `OK`; otwarcie istniejącej wersji ani zwykłej wyceny końcowej nie pokazuje tego komunikatu.
+- WYCENA: przycisk `Zaakceptuj ofertę` pod `Podsumowanie` rozciąga się teraz na szerokość sekcji akcji, żeby był wyrównany do układu lewo-prawo tej karty.
