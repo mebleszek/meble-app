@@ -243,6 +243,36 @@
     return rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || rows[0] || null;
   }
 
+  function listOverlappingScopeSnapshots(projectId, roomIds, options){
+    const pid = String(projectId || '');
+    const ids = normalizeRoomIds(roomIds);
+    const opts = options && typeof options === 'object' ? options : {};
+    if(!pid || !ids.length) return [];
+    const projectRows = listForProject(pid);
+    const overlapped = projectRows.filter((row)=> snapshotScopeOverlaps(row, ids));
+    return filterRowsByQuoteType(overlapped, opts);
+  }
+
+  function removeSnapshotsForProjectRooms(projectId, roomIds, options){
+    const pid = String(projectId || '');
+    const ids = normalizeRoomIds(roomIds);
+    const opts = options && typeof options === 'object' ? options : {};
+    if(!pid || !ids.length) return [];
+    const includeRejected = opts.includeRejected !== false;
+    const list = readAll();
+    const removed = [];
+    const next = list.filter((row)=>{
+      const sameProject = String(row && row.project && row.project.id || '') === pid;
+      if(!sameProject) return true;
+      if(!snapshotScopeOverlaps(row, ids)) return true;
+      if(!includeRejected && isRejectedSnapshot(row)) return true;
+      removed.push(row);
+      return false;
+    });
+    if(removed.length) writeAll(next);
+    return removed;
+  }
+
   function pickCandidate(projectRows, predicate){
     const rows = Array.isArray(projectRows) ? projectRows : [];
     return rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient) && predicate(row))
@@ -408,6 +438,8 @@
     filterRowsByRoomScope,
     listExactScopeSnapshots,
     findExactScopeSnapshot,
+    listOverlappingScopeSnapshots,
+    removeSnapshotsForProjectRooms,
     sameRoomScope,
     snapshotScopeOverlaps,
     isRejectedSnapshot,
