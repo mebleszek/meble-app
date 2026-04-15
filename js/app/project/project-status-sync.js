@@ -211,40 +211,21 @@
     return Array.from(set);
   }
 
-  function buildRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, fallbackRoomIds, fallbackStatus){
-    const ids = normalizeRoomIds(roomIds);
-    const targetSet = new Set(normalizeRoomIds(fallbackRoomIds));
-    const map = {};
-    try{
-      if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
-        Object.assign(map, FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids, { matchMode:'exact', fallbackStatus:'nowy', allowProjectWideExact: ids.length === 1 }) || {});
-      }
-    }catch(_){ }
-    ids.forEach((roomId)=> {
-      const key = String(roomId || '');
-      const current = normalizeStatus(currentStatusMap && currentStatusMap[key] || '');
-      const suggested = normalizeStatus(map[key] || '');
-      if(suggested){
-        map[key] = suggested;
-        return;
-      }
-      map[key] = targetSet.has(key) ? normalizeStatus(fallbackStatus || current || '') : (current || 'nowy');
-    });
-    return map;
-  }
-
-
   function computeRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, options){
     const ids = normalizeRoomIds(roomIds);
     const opts = options && typeof options === 'object' ? options : {};
     const fallbackStatus = normalizeStatus(opts.fallbackStatus || 'nowy') || 'nowy';
+    const suggestionFallbackStatus = normalizeStatus(Object.prototype.hasOwnProperty.call(opts, 'suggestionFallbackStatus') ? opts.suggestionFallbackStatus : fallbackStatus);
+    const touchedSet = new Set(normalizeRoomIds(opts.touchedRoomIds));
+    const explicitStatusMap = opts.explicitStatusMap && typeof opts.explicitStatusMap === 'object' ? opts.explicitStatusMap : null;
+    const preserveCurrentForUntouched = opts.preserveCurrentForUntouched !== false;
     const map = {};
     let suggestedMap = {};
     try{
       if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
         suggestedMap = FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids, {
           matchMode:'exact',
-          fallbackStatus,
+          fallbackStatus:suggestionFallbackStatus || fallbackStatus,
           allowProjectWideExact: ids.length === 1,
         }) || {};
       }
@@ -252,10 +233,35 @@
     ids.forEach((roomId)=> {
       const key = String(roomId || '');
       if(!key) return;
+      const explicit = normalizeStatus(explicitStatusMap && explicitStatusMap[key] || '');
+      if(explicit){
+        map[key] = explicit;
+        return;
+      }
       const suggested = normalizeStatus(suggestedMap[key] || '');
-      map[key] = suggested || fallbackStatus;
+      if(suggested){
+        map[key] = suggested;
+        return;
+      }
+      const current = normalizeStatus(currentStatusMap && currentStatusMap[key] || '');
+      if(touchedSet.has(key)){
+        map[key] = fallbackStatus || current || 'nowy';
+        return;
+      }
+      map[key] = preserveCurrentForUntouched ? (current || 'nowy') : fallbackStatus;
     });
     return map;
+  }
+
+  // Compat wrapper z etapu przejściowego: stare wejścia korzystają z jednego silnika
+  // computeRecommendedRoomStatusMap zamiast z osobnej, dublującej ścieżki fallbacków.
+  function buildRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, fallbackRoomIds, fallbackStatus){
+    return computeRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, {
+      fallbackStatus,
+      suggestionFallbackStatus:'nowy',
+      touchedRoomIds:fallbackRoomIds,
+      preserveCurrentForUntouched:true,
+    });
   }
 
   function saveInvestorRooms(investor, roomStatusMap){

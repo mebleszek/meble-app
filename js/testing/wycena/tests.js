@@ -653,6 +653,89 @@
       }),
 
 
+      H.makeTest('Wycena ↔ Centralny status', 'Sprzątanie ETAPU 4 nie wraca do lokalnej akceptacji oferty', 'Pilnuje ETAP 4: gdy zabraknie dedykowanego helpera akceptacji, Wycena nie może wrócić do starego lokalnego zaznaczania snapshotu i zapisu statusów bokiem.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.commitAcceptedSnapshotWithSync === 'function', 'Brak FC.wycenaTabDebug.commitAcceptedSnapshotWithSync');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        const prevCommit = FC.projectStatusSync.commitAcceptedSnapshot;
+        const prevMarkSelected = FC.quoteSnapshotStore && FC.quoteSnapshotStore.markSelectedForProject;
+        const prevUpsert = FC.projectStore && FC.projectStore.upsert;
+        const prevSave = FC.project && FC.project.save;
+        let markSelectedCalls = 0;
+        let upsertCalls = 0;
+        let saveCalls = 0;
+        FC.projectStatusSync.commitAcceptedSnapshot = null;
+        if(prevMarkSelected) FC.quoteSnapshotStore.markSelectedForProject = function(){ markSelectedCalls += 1; return prevMarkSelected.apply(this, arguments); };
+        if(prevUpsert) FC.projectStore.upsert = function(){ upsertCalls += 1; return prevUpsert.apply(this, arguments); };
+        if(prevSave) FC.project.save = function(){ saveCalls += 1; return prevSave.apply(this, arguments); };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_accept_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup accept fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup accept fallback' }, totals:{ grand:141 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292500 });
+            const result = FC.wycenaTabDebug.commitAcceptedSnapshotWithSync(snapshot, 'pomiar');
+            H.assert(result === null, 'Po sprzątaniu ETAPU 4 akceptacja bez helpera powinna się zatrzymać zamiast uruchomić stary fallback', result);
+          });
+          H.assert(markSelectedCalls === 0, 'Wróciło stare lokalne markSelectedForProject w Wycena', { markSelectedCalls, upsertCalls, saveCalls });
+          H.assert(upsertCalls === 0, 'Wrócił stary lokalny zapis projectStore przy akceptacji', { markSelectedCalls, upsertCalls, saveCalls });
+          H.assert(saveCalls === 0, 'Wrócił stary lokalny zapis session projektu przy akceptacji', { markSelectedCalls, upsertCalls, saveCalls });
+        } finally {
+          FC.projectStatusSync.commitAcceptedSnapshot = prevCommit;
+          if(prevMarkSelected) FC.quoteSnapshotStore.markSelectedForProject = prevMarkSelected;
+          if(prevUpsert) FC.projectStore.upsert = prevUpsert;
+          if(prevSave) FC.project.save = prevSave;
+        }
+      }),
+
+      H.makeTest('Wycena ↔ Centralny status', 'Sprzątanie ETAPU 4 nie wraca do ogólnej rekonsyliacji po usunięciu snapshotu', 'Pilnuje ETAP 4: brak dedykowanego helpera usuwania nie może odpalić starej bocznej ścieżki reconcileProjectStatuses z Wycena.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.reconcileAfterSnapshotRemoval === 'function', 'Brak FC.wycenaTabDebug.reconcileAfterSnapshotRemoval');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function', 'Brak FC.projectStatusSync.reconcileProjectStatuses');
+        const prevDedicated = FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval;
+        const prevGeneric = FC.projectStatusSync.reconcileProjectStatuses;
+        let genericCalls = 0;
+        FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval = null;
+        FC.projectStatusSync.reconcileProjectStatuses = function(){ genericCalls += 1; return prevGeneric.apply(this, arguments); };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_remove_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup remove fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Cleanup remove fallback' }, totals:{ grand:151 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292600 });
+            const result = FC.wycenaTabDebug.reconcileAfterSnapshotRemoval(snapshot, { refreshUi:false });
+            H.assert(result === null, 'Po sprzątaniu ETAPU 4 brak helpera usuwania powinien zatrzymać flow zamiast wejść w stary generic reconcile', result);
+          });
+          H.assert(genericCalls === 0, 'Wróciło stare wywołanie reconcileProjectStatuses z Wycena', { genericCalls });
+        } finally {
+          FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval = prevDedicated;
+          FC.projectStatusSync.reconcileProjectStatuses = prevGeneric;
+        }
+      }),
+
+      H.makeTest('Wycena ↔ Centralny status', 'Sprzątanie ETAPU 4 nie wraca do lokalnej konwersji wstępnej oferty', 'Pilnuje ETAP 4: brak helpera konwersji nie może uruchamiać starego convertPreliminaryToFinal i ręcznego zapisu statusów z Wycena.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.promotePreliminarySnapshotToFinal === 'function', 'Brak FC.wycenaTabDebug.promotePreliminarySnapshotToFinal');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        const prevPromote = FC.projectStatusSync.promotePreliminarySnapshotToFinal;
+        const prevConvert = FC.quoteSnapshotStore && FC.quoteSnapshotStore.convertPreliminaryToFinal;
+        const prevUpsert = FC.projectStore && FC.projectStore.upsert;
+        const prevSave = FC.project && FC.project.save;
+        let convertCalls = 0;
+        let upsertCalls = 0;
+        let saveCalls = 0;
+        FC.projectStatusSync.promotePreliminarySnapshotToFinal = null;
+        if(prevConvert) FC.quoteSnapshotStore.convertPreliminaryToFinal = function(){ convertCalls += 1; return prevConvert.apply(this, arguments); };
+        if(prevUpsert) FC.projectStore.upsert = function(){ upsertCalls += 1; return prevUpsert.apply(this, arguments); };
+        if(prevSave) FC.project.save = function(){ saveCalls += 1; return prevSave.apply(this, arguments); };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_convert_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup convert fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup convert fallback' }, totals:{ grand:161 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292700, meta:{ selectedByClient:true, acceptedAt:1712820292700, acceptedStage:'pomiar', preliminary:true } });
+            const result = FC.wycenaTabDebug.promotePreliminarySnapshotToFinal(snapshot);
+            H.assert(result === null, 'Po sprzątaniu ETAPU 4 brak helpera konwersji powinien zatrzymać flow zamiast uruchomić stary fallback', result);
+          });
+          H.assert(convertCalls === 0, 'Wróciło stare lokalne convertPreliminaryToFinal w Wycena', { convertCalls, upsertCalls, saveCalls });
+          H.assert(upsertCalls === 0, 'Wrócił stary lokalny zapis projectStore przy konwersji', { convertCalls, upsertCalls, saveCalls });
+          H.assert(saveCalls === 0, 'Wrócił stary lokalny zapis session projektu przy konwersji', { convertCalls, upsertCalls, saveCalls });
+        } finally {
+          FC.projectStatusSync.promotePreliminarySnapshotToFinal = prevPromote;
+          if(prevConvert) FC.quoteSnapshotStore.convertPreliminaryToFinal = prevConvert;
+          if(prevUpsert) FC.projectStore.upsert = prevUpsert;
+          if(prevSave) FC.project.save = prevSave;
+        }
+      }),
+
       H.makeTest('Wycena ↔ Silnik statusów', 'Wycena deleguje akceptację oferty do centralnego sync', 'Pilnuje mini-paczkę 3: moduł Wycena nie powinien sam sklejać akceptacji snapshotu, tylko przekazać ją do project-status-sync.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.commitAcceptedSnapshotWithSync === 'function', 'Brak FC.wycenaTabDebug.commitAcceptedSnapshotWithSync');
         H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.commitAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.commitAcceptedSnapshot');

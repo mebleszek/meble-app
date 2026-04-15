@@ -250,6 +250,19 @@
     }catch(_){ }
   }
 
+  function warnMissingProjectStatusSyncMethod(methodName){
+    const name = String(methodName || '').trim();
+    if(!name) return;
+    try{
+      const warned = warnMissingProjectStatusSyncMethod._warned || (warnMissingProjectStatusSyncMethod._warned = Object.create(null));
+      if(warned[name]) return;
+      warned[name] = true;
+      if(typeof console !== 'undefined' && console && typeof console.warn === 'function'){
+        console.warn(`[Wycena] Brak FC.projectStatusSync.${name} — pomijam stary fallback lokalnego zapisu statusów.`);
+      }
+    }catch(_){ }
+  }
+
   function isArchivedPreliminary(snapshot, history, projectStatus){
     if(!isPreliminarySnapshot(snapshot) || isRejectedSnapshot(snapshot)) return false;
     const list = getComparableHistoryForSnapshot(snapshot, history);
@@ -305,22 +318,8 @@
         return FC.projectStatusSync.commitAcceptedSnapshot(snap, nextStatus, options || {});
       }
     }catch(_){ }
-
-    let selected = null;
-    try{
-      selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
-        ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), String(snap.id || ''), { status:nextStatus })
-        : snap;
-    }catch(_){ selected = snap; }
-    if(!selected) return null;
-    const statusResult = setProjectStatusFromSnapshot(selected, nextStatus);
-    return {
-      snapshot: selected,
-      selectedSnapshot: selected,
-      statusResult: statusResult || null,
-      masterStatus: normalizeStatusKey(statusResult && statusResult.masterStatus || nextStatus),
-      mirrorStatus: normalizeStatusKey(statusResult && statusResult.mirrorStatus || nextStatus),
-    };
+    warnMissingProjectStatusSyncMethod('commitAcceptedSnapshot');
+    return null;
   }
 
   function reconcileAfterSnapshotRemoval(snapshot, options){
@@ -331,22 +330,7 @@
         return FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval(snap, options || {});
       }
     }catch(_){ }
-
-    const opts = options && typeof options === 'object' ? options : {};
-    const projectId = String(opts.projectId || snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const targetRoomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
-        return FC.projectStatusSync.reconcileProjectStatuses({
-          projectId,
-          investorId:String(opts.investorId || snap && snap.investor && snap.investor.id || getCurrentInvestorId() || ''),
-          roomIds:targetRoomIds,
-          restrictToRoomIds:targetRoomIds.length > 0,
-          fallbackStatus: opts.fallbackStatus || 'nowy',
-          refreshUi: opts.refreshUi,
-        });
-      }
-    }catch(_){ }
+    warnMissingProjectStatusSyncMethod('reconcileStatusAfterSnapshotRemoval');
     return null;
   }
 
@@ -358,23 +342,8 @@
         return FC.projectStatusSync.promotePreliminarySnapshotToFinal(snap, options || {});
       }
     }catch(_){ }
-
-    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    let converted = null;
-    try{
-      converted = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function'
-        ? FC.quoteSnapshotStore.convertPreliminaryToFinal(projectId, String(snap.id || ''))
-        : null;
-    }catch(_){ converted = null; }
-    if(!converted) return null;
-    const statusResult = setProjectStatusFromSnapshot(converted, 'zaakceptowany');
-    return {
-      snapshot: converted,
-      convertedSnapshot: converted,
-      statusResult: statusResult || null,
-      masterStatus: normalizeStatusKey(statusResult && statusResult.masterStatus || 'zaakceptowany'),
-      mirrorStatus: normalizeStatusKey(statusResult && statusResult.mirrorStatus || 'zaakceptowany'),
-    };
+    warnMissingProjectStatusSyncMethod('promotePreliminarySnapshotToFinal');
+    return null;
   }
 
   async function acceptSnapshot(snapshot, ctx, options){
@@ -857,6 +826,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
   }
 
 
+  // Jedyny niski fallback kompatybilności, który jeszcze zostaje w Wycena.
+  // Wyższe flow akceptacji/usuwania/konwersji nie mogą już wracać do własnych bocznych zapisów.
   function setProjectStatusFromSnapshot(snapshot, status, options){
     const snap = normalizeSnapshot(snapshot) || {};
     const nextStatus = normalizeStatusKey(status);
