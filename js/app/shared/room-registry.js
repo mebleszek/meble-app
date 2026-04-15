@@ -306,6 +306,17 @@
     return [];
   }
 
+  function countCabinetsForRoomIds(roomIds){
+    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+    if(!ids.length) return 0;
+    const proj = getProject() || {};
+    return ids.reduce((sum, roomId)=>{
+      const room = proj && proj[roomId];
+      const cabinets = Array.isArray(room && room.cabinets) ? room.cabinets.length : 0;
+      return sum + cabinets;
+    }, 0);
+  }
+
   function buildRoomRemovalWarningMessage(inv, roomIds, options){
     const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
     const opts = options && typeof options === 'object' ? options : {};
@@ -313,17 +324,33 @@
     const deferred = !!opts.deferred;
     const roomNames = ids.map((id)=> getRoomLabel(id)).filter(Boolean);
     const roomLabel = roomNames.length === 1 ? roomNames[0] : (roomNames.length ? roomNames.join(', ') : 'wybrane pomieszczenia');
-    let message = deferred
-      ? `Usuwając pomieszczenie „${roomLabel}”, po kliknięciu Zapisz usuniesz też powiązane wyceny.`
-      : `Usuwając pomieszczenie „${roomLabel}”, usuniesz też powiązane wyceny.`;
-    if(!snapshots.length) return { message, snapshots:[] };
-    if(snapshots.length <= 3){
-      const names = snapshots.map((snapshot)=> `• ${getSnapshotVersionName(snapshot)}`).join('\n');
-      message += `\n\nZostaną usunięte:\n${names}`;
-      return { message, snapshots };
+    const cabinetCount = countCabinetsForRoomIds(ids);
+    const cabinetLabel = cabinetCount === 1 ? 'szafkę' : (cabinetCount >= 2 && cabinetCount <= 4 ? 'szafki' : 'szafek');
+    const lines = [];
+
+    lines.push(deferred
+      ? `Usuwając pomieszczenie „${roomLabel}”, po kliknięciu Zapisz usuniesz powiązane dane.`
+      : `Usuwając pomieszczenie „${roomLabel}”, usuniesz powiązane dane.`);
+
+    if(cabinetCount > 0){
+      lines.push(`Usuniesz też ${cabinetCount} ${cabinetLabel} z tego pomieszczenia.`);
     }
-    message += `\n\nZostanie usuniętych ${snapshots.length} wycen powiązanych z tym pomieszczeniem.`;
-    return { message, snapshots };
+
+    if(snapshots.length){
+      if(snapshots.length <= 3){
+        const names = snapshots.map((snapshot)=> `• ${getSnapshotVersionName(snapshot)}`).join('\n');
+        lines.push(`Zostaną też usunięte powiązane wyceny:
+${names}`);
+      } else {
+        lines.push(`Zostanie też usuniętych ${snapshots.length} wycen powiązanych z tym pomieszczeniem.`);
+      }
+    }
+
+    if(!cabinetCount && !snapshots.length){
+      lines.push('Tej operacji nie cofnisz.');
+    }
+
+    return { message: lines.join('\n\n'), snapshots, cabinetCount };
   }
 
   async function askDeleteRoomWithQuotes(inv, roomIds, options){
@@ -952,6 +979,9 @@
       removeRoomById,
       syncQuoteDraftSelectionAfterRoomChange,
       reconcileStatusesAfterRoomSetChange,
+      buildRoomRemovalWarningMessage,
+      listSnapshotsForRoomRemoval,
+      countCabinetsForRoomIds,
     },
   };
 })();
