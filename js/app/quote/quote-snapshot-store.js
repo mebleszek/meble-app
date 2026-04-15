@@ -148,10 +148,17 @@
     return listForProject(projectId)[0] || null;
   }
 
-  function getSelectedForProject(projectId){
+  function getSelectedForProject(projectId, options){
     const pid = String(projectId || '');
     if(!pid) return null;
-    return listForProject(pid).find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+    const opts = options && typeof options === 'object' ? options : {};
+    const rows = listForProject(pid);
+    const targetRoomIds = normalizeRoomIds(opts.roomIds);
+    if(targetRoomIds.length){
+      const exact = filterRowsByRoomScope(rows, targetRoomIds, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact });
+      return exact.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+    }
+    return rows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
   }
 
   function hasFinalQuote(projectId){
@@ -181,6 +188,21 @@
     const snapshotRooms = getSnapshotRoomIds(snapshot);
     if(!snapshotRooms.length) return true;
     return targets.some((roomId)=> snapshotRooms.includes(roomId));
+  }
+
+
+  function resolveSelectionScopeRoomIds(candidate, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const explicit = normalizeRoomIds(opts.roomIds);
+    const candidateRooms = getSnapshotRoomIds(candidate);
+    return candidateRooms.length ? candidateRooms : explicit;
+  }
+
+  function listSelectionImpactedRows(projectRows, roomIds){
+    const rows = Array.isArray(projectRows) ? projectRows : [];
+    const targets = normalizeRoomIds(roomIds);
+    if(!targets.length) return rows.slice();
+    return rows.filter((row)=> snapshotScopeOverlaps(row, targets));
   }
 
   function isRejectedSnapshot(snapshot){
@@ -293,22 +315,37 @@
     const candidate = chooser(scopedRows, projectRows, options || {});
     const normalizedProjectStatus = normalizeStatus(projectStatus || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
     const normalizedAcceptedStage = normalizeStatus(acceptedStage || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
-    const previouslySelected = projectRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
-    const shouldRejectPrevious = shouldRejectPreviousSelection(previouslySelected, candidate, options);
-    const rejectReason = shouldRejectPrevious ? getRejectReason(candidate, options) : '';
+    const selectionScopeRoomIds = resolveSelectionScopeRoomIds(candidate, options);
+    const impactedRows = listSelectionImpactedRows(projectRows, selectionScopeRoomIds);
+    const impactedSelectedIds = new Set(impactedRows
+      .filter((row)=> !!(row && row.meta && row.meta.selectedByClient))
+      .map((row)=> String(row && row.id || ''))
+      .filter(Boolean));
     const stamp = Date.now();
     list.forEach((row)=> {
       if(String(row && row.project && row.project.id || '') !== pid) return;
-      const isTarget = !!(candidate && String(row && row.id || '') === String(candidate.id || ''));
-      const isPreviousSelected = !!(previouslySelected && String(previouslySelected.id || '') === String(row && row.id || ''));
+      const rowId = String(row && row.id || '');
+      const isTarget = !!(candidate && rowId === String(candidate.id || ''));
+      const isImpacted = !selectionScopeRoomIds.length || impactedRows.some((item)=> String(item && item.id || '') === rowId);
+      if(!isImpacted){
+        if(normalizedProjectStatus){
+          row.project = Object.assign({}, row && row.project || {}, {
+            status: normalizedProjectStatus || String(row && row.project && row.project.status || '')
+          });
+        }
+        return;
+      }
+      const isPreviousSelected = impactedSelectedIds.has(rowId);
+      const shouldRejectPrevious = isPreviousSelected && shouldRejectPreviousSelection(row, candidate, Object.assign({}, options || {}, { roomIds:selectionScopeRoomIds }));
+      const rejectReason = shouldRejectPrevious ? getRejectReason(candidate, options) : '';
       const preservedRejectedAt = Number(row && row.meta && row.meta.rejectedAt) > 0 ? Number(row.meta.rejectedAt) : 0;
       const preservedRejectedReason = String(row && row.meta && row.meta.rejectedReason || '').trim().toLowerCase();
       row.meta = Object.assign({}, row && row.meta || {}, {
         versionName: String(row && row.meta && row.meta.versionName || row && row.commercial && row.commercial.versionName || '').trim(),
         preliminary: isPreliminarySnapshot(row),
-        selectedByClient: isTarget,
-        acceptedAt: isTarget ? (Number(row && row.meta && row.meta.acceptedAt) > 0 ? Number(row.meta.acceptedAt) : stamp) : 0,
-        acceptedStage: isTarget ? normalizedAcceptedStage : '',
+        selectedByClient: isTarget ? true : (!!(row && row.meta && row.meta.selectedByClient) && !isPreviousSelected),
+        acceptedAt: isTarget ? (Number(row && row.meta && row.meta.acceptedAt) > 0 ? Number(row.meta.acceptedAt) : stamp) : (isPreviousSelected ? 0 : Number(row && row.meta && row.meta.acceptedAt) || 0),
+        acceptedStage: isTarget ? normalizedAcceptedStage : (isPreviousSelected ? '' : String(row && row.meta && row.meta.acceptedStage || '')),
         rejectedAt: isTarget ? 0 : (isPreviousSelected && shouldRejectPrevious ? (preservedRejectedAt || stamp) : preservedRejectedAt),
         rejectedReason: isTarget ? '' : (isPreviousSelected && shouldRejectPrevious ? (rejectReason || preservedRejectedReason) : preservedRejectedReason),
       });

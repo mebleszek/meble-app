@@ -1276,6 +1276,28 @@
         });
       }),
 
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Akceptacja solo pokoju nie odrzuca zaakceptowanej oferty innego solo pokoju', 'Pilnuje, czy akceptacja wyceny dla jednego pokoju nie odrzuca ani nie zdejmuje akceptacji z innego, rozłącznego scope projektu.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.getSelectedForProject');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_multi_accept_kitchen', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt multi accept' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre multi' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820800000 });
+          const salonPre = FC.quoteSnapshotStore.save({ id:'snap_multi_accept_salon', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt multi accept' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre multi' }, totals:{ grand:129 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820801000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar', roomIds:['room_kuchnia_gora'] });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, salonPre.id, { status:'pomiar', roomIds:['room_salon'] });
+          const all = FC.quoteSnapshotStore.listForProject(projectId);
+          const kitchenAfter = all.find((row)=> String(row && row.id || '') === 'snap_multi_accept_kitchen');
+          const salonAfter = all.find((row)=> String(row && row.id || '') === 'snap_multi_accept_salon');
+          const selectedKitchen = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_kuchnia_gora'] });
+          const selectedSalon = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_salon'] });
+          H.assert(kitchenAfter && kitchenAfter.meta && kitchenAfter.meta.selectedByClient === true, 'Akceptacja salonu zdjęła akceptację z rozłącznej oferty kuchni', kitchenAfter || all);
+          H.assert(salonAfter && salonAfter.meta && salonAfter.meta.selectedByClient === true, 'Oferta salonu nie została zaznaczona jako zaakceptowana', salonAfter || all);
+          H.assert(kitchenAfter && FC.quoteSnapshotStore.isRejectedSnapshot(kitchenAfter) === false, 'Akceptacja salonu odrzuciła rozłączną ofertę kuchni', kitchenAfter || all);
+          H.assert(selectedKitchen && String(selectedKitchen.id || '') === String(kitchenPre.id || ''), 'Scoped getSelectedForProject nie zwrócił zaakceptowanej oferty kuchni', { selectedKitchen, all });
+          H.assert(selectedSalon && String(selectedSalon.id || '') === String(salonPre.id || ''), 'Scoped getSelectedForProject nie zwrócił zaakceptowanej oferty salonu', { selectedSalon, all });
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Ręczna zmiana statusu pokoju wybiera tylko pasującą ofertę i nie rusza innych pokoi', 'Pilnuje, czy ręczne ustawienie statusu w Inwestor synchronizuje Wycena po zakresie pomieszczenia zamiast po dowolnej pierwszej ofercie projektu.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
