@@ -355,6 +355,119 @@
         H.assert(roomB && String(roomB.projectStatus || '') === 'nowy', 'Status pokoju B nie wrócił do nowego po skasowaniu scope A+B', investor);
       })),
 
+
+      H.makeTest('Wycena ↔ Centralny status', 'Rekonsyliacja bez jawnego scope nie skleja wszystkich pokoi inwestora w jeden projekt', 'Pilnuje regułę mini-paczki 1: przy wielu pokojach brak jawnego scope nie może zmusić projectStore.status do agregacji po całym inwestorze.', ()=> withInvestorProjectFixture({
+        investorId:'inv_scope_guard',
+        projectId:'proj_scope_guard',
+        rooms:[
+          { id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+          { id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'nowy' },
+        ],
+        status:'nowy',
+        projectData:{
+          schemaVersion:2,
+          meta:{
+            projectStatus:'nowy',
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+              room_b:{ id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'nowy' },
+            },
+            roomOrder:['room_a','room_b'],
+          },
+          room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+          room_b:{ cabinets:[{ id:'cab_b' }], fronts:[], sets:[], settings:{} },
+        }
+      }, ({ investorId, projectId })=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function', 'Brak FC.projectStatusSync.reconcileProjectStatuses');
+        FC.quoteSnapshotStore.writeAll([]);
+        FC.quoteSnapshotStore.save({
+          id:'snap_scope_guard_a',
+          investor:{ id:investorId, name:'Jan Test' },
+          project:{ id:projectId, investorId, status:'wstepna_wycena' },
+          scope:{ selectedRooms:['room_a'], roomLabels:['Kuchnia A'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta A' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta A' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+          generatedAt:1712816200000,
+        });
+        const result = FC.projectStatusSync.reconcileProjectStatuses({ projectId, investorId, fallbackStatus:'nowy', refreshUi:false });
+        const investor = FC.investors.getById(investorId);
+        const project = FC.projectStore.getById(projectId);
+        const roomA = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_a');
+        const roomB = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_b');
+        H.assert(result && String(result.roomStatusMap && result.roomStatusMap.room_a || '') === 'wstepna_wycena', 'Rekonsyliacja zgubiła scoped status pokoju A', result);
+        H.assert(result && String(result.roomStatusMap && result.roomStatusMap.room_b || '') === 'nowy', 'Rekonsyliacja zgubiła scoped status pokoju B', result);
+        H.assert(result && String(result.aggregateStatus || '') === 'nowy', 'Brak jawnego scope nadal zlepił status projektu z całego inwestora', result);
+        H.assert(roomA && String(roomA.projectStatus || '') === 'wstepna_wycena', 'Pokój A nie zachował własnego statusu scoped', investor);
+        H.assert(roomB && String(roomB.projectStatus || '') === 'nowy', 'Pokój B nie zachował własnego statusu scoped', investor);
+        H.assert(project && String(project.status || '') === 'nowy', 'projectStore.status nie powinien agregować wszystkich pokoi bez jawnego scope', project);
+      })),
+
+      H.makeTest('Wycena ↔ Centralny status', 'Scoped zmiana statusu wielu pokoi ignoruje obcy pokój inwestora', 'Pilnuje regułę mini-paczki 1: wspólny projekt A+B liczy status tylko z własnego scope i nie może zostać podbity przez niezależny pokój C.', ()=> withInvestorProjectFixture({
+        investorId:'inv_scope_exact',
+        projectId:'proj_scope_exact',
+        rooms:[
+          { id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+          { id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'wstepna_wycena' },
+          { id:'room_c', baseType:'pokoj', name:'Pokój C', label:'Pokój C', projectStatus:'wycena' },
+        ],
+        status:'wycena',
+        projectData:{
+          schemaVersion:2,
+          meta:{
+            projectStatus:'wycena',
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia A', label:'Kuchnia A', projectStatus:'wstepna_wycena' },
+              room_b:{ id:'room_b', baseType:'pokoj', name:'Pokój B', label:'Pokój B', projectStatus:'wstepna_wycena' },
+              room_c:{ id:'room_c', baseType:'pokoj', name:'Pokój C', label:'Pokój C', projectStatus:'wycena' },
+            },
+            roomOrder:['room_a','room_b','room_c'],
+          },
+          room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+          room_b:{ cabinets:[{ id:'cab_b' }], fronts:[], sets:[], settings:{} },
+          room_c:{ cabinets:[{ id:'cab_c' }], fronts:[], sets:[], settings:{} },
+        }
+      }, ({ investorId, projectId })=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function', 'Brak FC.projectStatusSync.reconcileProjectStatuses');
+        FC.quoteSnapshotStore.writeAll([]);
+        FC.quoteSnapshotStore.save({
+          id:'snap_scope_exact_ab',
+          investor:{ id:investorId, name:'Jan Test' },
+          project:{ id:projectId, investorId, status:'wstepna_wycena' },
+          scope:{ selectedRooms:['room_a','room_b'], roomLabels:['Kuchnia A','Pokój B'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta A+B' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta A+B' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+          generatedAt:1712816300000,
+        });
+        FC.quoteSnapshotStore.save({
+          id:'snap_scope_exact_c',
+          investor:{ id:investorId, name:'Jan Test' },
+          project:{ id:projectId, investorId, status:'wycena' },
+          scope:{ selectedRooms:['room_c'], roomLabels:['Pokój C'] },
+          commercial:{ preliminary:false, versionName:'Oferta C' },
+          meta:{ preliminary:false, versionName:'Oferta C' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+          generatedAt:1712816310000,
+        });
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        const snapshot = FC.quoteSnapshotStore.getById('snap_scope_exact_ab');
+        const result = FC.projectStatusSync.setStatusFromSnapshot(snapshot, 'wstepna_wycena', { refreshUi:false });
+        const investor = FC.investors.getById(investorId);
+        const project = FC.projectStore.getById(projectId);
+        const roomA = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_a');
+        const roomB = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_b');
+        const roomC = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_c');
+        H.assert(result && String(result.aggregateStatus || '') === 'wstepna_wycena', 'Scoped projekt A+B został błędnie podbity przez obcy pokój C', result);
+        H.assert(roomA && String(roomA.projectStatus || '') === 'wstepna_wycena', 'Pokój A nie dostał scoped statusu A+B', investor);
+        H.assert(roomB && String(roomB.projectStatus || '') === 'wstepna_wycena', 'Pokój B nie dostał scoped statusu A+B', investor);
+        H.assert(roomC && String(roomC.projectStatus || '') === 'wycena', 'Obcy pokój C nie powinien zmienić statusu przy scoped A+B', investor);
+        H.assert(project && String(project.status || '') === 'wstepna_wycena', 'projectStore.status powinien odzwierciedlać tylko exact scope A+B', project);
+      })),
+
       H.makeTest('Wycena', 'Status projektu synchronizuje zaakceptowaną ofertę w obie strony', 'Pilnuje, czy zaakceptowanie wyceny wstępnej daje etap pomiaru, a ręczna zmiana statusu projektu czyści lub przywraca właściwy stan ofert.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         H.assert(typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function', 'Brak FC.quoteSnapshotStore.syncSelectionForProjectStatus');

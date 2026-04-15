@@ -221,7 +221,9 @@
 
   function getTargetRoomIdsFromSnapshot(snapshot){
     const scoped = getSnapshotRoomIds(snapshot);
-    return scoped.length ? scoped : getAllActiveRoomIds();
+    if(scoped.length) return scoped;
+    const active = getAllActiveRoomIds();
+    return active.length === 1 ? active : [];
   }
 
   function getComparableHistoryForSnapshot(snapshot, history){
@@ -1219,10 +1221,18 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
         }catch(_){ }
         try{
+          const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
           if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
-            FC.projectStatusSync.reconcileProjectStatuses({ projectId, fallbackStatus:'nowy', refreshUi:false });
+            FC.projectStatusSync.reconcileProjectStatuses({
+              projectId,
+              investorId:String(snap && snap.investor && snap.investor.id || getCurrentInvestorId() || ''),
+              roomIds:targetRoomIds,
+              restrictToRoomIds:targetRoomIds.length > 0,
+              fallbackStatus:'nowy',
+              refreshUi:false,
+            });
           }else if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusForProject === 'function'){
-            const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus, { roomIds:getTargetRoomIdsFromSnapshot(snap), fallbackStatus:'nowy' });
+            const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus, { roomIds:targetRoomIds, fallbackStatus:'nowy' });
             if(recommendedStatus && recommendedStatus !== currentStatus){
               setProjectStatusFromSnapshot(snap, recommendedStatus, { syncSelection:true });
             }

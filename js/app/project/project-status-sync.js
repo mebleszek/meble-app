@@ -63,7 +63,24 @@
 
   function getTargetRoomIdsFromSnapshot(snapshot){
     const scoped = getSnapshotRoomIds(snapshot);
-    return scoped.length ? scoped : getAllActiveRoomIds();
+    if(scoped.length) return scoped;
+    const active = getAllActiveRoomIds();
+    return active.length === 1 ? active : [];
+  }
+
+  function resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds){
+    const explicit = normalizeRoomIds(explicitRoomIds);
+    if(explicit.length) return explicit;
+    const known = normalizeRoomIds(knownRoomIds);
+    return known.length === 1 ? known : [];
+  }
+
+  function resolveAggregateFallbackStatus(projectRecord, loadedProject, fallbackStatus){
+    const projectStatus = normalizeStatus(projectRecord && projectRecord.status || '');
+    if(projectStatus) return projectStatus;
+    const metaStatus = normalizeStatus(loadedProject && loadedProject.meta && loadedProject.meta.projectStatus || '');
+    if(metaStatus) return metaStatus;
+    return normalizeStatus(fallbackStatus || '') || 'nowy';
   }
 
   function normalizeSnapshot(source){
@@ -376,11 +393,13 @@
     });
 
     const nextInvestor = saveInvestorRooms(investor, roomStatusMap) || investor;
-    const aggregateRoomIds = targetRoomIds.length ? targetRoomIds : knownRoomIds;
-    const aggregateStatus = getAggregateStatus(collectRoomStatuses(aggregateRoomIds, {
-      investorRooms: nextInvestor && nextInvestor.rooms,
-      roomDefs: mergedRoomDefs,
-    }), nextStatus);
+    const aggregateRoomIds = resolveAggregateScopeRoomIds(targetRoomIds, knownRoomIds);
+    const aggregateStatus = aggregateRoomIds.length
+      ? getAggregateStatus(collectRoomStatuses(aggregateRoomIds, {
+        investorRooms: nextInvestor && nextInvestor.rooms,
+        roomDefs: mergedRoomDefs,
+      }), nextStatus)
+      : resolveAggregateFallbackStatus(projectRecord, loadedProject, nextStatus);
 
     const nextProjectRecord = projectRecord ? updateProjectRecord(projectRecord, aggregateStatus) : null;
     const nextLoadedProject = updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap);
@@ -421,10 +440,13 @@
     });
     const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, { fallbackStatus: options.fallbackStatus || 'nowy' });
     const nextInvestor = investor ? (saveInvestorRooms(investor, roomStatusMap) || investor) : investor;
-    const aggregateStatuses = knownRoomIds.map((roomId)=> normalizeStatus(roomStatusMap[roomId] || '')).filter(Boolean);
-    const aggregateStatus = knownRoomIds.length
+    const aggregateRoomIds = resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds);
+    const aggregateStatuses = aggregateRoomIds.map((roomId)=> normalizeStatus(roomStatusMap[roomId] || '')).filter(Boolean);
+    const aggregateStatus = aggregateRoomIds.length
       ? getAggregateStatus(aggregateStatuses, options.fallbackStatus || 'nowy')
-      : (normalizeStatus(options.fallbackStatus || 'nowy') || 'nowy');
+      : (knownRoomIds.length
+        ? resolveAggregateFallbackStatus(projectRecord, loadedProject, options.fallbackStatus || 'nowy')
+        : (normalizeStatus(options.fallbackStatus || 'nowy') || 'nowy'));
     const nextProjectRecord = projectRecord ? updateProjectRecord(projectRecord, aggregateStatus) : null;
     const nextLoadedProject = updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap);
     if(options.refreshUi !== false) refreshStatusViews();
@@ -467,6 +489,8 @@
     getAggregateStatus,
     getRoomStatusMap,
     getKnownProjectRoomIds,
+    resolveAggregateScopeRoomIds,
+    resolveAggregateFallbackStatus,
     buildRecommendedRoomStatusMap,
     computeRecommendedRoomStatusMap,
     resolveCurrentProjectStatus,

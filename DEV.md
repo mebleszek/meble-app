@@ -1,3 +1,7 @@
+## 2026-04-15 — status scope rules mini-package 1
+- `js/app/project/project-status-sync.js` — mini-paczka 1 logiki statusów: brak jawnego scope nie skleja już automatycznie wszystkich pokoi inwestora w jeden projekt; scoped zmiany i scoped rekonsyliacje liczą status kompatybilności tylko z exact scope, a brak pokoi wraca do `nowy`.
+- `js/tabs/wycena.js` — usuwanie oferty przekazuje do rekonsyliacji exact scope usuwanego snapshotu zamiast niejawnie wpadać w cały zestaw pokoi inwestora.
+- `js/testing/wycena/tests.js` — dodane antyregresje dla mini-paczki 1: brak niejawnej agregacji po całym inwestorze oraz ignorowanie obcego pokoju przy scoped statusie A+B.
 - `js/tabs/wycena.js` — poprawiony scroll po akceptacji oferty z przycisku pod `Podsumowanie`; widok zostaje w miejscu zamiast skakać na górę.
 - `js/app/quote/quote-snapshot.js`, `js/app/quote/quote-offer-store.js`, `js/app/quote/quote-snapshot-store.js`, `js/app/quote/quote-scope-entry.js`, `js/app/wycena/wycena-core.js` — domyślne nazwy ofert i wariantów uwzględniają teraz scope pomieszczeń (`Oferta — Kuchnia + Salon`, `Wstępna oferta — Salon — wariant 2`).
 ## 2026-04-15 — quote accept + roomless wycena + tab order
