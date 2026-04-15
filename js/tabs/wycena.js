@@ -1238,7 +1238,21 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         if(lastQuote && !lastQuote.error) syncGeneratedQuoteStatus(lastQuote);
       }catch(err){
         try{ console.error('[wycena] collect failed', err); }catch(_){ }
-        lastQuote = { error: String(err && err.message || err || 'Błąd wyceny'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
+        if(err && err.quoteValidation){
+          try{
+            if(FC.infoBox && typeof FC.infoBox.open === 'function'){
+              FC.infoBox.open({
+                title:String(err.title || 'Nie można utworzyć wyceny'),
+                message:String(err.message || 'Nie udało się utworzyć wyceny.'),
+                okOnly:true,
+                dismissOnOverlay:false,
+                dismissOnEsc:false,
+              });
+            }
+          }catch(_){ }
+        } else {
+          lastQuote = { error: String(err && err.message || err || 'Błąd wyceny'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
+        }
       }finally{
         isBusy = false;
         render(ctx);

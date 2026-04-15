@@ -714,6 +714,100 @@
         });
       }),
 
+
+      H.makeTest('Wycena ↔ Scope wejścia', 'Nowa wycena wstępna domyślnie pokazuje modal OK po faktycznym utworzeniu', 'Pilnuje, czy bez specjalnego callbacka system używa prostego komunikatu OK po stworzeniu nowej wyceny wstępnej.', async ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function', 'Brak FC.quoteScopeEntry.ensureScopedQuoteEntry');
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+          const prevBuild = FC.wycenaCore && FC.wycenaCore.buildQuoteSnapshot;
+          const prevInfoOpen = FC.infoBox && FC.infoBox.open;
+          let opened = null;
+          try{
+            H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+            H.assert(FC.infoBox && typeof FC.infoBox.open === 'function', 'Brak FC.infoBox.open');
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+              id:`snap_notice_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt notice info' },
+              scope:{ selectedRooms:Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.slice() : ['room_salon'], roomLabels:['Salon'] },
+              commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' },
+              totals:{ grand:120 },
+              lines:{ materials:[{ key:'m1' }], accessories:[], agdServices:[], quoteRates:[] },
+            });
+            FC.infoBox.open = (opts)=> { opened = Object.assign({}, opts || {}); };
+            await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+              investorId,
+              projectId,
+              roomIds:['room_salon'],
+              preliminary:true,
+              openTab:false,
+            });
+            H.assert(opened && opened.okOnly === true && /NOWA WYCENA WSTĘPNA/i.test(String(opened.title || '')), 'Domyślna informacja o nowej wycenie wstępnej nie otworzyła prostego modala OK', opened);
+          } finally {
+            if(FC.wycenaCore) FC.wycenaCore.buildQuoteSnapshot = prevBuild;
+            if(FC.infoBox) FC.infoBox.open = prevInfoOpen;
+          }
+        });
+      }),
+
+      H.makeTest('Wycena', 'Brak pomieszczeń blokuje tworzenie pustej wyceny', 'Pilnuje, czy Wyceń nie tworzy zerowej oferty, gdy projekt nie ma żadnych pomieszczeń.', async ()=>{
+        await withInvestorProjectFixture({
+          rooms:[],
+          projectData:{ schemaVersion:2, meta:{ roomDefs:{}, roomOrder:[] } },
+        }, async ()=>{
+          H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+          let thrown = null;
+          try{
+            await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:[] } });
+          } catch(err){
+            thrown = err;
+          }
+          H.assert(thrown && thrown.quoteValidation === true && String(thrown.code || '') === 'no_rooms', 'Brak pomieszczeń nie zablokował tworzenia wyceny odpowiednim błędem', thrown);
+          H.assert(Array.isArray(FC.quoteSnapshotStore.listForProject('proj_cross')) && FC.quoteSnapshotStore.listForProject('proj_cross').length === 0, 'Przy braku pomieszczeń powstał snapshot wyceny', FC.quoteSnapshotStore.readAll && FC.quoteSnapshotStore.readAll());
+        });
+      }),
+
+      H.makeTest('Wycena', 'Nieistniejące wybrane pomieszczenie blokuje zapis wyceny', 'Pilnuje, czy Wyceń nie tworzy oferty dla scope, którego już nie ma w projekcie.', async ()=>{
+        await withInvestorProjectFixture({}, async ()=>{
+          H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+          let thrown = null;
+          try{
+            await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_missing'] } });
+          } catch(err){
+            thrown = err;
+          }
+          H.assert(thrown && thrown.quoteValidation === true && String(thrown.code || '') === 'selected_room_missing', 'Nieistniejące pomieszczenie nie zablokowało tworzenia wyceny', thrown);
+          H.assert(Array.isArray(FC.quoteSnapshotStore.listForProject('proj_cross')) && FC.quoteSnapshotStore.listForProject('proj_cross').length === 0, 'Dla nieistniejącego pokoju powstał snapshot wyceny', FC.quoteSnapshotStore.readAll && FC.quoteSnapshotStore.readAll());
+        });
+      }),
+
+      H.makeTest('Wycena', 'Puste pomieszczenie bez danych nie tworzy zerowej wyceny', 'Pilnuje, czy Wyceń zatrzymuje zapis, gdy wybrane pomieszczenie nie ma żadnych elementów, materiałów ani usług do policzenia.', async ()=>{
+        await withInvestorProjectFixture({
+          projectData:{
+            schemaVersion: 2,
+            meta: {
+              roomDefs: {
+                room_kuchnia_gora:{ id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
+                room_salon:{ id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon' },
+              },
+              roomOrder:['room_kuchnia_gora','room_salon'],
+            },
+            room_kuchnia_gora:{ cabinets:[], fronts:[], sets:[], settings:{} },
+            room_salon:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          },
+          cutListFn: ()=> [],
+        }, async ()=>{
+          H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+          let thrown = null;
+          try{
+            await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_salon'] } });
+          } catch(err){
+            thrown = err;
+          }
+          H.assert(thrown && thrown.quoteValidation === true && String(thrown.code || '') === 'empty_quote_scope', 'Puste pomieszczenie nie zablokowało zerowej wyceny', thrown);
+          H.assert(Array.isArray(FC.quoteSnapshotStore.listForProject('proj_cross')) && FC.quoteSnapshotStore.listForProject('proj_cross').length === 0, 'Dla pustego pomieszczenia powstał snapshot wyceny', FC.quoteSnapshotStore.readAll && FC.quoteSnapshotStore.readAll());
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Zmiana zaakceptowanej wyceny wspólnej na jednopomieszczeniową cofa pozostałe pokoje', 'Pilnuje regresję, w której po przełączeniu akceptacji z wyceny wspólnej na wycenę jednego pokoju inne pomieszczenia błędnie zostawały na statusie pomiar.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');

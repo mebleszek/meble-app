@@ -236,13 +236,29 @@
 
   async function notifyCreatedPreliminary(scope, options){
     const opts = options && typeof options === 'object' ? options : {};
+    const summary = scope && typeof scope === 'object' ? scope : getScopeSummary([]);
     if(opts.notifyCreated === false) return;
     if(typeof opts.notifyCreated === 'function'){
-      await opts.notifyCreated(clone(scope || {}));
+      await opts.notifyCreated(clone(summary || {}));
       return;
     }
+    try{
+      if(FC.infoBox && typeof FC.infoBox.open === 'function'){
+        FC.infoBox.open({
+          title:'NOWA WYCENA WSTĘPNA',
+          message: summary && summary.scopeLabel
+            ? `Powstała nowa wycena wstępna.
+Pomieszczenia: ${summary.scopeLabel}`
+            : 'Powstała nowa wycena wstępna.',
+          okOnly:true,
+          dismissOnOverlay:false,
+          dismissOnEsc:false,
+        });
+        return;
+      }
+    }catch(_){ }
     if(typeof document === 'undefined' || !document || !document.body) return;
-    await openCreatedPreliminaryInfo(scope);
+    await openCreatedPreliminaryInfo(summary);
   }
 
   function syncScopeStatus(snapshot, status){

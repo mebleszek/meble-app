@@ -1129,3 +1129,5 @@ Dopiero potem go zmieniać.
 
 - WYCENA: po faktycznym utworzeniu nowej wyceny wstępnej `quote-scope-entry` pokazuje prosty modal tylko z `OK`; otwarcie istniejącej wersji ani zwykłej wyceny końcowej nie pokazuje tego komunikatu.
 - WYCENA: przycisk `Zaakceptuj ofertę` pod `Podsumowanie` rozciąga się teraz na szerokość sekcji akcji, żeby był wyrównany do układu lewo-prawo tej karty.
+
+- 2026-04-16: WYCENA dostała twardą walidację pustych ofert w `js/app/wycena/wycena-core.js`: brak pomieszczeń, nieistniejący scope albo scope bez żadnych danych do wyceny nie zapisuje już zerowego snapshotu. `js/tabs/wycena.js` pokazuje wtedy prosty komunikat tylko z `OK` zamiast tworzyć pustą ofertę. Dodatkowo `js/app/ui/info-box.js` obsługuje teraz wariant `okOnly`, a `js/app/quote/quote-scope-entry.js` używa go jako domyślnego potwierdzenia po faktycznym utworzeniu nowej wyceny wstępnej. `dev_tests.html` ładuje też `info-box.js`, a `js/testing/wycena/tests.js` dostał regresje na: brak pomieszczeń, nieistniejący wybrany pokój, pusty scope bez danych i domyślny komunikat OK po nowej wycenie wstępnej.

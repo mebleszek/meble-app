@@ -127,6 +127,70 @@
     }
   }
 
+
+  function createQuoteValidationError(code, title, message, details){
+    const error = new Error(String(message || title || 'Nie można utworzyć wyceny.'));
+    error.code = String(code || 'quote_validation');
+    error.title = String(title || 'Nie można utworzyć wyceny');
+    error.quoteValidation = true;
+    error.details = details && typeof details === 'object' ? details : {};
+    return error;
+  }
+
+  function validateQuoteSelection(normalizedSelection){
+    const selection = normalizedSelection && typeof normalizedSelection === 'object' ? normalizedSelection : normalizeQuoteSelection({});
+    const activeRooms = getActiveRooms().map((roomId)=> String(roomId || '').trim()).filter(Boolean);
+    const activeSet = new Set(activeRooms);
+    const selectedRooms = Array.isArray(selection.selectedRooms)
+      ? selection.selectedRooms.map((roomId)=> String(roomId || '').trim()).filter(Boolean)
+      : [];
+    if(!activeRooms.length){
+      throw createQuoteValidationError(
+        'no_rooms',
+        'Brak pomieszczeń',
+        'Nie istnieje żadne pomieszczenie. Najpierw dodaj pomieszczenie, aby utworzyć wycenę.',
+        { selectedRooms, activeRooms }
+      );
+    }
+    if(!selectedRooms.length){
+      throw createQuoteValidationError(
+        'no_selected_rooms',
+        'Brak wybranego pomieszczenia',
+        'Nie istnieje wybrane pomieszczenie. Wybierz istniejące pomieszczenie, aby utworzyć wycenę.',
+        { selectedRooms, activeRooms }
+      );
+    }
+    const validSelected = selectedRooms.filter((roomId)=> activeSet.has(roomId));
+    if(!validSelected.length){
+      throw createQuoteValidationError(
+        'selected_room_missing',
+        'Brak wybranego pomieszczenia',
+        selectedRooms.length > 1
+          ? 'Nie istnieją wybrane pomieszczenia. Wybierz istniejące pomieszczenia, aby utworzyć wycenę.'
+          : 'Nie istnieje wybrane pomieszczenie. Wybierz istniejące pomieszczenie, aby utworzyć wycenę.',
+        { selectedRooms, activeRooms }
+      );
+    }
+    return Object.assign({}, selection, { selectedRooms: validSelected });
+  }
+
+  function validateQuoteContent(data){
+    const selectedRooms = Array.isArray(data && data.selectedRooms) ? data.selectedRooms.map((roomId)=> String(roomId || '').trim()).filter(Boolean) : [];
+    const materialLines = Array.isArray(data && data.materialLines) ? data.materialLines : [];
+    const accessoryLines = Array.isArray(data && data.accessoryLines) ? data.accessoryLines : [];
+    const agdLines = Array.isArray(data && data.agdLines) ? data.agdLines : [];
+    const quoteRateLines = Array.isArray(data && data.quoteRateLines) ? data.quoteRateLines : [];
+    if(materialLines.length || accessoryLines.length || agdLines.length || quoteRateLines.length) return;
+    throw createQuoteValidationError(
+      'empty_quote_scope',
+      selectedRooms.length > 1 ? 'Brak danych w pomieszczeniach' : 'Brak danych w pomieszczeniu',
+      selectedRooms.length > 1
+        ? 'Wybrane pomieszczenia nie posiadają jeszcze żadnych danych do wyceny.'
+        : 'To pomieszczenie nie posiada jeszcze żadnych danych do wyceny.',
+      { selectedRooms }
+    );
+  }
+
   function decodeMaterialScope(selectionOverride){
     const normalizedOverride = normalizeQuoteSelection(selectionOverride);
     if(normalizedOverride && normalizedOverride.materialScope) return normalizedOverride.materialScope;
@@ -519,7 +583,7 @@
 
   async function collectQuoteData(options){
     const draft = getOfferDraft();
-    const normalizedSelection = normalizeQuoteSelection((options && options.selection) || (draft && draft.selection));
+    const normalizedSelection = validateQuoteSelection(normalizeQuoteSelection((options && options.selection) || (draft && draft.selection)));
     const selectedRooms = decodeSelectedRooms(normalizedSelection);
     const aggregate = getSelectedAggregate(normalizedSelection);
     const materialLines = await collectMaterialLines(aggregate, normalizedSelection);
@@ -546,7 +610,7 @@
         };
     if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates;
     if(!(totals.grand >= 0)) totals.grand = Math.max(0, totals.subtotal - (totals.discount || 0));
-    return {
+    const result = {
       selectedRooms,
       roomLabels: selectedRooms.map(roomLabel),
       materialScope: normalizedSelection.materialScope,
@@ -560,6 +624,8 @@
       totals,
       generatedAt: Date.now(),
     };
+    validateQuoteContent(result);
+    return result;
   }
 
   async function buildQuoteSnapshot(options){
@@ -582,6 +648,9 @@
     collectCommercialDraft,
     collectElementLines,
     collectClientPdfDetails,
+    validateQuoteSelection,
+    validateQuoteContent,
+    createQuoteValidationError,
   };
 
   try{ ensureServiceCatalogInRuntime(); }catch(_){ }

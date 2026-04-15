@@ -35,20 +35,27 @@
     close();
     const title = String(opts.title || 'Informacja');
     const message = String(opts.message || '');
-    const dismissOnOverlay = opts.dismissOnOverlay !== false;
-    const dismissOnEsc = opts.dismissOnEsc !== false;
+    const okOnly = !!opts.okOnly;
+    const dismissOnOverlay = Object.prototype.hasOwnProperty.call(opts, 'dismissOnOverlay') ? opts.dismissOnOverlay !== false : !okOnly;
+    const dismissOnEsc = Object.prototype.hasOwnProperty.call(opts, 'dismissOnEsc') ? opts.dismissOnEsc !== false : !okOnly;
 
     const overlay = el('div', { class:'info-backdrop' });
-    const box = el('div', { class:'info-box', role:'dialog', 'aria-modal':'true' });
+    const box = el('div', { class:`info-box${okOnly ? ' info-box--ok-only' : ''}`, role:'dialog', 'aria-modal':'true' });
     const head = el('div', { class:'info-box__head' });
     const titleEl = el('div', { class:'info-box__title', text:title });
-    const closeBtn = el('button', { type:'button', class:'info-box__close', 'aria-label':'Zamknij informację', text:'×' });
+    const closeBtn = okOnly ? null : el('button', { type:'button', class:'info-box__close', 'aria-label':'Zamknij informację', text:'×' });
     const body = el('div', { class:'info-box__body', text:message });
+    const actions = okOnly ? el('div', { class:'info-box__actions info-box__actions--single' }) : null;
+    const okBtn = okOnly ? el('button', { type:'button', class:'btn-success info-box__action', text:'OK' }) : null;
 
     head.appendChild(titleEl);
-    head.appendChild(closeBtn);
+    if(closeBtn) head.appendChild(closeBtn);
     box.appendChild(head);
     box.appendChild(body);
+    if(actions && okBtn){
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+    }
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     try{ document.documentElement.classList.add('modal-lock'); document.body.classList.add('modal-lock'); }catch(_){ }
@@ -61,7 +68,8 @@
     };
     document.addEventListener('keydown', onKey, true);
 
-    closeBtn.addEventListener('click', close);
+    if(closeBtn) closeBtn.addEventListener('click', close);
+    if(okBtn) okBtn.addEventListener('click', close);
     overlay.addEventListener('pointerdown', (e)=>{
       if(e.target !== overlay) return;
       if(!dismissOnOverlay) return;
@@ -70,7 +78,9 @@
     box.addEventListener('pointerdown', (e)=> e.stopPropagation());
 
     active = { root:overlay, onKey };
-    setTimeout(()=>{ try{ closeBtn.focus(); }catch(_){ } }, 0);
+    setTimeout(()=>{
+      try{ (okBtn || closeBtn).focus(); }catch(_){ }
+    }, 0);
   }
 
   root.FC.infoBox = { open, close };
