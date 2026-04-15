@@ -17,6 +17,10 @@
     odrzucone:'Odrzucone',
   };
 
+  // Odpowiedzialność modułu: walidacja ręcznych przejść statusu.
+  // Guard sprawdza, czy dane przejście jest dozwolone dla exact scope pokoju,
+  // ale nie zapisuje końcowego stanu projektu i nie synchronizuje luster.
+
   function normalizeStatus(value){
     try{
       if(FC.projectStatusSync && typeof FC.projectStatusSync.normalizeStatus === 'function') return FC.projectStatusSync.normalizeStatus(value);

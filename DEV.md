@@ -1,3 +1,11 @@
+## 2026-04-15 — status engine responsibilities mini-package 3
+- `js/app/project/project-status-sync.js` — mini-paczka 3: dopięte jawne role silnika statusów. Sync ma teraz nie tylko liczyć `masterStatus` i lustra, ale też orkiestruje trzy przepływy statusowe z `Wycena`: akceptację oferty (`commitAcceptedSnapshot`), rekonsyliację po usunięciu snapshotu (`reconcileStatusAfterSnapshotRemoval`) oraz konwersję zaakceptowanej wstępnej oferty do końcowej (`promotePreliminarySnapshotToFinal`). To ogranicza rozproszenie reguł biznesowych poza `wycena.js`.
+- `js/tabs/wycena.js` — lokalne sklejanie akceptacji / usuwania / konwersji snapshotów zostało odchudzone do wywołań centralnego syncu. `Wycena` zostaje warstwą UI/orchestration zamiast trzymać własne boczne reguły statusowe.
+- `js/app/project/project-status-manual-guard.js` — dopisany komentarz kontraktowy: guard ma tylko walidować ręczne przejścia statusu i nie może sam zapisywać końcowego stanu projektu ani luster.
+- `js/app/quote/quote-snapshot-store.js` — dopisany komentarz kontraktowy: snapshot store przechowuje i filtruje historię exact-scope ofert, ale nie jest miejscem finalnego liczenia biznesowego statusu projektu.
+- `js/testing/wycena/tests.js` — dodane antyregresje dla mini-paczki 3: `Wycena` deleguje akceptację/usuwanie/konwersję do centralnego syncu; guard pozostaje read-only; snapshot store sam nie ustala statusu projektu.
+- Instrukcja na dalszy rozwój statusów: nowe etapy i nowe reguły biznesowe dopisywać najpierw w `project-status-sync.js` (finalny wynik) i `project-status-manual-guard.js` (dozwoloność ręcznych przejść). `quote-snapshot-store.js` ma tylko dostarczać dane/historyczne snapshoty, a `js/tabs/wycena.js` ma jedynie wywoływać centralne helpery syncu bez dokładania równoległej logiki statusowej.
+
 ## 2026-04-15 — status scope rules mini-package 1
 - `js/app/project/project-status-sync.js` — mini-paczka 1 logiki statusów: brak jawnego scope nie skleja już automatycznie wszystkich pokoi inwestora w jeden projekt; scoped zmiany i scoped rekonsyliacje liczą status kompatybilności tylko z exact scope, a brak pokoi wraca do `nowy`.
 - `js/tabs/wycena.js` — usuwanie oferty przekazuje do rekonsyliacji exact scope usuwanego snapshotu zamiast niejawnie wpadać w cały zestaw pokoi inwestora.

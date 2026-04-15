@@ -295,6 +295,88 @@
     return !isArchivedPreliminary(snap, list, projectStatus);
   }
 
+
+  function commitAcceptedSnapshotWithSync(snapshot, status, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    const nextStatus = normalizeStatusKey(status);
+    if(!snap || !nextStatus) return null;
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.commitAcceptedSnapshot === 'function'){
+        return FC.projectStatusSync.commitAcceptedSnapshot(snap, nextStatus, options || {});
+      }
+    }catch(_){ }
+
+    let selected = null;
+    try{
+      selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
+        ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), String(snap.id || ''), { status:nextStatus })
+        : snap;
+    }catch(_){ selected = snap; }
+    if(!selected) return null;
+    const statusResult = setProjectStatusFromSnapshot(selected, nextStatus);
+    return {
+      snapshot: selected,
+      selectedSnapshot: selected,
+      statusResult: statusResult || null,
+      masterStatus: normalizeStatusKey(statusResult && statusResult.masterStatus || nextStatus),
+      mirrorStatus: normalizeStatusKey(statusResult && statusResult.mirrorStatus || nextStatus),
+    };
+  }
+
+  function reconcileAfterSnapshotRemoval(snapshot, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return null;
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval === 'function'){
+        return FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval(snap, options || {});
+      }
+    }catch(_){ }
+
+    const opts = options && typeof options === 'object' ? options : {};
+    const projectId = String(opts.projectId || snap && snap.project && snap.project.id || getCurrentProjectId() || '');
+    const targetRoomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
+        return FC.projectStatusSync.reconcileProjectStatuses({
+          projectId,
+          investorId:String(opts.investorId || snap && snap.investor && snap.investor.id || getCurrentInvestorId() || ''),
+          roomIds:targetRoomIds,
+          restrictToRoomIds:targetRoomIds.length > 0,
+          fallbackStatus: opts.fallbackStatus || 'nowy',
+          refreshUi: opts.refreshUi,
+        });
+      }
+    }catch(_){ }
+    return null;
+  }
+
+  function promotePreliminarySnapshotToFinal(snapshot, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return null;
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.promotePreliminarySnapshotToFinal === 'function'){
+        return FC.projectStatusSync.promotePreliminarySnapshotToFinal(snap, options || {});
+      }
+    }catch(_){ }
+
+    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
+    let converted = null;
+    try{
+      converted = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function'
+        ? FC.quoteSnapshotStore.convertPreliminaryToFinal(projectId, String(snap.id || ''))
+        : null;
+    }catch(_){ converted = null; }
+    if(!converted) return null;
+    const statusResult = setProjectStatusFromSnapshot(converted, 'zaakceptowany');
+    return {
+      snapshot: converted,
+      convertedSnapshot: converted,
+      statusResult: statusResult || null,
+      masterStatus: normalizeStatusKey(statusResult && statusResult.masterStatus || 'zaakceptowany'),
+      mirrorStatus: normalizeStatusKey(statusResult && statusResult.mirrorStatus || 'zaakceptowany'),
+    };
+  }
+
   async function acceptSnapshot(snapshot, ctx, options){
     const snap = normalizeSnapshot(snapshot) || null;
     if(!snap) return false;
@@ -318,15 +400,10 @@
       if(opts.rememberScroll) clearRememberedQuoteScroll();
       return false;
     }
-    let selected = null;
-    try{
-      selected = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'
-        ? FC.quoteSnapshotStore.markSelectedForProject(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId, { status:targetStatus })
-        : snap;
-    }catch(_){ selected = snap; }
+    const commitResult = commitAcceptedSnapshotWithSync(snap, targetStatus);
+    const selected = commitResult && (commitResult.selectedSnapshot || commitResult.snapshot) || null;
     if(!selected) return false;
     previewSnapshotId = snapId;
-    setProjectStatusFromSnapshot(selected, targetStatus);
     lastQuote = selected;
     render(ctx);
     return true;
@@ -1215,28 +1292,11 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
           clearRememberedQuoteScroll();
           return;
         }
-        const currentStatus = currentProjectStatus(snap);
-        const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
         try{
           if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
         }catch(_){ }
         try{
-          const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
-          if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
-            FC.projectStatusSync.reconcileProjectStatuses({
-              projectId,
-              investorId:String(snap && snap.investor && snap.investor.id || getCurrentInvestorId() || ''),
-              roomIds:targetRoomIds,
-              restrictToRoomIds:targetRoomIds.length > 0,
-              fallbackStatus:'nowy',
-              refreshUi:false,
-            });
-          }else if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusForProject === 'function'){
-            const recommendedStatus = FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, currentStatus, { roomIds:targetRoomIds, fallbackStatus:'nowy' });
-            if(recommendedStatus && recommendedStatus !== currentStatus){
-              setProjectStatusFromSnapshot(snap, recommendedStatus, { syncSelection:true });
-            }
-          }
+          reconcileAfterSnapshotRemoval(snap, { refreshUi:false, fallbackStatus:'nowy' });
         }catch(_){ }
         const nextHistory = getSnapshotHistory();
         if(previewSnapshotId === snapId) previewSnapshotId = '';
@@ -1248,16 +1308,11 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         const convertBtn = h('button', { class:'btn quote-history__convert-btn', type:'button', text:'Końcowa' });
         convertBtn.addEventListener('click', ()=>{
           rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
-          let converted = null;
-          try{
-            converted = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function'
-              ? FC.quoteSnapshotStore.convertPreliminaryToFinal(String(snap.project && snap.project.id || getCurrentProjectId() || ''), snapId)
-              : null;
-          }catch(_){ converted = null; }
+          const promoteResult = promotePreliminarySnapshotToFinal(snap);
+          const converted = promoteResult && (promoteResult.convertedSnapshot || promoteResult.snapshot) || null;
           if(converted){
             previewSnapshotId = snapId;
             lastQuote = converted;
-            setProjectStatusFromSnapshot(converted, 'zaakceptowany');
             render(ctx);
           }
         });
@@ -1412,6 +1467,10 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
   FC.wycenaTabDebug = Object.assign({}, FC.wycenaTabDebug || {}, {
     currentProjectStatus,
     setProjectStatusFromSnapshot,
+    commitAcceptedSnapshotWithSync,
+    reconcileAfterSnapshotRemoval,
+    promotePreliminarySnapshotToFinal,
+    acceptSnapshot,
     getTargetRoomIdsFromSnapshot,
     isArchivedPreliminary,
     isRejectedSnapshot,

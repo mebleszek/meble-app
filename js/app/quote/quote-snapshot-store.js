@@ -11,6 +11,10 @@
   const SNAPSHOT_KEY = keys.quoteSnapshots || 'fc_quote_snapshots_v1';
   const FINAL_STATUSES = new Set(['zaakceptowany','umowa','produkcja','montaz','zakonczone']);
 
+  // Odpowiedzialność modułu: historia i exact-scope dane ofertowe.
+  // Snapshot store przechowuje oraz filtruje snapshoty ofert, ale nie powinien
+  // być miejscem finalnego liczenia biznesowego statusu projektu.
+
   function clone(value){
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
     catch(_){ return JSON.parse(JSON.stringify(value || null)); }
