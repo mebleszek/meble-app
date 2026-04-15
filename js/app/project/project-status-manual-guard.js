@@ -224,7 +224,7 @@
     if(!(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function')) throw new Error('Brak quoteOfferStore.patchCurrentDraft');
     FC.quoteOfferStore.patchCurrentDraft({
       selection:{ selectedRooms:roomIds },
-      commercial:{ preliminary, versionName: preliminary ? 'Wstępna oferta' : 'Oferta' },
+      commercial:{ preliminary },
     });
     if(!(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function')) throw new Error('Brak wycenaCore.buildQuoteSnapshot');
     const snapshot = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:roomIds } });

@@ -96,17 +96,19 @@
         H.assert(materialTypes.some((item)=> String(item && item.value || '') === 'akcesoria'), 'Lista typów materiału nie zawiera akcesoriów', materialTypes);
       }),
 
-      H.makeTest('Wycena', 'Domyślne nazwy wersji ustawiają się jako Oferta i Wstępna oferta', 'Pilnuje, czy puste nazwy wersji nie zapisują się jako pusty string i dostają domyślne etykiety zgodne z typem oferty.', ()=>{
+      H.makeTest('Wycena', 'Domyślne nazwy wersji uwzględniają scope pomieszczeń', 'Pilnuje, czy puste nazwy wersji dostają etykietę zgodną z typem oferty i dokładnym zakresem pokoi.', ()=>{
         H.assert(FC.quoteOfferStore && typeof FC.quoteOfferStore.normalizeCommercial === 'function', 'Brak FC.quoteOfferStore.normalizeCommercial');
         H.assert(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function', 'Brak FC.quoteSnapshot.buildSnapshot');
-        const prelimDraft = FC.quoteOfferStore.normalizeCommercial({ preliminary:true, versionName:'' });
-        const finalDraft = FC.quoteOfferStore.normalizeCommercial({ preliminary:false, versionName:'' });
-        H.assert(String(prelimDraft.versionName || '') === 'Wstępna oferta', 'Domyślna nazwa wstępnej oferty jest błędna', prelimDraft);
-        H.assert(String(finalDraft.versionName || '') === 'Oferta', 'Domyślna nazwa zwykłej oferty jest błędna', finalDraft);
-        const prelimSnap = FC.quoteSnapshot.buildSnapshot({ commercial:{ preliminary:true, versionName:'' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
-        const finalSnap = FC.quoteSnapshot.buildSnapshot({ commercial:{ preliminary:false, versionName:'' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
-        H.assert(String(prelimSnap.commercial && prelimSnap.commercial.versionName || '') === 'Wstępna oferta', 'Snapshot nie ustawił domyślnej nazwy dla wyceny wstępnej', prelimSnap);
-        H.assert(String(finalSnap.commercial && finalSnap.commercial.versionName || '') === 'Oferta', 'Snapshot nie ustawił domyślnej nazwy dla zwykłej oferty', finalSnap);
+        withInvestorProjectFixture({}, ()=>{
+          const prelimDraft = FC.quoteOfferStore.normalizeCommercial({ preliminary:true, versionName:'' }, { selection:{ selectedRooms:['room_kuchnia_gora'] } });
+          const finalDraft = FC.quoteOfferStore.normalizeCommercial({ preliminary:false, versionName:'' }, { selection:{ selectedRooms:['room_kuchnia_gora','room_salon'] } });
+          H.assert(String(prelimDraft.versionName || '') === 'Wstępna oferta — Kuchnia góra', 'Domyślna nazwa wstępnej oferty nie uwzględnia scope pokoju', prelimDraft);
+          H.assert(String(finalDraft.versionName || '') === 'Oferta — Kuchnia góra + Salon', 'Domyślna nazwa zwykłej oferty nie uwzględnia scope wielu pokoi', finalDraft);
+          const prelimSnap = FC.quoteSnapshot.buildSnapshot({ scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
+          const finalSnap = FC.quoteSnapshot.buildSnapshot({ scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:false, versionName:'' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
+          H.assert(String(prelimSnap.commercial && prelimSnap.commercial.versionName || '') === 'Wstępna oferta — Salon', 'Snapshot nie ustawił scoped nazwy dla wyceny wstępnej', prelimSnap);
+          H.assert(String(finalSnap.commercial && finalSnap.commercial.versionName || '') === 'Oferta — Kuchnia góra + Salon', 'Snapshot nie ustawił scoped nazwy dla zwykłej oferty', finalSnap);
+        });
       }),
 
       H.makeTest('Wycena', 'Store oferty zapamiętuje pola handlowe i ilości stawek dla projektu', 'Pilnuje, czy rabat, warunki oferty i ilości stawek wyceny mebli są trzymane per projekt i gotowe do zapisania w snapshotcie.', ()=>{
@@ -624,9 +626,9 @@
       H.makeTest('Wycena ↔ Scope wejścia', 'Podpowiedź nazwy nowego wariantu nie dubluje domyślnej nazwy dla tego samego scope', 'Pilnuje, czy przy kolejnym wariancie dla identycznego scope podpowiedź idzie w numerowany wariant zamiast znowu zostawiać samą domyślną nazwę.', ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.buildSuggestedVersionName === 'function', 'Brak FC.quoteScopeEntry.buildSuggestedVersionName');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          FC.quoteSnapshotStore.save({ id:'snap_scope_name_1', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope name' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta' }, totals:{ grand:112 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445000 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_name_1', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope name' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' }, totals:{ grand:112 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445000 });
           const suggested = FC.quoteScopeEntry.buildSuggestedVersionName(projectId, ['room_salon'], true);
-          H.assert(String(suggested || '') === 'Wstępna oferta — wariant 2', 'Podpowiedź nazwy nie przeszła na kolejny wariant dla identycznego scope', suggested);
+          H.assert(String(suggested || '') === 'Wstępna oferta — Salon — wariant 2', 'Podpowiedź nazwy nie przeszła na kolejny wariant dla identycznego scope', suggested);
         });
       }),
 

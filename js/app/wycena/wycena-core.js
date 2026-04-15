@@ -397,7 +397,7 @@
     const commercial = src && typeof src.commercial === 'object' ? src.commercial : {};
     try{
       if(FC.quoteOfferStore && typeof FC.quoteOfferStore.normalizeCommercial === 'function'){
-        return FC.quoteOfferStore.normalizeCommercial(commercial);
+        return FC.quoteOfferStore.normalizeCommercial(commercial, { selection:src.selection });
       }
     }catch(_){ }
     let discountPercent = Math.max(0, Number(commercial && commercial.discountPercent) || 0);
@@ -405,7 +405,10 @@
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     const preliminary = !!(commercial && commercial.preliminary);
-    const versionName = String(commercial && commercial.versionName || '').trim() || (preliminary ? 'Wstępna oferta' : 'Oferta');
+    const versionName = String(commercial && commercial.versionName || '').trim()
+      || (FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function'
+        ? FC.quoteOfferStore.defaultVersionName(preliminary, { selection:src.selection })
+        : (preliminary ? 'Wstępna oferta' : 'Oferta'));
     return {
       versionName,
       preliminary,

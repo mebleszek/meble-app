@@ -1,3 +1,5 @@
+- `js/tabs/wycena.js` — poprawiony scroll po akceptacji oferty z przycisku pod `Podsumowanie`; widok zostaje w miejscu zamiast skakać na górę.
+- `js/app/quote/quote-snapshot.js`, `js/app/quote/quote-offer-store.js`, `js/app/quote/quote-snapshot-store.js`, `js/app/quote/quote-scope-entry.js`, `js/app/wycena/wycena-core.js` — domyślne nazwy ofert i wariantów uwzględniają teraz scope pomieszczeń (`Oferta — Kuchnia + Salon`, `Wstępna oferta — Salon — wariant 2`).
 ## 2026-04-15 — quote accept + roomless wycena + tab order
 - `js/tabs/wycena.js` — dodany wspólny helper akceptacji oferty i nowy przycisk `Zaakceptuj ofertę` pod `Podsumowanie`, podpięty do tej samej logiki co karta historii.
 - `js/app/ui/views.js` + `js/app/ui/tab-navigation.js` + `js/app.js` — wejście zakładką `WYCENA` bez wybranego pokoju otwiera teraz od razu moduł wyceny zamiast ekranu `Wybierz pomieszczenie`; render tabów działa też dla roomless `WYCENA`.

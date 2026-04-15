@@ -50,9 +50,9 @@
     return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
   }
 
-  function defaultVersionName(preliminary){
+  function defaultVersionName(preliminary, options){
     try{
-      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.defaultVersionName === 'function') return FC.quoteSnapshot.defaultVersionName(preliminary);
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.defaultVersionName === 'function') return FC.quoteSnapshot.defaultVersionName(preliminary, options || {});
     }catch(_){ }
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
@@ -61,7 +61,7 @@
     const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const preliminary = isPreliminarySnapshot(src);
     const acceptedStage = String(src.meta && src.meta.acceptedStage || (src.meta && src.meta.selectedByClient ? (preliminary ? 'pomiar' : 'zaakceptowany') : '') || '');
-    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || defaultVersionName(preliminary);
+    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || defaultVersionName(preliminary, { scope:src.scope || {} });
     const materialScope = normalizeMaterialScope(src.scope && src.scope.materialScope);
     return {
       id: String(src.id || uid()),
@@ -350,7 +350,9 @@
     if(!target || !isPreliminarySnapshot(target)) return null;
     const acceptedAt = Number(target && target.meta && target.meta.acceptedAt) > 0 ? Number(target.meta.acceptedAt) : Date.now();
     const currentName = String(target && target.commercial && target.commercial.versionName || target && target.meta && target.meta.versionName || '').trim();
-    const nextVersionName = (!currentName || currentName === defaultVersionName(true)) ? defaultVersionName(false) : currentName;
+    const nextVersionName = (!currentName || currentName === defaultVersionName(true, { scope:target && target.scope }))
+      ? defaultVersionName(false, { scope:target && target.scope })
+      : currentName;
     list.forEach((row)=> {
       if(String(row && row.project && row.project.id || '') !== pid) return;
       const isTarget = String(row && row.id || '') === sid;
@@ -370,7 +372,7 @@
         meta.acceptedAt = 0;
         meta.acceptedStage = '';
         meta.preliminary = isPreliminarySnapshot(row);
-        meta.versionName = String(meta.versionName || commercial.versionName || defaultVersionName(!!commercial.preliminary)).trim();
+        meta.versionName = String(meta.versionName || commercial.versionName || defaultVersionName(!!commercial.preliminary, { scope:row && row.scope })).trim();
       }
       row.project = project;
       row.commercial = commercial;

@@ -345,16 +345,17 @@
     return row;
   }
 
-  function defaultVersionName(preliminary){
+  function defaultVersionName(preliminary, options){
     try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function') return FC.quoteOfferStore.defaultVersionName(!!preliminary);
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function') return FC.quoteOfferStore.defaultVersionName(!!preliminary, options || {});
     }catch(_){ }
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
 
   function getVersionName(snapshot){
     const snap = normalizeSnapshot(snapshot) || {};
-    return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim() || defaultVersionName(isPreliminarySnapshot(snap));
+    return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim()
+      || defaultVersionName(isPreliminarySnapshot(snap), snap && snap.scope ? { scope:snap.scope } : {});
   }
 
   function getMaterialScopeMode(snapshotOrScope){
@@ -562,7 +563,17 @@
       FC.rozrysPickers.openRoomsPicker({
         getSelectedRooms: ()=> selection.selectedRooms,
         setSelectedRooms: (rooms)=>{
-          patchOfferDraft({ selection:{ selectedRooms:Array.isArray(rooms) ? rooms.slice() : [] } });
+          const nextRooms = Array.isArray(rooms) ? rooms.slice() : [];
+          const draft = getOfferDraft();
+          const commercial = draft && draft.commercial || {};
+          const currentVersionName = String(commercial.versionName || '').trim();
+          const prevDefault = defaultVersionName(!!commercial.preliminary, { selection });
+          const nextSelection = Object.assign({}, selection, { selectedRooms:nextRooms });
+          const patch = { selection:{ selectedRooms:nextRooms } };
+          if(!currentVersionName || currentVersionName === prevDefault){
+            patch.commercial = { versionName:defaultVersionName(!!commercial.preliminary, { selection:nextSelection }) };
+          }
+          patchOfferDraft(patch);
           render(ctx);
         },
         getRooms: ()=> {
@@ -905,7 +916,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     if(canAcceptSnapshot(snapshot)){
       const previewActions = h('div', { class:'quote-preview-actions' });
       const acceptBtn = h('button', { class:'btn-success', type:'button', text:'Zaakceptuj ofertę' });
-      acceptBtn.addEventListener('click', ()=> { void acceptSnapshot(snapshot, ctx); });
+      acceptBtn.addEventListener('click', ()=> {
+        void acceptSnapshot(snapshot, ctx, { rememberScroll:true, anchorId:'quotePreviewStart', fallbackAnchorId:'quoteActivePreview' });
+      });
       previewActions.appendChild(acceptBtn);
       totalsCard.appendChild(previewActions);
     }
@@ -938,8 +951,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     preliminaryInput.addEventListener('change', ()=>{
       const nextPreliminary = !!preliminaryInput.checked;
       const currentVersionName = String(commercial.versionName || '').trim();
-      const prevDefault = defaultVersionName(!!commercial.preliminary);
-      const nextDefault = defaultVersionName(nextPreliminary);
+      const selection = normalizeDraftSelection(draft);
+      const prevDefault = defaultVersionName(!!commercial.preliminary, { selection });
+      const nextDefault = defaultVersionName(nextPreliminary, { selection });
       patchOfferDraft({ commercial:{ preliminary:nextPreliminary, versionName:(!currentVersionName || currentVersionName === prevDefault) ? nextDefault : currentVersionName } });
       render(ctx);
     });
@@ -976,8 +990,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
 
     if(offerEditorOpen){
       const body = h('div', { class:'quote-offer-accordion__body rozrys-material-accordion__body' });
-      const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || defaultVersionName(!!commercial.preliminary) || '') });
-      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!commercial.preliminary) } });
+      const selection = normalizeDraftSelection(draft);
+      const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || defaultVersionName(!!commercial.preliminary, { selection }) || '') });
+      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!commercial.preliminary, { selection:normalizeDraftSelection(getOfferDraft()) }) } });
       versionInput.addEventListener('focus', ()=>{ try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
       versionInput.addEventListener('pointerup', (ev)=>{ try{ ev.preventDefault(); }catch(_){ } try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
       versionInput.addEventListener('change', syncVersionName);

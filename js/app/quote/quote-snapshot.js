@@ -53,18 +53,60 @@
     return Array.isArray(rows) ? rows.map(normalizeLine) : [];
   }
 
-  function defaultVersionName(preliminary){
-    return preliminary ? 'Wstępna oferta' : 'Oferta';
+  function normalizeRoomIds(rows){
+    return Array.isArray(rows)
+      ? Array.from(new Set(rows.map((item)=> String(item || '').trim()).filter(Boolean)))
+      : [];
   }
 
-  function normalizeCommercial(src){
+  function normalizeRoomLabels(rows){
+    return Array.isArray(rows)
+      ? rows.map((item)=> String(item || '').trim()).filter(Boolean)
+      : [];
+  }
+
+  function resolveVersionScopeLabels(options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const explicitLabels = normalizeRoomLabels(opts.roomLabels
+      || (opts.scope && opts.scope.roomLabels)
+      || (opts.selection && opts.selection.roomLabels));
+    if(explicitLabels.length) return explicitLabels;
+    const roomIds = normalizeRoomIds(opts.roomIds
+      || opts.selectedRooms
+      || (opts.scope && opts.scope.selectedRooms)
+      || (opts.selection && opts.selection.selectedRooms));
+    if(!roomIds.length) return [];
+    const labels = roomIds.map((roomId)=>{
+      try{
+        if(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
+          const label = String(FC.roomRegistry.getRoomLabel(roomId) || '').trim();
+          if(label) return label;
+        }
+      }catch(_){ }
+      return String(roomId || '').trim();
+    }).filter(Boolean);
+    return labels.length ? labels : roomIds;
+  }
+
+  function buildVersionScopeSuffix(options){
+    const labels = resolveVersionScopeLabels(options);
+    return labels.length ? labels.join(' + ') : '';
+  }
+
+  function defaultVersionName(preliminary, options){
+    const base = preliminary ? 'Wstępna oferta' : 'Oferta';
+    const scopeSuffix = buildVersionScopeSuffix(options);
+    return scopeSuffix ? `${base} — ${scopeSuffix}` : base;
+  }
+
+  function normalizeCommercial(src, options){
     const value = src && typeof src === 'object' ? src : {};
     let discountPercent = Math.max(0, num(value.discountPercent, 0));
     let discountAmount = Math.max(0, num(value.discountAmount, 0));
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     const preliminary = !!value.preliminary;
-    const versionName = String(value.versionName || '').trim() || defaultVersionName(preliminary);
+    const versionName = String(value.versionName || '').trim() || defaultVersionName(preliminary, options);
     return {
       versionName,
       preliminary,
@@ -139,7 +181,7 @@
       agdServices: normalizeLines(src.agdLines || (src.lines && src.lines.agdServices)),
       quoteRates: normalizeLines(src.quoteRateLines || (src.lines && src.lines.quoteRates)),
     };
-    const commercial = normalizeCommercial(src.commercial || {});
+    const commercial = normalizeCommercial(src.commercial || {}, { roomIds, roomLabels, scope:{ selectedRooms:roomIds, roomLabels } });
     const totals = computeTotals(src.totals || {}, lines, commercial);
     const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
     const scopeMode = materialScopeMode(materialScope);
@@ -204,6 +246,8 @@
     computeTotals,
     normalizeMaterialScope,
     defaultVersionName,
+    resolveVersionScopeLabels,
+    buildVersionScopeSuffix,
     materialScopeMode,
   };
 })();

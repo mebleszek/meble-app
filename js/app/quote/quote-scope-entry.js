@@ -91,9 +91,9 @@
     return {};
   }
 
-  function defaultVersionName(preliminary){
+  function defaultVersionName(preliminary, options){
     try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function') return FC.quoteOfferStore.defaultVersionName(!!preliminary);
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function') return FC.quoteOfferStore.defaultVersionName(!!preliminary, options || {});
     }catch(_){ }
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
@@ -184,7 +184,7 @@
   }
 
   function buildSuggestedVersionName(projectId, roomIds, preliminary){
-    const base = String(defaultVersionName(preliminary) || '').trim() || (preliminary ? 'Wstępna oferta' : 'Oferta');
+    const base = String(defaultVersionName(preliminary, { roomIds }) || '').trim() || (preliminary ? 'Wstępna oferta' : 'Oferta');
     if(!nameExists(projectId, roomIds, preliminary, base)) return base;
     let index = 2;
     let candidate = `${base} — wariant ${index}`;
