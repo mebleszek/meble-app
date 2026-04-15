@@ -1135,3 +1135,9 @@ Dopiero potem go zmieniać.
 - 2026-04-15: Odtworzona paczka cabinet_room_quote_cleanup na bazie site_quote_guard_notice_fix.zip. Naprawa cabinet-cutlist (bez kruchej zależności od luźnych globali), czyszczenie wycen solo/wspólnych przy usuwaniu pomieszczeń oraz ostrzeżenia o kasowanych wycenach w modalach usuwania pokoju.
 
 - 2026-04-15: WYCENA — przy kliknięciu `Wyceń` dla zakresu, który ma już exact-scope historię tego samego typu, `js/tabs/wycena.js` wymusza teraz nadanie nazwy kolejnemu wariantowi jeszcze przed zapisaniem snapshotu. Nowy flow używa modalnego pola nazwy z przyciskami `OK` / `Anuluj`, z proponowaną unikalną nazwą wariantu oraz walidacją duplikatu po normalizacji (case/spacing/diacritics) w `js/app/quote/quote-scope-entry.js`. `js/testing/wycena/tests.js` dostał regresje na wymuszenie nazwania nowego wariantu przy istniejącej historii scope oraz na blokadę nazwy różniącej się tylko zapisem.
+
+
+## 2026-04-15 — wywiad room choice + cabinet cutlist guard
+- `js/app/ui/tab-navigation.js`: `WYWIAD` bez aktywnego pokoju wraca do wyboru pomieszczeń (`roomsView`) zamiast przeskakiwać do `Inwestor`.
+- `js/app/cabinet/cabinet-cutlist.js`: obudowano wywołania helperów frontów/okuć (`frontHardware`) bezpiecznymi fallbackami, żeby testy i podstawowa geometria korpusu nie wysypywały się przez brak kontekstu projektu.
+- `js/testing/project/tests.js`: dodany regres pod wejście do `WYWIAD` bez aktywnego pomieszczenia.

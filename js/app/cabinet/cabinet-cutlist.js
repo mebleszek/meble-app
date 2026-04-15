@@ -34,35 +34,41 @@
   }
 
   function getFrontParts(room, cab){
-    const hardware = getFrontHardware();
-    if(hardware && typeof hardware.getCabinetFrontCutListForMaterials === 'function'){
-      return hardware.getCabinetFrontCutListForMaterials(room, cab) || [];
-    }
-    if(typeof window.getCabinetFrontCutListForMaterials === 'function'){
-      return window.getCabinetFrontCutListForMaterials(room, cab) || [];
-    }
+    try{
+      const hardware = getFrontHardware();
+      if(hardware && typeof hardware.getCabinetFrontCutListForMaterials === 'function'){
+        return hardware.getCabinetFrontCutListForMaterials(room, cab) || [];
+      }
+      if(typeof window.getCabinetFrontCutListForMaterials === 'function'){
+        return window.getCabinetFrontCutListForMaterials(room, cab) || [];
+      }
+    }catch(_){ }
     return [];
   }
 
   function getHingeCount(room, cab){
-    const hardware = getFrontHardware();
-    if(hardware && typeof hardware.getHingeCountForCabinet === 'function'){
-      return Number(hardware.getHingeCountForCabinet(room, cab)) || 0;
-    }
-    if(typeof window.getHingeCountForCabinet === 'function'){
-      return Number(window.getHingeCountForCabinet(room, cab)) || 0;
-    }
+    try{
+      const hardware = getFrontHardware();
+      if(hardware && typeof hardware.getHingeCountForCabinet === 'function'){
+        return Number(hardware.getHingeCountForCabinet(room, cab)) || 0;
+      }
+      if(typeof window.getHingeCountForCabinet === 'function'){
+        return Number(window.getHingeCountForCabinet(room, cab)) || 0;
+      }
+    }catch(_){ }
     return 0;
   }
 
   function getAventosInfo(cab, room){
-    const hardware = getFrontHardware();
-    if(hardware && typeof hardware.getBlumAventosInfo === 'function'){
-      return hardware.getBlumAventosInfo(cab, room) || null;
-    }
-    if(typeof window.getBlumAventosInfo === 'function'){
-      return window.getBlumAventosInfo(cab, room) || null;
-    }
+    try{
+      const hardware = getFrontHardware();
+      if(hardware && typeof hardware.getBlumAventosInfo === 'function'){
+        return hardware.getBlumAventosInfo(cab, room) || null;
+      }
+      if(typeof window.getBlumAventosInfo === 'function'){
+        return window.getBlumAventosInfo(cab, room) || null;
+      }
+    }catch(_){ }
     return null;
   }
 
