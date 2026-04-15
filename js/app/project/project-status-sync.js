@@ -294,23 +294,22 @@
     return Object.assign({}, investor, { rooms });
   }
 
-  function updateProjectRecord(projectRecord, aggregateStatus){
+  function updateProjectRecord(projectRecord, mirrorStatus){
     if(!(projectRecord && projectRecord.id)) return null;
     try{
       if(FC.projectStore && typeof FC.projectStore.upsert === 'function'){
-        return FC.projectStore.upsert(Object.assign({}, projectRecord, { status:aggregateStatus, updatedAt:Date.now() }));
+        return FC.projectStore.upsert(Object.assign({}, projectRecord, { status:mirrorStatus, updatedAt:Date.now() }));
       }
     }catch(_){ }
     return projectRecord;
   }
 
-  function updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap){
+  function updateLoadedProject(loadedProject, mirrorStatus, roomStatusMap){
     try{
       if(!(FC.project && typeof FC.project.save === 'function')) return loadedProject || null;
-      const proj = loadedProject || {};
-      const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
-      if(!meta) return loadedProject || null;
-      meta.projectStatus = aggregateStatus;
+      const proj = loadedProject && typeof loadedProject === 'object' ? loadedProject : {};
+      const meta = proj.meta && typeof proj.meta === 'object' ? proj.meta : (proj.meta = {});
+      meta.projectStatus = mirrorStatus;
       if(meta.roomDefs && typeof meta.roomDefs === 'object'){
         Object.keys(meta.roomDefs).forEach((roomId)=> {
           const row = meta.roomDefs[roomId];
@@ -321,6 +320,26 @@
       }
       return FC.project.save(proj) || proj;
     }catch(_){ return loadedProject || null; }
+  }
+
+  function resolveScopedMasterStatus(scopedRoomIds, roomStatusMap, options){
+    const ids = normalizeRoomIds(scopedRoomIds);
+    const opts = options && typeof options === 'object' ? options : {};
+    const fallbackStatus = normalizeStatus(opts.fallbackStatus || '') || 'nowy';
+    const statuses = ids.map((roomId)=> normalizeStatus(roomStatusMap && roomStatusMap[roomId] || '')).filter(Boolean);
+    if(statuses.length) return getAggregateStatus(statuses, fallbackStatus);
+    if(ids.length) return fallbackStatus;
+    if(opts.allowMirrorFallback) return resolveAggregateFallbackStatus(opts.projectRecord, opts.loadedProject, fallbackStatus);
+    return fallbackStatus;
+  }
+
+  function syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap){
+    const mirrorStatus = normalizeStatus(masterStatus || '') || 'nowy';
+    return {
+      mirrorStatus,
+      projectRecord: projectRecord ? updateProjectRecord(projectRecord, mirrorStatus) : null,
+      loadedProject: updateLoadedProject(loadedProject, mirrorStatus, roomStatusMap),
+    };
   }
 
   function refreshStatusViews(){
@@ -393,16 +412,18 @@
     });
 
     const nextInvestor = saveInvestorRooms(investor, roomStatusMap) || investor;
-    const aggregateRoomIds = resolveAggregateScopeRoomIds(targetRoomIds, knownRoomIds);
-    const aggregateStatus = aggregateRoomIds.length
-      ? getAggregateStatus(collectRoomStatuses(aggregateRoomIds, {
-        investorRooms: nextInvestor && nextInvestor.rooms,
-        roomDefs: mergedRoomDefs,
-      }), nextStatus)
-      : resolveAggregateFallbackStatus(projectRecord, loadedProject, nextStatus);
+    const masterRoomIds = resolveAggregateScopeRoomIds(targetRoomIds, knownRoomIds);
+    const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
+      fallbackStatus: nextStatus,
+      projectRecord,
+      loadedProject,
+      allowMirrorFallback:false,
+    });
 
-    const nextProjectRecord = projectRecord ? updateProjectRecord(projectRecord, aggregateStatus) : null;
-    const nextLoadedProject = updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap);
+    const mirrorSync = syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap);
+    const nextProjectRecord = mirrorSync.projectRecord;
+    const nextLoadedProject = mirrorSync.loadedProject;
+    const mirrorStatus = mirrorSync.mirrorStatus;
 
     if(refreshUi) refreshStatusViews();
 
@@ -410,7 +431,9 @@
       investor: nextInvestor,
       projectRecord: nextProjectRecord,
       loadedProject: nextLoadedProject,
-      aggregateStatus,
+      masterStatus,
+      mirrorStatus,
+      aggregateStatus:masterStatus,
       roomStatusMap,
       roomIds: targetRoomIds,
       projectId,
@@ -440,21 +463,25 @@
     });
     const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, { fallbackStatus: options.fallbackStatus || 'nowy' });
     const nextInvestor = investor ? (saveInvestorRooms(investor, roomStatusMap) || investor) : investor;
-    const aggregateRoomIds = resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds);
-    const aggregateStatuses = aggregateRoomIds.map((roomId)=> normalizeStatus(roomStatusMap[roomId] || '')).filter(Boolean);
-    const aggregateStatus = aggregateRoomIds.length
-      ? getAggregateStatus(aggregateStatuses, options.fallbackStatus || 'nowy')
-      : (knownRoomIds.length
-        ? resolveAggregateFallbackStatus(projectRecord, loadedProject, options.fallbackStatus || 'nowy')
-        : (normalizeStatus(options.fallbackStatus || 'nowy') || 'nowy'));
-    const nextProjectRecord = projectRecord ? updateProjectRecord(projectRecord, aggregateStatus) : null;
-    const nextLoadedProject = updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap);
+    const masterRoomIds = resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds);
+    const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
+      fallbackStatus: options.fallbackStatus || 'nowy',
+      projectRecord,
+      loadedProject,
+      allowMirrorFallback:false,
+    });
+    const mirrorSync = syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap);
+    const nextProjectRecord = mirrorSync.projectRecord;
+    const nextLoadedProject = mirrorSync.loadedProject;
+    const mirrorStatus = mirrorSync.mirrorStatus;
     if(options.refreshUi !== false) refreshStatusViews();
     return {
       investor: nextInvestor,
       projectRecord: nextProjectRecord,
       loadedProject: nextLoadedProject,
-      aggregateStatus,
+      masterStatus,
+      mirrorStatus,
+      aggregateStatus:masterStatus,
       roomStatusMap,
       roomIds: knownRoomIds,
       projectId,
@@ -491,6 +518,8 @@
     getKnownProjectRoomIds,
     resolveAggregateScopeRoomIds,
     resolveAggregateFallbackStatus,
+    resolveScopedMasterStatus,
+    syncStatusMirrors,
     buildRecommendedRoomStatusMap,
     computeRecommendedRoomStatusMap,
     resolveCurrentProjectStatus,
@@ -502,6 +531,8 @@
       getMergedRoomDefs,
       updateLoadedProject,
       saveInvestorRooms,
+      resolveScopedMasterStatus,
+      syncStatusMirrors,
     },
   };
 })();

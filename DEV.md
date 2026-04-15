@@ -1154,3 +1154,9 @@ Dopiero potem go zmieniać.
 - `js/testing/project/tests.js` ma regresję pilnującą, że zapisany kontekst inwestora nie otwiera roomless `WYCENA` z ekranu głównego.
 
 - 2026-04-15: Fix test fixture in `js/testing/wycena/tests.js` so explicit `rooms: []` stays empty instead of falling back to default rooms; this restores the `no_rooms` regression path for quote validation tests.
+
+## 2026-04-15 — mini-paczka 2 / status master + mirrors
+- `js/app/project/project-status-sync.js`: scoped status projektu został nazwany i domknięty jako centralny `masterStatus`; `projectStore.status` oraz `meta.projectStatus` są zapisywane wyłącznie jako lustra (`mirrorStatus`) przez jedną ścieżkę sync.
+- `js/app/investor/investor-persistence.js`: `setInvestorProjectStatus(..., { returnDetails:true })` zwraca teraz wynik centralnego syncu zamiast gubić go w `result:null`.
+- `js/testing/wycena/tests.js`, `js/testing/investor/tests.js`: testy pilnują zgodności master ↔ mirror dla scoped rekonsyliacji i ręcznej zmiany statusu z poziomu Inwestora.
+- Cache-busting podbity w `index.html` i `dev_tests.html` dla modułów/statusów i testów tej paczki.

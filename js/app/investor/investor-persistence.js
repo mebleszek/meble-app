@@ -67,7 +67,7 @@
       if(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function'){
         const result = FC.projectStatusSync.setInvestorRoomStatus(investorId, targetRoomId, nextStatus, { syncSelection:true });
         const investor = result && result.investor ? result.investor : getInvestorById(investorId);
-        return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
+        return opts.returnDetails ? { applied:true, blocked:false, investor, result:result || null } : investor;
       }
     }catch(_){ }
     const investor = updateInvestorRoom(investorId, targetRoomId, { projectStatus:nextStatus });

@@ -285,18 +285,26 @@
           generatedAt: 200,
         });
         FC.quoteSnapshotStore.markSelectedForProject(project.id, 'snap_pre', { status:'pomiar', roomIds:['room_sync'] });
-        FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'pomiar');
+        const pomiarDetails = FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'pomiar', { returnDetails:true });
         const afterPomiarInvestor = FC.investors.getById(investor.id);
         const afterPomiarProject = FC.projectStore.getById(project.id);
+        const loadedAfterPomiar = pomiarDetails && pomiarDetails.result && pomiarDetails.result.loadedProject;
         const selectedPre = FC.quoteSnapshotStore.getSelectedForProject(project.id);
         assert(String(afterPomiarInvestor.rooms[0].projectStatus || '') === 'pomiar', 'Pokój inwestora nie dostał statusu pomiar', afterPomiarInvestor);
+        assert(pomiarDetails && pomiarDetails.result && String(pomiarDetails.result.masterStatus || '') === 'pomiar', 'Zmiana statusu z inwestora nie zwróciła centralnego masterStatus', pomiarDetails);
+        assert(pomiarDetails && pomiarDetails.result && String(pomiarDetails.result.mirrorStatus || '') === 'pomiar', 'Zmiana statusu z inwestora nie zwróciła mirrorStatus zgodnego z masterem', pomiarDetails);
         assert(String(afterPomiarProject.status || '') === 'pomiar', 'Project store nie zsynchronizował statusu pomiar', afterPomiarProject);
+        assert(loadedAfterPomiar && loadedAfterPomiar.meta && String(loadedAfterPomiar.meta.projectStatus || '') === 'pomiar', 'loadedProject.meta.projectStatus nie jest lustrem centralnego statusu po zmianie z inwestora', loadedAfterPomiar);
         assert(selectedPre && String(selectedPre.id || '') === 'snap_pre', 'Zmiana statusu na pomiar nie wybrała oferty wstępnej', selectedPre || FC.quoteSnapshotStore.listForProject(project.id));
         FC.quoteSnapshotStore.markSelectedForProject(project.id, 'snap_final', { status:'zaakceptowany', roomIds:['room_sync'] });
-        FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'zaakceptowany');
+        const finalDetails = FC.investorPersistence.setInvestorProjectStatus(investor.id, 'room_sync', 'zaakceptowany', { returnDetails:true });
         const afterFinalProject = FC.projectStore.getById(project.id);
+        const loadedAfterFinal = finalDetails && finalDetails.result && finalDetails.result.loadedProject;
         const selectedFinal = FC.quoteSnapshotStore.getSelectedForProject(project.id);
+        assert(finalDetails && finalDetails.result && String(finalDetails.result.masterStatus || '') === 'zaakceptowany', 'Zmiana statusu na zaakceptowany nie zwróciła masterStatus', finalDetails);
+        assert(finalDetails && finalDetails.result && String(finalDetails.result.mirrorStatus || '') === 'zaakceptowany', 'Zmiana statusu na zaakceptowany nie zwróciła mirrorStatus', finalDetails);
         assert(String(afterFinalProject.status || '') === 'zaakceptowany', 'Project store nie zsynchronizował statusu zaakceptowany', afterFinalProject);
+        assert(loadedAfterFinal && loadedAfterFinal.meta && String(loadedAfterFinal.meta.projectStatus || '') === 'zaakceptowany', 'loadedProject.meta.projectStatus nie jest lustrem statusu zaakceptowany', loadedAfterFinal);
         assert(selectedFinal && String(selectedFinal.id || '') === 'snap_final', 'Zmiana statusu na zaakceptowany nie wybrała oferty końcowej', selectedFinal || FC.quoteSnapshotStore.listForProject(project.id));
       } finally {
         FC.quoteSnapshotStore.writeAll(prevSnapshots);

@@ -399,9 +399,13 @@
         H.assert(result && String(result.roomStatusMap && result.roomStatusMap.room_a || '') === 'wstepna_wycena', 'Rekonsyliacja zgubiła scoped status pokoju A', result);
         H.assert(result && String(result.roomStatusMap && result.roomStatusMap.room_b || '') === 'nowy', 'Rekonsyliacja zgubiła scoped status pokoju B', result);
         H.assert(result && String(result.aggregateStatus || '') === 'nowy', 'Brak jawnego scope nadal zlepił status projektu z całego inwestora', result);
+        H.assert(result && String(result.masterStatus || '') === 'nowy', 'Centralny sync nie zwrócił masterStatus zgodnego z wynikiem scoped', result);
+        H.assert(result && String(result.mirrorStatus || '') === 'nowy', 'Centralny sync nie zwrócił mirrorStatus zgodnego z masterem', result);
         H.assert(roomA && String(roomA.projectStatus || '') === 'wstepna_wycena', 'Pokój A nie zachował własnego statusu scoped', investor);
         H.assert(roomB && String(roomB.projectStatus || '') === 'nowy', 'Pokój B nie zachował własnego statusu scoped', investor);
         H.assert(project && String(project.status || '') === 'nowy', 'projectStore.status nie powinien agregować wszystkich pokoi bez jawnego scope', project);
+        const loaded = result && result.loadedProject;
+        H.assert(loaded && loaded.meta && String(loaded.meta.projectStatus || '') === 'nowy', 'loadedProject.meta.projectStatus powinien być lustrem masterStatus po rekonsyliacji', loaded);
       })),
 
       H.makeTest('Wycena ↔ Centralny status', 'Scoped zmiana statusu wielu pokoi ignoruje obcy pokój inwestora', 'Pilnuje regułę mini-paczki 1: wspólny projekt A+B liczy status tylko z własnego scope i nie może zostać podbity przez niezależny pokój C.', ()=> withInvestorProjectFixture({
@@ -462,10 +466,14 @@
         const roomB = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_b');
         const roomC = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_c');
         H.assert(result && String(result.aggregateStatus || '') === 'wstepna_wycena', 'Scoped projekt A+B został błędnie podbity przez obcy pokój C', result);
+        H.assert(result && String(result.masterStatus || '') === 'wstepna_wycena', 'masterStatus scoped projektu A+B jest błędny', result);
+        H.assert(result && String(result.mirrorStatus || '') === 'wstepna_wycena', 'mirrorStatus scoped projektu A+B nie zgadza się z masterem', result);
         H.assert(roomA && String(roomA.projectStatus || '') === 'wstepna_wycena', 'Pokój A nie dostał scoped statusu A+B', investor);
         H.assert(roomB && String(roomB.projectStatus || '') === 'wstepna_wycena', 'Pokój B nie dostał scoped statusu A+B', investor);
         H.assert(roomC && String(roomC.projectStatus || '') === 'wycena', 'Obcy pokój C nie powinien zmienić statusu przy scoped A+B', investor);
         H.assert(project && String(project.status || '') === 'wstepna_wycena', 'projectStore.status powinien odzwierciedlać tylko exact scope A+B', project);
+        const loaded = result && result.loadedProject;
+        H.assert(loaded && loaded.meta && String(loaded.meta.projectStatus || '') === 'wstepna_wycena', 'loadedProject.meta.projectStatus powinien być lustrem scoped masterStatus A+B', loaded);
       })),
 
       H.makeTest('Wycena', 'Status projektu synchronizuje zaakceptowaną ofertę w obie strony', 'Pilnuje, czy zaakceptowanie wyceny wstępnej daje etap pomiaru, a ręczna zmiana statusu projektu czyści lub przywraca właściwy stan ofert.', ()=>{
