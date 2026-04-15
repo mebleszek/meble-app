@@ -30,8 +30,13 @@
     ].filter((entry)=> typeof entry.run === 'function');
   }
 
-  function mergeAppReports(){
-    const reports = getSuiteRegistry().filter((entry)=> entry.inApp).map((entry)=> entry.run()).filter(Boolean);
+  async function mergeAppReports(){
+    const reports = [];
+    const registry = getSuiteRegistry().filter((entry)=> entry.inApp);
+    for(const entry of registry){
+      const report = await entry.run();
+      if(report) reports.push(report);
+    }
     const merged = {
       label:'APP smoke testy',
       total:0,
@@ -180,21 +185,21 @@
       cleanupBtn.disabled = isRunning;
     }
 
-    function collectSuites(mode){
+    async function collectSuites(mode){
       const suites = [];
       const registry = getSuiteRegistry();
       if(mode === 'all'){
         const rozrys = registry.find((entry)=> entry.key === 'rozrys');
-        if(rozrys) suites.push({ name:rozrys.name, report: rozrys.run() });
-        suites.push({ name:'APP', report: mergeAppReports() });
+        if(rozrys) suites.push({ name:rozrys.name, report: await rozrys.run() });
+        suites.push({ name:'APP', report: await mergeAppReports() });
         return suites;
       }
       if(mode === 'app'){
-        suites.push({ name:'APP', report: mergeAppReports() });
+        suites.push({ name:'APP', report: await mergeAppReports() });
         return suites;
       }
       const single = registry.find((entry)=> entry.key === mode);
-      if(single) suites.push({ name:single.name, report: single.run() });
+      if(single) suites.push({ name:single.name, report: await single.run() });
       return suites;
     }
 
@@ -224,12 +229,12 @@
       }
     }
 
-    function run(mode, sourceBtn){
+    async function run(mode, sourceBtn){
       setRunning(true, sourceBtn);
       results.innerHTML = '';
       try{
         cleanupTestData(true);
-        const suites = collectSuites(mode);
+        const suites = await collectSuites(mode);
         lastSuites = suites.slice();
         lastOverall = renderResult(results, suites);
         cleanupTestData(true);

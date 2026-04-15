@@ -103,15 +103,20 @@ function mergeReports(reports){
   return out;
 }
 
-const reports = [
-  sandbox.FC.projectDevTests.runAll(),
-  sandbox.FC.investorDevTests.runAll(),
-  sandbox.FC.materialDevTests.runAll(),
-  sandbox.FC.wycenaDevTests.runAll(),
-  sandbox.FC.cabinetDevTests.runAll(),
-  sandbox.FC.serviceDevTests.runAll(),
-];
-const final = mergeReports(reports);
-const text = sandbox.FC.testHarness.makeClipboardReport(final);
-console.log(text);
-if(final.failed > 0) process.exit(1);
+(async ()=>{
+  const reports = [
+    await sandbox.FC.projectDevTests.runAll(),
+    await sandbox.FC.investorDevTests.runAll(),
+    await sandbox.FC.materialDevTests.runAll(),
+    await sandbox.FC.wycenaDevTests.runAll(),
+    await sandbox.FC.cabinetDevTests.runAll(),
+    await sandbox.FC.serviceDevTests.runAll(),
+  ];
+  const final = mergeReports(reports);
+  const text = sandbox.FC.testHarness.makeClipboardReport(final);
+  console.log(text);
+  if(final.failed > 0) process.exit(1);
+})().catch((error)=>{
+  console.error(error && error.stack ? error.stack : String(error));
+  process.exit(2);
+});

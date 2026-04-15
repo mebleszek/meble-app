@@ -115,6 +115,7 @@
     const tab = String(st.activeTab || '').trim().toLowerCase();
     const entry = String(st.entry || '').trim().toLowerCase();
     const hasInvestorContext = !!readCurrentInvestorId(st);
+    if(entry === 'home' || entry === 'modehub' || entry === 'investorslist' || entry === 'serviceorderslist') return false;
     return tab === 'wycena' && !st.roomType && (entry === 'app' || entry === 'rooms' || hasInvestorContext);
   }
 

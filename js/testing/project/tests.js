@@ -199,6 +199,24 @@
           if(appView) appView.style.display = prevApp;
         }
       }),
+      H.makeTest('Projekt', 'Strona główna po odświeżeniu nie wskakuje z powrotem do WYCENA', 'Pilnuje, czy zapisany kontekst inwestora nie nadpisuje wejścia home po odświeżeniu i nie otwiera roomless WYCENA.', ()=>{
+        H.assert(FC.views && typeof FC.views.shouldOpenRoomlessWycena === 'function', 'Brak helpera roomless WYCENA', FC.views);
+        H.assert(FC.views.shouldOpenRoomlessWycena({ entry:'home', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' }) === false, 'Helper roomless WYCENA błędnie otwiera wycenę z ekranu głównego');
+        if(typeof document === 'undefined' || !(typeof FC.views.applyFromState === 'function')) return;
+        const homeView = document.getElementById('homeView');
+        const appView = document.getElementById('appView');
+        H.assert(homeView && appView, 'Brak wymaganych widoków DOM dla testu strony głównej', { homeView, appView });
+        const prevHome = homeView ? homeView.style.display : '';
+        const prevApp = appView ? appView.style.display : '';
+        try{
+          FC.views.applyFromState({ entry:'home', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' });
+          H.assert(homeView.style.display === 'block', 'homeView nie pozostał otwarty po odświeżeniu strony głównej', { home:homeView.style.display, app:appView.style.display });
+          H.assert(appView.style.display === 'none', 'appView otworzył się mimo wejścia na stronę główną', { home:homeView.style.display, app:appView.style.display });
+        } finally {
+          if(homeView) homeView.style.display = prevHome;
+          if(appView) appView.style.display = prevApp;
+        }
+      }),
       H.makeTest('Projekt', 'Kolejność przycisków zakładek zgadza się z nowym układem', 'Pilnuje, czy paski zakładek mają zamienione MATERIAŁ z RYSUNEK oraz dolny rząd zaczyna się od INWESTOR.', ()=>{
         if(typeof document === 'undefined') return;
         const order = Array.from(document.querySelectorAll('#topTabs .tab-btn')).map((btn)=> String(btn && btn.dataset && btn.dataset.tab || ''));

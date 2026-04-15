@@ -1141,3 +1141,10 @@ Dopiero potem go zmieniać.
 - `js/app/ui/tab-navigation.js`: `WYWIAD` bez aktywnego pokoju wraca do wyboru pomieszczeń (`roomsView`) zamiast przeskakiwać do `Inwestor`.
 - `js/app/cabinet/cabinet-cutlist.js`: obudowano wywołania helperów frontów/okuć (`frontHardware`) bezpiecznymi fallbackami, żeby testy i podstawowa geometria korpusu nie wysypywały się przez brak kontekstu projektu.
 - `js/testing/project/tests.js`: dodany regres pod wejście do `WYWIAD` bez aktywnego pomieszczenia.
+
+
+## 2026-04-16 — async runner + home restore
+- `js/testing/shared/harness.js` uruchamia i **awaituje** testy asynchroniczne, żeby suite `WYCENA` nie zostawiała po sobie stubów `FC.cabinetCutlist.getCabinetCutList` przed sekcją `Szafki`.
+- `js/testing/dev-tests-page.js` zbiera raporty asynchronicznie; `APP` czeka teraz na pełne zakończenie suite zamiast scalać niegotowe obietnice.
+- `js/app/ui/views.js` traktuje `entry:'home'` jako nadrzędne wobec helpera roomless `WYCENA`, więc po wyjściu na stronę główną i odświeżeniu nie powinno już wskakiwać z powrotem do `WYCENA` tylko dlatego, że zachował się `currentInvestorId`.
+- `js/testing/project/tests.js` ma regresję pilnującą, że zapisany kontekst inwestora nie otwiera roomless `WYCENA` z ekranu głównego.
