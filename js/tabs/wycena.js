@@ -352,6 +352,58 @@
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
 
+  function buildSelectionScopeSummary(selection){
+    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
+    if(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.getScopeSummary === 'function'){
+      try{ return FC.quoteScopeEntry.getScopeSummary(selectedRooms); }catch(_){ }
+    }
+    const labels = selectedRooms.slice();
+    return {
+      roomIds:selectedRooms,
+      roomLabels:labels,
+      scopeLabel:labels.join(', ') || 'wybrany zakres',
+      isMultiRoom:selectedRooms.length > 1,
+    };
+  }
+
+  function shouldPromptForVersionNameOnGenerate(selection, draft){
+    const projectId = String(getCurrentProjectId() || '');
+    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
+    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
+    if(!projectId || !selectedRooms.length) return false;
+    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.listExactScopeSnapshots === 'function')) return false;
+    try{
+      const rows = FC.quoteScopeEntry.listExactScopeSnapshots(projectId, selectedRooms, { preliminary:!!commercial.preliminary, includeRejected:false }) || [];
+      return rows.length > 0;
+    }catch(_){ return false; }
+  }
+
+  async function ensureVersionNameBeforeGenerate(selection){
+    const draft = getOfferDraft() || {};
+    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
+    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
+    const preliminary = !!commercial.preliminary;
+    const currentVersionName = String(commercial.versionName || '').trim() || defaultVersionName(preliminary, { selection });
+    if(!shouldPromptForVersionNameOnGenerate(selection, draft)) return { cancelled:false, versionName:currentVersionName };
+    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function')) return { cancelled:false, versionName:currentVersionName };
+    const scope = buildSelectionScopeSummary(selection);
+    const snapshotLabel = preliminary ? 'wycena wstępna' : 'wycena';
+    const naming = await FC.quoteScopeEntry.promptNewVersionName({
+      projectId:String(getCurrentProjectId() || ''),
+      roomIds:selectedRooms,
+      preliminary,
+      title: preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY',
+      message:`Dla zakresu „${scope.scopeLabel}” istnieje już ${snapshotLabel}. Podaj nazwę dla kolejnej wersji, aby nie powstały dwie identycznie nazwane wyceny.`,
+      hint:'Program proponuje kolejną nazwę wariantu. Możesz ją zmienić, ale nazwa musi być unikalna dla tego samego typu wyceny i dokładnie tego samego zakresu.',
+      submitLabel:'OK',
+      cancelLabel:'Anuluj',
+    });
+    if(!naming || naming.cancelled) return { cancelled:true };
+    const nextVersionName = String(naming.versionName || '').trim() || currentVersionName;
+    patchOfferDraft({ commercial:{ versionName:nextVersionName } });
+    return { cancelled:false, versionName:nextVersionName };
+  }
+
   function getVersionName(snapshot){
     const snap = normalizeSnapshot(snapshot) || {};
     return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim()
@@ -1233,6 +1285,8 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
       render(ctx);
       try{
         const selection = normalizeDraftSelection(getOfferDraft());
+        const naming = await ensureVersionNameBeforeGenerate(selection);
+        if(naming && naming.cancelled) return;
         if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') lastQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
         else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') lastQuote = await FC.wycenaCore.collectQuoteData({ selection });
         if(lastQuote && !lastQuote.error) syncGeneratedQuoteStatus(lastQuote);
@@ -1353,6 +1407,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     isRejectedSnapshot,
     canAcceptSnapshot,
     showSnapshotPreview,
+    shouldPromptForVersionNameOnGenerate,
   });
 
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });

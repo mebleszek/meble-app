@@ -639,6 +639,24 @@
         });
       }),
 
+      H.makeTest('Wycena ↔ Scope wejścia', 'Walidacja nazwy nowego wariantu blokuje duplikat także po normalizacji', 'Pilnuje, czy druga wycena dla tego samego zakresu nie przejdzie z nazwą różniącą się tylko wielkością liter, spacjami albo polskimi znakami.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.isVersionNameTaken === 'function', 'Brak FC.quoteScopeEntry.isVersionNameTaken');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_name_norm_1', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope name normalized' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' }, totals:{ grand:113 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445100 });
+          const taken = FC.quoteScopeEntry.isVersionNameTaken(projectId, ['room_salon'], true, '  wstepna   oferta — salon  ');
+          H.assert(taken === true, 'Walidacja nazwy nie wykryła duplikatu po normalizacji wpisu', taken);
+        });
+      }),
+
+      H.makeTest('Wycena', 'Wyceń dla scope z istniejącą historią wymusza nazwę nowego wariantu', 'Pilnuje, czy kliknięcie Wyceń przy już istniejącej wycenie exact-scope uruchamia modal nazwy, żeby nie tworzyć kolejnych identycznie nazwanych wersji.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.shouldPromptForVersionNameOnGenerate === 'function', 'Brak FC.wycenaTabDebug.shouldPromptForVersionNameOnGenerate');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_prompt_1', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope prompt' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' }, totals:{ grand:114 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445200 });
+          const shouldPrompt = FC.wycenaTabDebug.shouldPromptForVersionNameOnGenerate({ selectedRooms:['room_salon'] }, { commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' } });
+          H.assert(shouldPrompt === true, 'Wyceń nie wymusił nazwania nowego wariantu mimo istniejącej wyceny dla tego samego scope', shouldPrompt);
+        });
+      }),
+
       H.makeTest('Wycena ↔ Scope wejścia', 'Otwarcie istniejącej wyceny scoped nie tworzy duplikatu i ustawia draft oraz podgląd właściwej wersji', 'Pilnuje, czy wybór „Otwórz istniejącą” ładuje dokładnie tę wersję do Wyceny zamiast generować nowy snapshot albo podmieniać scope.', ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.openExistingSnapshot === 'function', 'Brak FC.quoteScopeEntry.openExistingSnapshot');
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.showSnapshotPreview === 'function', 'Brak FC.wycenaTabDebug.showSnapshotPreview');

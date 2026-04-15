@@ -173,12 +173,21 @@
     }catch(_){ return null; }
   }
 
+  function normalizeComparableVersionName(value){
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .replace(/[ąćęłńóśźż]/g, (ch)=> ({'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'}[ch] || ch))
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
   function nameExists(projectId, roomIds, preliminary, name, options){
-    const target = String(name || '').trim().toLowerCase();
+    const target = normalizeComparableVersionName(name);
     if(!target) return false;
     const rows = listExactScopeSnapshots(projectId, roomIds, Object.assign({}, options || {}, { preliminary, includeRejected:false }));
     return rows.some((row)=> {
-      const rowName = String(row && row.commercial && row.commercial.versionName || row && row.meta && row.meta.versionName || '').trim().toLowerCase();
+      const rowName = normalizeComparableVersionName(row && row.commercial && row.commercial.versionName || row && row.meta && row.meta.versionName || '');
       return rowName === target;
     });
   }
@@ -334,27 +343,30 @@ Pomieszczenia: ${summary.scopeLabel}`
     });
   }
 
-  function openNameModal(projectId, scope, preliminary){
+  function openNameModal(projectId, scope, preliminary, options){
+    const opts = options && typeof options === 'object' ? options : {};
     return openModal((dialog, overlay)=>{
-      const suggestedName = buildSuggestedVersionName(projectId, scope.roomIds, preliminary);
-      const title = h('div', { class:'quote-scope-entry-modal__title', text: preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY' });
+      const suggestedName = String(opts.suggestedName || buildSuggestedVersionName(projectId, scope.roomIds, preliminary) || '').trim();
+      const submitLabel = String(opts.submitLabel || 'OK').trim() || 'OK';
+      const cancelLabel = String(opts.cancelLabel || 'Anuluj').trim() || 'Anuluj';
+      const title = h('div', { class:'quote-scope-entry-modal__title', text: String(opts.title || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY')).trim() || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY') });
       const closeBtn = h('button', { type:'button', class:'quote-scope-entry-modal__close', 'aria-label':'Zamknij okno', text:'×' });
       const head = h('div', { class:'quote-scope-entry-modal__head' }, [title, closeBtn]);
       const body = h('div', { class:'quote-scope-entry-modal__body' });
-      body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:`Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.` }));
+      body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:String(opts.message || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.`).trim() || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.` }));
       body.appendChild(h('div', { class:'quote-scope-entry-modal__scope', text:`Pomieszczenia: ${scope.scopeLabel}` }));
       const field = h('label', { class:'quote-scope-entry-modal__field' });
       field.appendChild(h('span', { class:'quote-scope-entry-modal__field-label', text:'Nazwa wyceny' }));
       const input = h('input', { type:'text', class:'investor-form-input quote-scope-entry-modal__input', value:suggestedName, maxlength:'120', placeholder:suggestedName });
       field.appendChild(input);
       body.appendChild(field);
-      const hint = h('div', { class:'quote-scope-entry-modal__hint', text:'Domyślna nazwa jest już podpowiedziana jako kolejny wariant dla tego samego zakresu.' });
+      const hint = h('div', { class:'quote-scope-entry-modal__hint', text:String(opts.hint || 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.').trim() || 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.' });
       body.appendChild(hint);
       const actions = h('div', { class:'quote-scope-entry-modal__actions' });
-      const backBtn = h('button', { type:'button', class:'btn-primary quote-scope-entry-modal__action', text:'Wróć' });
-      const createBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-modal__action', text:'Utwórz nową' });
-      actions.appendChild(backBtn);
-      actions.appendChild(createBtn);
+      const cancelBtn = h('button', { type:'button', class:'btn-danger quote-scope-entry-modal__action', text:cancelLabel });
+      const submitBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-modal__action', text:submitLabel });
+      actions.appendChild(cancelBtn);
+      actions.appendChild(submitBtn);
       dialog.appendChild(head);
       dialog.appendChild(body);
       dialog.appendChild(actions);
@@ -362,12 +374,12 @@ Pomieszczenia: ${summary.scopeLabel}`
       const submit = ()=> {
         const value = String(input.value || '').trim();
         if(!value){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak nazwy wyceny', message:'Nadaj nazwę nowej wycenie, zanim ją utworzysz.' }); }catch(_){ }
+          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak nazwy wyceny', message:'Nadaj nazwę nowej wycenie, zanim ją utworzysz.', okOnly:true }); }catch(_){ }
           try{ input.focus(); }catch(_){ }
           return;
         }
         if(nameExists(projectId, scope.roomIds, preliminary, value)){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Ta nazwa już istnieje', message:'Dla tego typu wyceny i dokładnie tego samego zakresu pomieszczeń istnieje już wersja o takiej nazwie. Nadaj inną nazwę.' }); }catch(_){ }
+          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Ta nazwa już istnieje', message:'Dla tego typu wyceny i dokładnie tego samego zakresu pomieszczeń istnieje już wersja o takiej nazwie. Nadaj inną nazwę.', okOnly:true }); }catch(_){ }
           try{ input.focus(); input.select(); }catch(_){ }
           return;
         }
@@ -376,8 +388,8 @@ Pomieszczenia: ${summary.scopeLabel}`
 
       overlay.addEventListener('pointerdown', (event)=>{ if(event.target === overlay) closeActiveModal({ cancelled:true }); });
       closeBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:true }));
-      backBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:true }));
-      createBtn.addEventListener('click', submit);
+      cancelBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:true }));
+      submitBtn.addEventListener('click', submit);
       input.addEventListener('keydown', (event)=>{
         if(event.key === 'Enter'){
           event.preventDefault();
@@ -437,9 +449,21 @@ Pomieszczenia: ${summary.scopeLabel}`
     getScopeSummary,
     listExactScopeSnapshots,
     findExactScopeSnapshot,
+    isVersionNameTaken(projectId, roomIds, preliminary, name, options){
+      return nameExists(projectId, roomIds, !!preliminary, name, options);
+    },
     buildSuggestedVersionName,
     describeScopeMatch,
     ensureScopedQuoteEntry,
     openExistingSnapshot,
+    promptNewVersionName(options){
+      const opts = options && typeof options === 'object' ? options : {};
+      const projectId = String(opts.projectId || getCurrentProjectId() || '');
+      const preliminary = normalizeType(opts);
+      const scope = getScopeSummary(getScopeRoomIds(opts));
+      if(!projectId) throw new Error('Brak projektu dla wybranego inwestora');
+      if(!scope.roomIds.length) throw new Error('Brak wybranego pomieszczenia lub zakresu');
+      return openNameModal(projectId, scope, preliminary, opts);
+    },
   };
 })();
