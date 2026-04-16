@@ -1,3 +1,8 @@
+## 2026-04-17 — hotfix znikającej historii wycen po splicie
+- `js/tabs/wycena.js` — hotfix po wydzieleniu `wycena-tab-history.js`: do zależności przekazywanych do modułu historii wrócił `currentProjectStatus`, bez którego render historii wpadał w cichy wyjątek i cała sekcja znikała z UI.
+- `js/testing/wycena/suites/core-offer-basics.js` — dodany test antyregresyjny renderu: zapisany snapshot musi zbudować sekcję `Historia wycen` i wpisy listy po renderze zakładki `Wycena`.
+- Instrukcja antyregresyjna: przy kolejnych splitach renderujących modułów `Wycena` testować nie tylko helpery biznesowe, ale też pełny render sekcji w DOM. Jeśli wrapper delegacji ma `try/catch`, brak zależności może schować błąd i wyczyścić cały fragment UI bez czerwonego wyjątku.
+
 ## 2026-04-16 — wycena history/preview/scroll split + krótki modal nazwy
 - `js/app/wycena/wycena-tab-scroll.js` — wydzielona pamięć i przywracanie scrolla historii/podglądu w `Wycena`; `js/tabs/wycena.js` tylko deleguje do modułu.
 - `js/app/wycena/wycena-tab-history.js` — wydzielony render historii ofert, preview snapshotu i wybór aktualnie wyświetlanej oferty bez ruszania workflow statusów `accept/remove/promote`.

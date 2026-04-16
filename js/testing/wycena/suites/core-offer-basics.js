@@ -179,6 +179,28 @@
         }
       }),
 
+
+    H.makeTest('Wycena', 'Historia wycen renderuje się po splicie preview/scroll', 'Pilnuje regresję po wydzieleniu historii: zapisane snapshoty nadal budują sekcję historii i listę wpisów zamiast zniknąć przez brak zależności modułu.', ()=>{
+        if(typeof document === 'undefined') return;
+        H.assert(FC.tabsRouter && typeof FC.tabsRouter.get === 'function', 'Brak FC.tabsRouter.get', FC.tabsRouter);
+        const wycenaTab = FC.tabsRouter.get('wycena');
+        H.assert(wycenaTab && typeof wycenaTab.render === 'function', 'Brak renderera zakładki Wycena', wycenaTab);
+        const prevSnapshots = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : [];
+        withInvestorProjectFixture({}, ()=>{
+          try{
+            FC.quoteSnapshotStore.writeAll([]);
+            FC.quoteSnapshotStore.save({ investor:{ id:'inv_hist_ui' }, project:{ id:'proj_cross', investorId:'inv_hist_ui', title:'Projekt historii' }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia góra' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712800400000 });
+            const mount = document.createElement('div');
+            wycenaTab.render({ listEl:mount });
+            H.assert(!!mount.querySelector('#quoteHistorySection'), 'Sekcja historii wycen nie wyrenderowała listy wpisów po splicie modułu historii', mount.innerHTML);
+            H.assert(/Historia wycen/.test(String(mount.textContent || '')), 'Nagłówek historii wycen nie wyrenderował się po splicie modułu historii', mount.textContent);
+            H.assert(mount.querySelectorAll('[data-quote-history-id]').length >= 1, 'Brak wpisów historii wycen po renderze zakładki', mount.innerHTML);
+          } finally {
+            FC.quoteSnapshotStore.writeAll(prevSnapshots);
+          }
+        });
+      }),
+
     H.makeTest('Wycena', 'Podgląd oferty pokazuje akcję akceptacji tylko dla wersji, które wolno zaakceptować', 'Pilnuje, czy nowy przycisk pod podsumowaniem korzysta z tej samej kwalifikacji co historia: znika dla zaakceptowanej albo odrzuconej oferty.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.canAcceptSnapshot === 'function', 'Brak helpera FC.wycenaTabDebug.canAcceptSnapshot', FC.wycenaTabDebug);
         const prev = FC.quoteSnapshotStore.readAll();

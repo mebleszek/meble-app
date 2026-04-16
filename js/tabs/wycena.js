@@ -705,6 +705,7 @@
           getProjectStatusForHistory,
           canAcceptSnapshot,
           acceptSnapshot,
+          currentProjectStatus,
           askConfirm,
           rememberQuoteScroll,
           clearRememberedQuoteScroll,
