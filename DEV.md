@@ -1,3 +1,9 @@
+## 2026-04-16 — status tests mini-package 5
+- `js/testing/wycena/tests.js` — dopięte antyregresje dla późnych etapów procesu (`umowa`, `produkcja`, `montaz`, `zakonczone`): sekwencja późnych statusów utrzymuje scoped końcową ofertę, nie przywraca martwych zaznaczeń starych wycen i nie rusza rozłącznego pokoju.
+- `js/testing/wycena/tests.js` — dodany guard coverage dla późnych etapów: bez zaakceptowanej wyceny końcowej exact-scope ręczne przejścia na późne statusy mają być blokowane, a po zaakceptowaniu finalnej oferty mają się odblokować.
+- `js/testing/investor/tests.js` — dopięty test przepływu z poziomu `Inwestor`: ręczne przejścia `umowa -> produkcja -> montaz -> zakonczone` zwracają poprawny `masterStatus`/`mirrorStatus`, aktualizują lustra i nie ruszają zaakceptowanej oferty rozłącznego pokoju.
+- Instrukcja antyregresyjna: przy dokładaniu kolejnych reguł dla późnych etapów zawsze testować dwa scenariusze naraz: (1) pełną sekwencję późnych statusów dla jednego pokoju, (2) współistnienie drugiego, rozłącznego pokoju z własną zaakceptowaną ofertą. Brak regresji oznacza nie tylko poprawny status pokoju docelowego, ale też brak zmian `selectedByClient`, `acceptedStage`, `rejected*` i statusu snapshotów w rozłącznym scope.
+
 ## 2026-04-16 — scoped accept/convert hotfix + refresh restore
 - `js/app/quote/quote-snapshot-store.js` — naprawiony kolejny regres multi-scope z historii wycen: akceptacja snapshotu dla jednego pokoju nie może już nadpisywać `project.status` w rozłącznych snapshotach tego samego `projectId`; nieimpaktowane scope są zostawiane bez bocznych dopisków statusu.
 - `js/app/quote/quote-snapshot-store.js` — `convertPreliminaryToFinal(projectId, snapshotId)` działa teraz tylko na **kolidującym scope** targetu. Konwersja pokoju A do oferty końcowej nie zdejmuje już akceptacji, nie zmienia typu i nie narzuca końcowego statusu snapshotom rozłącznego pokoju B.

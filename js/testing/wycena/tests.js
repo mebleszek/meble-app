@@ -1429,6 +1429,133 @@
         }
       }),
 
+      H.makeTest('Wycena ↔ Inwestor', 'Późne etapy procesu utrzymują wybraną końcową ofertę i scoped lustra dla jednego pokoju', 'Pilnuje, czy sekwencja umowa → produkcja → montaż → zakończone dalej działa exact-scope: zachowuje zaakceptowaną ofertę końcową, aktualizuje lustra i nie rusza drugiego pokoju.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function', 'Brak FC.projectStatusSync.setInvestorRoomStatus');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const finalKitchen = FC.quoteSnapshotStore.save({
+            id:'snap_late_kitchen_final',
+            investor:{ id:investorId, name:'Jan Test' },
+            project:{ id:projectId, investorId, status:'wycena' },
+            scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] },
+            commercial:{ preliminary:false, versionName:'Oferta — Kuchnia góra' },
+            meta:{ preliminary:false, versionName:'Oferta — Kuchnia góra' },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            totals:{ grand:150, subtotal:150, discount:0, materials:0, accessories:0, services:0, quoteRates:0 },
+            generatedAt:1712817000000,
+          });
+          const prelimKitchen = FC.quoteSnapshotStore.save({
+            id:'snap_late_kitchen_prelim',
+            investor:{ id:investorId, name:'Jan Test' },
+            project:{ id:projectId, investorId, status:'pomiar' },
+            scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] },
+            commercial:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia góra' },
+            meta:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia góra' },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            totals:{ grand:120, subtotal:120, discount:0, materials:0, accessories:0, services:0, quoteRates:0 },
+            generatedAt:1712816900000,
+          });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, finalKitchen.id, { status:'zaakceptowany', roomIds:['room_kuchnia_gora'] });
+          const statuses = ['umowa','produkcja','montaz','zakonczone'];
+          statuses.forEach((status)=>{
+            const result = FC.projectStatusSync.setInvestorRoomStatus(investorId, 'room_kuchnia_gora', status, { syncSelection:true, refreshUi:false });
+            const investor = FC.investors.getById(investorId);
+            const project = FC.projectStore.getById(projectId);
+            const selectedKitchen = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_kuchnia_gora'] });
+            const selectedSalon = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_salon'] });
+            const kitchenPrelim = FC.quoteSnapshotStore.getById(prelimKitchen.id);
+            const kitchenRoom = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
+            const salonRoom = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_salon');
+            H.assert(result && String(result.masterStatus || '') === status, 'masterStatus nie przeszedł na późny etap dla solo pokoju', { status, result });
+            H.assert(result && String(result.mirrorStatus || '') === status, 'mirrorStatus nie przeszedł na późny etap dla solo pokoju', { status, result });
+            H.assert(kitchenRoom && String(kitchenRoom.projectStatus || '') === status, 'Pokój kuchni nie dostał późnego etapu', { status, rooms:investor && investor.rooms });
+            H.assert(salonRoom && String(salonRoom.projectStatus || '') === 'nowy', 'Drugi pokój nie powinien zmienić statusu przy solo późnym etapie', { status, rooms:investor && investor.rooms });
+            H.assert(project && String(project.status || '') === status, 'projectStore nie odzwierciedla scoped późnego etapu', { status, project });
+            H.assert(result && result.loadedProject && result.loadedProject.meta && String(result.loadedProject.meta.projectStatus || '') === status, 'loadedProject.meta.projectStatus nie jest lustrem późnego etapu', { status, loadedProject: result && result.loadedProject });
+            H.assert(selectedKitchen && String(selectedKitchen.id || '') === String(finalKitchen.id || ''), 'Późny etap zgubił wybraną końcową ofertę dla pokoju', { status, selectedKitchen, all:FC.quoteSnapshotStore.listForProject(projectId) });
+            H.assert(selectedSalon == null, 'Solo późny etap nie powinien tworzyć aktywnej oferty dla drugiego pokoju', { status, selectedSalon, all:FC.quoteSnapshotStore.listForProject(projectId) });
+            H.assert(kitchenPrelim && kitchenPrelim.meta && kitchenPrelim.meta.selectedByClient !== true, 'Późny etap przywrócił martwe zaznaczenie starej oferty wstępnej', { status, kitchenPrelim });
+            H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject(projectId, status, { roomIds:['room_kuchnia_gora'] }) === status, 'Rekomendowany status dla późnego etapu scoped jest błędny', { status, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          });
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Inwestor', 'Ręczne późne etapy są blokowane bez zaakceptowanej końcowej wyceny solo', 'Pilnuje, czy dla umowy, produkcji, montażu i zakończenia nadal trzeba mieć zaakceptowaną końcową ofertę exact-scope dla danego pokoju.', ()=>{
+        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          ['umowa','produkcja','montaz','zakonczone'].forEach((status)=>{
+            const missing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_kuchnia_gora', status);
+            H.assert(missing && missing.blocked === true && missing.requiresGeneration === true && String(missing.generationKind || '') === 'final', 'Bez końcowej wyceny guard powinien blokować późny etap', { status, missing });
+          });
+          const finalKitchen = FC.quoteSnapshotStore.save({
+            id:'snap_late_guard_final',
+            investor:{ id:investorId, name:'Jan Test' },
+            project:{ id:projectId, investorId, status:'wycena' },
+            scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] },
+            commercial:{ preliminary:false, versionName:'Oferta — Kuchnia góra' },
+            meta:{ preliminary:false, versionName:'Oferta — Kuchnia góra' },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            totals:{ grand:150, subtotal:150, discount:0, materials:0, accessories:0, services:0, quoteRates:0 },
+            generatedAt:1712817100000,
+          });
+          ['umowa','produkcja','montaz','zakonczone'].forEach((status)=>{
+            const unaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_kuchnia_gora', status);
+            H.assert(unaccepted && unaccepted.blocked === true && unaccepted.requiresGeneration === false, 'Niezaakceptowana końcowa wycena powinna nadal blokować późny etap', { status, unaccepted });
+          });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, finalKitchen.id, { status:'zaakceptowany', roomIds:['room_kuchnia_gora'] });
+          ['umowa','produkcja','montaz','zakonczone'].forEach((status)=>{
+            const accepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_kuchnia_gora', status);
+            H.assert(accepted && accepted.blocked === false && accepted.ok === true, 'Zaakceptowana końcowa wycena powinna odblokować późny etap', { status, accepted });
+          });
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Inwestor', 'Późny etap jednego pokoju nie rusza zaakceptowanej końcowej oferty drugiego pokoju', 'Pilnuje, czy exact-scope późnych etapów nie zdejmuje akceptacji i nie nadpisuje snapshotów rozłącznego pokoju.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function', 'Brak FC.projectStatusSync.setStatusFromSnapshot');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const finalKitchen = FC.quoteSnapshotStore.save({
+            id:'snap_late_mix_kitchen',
+            investor:{ id:investorId, name:'Jan Test' },
+            project:{ id:projectId, investorId, status:'wycena' },
+            scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] },
+            commercial:{ preliminary:false, versionName:'Oferta — Kuchnia góra' },
+            meta:{ preliminary:false, versionName:'Oferta — Kuchnia góra' },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            totals:{ grand:150, subtotal:150, discount:0, materials:0, accessories:0, services:0, quoteRates:0 },
+            generatedAt:1712817200000,
+          });
+          const finalSalon = FC.quoteSnapshotStore.save({
+            id:'snap_late_mix_salon',
+            investor:{ id:investorId, name:'Jan Test' },
+            project:{ id:projectId, investorId, status:'wycena' },
+            scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] },
+            commercial:{ preliminary:false, versionName:'Oferta — Salon' },
+            meta:{ preliminary:false, versionName:'Oferta — Salon' },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            totals:{ grand:180, subtotal:180, discount:0, materials:0, accessories:0, services:0, quoteRates:0 },
+            generatedAt:1712817210000,
+          });
+          FC.projectStatusSync.setStatusFromSnapshot(finalKitchen, 'zaakceptowany', { roomIds:['room_kuchnia_gora'], syncSelection:true, refreshUi:false });
+          FC.projectStatusSync.setStatusFromSnapshot(finalSalon, 'zaakceptowany', { roomIds:['room_salon'], syncSelection:true, refreshUi:false });
+          const beforeSalon = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_salon'] });
+          H.assert(beforeSalon && String(beforeSalon.id || '') === String(finalSalon.id || ''), 'Setup nie ustawił zaakceptowanej oferty salonu', { beforeSalon, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          const result = FC.projectStatusSync.setInvestorRoomStatus(investorId, 'room_kuchnia_gora', 'montaz', { syncSelection:true, refreshUi:false });
+          const afterKitchen = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_kuchnia_gora'] });
+          const afterSalon = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_salon'] });
+          const salonSnapshot = FC.quoteSnapshotStore.getById(finalSalon.id);
+          const investor = FC.investors.getById(investorId);
+          const kitchenRoom = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_kuchnia_gora');
+          const salonRoom = investor && investor.rooms && investor.rooms.find((room)=> String(room && room.id || '') === 'room_salon');
+          H.assert(result && String(result.masterStatus || '') === 'montaz', 'masterStatus późnego etapu kuchni jest błędny', result);
+          H.assert(afterKitchen && String(afterKitchen.id || '') === String(finalKitchen.id || ''), 'Późny etap kuchni zgubił jej własną końcową ofertę', { afterKitchen, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(afterSalon && String(afterSalon.id || '') === String(finalSalon.id || ''), 'Późny etap kuchni ruszył zaakceptowaną ofertę rozłącznego salonu', { afterSalon, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(salonSnapshot && salonSnapshot.meta && salonSnapshot.meta.selectedByClient === true && String(salonSnapshot.meta.acceptedStage || '') === 'zaakceptowany', 'Snapshot salonu dostał martwy lub obcy stan po późnym etapie kuchni', salonSnapshot);
+          H.assert(kitchenRoom && String(kitchenRoom.projectStatus || '') === 'montaz', 'Pokój kuchni nie wszedł w montaż', investor && investor.rooms);
+          H.assert(salonRoom && String(salonRoom.projectStatus || '') === 'zaakceptowany', 'Rozłączny salon nie powinien zmienić etapu przy montażu kuchni', investor && investor.rooms);
+        });
+      }),
+
+
       H.makeTest('Wycena', 'Zaakceptowana zwykła oferta wygasza wszystkie wyceny wstępne niezależnie od kolejności', 'Pilnuje, czy po akceptacji końcowej wyceny wstępne nie zostają aktywne tylko dlatego, że są wyżej na liście niż zaakceptowana zwykła oferta.', ()=>{
         const preliminary = (snap)=> !!(snap && snap.meta && snap.meta.preliminary);
         const archive = (snap, list)=> !!(preliminary(snap) && list.some((row)=> !preliminary(row) && row && row.meta && row.meta.selectedByClient));
