@@ -1,3 +1,9 @@
+## 2026-04-16 — wycena history/preview/scroll split + krótki modal nazwy
+- `js/app/wycena/wycena-tab-scroll.js` — wydzielona pamięć i przywracanie scrolla historii/podglądu w `Wycena`; `js/tabs/wycena.js` tylko deleguje do modułu.
+- `js/app/wycena/wycena-tab-history.js` — wydzielony render historii ofert, preview snapshotu i wybór aktualnie wyświetlanej oferty bez ruszania workflow statusów `accept/remove/promote`.
+- `js/app/wycena/wycena-tab-selection.js` + `js/app/quote/quote-scope-entry.js` — modal nazwy nowej wyceny używa krótkiego komunikatu nad polem i nie pokazuje dolnego opisu/hintu.
+- Instrukcja antyregresyjna: przy dalszym splicie `Wycena` zostawić workflow statusów (`commitAcceptedSnapshotWithSync`, `reconcileAfterSnapshotRemoval`, `promotePreliminarySnapshotToFinal`, `acceptSnapshot`) w `js/tabs/wycena.js`, dopóki nie powstanie osobny status bridge. Moduły historii/scrolla mają tylko renderować i obsługiwać stan widoku.
+
 ## 2026-04-16 — wycena helper split hotfix
 - `js/tabs/wycena.js` — hotfix po pierwszym splicie helperów: przywrócone lokalne funkcje, które nie miały jeszcze wychodzić z taba (`h`, `getCurrentProjectId`, `getCurrentInvestorId`, `getSnapshotHistory`, `normalizeSnapshot`, `getOfferDraft`, `patchOfferDraft`, `resolveDisplayedQuote`). To usuwa regres `normalizeSnapshot is not defined` / `getCurrentProjectId is not defined` bez cofania samego wydzielenia czystych helperów do `js/app/wycena/wycena-tab-helpers.js`.
 - Instrukcja antyregresyjna: przy kolejnych etapach splitu `js/tabs/wycena.js` najpierw porównać listę funkcji wyciętych z listą realnych wywołań w tabie. Nie wynosić z taba helperów stanu/odczytu draftu/historii ani funkcji render-selection bez jednoczesnego podpięcia nowego modułu i testów.

@@ -7,6 +7,8 @@
   const FC = window.FC;
 
   const wycenaTabHelpers = FC.wycenaTabHelpers || {};
+  const wycenaTabScroll = FC.wycenaTabScroll || {};
+  const wycenaTabHistory = FC.wycenaTabHistory || {};
   const money = wycenaTabHelpers.money;
   const num = wycenaTabHelpers.num;
   const buildRowMeta = wycenaTabHelpers.buildRowMeta;
@@ -82,57 +84,45 @@
     return null;
   }
 
+  function getHistoryPreviewState(){
+    return { lastQuote, previewSnapshotId, shouldScrollToPreview, lastKnownProjectStatus };
+  }
+
+  function patchHistoryPreviewState(patch){
+    const next = patch && typeof patch === 'object' ? patch : {};
+    if(Object.prototype.hasOwnProperty.call(next, 'lastQuote')) lastQuote = next.lastQuote || null;
+    if(Object.prototype.hasOwnProperty.call(next, 'previewSnapshotId')) previewSnapshotId = String(next.previewSnapshotId || '');
+    if(Object.prototype.hasOwnProperty.call(next, 'shouldScrollToPreview')) shouldScrollToPreview = !!next.shouldScrollToPreview;
+    if(Object.prototype.hasOwnProperty.call(next, 'lastKnownProjectStatus')) lastKnownProjectStatus = String(next.lastKnownProjectStatus || '');
+  }
+
+  function getQuoteScrollState(){
+    return { shouldRestoreScroll, pendingScrollRestore };
+  }
+
+  function patchQuoteScrollState(patch){
+    const next = patch && typeof patch === 'object' ? patch : {};
+    if(Object.prototype.hasOwnProperty.call(next, 'shouldRestoreScroll')) shouldRestoreScroll = !!next.shouldRestoreScroll;
+    if(Object.prototype.hasOwnProperty.call(next, 'pendingScrollRestore')) pendingScrollRestore = next.pendingScrollRestore || null;
+  }
+
   function resolveDisplayedQuote(){
-    const history = getSnapshotHistory();
-    const selected = history.find((row)=> isSelectedSnapshot(row)) || null;
-    const firstActive = history.find((row)=> !isArchivedPreliminary(row, history, getProjectStatusForHistory(history))) || history[0] || null;
-    const status = getProjectStatusForHistory(history);
-    const latestPreliminary = history.find((row)=> isPreliminarySnapshot(row)) || null;
-    const latestFinal = history.find((row)=> !isPreliminarySnapshot(row)) || null;
-    const preview = snapshotById(previewSnapshotId, history);
-
-    if(preview){
-      lastQuote = preview;
-      return normalizeSnapshot(preview);
-    }
-    if(previewSnapshotId) previewSnapshotId = '';
-
-    if(status === 'pomiar'){
-      const candidate = (selected && isPreliminarySnapshot(selected) ? selected : null) || latestPreliminary;
-      if(candidate){
-        lastQuote = candidate;
-        return normalizeSnapshot(candidate);
-      }
-    }
-    if(status === 'wstepna_wycena'){
-      if(latestPreliminary){
-        lastQuote = latestPreliminary;
-        return normalizeSnapshot(latestPreliminary);
-      }
-    }
-    if(status === 'wycena'){
-      if(latestFinal){
-        lastQuote = latestFinal;
-        return normalizeSnapshot(latestFinal);
-      }
-    }
-    if(isFinalStatus(status)){
-      const candidate = (selected && !isPreliminarySnapshot(selected) ? selected : null) || latestFinal;
-      if(candidate){
-        lastQuote = candidate;
-        return normalizeSnapshot(candidate);
-      }
-    }
-    if(selected && lastQuote && getSnapshotId(lastQuote) === getSnapshotId(selected) && !isFinalStatus(status) && status !== 'pomiar'){
-      lastQuote = null;
-    }
-    if(lastQuote){
-      const normalized = normalizeSnapshot(lastQuote);
-      if(normalized) return normalized;
-    }
-    if(firstActive){
-      lastQuote = firstActive;
-      return normalizeSnapshot(firstActive);
+    if(wycenaTabHistory && typeof wycenaTabHistory.resolveDisplayedQuote === 'function'){
+      try{
+        return wycenaTabHistory.resolveDisplayedQuote({
+          getSnapshotHistory,
+          getState:getHistoryPreviewState,
+          setState:patchHistoryPreviewState,
+          isSelectedSnapshot,
+          isArchivedPreliminary,
+          isPreliminarySnapshot,
+          isFinalStatus,
+          snapshotById,
+          normalizeSnapshot,
+          getSnapshotId,
+          currentProjectStatus,
+        });
+      }catch(_){ }
     }
     return null;
   }
@@ -386,116 +376,57 @@
   }
 
   function getQuoteHistoryItemDomId(snapshotId){
+    if(wycenaTabScroll && typeof wycenaTabScroll.getQuoteHistoryItemDomId === 'function'){
+      try{ return wycenaTabScroll.getQuoteHistoryItemDomId(snapshotId); }catch(_){ }
+    }
     const key = String(snapshotId || '').trim();
     return key ? `quoteHistoryItem-${key}` : '';
   }
 
   function getQuoteHistoryNeighborDomId(snapshotId){
-    try{
-      const currentId = getQuoteHistoryItemDomId(snapshotId);
-      const current = currentId ? document.getElementById(currentId) : null;
-      if(!current) return 'quoteHistorySection';
-      let next = current.nextElementSibling;
-      while(next){
-        if(next.matches && next.matches('[data-quote-history-id]') && next.id) return next.id;
-        next = next.nextElementSibling;
-      }
-      let prev = current.previousElementSibling;
-      while(prev){
-        if(prev.matches && prev.matches('[data-quote-history-id]') && prev.id) return prev.id;
-        prev = prev.previousElementSibling;
-      }
-    }catch(_){ }
+    if(wycenaTabScroll && typeof wycenaTabScroll.getQuoteHistoryNeighborDomId === 'function'){
+      try{ return wycenaTabScroll.getQuoteHistoryNeighborDomId(snapshotId); }catch(_){ }
+    }
     return 'quoteHistorySection';
   }
 
   function getScrollY(){
-    try{
-      if(typeof window.scrollY === 'number') return Math.max(0, Math.round(window.scrollY));
-      const doc = document.documentElement || document.body;
-      return Math.max(0, Math.round(Number(doc && doc.scrollTop) || 0));
-    }catch(_){ return 0; }
+    if(wycenaTabScroll && typeof wycenaTabScroll.getScrollY === 'function'){
+      try{ return wycenaTabScroll.getScrollY(); }catch(_){ }
+    }
+    return 0;
   }
 
   function rememberQuoteScroll(anchorId, fallbackAnchorId){
-    const scrollY = getScrollY();
-    let domId = String(anchorId || '').trim();
-    let fallbackDomId = String(fallbackAnchorId || '').trim();
-    let anchor = domId ? document.getElementById(domId) : null;
-    if(!anchor && fallbackDomId) anchor = document.getElementById(fallbackDomId);
-    if(!anchor){
-      try{
-        const focused = document.activeElement;
-        anchor = focused && typeof focused.closest === 'function'
-          ? focused.closest('[data-quote-history-id], #quotePreviewStart, #quoteActivePreview, #quoteHistorySection')
-          : null;
-        if(anchor && !domId) domId = String(anchor.id || '').trim();
-      }catch(_){ anchor = null; }
+    if(wycenaTabScroll && typeof wycenaTabScroll.rememberQuoteScroll === 'function'){
+      try{ return wycenaTabScroll.rememberQuoteScroll(anchorId, fallbackAnchorId, { getState:getQuoteScrollState, setState:patchQuoteScrollState }); }catch(_){ }
     }
-    let offset = 0;
-    if(anchor){
-      try{
-        const rect = anchor.getBoundingClientRect();
-        const absoluteTop = scrollY + rect.top;
-        offset = scrollY - absoluteTop;
-      }catch(_){ offset = 0; }
-    }
-    try{
-      const active = document.activeElement;
-      if(active && typeof active.blur === 'function') active.blur();
-    }catch(_){ }
-    pendingScrollRestore = {
-      scrollY: Math.max(0, Math.round(scrollY)),
-      domId,
-      fallbackDomId,
-      offset: Number.isFinite(offset) ? offset : 0,
-      ts: Date.now(),
-    };
-    shouldRestoreScroll = true;
   }
 
   function clearRememberedQuoteScroll(){
-    pendingScrollRestore = null;
-    shouldRestoreScroll = false;
+    if(wycenaTabScroll && typeof wycenaTabScroll.clearRememberedQuoteScroll === 'function'){
+      try{ return wycenaTabScroll.clearRememberedQuoteScroll({ setState:patchQuoteScrollState }); }catch(_){ }
+    }
+    patchQuoteScrollState({ pendingScrollRestore:null, shouldRestoreScroll:false });
   }
 
   function restoreRememberedQuoteScroll(){
-    const snapshot = pendingScrollRestore && typeof pendingScrollRestore === 'object' ? Object.assign({}, pendingScrollRestore) : null;
-    clearRememberedQuoteScroll();
-    if(!snapshot) return;
-
-    const resolveTargetTop = ()=>{
-      try{
-        const anchor = (snapshot.domId && document.getElementById(snapshot.domId))
-          || (snapshot.fallbackDomId && document.getElementById(snapshot.fallbackDomId));
-        const baseTop = anchor
-          ? (getScrollY() + anchor.getBoundingClientRect().top)
-          : (Number(snapshot.scrollY) || 0);
-        return Math.max(0, Math.round(baseTop + (Number(snapshot.offset) || 0)));
-      }catch(_){
-        return Math.max(0, Math.round(Number(snapshot.scrollY) || 0));
-      }
-    };
-
-    const applyOnce = ()=>{
-      try{
-        const targetTop = resolveTargetTop();
-        if(Math.abs(getScrollY() - targetTop) > 1) window.scrollTo(0, targetTop);
-      }catch(_){ }
-    };
-
-    const delayed = [0, 16, 48, 120, 240, 420];
-    delayed.forEach((delay)=>{
-      try{
-        if(delay === 0) requestAnimationFrame(()=> requestAnimationFrame(applyOnce));
-        else setTimeout(applyOnce, delay);
-      }catch(_){
-        try{ setTimeout(applyOnce, delay); }catch(__){ }
-      }
-    });
+    if(wycenaTabScroll && typeof wycenaTabScroll.restoreRememberedQuoteScroll === 'function'){
+      try{ return wycenaTabScroll.restoreRememberedQuoteScroll({ getState:getQuoteScrollState, setState:patchQuoteScrollState }); }catch(_){ }
+    }
   }
 
   function getProjectStatusForHistory(history){
+    if(wycenaTabHistory && typeof wycenaTabHistory.getProjectStatusForHistory === 'function'){
+      try{
+        return wycenaTabHistory.getProjectStatusForHistory(history, {
+          getSnapshotHistory,
+          currentProjectStatus,
+          isSelectedSnapshot,
+          getState:getHistoryPreviewState,
+        });
+      }catch(_){ }
+    }
     const list = Array.isArray(history) ? history : getSnapshotHistory();
     return currentProjectStatus(list.find((row)=> isSelectedSnapshot(row)) || list[0] || lastQuote || null);
   }
@@ -755,120 +686,38 @@
   }
 
   function renderHistory(card, ctx, currentQuote){
-    const history = getSnapshotHistory();
-    const activeId = getSnapshotId(currentQuote);
-    const projectStatus = getProjectStatusForHistory(history);
-    const section = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
-    section.appendChild(h('h4', { text:'Historia wycen', style:'margin:0 0 10px' }));
-    if(!history.length){
-      section.appendChild(h('div', { class:'muted', text:'Brak zapisanych wersji oferty dla tego projektu.' }));
-      card.appendChild(section);
-      return;
+    if(wycenaTabHistory && typeof wycenaTabHistory.renderHistory === 'function'){
+      try{
+        return wycenaTabHistory.renderHistory(card, ctx, currentQuote, {
+          h,
+          money,
+          formatDateTime,
+          getVersionName,
+          getMaterialScopeLabel,
+          getSnapshotHistory,
+          normalizeSnapshot,
+          getSnapshotId,
+          isSelectedSnapshot,
+          isRejectedSnapshot,
+          isPreliminarySnapshot,
+          isArchivedPreliminary,
+          getRejectedReason,
+          getProjectStatusForHistory,
+          canAcceptSnapshot,
+          acceptSnapshot,
+          askConfirm,
+          rememberQuoteScroll,
+          clearRememberedQuoteScroll,
+          getQuoteHistoryItemDomId,
+          getQuoteHistoryNeighborDomId,
+          reconcileAfterSnapshotRemoval,
+          promotePreliminarySnapshotToFinal,
+          render,
+          getState:getHistoryPreviewState,
+          setState:patchHistoryPreviewState,
+        });
+      }catch(_){ }
     }
-    const wrap = h('div', { class:'quote-history', id:'quoteHistorySection' });
-    history.slice(0, 8).forEach((snapshot, index)=>{
-      const snap = normalizeSnapshot(snapshot) || {};
-      const snapId = getSnapshotId(snap);
-      const isActive = !!activeId && snapId === activeId;
-      const isSelected = isSelectedSnapshot(snap);
-      const isRejected = isRejectedSnapshot(snap);
-      const isPreliminary = isPreliminarySnapshot(snap);
-      const isArchived = isArchivedPreliminary(snap, history, projectStatus);
-      const item = h('article', { id:getQuoteHistoryItemDomId(snapId), 'data-quote-history-id':snapId, class:`quote-history__item${isActive ? ' is-active' : ''}${isArchived ? ' is-archived' : ''}` });
-      const top = h('div', { class:'quote-history__top' });
-      const titleBox = h('div', { class:'quote-history__content' });
-      const roomLabels = Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
-      const titleRow = h('div', { class:'quote-history__title-row' });
-      const versionName = getVersionName(snap);
-      titleRow.appendChild(h('div', { class:'quote-history__title', text:versionName || (index === 0 ? 'Ostatnia wersja oferty' : 'Wersja oferty') }));
-      if(isPreliminary) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--preliminary', text:'Wstępna' }));
-      if(isSelected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--selected', text:'Zaakceptowana' }));
-      if(isRejected) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--archived', text:'Odrzucona' }));
-      if(isArchived) titleRow.appendChild(h('span', { class:'quote-history__badge quote-history__badge--archived', text:'Archiwalna po pomiarze' }));
-      titleBox.appendChild(titleRow);
-      const meta = [];
-      meta.push(`Wersja oferty: ${formatDateTime(snap.generatedAt)}`);
-      if(roomLabels.length) meta.push(`Pomieszczenia: ${roomLabels.join(', ')}`);
-      meta.push(`Zakres: ${getMaterialScopeLabel(snap)}`);
-      meta.push(`Razem: ${money(snap.totals && snap.totals.grand)}`);
-      if(isSelected && Number(snap.meta && snap.meta.acceptedAt) > 0) meta.push(`Zaakceptowana: ${formatDateTime(snap.meta.acceptedAt)}`);
-      if(isRejected) meta.push(getRejectedReason(snap) === 'scope_changed'
-        ? 'Ta oferta została odrzucona po zmianie zakresu zaakceptowanej wyceny.'
-        : 'Ta oferta została odrzucona i nie jest już aktywną podstawą statusów.');
-      if(isArchived) meta.push('Ta wycena wstępna została wygaszona po stworzeniu wyceny po pomiarze.');
-      titleBox.appendChild(h('div', { class:'quote-history__meta', text:meta.join(' • ') }));
-      top.appendChild(titleBox);
-      item.appendChild(top);
-      const actions = h('div', { class:'quote-history__actions' });
-      const openBtn = h('button', { class:isActive ? 'btn-success' : 'btn', type:'button', text:isActive ? 'Wyświetlana' : 'Podgląd' });
-      if(isActive || isArchived) openBtn.disabled = true;
-      openBtn.addEventListener('click', ()=>{
-        clearRememberedQuoteScroll();
-        previewSnapshotId = snapId;
-        lastQuote = snap;
-        shouldScrollToPreview = true;
-        render(ctx);
-      });
-      actions.appendChild(openBtn);
-      const acceptLabel = isSelected ? 'Zaakceptowana' : (isRejected ? 'Odrzucona' : 'Zaakceptuj');
-      const chooseBtn = h('button', { class:'btn-success', type:'button', text:acceptLabel });
-      if(!canAcceptSnapshot(snap, history)) chooseBtn.disabled = true;
-      chooseBtn.addEventListener('click', ()=> {
-        void acceptSnapshot(snap, ctx, { rememberScroll:true, anchorId:getQuoteHistoryItemDomId(snapId), history });
-      });
-      actions.appendChild(chooseBtn);
-      const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
-      if(isArchived) pdfBtn.disabled = true;
-      pdfBtn.addEventListener('click', ()=>{
-        try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(snap); }catch(_){ }
-      });
-      actions.appendChild(pdfBtn);
-      const deleteBtn = h('button', { class:'btn-danger', type:'button', text:'Usuń' });
-      deleteBtn.addEventListener('click', async ()=>{
-        rememberQuoteScroll(getQuoteHistoryItemDomId(snapId), getQuoteHistoryNeighborDomId(snapId));
-        const confirmed = await askConfirm({
-          title:'USUNĄĆ OFERTĘ?',
-          message:'Ta wersja oferty zostanie trwale usunięta z historii.',
-          confirmText:'Usuń ofertę',
-          cancelText:'Wróć',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        });
-        if(!confirmed){
-          clearRememberedQuoteScroll();
-          return;
-        }
-        try{
-          if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
-        }catch(_){ }
-        try{
-          reconcileAfterSnapshotRemoval(snap, { refreshUi:false, fallbackStatus:'nowy' });
-        }catch(_){ }
-        const nextHistory = getSnapshotHistory();
-        if(previewSnapshotId === snapId) previewSnapshotId = '';
-        if(isActive || getSnapshotId(lastQuote) === snapId) lastQuote = nextHistory.find((row)=> !isArchivedPreliminary(row, nextHistory, getProjectStatusForHistory(nextHistory))) || nextHistory[0] || null;
-        render(ctx);
-      });
-      actions.appendChild(deleteBtn);
-      if(isPreliminary && isSelected && !isArchived){
-        const convertBtn = h('button', { class:'btn quote-history__convert-btn', type:'button', text:'Końcowa' });
-        convertBtn.addEventListener('click', ()=>{
-          rememberQuoteScroll(getQuoteHistoryItemDomId(snapId));
-          const promoteResult = promotePreliminarySnapshotToFinal(snap);
-          const converted = promoteResult && (promoteResult.convertedSnapshot || promoteResult.snapshot) || null;
-          if(converted){
-            previewSnapshotId = snapId;
-            lastQuote = converted;
-            render(ctx);
-          }
-        });
-        actions.appendChild(convertBtn);
-      }
-      item.appendChild(actions);
-      wrap.appendChild(item);
-    });
-    section.appendChild(wrap);
-    card.appendChild(section);
   }
 
   let lastQuote = null;
@@ -1002,12 +851,16 @@
   }
 
   function showSnapshotPreview(snapshotId){
-    const snap = snapshotById(snapshotId, getSnapshotHistory());
-    if(!snap) return false;
-    previewSnapshotId = String(snapshotId || '');
-    lastQuote = snap;
-    shouldScrollToPreview = true;
-    return true;
+    if(wycenaTabHistory && typeof wycenaTabHistory.showSnapshotPreview === 'function'){
+      try{
+        return !!wycenaTabHistory.showSnapshotPreview(snapshotId, {
+          snapshotById,
+          getSnapshotHistory,
+          setState:patchHistoryPreviewState,
+        });
+      }catch(_){ }
+    }
+    return false;
   }
 
   FC.wycenaTabDebug = Object.assign({}, FC.wycenaTabDebug || {}, {

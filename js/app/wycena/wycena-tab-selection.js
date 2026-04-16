@@ -132,8 +132,8 @@
       roomIds:selectedRooms,
       preliminary,
       title: preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY',
-      message:`Dla zakresu „${scope.scopeLabel}” jest już ${snapshotLabel}. Nadaj unikatową nazwę kolejnemu wariantowi.`,
-      hint:'',
+      message:`Dla zakresu „${scope.scopeLabel}” istnieje już ${snapshotLabel}. Nadaj unikatową nazwę kolejnemu wariantowi.`,
+      hint:false,
       submitLabel:'OK',
       cancelLabel:'Anuluj',
     });
