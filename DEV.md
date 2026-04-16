@@ -1212,3 +1212,7 @@ Dopiero potem go zmieniać.
 - `js/testing/wycena/tests.js` ma być cienkim runnerem zbierającym testy z rejestru; nie doklejać z powrotem dużych inline suite’ów do tego pliku.
 - Przy kolejnych paczkach antyregresyjnych dla Wycena dopinać nowe suite’y jako osobne pliki w `suites/`, zachowując jeden runner i jedną stronę testową.
 
+
+## WYCENA — split i antyregresja
+- `js/app/wycena/wycena-tab-helpers.js` przechowuje czyste helpery formatowania, klasyfikacji snapshotów i normalizacji scope dla zakładki `Wycena`; nie wrzucać ich z powrotem do `js/tabs/wycena.js`.
+- `js/tabs/wycena.js` po starcie splitu ma być odchudzany etapami; najpierw helpery bez skutków ubocznych, dopiero później selection/history/status workflow.

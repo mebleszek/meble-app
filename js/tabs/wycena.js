@@ -6,214 +6,24 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  function money(v){ return `${(Number(v)||0).toFixed(2)} PLN`; }
-
-  function h(tag, attrs, children){
-    const el = document.createElement(tag);
-    if(attrs){
-      Object.keys(attrs).forEach((k)=>{
-        if(k === 'class') el.className = attrs[k];
-        else if(k === 'text') el.textContent = attrs[k];
-        else if(k === 'html') el.innerHTML = attrs[k];
-        else el.setAttribute(k, attrs[k]);
-      });
-    }
-    (children || []).forEach((ch)=> el.appendChild(ch));
-    return el;
-  }
-
-  function num(value, fallback){
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  function buildRowMeta(row){
-    const parts = [];
-    const category = String(row && row.category || '').trim();
-    const note = String(row && row.note || '').trim();
-    const rooms = String(row && row.rooms || '').trim();
-    if(category) parts.push(category);
-    if(note && (!category || note !== category)) parts.push(note);
-    if(rooms && (!note || rooms !== note)) parts.push(`Pomieszczenia: ${rooms}`);
-    return parts.join(' • ');
-  }
-
-  function formatDateTime(value){
-    const ts = Number(value) > 0 ? Number(value) : Date.parse(String(value || ''));
-    if(!Number.isFinite(ts) || ts <= 0) return '—';
-    try{
-      const d = new Date(ts);
-      const pad = (n)=> String(n).padStart(2, '0');
-      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }catch(_){ return '—'; }
-  }
-
-  function getCurrentProjectId(){
-    try{ return FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
-  }
-
-  function getCurrentInvestorId(){
-    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }catch(_){ return ''; }
-  }
-
-  function getSnapshotHistory(){
-    try{
-      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
-      const projectId = String(getCurrentProjectId() || '');
-      if(projectId) return FC.quoteSnapshotStore.listForProject(projectId);
-      const investorId = String(getCurrentInvestorId() || '');
-      if(investorId && typeof FC.quoteSnapshotStore.listForInvestor === 'function') return FC.quoteSnapshotStore.listForInvestor(investorId);
-    }catch(_){ }
-    return [];
-  }
-
-  function normalizeSnapshot(source){
-    const snap = source && typeof source === 'object' ? source : null;
-    if(!snap) return null;
-    if(snap.lines && snap.totals) return snap;
-    try{
-      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(snap);
-    }catch(_){ }
-    return snap;
-  }
-
-  function getOfferDraft(){
-    try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function') return FC.quoteOfferStore.getCurrentDraft();
-    }catch(_){ }
-    return { rateSelections:[], commercial:{} };
-  }
-
-  function patchOfferDraft(patch){
-    try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function') return FC.quoteOfferStore.patchCurrentDraft(patch);
-    }catch(_){ }
-    return null;
-  }
-
-  function resolveDisplayedQuote(){
-    const history = getSnapshotHistory();
-    const selected = history.find((row)=> isSelectedSnapshot(row)) || null;
-    const firstActive = history.find((row)=> !isArchivedPreliminary(row, history, getProjectStatusForHistory(history))) || history[0] || null;
-    const status = getProjectStatusForHistory(history);
-    const latestPreliminary = history.find((row)=> isPreliminarySnapshot(row)) || null;
-    const latestFinal = history.find((row)=> !isPreliminarySnapshot(row)) || null;
-    const preview = snapshotById(previewSnapshotId, history);
-
-    if(preview){
-      lastQuote = preview;
-      return normalizeSnapshot(preview);
-    }
-    if(previewSnapshotId) previewSnapshotId = '';
-
-    if(status === 'pomiar'){
-      const candidate = (selected && isPreliminarySnapshot(selected) ? selected : null) || latestPreliminary;
-      if(candidate){
-        lastQuote = candidate;
-        return normalizeSnapshot(candidate);
-      }
-    }
-    if(status === 'wstepna_wycena'){
-      if(latestPreliminary){
-        lastQuote = latestPreliminary;
-        return normalizeSnapshot(latestPreliminary);
-      }
-    }
-    if(status === 'wycena'){
-      if(latestFinal){
-        lastQuote = latestFinal;
-        return normalizeSnapshot(latestFinal);
-      }
-    }
-    if(isFinalStatus(status)){
-      const candidate = (selected && !isPreliminarySnapshot(selected) ? selected : null) || latestFinal;
-      if(candidate){
-        lastQuote = candidate;
-        return normalizeSnapshot(candidate);
-      }
-    }
-    if(selected && lastQuote && getSnapshotId(lastQuote) === getSnapshotId(selected) && !isFinalStatus(status) && status !== 'pomiar'){
-      lastQuote = null;
-    }
-    if(lastQuote){
-      const normalized = normalizeSnapshot(lastQuote);
-      if(normalized) return normalized;
-    }
-    if(firstActive){
-      lastQuote = firstActive;
-      return normalizeSnapshot(firstActive);
-    }
-    return null;
-  }
-
-  function getSnapshotId(snapshot){
-    try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
-  }
-
-  const STATUS_RANK = {
-    nowy:0,
-    wstepna_wycena:1,
-    pomiar:2,
-    wycena:3,
-    zaakceptowany:4,
-    umowa:5,
-    produkcja:6,
-    montaz:7,
-    zakonczone:8,
-    odrzucone:-1,
-  };
-
-  function normalizeStatusKey(value){
-    return String(value || '').trim().toLowerCase();
-  }
-
-  function statusRank(value){
-    const key = normalizeStatusKey(value);
-    return Object.prototype.hasOwnProperty.call(STATUS_RANK, key) ? STATUS_RANK[key] : -99;
-  }
-
-  function isFinalStatus(value){
-    const key = normalizeStatusKey(value);
-    return key === 'zaakceptowany' || key === 'umowa' || key === 'produkcja' || key === 'montaz' || key === 'zakonczone';
-  }
-
-  function isSelectedSnapshot(snapshot){
-    try{ return !!(snapshot && snapshot.meta && snapshot.meta.selectedByClient); }catch(_){ return false; }
-  }
-
-  function isRejectedSnapshot(snapshot){
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isRejectedSnapshot === 'function') return !!FC.quoteSnapshotStore.isRejectedSnapshot(snapshot);
-    }catch(_){ }
-    return !!(snapshot && snapshot.meta && (Number(snapshot.meta.rejectedAt) > 0 || String(snapshot.meta.rejectedReason || '').trim()));
-  }
-
-  function getRejectedReason(snapshot){
-    try{ return String(snapshot && snapshot.meta && snapshot.meta.rejectedReason || '').trim().toLowerCase(); }catch(_){ return ''; }
-  }
-
-  function isPreliminarySnapshot(snapshot){
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isPreliminarySnapshot === 'function') return !!FC.quoteSnapshotStore.isPreliminarySnapshot(snapshot);
-    }catch(_){ }
-    return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
-  }
-
-  function normalizeRoomIds(roomIds){
-    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.normalizeRoomIds === 'function'){
-      try{ return FC.quoteSnapshotStore.normalizeRoomIds(roomIds); }catch(_){ }
-    }
-    return Array.isArray(roomIds)
-      ? Array.from(new Set(roomIds.map((item)=> String(item || '').trim()).filter(Boolean)))
-      : [];
-  }
-
-  function getSnapshotRoomIds(snapshot){
-    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSnapshotRoomIds === 'function'){
-      try{ return FC.quoteSnapshotStore.getSnapshotRoomIds(snapshot); }catch(_){ }
-    }
-    return normalizeRoomIds(snapshot && snapshot.scope && snapshot.scope.selectedRooms);
-  }
+  const wycenaTabHelpers = FC.wycenaTabHelpers || {};
+  const money = wycenaTabHelpers.money;
+  const num = wycenaTabHelpers.num;
+  const buildRowMeta = wycenaTabHelpers.buildRowMeta;
+  const formatDateTime = wycenaTabHelpers.formatDateTime;
+  const getSnapshotId = wycenaTabHelpers.getSnapshotId;
+  const normalizeStatusKey = wycenaTabHelpers.normalizeStatusKey;
+  const statusRank = wycenaTabHelpers.statusRank;
+  const isFinalStatus = wycenaTabHelpers.isFinalStatus;
+  const isSelectedSnapshot = wycenaTabHelpers.isSelectedSnapshot;
+  const isRejectedSnapshot = wycenaTabHelpers.isRejectedSnapshot;
+  const getRejectedReason = wycenaTabHelpers.getRejectedReason;
+  const isPreliminarySnapshot = wycenaTabHelpers.isPreliminarySnapshot;
+  const normalizeRoomIds = wycenaTabHelpers.normalizeRoomIds;
+  const getSnapshotRoomIds = wycenaTabHelpers.getSnapshotRoomIds;
+  const getMaterialScopeMode = wycenaTabHelpers.getMaterialScopeMode;
+  const getMaterialScopeLabel = wycenaTabHelpers.getMaterialScopeLabel;
+  const snapshotById = wycenaTabHelpers.snapshotById;
 
   function getAllActiveRoomIds(){
     try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()) : []; }catch(_){ return []; }
@@ -458,26 +268,6 @@
       || defaultVersionName(isPreliminarySnapshot(snap), snap && snap.scope ? { scope:snap.scope } : {});
   }
 
-  function getMaterialScopeMode(snapshotOrScope){
-    const source = snapshotOrScope && snapshotOrScope.scope ? snapshotOrScope.scope : snapshotOrScope;
-    const explicit = String(source && source.materialScopeMode || '').trim();
-    if(explicit) return explicit;
-    try{
-      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.materialScopeMode === 'function') return FC.quoteSnapshot.materialScopeMode(source && source.materialScope);
-    }catch(_){ }
-    try{
-      if(FC.rozrysScope && typeof FC.rozrysScope.getRozrysScopeMode === 'function') return FC.rozrysScope.getRozrysScopeMode(source && source.materialScope);
-    }catch(_){ }
-    return 'both';
-  }
-
-  function getMaterialScopeLabel(snapshotOrScope){
-    const mode = getMaterialScopeMode(snapshotOrScope);
-    if(mode === 'corpus') return 'Same korpusy';
-    if(mode === 'fronts') return 'Same fronty';
-    return 'Korpusy + fronty';
-  }
-
   function normalizeDraftSelection(draft){
     try{
       if(FC.wycenaCore && typeof FC.wycenaCore.normalizeQuoteSelection === 'function') return FC.wycenaCore.normalizeQuoteSelection(draft && draft.selection);
@@ -531,13 +321,6 @@
       roomsText: roomLabels.length ? roomLabels.join(', ') : 'Brak pomieszczeń',
       scopeText: getMaterialScopeLabel(selection),
     };
-  }
-
-  function snapshotById(id, history){
-    const key = String(id || '');
-    if(!key) return null;
-    const list = Array.isArray(history) ? history : getSnapshotHistory();
-    return list.find((row)=> getSnapshotId(row) === key) || null;
   }
 
   function getQuoteHistoryItemDomId(snapshotId){
