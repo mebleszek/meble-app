@@ -600,14 +600,6 @@
     };
   }
 
-  function restoreAcceptedSnapshot(snapshot, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return null;
-    const targetStatus = normalizeStatus(options && options.status || (isPreliminarySnapshot(snap) ? 'pomiar' : 'zaakceptowany'));
-    if(!targetStatus) return null;
-    return commitAcceptedSnapshot(snap, targetStatus, options || {});
-  }
-
   FC.projectStatusSync = {
     normalizeStatus,
     statusRank,
@@ -631,7 +623,6 @@
     setInvestorRoomStatus,
     setStatusFromSnapshot,
     commitAcceptedSnapshot,
-    restoreAcceptedSnapshot,
     reconcileStatusAfterSnapshotRemoval,
     promotePreliminarySnapshotToFinal,
     _debug:{

@@ -1,22 +1,3 @@
-## 2026-04-16 — safe quote restore v1
-- `js/app/quote/quote-snapshot-store.js` — dodany minimalny, scoped helper `restoreSnapshotForProject(projectId, snapshotId, options)` oparty na istniejącej ścieżce `markSelectedForProject()`. Restore nie dodaje nowego pół-silnika: tylko przywraca target do aktywnej oferty exact-scope i zostawia rozłączne scope nietknięte.
-- `js/app/project/project-status-sync.js` — dodany lekki wrapper `restoreAcceptedSnapshot(snapshot, options)`, który deleguje restore do już istniejącego flow `commitAcceptedSnapshot()`. Dzięki temu restore używa tej samej centralnej ścieżki statusów co zwykła akceptacja, zamiast tworzyć osobną logikę statusową.
-- `js/tabs/wycena.js` — dodana mała akcja `Przywróć` tylko dla ofert przywracalnych (`odrzucona` lub `archiwalna po pomiarze`). `Wycena` nie układa statusów lokalnie; tylko pyta o potwierdzenie i deleguje restore do `project-status-sync`.
-- `js/testing/wycena/tests.js` — dodane antyregresje: (1) restore odrzuconej oferty scoped nie rusza rozłącznego pokoju, (2) `Wycena` deleguje restore do `FC.projectStatusSync.restoreAcceptedSnapshot`.
-- Instrukcja antyregresyjna: przy kolejnych zmianach restore nie dopisywać nowej, równoległej logiki wyboru snapshotów. Jeśli restore ma działać inaczej biznesowo, rozszerzać `markSelectedForProject()` / centralny sync, a nie dodawać osobny boczny mechanizm w `Wycena`.
-
-## 2026-04-16 — restore rollback hotfix
-- `js/app/quote/quote-snapshot-store.js`, `js/app/project/project-status-sync.js`, `js/tabs/wycena.js`, `js/testing/wycena/tests.js` — cofnięty świeży feature restore ofert do ostatniej stabilnej wersji po regresji, w której przyciski w aplikacji przestawały wykonywać akcje. Priorytetem był powrót pełnej interaktywności programu; restore ofert wróci później jako osobna, bezpieczniejsza paczka.
-- `index.html`, `dev_tests.html` — podbity cache-busting po rollbacku, żeby urządzenia mobilne nie mieszały nowych i starych modułów.
-- Instrukcja antyregresyjna: jeśli nowa funkcja w `Wycena` po wdrożeniu powoduje szeroką utratę interakcji/przycisków, najpierw wracać do ostatniej stabilnej wersji modułów flow (`wycena.js`, `project-status-sync.js`, `quote-snapshot-store.js`) i dopiero potem wdrażać feature ponownie mniejszym krokiem. Nie zostawiać w repo paczki „pół-działającej”, nawet jeśli sama logika biznesowa wygląda obiecująco.
-
-## 2026-04-16 — quote restore flow
-- `js/app/quote/quote-snapshot-store.js` — dodany scoped helper `restoreSnapshotForProject(projectId, snapshotId, options)`. Przywrócenie starej oferty działa tylko w exact scope targetu i archiwizuje / odznacza wyłącznie kolidujące snapshoty tego samego zakresu; rozłączne pokoje nie mogą tracić własnej zaakceptowanej oferty przez restore.
-- `js/app/project/project-status-sync.js` — dodany centralny helper `restoreAcceptedSnapshot(snapshot, options)`. Restore oferty przechodzi tą samą ścieżką co inne kluczowe flow statusowe: najpierw scoped stan snapshotu, potem centralny sync statusu pokoju/projektu; nie dopisywać przywracania bokiem w UI.
-- `js/tabs/wycena.js` — dodana akcja `Przywróć` dla ofert przywracalnych (odrzuconych scope-change / archiwalnych po pomiarze). `Wycena` tylko deleguje restore do centralnego syncu; nie układa lokalnie statusów po swojemu.
-- `js/testing/wycena/tests.js` — dodane antyregresje: (1) restore odrzuconej oferty scoped nie rusza rozłącznego pokoju, (2) `Wycena` deleguje restore do `FC.projectStatusSync.restoreAcceptedSnapshot`.
-- Instrukcja antyregresyjna: przy każdej zmianie logiki przywracania testować dwa równoległe scope naraz — scope przywracany i scope rozłączny z własną zaakceptowaną ofertą. Restore ma zmieniać tylko `selectedByClient`, `accepted*`, `rejected*` i statusy w obrębie scope kolidującego; `projectId` pozostaje tu wyłącznie kontenerem technicznym.
-
 ## 2026-04-16 — status tests mini-package 5
 - `js/testing/wycena/tests.js` — dopięte antyregresje dla późnych etapów procesu (`umowa`, `produkcja`, `montaz`, `zakonczone`): sekwencja późnych statusów utrzymuje scoped końcową ofertę, nie przywraca martwych zaznaczeń starych wycen i nie rusza rozłącznego pokoju.
 - `js/testing/wycena/tests.js` — dodany guard coverage dla późnych etapów: bez zaakceptowanej wyceny końcowej exact-scope ręczne przejścia na późne statusy mają być blokowane, a po zaakceptowaniu finalnej oferty mają się odblokować.
@@ -1213,3 +1194,12 @@ Dopiero potem go zmieniać.
 - `js/app/investor/investor-persistence.js`: `setInvestorProjectStatus(..., { returnDetails:true })` zwraca teraz wynik centralnego syncu zamiast gubić go w `result:null`.
 - `js/testing/wycena/tests.js`, `js/testing/investor/tests.js`: testy pilnują zgodności master ↔ mirror dla scoped rekonsyliacji i ręcznej zmiany statusu z poziomu Inwestora.
 - Cache-busting podbity w `index.html` i `dev_tests.html` dla modułów/statusów i testów tej paczki.
+
+
+## 2026-04-16 — wycena anti-regression package 1
+- `js/testing/wycena/fixtures.js` — wydzielone wspólne fixture/helpery dla testów `Wycena`, żeby dalszy split testów i samego `wycena.js` nie wymagał kopiowania setupów po plikach.
+- `js/testing/wycena/suites/status-anti-regression.js` — nowy moduł exact-scope podpięty pod jeden runner `dev_tests.html`; dopięte antyregresje dla 3 krytycznych flow: (1) usunięcie zaakceptowanej końcowej oferty jednego pokoju nie rusza rozłącznego pokoju i wraca do aktywnej historii tego scope, (2) promocja zaakceptowanej wstępnej do końcowej nie zdejmuje `selectedByClient` z drugiego pokoju, (3) manual guard późnych etapów sprawdza exact-scope pokoju zamiast obcej końcowej oferty z innego pokoju.
+- `js/testing/wycena/tests.js` — zostaje wejściem/startem dla testów `Wycena`, ale potrafi już zbierać dodatkowe moduły testowe z rejestru; to ma być wzorzec na dalsze porządki zamiast dokładania wszystkiego do jednego kloca.
+- `dev_tests.html` — nadal jeden punkt wejścia; nowe moduły testów ładujemy z folderu `js/testing/wycena/suites/`, żeby nie robić bałaganu w repo.
+- Instrukcja antyregresyjna: przed rozbijaniem `js/tabs/wycena.js` utrzymywać jeden browser runner i dokładać nowe suite'y modułowo pod `js/testing/wycena/suites/`, a nie przez nowe strony testowe.
+- Instrukcja organizacyjna: dla nowych testów zostawiać tylko plik startowy/agregujący jako wejście (`js/testing/wycena/tests.js`), a kolejne moduły trzymać w podfolderach (`fixtures`, `suites`, itp.), żeby repo i GitHub Pages nie puchły od luźnych plików na wierzchu.

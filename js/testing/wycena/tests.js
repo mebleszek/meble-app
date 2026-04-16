@@ -6,73 +6,17 @@
   const H = FC.testHarness;
   if(!H) throw new Error('Brak FC.testHarness');
 
-  function clone(value){
-    try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; }
-  }
+  const FX = FC.wycenaTestFixtures;
+  if(!FX || typeof FX.clone !== 'function' || typeof FX.withInvestorProjectFixture !== 'function') throw new Error('Brak FC.wycenaTestFixtures');
+  const clone = FX.clone;
+  const withInvestorProjectFixture = FX.withInvestorProjectFixture;
 
-  function withInvestorProjectFixture(options, run){
-    const cfg = options && typeof options === 'object' ? options : {};
-    const prevInvestors = FC.investors && typeof FC.investors.readAll === 'function' ? FC.investors.readAll() : [];
-    const prevCurrentInvestorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? FC.investors.getCurrentId() : '';
-    const prevProjects = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];
-    const prevCurrentProjectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : '';
-    const prevSnapshots = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : [];
-    const prevDrafts = FC.quoteOfferStore && typeof FC.quoteOfferStore.readAll === 'function' ? FC.quoteOfferStore.readAll() : [];
-    const prevOverride = FC.rozrys && FC.rozrys.__projectOverride;
-    const prevProjectData = Object.prototype.hasOwnProperty.call(host, 'projectData') ? host.projectData : undefined;
-    const prevCutList = FC.cabinetCutlist && FC.cabinetCutlist.getCabinetCutList;
-    const investorId = String(cfg.investorId || 'inv_cross');
-    const projectId = String(cfg.projectId || 'proj_cross');
-    const rooms = Array.isArray(cfg.rooms) ? clone(cfg.rooms) : [
-      { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'nowy' },
-      { id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'nowy' },
-    ];
-    const projectData = clone(cfg.projectData || {
-      schemaVersion: 2,
-      meta: {
-        roomDefs: rooms.reduce((acc, room)=>{
-          acc[room.id] = { id:room.id, baseType:room.baseType, name:room.name, label:room.label };
-          return acc;
-        }, {}),
-        roomOrder: rooms.map((room)=> room.id),
-      },
-      room_kuchnia_gora: { cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
-      room_salon: { cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
+  function collectRegisteredTests(){
+    const providers = Array.isArray(FC.wycenaTestRegistry) ? FC.wycenaTestRegistry.slice() : [];
+    return providers.flatMap((provider)=> {
+      const rows = provider({ FC, H, clone, withInvestorProjectFixture });
+      return Array.isArray(rows) ? rows : [];
     });
-    const investor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
-    const projectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
-    const cleanup = ()=>{
-      if(FC.cabinetCutlist && prevCutList) FC.cabinetCutlist.getCabinetCutList = prevCutList;
-      if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;
-      if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
-      else host.projectData = prevProjectData;
-      FC.quoteOfferStore && FC.quoteOfferStore.writeAll && FC.quoteOfferStore.writeAll(prevDrafts);
-      FC.quoteSnapshotStore && FC.quoteSnapshotStore.writeAll && FC.quoteSnapshotStore.writeAll(prevSnapshots);
-      FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll(prevProjects);
-      FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
-      FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
-      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
-    };
-    try{
-      FC.investors && FC.investors.writeAll && FC.investors.writeAll([investor]);
-      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
-      FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll([projectRecord]);
-      FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(projectId);
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function') FC.quoteSnapshotStore.writeAll([]);
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.writeAll === 'function') FC.quoteOfferStore.writeAll([]);
-      host.projectData = clone(projectData);
-      if(FC.rozrys) FC.rozrys.__projectOverride = host.projectData;
-      if(typeof cfg.cutListFn === 'function' && FC.cabinetCutlist){
-        FC.cabinetCutlist.getCabinetCutList = cfg.cutListFn;
-      }
-      const result = run({ investorId, projectId, rooms:clone(rooms), projectData:host.projectData });
-      if(result && typeof result.then === 'function') return result.finally(cleanup);
-      cleanup();
-      return result;
-    } catch(err) {
-      cleanup();
-      throw err;
-    }
   }
 
   function runAll(){
@@ -815,53 +759,6 @@
         } finally {
           FC.projectStore.upsert = prevUpsert;
           FC.project.save = prevSave;
-        }
-      }),
-
-
-      H.makeTest('Wycena ↔ Restore oferty', 'Przywrócenie odrzuconej oferty scoped nie rusza rozłącznego pokoju', 'Pilnuje, czy restore działa tylko dla exact scope targetu i nie odbiera zaakceptowanej oferty drugiemu, rozłącznemu pokojowi.', ()=>{
-        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.restoreAcceptedSnapshot');
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_restore_kitchen_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore solo' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292500 });
-          const kitchenFinal = FC.quoteSnapshotStore.save({ id:'snap_restore_kitchen_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore solo' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Kuchnia final' }, totals:{ grand:180 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292600 });
-          const salonFinal = FC.quoteSnapshotStore.save({ id:'snap_restore_salon_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore solo' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:false, versionName:'Salon final' }, totals:{ grand:190 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292700 });
-          FC.projectStatusSync.commitAcceptedSnapshot(kitchenPre, 'pomiar');
-          FC.projectStatusSync.commitAcceptedSnapshot(kitchenFinal, 'zaakceptowany');
-          FC.projectStatusSync.commitAcceptedSnapshot(salonFinal, 'zaakceptowany');
-          const restoredResult = FC.projectStatusSync.restoreAcceptedSnapshot(kitchenPre);
-          const restored = restoredResult && (restoredResult.selectedSnapshot || restoredResult.snapshot) || null;
-          const allRows = FC.quoteSnapshotStore.listForProject(projectId);
-          const restoredRow = allRows.find((row)=> String(row && row.id || '') === String(kitchenPre.id));
-          const kitchenFinalRow = allRows.find((row)=> String(row && row.id || '') === String(kitchenFinal.id));
-          const salonFinalRow = allRows.find((row)=> String(row && row.id || '') === String(salonFinal.id));
-          H.assert(restored && String(restored.id || '') === String(kitchenPre.id), 'Restore nie zwrócił przywróconego snapshotu', restoredResult);
-          H.assert(restoredRow && restoredRow.meta && restoredRow.meta.selectedByClient === true, 'Przywrócona oferta nie stała się aktywna', restoredRow);
-          H.assert(kitchenFinalRow && kitchenFinalRow.meta && kitchenFinalRow.meta.selectedByClient === false, 'Kolidująca oferta tego samego pokoju nie zeszła z aktywnej', kitchenFinalRow);
-          H.assert(salonFinalRow && salonFinalRow.meta && salonFinalRow.meta.selectedByClient === true, 'Restore pokoju A ruszył rozłączny pokój B', salonFinalRow);
-          const investor = FC.investors.getById(investorId);
-          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
-          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Restore nie przywrócił statusu scoped pokoju A', byId);
-          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'zaakceptowany', 'Restore pokoju A naruszył status rozłącznego pokoju B', byId);
-        });
-      }),
-
-      H.makeTest('Wycena ↔ Restore oferty', 'Wycena deleguje restore oferty do centralnego sync', 'Pilnuje, czy akcja Przywróć nie klei lokalnie statusów w Wycena, tylko przechodzi przez project-status-sync.', ()=>{
-        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.restoreSnapshotWithSync === 'function', 'Brak FC.wycenaTabDebug.restoreSnapshotWithSync');
-        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.restoreAcceptedSnapshot');
-        const prev = FC.projectStatusSync.restoreAcceptedSnapshot;
-        let calls = 0;
-        FC.projectStatusSync.restoreAcceptedSnapshot = function(){
-          calls += 1;
-          return prev.apply(this, arguments);
-        };
-        try{
-          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-            const snapshot = FC.quoteSnapshotStore.save({ id:'snap_delegate_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt delegate restore' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Delegate restore' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292800, meta:{ rejectedAt:1712820292850, rejectedReason:'scope_changed', preliminary:true } });
-            FC.wycenaTabDebug.restoreSnapshotWithSync(snapshot);
-          });
-          H.assert(calls === 1, 'Wycena nie przekazała restore oferty do centralnego sync', { calls });
-        } finally {
-          FC.projectStatusSync.restoreAcceptedSnapshot = prev;
         }
       }),
 
@@ -1664,7 +1561,7 @@
         H.assert(/Piekarnik do zabudowy/.test(String(html || '')), 'PDF wyceny nie zawiera listy montowanych sprzętów AGD', html);
         H.assert(!/Elementy w ofercie/.test(String(html || '')) && !/720 × 560 mm/.test(String(html || '')) && !/Bok/.test(String(html || '')), 'PDF wyceny nadal pokazuje techniczną listę formatek / elementów', html);
       }),
-    ]);
+    ].concat(collectRegisteredTests()));
   }
 
   FC.wycenaDevTests = { runAll };

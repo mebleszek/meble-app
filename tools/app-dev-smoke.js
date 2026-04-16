@@ -56,6 +56,8 @@ const FILES = [
   'js/testing/test-data-manager.js',
   'js/testing/project/tests.js',
   'js/testing/investor/tests.js',
+  'js/testing/wycena/fixtures.js',
+  'js/testing/wycena/suites/status-anti-regression.js',
   'js/testing/wycena/tests.js',
   'js/testing/material/tests.js',
   'js/testing/cabinet/tests.js',
