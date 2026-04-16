@@ -1247,3 +1247,5 @@ Dopiero potem go zmieniać.
 - Modal nadawania nazwy kolejnej wyceny exact-scope ma używać krótszego, praktycznego komunikatu; gdy caller poda pusty `hint`, `js/app/quote/quote-scope-entry.js` nie dokleja już dodatkowego bloku wyjaśniającego pod polem nazwy.
 
 - 2026-04-17: dev_tests.html i tools/app-dev-smoke.js muszą ładować js/app/ui/tabs-router.js, bo testy renderu zakładki Wycena korzystają z FC.tabsRouter.get; nie zakładać już fallbacku tylko do FC.tabs w środowisku testowym.
+
+- 2026-04-17: `js/app/wycena/wycena-tab-selection.js` ma resetować roboczą nazwę oferty po zmianie wybranego scope, jeśli draft niesie auto-/snapshotową nazwę z poprzedniego exact-scope; nie wolno przenosić nazw wariantów jednego pokoju na inny pokój albo scope wspólne. Dopina to test w `js/testing/wycena/suites/scope-entry.js`.

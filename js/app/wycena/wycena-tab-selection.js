@@ -115,6 +115,33 @@
     }catch(_){ return false; }
   }
 
+  function isVersionNameTakenForScope(projectId, roomIds, preliminary, versionName){
+    if(!projectId || !Array.isArray(roomIds) || !roomIds.length) return false;
+    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.isVersionNameTaken === 'function')) return false;
+    try{ return FC.quoteScopeEntry.isVersionNameTaken(projectId, roomIds, !!preliminary, versionName); }
+    catch(_){ return false; }
+  }
+
+  function resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps){
+    const previousSelection = selection && typeof selection === 'object' ? selection : { selectedRooms:[] };
+    const previousRooms = normalizeRoomIds(previousSelection && previousSelection.selectedRooms);
+    const nextSelectedRooms = normalizeRoomIds(nextRooms);
+    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
+    const preliminary = !!commercial.preliminary;
+    const currentVersionName = String(commercial.versionName || '').trim();
+    const previousDefault = defaultVersionName(preliminary, { selection:previousSelection });
+    const nextSelection = Object.assign({}, previousSelection, { selectedRooms:nextSelectedRooms });
+    const nextDefault = defaultVersionName(preliminary, { selection:nextSelection });
+    if(!currentVersionName) return nextDefault;
+    if(previousRooms.join('|') === nextSelectedRooms.join('|')) return currentVersionName;
+    if(currentVersionName === previousDefault) return nextDefault;
+    const projectId = getCurrentProjectId(deps);
+    if(projectId && previousRooms.length && isVersionNameTakenForScope(projectId, previousRooms, preliminary, currentVersionName)){
+      return nextDefault;
+    }
+    return currentVersionName;
+  }
+
   async function ensureVersionNameBeforeGenerate(selection, deps){
     const getOfferDraft = deps && typeof deps.getOfferDraft === 'function' ? deps.getOfferDraft : ()=> ({});
     const patchOfferDraft = deps && typeof deps.patchOfferDraft === 'function' ? deps.patchOfferDraft : ()=>{};
@@ -157,12 +184,10 @@
           const nextRooms = Array.isArray(rooms) ? rooms.slice() : [];
           const draft = getOfferDraft();
           const commercial = draft && draft.commercial || {};
-          const currentVersionName = String(commercial.versionName || '').trim();
-          const prevDefault = defaultVersionName(!!commercial.preliminary, { selection });
-          const nextSelection = Object.assign({}, selection, { selectedRooms:nextRooms });
+          const nextVersionName = resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps);
           const patch = { selection:{ selectedRooms:nextRooms } };
-          if(!currentVersionName || currentVersionName === prevDefault){
-            patch.commercial = { versionName:defaultVersionName(!!commercial.preliminary, { selection:nextSelection }) };
+          if(String(nextVersionName || '').trim()){
+            patch.commercial = Object.assign({}, commercial, { versionName:String(nextVersionName || '').trim() });
           }
           patchOfferDraft(patch);
           render(ctx);
@@ -335,6 +360,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     getRoomsPickerMeta,
     getScopePickerMeta,
     buildSelectionSummary,
+    resolveVersionNameAfterRoomChange,
     openQuoteRoomsPicker,
     openQuoteScopePicker,
     renderQuoteSelectionSection,

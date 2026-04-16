@@ -56,6 +56,21 @@
         });
       }),
 
+    H.makeTest('Wycena ↔ Scope wejścia', 'Zmiana scope resetuje auto-nazwę poprzedniego exact-scope przed zapisaniem nowej wyceny', 'Pilnuje regresję z historią a / J / a+J: po przełączeniu wyboru pokoi draft nie może nieść starej nazwy wariantu z innego exact-scope i zapisać jej pod nowym zakresem.', async ()=>{
+        H.assert(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.resolveVersionNameAfterRoomChange === 'function', 'Brak FC.wycenaTabSelection.resolveVersionNameAfterRoomChange');
+        H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_prev_variant', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope switch' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon — wariant 2' }, totals:{ grand:114 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445150 });
+          FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon — wariant 2' } });
+          const draft = FC.quoteOfferStore.getCurrentDraft();
+          const nextVersionName = FC.wycenaTabSelection.resolveVersionNameAfterRoomChange({ selectedRooms:['room_salon'] }, ['room_kuchnia_gora'], draft, { getCurrentProjectId:()=> projectId });
+          H.assert(String(nextVersionName || '') === 'Wstępna oferta — Kuchnia góra', 'Po zmianie scope draft nie wrócił do domyślnej nazwy nowego zakresu', nextVersionName);
+          FC.quoteOfferStore.patchCurrentDraft({ selection:{ selectedRooms:['room_kuchnia_gora'] }, commercial:{ versionName:nextVersionName } });
+          const snapshot = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_kuchnia_gora'] } });
+          H.assert(snapshot && snapshot.commercial && String(snapshot.commercial.versionName || '') === 'Wstępna oferta — Kuchnia góra', 'Nowa wycena przejęła starą nazwę wariantu z innego scope zamiast nazwy nowego pokoju', snapshot);
+        });
+      }),
+
     H.makeTest('Wycena ↔ Scope wejścia', 'Otwarcie istniejącej wyceny scoped nie tworzy duplikatu i ustawia draft oraz podgląd właściwej wersji', 'Pilnuje, czy wybór „Otwórz istniejącą” ładuje dokładnie tę wersję do Wyceny zamiast generować nowy snapshot albo podmieniać scope.', ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.openExistingSnapshot === 'function', 'Brak FC.quoteScopeEntry.openExistingSnapshot');
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.showSnapshotPreview === 'function', 'Brak FC.wycenaTabDebug.showSnapshotPreview');
