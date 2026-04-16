@@ -99,6 +99,13 @@
     return snap;
   }
 
+  function isPreliminarySnapshot(snapshot){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isPreliminarySnapshot === 'function') return !!FC.quoteSnapshotStore.isPreliminarySnapshot(snapshot);
+    }catch(_){ }
+    return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
+  }
+
   function getInvestorById(id){
     const key = String(id || '');
     if(!key) return null;
@@ -600,6 +607,52 @@
     };
   }
 
+  function restoreAcceptedSnapshot(snapshot, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return null;
+    const opts = options && typeof options === 'object' ? options : {};
+    const projectId = String(opts.projectId || snap && snap.project && snap.project.id || getCurrentProjectId() || '');
+    const investorId = String(
+      opts.investorId
+      || snap && snap.investor && snap.investor.id
+      || snap && snap.project && snap.project.investorId
+      || getCurrentInvestorId()
+      || ''
+    );
+    const targetRoomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
+    const snapshotId = String(snap && snap.id || '');
+    if(!projectId || !snapshotId) return null;
+    let restored = snap;
+    let selectionCommitted = false;
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.restoreSnapshotForProject === 'function'){
+        restored = FC.quoteSnapshotStore.restoreSnapshotForProject(projectId, snapshotId, {
+          status: opts.status,
+          roomIds:targetRoomIds,
+          rejectReason: opts.rejectReason,
+          rejectPreviousSelection: opts.rejectPreviousSelection,
+        }) || restored;
+        selectionCommitted = true;
+      }
+    }catch(_){ }
+    const targetStatus = normalizeStatus(opts.status || (isPreliminarySnapshot(restored || snap) ? 'pomiar' : 'zaakceptowany')) || 'zaakceptowany';
+    const statusResult = setStatusFromSnapshot(restored, targetStatus, Object.assign({}, opts, {
+      investorId,
+      roomIds:targetRoomIds,
+      syncSelection: selectionCommitted ? false : !!opts.syncSelection,
+    }));
+    return {
+      snapshot: normalizeSnapshot(restored) || snap,
+      restoredSnapshot: normalizeSnapshot(restored) || snap,
+      statusResult,
+      masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || targetStatus) || targetStatus,
+      mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || targetStatus) || targetStatus,
+      roomIds:targetRoomIds,
+      projectId: String(projectId || statusResult && statusResult.projectId || ''),
+      investorId: String(investorId || statusResult && statusResult.investorId || ''),
+    };
+  }
+
   FC.projectStatusSync = {
     normalizeStatus,
     statusRank,
@@ -625,6 +678,7 @@
     commitAcceptedSnapshot,
     reconcileStatusAfterSnapshotRemoval,
     promotePreliminarySnapshotToFinal,
+    restoreAcceptedSnapshot,
     _debug:{
       getMergedRoomDefs,
       updateLoadedProject,

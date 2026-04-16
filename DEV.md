@@ -1,3 +1,10 @@
+## 2026-04-16 — quote restore flow
+- `js/app/quote/quote-snapshot-store.js` — dodany scoped helper `restoreSnapshotForProject(projectId, snapshotId, options)`. Przywrócenie starej oferty działa tylko w exact scope targetu i archiwizuje / odznacza wyłącznie kolidujące snapshoty tego samego zakresu; rozłączne pokoje nie mogą tracić własnej zaakceptowanej oferty przez restore.
+- `js/app/project/project-status-sync.js` — dodany centralny helper `restoreAcceptedSnapshot(snapshot, options)`. Restore oferty przechodzi tą samą ścieżką co inne kluczowe flow statusowe: najpierw scoped stan snapshotu, potem centralny sync statusu pokoju/projektu; nie dopisywać przywracania bokiem w UI.
+- `js/tabs/wycena.js` — dodana akcja `Przywróć` dla ofert przywracalnych (odrzuconych scope-change / archiwalnych po pomiarze). `Wycena` tylko deleguje restore do centralnego syncu; nie układa lokalnie statusów po swojemu.
+- `js/testing/wycena/tests.js` — dodane antyregresje: (1) restore odrzuconej oferty scoped nie rusza rozłącznego pokoju, (2) `Wycena` deleguje restore do `FC.projectStatusSync.restoreAcceptedSnapshot`.
+- Instrukcja antyregresyjna: przy każdej zmianie logiki przywracania testować dwa równoległe scope naraz — scope przywracany i scope rozłączny z własną zaakceptowaną ofertą. Restore ma zmieniać tylko `selectedByClient`, `accepted*`, `rejected*` i statusy w obrębie scope kolidującego; `projectId` pozostaje tu wyłącznie kontenerem technicznym.
+
 ## 2026-04-16 — status tests mini-package 5
 - `js/testing/wycena/tests.js` — dopięte antyregresje dla późnych etapów procesu (`umowa`, `produkcja`, `montaz`, `zakonczone`): sekwencja późnych statusów utrzymuje scoped końcową ofertę, nie przywraca martwych zaznaczeń starych wycen i nie rusza rozłącznego pokoju.
 - `js/testing/wycena/tests.js` — dodany guard coverage dla późnych etapów: bez zaakceptowanej wyceny końcowej exact-scope ręczne przejścia na późne statusy mają być blokowane, a po zaakceptowaniu finalnej oferty mają się odblokować.

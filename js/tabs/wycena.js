@@ -308,6 +308,27 @@
     return !isArchivedPreliminary(snap, list, projectStatus);
   }
 
+  function canRestoreSnapshot(snapshot, history){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap || !getSnapshotId(snap)) return false;
+    if(isSelectedSnapshot(snap)) return false;
+    if(isRejectedSnapshot(snap)) return true;
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    const projectStatus = getProjectStatusForHistory(list);
+    return isArchivedPreliminary(snap, list, projectStatus);
+  }
+
+  function restoreSnapshotWithSync(snapshot, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return null;
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function'){
+        return FC.projectStatusSync.restoreAcceptedSnapshot(snap, options || {});
+      }
+    }catch(_){ }
+    warnMissingProjectStatusSyncMethod('restoreAcceptedSnapshot');
+    return null;
+  }
 
   function commitAcceptedSnapshotWithSync(snapshot, status, options){
     const snap = normalizeSnapshot(snapshot) || null;
@@ -374,6 +395,38 @@
     if(!selected) return false;
     previewSnapshotId = snapId;
     lastQuote = selected;
+    render(ctx);
+    return true;
+  }
+
+  async function restoreSnapshot(snapshot, ctx, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return false;
+    const snapId = getSnapshotId(snap);
+    const opts = options && typeof options === 'object' ? options : {};
+    const history = Array.isArray(opts.history) ? opts.history : getSnapshotHistory();
+    if(!canRestoreSnapshot(snap, history)) return false;
+    if(opts.rememberScroll) rememberQuoteScroll(String(opts.anchorId || ''), String(opts.fallbackAnchorId || ''));
+    const targetStatus = isPreliminarySnapshot(snap) ? 'pomiar' : 'zaakceptowany';
+    const confirmed = await askConfirm({
+      title:'PRZYWRÓCIĆ OFERTĘ?',
+      message:isPreliminarySnapshot(snap)
+        ? 'Ta wcześniejsza wersja znowu stanie się aktywną ofertą dla tego zakresu, a status projektu wróci do „Pomiar”.'
+        : 'Ta wcześniejsza wersja znowu stanie się aktywną ofertą dla tego zakresu, a status projektu wróci do „Zaakceptowany”.',
+      confirmText:'Przywróć ofertę',
+      cancelText:'Wróć',
+      confirmTone:'success',
+      cancelTone:'neutral'
+    });
+    if(!confirmed){
+      if(opts.rememberScroll) clearRememberedQuoteScroll();
+      return false;
+    }
+    const restoreResult = restoreSnapshotWithSync(snap, { status:targetStatus });
+    const restored = restoreResult && (restoreResult.restoredSnapshot || restoreResult.snapshot) || null;
+    if(!restored) return false;
+    previewSnapshotId = snapId;
+    lastQuote = restored;
     render(ctx);
     return true;
   }
@@ -1235,10 +1288,16 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         render(ctx);
       });
       actions.appendChild(openBtn);
-      const acceptLabel = isSelected ? 'Zaakceptowana' : (isRejected ? 'Odrzucona' : 'Zaakceptuj');
+      const canAccept = canAcceptSnapshot(snap, history);
+      const canRestore = canRestoreSnapshot(snap, history);
+      const acceptLabel = isSelected ? 'Zaakceptowana' : (canRestore ? 'Przywróć' : (isRejected ? 'Odrzucona' : 'Zaakceptuj'));
       const chooseBtn = h('button', { class:'btn-success', type:'button', text:acceptLabel });
-      if(!canAcceptSnapshot(snap, history)) chooseBtn.disabled = true;
+      if(!(canAccept || canRestore)) chooseBtn.disabled = true;
       chooseBtn.addEventListener('click', ()=> {
+        if(canRestore){
+          void restoreSnapshot(snap, ctx, { rememberScroll:true, anchorId:getQuoteHistoryItemDomId(snapId), history });
+          return;
+        }
         void acceptSnapshot(snap, ctx, { rememberScroll:true, anchorId:getQuoteHistoryItemDomId(snapId), history });
       });
       actions.appendChild(chooseBtn);
@@ -1439,13 +1498,16 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     currentProjectStatus,
     setProjectStatusFromSnapshot,
     commitAcceptedSnapshotWithSync,
+    restoreSnapshotWithSync,
     reconcileAfterSnapshotRemoval,
     promotePreliminarySnapshotToFinal,
     acceptSnapshot,
+    restoreSnapshot,
     getTargetRoomIdsFromSnapshot,
     isArchivedPreliminary,
     isRejectedSnapshot,
     canAcceptSnapshot,
+    canRestoreSnapshot,
     showSnapshotPreview,
     shouldPromptForVersionNameOnGenerate,
   });

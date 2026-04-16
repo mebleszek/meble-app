@@ -831,6 +831,82 @@
         });
       }),
 
+      H.makeTest('Wycena ↔ Przywracanie ofert', 'Centralne przywrócenie odrzuconej oferty scoped nie rusza rozłącznego pokoju', 'Pilnuje, czy przywrócenie wcześniejszej oferty exact-scope archiwizuje tylko kolidujący zakres i nie zdejmuje akceptacji z rozłącznego pokoju.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.commitAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.commitAcceptedSnapshot');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.restoreAcceptedSnapshot');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.getSelectedForProject');
+        withInvestorProjectFixture({
+          rooms:[
+            { id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra', projectStatus:'nowy' },
+            { id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon', projectStatus:'nowy' },
+            { id:'room_lazienka', baseType:'lazienka', name:'Łazienka', label:'Łazienka', projectStatus:'nowy' },
+          ],
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_kuchnia_gora:{ id:'room_kuchnia_gora', baseType:'kuchnia', name:'Kuchnia góra', label:'Kuchnia góra' },
+                room_salon:{ id:'room_salon', baseType:'pokoj', name:'Salon', label:'Salon' },
+                room_lazienka:{ id:'room_lazienka', baseType:'lazienka', name:'Łazienka', label:'Łazienka' },
+              },
+              roomOrder:['room_kuchnia_gora','room_salon','room_lazienka'],
+            },
+            room_kuchnia_gora:{ cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
+            room_salon:{ cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
+            room_lazienka:{ cabinets:[{ id:'cab_l' }], fronts:[], sets:[], settings:{} },
+          }
+        }, ({ investorId, projectId })=>{
+          const kitchenSolo = FC.quoteSnapshotStore.save({ id:'snap_restore_kitchen_solo', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore scoped' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Kuchnia solo' }, totals:{ grand:401 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820481000 });
+          const sharedKitchenSalon = FC.quoteSnapshotStore.save({ id:'snap_restore_shared', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore scoped' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:false, versionName:'Kuchnia + salon' }, totals:{ grand:555 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820482000 });
+          const bathSolo = FC.quoteSnapshotStore.save({ id:'snap_restore_bath', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore scoped' }, scope:{ selectedRooms:['room_lazienka'], roomLabels:['Łazienka'] }, commercial:{ preliminary:false, versionName:'Łazienka solo' }, totals:{ grand:287 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820483000 });
+
+          FC.projectStatusSync.commitAcceptedSnapshot(kitchenSolo, 'zaakceptowany');
+          FC.projectStatusSync.commitAcceptedSnapshot(bathSolo, 'zaakceptowany');
+          FC.projectStatusSync.commitAcceptedSnapshot(sharedKitchenSalon, 'zaakceptowany');
+
+          const kitchenRejected = FC.quoteSnapshotStore.getById(kitchenSolo.id);
+          const bathSelectedBeforeRestore = FC.quoteSnapshotStore.getById(bathSolo.id);
+          H.assert(kitchenRejected && FC.quoteSnapshotStore.isRejectedSnapshot(kitchenRejected), 'Poprzednia solo oferta kuchni nie została odrzucona po wejściu wspólnego scope', kitchenRejected);
+          H.assert(bathSelectedBeforeRestore && bathSelectedBeforeRestore.meta && bathSelectedBeforeRestore.meta.selectedByClient === true, 'Rozłączny pokój stracił akceptację jeszcze przed restore', bathSelectedBeforeRestore);
+
+          const restoreResult = FC.projectStatusSync.restoreAcceptedSnapshot(kitchenRejected);
+          const restoredKitchen = restoreResult && (restoreResult.restoredSnapshot || restoreResult.snapshot) || FC.quoteSnapshotStore.getById(kitchenSolo.id);
+          const sharedAfterRestore = FC.quoteSnapshotStore.getById(sharedKitchenSalon.id);
+          const bathAfterRestore = FC.quoteSnapshotStore.getById(bathSolo.id);
+          const selectedKitchen = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_kuchnia_gora'] });
+          const selectedBath = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_lazienka'] });
+
+          H.assert(restoredKitchen && restoredKitchen.meta && restoredKitchen.meta.selectedByClient === true, 'Przywrócona oferta solo kuchni nie wróciła do aktywnej', restoredKitchen);
+          H.assert(restoredKitchen && !FC.quoteSnapshotStore.isRejectedSnapshot(restoredKitchen), 'Przywrócona oferta solo kuchni nadal wygląda na odrzuconą', restoredKitchen);
+          H.assert(sharedAfterRestore && sharedAfterRestore.meta && sharedAfterRestore.meta.selectedByClient === false, 'Kolidująca oferta wspólna nie straciła aktywności po restore solo scope', sharedAfterRestore);
+          H.assert(bathAfterRestore && bathAfterRestore.meta && bathAfterRestore.meta.selectedByClient === true, 'Rozłączna oferta łazienki straciła akceptację po restore kuchni', bathAfterRestore);
+          H.assert(String(selectedKitchen && selectedKitchen.id || '') === kitchenSolo.id, 'Scoped selected snapshot dla kuchni nie wrócił do przywróconej oferty', selectedKitchen);
+          H.assert(String(selectedBath && selectedBath.id || '') === bathSolo.id, 'Scoped selected snapshot dla rozłącznej łazienki został naruszony przez restore kuchni', selectedBath);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Przywracanie ofert', 'Wycena deleguje przywrócenie oferty do centralnego syncu', 'Pilnuje, czy przycisk/przepływ przywracania nie buduje własnej bocznej logiki statusowej w Wycena, tylko woła dedykowany helper centralny.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.restoreSnapshotWithSync === 'function', 'Brak FC.wycenaTabDebug.restoreSnapshotWithSync');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.restoreAcceptedSnapshot');
+        const prev = FC.projectStatusSync.restoreAcceptedSnapshot;
+        let calls = 0;
+        FC.projectStatusSync.restoreAcceptedSnapshot = function(snapshot, options){
+          calls += 1;
+          return { restoredSnapshot:snapshot, snapshot, options:options || null, statusResult:{ masterStatus:'zaakceptowany', mirrorStatus:'zaakceptowany' } };
+        };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const snapshot = FC.quoteSnapshotStore.save({ id:'snap_restore_delegate', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore delegate' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Restore delegate' }, totals:{ grand:199 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820484000 });
+            const result = FC.wycenaTabDebug.restoreSnapshotWithSync(snapshot, { status:'zaakceptowany' });
+            H.assert(calls === 1, 'Wycena nie deleguje przywrócenia do centralnego syncu dokładnie raz', { calls, result });
+            H.assert(result && result.restoredSnapshot && String(result.restoredSnapshot.id || '') === snapshot.id, 'Wycena nie oddała wyniku z centralnego helpera restore', result);
+          });
+        } finally {
+          FC.projectStatusSync.restoreAcceptedSnapshot = prev;
+        }
+      }),
+
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Akceptacja oferty jednego pomieszczenia zmienia status tylko tego pokoju', 'Pilnuje, czy zaakceptowanie wyceny scoped do jednego pomieszczenia nie nadpisuje statusów pozostałych pokoi inwestora.', ()=>{
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function', 'Brak FC.wycenaTabDebug.setProjectStatusFromSnapshot');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
