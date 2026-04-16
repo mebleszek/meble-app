@@ -1,3 +1,7 @@
+## 2026-04-16 — wycena helper split hotfix
+- `js/tabs/wycena.js` — hotfix po pierwszym splicie helperów: przywrócone lokalne funkcje, które nie miały jeszcze wychodzić z taba (`h`, `getCurrentProjectId`, `getCurrentInvestorId`, `getSnapshotHistory`, `normalizeSnapshot`, `getOfferDraft`, `patchOfferDraft`, `resolveDisplayedQuote`). To usuwa regres `normalizeSnapshot is not defined` / `getCurrentProjectId is not defined` bez cofania samego wydzielenia czystych helperów do `js/app/wycena/wycena-tab-helpers.js`.
+- Instrukcja antyregresyjna: przy kolejnych etapach splitu `js/tabs/wycena.js` najpierw porównać listę funkcji wyciętych z listą realnych wywołań w tabie. Nie wynosić z taba helperów stanu/odczytu draftu/historii ani funkcji render-selection bez jednoczesnego podpięcia nowego modułu i testów.
+
 ## 2026-04-16 — status tests mini-package 5
 - `js/testing/wycena/tests.js` — dopięte antyregresje dla późnych etapów procesu (`umowa`, `produkcja`, `montaz`, `zakonczone`): sekwencja późnych statusów utrzymuje scoped końcową ofertę, nie przywraca martwych zaznaczeń starych wycen i nie rusza rozłącznego pokoju.
 - `js/testing/wycena/tests.js` — dodany guard coverage dla późnych etapów: bez zaakceptowanej wyceny końcowej exact-scope ręczne przejścia na późne statusy mają być blokowane, a po zaakceptowaniu finalnej oferty mają się odblokować.

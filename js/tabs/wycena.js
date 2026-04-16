@@ -25,6 +25,118 @@
   const getMaterialScopeLabel = wycenaTabHelpers.getMaterialScopeLabel;
   const snapshotById = wycenaTabHelpers.snapshotById;
 
+  function h(tag, attrs, children){
+    const el = document.createElement(tag);
+    if(attrs){
+      Object.keys(attrs).forEach((k)=>{
+        if(k === 'class') el.className = attrs[k];
+        else if(k === 'text') el.textContent = attrs[k];
+        else if(k === 'html') el.innerHTML = attrs[k];
+        else el.setAttribute(k, attrs[k]);
+      });
+    }
+    (children || []).forEach((ch)=> el.appendChild(ch));
+    return el;
+  }
+
+  function getCurrentProjectId(){
+    try{ return FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
+  }
+
+  function getCurrentInvestorId(){
+    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }catch(_){ return ''; }
+  }
+
+  function getSnapshotHistory(){
+    try{
+      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
+      const projectId = String(getCurrentProjectId() || '');
+      if(projectId) return FC.quoteSnapshotStore.listForProject(projectId);
+      const investorId = String(getCurrentInvestorId() || '');
+      if(investorId && typeof FC.quoteSnapshotStore.listForInvestor === 'function') return FC.quoteSnapshotStore.listForInvestor(investorId);
+    }catch(_){ }
+    return [];
+  }
+
+  function normalizeSnapshot(source){
+    const snap = source && typeof source === 'object' ? source : null;
+    if(!snap) return null;
+    if(snap.lines && snap.totals) return snap;
+    try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(snap);
+    }catch(_){ }
+    return snap;
+  }
+
+  function getOfferDraft(){
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function') return FC.quoteOfferStore.getCurrentDraft();
+    }catch(_){ }
+    return { rateSelections:[], commercial:{} };
+  }
+
+  function patchOfferDraft(patch){
+    try{
+      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function') return FC.quoteOfferStore.patchCurrentDraft(patch);
+    }catch(_){ }
+    return null;
+  }
+
+  function resolveDisplayedQuote(){
+    const history = getSnapshotHistory();
+    const selected = history.find((row)=> isSelectedSnapshot(row)) || null;
+    const firstActive = history.find((row)=> !isArchivedPreliminary(row, history, getProjectStatusForHistory(history))) || history[0] || null;
+    const status = getProjectStatusForHistory(history);
+    const latestPreliminary = history.find((row)=> isPreliminarySnapshot(row)) || null;
+    const latestFinal = history.find((row)=> !isPreliminarySnapshot(row)) || null;
+    const preview = snapshotById(previewSnapshotId, history);
+
+    if(preview){
+      lastQuote = preview;
+      return normalizeSnapshot(preview);
+    }
+    if(previewSnapshotId) previewSnapshotId = '';
+
+    if(status === 'pomiar'){
+      const candidate = (selected && isPreliminarySnapshot(selected) ? selected : null) || latestPreliminary;
+      if(candidate){
+        lastQuote = candidate;
+        return normalizeSnapshot(candidate);
+      }
+    }
+    if(status === 'wstepna_wycena'){
+      if(latestPreliminary){
+        lastQuote = latestPreliminary;
+        return normalizeSnapshot(latestPreliminary);
+      }
+    }
+    if(status === 'wycena'){
+      if(latestFinal){
+        lastQuote = latestFinal;
+        return normalizeSnapshot(latestFinal);
+      }
+    }
+    if(isFinalStatus(status)){
+      const candidate = (selected && !isPreliminarySnapshot(selected) ? selected : null) || latestFinal;
+      if(candidate){
+        lastQuote = candidate;
+        return normalizeSnapshot(candidate);
+      }
+    }
+    if(selected && lastQuote && getSnapshotId(lastQuote) === getSnapshotId(selected) && !isFinalStatus(status) && status !== 'pomiar'){
+      lastQuote = null;
+    }
+    if(lastQuote){
+      const normalized = normalizeSnapshot(lastQuote);
+      if(normalized) return normalized;
+    }
+    if(firstActive){
+      lastQuote = firstActive;
+      return normalizeSnapshot(firstActive);
+    }
+    return null;
+  }
+
   function getAllActiveRoomIds(){
     try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()) : []; }catch(_){ return []; }
   }
