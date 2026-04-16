@@ -360,8 +360,11 @@ Pomieszczenia: ${summary.scopeLabel}`
       const input = h('input', { type:'text', class:'investor-form-input quote-scope-entry-modal__input', value:suggestedName, maxlength:'120', placeholder:suggestedName });
       field.appendChild(input);
       body.appendChild(field);
-      const hint = h('div', { class:'quote-scope-entry-modal__hint', text:String(opts.hint || 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.').trim() || 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.' });
-      body.appendChild(hint);
+      const rawHint = Object.prototype.hasOwnProperty.call(opts, 'hint') ? opts.hint : undefined;
+      const hintText = rawHint === false
+        ? ''
+        : String(rawHint == null ? 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.' : rawHint).trim();
+      if(hintText) body.appendChild(h('div', { class:'quote-scope-entry-modal__hint', text:hintText }));
       const actions = h('div', { class:'quote-scope-entry-modal__actions' });
       const cancelBtn = h('button', { type:'button', class:'btn-danger quote-scope-entry-modal__action', text:cancelLabel });
       const submitBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-modal__action', text:submitLabel });

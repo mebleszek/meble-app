@@ -1225,3 +1225,7 @@ Dopiero potem go zmieniać.
 ## 2026-04-16 — WYCENA split / ROZRYS room picker guard
 - `js/app/wycena/wycena-tab-selection.js` przejął selection UI zakładki `Wycena` (wybór pomieszczeń, zakres fronty/korpusy, summary, naming exact-scope). `js/tabs/wycena.js` ma tylko delegować do tego modułu, bez przywracania dużego inline bloku selection UI.
 - W ROZRYS lista/picker pomieszczeń nie może mieszać realnych pokoi inwestora z legacy kreatorami `kuchnia/szafa/pokoj/lazienka`, jeśli te legacy klucze są tylko pustymi szablonami projektu. Przy aktywnym inwestorze pokazywać realne pokoje + ewentualnie pokoje odkryte w projekcie z rzeczywistymi danymi.
+
+## 2026-04-16 — WYCENA editor split + shorter scope-entry copy
+- `js/app/wycena/wycena-tab-editor.js` przejął editor handlowy zakładki `Wycena` (stawki, pola handlowe, toggle `wstępna / końcowa`, accordion ustawień oferty). `js/tabs/wycena.js` ma tylko delegować do tego modułu i nie odzyskiwać już dużego inline bloku edytora.
+- Modal nadawania nazwy kolejnej wyceny exact-scope ma używać krótszego, praktycznego komunikatu; gdy caller poda pusty `hint`, `js/app/quote/quote-scope-entry.js` nie dokleja już dodatkowego bloku wyjaśniającego pod polem nazwy.

@@ -601,35 +601,24 @@
   }
 
   function buildOfferSummary(draft){
-    const data = draft && typeof draft === 'object' ? draft : {};
-    const commercial = data.commercial || {};
-    const rates = Array.isArray(data.rateSelections) ? data.rateSelections.filter((row)=> num(row && row.qty, 0) > 0) : [];
-    const summary = buildSelectionSummary(normalizeDraftSelection(data));
-    const parts = [];
-    if(String(commercial.versionName || '').trim()) parts.push(`Wersja: ${String(commercial.versionName).trim()}`);
-    if(commercial.preliminary) parts.push('Wstępna wycena');
-    parts.push(summary.scopeText);
-    if(rates.length) parts.push(`Stawki: ${rates.length}`);
-    if(Number(commercial.discountPercent) > 0) parts.push(`Rabat ${Number(commercial.discountPercent).toFixed(2)}%`);
-    else if(Number(commercial.discountAmount) > 0) parts.push(`Rabat ${money(commercial.discountAmount)}`);
-    if(String(commercial.offerValidity || '').trim()) parts.push(`Ważność: ${String(commercial.offerValidity).trim()}`);
-    if(String(commercial.leadTime || '').trim()) parts.push(`Termin: ${String(commercial.leadTime).trim()}`);
-    return parts.join(' • ') || 'Brak dodatkowych ustawień oferty';
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.buildOfferSummary === 'function'){
+      try{ return FC.wycenaTabEditor.buildOfferSummary(draft, { money, num, normalizeDraftSelection, buildSelectionSummary }); }catch(_){ }
+    }
+    return 'Brak dodatkowych ustawień oferty';
   }
 
   function buildSelectionMap(draft){
-    const out = Object.create(null);
-    const rows = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
-    rows.forEach((row)=>{
-      const key = String(row && row.rateId || '');
-      if(!key) return;
-      out[key] = Math.max(0, num(row && row.qty, 0));
-    });
-    return out;
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.buildSelectionMap === 'function'){
+      try{ return FC.wycenaTabEditor.buildSelectionMap(draft, { num }); }catch(_){ }
+    }
+    return Object.create(null);
   }
 
   function saveRateSelectionRows(selections){
-    patchOfferDraft({ rateSelections: selections.map((row)=> ({ rateId:String(row.rateId || ''), qty:Math.max(0, num(row.qty, 0)) })).filter((row)=> row.rateId) });
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.saveRateSelectionRows === 'function'){
+      try{ return FC.wycenaTabEditor.saveRateSelectionRows(selections, { patchOfferDraft, num }); }catch(_){ }
+    }
+    return null;
   }
 
   function renderEmpty(card){
@@ -722,154 +711,47 @@
   }
 
   function buildField(labelText, inputNode, full){
-    const wrap = h('div', { class:'investor-choice-field quote-offer-field' });
-    if(full) wrap.style.gridColumn = '1 / -1';
-    wrap.appendChild(h('label', { text:labelText }));
-    wrap.appendChild(inputNode);
-    return wrap;
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.buildField === 'function'){
+      try{ return FC.wycenaTabEditor.buildField(labelText, inputNode, full, { h }); }catch(_){ }
+    }
+    return null;
   }
 
   function makeRateSelectionRows(catalog, selectionMap){
-    return (Array.isArray(catalog) ? catalog : []).map((rate)=> ({
-      rateId: String(rate && rate.id || ''),
-      qty: Math.max(0, num(selectionMap[String(rate && rate.id || '')], 0)),
-    })).filter((row)=> row.rateId);
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.makeRateSelectionRows === 'function'){
+      try{ return FC.wycenaTabEditor.makeRateSelectionRows(catalog, selectionMap, { num }); }catch(_){ }
+    }
+    return [];
   }
 
   function renderPreliminaryToggle(card, ctx){
-    const draft = getOfferDraft();
-    const commercial = draft && draft.commercial || {};
-    const preliminaryWrap = h('div', { class:'quote-offer-preliminary quote-offer-preliminary--topbar' });
-    const preliminaryChip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match quote-preliminary-chip${commercial.preliminary ? ' is-checked' : ''}` });
-    const preliminaryInput = h('input', { type:'checkbox' });
-    preliminaryInput.checked = !!commercial.preliminary;
-    preliminaryInput.addEventListener('change', ()=>{
-      const nextPreliminary = !!preliminaryInput.checked;
-      const currentVersionName = String(commercial.versionName || '').trim();
-      const selection = normalizeDraftSelection(draft);
-      const prevDefault = defaultVersionName(!!commercial.preliminary, { selection });
-      const nextDefault = defaultVersionName(nextPreliminary, { selection });
-      patchOfferDraft({ commercial:{ preliminary:nextPreliminary, versionName:(!currentVersionName || currentVersionName === prevDefault) ? nextDefault : currentVersionName } });
-      render(ctx);
-    });
-    preliminaryChip.appendChild(preliminaryInput);
-    preliminaryChip.appendChild(h('span', { text:'Wstępna wycena (bez pomiaru)' }));
-    preliminaryWrap.appendChild(preliminaryChip);
-    card.appendChild(preliminaryWrap);
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.renderPreliminaryToggle === 'function'){
+      try{ return FC.wycenaTabEditor.renderPreliminaryToggle(card, ctx, { h, getOfferDraft, patchOfferDraft, normalizeDraftSelection, defaultVersionName, render }); }catch(_){ }
+    }
   }
 
   function renderOfferEditor(card, ctx){
-    const draft = getOfferDraft();
-    const commercial = draft && draft.commercial || {};
-    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
-    const selectionMap = buildSelectionMap(draft);
-
-    const section = h('section', { class:`quote-offer-accordion rozrys-material-accordion${offerEditorOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
-    const head = h('div', { class:'quote-offer-accordion__head' });
-    const trigger = h('button', { class:'rozrys-material-accordion__trigger quote-offer-accordion__trigger', type:'button' });
-    const titleBox = h('div', { class:'rozrys-material-accordion__title quote-offer-accordion__titlebox' });
-    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:'Ustawienia oferty do nowej wyceny' }));
-    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2 quote-offer-accordion__summary-line', text:buildOfferSummary(draft) }));
-    const chevron = h('span', { class:`rozrys-material-accordion__chevron${offerEditorOpen ? ' is-open' : ''}`, html:'&#9662;', 'aria-hidden':'true' });
-    trigger.appendChild(titleBox);
-    trigger.appendChild(chevron);
-    trigger.addEventListener('click', ()=>{
-      offerEditorOpen = !offerEditorOpen;
-      render(ctx);
-    });
-    head.appendChild(trigger);
-    const headRow = h('div', { class:'quote-offer-accordion__head-row rozrys-material-accordion__grain-row' });
-    headRow.appendChild(h('span', { class:'rozrys-pill is-raw quote-selection-info-pill', text:'Wpływa na kolejną wersję oferty' }));
-    head.appendChild(headRow);
-    section.appendChild(head);
-
-    if(offerEditorOpen){
-      const body = h('div', { class:'quote-offer-accordion__body rozrys-material-accordion__body' });
-      const selection = normalizeDraftSelection(draft);
-      const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || defaultVersionName(!!commercial.preliminary, { selection }) || '') });
-      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!commercial.preliminary, { selection:normalizeDraftSelection(getOfferDraft()) }) } });
-      versionInput.addEventListener('focus', ()=>{ try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
-      versionInput.addEventListener('pointerup', (ev)=>{ try{ ev.preventDefault(); }catch(_){ } try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
-      versionInput.addEventListener('change', syncVersionName);
-      versionInput.addEventListener('blur', syncVersionName);
-      body.appendChild(buildField('Nazwa wersji oferty', versionInput, true));
-
-      const rateShell = h('div', { class:'quote-rate-editor' });
-      if(!catalog.length){
-        rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w cenniku.' }));
-      } else {
-        catalog.forEach((rate)=>{
-          const item = h('div', { class:'quote-rate-editor__item' });
-          const info = h('div', { class:'quote-rate-editor__info' });
-          info.appendChild(h('div', { class:'quote-rate-editor__title', text:String(rate && rate.name || 'Stawka wyceny') }));
-          const metaParts = [];
-          if(String(rate && rate.category || '').trim()) metaParts.push(String(rate.category).trim());
-          metaParts.push(`Cena: ${money(rate && rate.price)}`);
-          info.appendChild(h('div', { class:'quote-rate-editor__meta', text:metaParts.join(' • ') }));
-          item.appendChild(info);
-          const qtyWrap = h('div', { class:'quote-rate-editor__qty' });
-          qtyWrap.appendChild(h('label', { text:'Ilość' }));
-          const qtyInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'1', value:String(num(selectionMap[String(rate && rate.id || '')], 0) || '') });
-          qtyInput.addEventListener('change', ()=>{
-            const nextMap = Object.assign({}, selectionMap, { [String(rate && rate.id || '')]: Math.max(0, num(qtyInput.value, 0)) });
-            saveRateSelectionRows(makeRateSelectionRows(catalog, nextMap));
-          });
-          qtyWrap.appendChild(qtyInput);
-          item.appendChild(qtyWrap);
-          rateShell.appendChild(item);
+    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.renderOfferEditor === 'function'){
+      try{
+        return FC.wycenaTabEditor.renderOfferEditor(card, ctx, {
+          h,
+          getOfferDraft,
+          patchOfferDraft,
+          normalizeDraftSelection,
+          defaultVersionName,
+          buildOfferSummary,
+          buildSelectionMap,
+          saveRateSelectionRows,
+          buildField,
+          makeRateSelectionRows,
+          money,
+          num,
+          render,
+          getIsOpen: ()=> offerEditorOpen,
+          setIsOpen: (next)=>{ offerEditorOpen = !!next; },
         });
-      }
-      body.appendChild(h('div', { class:'quote-subsection-title', text:'Robocizna / stawki wyceny mebli', style:'margin-top:14px' }));
-      body.appendChild(rateShell);
-
-      const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
-      const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });
-      const discountAmountInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountAmount, 0) || '') });
-      const validityInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.offerValidity || '') });
-      const leadTimeInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.leadTime || '') });
-      const deliveryInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
-      deliveryInput.value = String(commercial.deliveryTerms || '');
-      const noteInput = h('textarea', { class:'investor-form-input investor-form-textarea quote-offer-textarea' });
-      noteInput.value = String(commercial.customerNote || '');
-
-      function syncCommercial(){
-        const nextCommercial = {
-          versionName:String(versionInput.value || '').trim(),
-          preliminary: !!preliminaryInput.checked,
-          discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
-          discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
-          offerValidity: String(validityInput.value || '').trim(),
-          leadTime: String(leadTimeInput.value || '').trim(),
-          deliveryTerms: String(deliveryInput.value || '').trim(),
-          customerNote: String(noteInput.value || '').trim(),
-        };
-        if(nextCommercial.discountPercent > 0) nextCommercial.discountAmount = 0;
-        if(nextCommercial.discountAmount > 0) nextCommercial.discountPercent = 0;
-        if(String(discountPercentInput.value || '').trim() !== String(nextCommercial.discountPercent || '')) discountPercentInput.value = nextCommercial.discountPercent ? String(nextCommercial.discountPercent) : '';
-        if(String(discountAmountInput.value || '').trim() !== String(nextCommercial.discountAmount || '')) discountAmountInput.value = nextCommercial.discountAmount ? String(nextCommercial.discountAmount) : '';
-        patchOfferDraft({ commercial: nextCommercial });
-      }
-
-      [discountPercentInput, discountAmountInput, validityInput, leadTimeInput].forEach((input)=>{
-        input.addEventListener('change', syncCommercial);
-        input.addEventListener('blur', syncCommercial);
-      });
-      [deliveryInput, noteInput].forEach((input)=>{
-        input.addEventListener('change', syncCommercial);
-        input.addEventListener('blur', syncCommercial);
-      });
-
-      grid.appendChild(buildField('Rabat %', discountPercentInput));
-      grid.appendChild(buildField('Rabat kwotowy', discountAmountInput));
-      grid.appendChild(buildField('Ważność oferty', validityInput));
-      grid.appendChild(buildField('Termin realizacji', leadTimeInput));
-      grid.appendChild(buildField('Warunki montażu / transportu', deliveryInput, true));
-      grid.appendChild(buildField('Notatka dla klienta', noteInput, true));
-      body.appendChild(grid);
-      section.appendChild(body);
+      }catch(_){ }
     }
-
-    card.appendChild(section);
   }
 
   function renderHistory(card, ctx, currentQuote){
