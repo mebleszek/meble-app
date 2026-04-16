@@ -357,6 +357,20 @@
     return updateSelectionForProject(pid, (rows)=> rows.find((row)=> String(row && row.id || '') === sid) || null, explicit, explicit || 'zaakceptowany', options);
   }
 
+  function restoreSnapshotForProject(projectId, snapshotId, options){
+    const pid = String(projectId || '');
+    const sid = String(snapshotId || '');
+    if(!pid || !sid) return null;
+    const target = listForProject(pid).find((row)=> String(row && row.id || '') === sid) || null;
+    if(!target) return null;
+    const targetRoomIds = getSnapshotRoomIds(target);
+    const targetStatus = normalizeStatus(options && options.status || (isPreliminarySnapshot(target) ? 'pomiar' : 'zaakceptowany'));
+    return markSelectedForProject(pid, sid, Object.assign({}, options || {}, {
+      status: targetStatus,
+      roomIds: targetRoomIds,
+    }));
+  }
+
   function syncSelectionForProjectStatus(projectId, status, options){
     const pid = String(projectId || '');
     const normalizedStatus = normalizeStatus(status);
@@ -466,6 +480,7 @@
     save,
     remove,
     markSelectedForProject,
+    restoreSnapshotForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,
     getRecommendedStatusMapForProject,

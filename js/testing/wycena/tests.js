@@ -818,6 +818,53 @@
         }
       }),
 
+
+      H.makeTest('Wycena ↔ Restore oferty', 'Przywrócenie odrzuconej oferty scoped nie rusza rozłącznego pokoju', 'Pilnuje, czy restore działa tylko dla exact scope targetu i nie odbiera zaakceptowanej oferty drugiemu, rozłącznemu pokojowi.', ()=>{
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.restoreAcceptedSnapshot');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_restore_kitchen_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore solo' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292500 });
+          const kitchenFinal = FC.quoteSnapshotStore.save({ id:'snap_restore_kitchen_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore solo' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Kuchnia final' }, totals:{ grand:180 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292600 });
+          const salonFinal = FC.quoteSnapshotStore.save({ id:'snap_restore_salon_final', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt restore solo' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:false, versionName:'Salon final' }, totals:{ grand:190 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292700 });
+          FC.projectStatusSync.commitAcceptedSnapshot(kitchenPre, 'pomiar');
+          FC.projectStatusSync.commitAcceptedSnapshot(kitchenFinal, 'zaakceptowany');
+          FC.projectStatusSync.commitAcceptedSnapshot(salonFinal, 'zaakceptowany');
+          const restoredResult = FC.projectStatusSync.restoreAcceptedSnapshot(kitchenPre);
+          const restored = restoredResult && (restoredResult.selectedSnapshot || restoredResult.snapshot) || null;
+          const allRows = FC.quoteSnapshotStore.listForProject(projectId);
+          const restoredRow = allRows.find((row)=> String(row && row.id || '') === String(kitchenPre.id));
+          const kitchenFinalRow = allRows.find((row)=> String(row && row.id || '') === String(kitchenFinal.id));
+          const salonFinalRow = allRows.find((row)=> String(row && row.id || '') === String(salonFinal.id));
+          H.assert(restored && String(restored.id || '') === String(kitchenPre.id), 'Restore nie zwrócił przywróconego snapshotu', restoredResult);
+          H.assert(restoredRow && restoredRow.meta && restoredRow.meta.selectedByClient === true, 'Przywrócona oferta nie stała się aktywna', restoredRow);
+          H.assert(kitchenFinalRow && kitchenFinalRow.meta && kitchenFinalRow.meta.selectedByClient === false, 'Kolidująca oferta tego samego pokoju nie zeszła z aktywnej', kitchenFinalRow);
+          H.assert(salonFinalRow && salonFinalRow.meta && salonFinalRow.meta.selectedByClient === true, 'Restore pokoju A ruszył rozłączny pokój B', salonFinalRow);
+          const investor = FC.investors.getById(investorId);
+          const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
+          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Restore nie przywrócił statusu scoped pokoju A', byId);
+          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'zaakceptowany', 'Restore pokoju A naruszył status rozłącznego pokoju B', byId);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Restore oferty', 'Wycena deleguje restore oferty do centralnego sync', 'Pilnuje, czy akcja Przywróć nie klei lokalnie statusów w Wycena, tylko przechodzi przez project-status-sync.', ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.restoreSnapshotWithSync === 'function', 'Brak FC.wycenaTabDebug.restoreSnapshotWithSync');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.restoreAcceptedSnapshot');
+        const prev = FC.projectStatusSync.restoreAcceptedSnapshot;
+        let calls = 0;
+        FC.projectStatusSync.restoreAcceptedSnapshot = function(){
+          calls += 1;
+          return prev.apply(this, arguments);
+        };
+        try{
+          withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+            const snapshot = FC.quoteSnapshotStore.save({ id:'snap_delegate_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt delegate restore' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Delegate restore' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292800, meta:{ rejectedAt:1712820292850, rejectedReason:'scope_changed', preliminary:true } });
+            FC.wycenaTabDebug.restoreSnapshotWithSync(snapshot);
+          });
+          H.assert(calls === 1, 'Wycena nie przekazała restore oferty do centralnego sync', { calls });
+        } finally {
+          FC.projectStatusSync.restoreAcceptedSnapshot = prev;
+        }
+      }),
+
       H.makeTest('Wycena ↔ Snapshot store', 'Snapshot store nie ustala sam finalnego statusu projektu', 'Pilnuje mini-paczkę 3: wybór snapshotu w quote-snapshot-store zmienia tylko historię ofert i nie może sam zsynchronizować statusów projektu bez centralnego sync.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{

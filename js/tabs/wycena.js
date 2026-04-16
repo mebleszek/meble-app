@@ -346,6 +346,56 @@
     return null;
   }
 
+  function canRestoreSnapshot(snapshot, history){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap || !getSnapshotId(snap)) return false;
+    if(isSelectedSnapshot(snap)) return false;
+    const list = Array.isArray(history) ? history : getSnapshotHistory();
+    const projectStatus = getProjectStatusForHistory(list);
+    return isRejectedSnapshot(snap) || isArchivedPreliminary(snap, list, projectStatus);
+  }
+
+  function restoreSnapshotWithSync(snapshot, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return null;
+    try{
+      if(FC.projectStatusSync && typeof FC.projectStatusSync.restoreAcceptedSnapshot === 'function'){
+        return FC.projectStatusSync.restoreAcceptedSnapshot(snap, options || {});
+      }
+    }catch(_){ }
+    warnMissingProjectStatusSyncMethod('restoreAcceptedSnapshot');
+    return null;
+  }
+
+  async function restoreSnapshot(snapshot, ctx, options){
+    const snap = normalizeSnapshot(snapshot) || null;
+    if(!snap) return false;
+    const snapId = getSnapshotId(snap);
+    const opts = options && typeof options === 'object' ? options : {};
+    const history = Array.isArray(opts.history) ? opts.history : getSnapshotHistory();
+    if(!canRestoreSnapshot(snap, history)) return false;
+    if(opts.rememberScroll) rememberQuoteScroll(String(opts.anchorId || ''), String(opts.fallbackAnchorId || ''));
+    const confirmed = await askConfirm({
+      title:'PRZYWRÓCIĆ OFERTĘ?',
+      message:'Ta wersja znowu stanie się aktywną ofertą dla swojego zakresu.',
+      confirmText:'Przywróć ofertę',
+      cancelText:'Wróć',
+      confirmTone:'success',
+      cancelTone:'neutral'
+    });
+    if(!confirmed){
+      if(opts.rememberScroll) clearRememberedQuoteScroll();
+      return false;
+    }
+    const restoreResult = restoreSnapshotWithSync(snap, opts);
+    const restored = restoreResult && (restoreResult.selectedSnapshot || restoreResult.snapshot) || null;
+    if(!restored) return false;
+    previewSnapshotId = snapId;
+    lastQuote = restored;
+    render(ctx);
+    return true;
+  }
+
   async function acceptSnapshot(snapshot, ctx, options){
     const snap = normalizeSnapshot(snapshot) || null;
     if(!snap) return false;
@@ -1242,6 +1292,13 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
         void acceptSnapshot(snap, ctx, { rememberScroll:true, anchorId:getQuoteHistoryItemDomId(snapId), history });
       });
       actions.appendChild(chooseBtn);
+      if(canRestoreSnapshot(snap, history)){
+        const restoreBtn = h('button', { class:'btn', type:'button', text:'Przywróć' });
+        restoreBtn.addEventListener('click', ()=> {
+          void restoreSnapshot(snap, ctx, { rememberScroll:true, anchorId:getQuoteHistoryItemDomId(snapId), history });
+        });
+        actions.appendChild(restoreBtn);
+      }
       const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
       if(isArchived) pdfBtn.disabled = true;
       pdfBtn.addEventListener('click', ()=>{
@@ -1441,6 +1498,9 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     commitAcceptedSnapshotWithSync,
     reconcileAfterSnapshotRemoval,
     promotePreliminarySnapshotToFinal,
+    canRestoreSnapshot,
+    restoreSnapshotWithSync,
+    restoreSnapshot,
     acceptSnapshot,
     getTargetRoomIdsFromSnapshot,
     isArchivedPreliminary,

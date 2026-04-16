@@ -1,3 +1,10 @@
+## 2026-04-16 — safe quote restore v1
+- `js/app/quote/quote-snapshot-store.js` — dodany minimalny, scoped helper `restoreSnapshotForProject(projectId, snapshotId, options)` oparty na istniejącej ścieżce `markSelectedForProject()`. Restore nie dodaje nowego pół-silnika: tylko przywraca target do aktywnej oferty exact-scope i zostawia rozłączne scope nietknięte.
+- `js/app/project/project-status-sync.js` — dodany lekki wrapper `restoreAcceptedSnapshot(snapshot, options)`, który deleguje restore do już istniejącego flow `commitAcceptedSnapshot()`. Dzięki temu restore używa tej samej centralnej ścieżki statusów co zwykła akceptacja, zamiast tworzyć osobną logikę statusową.
+- `js/tabs/wycena.js` — dodana mała akcja `Przywróć` tylko dla ofert przywracalnych (`odrzucona` lub `archiwalna po pomiarze`). `Wycena` nie układa statusów lokalnie; tylko pyta o potwierdzenie i deleguje restore do `project-status-sync`.
+- `js/testing/wycena/tests.js` — dodane antyregresje: (1) restore odrzuconej oferty scoped nie rusza rozłącznego pokoju, (2) `Wycena` deleguje restore do `FC.projectStatusSync.restoreAcceptedSnapshot`.
+- Instrukcja antyregresyjna: przy kolejnych zmianach restore nie dopisywać nowej, równoległej logiki wyboru snapshotów. Jeśli restore ma działać inaczej biznesowo, rozszerzać `markSelectedForProject()` / centralny sync, a nie dodawać osobny boczny mechanizm w `Wycena`.
+
 ## 2026-04-16 — restore rollback hotfix
 - `js/app/quote/quote-snapshot-store.js`, `js/app/project/project-status-sync.js`, `js/tabs/wycena.js`, `js/testing/wycena/tests.js` — cofnięty świeży feature restore ofert do ostatniej stabilnej wersji po regresji, w której przyciski w aplikacji przestawały wykonywać akcje. Priorytetem był powrót pełnej interaktywności programu; restore ofert wróci później jako osobna, bezpieczniejsza paczka.
 - `index.html`, `dev_tests.html` — podbity cache-busting po rollbacku, żeby urządzenia mobilne nie mieszały nowych i starych modułów.
