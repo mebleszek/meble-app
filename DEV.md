@@ -1,3 +1,7 @@
+## 2026-04-17 — WYCENA status bridge split
+- `js/app/wycena/wycena-tab-status-bridge.js` przejął workflow statusów zakładki `Wycena`: `currentProjectStatus`, `setProjectStatusFromSnapshot`, `syncGeneratedQuoteStatus`, `commitAcceptedSnapshotWithSync`, `reconcileAfterSnapshotRemoval`, `promotePreliminarySnapshotToFinal`, `acceptSnapshot`. `js/tabs/wycena.js` ma tylko delegować do bridge'a.
+- Instrukcja antyregresyjna: nowa logika statusów i akceptacji nie wraca już do `js/tabs/wycena.js`; jeśli trzeba zmieniać flow `accept/remove/promote`, robić to w `wycena-tab-status-bridge.js` albo w `project-status-sync.js`, nie dopisywać lokalnych wyjątków do taba.
+
 ## 2026-04-17 — hotfix znikającej historii wycen po splicie
 - `js/tabs/wycena.js` — hotfix po wydzieleniu `wycena-tab-history.js`: do zależności przekazywanych do modułu historii wrócił `currentProjectStatus`, bez którego render historii wpadał w cichy wyjątek i cała sekcja znikała z UI.
 - `js/testing/wycena/suites/core-offer-basics.js` — dodany test antyregresyjny renderu: zapisany snapshot musi zbudować sekcję `Historia wycen` i wpisy listy po renderze zakładki `Wycena`.
@@ -1231,6 +1235,7 @@ Dopiero potem go zmieniać.
 ## WYCENA — split i antyregresja
 - `js/app/wycena/wycena-tab-helpers.js` przechowuje czyste helpery formatowania, klasyfikacji snapshotów i normalizacji scope dla zakładki `Wycena`; nie wrzucać ich z powrotem do `js/tabs/wycena.js`.
 - `js/tabs/wycena.js` po starcie splitu ma być odchudzany etapami; najpierw helpery bez skutków ubocznych, dopiero później selection/history/status workflow.
+- `js/app/wycena/wycena-tab-status-bridge.js` jest jedynym miejscem mostkującym workflow statusów między `Wycena` a `project-status-sync`; nie cofać `accept/remove/promote` do `js/tabs/wycena.js`.
 
 
 ## 2026-04-16 — WYCENA split / ROZRYS room picker guard

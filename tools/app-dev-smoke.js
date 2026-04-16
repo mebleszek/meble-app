@@ -50,6 +50,7 @@ const FILES = [
   'js/app/wycena/wycena-tab-editor.js',
   'js/app/wycena/wycena-tab-scroll.js',
   'js/app/wycena/wycena-tab-history.js',
+  'js/app/wycena/wycena-tab-status-bridge.js',
   'js/tabs/wycena.js',
   'js/app/optimizer/cut-optimizer.js',
   'js/app/rozrys/rozrys-engine.js',

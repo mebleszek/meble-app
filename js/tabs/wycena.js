@@ -9,6 +9,7 @@
   const wycenaTabHelpers = FC.wycenaTabHelpers || {};
   const wycenaTabScroll = FC.wycenaTabScroll || {};
   const wycenaTabHistory = FC.wycenaTabHistory || {};
+  const wycenaTabStatusBridge = FC.wycenaTabStatusBridge || {};
   const money = wycenaTabHelpers.money;
   const num = wycenaTabHelpers.num;
   const buildRowMeta = wycenaTabHelpers.buildRowMeta;
@@ -153,28 +154,6 @@
     });
   }
 
-  function warnMissingProjectStatusSync(){
-    try{
-      if(!warnMissingProjectStatusSync._done && typeof console !== 'undefined' && console && typeof console.warn === 'function'){
-        warnMissingProjectStatusSync._done = true;
-        console.warn('[Wycena] Brak FC.projectStatusSync — używam ograniczonego fallbacku statusów.');
-      }
-    }catch(_){ }
-  }
-
-  function warnMissingProjectStatusSyncMethod(methodName){
-    const name = String(methodName || '').trim();
-    if(!name) return;
-    try{
-      const warned = warnMissingProjectStatusSyncMethod._warned || (warnMissingProjectStatusSyncMethod._warned = Object.create(null));
-      if(warned[name]) return;
-      warned[name] = true;
-      if(typeof console !== 'undefined' && console && typeof console.warn === 'function'){
-        console.warn(`[Wycena] Brak FC.projectStatusSync.${name} — pomijam stary fallback lokalnego zapisu statusów.`);
-      }
-    }catch(_){ }
-  }
-
   function isArchivedPreliminary(snapshot, history, projectStatus){
     if(!isPreliminarySnapshot(snapshot) || isRejectedSnapshot(snapshot)) return false;
     const list = getComparableHistoryForSnapshot(snapshot, history);
@@ -186,108 +165,94 @@
   }
 
   function currentProjectStatus(snapshot){
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.resolveCurrentProjectStatus === 'function'){
-        return normalizeStatusKey(FC.projectStatusSync.resolveCurrentProjectStatus(snapshot));
-      }
-    }catch(_){ }
-    warnMissingProjectStatusSync();
-    const snap = normalizeSnapshot(snapshot) || {};
-    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function'){
-        const projectRecord = FC.projectStore.getById(projectId);
-        if(projectRecord && projectRecord.status) return normalizeStatusKey(projectRecord.status);
-      }
-    }catch(_){ }
-    return normalizeStatusKey(snap && snap.project && snap.project.status || '');
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.currentProjectStatus === 'function'){
+      try{
+        return wycenaTabStatusBridge.currentProjectStatus(snapshot, {
+          normalizeSnapshot,
+          normalizeStatusKey,
+          getCurrentProjectId,
+        });
+      }catch(_){ }
+    }
+    return normalizeStatusKey('');
   }
 
-
   async function askConfirm(cfg){
-    try{
-      if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') return !!(await FC.confirmBox.ask(cfg));
-    }catch(_){ }
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.askConfirm === 'function'){
+      try{ return !!(await wycenaTabStatusBridge.askConfirm(cfg)); }catch(_){ }
+    }
     return true;
   }
 
   function canAcceptSnapshot(snapshot, history){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap || !getSnapshotId(snap)) return false;
-    if(isSelectedSnapshot(snap) || isRejectedSnapshot(snap)) return false;
-    const list = Array.isArray(history) ? history : getSnapshotHistory();
-    const projectStatus = getProjectStatusForHistory(list);
-    return !isArchivedPreliminary(snap, list, projectStatus);
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.canAcceptSnapshot === 'function'){
+      try{
+        return !!wycenaTabStatusBridge.canAcceptSnapshot(snapshot, history, {
+          normalizeSnapshot,
+          getSnapshotId,
+          isSelectedSnapshot,
+          isRejectedSnapshot,
+          getSnapshotHistory,
+          getProjectStatusForHistory,
+          isArchivedPreliminary,
+        });
+      }catch(_){ }
+    }
+    return false;
   }
 
-
   function commitAcceptedSnapshotWithSync(snapshot, status, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    const nextStatus = normalizeStatusKey(status);
-    if(!snap || !nextStatus) return null;
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.commitAcceptedSnapshot === 'function'){
-        return FC.projectStatusSync.commitAcceptedSnapshot(snap, nextStatus, options || {});
-      }
-    }catch(_){ }
-    warnMissingProjectStatusSyncMethod('commitAcceptedSnapshot');
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.commitAcceptedSnapshotWithSync === 'function'){
+      try{
+        return wycenaTabStatusBridge.commitAcceptedSnapshotWithSync(snapshot, status, options, {
+          normalizeSnapshot,
+          normalizeStatusKey,
+        });
+      }catch(_){ }
+    }
     return null;
   }
 
   function reconcileAfterSnapshotRemoval(snapshot, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return null;
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval === 'function'){
-        return FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval(snap, options || {});
-      }
-    }catch(_){ }
-    warnMissingProjectStatusSyncMethod('reconcileStatusAfterSnapshotRemoval');
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.reconcileAfterSnapshotRemoval === 'function'){
+      try{
+        return wycenaTabStatusBridge.reconcileAfterSnapshotRemoval(snapshot, options, {
+          normalizeSnapshot,
+        });
+      }catch(_){ }
+    }
     return null;
   }
 
   function promotePreliminarySnapshotToFinal(snapshot, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return null;
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.promotePreliminarySnapshotToFinal === 'function'){
-        return FC.projectStatusSync.promotePreliminarySnapshotToFinal(snap, options || {});
-      }
-    }catch(_){ }
-    warnMissingProjectStatusSyncMethod('promotePreliminarySnapshotToFinal');
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.promotePreliminarySnapshotToFinal === 'function'){
+      try{
+        return wycenaTabStatusBridge.promotePreliminarySnapshotToFinal(snapshot, options, {
+          normalizeSnapshot,
+        });
+      }catch(_){ }
+    }
     return null;
   }
 
   async function acceptSnapshot(snapshot, ctx, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return false;
-    const snapId = getSnapshotId(snap);
-    const opts = options && typeof options === 'object' ? options : {};
-    const history = Array.isArray(opts.history) ? opts.history : getSnapshotHistory();
-    if(!canAcceptSnapshot(snap, history)) return false;
-    const targetStatus = isPreliminarySnapshot(snap) ? 'pomiar' : 'zaakceptowany';
-    if(opts.rememberScroll) rememberQuoteScroll(String(opts.anchorId || ''), String(opts.fallbackAnchorId || ''));
-    const confirmed = await askConfirm({
-      title:'OZNACZYĆ OFERTĘ?',
-      message:isPreliminarySnapshot(snap)
-        ? 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Pomiar”.'
-        : 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
-      confirmText:'Zaakceptuj ofertę',
-      cancelText:'Wróć',
-      confirmTone:'success',
-      cancelTone:'neutral'
-    });
-    if(!confirmed){
-      if(opts.rememberScroll) clearRememberedQuoteScroll();
-      return false;
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.acceptSnapshot === 'function'){
+      try{
+        return !!(await wycenaTabStatusBridge.acceptSnapshot(snapshot, ctx, options, {
+          normalizeSnapshot,
+          getSnapshotId,
+          getSnapshotHistory,
+          isPreliminarySnapshot,
+          rememberQuoteScroll,
+          clearRememberedQuoteScroll,
+          render,
+          setHistoryPreviewState:patchHistoryPreviewState,
+          canAcceptSnapshot,
+          commitAcceptedSnapshotWithSync,
+        }));
+      }catch(_){ }
     }
-    const commitResult = commitAcceptedSnapshotWithSync(snap, targetStatus);
-    const selected = commitResult && (commitResult.selectedSnapshot || commitResult.snapshot) || null;
-    if(!selected) return false;
-    previewSnapshotId = snapId;
-    lastQuote = selected;
-    render(ctx);
-    return true;
+    return false;
   }
 
   function labelWithInfo(title, infoTitle, infoMessage){
@@ -453,82 +418,31 @@
   // Jedyny niski fallback kompatybilności, który jeszcze zostaje w Wycena.
   // Wyższe flow akceptacji/usuwania/konwersji nie mogą już wracać do własnych bocznych zapisów.
   function setProjectStatusFromSnapshot(snapshot, status, options){
-    const snap = normalizeSnapshot(snapshot) || {};
-    const nextStatus = normalizeStatusKey(status);
-    if(!nextStatus) return;
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function'){
-        FC.projectStatusSync.setStatusFromSnapshot(snap, nextStatus, options || {});
-        return;
-      }
-    }catch(_){ }
-
-    warnMissingProjectStatusSync();
-    const syncSelection = !!(options && options.syncSelection);
-    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const investorId = String(
-      snap && snap.investor && snap.investor.id
-      || snap && snap.project && snap.project.investorId
-      || getCurrentInvestorId()
-      || ''
-    );
-    const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
-
-    if(syncSelection){
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.setProjectStatusFromSnapshot === 'function'){
       try{
-        if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
-          FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus, targetRoomIds.length ? { roomIds:targetRoomIds } : undefined);
-        }
+        return wycenaTabStatusBridge.setProjectStatusFromSnapshot(snapshot, status, options, {
+          normalizeSnapshot,
+          normalizeStatusKey,
+          getCurrentProjectId,
+          getCurrentInvestorId,
+          getTargetRoomIdsFromSnapshot,
+        });
       }catch(_){ }
     }
-
-    try{
-      if(investorId && targetRoomIds.length && FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function'){
-        targetRoomIds.forEach((roomId)=> {
-          const key = String(roomId || '');
-          if(key) FC.investorPersistence.updateInvestorRoom(investorId, key, { projectStatus:nextStatus });
-        });
-      }
-    }catch(_){ }
-
-    try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
-        const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
-        if(record) FC.projectStore.upsert(Object.assign({}, record, { status:nextStatus, updatedAt:Date.now() }));
-      }
-    }catch(_){ }
-
-    try{
-      if(FC.project && typeof FC.project.save === 'function'){
-        const proj = FC.project.load ? (FC.project.load() || {}) : {};
-        const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
-        if(meta){
-          meta.projectStatus = nextStatus;
-          if(meta.roomDefs && typeof meta.roomDefs === 'object'){
-            targetRoomIds.forEach((roomId)=> {
-              const key = String(roomId || '');
-              const row = meta.roomDefs[key];
-              if(row && typeof row === 'object') meta.roomDefs[key] = Object.assign({}, row, { projectStatus:nextStatus });
-            });
-          }
-          FC.project.save(proj);
-        }
-      }
-    }catch(_){ }
-
-    try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-    try{ if(FC.investorUI && typeof FC.investorUI.render === 'function') FC.investorUI.render(); }catch(_){ }
-    try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
   }
 
   function syncGeneratedQuoteStatus(snapshot){
-    const snap = normalizeSnapshot(snapshot);
-    if(!snap || !snap.project) return;
-    const preliminary = isPreliminarySnapshot(snap);
-    const targetStatus = preliminary ? 'wstepna_wycena' : 'wycena';
-    const currentStatus = currentProjectStatus(snap);
-    if(statusRank(currentStatus) > statusRank(targetStatus)) return;
-    setProjectStatusFromSnapshot(snap, targetStatus, { syncSelection:true });
+    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.syncGeneratedQuoteStatus === 'function'){
+      try{
+        return wycenaTabStatusBridge.syncGeneratedQuoteStatus(snapshot, {
+          normalizeSnapshot,
+          isPreliminarySnapshot,
+          statusRank,
+          currentProjectStatus,
+          setProjectStatusFromSnapshot,
+        });
+      }catch(_){ }
+    }
   }
 
   function buildOfferSummary(draft){
