@@ -121,7 +121,11 @@
     const commercial = snap && snap.commercial || {};
     const selectedByClient = !!(snap && snap.meta && snap.meta.selectedByClient);
     const preliminary = !!(snap && ((snap.meta && snap.meta.preliminary) || (snap.commercial && snap.commercial.preliminary)));
-    const versionName = normalizeText(commercial && commercial.versionName) || normalizeText(snap && snap.meta && snap.meta.versionName);
+    let versionName = '';
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getEffectiveVersionName === 'function') versionName = normalizeText(FC.quoteSnapshotStore.getEffectiveVersionName(snap));
+    }catch(_){ }
+    if(!versionName) versionName = normalizeText(commercial && commercial.versionName) || normalizeText(snap && snap.meta && snap.meta.versionName);
     const title = normalizeText(project && project.title) || normalizeText(investor && (investor.companyName || investor.name)) || 'Wycena projektu';
     const investorLabel = normalizeText(investor && (investor.companyName || investor.name));
     const grand = Number(totals && totals.grand) || 0;

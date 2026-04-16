@@ -71,6 +71,45 @@
         });
       }),
 
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Generate i historia prostują auto-nazwę z obcego scope dla a / J / a+J', 'Pilnuje dokładnie regresję z ekranu a / J / a+J: jeśli draft albo stary snapshot niesie auto-nazwę z pokoju J, to scope a oraz a+J dostają własną nazwę zamiast dalej udawać wariant J.', async ()=>{
+        H.assert(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.coerceVersionNameForSelection === 'function', 'Brak FC.wycenaTabSelection.coerceVersionNameForSelection');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getEffectiveVersionName === 'function', 'Brak FC.quoteSnapshotStore.getEffectiveVersionName');
+        await withInvestorProjectFixture({
+          rooms:[
+            { id:'room_a', baseType:'pokoj', name:'a', label:'a', projectStatus:'nowy' },
+            { id:'room_j', baseType:'pokoj', name:'J', label:'J', projectStatus:'nowy' },
+          ],
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_a:{ id:'room_a', baseType:'pokoj', name:'a', label:'a' },
+                room_j:{ id:'room_j', baseType:'pokoj', name:'J', label:'J' },
+              },
+              roomOrder:['room_a','room_j'],
+            },
+            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+            room_j:{ cabinets:[{ id:'cab_j' }], fronts:[], sets:[], settings:{} },
+          },
+        }, async ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_j_variant', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt a/J mix' }, scope:{ selectedRooms:['room_j'], roomLabels:['J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:35 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445201 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_a_wrong', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt a/J mix' }, scope:{ selectedRooms:['room_a'], roomLabels:['a'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:35 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445202 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_shared_wrong', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt a/J mix' }, scope:{ selectedRooms:['room_a','room_j'], roomLabels:['a','J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:70 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445203 });
+
+          const draft = { commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' } };
+          const coercedA = FC.wycenaTabSelection.coerceVersionNameForSelection({ selectedRooms:['room_a'] }, draft, { getCurrentProjectId:()=> projectId });
+          const coercedShared = FC.wycenaTabSelection.coerceVersionNameForSelection({ selectedRooms:['room_a','room_j'] }, draft, { getCurrentProjectId:()=> projectId });
+          H.assert(String(coercedA || '') === 'Wstępna oferta — a', 'Generate nie wyprostował auto-nazwy dla scope a', coercedA);
+          H.assert(String(coercedShared || '') === 'Wstępna oferta — a + J', 'Generate nie wyprostował auto-nazwy dla scope a + J', coercedShared);
+
+          const snapA = FC.quoteSnapshotStore.getById('snap_scope_a_wrong');
+          const snapShared = FC.quoteSnapshotStore.getById('snap_scope_shared_wrong');
+          H.assert(String(FC.quoteSnapshotStore.getEffectiveVersionName(snapA) || '') === 'Wstępna oferta — a', 'Historia nadal pokazuje nazwę J dla scope a mimo exact-scope a', snapA);
+          H.assert(String(FC.quoteSnapshotStore.getEffectiveVersionName(snapShared) || '') === 'Wstępna oferta — a + J', 'Historia nadal pokazuje nazwę J dla scope a + J mimo exact-scope shared', snapShared);
+        });
+      }),
+
     H.makeTest('Wycena ↔ Scope wejścia', 'Otwarcie istniejącej wyceny scoped nie tworzy duplikatu i ustawia draft oraz podgląd właściwej wersji', 'Pilnuje, czy wybór „Otwórz istniejącą” ładuje dokładnie tę wersję do Wyceny zamiast generować nowy snapshot albo podmieniać scope.', ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.openExistingSnapshot === 'function', 'Brak FC.quoteScopeEntry.openExistingSnapshot');
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.showSnapshotPreview === 'function', 'Brak FC.wycenaTabDebug.showSnapshotPreview');

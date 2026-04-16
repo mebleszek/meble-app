@@ -301,6 +301,12 @@
 
   function getVersionName(snapshot){
     const snap = normalizeSnapshot(snapshot) || {};
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getEffectiveVersionName === 'function'){
+        const effective = String(FC.quoteSnapshotStore.getEffectiveVersionName(snap) || '').trim();
+        if(effective) return effective;
+      }
+    }catch(_){ }
     return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim()
       || defaultVersionName(isPreliminarySnapshot(snap), snap && snap.scope ? { scope:snap.scope } : {});
   }

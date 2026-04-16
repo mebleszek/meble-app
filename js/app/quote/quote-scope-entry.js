@@ -192,6 +192,16 @@
     });
   }
 
+
+  function getEffectiveVersionName(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : null;
+    if(!snap) return '';
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getEffectiveVersionName === 'function') return String(FC.quoteSnapshotStore.getEffectiveVersionName(snap) || '').trim();
+    }catch(_){ }
+    return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim();
+  }
+
   function buildSuggestedVersionName(projectId, roomIds, preliminary){
     const base = String(defaultVersionName(preliminary, { roomIds }) || '').trim() || (preliminary ? 'Wstępna oferta' : 'Oferta');
     if(!nameExists(projectId, roomIds, preliminary, base)) return base;
@@ -289,7 +299,7 @@ Pomieszczenia: ${summary.scopeLabel}`
     if(!snap) throw new Error('Brak istniejącej wyceny do otwarcia');
     const roomIds = normalizeRoomIds(snap && snap.scope && snap.scope.selectedRooms);
     const preliminary = !!(snap && ((snap.meta && snap.meta.preliminary) || (snap.commercial && snap.commercial.preliminary)));
-    const versionName = String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim();
+    const versionName = getEffectiveVersionName(snap);
     patchDraftForScope(roomIds, preliminary, versionName, { versionName:true });
     previewSnapshot(String(snap && snap.id || ''));
     if(status) syncScopeStatus(snap, status);
@@ -321,7 +331,7 @@ Pomieszczenia: ${summary.scopeLabel}`
       const closeBtn = h('button', { type:'button', class:'quote-scope-entry-modal__close', 'aria-label':'Zamknij okno', text:'×' });
       const head = h('div', { class:'quote-scope-entry-modal__head' }, [title, closeBtn]);
       const body = h('div', { class:'quote-scope-entry-modal__body' });
-      const name = String(existingSnapshot && existingSnapshot.commercial && existingSnapshot.commercial.versionName || existingSnapshot && existingSnapshot.meta && existingSnapshot.meta.versionName || '').trim();
+      const name = getEffectiveVersionName(existingSnapshot);
       body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:`Dla zakresu „${scope.scopeLabel}” istnieje już ${preliminary ? 'wycena wstępna' : 'wycena'}${name ? ` o nazwie „${name}”` : ''}.` }));
       body.appendChild(h('div', { class:'quote-scope-entry-modal__scope', text:`Pomieszczenia: ${scope.scopeLabel}` }));
       const actions = h('div', { class:'quote-scope-entry-modal__actions quote-scope-entry-modal__actions--stacked' });

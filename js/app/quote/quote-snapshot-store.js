@@ -182,6 +182,52 @@
     return left.every((roomId, idx)=> roomId === right[idx]);
   }
 
+
+  function normalizeComparableVersionName(value){
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .replace(/[ąćęłńóśźż]/g, (ch)=> ({'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'}[ch] || ch))
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  function escapeRegExp(value){
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function matchesOwnAutoVersionName(snapshot, versionName){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const preliminary = isPreliminarySnapshot(snap);
+    const ownBase = String(defaultVersionName(preliminary, { scope:snap.scope || {} }) || '').trim();
+    const current = String(versionName || '').trim();
+    if(!ownBase || !current) return false;
+    const pattern = new RegExp(`^${escapeRegExp(ownBase)}(?: — wariant \\d+)?$`);
+    return pattern.test(current);
+  }
+
+  function getEffectiveVersionName(snapshot){
+    const snap = normalizeSnapshot(snapshot);
+    const current = String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim();
+    const fallback = String(defaultVersionName(isPreliminarySnapshot(snap), { scope:snap && snap.scope ? snap.scope : {} }) || '').trim();
+    if(!current) return fallback;
+    if(matchesOwnAutoVersionName(snap, current)) return current;
+    const projectId = String(snap && snap.project && snap.project.id || '').trim();
+    const targetRooms = getSnapshotRoomIds(snap);
+    if(!projectId || !targetRooms.length) return current;
+    const targetName = normalizeComparableVersionName(current);
+    const rows = listForProject(projectId);
+    const duplicatedAcrossDifferentScope = rows.some((row)=> {
+      if(!row || String(row && row.id || '') === String(snap && snap.id || '')) return false;
+      if(isRejectedSnapshot(row)) return false;
+      if(isPreliminarySnapshot(row) !== isPreliminarySnapshot(snap)) return false;
+      const rowName = normalizeComparableVersionName(row && row.commercial && row.commercial.versionName || row && row.meta && row.meta.versionName || '');
+      if(!rowName || rowName !== targetName) return false;
+      return !sameRoomScope(getSnapshotRoomIds(row), targetRooms);
+    });
+    return duplicatedAcrossDifferentScope ? fallback : current;
+  }
+
   function snapshotScopeOverlaps(snapshot, roomIds){
     const targets = normalizeRoomIds(roomIds);
     if(!targets.length) return true;
@@ -487,5 +533,6 @@
     sameRoomScope,
     snapshotScopeOverlaps,
     isRejectedSnapshot,
+    getEffectiveVersionName,
   };
 })();

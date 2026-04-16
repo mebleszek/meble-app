@@ -122,6 +122,78 @@
     catch(_){ return false; }
   }
 
+
+  function normalizeComparableVersionName(value){
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .replace(/[ąćęłńóśźż]/g, (ch)=> ({'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'}[ch] || ch))
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  function sameRoomScope(leftRooms, rightRooms){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.sameRoomScope === 'function') return FC.quoteSnapshotStore.sameRoomScope(leftRooms, rightRooms);
+    }catch(_){ }
+    const left = normalizeRoomIds(leftRooms);
+    const right = normalizeRoomIds(rightRooms);
+    if(left.length != right.length) return false;
+    return left.every((roomId, idx)=> roomId === right[idx]);
+  }
+
+  function isRejectedSnapshot(snapshot){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isRejectedSnapshot === 'function') return !!FC.quoteSnapshotStore.isRejectedSnapshot(snapshot);
+    }catch(_){ }
+    return !!(snapshot && snapshot.meta && (Number(snapshot.meta.rejectedAt) > 0 || String(snapshot.meta.rejectedReason || '').trim()));
+  }
+
+  function isPreliminarySnapshot(snapshot){
+    return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
+  }
+
+  function listProjectSnapshots(projectId){
+    const pid = String(projectId || '').trim();
+    if(!pid) return [];
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function') return FC.quoteSnapshotStore.listForProject(pid) || [];
+    }catch(_){ }
+    return [];
+  }
+
+  function versionNameExistsForDifferentExactScope(projectId, roomIds, preliminary, versionName){
+    const pid = String(projectId || '').trim();
+    const targetRooms = normalizeRoomIds(roomIds);
+    const targetName = normalizeComparableVersionName(versionName);
+    if(!pid || !targetRooms.length || !targetName) return false;
+    const rows = listProjectSnapshots(pid);
+    return rows.some((row)=> {
+      if(!row || isRejectedSnapshot(row)) return false;
+      if(isPreliminarySnapshot(row) !== !!preliminary) return false;
+      const rowName = normalizeComparableVersionName(row && row.commercial && row.commercial.versionName || row && row.meta && row.meta.versionName || '');
+      if(!rowName || rowName !== targetName) return false;
+      const rowRooms = normalizeRoomIds(row && row.scope && row.scope.selectedRooms);
+      if(!rowRooms.length) return false;
+      return !sameRoomScope(rowRooms, targetRooms);
+    });
+  }
+
+  function coerceVersionNameForSelection(selection, draft, deps){
+    const normalizedSelection = selection && typeof selection === 'object' ? selection : { selectedRooms:[] };
+    const selectedRooms = normalizeRoomIds(normalizedSelection && normalizedSelection.selectedRooms);
+    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
+    const preliminary = !!commercial.preliminary;
+    const defaultName = defaultVersionName(preliminary, { selection:normalizedSelection });
+    const currentVersionName = String(commercial.versionName || '').trim();
+    if(!currentVersionName) return defaultName;
+    if(currentVersionName === defaultName) return currentVersionName;
+    const projectId = getCurrentProjectId(deps);
+    if(projectId && selectedRooms.length && versionNameExistsForDifferentExactScope(projectId, selectedRooms, preliminary, currentVersionName)) return defaultName;
+    if(projectId && selectedRooms.length && isVersionNameTakenForScope(projectId, selectedRooms, preliminary, currentVersionName)) return currentVersionName;
+    return currentVersionName;
+  }
+
   function resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps){
     const previousSelection = selection && typeof selection === 'object' ? selection : { selectedRooms:[] };
     const previousRooms = normalizeRoomIds(previousSelection && previousSelection.selectedRooms);
@@ -133,13 +205,13 @@
     const nextSelection = Object.assign({}, previousSelection, { selectedRooms:nextSelectedRooms });
     const nextDefault = defaultVersionName(preliminary, { selection:nextSelection });
     if(!currentVersionName) return nextDefault;
-    if(previousRooms.join('|') === nextSelectedRooms.join('|')) return currentVersionName;
+    if(previousRooms.join('|') === nextSelectedRooms.join('|')) return coerceVersionNameForSelection(nextSelection, draft, deps);
     if(currentVersionName === previousDefault) return nextDefault;
     const projectId = getCurrentProjectId(deps);
     if(projectId && previousRooms.length && isVersionNameTakenForScope(projectId, previousRooms, preliminary, currentVersionName)){
       return nextDefault;
     }
-    return currentVersionName;
+    return coerceVersionNameForSelection(nextSelection, Object.assign({}, draft || {}, { commercial:Object.assign({}, commercial, { versionName:currentVersionName }) }), deps);
   }
 
   async function ensureVersionNameBeforeGenerate(selection, deps){
@@ -149,9 +221,12 @@
     const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
     const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
     const preliminary = !!commercial.preliminary;
-    const currentVersionName = String(commercial.versionName || '').trim() || defaultVersionName(preliminary, { selection });
-    if(!shouldPromptForVersionNameOnGenerate(selection, draft, deps)) return { cancelled:false, versionName:currentVersionName };
-    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function')) return { cancelled:false, versionName:currentVersionName };
+    const coercedVersionName = String(coerceVersionNameForSelection(selection, draft, deps) || '').trim() || defaultVersionName(preliminary, { selection });
+    if(coercedVersionName && coercedVersionName !== String(commercial.versionName || '').trim()){
+      patchOfferDraft({ commercial:{ versionName:coercedVersionName } });
+    }
+    if(!shouldPromptForVersionNameOnGenerate(selection, draft, deps)) return { cancelled:false, versionName:coercedVersionName };
+    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function')) return { cancelled:false, versionName:coercedVersionName };
     const scope = buildSelectionScopeSummary(selection);
     const snapshotLabel = preliminary ? 'wycena wstępna' : 'wycena';
     const naming = await FC.quoteScopeEntry.promptNewVersionName({
@@ -165,7 +240,7 @@
       cancelLabel:'Anuluj',
     });
     if(!naming || naming.cancelled) return { cancelled:true };
-    const nextVersionName = String(naming.versionName || '').trim() || currentVersionName;
+    const nextVersionName = String(naming.versionName || '').trim() || coercedVersionName;
     patchOfferDraft({ commercial:{ versionName:nextVersionName } });
     return { cancelled:false, versionName:nextVersionName };
   }
@@ -360,6 +435,7 @@ Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
     getRoomsPickerMeta,
     getScopePickerMeta,
     buildSelectionSummary,
+    coerceVersionNameForSelection,
     resolveVersionNameAfterRoomChange,
     openQuoteRoomsPicker,
     openQuoteScopePicker,
