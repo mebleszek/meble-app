@@ -1203,3 +1203,12 @@ Dopiero potem go zmieniać.
 - `dev_tests.html` — nadal jeden punkt wejścia; nowe moduły testów ładujemy z folderu `js/testing/wycena/suites/`, żeby nie robić bałaganu w repo.
 - Instrukcja antyregresyjna: przed rozbijaniem `js/tabs/wycena.js` utrzymywać jeden browser runner i dokładać nowe suite'y modułowo pod `js/testing/wycena/suites/`, a nie przez nowe strony testowe.
 - Instrukcja organizacyjna: dla nowych testów zostawiać tylko plik startowy/agregujący jako wejście (`js/testing/wycena/tests.js`), a kolejne moduły trzymać w podfolderach (`fixtures`, `suites`, itp.), żeby repo i GitHub Pages nie puchły od luźnych plików na wierzchu.
+
+
+## WYCENA testy — organizacja
+- Punkt wejścia dla użytkownika pozostaje jeden: `dev_tests.html`.
+- Punkt wejścia kodu dla testów Wycena pozostaje jeden: `js/testing/wycena/tests.js`.
+- Nowe i rozdzielane suite’y testów Wycena trafiają do folderu `js/testing/wycena/suites/`, a nie do katalogu głównego `js/testing/wycena/`.
+- `js/testing/wycena/tests.js` ma być cienkim runnerem zbierającym testy z rejestru; nie doklejać z powrotem dużych inline suite’ów do tego pliku.
+- Przy kolejnych paczkach antyregresyjnych dla Wycena dopinać nowe suite’y jako osobne pliki w `suites/`, zachowując jeden runner i jedną stronę testową.
+

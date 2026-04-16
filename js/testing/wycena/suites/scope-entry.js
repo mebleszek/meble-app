@@ -1,0 +1,168 @@
+(function(root){
+  'use strict';
+  const host = root || (typeof window !== 'undefined' ? window : globalThis);
+  host.FC = host.FC || {};
+  const FC = host.FC;
+
+  if(!(FC.testHarness && typeof FC.registerWycenaTests === 'function')) return;
+
+  FC.registerWycenaTests(({ FC, H, clone, withInvestorProjectFixture })=> [
+    H.makeTest('Wycena ↔ Scope wejścia', 'Exact scope znajduje istniejącą wstępną wycenę solo bez mylenia z innymi pokojami', 'Pilnuje, czy wyszukiwanie istniejącej wyceny wstępnej trafia dokładnie w scope jednego pokoju i nie podbiera wersji z innego zakresu.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.describeScopeMatch === 'function', 'Brak FC.quoteScopeEntry.describeScopeMatch');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_solo_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope solo' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:118 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820441000 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_other_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope solo' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:125 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820442000 });
+          const match = FC.quoteScopeEntry.describeScopeMatch(projectId, ['room_salon'], { preliminary:true });
+          H.assert(match && match.hasExistingExactScope === true, 'Exact scope solo nie wykrył istniejącej wyceny wstępnej', match);
+          H.assert(String(match.existingSnapshotId || '') === 'snap_scope_solo_pre', 'Exact scope solo otworzył nie tę wycenę co trzeba', match);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Exact scope odróżnia zakres wspólny A+B od zakresu solo A', 'Pilnuje, czy wspólna wycena dla kombinacji pokoi nie jest traktowana jak wycena solo tylko dlatego, że zawiera ten sam pokój.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.describeScopeMatch === 'function', 'Brak FC.quoteScopeEntry.describeScopeMatch');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_shared_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope shared' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:221 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820443000 });
+          const soloMatch = FC.quoteScopeEntry.describeScopeMatch(projectId, ['room_salon'], { preliminary:true });
+          const sharedMatch = FC.quoteScopeEntry.describeScopeMatch(projectId, ['room_kuchnia_gora','room_salon'], { preliminary:true });
+          H.assert(soloMatch && soloMatch.hasExistingExactScope === false, 'Scope solo błędnie uznał wycenę wspólną A+B za własną', soloMatch);
+          H.assert(sharedMatch && sharedMatch.hasExistingExactScope === true && String(sharedMatch.existingSnapshotId || '') === 'snap_scope_shared_pre', 'Scope A+B nie odnalazł dokładnie swojej istniejącej wyceny wspólnej', sharedMatch);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Brak istniejącej wyceny dla danego scope zgłasza pusty exact match', 'Pilnuje, czy nowy zakres bez historii nie jest mylony z innymi snapshotami projektu i pozostaje kandydatem do utworzenia nowej wyceny.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.describeScopeMatch === 'function', 'Brak FC.quoteScopeEntry.describeScopeMatch');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_only_kitchen', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope none' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820444000 });
+          const none = FC.quoteScopeEntry.describeScopeMatch(projectId, ['room_salon'], { preliminary:true });
+          H.assert(none && none.hasExistingExactScope === false, 'Brak historii dla scope salon został błędnie uznany za istniejącą wycenę', none);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Podpowiedź nazwy nowego wariantu nie dubluje domyślnej nazwy dla tego samego scope', 'Pilnuje, czy przy kolejnym wariancie dla identycznego scope podpowiedź idzie w numerowany wariant zamiast znowu zostawiać samą domyślną nazwę.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.buildSuggestedVersionName === 'function', 'Brak FC.quoteScopeEntry.buildSuggestedVersionName');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_name_1', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope name' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' }, totals:{ grand:112 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445000 });
+          const suggested = FC.quoteScopeEntry.buildSuggestedVersionName(projectId, ['room_salon'], true);
+          H.assert(String(suggested || '') === 'Wstępna oferta — Salon — wariant 2', 'Podpowiedź nazwy nie przeszła na kolejny wariant dla identycznego scope', suggested);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Walidacja nazwy nowego wariantu blokuje duplikat także po normalizacji', 'Pilnuje, czy druga wycena dla tego samego zakresu nie przejdzie z nazwą różniącą się tylko wielkością liter, spacjami albo polskimi znakami.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.isVersionNameTaken === 'function', 'Brak FC.quoteScopeEntry.isVersionNameTaken');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_name_norm_1', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope name normalized' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' }, totals:{ grand:113 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445100 });
+          const taken = FC.quoteScopeEntry.isVersionNameTaken(projectId, ['room_salon'], true, '  wstepna   oferta — salon  ');
+          H.assert(taken === true, 'Walidacja nazwy nie wykryła duplikatu po normalizacji wpisu', taken);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Otwarcie istniejącej wyceny scoped nie tworzy duplikatu i ustawia draft oraz podgląd właściwej wersji', 'Pilnuje, czy wybór „Otwórz istniejącą” ładuje dokładnie tę wersję do Wyceny zamiast generować nowy snapshot albo podmieniać scope.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.openExistingSnapshot === 'function', 'Brak FC.quoteScopeEntry.openExistingSnapshot');
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.showSnapshotPreview === 'function', 'Brak FC.wycenaTabDebug.showSnapshotPreview');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const saved = FC.quoteSnapshotStore.save({ id:'snap_scope_open_existing', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope open' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre 2' }, totals:{ grand:240 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446000 });
+          const beforeCount = FC.quoteSnapshotStore.listForProject(projectId).length;
+          const result = FC.quoteScopeEntry.openExistingSnapshot(saved, 'wstepna_wycena');
+          const draft = FC.quoteOfferStore.getCurrentDraft();
+          const afterCount = FC.quoteSnapshotStore.listForProject(projectId).length;
+          H.assert(result && String(result.action || '') === 'opened-existing', 'Otwarcie istniejącej wyceny nie zwróciło poprawnej akcji', result);
+          H.assert(afterCount == beforeCount, 'Otwarcie istniejącej wyceny stworzyło dodatkowy snapshot zamiast tylko otworzyć istniejący', { beforeCount, afterCount, list:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(Array.isArray(draft && draft.selection && draft.selection.selectedRooms) && draft.selection.selectedRooms.join('|') === 'room_kuchnia_gora|room_salon', 'Otwarcie istniejącej wyceny nie ustawiło draftu na dokładny scope A+B', draft);
+          H.assert(String(draft && draft.commercial && draft.commercial.versionName || '') === 'Wspólna pre 2', 'Otwarcie istniejącej wyceny nie załadowało właściwej nazwy wersji do draftu', draft);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Wejście statusowe może przejąć aktualnie zaznaczoną kombinację pokoi z draftu zamiast tylko solo', 'Pilnuje, czy logika wejścia do wstępnej wyceny potrafi użyć aktualnej zaznaczonej kombinacji A+B, gdy użytkownik działa z jednego z tych pokoi.', ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.getScopeRoomIds === 'function', 'Brak FC.quoteScopeEntry.getScopeRoomIds');
+        withInvestorProjectFixture({}, ()=>{
+          FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_kuchnia_gora','room_salon'] }, commercial:{ preliminary:true, versionName:'Roboczy draft' } });
+          const ids = FC.quoteScopeEntry.getScopeRoomIds({ fallbackRoomId:'room_salon' });
+          H.assert(Array.isArray(ids) && ids.join('|') === 'room_kuchnia_gora|room_salon', 'Wejście statusowe nie przejęło zaznaczonej kombinacji pokoi z draftu', ids);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Nowa wycena wstępna pokazuje prostą informację tylko przy faktycznym utworzeniu', 'Pilnuje, czy po utworzeniu nowej wstępnej wyceny system daje prosty sygnał sukcesu, a przy zwykłej wycenie końcowej nie odpala tego komunikatu.', async ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function', 'Brak FC.quoteScopeEntry.ensureScopedQuoteEntry');
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+          const prevBuild = FC.wycenaCore && FC.wycenaCore.buildQuoteSnapshot;
+          let prelimNotice = null;
+          let finalNotice = null;
+          try{
+            H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+              id:`snap_pre_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt notice pre' },
+              scope:{ selectedRooms:Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.slice() : ['room_salon'], roomLabels:['Salon'] },
+              commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' },
+              totals:{ grand:0 },
+              lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            });
+            await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+              investorId,
+              projectId,
+              roomIds:['room_salon'],
+              preliminary:true,
+              openTab:false,
+              notifyCreated:(scope)=> { prelimNotice = scope; }
+            });
+            H.assert(prelimNotice && Array.isArray(prelimNotice.roomIds) && prelimNotice.roomIds.join('|') === 'room_salon', 'Nowa wycena wstępna nie wywołała prostego potwierdzenia utworzenia', prelimNotice);
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+              id:`snap_final_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt notice final' },
+              scope:{ selectedRooms:Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.slice() : ['room_salon'], roomLabels:['Salon'] },
+              commercial:{ preliminary:false, versionName:'Oferta — Salon' },
+              totals:{ grand:0 },
+              lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            });
+            await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+              investorId,
+              projectId,
+              roomIds:['room_salon'],
+              preliminary:false,
+              openTab:false,
+              notifyCreated:(scope)=> { finalNotice = scope; }
+            });
+            H.assert(finalNotice == null, 'Komunikat utworzenia odpalił się także dla zwykłej wyceny zamiast tylko dla wstępnej', finalNotice);
+          } finally {
+            if(FC.wycenaCore) FC.wycenaCore.buildQuoteSnapshot = prevBuild;
+          }
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Nowa wycena wstępna domyślnie pokazuje modal OK po faktycznym utworzeniu', 'Pilnuje, czy bez specjalnego callbacka system używa prostego komunikatu OK po stworzeniu nowej wyceny wstępnej.', async ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function', 'Brak FC.quoteScopeEntry.ensureScopedQuoteEntry');
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+          const prevBuild = FC.wycenaCore && FC.wycenaCore.buildQuoteSnapshot;
+          const prevInfoOpen = FC.infoBox && FC.infoBox.open;
+          let opened = null;
+          try{
+            H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+            H.assert(FC.infoBox && typeof FC.infoBox.open === 'function', 'Brak FC.infoBox.open');
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+              id:`snap_notice_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt notice info' },
+              scope:{ selectedRooms:Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.slice() : ['room_salon'], roomLabels:['Salon'] },
+              commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon' },
+              totals:{ grand:120 },
+              lines:{ materials:[{ key:'m1' }], accessories:[], agdServices:[], quoteRates:[] },
+            });
+            FC.infoBox.open = (opts)=> { opened = Object.assign({}, opts || {}); };
+            await FC.quoteScopeEntry.ensureScopedQuoteEntry({
+              investorId,
+              projectId,
+              roomIds:['room_salon'],
+              preliminary:true,
+              openTab:false,
+            });
+            H.assert(opened && opened.okOnly === true && /NOWA WYCENA WSTĘPNA/i.test(String(opened.title || '')), 'Domyślna informacja o nowej wycenie wstępnej nie otworzyła prostego modala OK', opened);
+          } finally {
+            if(FC.wycenaCore) FC.wycenaCore.buildQuoteSnapshot = prevBuild;
+            if(FC.infoBox) FC.infoBox.open = prevInfoOpen;
+          }
+        });
+      })
+  ]);
+})(typeof window !== 'undefined' ? window : globalThis);
