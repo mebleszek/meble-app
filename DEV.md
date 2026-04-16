@@ -1220,3 +1220,8 @@ Dopiero potem go zmieniać.
 ## WYCENA — split i antyregresja
 - `js/app/wycena/wycena-tab-helpers.js` przechowuje czyste helpery formatowania, klasyfikacji snapshotów i normalizacji scope dla zakładki `Wycena`; nie wrzucać ich z powrotem do `js/tabs/wycena.js`.
 - `js/tabs/wycena.js` po starcie splitu ma być odchudzany etapami; najpierw helpery bez skutków ubocznych, dopiero później selection/history/status workflow.
+
+
+## 2026-04-16 — WYCENA split / ROZRYS room picker guard
+- `js/app/wycena/wycena-tab-selection.js` przejął selection UI zakładki `Wycena` (wybór pomieszczeń, zakres fronty/korpusy, summary, naming exact-scope). `js/tabs/wycena.js` ma tylko delegować do tego modułu, bez przywracania dużego inline bloku selection UI.
+- W ROZRYS lista/picker pomieszczeń nie może mieszać realnych pokoi inwestora z legacy kreatorami `kuchnia/szafa/pokoj/lazienka`, jeśli te legacy klucze są tylko pustymi szablonami projektu. Przy aktywnym inwestorze pokazywać realne pokoje + ewentualnie pokoje odkryte w projekcie z rzeczywistymi danymi.

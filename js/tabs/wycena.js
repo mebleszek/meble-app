@@ -316,62 +316,32 @@
   }
 
   function defaultVersionName(preliminary, options){
-    try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.defaultVersionName === 'function') return FC.quoteOfferStore.defaultVersionName(!!preliminary, options || {});
-    }catch(_){ }
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.defaultVersionName === 'function'){
+      try{ return FC.wycenaTabSelection.defaultVersionName(preliminary, options); }catch(_){ }
+    }
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
 
   function buildSelectionScopeSummary(selection){
-    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
-    if(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.getScopeSummary === 'function'){
-      try{ return FC.quoteScopeEntry.getScopeSummary(selectedRooms); }catch(_){ }
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.buildSelectionScopeSummary === 'function'){
+      try{ return FC.wycenaTabSelection.buildSelectionScopeSummary(selection); }catch(_){ }
     }
-    const labels = selectedRooms.slice();
-    return {
-      roomIds:selectedRooms,
-      roomLabels:labels,
-      scopeLabel:labels.join(', ') || 'wybrany zakres',
-      isMultiRoom:selectedRooms.length > 1,
-    };
+    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
+    return { roomIds:selectedRooms, roomLabels:selectedRooms.slice(), scopeLabel:selectedRooms.join(', ') || 'wybrany zakres', isMultiRoom:selectedRooms.length > 1 };
   }
 
   function shouldPromptForVersionNameOnGenerate(selection, draft){
-    const projectId = String(getCurrentProjectId() || '');
-    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
-    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
-    if(!projectId || !selectedRooms.length) return false;
-    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.listExactScopeSnapshots === 'function')) return false;
-    try{
-      const rows = FC.quoteScopeEntry.listExactScopeSnapshots(projectId, selectedRooms, { preliminary:!!commercial.preliminary, includeRejected:false }) || [];
-      return rows.length > 0;
-    }catch(_){ return false; }
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.shouldPromptForVersionNameOnGenerate === 'function'){
+      try{ return !!FC.wycenaTabSelection.shouldPromptForVersionNameOnGenerate(selection, draft, { getCurrentProjectId }); }catch(_){ }
+    }
+    return false;
   }
 
   async function ensureVersionNameBeforeGenerate(selection){
-    const draft = getOfferDraft() || {};
-    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
-    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
-    const preliminary = !!commercial.preliminary;
-    const currentVersionName = String(commercial.versionName || '').trim() || defaultVersionName(preliminary, { selection });
-    if(!shouldPromptForVersionNameOnGenerate(selection, draft)) return { cancelled:false, versionName:currentVersionName };
-    if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function')) return { cancelled:false, versionName:currentVersionName };
-    const scope = buildSelectionScopeSummary(selection);
-    const snapshotLabel = preliminary ? 'wycena wstępna' : 'wycena';
-    const naming = await FC.quoteScopeEntry.promptNewVersionName({
-      projectId:String(getCurrentProjectId() || ''),
-      roomIds:selectedRooms,
-      preliminary,
-      title: preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY',
-      message:`Dla zakresu „${scope.scopeLabel}” istnieje już ${snapshotLabel}. Podaj nazwę dla kolejnej wersji, aby nie powstały dwie identycznie nazwane wyceny.`,
-      hint:'Program proponuje kolejną nazwę wariantu. Możesz ją zmienić, ale nazwa musi być unikalna dla tego samego typu wyceny i dokładnie tego samego zakresu.',
-      submitLabel:'OK',
-      cancelLabel:'Anuluj',
-    });
-    if(!naming || naming.cancelled) return { cancelled:true };
-    const nextVersionName = String(naming.versionName || '').trim() || currentVersionName;
-    patchOfferDraft({ commercial:{ versionName:nextVersionName } });
-    return { cancelled:false, versionName:nextVersionName };
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.ensureVersionNameBeforeGenerate === 'function'){
+      try{ return await FC.wycenaTabSelection.ensureVersionNameBeforeGenerate(selection, { getOfferDraft, patchOfferDraft, getCurrentProjectId }); }catch(_){ }
+    }
+    return { cancelled:false, versionName:defaultVersionName(false, { selection }) };
   }
 
   function getVersionName(snapshot){
@@ -381,58 +351,38 @@
   }
 
   function normalizeDraftSelection(draft){
-    try{
-      if(FC.wycenaCore && typeof FC.wycenaCore.normalizeQuoteSelection === 'function') return FC.wycenaCore.normalizeQuoteSelection(draft && draft.selection);
-    }catch(_){ }
-    return {
-      selectedRooms:[],
-      materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true },
-    };
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.normalizeDraftSelection === 'function'){
+      try{ return FC.wycenaTabSelection.normalizeDraftSelection(draft); }catch(_){ }
+    }
+    return { selectedRooms:[], materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true } };
   }
 
   function getRoomLabelsFromSelection(selection){
-    const rows = Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms : [];
-    return rows.map((roomId)=>{
-      try{ return FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function' ? FC.roomRegistry.getRoomLabel(roomId) : String(roomId || ''); }catch(_){ return String(roomId || ''); }
-    }).filter(Boolean);
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.getRoomLabelsFromSelection === 'function'){
+      try{ return FC.wycenaTabSelection.getRoomLabelsFromSelection(selection); }catch(_){ }
+    }
+    return [];
   }
 
   function getRoomsPickerMeta(selection){
-    try{
-      if(FC.rozrysScope && typeof FC.rozrysScope.getRoomsSummary === 'function'){
-        return FC.rozrysScope.getRoomsSummary(selection && selection.selectedRooms, {
-          getRooms: ()=> {
-            try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? FC.roomRegistry.getActiveRoomIds() : []; }catch(_){ return []; }
-          }
-        }) || { title:'Brak pomieszczeń', subtitle:'' };
-      }
-    }catch(_){ }
-    const roomLabels = getRoomLabelsFromSelection(selection);
-    return {
-      title: roomLabels.length ? roomLabels.join(', ') : 'Brak pomieszczeń',
-      subtitle: roomLabels.length ? `${roomLabels.length} wybrane` : '',
-    };
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.getRoomsPickerMeta === 'function'){
+      try{ return FC.wycenaTabSelection.getRoomsPickerMeta(selection); }catch(_){ }
+    }
+    return { title:'Brak pomieszczeń', subtitle:'' };
   }
 
   function getScopePickerMeta(selection){
-    return {
-      title:'Zakres wyceny',
-      subtitle:getMaterialScopeLabel(selection),
-      detail:'Wybór jak w ROZRYS',
-    };
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.getScopePickerMeta === 'function'){
+      try{ return FC.wycenaTabSelection.getScopePickerMeta(selection, { getMaterialScopeLabel }); }catch(_){ }
+    }
+    return { title:'Zakres wyceny', subtitle:getMaterialScopeLabel(selection), detail:'Wybór jak w ROZRYS' };
   }
 
   function buildSelectionSummary(selection){
-    const roomLabels = getRoomLabelsFromSelection(selection);
-    const roomsMeta = getRoomsPickerMeta(selection);
-    const scopeMeta = getScopePickerMeta(selection);
-    return {
-      roomLabels,
-      roomsMeta,
-      scopeMeta,
-      roomsText: roomLabels.length ? roomLabels.join(', ') : 'Brak pomieszczeń',
-      scopeText: getMaterialScopeLabel(selection),
-    };
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.buildSelectionSummary === 'function'){
+      try{ return FC.wycenaTabSelection.buildSelectionSummary(selection, { getMaterialScopeLabel }); }catch(_){ }
+    }
+    return { roomLabels:[], roomsMeta:{ title:'Brak pomieszczeń', subtitle:'' }, scopeMeta:getScopePickerMeta(selection), roomsText:'Brak pomieszczeń', scopeText:getMaterialScopeLabel(selection) };
   }
 
   function getQuoteHistoryItemDomId(snapshotId){
@@ -551,173 +501,21 @@
   }
 
   function openQuoteRoomsPicker(ctx){
-    const draft = getOfferDraft();
-    const selection = normalizeDraftSelection(draft);
-    try{
-      if(!(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function')) return;
-      FC.rozrysPickers.openRoomsPicker({
-        getSelectedRooms: ()=> selection.selectedRooms,
-        setSelectedRooms: (rooms)=>{
-          const nextRooms = Array.isArray(rooms) ? rooms.slice() : [];
-          const draft = getOfferDraft();
-          const commercial = draft && draft.commercial || {};
-          const currentVersionName = String(commercial.versionName || '').trim();
-          const prevDefault = defaultVersionName(!!commercial.preliminary, { selection });
-          const nextSelection = Object.assign({}, selection, { selectedRooms:nextRooms });
-          const patch = { selection:{ selectedRooms:nextRooms } };
-          if(!currentVersionName || currentVersionName === prevDefault){
-            patch.commercial = { versionName:defaultVersionName(!!commercial.preliminary, { selection:nextSelection }) };
-          }
-          patchOfferDraft(patch);
-          render(ctx);
-        },
-        getRooms: ()=> {
-          try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? FC.roomRegistry.getActiveRoomIds() : []; }catch(_){ return []; }
-        },
-        normalizeRoomSelection: (rooms)=>{
-          try{ return FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function' ? FC.rozrysScope.normalizeRoomSelection(rooms, { getRooms:()=> FC.roomRegistry.getActiveRoomIds() }) : (Array.isArray(rooms) ? rooms : []); }catch(_){ return Array.isArray(rooms) ? rooms : []; }
-        },
-        roomLabel: (roomId)=> {
-          try{ return FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function' ? FC.roomRegistry.getRoomLabel(roomId) : String(roomId || ''); }catch(_){ return String(roomId || ''); }
-        },
-        askConfirm,
-        refreshSelectionState: ()=> render(ctx),
-      });
-    }catch(_){ }
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.openQuoteRoomsPicker === 'function'){
+      try{ return FC.wycenaTabSelection.openQuoteRoomsPicker(ctx, { getOfferDraft, patchOfferDraft, render, askConfirm }); }catch(_){ }
+    }
   }
 
   function openQuoteScopePicker(ctx){
-    const draft = getOfferDraft();
-    const selection = normalizeDraftSelection(draft);
-    const currentScope = Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection && selection.materialScope || {});
-    try{
-      if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
-      const body = h('div', { class:'rozrys-picker-modal' });
-      const list = h('div', { class:'rozrys-picker-list' });
-      const cardNode = h('div', { class:'rozrys-picker-option rozrys-picker-card is-selected' });
-      const titleWrap = h('div', { class:'rozrys-picker-option__title-wrap' });
-      titleWrap.appendChild(h('div', { class:'rozrys-picker-option__title', text:'Zakres elementów do wyceny' }));
-      titleWrap.appendChild(h('div', { class:'rozrys-picker-option__subtitle', text:'Wybierz dokładnie tak samo jak w ROZRYS, co ma wejść do tej wyceny.' }));
-      cardNode.appendChild(titleWrap);
-      const chips = h('div', { class:'rozrys-scope-chips quote-scope-picker-chips' });
-      const draftScope = Object.assign({}, currentScope);
-      const bindChip = (label, key)=>{
-        const chip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match${draftScope[key] ? ' is-checked' : ''}` });
-        const cb = h('input', { type:'checkbox' });
-        cb.checked = !!draftScope[key];
-        cb.addEventListener('change', ()=>{
-          draftScope[key] = !!cb.checked;
-          if(!draftScope.includeFronts && !draftScope.includeCorpus){
-            draftScope[key] = true;
-            cb.checked = true;
-          }
-          chip.classList.toggle('is-checked', !!cb.checked);
-          updateFooterState();
-        });
-        chip.appendChild(cb);
-        chip.appendChild(h('span', { text:label }));
-        chips.appendChild(chip);
-      };
-      bindChip('Fronty', 'includeFronts');
-      bindChip('Korpusy', 'includeCorpus');
-      cardNode.appendChild(chips);
-      list.appendChild(cardNode);
-      body.appendChild(list);
-
-      const footer = h('div', { class:'rozrys-picker-footer rozrys-picker-footer--material' });
-      const actionWrap = h('div', { class:'rozrys-picker-footer-actions' });
-      const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' });
-      const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' });
-      const isDirty = ()=> (!!draftScope.includeFronts !== !!currentScope.includeFronts) || (!!draftScope.includeCorpus !== !!currentScope.includeCorpus);
-      const updateFooterState = ()=>{
-        actionWrap.innerHTML = '';
-        if(isDirty()){
-          saveBtn.disabled = !(draftScope.includeFronts || draftScope.includeCorpus);
-          actionWrap.appendChild(cancelBtn);
-          actionWrap.appendChild(saveBtn);
-        }else{
-          actionWrap.appendChild(exitBtn);
-        }
-      };
-      exitBtn.addEventListener('click', ()=> FC.panelBox.close());
-      cancelBtn.addEventListener('click', async ()=>{
-        const ok = await askConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w wyborze zakresu wyceny zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        });
-        if(!ok) return;
-        FC.panelBox.close();
-      });
-      saveBtn.addEventListener('click', ()=>{
-        if(!(draftScope.includeFronts || draftScope.includeCorpus)) return;
-        patchOfferDraft({ selection:{ materialScope:Object.assign({}, draftScope) } });
-        FC.panelBox.close();
-        render(ctx);
-      });
-      updateFooterState();
-      footer.appendChild(actionWrap);
-      body.appendChild(footer);
-      FC.panelBox.open({
-        title:'Wybierz zakres wyceny',
-        contentNode: body,
-        width:'820px',
-        boxClass:'panel-box--rozrys',
-        dismissOnOverlay:false,
-        beforeClose: ()=> isDirty() ? askConfirm({
-          title:'ANULOWAĆ ZMIANY?',
-          message:'Niezapisane zmiany w wyborze zakresu wyceny zostaną utracone.',
-          confirmText:'✕ ANULUJ ZMIANY',
-          cancelText:'WRÓĆ',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        }) : true
-      });
-    }catch(_){ }
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.openQuoteScopePicker === 'function'){
+      try{ return FC.wycenaTabSelection.openQuoteScopePicker(ctx, { getOfferDraft, patchOfferDraft, render, askConfirm, h }); }catch(_){ }
+    }
   }
 
   function renderQuoteSelectionSection(card, ctx){
-    const draft = getOfferDraft();
-    const selection = normalizeDraftSelection(draft);
-    const summary = buildSelectionSummary(selection);
-    const section = h('section', { class:'card quote-selection-card panel-box--rozrys', style:'margin-top:12px;padding:14px;' });
-    const grid = h('div', { class:'quote-selection-grid rozrys-selection-grid' });
-
-    const roomsField = h('div', { class:'quote-selection-field rozrys-field rozrys-selection-grid__rooms' });
-    roomsField.appendChild(labelWithInfo('Pomieszczenia do wyceny', 'Pomieszczenia do wyceny', 'Wybierz pomieszczenia bez wchodzenia do ROZRYS. Kliknięcie „Wyceń” uruchomi rozkrój w tle dokładnie dla tego zakresu.'));
-    const roomsBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--rooms quote-selection-launch--rooms' });
-    const roomsValue = h('div', { class:'rozrys-picker-launch__value' });
-    roomsValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:String(summary.roomsMeta && summary.roomsMeta.title || summary.roomsText) }));
-    if(summary.roomsMeta && summary.roomsMeta.subtitle) roomsValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:String(summary.roomsMeta.subtitle || '') }));
-    roomsBtn.appendChild(roomsValue);
-    roomsBtn.addEventListener('click', ()=> openQuoteRoomsPicker(ctx));
-    roomsField.appendChild(roomsBtn);
-    grid.appendChild(roomsField);
-
-    const scopeField = h('div', { class:'quote-selection-field rozrys-field rozrys-selection-grid__material' });
-    scopeField.appendChild(labelWithInfo('Zakres elementów do wyceny', 'Zakres elementów do wyceny', 'Zakres działa jak w ROZRYS: możesz liczyć korpusy i fronty razem albo tylko jedną z tych grup.'));
-    const scopeBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--material quote-selection-launch--scope' });
-    const scopeValue = h('div', { class:'rozrys-picker-launch__value' });
-    scopeValue.appendChild(h('div', { class:'rozrys-picker-launch__title', text:String(summary.scopeMeta && summary.scopeMeta.title || summary.scopeText) }));
-    if(summary.scopeMeta && summary.scopeMeta.subtitle) scopeValue.appendChild(h('div', { class:'rozrys-picker-launch__subtitle', text:String(summary.scopeMeta.subtitle || '') }));
-    if(summary.scopeMeta && summary.scopeMeta.detail) scopeValue.appendChild(h('div', { class:'rozrys-picker-launch__detail', text:String(summary.scopeMeta.detail || '') }));
-    scopeBtn.appendChild(scopeValue);
-    scopeBtn.addEventListener('click', ()=> openQuoteScopePicker(ctx));
-    scopeField.appendChild(scopeBtn);
-    grid.appendChild(scopeField);
-    section.appendChild(grid);
-
-    const info = h('div', { class:'quote-scope-info' });
-    info.appendChild(h('div', { class:'quote-scope-info__title', text:'Zakres bieżącej wyceny' }));
-    info.appendChild(h('div', { class:'quote-scope-info__body', text:`Pomieszczenia: ${summary.roomsText}
-Zakres: ${summary.scopeText}
-Kliknięcie „Wyceń” użyje logiki ROZRYS w tle dla tego wyboru.` }));
-    section.appendChild(info);
-    card.appendChild(section);
+    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.renderQuoteSelectionSection === 'function'){
+      try{ return FC.wycenaTabSelection.renderQuoteSelectionSection(card, ctx, { h, labelWithInfo, openQuoteRoomsPicker, openQuoteScopePicker, getOfferDraft, getMaterialScopeLabel }); }catch(_){ }
+    }
   }
 
 

@@ -45,6 +45,7 @@ const FILES = [
   'js/app/quote/quote-pdf.js',
   'js/app/wycena/wycena-core.js',
   'js/app/wycena/wycena-tab-helpers.js',
+  'js/app/wycena/wycena-tab-selection.js',
   'js/tabs/wycena.js',
   'js/app/optimizer/cut-optimizer.js',
   'js/app/rozrys/rozrys-engine.js',
