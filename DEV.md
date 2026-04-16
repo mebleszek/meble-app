@@ -1,3 +1,8 @@
+## 2026-04-16 — restore rollback hotfix
+- `js/app/quote/quote-snapshot-store.js`, `js/app/project/project-status-sync.js`, `js/tabs/wycena.js`, `js/testing/wycena/tests.js` — cofnięty świeży feature restore ofert do ostatniej stabilnej wersji po regresji, w której przyciski w aplikacji przestawały wykonywać akcje. Priorytetem był powrót pełnej interaktywności programu; restore ofert wróci później jako osobna, bezpieczniejsza paczka.
+- `index.html`, `dev_tests.html` — podbity cache-busting po rollbacku, żeby urządzenia mobilne nie mieszały nowych i starych modułów.
+- Instrukcja antyregresyjna: jeśli nowa funkcja w `Wycena` po wdrożeniu powoduje szeroką utratę interakcji/przycisków, najpierw wracać do ostatniej stabilnej wersji modułów flow (`wycena.js`, `project-status-sync.js`, `quote-snapshot-store.js`) i dopiero potem wdrażać feature ponownie mniejszym krokiem. Nie zostawiać w repo paczki „pół-działającej”, nawet jeśli sama logika biznesowa wygląda obiecująco.
+
 ## 2026-04-16 — quote restore flow
 - `js/app/quote/quote-snapshot-store.js` — dodany scoped helper `restoreSnapshotForProject(projectId, snapshotId, options)`. Przywrócenie starej oferty działa tylko w exact scope targetu i archiwizuje / odznacza wyłącznie kolidujące snapshoty tego samego zakresu; rozłączne pokoje nie mogą tracić własnej zaakceptowanej oferty przez restore.
 - `js/app/project/project-status-sync.js` — dodany centralny helper `restoreAcceptedSnapshot(snapshot, options)`. Restore oferty przechodzi tą samą ścieżką co inne kluczowe flow statusowe: najpierw scoped stan snapshotu, potem centralny sync statusu pokoju/projektu; nie dopisywać przywracania bokiem w UI.

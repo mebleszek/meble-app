@@ -357,14 +357,6 @@
     return updateSelectionForProject(pid, (rows)=> rows.find((row)=> String(row && row.id || '') === sid) || null, explicit, explicit || 'zaakceptowany', options);
   }
 
-  function restoreSnapshotForProject(projectId, snapshotId, options){
-    const pid = String(projectId || '');
-    const sid = String(snapshotId || '');
-    if(!pid || !sid) return null;
-    const explicit = normalizeStatus(options && options.status || '');
-    return updateSelectionForProject(pid, (rows)=> rows.find((row)=> String(row && row.id || '') === sid) || null, explicit, explicit, options);
-  }
-
   function syncSelectionForProjectStatus(projectId, status, options){
     const pid = String(projectId || '');
     const normalizedStatus = normalizeStatus(status);
@@ -474,7 +466,6 @@
     save,
     remove,
     markSelectedForProject,
-    restoreSnapshotForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,
     getRecommendedStatusMapForProject,
