@@ -19,6 +19,7 @@ const FILES = [
   'js/app/catalog/catalog-store.js',
   'js/app/catalog/catalog-selectors.js',
   'js/app/material/price-modal.js',
+  'js/app/ui/tabs-router.js',
   'js/app/ui/work-mode-hub.js',
   'js/app/service/service-orders.js',
   'js/app/service/cutting/service-cutting-common.js',

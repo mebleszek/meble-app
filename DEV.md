@@ -1240,3 +1240,5 @@ Dopiero potem go zmieniać.
 ## 2026-04-16 — WYCENA editor split + shorter scope-entry copy
 - `js/app/wycena/wycena-tab-editor.js` przejął editor handlowy zakładki `Wycena` (stawki, pola handlowe, toggle `wstępna / końcowa`, accordion ustawień oferty). `js/tabs/wycena.js` ma tylko delegować do tego modułu i nie odzyskiwać już dużego inline bloku edytora.
 - Modal nadawania nazwy kolejnej wyceny exact-scope ma używać krótszego, praktycznego komunikatu; gdy caller poda pusty `hint`, `js/app/quote/quote-scope-entry.js` nie dokleja już dodatkowego bloku wyjaśniającego pod polem nazwy.
+
+- 2026-04-17: dev_tests.html i tools/app-dev-smoke.js muszą ładować js/app/ui/tabs-router.js, bo testy renderu zakładki Wycena korzystają z FC.tabsRouter.get; nie zakładać już fallbacku tylko do FC.tabs w środowisku testowym.
