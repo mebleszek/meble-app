@@ -1298,6 +1298,39 @@
         });
       }),
 
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Akceptacja solo pokoju nie nadpisuje statusu snapshotów rozłącznego scope', 'Pilnuje regresję po hotfixie multi-scope: zaznaczenie oferty dla pokoju A nie może zmieniać project.status wpisanego we snapshot pokoju B tylko dlatego, że oba siedzą pod jednym projectId.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_multi_status_kitchen', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt multi status' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia status multi' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820802000 });
+          const salonPre = FC.quoteSnapshotStore.save({ id:'snap_multi_status_salon', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt multi status' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon status multi' }, totals:{ grand:129 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820803000 });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar', roomIds:['room_kuchnia_gora'] });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, salonPre.id, { status:'pomiar', roomIds:['room_salon'] });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar', roomIds:['room_kuchnia_gora'] });
+          const all = FC.quoteSnapshotStore.listForProject(projectId);
+          const salonAfter = all.find((row)=> String(row && row.id || '') === 'snap_multi_status_salon');
+          H.assert(String(salonAfter && salonAfter.project && salonAfter.project.status || '') === 'pomiar', 'Akceptacja kuchni nadpisała status snapshotu rozłącznego salonu', salonAfter || all);
+          H.assert(salonAfter && salonAfter.meta && salonAfter.meta.selectedByClient === true, 'Akceptacja kuchni zdjęła zaznaczenie z rozłącznego salonu', salonAfter || all);
+        });
+      }),
+
+      H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Konwersja wstępnej oferty do końcowej nie zdejmuje akceptacji z innego solo pokoju', 'Pilnuje regresję z filmu: przejście pokoju A z pomiaru do oferty końcowej nie może wyczyścić zaakceptowanej oferty pokoju B, jeśli scope są rozłączne.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function', 'Brak FC.quoteSnapshotStore.convertPreliminaryToFinal');
+        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+          const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_convert_multi_kitchen', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt convert multi' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia convert multi' }, totals:{ grand:111 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820804000, meta:{ selectedByClient:true, acceptedAt:1712820804500, acceptedStage:'pomiar', preliminary:true } });
+          const salonPre = FC.quoteSnapshotStore.save({ id:'snap_convert_multi_salon', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt convert multi' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon convert multi' }, totals:{ grand:129 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820805000, meta:{ selectedByClient:true, acceptedAt:1712820805500, acceptedStage:'pomiar', preliminary:true } });
+          const converted = FC.quoteSnapshotStore.convertPreliminaryToFinal(projectId, kitchenPre.id);
+          const all = FC.quoteSnapshotStore.listForProject(projectId);
+          const kitchenAfter = all.find((row)=> String(row && row.id || '') === 'snap_convert_multi_kitchen');
+          const salonAfter = all.find((row)=> String(row && row.id || '') === 'snap_convert_multi_salon');
+          H.assert(converted && String(converted.id || '') === String(kitchenPre.id || ''), 'Konwersja kuchni nie zwróciła targetu', { converted, all });
+          H.assert(kitchenAfter && kitchenAfter.meta && kitchenAfter.meta.selectedByClient === true && kitchenAfter.meta.preliminary === false, 'Konwersja kuchni nie ustawiła końcowej zaakceptowanej oferty', kitchenAfter || all);
+          H.assert(salonAfter && salonAfter.meta && salonAfter.meta.selectedByClient === true, 'Konwersja kuchni zdjęła akceptację z rozłącznego salonu', salonAfter || all);
+          H.assert(salonAfter && salonAfter.meta && salonAfter.meta.preliminary === true, 'Konwersja kuchni zmieniła typ rozłącznej oferty salonu', salonAfter || all);
+          H.assert(String(salonAfter && salonAfter.project && salonAfter.project.status || '') !== 'zaakceptowany', 'Konwersja kuchni nadpisała status snapshotu rozłącznego salonu końcowym etapem kuchni', salonAfter || all);
+        });
+      }),
+
       H.makeTest('Wycena ↔ Statusy pomieszczeń', 'Ręczna zmiana statusu pokoju wybiera tylko pasującą ofertę i nie rusza innych pokoi', 'Pilnuje, czy ręczne ustawienie statusu w Inwestor synchronizuje Wycena po zakresie pomieszczenia zamiast po dowolnej pierwszej ofercie projektu.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{

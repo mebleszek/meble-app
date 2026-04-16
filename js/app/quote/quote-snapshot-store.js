@@ -327,14 +327,7 @@
       const rowId = String(row && row.id || '');
       const isTarget = !!(candidate && rowId === String(candidate.id || ''));
       const isImpacted = !selectionScopeRoomIds.length || impactedRows.some((item)=> String(item && item.id || '') === rowId);
-      if(!isImpacted){
-        if(normalizedProjectStatus){
-          row.project = Object.assign({}, row && row.project || {}, {
-            status: normalizedProjectStatus || String(row && row.project && row.project.status || '')
-          });
-        }
-        return;
-      }
+      if(!isImpacted) return;
       const isPreviousSelected = impactedSelectedIds.has(rowId);
       const shouldRejectPrevious = isPreviousSelected && shouldRejectPreviousSelection(row, candidate, Object.assign({}, options || {}, { roomIds:selectionScopeRoomIds }));
       const rejectReason = shouldRejectPrevious ? getRejectReason(candidate, options) : '';
@@ -424,9 +417,17 @@
     const nextVersionName = (!currentName || currentName === defaultVersionName(true, { scope:target && target.scope }))
       ? defaultVersionName(false, { scope:target && target.scope })
       : currentName;
+    const selectionScopeRoomIds = getSnapshotRoomIds(target);
+    const impactedRows = listSelectionImpactedRows(
+      list.filter((row)=> String(row && row.project && row.project.id || '') === pid),
+      selectionScopeRoomIds
+    );
+    const impactedIds = new Set(impactedRows.map((row)=> String(row && row.id || '')).filter(Boolean));
     list.forEach((row)=> {
       if(String(row && row.project && row.project.id || '') !== pid) return;
-      const isTarget = String(row && row.id || '') === sid;
+      const rowId = String(row && row.id || '');
+      if(!impactedIds.has(rowId)) return;
+      const isTarget = rowId === sid;
       const project = Object.assign({}, row && row.project || {}, { status:'zaakceptowany' });
       const commercial = Object.assign({}, row && row.commercial || {});
       const meta = Object.assign({}, row && row.meta || {});
@@ -438,6 +439,8 @@
         meta.selectedByClient = true;
         meta.acceptedAt = acceptedAt;
         meta.acceptedStage = 'zaakceptowany';
+        meta.rejectedAt = 0;
+        meta.rejectedReason = '';
       } else {
         meta.selectedByClient = false;
         meta.acceptedAt = 0;
