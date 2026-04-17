@@ -360,13 +360,13 @@ Pomieszczenia: ${summary.scopeLabel}`
       const submitLabel = String(opts.submitLabel || 'OK').trim() || 'OK';
       const cancelLabel = String(opts.cancelLabel || 'Anuluj').trim() || 'Anuluj';
       const title = h('div', { class:'quote-scope-entry-modal__title', text: String(opts.title || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY')).trim() || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY') });
+      dialog.classList.add('quote-scope-entry-modal--name', 'investor-card-sync');
       const closeBtn = h('button', { type:'button', class:'quote-scope-entry-modal__close', 'aria-label':'Zamknij okno', text:'×' });
       const head = h('div', { class:'quote-scope-entry-modal__head' }, [title, closeBtn]);
       const body = h('div', { class:'quote-scope-entry-modal__body' });
-      body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:String(opts.message || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.`).trim() || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.` }));
-      body.appendChild(h('div', { class:'quote-scope-entry-modal__scope', text:`Pomieszczenia: ${scope.scopeLabel}` }));
-      const field = h('label', { class:'quote-scope-entry-modal__field' });
-      field.appendChild(h('span', { class:'quote-scope-entry-modal__field-label', text:'Nazwa wyceny' }));
+      body.appendChild(h('div', { class:'quote-scope-entry-modal__message quote-scope-entry-modal__message--compact', text:String(opts.message || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.`).trim() || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.` }));
+      const field = h('label', { class:'quote-scope-entry-modal__field investor-field-shell' });
+      field.appendChild(h('span', { class:'quote-scope-entry-modal__field-label investor-field-label', text:'Nazwa wyceny' }));
       const input = h('input', { type:'text', class:'investor-form-input quote-scope-entry-modal__input', value:suggestedName, maxlength:'120', placeholder:suggestedName });
       field.appendChild(input);
       body.appendChild(field);
@@ -375,7 +375,7 @@ Pomieszczenia: ${summary.scopeLabel}`
         ? ''
         : String(rawHint == null ? 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.' : rawHint).trim();
       if(hintText) body.appendChild(h('div', { class:'quote-scope-entry-modal__hint', text:hintText }));
-      const actions = h('div', { class:'quote-scope-entry-modal__actions' });
+      const actions = h('div', { class:'quote-scope-entry-modal__actions quote-scope-entry-modal__actions--split' });
       const cancelBtn = h('button', { type:'button', class:'btn-danger quote-scope-entry-modal__action', text:cancelLabel });
       const submitBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-modal__action', text:submitLabel });
       actions.appendChild(cancelBtn);

@@ -185,6 +185,39 @@
         });
       }),
 
+    H.makeTest('Wycena ↔ Scope wejścia', 'Modal nazwy nowej wyceny używa krótkiej treści i układu pół na pół', 'Pilnuje uzgodnionego UI modala: bez osobnego bloku Pomieszczenia, z inputem w stylu formularzy inwestora i z przyciskami Anuluj/OK w jednym rzędzie pół na pół.', async ()=>{
+        H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function', 'Brak FC.quoteScopeEntry.promptNewVersionName');
+        await withInvestorProjectFixture({}, async ({ projectId })=>{
+          if(typeof document === 'undefined' || !document || !document.body) return;
+          const modalPromise = FC.quoteScopeEntry.promptNewVersionName({
+            projectId,
+            roomIds:['room_salon'],
+            preliminary:true,
+            title:'NAZWA NOWEJ WYCENY WSTĘPNEJ',
+            message:'Dla zakresu „Salon” istnieje już wycena wstępna. Nadaj unikatową nazwę kolejnemu wariantowi.',
+            hint:false,
+            submitLabel:'OK',
+            cancelLabel:'Anuluj',
+          });
+          await new Promise((resolve)=> setTimeout(resolve, 0));
+          const dialog = document.querySelector('.quote-scope-entry-modal--name');
+          H.assert(dialog, 'Nie otworzył się modal nazwy nowej wyceny');
+          H.assert(!dialog.querySelector('.quote-scope-entry-modal__scope'), 'Modal nadal renderuje osobny blok Pomieszczenia');
+          H.assert(dialog.classList.contains('investor-card-sync'), 'Modal nazwy nie używa wzorca formularzy inwestora');
+          const input = dialog.querySelector('.quote-scope-entry-modal__input.investor-form-input');
+          H.assert(input, 'Modal nazwy nie renderuje inputu w stylu inwestora');
+          const actions = dialog.querySelector('.quote-scope-entry-modal__actions--split');
+          H.assert(actions, 'Modal nazwy nie renderuje przycisków w układzie pół na pół');
+          const buttons = Array.from(actions.querySelectorAll('button'));
+          H.assert(buttons.length === 2, 'Modal nazwy nie ma dokładnie dwóch przycisków akcji', buttons.length);
+          H.assert(buttons[0] && /Anuluj/i.test(String(buttons[0].textContent || '')), 'Pierwszy przycisk nie jest Anuluj', buttons.map((btn)=> btn.textContent));
+          H.assert(buttons[1] && /OK/i.test(String(buttons[1].textContent || '')), 'Drugi przycisk nie jest OK', buttons.map((btn)=> btn.textContent));
+          buttons[0].click();
+          const result = await modalPromise;
+          H.assert(result && result.cancelled === true, 'Modal nie zamknął się poprawnie po kliknięciu Anuluj', result);
+        });
+      }),
+
     H.makeTest('Wycena ↔ Scope wejścia', 'Nowa wycena wstępna domyślnie pokazuje modal OK po faktycznym utworzeniu', 'Pilnuje, czy bez specjalnego callbacka system używa prostego komunikatu OK po stworzeniu nowej wyceny wstępnej.', async ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function', 'Brak FC.quoteScopeEntry.ensureScopedQuoteEntry');
         await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{

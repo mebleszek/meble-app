@@ -596,12 +596,23 @@
 .quote-scope-entry-modal__actions--single{grid-template-columns:minmax(140px,220px);justify-content:center;}
 .quote-scope-entry-modal__actions--stacked{grid-template-columns:1fr;}
 .quote-scope-entry-modal__action{min-height:48px;justify-content:center;}
+.quote-scope-entry-modal--name{padding:18px 18px 16px;}
+.quote-scope-entry-modal--name .quote-scope-entry-modal__body{margin-top:12px;gap:14px;}
+.quote-scope-entry-modal--name .quote-scope-entry-modal__message--compact{font-size:14px;line-height:1.45;font-weight:800;color:#334155;}
+.quote-scope-entry-modal--name .quote-scope-entry-modal__field{gap:6px;grid-template-rows:22px minmax(34px,auto);row-gap:6px;}
+.quote-scope-entry-modal--name .quote-scope-entry-modal__field-label{font-size:13px;line-height:1.15;color:#64748b;font-weight:800;display:flex;align-items:flex-end;min-height:22px;margin:0;}
+.quote-scope-entry-modal--name .quote-scope-entry-modal__input{min-height:34px;padding:6px 8px;font-size:12px;font-weight:500;line-height:1.2;}
+.quote-scope-entry-modal__actions--split{grid-template-columns:repeat(2,minmax(0,1fr));}
+.quote-scope-entry-modal__actions--split .quote-scope-entry-modal__action{width:100%;min-width:0;}
 @media (max-width:640px){
   .quote-scope-entry-backdrop{align-items:flex-start;padding:18vh 10px 14px;}
   .quote-scope-entry-modal{width:min(100vw - 12px,560px);max-height:74vh;padding:18px 14px 14px;border-radius:18px;}
   .quote-scope-entry-modal__title{font-size:21px;}
   .quote-scope-entry-modal__close{width:42px;height:42px;font-size:28px;border-radius:13px;}
   .quote-scope-entry-modal__actions{grid-template-columns:1fr;}
+  .quote-scope-entry-modal--name{padding:16px 14px 14px;}
+  .quote-scope-entry-modal--name .quote-scope-entry-modal__actions,
+  .quote-scope-entry-modal--name .quote-scope-entry-modal__actions--split{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
 }
 .info-trigger{
   position:relative;
