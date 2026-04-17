@@ -65,19 +65,14 @@
     const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const preliminary = isPreliminarySnapshot(src);
     const acceptedStage = String(src.meta && src.meta.acceptedStage || (src.meta && src.meta.selectedByClient ? (preliminary ? 'pomiar' : 'zaakceptowany') : '') || '');
-    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || defaultVersionName(preliminary, { scope:src.scope || {} });
-    const materialScope = normalizeMaterialScope(src.scope && src.scope.materialScope);
+    const scope = buildCanonicalScope(src.scope || {});
+    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || getCanonicalDefaultVersionName({ scope, commercial:{ preliminary }, meta:{ preliminary } });
     return {
       id: String(src.id || uid()),
       generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
       investor: src.investor ? clone(src.investor) : null,
       project: src.project ? clone(src.project) : null,
-      scope: Object.assign({}, clone(src.scope || {}), {
-        selectedRooms: Array.isArray(src.scope && src.scope.selectedRooms) ? src.scope.selectedRooms.slice() : [],
-        roomLabels: Array.isArray(src.scope && src.scope.roomLabels) ? src.scope.roomLabels.slice() : [],
-        materialScope,
-        materialScopeMode: String(src.scope && src.scope.materialScopeMode || materialScopeMode(materialScope) || ''),
-      }),
+      scope,
       catalogs: clone(src.catalogs || null),
       lines: clone(src.lines || {}),
       commercial: Object.assign({}, clone(src.commercial || {}), { versionName }),
@@ -115,10 +110,17 @@
   }
 
   function save(snapshot){
+    const list = readAll();
     const normalized = normalizeSnapshot(snapshot);
-    const list = readAll().filter((row)=> String(row.id || '') !== String(normalized.id || ''));
-    list.unshift(normalized);
-    writeAll(list.slice(0, 120));
+    const projectRows = list.filter((row)=> String(row && row.project && row.project.id || '') === String(normalized && normalized.project && normalized.project.id || ''));
+    const coercedVersionName = coerceAutoVersionNameForScope(normalized, projectRows);
+    if(coercedVersionName){
+      normalized.commercial = Object.assign({}, normalized.commercial || {}, { versionName:coercedVersionName });
+      normalized.meta = Object.assign({}, normalized.meta || {}, { versionName:coercedVersionName });
+    }
+    const next = list.filter((row)=> String(row.id || '') !== String(normalized.id || ''));
+    next.unshift(normalized);
+    writeAll(next.slice(0, 120));
     return normalized;
   }
 
@@ -171,6 +173,105 @@
       : [];
   }
 
+  function getRoomLabel(roomId){
+    const key = String(roomId || '').trim();
+    if(!key) return '';
+    try{
+      if(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
+        const label = String(FC.roomRegistry.getRoomLabel(key) || '').trim();
+        if(label) return label;
+      }
+    }catch(_){ }
+    return key;
+  }
+
+  function getScopeRoomLabels(snapshotOrScope){
+    const source = snapshotOrScope && snapshotOrScope.scope ? snapshotOrScope.scope : snapshotOrScope;
+    const roomIds = normalizeRoomIds(source && source.selectedRooms);
+    const explicitLabels = Array.isArray(source && source.roomLabels)
+      ? source.roomLabels.map((item)=> String(item || '').trim()).filter(Boolean)
+      : [];
+    if(roomIds.length){
+      const labels = roomIds.map((roomId, index)=> {
+        const explicitLabel = String(explicitLabels[index] || '').trim();
+        const registryLabel = String(getRoomLabel(roomId) || '').trim();
+        if(registryLabel && (registryLabel !== String(roomId || '').trim() || !explicitLabel)) return registryLabel;
+        return explicitLabel || registryLabel || roomId;
+      }).filter(Boolean);
+      if(labels.length) return labels;
+      return roomIds;
+    }
+    return explicitLabels;
+  }
+
+  function buildScopedVersionName(preliminary, snapshotOrScope){
+    const base = preliminary ? 'Wstępna oferta' : 'Oferta';
+    const labels = getScopeRoomLabels(snapshotOrScope);
+    return labels.length ? `${base} — ${labels.join(' + ')}` : base;
+  }
+
+  function buildCanonicalScope(snapshotOrScope){
+    const source = snapshotOrScope && snapshotOrScope.scope ? snapshotOrScope.scope : snapshotOrScope;
+    const materialScope = normalizeMaterialScope(source && source.materialScope);
+    const selectedRooms = normalizeRoomIds(source && source.selectedRooms);
+    const roomLabels = getScopeRoomLabels({ selectedRooms, roomLabels: Array.isArray(source && source.roomLabels) ? source.roomLabels.slice() : [] });
+    return Object.assign({}, clone(source || {}), {
+      selectedRooms,
+      roomLabels,
+      materialScope,
+      materialScopeMode: String(source && source.materialScopeMode || materialScopeMode(materialScope) || ''),
+    });
+  }
+
+  function getCanonicalDefaultVersionName(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return String(buildScopedVersionName(isPreliminarySnapshot(snap), snap) || '').trim();
+  }
+
+  function parseAutoVersionName(preliminary, value){
+    const base = preliminary ? 'Wstępna oferta' : 'Oferta';
+    const text = String(value || '').trim();
+    if(!text) return { autoLike:false, base, scopeSuffix:'', variant:0, text:'' };
+    const escapedBase = escapeRegExp(base);
+    const re = new RegExp('^' + escapedBase + '(?: — (.+?))?(?: — wariant (\\d+))?$');
+    const match = text.match(re);
+    if(!match) return { autoLike:false, base, scopeSuffix:'', variant:0, text };
+    return {
+      autoLike:true,
+      base,
+      scopeSuffix:String(match[1] || '').trim(),
+      variant:Number(match[2] || 0) || 0,
+      text,
+    };
+  }
+
+  function coerceAutoVersionNameForScope(snapshot, projectRows){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : null;
+    if(!snap) return '';
+    const current = String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim();
+    const fallback = getCanonicalDefaultVersionName(snap);
+    if(!current) return fallback;
+    const parsed = parseAutoVersionName(isPreliminarySnapshot(snap), current);
+    if(!parsed.autoLike) return current;
+    const canonicalScope = buildCanonicalScope(snap);
+    const targetSuffix = normalizeComparableVersionName((canonicalScope.roomLabels || []).join(' + '));
+    const currentSuffix = normalizeComparableVersionName(parsed.scopeSuffix || '');
+    if(matchesOwnAutoVersionName(Object.assign({}, snap, { scope:canonicalScope }), current)) return current;
+    if((currentSuffix || targetSuffix) && currentSuffix !== targetSuffix) return fallback;
+    const rows = Array.isArray(projectRows) ? projectRows : [];
+    const targetRooms = normalizeRoomIds(canonicalScope.selectedRooms);
+    const targetName = normalizeComparableVersionName(current);
+    const duplicatedAcrossDifferentScope = rows.some((row)=> {
+      if(!row || String(row && row.id || '') === String(snap && snap.id || '')) return false;
+      if(isRejectedSnapshot(row)) return false;
+      if(isPreliminarySnapshot(row) !== isPreliminarySnapshot(snap)) return false;
+      const rowName = normalizeComparableVersionName(row && row.commercial && row.commercial.versionName || row && row.meta && row.meta.versionName || '');
+      if(!rowName || rowName !== targetName) return false;
+      return !sameRoomScope(getSnapshotRoomIds(row), targetRooms);
+    });
+    return duplicatedAcrossDifferentScope ? fallback : current;
+  }
+
   function getSnapshotRoomIds(snapshot){
     return normalizeRoomIds(snapshot && snapshot.scope && snapshot.scope.selectedRooms);
   }
@@ -199,7 +300,7 @@
   function matchesOwnAutoVersionName(snapshot, versionName){
     const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const preliminary = isPreliminarySnapshot(snap);
-    const ownBase = String(defaultVersionName(preliminary, { scope:snap.scope || {} }) || '').trim();
+    const ownBase = getCanonicalDefaultVersionName(snap);
     const current = String(versionName || '').trim();
     if(!ownBase || !current) return false;
     const pattern = new RegExp(`^${escapeRegExp(ownBase)}(?: — wariant \\d+)?$`);
@@ -209,23 +310,12 @@
   function getEffectiveVersionName(snapshot){
     const snap = normalizeSnapshot(snapshot);
     const current = String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim();
-    const fallback = String(defaultVersionName(isPreliminarySnapshot(snap), { scope:snap && snap.scope ? snap.scope : {} }) || '').trim();
+    const fallback = getCanonicalDefaultVersionName(snap);
     if(!current) return fallback;
     if(matchesOwnAutoVersionName(snap, current)) return current;
     const projectId = String(snap && snap.project && snap.project.id || '').trim();
-    const targetRooms = getSnapshotRoomIds(snap);
-    if(!projectId || !targetRooms.length) return current;
-    const targetName = normalizeComparableVersionName(current);
-    const rows = listForProject(projectId);
-    const duplicatedAcrossDifferentScope = rows.some((row)=> {
-      if(!row || String(row && row.id || '') === String(snap && snap.id || '')) return false;
-      if(isRejectedSnapshot(row)) return false;
-      if(isPreliminarySnapshot(row) !== isPreliminarySnapshot(snap)) return false;
-      const rowName = normalizeComparableVersionName(row && row.commercial && row.commercial.versionName || row && row.meta && row.meta.versionName || '');
-      if(!rowName || rowName !== targetName) return false;
-      return !sameRoomScope(getSnapshotRoomIds(row), targetRooms);
-    });
-    return duplicatedAcrossDifferentScope ? fallback : current;
+    const rows = projectId ? listForProject(projectId) : [];
+    return coerceAutoVersionNameForScope(snap, rows) || fallback || current;
   }
 
   function snapshotScopeOverlaps(snapshot, roomIds){
@@ -460,8 +550,10 @@
     if(!target || !isPreliminarySnapshot(target)) return null;
     const acceptedAt = Number(target && target.meta && target.meta.acceptedAt) > 0 ? Number(target.meta.acceptedAt) : Date.now();
     const currentName = String(target && target.commercial && target.commercial.versionName || target && target.meta && target.meta.versionName || '').trim();
-    const nextVersionName = (!currentName || currentName === defaultVersionName(true, { scope:target && target.scope }))
-      ? defaultVersionName(false, { scope:target && target.scope })
+    const targetPreliminaryName = getCanonicalDefaultVersionName(target);
+    const targetFinalName = buildScopedVersionName(false, target);
+    const nextVersionName = (!currentName || currentName === targetPreliminaryName)
+      ? targetFinalName
       : currentName;
     const selectionScopeRoomIds = getSnapshotRoomIds(target);
     const impactedRows = listSelectionImpactedRows(
@@ -524,6 +616,7 @@
     defaultVersionName,
     isPreliminarySnapshot,
     normalizeRoomIds,
+    getScopeRoomLabels,
     getSnapshotRoomIds,
     filterRowsByRoomScope,
     listExactScopeSnapshots,

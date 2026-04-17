@@ -1,3 +1,10 @@
+## 2026-04-17 — hotfix kanonicznego scope dla nazw i historii wycen
+- `js/app/quote/quote-snapshot.js` + `js/app/quote/quote-snapshot-store.js` — scope ofert traktuje teraz `selectedRooms` jako kanoniczne źródło prawdy dla etykiet pokoi; `roomLabels` są odtwarzane z `selectedRooms` zamiast ślepo ufać starym/złym labelom zapisanym w snapshotcie.
+- `js/app/quote/quote-snapshot-store.js` — zapis snapshotu prostuje auto-nazwy z obcego scope (`J` zapisane pod `a`, `a+J` itd.) do bieżącego exact-scope zanim trafią do historii; `getEffectiveVersionName()` oraz `getScopeRoomLabels()` prostują też stare skażone snapshoty przy odczycie.
+- `js/app/wycena/wycena-tab-history.js`, `js/tabs/wycena.js`, `js/app/quote/quote-pdf.js` — historia, preview i PDF czytają już etykiety scope przez wspólny resolver zamiast z surowego `scope.roomLabels`.
+- `js/testing/wycena/suites/scope-entry.js` — dodane dwa antyregresyjne testy pod flow `a / J / a+J`: (1) zapis nowej wyceny prostuje auto-nazwę i roomLabels na save, (2) odczyt historii prostuje stare snapshoty ze złym `roomLabels`/`versionName`.
+- Instrukcja antyregresyjna: w `Wycena` i PDF nie ufać bezpośrednio `scope.roomLabels`; źródłem prawdy dla zakresu są `scope.selectedRooms`, a etykiety mają być wyliczane wspólnym resolverem. Auto-nazwy wygenerowane przez aplikację, które nie pasują do bieżącego scope, mają być prostowane już na save, nie tylko maskowane w UI.
+
 ## 2026-04-17 — WYCENA status bridge split
 - `js/app/wycena/wycena-tab-status-bridge.js` przejął workflow statusów zakładki `Wycena`: `currentProjectStatus`, `setProjectStatusFromSnapshot`, `syncGeneratedQuoteStatus`, `commitAcceptedSnapshotWithSync`, `reconcileAfterSnapshotRemoval`, `promotePreliminarySnapshotToFinal`, `acceptSnapshot`. `js/tabs/wycena.js` ma tylko delegować do bridge'a.
 - Instrukcja antyregresyjna: nowa logika statusów i akceptacji nie wraca już do `js/tabs/wycena.js`; jeśli trzeba zmieniać flow `accept/remove/promote`, robić to w `wycena-tab-status-bridge.js` albo w `project-status-sync.js`, nie dopisywać lokalnych wyjątków do taba.

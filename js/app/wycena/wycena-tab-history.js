@@ -100,7 +100,7 @@
       const item = deps.h('article', { id:deps.getQuoteHistoryItemDomId(snapId), 'data-quote-history-id':snapId, class:`quote-history__item${isActive ? ' is-active' : ''}${isArchived ? ' is-archived' : ''}` });
       const top = deps.h('div', { class:'quote-history__top' });
       const titleBox = deps.h('div', { class:'quote-history__content' });
-      const roomLabels = Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : [];
+      const roomLabels = (function(){ try{ return FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getScopeRoomLabels === 'function' ? FC.quoteSnapshotStore.getScopeRoomLabels(snap) : (Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : []); }catch(_){ return Array.isArray(snap.scope && snap.scope.roomLabels) ? snap.scope.roomLabels : []; } })();
       const titleRow = deps.h('div', { class:'quote-history__title-row' });
       const versionName = deps.getVersionName(snap);
       titleRow.appendChild(deps.h('div', { class:'quote-history__title', text:versionName || (index === 0 ? 'Ostatnia wersja oferty' : 'Wersja oferty') }));

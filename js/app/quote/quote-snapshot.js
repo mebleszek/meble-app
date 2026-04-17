@@ -67,25 +67,28 @@
 
   function resolveVersionScopeLabels(options){
     const opts = options && typeof options === 'object' ? options : {};
-    const explicitLabels = normalizeRoomLabels(opts.roomLabels
-      || (opts.scope && opts.scope.roomLabels)
-      || (opts.selection && opts.selection.roomLabels));
-    if(explicitLabels.length) return explicitLabels;
     const roomIds = normalizeRoomIds(opts.roomIds
       || opts.selectedRooms
       || (opts.scope && opts.scope.selectedRooms)
       || (opts.selection && opts.selection.selectedRooms));
-    if(!roomIds.length) return [];
-    const labels = roomIds.map((roomId)=>{
-      try{
-        if(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
-          const label = String(FC.roomRegistry.getRoomLabel(roomId) || '').trim();
-          if(label) return label;
-        }
-      }catch(_){ }
-      return String(roomId || '').trim();
-    }).filter(Boolean);
-    return labels.length ? labels : roomIds;
+    const explicitLabels = normalizeRoomLabels(opts.roomLabels
+      || (opts.scope && opts.scope.roomLabels)
+      || (opts.selection && opts.selection.roomLabels));
+    if(roomIds.length){
+      const labels = roomIds.map((roomId, index)=>{
+        const explicitLabel = String(explicitLabels[index] || '').trim();
+        try{
+          if(FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
+            const label = String(FC.roomRegistry.getRoomLabel(roomId) || '').trim();
+            if(label && (label !== String(roomId || '').trim() || !explicitLabel)) return label;
+          }
+        }catch(_){ }
+        return explicitLabel || String(roomId || '').trim();
+      }).filter(Boolean);
+      if(labels.length) return labels;
+      return roomIds;
+    }
+    return explicitLabels;
   }
 
   function buildVersionScopeSuffix(options){
@@ -172,7 +175,7 @@
     const investor = src.investor || currentInvestor() || null;
     const projectRecord = src.projectRecord || currentProjectRecord() || null;
     const roomIds = Array.isArray(src.selectedRooms) ? src.selectedRooms.slice() : (src.scope && Array.isArray(src.scope.selectedRooms) ? src.scope.selectedRooms.slice() : []);
-    const roomLabels = Array.isArray(src.roomLabels) ? src.roomLabels.slice() : (src.scope && Array.isArray(src.scope.roomLabels) ? src.scope.roomLabels.slice() : []);
+    const roomLabels = resolveVersionScopeLabels({ roomIds, roomLabels:Array.isArray(src.roomLabels) ? src.roomLabels.slice() : (src.scope && Array.isArray(src.scope.roomLabels) ? src.scope.roomLabels.slice() : []) });
     const generatedAt = Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now();
     const lines = {
       materials: normalizeLines(src.materialLines || (src.lines && src.lines.materials)),

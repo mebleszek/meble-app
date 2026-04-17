@@ -1,9 +1,9 @@
 [Wycena] Brak FC.projectStatusSync.commitAcceptedSnapshot — pomijam stary fallback lokalnego zapisu statusów.
 [Wycena] Brak FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval — pomijam stary fallback lokalnego zapisu statusów.
 [Wycena] Brak FC.projectStatusSync.promotePreliminarySnapshotToFinal — pomijam stary fallback lokalnego zapisu statusów.
-APP smoke testy: 116/120 OK
-Błędy: 4
-Czas: 271 ms
+APP smoke testy: 117/120 OK
+Błędy: 3
+Czas: 268 ms
 
 [Projekt] 13/14 OK
 - OK: Normalizer projektu uzupełnia brakujące pokoje i tablice
@@ -61,12 +61,12 @@ Czas: 271 ms
       "id": "snap_warn_pre",
       "generatedAt": 100,
       "investor": {
-        "id": "inv_es3pmh1r_mo2l0gix",
+        "id": "inv_0sazpzzm_mo2lba0m",
         "name": "Room warning"
       },
       "project": {
-        "id": "f3680731-9322-4f35-ace4-edb49f9a578c",
-        "investorId": "inv_es3pmh1r_mo2l0gix",
+        "id": "7f4fd5e7-24f1-43f4-9ab5-421a2f58b430",
+        "investorId": "inv_0sazpzzm_mo2lba0m",
         "status": "wstepna_wycena"
       },
       "scope": {
@@ -293,113 +293,9 @@ Czas: 271 ms
 - OK: Pusty wybór pokoi w Wycena wraca do wszystkich aktywnych pomieszczeń bieżącego projektu
   Po co: Pilnuje, czy gdy zapisany wybór jest pusty, Wycena bierze komplet realnych pokoi aktywnego inwestora, a nie pusty stan albo domyślne typy bazowe.
 
-[Wycena ↔ PDF] 0/1 OK
-- BŁĄD: PDF budowany z zapisanej końcowej oferty zachowuje handlowy charakter po konwersji z wstępnej
+[Wycena ↔ PDF] 1/1 OK
+- OK: PDF budowany z zapisanej końcowej oferty zachowuje handlowy charakter po konwersji z wstępnej
   Po co: Pilnuje, czy po konwersji zaakceptowanej wyceny wstępnej na końcową PDF nadal bierze tę samą wersję oferty, pokazuje pomieszczenia i nie wraca do technicznych formatek.
-  Powód: PDF po konwersji nie pokazuje końcowego typu oferty albo pomieszczeń
-  Szczegóły: <!doctype html>
-<html lang="pl">
-<head>
-<meta charset="utf-8" />
-<title>Oferta - Projekt PDF cross</title>
-<style>
-  @page { size:A4; margin:11mm; }
-  *{ box-sizing:border-box; }
-  body{ margin:0; font-family:Arial, Helvetica, sans-serif; color:#0f172a; background:#eef3f8; }
-  .sheet{ background:#fff; border:1px solid #dbe5ef; border-radius:18px; padding:13mm 12mm 11mm; box-shadow:0 10px 30px rgba(15,23,42,.08); }
-  .hero{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(220px,.75fr); gap:12px; align-items:stretch; }
-  .hero-main,.hero-total{ border:1px solid #dbe5ef; border-radius:16px; padding:14px 16px; background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%); }
-  .eyebrow{ font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#64748b; }
-  .hero-badges{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .hero-badge{ display:inline-flex; align-items:center; min-height:28px; padding:4px 10px; border-radius:999px; border:1px solid rgba(59,130,246,.24); background:rgba(59,130,246,.12); color:#1d4ed8; font-size:11px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
-  .hero-badge.is-warm{ border-color:rgba(234,88,12,.24); background:rgba(234,88,12,.10); color:#c2410c; }
-  .hero-badge.is-green{ border-color:rgba(34,197,94,.28); background:rgba(34,197,94,.12); color:#166534; }
-  .title{ margin:8px 0 0; font-size:28px; line-height:1.08; font-weight:900; }
-  .subtitle{ margin:8px 0 0; font-size:13px; line-height:1.45; color:#475569; }
-  .hero-total__label{ font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#64748b; }
-  .hero-total__value{ margin-top:8px; font-size:32px; line-height:1; font-weight:900; color:#166534; }
-  .hero-total__meta{ margin-top:10px; font-size:12px; line-height:1.45; color:#475569; }
-  .meta{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:12px; }
-  .meta-card,.section{ border:1px solid #dbe5ef; border-radius:14px; padding:12px 14px; background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%); }
-  .meta-card__label{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#64748b; }
-  .meta-card__value{ margin-top:5px; font-size:16px; font-weight:800; overflow-wrap:anywhere; }
-  .grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
-  .section-title{ margin:0 0 10px; font-size:16px; font-weight:900; }
-  .quote-pdf-row{ display:grid; grid-template-columns:150px minmax(0,1fr); gap:10px; padding:6px 0; border-bottom:1px solid rgba(219,229,239,.9); }
-  .quote-pdf-row:last-child{ border-bottom:none; padding-bottom:0; }
-  .quote-pdf-row__label{ font-size:12px; font-weight:800; color:#64748b; }
-  .quote-pdf-row__value{ font-size:14px; font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
-  .full{ margin-top:12px; }
-  .quote-pdf-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
-  .quote-pdf-list li{ padding:10px 0; border-bottom:1px solid #dbe5ef; }
-  .quote-pdf-list li:last-child{ border-bottom:none; padding-bottom:0; }
-  .quote-pdf-list__name{ display:block; font-size:14px; line-height:1.35; font-weight:800; color:#0f172a; }
-  .quote-pdf-list__meta{ display:block; margin-top:4px; font-size:12px; line-height:1.4; color:#475569; }
-  .quote-pdf-empty{ color:#64748b; font-style:italic; }
-  .footer{ margin-top:12px; font-size:11px; color:#64748b; text-align:right; }
-  @media print{
-    body{ background:#fff; }
-    .sheet{ border:none; border-radius:0; box-shadow:none; padding:0; }
-  }
-</style>
-</head>
-<body>
-  <main class="sheet">
-    <section class="hero">
-      <div class="hero-main">
-        <div class="eyebrow">Oferta dla klienta</div>
-        <h1 class="title">Projekt PDF cross</h1>
-        <p class="subtitle">Dokument handlowy przygotowany dla klienta. Szczegółowy rozkład kosztów pozostaje w podglądzie programu i nie jest pokazywany w tym PDF.</p>
-        <div class="hero-badges">
-          <span class="hero-badge is-warm">Wycena końcowa</span>
-          <span class="hero-badge is-green">Zaakceptowana</span>
-          <span class="hero-badge">Oferta — room_kuchnia_gora</span>
-        </div>
-      </div>
-      <div class="hero-total">
-        <div class="hero-total__label">Cena końcowa oferty</div>
-        <div class="hero-total__value">999.00 PLN</div>
-        <div class="hero-total__meta">Data wyceny: 11.04.2024 07:23<br/>Pomieszczenia: room_kuchnia_gora<br/>Zakres: Same korpusy</div>
-      </div>
-    </section>
-
-    <section class="meta">
-      <div class="meta-card">
-        <div class="meta-card__label">Klient</div>
-        <div class="meta-card__value">Jan Test</div>
-      </div>
-      <div class="meta-card">
-        <div class="meta-card__label">Projekt</div>
-        <div class="meta-card__value">Projekt PDF cross</div>
-      </div>
-      <div class="meta-card">
-        <div class="meta-card__label">Zakres elementów</div>
-        <div class="meta-card__value">Same korpusy</div>
-      </div>
-    </section>
-
-    <section class="grid">
-      <div class="section">
-        <h2 class="section-title">Warunki oferty</h2>
-        <div class="quote-pdf-row"><div class="quote-pdf-row__label">Wersja oferty</div><div class="quote-pdf-row__value">Oferta — room_kuchnia_gora</div></div><div class="quote-pdf-row"><div class="quote-pdf-row__label">Typ oferty</div><div class="quote-pdf-row__value">Wycena</div></div><div class="quote-pdf-row"><div class="quote-pdf-row__label">Status oferty</div><div class="quote-pdf-row__value">Zaakceptowana</div></div>
-      </div>
-      <div class="section">
-        <h2 class="section-title">Podsumowanie handlowe</h2>
-        <div class="quote-pdf-row"><div class="quote-pdf-row__label">Cena końcowa oferty</div><div class="quote-pdf-row__value">999.00 PLN</div></div>
-        <div class="quote-pdf-row"><div class="quote-pdf-row__label">Pomieszczenia</div><div class="quote-pdf-row__value">room_kuchnia_gora</div></div>
-        <div class="quote-pdf-row"><div class="quote-pdf-row__label">Zakres</div><div class="quote-pdf-row__value">Same korpusy</div></div>
-      </div>
-    </section>
-
-    <section class="section full"><h2 class="section-title">Materiały / kolory</h2><ul class="quote-pdf-list"><li><span class="quote-pdf-list__name">Biały mat</span></li></ul></section>
-    <section class="section full"><h2 class="section-title">Akcesoria</h2><ul class="quote-pdf-list"><li><span class="quote-pdf-list__name">Zawias Blum</span><span class="quote-pdf-list__meta">4 szt.</span></li></ul></section>
-    <section class="section full"><h2 class="section-title">Usługi / zakres prac</h2><ul class="quote-pdf-list"><li><span class="quote-pdf-list__name">Montaż zabudowy</span><span class="quote-pdf-list__meta">1 x</span></li></ul></section>
-    <section class="section full"><h2 class="section-title">Sprzęty / AGD do montażu</h2><ul class="quote-pdf-list"><li><span class="quote-pdf-list__name">Piekarnik do zabudowy</span><span class="quote-pdf-list__meta">1 szt.</span></li></ul></section>
-
-    <div class="footer">Wygenerowano z meble-app</div>
-  </main>
-</body>
-</html>
 
 [Szafki] 3/3 OK
 - OK: Cutlista szafki nie dodaje pleców przy materiale Brak

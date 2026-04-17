@@ -217,6 +217,75 @@
             if(FC.infoBox) FC.infoBox.open = prevInfoOpen;
           }
         });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Zapis wyceny prostuje auto-nazwę i etykiety zakresu dla obcego scope', 'Pilnuje główną regresję z a/J/a+J: jeśli draft albo payload niosą auto-nazwę J, zapis scope a lub a+J ma wyprostować nazwę i roomLabels do kanonicznego zakresu zamiast zachować stare J.', async ()=>{
+        H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getScopeRoomLabels === 'function', 'Brak FC.quoteSnapshotStore.getScopeRoomLabels');
+        await withInvestorProjectFixture({
+          rooms:[
+            { id:'room_a', baseType:'pokoj', name:'a', label:'a', projectStatus:'nowy' },
+            { id:'room_j', baseType:'pokoj', name:'J', label:'J', projectStatus:'nowy' },
+          ],
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_a:{ id:'room_a', baseType:'pokoj', name:'a', label:'a' },
+                room_j:{ id:'room_j', baseType:'pokoj', name:'J', label:'J' },
+              },
+              roomOrder:['room_a','room_j'],
+            },
+            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+            room_j:{ cabinets:[{ id:'cab_j' }], fronts:[], sets:[], settings:{} },
+          },
+        }, async ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_seed_j', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt seed J' }, scope:{ selectedRooms:['room_j'], roomLabels:['J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:35 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446201 });
+
+          FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_a'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' } });
+          const snapA = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_a'] } });
+          H.assert(String(snapA && snapA.commercial && snapA.commercial.versionName || '') === 'Wstępna oferta — a', 'Zapis scope a nie wyprostował auto-nazwy do własnego zakresu', snapA);
+          H.assert(JSON.stringify(FC.quoteSnapshotStore.getScopeRoomLabels(snapA)) === JSON.stringify(['a']), 'Zapis scope a nie wyprostował roomLabels do kanonicznego zakresu', snapA && snapA.scope);
+
+          FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_a','room_j'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' } });
+          const snapShared = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_a','room_j'] } });
+          H.assert(String(snapShared && snapShared.commercial && snapShared.commercial.versionName || '') === 'Wstępna oferta — a + J', 'Zapis scope a + J nie wyprostował auto-nazwy do wspólnego zakresu', snapShared);
+          H.assert(JSON.stringify(FC.quoteSnapshotStore.getScopeRoomLabels(snapShared)) === JSON.stringify(['a','J']), 'Zapis scope a + J nie wyprostował roomLabels do wspólnego zakresu', snapShared && snapShared.scope);
+        });
+      }),
+
+    H.makeTest('Wycena ↔ Scope wejścia', 'Historia i odczyt snapshotu ignorują stare roomLabels i auto-nazwę z innego scope', 'Pilnuje, żeby błędnie zapisane stare snapshoty z roomLabels/nazwą J były prostowane przy odczycie historii dla scope a oraz a+J.', ()=>{
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getEffectiveVersionName === 'function', 'Brak FC.quoteSnapshotStore.getEffectiveVersionName');
+        H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getScopeRoomLabels === 'function', 'Brak FC.quoteSnapshotStore.getScopeRoomLabels');
+        withInvestorProjectFixture({
+          rooms:[
+            { id:'room_a', baseType:'pokoj', name:'a', label:'a', projectStatus:'nowy' },
+            { id:'room_j', baseType:'pokoj', name:'J', label:'J', projectStatus:'nowy' },
+          ],
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_a:{ id:'room_a', baseType:'pokoj', name:'a', label:'a' },
+                room_j:{ id:'room_j', baseType:'pokoj', name:'J', label:'J' },
+              },
+              roomOrder:['room_a','room_j'],
+            },
+            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+            room_j:{ cabinets:[{ id:'cab_j' }], fronts:[], sets:[], settings:{} },
+          },
+        }, ({ investorId, projectId })=>{
+          FC.quoteSnapshotStore.save({ id:'snap_scope_hist_j', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope hist' }, scope:{ selectedRooms:['room_j'], roomLabels:['J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:35 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446301 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_hist_a_bad', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope hist' }, scope:{ selectedRooms:['room_a'], roomLabels:['J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:35 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446302 });
+          FC.quoteSnapshotStore.save({ id:'snap_scope_hist_shared_bad', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope hist' }, scope:{ selectedRooms:['room_a','room_j'], roomLabels:['J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:70 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446303 });
+          const snapA = FC.quoteSnapshotStore.getById('snap_scope_hist_a_bad');
+          const snapShared = FC.quoteSnapshotStore.getById('snap_scope_hist_shared_bad');
+          H.assert(JSON.stringify(FC.quoteSnapshotStore.getScopeRoomLabels(snapA)) === JSON.stringify(['a']), 'Odczyt snapshotu a nie wyprostował roomLabels z błędnego J', snapA && snapA.scope);
+          H.assert(JSON.stringify(FC.quoteSnapshotStore.getScopeRoomLabels(snapShared)) === JSON.stringify(['a','J']), 'Odczyt snapshotu a + J nie wyprostował roomLabels z błędnego J', snapShared && snapShared.scope);
+          H.assert(String(FC.quoteSnapshotStore.getEffectiveVersionName(snapA) || '') === 'Wstępna oferta — a', 'Historia nadal pokazuje nazwę J dla scope a', snapA);
+          H.assert(String(FC.quoteSnapshotStore.getEffectiveVersionName(snapShared) || '') === 'Wstępna oferta — a + J', 'Historia nadal pokazuje nazwę J dla scope a + J', snapShared);
+        });
       })
+
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

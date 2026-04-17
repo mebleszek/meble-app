@@ -61,12 +61,12 @@ Czas: 271 ms
       "id": "snap_warn_pre",
       "generatedAt": 100,
       "investor": {
-        "id": "inv_es3pmh1r_mo2l0gix",
+        "id": "inv_e9ck96nf_mo2l782v",
         "name": "Room warning"
       },
       "project": {
-        "id": "f3680731-9322-4f35-ace4-edb49f9a578c",
-        "investorId": "inv_es3pmh1r_mo2l0gix",
+        "id": "26a589aa-14f7-4e04-810b-baf335a70f8c",
+        "investorId": "inv_e9ck96nf_mo2l782v",
         "status": "wstepna_wycena"
       },
       "scope": {

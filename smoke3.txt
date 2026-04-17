@@ -3,7 +3,7 @@
 [Wycena] Brak FC.projectStatusSync.promotePreliminarySnapshotToFinal — pomijam stary fallback lokalnego zapisu statusów.
 APP smoke testy: 116/120 OK
 Błędy: 4
-Czas: 271 ms
+Czas: 276 ms
 
 [Projekt] 13/14 OK
 - OK: Normalizer projektu uzupełnia brakujące pokoje i tablice
@@ -61,12 +61,12 @@ Czas: 271 ms
       "id": "snap_warn_pre",
       "generatedAt": 100,
       "investor": {
-        "id": "inv_es3pmh1r_mo2l0gix",
+        "id": "inv_7dppivha_mo2l3xbc",
         "name": "Room warning"
       },
       "project": {
-        "id": "f3680731-9322-4f35-ace4-edb49f9a578c",
-        "investorId": "inv_es3pmh1r_mo2l0gix",
+        "id": "8c73b893-3817-45c0-a226-d77d3ad41660",
+        "investorId": "inv_7dppivha_mo2l3xbc",
         "status": "wstepna_wycena"
       },
       "scope": {

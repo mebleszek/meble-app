@@ -116,7 +116,7 @@
     const investor = snap && snap.investor || null;
     const project = snap && snap.project || null;
     const scope = snap && snap.scope || {};
-    const roomLabels = Array.isArray(scope && scope.roomLabels) ? scope.roomLabels : [];
+    const roomLabels = (function(){ try{ return FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getScopeRoomLabels === 'function' ? FC.quoteSnapshotStore.getScopeRoomLabels(snap) : (Array.isArray(scope && scope.roomLabels) ? scope.roomLabels : []); }catch(_){ return Array.isArray(scope && scope.roomLabels) ? scope.roomLabels : []; } })();
     const totals = snap && snap.totals || {};
     const commercial = snap && snap.commercial || {};
     const selectedByClient = !!(snap && snap.meta && snap.meta.selectedByClient);
