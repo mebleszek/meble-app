@@ -48,8 +48,8 @@
   function openModal(build){
     if(activeModal) closeActiveModal({ cancelled:true });
     return new Promise((resolve)=>{
-      const overlay = h('div', { class:'panel-box-backdrop panel-box-backdrop--center quote-scope-entry-backdrop' });
-      const dialog = h('div', { class:'panel-box quote-scope-entry-modal', role:'dialog', 'aria-modal':'true' });
+      const overlay = h('div', { class:'quote-scope-entry-backdrop' });
+      const dialog = h('div', { class:'quote-scope-entry-modal', role:'dialog', 'aria-modal':'true' });
       overlay.appendChild(dialog);
       document.body.appendChild(overlay);
       lockModal();
@@ -235,9 +235,9 @@
   function openCreatedPreliminaryInfo(scope){
     const summary = scope && typeof scope === 'object' ? scope : getScopeSummary([]);
     return openModal((dialog)=>{
-      const title = h('div', { class:'panel-box__title quote-scope-entry-modal__title', text:'NOWA WYCENA WSTĘPNA' });
-      const head = h('div', { class:'panel-box__head quote-scope-entry-modal__head quote-scope-entry-modal__head--single' }, [title]);
-      const body = h('div', { class:'panel-box__body quote-scope-entry-modal__body' });
+      const title = h('div', { class:'quote-scope-entry-modal__title', text:'NOWA WYCENA WSTĘPNA' });
+      const head = h('div', { class:'quote-scope-entry-modal__head quote-scope-entry-modal__head--single' }, [title]);
+      const body = h('div', { class:'quote-scope-entry-modal__body' });
       body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:'Powstała nowa wycena wstępna.' }));
       if(summary && summary.scopeLabel){
         body.appendChild(h('div', { class:'quote-scope-entry-modal__scope', text:`Pomieszczenia: ${summary.scopeLabel}` }));
@@ -245,9 +245,9 @@
       const actions = h('div', { class:'quote-scope-entry-modal__actions quote-scope-entry-modal__actions--single' });
       const okBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-modal__action', text:'OK' });
       actions.appendChild(okBtn);
-      body.appendChild(actions);
       dialog.appendChild(head);
       dialog.appendChild(body);
+      dialog.appendChild(actions);
       okBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:false, action:'acknowledged' }));
       setTimeout(()=>{ try{ okBtn.focus(); }catch(_){ } }, 0);
     });
@@ -327,10 +327,10 @@ Pomieszczenia: ${summary.scopeLabel}`
 
   function openExistingOrCreateModal(scope, preliminary, existingSnapshot){
     return openModal((dialog, overlay)=>{
-      const title = h('div', { class:'panel-box__title quote-scope-entry-modal__title', text: preliminary ? 'ISTNIEJE JUŻ WYCENA WSTĘPNA' : 'ISTNIEJE JUŻ WYCENA' });
-      const closeBtn = h('button', { type:'button', class:'panel-box__close quote-scope-entry-modal__close', 'aria-label':'Zamknij okno', text:'×' });
-      const head = h('div', { class:'panel-box__head quote-scope-entry-modal__head' }, [title, closeBtn]);
-      const body = h('div', { class:'panel-box__body quote-scope-entry-modal__body' });
+      const title = h('div', { class:'quote-scope-entry-modal__title', text: preliminary ? 'ISTNIEJE JUŻ WYCENA WSTĘPNA' : 'ISTNIEJE JUŻ WYCENA' });
+      const closeBtn = h('button', { type:'button', class:'quote-scope-entry-modal__close', 'aria-label':'Zamknij okno', text:'×' });
+      const head = h('div', { class:'quote-scope-entry-modal__head' }, [title, closeBtn]);
+      const body = h('div', { class:'quote-scope-entry-modal__body' });
       const name = getEffectiveVersionName(existingSnapshot);
       body.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:`Dla zakresu „${scope.scopeLabel}” istnieje już ${preliminary ? 'wycena wstępna' : 'wycena'}${name ? ` o nazwie „${name}”` : ''}.` }));
       body.appendChild(h('div', { class:'quote-scope-entry-modal__scope', text:`Pomieszczenia: ${scope.scopeLabel}` }));
@@ -341,9 +341,9 @@ Pomieszczenia: ${summary.scopeLabel}`
       actions.appendChild(backBtn);
       actions.appendChild(openBtn);
       actions.appendChild(createBtn);
-      body.appendChild(actions);
       dialog.appendChild(head);
       dialog.appendChild(body);
+      dialog.appendChild(actions);
       overlay.addEventListener('pointerdown', (event)=>{ if(event.target === overlay) closeActiveModal({ cancelled:true }); });
       closeBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:true }));
       backBtn.addEventListener('click', ()=> closeActiveModal({ cancelled:true }));
@@ -359,26 +359,24 @@ Pomieszczenia: ${summary.scopeLabel}`
       const suggestedName = String(opts.suggestedName || buildSuggestedVersionName(projectId, scope.roomIds, preliminary) || '').trim();
       const submitLabel = String(opts.submitLabel || 'OK').trim() || 'OK';
       const cancelLabel = String(opts.cancelLabel || 'Anuluj').trim() || 'Anuluj';
+      dialog.classList.add('panel-box', 'quote-scope-entry-modal--name', 'investor-card-sync');
       const title = h('div', { class:'panel-box__title quote-scope-entry-modal__title', text: String(opts.title || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY')).trim() || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY') });
-      dialog.classList.add('quote-scope-entry-modal--name', 'investor-card-sync');
       const closeBtn = h('button', { type:'button', class:'panel-box__close quote-scope-entry-modal__close', 'aria-label':'Zamknij okno', text:'×' });
       const head = h('div', { class:'panel-box__head quote-scope-entry-modal__head' }, [title, closeBtn]);
       const body = h('div', { class:'panel-box__body panel-box__body--form quote-scope-entry-modal__body' });
       const form = h('div', { class:'panel-box-form quote-scope-entry-modal__form' });
       const scroll = h('div', { class:'panel-box-form__scroll quote-scope-entry-modal__scroll' });
-      const card = h('div', { class:'card investor-card-sync quote-scope-entry-card quote-scope-entry-card--name' });
-      card.appendChild(h('div', { class:'quote-scope-entry-modal__message quote-scope-entry-modal__message--compact', text:String(opts.message || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.`).trim() || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.` }));
-      const field = h('label', { class:'quote-scope-entry-modal__field investor-field-shell' });
-      field.appendChild(h('span', { class:'quote-scope-entry-modal__field-label investor-field-label', text:'Nazwa wyceny' }));
+      scroll.appendChild(h('div', { class:'quote-scope-entry-modal__message', text:String(opts.message || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.`).trim() || `Podaj nazwę dla nowej ${preliminary ? 'wyceny wstępnej' : 'wyceny'} dla zakresu „${scope.scopeLabel}”.` }));
+      const field = h('label', { class:'quote-scope-entry-modal__field' });
+      field.appendChild(h('span', { class:'quote-scope-entry-modal__field-label', text:'Nazwa wyceny' }));
       const input = h('input', { type:'text', class:'investor-form-input quote-scope-entry-modal__input', value:suggestedName, maxlength:'120', placeholder:suggestedName });
       field.appendChild(input);
-      card.appendChild(field);
+      scroll.appendChild(field);
       const rawHint = Object.prototype.hasOwnProperty.call(opts, 'hint') ? opts.hint : undefined;
       const hintText = rawHint === false
         ? ''
         : String(rawHint == null ? 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.' : rawHint).trim();
-      if(hintText) card.appendChild(h('div', { class:'quote-scope-entry-modal__hint', text:hintText }));
-      scroll.appendChild(card);
+      if(hintText) scroll.appendChild(h('div', { class:'quote-scope-entry-modal__hint', text:hintText }));
       const footer = h('div', { class:'panel-box-form__footer quote-scope-entry-modal__footer' });
       const actions = h('div', { class:'quote-scope-entry-modal__actions quote-scope-entry-modal__actions--split' });
       const cancelBtn = h('button', { type:'button', class:'btn-danger quote-scope-entry-modal__action', text:cancelLabel });

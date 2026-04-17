@@ -1,8 +1,8 @@
-## 2026-04-17 — modal nazwy wyceny zsynchronizowany z referencyjnym shell-em
-- `js/app/quote/quote-scope-entry.js` + `css/style.css` — modal `Nazwa nowej wyceny` korzysta teraz z tego samego shellu co referencyjne okna (`panel-box` / `panel-box__head` / `panel-box__close` / `panel-box__body`) zamiast z osobnego, lżejszego wariantu. Wnętrze używa `panel-box-form` + `panel-box-form__footer` oraz pola `investor-card-sync`, żeby tytuł, `X`, rytm treści, input i stopka były spójne z zaakceptowanymi modalami aplikacji.
-- `js/app/quote/quote-scope-entry.js` — z modala nazwy usunięty osobny blok `Pomieszczenia: ...`; informacja o zakresie zostaje tylko w krótkim komunikacie nad polem.
-- `js/testing/wycena/suites/scope-entry.js` — test modala pilnuje teraz shellu `panel-box`, stopki `panel-box-form__footer`, braku osobnego bloku `Pomieszczenia` i inputu w stylu `Inwestor`.
-- Instrukcja antyregresyjna: nowe małe modale/okna nie dostają już „własnego podobnego stylu”. Jeśli istnieje zaakceptowane okno referencyjne, kopiować jego shell 1:1 (`panel-box` albo istniejący modal z aplikacji), a dopiero potem wkładać do środka specyficzną treść.
+## 2026-04-17 — hotfix lokalnego shellu modala nazwy wyceny
+- `js/app/quote/quote-scope-entry.js` — modal `Nazwa nowej wyceny` dostał lokalny shell oparty o istniejące klasy `panel-box` / `panel-box-form`, ale tylko dla tego jednego okna; usunięty osobny blok `Pomieszczenia`, a `Anuluj / OK` siedzą w stopce 50/50 bez dotykania wyglądu reszty `Wycena`.
+- `css/style.css` — dodane wyłącznie namespacowane reguły `.quote-scope-entry-modal--name ...`; nie zmieniać przy tym wspólnych klas `panel-box*`, `info-trigger`, `label-help` ani launcherów/sekcji `Wycena`.
+- `js/testing/wycena/suites/scope-entry.js` — dodany test antyregresyjny pilnujący, że modal nazwy ma shell `panel-box`, brak bloku `Pomieszczenia` i układ akcji 50/50.
+- Instrukcja antyregresyjna: poprawiając pojedynczy modal, dopisywać lokalne klasy namespacowane dla tego modala zamiast ruszać współdzielone style używane przez inne sekcje (`info-trigger`, `panel-box`, launchery, sekcje Wycena/ROZRYS).
 
 ## 2026-04-17 — hotfix kanonicznego scope dla nazw i historii wycen
 - `js/app/quote/quote-snapshot.js` + `js/app/quote/quote-snapshot-store.js` — scope ofert traktuje teraz `selectedRooms` jako kanoniczne źródło prawdy dla etykiet pokoi; `roomLabels` są odtwarzane z `selectedRooms` zamiast ślepo ufać starym/złym labelom zapisanym w snapshotcie.
@@ -1263,5 +1263,3 @@ Dopiero potem go zmieniać.
 
 - 2026-04-17: `js/app/wycena/wycena-tab-selection.js` ma resetować roboczą nazwę oferty po zmianie wybranego scope, jeśli draft niesie auto-/snapshotową nazwę z poprzedniego exact-scope; nie wolno przenosić nazw wariantów jednego pokoju na inny pokój albo scope wspólne. Dopina to test w `js/testing/wycena/suites/scope-entry.js`.
 - 2026-04-17: Po analizie flow `Wyceń` wyszło, że zły warunek nie siedział w exact-scope modala, tylko w przenoszeniu starej auto-nazwy do nowego zakresu przy samym generowaniu. `js/app/wycena/wycena-tab-selection.js` prostuje teraz draftową nazwę także tuż przed `Wyceń`, jeśli ta sama auto-nazwa występuje w innym exact-scope projektu; `js/app/quote/quote-snapshot-store.js` oraz podgląd/modale/PDF używają scoped fallbacku nazwy dla starych snapshotów z regresji a / J / a+J, żeby historia nie udawała dalej wariantu pokoju J dla zakresów a i a+J. Test antyregresyjny siedzi w `js/testing/wycena/suites/scope-entry.js`.
-
-- Modal nazwy nowej wyceny ma kopiować istniejące wzorce aplikacji: bez osobnego bloku „Pomieszczenia”, z inputem w stylu formularzy Inwestora i z przyciskami Anuluj/OK w jednym rzędzie pół na pół.

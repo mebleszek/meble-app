@@ -185,7 +185,7 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Scope wejścia', 'Modal nazwy nowej wyceny używa krótkiej treści i układu pół na pół', 'Pilnuje uzgodnionego UI modala: bez osobnego bloku Pomieszczenia, z inputem w stylu formularzy inwestora i z przyciskami Anuluj/OK w jednym rzędzie pół na pół.', async ()=>{
+    H.makeTest('Wycena ↔ Scope wejścia', 'Modal nazwy nowej wyceny nie renderuje już bloku pomieszczeń i nie zmienia wspólnego shellu działu', 'Pilnuje regresję po poprawkach UI modala: okno nazwy ma własny shell w stylu aplikacji, brak osobnego bloku Pomieszczenia i układ akcji 50/50 bez rozwalania reszty Wycena.', async ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function', 'Brak FC.quoteScopeEntry.promptNewVersionName');
         await withInvestorProjectFixture({}, async ({ projectId })=>{
           if(typeof document === 'undefined' || !document || !document.body) return;
@@ -202,10 +202,10 @@
           await new Promise((resolve)=> setTimeout(resolve, 0));
           const dialog = document.querySelector('.quote-scope-entry-modal--name');
           H.assert(dialog, 'Nie otworzył się modal nazwy nowej wyceny');
-          H.assert(dialog.classList.contains('panel-box'), 'Modal nazwy nie używa shellu panel-box z referencyjnych okien');
-          H.assert(dialog.classList.contains('investor-card-sync'), 'Modal nazwy nie używa wzorca formularzy inwestora');
-          H.assert(!!dialog.querySelector('.panel-box__head'), 'Modal nazwy nie renderuje nagłówka w shellu panel-box');
-          H.assert(!!dialog.querySelector('.panel-box-form__footer'), 'Modal nazwy nie renderuje stopki jak referencyjne okna formularzowe');
+          H.assert(dialog.classList.contains('panel-box'), 'Modal nazwy nie używa shellu panel-box');
+          H.assert(dialog.classList.contains('investor-card-sync'), 'Modal nazwy nie używa lokalnego wzorca pól inwestora');
+          H.assert(!!dialog.querySelector('.panel-box__head'), 'Modal nazwy nie renderuje nagłówka panel-box');
+          H.assert(!!dialog.querySelector('.panel-box-form__footer'), 'Modal nazwy nie renderuje stopki formularza panel-box');
           H.assert(!dialog.querySelector('.quote-scope-entry-modal__scope'), 'Modal nadal renderuje osobny blok Pomieszczenia');
           const input = dialog.querySelector('.quote-scope-entry-modal__input.investor-form-input');
           H.assert(input, 'Modal nazwy nie renderuje inputu w stylu inwestora');
@@ -220,6 +220,7 @@
           H.assert(result && result.cancelled === true, 'Modal nie zamknął się poprawnie po kliknięciu Anuluj', result);
         });
       }),
+
 
     H.makeTest('Wycena ↔ Scope wejścia', 'Nowa wycena wstępna domyślnie pokazuje modal OK po faktycznym utworzeniu', 'Pilnuje, czy bez specjalnego callbacka system używa prostego komunikatu OK po stworzeniu nowej wyceny wstępnej.', async ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function', 'Brak FC.quoteScopeEntry.ensureScopedQuoteEntry');
