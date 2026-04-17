@@ -1,3 +1,9 @@
+## 2026-04-17 — modal nazwy wyceny zsynchronizowany z referencyjnym shell-em
+- `js/app/quote/quote-scope-entry.js` + `css/style.css` — modal `Nazwa nowej wyceny` korzysta teraz z tego samego shellu co referencyjne okna (`panel-box` / `panel-box__head` / `panel-box__close` / `panel-box__body`) zamiast z osobnego, lżejszego wariantu. Wnętrze używa `panel-box-form` + `panel-box-form__footer` oraz pola `investor-card-sync`, żeby tytuł, `X`, rytm treści, input i stopka były spójne z zaakceptowanymi modalami aplikacji.
+- `js/app/quote/quote-scope-entry.js` — z modala nazwy usunięty osobny blok `Pomieszczenia: ...`; informacja o zakresie zostaje tylko w krótkim komunikacie nad polem.
+- `js/testing/wycena/suites/scope-entry.js` — test modala pilnuje teraz shellu `panel-box`, stopki `panel-box-form__footer`, braku osobnego bloku `Pomieszczenia` i inputu w stylu `Inwestor`.
+- Instrukcja antyregresyjna: nowe małe modale/okna nie dostają już „własnego podobnego stylu”. Jeśli istnieje zaakceptowane okno referencyjne, kopiować jego shell 1:1 (`panel-box` albo istniejący modal z aplikacji), a dopiero potem wkładać do środka specyficzną treść.
+
 ## 2026-04-17 — hotfix kanonicznego scope dla nazw i historii wycen
 - `js/app/quote/quote-snapshot.js` + `js/app/quote/quote-snapshot-store.js` — scope ofert traktuje teraz `selectedRooms` jako kanoniczne źródło prawdy dla etykiet pokoi; `roomLabels` są odtwarzane z `selectedRooms` zamiast ślepo ufać starym/złym labelom zapisanym w snapshotcie.
 - `js/app/quote/quote-snapshot-store.js` — zapis snapshotu prostuje auto-nazwy z obcego scope (`J` zapisane pod `a`, `a+J` itd.) do bieżącego exact-scope zanim trafią do historii; `getEffectiveVersionName()` oraz `getScopeRoomLabels()` prostują też stare skażone snapshoty przy odczycie.

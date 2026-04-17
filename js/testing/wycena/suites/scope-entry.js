@@ -202,8 +202,11 @@
           await new Promise((resolve)=> setTimeout(resolve, 0));
           const dialog = document.querySelector('.quote-scope-entry-modal--name');
           H.assert(dialog, 'Nie otworzył się modal nazwy nowej wyceny');
-          H.assert(!dialog.querySelector('.quote-scope-entry-modal__scope'), 'Modal nadal renderuje osobny blok Pomieszczenia');
+          H.assert(dialog.classList.contains('panel-box'), 'Modal nazwy nie używa shellu panel-box z referencyjnych okien');
           H.assert(dialog.classList.contains('investor-card-sync'), 'Modal nazwy nie używa wzorca formularzy inwestora');
+          H.assert(!!dialog.querySelector('.panel-box__head'), 'Modal nazwy nie renderuje nagłówka w shellu panel-box');
+          H.assert(!!dialog.querySelector('.panel-box-form__footer'), 'Modal nazwy nie renderuje stopki jak referencyjne okna formularzowe');
+          H.assert(!dialog.querySelector('.quote-scope-entry-modal__scope'), 'Modal nadal renderuje osobny blok Pomieszczenia');
           const input = dialog.querySelector('.quote-scope-entry-modal__input.investor-form-input');
           H.assert(input, 'Modal nazwy nie renderuje inputu w stylu inwestora');
           const actions = dialog.querySelector('.quote-scope-entry-modal__actions--split');
