@@ -1,3 +1,8 @@
+## 2026-04-17 — Wywiad test hardening before UI changes
+- `js/testing/cabinet/tests.js` — mocno rozszerzone testy działu `Wywiad` / modala szafki: domyślny draft kuchni, klonowanie ostatniej szafki, opcje otwierania dla wiszącej vs stojącej, render modala w trybie dodawania, obecność natywnych selectów źródłowych (`cmSubType`, `cmFrontMaterial`, `cmBackMaterial`, `cmBodyColor`, `cmOpeningSystem`), aktualizacja draftu po zmianie tych pól oraz render modala w trybie edycji z CTA `Zapisz zmiany`.
+- `dev_tests.html` + `tools/app-dev-smoke.js` — środowiska testowe ładują teraz także `js/app/cabinet/cabinet-fronts.js`, `js/app/cabinet/cabinet-modal.js` i `js/app/cabinet/cabinet-actions.js`, żeby testy `Wywiad` nie były ślepe na realny modal szafki.
+- Instrukcja antyregresyjna: zanim ruszy UI `Wywiadu`, utrzymywać natywne selecty jako źródło prawdy i pilnować ich obecności/testów. Każda przyszła warstwa launcher/picker ma tylko przykrywać native `select`, nie zastępować go własnym stanem.
+
 ## 2026-04-17 — hotfix lokalnego shellu modala nazwy wyceny
 - `js/app/quote/quote-scope-entry.js` — modal `Nazwa nowej wyceny` dostał lokalny shell oparty o istniejące klasy `panel-box` / `panel-box-form`, ale tylko dla tego jednego okna; usunięty osobny blok `Pomieszczenia`, a `Anuluj / OK` siedzą w stopce 50/50 bez dotykania wyglądu reszty `Wycena`.
 - `css/style.css` — dodane wyłącznie namespacowane reguły `.quote-scope-entry-modal--name ...`; nie zmieniać przy tym wspólnych klas `panel-box*`, `info-trigger`, `label-help` ani launcherów/sekcji `Wycena`.
