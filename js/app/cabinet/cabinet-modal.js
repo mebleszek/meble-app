@@ -1,6 +1,42 @@
 (function(){
   const ns = (window.FC = window.FC || {});
 
+function callCabinetFrontsHelper(fnName, args, fallback){
+  try{
+    const mod = window.FC && window.FC.cabinetFronts;
+    const impl = mod && mod[fnName];
+    if(typeof impl === 'function') return impl.apply(null, args || []);
+  }catch(_){ }
+  try{
+    const globalImpl = window && window[fnName];
+    if(typeof globalImpl === 'function') return globalImpl.apply(null, args || []);
+  }catch(_){ }
+  if(typeof fallback === 'function') return fallback.apply(null, args || []);
+  throw new Error('Brak helpera cabinetFronts: ' + fnName);
+}
+
+function getSubTypeOptionsForTypeSafe(typeVal){
+  return callCabinetFrontsHelper('getSubTypeOptionsForType', [typeVal], function(){
+    return [{ v:'standardowa', t:'Standardowa' }];
+  });
+}
+function applyTypeRulesSafe(room, updated, typeVal){ return callCabinetFrontsHelper('applyTypeRules', [room, updated, typeVal], function(){ updated.type = typeVal; return updated; }); }
+function applySubTypeRulesSafe(room, updated, subTypeVal){ return callCabinetFrontsHelper('applySubTypeRules', [room, updated, subTypeVal], function(){ updated.subType = subTypeVal; return updated; }); }
+function ensureFrontCountRulesSafe(cab){ return callCabinetFrontsHelper('ensureFrontCountRules', [cab], function(){ return cab; }); }
+function cabinetAllowsFrontCountSafe(cab){ return callCabinetFrontsHelper('cabinetAllowsFrontCount', [cab], function(){ return true; }); }
+function getFlapFrontCountSafe(cab){ return callCabinetFrontsHelper('getFlapFrontCount', [cab], function(){ return Number(cab && cab.frontCount) || 0; }); }
+function syncDraftFromCabinetModalFormSafe(draft){ return callCabinetFrontsHelper('syncDraftFromCabinetModalForm', [draft], function(){ return draft; }); }
+function validateAventosForDraftSafe(room, draft){ return callCabinetFrontsHelper('validateAventosForDraft', [room, draft], function(){ return null; }); }
+function applyAventosValidationUISafe(room, draft){ return callCabinetFrontsHelper('applyAventosValidationUI', [room, draft], function(){ return null; }); }
+function addFrontSafe(room, front){ return callCabinetFrontsHelper('addFront', [room, front], function(){
+  projectData[room].fronts = projectData[room].fronts || [];
+  projectData[room].fronts.push(front);
+  return front;
+}); }
+function removeFrontsForSetSafe(room, setId){ return callCabinetFrontsHelper('removeFrontsForSet', [room, setId], function(){
+  projectData[room].fronts = (projectData[room].fronts || []).filter(function(front){ return String(front && front.setId) !== String(setId); });
+}); }
+
 function makeDefaultCabinetDraftForRoom(room){
   const arr = projectData[room].cabinets;
   const last = arr[arr.length - 1];
@@ -182,11 +218,11 @@ function renderCabinetTypeChoices(){
     projectData[room].cabinets = projectData[room].cabinets || [];
         if(!cabinetModalState.draft) cabinetModalState.draft = makeDefaultCabinetDraftForRoom(room);
 
-        applyTypeRules(room, cabinetModalState.draft, ch.key);
-        const opts = getSubTypeOptionsForType(ch.key).map(o=>o.v);
+        applyTypeRulesSafe(room, cabinetModalState.draft, ch.key);
+        const opts = getSubTypeOptionsForTypeSafe(ch.key).map(o=>o.v);
         if(!opts.includes(cabinetModalState.draft.subType)) cabinetModalState.draft.subType = opts[0];
-        applySubTypeRules(room, cabinetModalState.draft, cabinetModalState.draft.subType);
-        ensureFrontCountRules(cabinetModalState.draft);
+        applySubTypeRulesSafe(room, cabinetModalState.draft, cabinetModalState.draft.subType);
+        ensureFrontCountRulesSafe(cabinetModalState.draft);
       }
       renderCabinetModal();
     });
@@ -1297,7 +1333,7 @@ if(!cabinetModalState.setPreset){
   draft.type = cabinetModalState.chosen;
 
   const cmSubType = document.getElementById('cmSubType');
-  populateSelect(cmSubType, getSubTypeOptionsForType(draft.type), draft.subType);
+  populateSelect(cmSubType, getSubTypeOptionsForTypeSafe(draft.type), draft.subType);
 
   renderCabinetExtraDetailsInto(document.getElementById('cmExtraDetails'), draft);
 
@@ -1369,7 +1405,7 @@ function syncFlapUI(){
       else dv.flapKind = 'HKI';
 
       draft.details = dv;
-      ensureFrontCountRules(draft);
+      ensureFrontCountRulesSafe(draft);
       renderCabinetModal();
     };
   }
@@ -1382,7 +1418,7 @@ function syncFlapUI(){
       flapInfo.textContent = 'GTV – w budowie.';
     }
     draft.details = d;
-    ensureFrontCountRules(draft);
+    ensureFrontCountRulesSafe(draft);
     return;
   }
 
@@ -1400,13 +1436,13 @@ function syncFlapUI(){
       const dv = FC.utils.isPlainObject(draft.details) ? draft.details : {};
       dv.flapKind = String(flapKindSel.value || defaultKind);
       draft.details = dv;
-      ensureFrontCountRules(draft);
+      ensureFrontCountRulesSafe(draft);
       renderCabinetModal();
     };
   }
 
   draft.details = d;
-  ensureFrontCountRules(draft);
+  ensureFrontCountRulesSafe(draft);
 }
 
   // Podblatowa (wisząca dolna): pozwól na brak frontów oraz rozróżnij drzwi vs szuflady
@@ -1445,7 +1481,7 @@ function syncFlapUI(){
     setFcOptions([1,2]);
   }
 
-  ensureFrontCountRules(draft);
+  ensureFrontCountRulesSafe(draft);
   syncFlapUI();
 
   // Domyślnie pokazuj select, a statyczne info ukrywaj (wyjątek: klapy)
@@ -1456,7 +1492,7 @@ function syncFlapUI(){
   }
 
   // czy pokazujemy wybór 1/2?
-  const canPick = cabinetAllowsFrontCount(draft);
+  const canPick = cabinetAllowsFrontCountSafe(draft);
   const fixedOne = (draft.type === 'stojąca' && (draft.subType === 'zmywarkowa' || draft.subType === 'piekarnikowa' || (draft.subType === 'rogowa_slepa' && (draft.details?.cornerOption||'polki') === 'magic_corner'))) || (draft.type === 'stojąca' && draft.subType === 'zlewowa' && (draft.details?.sinkFront||'drzwi') === 'szuflada');
   const isFridge = (draft.type === 'stojąca' && draft.subType === 'lodowkowa');
 
@@ -1510,7 +1546,7 @@ function syncFlapUI(){
     }
 
 
-    const fcAuto = getFlapFrontCount(draft);
+    const fcAuto = getFlapFrontCountSafe(draft);
     // dla klap ilość frontów jest automatyczna i pokazujemy ją pod wyborem podnośnika
     if(fcWrap) fcWrap.style.display = 'none';
     if(fcSel){
@@ -1554,15 +1590,15 @@ function syncFlapUI(){
   }
 
   cmSubType.onchange = () => {
-    applySubTypeRules(room, draft, cmSubType.value);
-ensureFrontCountRules(draft);
+    applySubTypeRulesSafe(room, draft, cmSubType.value);
+ensureFrontCountRulesSafe(draft);
 
 // Moduł → Uchylna: wymuś tryb klapy i wyczyść ewentualne dane po szufladach
 if(draft.type === 'moduł' && cmSubType.value === 'uchylne'){
   draft.subType = 'uchylne';
   draft.details = FC.utils.isPlainObject(draft.details) ? draft.details : {};
   // fronty dla klapy wynikają z rodzaju podnośnika (HF top = 2)
-  draft.frontCount = getFlapFrontCount(draft);
+  draft.frontCount = getFlapFrontCountSafe(draft);
 }
 
 // zmywarkowa: szerokość szafki = szerokość zmywarki + przegrody techniczne dla wysokich frontów
@@ -1591,8 +1627,8 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
   const _liveAventosCheck = () => {
     try{
       const room = uiState.roomType;
-      syncDraftFromCabinetModalForm(draft);
-      ensureFrontCountRules(draft);
+      syncDraftFromCabinetModalFormSafe(draft);
+      ensureFrontCountRulesSafe(draft);
 
       // Walidacja szuflad systemowych (GTV/Rejs – w budowie -> blokada zapisu)
       const _drawerBlockMsg = (function(){
@@ -1612,7 +1648,7 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
         return null;
       })();
       if(_drawerBlockMsg){ alert(_drawerBlockMsg); return; }
-      applyAventosValidationUI(room, draft);
+      applyAventosValidationUISafe(room, draft);
     }catch(_e){ /* nie psuj modala */ }
   };
   const _cmHeightEl = document.getElementById('cmHeight');
@@ -1674,13 +1710,13 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
       if(!uiState.roomType){ alert('Wybierz pomieszczenie'); return; }
       const room = uiState.roomType;
 
-      syncDraftFromCabinetModalForm(draft);
-      ensureFrontCountRules(draft);
+      syncDraftFromCabinetModalFormSafe(draft);
+      ensureFrontCountRulesSafe(draft);
 
       // Walidacja podnośników (AVENTOS) na etapie zapisu – jeśli poza zakresem, nie dodawaj/nie zapisuj
-      const _av = validateAventosForDraft(room, draft);
+      const _av = validateAventosForDraftSafe(room, draft);
       if(_av && _av.ok === false){
-        applyAventosValidationUI(room, draft);
+        applyAventosValidationUISafe(room, draft);
         return;
       }
 
@@ -1731,7 +1767,7 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
   };
 
   // Walidacja klapy (AVENTOS) – blokuj zapis jeśli poza zakresem
-  applyAventosValidationUI(room, draft);
+  applyAventosValidationUISafe(room, draft);
 }
 
 /* ===== create fronts for sets ===== */
@@ -1742,10 +1778,10 @@ function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColo
     const { w1, w2, hB, hTop } = dims;
     const totalH = (Number(hB)||0) + (Number(hTop)||0);
     if(fc === 1){
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0) + (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0) + (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
     } else {
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0), height: totalH, note: `Zestaw ${setNumber}: front lewy` });
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: front prawy` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0), height: totalH, note: `Zestaw ${setNumber}: front lewy` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: front prawy` });
     }
     return;
   }
@@ -1754,11 +1790,11 @@ function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColo
     const { w, hB, hTop } = dims;
     const totalH = (Number(hB)||0) + (Number(hTop)||0);
     if(fc === 1){
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
     } else {
       const half = Math.round(((Number(w)||0) / 2) * 10)/10;
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
     }
     return;
   }
@@ -1767,11 +1803,11 @@ function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColo
     const { w, hB, hM, hTop } = dims;
     const totalH = (Number(hB)||0) + (Number(hM)||0) + (Number(hTop)||0);
     if(fc === 1){
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
     } else {
       const half = Math.round(((Number(w)||0) / 2) * 10)/10;
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-      addFront(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
     }
     return;
   }
@@ -1942,7 +1978,7 @@ function createOrUpdateSetFromWizard(){
 
     if(isEdit){
       projectData[room].cabinets = projectData[room].cabinets.filter(c => c.setId !== setId);
-      removeFrontsForSet(room, setId);
+      removeFrontsForSetSafe(room, setId);
     }
 
     const created = [];

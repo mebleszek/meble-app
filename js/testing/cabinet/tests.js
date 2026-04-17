@@ -225,6 +225,22 @@
           });
         });
       }),
+      H.makeTest('Szafki', 'Modal szafki renderuje warianty bez zależności od globalnej getSubTypeOptionsForType', 'Pilnuje antyregresję środowiska testowego i przyszłego splitu Wywiadu: modal szafki ma czytać warianty z FC.cabinetFronts, a nie wymagać przypadkowej globalki z app.js.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const prevGlobal = Object.prototype.hasOwnProperty.call(host, 'getSubTypeOptionsForType') ? host.getSubTypeOptionsForType : undefined;
+          try{
+            try{ delete host.getSubTypeOptionsForType; }catch(_){ host.getSubTypeOptionsForType = undefined; }
+            FC.cabinetModal.openCabinetModalForAdd();
+            const subType = document.getElementById('cmSubType');
+            H.assert(subType && subType.options.length >= 1, 'Modal szafki dalej zależy od globalnej getSubTypeOptionsForType', subType && subType.outerHTML);
+          } finally {
+            if(prevGlobal === undefined){ try{ delete host.getSubTypeOptionsForType; }catch(_){ host.getSubTypeOptionsForType = undefined; } }
+            else host.getSubTypeOptionsForType = prevGlobal;
+          }
+        });
+      }),
       H.makeTest('Szafki', 'Modal szafki aktualizuje draft po zmianie kluczowych selectów', 'Pilnuje, czy najbezpieczniejsze pola formularza dalej aktualizują draft szafki przez natywne selecty — to ma zostać źródłem prawdy także po przyszłym liftingu UI Wywiadu.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;

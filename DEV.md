@@ -1,3 +1,8 @@
+## 2026-04-18 — Wywiad modal helper dependency hotfix
+- `js/app/cabinet/cabinet-modal.js` — modal szafki nie zależy już od globalnych wrapperów z `app.js` przy odczycie helperów frontów; lokalne, namespacowane resolvery czytają `FC.cabinetFronts` (z fallbackiem), więc testy i środowiska bez `app.js` nie wpadają już w `getSubTypeOptionsForType is not defined`.
+- `js/testing/cabinet/tests.js` — dodany antyregresyjny test pilnujący, że modal renderuje warianty także po usunięciu globalnej `getSubTypeOptionsForType`; źródłem prawdy ma być moduł `FC.cabinetFronts`.
+- Instrukcja antyregresyjna: przy dalszych pracach nad `Wywiad` nie opierać modala szafki o przypadkowe globalne helpery z `app.js`. Jeżeli logika należy do domeny szafek/frontów, czytać ją przez namespace `FC.cabinetFronts` albo lokalny resolver namespacowany.
+
 ## 2026-04-17 — Wywiad test hardening before UI changes
 - `js/testing/cabinet/tests.js` — mocno rozszerzone testy działu `Wywiad` / modala szafki: domyślny draft kuchni, klonowanie ostatniej szafki, opcje otwierania dla wiszącej vs stojącej, render modala w trybie dodawania, obecność natywnych selectów źródłowych (`cmSubType`, `cmFrontMaterial`, `cmBackMaterial`, `cmBodyColor`, `cmOpeningSystem`), aktualizacja draftu po zmianie tych pól oraz render modala w trybie edycji z CTA `Zapisz zmiany`.
 - `dev_tests.html` + `tools/app-dev-smoke.js` — środowiska testowe ładują teraz także `js/app/cabinet/cabinet-fronts.js`, `js/app/cabinet/cabinet-modal.js` i `js/app/cabinet/cabinet-actions.js`, żeby testy `Wywiad` nie były ślepe na realny modal szafki.
