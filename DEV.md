@@ -1,3 +1,10 @@
+## 2026-04-18 — Wywiad cabinet modal foundation split (draft / fields / validation)
+- `js/app/cabinet/cabinet-modal-validation.js` — wyjęte z monolitu bezpieczne delegatory/guardy do `cabinetFronts` i `calc` oraz normalizacja legacy subtype (`szufladowa` -> `szuflady`).
+- `js/app/cabinet/cabinet-modal-draft.js` — wyjęte przygotowanie draftu i techniczne ustawianie stanu modala dla dodawania/edycji/zestawu, bez zmiany typów realnie używanych w programie (`stojąca`, `wisząca`, `moduł`, `zestaw`).
+- `js/app/cabinet/cabinet-modal-fields.js` — wyjęte helpery pól formularza: populowanie selectów i techniczne dokładanie dynamicznych pól select/number do `cmExtraDetails`, bez zmiany renderu UI.
+- `js/app/cabinet/cabinet-modal.js` — zostaje głównym orchestrator-em, ale korzysta już z nowych modułów fundamentu zamiast trzymać cały ten kod lokalnie.
+- Instrukcja antyregresyjna: w kolejnych etapach nie wrzucać z powrotem draftu, helperów pól ani guardów kompatybilności do `cabinet-modal.js`; nowe typy i `zestaw` mają nad tym tylko budować własne warstwy.
+
 ## 2026-04-18 — cabinet modal legacy subtype alias for inner drawer launcher test
 - `js/app/cabinet/cabinet-modal.js` — `renderCabinetExtraDetailsInto(...)` normalizuje legacy alias `subType:'szufladowa'` do aktualnego `szuflady` na potrzeby renderu dodatkowych pól. Dzięki temu stary draft/test fixture dalej pokazuje właściwe pola szafek szufladowych, w tym launcher `Ilość szuflad wewnętrznych`, bez zmiany aktualnej logiki UI dla bieżących subtype'ów.
 - Instrukcja antyregresyjna: jeśli test/legacy dane używają starej nazwy subtype, nie poprawiać tego zgadywaniem po całym kodzie ani przez zmianę UI; najpierw normalizować alias przy wejściu do warstwy renderu/odczytu.

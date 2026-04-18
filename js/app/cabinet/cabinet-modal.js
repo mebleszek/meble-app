@@ -1,126 +1,112 @@
 (function(){
   const ns = (window.FC = window.FC || {});
 
+function getCabinetModalValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
+function getCabinetModalDraftApi(){ return (window.FC && window.FC.cabinetModalDraft) || {}; }
+function getCabinetModalFieldsApi(){ return (window.FC && window.FC.cabinetModalFields) || {}; }
+
 function callCabinetFrontsHelper(fnName, args, fallback){
-  try{
-    const mod = window.FC && window.FC.cabinetFronts;
-    const impl = mod && mod[fnName];
-    if(typeof impl === 'function') return impl.apply(null, args || []);
-  }catch(_){ }
-  try{
-    const globalImpl = window && window[fnName];
-    if(typeof globalImpl === 'function') return globalImpl.apply(null, args || []);
-  }catch(_){ }
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.callCabinetFrontsHelper === 'function') return api.callCabinetFrontsHelper(fnName, args, fallback);
   if(typeof fallback === 'function') return fallback.apply(null, args || []);
   throw new Error('Brak helpera cabinetFronts: ' + fnName);
 }
 
 function callCalcHelper(fnName, args, fallback){
-  try{
-    const mod = window.FC && window.FC.calc;
-    const impl = mod && mod[fnName];
-    if(typeof impl === 'function') return impl.apply(null, args || []);
-  }catch(_){ }
-  try{
-    const globalImpl = window && window[fnName];
-    if(typeof globalImpl === 'function') return globalImpl.apply(null, args || []);
-  }catch(_){ }
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.callCalcHelper === 'function') return api.callCalcHelper(fnName, args, fallback);
   if(typeof fallback === 'function') return fallback.apply(null, args || []);
   throw new Error('Brak helpera calc: ' + fnName);
 }
 
 function calcTopForSetSafe(room, blende, sumLowerHeights){
-  return callCalcHelper('calcTopForSet', [projectData, room, blende, sumLowerHeights], function(pd, rm, bl, sumLower){
-    try{
-      const s = pd && pd[rm] && pd[rm].settings ? pd[rm].settings : {};
-      const h = (Number(s.roomHeight)||0) - (Number(sumLower)||0) - (Number(bl)||0);
-      return h > 0 ? Math.round(h * 10) / 10 : 0;
-    }catch(_){ return 0; }
-  });
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.calcTopForSetSafe === 'function') return api.calcTopForSetSafe(room, blende, sumLowerHeights);
+  return 0;
 }
 
 function getSubTypeOptionsForTypeSafe(typeVal){
-  return callCabinetFrontsHelper('getSubTypeOptionsForType', [typeVal], function(){
-    return [{ v:'standardowa', t:'Standardowa' }];
-  });
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.getSubTypeOptionsForTypeSafe === 'function') return api.getSubTypeOptionsForTypeSafe(typeVal);
+  return [{ v:'standardowa', t:'Standardowa' }];
 }
-function applyTypeRulesSafe(room, updated, typeVal){ return callCabinetFrontsHelper('applyTypeRules', [room, updated, typeVal], function(){ updated.type = typeVal; return updated; }); }
-function applySubTypeRulesSafe(room, updated, subTypeVal){ return callCabinetFrontsHelper('applySubTypeRules', [room, updated, subTypeVal], function(){ updated.subType = subTypeVal; return updated; }); }
-function ensureFrontCountRulesSafe(cab){ return callCabinetFrontsHelper('ensureFrontCountRules', [cab], function(){ return cab; }); }
-function cabinetAllowsFrontCountSafe(cab){ return callCabinetFrontsHelper('cabinetAllowsFrontCount', [cab], function(){ return true; }); }
-function getFlapFrontCountSafe(cab){ return callCabinetFrontsHelper('getFlapFrontCount', [cab], function(){ return Number(cab && cab.frontCount) || 0; }); }
-function syncDraftFromCabinetModalFormSafe(draft){ return callCabinetFrontsHelper('syncDraftFromCabinetModalForm', [draft], function(){ return draft; }); }
-function validateAventosForDraftSafe(room, draft){ return callCabinetFrontsHelper('validateAventosForDraft', [room, draft], function(){ return null; }); }
-function applyAventosValidationUISafe(room, draft){ return callCabinetFrontsHelper('applyAventosValidationUI', [room, draft], function(){ return null; }); }
-function addFrontSafe(room, front){ return callCabinetFrontsHelper('addFront', [room, front], function(){
+function applyTypeRulesSafe(room, updated, typeVal){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.applyTypeRulesSafe === 'function') return api.applyTypeRulesSafe(room, updated, typeVal);
+  updated.type = typeVal;
+  return updated;
+}
+function applySubTypeRulesSafe(room, updated, subTypeVal){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.applySubTypeRulesSafe === 'function') return api.applySubTypeRulesSafe(room, updated, subTypeVal);
+  updated.subType = subTypeVal;
+  return updated;
+}
+function ensureFrontCountRulesSafe(cab){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.ensureFrontCountRulesSafe === 'function') return api.ensureFrontCountRulesSafe(cab);
+  return cab;
+}
+function cabinetAllowsFrontCountSafe(cab){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.cabinetAllowsFrontCountSafe === 'function') return api.cabinetAllowsFrontCountSafe(cab);
+  return true;
+}
+function getFlapFrontCountSafe(cab){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.getFlapFrontCountSafe === 'function') return api.getFlapFrontCountSafe(cab);
+  return Number(cab && cab.frontCount) || 0;
+}
+function syncDraftFromCabinetModalFormSafe(draft){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.syncDraftFromCabinetModalFormSafe === 'function') return api.syncDraftFromCabinetModalFormSafe(draft);
+  return draft;
+}
+function validateAventosForDraftSafe(room, draft){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.validateAventosForDraftSafe === 'function') return api.validateAventosForDraftSafe(room, draft);
+  return null;
+}
+function applyAventosValidationUISafe(room, draft){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.applyAventosValidationUISafe === 'function') return api.applyAventosValidationUISafe(room, draft);
+  return null;
+}
+function addFrontSafe(room, front){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.addFrontSafe === 'function') return api.addFrontSafe(room, front);
   projectData[room].fronts = projectData[room].fronts || [];
   projectData[room].fronts.push(front);
   return front;
-}); }
-function removeFrontsForSetSafe(room, setId){ return callCabinetFrontsHelper('removeFrontsForSet', [room, setId], function(){
+}
+function removeFrontsForSetSafe(room, setId){
+  const api = getCabinetModalValidationApi();
+  if(api && typeof api.removeFrontsForSetSafe === 'function') return api.removeFrontsForSetSafe(room, setId);
   projectData[room].fronts = (projectData[room].fronts || []).filter(function(front){ return String(front && front.setId) !== String(setId); });
-}); }
+}
 
 function makeDefaultCabinetDraftForRoom(room){
-  const arr = projectData[room].cabinets;
-  const last = arr[arr.length - 1];
-
-  // UX: domyślnie podczas dodawania otwieraj "szafkę dolną" (kuchnia: stojąca),
-  // ale jeśli użytkownik dopiero co dodał szafkę, powiel ostatnio dodaną.
-  // Dzięki temu szybkie dodawanie serii (np. górnych) działa jak wcześniej,
-  // a po przerwie startujemy od dolnej.
-  const NOW = Date.now();
-  const RECENT_WINDOW_MS = 90 * 1000; // ~1.5 min „dopiero co”
-  const recentlyAdded = (uiState && Number.isFinite(Number(uiState.lastAddedAt)) && (NOW - Number(uiState.lastAddedAt) <= RECENT_WINDOW_MS));
-  const allowCloneLast = !!last && recentlyAdded;
-
-  // powiel poprzednią ze wszystkimi ustawieniami
-  if(allowCloneLast){
-    const cloned = FC.utils.clone(last);
-    cloned.id = null;
-    delete cloned.setId;
-    delete cloned.setPreset;
-    delete cloned.setRole;
-    delete cloned.setName;
-    delete cloned.setNumber;
-    return cloned;
-  }
-
-  const isKitchen = room === 'kuchnia';
-  const baseLaminat = (materials.find(m=>m.materialType==='laminat')?.name || '');
-  return {
-    id: null,
-    width: 60,
-    height: isKitchen ? projectData.kuchnia.settings.bottomHeight : 200,
-    depth: isKitchen ? 51 : 60,
-    type: isKitchen ? 'stojąca' : 'moduł',
-    subType: 'standardowa',
-    bodyColor: baseLaminat,
-    frontMaterial: 'laminat',
-    frontColor: baseLaminat,
-    openingSystem: 'uchwyt klienta',
-    backMaterial: 'HDF 3mm biała',
-    frontCount: 2,
-    details: { insideMode: 'polki', innerDrawerCount: '1', innerDrawerType: 'blum', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', drawerCount: '3', subTypeOption: 'polki', fridgeFrontCount: '2' }
-  };
+  const api = getCabinetModalDraftApi();
+  if(api && typeof api.makeDefaultCabinetDraftForRoom === 'function') return api.makeDefaultCabinetDraftForRoom(room);
+  return null;
 }
 
 function openCabinetModalForAdd(){
-  cabinetModalState.mode = 'add';
-  cabinetModalState.editingId = null;
-  cabinetModalState.setEditId = null;
-  cabinetModalState.chosen = null;
-  cabinetModalState.setPreset = null;
-  cabinetModalState.draft = makeDefaultCabinetDraftForRoom(uiState.roomType);
-  // Ustaw wybór typu na podstawie draftu, żeby od razu była widoczna właściwa sekcja.
-  try{ cabinetModalState.chosen = cabinetModalState.draft && cabinetModalState.draft.type ? cabinetModalState.draft.type : null; }catch(_){ }
+  const draftApi = getCabinetModalDraftApi();
+  if(draftApi && typeof draftApi.beginAddState === 'function') draftApi.beginAddState(uiState.roomType);
+  else {
+    cabinetModalState.mode = 'add';
+    cabinetModalState.editingId = null;
+    cabinetModalState.setEditId = null;
+    cabinetModalState.chosen = null;
+    cabinetModalState.setPreset = null;
+    cabinetModalState.draft = makeDefaultCabinetDraftForRoom(uiState.roomType);
+    try{ cabinetModalState.chosen = cabinetModalState.draft && cabinetModalState.draft.type ? cabinetModalState.draft.type : null; }catch(_){ }
+  }
   renderCabinetModal();
   const m = document.getElementById('cabinetModal');
   if(m){
     m.style.display = 'flex';
-    // Mobile click-through / "tap lands on first control" guard:
-    // When the modal appears under the same tap, some Android browsers can instantly open a <select>
-    // located under the finger. Temporarily disable pointer events for a split moment.
     try{
       m.classList.add('modal-open-guard');
       requestAnimationFrame(() => setTimeout(() => {
@@ -130,7 +116,6 @@ function openCabinetModalForAdd(){
   }
   lockModalScroll();
 }
-
 
 function lockModalScroll(){
   document.documentElement.classList.add('modal-lock');
@@ -156,12 +141,16 @@ function openCabinetModalForEdit(cabId){
     return;
   }
 
-  cabinetModalState.mode = 'edit';
-  cabinetModalState.editingId = cabId;
-  cabinetModalState.setEditId = null;
-  cabinetModalState.chosen = cab.type;
-  cabinetModalState.setPreset = null;
-  cabinetModalState.draft = FC.utils.clone(cab);
+  const draftApi = getCabinetModalDraftApi();
+  if(draftApi && typeof draftApi.beginEditState === 'function') draftApi.beginEditState(cabId, cab);
+  else {
+    cabinetModalState.mode = 'edit';
+    cabinetModalState.editingId = cabId;
+    cabinetModalState.setEditId = null;
+    cabinetModalState.chosen = cab.type;
+    cabinetModalState.setPreset = null;
+    cabinetModalState.draft = FC.utils.clone(cab);
+  }
   renderCabinetModal();
   const m = document.getElementById('cabinetModal');
   if(m){
@@ -182,12 +171,16 @@ function openSetWizardForEdit(setId){
   const set = projectData[room].sets.find(s => String(s.id) === setId);
   if(!set){ showCabinetInfo('Brak zestawu', 'Nie znaleziono zestawu do edycji.'); return; }
 
-  cabinetModalState.mode = 'add';
-  cabinetModalState.editingId = null;
-  cabinetModalState.setEditId = setId;
-  cabinetModalState.chosen = 'zestaw';
-  cabinetModalState.setPreset = set.presetId;
-  cabinetModalState.draft = null;
+  const draftApi = getCabinetModalDraftApi();
+  if(draftApi && typeof draftApi.beginSetEditState === 'function') draftApi.beginSetEditState(setId, set);
+  else {
+    cabinetModalState.mode = 'add';
+    cabinetModalState.editingId = null;
+    cabinetModalState.setEditId = setId;
+    cabinetModalState.chosen = 'zestaw';
+    cabinetModalState.setPreset = set.presetId;
+    cabinetModalState.draft = null;
+  }
 
   renderCabinetModal();
   fillSetParamsUIFromSet(set);
@@ -255,55 +248,31 @@ function renderCabinetTypeChoices(){
 }
 
 function populateSelect(el, options, selected){
+  const api = getCabinetModalFieldsApi();
+  if(api && typeof api.populateSelect === 'function') return api.populateSelect(el, options, selected);
+  if(!el) return;
   el.innerHTML = '';
-  options.forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o.v; opt.textContent = o.t;
-    if(selected === o.v) opt.selected = true;
-    el.appendChild(opt);
-  });
 }
 
 function populateFrontColorsTo(selectEl, typeVal, selected){
+  const api = getCabinetModalFieldsApi();
+  if(api && typeof api.populateFrontColorsTo === 'function') return api.populateFrontColorsTo(selectEl, typeVal, selected);
+  if(!selectEl) return;
   selectEl.innerHTML = '';
-  materials.filter(m => m.materialType === typeVal).forEach(m => {
-    const o = document.createElement('option');
-    o.value = m.name; o.textContent = m.name;
-    if(m.name === selected) o.selected = true;
-    selectEl.appendChild(o);
-  });
-  if(selectEl.options.length === 0){
-    const o = document.createElement('option'); o.value=''; o.textContent='— brak —';
-    selectEl.appendChild(o);
-  }
 }
 
 function populateBodyColorsTo(selectEl, selected){
+  const api = getCabinetModalFieldsApi();
+  if(api && typeof api.populateBodyColorsTo === 'function') return api.populateBodyColorsTo(selectEl, selected);
+  if(!selectEl) return;
   selectEl.innerHTML = '';
-  materials.filter(m => m.materialType === 'laminat').forEach(m => {
-    const o = document.createElement('option');
-    o.value = m.name; o.textContent = m.name;
-    if(m.name === selected) o.selected = true;
-    selectEl.appendChild(o);
-  });
-  if(selectEl.options.length === 0){
-    const o = document.createElement('option'); o.value=''; o.textContent='— brak —';
-    selectEl.appendChild(o);
-  }
 }
 
 function populateOpeningOptionsTo(selectEl, typeVal, selected){
+  const api = getCabinetModalFieldsApi();
+  if(api && typeof api.populateOpeningOptionsTo === 'function') return api.populateOpeningOptionsTo(selectEl, typeVal, selected);
+  if(!selectEl) return;
   selectEl.innerHTML = '';
-  const isHanging = typeVal === 'wisząca';
-  const options = isHanging
-    ? ['uchwyt klienta','podchwyt','TIP-ON','krawędziowy HEXA GTV','korytkowy','UKW']
-    : ['uchwyt klienta','TIP-ON','krawędziowy HEXA GTV','UKW','korytkowy'];
-  options.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v; o.textContent = v;
-    if(v === selected) o.selected = true;
-    selectEl.appendChild(o);
-  });
 }
 
 function renderCabinetExtraDetailsInto(container, draft){
@@ -311,55 +280,21 @@ function renderCabinetExtraDetailsInto(container, draft){
   try{ container.classList.add('cabinet-extra-details'); }catch(_){ }
   const t = draft.type;
   const rawSubType = String(draft && draft.subType || '');
-  const st = rawSubType === 'szufladowa' ? 'szuflady' : rawSubType;
+  const validationApi = getCabinetModalValidationApi();
+  const fieldsApi = getCabinetModalFieldsApi();
+  const st = (validationApi && typeof validationApi.normalizeLegacySubType === 'function')
+    ? validationApi.normalizeLegacySubType(rawSubType)
+    : (rawSubType === 'szufladowa' ? 'szuflady' : rawSubType);
   const d = draft.details || {};
 
-  function makeExtraFieldId(prefix, key){
-    return 'cmExtra' + String(prefix || '') + String(key || '').charAt(0).toUpperCase() + String(key || '').slice(1);
-  }
-
-  function shouldUseCompactNumberField(key, labelText){
-    const compactKeys = new Set(['shelves','innerDrawerCount','techShelfCount','blindPart','dishWasherWidth','ovenHeight','fridgeWidth','fridgeNicheHeight','fridgeFreeOption','drawerCount','fridgeFrontCount']);
-    if(compactKeys.has(String(key || ''))) return true;
-    const label = String(labelText || '').toLowerCase();
-    return /(ilość|szt|cm\)|cm$|wysokość|szerokość|głębokość|blenda)/.test(label);
-  }
-
   function addSelect(labelText, key, options, onChangeExtra){
-    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--select';
-    const selectId = makeExtraFieldId('Select', key);
-    div.innerHTML = `<label class="cabinet-extra-field__label" for="${selectId}">${labelText}</label><select id="${selectId}" class="cabinet-choice-source cabinet-extra-field__control" data-launcher-label="${labelText}" data-choice-title="Wybierz: ${labelText}" data-choice-placeholder="${labelText}"></select>`;
-    const sel = div.querySelector('select');
-    try{ sel.classList.add('cabinet-choice-source','set-front-choice-source','cabinet-dynamic-choice-source'); }catch(_){ }
-    options.forEach(opt => {
-      const o = document.createElement('option'); o.value=opt.v; o.textContent=opt.t; sel.appendChild(o);
-    });
-    sel.value = (draft.details && draft.details[key]) ? draft.details[key] : options[0].v;
-    sel.addEventListener('change', e => {
-      draft.details = Object.assign({}, draft.details || {}, { [key]: e.target.value });
-      if(onChangeExtra) onChangeExtra(e.target.value);
-      renderCabinetModal();
-    });
-    container.appendChild(div);
+    if(fieldsApi && typeof fieldsApi.appendExtraSelectField === 'function') return fieldsApi.appendExtraSelectField(container, { draft, labelText, key, options, onChangeExtra, onRender: renderCabinetModal });
+    return null;
   }
 
   function addNumber(labelText, key, fallback){
-    const compact = shouldUseCompactNumberField(key, labelText);
-    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--number' + (compact ? ' cabinet-extra-field--compact' : '');
-    const raw = (draft.details && draft.details[key] != null) ? draft.details[key] : fallback;
-    const existingShelves = document.getElementById('cmShelves');
-    const idAttr = (!existingShelves && key === 'shelves') ? ' id="cmShelves"' : '';
-    div.innerHTML = `<label class="cabinet-extra-field__label">${labelText}</label><input class="cabinet-extra-field__control" type="number"${idAttr} value="${raw}" />`;
-    const inp = div.querySelector('input');
-
-    const apply = () => {
-      // zapisuj od razu (żeby nie wymagało "odkliknięcia" pola)
-      draft.details = Object.assign({}, draft.details || {}, { [key]: inp.value });
-    };
-
-    inp.addEventListener('input', apply);
-    inp.addEventListener('change', apply);
-    container.appendChild(div);
+    if(fieldsApi && typeof fieldsApi.appendExtraNumberField === 'function') return fieldsApi.appendExtraNumberField(container, { draft, labelText, key, fallback });
+    return null;
   }
 
 
