@@ -284,13 +284,14 @@ function populateOpeningOptionsTo(selectEl, typeVal, selected){
 
 function renderCabinetExtraDetailsInto(container, draft){
   container.innerHTML = '';
+  try{ container.classList.add('cabinet-extra-details'); }catch(_){ }
   const t = draft.type;
   const st = draft.subType;
   const d = draft.details || {};
 
   function addSelect(labelText, key, options, onChangeExtra){
-    const div = document.createElement('div'); div.style.marginBottom='10px';
-    div.innerHTML = `<label>${labelText}</label><select></select>`;
+    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--select';
+    div.innerHTML = `<label class="cabinet-extra-field__label">${labelText}</label><select class="cabinet-extra-field__control"></select>`;
     const sel = div.querySelector('select');
     options.forEach(opt => {
       const o = document.createElement('option'); o.value=opt.v; o.textContent=opt.t; sel.appendChild(o);
@@ -305,11 +306,11 @@ function renderCabinetExtraDetailsInto(container, draft){
   }
 
   function addNumber(labelText, key, fallback){
-    const div = document.createElement('div'); div.style.marginBottom='10px';
+    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--number';
     const raw = (draft.details && draft.details[key] != null) ? draft.details[key] : fallback;
     const existingShelves = document.getElementById('cmShelves');
     const idAttr = (!existingShelves && key === 'shelves') ? ' id="cmShelves"' : '';
-    div.innerHTML = `<label>${labelText}</label><input type="number"${idAttr} value="${raw}" />`;
+    div.innerHTML = `<label class="cabinet-extra-field__label">${labelText}</label><input class="cabinet-extra-field__control" type="number"${idAttr} value="${raw}" />`;
     const inp = div.querySelector('input');
 
     const apply = () => {

@@ -86,7 +86,7 @@
           </div>
           <div class="body">
             <div id="cabinetChoiceCard"><div id="cabinetTypeChoices"></div></div>
-            <div id="cabinetFormArea" style="display:none">
+            <div id="cabinetFormArea" class="cabinet-choice-sync" style="display:none">
               <select id="cmSubType"></select>
               <div id="cmFrontCountWrap">
                 <label id="cmFrontCountLabel">Ilość frontów</label>
@@ -101,8 +101,8 @@
                 <div id="cmFlapFrontInfo" style="display:none"></div>
               </div>
               <div id="cmShelvesWrap" style="display:none"><input id="cmShelves" type="number"/></div>
-              <div id="cmHint"></div>
-              <div id="cmExtraDetails"></div>
+              <div id="cmHint" class="cabinet-inline-hint"></div>
+              <div id="cmExtraDetails" class="cabinet-extra-details"></div>
               <input id="cmWidth" type="number"/>
               <input id="cmHeight" type="number"/>
               <input id="cmDepth" type="number"/>
@@ -225,6 +225,22 @@
           });
         });
       }),
+      H.makeTest('Szafki', 'Modal szafki utrzymuje uporządkowany shell konfiguracji po bezpiecznych poprawkach UI', 'Pilnuje drugą paczkę bezpiecznych zmian UI Wywiadu: część konfiguracji zachowuje lokalny shell, rytm siatki i klasy sekcji bez ruszania logiki formularza.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          FC.cabinetModal.openCabinetModalForAdd();
+          const formArea = document.getElementById('cabinetFormArea');
+          const configCard = document.querySelector('#cabinetFormArea .cabinet-config-card');
+          const coreGrid = document.querySelector('#cabinetFormArea .cabinet-form-grid--core');
+          const extra = document.getElementById('cmExtraDetails');
+          H.assert(formArea && formArea.classList.contains('cabinet-choice-sync'), 'Formularz szafki stracił namespacowany shell cabinet-choice-sync', formArea && formArea.className);
+          H.assert(!!configCard, 'Konfiguracja szafki nie renderuje lokalnej karty cabinet-config-card', configCard && configCard.outerHTML);
+          H.assert(!!coreGrid, 'Podstawowa siatka konfiguracji nie renderuje klasy cabinet-form-grid--core', coreGrid && coreGrid.outerHTML);
+          H.assert(extra && extra.classList.contains('cabinet-extra-details'), 'Kontener dodatkowych pól szafki nie zachował lokalnej klasy cabinet-extra-details', extra && extra.className);
+        });
+      }),
+
       H.makeTest('Szafki', 'Modal szafki renderuje launchery dla bezpiecznych selectów bez usuwania natywnych selectów', 'Pilnuje pierwszą paczkę UI Wywiadu: najbezpieczniejsze selecty w modalu szafki dostają launchery w stylu aplikacji, ale natywne selecty dalej pozostają w DOM jako źródło prawdy.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;

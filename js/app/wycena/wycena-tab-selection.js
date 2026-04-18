@@ -214,6 +214,13 @@
     return coerceVersionNameForSelection(nextSelection, Object.assign({}, draft || {}, { commercial:Object.assign({}, commercial, { versionName:currentVersionName }) }), deps);
   }
 
+  function buildPromptScopeLead(scope){
+    const labels = Array.isArray(scope && scope.roomLabels) ? scope.roomLabels.map((item)=> String(item || '').trim()).filter(Boolean) : [];
+    const scopeLabel = String(scope && scope.scopeLabel || labels.join(', ') || 'wybrany zakres').trim() || 'wybrany zakres';
+    if(labels.length <= 1) return `Dla pomieszczenia „${scopeLabel}”`;
+    return `Dla pomieszczeń „${scopeLabel}”`;
+  }
+
   async function ensureVersionNameBeforeGenerate(selection, deps){
     const getOfferDraft = deps && typeof deps.getOfferDraft === 'function' ? deps.getOfferDraft : ()=> ({});
     const patchOfferDraft = deps && typeof deps.patchOfferDraft === 'function' ? deps.patchOfferDraft : ()=>{};
@@ -234,7 +241,7 @@
       roomIds:selectedRooms,
       preliminary,
       title: preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY',
-      message:`Dla zakresu „${scope.scopeLabel}” istnieje już ${snapshotLabel}. Nadaj unikatową nazwę kolejnemu wariantowi.`,
+      message:`${buildPromptScopeLead(scope)} istnieje już ${snapshotLabel}. Nadaj unikatową nazwę kolejnemu wariantowi.`,
       hint:false,
       submitLabel:'OK',
       cancelLabel:'Anuluj',

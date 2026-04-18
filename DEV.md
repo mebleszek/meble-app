@@ -1,3 +1,10 @@
+## 2026-04-18 — Wycena prompt text tweak + Wywiad modal form rhythm sync
+- `js/app/wycena/wycena-tab-selection.js` — komunikat modala nowego wariantu używa teraz naturalnej formy `Dla pomieszczenia ...` / `Dla pomieszczeń ...` zależnie od liczby wybranych pokoi, zamiast stałego `Dla zakresu ...`.
+- `css/style.css` — modal nazwy wyceny dostał dodatkowy dolny oddech w stopce akcji, bez ruszania reszty `Wycena`.
+- `index.html` + `js/app/cabinet/cabinet-modal.js` + `css/style.css` — wnętrze modala szafki w `Wywiad` ma teraz bardziej uporządkowany shell formularza: lokalne klasy konfiguracji (`cabinet-config-card`, `cabinet-form-grid`, `cabinet-extra-details`, `cabinet-inline-hint`) porządkują rytm sekcji, etykiety, hinty i dodatkowe pola bez zmiany logiki formularza.
+- `js/testing/wycena/suites/scope-entry.js` + `js/testing/cabinet/tests.js` — testy pilnują nowego komunikatu `pomieszczenie/pomieszczenia` oraz lokalnego shellu konfiguracji `Wywiad` po bezpiecznych poprawkach UI.
+- Instrukcja antyregresyjna: w `Wycena` traktować komunikat modala jako tekst zależny od liczby wybranych pokoi, nie od technicznego słowa `zakres`. W `Wywiad` porządkować wnętrze modala tylko lokalnymi klasami namespacowanymi dla formularza szafki; nie ruszać globalnych styli modali ani logiki selectów.
+
 ## 2026-04-18 — Wycena modal ref header/footer sync + Wywiad second safe launcher batch
 - `js/app/quote/quote-scope-entry.js` + `css/style.css` — modal `Nazwa nowej wyceny` używa teraz shellu `panel-box--rozrys`, a stopka akcji jest złożona z tych samych klas co w referencyjnym modalu `Wybierz materiał / grupę` (`rozrys-picker-footer*`). Dzięki temu header, kwadratowy `X`, rytm górnej belki i prawa, lekka stopka z mniejszymi przyciskami są kopiowane z referencji zamiast stylizowane „podobnie”.
 - `js/app/cabinet/cabinet-choice-launchers.js` — druga paczka bezpiecznych launcherów w `Wywiad`: do launcherów dochodzą `cmFrontColor`, `cmFrontCount` oraz warunkowe launchery `cmFlapVendor` / `cmFlapKind`; nadal native `select` zostaje źródłem prawdy i launcher ma tylko przykrywać UI.
