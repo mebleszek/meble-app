@@ -1,3 +1,10 @@
+## 2026-04-19 — Wywiad standing split into smaller technical modules
+- `js/app/cabinet/cabinet-modal-standing-extras.js` — wydzielone ciężkie renderery subtype'ów `stojąca`: narożna L (wymiary + szkic), szuflady, zlewowa, zmywarkowa, lodówkowa, piekarnikowa oraz blok `standardowa / rogowa_slepa / narozna_l`, bez zmiany UI i bez zmiany logiki pól.
+- `js/app/cabinet/cabinet-modal-standing-front-controls.js` — wydzielone sterowanie `frontCount`/hintami/półkami dla typu `stojąca` oraz efekt zmiany subtype `zmywarkowa`.
+- `js/app/cabinet/cabinet-modal-standing.js` — zostaje cienkim adapterem rodziny `stojąca`; tylko deleguje render extra details, konfigurację front controls i hook po zmianie subtype do dwóch nowych modułów.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` — dopięte nowe pliki do realnego ładowania aplikacji i smoke runnera.
+- Instrukcja antyregresyjna: przy kolejnych zmianach subtype'ów `stojąca` nie rozrastać znowu `cabinet-modal-standing.js`; nowe pola/render wrzucać do `cabinet-modal-standing-extras.js`, a logikę sterowania frontami / hooki subtype do `cabinet-modal-standing-front-controls.js`.
+
 ## 2026-04-19 — Wywiad finalize/save split from cabinet modal
 - `js/app/cabinet/cabinet-modal-finalize.js` — wydzielona finalizacja zwykłej szafki: sync draftu z formularza, walidacja Aventosa, rozróżnienie add/edit, zapis do `projectData`, persist `project/ui`, odświeżenie listy i zamknięcie modala. Tryb `zestaw` pozostaje obsługiwany przez delegację do `cabinet-modal-set-wizard.js`.
 - `js/app/cabinet/cabinet-modal.js` — orchestrator nie trzyma już lokalnie dużego bloku zapisu z przycisku `Dodaj / Zapisz zmiany`; binduje top save przez moduł finalizacji.
