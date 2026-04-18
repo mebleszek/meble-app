@@ -86,42 +86,57 @@
           </div>
           <div class="body">
             <div id="cabinetChoiceCard"><div id="cabinetTypeChoices"></div></div>
-            <div id="cabinetFormArea" style="display:none">
-              <select id="cmSubType"></select>
-              <div id="cmFrontCountWrap">
-                <label id="cmFrontCountLabel">Ilość frontów</label>
-                <select id="cmFrontCount"></select>
-                <div id="cmFrontCountStatic" style="display:none"></div>
-                <div id="cmFrontCountHint" style="display:none"></div>
+            <div id="cabinetFormArea" class="cabinet-choice-sync" style="display:none">
+              <div class="card cabinet-config-card">
+                <h3 class="section-title cabinet-config-card__title">Konfiguracja</h3>
+                <div class="grid-3 cabinet-form-grid cabinet-form-grid--core">
+                  <div>
+                    <label>Wariant</label>
+                    <select id="cmSubType" class="cabinet-choice-source" data-choice-title="Wybierz wariant" data-choice-placeholder="Wybierz wariant"></select>
+                  </div>
+                  <div>
+                    <div id="cmFrontCountWrap">
+                      <label id="cmFrontCountLabel">Ilość frontów</label>
+                      <select id="cmFrontCount" class="cabinet-choice-source" data-choice-title="Wybierz ilość frontów" data-choice-placeholder="Wybierz ilość frontów"></select>
+                      <div id="cmFrontCountStatic" style="display:none"></div>
+                      <div id="cmFrontCountHint" style="display:none"></div>
+                    </div>
+                    <div id="cmFlapWrap" style="display:none">
+                      <select id="cmFlapVendor" class="cabinet-choice-source" data-choice-title="Wybierz producenta podnośnika" data-choice-placeholder="Wybierz producenta podnośnika"><option value="blum">BLUM</option><option value="gtv">GTV</option><option value="hafele">HAFELE</option></select>
+                      <div id="cmFlapKindWrap"><select id="cmFlapKind" class="cabinet-choice-source" data-choice-title="Wybierz rodzaj podnośnika" data-choice-placeholder="Wybierz rodzaj podnośnika"></select></div>
+                      <div id="cmFlapInfo" style="display:none"></div>
+                      <div id="cmFlapFrontInfo" style="display:none"></div>
+                    </div>
+                    <div id="cmShelvesWrap" class="cabinet-extra-field cabinet-extra-field--number cabinet-extra-field--compact" style="display:none"><label class="cabinet-extra-field__label">Półki (szt.)</label><input id="cmShelves" class="cabinet-extra-field__control" type="number"/></div>
+                  </div>
+                  <div>
+                    <div id="cmHint" class="cabinet-inline-hint"></div>
+                  </div>
+                </div>
+                <div id="cmExtraDetails" class="cabinet-extra-details"></div>
+                <div id="cmDynamicHost"></div>
+                <div class="grid-3 cabinet-form-grid">
+                  <div><label>Szerokość</label><input id="cmWidth" type="number"/></div>
+                  <div><label>Wysokość</label><input id="cmHeight" type="number"/></div>
+                  <div><label>Głębokość</label><input id="cmDepth" type="number"/></div>
+                  <div><label>Materiał frontu</label><select id="cmFrontMaterial" class="cabinet-choice-source" data-choice-title="Wybierz materiał frontu" data-choice-placeholder="Wybierz materiał frontu"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select></div>
+                  <div><label>Kolor frontu</label><select id="cmFrontColor" class="cabinet-choice-source" data-choice-title="Wybierz kolor frontu" data-choice-placeholder="Wybierz kolor frontu"></select></div>
+                  <div><label>Plecy</label><select id="cmBackMaterial" class="cabinet-choice-source" data-choice-title="Wybierz plecy" data-choice-placeholder="Wybierz plecy"><option value="HDF 3mm biała">HDF 3mm biała</option><option value="18 mm pod kolor korpusu">18 mm pod kolor</option><option value="Brak">Brak</option></select></div>
+                  <div><label>Korpus</label><select id="cmBodyColor" class="cabinet-choice-source" data-choice-title="Wybierz korpus" data-choice-placeholder="Wybierz korpus"></select></div>
+                  <div><label>Otwieranie</label><select id="cmOpeningSystem" class="cabinet-choice-source" data-choice-title="Wybierz system otwierania" data-choice-placeholder="Wybierz system otwierania"></select></div>
+                </div>
               </div>
-              <div id="cmFlapWrap" style="display:none">
-                <select id="cmFlapVendor"><option value="blum">BLUM</option><option value="gtv">GTV</option><option value="hafele">HAFELE</option></select>
-                <div id="cmFlapKindWrap"><select id="cmFlapKind"></select></div>
-                <div id="cmFlapInfo" style="display:none"></div>
-                <div id="cmFlapFrontInfo" style="display:none"></div>
-              </div>
-              <div id="cmShelvesWrap" style="display:none"><input id="cmShelves" type="number"/></div>
-              <div id="cmHint"></div>
-              <div id="cmExtraDetails"></div>
-              <input id="cmWidth" type="number"/>
-              <input id="cmHeight" type="number"/>
-              <input id="cmDepth" type="number"/>
-              <select id="cmFrontMaterial"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select>
-              <select id="cmFrontColor"></select>
-              <select id="cmBackMaterial"><option value="HDF 3mm biała">HDF 3mm biała</option><option value="18 mm pod kolor korpusu">18 mm pod kolor</option><option value="Brak">Brak</option></select>
-              <select id="cmBodyColor"></select>
-              <select id="cmOpeningSystem"></select>
             </div>
-            <div id="setWizardArea" style="display:none">
+            <div id="setWizardArea" class="cabinet-choice-sync" style="display:none">
               <div id="setWizardTitle"></div>
               <div id="setWizardDesc"></div>
               <div id="setTiles"></div>
               <button id="setWizardCreate" type="button"></button>
               <div id="setParams" style="display:none"></div>
               <div id="setFrontBlock" style="display:none">
-                <select id="setFrontCount"><option value="1">1</option><option value="2">2</option></select>
-                <select id="setFrontMaterial"><option value="laminat">Laminat</option></select>
-                <select id="setFrontColor"></select>
+                <select id="setFrontCount" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Ilość frontów" data-choice-title="Wybierz ilość frontów zestawu" data-choice-placeholder="Ilość frontów"><option value="1">1</option><option value="2">2</option></select>
+                <select id="setFrontMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-choice-placeholder="Materiał frontów"><option value="laminat">Laminat</option></select>
+                <select id="setFrontColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Kolor frontów" data-choice-title="Wybierz kolor frontów zestawu" data-choice-placeholder="Kolor frontów"></select>
                 <div id="setFrontHint"></div>
               </div>
             </div>
@@ -225,6 +240,22 @@
           });
         });
       }),
+      H.makeTest('Szafki', 'Modal szafki utrzymuje uporządkowany shell konfiguracji po bezpiecznych poprawkach UI', 'Pilnuje drugą paczkę bezpiecznych zmian UI Wywiadu: część konfiguracji zachowuje lokalny shell, rytm siatki i klasy sekcji bez ruszania logiki formularza.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          FC.cabinetModal.openCabinetModalForAdd();
+          const formArea = document.getElementById('cabinetFormArea');
+          const configCard = document.querySelector('#cabinetFormArea .cabinet-config-card');
+          const coreGrid = document.querySelector('#cabinetFormArea .cabinet-form-grid--core');
+          const extra = document.getElementById('cmExtraDetails');
+          H.assert(formArea && formArea.classList.contains('cabinet-choice-sync'), 'Formularz szafki stracił namespacowany shell cabinet-choice-sync', formArea && formArea.className);
+          H.assert(!!configCard, 'Konfiguracja szafki nie renderuje lokalnej karty cabinet-config-card', configCard && configCard.outerHTML);
+          H.assert(!!coreGrid, 'Podstawowa siatka konfiguracji nie renderuje klasy cabinet-form-grid--core', coreGrid && coreGrid.outerHTML);
+          H.assert(extra && extra.classList.contains('cabinet-extra-details'), 'Kontener dodatkowych pól szafki nie zachował lokalnej klasy cabinet-extra-details', extra && extra.className);
+        });
+      }),
+
       H.makeTest('Szafki', 'Modal szafki renderuje launchery dla bezpiecznych selectów bez usuwania natywnych selectów', 'Pilnuje pierwszą paczkę UI Wywiadu: najbezpieczniejsze selecty w modalu szafki dostają launchery w stylu aplikacji, ale natywne selecty dalej pozostają w DOM jako źródło prawdy.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;
@@ -240,6 +271,30 @@
           });
         });
       }),
+      H.makeTest('Szafki', 'Fallback mount nie zdejmuje launcherów z selectów już ukrytych pod overlayem', 'Pilnuje prawdziwej regresji z aplikacji: po oznaczeniu selecta jako ukrytego źródła kolejny przebieg fallbacku nie może sprzątnąć launchera i przywrócić systemowego selecta.', ()=>{
+        H.assert(FC.cabinetChoiceLaunchers && typeof FC.cabinetChoiceLaunchers.mountVisibleFallbackLaunchers === 'function', 'Brak FC.cabinetChoiceLaunchers.mountVisibleFallbackLaunchers');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const style = document.createElement('style');
+          style.textContent = '.cabinet-choice-source--enhanced{display:none!important;}';
+          document.head.appendChild(style);
+          try{
+            FC.cabinetModal.openCabinetModalForAdd();
+            const select = document.getElementById('cmFrontMaterial');
+            let slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFrontMaterial"]');
+            let launcher = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(!!launcher, 'Przed fallbackiem nie zbudowano launchera materiału frontu', slot && slot.innerHTML);
+            FC.cabinetChoiceLaunchers.mountVisibleFallbackLaunchers(document.getElementById('cabinetFormArea'));
+            slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFrontMaterial"]');
+            launcher = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(select && select.classList.contains('cabinet-choice-source--enhanced'), 'Fallback zdjął klasę ukrytego selecta źródłowego', select && select.className);
+            H.assert(!!launcher, 'Fallback usunął launcher i odsłonił natywny select', slot && slot.innerHTML);
+          } finally {
+            style.remove();
+          }
+        });
+      }),
+
       H.makeTest('Szafki', 'Launcher bezpiecznego selecta aktualizuje natywny select i draft szafki', 'Pilnuje, czy nowy launcher UI Wywiadu tylko przykrywa select, ale dalej zapisuje wybór do źródłowego selecta i draftu formularza.', async ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         H.assert(FC.rozrysChoice && typeof FC.rozrysChoice.openRozrysChoiceOverlay === 'function', 'Brak FC.rozrysChoice.openRozrysChoiceOverlay');
@@ -297,6 +352,75 @@
         });
       }),
 
+
+      H.makeTest('Szafki', 'Dynamiczny select Wnętrze dostaje launcher bez gubienia źródłowego selecta', 'Pilnuje, czy dodatkowe pola dokładane w trakcie renderu modala szafki też przechodzą na launcher aplikacyjny, ale nadal zostawiają natywny select jako źródło prawdy.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          FC.cabinetModal.openCabinetModalForAdd();
+          const select = document.getElementById('cmExtraSelectInsideMode');
+          const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmExtraSelectInsideMode"]');
+          const btn = slot && slot.querySelector('.cabinet-choice-launch');
+          H.assert(select && String(select.tagName || '').toLowerCase() === 'select', 'Dynamiczne pole Wnętrze nie istnieje jako natywny select', select && select.outerHTML);
+          H.assert(!!btn, 'Dynamiczne pole Wnętrze nie dostało launchera aplikacyjnego', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zestaw renderuje launchery dla frontów bez utraty natywnych selectów', 'Pilnuje, czy blok frontów w zestawie też używa launcherów aplikacyjnych, ale selecty źródłowe nadal pozostają w DOM.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          host.cabinetModalState.chosen = 'zestaw';
+          host.cabinetModalState.setPreset = 'A';
+          FC.cabinetModal.renderCabinetModal();
+          const frontBlock = document.getElementById('setFrontBlock');
+          if(frontBlock) frontBlock.style.display = 'block';
+          FC.cabinetModal.renderCabinetModal();
+          ['setFrontCount','setFrontMaterial','setFrontColor'].forEach((id)=>{
+            const select = document.getElementById(id);
+            const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
+            const btn = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(select && String(select.tagName || '').toLowerCase() === 'select', `Pole ${id} przestało istnieć jako natywny select`, select && select.outerHTML);
+            H.assert(!!btn, `Pole ${id} w zestawie nie dostało launchera aplikacyjnego`, slot && slot.innerHTML);
+          });
+        });
+      }),
+
+
+      H.makeTest('Szafki', 'Moduł z podnośnikiem renderuje launcher rodzaju bez powrotu do systemowego selecta', 'Pilnuje, czy przy module uchylnym pole rodzaju podnośnika też korzysta z launchera aplikacyjnego, a select źródłowy zostaje tylko pod spodem.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          host.cabinetModalState.chosen = 'moduł';
+          host.cabinetModalState.draft = { type:'moduł', subType:'uchylne', width:60, height:94.2, depth:36, frontMaterial:'laminat', frontColor:'Egger W1100 ST9 Biały Alpejski', backMaterial:'HDF 3mm biała', bodyColor:'Egger W1100 ST9 Biały Alpejski', openingSystem:'uchwyt klienta', frontCount:1, details:{ flapVendor:'blum', flapKind:'HKI', shelves:2 } };
+          FC.cabinetModal.renderCabinetModal();
+          const select = document.getElementById('cmFlapKind');
+          const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFlapKind"]');
+          const btn = slot && slot.querySelector('.cabinet-choice-launch');
+          H.assert(select && String(select.tagName || '').toLowerCase() === 'select', 'Pole cmFlapKind przestało istnieć jako natywny select', select && select.outerHTML);
+          H.assert(select && select.classList.contains('cabinet-choice-source--enhanced'), 'Pole cmFlapKind nie zostało oznaczone jako ukryty select źródłowy', select && select.className);
+          H.assert(!!btn, 'Pole cmFlapKind nie dostało launchera aplikacyjnego', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zestaw liczy parametry bez zależności od globalnej calcTopForSet', 'Pilnuje, czy render zestawu korzysta z namespacowanego helpera obliczeń i nie zależy od przypadkowej globalki z app.js.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const prevGlobal = Object.prototype.hasOwnProperty.call(host, 'calcTopForSet') ? host.calcTopForSet : undefined;
+          try{
+            try{ delete host.calcTopForSet; }catch(_){ host.calcTopForSet = undefined; }
+            host.cabinetModalState.chosen = 'zestaw';
+            host.cabinetModalState.setPreset = 'A';
+            FC.cabinetModal.renderCabinetModal();
+            const result = document.getElementById('setHTopResult');
+            H.assert(result && String(result.value || '') !== '', 'Render zestawu dalej zależy od globalnej calcTopForSet', result && result.outerHTML);
+          } finally {
+            if(prevGlobal === undefined){ try{ delete host.calcTopForSet; }catch(_){ host.calcTopForSet = undefined; } }
+            else host.calcTopForSet = prevGlobal;
+          }
+        });
+      }),
       H.makeTest('Szafki', 'Modal szafki renderuje warianty bez zależności od globalnej getSubTypeOptionsForType', 'Pilnuje antyregresję środowiska testowego i przyszłego splitu Wywiadu: modal szafki ma czytać warianty z FC.cabinetFronts, a nie wymagać przypadkowej globalki z app.js.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;
@@ -354,7 +478,46 @@
           H.assert(String(width && width.value || '') === '77', 'Modal edycji nie załadował szerokości istniejącej szafki', { width:width && width.value });
           H.assert(String(frontMaterial && frontMaterial.value || '') === 'lakier', 'Modal edycji nie załadował materiału frontu istniejącej szafki', { frontMaterial: frontMaterial && frontMaterial.value });
         });
-      })
+      }),
+
+      H.makeTest('Szafki', 'Dynamiczne selecty lodówki renderują launchery bez usuwania selectów źródłowych', 'Pilnuje kolejny krok Wywiadu: dynamiczne selecty lodówki w dodatkowych polach też mają aplikacyjne launchery, a natywne selecty dalej zostają źródłem prawdy.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const container = document.getElementById('cmExtraDetails');
+          const draft = { type:'moduł', subType:'lodowkowa', width:60, height:207, depth:60, details:{ fridgeOption:'zabudowa', fridgeNicheHeight:'178', fridgeFreeOption:'brak' } };
+          FC.cabinetModal.renderCabinetExtraDetailsInto(container, draft);
+          H.assert(FC.cabinetChoiceLaunchers && typeof FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers === 'function', 'Brak mountDynamicSelectLaunchers');
+          FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers(container);
+          ['cmFridgeOption','cmFridgeNiche'].forEach((id)=>{
+            const select = document.getElementById(id);
+            const slot = container.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
+            const btn = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(select && String(select.tagName || '').toLowerCase() === 'select', `Pole ${id} przestało istnieć jako natywny select`, select && select.outerHTML);
+            H.assert(select && select.classList.contains('cabinet-choice-source--enhanced'), `Pole ${id} nie zostało oznaczone jako select źródłowy pod launcher`, select && select.className);
+            H.assert(!!btn, `Pole ${id} nie dostało launchera`, slot && slot.innerHTML);
+          });
+        });
+      }),
+      H.makeTest('Szafki', 'Dynamiczny select ilości szuflad wewnętrznych renderuje launcher i zachowuje compact field', 'Pilnuje, czy licznik szuflad wewnętrznych nie wraca do systemowego selecta i nadal używa kompaktowego pola zgodnego z formularzem szafki.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const container = document.getElementById('cmExtraDetails');
+          const draft = { type:'stojąca', subType:'szufladowa', width:80, height:86, depth:56, details:{ drawerLayout:'3_1_2_2', innerDrawerType:'blum', innerDrawerCount:'2' } };
+          FC.cabinetModal.renderCabinetExtraDetailsInto(container, draft);
+          H.assert(FC.cabinetChoiceLaunchers && typeof FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers === 'function', 'Brak mountDynamicSelectLaunchers');
+          FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers(container);
+          const select = container.querySelector('select.cabinet-dynamic-choice-source[data-launcher-label^="Ilość szuflad wewnętrznych"]');
+          const field = select && select.closest('.cabinet-extra-field--compact');
+          const slot = select && field && field.querySelector('.cabinet-choice-launch-slot');
+          const btn = slot && slot.querySelector('.cabinet-choice-launch');
+          H.assert(!!select, 'Nie znaleziono dynamicznego selecta ilości szuflad wewnętrznych', container.innerHTML);
+          H.assert(select.classList.contains('cabinet-choice-source--enhanced'), 'Dynamiczny select szuflad wewnętrznych nie został oznaczony jako ukryte źródło prawdy', select.className);
+          H.assert(!!field, 'Pole ilości szuflad wewnętrznych straciło compact shell', select && select.outerHTML);
+          H.assert(!!btn, 'Pole ilości szuflad wewnętrznych nie dostało launchera', slot && slot.innerHTML);
+        });
+      }),
     ]);
   }
 
