@@ -1,3 +1,9 @@
+## 2026-04-18 — UI patterns fixture + Wywiad no-system-dialog step
+- `dev_tests.html` + `dev_ui_patterns.html` — w testach pojawiła się sekcja `Wzorce UI` z żywymi referencjami do kopiowania 1:1: modal / header / X / stopka z ROZRYS oraz input z Inwestor. To jest teraz źródło prawdy przy nowych modalach i polach.
+- `js/app/cabinet/cabinet-choice-launchers.js` + `js/app/cabinet/cabinet-modal.js` — kolejny krok Wywiadu bez systemowych elementów: launchery obejmują już także dynamiczne selecty lodówki oraz select ilości szuflad wewnętrznych; natywny `select` dalej zostaje źródłem prawdy.
+- `js/app/cabinet/cabinet-actions.js` + `js/app/cabinet/cabinet-modal.js` — w dotkniętym obszarze Wywiadu nie wracamy do systemowych `alert/confirm`; pierwszeństwo mają `FC.infoBox` i `FC.confirmBox`.
+- Instrukcja antyregresyjna: przy nowych oknach i polach nie tworzyć lokalnych wariantów „podobnych”. Najpierw sprawdzać sekcję `Wzorce UI` i kopiować odpowiedni wzorzec 1:1. W Wywiadzie widoczny UI ma iść przez launchery / modale aplikacji; native select zostaje tylko źródłem prawdy pod spodem.
+
 ## 2026-04-18 — Wywiad broader launcher coverage + top/cards/set grid polish
 - `js/app/cabinet/cabinet-choice-launchers.js` — launchery obejmują już nie tylko bezpieczne pola główne modala szafki, ale też dynamiczne selecty dokładane w `cmExtraDetails` oraz selecty bloku `Fronty w zestawie` (`setFrontCount`, `setFrontMaterial`, `setFrontColor`). Native `select` dalej zostaje źródłem prawdy.
 - `js/app/cabinet/cabinet-modal.js` — dynamiczne selecty dostają stałe id/etykiety pod launcher, kompaktowe pola liczbowe (`Ilość półek`, podobne krótkie pola) nie rozciągają się już bez sensu na pełną szerokość, a siatka parametrów zestawu dostała lokalne klasy do równego wyrównania etykiet i pól.

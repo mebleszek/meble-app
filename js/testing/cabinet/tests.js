@@ -103,6 +103,7 @@
               <div id="cmShelvesWrap" style="display:none"><input id="cmShelves" type="number"/></div>
               <div id="cmHint" class="cabinet-inline-hint"></div>
               <div id="cmExtraDetails" class="cabinet-extra-details"></div>
+              <div id="cmDynamicHost"></div>
               <input id="cmWidth" type="number"/>
               <input id="cmHeight" type="number"/>
               <input id="cmDepth" type="number"/>
@@ -404,7 +405,46 @@
           H.assert(String(width && width.value || '') === '77', 'Modal edycji nie załadował szerokości istniejącej szafki', { width:width && width.value });
           H.assert(String(frontMaterial && frontMaterial.value || '') === 'lakier', 'Modal edycji nie załadował materiału frontu istniejącej szafki', { frontMaterial: frontMaterial && frontMaterial.value });
         });
-      })
+      }),
+
+      H.makeTest('Szafki', 'Dynamiczne selecty lodówki renderują launchery bez usuwania selectów źródłowych', 'Pilnuje kolejny krok Wywiadu: dynamiczne selecty lodówki w dodatkowych polach też mają aplikacyjne launchery, a natywne selecty dalej zostają źródłem prawdy.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const container = document.getElementById('cmExtraDetails');
+          const draft = { type:'moduł', subType:'lodowkowa', width:60, height:207, depth:60, details:{ fridgeOption:'zabudowa', fridgeNicheHeight:'178', fridgeFreeOption:'brak' } };
+          FC.cabinetModal.renderCabinetExtraDetailsInto(container, draft);
+          H.assert(FC.cabinetChoiceLaunchers && typeof FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers === 'function', 'Brak mountDynamicSelectLaunchers');
+          FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers(container);
+          ['cmFridgeOption','cmFridgeNiche'].forEach((id)=>{
+            const select = document.getElementById(id);
+            const slot = container.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
+            const btn = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(select && String(select.tagName || '').toLowerCase() === 'select', `Pole ${id} przestało istnieć jako natywny select`, select && select.outerHTML);
+            H.assert(select && select.classList.contains('cabinet-choice-source--enhanced'), `Pole ${id} nie zostało oznaczone jako select źródłowy pod launcher`, select && select.className);
+            H.assert(!!btn, `Pole ${id} nie dostało launchera`, slot && slot.innerHTML);
+          });
+        });
+      }),
+      H.makeTest('Szafki', 'Dynamiczny select ilości szuflad wewnętrznych renderuje launcher i zachowuje compact field', 'Pilnuje, czy licznik szuflad wewnętrznych nie wraca do systemowego selecta i nadal używa kompaktowego pola zgodnego z formularzem szafki.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const container = document.getElementById('cmExtraDetails');
+          const draft = { type:'stojąca', subType:'szufladowa', width:80, height:86, depth:56, details:{ drawerLayout:'3_1_2_2', innerDrawerType:'blum', innerDrawerCount:'2' } };
+          FC.cabinetModal.renderCabinetExtraDetailsInto(container, draft);
+          H.assert(FC.cabinetChoiceLaunchers && typeof FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers === 'function', 'Brak mountDynamicSelectLaunchers');
+          FC.cabinetChoiceLaunchers.mountDynamicSelectLaunchers(container);
+          const select = container.querySelector('select.cabinet-dynamic-choice-source[data-launcher-label^="Ilość szuflad wewnętrznych"]');
+          const field = select && select.closest('.cabinet-extra-field--compact');
+          const slot = select && field && field.querySelector('.cabinet-choice-launch-slot');
+          const btn = slot && slot.querySelector('.cabinet-choice-launch');
+          H.assert(!!select, 'Nie znaleziono dynamicznego selecta ilości szuflad wewnętrznych', container.innerHTML);
+          H.assert(select.classList.contains('cabinet-choice-source--enhanced'), 'Dynamiczny select szuflad wewnętrznych nie został oznaczony jako ukryte źródło prawdy', select.className);
+          H.assert(!!field, 'Pole ilości szuflad wewnętrznych straciło compact shell', select && select.outerHTML);
+          H.assert(!!btn, 'Pole ilości szuflad wewnętrznych nie dostało launchera', slot && slot.innerHTML);
+        });
+      }),
     ]);
   }
 

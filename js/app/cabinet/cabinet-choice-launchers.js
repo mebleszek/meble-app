@@ -202,7 +202,7 @@
 
   function mountDynamicSelectLaunchers(rootEl){
     const root = rootEl || document;
-    const selects = Array.from(root && root.querySelectorAll ? root.querySelectorAll('select.cabinet-extra-field__control, select.set-front-choice-source') : []);
+    const selects = Array.from(root && root.querySelectorAll ? root.querySelectorAll('select.cabinet-extra-field__control, select.set-front-choice-source, select.cabinet-dynamic-choice-source') : []);
     return selects.map((selectEl)=>{
       const cfg = buildDynamicConfigForSelect(selectEl);
       return { id:selectEl.id, button:mountSelectLauncher(selectEl, cfg) };

@@ -82,6 +82,18 @@
         <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
       </div>
       <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
+      <section class="card ui-patterns-card" id="uiPatternsCard" style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+          <div>
+            <h2>Wzorce UI</h2>
+            <p>Tu masz stałe referencje do kopiowania 1:1: modal z ROZRYS, input z Inwestor i launcher / stopkę z zaakceptowanych wzorców aplikacji.</p>
+          </div>
+          <a href="dev_ui_patterns.html" target="_blank" rel="noopener" style="font-weight:800;color:#224b8f;text-decoration:none">Otwórz wzorce w nowej karcie</a>
+        </div>
+        <div style="margin-top:14px;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:#fff">
+          <iframe title="Wzorce UI" src="dev_ui_patterns.html" style="display:block;width:100%;min-height:840px;border:0;background:#fff"></iframe>
+        </div>
+      </section>
       <div id="results"></div>
       <div id="devTestsAppFixture" aria-hidden="true" style="display:none">
         <div id="homeView"></div>
@@ -146,6 +158,7 @@
   <script src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/ui/tabs-router.js?v=20260417_wycena_history_test_hotfix_v1"></script>
   <script src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
+  <script src="js/app/ui/confirm-box.js?v=20260418_ui_patterns_v1"></script>
   <script src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>

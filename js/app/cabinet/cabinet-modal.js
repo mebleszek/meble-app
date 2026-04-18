@@ -156,7 +156,7 @@ function openSetWizardForEdit(setId){
   setId = String(setId);
   const room = uiState.roomType; if(!room) return;
   const set = projectData[room].sets.find(s => String(s.id) === setId);
-  if(!set){ alert('Nie znaleziono zestawu'); return; }
+  if(!set){ showCabinetInfo('Brak zestawu', 'Nie znaleziono zestawu do edycji.'); return; }
 
   cabinetModalState.mode = 'add';
   cabinetModalState.editingId = null;
@@ -638,7 +638,8 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
           // ilość z listy (limit)
           (function(){
             const div = document.createElement('div'); div.style.marginBottom='10px';
-            div.innerHTML = `<label>Ilość szuflad wewnętrznych (max ${max})</label><select></select>`;
+            div.className = 'cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact';
+            div.innerHTML = `<label class="cabinet-extra-field__label">Ilość szuflad wewnętrznych (max ${max})</label><select class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Ilość szuflad wewnętrznych (max ${max})"></select>`;
             const sel = div.querySelector('select');
 
             const raw = (draft.details && draft.details.innerDrawerCount != null) ? draft.details.innerDrawerCount : String(def);
@@ -810,16 +811,16 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
       const freeOpt = cur.fridgeFreeOption ? String(cur.fridgeFreeOption) : 'brak';
 
       grid.innerHTML = `
-        <div>
-          <label>Typ lodówki</label>
-          <select id="cmFridgeOption">
+        <div class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
+          <label class="cabinet-extra-field__label">Typ lodówki</label>
+          <select id="cmFridgeOption" class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Typ lodówki">
             <option value="zabudowa">W zabudowie</option>
             <option value="wolnostojaca">Wolnostojąca</option>
           </select>
         </div>
-        <div id="cmFridgeNicheWrap">
-          <label>Wysokość niszy (cm)</label>
-          <select id="cmFridgeNiche">
+        <div id="cmFridgeNicheWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
+          <label class="cabinet-extra-field__label">Wysokość niszy (cm)</label>
+          <select id="cmFridgeNiche" class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Wysokość niszy (cm)">
             <option value="82">82</option>
             <option value="122">122</option>
             <option value="158">158</option>
@@ -828,9 +829,9 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
             <option value="204">204</option>
           </select>
         </div>
-        <div id="cmFridgeFreeWrap" style="display:none">
-          <label>Opcja</label>
-          <select id="cmFridgeFree">
+        <div id="cmFridgeFreeWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact" style="display:none">
+          <label class="cabinet-extra-field__label">Opcja</label>
+          <select id="cmFridgeFree" class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Opcja lodówki wolnostojącej">
             <option value="brak">Brak</option>
             <option value="podest">Podest</option>
             <option value="obudowa">Obudowa</option>
@@ -1666,7 +1667,7 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
         if(m) return m;
         return null;
       })();
-      if(_drawerBlockMsg){ alert(_drawerBlockMsg); return; }
+      if(_drawerBlockMsg){ showCabinetInfo('Zmiana zablokowana', _drawerBlockMsg); return; }
       applyAventosValidationUISafe(room, draft);
     }catch(_e){ /* nie psuj modala */ }
   };
@@ -1728,14 +1729,14 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
     }
   } catch(err){
     console.error(err);
-    alert('Błąd zapisu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
+    showCabinetInfo('Błąd zapisu zestawu', String(err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
   } finally {
     try { if(e && e.target && e.target.blur) e.target.blur(); } catch(_){}
   }
   return;
 }
     try{
-      if(!uiState.roomType){ alert('Wybierz pomieszczenie'); return; }
+      if(!uiState.roomType){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
       const room = uiState.roomType;
 
       syncDraftFromCabinetModalFormSafe(draft);
@@ -1783,14 +1784,14 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
 
       const afterCount = (projectData[room].cabinets || []).length;
       if(isAdd && afterCount <= beforeCount){
-        alert('Nie udało się dodać szafki (błąd logiki zapisu).');
+        showCabinetInfo('Nie udało się dodać szafki', 'Wystąpił błąd logiki zapisu.');
         return;
       }
 
       closeCabinetModal();
     }catch(err){
       console.error('Błąd zapisu szafki:', err);
-      alert('Błąd podczas zapisu (sprawdź konsolę). Modal pozostaje otwarty.');
+      showCabinetInfo('Błąd podczas zapisu', 'Sprawdź konsolę. Modal pozostaje otwarty.');
     }
   };
 
@@ -1935,7 +1936,7 @@ function createOrUpdateSetFromWizard(){
   try{
     const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
     const room = state.roomType || (uiState && uiState.roomType);
-    if(!room){ alert('Wybierz pomieszczenie'); return; }
+    if(!room){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
@@ -1944,7 +1945,7 @@ function createOrUpdateSetFromWizard(){
       || null;
 
     if(!presetId){
-      alert('Wybierz zestaw');
+      showCabinetInfo('Brak zestawu', 'Wybierz zestaw.');
       return;
     }
 
@@ -1954,7 +1955,7 @@ function createOrUpdateSetFromWizard(){
     }
 
     const params = getSetParamsFromUI(presetId);
-    if(!params){ alert('Brak parametrów'); return; }
+    if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return; }
 
     // Ensure containers exist
     projectData[room] = projectData[room] || { cabinets:[], settings:{} };
@@ -1965,7 +1966,7 @@ function createOrUpdateSetFromWizard(){
     const matEl = document.getElementById('setFrontMaterial');
     const colEl = document.getElementById('setFrontColor');
     if(!cntEl || !matEl || !colEl){
-      alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
+      showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (fronty / materiał / kolor). Wybierz preset i spróbuj ponownie.');
       return;
     }
 
@@ -2049,7 +2050,7 @@ function createOrUpdateSetFromWizard(){
     closeCabinetModal();
     renderCabinets();
   }catch(e){
-    alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
+    showCabinetInfo('Błąd przy dodawaniu zestawu', String(e && e.message ? e.message : e));
     throw e;
   }
 }
@@ -2081,3 +2082,21 @@ function createOrUpdateSetFromWizard(){
     createOrUpdateSetFromWizard
   };
 })();
+function showCabinetInfo(title, message){
+  try{
+    if(FC.infoBox && typeof FC.infoBox.open === 'function'){
+      FC.infoBox.open({ title:String(title || 'Informacja'), message:String(message || '') });
+      return;
+    }
+  }catch(_){ }
+  try{ console.warn('[cabinetModal]', title, message); }catch(_){ }
+}
+
+async function askCabinetConfirm(cfg){
+  try{
+    if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') return !!(await FC.confirmBox.ask(cfg || {}));
+  }catch(_){ }
+  return true;
+}
+
+
