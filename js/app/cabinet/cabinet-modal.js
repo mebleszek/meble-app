@@ -15,30 +15,6 @@ function callCabinetFrontsHelper(fnName, args, fallback){
   throw new Error('Brak helpera cabinetFronts: ' + fnName);
 }
 
-function callCalcHelper(fnName, args, fallback){
-  try{
-    const mod = window.FC && window.FC.calc;
-    const impl = mod && mod[fnName];
-    if(typeof impl === 'function') return impl.apply(null, args || []);
-  }catch(_){ }
-  try{
-    const globalImpl = window && window[fnName];
-    if(typeof globalImpl === 'function') return globalImpl.apply(null, args || []);
-  }catch(_){ }
-  if(typeof fallback === 'function') return fallback.apply(null, args || []);
-  throw new Error('Brak helpera calc: ' + fnName);
-}
-
-function calcTopForSetSafe(room, blende, sumLowerHeights){
-  return callCalcHelper('calcTopForSet', [projectData, room, blende, sumLowerHeights], function(pd, rm, bl, sumLower){
-    try{
-      const s = pd && pd[rm] && pd[rm].settings ? pd[rm].settings : {};
-      const h = (Number(s.roomHeight)||0) - (Number(sumLower)||0) - (Number(bl)||0);
-      return h > 0 ? Math.round(h * 10) / 10 : 0;
-    }catch(_){ return 0; }
-  });
-}
-
 function getSubTypeOptionsForTypeSafe(typeVal){
   return callCabinetFrontsHelper('getSubTypeOptionsForType', [typeVal], function(){
     return [{ v:'standardowa', t:'Standardowa' }];
@@ -180,7 +156,7 @@ function openSetWizardForEdit(setId){
   setId = String(setId);
   const room = uiState.roomType; if(!room) return;
   const set = projectData[room].sets.find(s => String(s.id) === setId);
-  if(!set){ showCabinetInfo('Brak zestawu', 'Nie znaleziono zestawu do edycji.'); return; }
+  if(!set){ alert('Nie znaleziono zestawu'); return; }
 
   cabinetModalState.mode = 'add';
   cabinetModalState.editingId = null;
@@ -308,28 +284,14 @@ function populateOpeningOptionsTo(selectEl, typeVal, selected){
 
 function renderCabinetExtraDetailsInto(container, draft){
   container.innerHTML = '';
-  try{ container.classList.add('cabinet-extra-details'); }catch(_){ }
   const t = draft.type;
   const st = draft.subType;
   const d = draft.details || {};
 
-  function makeExtraFieldId(prefix, key){
-    return 'cmExtra' + String(prefix || '') + String(key || '').charAt(0).toUpperCase() + String(key || '').slice(1);
-  }
-
-  function shouldUseCompactNumberField(key, labelText){
-    const compactKeys = new Set(['shelves','innerDrawerCount','techShelfCount','blindPart','dishWasherWidth','ovenHeight','fridgeWidth','fridgeNicheHeight','fridgeFreeOption','drawerCount','fridgeFrontCount']);
-    if(compactKeys.has(String(key || ''))) return true;
-    const label = String(labelText || '').toLowerCase();
-    return /(ilość|szt|cm\)|cm$|wysokość|szerokość|głębokość|blenda)/.test(label);
-  }
-
   function addSelect(labelText, key, options, onChangeExtra){
-    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--select';
-    const selectId = makeExtraFieldId('Select', key);
-    div.innerHTML = `<label class="cabinet-extra-field__label" for="${selectId}">${labelText}</label><select id="${selectId}" class="cabinet-extra-field__control" data-launcher-label="${labelText}"></select>`;
+    const div = document.createElement('div'); div.style.marginBottom='10px';
+    div.innerHTML = `<label>${labelText}</label><select></select>`;
     const sel = div.querySelector('select');
-    try{ sel.classList.add('set-front-choice-source','cabinet-dynamic-choice-source'); }catch(_){ }
     options.forEach(opt => {
       const o = document.createElement('option'); o.value=opt.v; o.textContent=opt.t; sel.appendChild(o);
     });
@@ -343,12 +305,11 @@ function renderCabinetExtraDetailsInto(container, draft){
   }
 
   function addNumber(labelText, key, fallback){
-    const compact = shouldUseCompactNumberField(key, labelText);
-    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--number' + (compact ? ' cabinet-extra-field--compact' : '');
+    const div = document.createElement('div'); div.style.marginBottom='10px';
     const raw = (draft.details && draft.details[key] != null) ? draft.details[key] : fallback;
     const existingShelves = document.getElementById('cmShelves');
     const idAttr = (!existingShelves && key === 'shelves') ? ' id="cmShelves"' : '';
-    div.innerHTML = `<label class="cabinet-extra-field__label">${labelText}</label><input class="cabinet-extra-field__control" type="number"${idAttr} value="${raw}" />`;
+    div.innerHTML = `<label>${labelText}</label><input type="number"${idAttr} value="${raw}" />`;
     const inp = div.querySelector('input');
 
     const apply = () => {
@@ -662,8 +623,7 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
           // ilość z listy (limit)
           (function(){
             const div = document.createElement('div'); div.style.marginBottom='10px';
-            div.className = 'cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact';
-            div.innerHTML = `<label class="cabinet-extra-field__label">Ilość szuflad wewnętrznych (max ${max})</label><select class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Ilość szuflad wewnętrznych (max ${max})"></select>`;
+            div.innerHTML = `<label>Ilość szuflad wewnętrznych (max ${max})</label><select></select>`;
             const sel = div.querySelector('select');
 
             const raw = (draft.details && draft.details.innerDrawerCount != null) ? draft.details.innerDrawerCount : String(def);
@@ -835,16 +795,16 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
       const freeOpt = cur.fridgeFreeOption ? String(cur.fridgeFreeOption) : 'brak';
 
       grid.innerHTML = `
-        <div class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-          <label class="cabinet-extra-field__label">Typ lodówki</label>
-          <select id="cmFridgeOption" class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Typ lodówki">
+        <div>
+          <label>Typ lodówki</label>
+          <select id="cmFridgeOption">
             <option value="zabudowa">W zabudowie</option>
             <option value="wolnostojaca">Wolnostojąca</option>
           </select>
         </div>
-        <div id="cmFridgeNicheWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-          <label class="cabinet-extra-field__label">Wysokość niszy (cm)</label>
-          <select id="cmFridgeNiche" class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Wysokość niszy (cm)">
+        <div id="cmFridgeNicheWrap">
+          <label>Wysokość niszy (cm)</label>
+          <select id="cmFridgeNiche">
             <option value="82">82</option>
             <option value="122">122</option>
             <option value="158">158</option>
@@ -853,9 +813,9 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
             <option value="204">204</option>
           </select>
         </div>
-        <div id="cmFridgeFreeWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact" style="display:none">
-          <label class="cabinet-extra-field__label">Opcja</label>
-          <select id="cmFridgeFree" class="cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Opcja lodówki wolnostojącej">
+        <div id="cmFridgeFreeWrap" style="display:none">
+          <label>Opcja</label>
+          <select id="cmFridgeFree">
             <option value="brak">Brak</option>
             <option value="podest">Podest</option>
             <option value="obudowa">Obudowa</option>
@@ -1140,18 +1100,15 @@ function renderSetParamsUI(presetId){
   if(!presetId){ paramsWrap.style.display='none'; return; }
 
   paramsWrap.style.display='grid';
-  try{ paramsWrap.classList.add('set-param-grid'); }catch(_){}
 
   function addInput(id,label,value,extra=''){
     const d = document.createElement('div');
-    d.className = 'set-param-field';
-    d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" ${extra}/>`;
+    d.innerHTML = `<label>${label}</label><input id="${id}" type="number" value="${value}" ${extra}/>`;
     paramsWrap.appendChild(d);
   }
   function addReadonly(id,label,value){
     const d = document.createElement('div');
-    d.className = 'set-param-field set-param-field--readonly';
-    d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" disabled />`;
+    d.innerHTML = `<label>${label}</label><input id="${id}" type="number" value="${value}" disabled />`;
     paramsWrap.appendChild(d);
   }
 
@@ -1164,7 +1121,7 @@ function renderSetParamsUI(presetId){
     addInput('setDBottom','Głębokość dolnych (cm)', 51);
     addInput('setBlende','Blenda (cm)', defaultBlende);
 
-    const hTop = calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82);
+    const hTop = calcTopForSet(room, defaultBlende, Number(s.bottomHeight)||82);
     addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
     addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
   }
@@ -1175,7 +1132,7 @@ function renderSetParamsUI(presetId){
     addInput('setDBottom','Głębokość dolnego (cm)', 51);
     addInput('setBlende','Blenda (cm)', defaultBlende);
 
-    const hTop = calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82);
+    const hTop = calcTopForSet(room, defaultBlende, Number(s.bottomHeight)||82);
     addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
     addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
   }
@@ -1187,7 +1144,7 @@ function renderSetParamsUI(presetId){
     addInput('setDBottom','Głębokość dolnego (cm)', 51);
     addInput('setBlende','Blenda (cm)', defaultBlende);
 
-    const hTop = calcTopForSetSafe(room, defaultBlende, (Number(s.bottomHeight)||82) + 100);
+    const hTop = calcTopForSet(room, defaultBlende, (Number(s.bottomHeight)||82) + 100);
     addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
     addReadonly('setDTopResult','Głęb. modułów (dół-1)', Math.max(0, 51-1));
   }
@@ -1211,7 +1168,7 @@ function wireSetParamsLiveUpdate(presetId){
     if(presetId === 'A'){
       const db = val('setDBottom', 51);
       const hB = val('setHBottom', Number(s.bottomHeight)||82);
-      const ht = calcTopForSetSafe(room, bl, hB);
+      const ht = calcTopForSet(room, bl, hB);
       const dt = Math.max(0, Math.round((db - 1) * 10)/10);
       const htEl = document.getElementById('setHTopResult');
       const dtEl = document.getElementById('setDTopResult');
@@ -1222,7 +1179,7 @@ function wireSetParamsLiveUpdate(presetId){
     if(presetId === 'C'){
       const db = val('setDBottom', 51);
       const hB = val('setHBottom', Number(s.bottomHeight)||82);
-      const ht = calcTopForSetSafe(room, bl, hB);
+      const ht = calcTopForSet(room, bl, hB);
       const dt = Math.max(0, Math.round((db - 1) * 10)/10);
       const htEl = document.getElementById('setHTopResult');
       const dtEl = document.getElementById('setDTopResult');
@@ -1234,7 +1191,7 @@ function wireSetParamsLiveUpdate(presetId){
       const db = val('setDBottom', 51);
       const hb = val('setHBottom', Number(s.bottomHeight)||82);
       const hm = val('setHMiddle', 100);
-      const ht = calcTopForSetSafe(room, bl, (hb + hm));
+      const ht = calcTopForSet(room, bl, (hb + hm));
       const dt = Math.max(0, Math.round((db - 1) * 10)/10);
       const htEl = document.getElementById('setHTopResult');
       const dtEl = document.getElementById('setDTopResult');
@@ -1347,12 +1304,6 @@ if(!cabinetModalState.setPreset){
       cntSel.onchange = updateHint;
       updateHint();
     }
-
-    try{
-      const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;
-      if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function') launcherApi.mountDynamicSelectLaunchers(document.getElementById('setFrontBlock'));
-      if(launcherApi && typeof launcherApi.mountVisibleFallbackLaunchers === 'function') launcherApi.mountVisibleFallbackLaunchers(document.getElementById('setWizardArea'));
-    }catch(_){ }
 
     return;
   }
@@ -1697,7 +1648,7 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
         if(m) return m;
         return null;
       })();
-      if(_drawerBlockMsg){ showCabinetInfo('Zmiana zablokowana', _drawerBlockMsg); return; }
+      if(_drawerBlockMsg){ alert(_drawerBlockMsg); return; }
       applyAventosValidationUISafe(room, draft);
     }catch(_e){ /* nie psuj modala */ }
   };
@@ -1732,13 +1683,6 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
   try{
     const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;
     if(launcherApi && typeof launcherApi.mountSafeFieldLaunchers === 'function') launcherApi.mountSafeFieldLaunchers();
-    if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function'){
-      launcherApi.mountDynamicSelectLaunchers(document.getElementById('cmExtraDetails'));
-      launcherApi.mountDynamicSelectLaunchers(document.getElementById('setFrontBlock'));
-    }
-    if(launcherApi && typeof launcherApi.mountVisibleFallbackLaunchers === 'function'){
-      launcherApi.mountVisibleFallbackLaunchers(document.getElementById('cabinetFormArea'));
-    }
   }catch(_){ }
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
@@ -1762,14 +1706,14 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
     }
   } catch(err){
     console.error(err);
-    showCabinetInfo('Błąd zapisu zestawu', String(err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
+    alert('Błąd zapisu zestawu: ' + (err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
   } finally {
     try { if(e && e.target && e.target.blur) e.target.blur(); } catch(_){}
   }
   return;
 }
     try{
-      if(!uiState.roomType){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
+      if(!uiState.roomType){ alert('Wybierz pomieszczenie'); return; }
       const room = uiState.roomType;
 
       syncDraftFromCabinetModalFormSafe(draft);
@@ -1817,14 +1761,14 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
 
       const afterCount = (projectData[room].cabinets || []).length;
       if(isAdd && afterCount <= beforeCount){
-        showCabinetInfo('Nie udało się dodać szafki', 'Wystąpił błąd logiki zapisu.');
+        alert('Nie udało się dodać szafki (błąd logiki zapisu).');
         return;
       }
 
       closeCabinetModal();
     }catch(err){
       console.error('Błąd zapisu szafki:', err);
-      showCabinetInfo('Błąd podczas zapisu', 'Sprawdź konsolę. Modal pozostaje otwarty.');
+      alert('Błąd podczas zapisu (sprawdź konsolę). Modal pozostaje otwarty.');
     }
   };
 
@@ -1894,20 +1838,20 @@ function getSetParamsFromUI(presetId){
     const w1 = num('setW1', 60);
     const w2 = num('setW2', 60);
     const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hTop = calcTopForSetSafe(room, blende, hB);
+    const hTop = calcTopForSet(room, blende, hB);
     return { presetId, w1,w2, hB, hTop, dBottom, dModule, blende };
   }
   if(presetId === 'C'){
     const w = num('setW', 60);
     const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hTop = calcTopForSetSafe(room, blende, hB);
+    const hTop = calcTopForSet(room, blende, hB);
     return { presetId, w, hB, hTop, dBottom, dModule, blende };
   }
   if(presetId === 'D'){
     const w = num('setW', 60);
     const hB = num('setHBottom', Number(s.bottomHeight)||82);
     const hM = num('setHMiddle', 100);
-    const hTop = calcTopForSetSafe(room, blende, (hB + hM));
+    const hTop = calcTopForSet(room, blende, (hB + hM));
     return { presetId, w, hB, hM, hTop, dBottom, dModule, blende };
   }
   return null;
@@ -1969,7 +1913,7 @@ function createOrUpdateSetFromWizard(){
   try{
     const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
     const room = state.roomType || (uiState && uiState.roomType);
-    if(!room){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
+    if(!room){ alert('Wybierz pomieszczenie'); return; }
 
     const presetId =
       ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
@@ -1978,7 +1922,7 @@ function createOrUpdateSetFromWizard(){
       || null;
 
     if(!presetId){
-      showCabinetInfo('Brak zestawu', 'Wybierz zestaw.');
+      alert('Wybierz zestaw');
       return;
     }
 
@@ -1988,7 +1932,7 @@ function createOrUpdateSetFromWizard(){
     }
 
     const params = getSetParamsFromUI(presetId);
-    if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return; }
+    if(!params){ alert('Brak parametrów'); return; }
 
     // Ensure containers exist
     projectData[room] = projectData[room] || { cabinets:[], settings:{} };
@@ -1999,7 +1943,7 @@ function createOrUpdateSetFromWizard(){
     const matEl = document.getElementById('setFrontMaterial');
     const colEl = document.getElementById('setFrontColor');
     if(!cntEl || !matEl || !colEl){
-      showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (fronty / materiał / kolor). Wybierz preset i spróbuj ponownie.');
+      alert('Brak pól zestawu (fronty/materiał/kolor). Wybierz preset i spróbuj ponownie.');
       return;
     }
 
@@ -2083,7 +2027,7 @@ function createOrUpdateSetFromWizard(){
     closeCabinetModal();
     renderCabinets();
   }catch(e){
-    showCabinetInfo('Błąd przy dodawaniu zestawu', String(e && e.message ? e.message : e));
+    alert('Błąd przy dodawaniu zestawu: ' + (e && e.message ? e.message : e));
     throw e;
   }
 }
@@ -2115,21 +2059,3 @@ function createOrUpdateSetFromWizard(){
     createOrUpdateSetFromWizard
   };
 })();
-function showCabinetInfo(title, message){
-  try{
-    if(FC.infoBox && typeof FC.infoBox.open === 'function'){
-      FC.infoBox.open({ title:String(title || 'Informacja'), message:String(message || '') });
-      return;
-    }
-  }catch(_){ }
-  try{ console.warn('[cabinetModal]', title, message); }catch(_){ }
-}
-
-async function askCabinetConfirm(cfg){
-  try{
-    if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') return !!(await FC.confirmBox.ask(cfg || {}));
-  }catch(_){ }
-  return true;
-}
-
-

@@ -185,38 +185,6 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Scope wejścia', 'Komunikat modala nowej wyceny używa pomieszczenia / pomieszczeń zależnie od scope', 'Pilnuje, czy prompt nowego wariantu używa bardziej naturalnego komunikatu dla jednego i wielu pokoi, zamiast stałego „zakresu”.', async ()=>{
-        H.assert(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.ensureVersionNameBeforeGenerate === 'function', 'Brak FC.wycenaTabSelection.ensureVersionNameBeforeGenerate');
-        await withInvestorProjectFixture({
-          rooms:[
-            { id:'room_a', baseType:'pokoj', name:'a', label:'a', projectStatus:'nowy' },
-            { id:'room_j', baseType:'pokoj', name:'J', label:'J', projectStatus:'nowy' },
-          ],
-          projectData:{
-            schemaVersion:2,
-            meta:{ roomDefs:{ room_a:{ id:'room_a', baseType:'pokoj', name:'a', label:'a' }, room_j:{ id:'room_j', baseType:'pokoj', name:'J', label:'J' } }, roomOrder:['room_a','room_j'] },
-            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
-            room_j:{ cabinets:[{ id:'cab_j' }], fronts:[], sets:[], settings:{} },
-          },
-        }, async ({ projectId })=>{
-          const prevPrompt = FC.quoteScopeEntry && FC.quoteScopeEntry.promptNewVersionName;
-          const messages = [];
-          FC.quoteSnapshotStore.save({ id:'snap_prompt_a', project:{ id:projectId }, scope:{ selectedRooms:['room_a'], roomLabels:['a'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — a' }, totals:{ grand:10 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
-          FC.quoteSnapshotStore.save({ id:'snap_prompt_shared', project:{ id:projectId }, scope:{ selectedRooms:['room_a','room_j'], roomLabels:['a','J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — a + J' }, totals:{ grand:20 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] } });
-          try{
-            FC.quoteScopeEntry.promptNewVersionName = async (opts)=>{ messages.push(String(opts && opts.message || '')); return { cancelled:false, versionName:'Wstępna oferta — test' }; };
-            FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_a'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — a' } });
-            await FC.wycenaTabSelection.ensureVersionNameBeforeGenerate({ selectedRooms:['room_a'] }, { getCurrentProjectId:()=> projectId, getOfferDraft:()=> FC.quoteOfferStore.getCurrentDraft(), patchOfferDraft:(patch)=> FC.quoteOfferStore.patchCurrentDraft(patch) });
-            FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_a','room_j'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — a + J' } });
-            await FC.wycenaTabSelection.ensureVersionNameBeforeGenerate({ selectedRooms:['room_a','room_j'] }, { getCurrentProjectId:()=> projectId, getOfferDraft:()=> FC.quoteOfferStore.getCurrentDraft(), patchOfferDraft:(patch)=> FC.quoteOfferStore.patchCurrentDraft(patch) });
-          } finally {
-            if(prevPrompt) FC.quoteScopeEntry.promptNewVersionName = prevPrompt;
-          }
-          H.assert(messages[0] === 'Dla pomieszczenia „a” istnieje już wycena wstępna. Nadaj unikatową nazwę kolejnemu wariantowi.', 'Komunikat dla jednego pokoju nie używa formy „pomieszczenia”', messages);
-          H.assert(messages[1] === 'Dla pomieszczeń „a, J” istnieje już wycena wstępna. Nadaj unikatową nazwę kolejnemu wariantowi.', 'Komunikat dla wielu pokoi nie używa formy „pomieszczeń”', messages);
-        });
-      }),
-
     H.makeTest('Wycena ↔ Scope wejścia', 'Modal nazwy nowej wyceny nie renderuje już bloku pomieszczeń i nie zmienia wspólnego shellu działu', 'Pilnuje regresję po poprawkach UI modala: okno nazwy ma własny shell w stylu aplikacji, brak osobnego bloku Pomieszczenia i układ akcji 50/50 bez rozwalania reszty Wycena.', async ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function', 'Brak FC.quoteScopeEntry.promptNewVersionName');
         await withInvestorProjectFixture({}, async ({ projectId })=>{

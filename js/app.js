@@ -617,12 +617,12 @@ function renderWywiadTab(list, room){
 
 function renderSingleCabinetCard(list, room, cab, displayIndex){
   const cabEl = document.createElement('div');
-  cabEl.className = 'cabinet cabinet-card-shell';
+  cabEl.className = 'cabinet';
   cabEl.id = `cab-${cab.id}`;
   if(uiState.selectedCabinetId === cab.id) cabEl.classList.add('selected');
 
   const header = document.createElement('div');
-  header.className = 'cabinet-header cabinet-header--stacked cabinet-card-shell__header';
+  header.className = 'cabinet-header cabinet-header--stacked';
 
   const badge = cab.setId && typeof cab.setNumber === 'number'
     ? `<span class="badge">Zestaw ${cab.setNumber}</span>`
@@ -630,7 +630,7 @@ function renderSingleCabinetCard(list, room, cab, displayIndex){
   const bodyMeta = [cab.bodyColor || '', cab.backMaterial || ''].filter(Boolean).join(' • ') || '—';
   const frontMeta = [cab.frontMaterial || '', cab.frontColor || ''].filter(Boolean).join(' • ') || '—';
   const copy = document.createElement('div');
-  copy.className = 'cabinet-header__copy cabinet-card-shell__copy';
+  copy.className = 'cabinet-header__copy';
   copy.innerHTML = `
     <div class="cabinet-header__title">#${displayIndex} • ${cab.type} • ${cab.subType||''}${badge}</div>
     <div class="cabinet-header__meta">Korpus: ${bodyMeta}</div>
@@ -639,13 +639,12 @@ function renderSingleCabinetCard(list, room, cab, displayIndex){
   `;
 
   const actions = document.createElement('div');
-  actions.className = 'cab-actions cabinet-header__actions cabinet-card-shell__actions';
+  actions.className = 'cab-actions cabinet-header__actions';
   actions.innerHTML = `<button class="btn" data-act="edit" type="button">Edytuj</button> <button class="btn" data-act="mat" type="button">Materiały</button> <button class="btn btn-danger" data-act="del" type="button">Usuń</button>`;
 
   header.appendChild(copy);
   header.appendChild(actions);
   cabEl.appendChild(header);
-  cabEl.setAttribute('data-cabinet-kind', String(cab.type || ''));
 
   actions.addEventListener('click', (e) => {
     e.stopPropagation();

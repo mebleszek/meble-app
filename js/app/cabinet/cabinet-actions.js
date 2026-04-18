@@ -6,7 +6,7 @@
   window.FC = window.FC || {};
 
   function addCabinet(){
-    if(typeof uiState === 'undefined' || !uiState.roomType){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczenia', message:'Wybierz pomieszczenie najpierw.' }); }catch(_){} return; }
+    if(typeof uiState === 'undefined' || !uiState.roomType){ alert('Wybierz pomieszczenie najpierw'); return; }
     if(typeof openCabinetModalForAdd === 'function') return openCabinetModalForAdd();
   }
 
@@ -15,7 +15,7 @@
     if(typeof uiState === 'undefined' || typeof projectData === 'undefined' || typeof STORAGE_KEYS === 'undefined') return;
     const room = uiState.roomType;
     if(!room) return;
-    if(!cabId){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak szafki', message:'Wybierz szafkę do usunięcia.' }); }catch(_){} return; }
+    if(!cabId){ alert('Wybierz szafkę do usunięcia'); return; }
 
     const cab = (projectData[room] && projectData[room].cabinets || []).find(c => c.id === cabId);
     const label = cab ? `${cab.type || 'szafka'} ${cab.subType ? '('+cab.subType+')' : ''} ${cab.width}×${cab.height}×${cab.depth}` : 'szafkę';
