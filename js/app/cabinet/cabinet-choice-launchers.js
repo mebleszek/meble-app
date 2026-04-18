@@ -219,6 +219,23 @@
     }));
   }
 
+  function isMountableDynamicSelect(selectEl){
+    if(!selectEl) return false;
+    try{
+      let cur = selectEl;
+      while(cur && cur !== document.body){
+        const style = getComputedStyle(cur);
+        const ownHide = cur === selectEl && isLauncherOwnCssHide(selectEl);
+        const isCabinetModalRoot = !!(cur.id === 'cabinetModal' || (cur.classList && cur.classList.contains('modal-back')));
+        const hiddenByDisplay = style.display === 'none';
+        const hiddenByVisibility = style.visibility === 'hidden';
+        if(((hiddenByDisplay && !ownHide) || hiddenByVisibility) && !isCabinetModalRoot) return false;
+        cur = cur.parentElement;
+      }
+      return true;
+    }catch(_){ return true; }
+  }
+
   function shouldMountField(selectEl, cfg){
     try{
       if(cfg && typeof cfg.shouldMount === 'function') return !!cfg.shouldMount(selectEl);
@@ -301,7 +318,7 @@
       title:String(selectEl.getAttribute('data-choice-title') || ('Wybierz: ' + labelText)),
       placeholder:String(selectEl.getAttribute('data-choice-placeholder') || labelText),
       shouldMount(currentEl){
-        return isLauncherVisible(currentEl);
+        return isMountableDynamicSelect(currentEl);
       }
     };
   }

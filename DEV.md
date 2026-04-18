@@ -1,3 +1,9 @@
+## 2026-04-18 — Wywiad room params compact top + direct trigger + dev-tests sync
+- `index.html` + `css/style.css` + `js/app/ui/wywiad-room-settings.js` — góra `Wywiad` została odchudzona do kompaktowego shellu: krótki tytuł, auto-wysokość, jedna zwarta linia parametrów i mniejszy przycisk `Parametry`; przycisk ma też bezpośredni binding jako bezpieczny fallback, więc nie zależy wyłącznie od delegacji `data-action`.
+- `js/app/cabinet/cabinet-choice-launchers.js` — dynamiczne selecty mogą dostać launcher także wtedy, gdy cały `cabinetModal` jest jeszcze ukrytym rootem testowym; nadal nie montujemy launcherów dla lokalnie ukrytych pól typu `display:none` we wrapperze.
+- `dev_tests.html` + `js/testing/project/tests.js` — strona testów ładuje teraz także `panel-box` i `wywiad-room-settings`, a test projektu pilnuje kompaktowego summary zamiast starej siatki/pigułek.
+- Instrukcja antyregresyjna: przy następnych zmianach góra `Wywiad` ma pozostać mała i użytkowa; nie wracać do ciężkiej listy wielu pigułek ani do przycisku zależnego wyłącznie od jednej ścieżki eventów.
+
 ## 2026-04-18 — Wywiad góra jako lekki shell + parametry pomieszczenia w osobnym oknie
 - `index.html` + `js/app/ui/wywiad-room-settings.js` — ciężki blok parametrów nad listą szafek został zastąpiony lekkim shellem z podsumowaniem i jednym wejściem `Parametry pomieszczenia`; sama edycja odbywa się w programowym oknie `panelBox` w stylu ROZRYS, bez systemowych dialogów i bez ruszania logiki obliczeń.
 - `js/app.js` — render `Wywiad` nie próbuje już zasilać stałych inputów w topce; zamiast tego odświeża kompaktowe podsumowanie parametrów pokoju.

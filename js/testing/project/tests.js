@@ -151,7 +151,8 @@
           host.uiState = { roomType:'kuchnia' };
           FC.wywiadRoomSettings.renderSummary('kuchnia');
           const stats = fixture.querySelectorAll('.wywiad-room-shell__stat');
-          H.assert(stats.length === 6, 'Summary parametrów pokoju nie wyrenderowało wszystkich pigułek', { count: stats.length, html: fixture.innerHTML });
+          const line = fixture.querySelector('.wywiad-room-shell__stats-line');
+          H.assert(!!line, 'Summary parametrów pokoju nie wyrenderowało kompaktowej linii', fixture.innerHTML);
           H.assert(/260\s*cm/.test(fixture.textContent || ''), 'Summary nie pokazuje wysokości pomieszczenia', fixture.textContent);
           H.assert(/3,8\s*cm|3.8\s*cm/.test(fixture.textContent || ''), 'Summary nie pokazuje grubości blatu', fixture.textContent);
         } finally {

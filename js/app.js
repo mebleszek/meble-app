@@ -558,8 +558,9 @@ function renderCabinets(){
   const s = roomData.settings || {};
   renderTopHeight();
   try{
-    if(window.FC && window.FC.wywiadRoomSettings && typeof window.FC.wywiadRoomSettings.renderSummary === 'function'){
-      window.FC.wywiadRoomSettings.renderSummary(room);
+    if(window.FC && window.FC.wywiadRoomSettings){
+      if(typeof window.FC.wywiadRoomSettings.renderSummary === 'function') window.FC.wywiadRoomSettings.renderSummary(room);
+      if(typeof window.FC.wywiadRoomSettings.bindTriggerButtons === 'function') window.FC.wywiadRoomSettings.bindTriggerButtons(document);
     }
   }catch(_){ }
 

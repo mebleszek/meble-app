@@ -53,21 +53,28 @@
     return h > 0 ? Math.round(h * 10) / 10 : 0;
   }
 
-  function makeStat(label, value, accent){
-    const item = document.createElement('div');
-    item.className = 'wywiad-room-shell__stat' + (accent ? ' is-accent' : '');
+  function makeCompactSummary(settings){
+    const line = document.createElement('div');
+    line.className = 'wywiad-room-shell__stats-line';
+    line.innerHTML = '<strong>Parametry:</strong> '
+      + 'wys. ' + formatNumber(settings.roomHeight) + ' cm'
+      + ' • dół ' + formatNumber(settings.bottomHeight) + ' cm'
+      + ' • nóżki ' + formatNumber(settings.legHeight) + ' cm'
+      + ' • blat ' + formatNumber(settings.counterThickness) + ' cm'
+      + ' • gap ' + formatNumber(settings.gapHeight) + ' cm'
+      + ' • blenda ' + formatNumber(settings.ceilingBlende) + ' cm';
+    return line;
+  }
 
-    const labelEl = document.createElement('span');
-    labelEl.className = 'wywiad-room-shell__stat-label';
-    labelEl.textContent = label;
-
-    const valueEl = document.createElement('strong');
-    valueEl.className = 'wywiad-room-shell__stat-value';
-    valueEl.textContent = value;
-
-    item.appendChild(labelEl);
-    item.appendChild(valueEl);
-    return item;
+  function bindTriggerButtons(root){
+    const scope = root && root.querySelector ? root : document;
+    const btn = scope.getElementById ? scope.getElementById('openRoomSettingsBtn') : document.getElementById('openRoomSettingsBtn');
+    if(!btn || btn.__wywiadRoomSettingsBound) return;
+    btn.__wywiadRoomSettingsBound = true;
+    btn.addEventListener('click', (event)=>{
+      try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+      open();
+    });
   }
 
   function renderSummary(roomArg){
@@ -77,17 +84,8 @@
     wrap.innerHTML = '';
     const settings = getRoomSettings(room);
     if(!settings) return;
-
-    const stats = [
-      { label:'Wys. pomieszczenia', value: formatNumber(settings.roomHeight) + ' cm' },
-      { label:'Dół z nogami', value: formatNumber(settings.bottomHeight) + ' cm' },
-      { label:'Nóżki', value: formatNumber(settings.legHeight) + ' cm' },
-      { label:'Blat', value: formatNumber(settings.counterThickness) + ' cm' },
-      { label:'Gap', value: formatNumber(settings.gapHeight) + ' cm' },
-      { label:'Blenda góra', value: formatNumber(settings.ceilingBlende) + ' cm' }
-    ];
-
-    stats.forEach((stat)=> wrap.appendChild(makeStat(stat.label, stat.value, false)));
+    wrap.appendChild(makeCompactSummary(settings));
+    bindTriggerButtons(document);
   }
 
   function buildPreviewSettings(inputs){
@@ -199,7 +197,7 @@
     ns.panelBox.open({
       title:'Parametry pomieszczenia',
       contentNode: form,
-      width:'760px',
+      width:'700px',
       boxClass:'panel-box--rozrys wywiad-room-settings-box',
       dismissOnOverlay:true,
       dismissOnEsc:true
@@ -216,10 +214,19 @@
     return true;
   }
 
+  function init(){
+    if(typeof document === 'undefined' || !document) return;
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ()=> bindTriggerButtons(document), { once:true });
+    else bindTriggerButtons(document);
+  }
+
+  init();
+
   ns.wywiadRoomSettings = Object.assign({}, ns.wywiadRoomSettings || {}, {
     open,
     close,
     renderSummary,
     getAutoTopHeight,
+    bindTriggerButtons,
   });
 })();
