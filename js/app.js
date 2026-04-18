@@ -556,13 +556,12 @@ function renderCabinets(){
   }
 
   const s = roomData.settings || {};
-  document.getElementById('roomHeight').value = s.roomHeight;
-  document.getElementById('bottomHeight').value = s.bottomHeight;
-  document.getElementById('legHeight').value = s.legHeight;
-  document.getElementById('counterThickness').value = s.counterThickness;
-  document.getElementById('gapHeight').value = s.gapHeight;
-  document.getElementById('ceilingBlende').value = s.ceilingBlende;
   renderTopHeight();
+  try{
+    if(window.FC && window.FC.wywiadRoomSettings && typeof window.FC.wywiadRoomSettings.renderSummary === 'function'){
+      window.FC.wywiadRoomSettings.renderSummary(room);
+    }
+  }catch(_){ }
 
   // Zakładki — routing przez moduły (js/app/ui/tabs-router.js + js/tabs/*)
   // Dzięki temu każda zakładka ma osobny plik i minimalizujemy ryzyko psucia innych sekcji.

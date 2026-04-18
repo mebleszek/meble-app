@@ -1,3 +1,9 @@
+## 2026-04-18 — Wywiad góra jako lekki shell + parametry pomieszczenia w osobnym oknie
+- `index.html` + `js/app/ui/wywiad-room-settings.js` — ciężki blok parametrów nad listą szafek został zastąpiony lekkim shellem z podsumowaniem i jednym wejściem `Parametry pomieszczenia`; sama edycja odbywa się w programowym oknie `panelBox` w stylu ROZRYS, bez systemowych dialogów i bez ruszania logiki obliczeń.
+- `js/app.js` — render `Wywiad` nie próbuje już zasilać stałych inputów w topce; zamiast tego odświeża kompaktowe podsumowanie parametrów pokoju.
+- `css/style.css` — nowe klasy `wywiad-room-settings-*` utrzymują lekki wygląd topki i spójny modal z własnym wewnętrznym układem pól.
+- Instrukcja antyregresyjna: parametry pomieszczenia w `Wywiad` mają pozostać lekkim summary + osobne okno. Nie przywracać pełnej siatki inputów stale wiszącej nad listą szafek.
+
 ## 2026-04-18 — Wywiad programowe pickery full sync + bez systemowego confirm
 - `js/app/cabinet/cabinet-choice-launchers.js` — naprawiony realny powód regresji: fallback launcherów nie sprząta już własnych pickerów po ukryciu selecta źródłowego. Select z launcherem jest traktowany jako nadal aktywne źródło prawdy, a cały modal można odświeżyć jednym wywołaniem `refreshCabinetChoices(...)`.
 - `index.html` + `js/app/cabinet/cabinet-modal.js` — wszystkie główne i dynamiczne selecty modala szafki / zestawu są jawnie oznaczone jako źródła pickerów (`cabinet-choice-source` + `data-choice-*`), więc konfiguracja nie opiera się już na kruchym zgadywaniu etykiet.

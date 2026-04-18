@@ -139,6 +139,29 @@
         H.assert(Array.isArray(split.sheetMaterials) && split.sheetMaterials.length === 1, 'Domena katalogów nie wydzieliła materiałów arkuszowych', split);
         H.assert(Array.isArray(split.accessories) && split.accessories.length === 1, 'Domena katalogów nie wydzieliła akcesoriów', split);
       }),
+      H.makeTest('Projekt', 'Wywiad renderuje lekkie podsumowanie parametrów pokoju', 'Sprawdza, czy góra Wywiadu nie oczekuje już stałej siatki inputów i potrafi odświeżyć kompaktowe summary parametrów pokoju.', ()=>{
+        H.assert(FC.wywiadRoomSettings && typeof FC.wywiadRoomSettings.renderSummary === 'function', 'Brak FC.wywiadRoomSettings.renderSummary');
+        const prevProjectData = Object.prototype.hasOwnProperty.call(host, 'projectData') ? host.projectData : undefined;
+        const prevUiState = Object.prototype.hasOwnProperty.call(host, 'uiState') ? host.uiState : undefined;
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<div id="roomSettingsSummary"></div>';
+        document.body.appendChild(fixture);
+        try{
+          host.projectData = { kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:260, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:58, ceilingBlende:12 } } };
+          host.uiState = { roomType:'kuchnia' };
+          FC.wywiadRoomSettings.renderSummary('kuchnia');
+          const stats = fixture.querySelectorAll('.wywiad-room-shell__stat');
+          H.assert(stats.length === 6, 'Summary parametrów pokoju nie wyrenderowało wszystkich pigułek', { count: stats.length, html: fixture.innerHTML });
+          H.assert(/260\s*cm/.test(fixture.textContent || ''), 'Summary nie pokazuje wysokości pomieszczenia', fixture.textContent);
+          H.assert(/3,8\s*cm|3.8\s*cm/.test(fixture.textContent || ''), 'Summary nie pokazuje grubości blatu', fixture.textContent);
+        } finally {
+          fixture.remove();
+          if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
+          else host.projectData = prevProjectData;
+          if(prevUiState === undefined) { try{ delete host.uiState; }catch(_){ host.uiState = undefined; } }
+          else host.uiState = prevUiState;
+        }
+      }),
       H.makeTest('Projekt', 'Tryby pracy mają rozłączne, kontekstowe wejścia', 'Sprawdza, czy ekran startowy prowadzi do dwóch osobnych trybów z różnymi akcjami zamiast jednego wspólnego centrum cenników.', ()=>{
         H.assert(FC.workModeHub && typeof FC.workModeHub.getModeConfig === 'function', 'Brak FC.workModeHub.getModeConfig');
         const furniture = FC.workModeHub.getModeConfig('furnitureProjects');

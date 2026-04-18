@@ -6,7 +6,7 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260418_wywiad_program_choice_sync_v1">
+<link rel="stylesheet" href="css/style.css?v=20260418_wywiad_room_params_modal_v1">
 <link rel="stylesheet" href="css/investor-layout.css?v=20260407_stage2_fix_v2">
 <link rel="stylesheet" href="css/investor-form.css?v=20260405_field_unify_width_sync_v1">
 <link rel="stylesheet" href="css/rozrys-reference-sync.css?v=20260414_status_modal_grey_v1">
@@ -99,34 +99,11 @@
 </div>
 <div id="appView" style="display:none">
 <div class="card wywiad-room-shell" id="roomSettingsCard">
-<div class="wywiad-room-shell__head"><div><h3 id="roomTitle">Pomieszczenie</h3><div class="wywiad-room-shell__sub">Parametry pomieszczenia używane w Wywiadzie.</div></div><div class="wywiad-room-shell__summary muted xs">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div></div>
-<div class="grid-3 wywiad-room-grid" style="margin-top:12px">
-<div>
-<label>Wys. Pomieszczenia (cm)</label>
-<input id="roomHeight" type="number"/>
+<div class="wywiad-room-shell__head"><div><h3 id="roomTitle">Pomieszczenie</h3><div class="wywiad-room-shell__sub">Parametry pomieszczenia dostępne pod osobnym wejściem.</div></div><div class="wywiad-room-shell__summary muted xs">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div></div>
+<div class="wywiad-room-shell__stats" id="roomSettingsSummary"></div>
+<div class="wywiad-room-shell__actions">
+<button type="button" class="btn" data-action="open-room-settings">Parametry pomieszczenia</button>
 </div>
-<div>
-<label>Wys. Dołu z nogami (cm)</label>
-<input id="bottomHeight" type="number"/>
-</div>
-<div>
-<label>Wys. Nóżek (cm)</label>
-<input id="legHeight" type="number"/>
-</div>
-<div>
-<label>Gr. Blatu (cm)</label>
-<input id="counterThickness" step="0.1" type="number"/>
-</div>
-<div>
-<label>Odstęp (Gap) (cm)</label>
-<input id="gapHeight" type="number"/>
-</div>
-<div>
-<label>Blenda Góra (cm)</label>
-<input id="ceilingBlende" type="number"/>
-</div>
-</div>
-
 </div>
 <div class="card wywiad-cabinets-shell" style="margin-top:12px">
 <div class="wywiad-cabinets-shell__head" style="display:flex;justify-content:space-between;align-items:center">
@@ -495,7 +472,7 @@
 <script defer src="js/app/ui/bindings.js?v=20260405_ghostfix_v1"></script>
 
 <!-- Actions registry MUST load before app.js init validates data-action in DOM. -->
-<script defer src="js/app/ui/actions-register.js?v=20260406_session_fix_v3"></script>
+<script defer src="js/app/ui/actions-register.js?v=20260418_wywiad_room_params_modal_v1"></script>
 
 <script defer src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script defer src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -517,9 +494,10 @@
 <script defer src="js/app/shared/calc.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/investor/project-bootstrap.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/ui/settings-ui.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script defer src="js/app/ui/wywiad-room-settings.js?v=20260418_wywiad_room_params_modal_v1"></script>
 
 <!-- core app (definiuje globalne funkcje wykorzystywane przez akcje i zakładki) -->
-<script defer src="js/app.js?v=20260418_wywiad_finish_v4"></script>
+<script defer src="js/app.js?v=20260418_wywiad_room_params_modal_v1"></script>
 <script defer src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
 <script defer src="js/app/cabinet/cabinet-fronts.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script defer src="js/app/cabinet/cabinet-choice-launchers.js?v=20260418_wywiad_program_choice_sync_v1"></script>
