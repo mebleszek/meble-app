@@ -15,6 +15,30 @@ function callCabinetFrontsHelper(fnName, args, fallback){
   throw new Error('Brak helpera cabinetFronts: ' + fnName);
 }
 
+function callCalcHelper(fnName, args, fallback){
+  try{
+    const mod = window.FC && window.FC.calc;
+    const impl = mod && mod[fnName];
+    if(typeof impl === 'function') return impl.apply(null, args || []);
+  }catch(_){ }
+  try{
+    const globalImpl = window && window[fnName];
+    if(typeof globalImpl === 'function') return globalImpl.apply(null, args || []);
+  }catch(_){ }
+  if(typeof fallback === 'function') return fallback.apply(null, args || []);
+  throw new Error('Brak helpera calc: ' + fnName);
+}
+
+function calcTopForSetSafe(room, blende, sumLowerHeights){
+  return callCalcHelper('calcTopForSet', [projectData, room, blende, sumLowerHeights], function(pd, rm, bl, sumLower){
+    try{
+      const s = pd && pd[rm] && pd[rm].settings ? pd[rm].settings : {};
+      const h = (Number(s.roomHeight)||0) - (Number(sumLower)||0) - (Number(bl)||0);
+      return h > 0 ? Math.round(h * 10) / 10 : 0;
+    }catch(_){ return 0; }
+  });
+}
+
 function getSubTypeOptionsForTypeSafe(typeVal){
   return callCabinetFrontsHelper('getSubTypeOptionsForType', [typeVal], function(){
     return [{ v:'standardowa', t:'Standardowa' }];
@@ -1140,7 +1164,7 @@ function renderSetParamsUI(presetId){
     addInput('setDBottom','Głębokość dolnych (cm)', 51);
     addInput('setBlende','Blenda (cm)', defaultBlende);
 
-    const hTop = calcTopForSet(room, defaultBlende, Number(s.bottomHeight)||82);
+    const hTop = calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82);
     addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
     addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
   }
@@ -1151,7 +1175,7 @@ function renderSetParamsUI(presetId){
     addInput('setDBottom','Głębokość dolnego (cm)', 51);
     addInput('setBlende','Blenda (cm)', defaultBlende);
 
-    const hTop = calcTopForSet(room, defaultBlende, Number(s.bottomHeight)||82);
+    const hTop = calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82);
     addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
     addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
   }
@@ -1163,7 +1187,7 @@ function renderSetParamsUI(presetId){
     addInput('setDBottom','Głębokość dolnego (cm)', 51);
     addInput('setBlende','Blenda (cm)', defaultBlende);
 
-    const hTop = calcTopForSet(room, defaultBlende, (Number(s.bottomHeight)||82) + 100);
+    const hTop = calcTopForSetSafe(room, defaultBlende, (Number(s.bottomHeight)||82) + 100);
     addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
     addReadonly('setDTopResult','Głęb. modułów (dół-1)', Math.max(0, 51-1));
   }
@@ -1187,7 +1211,7 @@ function wireSetParamsLiveUpdate(presetId){
     if(presetId === 'A'){
       const db = val('setDBottom', 51);
       const hB = val('setHBottom', Number(s.bottomHeight)||82);
-      const ht = calcTopForSet(room, bl, hB);
+      const ht = calcTopForSetSafe(room, bl, hB);
       const dt = Math.max(0, Math.round((db - 1) * 10)/10);
       const htEl = document.getElementById('setHTopResult');
       const dtEl = document.getElementById('setDTopResult');
@@ -1198,7 +1222,7 @@ function wireSetParamsLiveUpdate(presetId){
     if(presetId === 'C'){
       const db = val('setDBottom', 51);
       const hB = val('setHBottom', Number(s.bottomHeight)||82);
-      const ht = calcTopForSet(room, bl, hB);
+      const ht = calcTopForSetSafe(room, bl, hB);
       const dt = Math.max(0, Math.round((db - 1) * 10)/10);
       const htEl = document.getElementById('setHTopResult');
       const dtEl = document.getElementById('setDTopResult');
@@ -1210,7 +1234,7 @@ function wireSetParamsLiveUpdate(presetId){
       const db = val('setDBottom', 51);
       const hb = val('setHBottom', Number(s.bottomHeight)||82);
       const hm = val('setHMiddle', 100);
-      const ht = calcTopForSet(room, bl, (hb + hm));
+      const ht = calcTopForSetSafe(room, bl, (hb + hm));
       const dt = Math.max(0, Math.round((db - 1) * 10)/10);
       const htEl = document.getElementById('setHTopResult');
       const dtEl = document.getElementById('setDTopResult');
@@ -1706,6 +1730,9 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
       launcherApi.mountDynamicSelectLaunchers(document.getElementById('cmExtraDetails'));
       launcherApi.mountDynamicSelectLaunchers(document.getElementById('setFrontBlock'));
     }
+    if(launcherApi && typeof launcherApi.mountVisibleFallbackLaunchers === 'function'){
+      launcherApi.mountVisibleFallbackLaunchers(document.getElementById('cabinetFormArea'));
+    }
   }catch(_){ }
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
@@ -1861,20 +1888,20 @@ function getSetParamsFromUI(presetId){
     const w1 = num('setW1', 60);
     const w2 = num('setW2', 60);
     const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hTop = calcTopForSet(room, blende, hB);
+    const hTop = calcTopForSetSafe(room, blende, hB);
     return { presetId, w1,w2, hB, hTop, dBottom, dModule, blende };
   }
   if(presetId === 'C'){
     const w = num('setW', 60);
     const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hTop = calcTopForSet(room, blende, hB);
+    const hTop = calcTopForSetSafe(room, blende, hB);
     return { presetId, w, hB, hTop, dBottom, dModule, blende };
   }
   if(presetId === 'D'){
     const w = num('setW', 60);
     const hB = num('setHBottom', Number(s.bottomHeight)||82);
     const hM = num('setHMiddle', 100);
-    const hTop = calcTopForSet(room, blende, (hB + hM));
+    const hTop = calcTopForSetSafe(room, blende, (hB + hM));
     return { presetId, w, hB, hM, hTop, dBottom, dModule, blende };
   }
   return null;

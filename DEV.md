@@ -1306,3 +1306,9 @@ Dopiero potem go zmieniać.
 
 - 2026-04-17: `js/app/wycena/wycena-tab-selection.js` ma resetować roboczą nazwę oferty po zmianie wybranego scope, jeśli draft niesie auto-/snapshotową nazwę z poprzedniego exact-scope; nie wolno przenosić nazw wariantów jednego pokoju na inny pokój albo scope wspólne. Dopina to test w `js/testing/wycena/suites/scope-entry.js`.
 - 2026-04-17: Po analizie flow `Wyceń` wyszło, że zły warunek nie siedział w exact-scope modala, tylko w przenoszeniu starej auto-nazwy do nowego zakresu przy samym generowaniu. `js/app/wycena/wycena-tab-selection.js` prostuje teraz draftową nazwę także tuż przed `Wyceń`, jeśli ta sama auto-nazwa występuje w innym exact-scope projektu; `js/app/quote/quote-snapshot-store.js` oraz podgląd/modale/PDF używają scoped fallbacku nazwy dla starych snapshotów z regresji a / J / a+J, żeby historia nie udawała dalej wariantu pokoju J dla zakresów a i a+J. Test antyregresyjny siedzi w `js/testing/wycena/suites/scope-entry.js`.
+
+## 2026-04-18 — WYWIAD launcher fallback + wzorce poza test runnerem
+- `dev_tests.html` nie osadza już wzorców UI nad wynikami testów; wzorce otwierają się osobnym przyciskiem `Wzorce UI` i osobną stroną `dev_ui_patterns.html`, żeby wyniki smoke/testów nie mieszały się z referencjami do kopiowania 1:1.
+- `js/app/cabinet/cabinet-modal.js` nie może zależeć od globalnej `calcTopForSet` z `app.js`; render zestawów ma używać namespacowanego helpera `FC.calc` przez lokalny safe-wrapper.
+- `js/app/cabinet/cabinet-choice-launchers.js` ma po zwykłym montażu robić fallback-scan widocznych selectów w formularzu szafki i zakładać launcher także dla pól, które pojawiły się późno lub przeszły przez dynamiczny rerender (np. `cmFlapKind`, `setFrontCount`).
+- W obszarze szafki natywne `select` pozostają źródłem prawdy, ale widoczny UI nie może wracać do systemowego selecta, jeśli pole jest objęte launcherem aplikacji.

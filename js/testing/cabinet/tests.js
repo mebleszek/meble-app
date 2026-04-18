@@ -87,31 +87,45 @@
           <div class="body">
             <div id="cabinetChoiceCard"><div id="cabinetTypeChoices"></div></div>
             <div id="cabinetFormArea" class="cabinet-choice-sync" style="display:none">
-              <select id="cmSubType"></select>
-              <div id="cmFrontCountWrap">
-                <label id="cmFrontCountLabel">Ilość frontów</label>
-                <select id="cmFrontCount"></select>
-                <div id="cmFrontCountStatic" style="display:none"></div>
-                <div id="cmFrontCountHint" style="display:none"></div>
+              <div class="card cabinet-config-card">
+                <h3 class="section-title cabinet-config-card__title">Konfiguracja</h3>
+                <div class="grid-3 cabinet-form-grid cabinet-form-grid--core">
+                  <div>
+                    <label>Wariant</label>
+                    <select id="cmSubType"></select>
+                  </div>
+                  <div>
+                    <div id="cmFrontCountWrap">
+                      <label id="cmFrontCountLabel">Ilość frontów</label>
+                      <select id="cmFrontCount"></select>
+                      <div id="cmFrontCountStatic" style="display:none"></div>
+                      <div id="cmFrontCountHint" style="display:none"></div>
+                    </div>
+                    <div id="cmFlapWrap" style="display:none">
+                      <select id="cmFlapVendor"><option value="blum">BLUM</option><option value="gtv">GTV</option><option value="hafele">HAFELE</option></select>
+                      <div id="cmFlapKindWrap"><select id="cmFlapKind"></select></div>
+                      <div id="cmFlapInfo" style="display:none"></div>
+                      <div id="cmFlapFrontInfo" style="display:none"></div>
+                    </div>
+                    <div id="cmShelvesWrap" class="cabinet-extra-field cabinet-extra-field--number cabinet-extra-field--compact" style="display:none"><label class="cabinet-extra-field__label">Półki (szt.)</label><input id="cmShelves" class="cabinet-extra-field__control" type="number"/></div>
+                  </div>
+                  <div>
+                    <div id="cmHint" class="cabinet-inline-hint"></div>
+                  </div>
+                </div>
+                <div id="cmExtraDetails" class="cabinet-extra-details"></div>
+                <div id="cmDynamicHost"></div>
+                <div class="grid-3 cabinet-form-grid">
+                  <div><label>Szerokość</label><input id="cmWidth" type="number"/></div>
+                  <div><label>Wysokość</label><input id="cmHeight" type="number"/></div>
+                  <div><label>Głębokość</label><input id="cmDepth" type="number"/></div>
+                  <div><label>Materiał frontu</label><select id="cmFrontMaterial"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select></div>
+                  <div><label>Kolor frontu</label><select id="cmFrontColor"></select></div>
+                  <div><label>Plecy</label><select id="cmBackMaterial"><option value="HDF 3mm biała">HDF 3mm biała</option><option value="18 mm pod kolor korpusu">18 mm pod kolor</option><option value="Brak">Brak</option></select></div>
+                  <div><label>Korpus</label><select id="cmBodyColor"></select></div>
+                  <div><label>Otwieranie</label><select id="cmOpeningSystem"></select></div>
+                </div>
               </div>
-              <div id="cmFlapWrap" style="display:none">
-                <select id="cmFlapVendor"><option value="blum">BLUM</option><option value="gtv">GTV</option><option value="hafele">HAFELE</option></select>
-                <div id="cmFlapKindWrap"><select id="cmFlapKind"></select></div>
-                <div id="cmFlapInfo" style="display:none"></div>
-                <div id="cmFlapFrontInfo" style="display:none"></div>
-              </div>
-              <div id="cmShelvesWrap" style="display:none"><input id="cmShelves" type="number"/></div>
-              <div id="cmHint" class="cabinet-inline-hint"></div>
-              <div id="cmExtraDetails" class="cabinet-extra-details"></div>
-              <div id="cmDynamicHost"></div>
-              <input id="cmWidth" type="number"/>
-              <input id="cmHeight" type="number"/>
-              <input id="cmDepth" type="number"/>
-              <select id="cmFrontMaterial"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select>
-              <select id="cmFrontColor"></select>
-              <select id="cmBackMaterial"><option value="HDF 3mm biała">HDF 3mm biała</option><option value="18 mm pod kolor korpusu">18 mm pod kolor</option><option value="Brak">Brak</option></select>
-              <select id="cmBodyColor"></select>
-              <select id="cmOpeningSystem"></select>
             </div>
             <div id="setWizardArea" class="cabinet-choice-sync" style="display:none">
               <div id="setWizardTitle"></div>
@@ -348,6 +362,41 @@
         });
       }),
 
+
+      H.makeTest('Szafki', 'Moduł z podnośnikiem renderuje launcher rodzaju bez powrotu do systemowego selecta', 'Pilnuje, czy przy module uchylnym pole rodzaju podnośnika też korzysta z launchera aplikacyjnego, a select źródłowy zostaje tylko pod spodem.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          host.cabinetModalState.chosen = 'moduł';
+          host.cabinetModalState.draft = { type:'moduł', subType:'uchylne', width:60, height:94.2, depth:36, frontMaterial:'laminat', frontColor:'Egger W1100 ST9 Biały Alpejski', backMaterial:'HDF 3mm biała', bodyColor:'Egger W1100 ST9 Biały Alpejski', openingSystem:'uchwyt klienta', frontCount:1, details:{ flapVendor:'blum', flapKind:'HKI', shelves:2 } };
+          FC.cabinetModal.renderCabinetModal();
+          const select = document.getElementById('cmFlapKind');
+          const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFlapKind"]');
+          const btn = slot && slot.querySelector('.cabinet-choice-launch');
+          H.assert(select && String(select.tagName || '').toLowerCase() === 'select', 'Pole cmFlapKind przestało istnieć jako natywny select', select && select.outerHTML);
+          H.assert(select && select.classList.contains('cabinet-choice-source--enhanced'), 'Pole cmFlapKind nie zostało oznaczone jako ukryty select źródłowy', select && select.className);
+          H.assert(!!btn, 'Pole cmFlapKind nie dostało launchera aplikacyjnego', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zestaw liczy parametry bez zależności od globalnej calcTopForSet', 'Pilnuje, czy render zestawu korzysta z namespacowanego helpera obliczeń i nie zależy od przypadkowej globalki z app.js.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const prevGlobal = Object.prototype.hasOwnProperty.call(host, 'calcTopForSet') ? host.calcTopForSet : undefined;
+          try{
+            try{ delete host.calcTopForSet; }catch(_){ host.calcTopForSet = undefined; }
+            host.cabinetModalState.chosen = 'zestaw';
+            host.cabinetModalState.setPreset = 'A';
+            FC.cabinetModal.renderCabinetModal();
+            const result = document.getElementById('setHTopResult');
+            H.assert(result && String(result.value || '') !== '', 'Render zestawu dalej zależy od globalnej calcTopForSet', result && result.outerHTML);
+          } finally {
+            if(prevGlobal === undefined){ try{ delete host.calcTopForSet; }catch(_){ host.calcTopForSet = undefined; } }
+            else host.calcTopForSet = prevGlobal;
+          }
+        });
+      }),
       H.makeTest('Szafki', 'Modal szafki renderuje warianty bez zależności od globalnej getSubTypeOptionsForType', 'Pilnuje antyregresję środowiska testowego i przyszłego splitu Wywiadu: modal szafki ma czytać warianty z FC.cabinetFronts, a nie wymagać przypadkowej globalki z app.js.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;

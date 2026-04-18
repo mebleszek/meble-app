@@ -89,6 +89,34 @@
     return api;
   }
 
+
+  function isElementVisible(el){
+    if(!el) return false;
+    try{
+      let cur = el;
+      while(cur && cur !== document.body){
+        const style = getComputedStyle(cur);
+        if(style.display === 'none' || style.visibility === 'hidden') return false;
+        cur = cur.parentElement;
+      }
+      return true;
+    }catch(_){ return true; }
+  }
+
+  function findSafeConfigById(id){
+    return SAFE_FIELD_CONFIG.find((cfg)=> String(cfg && cfg.id || '') === String(id || '')) || null;
+  }
+
+  function resolveConfigForSelect(selectEl){
+    if(!selectEl) return null;
+    const safeCfg = findSafeConfigById(selectEl.id);
+    if(safeCfg) return safeCfg;
+    if(selectEl.classList.contains('cabinet-extra-field__control') || selectEl.classList.contains('set-front-choice-source') || selectEl.classList.contains('cabinet-dynamic-choice-source') || selectEl.getAttribute('data-launcher-label')){
+      return buildDynamicConfigForSelect(selectEl);
+    }
+    return null;
+  }
+
   function ensureSlot(selectEl){
     if(!selectEl || !selectEl.parentNode) return null;
     let slot = selectEl.parentNode.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + selectEl.id + '"]');
@@ -209,6 +237,26 @@
     });
   }
 
+
+  function mountVisibleFallbackLaunchers(rootEl){
+    const root = rootEl || document;
+    const selects = Array.from(root && root.querySelectorAll ? root.querySelectorAll('select') : []);
+    return selects.map((selectEl)=>{
+      const cfg = resolveConfigForSelect(selectEl);
+      if(!cfg) return { id: selectEl && selectEl.id || '', button:null };
+      if(!isElementVisible(selectEl)){
+        cleanupLauncher(selectEl);
+        return { id: cfg.id || selectEl.id, button:null };
+      }
+      const slot = selectEl.parentNode && selectEl.parentNode.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + selectEl.id + '"]');
+      const existingBtn = slot && slot.querySelector('.cabinet-choice-launch');
+      if(existingBtn && selectEl.classList.contains('cabinet-choice-source--enhanced')){
+        return { id: cfg.id || selectEl.id, button: existingBtn };
+      }
+      return { id: cfg.id || selectEl.id, button: mountSelectLauncher(selectEl, cfg) };
+    });
+  }
+
   FC.cabinetChoiceLaunchers = {
     SAFE_FIELD_CONFIG,
     buildOptions,
@@ -216,6 +264,7 @@
     mountSelectLauncher,
     mountSafeFieldLaunchers,
     mountDynamicSelectLaunchers,
+    mountVisibleFallbackLaunchers,
     shouldMountField
   };
 })();
