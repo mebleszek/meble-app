@@ -11,15 +11,37 @@
     { key:'ceilingBlende', label:'Blenda góra (cm)', step:'0.1' }
   ];
 
+  function getSharedUiState(){
+    try{ if(typeof uiState !== 'undefined' && uiState && typeof uiState === 'object') return uiState; }catch(_){ }
+    try{ if(window.uiState && typeof window.uiState === 'object') return window.uiState; }catch(_){ }
+    return null;
+  }
+
+  function getSharedProjectData(){
+    try{ if(typeof projectData !== 'undefined' && projectData && typeof projectData === 'object') return projectData; }catch(_){ }
+    try{ if(window.projectData && typeof window.projectData === 'object') return window.projectData; }catch(_){ }
+    return null;
+  }
+
+  function syncSharedProjectData(nextProject){
+    try{ if(typeof projectData !== 'undefined') projectData = nextProject; }catch(_){ }
+    try{ window.projectData = nextProject; }catch(_){ }
+    return nextProject;
+  }
+
   function getCurrentRoom(){
-    try{ return String((window.uiState && window.uiState.roomType) || '').trim(); }catch(_){ return ''; }
+    try{
+      const state = getSharedUiState();
+      return String((state && state.roomType) || '').trim();
+    }catch(_){ return ''; }
   }
 
   function getRoomSettings(room){
     const key = String(room || '').trim();
     if(!key) return null;
     try{
-      const data = window.projectData && window.projectData[key];
+      const project = getSharedProjectData();
+      const data = project && project[key];
       if(data && typeof data === 'object') return data.settings || null;
     }catch(_){ }
     return null;
@@ -106,10 +128,13 @@
     }catch(_){ }
     try{
       const room = getCurrentRoom();
-      if(!room) return;
-      window.projectData[room].settings[field] = value === '' ? 0 : parseFloat(value);
+      const project = getSharedProjectData();
+      if(!room || !project || !project[room] || !project[room].settings) return;
+      project[room].settings[field] = value === '' ? 0 : parseFloat(value);
       if(window.FC && window.FC.project && typeof window.FC.project.save === 'function'){
-        window.projectData = window.FC.project.save(window.projectData);
+        syncSharedProjectData(window.FC.project.save(project));
+      } else {
+        syncSharedProjectData(project);
       }
       try{ typeof window.renderTopHeight === 'function' && window.renderTopHeight(); }catch(_){ }
       try{ typeof window.renderCabinets === 'function' && window.renderCabinets(); }catch(_){ }

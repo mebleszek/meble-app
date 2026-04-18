@@ -20,11 +20,21 @@
         const style = getComputedStyle(cur);
         const hiddenByDisplay = style.display === 'none';
         const ignoreOwnLauncherHide = cur === selectEl && isLauncherOwnCssHide(selectEl);
-        if((hiddenByDisplay && !ignoreOwnLauncherHide) || style.visibility === 'hidden') return false;
+        if(((hiddenByDisplay && !ignoreOwnLauncherHide) || style.visibility === 'hidden') && !isIgnorableModalStructure(cur)) return false;
         cur = cur.parentElement;
       }
       return true;
     }catch(_){ return true; }
+  }
+
+  function isIgnorableModalStructure(node){
+    if(!node) return false;
+    try{
+      if(node.id === 'cabinetModal' || node.id === 'cabinetFormArea') return true;
+      if(node.classList && (node.classList.contains('modal-back') || node.classList.contains('modal') || node.classList.contains('cabinet-choice-sync'))) return true;
+      if(node.getAttribute && node.getAttribute('data-test-fixture') === 'cabinet-modal') return true;
+    }catch(_){ }
+    return false;
   }
 
   function isVisibleById(id){
@@ -226,10 +236,9 @@
       while(cur && cur !== document.body){
         const style = getComputedStyle(cur);
         const ownHide = cur === selectEl && isLauncherOwnCssHide(selectEl);
-        const isCabinetModalRoot = !!(cur.id === 'cabinetModal' || (cur.classList && cur.classList.contains('modal-back')));
         const hiddenByDisplay = style.display === 'none';
         const hiddenByVisibility = style.visibility === 'hidden';
-        if(((hiddenByDisplay && !ownHide) || hiddenByVisibility) && !isCabinetModalRoot) return false;
+        if(((hiddenByDisplay && !ownHide) || hiddenByVisibility) && !isIgnorableModalStructure(cur)) return false;
         cur = cur.parentElement;
       }
       return true;

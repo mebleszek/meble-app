@@ -1,0 +1,23 @@
+<!doctype html><html><body>
+<iframe id="f" src="dev_tests.html" style="width:1200px;height:900px"></iframe>
+<pre id="out">loading</pre>
+<script>
+(async function(){
+  const frame = document.getElementById('f');
+  await new Promise((resolve)=> frame.addEventListener('load', resolve, {once:true}));
+  const w = frame.contentWindow;
+  function delay(ms){ return new Promise(r=> setTimeout(r, ms)); }
+  for(let i=0;i<100;i++){
+    if(w.FC && w.FC.cabinetDevTests && w.FC.projectDevTests) break;
+    await delay(50);
+  }
+  try{
+    const proj = await w.FC.projectDevTests.runAll();
+    const cab = await w.FC.cabinetDevTests.runAll();
+    document.getElementById('out').textContent = JSON.stringify({project:proj, cabinet:cab}, null, 2);
+  }catch(err){
+    document.getElementById('out').textContent = 'ERR\n' + (err && err.stack || err);
+  }
+})();
+</script>
+</body></html>
