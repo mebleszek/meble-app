@@ -596,17 +596,100 @@
 .quote-scope-entry-modal__actions--single{grid-template-columns:minmax(140px,220px);justify-content:center;}
 .quote-scope-entry-modal__actions--stacked{grid-template-columns:1fr;}
 .quote-scope-entry-modal__action{min-height:48px;justify-content:center;}
-.quote-scope-entry-modal--name{width:min(560px,calc(100vw - 24px));max-width:100%;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:min(82vh,760px);}
-.quote-scope-entry-modal--name .quote-scope-entry-name__body{padding:20px 22px 0;overflow:hidden;}
-.quote-scope-entry-name__scroll{display:flex;flex-direction:column;gap:12px;}
-.quote-scope-entry-name__message{margin:0;font-size:15px;line-height:1.48;font-weight:800;color:#334155;}
-.quote-scope-entry-name__field{display:flex;flex-direction:column;gap:8px;}
-.quote-scope-entry-name__field-label{font-size:13px;line-height:1.15;color:#64748b;font-weight:800;}
-.quote-scope-entry-name__input{min-height:32px;}
-.quote-scope-entry-name__hint{margin:0;font-size:13px;line-height:1.45;color:#64748b;font-weight:700;}
-.quote-scope-entry-name__footer{padding-top:12px;margin-top:12px;}
-.quote-scope-entry-name__actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-.quote-scope-entry-name__action{width:100%;min-width:0;justify-content:center;}
+.quote-scope-entry-modal--name{
+  width:min(720px,calc(100vw - 24px));
+  max-width:100%;
+  max-height:min(82vh,760px);
+  overflow:hidden;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+}
+.quote-scope-entry-modal--name .quote-scope-entry-name__body{
+  overflow:hidden;
+}
+.quote-scope-entry-name__scroll{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  padding-right:0;
+  padding-bottom:max(18px, env(safe-area-inset-bottom));
+}
+.quote-scope-entry-name__message{
+  margin:0;
+  font-size:15px;
+  line-height:1.42;
+  font-weight:900;
+  color:#334155;
+}
+.quote-scope-entry-name__field{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.quote-scope-entry-name__field-label{
+  font-size:15px;
+  line-height:1.14;
+  color:#475569;
+  font-weight:900;
+}
+.quote-scope-entry-name__input{
+  width:100%;
+  min-height:44px;
+  padding:0 14px;
+  box-sizing:border-box;
+  border:1.5px solid rgba(15,23,42,.16);
+  border-radius:18px;
+  background:linear-gradient(180deg,#f6f8fb 0%,#ffffff 100%);
+  box-shadow:inset 0 2px 6px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.94), 0 1px 0 rgba(255,255,255,.66);
+  color:#0f172a;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:-.02em;
+}
+.quote-scope-entry-name__input::placeholder{
+  color:#94a3b8;
+  font-weight:800;
+}
+.quote-scope-entry-name__input:focus{
+  border-color:rgba(22,163,74,.38);
+  outline:none;
+  box-shadow:inset 0 2px 6px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.94), 0 0 0 3px rgba(22,163,74,.10);
+}
+.quote-scope-entry-name__hint{display:none;}
+.quote-scope-entry-modal--name .panel-box-form__footer{
+  border-top:none;
+  background:transparent;
+  padding-top:20px;
+  margin-top:0;
+  position:static;
+}
+.quote-scope-entry-name__footer{
+  width:100%;
+}
+.quote-scope-entry-name__actions{
+  width:100%;
+}
+.quote-scope-entry-name__action{
+  width:126px;
+  min-width:126px;
+  justify-content:center;
+}
+@media (max-width:640px){
+  .quote-scope-entry-backdrop{align-items:flex-start;padding:18vh 10px 14px;}
+  .quote-scope-entry-modal--name{
+    width:min(100vw - 12px,720px);
+    max-height:calc(100dvh - 36px);
+  }
+  .quote-scope-entry-name__scroll{
+    gap:14px;
+    padding-bottom:max(18px, env(safe-area-inset-bottom));
+  }
+  .quote-scope-entry-name__message{font-size:15px;line-height:1.4;}
+  .quote-scope-entry-name__field-label{font-size:14px;}
+  .quote-scope-entry-name__input{min-height:42px;font-size:17px;border-radius:16px;padding:0 13px;}
+  .quote-scope-entry-name__action{width:126px;min-width:126px;}
+}
 .cabinet-choice-sync .cabinet-choice-source--enhanced{display:none;}
 .cabinet-choice-sync .cabinet-choice-launch-slot{margin-top:6px;}
 .cabinet-choice-sync .cabinet-choice-launch{width:100%;min-height:32px;padding:5px 8px;border-radius:8px;justify-content:flex-start;border-width:1px!important;box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;}

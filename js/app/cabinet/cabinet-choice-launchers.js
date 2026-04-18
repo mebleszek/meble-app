@@ -6,9 +6,44 @@
   const SAFE_FIELD_CONFIG = [
     { id:'cmSubType', title:'Wybierz wariant', placeholder:'Wybierz wariant' },
     { id:'cmFrontMaterial', title:'Wybierz materiał frontu', placeholder:'Wybierz materiał frontu' },
+    { id:'cmFrontColor', title:'Wybierz kolor frontu', placeholder:'Wybierz kolor frontu' },
     { id:'cmBackMaterial', title:'Wybierz plecy', placeholder:'Wybierz plecy' },
     { id:'cmBodyColor', title:'Wybierz korpus', placeholder:'Wybierz korpus' },
-    { id:'cmOpeningSystem', title:'Wybierz system otwierania', placeholder:'Wybierz system otwierania' }
+    { id:'cmOpeningSystem', title:'Wybierz system otwierania', placeholder:'Wybierz system otwierania' },
+    {
+      id:'cmFrontCount',
+      title:'Wybierz ilość frontów',
+      placeholder:'Wybierz ilość frontów',
+      shouldMount(){
+        const selectEl = document.getElementById('cmFrontCount');
+        const staticEl = document.getElementById('cmFrontCountStatic');
+        if(!selectEl) return false;
+        if(staticEl && getComputedStyle(staticEl).display !== 'none') return false;
+        return getComputedStyle(selectEl).display !== 'none';
+      }
+    },
+    {
+      id:'cmFlapVendor',
+      title:'Wybierz producenta podnośnika',
+      placeholder:'Wybierz producenta podnośnika',
+      shouldMount(){
+        const wrap = document.getElementById('cmFlapWrap');
+        const selectEl = document.getElementById('cmFlapVendor');
+        if(!wrap || !selectEl) return false;
+        return getComputedStyle(wrap).display !== 'none' && getComputedStyle(selectEl).display !== 'none';
+      }
+    },
+    {
+      id:'cmFlapKind',
+      title:'Wybierz rodzaj podnośnika',
+      placeholder:'Wybierz rodzaj podnośnika',
+      shouldMount(){
+        const wrap = document.getElementById('cmFlapKindWrap');
+        const selectEl = document.getElementById('cmFlapKind');
+        if(!wrap || !selectEl) return false;
+        return getComputedStyle(wrap).display !== 'none' && getComputedStyle(selectEl).display !== 'none';
+      }
+    }
   ];
 
   function getChoiceApi(){
@@ -49,8 +84,19 @@
     }));
   }
 
+  function shouldMountField(selectEl, cfg){
+    try{
+      if(cfg && typeof cfg.shouldMount === 'function') return !!cfg.shouldMount(selectEl);
+    }catch(_){ return false; }
+    return !!selectEl;
+  }
+
   function mountSelectLauncher(selectEl, cfg){
     if(!selectEl) return null;
+    if(!shouldMountField(selectEl, cfg)){
+      cleanupLauncher(selectEl);
+      return null;
+    }
     const api = getChoiceApi();
     if(!api){
       cleanupLauncher(selectEl);
@@ -96,6 +142,7 @@
     buildOptions,
     cleanupLauncher,
     mountSelectLauncher,
-    mountSafeFieldLaunchers
+    mountSafeFieldLaunchers,
+    shouldMountField
   };
 })();

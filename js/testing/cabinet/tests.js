@@ -215,7 +215,7 @@
           FC.cabinetModal.openCabinetModalForAdd();
           const modal = document.getElementById('cabinetModal');
           const save = document.getElementById('cabinetModalSave');
-          const ids = ['cmSubType','cmFrontMaterial','cmBackMaterial','cmBodyColor','cmOpeningSystem'];
+          const ids = ['cmSubType','cmFrontMaterial','cmFrontColor','cmBackMaterial','cmBodyColor','cmOpeningSystem','cmFrontCount'];
           const fields = ids.map((id)=> document.getElementById(id));
           H.assert(modal && modal.style.display === 'flex', 'Modal szafki nie otworzył się w trybie dodawania', modal && modal.style.display);
           H.assert(save && save.textContent === 'Dodaj', 'Przycisk zapisu w trybie dodawania nie pokazuje CTA „Dodaj”', save && save.textContent);
@@ -230,7 +230,7 @@
         if(typeof document === 'undefined' || !document || !document.body) return;
         return withCabinetModalFixture({}, ()=>{
           FC.cabinetModal.openCabinetModalForAdd();
-          ['cmSubType','cmFrontMaterial','cmBackMaterial','cmBodyColor','cmOpeningSystem'].forEach((id)=>{
+          ['cmSubType','cmFrontMaterial','cmFrontColor','cmBackMaterial','cmBodyColor','cmOpeningSystem','cmFrontCount'].forEach((id)=>{
             const select = document.getElementById(id);
             const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
             const btn = slot && slot.querySelector('.cabinet-choice-launch');
@@ -257,6 +257,40 @@
             await new Promise((resolve)=> setTimeout(resolve, 0));
             H.assert(String(select && select.value || '') === 'akryl', 'Launcher nie zaktualizował natywnego selecta materiału frontu', { value:select && select.value });
             H.assert(draft && draft.frontMaterial === 'akryl', 'Launcher nie zaktualizował draftu szafki przez native select', draft);
+          } finally {
+            FC.rozrysChoice.openRozrysChoiceOverlay = prevOpen;
+          }
+        });
+      }),
+
+      H.makeTest('Szafki', 'Druga paczka launcherów obejmuje kolor frontu i liczbę frontów bez utraty natywnego selecta', 'Pilnuje kolejny etap UI Wywiadu: kolor frontu i liczba frontów też dostają launcher aplikacyjny, ale select źródłowy nadal pozostaje w DOM i dalej napędza draft.', async ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        H.assert(FC.rozrysChoice && typeof FC.rozrysChoice.openRozrysChoiceOverlay === 'function', 'Brak FC.rozrysChoice.openRozrysChoiceOverlay');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, async ()=>{
+          const prevOpen = FC.rozrysChoice.openRozrysChoiceOverlay;
+          try{
+            FC.cabinetModal.openCabinetModalForAdd();
+            const draft = host.cabinetModalState && host.cabinetModalState.draft;
+            const frontColorSelect = document.getElementById('cmFrontColor');
+            const frontCountSelect = document.getElementById('cmFrontCount');
+            const frontColorLauncher = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFrontColor"] .cabinet-choice-launch');
+            const frontCountLauncher = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFrontCount"] .cabinet-choice-launch');
+            H.assert(frontColorSelect && String(frontColorSelect.tagName || '').toLowerCase() === 'select', 'Pole cmFrontColor przestało istnieć jako natywny select', frontColorSelect && frontColorSelect.outerHTML);
+            H.assert(frontCountSelect && String(frontCountSelect.tagName || '').toLowerCase() === 'select', 'Pole cmFrontCount przestało istnieć jako natywny select', frontCountSelect && frontCountSelect.outerHTML);
+            H.assert(!!frontColorLauncher, 'Pole cmFrontColor nie dostało launchera aplikacyjnego');
+            H.assert(!!frontCountLauncher, 'Pole cmFrontCount nie dostało launchera aplikacyjnego');
+
+            FC.rozrysChoice.openRozrysChoiceOverlay = async ({ title })=> /kolor/i.test(String(title || '')) ? String(frontColorSelect.options[0] && frontColorSelect.options[0].value || '') : '1';
+            frontColorLauncher.click();
+            await new Promise((resolve)=> setTimeout(resolve, 0));
+            H.assert(String(draft && draft.frontColor || '') === String(frontColorSelect && frontColorSelect.value || ''), 'Launcher koloru frontu nie zaktualizował draftu przez natywny select', draft);
+
+            FC.rozrysChoice.openRozrysChoiceOverlay = async ()=> '1';
+            frontCountLauncher.click();
+            await new Promise((resolve)=> setTimeout(resolve, 0));
+            H.assert(String(frontCountSelect && frontCountSelect.value || '') === '1', 'Launcher liczby frontów nie zaktualizował natywnego selecta', frontCountSelect && frontCountSelect.value);
+            H.assert(Number(draft && draft.frontCount || 0) === 1, 'Launcher liczby frontów nie zaktualizował draftu', draft);
           } finally {
             FC.rozrysChoice.openRozrysChoiceOverlay = prevOpen;
           }

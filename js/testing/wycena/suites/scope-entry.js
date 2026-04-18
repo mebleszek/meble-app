@@ -203,9 +203,9 @@
           const dialog = document.querySelector('.quote-scope-entry-modal--name');
           H.assert(dialog, 'Nie otworzył się modal nazwy nowej wyceny');
           H.assert(dialog.classList.contains('panel-box'), 'Modal nazwy nie używa shellu panel-box');
-          H.assert(dialog.classList.contains('investor-card-sync'), 'Modal nazwy nie używa lokalnego wzorca pól inwestora');
+          H.assert(dialog.classList.contains('panel-box--rozrys'), 'Modal nazwy nie używa referencyjnego shellu ROZRYS');
           H.assert(!!dialog.querySelector('.panel-box__head'), 'Modal nazwy nie renderuje nagłówka panel-box');
-          H.assert(!!dialog.querySelector('.panel-box-form__footer'), 'Modal nazwy nie renderuje stopki formularza panel-box');
+          H.assert(!!dialog.querySelector('.panel-box-form__footer.rozrys-picker-footer'), 'Modal nazwy nie renderuje stopki jak w referencyjnym modalu ROZRYS');
           H.assert(!dialog.querySelector('.quote-scope-entry-modal__scope'), 'Modal nadal renderuje osobny blok Pomieszczenia');
           const input = dialog.querySelector('.quote-scope-entry-name__input.investor-form-input');
           H.assert(input, 'Modal nazwy nie renderuje inputu w stylu inwestora');

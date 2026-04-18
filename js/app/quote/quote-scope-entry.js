@@ -359,7 +359,7 @@ Pomieszczenia: ${summary.scopeLabel}`
       const suggestedName = String(opts.suggestedName || buildSuggestedVersionName(projectId, scope.roomIds, preliminary) || '').trim();
       const submitLabel = String(opts.submitLabel || 'OK').trim() || 'OK';
       const cancelLabel = String(opts.cancelLabel || 'Anuluj').trim() || 'Anuluj';
-      dialog.classList.add('panel-box', 'quote-scope-entry-modal--name', 'investor-card-sync');
+      dialog.classList.add('panel-box', 'panel-box--rozrys', 'quote-scope-entry-modal--name');
       const title = h('div', { class:'panel-box__title quote-scope-entry-name__title', text: String(opts.title || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY')).trim() || (preliminary ? 'NAZWA NOWEJ WYCENY WSTĘPNEJ' : 'NAZWA NOWEJ WYCENY') });
       const closeBtn = h('button', { type:'button', class:'panel-box__close quote-scope-entry-name__close', 'aria-label':'Zamknij okno', text:'×' });
       const head = h('div', { class:'panel-box__head quote-scope-entry-name__head' }, [title, closeBtn]);
@@ -377,8 +377,8 @@ Pomieszczenia: ${summary.scopeLabel}`
         ? ''
         : String(rawHint == null ? 'Proponowana nazwa jest już przygotowana jako kolejny wariant dla tego samego zakresu. Możesz ją zmienić, ale nie możesz zapisać duplikatu.' : rawHint).trim();
       if(hintText) scroll.appendChild(h('div', { class:'quote-scope-entry-name__hint', text:hintText }));
-      const footer = h('div', { class:'panel-box-form__footer quote-scope-entry-name__footer' });
-      const actions = h('div', { class:'quote-scope-entry-name__actions' });
+      const footer = h('div', { class:'panel-box-form__footer quote-scope-entry-name__footer rozrys-picker-footer rozrys-picker-footer--material' });
+      const actions = h('div', { class:'quote-scope-entry-name__actions rozrys-picker-footer-actions' });
       const cancelBtn = h('button', { type:'button', class:'btn-danger quote-scope-entry-name__action', text:cancelLabel });
       const submitBtn = h('button', { type:'button', class:'btn-success quote-scope-entry-name__action', text:submitLabel });
       actions.appendChild(cancelBtn);
