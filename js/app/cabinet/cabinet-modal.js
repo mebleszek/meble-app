@@ -15,13 +15,30 @@ function inferUniqueFallbackTypeFromSubType(subTypeVal){
   return null;
 }
 
+function doesTypeOwnSubType(typeVal, subTypeVal){
+  const st = String(subTypeVal || '');
+  if(!typeVal || !st) return true;
+  const opts = getSubTypeOptionsForTypeSafe(typeVal);
+  const values = Array.isArray(opts) ? opts.map(function(opt){ return String(opt && opt.v || ''); }) : [];
+  return values.includes(st);
+}
+
+function resolveCabinetModalTypeForUi(typeVal, subTypeVal){
+  const st = String(subTypeVal || '');
+  if(!typeVal){
+    return inferUniqueFallbackTypeFromSubType(st) || typeVal;
+  }
+  if(doesTypeOwnSubType(typeVal, st)) return typeVal;
+  const fallbackType = inferUniqueFallbackTypeFromSubType(st);
+  if(fallbackType) return fallbackType;
+  return typeVal;
+}
+
 function getCabinetModalTypeApi(typeVal, subTypeVal){
-  if(typeVal === 'stojąca') return getCabinetModalStandingApi();
-  if(typeVal === 'wisząca') return getCabinetModalHangingApi();
-  if(typeVal === 'moduł') return getCabinetModalModuleApi();
-  const fallbackType = inferUniqueFallbackTypeFromSubType(subTypeVal);
-  if(fallbackType === 'stojąca') return getCabinetModalStandingApi();
-  if(fallbackType === 'wisząca') return getCabinetModalHangingApi();
+  const effectiveType = resolveCabinetModalTypeForUi(typeVal, subTypeVal);
+  if(effectiveType === 'stojąca') return getCabinetModalStandingApi();
+  if(effectiveType === 'wisząca') return getCabinetModalHangingApi();
+  if(effectiveType === 'moduł') return getCabinetModalModuleApi();
   return {};
 }
 

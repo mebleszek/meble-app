@@ -1,3 +1,8 @@
+## 2026-04-19 — Wywiad fridge launcher regression real fix
+- `js/app/cabinet/cabinet-modal.js` — naprawiony realny błąd fallbacku dla legacy/test fixture lodówkowej: wcześniejszy fallback po `subType` był martwy, bo `getCabinetModalTypeApi(...)` najpierw bezwarunkowo ufał `type`. Teraz warstwa UI sprawdza zgodność `type` z dozwolonymi subtype’ami danej rodziny i tylko gdy `subType` jednoznacznie należy do innej rodziny (`lodowkowa`, `zlewowa`, `zmywarkowa`, `piekarnikowa`, `dolna_podblatowa`), deleguje render do właściwego modułu typu.
+- `index.html` + `dev_tests.html` — podbity cache-busting `cabinet-modal.js`, żeby przeglądarka nie trzymała starej wersji z martwym fallbackiem.
+- Instrukcja antyregresyjna: przy legacy/test danych z niespójnym `type`/`subType` nie wystarczy fallback „gdy type jest pusty”. Najpierw sprawdzić, czy wskazany `type` w ogóle posiada dany `subType`; dopiero potem można bezpiecznie użyć wąskiego fallbacku po jednoznacznym `subType`, wyłącznie dla warstwy UI/renderu.
+
 ## 2026-04-19 — Wywiad lodówkowa niche restore + legacy dynamic renderer fallback
 - `js/app/cabinet/cabinet-modal-standing.js` — przywrócona pełna lista wysokości niszy lodówkowej z wcześniejszej wersji (`82`, `122`, `158`, `178`, `194`, `204`) oraz dawny wariant opcji lodówki wolnostojącej (`Brak`, `Podest`, `Obudowa`), bez zmiany logiki wyliczeń lodówkowej.
 - `js/app/cabinet/cabinet-modal.js` — `renderCabinetExtraDetailsInto(...)` ma wąski fallback antyregresyjny dla jednoznacznych subtype'ów (`zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, `dolna_podblatowa`), więc legacy/test fixture z niezgodnym `type` nie traci dynamicznych selectów i launcherów.
