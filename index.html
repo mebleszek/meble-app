@@ -6,7 +6,7 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260418_quote_modal_message_and_wywiad_form_sync_v3">
+<link rel="stylesheet" href="css/style.css?v=20260418_wywiad_finish_v4">
 <link rel="stylesheet" href="css/investor-layout.css?v=20260407_stage2_fix_v2">
 <link rel="stylesheet" href="css/investor-form.css?v=20260405_field_unify_width_sync_v1">
 <link rel="stylesheet" href="css/rozrys-reference-sync.css?v=20260414_status_modal_grey_v1">
@@ -98,9 +98,9 @@
   <div id="magazynRoot"></div>
 </div>
 <div id="appView" style="display:none">
-<div class="card" id="roomSettingsCard">
-<h3 id="roomTitle">Pomieszczenie</h3>
-<div class="grid-3" style="margin-top:12px">
+<div class="card wywiad-room-shell" id="roomSettingsCard">
+<div class="wywiad-room-shell__head"><div><h3 id="roomTitle">Pomieszczenie</h3><div class="wywiad-room-shell__sub">Parametry pomieszczenia używane w Wywiadzie.</div></div><div class="wywiad-room-shell__summary muted xs">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div></div>
+<div class="grid-3 wywiad-room-grid" style="margin-top:12px">
 <div>
 <label>Wys. Pomieszczenia (cm)</label>
 <input id="roomHeight" type="number"/>
@@ -126,11 +126,12 @@
 <input id="ceilingBlende" type="number"/>
 </div>
 </div>
-<div class="muted xs" style="margin-top:12px">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div>
+
 </div>
-<div class="card" style="margin-top:12px">
-<div style="display:flex;justify-content:space-between;align-items:center">
+<div class="card wywiad-cabinets-shell" style="margin-top:12px">
+<div class="wywiad-cabinets-shell__head" style="display:flex;justify-content:space-between;align-items:center">
 <h3 style="margin:0">Szafki</h3>
+<div class="wywiad-cabinets-shell__hint muted xs">Dodawaj i edytuj szafki bez ciężkich bloków nad listą.</div>
 </div>
 <div id="cabinetsList" style="margin-top:14px"></div>
 <!-- Ukryte, bo fronty pokazujemy pod zestawami / pod lodówkową -->
@@ -393,7 +394,7 @@
 </div>
 <!-- Przyciski: Zatwierdź jest na górze obok Zamknij (zawsze widoczny). -->
 </div>
-<div id="setWizardArea" style="display:none">
+<div id="setWizardArea" class="cabinet-choice-sync" style="display:none">
 <div class="card" style="margin-bottom:12px">
 <h3 class="section-title" id="setWizardTitle" style="margin:0 0 10px 0">Zestaw</h3>
 <div class="muted xs" id="setWizardDesc" style="margin-bottom:12px;line-height:1.35">
@@ -408,14 +409,14 @@
 <div class="grid-3">
 <div>
 <label>Ilość frontów</label>
-<select id="setFrontCount">
+<select id="setFrontCount" class="set-front-choice-source" data-launcher-label="Ilość frontów">
 <option value="1">1</option>
 <option value="2">2</option>
 </select>
 </div>
 <div>
 <label>Materiał frontów</label>
-<select id="setFrontMaterial">
+<select id="setFrontMaterial" class="set-front-choice-source" data-launcher-label="Materiał frontów">
 <option value="laminat">Laminat</option>
 <option value="akryl">Akryl</option>
 <option value="lakier">Lakier</option>
@@ -423,7 +424,7 @@
 </div>
 <div>
 <label>Kolor frontów</label>
-<select id="setFrontColor"></select>
+<select id="setFrontColor" class="set-front-choice-source" data-launcher-label="Kolor frontów"></select>
 </div>
 </div>
 <div class="muted xs" id="setFrontHint" style="margin-top:10px;padding:10px;border:1px solid #eef6fb;border-radius:10px;background:#fbfdff">
@@ -518,11 +519,11 @@
 <script defer src="js/app/ui/settings-ui.js?v=20260328_rozrys_choice_clean_v1"></script>
 
 <!-- core app (definiuje globalne funkcje wykorzystywane przez akcje i zakładki) -->
-<script defer src="js/app.js?v=20260416_refresh_restore_v1"></script>
+<script defer src="js/app.js?v=20260418_wywiad_finish_v4"></script>
 <script defer src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
 <script defer src="js/app/cabinet/cabinet-fronts.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/cabinet/cabinet-choice-launchers.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
-<script defer src="js/app/cabinet/cabinet-modal.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
+<script defer src="js/app/cabinet/cabinet-choice-launchers.js?v=20260418_wywiad_finish_v4"></script>
+<script defer src="js/app/cabinet/cabinet-modal.js?v=20260418_wywiad_finish_v4"></script>
 
 <!-- Per-investor isolated projects (cabinets/rooms/materials) -->
 <script defer src="js/app/investor/investor-project.js?v=20260408_stage3_arch_v1"></script>

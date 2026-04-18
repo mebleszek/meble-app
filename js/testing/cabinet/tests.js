@@ -112,16 +112,16 @@
               <select id="cmBodyColor"></select>
               <select id="cmOpeningSystem"></select>
             </div>
-            <div id="setWizardArea" style="display:none">
+            <div id="setWizardArea" class="cabinet-choice-sync" style="display:none">
               <div id="setWizardTitle"></div>
               <div id="setWizardDesc"></div>
               <div id="setTiles"></div>
               <button id="setWizardCreate" type="button"></button>
               <div id="setParams" style="display:none"></div>
               <div id="setFrontBlock" style="display:none">
-                <select id="setFrontCount"><option value="1">1</option><option value="2">2</option></select>
-                <select id="setFrontMaterial"><option value="laminat">Laminat</option></select>
-                <select id="setFrontColor"></select>
+                <select id="setFrontCount" class="set-front-choice-source" data-launcher-label="Ilość frontów"><option value="1">1</option><option value="2">2</option></select>
+                <select id="setFrontMaterial" class="set-front-choice-source" data-launcher-label="Materiał frontów"><option value="laminat">Laminat</option></select>
+                <select id="setFrontColor" class="set-front-choice-source" data-launcher-label="Kolor frontów"></select>
                 <div id="setFrontHint"></div>
               </div>
             </div>
@@ -310,6 +310,40 @@
           } finally {
             FC.rozrysChoice.openRozrysChoiceOverlay = prevOpen;
           }
+        });
+      }),
+
+
+      H.makeTest('Szafki', 'Dynamiczny select Wnętrze dostaje launcher bez gubienia źródłowego selecta', 'Pilnuje, czy dodatkowe pola dokładane w trakcie renderu modala szafki też przechodzą na launcher aplikacyjny, ale nadal zostawiają natywny select jako źródło prawdy.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          FC.cabinetModal.openCabinetModalForAdd();
+          const select = document.getElementById('cmExtraSelectInsideMode');
+          const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmExtraSelectInsideMode"]');
+          const btn = slot && slot.querySelector('.cabinet-choice-launch');
+          H.assert(select && String(select.tagName || '').toLowerCase() === 'select', 'Dynamiczne pole Wnętrze nie istnieje jako natywny select', select && select.outerHTML);
+          H.assert(!!btn, 'Dynamiczne pole Wnętrze nie dostało launchera aplikacyjnego', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zestaw renderuje launchery dla frontów bez utraty natywnych selectów', 'Pilnuje, czy blok frontów w zestawie też używa launcherów aplikacyjnych, ale selecty źródłowe nadal pozostają w DOM.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          host.cabinetModalState.chosen = 'zestaw';
+          host.cabinetModalState.setPreset = 'A';
+          FC.cabinetModal.renderCabinetModal();
+          const frontBlock = document.getElementById('setFrontBlock');
+          if(frontBlock) frontBlock.style.display = 'block';
+          FC.cabinetModal.renderCabinetModal();
+          ['setFrontCount','setFrontMaterial','setFrontColor'].forEach((id)=>{
+            const select = document.getElementById(id);
+            const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
+            const btn = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(select && String(select.tagName || '').toLowerCase() === 'select', `Pole ${id} przestało istnieć jako natywny select`, select && select.outerHTML);
+            H.assert(!!btn, `Pole ${id} w zestawie nie dostało launchera aplikacyjnego`, slot && slot.innerHTML);
+          });
         });
       }),
 

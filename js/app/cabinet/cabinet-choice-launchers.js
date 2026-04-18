@@ -43,6 +43,39 @@
         if(!wrap || !selectEl) return false;
         return getComputedStyle(wrap).display !== 'none' && getComputedStyle(selectEl).display !== 'none';
       }
+    },
+    {
+      id:'setFrontCount',
+      title:'Wybierz ilość frontów zestawu',
+      placeholder:'Wybierz ilość frontów zestawu',
+      shouldMount(){
+        const wrap = document.getElementById('setFrontBlock');
+        const selectEl = document.getElementById('setFrontCount');
+        if(!wrap || !selectEl) return false;
+        return getComputedStyle(wrap).display !== 'none' && getComputedStyle(selectEl).display !== 'none';
+      }
+    },
+    {
+      id:'setFrontMaterial',
+      title:'Wybierz materiał frontów zestawu',
+      placeholder:'Wybierz materiał frontów zestawu',
+      shouldMount(){
+        const wrap = document.getElementById('setFrontBlock');
+        const selectEl = document.getElementById('setFrontMaterial');
+        if(!wrap || !selectEl) return false;
+        return getComputedStyle(wrap).display !== 'none' && getComputedStyle(selectEl).display !== 'none';
+      }
+    },
+    {
+      id:'setFrontColor',
+      title:'Wybierz kolor frontów zestawu',
+      placeholder:'Wybierz kolor frontów zestawu',
+      shouldMount(){
+        const wrap = document.getElementById('setFrontBlock');
+        const selectEl = document.getElementById('setFrontColor');
+        if(!wrap || !selectEl) return false;
+        return getComputedStyle(wrap).display !== 'none' && getComputedStyle(selectEl).display !== 'none';
+      }
     }
   ];
 
@@ -137,12 +170,52 @@
     });
   }
 
+
+  function buildDynamicConfigForSelect(selectEl){
+    if(!selectEl || !selectEl.id) return null;
+    let labelText = '';
+    try{
+      const field = selectEl.closest('.cabinet-extra-field');
+      const labelEl = field && field.querySelector('.cabinet-extra-field__label');
+      if(labelEl) labelText = String(labelEl.textContent || '').trim();
+    }catch(_){ }
+    if(!labelText){
+      try{
+        const prev = selectEl.previousElementSibling;
+        if(prev && /label/i.test(String(prev.tagName||''))) labelText = String(prev.textContent || '').trim();
+      }catch(_){ }
+    }
+    if(!labelText){
+      try{ labelText = String(selectEl.getAttribute('data-launcher-label') || '').trim(); }catch(_){ }
+    }
+    if(!labelText) labelText = 'Wybierz opcję';
+    return {
+      id:String(selectEl.id || ''),
+      title:'Wybierz: ' + labelText,
+      placeholder:labelText,
+      shouldMount(currentEl){
+        if(!currentEl) return false;
+        try{ return getComputedStyle(currentEl).display !== 'none'; }catch(_){ return true; }
+      }
+    };
+  }
+
+  function mountDynamicSelectLaunchers(rootEl){
+    const root = rootEl || document;
+    const selects = Array.from(root && root.querySelectorAll ? root.querySelectorAll('select.cabinet-extra-field__control, select.set-front-choice-source') : []);
+    return selects.map((selectEl)=>{
+      const cfg = buildDynamicConfigForSelect(selectEl);
+      return { id:selectEl.id, button:mountSelectLauncher(selectEl, cfg) };
+    });
+  }
+
   FC.cabinetChoiceLaunchers = {
     SAFE_FIELD_CONFIG,
     buildOptions,
     cleanupLauncher,
     mountSelectLauncher,
     mountSafeFieldLaunchers,
+    mountDynamicSelectLaunchers,
     shouldMountField
   };
 })();

@@ -289,10 +289,23 @@ function renderCabinetExtraDetailsInto(container, draft){
   const st = draft.subType;
   const d = draft.details || {};
 
+  function makeExtraFieldId(prefix, key){
+    return 'cmExtra' + String(prefix || '') + String(key || '').charAt(0).toUpperCase() + String(key || '').slice(1);
+  }
+
+  function shouldUseCompactNumberField(key, labelText){
+    const compactKeys = new Set(['shelves','innerDrawerCount','techShelfCount','blindPart','dishWasherWidth','ovenHeight','fridgeWidth','fridgeNicheHeight','fridgeFreeOption','drawerCount','fridgeFrontCount']);
+    if(compactKeys.has(String(key || ''))) return true;
+    const label = String(labelText || '').toLowerCase();
+    return /(ilość|szt|cm\)|cm$|wysokość|szerokość|głębokość|blenda)/.test(label);
+  }
+
   function addSelect(labelText, key, options, onChangeExtra){
     const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--select';
-    div.innerHTML = `<label class="cabinet-extra-field__label">${labelText}</label><select class="cabinet-extra-field__control"></select>`;
+    const selectId = makeExtraFieldId('Select', key);
+    div.innerHTML = `<label class="cabinet-extra-field__label" for="${selectId}">${labelText}</label><select id="${selectId}" class="cabinet-extra-field__control" data-launcher-label="${labelText}"></select>`;
     const sel = div.querySelector('select');
+    try{ sel.classList.add('set-front-choice-source'); }catch(_){ }
     options.forEach(opt => {
       const o = document.createElement('option'); o.value=opt.v; o.textContent=opt.t; sel.appendChild(o);
     });
@@ -306,7 +319,8 @@ function renderCabinetExtraDetailsInto(container, draft){
   }
 
   function addNumber(labelText, key, fallback){
-    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--number';
+    const compact = shouldUseCompactNumberField(key, labelText);
+    const div = document.createElement('div'); div.className = 'cabinet-extra-field cabinet-extra-field--number' + (compact ? ' cabinet-extra-field--compact' : '');
     const raw = (draft.details && draft.details[key] != null) ? draft.details[key] : fallback;
     const existingShelves = document.getElementById('cmShelves');
     const idAttr = (!existingShelves && key === 'shelves') ? ' id="cmShelves"' : '';
@@ -1101,15 +1115,18 @@ function renderSetParamsUI(presetId){
   if(!presetId){ paramsWrap.style.display='none'; return; }
 
   paramsWrap.style.display='grid';
+  try{ paramsWrap.classList.add('set-param-grid'); }catch(_){}
 
   function addInput(id,label,value,extra=''){
     const d = document.createElement('div');
-    d.innerHTML = `<label>${label}</label><input id="${id}" type="number" value="${value}" ${extra}/>`;
+    d.className = 'set-param-field';
+    d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" ${extra}/>`;
     paramsWrap.appendChild(d);
   }
   function addReadonly(id,label,value){
     const d = document.createElement('div');
-    d.innerHTML = `<label>${label}</label><input id="${id}" type="number" value="${value}" disabled />`;
+    d.className = 'set-param-field set-param-field--readonly';
+    d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" disabled />`;
     paramsWrap.appendChild(d);
   }
 
@@ -1684,6 +1701,10 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
   try{
     const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;
     if(launcherApi && typeof launcherApi.mountSafeFieldLaunchers === 'function') launcherApi.mountSafeFieldLaunchers();
+    if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function'){
+      launcherApi.mountDynamicSelectLaunchers(document.getElementById('cmExtraDetails'));
+      launcherApi.mountDynamicSelectLaunchers(document.getElementById('setFrontBlock'));
+    }
   }catch(_){ }
 
   const _cabCancel = document.getElementById('cabinetModalCancel');

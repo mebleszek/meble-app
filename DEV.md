@@ -1,3 +1,10 @@
+## 2026-04-18 — Wywiad broader launcher coverage + top/cards/set grid polish
+- `js/app/cabinet/cabinet-choice-launchers.js` — launchery obejmują już nie tylko bezpieczne pola główne modala szafki, ale też dynamiczne selecty dokładane w `cmExtraDetails` oraz selecty bloku `Fronty w zestawie` (`setFrontCount`, `setFrontMaterial`, `setFrontColor`). Native `select` dalej zostaje źródłem prawdy.
+- `js/app/cabinet/cabinet-modal.js` — dynamiczne selecty dostają stałe id/etykiety pod launcher, kompaktowe pola liczbowe (`Ilość półek`, podobne krótkie pola) nie rozciągają się już bez sensu na pełną szerokość, a siatka parametrów zestawu dostała lokalne klasy do równego wyrównania etykiet i pól.
+- `index.html` + `css/style.css` + `js/app.js` — góra `Wywiad` i karty szafek dostały lokalny shell/rytmy (`wywiad-room-shell`, `wywiad-cabinets-shell`, `cabinet-card-shell`) bez ruszania logiki; karty i parametry pomieszczenia są wizualnie lżejsze i spójniejsze z resztą aplikacji.
+- `js/testing/cabinet/tests.js` — testy pilnują launcherów dla dynamicznego pola `Wnętrze` oraz launcherów bloku `Fronty w zestawie`, żeby przy kolejnych zmianach nie wróciły systemowe selecty.
+- Instrukcja antyregresyjna: w `Wywiad` każde nowe pole wyboru ma najpierw dostać lokalny launcher nad natywnym `select` (źródło prawdy zostaje), a rzędy parametrów zestawu mają być wyrównywane klasami lokalnymi (`set-param-*`) zamiast ręcznego stylowania inline.
+
 ## 2026-04-18 — Wycena prompt text tweak + Wywiad modal form rhythm sync
 - `js/app/wycena/wycena-tab-selection.js` — komunikat modala nowego wariantu używa teraz naturalnej formy `Dla pomieszczenia ...` / `Dla pomieszczeń ...` zależnie od liczby wybranych pokoi, zamiast stałego `Dla zakresu ...`.
 - `css/style.css` — modal nazwy wyceny dostał dodatkowy dolny oddech w stopce akcji, bez ruszania reszty `Wycena`.
