@@ -8,10 +8,20 @@ function getCabinetModalSetWizardApi(){ return (window.FC && window.FC.cabinetMo
 function getCabinetModalStandingApi(){ return (window.FC && window.FC.cabinetModalStanding) || {}; }
 function getCabinetModalHangingApi(){ return (window.FC && window.FC.cabinetModalHanging) || {}; }
 function getCabinetModalModuleApi(){ return (window.FC && window.FC.cabinetModalModule) || {}; }
-function getCabinetModalTypeApi(typeVal){
+function inferUniqueFallbackTypeFromSubType(subTypeVal){
+  const st = String(subTypeVal || '');
+  if(['zlewowa','zmywarkowa','lodowkowa','piekarnikowa'].includes(st)) return 'stojąca';
+  if(st === 'dolna_podblatowa') return 'wisząca';
+  return null;
+}
+
+function getCabinetModalTypeApi(typeVal, subTypeVal){
   if(typeVal === 'stojąca') return getCabinetModalStandingApi();
   if(typeVal === 'wisząca') return getCabinetModalHangingApi();
   if(typeVal === 'moduł') return getCabinetModalModuleApi();
+  const fallbackType = inferUniqueFallbackTypeFromSubType(subTypeVal);
+  if(fallbackType === 'stojąca') return getCabinetModalStandingApi();
+  if(fallbackType === 'wisząca') return getCabinetModalHangingApi();
   return {};
 }
 
@@ -281,7 +291,7 @@ function renderCabinetExtraDetailsInto(container, draft){
     return null;
   }
 
-  const typeApi = getCabinetModalTypeApi(t);
+  const typeApi = getCabinetModalTypeApi(t, st);
   if(typeApi && typeof typeApi.renderExtraDetails === 'function'){
     const handled = typeApi.renderExtraDetails({
       container,

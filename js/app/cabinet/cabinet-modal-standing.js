@@ -403,32 +403,38 @@
 
     if(st === 'lodowkowa'){
       const grid = document.createElement('div');
+      grid.className = 'grid-2';
+      grid.style.gap = '12px';
+      grid.style.marginBottom = '10px';
+
       const opt = String((draft.details && draft.details.fridgeOption) ? draft.details.fridgeOption : 'zabudowa');
       const niche = String((draft.details && draft.details.fridgeNicheHeight) ? draft.details.fridgeNicheHeight : '178');
-      const freeOpt = String((draft.details && draft.details.fridgeFreeOption) ? draft.details.fridgeFreeOption : 'podest');
+      const freeOpt = String((draft.details && draft.details.fridgeFreeOption) ? draft.details.fridgeFreeOption : 'brak');
       grid.innerHTML = `
         <div class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-          <label class="cabinet-extra-field__label">Lodówka</label>
-          <select id="cmFridgeOption" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Typ lodówki" data-choice-title="Wybierz: Typ lodówki" data-choice-placeholder="Typ lodówki">
+          <label class="cabinet-extra-field__label">Typ lodówki</label>
+          <select id="cmFridgeOption" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Typ lodówki" data-choice-title="Wybierz typ lodówki" data-choice-placeholder="Typ lodówki">
             <option value="zabudowa">W zabudowie</option>
             <option value="wolnostojaca">Wolnostojąca</option>
           </select>
         </div>
         <div id="cmFridgeNicheWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-          <label class="cabinet-extra-field__label">Wysokość niszy</label>
-          <select id="cmFridgeNiche" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Wysokość niszy" data-choice-title="Wybierz: Wysokość niszy" data-choice-placeholder="Wysokość niszy">
-            <option value="88">88 cm</option>
-            <option value="122">122 cm</option>
-            <option value="140">140 cm</option>
-            <option value="158">158 cm</option>
-            <option value="178">178 cm</option>
+          <label class="cabinet-extra-field__label">Wysokość niszy (cm)</label>
+          <select id="cmFridgeNiche" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Wysokość niszy (cm)" data-choice-title="Wybierz wysokość niszy" data-choice-placeholder="Wysokość niszy (cm)">
+            <option value="82">82</option>
+            <option value="122">122</option>
+            <option value="158">158</option>
+            <option value="178">178</option>
+            <option value="194">194</option>
+            <option value="204">204</option>
           </select>
         </div>
-        <div id="cmFridgeFreeWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-          <label class="cabinet-extra-field__label">Opcja lodówki wolnostojącej</label>
+        <div id="cmFridgeFreeWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact" style="display:none">
+          <label class="cabinet-extra-field__label">Opcja</label>
           <select id="cmFridgeFree" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Opcja lodówki wolnostojącej" data-choice-title="Wybierz opcję lodówki wolnostojącej" data-choice-placeholder="Opcja lodówki wolnostojącej">
-            <option value="podest">Na podeście</option>
-            <option value="obudowa">Pełna obudowa</option>
+            <option value="brak">Brak</option>
+            <option value="podest">Podest</option>
+            <option value="obudowa">Obudowa</option>
           </select>
         </div>
       `;

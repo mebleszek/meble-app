@@ -566,6 +566,22 @@
           });
         });
       }),
+
+      H.makeTest('Szafki', 'Lodówkowa zachowuje pełną listę wysokości niszy po refaktorze typów', 'Pilnuje antyregresyjnie, czy po wydzieleniu standing modal nie zgubił dawnych wysokości niszy lodówkowej, zwłaszcza wysokich wariantów około 2 m.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const container = document.getElementById('cmExtraDetails');
+          const draft = { type:'stojąca', subType:'lodowkowa', width:60, height:207, depth:60, details:{ fridgeOption:'zabudowa', fridgeNicheHeight:'178', fridgeFreeOption:'brak' } };
+          FC.cabinetModal.renderCabinetExtraDetailsInto(container, draft);
+          const niche = document.getElementById('cmFridgeNiche');
+          H.assert(!!niche, 'Brak selecta wysokości niszy lodówkowej', container.innerHTML);
+          const values = Array.from(niche.options || []).map((opt)=>String(opt.value || ''));
+          ['82','122','158','178','194','204'].forEach((value)=>{
+            H.assert(values.includes(value), `Lista wysokości niszy zgubiła opcję ${value} cm`, values);
+          });
+        });
+      }),
       H.makeTest('Szafki', 'Dynamiczny select ilości szuflad wewnętrznych renderuje launcher i zachowuje compact field', 'Pilnuje, czy licznik szuflad wewnętrznych nie wraca do systemowego selecta i nadal używa kompaktowego pola zgodnego z formularzem szafki.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
         if(typeof document === 'undefined' || !document || !document.body) return;

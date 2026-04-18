@@ -1,3 +1,9 @@
+## 2026-04-19 — Wywiad lodówkowa niche restore + legacy dynamic renderer fallback
+- `js/app/cabinet/cabinet-modal-standing.js` — przywrócona pełna lista wysokości niszy lodówkowej z wcześniejszej wersji (`82`, `122`, `158`, `178`, `194`, `204`) oraz dawny wariant opcji lodówki wolnostojącej (`Brak`, `Podest`, `Obudowa`), bez zmiany logiki wyliczeń lodówkowej.
+- `js/app/cabinet/cabinet-modal.js` — `renderCabinetExtraDetailsInto(...)` ma wąski fallback antyregresyjny dla jednoznacznych subtype'ów (`zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, `dolna_podblatowa`), więc legacy/test fixture z niezgodnym `type` nie traci dynamicznych selectów i launcherów.
+- `js/testing/cabinet/tests.js` — dodany test pilnujący, że lodówkowa nie gubi wysokich nisz po refaktorze typów.
+- Instrukcja antyregresyjna: przy kolejnych porządkach `Wywiadu` nie zakładać, że sam `type` w test fixture/legacy danych zawsze jest poprawny. Dla renderu dynamicznych pól można stosować tylko wąski fallback dla subtype'ów jednoznacznie należących do jednej rodziny, bez rozlewania tego na logikę biznesową.
+
 ## 2026-04-19 — Wywiad type split: standing / hanging / module
 - `js/app/cabinet/cabinet-modal-standing.js` — wydzielona logika typu `stojąca`: dodatkowe pola subtype'ów (`szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, `standardowa`, `rogowa_slepa`, `narozna_l`), konfiguracja frontCount UI i reakcja na zmianę subtype bez zmiany zachowania modala.
 - `js/app/cabinet/cabinet-modal-hanging.js` — wydzielona logika typu `wisząca`: `dolna_podblatowa`, `rogowa_slepa`, `narozna_l`, `uchylne`, wraz z frontCount/flap UI i plecami podblatowej.
