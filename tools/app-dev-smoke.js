@@ -65,6 +65,8 @@ const FILES = [
   'js/app/cabinet/cabinet-modal-fields.js',
   'js/app/cabinet/cabinet-modal-finalize.js',
   'js/app/cabinet/cabinet-modal-set-wizard.js',
+  'js/app/cabinet/cabinet-modal-standing-corner-standard.js',
+  'js/app/cabinet/cabinet-modal-standing-specials.js',
   'js/app/cabinet/cabinet-modal-standing-extras.js',
   'js/app/cabinet/cabinet-modal-standing-front-controls.js',
   'js/app/cabinet/cabinet-modal-standing.js',

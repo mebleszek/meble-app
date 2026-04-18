@@ -1,3 +1,10 @@
+## 2026-04-19 — Wywiad standing extras split into corner/standard + specials
+- `js/app/cabinet/cabinet-modal-standing-corner-standard.js` — wydzielone z dużego `cabinet-modal-standing-extras.js` rzeczy narożno-standardowe: `narozna_l` (GL/GP/ST/SP + szkic) oraz blok `standardowa / rogowa_slepa / narozna_l`.
+- `js/app/cabinet/cabinet-modal-standing-specials.js` — wydzielone subtype’y specjalne `stojąca`: `szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, razem z ostrzeżeniem systemowym dla GTV/Rejs.
+- `js/app/cabinet/cabinet-modal-standing-extras.js` — zostaje cienkim routerem API zgodnym z dotychczasowym kontraktem; tylko deleguje do dwóch nowych modułów.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` — dopięte nowe pliki do realnego ładowania aplikacji i smoke runnera.
+- Instrukcja antyregresyjna: przy kolejnych zmianach `stojąca` nie dokładać wszystkiego do jednego `standing-extras`. Rzeczy narożne/standardowe trzymać w `cabinet-modal-standing-corner-standard.js`, a subtype’y specjalne w `cabinet-modal-standing-specials.js`.
+
 ## 2026-04-19 — Wywiad standing split into smaller technical modules
 - `js/app/cabinet/cabinet-modal-standing-extras.js` — wydzielone ciężkie renderery subtype'ów `stojąca`: narożna L (wymiary + szkic), szuflady, zlewowa, zmywarkowa, lodówkowa, piekarnikowa oraz blok `standardowa / rogowa_slepa / narozna_l`, bez zmiany UI i bez zmiany logiki pól.
 - `js/app/cabinet/cabinet-modal-standing-front-controls.js` — wydzielone sterowanie `frontCount`/hintami/półkami dla typu `stojąca` oraz efekt zmiany subtype `zmywarkowa`.
