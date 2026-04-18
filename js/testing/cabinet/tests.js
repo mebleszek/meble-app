@@ -421,6 +421,34 @@
           }
         });
       }),
+
+      H.makeTest('Szafki', 'Edycja zestawu ładuje preset i parametry po wydzieleniu set-wizarda', 'Pilnuje etap 3 ujarzmiania Wywiadu: otwarcie edycji istniejącego zestawu ma dalej wejść w tryb zestawu i wczytać realne parametry bez trzymania tej logiki w monolicie cabinet-modal.js.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openSetWizardForEdit === 'function', 'Brak FC.cabinetModal.openSetWizardForEdit');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({
+          projectData:{
+            schemaVersion: 9,
+            kuchnia:{
+              cabinets:[],
+              fronts:[],
+              sets:[{ id:'set-1', presetId:'D', number:4, params:{ presetId:'D', w:80, hB:82, hM:100, hTop:58, dBottom:51, dModule:50, blende:10 }, frontCount:2, frontMaterial:'laminat', frontColor:'Egger W1100 ST9' }],
+              settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }
+            },
+            pokoj:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:82, legHeight:5, counterThickness:1.8, gapHeight:0, ceilingBlende:0 } }
+          }
+        }, ()=>{
+          FC.cabinetModal.openSetWizardForEdit('set-1');
+          H.assert(host.cabinetModalState && host.cabinetModalState.chosen === 'zestaw', 'Edycja zestawu nie ustawiła trybu zestawu', host.cabinetModalState);
+          H.assert(String(host.cabinetModalState && host.cabinetModalState.setEditId || '') === 'set-1', 'Edycja zestawu nie zapamiętała setEditId', host.cabinetModalState);
+          H.assert(String(host.cabinetModalState && host.cabinetModalState.setPreset || '') === 'D', 'Edycja zestawu nie zapamiętała presetu', host.cabinetModalState);
+          H.assert(String(document.getElementById('setWizardArea') && document.getElementById('setWizardArea').style.display || '') === 'block', 'Set wizard nie został pokazany przy edycji zestawu');
+          H.assert(String(document.getElementById('setWizardCreate') && document.getElementById('setWizardCreate').textContent || '') === 'Zapisz zmiany', 'Przycisk edycji zestawu nie wrócił jako Zapisz zmiany', document.getElementById('setWizardCreate') && document.getElementById('setWizardCreate').outerHTML);
+          H.assert(String(document.getElementById('setW') && document.getElementById('setW').value || '') === '80', 'Nie wczytano szerokości zestawu D', document.getElementById('setW') && document.getElementById('setW').outerHTML);
+          H.assert(String(document.getElementById('setHMiddle') && document.getElementById('setHMiddle').value || '') === '100', 'Nie wczytano wysokości modułu środkowego zestawu D', document.getElementById('setHMiddle') && document.getElementById('setHMiddle').outerHTML);
+          H.assert(String(document.getElementById('setFrontColor') && document.getElementById('setFrontColor').value || '') === 'Egger W1100 ST9', 'Nie wczytano koloru frontów zestawu przy edycji', document.getElementById('setFrontColor') && document.getElementById('setFrontColor').outerHTML);
+        });
+      }),
+
       H.makeTest('Szafki', 'Modal szafki renderuje warianty bez zależności od globalnej getSubTypeOptionsForType', 'Pilnuje antyregresję środowiska testowego i przyszłego splitu Wywiadu: modal szafki ma czytać warianty z FC.cabinetFronts, a nie wymagać przypadkowej globalki z app.js.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;

@@ -1,3 +1,9 @@
+## 2026-04-18 — Wywiad set wizard split from cabinet modal
+- `js/app/cabinet/cabinet-modal-set-wizard.js` — wyjęta z monolitu pełna obsługa trybu `zestaw`: wejście w edycję, render kafli i parametrów, live-przeliczanie wynikowych pól, blok frontów, detekcja trybu zestawu dla górnego przycisku oraz zapis/aktualizacja zestawu bez zmiany UI i bez zmiany logiki biznesowej.
+- `js/app/cabinet/cabinet-modal.js` — `zestaw` nie siedzi już lokalnie w środku pliku; modal deleguje tryb zestawu do osobnego modułu i zostaje cieńszym orchestrator-em.
+- `js/testing/cabinet/tests.js` — nowy test pilnuje edycji istniejącego zestawu po wydzieleniu set-wizarda: preset, parametry i kolor frontów muszą się wczytać bez regresji.
+- Instrukcja antyregresyjna: kolejne etapy (`stojąca`, `wisząca`, `moduł`) mają iść tym samym kierunkiem — logika specyficzna dla trybu/rodziny ma siedzieć we własnym module, a `cabinet-modal.js` ma tylko spinać ścieżkę renderu i zapisu.
+
 ## 2026-04-18 — Wywiad cabinet modal foundation split (draft / fields / validation)
 - `js/app/cabinet/cabinet-modal-validation.js` — wyjęte z monolitu bezpieczne delegatory/guardy do `cabinetFronts` i `calc` oraz normalizacja legacy subtype (`szufladowa` -> `szuflady`).
 - `js/app/cabinet/cabinet-modal-draft.js` — wyjęte przygotowanie draftu i techniczne ustawianie stanu modala dla dodawania/edycji/zestawu, bez zmiany typów realnie używanych w programie (`stojąca`, `wisząca`, `moduł`, `zestaw`).

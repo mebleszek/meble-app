@@ -4,6 +4,7 @@
 function getCabinetModalValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
 function getCabinetModalDraftApi(){ return (window.FC && window.FC.cabinetModalDraft) || {}; }
 function getCabinetModalFieldsApi(){ return (window.FC && window.FC.cabinetModalFields) || {}; }
+function getCabinetModalSetWizardApi(){ return (window.FC && window.FC.cabinetModalSetWizard) || {}; }
 
 function callCabinetFrontsHelper(fnName, args, fallback){
   const api = getCabinetModalValidationApi();
@@ -166,35 +167,9 @@ function openCabinetModalForEdit(cabId){
 }
 
 function openSetWizardForEdit(setId){
-  setId = String(setId);
-  const room = uiState.roomType; if(!room) return;
-  const set = projectData[room].sets.find(s => String(s.id) === setId);
-  if(!set){ showCabinetInfo('Brak zestawu', 'Nie znaleziono zestawu do edycji.'); return; }
-
-  const draftApi = getCabinetModalDraftApi();
-  if(draftApi && typeof draftApi.beginSetEditState === 'function') draftApi.beginSetEditState(setId, set);
-  else {
-    cabinetModalState.mode = 'add';
-    cabinetModalState.editingId = null;
-    cabinetModalState.setEditId = setId;
-    cabinetModalState.chosen = 'zestaw';
-    cabinetModalState.setPreset = set.presetId;
-    cabinetModalState.draft = null;
-  }
-
-  renderCabinetModal();
-  fillSetParamsUIFromSet(set);
-  const m = document.getElementById('cabinetModal');
-  if(m){
-    m.style.display = 'flex';
-    try{
-      m.classList.add('modal-open-guard');
-      requestAnimationFrame(() => setTimeout(() => {
-        try{ m.classList.remove('modal-open-guard'); }catch(_){ }
-      }, 260));
-    }catch(_){ }
-  }
-  lockModalScroll();
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.openSetWizardForEdit === 'function') return api.openSetWizardForEdit(setId);
+  return null;
 }
 
 function closeCabinetModal(){
@@ -1004,187 +979,21 @@ addSelect('Typ szuflad (frontowych)', 'drawerSystem', [
 
 /* ===== Zestawy (presety) ===== */
 function renderSetTiles(){
-  const wrap = document.getElementById('setTiles');
-  wrap.innerHTML = '';
-
-  const presets = [
-    {
-      id:'A',
-      title:'2 dolne + górny moduł',
-      desc:'Dwa dolne korpusy obok siebie + górny moduł. Wysokość górnego = pomieszczenie - dół - blenda.',
-      svg: `
-        <svg class="mini-svg" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="18" width="24" height="20" rx="3" fill="#eaf6ff" stroke="#0ea5e9" />
-          <rect x="30" y="18" width="24" height="20" rx="3" fill="#eaf6ff" stroke="#0ea5e9" />
-          <rect x="2" y="2" width="52" height="14" rx="3" fill="#ffffff" stroke="#94a3b8" />
-        </svg>
-      `
-    },
-    {
-      id:'C',
-      title:'1 pion: dół + górny moduł',
-      desc:'Jeden pion (dół + górny moduł). Wysokość górnego = pomieszczenie - dół - blenda.',
-      svg: `
-        <svg class="mini-svg" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
-          <rect x="18" y="2" width="20" height="36" rx="3" fill="#eaf6ff" stroke="#0ea5e9" />
-          <line x1="18" y1="22" x2="38" y2="22" stroke="#0ea5e9" stroke-width="2"/>
-        </svg>
-      `
-    },
-    {
-      id:'D',
-      title:'1 pion: dół + środek + góra',
-      desc:'Trzy segmenty w pionie. Środkowy i górny to moduły (głębokość = dół - 1). Wysokość górnego = pomieszczenie - dół - środek - blenda.',
-      svg: `
-        <svg class="mini-svg" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
-          <rect x="18" y="2" width="20" height="36" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-          <line x1="18" y1="15" x2="38" y2="15" stroke="#0ea5e9" stroke-width="2"/>
-          <line x1="18" y1="26" x2="38" y2="26" stroke="#0ea5e9" stroke-width="2"/>
-          <rect x="18" y="26" width="20" height="12" rx="0" fill="#eaf6ff" opacity="0.65" />
-        </svg>
-      `
-    }
-  ];
-
-  presets.forEach(p => {
-    const tile = document.createElement('div');
-    tile.className = 'mini-tile' + (cabinetModalState.setPreset === p.id ? ' selected' : '');
-    tile.setAttribute('data-preset', p.id);
-    tile.innerHTML = `
-      <div class="mini-head">
-        ${p.svg}
-        <div>
-          <div class="mini-title">${p.title}</div>
-          <div class="muted-tag xs">Zestaw standardowy</div>
-        </div>
-      </div>
-      <div class="mini-desc">${p.desc}</div>
-    `;
-    tile.addEventListener('click', () => {
-      cabinetModalState.setPreset = p.id;
-      renderCabinetModal();
-    });
-    wrap.appendChild(tile);
-  });
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.renderSetTiles === 'function') return api.renderSetTiles();
+  return null;
 }
 
 function renderSetParamsUI(presetId){
-  const room = uiState.roomType;
-  const s = projectData[room].settings;
-  const paramsWrap = document.getElementById('setParams');
-  paramsWrap.innerHTML = '';
-  if(!presetId){ paramsWrap.style.display='none'; return; }
-
-  paramsWrap.style.display='grid';
-  try{ paramsWrap.classList.add('set-param-grid'); }catch(_){}
-
-  function addInput(id,label,value,extra=''){
-    const d = document.createElement('div');
-    d.className = 'set-param-field';
-    d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" ${extra}/>`;
-    paramsWrap.appendChild(d);
-  }
-  function addReadonly(id,label,value){
-    const d = document.createElement('div');
-    d.className = 'set-param-field set-param-field--readonly';
-    d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" disabled />`;
-    paramsWrap.appendChild(d);
-  }
-
-  const defaultBlende = Number(s.ceilingBlende) || 0;
-
-  if(presetId === 'A'){
-    addInput('setW1','Szer. lewa (cm)', 60);
-    addInput('setW2','Szer. prawa (cm)', 60);
-    addInput('setHBottom','Wys. dolnych (cm)', Number(s.bottomHeight)||82);
-    addInput('setDBottom','Głębokość dolnych (cm)', 51);
-    addInput('setBlende','Blenda (cm)', defaultBlende);
-
-    const hTop = calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82);
-    addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
-    addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
-  }
-
-  if(presetId === 'C'){
-    addInput('setW','Szerokość (cm)', 60);
-    addInput('setHBottom','Wys. dolnego z nogami (cm)', Number(s.bottomHeight)||82);
-    addInput('setDBottom','Głębokość dolnego (cm)', 51);
-    addInput('setBlende','Blenda (cm)', defaultBlende);
-
-    const hTop = calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82);
-    addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
-    addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
-  }
-
-  if(presetId === 'D'){
-    addInput('setW','Szerokość (cm)', 60);
-    addInput('setHBottom','Wys. dolnego z nogami (cm)', Number(s.bottomHeight)||82);
-    addInput('setHMiddle','Wys. środkowego (cm)', 100);
-    addInput('setDBottom','Głębokość dolnego (cm)', 51);
-    addInput('setBlende','Blenda (cm)', defaultBlende);
-
-    const hTop = calcTopForSetSafe(room, defaultBlende, (Number(s.bottomHeight)||82) + 100);
-    addReadonly('setHTopResult','Wys. górnego (wynikowa)', hTop);
-    addReadonly('setDTopResult','Głęb. modułów (dół-1)', Math.max(0, 51-1));
-  }
-
-  wireSetParamsLiveUpdate(presetId);
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.renderSetParamsUI === 'function') return api.renderSetParamsUI(presetId);
+  return null;
 }
 
 function wireSetParamsLiveUpdate(presetId){
-  const room = uiState.roomType;
-  const s = projectData[room].settings;
-
-  function val(id, fallback=0){
-    const el = document.getElementById(id);
-    if(!el) return fallback;
-    return Number(el.value || fallback);
-  }
-
-  function update(){
-    const bl = val('setBlende', Number(s.ceilingBlende)||0);
-
-    if(presetId === 'A'){
-      const db = val('setDBottom', 51);
-      const hB = val('setHBottom', Number(s.bottomHeight)||82);
-      const ht = calcTopForSetSafe(room, bl, hB);
-      const dt = Math.max(0, Math.round((db - 1) * 10)/10);
-      const htEl = document.getElementById('setHTopResult');
-      const dtEl = document.getElementById('setDTopResult');
-      if(htEl) htEl.value = ht;
-      if(dtEl) dtEl.value = dt;
-    }
-
-    if(presetId === 'C'){
-      const db = val('setDBottom', 51);
-      const hB = val('setHBottom', Number(s.bottomHeight)||82);
-      const ht = calcTopForSetSafe(room, bl, hB);
-      const dt = Math.max(0, Math.round((db - 1) * 10)/10);
-      const htEl = document.getElementById('setHTopResult');
-      const dtEl = document.getElementById('setDTopResult');
-      if(htEl) htEl.value = ht;
-      if(dtEl) dtEl.value = dt;
-    }
-
-    if(presetId === 'D'){
-      const db = val('setDBottom', 51);
-      const hb = val('setHBottom', Number(s.bottomHeight)||82);
-      const hm = val('setHMiddle', 100);
-      const ht = calcTopForSetSafe(room, bl, (hb + hm));
-      const dt = Math.max(0, Math.round((db - 1) * 10)/10);
-      const htEl = document.getElementById('setHTopResult');
-      const dtEl = document.getElementById('setDTopResult');
-      if(htEl) htEl.value = ht;
-      if(dtEl) dtEl.value = dt;
-    }
-  }
-
-  ['setDBottom','setBlende','setHBottom','setHMiddle'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('input', update);
-  });
-
-  update();
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.wireSetParamsLiveUpdate === 'function') return api.wireSetParamsLiveUpdate(presetId);
+  return null;
 }
 
 /* ===== Cabinet modal render ===== */
@@ -1223,76 +1032,11 @@ function renderCabinetModal(){
   setArea.style.display = 'none';
 
   if(cabinetModalState.chosen === 'zestaw'){
-// Default preset on first entry to Set mode.
-// Keeps the first "Zatwierdź" deterministic without requiring the user to toggle types.
-if(!cabinetModalState.setPreset){
-  cabinetModalState.setPreset = 'A';
-}
-
-    setArea.style.display = 'block';
-    renderSetTiles();
-
-    // W trybie zestawu pokaż \"Zatwierdź\" w nagłówku (działa jak Dodaj zestaw / Zapisz zmiany)
-    if(saveTopBtn){
-      saveTopBtn.style.display = 'inline-flex';
-      saveTopBtn.disabled = false;
-      saveTopBtn.textContent = isSetEdit ? 'Zapisz zmiany' : 'Dodaj';
+    const setApi = getCabinetModalSetWizardApi();
+    if(setApi && typeof setApi.renderSetWizardMode === 'function'){
+      setApi.renderSetWizardMode({ isSetEdit, saveTopBtn });
+      return;
     }
-
-    if(isSetEdit){
-      document.querySelectorAll('#setTiles .mini-tile').forEach(tile=>{
-        tile.style.pointerEvents = 'none';
-        tile.style.opacity = '0.8';
-      });
-      document.getElementById('setWizardCreate').textContent = 'Zapisz zmiany';
-      document.getElementById('setWizardTitle').textContent = 'Zestaw (edycja)';
-      document.getElementById('setWizardDesc').textContent = 'Zmieniasz parametry zestawu. Program przeliczy korpusy i fronty.';
-    } else {
-      document.getElementById('setWizardCreate').textContent = 'Dodaj';
-      document.getElementById('setWizardTitle').textContent = 'Zestaw';
-      document.getElementById('setWizardDesc').textContent = 'Wybierz standardowy układ. Program doda kilka korpusów oraz fronty.';
-    }
-
-    const hasPreset = !!cabinetModalState.setPreset;
-    renderSetParamsUI(cabinetModalState.setPreset);
-    document.getElementById('setParams').style.display = hasPreset ? 'grid' : 'none';
-
-    const frontBlock = document.getElementById('setFrontBlock');
-    frontBlock.style.display = hasPreset ? 'block' : 'none';
-
-    if(hasPreset){
-      const cntSel = document.getElementById('setFrontCount');
-      const matSel = document.getElementById('setFrontMaterial');
-      const colSel = document.getElementById('setFrontColor');
-
-      if(!cntSel.value) cntSel.value = '2';
-      if(!matSel.value) matSel.value = 'laminat';
-      populateFrontColorsTo(colSel, matSel.value, colSel.value || '');
-
-      matSel.onchange = () => { populateFrontColorsTo(colSel, matSel.value, ''); };
-
-      const hint = document.getElementById('setFrontHint');
-      const updateHint = () => {
-        const c = Number(cntSel.value || 1);
-        if(c === 1){
-          hint.textContent = 'Powstanie 1 front (na całą szerokość zestawu) o wysokości sumy segmentów.';
-        } else {
-          hint.textContent = 'Powstaną 2 fronty. Dla zestawu A: lewy/prawy. Dla pionów: po 1/2 szerokości każdy.';
-        }
-      };
-      cntSel.onchange = updateHint;
-      updateHint();
-    }
-
-    try{
-      const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;
-      if(launcherApi && typeof launcherApi.refreshCabinetChoices === 'function') launcherApi.refreshCabinetChoices(document.getElementById('setWizardArea'));
-      else {
-        if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function') launcherApi.mountDynamicSelectLaunchers(document.getElementById('setFrontBlock'));
-        if(launcherApi && typeof launcherApi.mountVisibleFallbackLaunchers === 'function') launcherApi.mountVisibleFallbackLaunchers(document.getElementById('setWizardArea'));
-      }
-    }catch(_){ }
-
     return;
   }
 
@@ -1690,26 +1434,12 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
     if(e){ e.preventDefault(); e.stopPropagation(); }
 
     // Tryb zestawu: Zatwierdź działa jak "Dodaj zestaw / Zapisz zmiany"
-    const _setArea = document.getElementById('setWizardArea');
-    const inSetMode = (cabinetModalState && cabinetModalState.chosen === 'zestaw') ||
-                      (cabinetModalState && cabinetModalState.setEditId) ||
-                      (_setArea && _setArea.style.display === 'block');
+    const setApi = getCabinetModalSetWizardApi();
+    const inSetMode = !!(setApi && typeof setApi.isSetModeActive === 'function' && setApi.isSetModeActive());
     if(inSetMode){
-  try{
-    // Use the same path as the set wizard button (data-action="create-set") for consistency.
-    if(window.FC && FC.actions && typeof FC.actions.dispatch === 'function'){
-      FC.actions.dispatch('create-set', { event: e, element: document.getElementById('setWizardCreate') || null, target: e && e.target });
-    } else {
-      createOrUpdateSetFromWizard();
+      if(setApi && typeof setApi.handleTopSaveClick === 'function') return setApi.handleTopSaveClick(e);
+      return;
     }
-  } catch(err){
-    console.error(err);
-    showCabinetInfo('Błąd zapisu zestawu', String(err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
-  } finally {
-    try { if(e && e.target && e.target.blur) e.target.blur(); } catch(_){}
-  }
-  return;
-}
     try{
       if(!uiState.roomType){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
       const room = uiState.roomType;
@@ -1774,262 +1504,30 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
   applyAventosValidationUISafe(room, draft);
 }
 
-/* ===== create fronts for sets ===== */
-function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber){
-  const fc = Number(frontCount||1);
-
-  if(presetId === 'A'){
-    const { w1, w2, hB, hTop } = dims;
-    const totalH = (Number(hB)||0) + (Number(hTop)||0);
-    if(fc === 1){
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0) + (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
-    } else {
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0), height: totalH, note: `Zestaw ${setNumber}: front lewy` });
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: front prawy` });
-    }
-    return;
-  }
-
-  if(presetId === 'C'){
-    const { w, hB, hTop } = dims;
-    const totalH = (Number(hB)||0) + (Number(hTop)||0);
-    if(fc === 1){
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
-    } else {
-      const half = Math.round(((Number(w)||0) / 2) * 10)/10;
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
-    }
-    return;
-  }
-
-  if(presetId === 'D'){
-    const { w, hB, hM, hTop } = dims;
-    const totalH = (Number(hB)||0) + (Number(hM)||0) + (Number(hTop)||0);
-    if(fc === 1){
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
-    } else {
-      const half = Math.round(((Number(w)||0) / 2) * 10)/10;
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
-    }
-    return;
-  }
-}
-
-/* ===== Zestaw: odczyt/wpis parametrów UI ===== */
+/* ===== set wizard delegated to js/app/cabinet/cabinet-modal-set-wizard.js ===== */
 function getSetParamsFromUI(presetId){
-  const room = uiState.roomType;
-  const s = projectData[room].settings;
-
-  function num(id, fallback=0){
-    const el = document.getElementById(id);
-    if(!el) return fallback;
-    return Number(el.value || fallback);
-  }
-
-  const blende = num('setBlende', Number(s.ceilingBlende)||0);
-  const dBottom = num('setDBottom', 51);
-  const dModule = Math.max(0, Math.round((dBottom - 1)*10)/10);
-
-  if(presetId === 'A'){
-    const w1 = num('setW1', 60);
-    const w2 = num('setW2', 60);
-    const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hTop = calcTopForSetSafe(room, blende, hB);
-    return { presetId, w1,w2, hB, hTop, dBottom, dModule, blende };
-  }
-  if(presetId === 'C'){
-    const w = num('setW', 60);
-    const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hTop = calcTopForSetSafe(room, blende, hB);
-    return { presetId, w, hB, hTop, dBottom, dModule, blende };
-  }
-  if(presetId === 'D'){
-    const w = num('setW', 60);
-    const hB = num('setHBottom', Number(s.bottomHeight)||82);
-    const hM = num('setHMiddle', 100);
-    const hTop = calcTopForSetSafe(room, blende, (hB + hM));
-    return { presetId, w, hB, hM, hTop, dBottom, dModule, blende };
-  }
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.getSetParamsFromUI === 'function') return api.getSetParamsFromUI(presetId);
   return null;
 }
 
 function fillSetParamsUIFromSet(set){
-  renderSetParamsUI(set.presetId);
-
-  const p = set.params || {};
-  function setVal(id,v){
-    const el = document.getElementById(id);
-    if(el && v != null && !el.disabled) el.value = v;
-  }
-
-  if(set.presetId === 'A'){
-    setVal('setW1', p.w1);
-    setVal('setW2', p.w2);
-    setVal('setHBottom', p.hB);
-    setVal('setDBottom', p.dBottom);
-    setVal('setBlende', p.blende);
-  }
-  if(set.presetId === 'C'){
-    setVal('setW', p.w);
-    setVal('setHBottom', p.hB);
-    setVal('setDBottom', p.dBottom);
-    setVal('setBlende', p.blende);
-  }
-  if(set.presetId === 'D'){
-    setVal('setW', p.w);
-    setVal('setHBottom', p.hB);
-    setVal('setHMiddle', p.hM);
-    setVal('setDBottom', p.dBottom);
-    setVal('setBlende', p.blende);
-  }
-
-  const cntSel = document.getElementById('setFrontCount');
-  const matSel = document.getElementById('setFrontMaterial');
-  const colSel = document.getElementById('setFrontColor');
-
-  if(cntSel && set.frontCount) cntSel.value = String(set.frontCount);
-  if(matSel && set.frontMaterial) matSel.value = set.frontMaterial;
-  if(colSel){
-    populateFrontColorsTo(colSel, (matSel ? matSel.value : 'laminat'), set.frontColor || '');
-    colSel.value = set.frontColor || colSel.value;
-  }
-
-  wireSetParamsLiveUpdate(set.presetId);
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.fillSetParamsUIFromSet === 'function') return api.fillSetParamsUIFromSet(set);
+  return null;
 }
 
-/* ===== Create/Update set ===== */
 function getNextSetNumber(room){
-  const arr = projectData[room].sets || [];
-  let max = 0;
-  arr.forEach(s=>{ if(typeof s.number === 'number') max = Math.max(max, s.number); });
-  return max + 1;
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.getNextSetNumber === 'function') return api.getNextSetNumber(room);
+  return 1;
 }
 
 function createOrUpdateSetFromWizard(){
-  try{
-    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
-    const room = state.roomType || (uiState && uiState.roomType);
-    if(!room){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
-
-    const presetId =
-      ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
-      || (document.querySelector('#setTiles .mini-tile.selected') && document.querySelector('#setTiles .mini-tile.selected').getAttribute('data-preset'))
-      || (document.querySelector('#setTiles .mini-tile') && document.querySelector('#setTiles .mini-tile').getAttribute('data-preset'))
-      || null;
-
-    if(!presetId){
-      showCabinetInfo('Brak zestawu', 'Wybierz zestaw.');
-      return;
-    }
-
-    // keep state in sync if global exists
-    if(typeof cabinetModalState !== 'undefined' && cabinetModalState){
-      cabinetModalState.setPreset = presetId;
-    }
-
-    const params = getSetParamsFromUI(presetId);
-    if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return; }
-
-    // Ensure containers exist
-    projectData[room] = projectData[room] || { cabinets:[], settings:{} };
-    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
-    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
-
-    const cntEl = document.getElementById('setFrontCount');
-    const matEl = document.getElementById('setFrontMaterial');
-    const colEl = document.getElementById('setFrontColor');
-    if(!cntEl || !matEl || !colEl){
-      showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (fronty / materiał / kolor). Wybierz preset i spróbuj ponownie.');
-      return;
-    }
-
-    const frontCount = Number(cntEl.value || 1);
-    const frontMaterial = matEl.value || 'laminat';
-    const frontColor = colEl.value || '';
-
-    const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
-    const setId = isEdit ? cabinetModalState.setEditId : (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()));
-
-    let setNumber;
-    if(isEdit){
-      const old = (projectData[room].sets || []).find(s=>s.id===setId);
-      setNumber = old && typeof old.number === 'number' ? old.number : getNextSetNumber(room);
-    } else {
-      setNumber = getNextSetNumber(room);
-    }
-
-    const base = makeDefaultCabinetDraftForRoom(room);
-
-    function finalizeCab(c){
-      c.id = c.id || (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()) + Math.random());
-      if(!c.details) c.details = (FC.utils && FC.utils.clone) ? FC.utils.clone(base.details || {}) : (base.details || {});
-      if(!c.bodyColor) c.bodyColor = base.bodyColor;
-      if(!c.frontMaterial) c.frontMaterial = base.frontMaterial || 'laminat';
-      if(!c.frontColor){
-        const first = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials.find(m => m.materialType === c.frontMaterial) : null;
-        c.frontColor = first ? first.name : '';
-      }
-      if(!c.openingSystem) c.openingSystem = base.openingSystem || 'uchwyt klienta';
-      if(!c.backMaterial) c.backMaterial = base.backMaterial || 'HDF 3mm biała';
-      c.setId = setId;
-      c.setPreset = presetId;
-      c.setNumber = setNumber;
-      c.setName = `Zestaw ${setNumber}`;
-      return c;
-    }
-
-    if(isEdit){
-      projectData[room].cabinets = projectData[room].cabinets.filter(c => c.setId !== setId);
-      removeFrontsForSetSafe(room, setId);
-    }
-
-    const created = [];
-
-    if(presetId === 'A'){
-      const cab1 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w1, height:params.hB, depth:params.dBottom, setRole:'dolny_lewy', frontCount:2 }));
-      const cab2 = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w2, height:params.hB, depth:params.dBottom, setRole:'dolny_prawy', frontCount:2 }));
-      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:(params.w1+params.w2), height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
-      created.push(cab1, cab2, top);
-      createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1,w2:params.w2,hB:params.hB,hTop:params.hTop}, setId, setNumber);
-    }
-
-    if(presetId === 'C'){
-      const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
-      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
-      created.push(bottom, top);
-      createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hTop:params.hTop}, setId, setNumber);
-    }
-
-    if(presetId === 'D'){
-      const bottom = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
-      const middle = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hM, depth:params.dModule, setRole:'srodkowy_modul', frontCount:0 }));
-      const top = finalizeCab(Object.assign({}, FC.utils.clone(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
-      created.push(bottom, middle, top);
-      createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w,hB:params.hB,hM:params.hM,hTop:params.hTop}, setId, setNumber);
-    }
-
-    created.forEach(c => projectData[room].cabinets.push(c));
-
-    const setRecord = { id:setId, presetId, number:setNumber, params, frontCount, frontMaterial, frontColor };
-    if(isEdit){
-      projectData[room].sets = projectData[room].sets.map(s => s.id===setId ? setRecord : s);
-    } else {
-      projectData[room].sets.push(setRecord);
-    }
-
-    projectData = FC.project.save(projectData);
-    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-
-    closeCabinetModal();
-    renderCabinets();
-  }catch(e){
-    showCabinetInfo('Błąd przy dodawaniu zestawu', String(e && e.message ? e.message : e));
-    throw e;
-  }
+  const api = getCabinetModalSetWizardApi();
+  if(api && typeof api.createOrUpdateSetFromWizard === 'function') return api.createOrUpdateSetFromWizard();
+  return null;
 }
-
 
 /* ===== Read-only: cabinet details summary ===== */
 

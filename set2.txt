@@ -1,0 +1,236 @@
+        const updated = projectData[room].cabinets.find(c => c.id === id);
+        if(updated) generateFrontsForCabinet(room, updated);
+      }
+
+      projectData = FC.project.save(projectData);
+      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+      // najpierw odśwież widok — jeśli coś się wysypie, modal ma zostać otwarty
+      renderCabinets();
+
+      const afterCount = (projectData[room].cabinets || []).length;
+      if(isAdd && afterCount <= beforeCount){
+        showCabinetInfo('Nie udało się dodać szafki', 'Wystąpił błąd logiki zapisu.');
+        return;
+      }
+
+      closeCabinetModal();
+    }catch(err){
+      console.error('Błąd zapisu szafki:', err);
+      showCabinetInfo('Błąd podczas zapisu', 'Sprawdź konsolę. Modal pozostaje otwarty.');
+    }
+  };
+
+  // Walidacja klapy (AVENTOS) – blokuj zapis jeśli poza zakresem
+  applyAventosValidationUISafe(room, draft);
+}
+
+/* ===== create fronts for sets ===== */
+function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber){
+  const fc = Number(frontCount||1);
+
+  if(presetId === 'A'){
+    const { w1, w2, hB, hTop } = dims;
+    const totalH = (Number(hB)||0) + (Number(hTop)||0);
+    if(fc === 1){
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0) + (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+    } else {
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w1)||0), height: totalH, note: `Zestaw ${setNumber}: front lewy` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w2)||0), height: totalH, note: `Zestaw ${setNumber}: front prawy` });
+    }
+    return;
+  }
+
+  if(presetId === 'C'){
+    const { w, hB, hTop } = dims;
+    const totalH = (Number(hB)||0) + (Number(hTop)||0);
+    if(fc === 1){
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+    } else {
+      const half = Math.round(((Number(w)||0) / 2) * 10)/10;
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+    }
+    return;
+  }
+
+  if(presetId === 'D'){
+    const { w, hB, hM, hTop } = dims;
+    const totalH = (Number(hB)||0) + (Number(hM)||0) + (Number(hTop)||0);
+    if(fc === 1){
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0), height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+    } else {
+      const half = Math.round(((Number(w)||0) / 2) * 10)/10;
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
+      addFrontSafe(room, { setId, setNumber, material: frontMaterial, color: frontColor, width: (Number(w)||0) - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+    }
+    return;
+  }
+}
+
+/* ===== Zestaw: odczyt/wpis parametrów UI ===== */
+function getSetParamsFromUI(presetId){
+  const room = uiState.roomType;
+  const s = projectData[room].settings;
+
+  function num(id, fallback=0){
+    const el = document.getElementById(id);
+    if(!el) return fallback;
+    return Number(el.value || fallback);
+  }
+
+  const blende = num('setBlende', Number(s.ceilingBlende)||0);
+  const dBottom = num('setDBottom', 51);
+  const dModule = Math.max(0, Math.round((dBottom - 1)*10)/10);
+
+  if(presetId === 'A'){
+    const w1 = num('setW1', 60);
+    const w2 = num('setW2', 60);
+    const hB = num('setHBottom', Number(s.bottomHeight)||82);
+    const hTop = calcTopForSetSafe(room, blende, hB);
+    return { presetId, w1,w2, hB, hTop, dBottom, dModule, blende };
+  }
+  if(presetId === 'C'){
+    const w = num('setW', 60);
+    const hB = num('setHBottom', Number(s.bottomHeight)||82);
+    const hTop = calcTopForSetSafe(room, blende, hB);
+    return { presetId, w, hB, hTop, dBottom, dModule, blende };
+  }
+  if(presetId === 'D'){
+    const w = num('setW', 60);
+    const hB = num('setHBottom', Number(s.bottomHeight)||82);
+    const hM = num('setHMiddle', 100);
+    const hTop = calcTopForSetSafe(room, blende, (hB + hM));
+    return { presetId, w, hB, hM, hTop, dBottom, dModule, blende };
+  }
+  return null;
+}
+
+function fillSetParamsUIFromSet(set){
+  renderSetParamsUI(set.presetId);
+
+  const p = set.params || {};
+  function setVal(id,v){
+    const el = document.getElementById(id);
+    if(el && v != null && !el.disabled) el.value = v;
+  }
+
+  if(set.presetId === 'A'){
+    setVal('setW1', p.w1);
+    setVal('setW2', p.w2);
+    setVal('setHBottom', p.hB);
+    setVal('setDBottom', p.dBottom);
+    setVal('setBlende', p.blende);
+  }
+  if(set.presetId === 'C'){
+    setVal('setW', p.w);
+    setVal('setHBottom', p.hB);
+    setVal('setDBottom', p.dBottom);
+    setVal('setBlende', p.blende);
+  }
+  if(set.presetId === 'D'){
+    setVal('setW', p.w);
+    setVal('setHBottom', p.hB);
+    setVal('setHMiddle', p.hM);
+    setVal('setDBottom', p.dBottom);
+    setVal('setBlende', p.blende);
+  }
+
+  const cntSel = document.getElementById('setFrontCount');
+  const matSel = document.getElementById('setFrontMaterial');
+  const colSel = document.getElementById('setFrontColor');
+
+  if(cntSel && set.frontCount) cntSel.value = String(set.frontCount);
+  if(matSel && set.frontMaterial) matSel.value = set.frontMaterial;
+  if(colSel){
+    populateFrontColorsTo(colSel, (matSel ? matSel.value : 'laminat'), set.frontColor || '');
+    colSel.value = set.frontColor || colSel.value;
+  }
+
+  wireSetParamsLiveUpdate(set.presetId);
+}
+
+/* ===== Create/Update set ===== */
+function getNextSetNumber(room){
+  const arr = projectData[room].sets || [];
+  let max = 0;
+  arr.forEach(s=>{ if(typeof s.number === 'number') max = Math.max(max, s.number); });
+  return max + 1;
+}
+
+function createOrUpdateSetFromWizard(){
+  try{
+    const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
+    const room = state.roomType || (uiState && uiState.roomType);
+    if(!room){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
+
+    const presetId =
+      ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
+      || (document.querySelector('#setTiles .mini-tile.selected') && document.querySelector('#setTiles .mini-tile.selected').getAttribute('data-preset'))
+      || (document.querySelector('#setTiles .mini-tile') && document.querySelector('#setTiles .mini-tile').getAttribute('data-preset'))
+      || null;
+
+    if(!presetId){
+      showCabinetInfo('Brak zestawu', 'Wybierz zestaw.');
+      return;
+    }
+
+    // keep state in sync if global exists
+    if(typeof cabinetModalState !== 'undefined' && cabinetModalState){
+      cabinetModalState.setPreset = presetId;
+    }
+
+    const params = getSetParamsFromUI(presetId);
+    if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return; }
+
+    // Ensure containers exist
+    projectData[room] = projectData[room] || { cabinets:[], settings:{} };
+    projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
+    projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
+
+    const cntEl = document.getElementById('setFrontCount');
+    const matEl = document.getElementById('setFrontMaterial');
+    const colEl = document.getElementById('setFrontColor');
+    if(!cntEl || !matEl || !colEl){
+      showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (fronty / materiał / kolor). Wybierz preset i spróbuj ponownie.');
+      return;
+    }
+
+    const frontCount = Number(cntEl.value || 1);
+    const frontMaterial = matEl.value || 'laminat';
+    const frontColor = colEl.value || '';
+
+    const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
+    const setId = isEdit ? cabinetModalState.setEditId : (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()));
+
+    let setNumber;
+    if(isEdit){
+      const old = (projectData[room].sets || []).find(s=>s.id===setId);
+      setNumber = old && typeof old.number === 'number' ? old.number : getNextSetNumber(room);
+    } else {
+      setNumber = getNextSetNumber(room);
+    }
+
+    const base = makeDefaultCabinetDraftForRoom(room);
+
+    function finalizeCab(c){
+      c.id = c.id || (FC.utils && FC.utils.uid ? FC.utils.uid() : String(Date.now()) + Math.random());
+      if(!c.details) c.details = (FC.utils && FC.utils.clone) ? FC.utils.clone(base.details || {}) : (base.details || {});
+      if(!c.bodyColor) c.bodyColor = base.bodyColor;
+      if(!c.frontMaterial) c.frontMaterial = base.frontMaterial || 'laminat';
+      if(!c.frontColor){
+        const first = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials.find(m => m.materialType === c.frontMaterial) : null;
+        c.frontColor = first ? first.name : '';
+      }
+      if(!c.openingSystem) c.openingSystem = base.openingSystem || 'uchwyt klienta';
+      if(!c.backMaterial) c.backMaterial = base.backMaterial || 'HDF 3mm biała';
+      c.setId = setId;
+      c.setPreset = presetId;
+      c.setNumber = setNumber;
+      c.setName = `Zestaw ${setNumber}`;
+      return c;
+    }
+
+    if(isEdit){
+      projectData[room].cabinets = projectData[room].cabinets.filter(c => c.setId !== setId);
+      removeFrontsForSetSafe(room, setId);
