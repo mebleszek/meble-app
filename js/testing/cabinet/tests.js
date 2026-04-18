@@ -225,6 +225,44 @@
           });
         });
       }),
+      H.makeTest('Szafki', 'Modal szafki renderuje launchery dla bezpiecznych selectów bez usuwania natywnych selectów', 'Pilnuje pierwszą paczkę UI Wywiadu: najbezpieczniejsze selecty w modalu szafki dostają launchery w stylu aplikacji, ale natywne selecty dalej pozostają w DOM jako źródło prawdy.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          FC.cabinetModal.openCabinetModalForAdd();
+          ['cmSubType','cmFrontMaterial','cmBackMaterial','cmBodyColor','cmOpeningSystem'].forEach((id)=>{
+            const select = document.getElementById(id);
+            const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
+            const btn = slot && slot.querySelector('.cabinet-choice-launch');
+            H.assert(select && String(select.tagName || '').toLowerCase() === 'select', `Pole ${id} przestało istnieć jako natywny select`, select && select.outerHTML);
+            H.assert(select && select.classList.contains('cabinet-choice-source--enhanced'), `Pole ${id} nie zostało oznaczone jako ukryty select źródłowy`, select && select.className);
+            H.assert(!!btn, `Pole ${id} nie dostało launchera w stylu aplikacji`, slot && slot.innerHTML);
+          });
+        });
+      }),
+      H.makeTest('Szafki', 'Launcher bezpiecznego selecta aktualizuje natywny select i draft szafki', 'Pilnuje, czy nowy launcher UI Wywiadu tylko przykrywa select, ale dalej zapisuje wybór do źródłowego selecta i draftu formularza.', async ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        H.assert(FC.rozrysChoice && typeof FC.rozrysChoice.openRozrysChoiceOverlay === 'function', 'Brak FC.rozrysChoice.openRozrysChoiceOverlay');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, async ()=>{
+          const prevOpen = FC.rozrysChoice.openRozrysChoiceOverlay;
+          try{
+            FC.rozrysChoice.openRozrysChoiceOverlay = async ()=> 'akryl';
+            FC.cabinetModal.openCabinetModalForAdd();
+            const draft = host.cabinetModalState && host.cabinetModalState.draft;
+            const select = document.getElementById('cmFrontMaterial');
+            const launcher = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="cmFrontMaterial"] .cabinet-choice-launch');
+            H.assert(!!launcher, 'Launcher materiału frontu nie został zbudowany');
+            launcher.click();
+            await new Promise((resolve)=> setTimeout(resolve, 0));
+            H.assert(String(select && select.value || '') === 'akryl', 'Launcher nie zaktualizował natywnego selecta materiału frontu', { value:select && select.value });
+            H.assert(draft && draft.frontMaterial === 'akryl', 'Launcher nie zaktualizował draftu szafki przez native select', draft);
+          } finally {
+            FC.rozrysChoice.openRozrysChoiceOverlay = prevOpen;
+          }
+        });
+      }),
+
       H.makeTest('Szafki', 'Modal szafki renderuje warianty bez zależności od globalnej getSubTypeOptionsForType', 'Pilnuje antyregresję środowiska testowego i przyszłego splitu Wywiadu: modal szafki ma czytać warianty z FC.cabinetFronts, a nie wymagać przypadkowej globalki z app.js.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
         if(typeof document === 'undefined' || !document || !document.body) return;

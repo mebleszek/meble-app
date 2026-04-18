@@ -1,3 +1,10 @@
+## 2026-04-18 — Wywiad safe choice launchers + quote name modal local ref sync
+- `js/app/cabinet/cabinet-choice-launchers.js` — nowy, mały moduł launcherów dla najbezpieczniejszych selectów modala szafki (`cmSubType`, `cmFrontMaterial`, `cmBackMaterial`, `cmBodyColor`, `cmOpeningSystem`). Native `select` zostaje źródłem prawdy; launcher tylko przykrywa UI i po wyborze aktualizuje oryginalny select + odpala jego `change`.
+- `js/app/cabinet/cabinet-modal.js` — render modala szafki montuje launchery dopiero po zasileniu selectów opcjami i po podpięciu istniejących handlerów; nie przenosi stanu do osobnego store launchera.
+- `css/style.css` — launchery `Wywiad` są namespacowane przez `.cabinet-choice-sync`, więc nie ruszają innych selectów / launcherów w aplikacji.
+- `js/app/quote/quote-scope-entry.js` + `css/style.css` — modal nazwy nowej wyceny używa lokalnych klas `quote-scope-entry-name__*` na shellu `panel-box`, żeby nie dziedziczyć starego, ogólnego CSS `quote-scope-entry-modal__*` i nie rozjeżdżać się względem referencyjnego modala.
+- Instrukcja antyregresyjna: przy kolejnych polach `Wywiadu` nie ukrywać selecta globalnie ani nie robić osobnego stanu launchera. Launcher ma być tylko lokalną nakładką na konkretny select. Przy poprawkach modala `Wycena` nie mieszać lokalnych klas `quote-scope-entry-name__*` z ogólnymi `quote-scope-entry-modal__*` używanymi przez inne okna scope.
+
 ## 2026-04-18 — Wywiad modal helper dependency hotfix
 - `js/app/cabinet/cabinet-modal.js` — modal szafki nie zależy już od globalnych wrapperów z `app.js` przy odczycie helperów frontów; lokalne, namespacowane resolvery czytają `FC.cabinetFronts` (z fallbackiem), więc testy i środowiska bez `app.js` nie wpadają już w `getSubTypeOptionsForType is not defined`.
 - `js/testing/cabinet/tests.js` — dodany antyregresyjny test pilnujący, że modal renderuje warianty także po usunięciu globalnej `getSubTypeOptionsForType`; źródłem prawdy ma być moduł `FC.cabinetFronts`.

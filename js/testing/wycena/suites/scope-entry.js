@@ -207,9 +207,9 @@
           H.assert(!!dialog.querySelector('.panel-box__head'), 'Modal nazwy nie renderuje nagłówka panel-box');
           H.assert(!!dialog.querySelector('.panel-box-form__footer'), 'Modal nazwy nie renderuje stopki formularza panel-box');
           H.assert(!dialog.querySelector('.quote-scope-entry-modal__scope'), 'Modal nadal renderuje osobny blok Pomieszczenia');
-          const input = dialog.querySelector('.quote-scope-entry-modal__input.investor-form-input');
+          const input = dialog.querySelector('.quote-scope-entry-name__input.investor-form-input');
           H.assert(input, 'Modal nazwy nie renderuje inputu w stylu inwestora');
-          const actions = dialog.querySelector('.quote-scope-entry-modal__actions--split');
+          const actions = dialog.querySelector('.quote-scope-entry-name__actions');
           H.assert(actions, 'Modal nazwy nie renderuje przycisków w układzie pół na pół');
           const buttons = Array.from(actions.querySelectorAll('button'));
           H.assert(buttons.length === 2, 'Modal nazwy nie ma dokładnie dwóch przycisków akcji', buttons.length);

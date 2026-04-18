@@ -1311,6 +1311,7 @@ if(!cabinetModalState.setPreset){
   if(!cabinetModalState.chosen) return;
 
   formArea.style.display = 'block';
+  try{ formArea.classList.add('cabinet-choice-sync'); }catch(_){ }
 
   if(saveTopBtn){
     saveTopBtn.style.display = 'inline-flex';
@@ -1678,6 +1679,11 @@ if(draft.type === 'stojąca' && draft.subType === 'zmywarkowa'){
   document.getElementById('cmBackMaterial').onchange = e => { draft.backMaterial = e.target.value; };
   document.getElementById('cmBodyColor').onchange = e => { draft.bodyColor = e.target.value; };
   document.getElementById('cmOpeningSystem').onchange = e => { draft.openingSystem = e.target.value; };
+
+  try{
+    const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;
+    if(launcherApi && typeof launcherApi.mountSafeFieldLaunchers === 'function') launcherApi.mountSafeFieldLaunchers();
+  }catch(_){ }
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
   if(_cabCancel) _cabCancel.onclick = closeCabinetModal;

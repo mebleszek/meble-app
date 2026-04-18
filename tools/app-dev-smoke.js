@@ -60,6 +60,7 @@ const FILES = [
   'js/app/rozrys/rozrys-state.js',
   'js/app/cabinet/cabinet-cutlist.js',
   'js/app/cabinet/cabinet-fronts.js',
+  'js/app/cabinet/cabinet-choice-launchers.js',
   'js/app/cabinet/cabinet-modal.js',
   'js/app/cabinet/cabinet-actions.js',
   'js/testing/shared/harness.js',

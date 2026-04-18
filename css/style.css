@@ -596,17 +596,24 @@
 .quote-scope-entry-modal__actions--single{grid-template-columns:minmax(140px,220px);justify-content:center;}
 .quote-scope-entry-modal__actions--stacked{grid-template-columns:1fr;}
 .quote-scope-entry-modal__action{min-height:48px;justify-content:center;}
-.quote-scope-entry-modal--name{width:min(560px,calc(100vw - 24px));max-width:100%;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:min(82vh,760px);border-color:#e5edf5;box-shadow:0 16px 48px rgba(15,23,42,.24);}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__head{margin:0;align-items:center;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__body{margin-top:0;padding:20px 22px 22px;display:flex;flex-direction:column;gap:0;overflow:hidden;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__message{margin:0 0 16px;font-size:15px;line-height:1.48;font-weight:800;color:#334155;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__field{gap:8px;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__field-label{font-size:13px;line-height:1.15;color:#64748b;font-weight:800;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__input{min-height:32px;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__hint{margin-top:12px;font-size:13px;line-height:1.45;color:#64748b;font-weight:700;}
-.quote-scope-entry-modal--name .quote-scope-entry-modal__footer{padding-top:12px;margin-top:12px;}
-.quote-scope-entry-modal__actions--split{grid-template-columns:repeat(2,minmax(0,1fr));}
-.quote-scope-entry-modal__actions--split .quote-scope-entry-modal__action{width:100%;min-width:0;}
+.quote-scope-entry-modal--name{width:min(560px,calc(100vw - 24px));max-width:100%;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:min(82vh,760px);}
+.quote-scope-entry-modal--name .quote-scope-entry-name__body{padding:20px 22px 0;overflow:hidden;}
+.quote-scope-entry-name__scroll{display:flex;flex-direction:column;gap:12px;}
+.quote-scope-entry-name__message{margin:0;font-size:15px;line-height:1.48;font-weight:800;color:#334155;}
+.quote-scope-entry-name__field{display:flex;flex-direction:column;gap:8px;}
+.quote-scope-entry-name__field-label{font-size:13px;line-height:1.15;color:#64748b;font-weight:800;}
+.quote-scope-entry-name__input{min-height:32px;}
+.quote-scope-entry-name__hint{margin:0;font-size:13px;line-height:1.45;color:#64748b;font-weight:700;}
+.quote-scope-entry-name__footer{padding-top:12px;margin-top:12px;}
+.quote-scope-entry-name__actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.quote-scope-entry-name__action{width:100%;min-width:0;justify-content:center;}
+.cabinet-choice-sync .cabinet-choice-source--enhanced{display:none;}
+.cabinet-choice-sync .cabinet-choice-launch-slot{margin-top:6px;}
+.cabinet-choice-sync .cabinet-choice-launch{width:100%;min-height:32px;padding:5px 8px;border-radius:8px;justify-content:flex-start;border-width:1px!important;box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;}
+.cabinet-choice-sync .cabinet-choice-launch .rozrys-choice-launch__value{gap:0;}
+.cabinet-choice-sync .cabinet-choice-launch .rozrys-choice-launch__meta,
+.cabinet-choice-sync .cabinet-choice-launch .rozrys-choice-launch__arrow{display:none!important;}
+.cabinet-choice-sync .cabinet-choice-launch .rozrys-choice-launch__label{font-size:12px;line-height:1.2;font-weight:600;letter-spacing:0;}
 @media (max-width:640px){
   .quote-scope-entry-backdrop{align-items:flex-start;padding:18vh 10px 14px;}
   .quote-scope-entry-modal{width:min(100vw - 12px,560px);max-height:74vh;padding:18px 14px 14px;border-radius:18px;}
@@ -614,9 +621,8 @@
   .quote-scope-entry-modal__close{width:42px;height:42px;font-size:28px;border-radius:13px;}
   .quote-scope-entry-modal__actions{grid-template-columns:1fr;}
   .quote-scope-entry-modal--name{width:min(100vw - 12px,560px);padding:0;max-height:calc(100dvh - 36px);}
-  .quote-scope-entry-modal--name .quote-scope-entry-modal__body{padding:18px 18px 18px;}
-  .quote-scope-entry-modal--name .quote-scope-entry-modal__actions,
-  .quote-scope-entry-modal--name .quote-scope-entry-modal__actions--split{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .quote-scope-entry-modal--name .quote-scope-entry-name__body{padding:18px 18px 0;}
+  .quote-scope-entry-name__actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
 }
 .info-trigger{
   position:relative;
