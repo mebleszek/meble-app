@@ -1,3 +1,10 @@
+## 2026-04-19 — Wywiad type split: standing / hanging / module
+- `js/app/cabinet/cabinet-modal-standing.js` — wydzielona logika typu `stojąca`: dodatkowe pola subtype'ów (`szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, `standardowa`, `rogowa_slepa`, `narozna_l`), konfiguracja frontCount UI i reakcja na zmianę subtype bez zmiany zachowania modala.
+- `js/app/cabinet/cabinet-modal-hanging.js` — wydzielona logika typu `wisząca`: `dolna_podblatowa`, `rogowa_slepa`, `narozna_l`, `uchylne`, wraz z frontCount/flap UI i plecami podblatowej.
+- `js/app/cabinet/cabinet-modal-module.js` — wydzielona logika typu `moduł`: `standardowa`, `szuflady`, `uchylne`, wraz z drawer extras, flap UI i reakcją na zmianę subtype na klapę.
+- `js/app/cabinet/cabinet-modal.js` — orchestrator deleguje już render dodatkowych pól, konfigurację frontów i reakcję na zmianę subtype do modułów typów; nie trzyma lokalnie tej logiki.
+- Instrukcja antyregresyjna: przy kolejnych zmianach w `Wywiadzie` nie dopisywać nowych subtype'ów z powrotem do `cabinet-modal.js`. Najpierw sprawdzać odpowiedni moduł typu (`standing` / `hanging` / `module`) i tam trzymać logikę specyficzną dla rodziny.
+
 ## 2026-04-18 — Wywiad set wizard split from cabinet modal
 - `js/app/cabinet/cabinet-modal-set-wizard.js` — wyjęta z monolitu pełna obsługa trybu `zestaw`: wejście w edycję, render kafli i parametrów, live-przeliczanie wynikowych pól, blok frontów, detekcja trybu zestawu dla górnego przycisku oraz zapis/aktualizacja zestawu bez zmiany UI i bez zmiany logiki biznesowej.
 - `js/app/cabinet/cabinet-modal.js` — `zestaw` nie siedzi już lokalnie w środku pliku; modal deleguje tryb zestawu do osobnego modułu i zostaje cieńszym orchestrator-em.

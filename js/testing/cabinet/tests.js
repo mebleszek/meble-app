@@ -490,6 +490,45 @@
           H.assert(draft.openingSystem === opening.value, 'Zmiana systemu otwierania nie zapisała się do draftu', { expected:opening.value, draft });
         });
       }),
+      H.makeTest('Szafki', 'Zmiana subtype stojącej na zmywarkową dalej przelicza szerokość i przegrody techniczne', 'Pilnuje etapu 4 splitu typów: po wydzieleniu stojącej zmiana subtype w modalu nadal ma zsynchronizować szerokość zmywarki i liczbę przegród technicznych bez logiki zaszytej w monolicie.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({
+          projectData:{ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 } } }
+        }, ()=>{
+          host.cabinetModalState.chosen = 'stojąca';
+          host.cabinetModalState.draft = { type:'stojąca', subType:'standardowa', width:60, height:90, depth:56, frontMaterial:'laminat', frontColor:'Egger W1100 ST9', backMaterial:'HDF 3mm biała', bodyColor:'Egger W1100 ST9', openingSystem:'uchwyt klienta', frontCount:2, details:{ dishWasherWidth:'45' } };
+          FC.cabinetModal.renderCabinetModal();
+          const sub = document.getElementById('cmSubType');
+          H.assert(!!sub, 'Brak selecta subtype');
+          sub.value = 'zmywarkowa';
+          sub.onchange();
+          const draft = host.cabinetModalState && host.cabinetModalState.draft;
+          H.assert(String(draft && draft.subType || '') === 'zmywarkowa', 'Subtype stojącej nie przełączył się na zmywarkową', draft);
+          H.assert(Number(draft && draft.width || 0) === 45, 'Zmywarkowa nie przejęła szerokości z details.dishWasherWidth po zmianie subtype', draft);
+          H.assert(String(draft && draft.details && draft.details.techDividerCount || '') === '3', 'Zmywarkowa nie przeliczyła przegród technicznych po zmianie subtype', draft && draft.details);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zmiana subtype modułu na uchylne dalej przełącza modal na logikę klapy', 'Pilnuje etapu 4 splitu typów: po wydzieleniu modułu zmiana subtype na uchylne nadal ma wymusić tryb klapy i pokazać pola podnośnika bez regresji.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          host.cabinetModalState.chosen = 'moduł';
+          host.cabinetModalState.draft = { type:'moduł', subType:'standardowa', width:60, height:90, depth:36, frontMaterial:'laminat', frontColor:'Egger W1100 ST9', backMaterial:'HDF 3mm biała', bodyColor:'Egger W1100 ST9', openingSystem:'uchwyt klienta', frontCount:2, details:{} };
+          FC.cabinetModal.renderCabinetModal();
+          const sub = document.getElementById('cmSubType');
+          H.assert(!!sub, 'Brak selecta subtype modułu');
+          sub.value = 'uchylne';
+          sub.onchange();
+          const draft = host.cabinetModalState && host.cabinetModalState.draft;
+          const flapWrap = document.getElementById('cmFlapWrap');
+          H.assert(String(draft && draft.subType || '') === 'uchylne', 'Subtype modułu nie przełączył się na uchylne', draft);
+          H.assert(Number(draft && draft.frontCount || 0) === 1, 'Moduł uchylny nie wymusił automatycznej liczby frontów po zmianie subtype', draft);
+          H.assert(flapWrap && String(flapWrap.style.display || '') === 'block', 'Moduł uchylny nie pokazał sekcji podnośnika po zmianie subtype', flapWrap && flapWrap.outerHTML);
+        });
+      }),
+
       H.makeTest('Szafki', 'Modal szafki w trybie edycji ładuje dane i pokazuje CTA „Zapisz zmiany”', 'Pilnuje, czy edycja istniejącej szafki nadal otwiera modal z prawidłowym tytułem, danymi draftu i przyciskiem zapisu pod późniejsze prace UI Wywiadu.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForEdit === 'function', 'Brak FC.cabinetModal.openCabinetModalForEdit');
         if(typeof document === 'undefined' || !document || !document.body) return;
