@@ -310,7 +310,8 @@ function renderCabinetExtraDetailsInto(container, draft){
   container.innerHTML = '';
   try{ container.classList.add('cabinet-extra-details'); }catch(_){ }
   const t = draft.type;
-  const st = draft.subType;
+  const rawSubType = String(draft && draft.subType || '');
+  const st = rawSubType === 'szufladowa' ? 'szuflady' : rawSubType;
   const d = draft.details || {};
 
   function makeExtraFieldId(prefix, key){

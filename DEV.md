@@ -1,3 +1,7 @@
+## 2026-04-18 — cabinet modal legacy subtype alias for inner drawer launcher test
+- `js/app/cabinet/cabinet-modal.js` — `renderCabinetExtraDetailsInto(...)` normalizuje legacy alias `subType:'szufladowa'` do aktualnego `szuflady` na potrzeby renderu dodatkowych pól. Dzięki temu stary draft/test fixture dalej pokazuje właściwe pola szafek szufladowych, w tym launcher `Ilość szuflad wewnętrznych`, bez zmiany aktualnej logiki UI dla bieżących subtype'ów.
+- Instrukcja antyregresyjna: jeśli test/legacy dane używają starej nazwy subtype, nie poprawiać tego zgadywaniem po całym kodzie ani przez zmianę UI; najpierw normalizować alias przy wejściu do warstwy renderu/odczytu.
+
 ## 2026-04-18 — Wywiad room params real data source fix + dynamic launcher hidden-root guard
 - `js/app/ui/wywiad-room-settings.js` — topka `Wywiad` nie czyta już tylko `window.projectData/window.uiState`; najpierw bierze wspólny stan aplikacji (`projectData`, `uiState`), a dopiero potem fallbacki na `window.*`. To domyka realny błąd przycisku `Parametry`, który wyglądał na zbindowany, ale nie otwierał modala, bo moduł nie widział aktualnych ustawień pokoju.
 - `js/app/cabinet/cabinet-choice-launchers.js` — hidden-root guard dla launcherów obejmuje też strukturalne rooty modala/test-fixture (`cabinetFormArea`, `cabinet-choice-sync`, lokalny test fixture), ale nadal nie ignoruje lokalnie ukrytych wrapperów konkretnych pól. Dzięki temu testowe/dynamiczne selecty lodówki i szuflad wewnętrznych dalej dostają launchery bez regresji dla naprawdę schowanych pól.
