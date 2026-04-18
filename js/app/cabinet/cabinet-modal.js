@@ -8,6 +8,7 @@ function getCabinetModalSetWizardApi(){ return (window.FC && window.FC.cabinetMo
 function getCabinetModalStandingApi(){ return (window.FC && window.FC.cabinetModalStanding) || {}; }
 function getCabinetModalHangingApi(){ return (window.FC && window.FC.cabinetModalHanging) || {}; }
 function getCabinetModalModuleApi(){ return (window.FC && window.FC.cabinetModalModule) || {}; }
+function getCabinetModalFinalizeApi(){ return (window.FC && window.FC.cabinetModalFinalize) || {}; }
 function inferUniqueFallbackTypeFromSubType(subTypeVal){
   const st = String(subTypeVal || '');
   if(['zlewowa','zmywarkowa','lodowkowa','piekarnikowa'].includes(st)) return 'stojąca';
@@ -563,76 +564,15 @@ function renderCabinetModal(){
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
   if(_cabCancel) _cabCancel.onclick = closeCabinetModal;
-  document.getElementById('cabinetModalSave').onclick = (e) => {
-    // twarde zabezpieczenie: żadnego "przebicia" kliknięcia do innych handlerów
-    if(e){ e.preventDefault(); e.stopPropagation(); }
-
-    // Tryb zestawu: Zatwierdź działa jak "Dodaj zestaw / Zapisz zmiany"
-    const setApi = getCabinetModalSetWizardApi();
-    const inSetMode = !!(setApi && typeof setApi.isSetModeActive === 'function' && setApi.isSetModeActive());
-    if(inSetMode){
-      if(setApi && typeof setApi.handleTopSaveClick === 'function') return setApi.handleTopSaveClick(e);
-      return;
-    }
-    try{
-      if(!uiState.roomType){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
-      const room = uiState.roomType;
-
-      syncDraftFromCabinetModalFormSafe(draft);
-      ensureFrontCountRulesSafe(draft);
-
-      // Walidacja podnośników (AVENTOS) na etapie zapisu – jeśli poza zakresem, nie dodawaj/nie zapisuj
-      const _av = validateAventosForDraftSafe(room, draft);
-      if(_av && _av.ok === false){
-        applyAventosValidationUISafe(room, draft);
-        return;
-      }
-
-      const beforeCount = (projectData[room].cabinets || []).length;
-
-      const isAdd = (cabinetModalState.mode === 'add' || !cabinetModalState.editingId);
-      if(isAdd){
-        const newCab = FC.utils.clone(draft);
-        newCab.id = FC.utils.uid();
-        projectData[room].cabinets.push(newCab);
-        // Po dodaniu: otwórz (rozwiń) ostatnio dodaną szafkę
-        uiState.expanded = {};
-        uiState.expanded[String(newCab.id)] = true;
-        uiState.selectedCabinetId = newCab.id;
-
-        // Zapamiętaj „dopiero co dodaną” (do domyślnego typu przy kolejnym dodawaniu)
-        uiState.lastAddedAt = Date.now();
-        uiState.lastAddedCabinetId = String(newCab.id);
-        uiState.lastAddedCabinetType = String(newCab.type || '');
-
-        // generuj fronty jeśli trzeba (lodówkowa też)
-        generateFrontsForCabinet(room, newCab);
-      } else {
-        const id = cabinetModalState.editingId;
-        projectData[room].cabinets = projectData[room].cabinets.map(c => c.id === id ? Object.assign({}, FC.utils.clone(draft), { id }) : c);
-
-        const updated = projectData[room].cabinets.find(c => c.id === id);
-        if(updated) generateFrontsForCabinet(room, updated);
-      }
-
-      projectData = FC.project.save(projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-
-      // najpierw odśwież widok — jeśli coś się wysypie, modal ma zostać otwarty
-      renderCabinets();
-
-      const afterCount = (projectData[room].cabinets || []).length;
-      if(isAdd && afterCount <= beforeCount){
-        showCabinetInfo('Nie udało się dodać szafki', 'Wystąpił błąd logiki zapisu.');
-        return;
-      }
-
-      closeCabinetModal();
-    }catch(err){
-      console.error('Błąd zapisu szafki:', err);
-      showCabinetInfo('Błąd podczas zapisu', 'Sprawdź konsolę. Modal pozostaje otwarty.');
-    }
-  };
+  const finalizeApi = getCabinetModalFinalizeApi();
+  if(finalizeApi && typeof finalizeApi.bindTopSaveButton === 'function'){
+    finalizeApi.bindTopSaveButton({
+      draft,
+      renderCabinets,
+      closeCabinetModal,
+      showCabinetInfo
+    });
+  }
 
   // Walidacja klapy (AVENTOS) – blokuj zapis jeśli poza zakresem
   applyAventosValidationUISafe(room, draft);

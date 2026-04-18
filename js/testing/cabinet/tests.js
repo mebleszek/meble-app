@@ -547,6 +547,76 @@
         });
       }),
 
+      H.makeTest('Szafki', 'Modal szafki zapisuje nową szafkę przez wydzieloną finalizację bez zmiany zachowania', 'Pilnuje etapu 5: przycisk Dodaj nadal finalizuje draft zwykłej szafki, zapisuje ją do projektu, odświeża listę i zamyka modal.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForAdd === 'function', 'Brak FC.cabinetModal.openCabinetModalForAdd');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const prevProjectApi = FC.project;
+          const prevStorageApi = FC.storage;
+          const prevRenderCabinets = host.renderCabinets;
+          let renderCount = 0;
+          let storageCalls = 0;
+          try{
+            FC.project = Object.assign({}, FC.project, { save:(pd)=> pd });
+            FC.storage = Object.assign({}, FC.storage, { setJSON:()=>{ storageCalls += 1; } });
+            host.renderCabinets = ()=>{ renderCount += 1; };
+            FC.cabinetModal.openCabinetModalForAdd();
+            const width = document.getElementById('cmWidth');
+            const save = document.getElementById('cabinetModalSave');
+            H.assert(!!save, 'Brak przycisku zapisu modala');
+            width.value = '73';
+            if(typeof save.onclick === 'function') save.onclick({ preventDefault(){}, stopPropagation(){}, target:save });
+            const cabinets = (((host.projectData || {}).kuchnia || {}).cabinets) || [];
+            const modal = document.getElementById('cabinetModal');
+            H.assert(cabinets.length === 1, 'Dodanie szafki nie zapisało nowego rekordu do projektu', cabinets);
+            H.assert(Number(cabinets[0] && cabinets[0].width || 0) === 73, 'Zapis nowej szafki nie pobrał szerokości z formularza', cabinets[0]);
+            H.assert(renderCount === 1, 'Finalizacja dodania nie odświeżyła listy szafek dokładnie raz', { renderCount });
+            H.assert(storageCalls === 1, 'Finalizacja dodania nie zapisała uiState dokładnie raz', { storageCalls });
+            H.assert(modal && modal.style.display === 'none', 'Modal po dodaniu szafki nie został zamknięty', modal && modal.style.display);
+          } finally {
+            FC.project = prevProjectApi;
+            FC.storage = prevStorageApi;
+            host.renderCabinets = prevRenderCabinets;
+          }
+        });
+      }),
+
+      H.makeTest('Szafki', 'Modal szafki zapisuje edycję istniejącej szafki przez wydzieloną finalizację', 'Pilnuje etapu 5: zapis edycji nadal aktualizuje istniejącą szafkę po id zamiast tworzyć duplikat, odświeża listę i zamyka modal.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.openCabinetModalForEdit === 'function', 'Brak FC.cabinetModal.openCabinetModalForEdit');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({
+          projectData:{ schemaVersion:9, kuchnia:{ cabinets:[{ id:'cab_edit', width:77, height:92, depth:58, type:'stojąca', subType:'standardowa', bodyColor:'Egger W1100 ST9', frontMaterial:'lakier', frontColor:'Lakier test', openingSystem:'korytkowy', backMaterial:'Brak', details:{} }], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 } } }
+        }, ()=>{
+          const prevProjectApi = FC.project;
+          const prevStorageApi = FC.storage;
+          const prevRenderCabinets = host.renderCabinets;
+          let renderCount = 0;
+          let storageCalls = 0;
+          try{
+            FC.project = Object.assign({}, FC.project, { save:(pd)=> pd });
+            FC.storage = Object.assign({}, FC.storage, { setJSON:()=>{ storageCalls += 1; } });
+            host.renderCabinets = ()=>{ renderCount += 1; };
+            FC.cabinetModal.openCabinetModalForEdit('cab_edit');
+            const width = document.getElementById('cmWidth');
+            const save = document.getElementById('cabinetModalSave');
+            width.value = '81';
+            if(typeof save.onclick === 'function') save.onclick({ preventDefault(){}, stopPropagation(){}, target:save });
+            const cabinets = (((host.projectData || {}).kuchnia || {}).cabinets) || [];
+            const modal = document.getElementById('cabinetModal');
+            H.assert(cabinets.length === 1, 'Edycja szafki utworzyła duplikat zamiast zaktualizować rekord', cabinets);
+            H.assert(String(cabinets[0] && cabinets[0].id || '') === 'cab_edit', 'Edycja szafki nie zachowała istniejącego id', cabinets[0]);
+            H.assert(Number(cabinets[0] && cabinets[0].width || 0) === 81, 'Edycja szafki nie pobrała nowej szerokości z formularza', cabinets[0]);
+            H.assert(renderCount === 1, 'Finalizacja edycji nie odświeżyła listy szafek dokładnie raz', { renderCount });
+            H.assert(storageCalls === 1, 'Finalizacja edycji nie zapisała uiState dokładnie raz', { storageCalls });
+            H.assert(modal && modal.style.display === 'none', 'Modal po zapisaniu edycji szafki nie został zamknięty', modal && modal.style.display);
+          } finally {
+            FC.project = prevProjectApi;
+            FC.storage = prevStorageApi;
+            host.renderCabinets = prevRenderCabinets;
+          }
+        });
+      }),
+
       H.makeTest('Szafki', 'Dynamiczne selecty lodówki renderują launchery bez usuwania selectów źródłowych', 'Pilnuje kolejny krok Wywiadu: dynamiczne selecty lodówki w dodatkowych polach też mają aplikacyjne launchery, a natywne selecty dalej zostają źródłem prawdy.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
         if(typeof document === 'undefined' || !document || !document.body) return;

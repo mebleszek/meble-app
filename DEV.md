@@ -1,3 +1,9 @@
+## 2026-04-19 — Wywiad finalize/save split from cabinet modal
+- `js/app/cabinet/cabinet-modal-finalize.js` — wydzielona finalizacja zwykłej szafki: sync draftu z formularza, walidacja Aventosa, rozróżnienie add/edit, zapis do `projectData`, persist `project/ui`, odświeżenie listy i zamknięcie modala. Tryb `zestaw` pozostaje obsługiwany przez delegację do `cabinet-modal-set-wizard.js`.
+- `js/app/cabinet/cabinet-modal.js` — orchestrator nie trzyma już lokalnie dużego bloku zapisu z przycisku `Dodaj / Zapisz zmiany`; binduje top save przez moduł finalizacji.
+- `js/testing/cabinet/tests.js` + `tools/app-dev-smoke.js` — dodane antyregresje dla zapisu dodawanej i edytowanej szafki oraz dopięte do node smoke brakujące moduły `set-wizard / standing / hanging / module / finalize`, żeby runner wykonywał realny stan `Wywiadu`, a nie okrojoną wersję bez splitów.
+- Instrukcja antyregresyjna: dalszy zapis zwykłej szafki rozwijać w `cabinet-modal-finalize.js`, nie wrzucać z powrotem do `cabinet-modal.js`. Orchestrator ma tylko spinać tryb, render i delegację do finalizacji.
+
 ## 2026-04-19 — Wywiad fridge launcher regression real fix
 - `js/app/cabinet/cabinet-modal.js` — naprawiony realny błąd fallbacku dla legacy/test fixture lodówkowej: wcześniejszy fallback po `subType` był martwy, bo `getCabinetModalTypeApi(...)` najpierw bezwarunkowo ufał `type`. Teraz warstwa UI sprawdza zgodność `type` z dozwolonymi subtype’ami danej rodziny i tylko gdy `subType` jednoznacznie należy do innej rodziny (`lodowkowa`, `zlewowa`, `zmywarkowa`, `piekarnikowa`, `dolna_podblatowa`), deleguje render do właściwego modułu typu.
 - `index.html` + `dev_tests.html` — podbity cache-busting `cabinet-modal.js`, żeby przeglądarka nie trzymała starej wersji z martwym fallbackiem.
