@@ -79,14 +79,85 @@
     }
   ];
 
+  function createLocalChoiceApi(){
+    function getSelectOptionLabel(selectEl){
+      if(!selectEl) return '';
+      const idx = Number(selectEl.selectedIndex);
+      const opt = idx >= 0 ? selectEl.options[idx] : selectEl.options[0];
+      return opt ? String(opt.textContent || opt.label || opt.value || '') : '';
+    }
+    function setChoiceLaunchValue(btn, label, meta){
+      if(!btn) return;
+      const labelEl = btn.querySelector('.rozrys-choice-launch__label');
+      const metaEl = btn.querySelector('.rozrys-choice-launch__meta');
+      if(labelEl) labelEl.textContent = String(label || '');
+      if(metaEl){
+        const metaText = String(meta || '');
+        metaEl.textContent = metaText;
+        metaEl.style.display = metaText ? '' : 'none';
+      }
+    }
+    function createChoiceLauncher(label, meta){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rozrys-choice-launch';
+      btn.innerHTML = '<span class="rozrys-choice-launch__value"><span class="rozrys-choice-launch__label"></span><span class="rozrys-choice-launch__meta"></span></span><span class="rozrys-choice-launch__arrow">▾</span>';
+      setChoiceLaunchValue(btn, label, meta);
+      return btn;
+    }
+    function openRozrysChoiceOverlay(opts){
+      const cfg = Object.assign({ title:'Wybierz opcję', options:[], value:'' }, opts || {});
+      return new Promise((resolve)=>{
+        const backdrop = document.createElement('div');
+        backdrop.className = 'rozrys-choice-backdrop';
+        const modal = document.createElement('div');
+        modal.className = 'rozrys-choice-modal';
+        modal.setAttribute('role','dialog');
+        modal.setAttribute('aria-modal','true');
+        modal.setAttribute('aria-label', String(cfg.title || 'Wybierz opcję'));
+        modal.innerHTML = '<div class="rozrys-choice-modal__header"><div class="rozrys-choice-modal__title"></div><button type="button" class="rozrys-choice-modal__close" aria-label="Zamknij">×</button></div><div class="rozrys-choice-modal__body"></div>';
+        modal.querySelector('.rozrys-choice-modal__title').textContent = String(cfg.title || 'Wybierz opcję');
+        const body = modal.querySelector('.rozrys-choice-modal__body');
+        (Array.isArray(cfg.options) ? cfg.options : []).forEach((entry)=>{
+          const opt = entry || {};
+          const value = String(opt.value == null ? '' : opt.value);
+          const disabled = !!opt.disabled;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'rozrys-choice-option' + (String(cfg.value || '') === value ? ' is-selected' : '') + (disabled ? ' is-disabled' : '');
+          btn.disabled = disabled;
+          btn.innerHTML = '<div class="rozrys-choice-option__title"></div>' + (opt.description ? '<div class="rozrys-choice-option__subtitle"></div>' : '');
+          btn.querySelector('.rozrys-choice-option__title').textContent = String(opt.label || value);
+          const sub = btn.querySelector('.rozrys-choice-option__subtitle');
+          if(sub) sub.textContent = String(opt.description || '');
+          if(!disabled) btn.addEventListener('click', ()=> done(value));
+          body.appendChild(btn);
+        });
+        backdrop.appendChild(modal);
+        let closed = false;
+        const onKey = (ev)=>{ if(ev.key === 'Escape'){ ev.preventDefault(); done(null); } };
+        const cleanup = ()=>{
+          if(closed) return;
+          closed = true;
+          document.removeEventListener('keydown', onKey, true);
+          if(backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+        };
+        const done = (result)=>{ cleanup(); resolve(result); };
+        modal.querySelector('.rozrys-choice-modal__close').addEventListener('click', ()=> done(null));
+        backdrop.addEventListener('click', (ev)=>{ if(ev.target === backdrop) done(null); });
+        document.addEventListener('keydown', onKey, true);
+        document.body.appendChild(backdrop);
+      });
+    }
+    return { createChoiceLauncher, openRozrysChoiceOverlay, getSelectOptionLabel, setChoiceLaunchValue };
+  }
+
   function getChoiceApi(){
     const api = FC && FC.rozrysChoice;
-    if(!api) return null;
-    if(typeof api.createChoiceLauncher !== 'function') return null;
-    if(typeof api.openRozrysChoiceOverlay !== 'function') return null;
-    if(typeof api.getSelectOptionLabel !== 'function') return null;
-    if(typeof api.setChoiceLaunchValue !== 'function') return null;
-    return api;
+    if(api && typeof api.createChoiceLauncher === 'function' && typeof api.openRozrysChoiceOverlay === 'function' && typeof api.getSelectOptionLabel === 'function' && typeof api.setChoiceLaunchValue === 'function'){
+      return api;
+    }
+    return createLocalChoiceApi();
   }
 
 

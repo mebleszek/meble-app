@@ -1,3 +1,10 @@
+
+## 2026-04-18 — Wywiad launcher hotfix v7
+- `js/app/cabinet/cabinet-choice-launchers.js` — launchery szafki mają już lokalny fallback API kopiujący overlay/launcher ROZRYS, więc jeśli `FC.rozrysChoice` nie jest jeszcze gotowe albo nie jest dostępne, widoczny UI nadal nie wraca do surowego systemowego selecta.
+- `js/app/cabinet/cabinet-modal.js` — tryb zestawu montuje launchery `setFront*` jeszcze przed wyjściem z gałęzi `zestaw`; dynamiczne `addSelect(...)` oznacza też pola klasą `cabinet-dynamic-choice-source`, żeby fallback widział je po rerenderze.
+- `css/style.css` — w `#cabinetModal` każdy select oznaczony `cabinet-choice-source--enhanced` jest ukrywany globalnie jako źródło prawdy, a launcher zostaje jedynym widocznym UI.
+- Instrukcja antyregresyjna: w `Wywiad` nie stylizować już natywnego selecta jako „udawanego launchera”. Jeśli pole ma być wybierane jak reszta aplikacji, select ma zostać tylko ukrytym źródłem prawdy pod launcherem.
+
 ## 2026-04-18 — UI patterns fixture + Wywiad no-system-dialog step
 - `dev_tests.html` + `dev_ui_patterns.html` — w testach pojawiła się sekcja `Wzorce UI` z żywymi referencjami do kopiowania 1:1: modal / header / X / stopka z ROZRYS oraz input z Inwestor. To jest teraz źródło prawdy przy nowych modalach i polach.
 - `js/app/cabinet/cabinet-choice-launchers.js` + `js/app/cabinet/cabinet-modal.js` — kolejny krok Wywiadu bez systemowych elementów: launchery obejmują już także dynamiczne selecty lodówki oraz select ilości szuflad wewnętrznych; natywny `select` dalej zostaje źródłem prawdy.

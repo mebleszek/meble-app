@@ -691,7 +691,9 @@
   .quote-scope-entry-name__input{min-height:42px;font-size:17px;border-radius:16px;padding:0 13px;}
   .quote-scope-entry-name__action{width:126px;min-width:126px;}
 }
+#cabinetModal .cabinet-choice-source--enhanced{display:none!important;}
 .cabinet-choice-sync .cabinet-choice-source--enhanced{display:none;}
+#cabinetModal .cabinet-choice-launch-slot{margin-top:6px;}
 .cabinet-choice-sync .cabinet-choice-launch-slot{margin-top:6px;}
 .cabinet-choice-sync .cabinet-choice-launch{width:100%;min-height:32px;padding:5px 8px;border-radius:8px;justify-content:flex-start;border-width:1px!important;box-shadow:inset 0 1px 3px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;}
 .cabinet-choice-sync .cabinet-choice-launch .rozrys-choice-launch__value{gap:0;}

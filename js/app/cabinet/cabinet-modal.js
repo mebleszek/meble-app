@@ -329,7 +329,7 @@ function renderCabinetExtraDetailsInto(container, draft){
     const selectId = makeExtraFieldId('Select', key);
     div.innerHTML = `<label class="cabinet-extra-field__label" for="${selectId}">${labelText}</label><select id="${selectId}" class="cabinet-extra-field__control" data-launcher-label="${labelText}"></select>`;
     const sel = div.querySelector('select');
-    try{ sel.classList.add('set-front-choice-source'); }catch(_){ }
+    try{ sel.classList.add('set-front-choice-source','cabinet-dynamic-choice-source'); }catch(_){ }
     options.forEach(opt => {
       const o = document.createElement('option'); o.value=opt.v; o.textContent=opt.t; sel.appendChild(o);
     });
@@ -1347,6 +1347,12 @@ if(!cabinetModalState.setPreset){
       cntSel.onchange = updateHint;
       updateHint();
     }
+
+    try{
+      const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;
+      if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function') launcherApi.mountDynamicSelectLaunchers(document.getElementById('setFrontBlock'));
+      if(launcherApi && typeof launcherApi.mountVisibleFallbackLaunchers === 'function') launcherApi.mountVisibleFallbackLaunchers(document.getElementById('setWizardArea'));
+    }catch(_){ }
 
     return;
   }
