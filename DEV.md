@@ -1362,3 +1362,8 @@ Dopiero potem go zmieniać.
 - `js/app/cabinet/cabinet-modal.js` nie może zależeć od globalnej `calcTopForSet` z `app.js`; render zestawów ma używać namespacowanego helpera `FC.calc` przez lokalny safe-wrapper.
 - `js/app/cabinet/cabinet-choice-launchers.js` ma po zwykłym montażu robić fallback-scan widocznych selectów w formularzu szafki i zakładać launcher także dla pól, które pojawiły się późno lub przeszły przez dynamiczny rerender (np. `cmFlapKind`, `setFrontCount`).
 - W obszarze szafki natywne `select` pozostają źródłem prawdy, ale widoczny UI nie może wracać do systemowego selecta, jeśli pole jest objęte launcherem aplikacji.
+
+## 2026-04-18 — Wywiad set preset SVG icons fix
+- `js/app/cabinet/cabinet-modal-set-wizard.js` — presety `zestaw` przestały być rysowane inline w JS. Modal ładuje teraz osobne pliki SVG, dzięki czemu ikonki nie są zaszyte w monolicie i łatwiej je później poprawiać bez ryzyka rozjechania logiki.
+- `assets/set-presets/preset-a.svg`, `preset-c.svg`, `preset-d.svg` — nowe, osobne miniatury lepiej odpowiadają realnym presetom: `A` pokazuje dwa doły + moduł u góry, `C` dół + moduł na pełnej szerokości, `D` dół + moduł środkowy + moduł górny w pionie.
+- Instrukcja antyregresyjna: kolejne poprawki miniaturek presetów robić w osobnych plikach SVG, a nie przez ponowne zaszywanie kształtów inline w `cabinet-modal-set-wizard.js`.

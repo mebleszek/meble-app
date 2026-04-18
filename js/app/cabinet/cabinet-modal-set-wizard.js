@@ -129,47 +129,25 @@
     if(!wrap) return;
     wrap.innerHTML = '';
 
+    const PRESET_ICON_VERSION = '20260418_set_preset_icons_v1';
     const presets = [
       {
         id:'A',
         title:'Dół + Dół + Moduł',
         desc:'Dwie dolne szafki obok siebie i moduł na górze.',
-        svg:`
-          <svg viewBox="0 0 82 40" class="mini-svg" aria-hidden="true">
-            <rect x="2" y="18" width="28" height="20" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <rect x="31" y="18" width="28" height="20" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <rect x="16" y="2" width="44" height="14" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <line x1="16" y1="9" x2="60" y2="9" stroke="#0ea5e9" stroke-width="2" />
-            <line x1="16" y1="18" x2="60" y2="18" stroke="#0ea5e9" stroke-width="2" />
-          </svg>
-        `
+        icon:'assets/set-presets/preset-a.svg'
       },
       {
         id:'C',
         title:'Dół + Moduł',
         desc:'Dolna szafka i moduł na całej szerokości.',
-        svg:`
-          <svg viewBox="0 0 82 40" class="mini-svg" aria-hidden="true">
-            <rect x="8" y="18" width="34" height="20" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <rect x="44" y="2" width="30" height="36" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <line x1="44" y1="15" x2="74" y2="15" stroke="#0ea5e9" stroke-width="2" />
-            <line x1="44" y1="26" x2="74" y2="26" stroke="#0ea5e9" stroke-width="2" />
-          </svg>
-        `
+        icon:'assets/set-presets/preset-c.svg'
       },
       {
         id:'D',
         title:'Dół + Moduł + Moduł',
         desc:'Dolna szafka, moduł środkowy i górny.',
-        svg:`
-          <svg viewBox="0 0 82 40" class="mini-svg" aria-hidden="true">
-            <rect x="2" y="18" width="14" height="20" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <rect x="18" y="2" width="20" height="36" rx="3" fill="#ffffff" stroke="#0ea5e9" />
-            <line x1="18" y1="15" x2="38" y2="15" stroke="#0ea5e9" stroke-width="2"/>
-            <line x1="18" y1="26" x2="38" y2="26" stroke="#0ea5e9" stroke-width="2"/>
-            <rect x="18" y="26" width="20" height="12" rx="0" fill="#eaf6ff" opacity="0.65" />
-          </svg>
-        `
+        icon:'assets/set-presets/preset-d.svg'
       }
     ];
 
@@ -179,7 +157,7 @@
       tile.setAttribute('data-preset', p.id);
       tile.innerHTML = `
         <div class="mini-head">
-          ${p.svg}
+          <img src="${p.icon}?v=${PRESET_ICON_VERSION}" class="mini-svg" alt="" aria-hidden="true" />
           <div>
             <div class="mini-title">${p.title}</div>
             <div class="muted-tag xs">Zestaw standardowy</div>
