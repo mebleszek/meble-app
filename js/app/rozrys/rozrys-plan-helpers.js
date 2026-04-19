@@ -22,6 +22,7 @@
     const getMaterialGrainExceptions = typeof deps.getMaterialGrainExceptions === 'function' ? deps.getMaterialGrainExceptions : (()=> ({}));
     const materialPartDirectionLabel = typeof deps.materialPartDirectionLabel === 'function' ? deps.materialPartDirectionLabel : (()=> 'Domyślny z materiału');
     const mmToUnitStr = typeof deps.mmToUnitStr === 'function' ? deps.mmToUnitStr : ((mm)=> String(Math.round(Number(mm) || 0)));
+    const h = typeof deps.h === 'function' ? deps.h : null;
 
     function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
       if(apiFC.rozrysStock && typeof apiFC.rozrysStock.getRealHalfStockForMaterial === 'function'){
@@ -161,6 +162,7 @@
           material,
           parts,
           unitValue: unitSel && unitSel.value,
+          h,
           tryAutoRenderFromCache,
         }, {
           askRozrysConfirm,

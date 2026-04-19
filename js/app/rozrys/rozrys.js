@@ -878,6 +878,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
         getMaterialGrainExceptions,
         materialPartDirectionLabel,
         mmToUnitStr,
+        h,
       })
       : {
         getRealHalfStockForMaterial: ()=> ({ qty:0, width:0, height:0 }),

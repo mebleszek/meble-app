@@ -675,10 +675,13 @@
             materialPartDirectionLabel: ()=> 'Wzdłuż',
             partSignature: ()=> 'sig-a',
             mmToUnitStr: (mm)=> `${mm}cm`,
+            h: (tag, attrs)=> ({ tag, attrs: attrs || {} }),
           });
           const result = api.openMaterialGrainExceptions('Dąb dziki', [{ material:'Dąb dziki', w:600, h:350 }]);
           assert(result === 'opened', 'Plan helpers nie delegują otwarcia modala wyjątków słojów', { result, captured });
           assert(captured.payload && captured.payload.unitValue === 'cm', 'Plan helpers nie przekazały bieżącej jednostki do modala słojów', captured);
+          assert(captured.payload && typeof captured.payload.h === 'function', 'Plan helpers nie przekazały helpera DOM h do modala słojów', captured);
+          assert(captured.payload && captured.payload.h('div', { class:'x' }).tag === 'div', 'Plan helpers przekazały uszkodzony helper DOM h do modala słojów', captured);
           assert(captured.payload && captured.payload.tryAutoRenderFromCache && captured.payload.tryAutoRenderFromCache() === 'refresh-ok', 'Plan helpers nie przekazały callbacku refresh do modala słojów', captured);
           assert(captured.helpers && captured.helpers.materialHasGrain('Dąb dziki') === true, 'Plan helpers nie przekazały poprawnego helpera materialHasGrain', captured);
           assert(captured.helpers && captured.helpers.mmToUnitStr(120) === '120cm', 'Plan helpers nie przekazały mmToUnitStr do modala słojów', captured);

@@ -1,3 +1,9 @@
+## 2026-04-19 — ROZRYS grain exceptions modal hotfix after plan helper split
+- `js/app/rozrys/rozrys-plan-helpers.js` — przy delegacji `openMaterialGrainExceptions(...)` wrócił brakujący helper DOM `h` w payloadzie przekazywanym do `rozrys-grain-modal`. Po splicie plan helpers modal reagował na klik, ale nie otwierał się, bo próbował budować DOM bez `ctx.h`.
+- `js/app/rozrys/rozrys.js` — `createApi(...)` dla `rozrys-plan-helpers` znowu przekazuje `h`, tak jak w starej ścieżce przed splitem.
+- `js/testing/rozrys/tests.js` — test dla modala wyjątków słojów pilnuje już nie tylko `unitValue` i callbacku refresh, ale też obecności działającego helpera DOM `h`.
+- Instrukcja antyregresyjna: przy splitach helperów modalowych porównywać payload przekazywany do modala 1:1 ze starą ścieżką, nie tylko listę helperów biznesowych. Brak `h` może nie wyjść w smoke, ale rozwala realne otwieranie modala.
+
 ## 2026-04-19 — ROZRYS plan helpers split (stock/grain/cache adapter block)
 - `js/app/rozrys/rozrys-plan-helpers.js` — wydzielony techniczny adapter planu ROZRYS: delegacje do `rozrys-stock`, `rozrys-cache`, `rozrys-engine` i `rozrys-grain-modal` dla helperów magazynu/formatów, grain exceptions oraz cache key (`getRealHalfStockForMaterial`, `toMmByUnit`, `getDefaultRozrysOptionValues`, `buildStockSignatureForMaterial`, `getExactSheetStockForMaterial`, `getLargestSheetFormatForMaterial`, `applySheetStockLimit`, `materialHasGrain`, `openMaterialGrainExceptions`, `loadPlanCache`, `savePlanCache`, `makePlanCacheKey` itd.).
 - `js/app/rozrys/rozrys.js` — dalej trzyma wejście do zakładki, scope, pickery, start renderu, `tryAutoRenderFromCache` i `generate`, ale nie trzyma już lokalnie dużego bloku delegacji stock/cache/grain. Wysokiego ryzyka ścieżki (`aggregatePartsForProject`, launchery, startowy render, `generate`) nie były zmieniane funkcjonalnie.
