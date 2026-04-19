@@ -9,6 +9,10 @@
   const KEY_CURRENT = 'fc_current_investor_v1';
   const KEY_REMOVED = 'fc_investor_removed_ids_v1';
   const DEFAULT_PROJECT_STATUS = 'nowy';
+  const STORAGE_KEYS = (FC.constants && FC.constants.STORAGE_KEYS) || {};
+  const KEY_PROJECTS = STORAGE_KEYS.projects || 'fc_projects_v1';
+  const KEY_QUOTE_SNAPSHOTS = STORAGE_KEYS.quoteSnapshots || 'fc_quote_snapshots_v1';
+  let _isRecovering = false;
 
   function now(){ return Date.now(); }
   function uid(){ return 'inv_' + Math.random().toString(36).slice(2,10) + '_' + now().toString(36); }
@@ -273,54 +277,78 @@
     map.set(id, normalizeInvestor(merged));
   }
 
-  function buildRecoveryCandidates(){
-    const recovered = new Map();
+  function readStorageArray(key){
     try{
-      if(FC.projectStore && typeof FC.projectStore.readAll === 'function'){
-        const projects = FC.projectStore.readAll();
-        (Array.isArray(projects) ? projects : []).forEach((record)=> {
-          const investorId = String(record && record.investorId || '').trim();
-          if(!investorId) return;
-          mergeCandidateInto(recovered, { id:investorId, name:String(record && record.title || '') }, roomsFromProjectRecord(record), record);
-        });
+      if(FC.storage && typeof FC.storage.getJSON === 'function'){
+        const rows = FC.storage.getJSON(key, []);
+        return Array.isArray(rows) ? rows : [];
       }
     }catch(_){ }
     try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function'){
-        const snapshots = FC.quoteSnapshotStore.readAll();
-        (Array.isArray(snapshots) ? snapshots : []).forEach((snapshot)=> {
-          const investorId = String(snapshot && snapshot.investor && snapshot.investor.id || snapshot && snapshot.project && snapshot.project.investorId || '').trim();
-          if(!investorId) return;
-          const investorLike = Object.assign({}, snapshot && snapshot.investor || {}, { id:investorId });
-          const fallback = {
-            id: investorId,
-            title: String(snapshot && snapshot.project && snapshot.project.title || ''),
-            createdAt: Number(snapshot && snapshot.generatedAt) || 0,
-            updatedAt: Number(snapshot && snapshot.generatedAt) || 0,
-            source: String(snapshot && snapshot.meta && snapshot.meta.source || 'quote-snapshot-store'),
-          };
-          mergeCandidateInto(recovered, investorLike, roomsFromSnapshot(snapshot), fallback);
-        });
-      }
+      const raw = localStorage.getItem(key);
+      const rows = raw ? JSON.parse(raw) : [];
+      return Array.isArray(rows) ? rows : [];
+    }catch(_){ return []; }
+  }
+
+  function readRawProjectRecords(){
+    return readStorageArray(KEY_PROJECTS);
+  }
+
+  function readRawQuoteSnapshots(){
+    return readStorageArray(KEY_QUOTE_SNAPSHOTS);
+  }
+
+  function buildRecoveryCandidates(){
+    const recovered = new Map();
+    try{
+      const projects = readRawProjectRecords();
+      (Array.isArray(projects) ? projects : []).forEach((record)=> {
+        const investorId = String(record && record.investorId || '').trim();
+        if(!investorId) return;
+        mergeCandidateInto(recovered, { id:investorId, name:String(record && record.title || '') }, roomsFromProjectRecord(record), record);
+      });
+    }catch(_){ }
+    try{
+      const snapshots = readRawQuoteSnapshots();
+      (Array.isArray(snapshots) ? snapshots : []).forEach((snapshot)=> {
+        const investorId = String(snapshot && snapshot.investor && snapshot.investor.id || snapshot && snapshot.project && snapshot.project.investorId || '').trim();
+        if(!investorId) return;
+        const investorLike = Object.assign({}, snapshot && snapshot.investor || {}, { id:investorId });
+        const fallback = {
+          id: investorId,
+          title: String(snapshot && snapshot.project && snapshot.project.title || ''),
+          createdAt: Number(snapshot && snapshot.generatedAt) || 0,
+          updatedAt: Number(snapshot && snapshot.generatedAt) || 0,
+          source: String(snapshot && snapshot.meta && snapshot.meta.source || 'quote-snapshot-store'),
+        };
+        mergeCandidateInto(recovered, investorLike, roomsFromSnapshot(snapshot), fallback);
+      });
     }catch(_){ }
     return recovered;
   }
 
   function recoverMissingInvestors(list){
     const current = Array.isArray(list) ? list.map(normalizeInvestor) : [];
-    const removedIds = readRemovedIds();
-    const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
-    const recovered = buildRecoveryCandidates();
-    const additions = [];
-    recovered.forEach((candidate, id)=> {
-      const key = String(id || '').trim();
-      if(!key || existingIds.has(key) || removedIds.has(key)) return;
-      additions.push(normalizeInvestor(candidate));
-    });
-    if(!additions.length) return current;
-    const next = current.concat(additions);
-    writeAll(next);
-    return next;
+    if(_isRecovering) return current;
+    _isRecovering = true;
+    try{
+      const removedIds = readRemovedIds();
+      const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
+      const recovered = buildRecoveryCandidates();
+      const additions = [];
+      recovered.forEach((candidate, id)=> {
+        const key = String(id || '').trim();
+        if(!key || existingIds.has(key) || removedIds.has(key)) return;
+        additions.push(normalizeInvestor(candidate));
+      });
+      if(!additions.length) return current;
+      const next = current.concat(additions);
+      writeAll(next);
+      return next;
+    }finally{
+      _isRecovering = false;
+    }
   }
 
   function readAll(){

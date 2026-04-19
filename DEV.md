@@ -1520,3 +1520,6 @@ Dopiero potem go zmieniać.
 
 
 - ROZRYS split gate: before future bridge/controller splits, keep smoke tests that explicitly verify launcher bootstrap (`updateRoomsPickerButton`, `updateMaterialPickerButton`, `syncHiddenSelections`, click bindings) and script load order/fallback contract for every new bridge loaded before `rozrys.js`.
+
+## 2026-04-20 — investors-store recovery recursion hotfix
+- `js/app/investor/investors-store.js` nie może budować recovery przez znormalizowane `FC.quoteSnapshotStore.readAll()`, bo snapshot normalization woła `room-registry`, a ten może wrócić do `FC.investors.readAll()` i zawiesić aplikację pętlą. Recovery ma czytać surowe rekordy snapshotów/projektów ze storage albo działać za reentry guardem.
