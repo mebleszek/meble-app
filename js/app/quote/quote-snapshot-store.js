@@ -61,12 +61,13 @@
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
 
-  function normalizeSnapshot(snapshot){
+  function normalizeSnapshot(snapshot, options){
     const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const preliminary = isPreliminarySnapshot(src);
     const acceptedStage = String(src.meta && src.meta.acceptedStage || (src.meta && src.meta.selectedByClient ? (preliminary ? 'pomiar' : 'zaakceptowany') : '') || '');
-    const scope = buildCanonicalScope(src.scope || {});
-    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || getCanonicalDefaultVersionName({ scope, commercial:{ preliminary }, meta:{ preliminary } });
+    const opts = options && typeof options === 'object' ? options : {};
+    const scope = buildCanonicalScope(src.scope || {}, opts);
+    const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || getCanonicalDefaultVersionName({ scope, commercial:{ preliminary }, meta:{ preliminary } }, opts);
     return {
       id: String(src.id || uid()),
       generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
@@ -93,12 +94,12 @@
   function readAll(){
     const rows = storage.getJSON(SNAPSHOT_KEY, []);
     return Array.isArray(rows)
-      ? rows.map((row)=> normalizeSnapshot(row)).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0))
+      ? rows.map((row)=> normalizeSnapshot(row, { canonicalizeLabels:true })).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0))
       : [];
   }
 
   function writeAll(list){
-    const rows = Array.isArray(list) ? list.map((row)=> normalizeSnapshot(row)) : [];
+    const rows = Array.isArray(list) ? list.map((row)=> normalizeSnapshot(row, { preserveExplicitLabels:true })) : [];
     storage.setJSON(SNAPSHOT_KEY, rows);
     return rows;
   }
@@ -111,7 +112,7 @@
 
   function save(snapshot){
     const list = readAll();
-    const normalized = normalizeSnapshot(snapshot);
+    const normalized = normalizeSnapshot(snapshot, { preserveExplicitLabels:true });
     const projectRows = list.filter((row)=> String(row && row.project && row.project.id || '') === String(normalized && normalized.project && normalized.project.id || ''));
     const coercedVersionName = coerceAutoVersionNameForScope(normalized, projectRows);
     if(coercedVersionName){
@@ -185,15 +186,23 @@
     return key;
   }
 
-  function getScopeRoomLabels(snapshotOrScope){
+  function getScopeRoomLabels(snapshotOrScope, options){
     const source = snapshotOrScope && snapshotOrScope.scope ? snapshotOrScope.scope : snapshotOrScope;
+    const opts = options && typeof options === 'object' ? options : {};
     const roomIds = normalizeRoomIds(source && source.selectedRooms);
     const explicitLabels = Array.isArray(source && source.roomLabels)
-      ? source.roomLabels.map((item)=> String(item || '').trim()).filter(Boolean)
+      ? source.roomLabels.map((item)=> String(item || '').trim())
       : [];
+    const nonEmptyExplicitLabels = explicitLabels.filter(Boolean);
+    const hasCompleteExplicitLabels = roomIds.length > 0
+      && explicitLabels.length >= roomIds.length
+      && roomIds.every((_roomId, index)=> !!String(explicitLabels[index] || '').trim());
+    if(opts.preserveExplicitLabels && hasCompleteExplicitLabels){
+      return explicitLabels.slice(0, roomIds.length).map((item)=> String(item || '').trim()).filter(Boolean);
+    }
     try{
       if(FC.quoteSnapshot && typeof FC.quoteSnapshot.resolveVersionScopeLabels === 'function'){
-        const resolved = FC.quoteSnapshot.resolveVersionScopeLabels({ roomIds, roomLabels:explicitLabels });
+        const resolved = FC.quoteSnapshot.resolveVersionScopeLabels({ roomIds, roomLabels:nonEmptyExplicitLabels });
         if(Array.isArray(resolved) && resolved.length) return resolved;
       }
     }catch(_){ }
@@ -207,20 +216,21 @@
       if(labels.length) return labels;
       return roomIds;
     }
-    return explicitLabels;
+    return nonEmptyExplicitLabels;
   }
 
-  function buildScopedVersionName(preliminary, snapshotOrScope){
+  function buildScopedVersionName(preliminary, snapshotOrScope, options){
     const base = preliminary ? 'Wstępna oferta' : 'Oferta';
-    const labels = getScopeRoomLabels(snapshotOrScope);
+    const labels = getScopeRoomLabels(snapshotOrScope, options);
     return labels.length ? `${base} — ${labels.join(' + ')}` : base;
   }
 
-  function buildCanonicalScope(snapshotOrScope){
+  function buildCanonicalScope(snapshotOrScope, options){
     const source = snapshotOrScope && snapshotOrScope.scope ? snapshotOrScope.scope : snapshotOrScope;
+    const opts = options && typeof options === 'object' ? options : {};
     const materialScope = normalizeMaterialScope(source && source.materialScope);
     const selectedRooms = normalizeRoomIds(source && source.selectedRooms);
-    const roomLabels = getScopeRoomLabels({ selectedRooms, roomLabels: Array.isArray(source && source.roomLabels) ? source.roomLabels.slice() : [] });
+    const roomLabels = getScopeRoomLabels({ selectedRooms, roomLabels: Array.isArray(source && source.roomLabels) ? source.roomLabels.slice() : [] }, opts);
     return Object.assign({}, clone(source || {}), {
       selectedRooms,
       roomLabels,
@@ -229,9 +239,9 @@
     });
   }
 
-  function getCanonicalDefaultVersionName(snapshot){
+  function getCanonicalDefaultVersionName(snapshot, options){
     const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
-    return String(buildScopedVersionName(isPreliminarySnapshot(snap), snap) || '').trim();
+    return String(buildScopedVersionName(isPreliminarySnapshot(snap), snap, options) || '').trim();
   }
 
   function parseAutoVersionName(preliminary, value){

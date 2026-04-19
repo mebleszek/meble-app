@@ -1539,3 +1539,4 @@ Dopiero potem go zmieniać.
 - Quote snapshot store przy odczycie historii musi kanonizować `roomLabels` z `selectedRooms`/`roomRegistry`, a nie ufać ślepo starym labelom zapisanym w snapshotach z innego scope.
 
 - `js/app/investor/investors-store.js`: przy recovery pustej listy decyzję o preferowaniu testowych snapshotów robić po zebraniu kandydatów, nie przez zbyt wczesny globalny `testOnly`; jeśli istnieją jawne testowe źródła recovery, do wyniku mają wejść tylko one, bez mieszania zwykłych snapshotów użytkownika.
+- 2026-04-20: `quoteSnapshotStore.writeAll/save` nie mogą podczas normalizacji jawnych `roomLabels` odpalać `roomRegistry` i pośrednio `investors.readAll()`. Na zapisie zachowujemy kompletne explicit labels bez lookupu; kanonizacja/stara korekta etykiet ma działać dopiero przy odczycie (`readAll`).
