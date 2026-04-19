@@ -278,6 +278,10 @@ function aggregatePartsForProject(selectedRooms){
       resolveRozrysPartFromSource,
       isFrontMaterialKey,
     };
+    const requestedRooms = Array.isArray(selectedRooms)
+      ? selectedRooms.map((room)=> String(room || '').trim()).filter(Boolean)
+      : [];
+    let bestExplicitEmpty = null;
     const candidates = collectProjectCandidates();
     for(const entry of candidates){
       const scopedGetRooms = ()=> getRoomsForProject(entry.proj);
@@ -285,14 +289,26 @@ function aggregatePartsForProject(selectedRooms){
         safeGetProject: ()=> entry.proj,
         getRooms: scopedGetRooms,
       });
-      const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, scopedDeps);
-      if(first && Array.isArray(first.materials) && first.materials.length) return first;
-      const discoveredRooms = scopedGetRooms();
-      if(discoveredRooms.length){
-        const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, scopedDeps);
-        if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
+      const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, scopedDeps)
+        || { byMaterial:{}, materials:[], groups:{}, selectedRooms:[] };
+      const firstRooms = Array.isArray(first.selectedRooms)
+        ? first.selectedRooms.map((room)=> String(room || '').trim()).filter(Boolean)
+        : [];
+      if(Array.isArray(first.materials) && first.materials.length) return first;
+      if(firstRooms.length){
+        if(!bestExplicitEmpty) bestExplicitEmpty = first;
+        continue;
+      }
+      const allowRetryToDiscoveredRooms = firstRooms.length === 0;
+      if(allowRetryToDiscoveredRooms){
+        const discoveredRooms = scopedGetRooms();
+        if(discoveredRooms.length){
+          const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, scopedDeps);
+          if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
+        }
       }
     }
+    if(bestExplicitEmpty) return bestExplicitEmpty;
     const deps = Object.assign({}, baseDeps, { safeGetProject });
     const fallback = FC.rozrysScope.aggregatePartsForProject(selectedRooms, deps);
     return fallback || { byMaterial:{}, materials:[], groups:{}, selectedRooms:Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
