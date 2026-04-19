@@ -901,6 +901,81 @@
 
 
 
+      makeTest('Panel workspace', 'Wydzielony panel/workspace ROZRYS zachowuje live refsy i helpery opcji', 'Pilnuje dużego splitu panelu opcji: refsy kontrolek pozostają wspólne dla run/output, persist czyta aktualny selection scope, a getBaseState dalej opiera się o rozrysState.buildBaseStateFromControls.', ()=>{
+        assert(FC.rozrysPanelWorkspace && typeof FC.rozrysPanelWorkspace.createApi === 'function', 'Brak FC.rozrysPanelWorkspace.createApi');
+        const restoreDom = installFakeDom();
+        const prevRozrysState = FC.rozrysState;
+        const captured = { saved:null, baseCalls:[], optionWrites:[] };
+        try{
+          FC.rozrysState = Object.assign({}, prevRozrysState || {}, {
+            buildBaseStateFromControls(controls, deps){
+              captured.baseCalls.push({ controls, deps });
+              return {
+                unit: controls.unitSel.value,
+                edgeSubMm: Number(controls.edgeSel.value || 0),
+                boardW: Number(controls.inW.value || 0),
+                boardH: Number(controls.inH.value || 0),
+                kerf: Number(controls.inK.value || 0),
+                edgeTrim: Number(controls.inTrim.value || 0),
+                minScrapW: Number(controls.inMinW.value || 0),
+                minScrapH: Number(controls.inMinH.value || 0),
+                heur: 'optimax',
+                optimaxProfile: controls.heurSel.value,
+                direction: deps.normalizeCutDirection(controls.dirSel.value),
+              };
+            }
+          });
+          const api = FC.rozrysPanelWorkspace.createApi({ FC });
+          const card = document.createElement('div');
+          let selectedRooms = ['kuchnia'];
+          let materialScope = { kind:'all', material:'', includeFronts:true, includeCorpus:true };
+          const state = { unit:'cm', boardW:280, boardH:207, kerf:0.4, edgeTrim:1, minScrapW:0, minScrapH:0 };
+          const workspace = api.createWorkspace({
+            h: (tag, attrs)=> createFakeNode(tag, attrs),
+            labelWithInfo: (title)=> {
+              const row = createFakeNode('div', { class:'label-help' });
+              row.appendChild(createFakeNode('span', { class:'label-help__text', text:title }));
+              return row;
+            },
+            createChoiceLauncher: (label)=> createFakeNode('button', { text:label }),
+            getSelectOptionLabel: (select)=> String(select && select.value || ''),
+            setChoiceLaunchValue: (btn, label)=> { if(btn) btn.textContent = String(label || ''); },
+            openRozrysChoiceOverlay: async ()=> null,
+            card,
+            state,
+            panelPrefs: { edgeSubMm:1 },
+            getSelectedRooms: ()=> selectedRooms.slice(),
+            getMaterialScope: ()=> Object.assign({}, materialScope),
+            encodeRoomsSelection: (rooms)=> `rooms:${rooms.join('|')}`,
+            encodeMaterialScope: (scope)=> JSON.stringify(scope || {}),
+            loadPanelPrefs: ()=> ({ keep:'ok' }),
+            savePanelPrefs: (payload)=> { captured.saved = payload; },
+            rozState: { setOptionState: (next)=> captured.optionWrites.push(next) },
+          }, {
+            normalizeCutDirection: (value)=> `norm:${value}`,
+          });
+          assert(workspace && workspace.unitSel && workspace.edgeSel && workspace.genBtn && workspace.out, 'Panel workspace nie zwrócił oczekiwanych refsów UI', workspace);
+          selectedRooms = ['salon'];
+          materialScope = { kind:'material', material:'MDF test', includeFronts:true, includeCorpus:false };
+          workspace.persistOptionPrefs();
+          assert(captured.saved && captured.saved.keep === 'ok' && captured.saved.selectedRooms === 'rooms:salon', 'persistOptionPrefs nie czyta live selectedRooms z getterów', captured.saved);
+          assert(captured.saved.materialScope === JSON.stringify(materialScope) && Number(captured.saved.edgeSubMm) === 1, 'persistOptionPrefs nie zapisał aktualnego material scope / edgeSubMm', captured.saved);
+          workspace.applyUnitChange('mm');
+          assert(workspace.unitSel.value === 'mm' && state.unit === 'mm', 'applyUnitChange nie zsynchronizował jednostki na wspólnym stanie/refie', { unit:workspace.unitSel.value, state });
+          assert(String(workspace.inW.value) === '2800' && String(workspace.inH.value) === '2070', 'applyUnitChange nie przeliczył bazowego formatu arkusza', { w:workspace.inW.value, h:workspace.inH.value });
+          workspace.heurSel.value = 'max';
+          workspace.dirSel.value = 'start-optimax';
+          const base = workspace.getBaseState();
+          assert(captured.baseCalls.length === 1 && captured.baseCalls[0].controls.unitSel === workspace.unitSel, 'getBaseState nie deleguje do rozrysState.buildBaseStateFromControls na tych samych refach', captured.baseCalls);
+          assert(base.direction === 'norm:start-optimax' && captured.optionWrites.length === 1, 'getBaseState nie zwrócił / nie zapisał znormalizowanego stanu opcji', { base, optionWrites:captured.optionWrites });
+        } finally {
+          FC.rozrysState = prevRozrysState;
+          restoreDom();
+        }
+      }),
+
+
+
       makeTest('Run controller', 'Wydzielony run controller ROZRYS deleguje progress, generowanie i magazyn bez zmiany kontraktu', 'Pilnuje dużego splitu action/run: progress bridge nadal steruje stanem przycisku, generate przekazuje pełny payload do rozrysRunner, a Dodaj płytę dalej dostaje ten sam ctx/deps.', async ()=>{
         assert(FC.rozrysRunController && typeof FC.rozrysRunController.createApi === 'function', 'Brak FC.rozrysRunController.createApi');
         const prevRunner = FC.rozrysRunner;
@@ -1160,18 +1235,27 @@
           FC.rozrysAccordion = prevAccordion;
         }
       }),
-      makeTest('Bootstrap i splity', 'ROZRYS ładuje output controller przed rozrys.js i zachowuje bezpieczny kontrakt createController', 'Pilnuje regresji, w której nowy moduł output/render/cache byłby ładowany po rozrys.js albo rozrys.js straciłby bezpieczne spięcie createController dla warstwy wyników.', ()=>{
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje panel workspace i output controller przed rozrys.js oraz zachowuje bezpieczne spięcia', 'Pilnuje regresji, w której nowy moduł panelu/workspace albo output/render/cache byłby ładowany po rozrys.js lub rozrys.js straciłby bezpieczne spięcia createWorkspace/createController wymagane podczas bootstrapu.', ()=>{
         const indexHtml = readAssetSource('index.html');
         const devHtml = readAssetSource('dev_tests.html');
         const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
+        const panelSrc = readAssetSource('js/app/rozrys/rozrys-panel-workspace.js');
         const outputSrc = readAssetSource('js/app/rozrys/rozrys-output-controller.js');
+        assert(panelSrc && panelSrc.includes('FC.rozrysPanelWorkspace'), 'Brak źródła nowego modułu panel workspace w assetach smoke');
         assert(outputSrc && outputSrc.includes('FC.rozrysOutputController'), 'Brak źródła nowego modułu output controller w assetach smoke');
+        const panelIdx = indexHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
         const outIdx = indexHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(panelIdx >= 0 && rozIdx >= 0 && panelIdx < rozIdx, 'index.html ładuje rozrys-panel-workspace po rozrys.js', { panelIdx, rozIdx });
         assert(outIdx >= 0 && rozIdx >= 0 && outIdx < rozIdx, 'index.html ładuje rozrys-output-controller po rozrys.js', { outIdx, rozIdx });
+        const panelDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
         const outDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(panelDevIdx >= 0 && rozDevIdx >= 0 && panelDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-panel-workspace po rozrys.js', { panelDevIdx, rozDevIdx });
         assert(outDevIdx >= 0 && rozDevIdx >= 0 && outDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-output-controller po rozrys.js', { outDevIdx, rozDevIdx });
+        assert(/const panelWorkspaceApi[\s\S]*createWorkspace:\s*\(\)\s*=>\s*null/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego spięcia panelWorkspaceApi', { snippet: rozrysSrc.slice(9000, 14000) });
+        assert(/const workspace\s*=\s*panelWorkspaceApi\.createWorkspace\([\s\S]*const persistOptionPrefs\s*=\s*workspace\.persistOptionPrefs;/.test(rozrysSrc), 'rozrys.js po splicie panelu nie składa workspace z bridgea i nie pobiera z niego live helperów/refów', { snippet: rozrysSrc.slice(17000, 25000) });
+        assert(!/function\s+persistOptionPrefs\s*\(/.test(rozrysSrc) && !/function\s+applyUnitChange\s*\(/.test(rozrysSrc), 'rozrys.js nadal trzyma lokalne helpery opcji zamiast czytać je z panel workspace', { snippet: rozrysSrc.slice(17000, 25000) });
         assert(/(?:let|const)\s+outputCtrl\s*=\s*null[\s\S]*outputCtrl\s*=\s*outputControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera z bridgea albo nie inicjalizuje go jawnie po bootstrapie helperów', { snippet: rozrysSrc.slice(18000, 25500) });
         assert(/const outputControllerApi[\s\S]*createController:\s*\(ctx[^)]*\)\s*=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla output controllera', { snippet: rozrysSrc.slice(9000, 16000) });
         assert(/function\s+tryAutoRenderFromCache\s*\(/.test(rozrysSrc) && /function\s+splitMaterialAccordionTitle\s*\(/.test(rozrysSrc) && /function\s+buildEntriesForScope\s*\(/.test(rozrysSrc), 'rozrys.js po splicie output controllera nie zachowuje hoistowanych fasad helperów cache/output wymaganych podczas bootstrapu', { snippet: rozrysSrc.slice(15000, 26000) });
