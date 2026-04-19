@@ -859,157 +859,72 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     syncHiddenSelections();
     roomsPickerBtn.addEventListener('click', openRoomsPicker);
     matPickerBtn.addEventListener('click', openMaterialPicker);
-    // Helper: whether current material (by name) is marked as having grain in the price list.
-    function getRealHalfStockForMaterial(material, fullWmm, fullHmm){
-      if(FC.rozrysStock && typeof FC.rozrysStock.getRealHalfStockForMaterial === 'function'){
-        return FC.rozrysStock.getRealHalfStockForMaterial(material, fullWmm, fullHmm);
-      }
-      return { qty:0, width:0, height:0 };
-    }
 
-    function toMmByUnit(unit, value){
-      if(FC.rozrysStock && typeof FC.rozrysStock.toMmByUnit === 'function'){
-        return FC.rozrysStock.toMmByUnit(unit, value);
-      }
-      return 0;
-    }
-
-    function fromMmByUnit(unit, valueMm){
-      if(FC.rozrysStock && typeof FC.rozrysStock.fromMmByUnit === 'function'){
-        return FC.rozrysStock.fromMmByUnit(unit, valueMm);
-      }
-      return 0;
-    }
-
-    function sameSheetFormat(aW, aH, bW, bH){
-      if(FC.rozrysStock && typeof FC.rozrysStock.sameSheetFormat === 'function'){
-        return FC.rozrysStock.sameSheetFormat(aW, aH, bW, bH);
-      }
-      return false;
-    }
-
-    function getDefaultRozrysOptionValues(unit){
-      if(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function'){
-        return FC.rozrysStock.getDefaultRozrysOptionValues(unit);
-      }
-      return { unit:'cm', edge:'0', boardW:280, boardH:207, kerf:0.4, trim:1, minW:0, minH:0 };
-    }
-
-    function getSheetRowsForMaterial(material, opts){
-      if(FC.rozrysStock && typeof FC.rozrysStock.getSheetRowsForMaterial === 'function'){
-        return FC.rozrysStock.getSheetRowsForMaterial(material, opts);
-      }
-      return [];
-    }
-
-    function buildStockSignatureForMaterial(material){
-      if(FC.rozrysStock && typeof FC.rozrysStock.buildStockSignatureForMaterial === 'function'){
-        return FC.rozrysStock.buildStockSignatureForMaterial(material);
-      }
-      return '';
-    }
-
-    function canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate){
-      if(FC.rozrysStock && typeof FC.rozrysStock.canPartFitSheet === 'function'){
-        return FC.rozrysStock.canPartFitSheet(part, boardWmm, boardHmm, trimMm, allowRotate);
-      }
-      return false;
-    }
-
-    function filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn, overrides){
-      if(FC.rozrysStock && typeof FC.rozrysStock.filterPartsForSheet === 'function'){
-        return FC.rozrysStock.filterPartsForSheet(parts, boardWmm, boardHmm, trimMm, grainOn, overrides, { isPartRotationAllowed });
-      }
-      return [];
-    }
-
-    function getExactSheetStockForMaterial(material, boardWmm, boardHmm){
-      if(FC.rozrysStock && typeof FC.rozrysStock.getExactSheetStockForMaterial === 'function'){
-        return FC.rozrysStock.getExactSheetStockForMaterial(material, boardWmm, boardHmm);
-      }
-      return { qty:0, width:Math.round(Number(boardWmm)||0), height:Math.round(Number(boardHmm)||0) };
-    }
-
-    function getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm){
-      if(FC.rozrysStock && typeof FC.rozrysStock.getLargestSheetFormatForMaterial === 'function'){
-        return FC.rozrysStock.getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm);
-      }
-      return { width:Math.round(Number(fallbackWmm)||0), height:Math.round(Number(fallbackHmm)||0), qty:0 };
-    }
-
-    function clonePlanSheetsWithSupply(sheets, opts){
-      if(FC.rozrysStock && typeof FC.rozrysStock.clonePlanSheetsWithSupply === 'function'){
-        return FC.rozrysStock.clonePlanSheetsWithSupply(sheets, opts);
-      }
-      return Array.isArray(sheets) ? sheets.slice() : [];
-    }
-
-    function countPlacedPartsByKey(sheets){
-      if(FC.rozrysStock && typeof FC.rozrysStock.countPlacedPartsByKey === 'function'){
-        return FC.rozrysStock.countPlacedPartsByKey(sheets);
-      }
-      return new Map();
-    }
-
-    function subtractPlacedParts(parts, usedMap){
-      if(FC.rozrysStock && typeof FC.rozrysStock.subtractPlacedParts === 'function'){
-        return FC.rozrysStock.subtractPlacedParts(parts, usedMap, { partSignature });
-      }
-      return Array.isArray(parts) ? parts.slice() : [];
-    }
-
-    function buildPlanMetaFromState(st){
-      if(FC.rozrysStock && typeof FC.rozrysStock.buildPlanMetaFromState === 'function'){
-        return FC.rozrysStock.buildPlanMetaFromState(st);
-      }
-      return { trim:10, boardW:2800, boardH:2070, unit:'mm' };
-    }
-
-    async function computePlanWithCurrentEngine(st, parts, panelOpts){
-      if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlanWithCurrentEngine === 'function'){
-        return FC.rozrysEngine.computePlanWithCurrentEngine(st, parts, panelOpts, {
-          computePlan,
-          computePlanPanelProAsync,
-        });
-      }
-      return computePlan(st, parts);
-    }
-
-    async function applySheetStockLimit(material, st, parts, plan, opts){
-      if(FC.rozrysStock && typeof FC.rozrysStock.applySheetStockLimit === 'function'){
-        return FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, opts, { computePlanWithCurrentEngine, partSignature, isPartRotationAllowed });
-      }
-      return plan && typeof plan === 'object' ? plan : { sheets:[] };
-    }
-
-    function materialHasGrain(name){
-      try{
-        const list = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials : [];
-        return !!(FC && typeof FC.materialHasGrain === 'function' && FC.materialHasGrain(name, list));
-      }catch(_){ return false; }
-    }
-
-    function openMaterialGrainExceptions(material, parts){
-      if(FC.rozrysGrainModal && typeof FC.rozrysGrainModal.openMaterialGrainExceptions === 'function'){
-        return FC.rozrysGrainModal.openMaterialGrainExceptions({
-          material,
-          parts,
-          unitValue: unitSel.value,
-          h,
-          tryAutoRenderFromCache,
-        }, {
-          askRozrysConfirm,
-          openRozrysInfo,
-          setMaterialGrainExceptions,
-          getMaterialGrainEnabled,
-          getMaterialGrainExceptions,
-          materialHasGrain,
-          partSignature,
-          materialPartDirectionLabel,
-          mmToUnitStr,
-        });
-      }
-    }
+    const planHelpers = (FC.rozrysPlanHelpers && typeof FC.rozrysPlanHelpers.createApi === 'function')
+      ? FC.rozrysPlanHelpers.createApi({
+        FC,
+        materials,
+        controls:{ unitSel },
+        computePlan,
+        computePlanPanelProAsync,
+        isPartRotationAllowed,
+        partSignature,
+        loadEdgeStore,
+        tryAutoRenderFromCache,
+        askRozrysConfirm,
+        openRozrysInfo,
+        setMaterialGrainExceptions,
+        getMaterialGrainEnabled,
+        getMaterialGrainExceptions,
+        materialPartDirectionLabel,
+        mmToUnitStr,
+      })
+      : {
+        getRealHalfStockForMaterial: ()=> ({ qty:0, width:0, height:0 }),
+        toMmByUnit: ()=> 0,
+        fromMmByUnit: ()=> 0,
+        sameSheetFormat: ()=> false,
+        getDefaultRozrysOptionValues: ()=> ({ unit:'cm', edge:'0', boardW:280, boardH:207, kerf:0.4, trim:1, minW:0, minH:0 }),
+        getSheetRowsForMaterial: ()=> [],
+        buildStockSignatureForMaterial: ()=> '',
+        canPartFitSheet: ()=> false,
+        filterPartsForSheet: ()=> [],
+        getExactSheetStockForMaterial: (material, boardWmm, boardHmm)=> ({ qty:0, width:Math.round(Number(boardWmm)||0), height:Math.round(Number(boardHmm)||0) }),
+        getLargestSheetFormatForMaterial: (material, fallbackWmm, fallbackHmm)=> ({ width:Math.round(Number(fallbackWmm)||0), height:Math.round(Number(fallbackHmm)||0), qty:0 }),
+        clonePlanSheetsWithSupply: (sheets)=> Array.isArray(sheets) ? sheets.slice() : [],
+        countPlacedPartsByKey: ()=> new Map(),
+        subtractPlacedParts: (parts)=> Array.isArray(parts) ? parts.slice() : [],
+        buildPlanMetaFromState: ()=> ({ trim:10, boardW:2800, boardH:2070, unit:'mm' }),
+        computePlanWithCurrentEngine: async (st, parts)=> computePlan(st, parts),
+        applySheetStockLimit: async (material, st, parts, plan)=> (plan && typeof plan === 'object') ? plan : { sheets:[] },
+        materialHasGrain: ()=> false,
+        openMaterialGrainExceptions: ()=> undefined,
+        loadPlanCache: ()=> ({}),
+        savePlanCache: ()=> undefined,
+        makePlanCacheKey: ()=> 'plan_fallback',
+      };
+    const getRealHalfStockForMaterial = planHelpers.getRealHalfStockForMaterial;
+    const toMmByUnit = planHelpers.toMmByUnit;
+    const fromMmByUnit = planHelpers.fromMmByUnit;
+    const sameSheetFormat = planHelpers.sameSheetFormat;
+    const getDefaultRozrysOptionValues = planHelpers.getDefaultRozrysOptionValues;
+    const getSheetRowsForMaterial = planHelpers.getSheetRowsForMaterial;
+    const buildStockSignatureForMaterial = planHelpers.buildStockSignatureForMaterial;
+    const canPartFitSheet = planHelpers.canPartFitSheet;
+    const filterPartsForSheet = planHelpers.filterPartsForSheet;
+    const getExactSheetStockForMaterial = planHelpers.getExactSheetStockForMaterial;
+    const getLargestSheetFormatForMaterial = planHelpers.getLargestSheetFormatForMaterial;
+    const clonePlanSheetsWithSupply = planHelpers.clonePlanSheetsWithSupply;
+    const countPlacedPartsByKey = planHelpers.countPlacedPartsByKey;
+    const subtractPlacedParts = planHelpers.subtractPlacedParts;
+    const buildPlanMetaFromState = planHelpers.buildPlanMetaFromState;
+    const computePlanWithCurrentEngine = planHelpers.computePlanWithCurrentEngine;
+    const applySheetStockLimit = planHelpers.applySheetStockLimit;
+    const materialHasGrain = planHelpers.materialHasGrain;
+    const openMaterialGrainExceptions = planHelpers.openMaterialGrainExceptions;
+    const loadPlanCache = planHelpers.loadPlanCache;
+    const savePlanCache = planHelpers.savePlanCache;
+    const makePlanCacheKey = planHelpers.makePlanCacheKey;
 
     function getBaseState(){
       const base = (FC.rozrysState && typeof FC.rozrysState.buildBaseStateFromControls === 'function')
@@ -1157,41 +1072,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     }
 
     
-    // ===== Cache planów rozkroju
 
-    
-    // ===== Cache planów rozkroju (żeby nie liczyć ponownie)
-    const PLAN_CACHE_KEY = 'fc_rozrys_plan_cache_v2';
-
-    function hashStr(s){
-      // szybki, stabilny hash (djb2)
-      let h = 5381;
-      for(let i=0;i<s.length;i++){
-        h = ((h << 5) + h) + s.charCodeAt(i);
-        h = h >>> 0;
-      }
-      return h.toString(16);
-    }
-
-    function loadPlanCache(){
-      if(FC.rozrysCache && typeof FC.rozrysCache.loadPlanCache === 'function'){
-        return FC.rozrysCache.loadPlanCache();
-      }
-      return {};
-    }
-
-    function savePlanCache(cache){
-      if(FC.rozrysCache && typeof FC.rozrysCache.savePlanCache === 'function'){
-        FC.rozrysCache.savePlanCache(cache);
-      }
-    }
-
-    function makePlanCacheKey(st, parts){
-      if(FC.rozrysCache && typeof FC.rozrysCache.makePlanCacheKey === 'function'){
-        return FC.rozrysCache.makePlanCacheKey(st, parts, { partSignature, isPartRotationAllowed, loadEdgeStore });
-      }
-      return 'plan_fallback';
-    }
 
     const progressCtrl = (FC.rozrysProgress && typeof FC.rozrysProgress.createController === 'function')
       ? FC.rozrysProgress.createController({ statusBox, statusMain, statusSub, statusMeta, statusProg, statusProgBar, genBtn })

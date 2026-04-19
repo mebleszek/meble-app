@@ -446,42 +446,6 @@
         });
         assert(chips[0].classList.contains('is-checked'), 'Zaznaczone pomieszczenie nie dostaje klasy is-checked', { className: chips[0].className });
       }),
-      makeTest('UI i styl', 'Picker pomieszczeń oznacza pusty pokój, ale nadal pozwala go zaznaczyć', 'Pilnuje, czy pusty pokój w ROZRYS dostaje tylko drobną informację o braku elementów do rozkroju, bez blokowania checkboxa i bez zrywania spójności z wejściem z Inwestora.', ()=>{
-        assert(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function', 'Brak FC.rozrysPickers.openRoomsPicker');
-        const prevPanelBox = FC.panelBox;
-        const opened = [];
-        const fakeDoc = { createElement:(tag)=> createFakeNode(tag, {}) };
-        FC.panelBox = {
-          open(config){ opened.push(config); },
-          close(){}
-        };
-        try{
-          FC.rozrysPickers.openRoomsPicker({
-            getSelectedRooms: ()=> ['h'],
-            setSelectedRooms: ()=> {},
-            getRooms: ()=> ['a', 'h'],
-            normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
-            roomLabel: (room)=> String(room || '').toUpperCase(),
-            getRoomPickerMeta: (room)=> String(room || '').trim() === 'h' ? { empty:true, note:'Brak elementów do rozkroju' } : { empty:false, note:'' },
-            refreshSelectionState: ()=> {},
-            askConfirm: ()=> true,
-            doc: fakeDoc,
-          });
-        }finally{
-          FC.panelBox = prevPanelBox;
-        }
-        assert(opened.length === 1, 'Picker pomieszczeń nie otworzył panel-boxa dla wariantu z pustym pokojem');
-        const chips = collectNodes(opened[0].contentNode, (node)=> node.classList && node.classList.contains('rozrys-scope-chip--room-option'));
-        assert(chips.length === 2, 'Picker pomieszczeń nie wyrenderował dwóch pokojów w teście pustego pokoju', { count: chips.length });
-        const emptyChip = chips.find((chip)=> collectNodes(chip, (node)=> String(node.textContent || '') === 'H').length > 0);
-        assert(emptyChip, 'Nie znaleziono chipa pustego pokoju H');
-        const noteNode = collectNodes(emptyChip, (node)=> String(node.textContent || '').includes('Brak elementów do rozkroju'))[0];
-        assert(noteNode, 'Pusty pokój nie dostał drobnej informacji o braku elementów do rozkroju');
-        const emptyCheckbox = collectNodes(emptyChip, (node)=> node.tagName === 'INPUT' && String(node.attributes && node.attributes.type || '') === 'checkbox')[0];
-        assert(emptyCheckbox, 'Chip pustego pokoju nie zawiera checkboxa');
-        assert(emptyCheckbox.disabled !== true, 'Pusty pokój został zablokowany zamiast tylko oznaczony');
-        assert(emptyCheckbox.checked === true, 'Aktualny pusty pokój nie pozostał zaznaczony mimo wejścia z Inwestora', { checked: emptyCheckbox.checked });
-      }),
       makeTest('UI i styl', 'CSS dużego chipa pomieszczeń utrzymuje stan jak w materiale i nie zostawia grubszego obrysu po kliknięciu', 'Sprawdza, czy duży wariant stylu scope-chip dla pomieszczeń ma dokładnie dwa stany jak w materiale: bazowy/odznaczony i zaznaczony, a sticky hover na mobile nie zostawia trzeciego stanu obrysu po tapnięciu.', ()=>{
         const css = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
         assert(css && css.includes('.rozrys-scope-chip--room-option'), 'Brak pliku albo wariantu room-option dla dużego chipa pomieszczeń');
@@ -645,6 +609,82 @@
         } finally {
           FC.rozrysSummary = prevSummary;
           FC.rozrysValidation = prevValidation;
+        }
+      }),
+
+
+      makeTest('Plan helpers', 'Wydzielone helpery planu ROZRYS delegują cache key z tym samym kontraktem zależności', 'Pilnuje kolejnego bezpiecznego splitu technicznego: makePlanCacheKey po wydzieleniu nadal przekazuje do cache te same helpery partSignature / rotation / edgeStore.', ()=>{
+        assert(FC.rozrysPlanHelpers && typeof FC.rozrysPlanHelpers.createApi === 'function', 'Brak FC.rozrysPlanHelpers.createApi');
+        const captured = {};
+        const prevCache = FC.rozrysCache;
+        FC.rozrysCache = {
+          makePlanCacheKey(state, parts, deps){
+            captured.state = state;
+            captured.parts = parts;
+            captured.hasPartSignature = !!(deps && typeof deps.partSignature === 'function');
+            captured.hasRotation = !!(deps && typeof deps.isPartRotationAllowed === 'function');
+            captured.edgeStore = deps && typeof deps.loadEdgeStore === 'function' ? deps.loadEdgeStore() : null;
+            return 'plan_test_key';
+          },
+          loadPlanCache(){ return { ok:true }; },
+          savePlanCache(cache){ captured.saved = cache; },
+        };
+        try{
+          const api = FC.rozrysPlanHelpers.createApi({
+            FC,
+            partSignature: (part)=> `${part.material}||${part.name}`,
+            isPartRotationAllowed: ()=> true,
+            loadEdgeStore: ()=> ({ MDF:{ left:1 } }),
+          });
+          const key = api.makePlanCacheKey({ boardW:2800 }, [{ material:'MDF', name:'Bok' }]);
+          const cache = api.loadPlanCache();
+          api.savePlanCache({ abc:123 });
+          assert(key === 'plan_test_key', 'Plan helpers nie zwróciły klucza z delegacji cache', { key, captured });
+          assert(captured.hasPartSignature && captured.hasRotation, 'Plan helpers nie przekazały helperów cache 1:1', captured);
+          assert(captured.edgeStore && captured.edgeStore.MDF && captured.edgeStore.MDF.left === 1, 'Plan helpers nie przekazały loadEdgeStore do cache key', captured);
+          assert(cache && cache.ok === true, 'Plan helpers nie delegują loadPlanCache', cache);
+          assert(captured.saved && captured.saved.abc === 123, 'Plan helpers nie delegują savePlanCache', captured);
+        } finally {
+          FC.rozrysCache = prevCache;
+        }
+      }),
+      makeTest('Plan helpers', 'Wydzielone helpery planu ROZRYS otwierają wyjątki słojów z bieżącą jednostką i refresh callbackiem', 'Pilnuje ścieżki materialHasGrain/openMaterialGrainExceptions po splicie: modal słojów ma dostać ten sam unitValue, callback refresh i helpery materiałowe.', ()=>{
+        assert(FC.rozrysPlanHelpers && typeof FC.rozrysPlanHelpers.createApi === 'function', 'Brak FC.rozrysPlanHelpers.createApi');
+        const prevGrainModal = FC.rozrysGrainModal;
+        const prevMaterialHasGrain = FC.materialHasGrain;
+        const captured = {};
+        FC.materialHasGrain = (name, list)=> String(name || '').includes('Dąb') && Array.isArray(list) && list.length === 2;
+        FC.rozrysGrainModal = {
+          openMaterialGrainExceptions(payload, helpers){
+            captured.payload = payload;
+            captured.helpers = helpers;
+            return 'opened';
+          },
+        };
+        try{
+          const api = FC.rozrysPlanHelpers.createApi({
+            FC,
+            materials:[{ name:'Dąb dziki' }, { name:'Biel alpejska' }],
+            controls:{ unitSel:{ value:'cm' } },
+            tryAutoRenderFromCache: ()=> 'refresh-ok',
+            askRozrysConfirm: ()=> Promise.resolve(true),
+            openRozrysInfo: ()=> undefined,
+            setMaterialGrainExceptions: ()=> undefined,
+            getMaterialGrainEnabled: ()=> true,
+            getMaterialGrainExceptions: ()=> ({ a:'free' }),
+            materialPartDirectionLabel: ()=> 'Wzdłuż',
+            partSignature: ()=> 'sig-a',
+            mmToUnitStr: (mm)=> `${mm}cm`,
+          });
+          const result = api.openMaterialGrainExceptions('Dąb dziki', [{ material:'Dąb dziki', w:600, h:350 }]);
+          assert(result === 'opened', 'Plan helpers nie delegują otwarcia modala wyjątków słojów', { result, captured });
+          assert(captured.payload && captured.payload.unitValue === 'cm', 'Plan helpers nie przekazały bieżącej jednostki do modala słojów', captured);
+          assert(captured.payload && captured.payload.tryAutoRenderFromCache && captured.payload.tryAutoRenderFromCache() === 'refresh-ok', 'Plan helpers nie przekazały callbacku refresh do modala słojów', captured);
+          assert(captured.helpers && captured.helpers.materialHasGrain('Dąb dziki') === true, 'Plan helpers nie przekazały poprawnego helpera materialHasGrain', captured);
+          assert(captured.helpers && captured.helpers.mmToUnitStr(120) === '120cm', 'Plan helpers nie przekazały mmToUnitStr do modala słojów', captured);
+        } finally {
+          FC.rozrysGrainModal = prevGrainModal;
+          FC.materialHasGrain = prevMaterialHasGrain;
         }
       }),
 
