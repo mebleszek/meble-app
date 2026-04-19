@@ -256,46 +256,7 @@
     return { title:`${normalized.length} pomieszczenia`, subtitle:normalized.map(roomLabel).join(' • ') };
   }
 
-
-  function createApi(ctx){
-    const cfg = Object.assign({
-      getRooms: null,
-      getAggregatePartsForProject: null,
-      splitMaterialAccordionTitle: null,
-    }, ctx || {});
-
-    const getRoomsBound = ()=> (typeof cfg.getRooms === 'function' ? cfg.getRooms() : []);
-    const getAggregatePartsForProject = ()=> (typeof cfg.getAggregatePartsForProject === 'function' ? cfg.getAggregatePartsForProject() : null);
-    const getAggregatePartsForProjectFn = ()=>{
-      const fn = getAggregatePartsForProject();
-      return typeof fn === 'function' ? fn : null;
-    };
-
-    return {
-      roomLabel,
-      normalizeRoomSelection: (rooms)=> normalizeRoomSelection(rooms, { getRooms: getRoomsBound }),
-      encodeRoomsSelection: (rooms)=> encodeRoomsSelection(rooms, { getRooms: getRoomsBound }),
-      decodeRoomsSelection: (raw)=> decodeRoomsSelection(raw, { getRooms: getRoomsBound }),
-      makeMaterialScope,
-      encodeMaterialScope,
-      decodeMaterialScope,
-      sortRozrysParts,
-      getGroupPartsForScope,
-      normalizeMaterialScopeForAggregate: (selection, aggregate)=> normalizeMaterialScopeForAggregate(selection, aggregate, { aggregatePartsForProject: getAggregatePartsForProjectFn() }),
-      getRozrysScopeMode,
-      getOrderedMaterialsForSelection: (selection, aggregate)=> getOrderedMaterialsForSelection(selection, aggregate, { aggregatePartsForProject: getAggregatePartsForProjectFn() }),
-      getAccordionScopeKey: (selection, aggregate)=> getAccordionScopeKey(selection, aggregate, { getRooms: getRoomsBound }),
-      aggregatePartsForProject: (selectedRooms, deps)=> aggregatePartsForProject(selectedRooms, deps),
-      getScopeSummary: (scope, aggregate)=> getScopeSummary(scope, aggregate, {
-        splitMaterialAccordionTitle: typeof cfg.splitMaterialAccordionTitle === 'function' ? cfg.splitMaterialAccordionTitle : null,
-        aggregatePartsForProject: getAggregatePartsForProjectFn(),
-      }),
-      getRoomsSummary: (rooms)=> getRoomsSummary(rooms, { getRooms: getRoomsBound }),
-    };
-  }
-
   FC.rozrysScope = {
-    createApi,
     roomLabel,
     normalizeRoomSelection,
     encodeRoomsSelection,

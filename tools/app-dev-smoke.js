@@ -25,7 +25,6 @@ const FILES = [
   'js/app/service/cutting/service-cutting-common.js',
   'js/app/service/cutting/service-cutting-rozrys.js',
   'js/app/service/cutting/service-order-detail.js',
-  'js/app/investor/investor-store-recovery.js',
   'js/app/investor/investors-store.js',
   'js/app/investor/investor-persistence.js',
   'js/app/investor/investor-navigation-guard.js',
