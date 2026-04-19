@@ -570,6 +570,84 @@
         assert(/openMaterialPicker[\s\S]*class:'rozrys-picker-footer rozrys-picker-footer--material'/.test(pickersJs), 'Modal wyboru materiału nie używa jeszcze osobnej stopki z modifierem dla scrollowanego układu materiałów', { pickersJs });
       }),
 
+      makeTest('Runtime utils', 'Wydzielone utils ROZRYS budują RAW snapshot tylko dla wybranego pokoju i zakresu materiału', 'Pilnuje pierwszego bezpiecznego splitu technicznego: buildRawSnapshotForMaterial po wydzieleniu nadal filtruje exact pokój i fronty/korpusy bez mieszania danych z innych pokoi.', ()=>{
+        assert(FC.rozrysRuntimeUtils && typeof FC.rozrysRuntimeUtils.createApi === 'function', 'Brak FC.rozrysRuntimeUtils.createApi');
+        const project = {
+          room_a:{ cabinets:[{ id:'cab-a', name:'Szafka A' }], fronts:[], sets:[], settings:{} },
+          room_h:{ cabinets:[{ id:'cab-h', name:'Szafka H' }], fronts:[], sets:[], settings:{} },
+        };
+        const api = FC.rozrysRuntimeUtils.createApi({
+          FC,
+          safeGetProject: ()=> project,
+          getRooms: ()=> ['room_a', 'room_h'],
+          normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
+          resolveCabinetCutListFn: ()=> (cabinet, room)=> room === 'room_a'
+            ? [
+                { name:'Bok', qty:1, material:'MDF A', a:72, b:56 },
+                { name:'Front', qty:1, material:'Front: laminat • Biały', a:71.6, b:29.7 },
+              ]
+            : [
+                { name:'Bok', qty:1, material:'MDF H', a:72, b:56 },
+              ],
+          resolveRozrysPartFromSource: (part)=> ({
+            materialKey: String(part.material || ''),
+            name: String(part.name || 'Element'),
+            sourceSig: `${part.material}||${part.name}`,
+            direction: 'default',
+            ignoreGrain: false,
+            w: Math.round(Number(part.a || 0) * 10),
+            h: Math.round(Number(part.b || 0) * 10),
+            qty: Math.max(1, Math.round(Number(part.qty) || 0)),
+          }),
+          isFrontMaterialKey: (material)=> /^\s*Front\s*:/i.test(String(material || '')),
+          partSignature: (part)=> `${part.material}||${part.name}||${part.w}x${part.h}`,
+        });
+        const corpusRows = api.buildRawSnapshotForMaterial('MDF A', 'corpus', ['room_a']);
+        const frontRows = api.buildRawSnapshotForMaterial('Front: laminat • Biały', 'fronts', ['room_a']);
+        const emptyRows = api.buildRawSnapshotForMaterial('MDF H', 'corpus', ['room_x']);
+        assert(corpusRows.length === 1 && corpusRows[0].room === 'room_a', 'RAW snapshot korpusu nie trzyma exact pokoju room_a', corpusRows);
+        assert(frontRows.length === 1 && frontRows[0].material === 'Front: laminat • Biały', 'RAW snapshot frontów nie odfiltrował frontów dla room_a', frontRows);
+        assert(emptyRows.length === 0, 'RAW snapshot nie może pobierać danych z nieistniejącego scope', emptyRows);
+      }),
+      makeTest('Runtime utils', 'Wydzielone utils ROZRYS delegują diagnostykę przez summary z helperami snapshotów', 'Pilnuje ścieżki renderOutput → buildRozrysDiagnostics po splicie: summary ma dostać helpery RAW/resolved i policzyć diagnostykę bez utraty danych.', ()=>{
+        assert(FC.rozrysRuntimeUtils && typeof FC.rozrysRuntimeUtils.createApi === 'function', 'Brak FC.rozrysRuntimeUtils.createApi');
+        const prevSummary = FC.rozrysSummary;
+        const prevValidation = FC.rozrysValidation;
+        const captured = { rawRows:null, resolvedRows:null };
+        FC.rozrysValidation = {
+          rowsFromParts(parts){ return (parts || []).map((part)=> Object.assign({}, part)); },
+        };
+        FC.rozrysSummary = {
+          buildRozrysDiagnostics(material, mode, parts, plan, selectedRooms, helpers){
+            captured.rawRows = helpers.buildRawSnapshotForMaterial(material, mode, selectedRooms);
+            captured.resolvedRows = helpers.buildResolvedSnapshotFromParts(parts);
+            return { rawCount: captured.rawRows.length, mergedCount: captured.resolvedRows.length, validation:{ ok:true, rows:[] }, sheets:[] };
+          },
+        };
+        try{
+          const project = { room_a:{ cabinets:[{ id:'cab-a', name:'Szafka A' }], fronts:[], sets:[], settings:{} } };
+          const api = FC.rozrysRuntimeUtils.createApi({
+            FC,
+            safeGetProject: ()=> project,
+            getRooms: ()=> ['room_a'],
+            normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
+            resolveCabinetCutListFn: ()=> ()=> ([{ name:'Bok', qty:2, material:'MDF A', a:72, b:56 }]),
+            resolveRozrysPartFromSource: (part)=> ({ materialKey:'MDF A', name:String(part.name || 'Element'), sourceSig:'sig', direction:'default', ignoreGrain:false, w:720, h:560, qty:Math.max(1, Number(part.qty) || 0) }),
+            isFrontMaterialKey: ()=> false,
+            partSignature: (part)=> `${part.material}||${part.name}||${part.w}x${part.h}`,
+            mmToUnitStr: (mm)=> String(mm),
+          });
+          const parts = [{ material:'MDF A', name:'Bok', w:720, h:560, qty:2, sourceSig:'sig', direction:'default' }];
+          const diag = api.buildRozrysDiagnostics('MDF A', 'both', parts, { sheets:[] }, ['room_a']);
+          assert(diag && diag.rawCount === 1 && diag.mergedCount === 1, 'Diagnostyka po splicie nie przeszła przez summary z helperami snapshotów', { diag, captured });
+          assert(Array.isArray(captured.rawRows) && captured.rawRows.length === 1, 'Summary nie dostało RAW snapshot helpera', captured);
+          assert(Array.isArray(captured.resolvedRows) && captured.resolvedRows.length === 1, 'Summary nie dostało resolved snapshot helpera', captured);
+        } finally {
+          FC.rozrysSummary = prevSummary;
+          FC.rozrysValidation = prevValidation;
+        }
+      }),
+
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

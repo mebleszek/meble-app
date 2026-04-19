@@ -1,3 +1,10 @@
+## 2026-04-19 — ROZRYS runtime utils split (diagnostics + export/print helpers)
+- `js/app/rozrys/rozrys-runtime-utils.js` — wydzielone techniczne helpery ROZRYS, które nie sterują wejściem do zakładki ani wyborem pokoju: `buildResolvedSnapshotFromParts`, `buildRawSnapshotForMaterial`, `buildRozrysDiagnostics`, `validationSummaryLabel`, `openValidationListModal`, `openSheetListModal`, `buildCsv`, `downloadText`, `openPrintView`, `pxToMm`, `measurePrintHeaderMm`.
+- `js/app/rozrys/rozrys.js` — zostaje orchestrator-em; ścieżki wysokiego ryzyka (`resolveInitialSelectedRooms`, `aggregatePartsForProject`, pickery, start renderu, generate`) nie były ruszane. Stary przepływ `renderOutput -> buildRozrysDiagnostics/summary/listy/druk` został zachowany 1:1 przez delegację do `runtimeUtils`.
+- `js/testing/rozrys/tests.js` — dodane testy dla wydzielonego runtime: RAW snapshot nadal filtruje exact pokój + scope fronty/korpusy, a diagnostyka dalej przechodzi przez summary z helperami snapshotów.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` + `tools/rozrys-dev-smoke.js` — dopięte ładowanie nowego modułu przed `rozrys.js`.
+- Instrukcja antyregresyjna: przy dalszym cięciu `ROZRYS` najpierw rozpisywać starą ścieżkę wywołań, a do pierwszych splitów wybierać tylko helpery techniczne bez wpływu na scope, launchery i startowy render panelu.
+
 ## 2026-04-19 — ROZRYS room-context scope guard over stale global prefs
 - `js/app/rozrys/rozrys.js` — start ROZRYS w kontekście pokoju (`uiState.roomType`) bierze teraz exact bieżący pokój jako wejściowy scope, zamiast odziedziczyć stary globalny `selectedRooms` z poprzednio otwartego pokoju. Dzięki temu fix exact-scope nie zeruje ROZRYS dla pokoju z szafkami tylko dlatego, że w prefs został pusty pokój otwarty wcześniej.
 - `js/testing/rozrys/tests.js` — dodany test pilnujący, że stale zapisany scope innego pokoju nie może nadpisać bieżącego roomType przy starcie ROZRYS.

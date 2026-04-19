@@ -202,92 +202,38 @@ function getAccordionScopeKey(selection, aggregate){
 }
 
 
-  function buildResolvedSnapshotFromParts(parts){
-    const rv = FC.rozrysValidation;
-    if(!(rv && typeof rv.rowsFromParts === 'function')) return [];
-    return rv.rowsFromParts((parts || []).map((p)=>({
-      key: partSignature({ material: p.material, name: p.name, w: p.w, h: p.h, sourceSig: p.sourceSig, grainMode: p.grainMode || p.direction }),
-      material: p.material,
-      name: p.name,
-      w: p.w,
-      h: p.h,
-      qty: p.qty,
-    })));
-  }
-
-  function buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms){
-    const proj = safeGetProject();
-    if(!proj || !targetMaterial) return [];
-    const rows = [];
-    const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : getRooms());
-    const scopeMode = (mode === 'fronts' || mode === 'corpus' || mode === 'both') ? mode : 'both';
-    for(const room of rooms){
-      const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
-      for(let cabIndex = 0; cabIndex < cabinets.length; cabIndex += 1){
-        const cab = cabinets[cabIndex];
-        const cutListFn = resolveCabinetCutListFn();
-        if(typeof cutListFn !== 'function') continue;
-        const parts = cutListFn(cab, room) || [];
-        for(const p of parts){
-          const sourceMaterial = String(p.material || '').trim();
-          if(!sourceMaterial) continue;
-          const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
-          if(scopeMode === 'fronts' && !isFront) continue;
-          if(scopeMode === 'corpus' && isFront) continue;
-          const resolved = resolveRozrysPartFromSource(p);
-          const materialKey = resolved.materialKey;
-          if(materialKey !== targetMaterial) continue;
-          const w = resolved.w;
-          const h = resolved.h;
-          const qty = resolved.qty;
-          if(!(w > 0 && h > 0 && qty > 0)) continue;
-          rows.push({
-            key: partSignature({ material: materialKey, name: resolved.name, w, h, sourceSig: resolved.sourceSig, grainMode: resolved.direction }),
-            material: materialKey,
-            name: resolved.name,
-            sourceSig: resolved.sourceSig,
-            grainMode: resolved.direction,
-            ignoreGrain: !!resolved.ignoreGrain,
-            w,
-            h,
-            qty,
-            room,
-            source: String((cab && (cab.name || cab.label || cab.type || cab.kind)) || 'Szafka'),
-            cabinet: `#${cabIndex + 1}`,
-            sourceRows: 1,
-          });
-        }
-      }
-    }
-    return rows;
-  }
-
-  function buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms){
-    if(FC.rozrysSummary && typeof FC.rozrysSummary.buildRozrysDiagnostics === 'function'){
-      return FC.rozrysSummary.buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms, {
-        buildRawSnapshotForMaterial,
-        buildResolvedSnapshotFromParts,
-      });
-    }
-    return null;
-  }
-
-  function validationSummaryLabel(diag){
-    if(FC.rozrysSummary && typeof FC.rozrysSummary.validationSummaryLabel === 'function') return FC.rozrysSummary.validationSummaryLabel(diag);
-    return { text:'Walidacja: brak danych', tone:'is-warn' };
-  }
-
-  function openValidationListModal(material, diag, unit){
-    if(FC.rozrysSummary && typeof FC.rozrysSummary.openValidationListModal === 'function'){
-      return FC.rozrysSummary.openValidationListModal(material, diag, unit, { mmToUnitStr, openPrintView });
-    }
-  }
-
-  function openSheetListModal(material, sheetTitle, rows, unit){
-    if(FC.rozrysSummary && typeof FC.rozrysSummary.openSheetListModal === 'function'){
-      return FC.rozrysSummary.openSheetListModal(material, sheetTitle, rows, unit, { mmToUnitStr, openPrintView });
-    }
-  }
+  const runtimeUtils = (FC.rozrysRuntimeUtils && typeof FC.rozrysRuntimeUtils.createApi === 'function')
+    ? FC.rozrysRuntimeUtils.createApi({
+      FC,
+      safeGetProject,
+      getRooms,
+      normalizeRoomSelection,
+      resolveCabinetCutListFn,
+      resolveRozrysPartFromSource,
+      isFrontMaterialKey,
+      partSignature,
+      mmToUnitStr,
+      openRozrysInfo,
+    })
+    : {
+      buildResolvedSnapshotFromParts: ()=> [],
+      buildRawSnapshotForMaterial: ()=> [],
+      buildRozrysDiagnostics: ()=> null,
+      validationSummaryLabel: ()=> ({ text:'Walidacja: brak danych', tone:'is-warn' }),
+      openValidationListModal: ()=> undefined,
+      openSheetListModal: ()=> undefined,
+      buildCsv: ()=> '',
+      downloadText: ()=> undefined,
+      openPrintView: ()=> undefined,
+      pxToMm: (px)=>{ const n = Number(px); return Number.isFinite(n) ? n * 25.4 / 96 : 0; },
+      measurePrintHeaderMm: ()=> 14,
+    };
+  const buildResolvedSnapshotFromParts = runtimeUtils.buildResolvedSnapshotFromParts;
+  const buildRawSnapshotForMaterial = runtimeUtils.buildRawSnapshotForMaterial;
+  const buildRozrysDiagnostics = runtimeUtils.buildRozrysDiagnostics;
+  const validationSummaryLabel = runtimeUtils.validationSummaryLabel;
+  const openValidationListModal = runtimeUtils.openValidationListModal;
+  const openSheetListModal = runtimeUtils.openSheetListModal;
 
 
 function aggregatePartsForProject(selectedRooms){
@@ -472,39 +418,11 @@ function aggregatePartsForProject(selectedRooms){
     }
   }
 
-  function buildCsv(sheets, meta){
-    if(FC.rozrysPrint && typeof FC.rozrysPrint.buildCsv === 'function'){
-      return FC.rozrysPrint.buildCsv(sheets, meta);
-    }
-    return '';
-  }
-
-  function downloadText(filename, content, mime){
-    if(FC.rozrysPrint && typeof FC.rozrysPrint.downloadText === 'function'){
-      return FC.rozrysPrint.downloadText(filename, content, mime, { openInfo: openRozrysInfo });
-    }
-  }
-
-  function openPrintView(html){
-    if(FC.rozrysPrint && typeof FC.rozrysPrint.openPrintView === 'function'){
-      return FC.rozrysPrint.openPrintView(html, { openInfo: openRozrysInfo });
-    }
-  }
-
-  function pxToMm(px){
-    if(FC.rozrysPrint && typeof FC.rozrysPrint.pxToMm === 'function'){
-      return FC.rozrysPrint.pxToMm(px);
-    }
-    const n = Number(px);
-    return Number.isFinite(n) ? n * 25.4 / 96 : 0;
-  }
-
-  function measurePrintHeaderMm(titleText, metaText){
-    if(FC.rozrysPrint && typeof FC.rozrysPrint.measurePrintHeaderMm === 'function'){
-      return FC.rozrysPrint.measurePrintHeaderMm(titleText, metaText);
-    }
-    return 14;
-  }
+  const buildCsv = runtimeUtils.buildCsv;
+  const downloadText = runtimeUtils.downloadText;
+  const openPrintView = runtimeUtils.openPrintView;
+  const pxToMm = runtimeUtils.pxToMm;
+  const measurePrintHeaderMm = runtimeUtils.measurePrintHeaderMm;
 
 
 function computePlan(state, parts){
