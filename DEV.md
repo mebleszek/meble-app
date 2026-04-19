@@ -1,3 +1,9 @@
+## 2026-04-20 — Inwestor recovery test-isolation guard for empty list
+- `js/app/investor/investors-store.js` — recovery pustej listy inwestorów nadal odbudowuje dane z normalnych snapshotów/projektów w realnym użyciu, ale jeśli w storage leżą jawne rekordy testowe recovery (`meta.testData` lub `test-*` source), recovery preferuje wyłącznie te testowe źródła zamiast mieszać do wyniku stare zwykłe snapshoty użytkownika.
+- `js/testing/investor/tests.js` — dodany antyregres pod mieszany scenariusz: pusta lista inwestorów + zwykły snapshot użytkownika + testowy snapshot recovery ma zwrócić tylko rekord testowy.
+- `index.html` + `dev_tests.html` — podbity cache-busting dla `investors-store.js` i testów inwestora.
+- Instrukcja antyregresyjna: przy recovery pustej listy rozróżniać realny awaryjny odzysk danych od izolowanych testów. Jeśli w storage są jawne rekordy testowe recovery, nie wolno mieszać do wyniku zwykłych historycznych snapshotów użytkownika, bo rozwala to deterministykę testów i maskuje prawdziwe wyniki.
+
 ## 2026-04-20 — Inwestor recovery scope guard + snapshot label guard
 - `js/app/investor/investors-store.js` — recovery inwestorów zostało zawężone dla list niepustych: przy normalnym `readAll()` nie zasysa już dowolnych historycznych projektów/snapshotów do istniejącej listy inwestorów. Dla list niepustych odzysk działa tylko dla jawnych rekordów test/recovery (`meta.testData` lub `meta/source` zaczynające się od `test-`), co zatrzymuje brudzenie izolacyjnych testów usług/projektów przez stare dane użytkownika.
 - `js/app/quote/quote-snapshot-store.js` — przy budowie kanonicznego scope snapshot zachowuje już przekazane `roomLabels` bez niepotrzebnego pytania `roomRegistry` o etykietę, jeśli jawna etykieta już istnieje. To usuwa boczną ścieżkę `quoteSnapshotStore.writeAll() -> roomRegistry -> investors.readAll()` która potrafiła odpalić recovery inwestorów w trakcie samego zapisu snapshotu.

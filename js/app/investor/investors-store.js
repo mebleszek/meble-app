@@ -307,6 +307,18 @@
     return source.startsWith('test-');
   }
 
+  function hasExplicitTestRecoverySources(){
+    try{
+      const projects = readRawProjectRecords();
+      if((Array.isArray(projects) ? projects : []).some((record)=> isTestRecoveryRecord(record))) return true;
+    }catch(_){ }
+    try{
+      const snapshots = readRawQuoteSnapshots();
+      if((Array.isArray(snapshots) ? snapshots : []).some((snapshot)=> isTestRecoveryRecord(snapshot))) return true;
+    }catch(_){ }
+    return false;
+  }
+
   function buildRecoveryCandidates(options){
     const cfg = options && typeof options === 'object' ? options : {};
     const testOnly = !!cfg.testOnly;
@@ -348,7 +360,8 @@
     try{
       const removedIds = readRemovedIds();
       const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
-      const recovered = buildRecoveryCandidates({ testOnly: current.length > 0 });
+      const preferTestOnly = current.length > 0 || (current.length === 0 && hasExplicitTestRecoverySources());
+      const recovered = buildRecoveryCandidates({ testOnly: preferTestOnly });
       const additions = [];
       recovered.forEach((candidate, id)=> {
         const key = String(id || '').trim();

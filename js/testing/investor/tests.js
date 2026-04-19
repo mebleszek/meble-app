@@ -604,6 +604,58 @@
       }
     }),
 
+    makeTest('Inwestor', 'Store inwestorów przy pustej liście preferuje testowe snapshoty recovery zamiast mieszać stare zwykłe dane', 'Pilnuje izolacji testów: jeśli w storage leżą jednocześnie zwykłe snapshoty użytkownika i jawny snapshot testowy recovery, pusty store inwestorów ma odbudować tylko rekord testowy zamiast mieszać stare dane użytkownika do wyniku.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      assert(FC.projectStore && typeof FC.projectStore.writeAll === 'function', 'Brak FC.projectStore.writeAll');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function', 'Brak FC.quoteSnapshotStore.writeAll');
+      const prevInvestors = FC.investors._debug && typeof FC.investors._debug.readStoredAll === 'function' ? FC.investors._debug.readStoredAll() : FC.investors.readAll();
+      const prevProjects = FC.projectStore.readAll();
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      const removedKey = FC.investors.KEY_REMOVED || 'fc_investor_removed_ids_v1';
+      const prevRemoved = (()=>{ try{ return root.localStorage.getItem(removedKey); }catch(_){ return null; } })();
+      try{
+        FC.investors.writeAll([]);
+        FC.projectStore.writeAll([]);
+        try{ root.localStorage.removeItem(removedKey); }catch(_){ }
+        FC.quoteSnapshotStore.writeAll([
+          {
+            id:'snap_regular_snapshot_user',
+            generatedAt:100,
+            investor:{ id:'inv_regular_snapshot_user', kind:'person', name:'Late flow' },
+            project:{ id:'proj_regular_snapshot_user', investorId:'inv_regular_snapshot_user', title:'Late flow', status:'wycena' },
+            scope:{ selectedRooms:['room_a'], roomLabels:['Kuchnia A'] },
+            commercial:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia A' },
+            totals:{ grand:1 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            meta:{ source:'quote-snapshot-store', preliminary:true, versionName:'Wstępna oferta — Kuchnia A' }
+          },
+          {
+            id:'snap_only_snapshot_recover_test',
+            generatedAt:1776633333000,
+            investor:{ id:'inv_snapshot_only_test', kind:'person', name:'Snapshot only test' },
+            project:{ id:'proj_snapshot_only_test', investorId:'inv_snapshot_only_test', title:'Projekt snapshot only test', status:'wycena' },
+            scope:{ selectedRooms:['room_snapshot_only'], roomLabels:['Salon test'] },
+            commercial:{ preliminary:false, versionName:'Oferta — Salon test' },
+            totals:{ grand:456 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            meta:{ source:'test-quote-snapshot', preliminary:false, versionName:'Oferta — Salon test' }
+          }
+        ]);
+        const recovered = FC.investors.readAll();
+        assert(Array.isArray(recovered) && recovered.length === 1, 'Store zmieszał zwykłe snapshoty użytkownika z testowym recovery przy pustej liście', recovered);
+        const restored = recovered[0] || null;
+        assert(String(restored && restored.id || '') === 'inv_snapshot_only_test', 'Store nie preferował testowego snapshotu recovery przy pustej liście', recovered);
+      } finally {
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+        FC.projectStore.writeAll(prevProjects);
+        FC.investors.writeAll(prevInvestors);
+        try{
+          if(prevRemoved == null) root.localStorage.removeItem(removedKey);
+          else root.localStorage.setItem(removedKey, prevRemoved);
+        }catch(_){ }
+      }
+    }),
+
     makeTest('Inwestor', 'Domyślne obrównanie rozrysu startuje od 1 cm / 10 mm', 'Pilnuje, czy wszystkie fallbacki opcji rozkroju wróciły do uzgodnionego domyślnego obrównania 1 cm zamiast starego 2 cm.', ()=>{
       assert(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function', 'Brak getDefaultRozrysOptionValues');
       const cm = FC.rozrysStock.getDefaultRozrysOptionValues('cm');
