@@ -1,3 +1,9 @@
+## 2026-04-19 — ROZRYS runtime split reverted after live regression
+- Cofnięty aktywny split `js/app/rozrys/rozrys-runtime.js` z paczki `site_rozrys_runtime_split_v1.zip`, bo na żywym programie pojawiła się regresja wejścia do `ROZRYS` (pusty stan `Brak rozpiski materiałów` mimo istniejących szafek), której smoke nie złapał.
+- Przywrócony produkcyjny `js/app/rozrys/rozrys.js` z ostatniej stabilnej bazy `site_exact_room_scope_fix_v1.zip`; usunięte aktywne ładowanie `rozrys-runtime.js` z `index.html` i `dev_tests.html`.
+- Przywrócone też odpowiadające temu stanowi testy/runnery (`js/testing/rozrys/tests.js`, `tools/app-dev-smoke.js`, `tools/rozrys-dev-smoke.js`) tak, żeby kod i smoke znów testowały ten sam rzeczywisty układ plików.
+- Instrukcja antyregresyjna: po każdym kolejnym splicie robić porównanie ścieżka-po-ścieżce stary vs nowy (wejście -> helpery -> wynik -> render -> load order/API wiring) przed paczką. Jeśli live flow nie jest w 100% odtworzony i udowodniony, cofamy split zamiast łatać objawy obok.
+
 ## 2026-04-19 — ROZRYS runtime helper split from rozrys.js
 - `js/app/rozrys/rozrys-runtime.js` — wydzielone wspólne helpery ROZRYS, które wcześniej siedziały w dużym `rozrys.js`: diagnostyka RAW/resolved (`buildRawSnapshotForMaterial`, `buildResolvedSnapshotFromParts`, `buildRozrysDiagnostics`), delegacje summary/print, render accordion/output/loading oraz adapter cache planów. Moduł nie zmienia logiki silnika ani scope; tylko przejmuje powtarzalne delegacje/fallbacki.
 - `js/app/rozrys/rozrys.js` — odchudzony orchestrator: korzysta z `rozrys-runtime` zamiast trzymać lokalnie duży blok helperów diagnostyki, renderu i cache. Exact-room-scope fix zostaje bez zmian.

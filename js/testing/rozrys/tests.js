@@ -514,48 +514,6 @@
         assert(/openMaterialPicker[\s\S]*class:'rozrys-picker-footer rozrys-picker-footer--material'/.test(pickersJs), 'Modal wyboru materiału nie używa jeszcze osobnej stopki z modifierem dla scrollowanego układu materiałów', { pickersJs });
       }),
 
-      makeTest('Projekt i agregacja', 'ROZRYS runtime buduje surowy snapshot tylko dla wybranego pokoju i zakresu materiału', 'Pilnuje wydzielonych helperów diagnostycznych: surowy snapshot ma szanować exact room selection i nie mieszać frontów z korpusem poza wskazanym zakresem.', ()=>{
-        assert(FC.rozrysRuntime && typeof FC.rozrysRuntime.createApi === 'function', 'Brak FC.rozrysRuntime.createApi');
-        const fixtureProject = {
-          schemaVersion: 9,
-          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
-          room_b:{ cabinets:[{ id:'cab-b', width:60, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
-        };
-        const fixtureCutList = (_cabinet, roomId)=>{
-          if(String(roomId || '') === 'room_a'){
-            return [
-              { name:'Bok A', qty:2, a:72, b:56, material:'Korpus test' },
-              { name:'Front', qty:1, a:71.6, b:39.6, material:'Front: laminat • Korpus test' },
-            ];
-          }
-          return [
-            { name:'Bok B', qty:2, a:72, b:56, material:'Korpus test' },
-          ];
-        };
-        const api = FC.rozrysRuntime.createApi({ FC, host });
-        const rows = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> api.buildRawSnapshotForMaterial('Korpus test', 'corpus', ['room_a'], {
-          safeGetProject: ()=> FC.rozrys.safeGetProject(),
-          normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
-          getRooms: ()=> ['room_a', 'room_b'],
-          resolveCabinetCutListFn: ()=> FC.cabinetCutlist.getCabinetCutList,
-          isFrontMaterialKey: (material)=> /^\s*Front\s*:/i.test(String(material || '')),
-          resolveRozrysPartFromSource: (part)=> ({
-            materialKey: String(part.material || '').replace(/^\s*Front\s*:\s*laminat\s*•\s*/i, '').trim(),
-            name: String(part.name || 'Element'),
-            sourceSig: `${String(part.material || '')}||${String(part.name || '')}||${Math.round(Number(part.a || 0) * 10)}x${Math.round(Number(part.b || 0) * 10)}`,
-            direction: 'default',
-            ignoreGrain: false,
-            w: Math.round(Number(part.a || 0) * 10),
-            h: Math.round(Number(part.b || 0) * 10),
-            qty: Math.max(1, Math.round(Number(part.qty) || 0)),
-          }),
-          partSignature: fallbackPartSignature,
-        }));
-        assert(Array.isArray(rows) && rows.length === 1, 'Runtime snapshot powinien zwrócić tylko korpus z wybranego pokoju', rows);
-        assert(rows[0].room === 'room_a', 'Runtime snapshot nie utrzymał exact room selection', rows);
-        assert(rows[0].name === 'Bok A', 'Runtime snapshot pomylił zakres corpus/fronts albo pokój', rows);
-      }),
-
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

@@ -24,10 +24,6 @@
   const getRoomsForProject = projectSource.getRoomsForProject || function(){ return []; };
   const getRooms = projectSource.getRooms || function(){ return []; };
 
-  const rozrysRuntime = (FC.rozrysRuntime && typeof FC.rozrysRuntime.createApi === 'function')
-    ? FC.rozrysRuntime.createApi({ FC, host:window })
-    : {};
-
   const rozrysPrefsApi = FC.rozrysPrefs || {};
   const parseLocaleNumber = typeof rozrysPrefsApi.parseLocaleNumber === 'function'
     ? rozrysPrefsApi.parseLocaleNumber.bind(rozrysPrefsApi)
@@ -187,30 +183,68 @@ function getAccordionScopeKey(selection, aggregate){
 
 
   function buildResolvedSnapshotFromParts(parts){
-    if(rozrysRuntime && typeof rozrysRuntime.buildResolvedSnapshotFromParts === 'function'){
-      return rozrysRuntime.buildResolvedSnapshotFromParts(parts, { partSignature });
-    }
-    return [];
+    const rv = FC.rozrysValidation;
+    if(!(rv && typeof rv.rowsFromParts === 'function')) return [];
+    return rv.rowsFromParts((parts || []).map((p)=>({
+      key: partSignature({ material: p.material, name: p.name, w: p.w, h: p.h, sourceSig: p.sourceSig, grainMode: p.grainMode || p.direction }),
+      material: p.material,
+      name: p.name,
+      w: p.w,
+      h: p.h,
+      qty: p.qty,
+    })));
   }
 
   function buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms){
-    if(rozrysRuntime && typeof rozrysRuntime.buildRawSnapshotForMaterial === 'function'){
-      return rozrysRuntime.buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms, {
-        safeGetProject,
-        normalizeRoomSelection,
-        getRooms,
-        resolveCabinetCutListFn,
-        isFrontMaterialKey,
-        resolveRozrysPartFromSource,
-        partSignature,
-      });
+    const proj = safeGetProject();
+    if(!proj || !targetMaterial) return [];
+    const rows = [];
+    const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : getRooms());
+    const scopeMode = (mode === 'fronts' || mode === 'corpus' || mode === 'both') ? mode : 'both';
+    for(const room of rooms){
+      const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
+      for(let cabIndex = 0; cabIndex < cabinets.length; cabIndex += 1){
+        const cab = cabinets[cabIndex];
+        const cutListFn = resolveCabinetCutListFn();
+        if(typeof cutListFn !== 'function') continue;
+        const parts = cutListFn(cab, room) || [];
+        for(const p of parts){
+          const sourceMaterial = String(p.material || '').trim();
+          if(!sourceMaterial) continue;
+          const isFront = (String(p.name || '').trim() === 'Front') || isFrontMaterialKey(sourceMaterial);
+          if(scopeMode === 'fronts' && !isFront) continue;
+          if(scopeMode === 'corpus' && isFront) continue;
+          const resolved = resolveRozrysPartFromSource(p);
+          const materialKey = resolved.materialKey;
+          if(materialKey !== targetMaterial) continue;
+          const w = resolved.w;
+          const h = resolved.h;
+          const qty = resolved.qty;
+          if(!(w > 0 && h > 0 && qty > 0)) continue;
+          rows.push({
+            key: partSignature({ material: materialKey, name: resolved.name, w, h, sourceSig: resolved.sourceSig, grainMode: resolved.direction }),
+            material: materialKey,
+            name: resolved.name,
+            sourceSig: resolved.sourceSig,
+            grainMode: resolved.direction,
+            ignoreGrain: !!resolved.ignoreGrain,
+            w,
+            h,
+            qty,
+            room,
+            source: String((cab && (cab.name || cab.label || cab.type || cab.kind)) || 'Szafka'),
+            cabinet: `#${cabIndex + 1}`,
+            sourceRows: 1,
+          });
+        }
+      }
     }
-    return [];
+    return rows;
   }
 
   function buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms){
-    if(rozrysRuntime && typeof rozrysRuntime.buildRozrysDiagnostics === 'function'){
-      return rozrysRuntime.buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms, {
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.buildRozrysDiagnostics === 'function'){
+      return FC.rozrysSummary.buildRozrysDiagnostics(targetMaterial, mode, parts, plan, selectedRooms, {
         buildRawSnapshotForMaterial,
         buildResolvedSnapshotFromParts,
       });
@@ -219,22 +253,21 @@ function getAccordionScopeKey(selection, aggregate){
   }
 
   function validationSummaryLabel(diag){
-    if(rozrysRuntime && typeof rozrysRuntime.validationSummaryLabel === 'function') return rozrysRuntime.validationSummaryLabel(diag);
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.validationSummaryLabel === 'function') return FC.rozrysSummary.validationSummaryLabel(diag);
     return { text:'Walidacja: brak danych', tone:'is-warn' };
   }
 
   function openValidationListModal(material, diag, unit){
-    if(rozrysRuntime && typeof rozrysRuntime.openValidationListModal === 'function'){
-      return rozrysRuntime.openValidationListModal(material, diag, unit, { mmToUnitStr, openPrintView });
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.openValidationListModal === 'function'){
+      return FC.rozrysSummary.openValidationListModal(material, diag, unit, { mmToUnitStr, openPrintView });
     }
   }
 
   function openSheetListModal(material, sheetTitle, rows, unit){
-    if(rozrysRuntime && typeof rozrysRuntime.openSheetListModal === 'function'){
-      return rozrysRuntime.openSheetListModal(material, sheetTitle, rows, unit, { mmToUnitStr, openPrintView });
+    if(FC.rozrysSummary && typeof FC.rozrysSummary.openSheetListModal === 'function'){
+      return FC.rozrysSummary.openSheetListModal(material, sheetTitle, rows, unit, { mmToUnitStr, openPrintView });
     }
   }
-
 
 
 function aggregatePartsForProject(selectedRooms){
@@ -420,35 +453,38 @@ function aggregatePartsForProject(selectedRooms){
   }
 
   function buildCsv(sheets, meta){
-    if(rozrysRuntime && typeof rozrysRuntime.buildCsv === 'function') return rozrysRuntime.buildCsv(sheets, meta);
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.buildCsv === 'function'){
+      return FC.rozrysPrint.buildCsv(sheets, meta);
+    }
     return '';
   }
 
   function downloadText(filename, content, mime){
-    if(rozrysRuntime && typeof rozrysRuntime.downloadText === 'function'){
-      return rozrysRuntime.downloadText(filename, content, mime, { openInfo: openRozrysInfo });
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.downloadText === 'function'){
+      return FC.rozrysPrint.downloadText(filename, content, mime, { openInfo: openRozrysInfo });
     }
   }
 
   function openPrintView(html){
-    if(rozrysRuntime && typeof rozrysRuntime.openPrintView === 'function'){
-      return rozrysRuntime.openPrintView(html, { openInfo: openRozrysInfo });
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.openPrintView === 'function'){
+      return FC.rozrysPrint.openPrintView(html, { openInfo: openRozrysInfo });
     }
   }
 
   function pxToMm(px){
-    if(rozrysRuntime && typeof rozrysRuntime.pxToMm === 'function') return rozrysRuntime.pxToMm(px);
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.pxToMm === 'function'){
+      return FC.rozrysPrint.pxToMm(px);
+    }
     const n = Number(px);
     return Number.isFinite(n) ? n * 25.4 / 96 : 0;
   }
 
   function measurePrintHeaderMm(titleText, metaText){
-    if(rozrysRuntime && typeof rozrysRuntime.measurePrintHeaderMm === 'function'){
-      return rozrysRuntime.measurePrintHeaderMm(titleText, metaText);
+    if(FC.rozrysPrint && typeof FC.rozrysPrint.measurePrintHeaderMm === 'function'){
+      return FC.rozrysPrint.measurePrintHeaderMm(titleText, metaText);
     }
     return 14;
   }
-
 
 
 function computePlan(state, parts){
@@ -1109,19 +1145,16 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
 
 
   function splitMaterialAccordionTitle(material){
-    if(rozrysRuntime && typeof rozrysRuntime.splitMaterialAccordionTitle === 'function'){
-      return rozrysRuntime.splitMaterialAccordionTitle(material);
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'){
+      return FC.rozrysAccordion.splitMaterialAccordionTitle(material);
     }
     return { line1:String(material || 'Materiał'), line2:'' };
   }
 
 
   function createMaterialAccordionSection(material, options){
-    if(rozrysRuntime && typeof rozrysRuntime.createMaterialAccordionSection === 'function'){
-      return rozrysRuntime.createMaterialAccordionSection(material, options, {
-        scheduleSheetCanvasRefresh,
-        createElement: h,
-      });
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'){
+      return FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh });
     }
     const wrap = h('div');
     const body = h('div');
@@ -1130,8 +1163,8 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
   }
 
   function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
-    if(rozrysRuntime && typeof rozrysRuntime.renderMaterialAccordionPlans === 'function'){
-      return rozrysRuntime.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'){
+      return FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
         out,
         getAccordionPref,
         materialHasGrain,
@@ -1151,8 +1184,8 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
 
 
     function renderOutput(plan, meta, target){
-      if(rozrysRuntime && typeof rozrysRuntime.renderOutput === 'function'){
-        return rozrysRuntime.renderOutput(plan, meta, {
+      if(FC.rozrysRender && typeof FC.rozrysRender.renderOutput === 'function'){
+        return FC.rozrysRender.renderOutput(plan, meta, {
           target: target || out,
           out,
           buildRozrysDiagnostics,
@@ -1177,28 +1210,47 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     }
 
     function renderLoadingInto(target, text, subText){
-      if(rozrysRuntime && typeof rozrysRuntime.renderLoadingInto === 'function'){
-        return rozrysRuntime.renderLoadingInto(target, text, subText, { out });
+      if(FC.rozrysRender && typeof FC.rozrysRender.renderLoadingInto === 'function'){
+        return FC.rozrysRender.renderLoadingInto(target, text, subText, { out });
       }
       const tgt = target || out;
       tgt.innerHTML = '';
       return null;
     }
 
+    
     // ===== Cache planów rozkroju
 
+    
+    // ===== Cache planów rozkroju (żeby nie liczyć ponownie)
+    const PLAN_CACHE_KEY = 'fc_rozrys_plan_cache_v2';
+
+    function hashStr(s){
+      // szybki, stabilny hash (djb2)
+      let h = 5381;
+      for(let i=0;i<s.length;i++){
+        h = ((h << 5) + h) + s.charCodeAt(i);
+        h = h >>> 0;
+      }
+      return h.toString(16);
+    }
+
     function loadPlanCache(){
-      if(rozrysRuntime && typeof rozrysRuntime.loadPlanCache === 'function') return rozrysRuntime.loadPlanCache();
+      if(FC.rozrysCache && typeof FC.rozrysCache.loadPlanCache === 'function'){
+        return FC.rozrysCache.loadPlanCache();
+      }
       return {};
     }
 
     function savePlanCache(cache){
-      if(rozrysRuntime && typeof rozrysRuntime.savePlanCache === 'function') rozrysRuntime.savePlanCache(cache);
+      if(FC.rozrysCache && typeof FC.rozrysCache.savePlanCache === 'function'){
+        FC.rozrysCache.savePlanCache(cache);
+      }
     }
 
     function makePlanCacheKey(st, parts){
-      if(rozrysRuntime && typeof rozrysRuntime.makePlanCacheKey === 'function'){
-        return rozrysRuntime.makePlanCacheKey(st, parts, { partSignature, isPartRotationAllowed, loadEdgeStore });
+      if(FC.rozrysCache && typeof FC.rozrysCache.makePlanCacheKey === 'function'){
+        return FC.rozrysCache.makePlanCacheKey(st, parts, { partSignature, isPartRotationAllowed, loadEdgeStore });
       }
       return 'plan_fallback';
     }
