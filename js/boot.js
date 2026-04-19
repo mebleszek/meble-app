@@ -142,10 +142,11 @@
   function attemptRecovery(){
     if (recoveryPromise) return recoveryPromise;
     recoveryPromise = (async () => {
+      const appSrc = findScriptSrc('js/app.js');
       const publicApiSrc = findScriptSrc('js/app/shared/public-api.js');
-      // Nie dubluj js/app.js jako recovery.
-      // To jest klasyczny skrypt z top-level state i ponowne doładowanie może wywołać
-      // SyntaxError typu "Identifier has already been declared", maskując realny błąd startu.
+      if (appSrc && typeof window.initApp !== 'function' && !(window.FC && typeof window.FC.init === 'function')) {
+        await appendRecoveryScript(appSrc);
+      }
       if (publicApiSrc && !(window.FC && typeof window.FC.init === 'function') && !(window.App && typeof window.App.init === 'function')) {
         await appendRecoveryScript(publicApiSrc);
       }
