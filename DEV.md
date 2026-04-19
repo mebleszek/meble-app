@@ -1,3 +1,8 @@
+## 2026-04-19 — ROZRYS UI bridge smoke test hotfix v2
+- `js/testing/rozrys/tests.js` — test dla `rozrysUiTools.labelWithInfo(...)` przestał polegać wyłącznie na jednym helperze `collectNodes(...)`. Najpierw próbuje znaleźć `.info-trigger` przez `querySelector`, potem przez bezpośrednie `children`, a dopiero na końcu przez rekurencyjne `collectNodes`. Dzięki temu smoke nie zgłasza fałszywego błędu przy działającym programie, gdy środowisko testowe inaczej wystawia dzieci węzła.
+- `dev_tests.html` — podbity query string dla `js/testing/rozrys/tests.js`, żeby po wdrożeniu nie trzymał starej wersji smoke testu w cache.
+- Instrukcja antyregresyjna: jeśli test helpera UI ma sprawdzać obecność elementu w DOM, najpierw używać natywnego `querySelector`/`children`, a dopiero później własnych helperów rekurencyjnych. Przy dobrym programie nie wolno utrzymywać czerwonego smoke tylko dlatego, że selektor testowy jest zbyt kruchy.
+
 ## 2026-04-19 — ROZRYS UI bridge split (ui tools + modal/progress adapters)
 - `js/app/rozrys/rozrys-ui-tools.js` — wydzielone lekkie helpery UI ROZRYS: `h`, `labelWithInfo`, `openRozrysInfo`, `getSelectOptionLabel`, `setChoiceLaunchValue`, `createChoiceLauncher`, `openRozrysChoiceOverlay`, `askRozrysConfirm`. To jest tylko warstwa delegacji do `infoBox` / `panelBox` / `confirmBox` / `rozrysChoice`; nie dotyka scope ani logiki generowania.
 - `js/app/rozrys/rozrys-ui-bridge.js` — wydzielony techniczny bridge dla `rozrys-options-modal`, `rozrys-stock-modal` i `rozrys-progress`: `openOptionsModal`, `openAddStockModal`, `createProgressApi`. `ROZRYS` dalej zachowuje stare payloady ctx/deps 1:1, ale nie trzyma już lokalnie bloku wrapperów modal/progress.

@@ -780,9 +780,12 @@
         try{
           const api = FC.rozrysUiTools.createApi({ FC });
           const row = api.labelWithInfo('Pomieszczenia', 'Pomieszczenia', 'Info test');
-          const infoBtn = collectNodes(row, (node)=> String(node.className || '').includes('info-trigger'))[0];
-          assert(infoBtn, 'labelWithInfo nie zbudował info-trigger po splicie helperów UI', row);
-          infoBtn.dispatch('click');
+          const infoBtn = (row && typeof row.querySelector === 'function' ? row.querySelector('.info-trigger') : null)
+            || (row && row.children && typeof row.children.length === 'number' ? Array.from(row.children).find((node)=> String(node && node.className || '').includes('info-trigger')) : null)
+            || collectNodes(row, (node)=> String(node.className || '').includes('info-trigger'))[0];
+          assert(infoBtn, 'labelWithInfo nie zbudował info-trigger po splicie helperów UI', { className: row && row.className, childCount: row && row.children && row.children.length, html: row && row.innerHTML });
+          if(typeof infoBtn.dispatch === 'function') infoBtn.dispatch('click');
+          else if(typeof infoBtn.click === 'function') infoBtn.click();
           assert(captured.info && captured.info.title === 'Pomieszczenia' && captured.info.message === 'Info test', 'labelWithInfo nie deleguje już poprawnie do infoBox.open', captured);
           const ok = api.askRozrysConfirm({ title:'TEST', message:'Czy?', confirmText:'TAK', cancelText:'NIE' });
           assert(ok === true, 'askRozrysConfirm po splicie helperów UI nie zwrócił wyniku confirmBox.ask', captured);
