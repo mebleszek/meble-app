@@ -24,19 +24,6 @@
   min-height:24px;
 }
 
-.rozrys-scope-chip--room-option .rozrys-room-chip__text{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  min-width:0;
-}
-
-.rozrys-scope-chip--room-option .rozrys-room-chip__note{
-  color:var(--muted);
-  font-weight:800;
-  line-height:1.25;
-}
-
 .rozrys-scope-chip--room-option .rozrys-room-chip__label{
   color:#0f172a;
   font-size:17px;

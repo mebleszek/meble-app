@@ -18,7 +18,6 @@
       roomLabel:null,
       splitMaterialAccordionTitle:null,
       makeMaterialScope:null,
-      getRoomPickerMeta:null,
     }, deps || {});
     const api = {};
 
@@ -124,7 +123,6 @@
         getRooms: ctx.getRooms,
         normalizeRoomSelection: cfg.normalizeRoomSelection,
         roomLabel: cfg.roomLabel,
-        getRoomPickerMeta: cfg.getRoomPickerMeta,
         askConfirm: cfg.askRozrysConfirm,
         refreshSelectionState: api.refreshSelectionState,
       });
