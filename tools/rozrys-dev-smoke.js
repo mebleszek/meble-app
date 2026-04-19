@@ -10,6 +10,7 @@ const files = [
   'js/app/rozrys/rozrys-cache.js',
   'js/app/rozrys/rozrys-prefs.js',
   'js/app/rozrys/rozrys-project-source.js',
+  'js/app/rozrys/rozrys-runtime.js',
   'js/app/rozrys/rozrys-state.js',
   'js/app/rozrys/rozrys-pickers.js',
   'js/app/rozrys/rozrys-selection-ui.js',

@@ -1,3 +1,10 @@
+## 2026-04-19 — ROZRYS runtime helper split from rozrys.js
+- `js/app/rozrys/rozrys-runtime.js` — wydzielone wspólne helpery ROZRYS, które wcześniej siedziały w dużym `rozrys.js`: diagnostyka RAW/resolved (`buildRawSnapshotForMaterial`, `buildResolvedSnapshotFromParts`, `buildRozrysDiagnostics`), delegacje summary/print, render accordion/output/loading oraz adapter cache planów. Moduł nie zmienia logiki silnika ani scope; tylko przejmuje powtarzalne delegacje/fallbacki.
+- `js/app/rozrys/rozrys.js` — odchudzony orchestrator: korzysta z `rozrys-runtime` zamiast trzymać lokalnie duży blok helperów diagnostyki, renderu i cache. Exact-room-scope fix zostaje bez zmian.
+- `js/testing/rozrys/tests.js` — dodany test antyregresyjny dla wydzielonych helperów runtime: surowy snapshot ma szanować exact room selection i zakres `corpus/fronts`, bez mieszania danych z innego pokoju.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` + `tools/rozrys-dev-smoke.js` — dopięte ładowanie nowego modułu `rozrys-runtime.js` i podbity cache-busting.
+- Instrukcja antyregresyjna: dalsze helpery ROZRYS, które tylko delegują do modułów (`summary`, `print`, `accordion`, `cache`) albo składają diagnostykę RAW/resolved, trzymać w `rozrys-runtime.js`. `rozrys.js` ma zostawać orchestratorem renderu/generacji, a nie znowu rosnąć o techniczne adaptery.
+
 ## 2026-04-19 — Exact room scope guard for empty room in ROZRYS/WYCENA
 - `js/app/rozrys/rozrys.js` — naprawiony centralny fallback agregacji: jeśli użytkownik wybiera istniejący pokój/exact scope i ten pokój nie ma szafek, ROZRYS nie może już po cichu rozszerzać zakresu do innych pokoi projektu. Retry do pełnej listy pokoi wolno robić tylko wtedy, gdy wejściowy wybór pokoi realnie znormalizował się do pustego scope (np. stary/nieistniejący zapis).
 - `js/testing/rozrys/tests.js` — dodany test pilnujący, że pusty, ale istniejący pokój zostaje pusty i nie pożycza materiałów z innego pokoju.
