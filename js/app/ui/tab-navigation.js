@@ -14,9 +14,17 @@
   function setActiveTab(tabName){
     if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
     if(tabName === 'wywiad' && !uiState.roomType){
-      uiState.entry = 'rooms';
+      const activeRooms = (window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getActiveRoomIds === 'function') ? window.FC.roomRegistry.getActiveRoomIds() : [];
+      const fallbackRoom = activeRooms.includes(uiState.lastRoomType) ? uiState.lastRoomType : null;
+      if(fallbackRoom){ uiState.roomType = fallbackRoom; }
+      else {
+        uiState.activeTab = 'inwestor';
+        if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
+          window.FC.views.applyFromState(Object.assign({}, uiState, { activeTab:'inwestor', entry:'rooms' }));
+        }
+        return;
+      }
     }
-    if(tabName === 'wycena' && !uiState.roomType && (uiState.entry === 'rooms' || uiState.currentInvestorId)) uiState.entry = 'app';
     uiState.activeTab = tabName;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 

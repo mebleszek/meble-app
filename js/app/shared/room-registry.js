@@ -233,169 +233,6 @@
     }catch(_){ }
   }
 
-  function syncQuoteDraftSelectionAfterRoomChange(keepIds){
-    const allowed = new Set(Array.isArray(keepIds) ? keepIds.map((id)=> String(id || '').trim()).filter(Boolean) : []);
-    try{
-      if(!(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function' && typeof FC.quoteOfferStore.patchCurrentDraft === 'function')) return;
-      const draft = FC.quoteOfferStore.getCurrentDraft();
-      const current = Array.isArray(draft && draft.selection && draft.selection.selectedRooms) ? draft.selection.selectedRooms.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-      const next = current.filter((id)=> allowed.has(id));
-      if(current.length !== next.length) FC.quoteOfferStore.patchCurrentDraft({ selection:{ selectedRooms:next } });
-    }catch(_){ }
-  }
-
-  function reconcileStatusesAfterRoomSetChange(inv, keepIds){
-    const ids = Array.isArray(keepIds) ? keepIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    syncQuoteDraftSelectionAfterRoomChange(ids);
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
-        FC.projectStatusSync.reconcileProjectStatuses({
-          investorId: inv && inv.id,
-          roomIds: ids,
-          restrictToRoomIds:true,
-          fallbackStatus:'nowy',
-          refreshUi:false,
-        });
-        return;
-      }
-    }catch(_){ }
-    try{
-      if(FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function'){
-        const record = FC.projectStore.getByInvestorId(inv && inv.id || '');
-        if(record && FC.projectStore && typeof FC.projectStore.upsert === 'function'){
-          FC.projectStore.upsert(Object.assign({}, record, { status:'nowy', updatedAt:Date.now() }));
-        }
-      }
-    }catch(_){ }
-    try{
-      const proj = getProject() || {};
-      const meta = ensureProjectMeta(proj);
-      if(meta) meta.projectStatus = 'nowy';
-      saveProject(proj);
-    }catch(_){ }
-  }
-
-  function getCurrentProjectRecord(inv){
-    const investorId = String(inv && inv.id || getCurrentInvestor() && getCurrentInvestor().id || '').trim();
-    if(!investorId) return null;
-    try{
-      if(FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function'){
-        return FC.projectStore.getByInvestorId(investorId) || null;
-      }
-    }catch(_){ }
-    return null;
-  }
-
-  function getSnapshotVersionName(snapshot){
-    const metaName = String(snapshot && snapshot.meta && snapshot.meta.versionName || '').trim();
-    const commercialName = String(snapshot && snapshot.commercial && snapshot.commercial.versionName || '').trim();
-    return metaName || commercialName || 'Wycena';
-  }
-
-  function listSnapshotsForRoomRemoval(inv, roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    if(!ids.length) return [];
-    const record = getCurrentProjectRecord(inv);
-    const projectId = String(record && record.id || '');
-    if(!projectId) return [];
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listOverlappingScopeSnapshots === 'function'){
-        return FC.quoteSnapshotStore.listOverlappingScopeSnapshots(projectId, ids, { includeRejected:true });
-      }
-    }catch(_){ }
-    return [];
-  }
-
-  function countCabinetsForRoomIds(roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    if(!ids.length) return 0;
-    const proj = getProject() || {};
-    return ids.reduce((sum, roomId)=>{
-      const room = proj && proj[roomId];
-      const cabinets = Array.isArray(room && room.cabinets) ? room.cabinets.length : 0;
-      return sum + cabinets;
-    }, 0);
-  }
-
-  function buildRoomRemovalWarningMessage(inv, roomIds, options){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    const opts = options && typeof options === 'object' ? options : {};
-    const snapshots = listSnapshotsForRoomRemoval(inv, ids);
-    const deferred = !!opts.deferred;
-    const roomNames = ids.map((id)=> getRoomLabel(id)).filter(Boolean);
-    const roomLabel = roomNames.length === 1 ? roomNames[0] : (roomNames.length ? roomNames.join(', ') : 'wybrane pomieszczenia');
-    const cabinetCount = countCabinetsForRoomIds(ids);
-    const cabinetLabel = cabinetCount === 1 ? 'szafkę' : (cabinetCount >= 2 && cabinetCount <= 4 ? 'szafki' : 'szafek');
-    const lines = [];
-
-    lines.push(deferred
-      ? `Usuwając pomieszczenie „${roomLabel}”, po kliknięciu Zapisz usuniesz powiązane dane.`
-      : `Usuwając pomieszczenie „${roomLabel}”, usuniesz powiązane dane.`);
-
-    if(cabinetCount > 0){
-      lines.push(`Usuniesz też ${cabinetCount} ${cabinetLabel} z tego pomieszczenia.`);
-    }
-
-    if(snapshots.length){
-      if(snapshots.length <= 3){
-        const names = snapshots.map((snapshot)=> `• ${getSnapshotVersionName(snapshot)}`).join('\n');
-        lines.push(`Zostaną też usunięte powiązane wyceny:
-${names}`);
-      } else {
-        lines.push(`Zostanie też usuniętych ${snapshots.length} wycen powiązanych z tym pomieszczeniem.`);
-      }
-    }
-
-    if(!cabinetCount && !snapshots.length){
-      lines.push('Tej operacji nie cofnisz.');
-    }
-
-    return { message: lines.join('\n\n'), snapshots, cabinetCount };
-  }
-
-  async function askDeleteRoomWithQuotes(inv, roomIds, options){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    if(!ids.length) return false;
-    const warning = buildRoomRemovalWarningMessage(inv, ids, options);
-    try{
-      if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
-        return await FC.confirmBox.ask({
-          title:'Usunąć pomieszczenie?',
-          message: warning.message || 'Tej operacji nie cofnisz.',
-          confirmText:'Usuń',
-          cancelText:'Wróć',
-          confirmTone:'danger',
-          cancelTone:'neutral'
-        });
-      }
-    }catch(_){ }
-    return true;
-  }
-
-  function removeQuotesForRooms(inv, roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    if(!ids.length) return [];
-    const record = getCurrentProjectRecord(inv);
-    const projectId = String(record && record.id || '');
-    if(!projectId) return [];
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.removeSnapshotsForProjectRooms === 'function'){
-        return FC.quoteSnapshotStore.removeSnapshotsForProjectRooms(projectId, ids, { includeRejected:true });
-      }
-    }catch(_){ }
-    return [];
-  }
-
-  function removeRoomsData(proj, meta, roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
-    ids.forEach((selectedId)=>{
-      try{ delete proj[selectedId]; }catch(_){ }
-      try{ if(meta && meta.roomDefs) delete meta.roomDefs[selectedId]; }catch(_){ }
-      try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> String(id || '') !== selectedId); }catch(_){ }
-      syncRoomSelectionAfterRemoval(selectedId);
-    });
-  }
-
   function updateInvestorRooms(inv, rooms){
     try{ FC.investors && FC.investors.update && FC.investors.update(inv.id, { rooms }); }catch(_){ }
   }
@@ -406,9 +243,10 @@ ${names}`);
     if(!(inv && selectedId)) return null;
     const proj = getProject() || {};
     const meta = ensureProjectMeta(proj);
-    removeRoomsData(proj, meta, [selectedId]);
+    try{ delete proj[selectedId]; }catch(_){ }
+    try{ if(meta && meta.roomDefs) delete meta.roomDefs[selectedId]; }catch(_){ }
+    try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> String(id || '') !== selectedId); }catch(_){ }
     saveProject(proj);
-    removeQuotesForRooms(inv, [selectedId]);
     const currentRooms = Array.isArray(inv.rooms) ? inv.rooms : [];
     const nextRooms = currentRooms.filter((room)=> String(room && room.id || '') !== selectedId).map((room)=> ({
       id: room.id,
@@ -418,7 +256,7 @@ ${names}`);
       projectStatus: room.projectStatus || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy'
     }));
     updateInvestorRooms(inv, nextRooms);
-    reconcileStatusesAfterRoomSetChange(inv, nextRooms.map((room)=> room.id));
+    syncRoomSelectionAfterRemoval(selectedId);
     return selectedId;
   }
 
@@ -451,14 +289,15 @@ ${names}`);
     const meta = ensureProjectMeta(proj);
     const previousRooms = Array.isArray(inv && inv.rooms) ? inv.rooms : [];
 
-    const removedRoomIds = [];
     discoverProjectRoomKeys(proj).forEach((roomId)=>{
       const key = String(roomId || '');
       if(key === 'kuchnia' && hasLegacyKitchen(proj)) return;
       if(keepIds.has(key)) return;
-      removedRoomIds.push(key);
+      try{ delete proj[key]; }catch(_){ }
+      try{ if(meta && meta.roomDefs) delete meta.roomDefs[key]; }catch(_){ }
+      try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> String(id || '') !== key); }catch(_){ }
+      syncRoomSelectionAfterRemoval(key);
     });
-    removeRoomsData(proj, meta, removedRoomIds);
 
     currentDrafts.forEach((room)=>{
       if(!proj[room.id]) proj[room.id] = roomTemplate(room.baseType);
@@ -467,7 +306,6 @@ ${names}`);
     });
     try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> keepIds.has(String(id || '')) || String(id || '') === 'kuchnia'); }catch(_){ }
     saveProject(proj);
-    if(removedRoomIds.length) removeQuotesForRooms(inv, removedRoomIds);
 
     const nextRooms = currentDrafts.map((room)=> {
       const prev = previousRooms.find((item)=> String(item && item.id || '') === String(room.id || '')) || {};
@@ -480,7 +318,6 @@ ${names}`);
       };
     });
     updateInvestorRooms(inv, nextRooms);
-    reconcileStatusesAfterRoomSetChange(inv, nextRooms.map((room)=> room.id));
     return nextRooms;
   }
 
@@ -570,7 +407,14 @@ ${names}`);
         }catch(_){ }
         return true;
       };
-      const askDelete = async ()=> await askDeleteRoomWithQuotes(inv, [room.id], { deferred:false });
+      const askDelete = async ()=>{
+        try{
+          if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
+            return await FC.confirmBox.ask({ title:'Usunąć pomieszczenie?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
+          }
+        }catch(_){ }
+        return true;
+      };
       nameInput.addEventListener('input', ()=>{
         dirty = normalizeLabel(nameInput.value) !== normalizeLabel(room.label || room.name || '') || selectedBase !== String(room.baseType || 'pokoj');
         refreshFooter();
@@ -715,7 +559,10 @@ ${names}`);
             refreshFooter();
           });
           removeBtn.addEventListener('click', async ()=>{
-            const ok = await askDeleteRoomWithQuotes(inv, [room.id], { deferred:true });
+            let ok = true;
+            try{
+              if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') ok = await FC.confirmBox.ask({ title:'Usunąć pomieszczenie?', message:'Ta zmiana zostanie zapisana po kliknięciu Zapisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
+            }catch(_){ }
             if(!ok) return;
             drafts = drafts.filter((item)=> String(item.id || '') !== String(room.id || ''));
             renderRows();
@@ -739,6 +586,10 @@ ${names}`);
         }catch(_){ }
       });
       saveBtn.addEventListener('click', async ()=>{
+        if(!drafts.length){
+          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Nie możesz zapisać pustej listy. Dodaj nowe pomieszczenie albo wróć.' }); }catch(_){ }
+          return;
+        }
         const seen = new Map();
         for(const room of drafts){
           const name = normalizeLabel(room.label || room.name || '');
@@ -839,10 +690,8 @@ ${names}`);
       body.appendChild(footer);
       const done = (result)=>{ try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
       cancelBtn.addEventListener('click', ()=> done(null));
-      deleteBtn.addEventListener('click', async ()=>{
+      deleteBtn.addEventListener('click', ()=>{
         if(!selectedId) return;
-        const ok = await askDeleteRoomWithQuotes(inv, [selectedId], { deferred:false });
-        if(!ok) return;
         const removedId = removeRoomById(selectedId);
         done(removedId);
       });
@@ -974,14 +823,5 @@ ${names}`);
     isRoomNameTaken,
     hasLegacyKitchen,
     createLegacyKitchenDef,
-    _debug:{
-      applyManageRoomsDraft,
-      removeRoomById,
-      syncQuoteDraftSelectionAfterRoomChange,
-      reconcileStatusesAfterRoomSetChange,
-      buildRoomRemovalWarningMessage,
-      listSnapshotsForRoomRemoval,
-      countCabinetsForRoomIds,
-    },
   };
 })();

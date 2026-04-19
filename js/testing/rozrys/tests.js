@@ -592,33 +592,6 @@
         assert(Array.isArray(agg.materials) && agg.materials.includes('Jesion test'), 'ROZRYS po retry nadal nie zbudował materiału', agg);
       }),
 
-
-      makeTest('Projekt i agregacja', 'ROZRYS picker pomieszczeń nie pokazuje legacy kreatorów, gdy inwestor ma własne pokoje', 'Pilnuje regresję, w której do wyboru pomieszczeń w ROZRYS wpadały bazowe kreatory kuchnia/szafa/pokój/łazienka mimo że aktywny inwestor miał już własne realne pokoje.', ()=>{
-        const fixtureProject = {
-          schemaVersion: 9,
-          meta:{
-            roomDefs:{
-              room_a:{ id:'room_a', baseType:'pokoj', name:'a', label:'a' },
-              room_j:{ id:'room_j', baseType:'pokoj', name:'J', label:'J' },
-            },
-            roomOrder:['room_a','room_j']
-          },
-          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
-          room_j:{ cabinets:[{ id:'cab-j', width:70, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
-          kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} },
-          szafa:{ cabinets:[], fronts:[], sets:[], settings:{} },
-          pokoj:{ cabinets:[], fronts:[], sets:[], settings:{} },
-          lazienka:{ cabinets:[], fronts:[], sets:[], settings:{} },
-        };
-        const rooms = withPatchedRoomRegistry({
-          hasCurrentInvestor: ()=> true,
-          getActiveRoomIds: ()=> ['room_a','room_j'],
-          getRoomLabel: (room)=> room === 'room_a' ? 'a' : (room === 'room_j' ? 'J' : String(room || '')),
-        }, ()=> withPatchedProjectFixture(fixtureProject, ()=> ([]), ()=> FC.rozrys.getRoomsForProject(fixtureProject)));
-        assert(Array.isArray(rooms) && rooms.length === 2, 'ROZRYS nadal miesza realne pokoje inwestora z legacy kreatorami', rooms);
-        assert(rooms.includes('room_a') && rooms.includes('room_j'), 'ROZRYS zgubił realne pokoje inwestora po odfiltrowaniu legacy kreatorów', rooms);
-        assert(!rooms.includes('kuchnia') && !rooms.includes('szafa') && !rooms.includes('pokoj') && !rooms.includes('lazienka'), 'ROZRYS nadal pokazuje legacy kreatory jako pokoje wyboru', rooms);
-      }),
       makeTest('Projekt i agregacja', 'ROZRYS przy aktywnym roomRegistry nie gubi pokojów odkrytych w projekcie', 'Pilnuje first-click regresji, w której aktywny inwestor zwracał stare pokoje z registry i blokował materiały z faktycznego projektu.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

@@ -15,7 +15,6 @@
   const FC = window.FC;
 
   const rozrysPrefs = FC.rozrysPrefs || null;
-  const LEGACY_CREATOR_ROOM_KEYS = ['kuchnia','szafa','pokoj','lazienka'];
 
   function discoverProjectRoomKeys(proj){
     if(!proj || typeof proj !== 'object') return [];
@@ -27,53 +26,6 @@
       if(!room || typeof room !== 'object') return;
       const hasRoomShape = Array.isArray(room.cabinets) || Array.isArray(room.fronts) || Array.isArray(room.sets) || (!!room.settings && typeof room.settings === 'object');
       if(hasRoomShape) out.push(roomKey);
-    });
-    return out;
-  }
-
-  function isLegacyCreatorRoomKey(roomKey){
-    return LEGACY_CREATOR_ROOM_KEYS.includes(String(roomKey || '').trim());
-  }
-
-  function hasMeaningfulProjectRoomData(room){
-    if(!(room && typeof room === 'object')) return false;
-    if(Array.isArray(room.cabinets) && room.cabinets.length) return true;
-    if(Array.isArray(room.fronts) && room.fronts.length) return true;
-    if(Array.isArray(room.sets) && room.sets.length) return true;
-    return false;
-  }
-
-  function getProjectMetaRoomIds(proj){
-    if(!(proj && typeof proj === 'object')) return [];
-    const meta = proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
-    if(!meta) return [];
-    const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : {};
-    const order = Array.isArray(meta.roomOrder) ? meta.roomOrder : [];
-    const out = [];
-    const push = (id)=>{
-      const key = String(id || '').trim();
-      if(!key || out.includes(key)) return;
-      out.push(key);
-    };
-    order.forEach(push);
-    Object.keys(defs).forEach(push);
-    return out;
-  }
-
-  function discoverVisibleProjectRoomKeys(proj){
-    const metaRoomIds = getProjectMetaRoomIds(proj);
-    const discovered = discoverProjectRoomKeys(proj);
-    const out = [];
-    const push = (roomKey)=>{
-      const key = String(roomKey || '').trim();
-      if(!key || out.includes(key)) return;
-      out.push(key);
-    };
-    metaRoomIds.forEach(push);
-    discovered.forEach((roomKey)=>{
-      if(metaRoomIds.includes(roomKey)) return;
-      if(!isLegacyCreatorRoomKey(roomKey)) return push(roomKey);
-      if(hasMeaningfulProjectRoomData(proj && proj[roomKey])) push(roomKey);
     });
     return out;
   }
@@ -150,7 +102,7 @@
     })();
     const defaults = hasInvestor ? registryRooms.slice() : (registryRooms.length ? registryRooms.slice() : fallbackDefaults);
     if(!proj || typeof proj !== 'object') return defaults;
-    const discovered = discoverVisibleProjectRoomKeys(proj);
+    const discovered = discoverProjectRoomKeys(proj);
     const ordered = [];
     const preferredOrder = defaults.length ? defaults : discovered;
     preferredOrder.forEach((room)=>{
@@ -1613,7 +1565,5 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
     aggregatePartsForProject,
     safeGetProject,
     discoverProjectRoomKeys,
-    discoverVisibleProjectRoomKeys,
-    getRoomsForProject,
   };
 })();

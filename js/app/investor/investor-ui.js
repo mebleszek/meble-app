@@ -371,77 +371,9 @@
         if(roomUi() && typeof roomUi().mountProjectStatusChoices === 'function'){
           roomUi().mountProjectStatusChoices(currentInvestor(), PROJECT_STATUS_OPTIONS, {
             disabled: !!currentState.isEditing,
-            onChange: async (roomId, value)=> {
+            onChange: (roomId, value)=> {
               if(currentState.isEditing) return;
-              const investorId = String(currentInvestor() && currentInvestor().id || '');
-              try{
-                if(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function'){
-                  const validation = FC.projectStatusManualGuard.validateManualStatusChange(investorId, roomId, value);
-                  if(validation && validation.blocked){
-                    if(validation.requiresGeneration){
-                      let confirmed = false;
-                      try{
-                        if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
-                          confirmed = await FC.confirmBox.ask({
-                            title:String(validation.title || 'Brak wyceny'),
-                            message:String(validation.message || ''),
-                            confirmText: validation.generationKind === 'final' ? 'Generuj końcową' : 'Generuj wstępną',
-                            cancelText:'Wróć',
-                            confirmTone:'success',
-                            cancelTone:'neutral'
-                          });
-                        }
-                      }catch(_){ confirmed = false; }
-                      if(confirmed){
-                        try{
-                          const generated = await FC.projectStatusManualGuard.generateScopedQuoteForRoom(investorId, roomId, validation.generationKind, { openTab:true });
-                          try{
-                            if(FC.infoBox && typeof FC.infoBox.open === 'function'){
-                              FC.infoBox.open({
-                                title: validation.generationKind === 'final' ? 'Wycena końcowa wygenerowana' : 'Wycena wstępna wygenerowana',
-                                message: `${validation.generationKind === 'final' ? 'Wygenerowano wycenę końcową' : 'Wygenerowano wycenę wstępną'} dla pomieszczenia „${generated && generated.roomLabel ? generated.roomLabel : (validation.roomLabel || roomId)}”. Zaakceptuj ją w dziale Wycena, aby przejść na status „${validation.targetLabel || value}”.`
-                              });
-                            }
-                          }catch(_){ }
-                          try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-                          return;
-                        }catch(err){
-                          try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się wygenerować wyceny', message:String(err && err.message || err || 'Błąd generowania wyceny.') }); }catch(_){ }
-                        }
-                      }
-                      render();
-                      return;
-                    }
-                    try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:String(validation.title || 'Zmiana statusu zablokowana'), message:String(validation.message || '') }); }catch(_){ }
-                    render();
-                    return;
-                  }
-                }
-              }catch(_){ }
-              if(String(value || '') === 'wstepna_wycena' && FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function'){
-                try{
-                  const scopeEntry = await FC.quoteScopeEntry.ensureScopedQuoteEntry({
-                    investorId,
-                    projectId: (function(){ try{ return FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function' ? String((FC.projectStore.getByInvestorId(investorId) || {}).id || '') : ''; }catch(_){ return ''; } })(),
-                    fallbackRoomId: roomId,
-                    preliminary:true,
-                    status:'wstepna_wycena',
-                    openTab:true,
-                  });
-                  if(scopeEntry && scopeEntry.cancelled){
-                    render();
-                    return;
-                  }
-                  try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-                  render();
-                  return;
-                }catch(err){
-                  try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się otworzyć wyceny wstępnej', message:String(err && err.message || err || 'Błąd wejścia do wyceny wstępnej.') }); }catch(_){ }
-                  render();
-                  return;
-                }
-              }
-              persistenceApi.setInvestorProjectStatus(investorId, roomId, value, { skipGuard:true });
+              persistenceApi.setInvestorProjectStatus(currentInvestor().id, roomId, value);
               try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
               render();
             }

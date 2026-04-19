@@ -96,21 +96,18 @@
     };
   }
 
-  function defaultVersionName(preliminary, options){
-    try{
-      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.defaultVersionName === 'function') return FC.quoteSnapshot.defaultVersionName(!!preliminary, options || {});
-    }catch(_){ }
+  function defaultVersionName(preliminary){
     return preliminary ? 'Wstępna oferta' : 'Oferta';
   }
 
-  function normalizeCommercial(src, options){
+  function normalizeCommercial(src){
     const value = src && typeof src === 'object' ? src : {};
     let discountPercent = Math.max(0, num(value.discountPercent, 0));
     let discountAmount = Math.max(0, num(value.discountAmount, 0));
     if(discountPercent > 0) discountAmount = 0;
     if(discountAmount > 0) discountPercent = 0;
     const preliminary = !!value.preliminary;
-    const versionName = String(value.versionName || '').trim() || defaultVersionName(preliminary, options);
+    const versionName = String(value.versionName || '').trim() || defaultVersionName(preliminary);
     return {
       versionName,
       preliminary,
@@ -126,13 +123,12 @@
   function normalizeDraft(draft, scope){
     const src = draft && typeof draft === 'object' ? draft : {};
     const resolved = makeScope(scope && scope.projectId || src.projectId, scope && scope.investorId || src.investorId);
-    const selection = normalizeSelection(src.selection);
     return {
       projectId: resolved.projectId,
       investorId: resolved.investorId,
       rateSelections: normalizeRateSelections(src.rateSelections),
-      selection,
-      commercial: normalizeCommercial(src.commercial, { selection }),
+      selection: normalizeSelection(src.selection),
+      commercial: normalizeCommercial(src.commercial),
       updatedAt: Math.max(0, num(src.updatedAt, Date.now())),
     };
   }

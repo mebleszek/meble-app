@@ -16,12 +16,6 @@
     odrzucone:-1,
   };
 
-  // Odpowiedzialność modułu: centralny silnik statusów projektu scoped.
-  // Tu składamy finalny wynik biznesowy (`masterStatus`) dla exact scope,
-  // rekonsyliujemy statusy po zmianach oraz zapisujemy lustra zgodności.
-  // Ten moduł może korzystać z historii snapshotów, ale to on ma nadawać
-  // końcowy wynik statusowy — nie UI i nie sam snapshot store.
-
   function normalizeStatus(value){
     return String(value || '').trim().toLowerCase();
   }
@@ -69,24 +63,7 @@
 
   function getTargetRoomIdsFromSnapshot(snapshot){
     const scoped = getSnapshotRoomIds(snapshot);
-    if(scoped.length) return scoped;
-    const active = getAllActiveRoomIds();
-    return active.length === 1 ? active : [];
-  }
-
-  function resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds){
-    const explicit = normalizeRoomIds(explicitRoomIds);
-    if(explicit.length) return explicit;
-    const known = normalizeRoomIds(knownRoomIds);
-    return known.length === 1 ? known : [];
-  }
-
-  function resolveAggregateFallbackStatus(projectRecord, loadedProject, fallbackStatus){
-    const projectStatus = normalizeStatus(projectRecord && projectRecord.status || '');
-    if(projectStatus) return projectStatus;
-    const metaStatus = normalizeStatus(loadedProject && loadedProject.meta && loadedProject.meta.projectStatus || '');
-    if(metaStatus) return metaStatus;
-    return normalizeStatus(fallbackStatus || '') || 'nowy';
+    return scoped.length ? scoped : getAllActiveRoomIds();
   }
 
   function normalizeSnapshot(source){
@@ -211,57 +188,26 @@
     return Array.from(set);
   }
 
-  function computeRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, options){
+  function buildRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, fallbackRoomIds, fallbackStatus){
     const ids = normalizeRoomIds(roomIds);
-    const opts = options && typeof options === 'object' ? options : {};
-    const fallbackStatus = normalizeStatus(opts.fallbackStatus || 'nowy') || 'nowy';
-    const suggestionFallbackStatus = normalizeStatus(Object.prototype.hasOwnProperty.call(opts, 'suggestionFallbackStatus') ? opts.suggestionFallbackStatus : fallbackStatus);
-    const touchedSet = new Set(normalizeRoomIds(opts.touchedRoomIds));
-    const explicitStatusMap = opts.explicitStatusMap && typeof opts.explicitStatusMap === 'object' ? opts.explicitStatusMap : null;
-    const preserveCurrentForUntouched = opts.preserveCurrentForUntouched !== false;
+    const targetSet = new Set(normalizeRoomIds(fallbackRoomIds));
     const map = {};
-    let suggestedMap = {};
     try{
       if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
-        suggestedMap = FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids, {
-          matchMode:'exact',
-          fallbackStatus:suggestionFallbackStatus || fallbackStatus,
-          allowProjectWideExact: ids.length === 1,
-        }) || {};
+        Object.assign(map, FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids) || {});
       }
-    }catch(_){ suggestedMap = {}; }
+    }catch(_){ }
     ids.forEach((roomId)=> {
       const key = String(roomId || '');
-      if(!key) return;
-      const explicit = normalizeStatus(explicitStatusMap && explicitStatusMap[key] || '');
-      if(explicit){
-        map[key] = explicit;
-        return;
-      }
-      const suggested = normalizeStatus(suggestedMap[key] || '');
+      const current = normalizeStatus(currentStatusMap && currentStatusMap[key] || '');
+      const suggested = normalizeStatus(map[key] || '');
       if(suggested){
         map[key] = suggested;
         return;
       }
-      const current = normalizeStatus(currentStatusMap && currentStatusMap[key] || '');
-      if(touchedSet.has(key)){
-        map[key] = fallbackStatus || current || 'nowy';
-        return;
-      }
-      map[key] = preserveCurrentForUntouched ? (current || 'nowy') : fallbackStatus;
+      map[key] = targetSet.has(key) ? normalizeStatus(fallbackStatus || current || '') : current;
     });
     return map;
-  }
-
-  // Compat wrapper z etapu przejściowego: stare wejścia korzystają z jednego silnika
-  // computeRecommendedRoomStatusMap zamiast z osobnej, dublującej ścieżki fallbacków.
-  function buildRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, fallbackRoomIds, fallbackStatus){
-    return computeRecommendedRoomStatusMap(projectId, roomIds, currentStatusMap, {
-      fallbackStatus,
-      suggestionFallbackStatus:'nowy',
-      touchedRoomIds:fallbackRoomIds,
-      preserveCurrentForUntouched:true,
-    });
   }
 
   function saveInvestorRooms(investor, roomStatusMap){
@@ -306,22 +252,23 @@
     return Object.assign({}, investor, { rooms });
   }
 
-  function updateProjectRecord(projectRecord, mirrorStatus){
+  function updateProjectRecord(projectRecord, aggregateStatus){
     if(!(projectRecord && projectRecord.id)) return null;
     try{
       if(FC.projectStore && typeof FC.projectStore.upsert === 'function'){
-        return FC.projectStore.upsert(Object.assign({}, projectRecord, { status:mirrorStatus, updatedAt:Date.now() }));
+        return FC.projectStore.upsert(Object.assign({}, projectRecord, { status:aggregateStatus, updatedAt:Date.now() }));
       }
     }catch(_){ }
     return projectRecord;
   }
 
-  function updateLoadedProject(loadedProject, mirrorStatus, roomStatusMap){
+  function updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap){
     try{
       if(!(FC.project && typeof FC.project.save === 'function')) return loadedProject || null;
-      const proj = loadedProject && typeof loadedProject === 'object' ? loadedProject : {};
-      const meta = proj.meta && typeof proj.meta === 'object' ? proj.meta : (proj.meta = {});
-      meta.projectStatus = mirrorStatus;
+      const proj = loadedProject || {};
+      const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
+      if(!meta) return loadedProject || null;
+      meta.projectStatus = aggregateStatus;
       if(meta.roomDefs && typeof meta.roomDefs === 'object'){
         Object.keys(meta.roomDefs).forEach((roomId)=> {
           const row = meta.roomDefs[roomId];
@@ -332,26 +279,6 @@
       }
       return FC.project.save(proj) || proj;
     }catch(_){ return loadedProject || null; }
-  }
-
-  function resolveScopedMasterStatus(scopedRoomIds, roomStatusMap, options){
-    const ids = normalizeRoomIds(scopedRoomIds);
-    const opts = options && typeof options === 'object' ? options : {};
-    const fallbackStatus = normalizeStatus(opts.fallbackStatus || '') || 'nowy';
-    const statuses = ids.map((roomId)=> normalizeStatus(roomStatusMap && roomStatusMap[roomId] || '')).filter(Boolean);
-    if(statuses.length) return getAggregateStatus(statuses, fallbackStatus);
-    if(ids.length) return fallbackStatus;
-    if(opts.allowMirrorFallback) return resolveAggregateFallbackStatus(opts.projectRecord, opts.loadedProject, fallbackStatus);
-    return fallbackStatus;
-  }
-
-  function syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap){
-    const mirrorStatus = normalizeStatus(masterStatus || '') || 'nowy';
-    return {
-      mirrorStatus,
-      projectRecord: projectRecord ? updateProjectRecord(projectRecord, mirrorStatus) : null,
-      loadedProject: updateLoadedProject(loadedProject, mirrorStatus, roomStatusMap),
-    };
   }
 
   function refreshStatusViews(){
@@ -424,18 +351,14 @@
     });
 
     const nextInvestor = saveInvestorRooms(investor, roomStatusMap) || investor;
-    const masterRoomIds = resolveAggregateScopeRoomIds(targetRoomIds, knownRoomIds);
-    const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
-      fallbackStatus: nextStatus,
-      projectRecord,
-      loadedProject,
-      allowMirrorFallback:false,
-    });
+    const aggregateRoomIds = targetRoomIds.length ? targetRoomIds : knownRoomIds;
+    const aggregateStatus = getAggregateStatus(collectRoomStatuses(aggregateRoomIds, {
+      investorRooms: nextInvestor && nextInvestor.rooms,
+      roomDefs: mergedRoomDefs,
+    }), nextStatus);
 
-    const mirrorSync = syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap);
-    const nextProjectRecord = mirrorSync.projectRecord;
-    const nextLoadedProject = mirrorSync.loadedProject;
-    const mirrorStatus = mirrorSync.mirrorStatus;
+    const nextProjectRecord = projectRecord ? updateProjectRecord(projectRecord, aggregateStatus) : null;
+    const nextLoadedProject = updateLoadedProject(loadedProject, aggregateStatus, roomStatusMap);
 
     if(refreshUi) refreshStatusViews();
 
@@ -443,59 +366,9 @@
       investor: nextInvestor,
       projectRecord: nextProjectRecord,
       loadedProject: nextLoadedProject,
-      masterStatus,
-      mirrorStatus,
-      aggregateStatus:masterStatus,
+      aggregateStatus,
       roomStatusMap,
       roomIds: targetRoomIds,
-      projectId,
-      investorId,
-    };
-  }
-
-  function reconcileProjectStatuses(params){
-    const options = params && typeof params === 'object' ? params : {};
-    let projectId = String(options.projectId || getCurrentProjectId() || '');
-    let investorId = String(options.investorId || getCurrentInvestorId() || '');
-    let projectRecord = projectId ? getProjectRecordById(projectId) : null;
-    if(!projectRecord && investorId) projectRecord = getProjectRecordByInvestorId(investorId);
-    if(!projectId && projectRecord && projectRecord.id) projectId = String(projectRecord.id || '');
-    if(!investorId && projectRecord && projectRecord.investorId) investorId = String(projectRecord.investorId || '');
-
-    const investor = getSelectedInvestor(investorId);
-    const loadedProject = loadCurrentProject();
-    const mergedRoomDefs = getMergedRoomDefs(projectRecord, loadedProject);
-    const explicitRoomIds = normalizeRoomIds(options.roomIds);
-    const knownRoomIds = options.restrictToRoomIds
-      ? explicitRoomIds
-      : getKnownProjectRoomIds(projectId, investor, loadedProject, explicitRoomIds);
-    const currentStatusMap = getRoomStatusMap(knownRoomIds, {
-      investorRooms: investor && investor.rooms,
-      roomDefs: mergedRoomDefs,
-    });
-    const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, { fallbackStatus: options.fallbackStatus || 'nowy' });
-    const nextInvestor = investor ? (saveInvestorRooms(investor, roomStatusMap) || investor) : investor;
-    const masterRoomIds = resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds);
-    const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
-      fallbackStatus: options.fallbackStatus || 'nowy',
-      projectRecord,
-      loadedProject,
-      allowMirrorFallback:false,
-    });
-    const mirrorSync = syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap);
-    const nextProjectRecord = mirrorSync.projectRecord;
-    const nextLoadedProject = mirrorSync.loadedProject;
-    const mirrorStatus = mirrorSync.mirrorStatus;
-    if(options.refreshUi !== false) refreshStatusViews();
-    return {
-      investor: nextInvestor,
-      projectRecord: nextProjectRecord,
-      loadedProject: nextLoadedProject,
-      masterStatus,
-      mirrorStatus,
-      aggregateStatus:masterStatus,
-      roomStatusMap,
-      roomIds: knownRoomIds,
       projectId,
       investorId,
     };
@@ -517,89 +390,6 @@
     }));
   }
 
-
-  function commitAcceptedSnapshot(snapshot, status, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    const nextStatus = normalizeStatus(status);
-    if(!snap || !nextStatus) return null;
-    const opts = options && typeof options === 'object' ? options : {};
-    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const investorId = String(
-      opts.investorId
-      || snap && snap.investor && snap.investor.id
-      || snap && snap.project && snap.project.investorId
-      || getCurrentInvestorId()
-      || ''
-    );
-    const targetRoomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
-    let selectedSnapshot = snap;
-    let selectionCommitted = false;
-    try{
-      const snapshotId = String(snap && snap.id || '');
-      if(projectId && snapshotId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'){
-        selectedSnapshot = FC.quoteSnapshotStore.markSelectedForProject(projectId, snapshotId, { status:nextStatus, roomIds:targetRoomIds }) || selectedSnapshot;
-        selectionCommitted = true;
-      }
-    }catch(_){ }
-    const statusResult = setStatusFromSnapshot(selectedSnapshot, nextStatus, Object.assign({}, opts, {
-      investorId,
-      roomIds:targetRoomIds,
-      syncSelection: selectionCommitted ? false : !!opts.syncSelection,
-    }));
-    return {
-      snapshot: normalizeSnapshot(selectedSnapshot) || snap,
-      selectedSnapshot: normalizeSnapshot(selectedSnapshot) || snap,
-      statusResult,
-      masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || nextStatus) || nextStatus,
-      mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || nextStatus) || nextStatus,
-      roomIds:targetRoomIds,
-      projectId: String(projectId || statusResult && statusResult.projectId || ''),
-      investorId: String(investorId || statusResult && statusResult.investorId || ''),
-    };
-  }
-
-  function reconcileStatusAfterSnapshotRemoval(snapshot, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return null;
-    const opts = options && typeof options === 'object' ? options : {};
-    const roomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
-    return reconcileProjectStatuses({
-      projectId: String(opts.projectId || snap && snap.project && snap.project.id || getCurrentProjectId() || ''),
-      investorId: String(opts.investorId || snap && snap.investor && snap.investor.id || snap && snap.project && snap.project.investorId || getCurrentInvestorId() || ''),
-      roomIds,
-      restrictToRoomIds: roomIds.length > 0,
-      fallbackStatus: opts.fallbackStatus || 'nowy',
-      refreshUi: opts.refreshUi,
-    });
-  }
-
-  function promotePreliminarySnapshotToFinal(snapshot, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return null;
-    const opts = options && typeof options === 'object' ? options : {};
-    const projectId = String(opts.projectId || snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const snapshotId = String(snap && snap.id || '');
-    if(!projectId || !snapshotId) return null;
-    let converted = null;
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function'){
-        converted = FC.quoteSnapshotStore.convertPreliminaryToFinal(projectId, snapshotId);
-      }
-    }catch(_){ converted = null; }
-    if(!converted) return null;
-    const statusResult = setStatusFromSnapshot(converted, 'zaakceptowany', Object.assign({}, opts, { syncSelection:false }));
-    return {
-      snapshot: normalizeSnapshot(converted) || converted,
-      convertedSnapshot: normalizeSnapshot(converted) || converted,
-      statusResult,
-      masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || 'zaakceptowany') || 'zaakceptowany',
-      mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || 'zaakceptowany') || 'zaakceptowany',
-      projectId,
-      investorId: String(opts.investorId || converted && converted.investor && converted.investor.id || converted && converted.project && converted.project.investorId || getCurrentInvestorId() || ''),
-      roomIds: getTargetRoomIdsFromSnapshot(converted),
-    };
-  }
-
   FC.projectStatusSync = {
     normalizeStatus,
     statusRank,
@@ -611,26 +401,15 @@
     getAggregateStatus,
     getRoomStatusMap,
     getKnownProjectRoomIds,
-    resolveAggregateScopeRoomIds,
-    resolveAggregateFallbackStatus,
-    resolveScopedMasterStatus,
-    syncStatusMirrors,
     buildRecommendedRoomStatusMap,
-    computeRecommendedRoomStatusMap,
     resolveCurrentProjectStatus,
     applyProjectStatusChange,
-    reconcileProjectStatuses,
     setInvestorRoomStatus,
     setStatusFromSnapshot,
-    commitAcceptedSnapshot,
-    reconcileStatusAfterSnapshotRemoval,
-    promotePreliminarySnapshotToFinal,
     _debug:{
       getMergedRoomDefs,
       updateLoadedProject,
       saveInvestorRooms,
-      resolveScopedMasterStatus,
-      syncStatusMirrors,
     },
   };
 })();

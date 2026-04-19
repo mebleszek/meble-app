@@ -19,12 +19,8 @@ const FILES = [
   'js/app/catalog/catalog-store.js',
   'js/app/catalog/catalog-selectors.js',
   'js/app/material/price-modal.js',
-  'js/app/ui/tabs-router.js',
   'js/app/ui/work-mode-hub.js',
   'js/app/service/service-orders.js',
-  'js/app/service/cutting/service-cutting-common.js',
-  'js/app/service/cutting/service-cutting-rozrys.js',
-  'js/app/service/cutting/service-order-detail.js',
   'js/app/investor/investors-store.js',
   'js/app/investor/investor-persistence.js',
   'js/app/investor/investor-navigation-guard.js',
@@ -37,43 +33,20 @@ const FILES = [
   'js/app/investor/project-bootstrap.js',
   'js/app/quote/quote-offer-store.js',
   'js/app/quote/quote-snapshot-store.js',
-  'js/app/quote/quote-scope-entry.js',
   'js/app/project/project-status-sync.js',
-  'js/app/project/project-status-manual-guard.js',
-  'js/app/rozrys/rozrys-choice.js',
-  'js/app.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',
   'js/app/wycena/wycena-core.js',
-  'js/app/wycena/wycena-tab-helpers.js',
-  'js/app/wycena/wycena-tab-selection.js',
-  'js/app/wycena/wycena-tab-editor.js',
-  'js/app/wycena/wycena-tab-scroll.js',
-  'js/app/wycena/wycena-tab-history.js',
-  'js/app/wycena/wycena-tab-status-bridge.js',
   'js/tabs/wycena.js',
-  'js/app/optimizer/cut-optimizer.js',
-  'js/app/rozrys/rozrys-engine.js',
   'js/app/rozrys/rozrys-stock.js',
   'js/app/rozrys/rozrys-scope.js',
   'js/app/rozrys/rozrys.js',
   'js/app/rozrys/rozrys-state.js',
   'js/app/cabinet/cabinet-cutlist.js',
-  'js/app/cabinet/cabinet-fronts.js',
-  'js/app/cabinet/cabinet-modal.js',
-  'js/app/cabinet/cabinet-actions.js',
   'js/testing/shared/harness.js',
   'js/testing/test-data-manager.js',
   'js/testing/project/tests.js',
   'js/testing/investor/tests.js',
-  'js/testing/wycena/fixtures.js',
-  'js/testing/wycena/suites/core-offer-basics.js',
-  'js/testing/wycena/suites/core-offer-workflow.js',
-  'js/testing/wycena/suites/central-status-sync.js',
-  'js/testing/wycena/suites/scope-entry.js',
-  'js/testing/wycena/suites/investor-integration.js',
-  'js/testing/wycena/suites/cross-systems.js',
-  'js/testing/wycena/suites/status-anti-regression.js',
   'js/testing/wycena/tests.js',
   'js/testing/material/tests.js',
   'js/testing/cabinet/tests.js',
@@ -121,20 +94,15 @@ function mergeReports(reports){
   return out;
 }
 
-(async ()=>{
-  const reports = [
-    await sandbox.FC.projectDevTests.runAll(),
-    await sandbox.FC.investorDevTests.runAll(),
-    await sandbox.FC.materialDevTests.runAll(),
-    await sandbox.FC.wycenaDevTests.runAll(),
-    await sandbox.FC.cabinetDevTests.runAll(),
-    await sandbox.FC.serviceDevTests.runAll(),
-  ];
-  const final = mergeReports(reports);
-  const text = sandbox.FC.testHarness.makeClipboardReport(final);
-  console.log(text);
-  if(final.failed > 0) process.exit(1);
-})().catch((error)=>{
-  console.error(error && error.stack ? error.stack : String(error));
-  process.exit(2);
-});
+const reports = [
+  sandbox.FC.projectDevTests.runAll(),
+  sandbox.FC.investorDevTests.runAll(),
+  sandbox.FC.materialDevTests.runAll(),
+  sandbox.FC.wycenaDevTests.runAll(),
+  sandbox.FC.cabinetDevTests.runAll(),
+  sandbox.FC.serviceDevTests.runAll(),
+];
+const final = mergeReports(reports);
+const text = sandbox.FC.testHarness.makeClipboardReport(final);
+console.log(text);
+if(final.failed > 0) process.exit(1);

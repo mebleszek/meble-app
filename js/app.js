@@ -193,70 +193,6 @@ uiState = Object.assign({}, __uiDefaults, uiState);
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
-const RELOAD_RESTORE_KEY = 'fc_reload_restore_v1';
-let __pendingReloadRestore = null;
-
-function readReloadRestore(){
-  try{
-    const raw = sessionStorage.getItem(RELOAD_RESTORE_KEY);
-    if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
-  }catch(_){ return null; }
-}
-
-function clearReloadRestore(){
-  try{ sessionStorage.removeItem(RELOAD_RESTORE_KEY); }catch(_){ }
-}
-
-function persistReloadRestore(){
-  try{
-    const snapshotState = (window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function')
-      ? window.FC.uiState.get()
-      : (typeof uiState !== 'undefined' ? uiState : null);
-    if(!(snapshotState && typeof snapshotState === 'object')) return;
-    const payload = {
-      savedAt: Date.now(),
-      uiState: snapshotState,
-      scrollY: (()=> {
-        try{ return typeof window.scrollY === 'number' ? Math.max(0, Math.round(window.scrollY)) : 0; }catch(_){ return 0; }
-      })(),
-    };
-    sessionStorage.setItem(RELOAD_RESTORE_KEY, JSON.stringify(payload));
-  }catch(_){ }
-}
-
-function applyReloadRestoreSnapshot(){
-  const snapshot = readReloadRestore();
-  if(!(snapshot && snapshot.uiState && typeof snapshot.uiState === 'object')) return null;
-  __pendingReloadRestore = snapshot;
-  clearReloadRestore();
-  return snapshot;
-}
-
-function restoreReloadScroll(){
-  const snapshot = __pendingReloadRestore && typeof __pendingReloadRestore === 'object' ? __pendingReloadRestore : null;
-  __pendingReloadRestore = null;
-  if(!snapshot) return;
-  const targetY = Math.max(0, Math.round(Number(snapshot.scrollY) || 0));
-  const apply = ()=> {
-    try{ window.scrollTo(0, targetY); }catch(_){ }
-  };
-  [0, 16, 48, 120, 240, 420].forEach((delay)=> {
-    try{
-      if(delay === 0) requestAnimationFrame(()=> requestAnimationFrame(apply));
-      else setTimeout(apply, delay);
-    }catch(_){
-      try{ setTimeout(apply, delay); }catch(__){ }
-    }
-  });
-}
-
-try{
-  window.addEventListener('pagehide', persistReloadRestore, { capture:true });
-  window.addEventListener('beforeunload', persistReloadRestore, { capture:true });
-}catch(_){ }
-
 /* ===== Runtime validation (self-healing persisted state) ===== */
 try{
   if (window.FC && window.FC.validate){
@@ -514,8 +450,6 @@ function renderCabinets(){
     ? projectData[requestedRoom]
     : null;
   const room = roomData ? requestedRoom : '';
-  const roomSettingsCardEl = document.getElementById('roomSettingsCard');
-  if(roomSettingsCardEl) roomSettingsCardEl.style.display = shouldHideRoomSettingsForTab(uiState && uiState.activeTab) ? 'none' : '';
   const roomTitleEl = document.getElementById('roomTitle');
   if(roomTitleEl){
     roomTitleEl.textContent = room
@@ -525,16 +459,6 @@ function renderCabinets(){
       : 'Pomieszczenie';
   }
   if(!room){
-    const roomlessTab = String(uiState && uiState.activeTab || '').trim().toLowerCase();
-    if(roomlessTab === 'wycena'){
-      try{
-        if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
-          window.FC.tabsRouter.switchTo('wycena', { listEl: list, room:'' });
-          try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-          return;
-        }
-      }catch(_){ }
-    }
     if(requestedRoom){
       const hasInvestorContext = !!((uiState && uiState.currentInvestorId)
         || (window.FC && window.FC.investors && typeof window.FC.investors.getCurrentId === 'function' && window.FC.investors.getCurrentId()));
@@ -755,16 +679,6 @@ function jumpToCabinetFromMaterials(cabId){ return callExtracted('tabNavigation'
 // Nie zmieniać kolejności efektów ubocznych bez testu całego przepływu projektu.
 function setActiveTab(tabName){ return callExtracted('tabNavigation','setActiveTab',[tabName]); }
 
-function shouldHideRoomSettingsForTab(tabName){
-  return String(tabName || '') === 'wycena';
-}
-
-try{
-  window.FC = window.FC || {};
-  window.FC.appView = window.FC.appView || {};
-  window.FC.appView.shouldHideRoomSettingsForTab = shouldHideRoomSettingsForTab;
-}catch(_){ }
-
 
 /* ===== UI wiring & init ===== */
 
@@ -806,14 +720,6 @@ function installProjectAutosave(){ return callExtracted('projectAutosave','insta
 
 function initUI(){
   uiState = uiState || __uiDefaults;
-  try{
-    const reloadRestore = applyReloadRestoreSnapshot();
-    if(reloadRestore && reloadRestore.uiState && typeof reloadRestore.uiState === 'object'){
-      uiState = Object.assign({}, __uiDefaults, uiState || {}, reloadRestore.uiState || {});
-      if(window.FC && window.FC.uiState && typeof window.FC.uiState.save === 'function') uiState = window.FC.uiState.save(uiState);
-      else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    }
-  }catch(_){ }
 
   // Event wiring extracted to js/app/ui/bindings.js
   try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
@@ -848,7 +754,6 @@ function initUI(){
 
   renderTopHeight();
   renderCabinets();
-  try{ restoreReloadScroll(); }catch(_){ }
 }
 
 

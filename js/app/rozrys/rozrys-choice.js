@@ -7,13 +7,10 @@
     const el = document.createElement(tag);
     if(attrs){
       for(const k in attrs){
-        const value = attrs[k];
-        if(value == null || value === false) continue;
-        if(k === 'class') el.className = value;
-        else if(k === 'html') el.innerHTML = value;
-        else if(k === 'text') el.textContent = value;
-        else if(value === true) el.setAttribute(k, k);
-        else el.setAttribute(k, value);
+        if(k === 'class') el.className = attrs[k];
+        else if(k === 'html') el.innerHTML = attrs[k];
+        else if(k === 'text') el.textContent = attrs[k];
+        else el.setAttribute(k, attrs[k]);
       }
     }
     (children || []).forEach((ch)=> el.appendChild(ch));
@@ -37,12 +34,6 @@
       metaEl.textContent = metaText;
       metaEl.style.display = metaText ? '' : 'none';
     }
-  }
-
-  function buildChoiceOptionClass(currentValue, optionValue, disabled){
-    return 'rozrys-choice-option'
-      + (String(currentValue || '') === String(optionValue || '') ? ' is-selected' : '')
-      + (disabled ? ' is-disabled' : '');
   }
 
   function createChoiceLauncher(label, meta){
@@ -75,11 +66,10 @@
       (Array.isArray(cfg.options) ? cfg.options : []).forEach((entry)=>{
         const opt = entry || {};
         const value = String(opt.value == null ? '' : opt.value);
-        const disabled = !!opt.disabled;
-        const optionBtn = h('button', { type:'button', class:buildChoiceOptionClass(cfg.value, value, disabled), disabled: disabled ? 'disabled' : null });
+        const optionBtn = h('button', { type:'button', class:'rozrys-choice-option' + (String(cfg.value) === value ? ' is-selected' : '') });
         optionBtn.appendChild(h('div', { class:'rozrys-choice-option__title', text:String(opt.label || value) }));
         if(opt.description) optionBtn.appendChild(h('div', { class:'rozrys-choice-option__subtitle', text:String(opt.description) }));
-        if(!disabled) optionBtn.addEventListener('click', ()=> done(value));
+        optionBtn.addEventListener('click', ()=> done(value));
         body.appendChild(optionBtn);
       });
       modal.appendChild(body);
@@ -112,7 +102,6 @@
   FC.rozrysChoice = {
     getSelectOptionLabel,
     setChoiceLaunchValue,
-    buildChoiceOptionClass,
     createChoiceLauncher,
     openRozrysChoiceOverlay,
   };
