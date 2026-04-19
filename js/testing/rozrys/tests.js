@@ -823,74 +823,6 @@
       }),
 
 
-      makeTest('Accordion bridge', 'Wydzielony accordion bridge ROZRYS deleguje split/create/render bez zmiany kontraktu', 'Pilnuje bezpiecznego splitu akordeonów wyników: bridge ma tylko skleić payloady do rozrysAccordion, bez ingerencji w bootstrap launcherów, scope i generate.', ()=>{
-        assert(FC.rozrysAccordionBridge && typeof FC.rozrysAccordionBridge.createApi === 'function', 'Brak FC.rozrysAccordionBridge.createApi');
-        const prevAccordion = FC.rozrysAccordion;
-        const captured = { split:null, create:null, render:null, auto:false, exceptions:null, output:null };
-        FC.rozrysAccordion = {
-          splitMaterialAccordionTitle(material){ captured.split = material; return { line1:'Linia 1', line2:'Linia 2' }; },
-          createMaterialAccordionSection(material, options, deps){ captured.create = { material, options, deps, scheduled: typeof deps.scheduleSheetCanvasRefresh === 'function' ? deps.scheduleSheetCanvasRefresh('body') : null }; return { wrap:{}, body:{}, trigger:null, setOpenState:()=>{} }; },
-          renderMaterialAccordionPlans(scopeKey, scopeMode, entries, deps){
-            captured.render = { scopeKey, scopeMode, entries, deps };
-            if(typeof deps.tryAutoRenderFromCache === 'function'){ captured.auto = deps.tryAutoRenderFromCache(); }
-            if(typeof deps.openMaterialGrainExceptions === 'function'){ captured.exceptions = deps.openMaterialGrainExceptions('MDF', [{ id:'p1' }]); }
-            if(typeof deps.renderOutput === 'function'){
-              const target = { innerHTML:'', appendChild(){} };
-              captured.output = deps.renderOutput({ sheets:[] }, { material:'MDF' }, target);
-            }
-            return 'accordion-ok';
-          }
-        };
-        try{
-          const out = { innerHTML:'', appendChild(){} };
-          const api = FC.rozrysAccordionBridge.createApi({
-            FC,
-            h: (tag)=> ({ tagName:String(tag || '').toUpperCase(), children:[], appendChild(child){ this.children.push(child); return child; } }),
-            out,
-            scheduleSheetCanvasRefresh: ()=> 'schedule-ok',
-            getAccordionPref: ()=> ({ material:'MDF', open:true }),
-            materialHasGrain: ()=> true,
-            getMaterialGrainEnabled: ()=> true,
-            setAccordionPref: ()=> undefined,
-            setMaterialGrainEnabled: ()=> undefined,
-            tryAutoRenderFromCache: ()=> 'auto-ok',
-            openMaterialGrainExceptions: (material, parts)=> ({ material, count:(parts || []).length }),
-            renderOutput: (_plan, _meta, target)=> ({ targetOk: !!target }),
-            formatHeurLabel: (st)=> `heur:${(st && st.heur) || ''}`,
-          });
-          const split = api.splitMaterialAccordionTitle('Front • Dąb');
-          assert(captured.split === 'Front • Dąb' && split && split.line1 === 'Linia 1', 'Accordion bridge nie deleguje splitMaterialAccordionTitle 1:1 do rozrysAccordion', { captured, split });
-          const section = api.createMaterialAccordionSection('MDF', { open:true });
-          assert(section && captured.create && captured.create.material === 'MDF', 'Accordion bridge nie deleguje createMaterialAccordionSection 1:1 do rozrysAccordion', { captured, section });
-          assert(captured.create && captured.create.scheduled === 'schedule-ok', 'Accordion bridge nie przekazał działającego scheduleSheetCanvasRefresh do createMaterialAccordionSection', captured);
-          const renderResult = api.renderMaterialAccordionPlans('scope:test', 'both', [{ material:'MDF', plan:{}, st:{ heur:'max' }, parts:[{ id:'p1' }] }]);
-          assert(renderResult === 'accordion-ok', 'Accordion bridge nie zwrócił wyniku renderMaterialAccordionPlans z delegacji', { renderResult, captured });
-          assert(captured.render && captured.render.scopeKey === 'scope:test' && captured.render.scopeMode === 'both', 'Accordion bridge nie przekazał scope do renderMaterialAccordionPlans', captured);
-          assert(captured.render && captured.render.deps && captured.render.deps.out === out, 'Accordion bridge nie przekazał out do renderMaterialAccordionPlans', captured);
-          assert(captured.auto === 'auto-ok', 'Accordion bridge nie przekazał tryAutoRenderFromCache do renderMaterialAccordionPlans', captured);
-          assert(captured.exceptions && captured.exceptions.material === 'MDF' && captured.exceptions.count === 1, 'Accordion bridge nie przekazał openMaterialGrainExceptions do renderMaterialAccordionPlans', captured);
-          assert(captured.output && captured.output.targetOk === true, 'Accordion bridge nie przekazał renderOutput do renderMaterialAccordionPlans', captured);
-        } finally {
-          FC.rozrysAccordion = prevAccordion;
-        }
-      }),
-      makeTest('Bootstrap i splity', 'ROZRYS ładuje accordion bridge przed rozrys.js i bootstrap launcherów zostaje nienaruszony po splicie akordeonów', 'Pilnuje regresji, w której split renderu akordeonów podmieniałby load order albo przypadkiem ruszał bootstrap launcherów Pomieszczenia / Materiał-grupa.', ()=>{
-        const indexHtml = readAssetSource('index.html');
-        const devHtml = readAssetSource('dev_tests.html');
-        const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
-        const bridgeSrc = readAssetSource('js/app/rozrys/rozrys-accordion-bridge.js');
-        assert(bridgeSrc && bridgeSrc.includes('FC.rozrysAccordionBridge'), 'Brak źródła nowego accordion bridge w assetach smoke');
-        const bridgeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-accordion-bridge.js');
-        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(bridgeIdx >= 0 && rozrysIdx >= 0 && bridgeIdx < rozrysIdx, 'index.html ładuje rozrys-accordion-bridge po rozrys.js', { bridgeIdx, rozrysIdx });
-        const bridgeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-accordion-bridge.js');
-        const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(bridgeDevIdx >= 0 && rozrysDevIdx >= 0 && bridgeDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-accordion-bridge po rozrys.js', { bridgeDevIdx, rozrysDevIdx });
-        assert(/const accordionBridge\s*=\s*\(FC\.rozrysAccordionBridge/.test(rozrysSrc), 'rozrys.js nie buduje accordionBridge z nowego modułu po splicie', { snippet: rozrysSrc.slice(0, 5200) });
-        assert(/updateRoomsPickerButton\(\);/.test(rozrysSrc) && /updateMaterialPickerButton\(\);/.test(rozrysSrc), 'Split akordeonów nie może ruszać bootstrapu launcherów po init ROZRYS', { snippet: rozrysSrc.slice(0, 9000) });
-      }),
-
-
       makeTest('UI bridge', 'Wydzielone UI tools ROZRYS budują label z info i delegują confirm przez confirmBox', 'Pilnuje splitu helperów UI: labelWithInfo ma dalej renderować info-trigger, a askRozrysConfirm ma przejść przez confirmBox z pełnym payloadem.', ()=>{
         assert(FC.rozrysUiTools && typeof FC.rozrysUiTools.createApi === 'function', 'Brak FC.rozrysUiTools.createApi');
         const prevInfoBox = FC.infoBox;
@@ -967,6 +899,159 @@
         }
       }),
 
+
+
+      makeTest('Run controller', 'Wydzielony run controller ROZRYS deleguje progress, generowanie i magazyn bez zmiany kontraktu', 'Pilnuje dużego splitu action/run: progress bridge nadal steruje stanem przycisku, generate przekazuje pełny payload do rozrysRunner, a Dodaj płytę dalej dostaje ten sam ctx/deps.', async ()=>{
+        assert(FC.rozrysRunController && typeof FC.rozrysRunController.createApi === 'function', 'Brak FC.rozrysRunController.createApi');
+        const prevRunner = FC.rozrysRunner;
+        const captured = { progress:null, stock:null, generate:null, uiPatches:[] };
+        FC.rozrysRunner = {
+          async generate(force, deps){
+            captured.generate = { force, deps };
+            return 'runner-ok';
+          }
+        };
+        try{
+          const api = FC.rozrysRunController.createApi({ FC });
+          const progressCtrl = { id:'progress-1' };
+          const createProgressApi = (args)=>{
+            captured.progress = args;
+            return {
+              controller: progressCtrl,
+              setGenBtnMode: (mode)=> `mode:${mode}`,
+              requestCancel: ()=> 'cancelled',
+              isRozrysRunning: ()=> true,
+              getRozrysBtnMode: ()=> 'done',
+            };
+          };
+          const openAddStockModalBridge = (ctx, deps)=>{
+            captured.stock = { ctx, deps };
+            return 'stock-ok';
+          };
+          const openOptionsModalBridge = (ctx, deps)=>{
+            captured.options = { ctx, deps };
+            return 'options-ok';
+          };
+          const mkEl = (value)=> ({ value:value || '', listeners:{}, addEventListener(type, fn){ (this.listeners[type] = this.listeners[type] || []).push(fn); } });
+          const agg = { materials:['MDF'], selectedRooms:['room_a'] };
+          const controller = api.createController({
+            FC,
+            statusBox:{ id:'status-box' },
+            statusMain:{ id:'status-main' },
+            statusSub:{ id:'status-sub' },
+            statusMeta:{ id:'status-meta' },
+            statusProg:{ id:'status-prog' },
+            statusProgBar:{ id:'status-prog-bar' },
+            genBtn: mkEl(''),
+            addStockBtn: mkEl(''),
+            openOptionsBtnInline: mkEl(''),
+            matSel: mkEl('{"kind":"all"}'),
+            unitSel: mkEl('cm'),
+            edgeSel: mkEl('1'),
+            inW: mkEl('280'),
+            inH: mkEl('207'),
+            inK: mkEl('0.4'),
+            inTrim: mkEl('1'),
+            inMinW: mkEl('0'),
+            inMinH: mkEl('0'),
+            heurSel: mkEl('max'),
+            dirSel: mkEl('start-optimax'),
+            out:{ id:'out' },
+            getAggregate: ()=> agg,
+            setUiState: (patch)=> captured.uiPatches.push(patch),
+          }, {
+            createProgressApi,
+            openAddStockModalBridge,
+            openOptionsModalBridge,
+            applyUnitChange: (next)=>{ captured.unitApplied = next; },
+            persistOptionPrefs: ()=>{ captured.persistCount = (captured.persistCount || 0) + 1; },
+            tryAutoRenderFromCache: ()=>{ captured.autoCount = (captured.autoCount || 0) + 1; return false; },
+            h: ()=> null,
+            labelWithInfo: ()=> null,
+            getDefaultRozrysOptionValues: ()=> ({ unit:'cm' }),
+            normalizeMaterialScopeForAggregate: (selection)=> selection,
+            decodeMaterialScope: ()=> ({ kind:'all' }),
+            normalizeCutDirection: (value)=> value,
+            loadPlanCache: ()=> ({}),
+            savePlanCache: ()=> undefined,
+            materialHasGrain: ()=> false,
+            getMaterialGrainEnabled: ()=> false,
+            getMaterialGrainExceptions: ()=> ({}),
+            partSignature: ()=> 'sig',
+            getRealHalfStockForMaterial: ()=> ({ qty:0 }),
+            getExactSheetStockForMaterial: ()=> ({ qty:0 }),
+            getLargestSheetFormatForMaterial: ()=> ({ width:2800, height:2070 }),
+            buildStockSignatureForMaterial: ()=> 'stock-sig',
+            makePlanCacheKey: ()=> 'cache-key',
+            renderOutput: ()=> undefined,
+            formatHeurLabel: ()=> 'heur',
+            getRozrysScopeMode: ()=> 'both',
+            getOptimaxProfilePreset: ()=> ({}),
+            speedLabel: ()=> 'MAX',
+            directionLabel: ()=> 'Opti-max',
+            renderLoadingInto: ()=> undefined,
+            computePlanPanelProAsync: async ()=> ({ sheets:[] }),
+            loadEdgeStore: ()=> ({}),
+            isPartRotationAllowed: ()=> true,
+            applySheetStockLimit: (plan)=> plan,
+            computePlan: ()=> ({ sheets:[] }),
+            buildEntriesForScope: ()=> [],
+            getAccordionScopeKey: ()=> 'scope-key',
+            getAccordionPref: ()=> ({ open:false }),
+            createMaterialAccordionSection: ()=> ({ wrap:null }),
+            setAccordionPref: ()=> undefined,
+            setMaterialGrainEnabled: ()=> undefined,
+            tryAutoRenderFromCache: ()=> false,
+            openMaterialGrainExceptions: ()=> undefined,
+            splitMaterialAccordionTitle: ()=> ({ line1:'MDF', line2:'' }),
+            parseLocaleNumber: ()=> 1,
+            openRozrysInfo: ()=> undefined,
+            askRozrysConfirm: ()=> true,
+            createChoiceLauncher: ()=> null,
+            getSelectOptionLabel: ()=> '',
+            setChoiceLaunchValue: ()=> undefined,
+            openRozrysChoiceOverlay: async ()=> null,
+          });
+          assert(controller.progressCtrl === progressCtrl, 'Run controller nie zwrócił kontrolera progress z bridgea', { controller, captured });
+          assert(controller.setGenBtnMode('running') === 'mode:running', 'Run controller nie deleguje setGenBtnMode do progressApi', captured);
+          assert(controller.requestCancel() === 'cancelled' && controller.isRozrysRunning() === true && controller.getRozrysBtnMode() === 'done', 'Run controller nie deleguje requestCancel/isRozrysRunning/getRozrysBtnMode do progressApi', captured);
+          const optionsResult = controller.openOptionsModal();
+          assert(optionsResult === 'options-ok', 'Run controller nie deleguje Opcji do ui bridge', captured);
+          assert(captured.options && captured.options.ctx && captured.options.ctx.unitSel && captured.options.deps && typeof captured.options.deps.applyUnitChange === 'function', 'Run controller nie przekazał ctx/deps Opcji 1:1', captured);
+          const stockResult = controller.openAddStockModal();
+          assert(stockResult === 'stock-ok', 'Run controller nie deleguje Dodaj płytę do ui bridge', captured);
+          assert(captured.stock && captured.stock.ctx && captured.stock.ctx.agg === agg && captured.stock.ctx.unitValue === 'cm', 'Run controller nie przekazał ctx Dodaj płytę 1:1', captured);
+          controller.bindInteractions();
+          assert(Array.isArray(captured.progress.genBtn.listeners.click) && captured.progress.genBtn.listeners.click.length === 1, 'Run controller nie podpiął click do Generuj rozkrój', captured.progress.genBtn.listeners);
+          assert(Array.isArray(captured.progress.genBtn.listeners.click) && captured.progress.genBtn.listeners.click.length === 1, 'Run controller nie podpiął click do Generuj rozkrój', captured.progress.genBtn.listeners);
+          assert(Array.isArray(captured.options.ctx.unitSel.listeners.change) && captured.options.ctx.unitSel.listeners.change.length === 1, 'Run controller nie podpiął change do Jednostek', captured.options.ctx.unitSel.listeners);
+          assert(Array.isArray(captured.options.ctx.unitSel.listeners.change) && captured.options.ctx.unitSel.listeners.change.length === 1, 'Run controller nie podpiął change do Jednostek', captured.options.ctx.unitSel.listeners);
+          assert(Array.isArray(captured.options.ctx.inK.listeners.input) && captured.options.ctx.inK.listeners.input.length === 1, 'Run controller nie podpiął preview/persist do Rzazu', captured.options.ctx.inK.listeners);
+          const generateResult = await controller.generate(true);
+          assert(generateResult === 'runner-ok', 'Run controller nie deleguje generate do rozrysRunner', captured);
+          assert(captured.generate && captured.generate.force === true, 'Run controller nie przekazał force do rozrysRunner.generate', captured);
+          assert(captured.generate && captured.generate.deps && captured.generate.deps.progressCtrl === progressCtrl, 'Run controller nie przekazał progressCtrl do rozrysRunner.generate', captured);
+          assert(captured.generate && captured.generate.deps && captured.generate.deps.agg === agg, 'Run controller nie przekazał aktualnego aggregate do rozrysRunner.generate', captured);
+          assert(captured.progress && captured.progress.genBtn && captured.progress.statusBox, 'Run controller nie przekazał elementów statusu do createProgressApi', captured);
+        } finally {
+          FC.rozrysRunner = prevRunner;
+        }
+      }),
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje run controller przed rozrys.js i zachowuje bezpieczny kontrakt createController', 'Pilnuje regresji, w której nowy moduł action/run byłby ładowany po rozrys.js albo rozrys.js wołałby createController bez bezpiecznego fallbacku.', ()=>{
+        const indexHtml = readAssetSource('index.html');
+        const devHtml = readAssetSource('dev_tests.html');
+        const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
+        const runCtrlSrc = readAssetSource('js/app/rozrys/rozrys-run-controller.js');
+        assert(runCtrlSrc && runCtrlSrc.includes('FC.rozrysRunController'), 'Brak źródła nowego modułu run controller w assetach smoke');
+        const runIdx = indexHtml.indexOf('js/app/rozrys/rozrys-run-controller.js');
+        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(runIdx >= 0 && rozrysIdx >= 0 && runIdx < rozrysIdx, 'index.html ładuje rozrys-run-controller po rozrys.js', { runIdx, rozrysIdx });
+        const runDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-run-controller.js');
+        const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(runDevIdx >= 0 && rozrysDevIdx >= 0 && runDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-run-controller po rozrys.js', { runDevIdx, rozrysDevIdx });
+        assert(/const\s+runCtrl\s*=\s*runControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy run controllera z bridgea', { snippet: rozrysSrc.slice(9000, 11600) });
+        assert(/const runControllerApi[\s\S]*createController:\s*\(\)=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla run controllera', { snippet: rozrysSrc.slice(0, 2600) });
+      }),
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,
