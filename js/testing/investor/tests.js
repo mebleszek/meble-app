@@ -492,6 +492,118 @@
         FC.investors.setCurrentId(prevCurrentInvestorId);
       }
     }),
+
+    makeTest('Inwestor', 'Store inwestorów odzyskuje brakujące rekordy z projectStore i snapshotów bez kasowania istniejących', 'Pilnuje pakietu ratunkowego: gdy główna lista inwestorów zgubi stare rekordy, store ma je odbudować z projektów/snapshotów i zachować już widoczne nowe wpisy.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      assert(FC.projectStore && typeof FC.projectStore.writeAll === 'function', 'Brak FC.projectStore.writeAll');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function', 'Brak FC.quoteSnapshotStore.writeAll');
+      const prevInvestors = FC.investors._debug && typeof FC.investors._debug.readStoredAll === 'function' ? FC.investors._debug.readStoredAll() : FC.investors.readAll();
+      const prevProjects = FC.projectStore.readAll();
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      const removedKey = FC.investors.KEY_REMOVED || 'fc_investor_removed_ids_v1';
+      const prevRemoved = (()=>{ try{ return root.localStorage.getItem(removedKey); }catch(_){ return null; } })();
+      try{
+        FC.investors.writeAll([{
+          id:'inv_new_only',
+          kind:'person',
+          name:'Jan Test',
+          phone:'111',
+          addedDate:'2026-04-19',
+          createdAt:1776635559701,
+          updatedAt:1776635559701,
+          rooms:[],
+          meta:{ testData:false }
+        }]);
+        try{ root.localStorage.removeItem(removedKey); }catch(_){ }
+        FC.projectStore.writeAll([{
+          id:'proj_recover_missing',
+          investorId:'inv_missing_old',
+          title:'Stary inwestor',
+          status:'pomiar',
+          createdAt:1776631111000,
+          updatedAt:1776631111000,
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_old:{ id:'room_old', baseType:'kuchnia', name:'Kuchnia stara', label:'Kuchnia stara', projectStatus:'pomiar' }
+              },
+              roomOrder:['room_old']
+            },
+            room_old:{ cabinets:[{ id:'cab_old' }], fronts:[], sets:[], settings:{} }
+          },
+          meta:{ source:'test-project-store' }
+        }]);
+        FC.quoteSnapshotStore.writeAll([{
+          id:'snap_recover_missing',
+          generatedAt:1776632222000,
+          investor:{ id:'inv_missing_old', kind:'person', name:'Stary inwestor' },
+          project:{ id:'proj_recover_missing', investorId:'inv_missing_old', title:'Projekt starego inwestora', status:'pomiar' },
+          scope:{ selectedRooms:['room_old'], roomLabels:['Kuchnia stara'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia stara' },
+          totals:{ grand:123 },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          meta:{ source:'test-quote-snapshot', preliminary:true, versionName:'Wstępna oferta — Kuchnia stara' }
+        }]);
+        const recovered = FC.investors.readAll();
+        const ids = recovered.map((row)=> String(row && row.id || ''));
+        assert(ids.includes('inv_new_only'), 'Store zgubił istniejący nowy wpis podczas odzysku', recovered);
+        assert(ids.includes('inv_missing_old'), 'Store nie odzyskał brakującego inwestora obok istniejącego wpisu', recovered);
+        const restored = recovered.find((row)=> String(row && row.id || '') === 'inv_missing_old') || null;
+        assert(String(restored && restored.name || '') === 'Stary inwestor', 'Odzyskany inwestor nie zaciągnął danych ze snapshotu', restored);
+        assert(Array.isArray(restored && restored.rooms) && restored.rooms.some((room)=> String(room && room.id || '') === 'room_old'), 'Odzyskany inwestor nie zaciągnął pokojów z projektu/snapshotu', restored);
+      } finally {
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+        FC.projectStore.writeAll(prevProjects);
+        FC.investors.writeAll(prevInvestors);
+        try{
+          if(prevRemoved == null) root.localStorage.removeItem(removedKey);
+          else root.localStorage.setItem(removedKey, prevRemoved);
+        }catch(_){ }
+      }
+    }),
+
+    makeTest('Inwestor', 'Store inwestorów umie odbudować pustą listę z samych snapshotów ofert', 'Pilnuje awaryjnego odzysku: gdy główna lista inwestorów jest pusta, ale zostały snapshoty ofert, inwestor ma wrócić na listę zamiast znikać całkowicie.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      assert(FC.projectStore && typeof FC.projectStore.writeAll === 'function', 'Brak FC.projectStore.writeAll');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function', 'Brak FC.quoteSnapshotStore.writeAll');
+      const prevInvestors = FC.investors._debug && typeof FC.investors._debug.readStoredAll === 'function' ? FC.investors._debug.readStoredAll() : FC.investors.readAll();
+      const prevProjects = FC.projectStore.readAll();
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      const removedKey = FC.investors.KEY_REMOVED || 'fc_investor_removed_ids_v1';
+      const prevRemoved = (()=>{ try{ return root.localStorage.getItem(removedKey); }catch(_){ return null; } })();
+      try{
+        FC.investors.writeAll([]);
+        FC.projectStore.writeAll([]);
+        try{ root.localStorage.removeItem(removedKey); }catch(_){ }
+        FC.quoteSnapshotStore.writeAll([{
+          id:'snap_only_snapshot_recover',
+          generatedAt:1776633333000,
+          investor:{ id:'inv_snapshot_only', kind:'person', name:'Snapshot only' },
+          project:{ id:'proj_snapshot_only', investorId:'inv_snapshot_only', title:'Projekt snapshot only', status:'wycena' },
+          scope:{ selectedRooms:['room_snapshot_only'], roomLabels:['Salon test'] },
+          commercial:{ preliminary:false, versionName:'Oferta — Salon test' },
+          totals:{ grand:456 },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          meta:{ source:'test-quote-snapshot', preliminary:false, versionName:'Oferta — Salon test' }
+        }]);
+        const recovered = FC.investors.readAll();
+        assert(Array.isArray(recovered) && recovered.length === 1, 'Store nie odbudował inwestora z pustej listy na podstawie snapshotu', recovered);
+        const restored = recovered[0] || null;
+        assert(String(restored && restored.id || '') === 'inv_snapshot_only', 'Store odbudował zły rekord inwestora ze snapshotu', recovered);
+        assert(String(restored && restored.name || '') === 'Snapshot only', 'Store nie przepisał nazwy inwestora ze snapshotu', restored);
+        assert(Array.isArray(restored && restored.rooms) && restored.rooms.some((room)=> String(room && room.label || room && room.name || '') === 'Salon test'), 'Store nie odbudował scope pokoi ze snapshotu', restored);
+      } finally {
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+        FC.projectStore.writeAll(prevProjects);
+        FC.investors.writeAll(prevInvestors);
+        try{
+          if(prevRemoved == null) root.localStorage.removeItem(removedKey);
+          else root.localStorage.setItem(removedKey, prevRemoved);
+        }catch(_){ }
+      }
+    }),
+
     makeTest('Inwestor', 'Domyślne obrównanie rozrysu startuje od 1 cm / 10 mm', 'Pilnuje, czy wszystkie fallbacki opcji rozkroju wróciły do uzgodnionego domyślnego obrównania 1 cm zamiast starego 2 cm.', ()=>{
       assert(FC.rozrysStock && typeof FC.rozrysStock.getDefaultRozrysOptionValues === 'function', 'Brak getDefaultRozrysOptionValues');
       const cm = FC.rozrysStock.getDefaultRozrysOptionValues('cm');

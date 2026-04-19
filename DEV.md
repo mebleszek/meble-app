@@ -1,3 +1,10 @@
+## 2026-04-20 — Inwestor emergency recovery from projectStore / quote snapshots
+- `js/app/investor/investors-store.js` — dodany pakiet ratunkowy przy odczycie listy inwestorów: jeśli w `fc_investors_v1` brakuje rekordów, store odbudowuje brakujących inwestorów z `projectStore` i/lub `quoteSnapshotStore`, bez kasowania istniejących wpisów. Recovery zbiera też pokoje z `projectData.meta.roomDefs`, `roomOrder` oraz exact-scope snapshotów.
+- `js/app/investor/investors-store.js` — dodane lekkie tombstone `KEY_REMOVED`, żeby celowo usunięty inwestor nie wracał od razu z historycznych snapshotów po zwykłym `remove(id)`.
+- `js/testing/investor/tests.js` — dodane dwa antyregresy dokładnie pod recovery listy: (1) brakujący stary rekord wraca obok istniejącego nowego wpisu, (2) pusta lista odbudowuje się z samych snapshotów ofert.
+- `index.html` + `dev_tests.html` — podbity cache-busting dla `investors-store.js` i testów inwestora.
+- Instrukcja antyregresyjna: przy przyszłych zmianach store inwestorów traktować `projectStore` i `quoteSnapshotStore` jako źródła awaryjnej rekonstrukcji listy, ale nie wolno przez recovery wskrzeszać rekordów usuniętych świadomie przez użytkownika.
+
 ## 2026-04-19 — ROZRYS scope/material API consolidation split
 - `js/app/rozrys/rozrys-scope.js` — dodane `createApi(...)`, które wiąże live zależności (`getRooms`, `aggregatePartsForProject`, `splitMaterialAccordionTitle`) i zwraca gotowe bound helpery scope/material dla `ROZRYS`. Surowe funkcje modułu nadal istnieją dla innych działów (`Wycena`, snapshoty, store), ale `ROZRYS` nie musi już trzymać własnych lokalnych wrapperów do tych samych helperów.
 - `js/app/rozrys/rozrys.js` — usunięty lokalny blok wrapperów `roomLabel/normalizeRoomSelection/encode/decode/makeMaterialScope/...`; teraz czyta bound `scopeApi` z `FC.rozrysScope.createApi(...)`. W `render()` `getScopeSummary/getRoomsSummary` też są już związane przez `renderScopeApi` zamiast lokalnych funkcji delegujących.

@@ -7,6 +7,7 @@
 
   const KEY_INVESTORS = 'fc_investors_v1';
   const KEY_CURRENT = 'fc_current_investor_v1';
+  const KEY_REMOVED = 'fc_investor_removed_ids_v1';
   const DEFAULT_PROJECT_STATUS = 'nowy';
 
   function now(){ return Date.now(); }
@@ -93,7 +94,7 @@
     };
   }
 
-  function readAll(){
+  function readStoredAll(){
     try{
       const raw = localStorage.getItem(KEY_INVESTORS);
       const arr = raw ? JSON.parse(raw) : [];
@@ -103,6 +104,227 @@
 
   function writeAll(list){
     try{ localStorage.setItem(KEY_INVESTORS, JSON.stringify((list || []).map(normalizeInvestor))); }catch(_){ }
+  }
+
+  function readRemovedIds(){
+    try{
+      const raw = localStorage.getItem(KEY_REMOVED);
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr.map((item)=> String(item || '').trim()).filter(Boolean) : []);
+    }catch(_){ return new Set(); }
+  }
+
+  function writeRemovedIds(ids){
+    try{ localStorage.setItem(KEY_REMOVED, JSON.stringify(Array.from(ids || []).map((item)=> String(item || '').trim()).filter(Boolean))); }catch(_){ }
+  }
+
+  function markRemovedId(id){
+    const key = String(id || '').trim();
+    if(!key) return;
+    const ids = readRemovedIds();
+    ids.add(key);
+    writeRemovedIds(ids);
+  }
+
+  function unmarkRemovedId(id){
+    const key = String(id || '').trim();
+    if(!key) return;
+    const ids = readRemovedIds();
+    if(!ids.has(key)) return;
+    ids.delete(key);
+    writeRemovedIds(ids);
+  }
+
+  function appendUniqueRoom(target, room){
+    const normalized = normalizeRoom(room);
+    if(!normalized || !normalized.id) return target;
+    const list = Array.isArray(target) ? target : [];
+    const idx = list.findIndex((item)=> String(item && item.id || '') === normalized.id);
+    if(idx >= 0){
+      const prev = list[idx] || {};
+      list[idx] = normalizeRoom({
+        id: normalized.id,
+        baseType: normalized.baseType || prev.baseType || '',
+        name: normalized.name || prev.name || '',
+        label: normalized.label || prev.label || normalized.name || prev.name || '',
+        projectStatus: normalized.projectStatus || prev.projectStatus || DEFAULT_PROJECT_STATUS,
+      });
+      return list;
+    }
+    list.push(normalized);
+    return list;
+  }
+
+  function inferRoomBaseType(roomId, def){
+    const direct = String(def && (def.baseType || def.kind || def.type) || '').trim();
+    if(direct) return direct;
+    const key = String(roomId || '').trim();
+    const match = key.match(/^room_([^_]+)/i);
+    return match ? String(match[1] || '').trim() : '';
+  }
+
+  function roomsFromProjectRecord(record){
+    const src = record && typeof record === 'object' ? record : {};
+    const status = String(src.status || DEFAULT_PROJECT_STATUS);
+    const out = [];
+    const projectData = src.projectData && typeof src.projectData === 'object' ? src.projectData : {};
+    const meta = projectData.meta && typeof projectData.meta === 'object' ? projectData.meta : {};
+    const roomDefs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : {};
+    const roomOrder = Array.isArray(meta.roomOrder) ? meta.roomOrder.map((item)=> String(item || '').trim()).filter(Boolean) : [];
+    roomOrder.forEach((roomId)=> {
+      const def = roomDefs[roomId] && typeof roomDefs[roomId] === 'object' ? roomDefs[roomId] : {};
+      appendUniqueRoom(out, {
+        id: roomId,
+        baseType: inferRoomBaseType(roomId, def),
+        name: String(def.name || def.label || roomId || ''),
+        label: String(def.label || def.name || roomId || ''),
+        projectStatus: String(def.projectStatus || status || DEFAULT_PROJECT_STATUS),
+      });
+    });
+    Object.keys(roomDefs).forEach((roomId)=> {
+      const def = roomDefs[roomId] && typeof roomDefs[roomId] === 'object' ? roomDefs[roomId] : {};
+      appendUniqueRoom(out, {
+        id: roomId,
+        baseType: inferRoomBaseType(roomId, def),
+        name: String(def.name || def.label || roomId || ''),
+        label: String(def.label || def.name || roomId || ''),
+        projectStatus: String(def.projectStatus || status || DEFAULT_PROJECT_STATUS),
+      });
+    });
+    Object.keys(projectData).forEach((roomId)=> {
+      if(roomId === 'schemaVersion' || roomId === 'meta') return;
+      const room = projectData[roomId];
+      if(!(room && typeof room === 'object' && Array.isArray(room.cabinets))) return;
+      const def = roomDefs[roomId] && typeof roomDefs[roomId] === 'object' ? roomDefs[roomId] : {};
+      appendUniqueRoom(out, {
+        id: roomId,
+        baseType: inferRoomBaseType(roomId, def),
+        name: String(def.name || def.label || roomId || ''),
+        label: String(def.label || def.name || roomId || ''),
+        projectStatus: String(def.projectStatus || status || DEFAULT_PROJECT_STATUS),
+      });
+    });
+    return out;
+  }
+
+  function roomsFromSnapshot(snapshot){
+    const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const scope = src.scope && typeof src.scope === 'object' ? src.scope : {};
+    const ids = Array.isArray(scope.selectedRooms) ? scope.selectedRooms.map((item)=> String(item || '').trim()).filter(Boolean) : [];
+    const labels = Array.isArray(scope.roomLabels) ? scope.roomLabels.map((item)=> String(item || '').trim()) : [];
+    const status = String(src.project && src.project.status || src.meta && src.meta.acceptedStage || DEFAULT_PROJECT_STATUS);
+    const out = [];
+    ids.forEach((roomId, index)=> {
+      appendUniqueRoom(out, {
+        id: roomId,
+        baseType: inferRoomBaseType(roomId, null),
+        name: String(labels[index] || roomId || ''),
+        label: String(labels[index] || roomId || ''),
+        projectStatus: status || DEFAULT_PROJECT_STATUS,
+      });
+    });
+    return out;
+  }
+
+  function mergeCandidateInto(map, investorLike, rooms, fallback){
+    const src = investorLike && typeof investorLike === 'object' ? investorLike : {};
+    const fb = fallback && typeof fallback === 'object' ? fallback : {};
+    const id = String(src.id || fb.id || '').trim();
+    if(!id) return;
+    const existing = map.get(id) || normalizeInvestor({
+      id,
+      kind: src.kind || fb.kind || 'person',
+      name: src.name || fb.name || fb.title || '',
+      companyName: src.companyName || fb.companyName || '',
+      ownerName: src.ownerName || src.companyOwner || fb.ownerName || fb.companyOwner || '',
+      phone: src.phone || fb.phone || '',
+      email: src.email || fb.email || '',
+      city: src.city || fb.city || '',
+      address: src.address || fb.address || '',
+      source: src.source || fb.source || '',
+      nip: src.nip || fb.nip || '',
+      notes: src.notes || fb.notes || '',
+      rooms: [],
+      addedDate: src.addedDate || src.createdDate || fb.addedDate || fb.createdDate || '',
+      createdAt: Number(src.createdAt) > 0 ? Number(src.createdAt) : (Number(fb.createdAt) > 0 ? Number(fb.createdAt) : now()),
+      updatedAt: Number(src.updatedAt) > 0 ? Number(src.updatedAt) : (Number(fb.updatedAt) > 0 ? Number(fb.updatedAt) : now()),
+      meta: Object.assign({}, fb.meta || {}, src.meta || {}),
+    });
+    const merged = normalizeInvestor(Object.assign({}, existing, {
+      kind: src.kind || existing.kind || fb.kind || 'person',
+      name: src.name || existing.name || fb.name || fb.title || '',
+      companyName: src.companyName || existing.companyName || fb.companyName || '',
+      ownerName: src.ownerName || src.companyOwner || existing.ownerName || fb.ownerName || fb.companyOwner || '',
+      phone: src.phone || existing.phone || fb.phone || '',
+      email: src.email || existing.email || fb.email || '',
+      city: src.city || existing.city || fb.city || '',
+      address: src.address || existing.address || fb.address || '',
+      source: src.source || existing.source || fb.source || '',
+      nip: src.nip || existing.nip || fb.nip || '',
+      notes: src.notes || existing.notes || fb.notes || '',
+      addedDate: existing.addedDate || src.addedDate || src.createdDate || fb.addedDate || fb.createdDate || '',
+      createdAt: Math.min(Number(existing.createdAt) || now(), Number(src.createdAt) > 0 ? Number(src.createdAt) : (Number(fb.createdAt) > 0 ? Number(fb.createdAt) : now())),
+      updatedAt: Math.max(Number(existing.updatedAt) || 0, Number(src.updatedAt) || 0, Number(fb.updatedAt) || 0, now()),
+      meta: Object.assign({}, existing.meta || {}, fb.meta || {}, src.meta || {}),
+    }));
+    const nextRooms = Array.isArray(merged.rooms) ? merged.rooms.slice() : [];
+    (Array.isArray(rooms) ? rooms : []).forEach((room)=> appendUniqueRoom(nextRooms, room));
+    merged.rooms = nextRooms;
+    map.set(id, normalizeInvestor(merged));
+  }
+
+  function buildRecoveryCandidates(){
+    const recovered = new Map();
+    try{
+      if(FC.projectStore && typeof FC.projectStore.readAll === 'function'){
+        const projects = FC.projectStore.readAll();
+        (Array.isArray(projects) ? projects : []).forEach((record)=> {
+          const investorId = String(record && record.investorId || '').trim();
+          if(!investorId) return;
+          mergeCandidateInto(recovered, { id:investorId, name:String(record && record.title || '') }, roomsFromProjectRecord(record), record);
+        });
+      }
+    }catch(_){ }
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function'){
+        const snapshots = FC.quoteSnapshotStore.readAll();
+        (Array.isArray(snapshots) ? snapshots : []).forEach((snapshot)=> {
+          const investorId = String(snapshot && snapshot.investor && snapshot.investor.id || snapshot && snapshot.project && snapshot.project.investorId || '').trim();
+          if(!investorId) return;
+          const investorLike = Object.assign({}, snapshot && snapshot.investor || {}, { id:investorId });
+          const fallback = {
+            id: investorId,
+            title: String(snapshot && snapshot.project && snapshot.project.title || ''),
+            createdAt: Number(snapshot && snapshot.generatedAt) || 0,
+            updatedAt: Number(snapshot && snapshot.generatedAt) || 0,
+            source: String(snapshot && snapshot.meta && snapshot.meta.source || 'quote-snapshot-store'),
+          };
+          mergeCandidateInto(recovered, investorLike, roomsFromSnapshot(snapshot), fallback);
+        });
+      }
+    }catch(_){ }
+    return recovered;
+  }
+
+  function recoverMissingInvestors(list){
+    const current = Array.isArray(list) ? list.map(normalizeInvestor) : [];
+    const removedIds = readRemovedIds();
+    const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
+    const recovered = buildRecoveryCandidates();
+    const additions = [];
+    recovered.forEach((candidate, id)=> {
+      const key = String(id || '').trim();
+      if(!key || existingIds.has(key) || removedIds.has(key)) return;
+      additions.push(normalizeInvestor(candidate));
+    });
+    if(!additions.length) return current;
+    const next = current.concat(additions);
+    writeAll(next);
+    return next;
+  }
+
+  function readAll(){
+    return recoverMissingInvestors(readStoredAll());
   }
 
   function getCurrentId(){
@@ -125,6 +347,7 @@
   function upsert(inv){
     if(!inv || !inv.id) return null;
     const normalized = normalizeInvestor(inv);
+    unmarkRemovedId(normalized.id);
     const list = readAll();
     const idx = list.findIndex(x => x && x.id === normalized.id);
     if(idx >= 0) list[idx] = normalized;
@@ -169,6 +392,7 @@
   }
 
   function remove(id){
+    markRemovedId(id);
     const list = readAll().filter(x => x && x.id !== id);
     writeAll(list);
     const cur = getCurrentId();
@@ -209,5 +433,12 @@
     DEFAULT_PROJECT_STATUS,
     KEY_INVESTORS,
     KEY_CURRENT,
+    KEY_REMOVED,
+    _debug: {
+      readStoredAll,
+      buildRecoveryCandidates,
+      recoverMissingInvestors,
+      readRemovedIds,
+    },
   };
 })();
