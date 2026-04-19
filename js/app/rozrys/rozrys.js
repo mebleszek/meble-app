@@ -108,24 +108,6 @@
       openAddStockModal: ()=> undefined,
     };
 
-  const outputBridge = (FC.rozrysOutputBridge && typeof FC.rozrysOutputBridge.createApi === 'function')
-    ? FC.rozrysOutputBridge.createApi({ FC })
-    : {
-      tryAutoRenderFromCache: ()=> false,
-      buildEntriesForScope: ()=> [],
-      splitMaterialAccordionTitle: (material)=> ({ line1:String(material || 'Materiał'), line2:'' }),
-      createMaterialAccordionSection: (_material, _options, deps)=> {
-        const h = deps && typeof deps.h === 'function' ? deps.h : ((tag)=> document.createElement(tag));
-        const wrap = h('div');
-        const body = h('div');
-        wrap.appendChild(body);
-        return { wrap, body, trigger:null, setOpenState:()=>{} };
-      },
-      renderMaterialAccordionPlans: ()=> false,
-      renderOutput: ()=> undefined,
-      renderLoadingInto: ()=> null,
-    };
-
   function getPartOptionsStore(){
     return (FC && FC.materialPartOptions) || null;
   }
@@ -860,71 +842,131 @@ function aggregatePartsForProject(selectedRooms){
     }
 
 
-    let tryAutoRenderFromCache = ()=> false;
-    let buildEntriesForScope = ()=> [];
-    let splitMaterialAccordionTitle = (material)=> ({ line1:String(material || 'Materiał'), line2:'' });
-    let createMaterialAccordionSection = ()=> ({ wrap:h('div'), body:h('div'), trigger:null, setOpenState:()=>{} });
-    let renderMaterialAccordionPlans = ()=> false;
-    let renderOutput = ()=> undefined;
-    let renderLoadingInto = ()=> null;
-    let renderLoading = (text)=> renderLoadingInto(null, text);
+    function tryAutoRenderFromCache(){
+      if(FC.rozrysRender && typeof FC.rozrysRender.tryAutoRenderFromCache === 'function'){
+        return FC.rozrysRender.tryAutoRenderFromCache({
+          _rozrysRunning: isRozrysRunning(),
+          normalizeMaterialScopeForAggregate,
+          decodeMaterialScope,
+          matSelValue: matSel.value,
+          agg,
+          buildEntriesForScope,
+          out,
+          setGenBtnMode,
+          loadPlanCache,
+          getBaseState,
+          toMmByUnit,
+          getRealHalfStockForMaterial,
+          getExactSheetStockForMaterial,
+          getLargestSheetFormatForMaterial,
+          materialHasGrain,
+          getMaterialGrainEnabled,
+          getMaterialGrainExceptions,
+          partSignature,
+          buildStockSignatureForMaterial,
+          makePlanCacheKey,
+          getAccordionScopeKey,
+          getRozrysScopeMode,
+          renderMaterialAccordionPlans,
+          setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
+        });
+      }
+      out.innerHTML = '';
+      setGenBtnMode('idle');
+      return false;
+    }
 
-    const outputCtrl = outputBridge.createController({
-      out,
-      h,
-      isRozrysRunning: ()=> isRozrysRunning(),
-      normalizeMaterialScopeForAggregate,
-      decodeMaterialScope,
-      matSelValue: matSel.value,
-      agg,
-      setGenBtnMode: (mode)=> setGenBtnMode(mode),
-      loadPlanCache,
-      getBaseState,
-      toMmByUnit,
-      getRealHalfStockForMaterial,
-      getExactSheetStockForMaterial,
-      getLargestSheetFormatForMaterial,
-      materialHasGrain,
-      getMaterialGrainEnabled,
-      getMaterialGrainExceptions,
-      partSignature,
-      buildStockSignatureForMaterial,
-      makePlanCacheKey,
-      getAccordionScopeKey,
-      getRozrysScopeMode,
-      setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
-      aggregatePartsForProject,
-      getOrderedMaterialsForSelection,
-      getGroupPartsForScope,
-      scheduleSheetCanvasRefresh,
-      getAccordionPref,
-      setAccordionPref,
-      setMaterialGrainEnabled,
-      openMaterialGrainExceptions,
-      formatHeurLabel,
-      buildRozrysDiagnostics,
-      validationSummaryLabel,
-      openValidationListModal,
-      openSheetListModal,
-      buildCsv,
-      downloadText,
-      openPrintView,
-      measurePrintHeaderMm,
-      mmToUnitStr,
-      drawSheet,
-      cutOptimizer: FC.cutOptimizer,
-      tryAutoRenderFromCache: (...args)=> tryAutoRenderFromCache(...args),
-      renderOutput: (...args)=> renderOutput(...args),
-    });
 
-    tryAutoRenderFromCache = outputCtrl.tryAutoRenderFromCache;
-    buildEntriesForScope = outputCtrl.buildEntriesForScope;
-    splitMaterialAccordionTitle = outputCtrl.splitMaterialAccordionTitle;
-    createMaterialAccordionSection = outputCtrl.createMaterialAccordionSection;
-    renderMaterialAccordionPlans = outputCtrl.renderMaterialAccordionPlans;
-    renderOutput = outputCtrl.renderOutput;
-    renderLoadingInto = outputCtrl.renderLoadingInto;
-    renderLoading = outputCtrl.renderLoading;
+    function buildEntriesForScope(selection, aggregate){
+      if(FC.rozrysRender && typeof FC.rozrysRender.buildEntriesForScope === 'function'){
+        return FC.rozrysRender.buildEntriesForScope(selection, aggregate, {
+          normalizeMaterialScopeForAggregate,
+          aggregatePartsForProject,
+          getOrderedMaterialsForSelection,
+          getGroupPartsForScope,
+        });
+      }
+      return [];
+    }
+
+
+
+
+  function splitMaterialAccordionTitle(material){
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'){
+      return FC.rozrysAccordion.splitMaterialAccordionTitle(material);
+    }
+    return { line1:String(material || 'Materiał'), line2:'' };
+  }
+
+
+  function createMaterialAccordionSection(material, options){
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'){
+      return FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh });
+    }
+    const wrap = h('div');
+    const body = h('div');
+    wrap.appendChild(body);
+    return { wrap, body, trigger:null, setOpenState:()=>{} };
+  }
+
+  function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
+    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'){
+      return FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
+        out,
+        getAccordionPref,
+        materialHasGrain,
+        getMaterialGrainEnabled,
+        setAccordionPref,
+        setMaterialGrainEnabled,
+        tryAutoRenderFromCache,
+        openMaterialGrainExceptions,
+        renderOutput,
+        formatHeurLabel,
+        scheduleSheetCanvasRefresh,
+      });
+    }
+    out.innerHTML = '';
+    return false;
+  }
+
+
+    function renderOutput(plan, meta, target){
+      if(FC.rozrysRender && typeof FC.rozrysRender.renderOutput === 'function'){
+        return FC.rozrysRender.renderOutput(plan, meta, {
+          target: target || out,
+          out,
+          buildRozrysDiagnostics,
+          validationSummaryLabel,
+          openValidationListModal,
+          openSheetListModal,
+          buildCsv,
+          downloadText,
+          openPrintView,
+          measurePrintHeaderMm,
+          mmToUnitStr,
+          drawSheet,
+          cutOptimizer: FC.cutOptimizer,
+        });
+      }
+      (target || out).innerHTML = '';
+    }
+
+
+    function renderLoading(text){
+      return renderLoadingInto(null, text);
+    }
+
+    function renderLoadingInto(target, text, subText){
+      if(FC.rozrysRender && typeof FC.rozrysRender.renderLoadingInto === 'function'){
+        return FC.rozrysRender.renderLoadingInto(target, text, subText, { out });
+      }
+      const tgt = target || out;
+      tgt.innerHTML = '';
+      return null;
+    }
+
+    
 
 
     const progressApi = uiBridge.createProgressApi({

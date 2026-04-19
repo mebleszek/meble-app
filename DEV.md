@@ -1471,3 +1471,5 @@ Dopiero potem go zmieniać.
 - Przywrócone stabilne wersje: `js/app/rozrys/rozrys.js`, `js/app/rozrys/rozrys-pickers.js`, `js/app/rozrys/rozrys-selection-ui.js`, `css/rozrys-checkbox-chip-pattern.css` z bazy `site_rozrys_room_scope_start_fix_v1.zip`.
 - Instrukcja antyregresyjna: przy małych zmianach UI pickera nie dotykać jednocześnie kontraktu launcherów (`getRoomsSummary`, `getMaterialsSummary`) i struktury chipów. Najpierw porównać ścieżki wejścia starego launchera 1:1, potem dopinać notki/UI.
 
+
+- ROZRYS split gate: before future bridge/controller splits, keep smoke tests that explicitly verify launcher bootstrap (`updateRoomsPickerButton`, `updateMaterialPickerButton`, `syncHiddenSelections`, click bindings) and script load order/fallback contract for every new bridge loaded before `rozrys.js`.

@@ -13,7 +13,6 @@ const files = [
   'js/app/rozrys/rozrys-runtime-utils.js',
   'js/app/rozrys/rozrys-plan-helpers.js',
   'js/app/rozrys/rozrys-engine-bridge.js',
-  'js/app/rozrys/rozrys-output-bridge.js',
   'js/app/rozrys/rozrys-ui-tools.js',
   'js/app/rozrys/rozrys-ui-bridge.js',
   'js/app/rozrys/rozrys-state.js',
@@ -118,6 +117,9 @@ const context = {
     'js/app/rozrys/rozrys-pickers.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-pickers.js'), 'utf8'),
     'js/app/rozrys/rozrys-options-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-options-modal.js'), 'utf8'),
     'js/app/rozrys/rozrys-stock-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-stock-modal.js'), 'utf8'),
+    'js/app/rozrys/rozrys.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys.js'), 'utf8'),
+    'index.html': fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8'),
+    'dev_tests.html': fs.readFileSync(path.join(rootDir, 'dev_tests.html'), 'utf8'),
   },
 };
 context.window = context;
