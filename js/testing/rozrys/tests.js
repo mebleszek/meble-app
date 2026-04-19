@@ -786,6 +786,7 @@
           assert(infoBtn, 'labelWithInfo nie zbudował info-trigger po splicie helperów UI', { className: row && row.className, childCount: row && row.children && row.children.length, html: row && row.innerHTML });
           if(typeof infoBtn.dispatch === 'function') infoBtn.dispatch('click');
           else if(typeof infoBtn.click === 'function') infoBtn.click();
+          else if(infoBtn && infoBtn.__listeners && Array.isArray(infoBtn.__listeners.click) && typeof infoBtn.__listeners.click[0] === 'function') infoBtn.__listeners.click[0]({ type:'click', target:infoBtn });
           assert(captured.info && captured.info.title === 'Pomieszczenia' && captured.info.message === 'Info test', 'labelWithInfo nie deleguje już poprawnie do infoBox.open', captured);
           const ok = api.askRozrysConfirm({ title:'TEST', message:'Czy?', confirmText:'TAK', cancelText:'NIE' });
           assert(ok === true, 'askRozrysConfirm po splicie helperów UI nie zwrócił wyniku confirmBox.ask', captured);
@@ -842,6 +843,130 @@
           FC.rozrysOptionsModal = prevOptionsModal;
           FC.rozrysStockModal = prevStockModal;
           FC.rozrysProgress = prevProgress;
+        }
+      }),
+
+
+      makeTest('Output bridge', 'Wydzielony output bridge ROZRYS deleguje render/cache bez zmiany kontraktu', 'Pilnuje splitu output/render/cache: tryAutoRenderFromCache, buildEntriesForScope, renderOutput i renderLoadingInto mają dalej przechodzić 1:1 przez rozrysRender.', ()=>{
+        assert(FC.rozrysOutputBridge && typeof FC.rozrysOutputBridge.createApi === 'function', 'Brak FC.rozrysOutputBridge.createApi');
+        const prevRender = FC.rozrysRender;
+        const captured = { auto:null, entries:null, output:null, loading:null };
+        FC.rozrysRender = {
+          tryAutoRenderFromCache(payload){ captured.auto = payload; return 'auto-ok'; },
+          buildEntriesForScope(selection, aggregate, deps){ captured.entries = { selection, aggregate, deps }; return ['entry-ok']; },
+          renderOutput(plan, meta, payload){ captured.output = { plan, meta, payload }; return 'render-ok'; },
+          renderLoadingInto(target, text, subText, payload){ captured.loading = { target, text, subText, payload }; return 'loading-ok'; },
+        };
+        try{
+          const api = FC.rozrysOutputBridge.createApi({ FC });
+          const autoPayload = { agg:{ materials:['MDF'] }, setGenBtnMode:()=>{} };
+          const entriesDeps = { getOrderedMaterialsForSelection: ()=> [] };
+          const renderPayload = { target:{ id:'out' }, out:{ id:'fallback' } };
+          const loadingPayload = { out:{ id:'fallback-loading' } };
+          const autoRes = api.tryAutoRenderFromCache(autoPayload);
+          const entriesRes = api.buildEntriesForScope({ kind:'all' }, { groups:{} }, entriesDeps);
+          const renderRes = api.renderOutput({ sheets:[] }, { material:'MDF' }, renderPayload);
+          const loadingRes = api.renderLoadingInto(null, 'Liczę', 'sub', loadingPayload);
+          assert(autoRes === 'auto-ok' && captured.auto === autoPayload, 'Output bridge nie deleguje tryAutoRenderFromCache 1:1 do rozrysRender', captured);
+          assert(Array.isArray(entriesRes) && entriesRes[0] === 'entry-ok' && captured.entries && captured.entries.deps === entriesDeps, 'Output bridge nie deleguje buildEntriesForScope 1:1 do rozrysRender', captured);
+          assert(renderRes === 'render-ok' && captured.output && captured.output.payload === renderPayload, 'Output bridge nie deleguje renderOutput 1:1 do rozrysRender', captured);
+          assert(loadingRes === 'loading-ok' && captured.loading && captured.loading.payload === loadingPayload, 'Output bridge nie deleguje renderLoadingInto 1:1 do rozrysRender', captured);
+        } finally {
+          FC.rozrysRender = prevRender;
+        }
+      }),
+      makeTest('Output bridge', 'Wydzielony output bridge ROZRYS deleguje accordion bez zmiany kontraktu', 'Pilnuje splitu accordion/output: split title, create section i render accordion plans mają dalej przechodzić 1:1 przez rozrysAccordion wraz z helperami renderu/refresh.', ()=>{
+        assert(FC.rozrysOutputBridge && typeof FC.rozrysOutputBridge.createApi === 'function', 'Brak FC.rozrysOutputBridge.createApi');
+        const prevAccordion = FC.rozrysAccordion;
+        const captured = { split:null, create:null, render:null };
+        FC.rozrysAccordion = {
+          splitMaterialAccordionTitle(material){ captured.split = material; return { line1:'L1', line2:'L2' }; },
+          createMaterialAccordionSection(material, options, deps){ captured.create = { material, options, deps }; return { wrap:{}, body:{}, trigger:null, setOpenState:()=>{} }; },
+          renderMaterialAccordionPlans(scopeKey, scopeMode, entries, payload){ captured.render = { scopeKey, scopeMode, entries, payload }; return 'accordion-ok'; },
+        };
+        try{
+          const api = FC.rozrysOutputBridge.createApi({ FC });
+          const title = api.splitMaterialAccordionTitle('MDF B');
+          const createDeps = { scheduleSheetCanvasRefresh: ()=> 'refresh-ok', h:(tag)=> ({ tag }) };
+          const createRes = api.createMaterialAccordionSection('MDF B', { open:true }, createDeps);
+          const renderPayload = { renderOutput: ()=> 'render-ok', openMaterialGrainExceptions: ()=> 'grain-ok', out:{ id:'out' } };
+          const renderRes = api.renderMaterialAccordionPlans('scope-key', 'material', [{ material:'MDF B', parts:[1] }], renderPayload);
+          assert(title && title.line1 === 'L1' && captured.split === 'MDF B', 'Output bridge nie deleguje splitMaterialAccordionTitle 1:1 do rozrysAccordion', captured);
+          assert(createRes && captured.create && captured.create.deps === createDeps && typeof captured.create.deps.scheduleSheetCanvasRefresh === 'function', 'Output bridge nie deleguje createMaterialAccordionSection 1:1 do rozrysAccordion', captured);
+          assert(renderRes === 'accordion-ok' && captured.render && captured.render.payload === renderPayload && typeof captured.render.payload.renderOutput === 'function', 'Output bridge nie deleguje renderMaterialAccordionPlans 1:1 do rozrysAccordion', captured);
+        } finally {
+          FC.rozrysAccordion = prevAccordion;
+        }
+      }),
+
+
+      makeTest('Output bridge', 'Wydzielony output bridge ROZRYS tworzy controller z tym samym kontraktem payloadów', 'Pilnuje nowy etap splitu: createController ma dalej sklejać payloady auto-renderu i accordionu bez zgubienia callbacks renderOutput/refresh.', ()=>{
+        assert(FC.rozrysOutputBridge && typeof FC.rozrysOutputBridge.createApi === 'function', 'Brak FC.rozrysOutputBridge.createApi');
+        const prevRender = FC.rozrysRender;
+        const prevAccordion = FC.rozrysAccordion;
+        const captured = { auto:null, accordion:null };
+        FC.rozrysRender = {
+          tryAutoRenderFromCache(payload){ captured.auto = payload; return 'auto-controller-ok'; },
+        };
+        FC.rozrysAccordion = {
+          renderMaterialAccordionPlans(scopeKey, scopeMode, entries, payload){ captured.accordion = { scopeKey, scopeMode, entries, payload }; return 'accordion-controller-ok'; },
+        };
+        try{
+          const api = FC.rozrysOutputBridge.createApi({ FC });
+          let controller = null;
+          controller = api.createController({
+            out:{ id:'out' },
+            isRozrysRunning: ()=> false,
+            normalizeMaterialScopeForAggregate: ()=> ({ kind:'all' }),
+            decodeMaterialScope: ()=> ({ kind:'all' }),
+            matSelValue:'{"kind":"all"}',
+            agg:{ groups:{}, materials:[] },
+            setGenBtnMode: ()=> {},
+            loadPlanCache: ()=> null,
+            getBaseState: ()=> ({ unit:'mm' }),
+            toMmByUnit: ()=> 2800,
+            getRealHalfStockForMaterial: ()=> null,
+            getExactSheetStockForMaterial: ()=> null,
+            getLargestSheetFormatForMaterial: ()=> null,
+            materialHasGrain: ()=> false,
+            getMaterialGrainEnabled: ()=> false,
+            getMaterialGrainExceptions: ()=> ({}),
+            partSignature: ()=> 'sig',
+            buildStockSignatureForMaterial: ()=> 'stock',
+            makePlanCacheKey: ()=> 'key',
+            getAccordionScopeKey: ()=> 'scope-key',
+            getRozrysScopeMode: ()=> 'material',
+            setCacheState: ()=> {},
+            aggregatePartsForProject: ()=> ({ groups:{}, materials:[] }),
+            getOrderedMaterialsForSelection: ()=> [],
+            getGroupPartsForScope: ()=> [],
+            scheduleSheetCanvasRefresh: ()=> 'refresh-ok',
+            getAccordionPref: ()=> ({ open:true }),
+            setAccordionPref: ()=> {},
+            setMaterialGrainEnabled: ()=> {},
+            openMaterialGrainExceptions: ()=> 'grain-ok',
+            formatHeurLabel: ()=> 'heur',
+            buildRozrysDiagnostics: ()=> null,
+            validationSummaryLabel: ()=> ({ tone:'is-muted', text:'Brak walidacji' }),
+            openValidationListModal: ()=> {},
+            openSheetListModal: ()=> {},
+            buildCsv: ()=> 'csv',
+            downloadText: ()=> {},
+            openPrintView: ()=> {},
+            measurePrintHeaderMm: ()=> 0,
+            mmToUnitStr: ()=> '0',
+            drawSheet: ()=> {},
+            cutOptimizer: {},
+            tryAutoRenderFromCache: ()=> controller.tryAutoRenderFromCache(),
+            renderOutput: ()=> 'render-from-controller',
+          });
+          const autoRes = controller.tryAutoRenderFromCache();
+          const accordionRes = controller.renderMaterialAccordionPlans('scope-key', 'material', [{ material:'MDF', parts:[1] }]);
+          assert(autoRes === 'auto-controller-ok' && captured.auto && typeof captured.auto.buildEntriesForScope === 'function', 'createController nie buduje payloadu auto-renderu z callbackiem buildEntriesForScope', captured);
+          assert(accordionRes === 'accordion-controller-ok' && captured.accordion && typeof captured.accordion.payload.tryAutoRenderFromCache === 'function' && typeof captured.accordion.payload.renderOutput === 'function', 'createController nie buduje payloadu accordionu z callbackami refresh/render', captured);
+        } finally {
+          FC.rozrysRender = prevRender;
+          FC.rozrysAccordion = prevAccordion;
         }
       }),
 
