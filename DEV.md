@@ -1,9 +1,3 @@
-## 2026-04-19 — ROZRYS hard restore from last known good package
-- Po porównaniu ścieżka-po-ścieżce i byte-to-byte produkcyjnych plików wyszło, że `site_rozrys_runtime_revert_v1.zip` nie wnosił nowej logiki względem ostatniej działającej paczki `site_exact_room_scope_fix_v1.zip`; problem live najpewniej wynikał z mieszanki cache/wersji po wcześniejszym splicie `ROZRYS`.
-- Ta paczka jest twardym restore z bazy `site_exact_room_scope_fix_v1.zip` bez nowych zmian logiki `ROZRYS/WYCENA`; jedyną zmianą produkcyjną jest agresywne podbicie cache-bustingu dla całego łańcucha `js/app/rozrys/*` w `index.html`, żeby po wdrożeniu przeglądarka nie miała powodu trzymać poprzednich splitowych assetów.
-- `dev_tests.html` ma ten sam świeży cache-busting dla całego łańcucha `ROZRYS`, żeby testy lokalne ładowały dokładnie ten sam zestaw plików co produkcja.
-- Instrukcja antyregresyjna: gdy cofamy split po regresji live, najpierw porównać produkcyjne pliki byte-to-byte z ostatnią działającą paczką; jeśli logika jest ta sama, nie udawać kolejnego „fixu”, tylko zrobić twardy restore znanego dobrego stanu i świeży cache-busting całego dotkniętego łańcucha assetów.
-
 ## 2026-04-19 — Exact room scope guard for empty room in ROZRYS/WYCENA
 - `js/app/rozrys/rozrys.js` — naprawiony centralny fallback agregacji: jeśli użytkownik wybiera istniejący pokój/exact scope i ten pokój nie ma szafek, ROZRYS nie może już po cichu rozszerzać zakresu do innych pokoi projektu. Retry do pełnej listy pokoi wolno robić tylko wtedy, gdy wejściowy wybór pokoi realnie znormalizował się do pustego scope (np. stary/nieistniejący zapis).
 - `js/testing/rozrys/tests.js` — dodany test pilnujący, że pusty, ale istniejący pokój zostaje pusty i nie pożycza materiałów z innego pokoju.
