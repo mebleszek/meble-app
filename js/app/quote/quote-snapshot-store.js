@@ -191,12 +191,18 @@
     const explicitLabels = Array.isArray(source && source.roomLabels)
       ? source.roomLabels.map((item)=> String(item || '').trim()).filter(Boolean)
       : [];
+    try{
+      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.resolveVersionScopeLabels === 'function'){
+        const resolved = FC.quoteSnapshot.resolveVersionScopeLabels({ roomIds, roomLabels:explicitLabels });
+        if(Array.isArray(resolved) && resolved.length) return resolved;
+      }
+    }catch(_){ }
     if(roomIds.length){
       const labels = roomIds.map((roomId, index)=> {
-        const explicitLabel = String(explicitLabels[index] || '').trim();
-        if(explicitLabel) return explicitLabel;
         const registryLabel = String(getRoomLabel(roomId) || '').trim();
-        return registryLabel || roomId;
+        if(registryLabel && registryLabel !== String(roomId || '').trim()) return registryLabel;
+        const explicitLabel = String(explicitLabels[index] || '').trim();
+        return explicitLabel || registryLabel || roomId;
       }).filter(Boolean);
       if(labels.length) return labels;
       return roomIds;
