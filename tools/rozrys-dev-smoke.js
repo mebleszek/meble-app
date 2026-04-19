@@ -122,6 +122,7 @@ const context = {
     'js/app/rozrys/rozrys-options-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-options-modal.js'), 'utf8'),
     'js/app/rozrys/rozrys-stock-modal.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-stock-modal.js'), 'utf8'),
     'js/app/rozrys/rozrys-part-helpers.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-part-helpers.js'), 'utf8'),
+    'js/app/rozrys/rozrys-scope.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-scope.js'), 'utf8'),
     'js/app/rozrys/rozrys-panel-workspace.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-panel-workspace.js'), 'utf8'),
     'js/app/rozrys/rozrys-run-controller.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-run-controller.js'), 'utf8'),
     'js/app/rozrys/rozrys-output-controller.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-output-controller.js'), 'utf8'),
