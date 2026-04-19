@@ -1,3 +1,8 @@
+## 2026-04-19 — ROZRYS selection/options split hotfix (launcher init restore)
+- `js/app/rozrys/rozrys.js` — po splicie `selection/options` wróciły brakujące wywołania inicjalizacji `updateRoomsPickerButton()`, `updateMaterialPickerButton()`, `syncHiddenSelections()` oraz nasłuchiwanie `roomsPickerBtn` / `matPickerBtn`. Ich brak nie rozwalał szybkości/kierunku, ale zostawiał puste launchery `Pomieszczenia` i `Materiał / grupa` oraz martwe kliki.
+- Przyczyna regresji: podczas wynoszenia glue code do `rozrys-selection-bridge.js` zniknął nie sam controller, tylko jego obowiązkowy bootstrap w `rozrys.js`.
+- Instrukcja antyregresyjna: przy splitach bridge/controller sprawdzać osobno dwie rzeczy: (1) czy controller został poprawnie złożony, oraz (2) czy stara ścieżka dalej wykonuje bootstrap po utworzeniu controllera (initial sync + addEventListener). Sam poprawny bridge bez tego nie uruchomi launcherów.
+
 ## 2026-04-19 — ROZRYS selection bridge + options state split
 - `js/app/rozrys/rozrys-selection-bridge.js` — wydzielony bridge selection/scope UI: buduje `getScopeSummary` / `getRoomsSummary` przez `rozrysScope`, wpina istniejący `FC.rozrysSelectionUi.createController(...)` i zwraca te same wrappery (`updateRoomsPickerButton`, `persistSelectionPrefs`, `syncHiddenSelections`, `refreshSelectionState`, `openRoomsPicker`, `openMaterialPicker`) bez lokalnego duplikowania tego bloku w `rozrys.js`.
 - `js/app/rozrys/rozrys-options-state.js` — wydzielony controller stanu opcji: `persistOptionPrefs`, `applyUnitChange`, `getBaseState`. To jest jedyne miejsce, które składa zapis prefów, przeliczenie pól po zmianie jednostki i delegację do `rozrysState.buildBaseStateFromControls(...)`.

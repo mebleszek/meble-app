@@ -753,6 +753,12 @@ function aggregatePartsForProject(selectedRooms){
     const openRoomsPicker = ()=> selectionCtrl.openRoomsPicker();
     const openMaterialPicker = ()=> selectionCtrl.openMaterialPicker();
 
+    updateRoomsPickerButton();
+    updateMaterialPickerButton();
+    syncHiddenSelections();
+    roomsPickerBtn.addEventListener('click', openRoomsPicker);
+    matPickerBtn.addEventListener('click', openMaterialPicker);
+
     const optionsStateCtrl = optionsStateBridge.createController({
       controls:{ unitSel, edgeSel, inW, inH, inK, inTrim, inMinW, inMinH, heurSel, dirSel, kerfWrap, trimWrap, minScrapWrap },
       state,
