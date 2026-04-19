@@ -823,6 +823,74 @@
       }),
 
 
+      makeTest('Accordion bridge', 'Wydzielony accordion bridge ROZRYS deleguje split/create/render bez zmiany kontraktu', 'Pilnuje bezpiecznego splitu akordeonów wyników: bridge ma tylko skleić payloady do rozrysAccordion, bez ingerencji w bootstrap launcherów, scope i generate.', ()=>{
+        assert(FC.rozrysAccordionBridge && typeof FC.rozrysAccordionBridge.createApi === 'function', 'Brak FC.rozrysAccordionBridge.createApi');
+        const prevAccordion = FC.rozrysAccordion;
+        const captured = { split:null, create:null, render:null, auto:false, exceptions:null, output:null };
+        FC.rozrysAccordion = {
+          splitMaterialAccordionTitle(material){ captured.split = material; return { line1:'Linia 1', line2:'Linia 2' }; },
+          createMaterialAccordionSection(material, options, deps){ captured.create = { material, options, deps, scheduled: typeof deps.scheduleSheetCanvasRefresh === 'function' ? deps.scheduleSheetCanvasRefresh('body') : null }; return { wrap:{}, body:{}, trigger:null, setOpenState:()=>{} }; },
+          renderMaterialAccordionPlans(scopeKey, scopeMode, entries, deps){
+            captured.render = { scopeKey, scopeMode, entries, deps };
+            if(typeof deps.tryAutoRenderFromCache === 'function'){ captured.auto = deps.tryAutoRenderFromCache(); }
+            if(typeof deps.openMaterialGrainExceptions === 'function'){ captured.exceptions = deps.openMaterialGrainExceptions('MDF', [{ id:'p1' }]); }
+            if(typeof deps.renderOutput === 'function'){
+              const target = { innerHTML:'', appendChild(){} };
+              captured.output = deps.renderOutput({ sheets:[] }, { material:'MDF' }, target);
+            }
+            return 'accordion-ok';
+          }
+        };
+        try{
+          const out = { innerHTML:'', appendChild(){} };
+          const api = FC.rozrysAccordionBridge.createApi({
+            FC,
+            h: (tag)=> ({ tagName:String(tag || '').toUpperCase(), children:[], appendChild(child){ this.children.push(child); return child; } }),
+            out,
+            scheduleSheetCanvasRefresh: ()=> 'schedule-ok',
+            getAccordionPref: ()=> ({ material:'MDF', open:true }),
+            materialHasGrain: ()=> true,
+            getMaterialGrainEnabled: ()=> true,
+            setAccordionPref: ()=> undefined,
+            setMaterialGrainEnabled: ()=> undefined,
+            tryAutoRenderFromCache: ()=> 'auto-ok',
+            openMaterialGrainExceptions: (material, parts)=> ({ material, count:(parts || []).length }),
+            renderOutput: (_plan, _meta, target)=> ({ targetOk: !!target }),
+            formatHeurLabel: (st)=> `heur:${(st && st.heur) || ''}`,
+          });
+          const split = api.splitMaterialAccordionTitle('Front • Dąb');
+          assert(captured.split === 'Front • Dąb' && split && split.line1 === 'Linia 1', 'Accordion bridge nie deleguje splitMaterialAccordionTitle 1:1 do rozrysAccordion', { captured, split });
+          const section = api.createMaterialAccordionSection('MDF', { open:true });
+          assert(section && captured.create && captured.create.material === 'MDF', 'Accordion bridge nie deleguje createMaterialAccordionSection 1:1 do rozrysAccordion', { captured, section });
+          assert(captured.create && captured.create.scheduled === 'schedule-ok', 'Accordion bridge nie przekazał działającego scheduleSheetCanvasRefresh do createMaterialAccordionSection', captured);
+          const renderResult = api.renderMaterialAccordionPlans('scope:test', 'both', [{ material:'MDF', plan:{}, st:{ heur:'max' }, parts:[{ id:'p1' }] }]);
+          assert(renderResult === 'accordion-ok', 'Accordion bridge nie zwrócił wyniku renderMaterialAccordionPlans z delegacji', { renderResult, captured });
+          assert(captured.render && captured.render.scopeKey === 'scope:test' && captured.render.scopeMode === 'both', 'Accordion bridge nie przekazał scope do renderMaterialAccordionPlans', captured);
+          assert(captured.render && captured.render.deps && captured.render.deps.out === out, 'Accordion bridge nie przekazał out do renderMaterialAccordionPlans', captured);
+          assert(captured.auto === 'auto-ok', 'Accordion bridge nie przekazał tryAutoRenderFromCache do renderMaterialAccordionPlans', captured);
+          assert(captured.exceptions && captured.exceptions.material === 'MDF' && captured.exceptions.count === 1, 'Accordion bridge nie przekazał openMaterialGrainExceptions do renderMaterialAccordionPlans', captured);
+          assert(captured.output && captured.output.targetOk === true, 'Accordion bridge nie przekazał renderOutput do renderMaterialAccordionPlans', captured);
+        } finally {
+          FC.rozrysAccordion = prevAccordion;
+        }
+      }),
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje accordion bridge przed rozrys.js i bootstrap launcherów zostaje nienaruszony po splicie akordeonów', 'Pilnuje regresji, w której split renderu akordeonów podmieniałby load order albo przypadkiem ruszał bootstrap launcherów Pomieszczenia / Materiał-grupa.', ()=>{
+        const indexHtml = readAssetSource('index.html');
+        const devHtml = readAssetSource('dev_tests.html');
+        const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
+        const bridgeSrc = readAssetSource('js/app/rozrys/rozrys-accordion-bridge.js');
+        assert(bridgeSrc && bridgeSrc.includes('FC.rozrysAccordionBridge'), 'Brak źródła nowego accordion bridge w assetach smoke');
+        const bridgeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-accordion-bridge.js');
+        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(bridgeIdx >= 0 && rozrysIdx >= 0 && bridgeIdx < rozrysIdx, 'index.html ładuje rozrys-accordion-bridge po rozrys.js', { bridgeIdx, rozrysIdx });
+        const bridgeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-accordion-bridge.js');
+        const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(bridgeDevIdx >= 0 && rozrysDevIdx >= 0 && bridgeDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-accordion-bridge po rozrys.js', { bridgeDevIdx, rozrysDevIdx });
+        assert(/const accordionBridge\s*=\s*\(FC\.rozrysAccordionBridge/.test(rozrysSrc), 'rozrys.js nie buduje accordionBridge z nowego modułu po splicie', { snippet: rozrysSrc.slice(0, 5200) });
+        assert(/updateRoomsPickerButton\(\);/.test(rozrysSrc) && /updateMaterialPickerButton\(\);/.test(rozrysSrc), 'Split akordeonów nie może ruszać bootstrapu launcherów po init ROZRYS', { snippet: rozrysSrc.slice(0, 9000) });
+      }),
+
+
       makeTest('UI bridge', 'Wydzielone UI tools ROZRYS budują label z info i delegują confirm przez confirmBox', 'Pilnuje splitu helperów UI: labelWithInfo ma dalej renderować info-trigger, a askRozrysConfirm ma przejść przez confirmBox z pełnym payloadem.', ()=>{
         assert(FC.rozrysUiTools && typeof FC.rozrysUiTools.createApi === 'function', 'Brak FC.rozrysUiTools.createApi');
         const prevInfoBox = FC.infoBox;

@@ -662,6 +662,25 @@ function aggregatePartsForProject(selectedRooms){
 
     root.appendChild(card);
 
+    const accordionBridge = (FC.rozrysAccordionBridge && typeof FC.rozrysAccordionBridge.createApi === 'function')
+      ? FC.rozrysAccordionBridge.createApi({ FC, h, out, scheduleSheetCanvasRefresh, getAccordionPref, materialHasGrain, getMaterialGrainEnabled, setAccordionPref, setMaterialGrainEnabled, tryAutoRenderFromCache, openMaterialGrainExceptions, renderOutput, formatHeurLabel })
+      : null;
+    const splitMaterialAccordionTitle = accordionBridge && typeof accordionBridge.splitMaterialAccordionTitle === 'function'
+      ? accordionBridge.splitMaterialAccordionTitle
+      : ((material)=> FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'
+          ? FC.rozrysAccordion.splitMaterialAccordionTitle(material)
+          : { line1:String(material || 'Materiał'), line2:'' });
+    const createMaterialAccordionSection = accordionBridge && typeof accordionBridge.createMaterialAccordionSection === 'function'
+      ? accordionBridge.createMaterialAccordionSection
+      : ((material, options)=> FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'
+          ? FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh })
+          : (()=> { const wrap = h('div'); const body = h('div'); wrap.appendChild(body); return { wrap, body, trigger:null, setOpenState:()=>{} }; })());
+    const renderMaterialAccordionPlans = accordionBridge && typeof accordionBridge.renderMaterialAccordionPlans === 'function'
+      ? accordionBridge.renderMaterialAccordionPlans
+      : ((scopeKey, scopeMode, entries)=> FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'
+          ? FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, { out, getAccordionPref, materialHasGrain, getMaterialGrainEnabled, setAccordionPref, setMaterialGrainEnabled, tryAutoRenderFromCache, openMaterialGrainExceptions, renderOutput, formatHeurLabel, scheduleSheetCanvasRefresh })
+          : (out.innerHTML = '', false));
+
 
     function applyHintFromMagazyn(material, opts){
       // Format bazowy pozostaje pod kontrolą użytkownika w ustawieniach.
@@ -895,45 +914,6 @@ function aggregatePartsForProject(selectedRooms){
     }
 
 
-
-
-  function splitMaterialAccordionTitle(material){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'){
-      return FC.rozrysAccordion.splitMaterialAccordionTitle(material);
-    }
-    return { line1:String(material || 'Materiał'), line2:'' };
-  }
-
-
-  function createMaterialAccordionSection(material, options){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'){
-      return FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh });
-    }
-    const wrap = h('div');
-    const body = h('div');
-    wrap.appendChild(body);
-    return { wrap, body, trigger:null, setOpenState:()=>{} };
-  }
-
-  function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'){
-      return FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
-        out,
-        getAccordionPref,
-        materialHasGrain,
-        getMaterialGrainEnabled,
-        setAccordionPref,
-        setMaterialGrainEnabled,
-        tryAutoRenderFromCache,
-        openMaterialGrainExceptions,
-        renderOutput,
-        formatHeurLabel,
-        scheduleSheetCanvasRefresh,
-      });
-    }
-    out.innerHTML = '';
-    return false;
-  }
 
 
     function renderOutput(plan, meta, target){
