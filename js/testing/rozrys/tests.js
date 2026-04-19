@@ -691,6 +691,80 @@
         }
       }),
 
+      makeTest('Engine bridge', 'Wydzielony bridge silnika ROZRYS deleguje computePlan z tym samym kontraktem zależności', 'Pilnuje kolejnego bezpiecznego splitu technicznego: computePlan po wydzieleniu nadal przekazuje do rozrysEngine loadEdgeStore / partSignature / rotation i aktywny cutOptimizer.', ()=>{
+        assert(FC.rozrysEngineBridge && typeof FC.rozrysEngineBridge.createApi === 'function', 'Brak FC.rozrysEngineBridge.createApi');
+        const prevEngine = FC.rozrysEngine;
+        const prevOptimizer = FC.cutOptimizer;
+        const captured = {};
+        FC.cutOptimizer = { id:'opt-1' };
+        FC.rozrysEngine = {
+          computePlan(state, parts, deps){
+            captured.state = state;
+            captured.parts = parts;
+            captured.hasLoadEdgeStore = !!(deps && typeof deps.loadEdgeStore === 'function');
+            captured.hasPartSignature = !!(deps && typeof deps.partSignature === 'function');
+            captured.hasRotation = !!(deps && typeof deps.isPartRotationAllowed === 'function');
+            captured.edgeStore = deps && typeof deps.loadEdgeStore === 'function' ? deps.loadEdgeStore() : null;
+            captured.partSig = deps && typeof deps.partSignature === 'function' ? deps.partSignature({ material:'MDF', name:'Bok', w:720, h:560 }) : null;
+            captured.rotation = deps && typeof deps.isPartRotationAllowed === 'function' ? deps.isPartRotationAllowed({ material:'MDF' }, true, { a:'free' }) : null;
+            captured.cutOptimizer = deps && deps.cutOptimizer;
+            return { ok:true, sheets:[{ id:'sheet-1' }] };
+          },
+        };
+        try{
+          const api = FC.rozrysEngineBridge.createApi({
+            FC,
+            loadEdgeStore: ()=> ({ MDF:{ left:1 } }),
+            partSignature: (part)=> `${part.material}||${part.name}||${part.w}x${part.h}`,
+            isPartRotationAllowed: ()=> 'rotation-ok',
+          });
+          const plan = api.computePlan({ boardW:2800 }, [{ material:'MDF', name:'Bok' }]);
+          assert(plan && plan.ok === true && Array.isArray(plan.sheets) && plan.sheets.length === 1, 'Engine bridge nie zwrócił wyniku computePlan z delegacji', { plan, captured });
+          assert(captured.hasLoadEdgeStore && captured.hasPartSignature && captured.hasRotation, 'Engine bridge nie przekazał pełnego kontraktu zależności do computePlan', captured);
+          assert(captured.edgeStore && captured.edgeStore.MDF && captured.edgeStore.MDF.left === 1, 'Engine bridge nie przekazał loadEdgeStore 1:1 do computePlan', captured);
+          assert(captured.partSig === 'MDF||Bok||720x560', 'Engine bridge nie przekazał partSignature do computePlan', captured);
+          assert(captured.rotation === 'rotation-ok', 'Engine bridge nie przekazał isPartRotationAllowed do computePlan', captured);
+          assert(captured.cutOptimizer === FC.cutOptimizer, 'Engine bridge nie przekazał aktywnego cutOptimizer do computePlan', captured);
+        } finally {
+          FC.rozrysEngine = prevEngine;
+          FC.cutOptimizer = prevOptimizer;
+        }
+      }),
+      makeTest('Engine bridge', 'Wydzielony bridge rysowania arkusza deleguje scheduleSheetCanvasRefresh z działającym drawSheet', 'Pilnuje ścieżki render/listy po splicie: scheduler canvasów nadal dostaje helper drawSheet, a drawSheet nadal przekazuje mmToUnitStr do rozrysSheetDraw.', ()=>{
+        assert(FC.rozrysEngineBridge && typeof FC.rozrysEngineBridge.createApi === 'function', 'Brak FC.rozrysEngineBridge.createApi');
+        const prevSheetDraw = FC.rozrysSheetDraw;
+        const captured = {};
+        FC.rozrysSheetDraw = {
+          scheduleSheetCanvasRefresh(scope, deps){
+            captured.scope = scope;
+            captured.hasDrawSheet = !!(deps && typeof deps.drawSheet === 'function');
+            captured.drawResult = deps && typeof deps.drawSheet === 'function'
+              ? deps.drawSheet('canvas-x', { id:'sheet-1' }, 'cm', 1, { code:'MDF' })
+              : null;
+            return 'scheduled-ok';
+          },
+          drawSheet(canvas, sheet, displayUnit, edgeSubMm, boardMeta, helpers){
+            captured.drawCall = { canvas, sheet, displayUnit, edgeSubMm, boardMeta };
+            captured.mmText = helpers && typeof helpers.mmToUnitStr === 'function' ? helpers.mmToUnitStr(125, 'cm') : null;
+            return 'drawn-ok';
+          },
+        };
+        try{
+          const api = FC.rozrysEngineBridge.createApi({
+            FC,
+            mmToUnitStr: (mm)=> `${mm}cm`,
+          });
+          const result = api.scheduleSheetCanvasRefresh({ material:'MDF A' });
+          assert(result === 'scheduled-ok', 'Engine bridge nie zwrócił wyniku scheduleSheetCanvasRefresh z delegacji', { result, captured });
+          assert(captured.hasDrawSheet === true, 'Engine bridge nie przekazał drawSheet do scheduleru canvasów', captured);
+          assert(captured.drawResult === 'drawn-ok', 'Engine bridge przekazał niedziałający helper drawSheet do scheduleru', captured);
+          assert(captured.drawCall && captured.drawCall.displayUnit === 'cm' && captured.drawCall.boardMeta && captured.drawCall.boardMeta.code === 'MDF', 'Engine bridge nie przekazał argumentów drawSheet 1:1', captured);
+          assert(captured.mmText === '125cm', 'Engine bridge nie przekazał mmToUnitStr do drawSheet', captured);
+        } finally {
+          FC.rozrysSheetDraw = prevSheetDraw;
+        }
+      }),
+
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

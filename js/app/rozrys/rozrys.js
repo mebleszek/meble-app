@@ -50,6 +50,10 @@
     ? rozrysPrefsApi.partSignature.bind(rozrysPrefsApi)
     : ((p)=> `${p && p.material || ''}||${p && p.name || ''}||${p && p.w || 0}x${p && p.h || 0}`);
 
+  const engineBridge = (FC.rozrysEngineBridge && typeof FC.rozrysEngineBridge.createApi === 'function')
+    ? FC.rozrysEngineBridge.createApi({ FC, loadEdgeStore, partSignature, isPartRotationAllowed, mmToUnitStr })
+    : {};
+
   function getPartOptionsStore(){
     return (FC && FC.materialPartOptions) || null;
   }
@@ -402,21 +406,12 @@ function aggregatePartsForProject(selectedRooms){
     });
   }
 
-  function scheduleSheetCanvasRefresh(scope){
-    if(FC.rozrysSheetDraw && typeof FC.rozrysSheetDraw.scheduleSheetCanvasRefresh === 'function'){
-      return FC.rozrysSheetDraw.scheduleSheetCanvasRefresh(scope, { drawSheet });
-    }
-  }
-
   // edgeSubMm: 0 => show nominal dimensions, >0 => show "do cięcia" dims (kompensacja okleiny)
   // Zasada kompensacji (zgodnie z ustaleniem):
   // - okleina na krawędziach W (top/bottom) zwiększa wymiar H => odejmujemy od H
   // - okleina na krawędziach H (left/right) zwiększa wymiar W => odejmujemy od W
-  function drawSheet(canvas, sheet, displayUnit, edgeSubMm, boardMeta){
-    if(FC.rozrysSheetDraw && typeof FC.rozrysSheetDraw.drawSheet === 'function'){
-      return FC.rozrysSheetDraw.drawSheet(canvas, sheet, displayUnit, edgeSubMm, boardMeta, { mmToUnitStr });
-    }
-  }
+  const drawSheet = typeof engineBridge.drawSheet === 'function' ? engineBridge.drawSheet : (()=> undefined);
+  const scheduleSheetCanvasRefresh = typeof engineBridge.scheduleSheetCanvasRefresh === 'function' ? engineBridge.scheduleSheetCanvasRefresh : (()=> undefined);
 
   const buildCsv = runtimeUtils.buildCsv;
   const downloadText = runtimeUtils.downloadText;
@@ -424,59 +419,13 @@ function aggregatePartsForProject(selectedRooms){
   const pxToMm = runtimeUtils.pxToMm;
   const measurePrintHeaderMm = runtimeUtils.measurePrintHeaderMm;
 
-
-function computePlan(state, parts){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlan === 'function'){
-    return FC.rozrysEngine.computePlan(state, parts, {
-      loadEdgeStore,
-      partSignature,
-      isPartRotationAllowed,
-      cutOptimizer: FC.cutOptimizer,
-    });
-  }
-  return { sheets: [], note: 'Brak modułu rozrysEngine.' };
-}
-
-function getOptimaxProfilePreset(profile, direction){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.getOptimaxProfilePreset === 'function'){
-    return FC.rozrysEngine.getOptimaxProfilePreset(profile, direction);
-  }
-  return {};
-}
-
-function normalizeCutDirection(dir){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.normalizeCutDirection === 'function'){
-    return FC.rozrysEngine.normalizeCutDirection(dir);
-  }
-  return 'start-along';
-}
-
-function speedLabel(mode){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.speedLabel === 'function') return FC.rozrysEngine.speedLabel(mode);
-  return String(mode || '');
-}
-
-function directionLabel(dir){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.directionLabel === 'function') return FC.rozrysEngine.directionLabel(dir);
-  return String(dir || '');
-}
-
-function formatHeurLabel(st){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.formatHeurLabel === 'function') return FC.rozrysEngine.formatHeurLabel(st);
-  return String((st && st.heur) || '');
-}
-
-function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
-  if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlanPanelProAsync === 'function'){
-    return FC.rozrysEngine.computePlanPanelProAsync(state, parts, onProgress, control, panelOpts, {
-      loadEdgeStore,
-      partSignature,
-      isPartRotationAllowed,
-      cutOptimizer: FC.cutOptimizer,
-    });
-  }
-  return Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' });
-}
+  const computePlan = typeof engineBridge.computePlan === 'function' ? engineBridge.computePlan : (()=> ({ sheets: [], note: 'Brak modułu rozrysEngine.' }));
+  const getOptimaxProfilePreset = typeof engineBridge.getOptimaxProfilePreset === 'function' ? engineBridge.getOptimaxProfilePreset : (()=> ({}));
+  const normalizeCutDirection = typeof engineBridge.normalizeCutDirection === 'function' ? engineBridge.normalizeCutDirection : (()=> 'start-along');
+  const speedLabel = typeof engineBridge.speedLabel === 'function' ? engineBridge.speedLabel : ((mode)=> String(mode || ''));
+  const directionLabel = typeof engineBridge.directionLabel === 'function' ? engineBridge.directionLabel : ((dir)=> String(dir || ''));
+  const formatHeurLabel = typeof engineBridge.formatHeurLabel === 'function' ? engineBridge.formatHeurLabel : ((st)=> String((st && st.heur) || ''));
+  const computePlanPanelProAsync = typeof engineBridge.computePlanPanelProAsync === 'function' ? engineBridge.computePlanPanelProAsync : (()=> Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' }));
 
 
   function render(){

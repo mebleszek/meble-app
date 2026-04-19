@@ -1,3 +1,10 @@
+## 2026-04-19 — ROZRYS engine bridge split (engine + sheet-draw adapters)
+- `js/app/rozrys/rozrys-engine-bridge.js` — wydzielony techniczny bridge dla delegacji do `rozrysEngine` i `rozrysSheetDraw`: `computePlan`, `getOptimaxProfilePreset`, `normalizeCutDirection`, `speedLabel`, `directionLabel`, `formatHeurLabel`, `computePlanPanelProAsync`, `drawSheet`, `scheduleSheetCanvasRefresh`.
+- `js/app/rozrys/rozrys.js` — dalej trzyma wejście do zakładki, scope, pickery, start renderu, `tryAutoRenderFromCache` i `generate`, ale nie trzyma już lokalnie bloku delegacji engine/draw. Wysokiego ryzyka ścieżki (`aggregatePartsForProject`, launchery, start renderu, `generate`) nie były zmieniane funkcjonalnie.
+- `js/testing/rozrys/tests.js` — dodane antyregresje dla nowego bridge: `computePlan` nadal przekazuje 1:1 `loadEdgeStore / partSignature / isPartRotationAllowed / cutOptimizer`, a scheduler canvasów nadal dostaje działający helper `drawSheet` z `mmToUnitStr`.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` + `tools/rozrys-dev-smoke.js` — dopięte ładowanie `rozrys-engine-bridge.js` przed `rozrys.js`.
+- Instrukcja antyregresyjna: przy kolejnych splitach adapterów render/engine porównywać nie tylko wynik końcowy, ale też payload przekazywany do delegowanych modułów (`deps` dla `rozrysEngine`, helpery dla `rozrysSheetDraw`). To są ścieżki techniczne, które łatwo zepsuć bez widocznego błędu składni.
+
 ## 2026-04-19 — ROZRYS grain exceptions modal hotfix after plan helper split
 - `js/app/rozrys/rozrys-plan-helpers.js` — przy delegacji `openMaterialGrainExceptions(...)` wrócił brakujący helper DOM `h` w payloadzie przekazywanym do `rozrys-grain-modal`. Po splicie plan helpers modal reagował na klik, ale nie otwierał się, bo próbował budować DOM bez `ctx.h`.
 - `js/app/rozrys/rozrys.js` — `createApi(...)` dla `rozrys-plan-helpers` znowu przekazuje `h`, tak jak w starej ścieżce przed splitem.
