@@ -1172,8 +1172,9 @@
         const outDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(outDevIdx >= 0 && rozDevIdx >= 0 && outDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-output-controller po rozrys.js', { outDevIdx, rozDevIdx });
-        assert(/const\s+outputCtrl\s*=\s*outputControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera z bridgea', { snippet: rozrysSrc.slice(18000, 23500) });
+        assert(/(?:let|const)\s+outputCtrl\s*=\s*null[\s\S]*outputCtrl\s*=\s*outputControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera z bridgea albo nie inicjalizuje go jawnie po bootstrapie helperów', { snippet: rozrysSrc.slice(18000, 25500) });
         assert(/const outputControllerApi[\s\S]*createController:\s*\(ctx[^)]*\)\s*=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla output controllera', { snippet: rozrysSrc.slice(9000, 16000) });
+        assert(/function\s+tryAutoRenderFromCache\s*\(/.test(rozrysSrc) && /function\s+splitMaterialAccordionTitle\s*\(/.test(rozrysSrc) && /function\s+buildEntriesForScope\s*\(/.test(rozrysSrc), 'rozrys.js po splicie output controllera nie zachowuje hoistowanych fasad helperów cache/output wymaganych podczas bootstrapu', { snippet: rozrysSrc.slice(15000, 26000) });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{

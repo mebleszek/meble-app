@@ -849,7 +849,51 @@ function aggregatePartsForProject(selectedRooms){
     }
 
 
-    const outputCtrl = outputControllerApi.createController({
+    let outputCtrl = null;
+    function buildEntriesForScope(selection, aggregate){
+      if(outputCtrl && typeof outputCtrl.buildEntriesForScope === 'function') return outputCtrl.buildEntriesForScope(selection, aggregate);
+      return [];
+    }
+    function splitMaterialAccordionTitle(material){
+      if(outputCtrl && typeof outputCtrl.splitMaterialAccordionTitle === 'function') return outputCtrl.splitMaterialAccordionTitle(material);
+      return { line1:String(material || 'Materiał'), line2:'' };
+    }
+    function createMaterialAccordionSection(material, options){
+      if(outputCtrl && typeof outputCtrl.createMaterialAccordionSection === 'function') return outputCtrl.createMaterialAccordionSection(material, options);
+      const wrap = document.createElement('div');
+      const body = document.createElement('div');
+      wrap.appendChild(body);
+      return { wrap, body, trigger:null, setOpenState:()=>{} };
+    }
+    function renderOutput(plan, meta, target){
+      if(outputCtrl && typeof outputCtrl.renderOutput === 'function') return outputCtrl.renderOutput(plan, meta, target);
+      const tgt = target || out;
+      if(tgt) tgt.innerHTML = '';
+      return undefined;
+    }
+    function renderLoadingInto(target, text, subText){
+      if(outputCtrl && typeof outputCtrl.renderLoadingInto === 'function') return outputCtrl.renderLoadingInto(target, text, subText);
+      const tgt = target || out;
+      if(tgt) tgt.innerHTML = '';
+      return null;
+    }
+    function renderLoading(text){
+      if(outputCtrl && typeof outputCtrl.renderLoading === 'function') return outputCtrl.renderLoading(text);
+      return renderLoadingInto(null, text);
+    }
+    function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
+      if(outputCtrl && typeof outputCtrl.renderMaterialAccordionPlans === 'function') return outputCtrl.renderMaterialAccordionPlans(scopeKey, scopeMode, entries);
+      if(out) out.innerHTML = '';
+      return false;
+    }
+    function tryAutoRenderFromCache(){
+      if(outputCtrl && typeof outputCtrl.tryAutoRenderFromCache === 'function') return outputCtrl.tryAutoRenderFromCache();
+      if(out) out.innerHTML = '';
+      setGenBtnMode('idle');
+      return false;
+    }
+
+    outputCtrl = outputControllerApi.createController({
       out,
       getAggregate: ()=> agg,
       getMatSelValue: ()=> matSel.value,
@@ -894,14 +938,6 @@ function aggregatePartsForProject(selectedRooms){
       getAccordionScopeKey,
       getRozrysScopeMode,
     });
-    const tryAutoRenderFromCache = outputCtrl.tryAutoRenderFromCache;
-    const buildEntriesForScope = outputCtrl.buildEntriesForScope;
-    const splitMaterialAccordionTitle = outputCtrl.splitMaterialAccordionTitle;
-    const createMaterialAccordionSection = outputCtrl.createMaterialAccordionSection;
-    const renderMaterialAccordionPlans = outputCtrl.renderMaterialAccordionPlans;
-    const renderOutput = outputCtrl.renderOutput;
-    const renderLoading = outputCtrl.renderLoading;
-    const renderLoadingInto = outputCtrl.renderLoadingInto;
 
     const runCtrl = runControllerApi.createController({
       FC,
