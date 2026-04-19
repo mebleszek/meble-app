@@ -1,9 +1,3 @@
-## 2026-04-19 — Exact room scope guard for empty room in ROZRYS/WYCENA
-- `js/app/rozrys/rozrys.js` — naprawiony centralny fallback agregacji: jeśli użytkownik wybiera istniejący pokój/exact scope i ten pokój nie ma szafek, ROZRYS nie może już po cichu rozszerzać zakresu do innych pokoi projektu. Retry do pełnej listy pokoi wolno robić tylko wtedy, gdy wejściowy wybór pokoi realnie znormalizował się do pustego scope (np. stary/nieistniejący zapis).
-- `js/testing/rozrys/tests.js` — dodany test pilnujący, że pusty, ale istniejący pokój zostaje pusty i nie pożycza materiałów z innego pokoju.
-- `js/testing/wycena/suites/cross-systems.js` — dodany test pilnujący, że Wycena dla takiego exact scope kończy się `empty_quote_scope`, a nie ofertą policzoną z obcego pokoju.
-- Instrukcja antyregresyjna: przy scope pokoi rozróżniać dwa przypadki: (1) exact room istnieje, ale nie ma danych — wynik ma zostać pusty; (2) zapisany wybór jest nieprawidłowy/stary i po normalizacji znika — dopiero wtedy można retryować pełną listę realnych pokoi projektu.
-
 ## 2026-04-19 — Wywiad standing extras split into corner/standard + specials
 - `js/app/cabinet/cabinet-modal-standing-corner-standard.js` — wydzielone z dużego `cabinet-modal-standing-extras.js` rzeczy narożno-standardowe: `narozna_l` (GL/GP/ST/SP + szkic) oraz blok `standardowa / rogowa_slepa / narozna_l`.
 - `js/app/cabinet/cabinet-modal-standing-specials.js` — wydzielone subtype’y specjalne `stojąca`: `szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, razem z ostrzeżeniem systemowym dla GTV/Rejs.
@@ -1411,13 +1405,3 @@ Dopiero potem go zmieniać.
 - `js/app/cabinet/cabinet-modal-set-wizard.js` — presety `zestaw` przestały być rysowane inline w JS. Modal ładuje teraz osobne pliki SVG, dzięki czemu ikonki nie są zaszyte w monolicie i łatwiej je później poprawiać bez ryzyka rozjechania logiki.
 - `assets/set-presets/preset-a.svg`, `preset-c.svg`, `preset-d.svg` — nowe, osobne miniatury lepiej odpowiadają realnym presetom: `A` pokazuje dwa doły + moduł u góry, `C` dół + moduł na pełnej szerokości, `D` dół + moduł środkowy + moduł górny w pionie.
 - Instrukcja antyregresyjna: kolejne poprawki miniaturek presetów robić w osobnych plikach SVG, a nie przez ponowne zaszywanie kształtów inline w `cabinet-modal-set-wizard.js`.
-
-## 2026-04-19 — room-registry / ROZRYS project-source split
-- `js/app/shared/room-registry.js` został odchudzony i nie może znowu mieszać całego rdzenia rejestru, skutków ubocznych usuwania pokoju i UI modali w jednym pliku. Rdzeń definicji/merge/sort siedzi w `js/app/shared/room-registry-core.js`, a cleanup/sync po zmianie listy pokoi w `js/app/shared/room-registry-removal.js`.
-- `js/app/rozrys/rozrys.js` oddaje wykrywanie kandydatów projektu i widocznych pokoi do `js/app/rozrys/rozrys-project-source.js`; nie doklejać z powrotem logiki odkrywania pokoi/projektów do monolitu zakładki.
-- `dev_tests.html`, `tools/app-dev-smoke.js` i `tools/rozrys-dev-smoke.js` muszą ładować nowe moduły w tej samej kolejności co aplikacja (`room-registry-core` → `room-registry-removal` → `room-registry`, oraz `rozrys-prefs` / `rozrys-project-source` przed `rozrys.js`), inaczej smoke może zgłaszać fałszywe regresje.
-- Antyregresja: `js/testing/investor/tests.js` pilnuje, że aktywne pokoje scalają meta projektu z kolejnością inwestora bez gubienia etykiet; `js/testing/rozrys/tests.js` pilnuje, że ROZRYS trzyma kolejność meta i odrzuca puste legacy pokoje.
-- Uwaga architektoniczna: w tym etapie nie ruszać `js/tabs/rysunek.js` — jest tymczasowy i ma być przebudowywany osobno.
-
-
-- do not split room-registry again without reproducing live app behavior against the real global `projectData` from app.js and legacy-kitchen fallback rules; tests must cover investor rooms with no `window.projectData` mirror.

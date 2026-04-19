@@ -14,45 +14,233 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const projectSource = (FC.rozrysProjectSource && typeof FC.rozrysProjectSource.createApi === 'function')
-    ? FC.rozrysProjectSource.createApi({ FC, host:window })
-    : {};
-  const discoverProjectRoomKeys = projectSource.discoverProjectRoomKeys || function(){ return []; };
-  const discoverVisibleProjectRoomKeys = projectSource.discoverVisibleProjectRoomKeys || function(){ return []; };
-  const collectProjectCandidates = projectSource.collectProjectCandidates || function(){ return []; };
-  const safeGetProject = projectSource.safeGetProject || function(){ return null; };
-  const getRoomsForProject = projectSource.getRoomsForProject || function(){ return []; };
-  const getRooms = projectSource.getRooms || function(){ return []; };
+  const rozrysPrefs = FC.rozrysPrefs || null;
+  const LEGACY_CREATOR_ROOM_KEYS = ['kuchnia','szafa','pokoj','lazienka'];
 
-  const rozrysPrefsApi = FC.rozrysPrefs || {};
-  const parseLocaleNumber = typeof rozrysPrefsApi.parseLocaleNumber === 'function'
-    ? rozrysPrefsApi.parseLocaleNumber.bind(rozrysPrefsApi)
-    : ((v)=>{ if(v === null || v === undefined) return NaN; if(typeof v === 'number') return Number.isFinite(v) ? v : NaN; const s = String(v).trim().replace(',', '.'); return s ? Number(s) : NaN; });
-  const cmToMm = typeof rozrysPrefsApi.cmToMm === 'function'
-    ? rozrysPrefsApi.cmToMm.bind(rozrysPrefsApi)
-    : ((v)=>{ const n = parseLocaleNumber(v); return Number.isFinite(n) ? Math.round(n * 10) : 0; });
-  const mmToStr = typeof rozrysPrefsApi.mmToStr === 'function'
-    ? rozrysPrefsApi.mmToStr.bind(rozrysPrefsApi)
-    : ((mm)=> String(Math.round(Number(mm) || 0)));
-  const mmToUnitStr = typeof rozrysPrefsApi.mmToUnitStr === 'function'
-    ? rozrysPrefsApi.mmToUnitStr.bind(rozrysPrefsApi)
-    : ((mm, unit)=>{ const u = unit === 'cm' ? 'cm' : 'mm'; const n = Math.round(Number(mm) || 0); if(u === 'mm') return String(n); const cm = n / 10; const s = (Math.round(cm * 10) / 10).toFixed(1); return s.endsWith('.0') ? s.slice(0, -2) : s; });
-  const loadPanelPrefs = typeof rozrysPrefsApi.loadPanelPrefs === 'function' ? rozrysPrefsApi.loadPanelPrefs.bind(rozrysPrefsApi) : (()=> ({}));
-  const savePanelPrefs = typeof rozrysPrefsApi.savePanelPrefs === 'function' ? rozrysPrefsApi.savePanelPrefs.bind(rozrysPrefsApi) : (()=>{});
-  const getAccordionPref = typeof rozrysPrefsApi.getAccordionPref === 'function' ? rozrysPrefsApi.getAccordionPref.bind(rozrysPrefsApi) : (()=> ({ material:'', open:false }));
-  const setAccordionPref = typeof rozrysPrefsApi.setAccordionPref === 'function' ? rozrysPrefsApi.setAccordionPref.bind(rozrysPrefsApi) : (()=>{});
-  const getMaterialGrainEnabled = typeof rozrysPrefsApi.getMaterialGrainEnabled === 'function' ? rozrysPrefsApi.getMaterialGrainEnabled.bind(rozrysPrefsApi) : ((material, hasGrain)=> !!hasGrain);
-  const setMaterialGrainEnabled = typeof rozrysPrefsApi.setMaterialGrainEnabled === 'function' ? rozrysPrefsApi.setMaterialGrainEnabled.bind(rozrysPrefsApi) : (()=>{});
-  const getMaterialGrainExceptions = typeof rozrysPrefsApi.getMaterialGrainExceptions === 'function' ? rozrysPrefsApi.getMaterialGrainExceptions.bind(rozrysPrefsApi) : (()=> ({}));
-  const setMaterialGrainExceptions = typeof rozrysPrefsApi.setMaterialGrainExceptions === 'function' ? rozrysPrefsApi.setMaterialGrainExceptions.bind(rozrysPrefsApi) : (()=>{});
-  const loadEdgeStore = typeof rozrysPrefsApi.loadEdgeStore === 'function' ? rozrysPrefsApi.loadEdgeStore.bind(rozrysPrefsApi) : (()=> ({}));
-  const partSignature = typeof rozrysPrefsApi.partSignature === 'function'
-    ? rozrysPrefsApi.partSignature.bind(rozrysPrefsApi)
-    : ((p)=> `${p && p.material || ''}||${p && p.name || ''}||${p && p.w || 0}x${p && p.h || 0}`);
+  function discoverProjectRoomKeys(proj){
+    if(!proj || typeof proj !== 'object') return [];
+    const out = [];
+    Object.keys(proj).forEach((key)=>{
+      const roomKey = String(key || '').trim();
+      if(!roomKey || roomKey in {'schemaVersion':1,'meta':1}) return;
+      const room = proj[key];
+      if(!room || typeof room !== 'object') return;
+      const hasRoomShape = Array.isArray(room.cabinets) || Array.isArray(room.fronts) || Array.isArray(room.sets) || (!!room.settings && typeof room.settings === 'object');
+      if(hasRoomShape) out.push(roomKey);
+    });
+    return out;
+  }
+
+  function isLegacyCreatorRoomKey(roomKey){
+    return LEGACY_CREATOR_ROOM_KEYS.includes(String(roomKey || '').trim());
+  }
+
+  function hasMeaningfulProjectRoomData(room){
+    if(!(room && typeof room === 'object')) return false;
+    if(Array.isArray(room.cabinets) && room.cabinets.length) return true;
+    if(Array.isArray(room.fronts) && room.fronts.length) return true;
+    if(Array.isArray(room.sets) && room.sets.length) return true;
+    return false;
+  }
+
+  function getProjectMetaRoomIds(proj){
+    if(!(proj && typeof proj === 'object')) return [];
+    const meta = proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
+    if(!meta) return [];
+    const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : {};
+    const order = Array.isArray(meta.roomOrder) ? meta.roomOrder : [];
+    const out = [];
+    const push = (id)=>{
+      const key = String(id || '').trim();
+      if(!key || out.includes(key)) return;
+      out.push(key);
+    };
+    order.forEach(push);
+    Object.keys(defs).forEach(push);
+    return out;
+  }
+
+  function discoverVisibleProjectRoomKeys(proj){
+    const metaRoomIds = getProjectMetaRoomIds(proj);
+    const discovered = discoverProjectRoomKeys(proj);
+    const out = [];
+    const push = (roomKey)=>{
+      const key = String(roomKey || '').trim();
+      if(!key || out.includes(key)) return;
+      out.push(key);
+    };
+    metaRoomIds.forEach(push);
+    discovered.forEach((roomKey)=>{
+      if(metaRoomIds.includes(roomKey)) return;
+      if(!isLegacyCreatorRoomKey(roomKey)) return push(roomKey);
+      if(hasMeaningfulProjectRoomData(proj && proj[roomKey])) push(roomKey);
+    });
+    return out;
+  }
+
+  function countProjectCabinets(proj){
+    return discoverProjectRoomKeys(proj).reduce((sum, roomKey)=>{
+      const room = proj && proj[roomKey];
+      const cabinets = Array.isArray(room && room.cabinets) ? room.cabinets.length : 0;
+      return sum + cabinets;
+    }, 0);
+  }
+
+  function collectProjectCandidates(){
+    const candidates = [];
+    const pushCandidate = (proj, source)=>{
+      if(!(proj && typeof proj === 'object')) return;
+      if(candidates.some((entry)=> entry.proj === proj)) return;
+      candidates.push({ proj, source: String(source || 'unknown') });
+    };
+    try{
+      const override = FC.rozrys && FC.rozrys.__projectOverride;
+      if(override) pushCandidate(override, 'override');
+    }catch(_){ }
+    try{ if(typeof projectData !== 'undefined' && projectData) pushCandidate(projectData, 'global'); }catch(_){ }
+    try{ if(window.projectData) pushCandidate(window.projectData, 'window'); }catch(_){ }
+    try{ if(FC.project && typeof FC.project.load === 'function'){ const loaded = FC.project.load(); if(loaded) pushCandidate(loaded, 'load'); } }catch(_){ }
+    return candidates;
+  }
+
+  function safeGetProject(){
+    const candidates = collectProjectCandidates();
+    if(!candidates.length) return null;
+    const direct = candidates.filter((entry)=> entry.source !== 'load');
+    const preferred = direct.some((entry)=> countProjectCabinets(entry.proj) > 0 || discoverProjectRoomKeys(entry.proj).length > 0)
+      ? direct
+      : candidates;
+    let best = null;
+    let bestScore = -1;
+    preferred.forEach((entry)=>{
+      const proj = entry.proj;
+      if(!proj || typeof proj !== 'object') return;
+      const roomCount = discoverProjectRoomKeys(proj).length;
+      const cabinetCount = countProjectCabinets(proj);
+      const sourceBias = entry.source === 'load' ? 0 : 1000000;
+      const score = sourceBias + (cabinetCount * 1000) + roomCount;
+      if(score > bestScore){
+        best = proj;
+        bestScore = score;
+      }
+    });
+    return best || (preferred[0] && preferred[0].proj) || null;
+  }
+
+
+  function getRoomsForProject(proj){
+    const registryRooms = (()=>{
+      try{
+        if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
+          const dynamicRooms = FC.roomRegistry.getActiveRoomIds();
+          return Array.isArray(dynamicRooms) ? dynamicRooms.filter(Boolean) : [];
+        }
+      }catch(_){ }
+      return [];
+    })();
+    const hasInvestor = (()=>{
+      try{ return !!(FC.roomRegistry && typeof FC.roomRegistry.hasCurrentInvestor === 'function' && FC.roomRegistry.hasCurrentInvestor()); }
+      catch(_){ return false; }
+    })();
+    const fallbackDefaults = (()=>{
+      try{
+        if(FC.schema && Array.isArray(FC.schema.ROOMS)) return FC.schema.ROOMS.slice();
+      }catch(_){ }
+      return ['kuchnia','szafa','pokoj','lazienka'];
+    })();
+    const defaults = hasInvestor ? registryRooms.slice() : (registryRooms.length ? registryRooms.slice() : fallbackDefaults);
+    if(!proj || typeof proj !== 'object') return defaults;
+    const discovered = discoverVisibleProjectRoomKeys(proj);
+    const ordered = [];
+    const preferredOrder = defaults.length ? defaults : discovered;
+    preferredOrder.forEach((room)=>{
+      if(discovered.includes(room) && !ordered.includes(room)) ordered.push(room);
+    });
+    discovered.forEach((room)=>{
+      if(!ordered.includes(room)) ordered.push(room);
+    });
+    if(ordered.length) return ordered;
+    if(hasInvestor) return registryRooms.length ? registryRooms.slice() : [];
+    return defaults;
+  }
+
+  function getRooms(){
+    return getRoomsForProject(safeGetProject());
+  }
+
+  function parseLocaleNumber(v){
+    if(rozrysPrefs && typeof rozrysPrefs.parseLocaleNumber === 'function') return rozrysPrefs.parseLocaleNumber(v);
+    if(v === null || v === undefined) return NaN;
+    if(typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+    const s = String(v).trim().replace(',', '.');
+    if(!s) return NaN;
+    return Number(s);
+  }
+
+  function cmToMm(v){
+    if(rozrysPrefs && typeof rozrysPrefs.cmToMm === 'function') return rozrysPrefs.cmToMm(v);
+    const n = parseLocaleNumber(v);
+    if(!Number.isFinite(n)) return 0;
+    return Math.round(n * 10);
+  }
+
+  function mmToStr(mm){
+    if(rozrysPrefs && typeof rozrysPrefs.mmToStr === 'function') return rozrysPrefs.mmToStr(mm);
+    return String(Math.round(Number(mm) || 0));
+  }
+
+  function mmToUnitStr(mm, unit){
+    if(rozrysPrefs && typeof rozrysPrefs.mmToUnitStr === 'function') return rozrysPrefs.mmToUnitStr(mm, unit);
+    const u = (unit === 'cm') ? 'cm' : 'mm';
+    const n = Math.round(Number(mm) || 0);
+    if(u === 'mm') return String(n);
+    const cm = n / 10;
+    const s = (Math.round(cm * 10) / 10).toFixed(1);
+    return s.endsWith('.0') ? s.slice(0, -2) : s;
+  }
+
+  function loadPanelPrefs(){
+    return rozrysPrefs && typeof rozrysPrefs.loadPanelPrefs === 'function' ? rozrysPrefs.loadPanelPrefs() : {};
+  }
+
+  function savePanelPrefs(obj){
+    if(rozrysPrefs && typeof rozrysPrefs.savePanelPrefs === 'function') rozrysPrefs.savePanelPrefs(obj || {});
+  }
+
+  function getAccordionPref(scopeKey){
+    return rozrysPrefs && typeof rozrysPrefs.getAccordionPref === 'function'
+      ? rozrysPrefs.getAccordionPref(scopeKey)
+      : { material:'', open:false };
+  }
+
+  function setAccordionPref(scopeKey, material, open){
+    if(rozrysPrefs && typeof rozrysPrefs.setAccordionPref === 'function') rozrysPrefs.setAccordionPref(scopeKey, material, open);
+  }
+
+  function getMaterialGrainEnabled(material, hasGrain){
+    return rozrysPrefs && typeof rozrysPrefs.getMaterialGrainEnabled === 'function'
+      ? !!rozrysPrefs.getMaterialGrainEnabled(material, hasGrain)
+      : !!hasGrain;
+  }
+
+  function setMaterialGrainEnabled(material, enabled, hasGrain){
+    if(rozrysPrefs && typeof rozrysPrefs.setMaterialGrainEnabled === 'function') rozrysPrefs.setMaterialGrainEnabled(material, enabled, hasGrain);
+  }
+
+  function getMaterialGrainExceptions(material, allowedKeys, hasGrain){
+    return rozrysPrefs && typeof rozrysPrefs.getMaterialGrainExceptions === 'function'
+      ? (rozrysPrefs.getMaterialGrainExceptions(material, allowedKeys, hasGrain) || {})
+      : {};
+  }
+
+  function setMaterialGrainExceptions(material, exceptions, hasGrain){
+    if(rozrysPrefs && typeof rozrysPrefs.setMaterialGrainExceptions === 'function') rozrysPrefs.setMaterialGrainExceptions(material, exceptions, hasGrain);
+  }
 
   function getPartOptionsStore(){
     return (FC && FC.materialPartOptions) || null;
   }
+
 
   function resolveCabinetCutListFn(){
     try{
@@ -99,6 +287,19 @@
     const sig = partSignature(part);
     return !!(overrides && overrides[sig]);
   }
+
+  function loadEdgeStore(){
+    return rozrysPrefs && typeof rozrysPrefs.loadEdgeStore === 'function' ? rozrysPrefs.loadEdgeStore() : {};
+  }
+
+  function partSignature(p){
+    return rozrysPrefs && typeof rozrysPrefs.partSignature === 'function'
+      ? rozrysPrefs.partSignature(p)
+      : `${p && p.material || ''}||${p && p.name || ''}||${p && p.w || 0}x${p && p.h || 0}`;
+  }
+
+
+
 
 function roomLabel(room){
   if(FC.rozrysScope && typeof FC.rozrysScope.roomLabel === 'function'){
@@ -278,10 +479,6 @@ function aggregatePartsForProject(selectedRooms){
       resolveRozrysPartFromSource,
       isFrontMaterialKey,
     };
-    const requestedRooms = Array.isArray(selectedRooms)
-      ? selectedRooms.map((room)=> String(room || '').trim()).filter(Boolean)
-      : [];
-    let bestExplicitEmpty = null;
     const candidates = collectProjectCandidates();
     for(const entry of candidates){
       const scopedGetRooms = ()=> getRoomsForProject(entry.proj);
@@ -289,26 +486,14 @@ function aggregatePartsForProject(selectedRooms){
         safeGetProject: ()=> entry.proj,
         getRooms: scopedGetRooms,
       });
-      const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, scopedDeps)
-        || { byMaterial:{}, materials:[], groups:{}, selectedRooms:[] };
-      const firstRooms = Array.isArray(first.selectedRooms)
-        ? first.selectedRooms.map((room)=> String(room || '').trim()).filter(Boolean)
-        : [];
-      if(Array.isArray(first.materials) && first.materials.length) return first;
-      if(firstRooms.length){
-        if(!bestExplicitEmpty) bestExplicitEmpty = first;
-        continue;
-      }
-      const allowRetryToDiscoveredRooms = firstRooms.length === 0;
-      if(allowRetryToDiscoveredRooms){
-        const discoveredRooms = scopedGetRooms();
-        if(discoveredRooms.length){
-          const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, scopedDeps);
-          if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
-        }
+      const first = FC.rozrysScope.aggregatePartsForProject(selectedRooms, scopedDeps);
+      if(first && Array.isArray(first.materials) && first.materials.length) return first;
+      const discoveredRooms = scopedGetRooms();
+      if(discoveredRooms.length){
+        const retry = FC.rozrysScope.aggregatePartsForProject(discoveredRooms, scopedDeps);
+        if(retry && Array.isArray(retry.materials) && retry.materials.length) return retry;
       }
     }
-    if(bestExplicitEmpty) return bestExplicitEmpty;
     const deps = Object.assign({}, baseDeps, { safeGetProject });
     const fallback = FC.rozrysScope.aggregatePartsForProject(selectedRooms, deps);
     return fallback || { byMaterial:{}, materials:[], groups:{}, selectedRooms:Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };

@@ -41,8 +41,6 @@ const FILES = [
   'js/app/project/project-status-sync.js',
   'js/app/project/project-status-manual-guard.js',
   'js/app/rozrys/rozrys-choice.js',
-  'js/app/rozrys/rozrys-prefs.js',
-  'js/app/rozrys/rozrys-project-source.js',
   'js/app.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',
