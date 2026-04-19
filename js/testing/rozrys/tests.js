@@ -765,6 +765,79 @@
         }
       }),
 
+
+      makeTest('UI bridge', 'Wydzielone UI tools ROZRYS budują label z info i delegują confirm przez confirmBox', 'Pilnuje splitu helperów UI: labelWithInfo ma dalej renderować info-trigger, a askRozrysConfirm ma przejść przez confirmBox z pełnym payloadem.', ()=>{
+        assert(FC.rozrysUiTools && typeof FC.rozrysUiTools.createApi === 'function', 'Brak FC.rozrysUiTools.createApi');
+        const prevInfoBox = FC.infoBox;
+        const prevConfirmBox = FC.confirmBox;
+        const captured = { info:null, confirm:null };
+        FC.infoBox = { open(payload){ captured.info = payload; } };
+        FC.confirmBox = { ask(payload){ captured.confirm = payload; return true; } };
+        try{
+          const api = FC.rozrysUiTools.createApi({ FC });
+          const row = api.labelWithInfo('Pomieszczenia', 'Pomieszczenia', 'Info test');
+          const infoBtn = collectNodes(row, (node)=> String(node.className || '').includes('info-trigger'))[0];
+          assert(infoBtn, 'labelWithInfo nie zbudował info-trigger po splicie helperów UI', row);
+          infoBtn.dispatch('click');
+          assert(captured.info && captured.info.title === 'Pomieszczenia' && captured.info.message === 'Info test', 'labelWithInfo nie deleguje już poprawnie do infoBox.open', captured);
+          const ok = api.askRozrysConfirm({ title:'TEST', message:'Czy?', confirmText:'TAK', cancelText:'NIE' });
+          assert(ok === true, 'askRozrysConfirm po splicie helperów UI nie zwrócił wyniku confirmBox.ask', captured);
+          assert(captured.confirm && captured.confirm.title === 'TEST' && captured.confirm.confirmText === 'TAK' && captured.confirm.cancelText === 'NIE', 'askRozrysConfirm nie przekazał payloadu 1:1 do confirmBox.ask', captured);
+        } finally {
+          FC.infoBox = prevInfoBox;
+          FC.confirmBox = prevConfirmBox;
+        }
+      }),
+      makeTest('UI bridge', 'Wydzielony UI bridge ROZRYS deleguje opcje, magazyn i progress bez zmiany kontraktu', 'Pilnuje splitu technicznego: modal opcji i dodawania płyty nadal dostają te same ctx/deps, a progress bridge nadal aktualizuje uiState i deleguje do rozrysProgress.', ()=>{
+        assert(FC.rozrysUiBridge && typeof FC.rozrysUiBridge.createApi === 'function', 'Brak FC.rozrysUiBridge.createApi');
+        const prevOptionsModal = FC.rozrysOptionsModal;
+        const prevStockModal = FC.rozrysStockModal;
+        const prevProgress = FC.rozrysProgress;
+        const captured = { options:null, stock:null, uiPatches:[], progress:{ modes:[], cancelled:false, running:true, buttonMode:'done' } };
+        FC.rozrysOptionsModal = { openOptionsModal(ctx, deps){ captured.options = { ctx, deps }; return 'options-ok'; } };
+        FC.rozrysStockModal = { openAddStockModal(ctx, deps){ captured.stock = { ctx, deps }; return 'stock-ok'; } };
+        FC.rozrysProgress = {
+          createController(args){
+            captured.progress.args = args;
+            return {
+              setGenBtnMode(mode){ captured.progress.modes.push(mode); return `mode:${mode}`; },
+              requestCancel(){ captured.progress.cancelled = true; return 'cancelled'; },
+              isRunning(){ return captured.progress.running; },
+              getButtonMode(){ return captured.progress.buttonMode; },
+            };
+          }
+        };
+        try{
+          const api = FC.rozrysUiBridge.createApi({ FC });
+          const optionsCtx = { unitSel:{ value:'cm' }, edgeSel:{ value:'0' } };
+          const optionsDeps = { tryAutoRenderFromCache: ()=> 'cache-ok' };
+          const stockCtx = { agg:{ materials:['MDF'] }, matSelValue:'{}' };
+          const stockDeps = { normalizeMaterialScopeForAggregate: ()=> ({ kind:'all' }) };
+          const optionsResult = api.openOptionsModal(optionsCtx, optionsDeps);
+          const stockResult = api.openAddStockModal(stockCtx, stockDeps);
+          assert(optionsResult === 'options-ok' && captured.options && captured.options.ctx === optionsCtx && captured.options.deps === optionsDeps, 'UI bridge nie deleguje openOptionsModal 1:1 do rozrys-options-modal', captured);
+          assert(stockResult === 'stock-ok' && captured.stock && captured.stock.ctx === stockCtx && captured.stock.deps === stockDeps, 'UI bridge nie deleguje openAddStockModal 1:1 do rozrys-stock-modal', captured);
+          const progressApi = api.createProgressApi({
+            statusBox:{ id:'box' }, statusMain:{ id:'main' }, statusSub:{ id:'sub' }, statusMeta:{ id:'meta' }, statusProg:{ id:'prog' }, statusProgBar:{ id:'bar' }, genBtn:{ id:'btn' },
+            setUiState:(patch)=> captured.uiPatches.push(patch),
+          });
+          const modeResult = progressApi.setGenBtnMode('running');
+          const running = progressApi.isRozrysRunning();
+          const btnMode = progressApi.getRozrysBtnMode();
+          const cancelResult = progressApi.requestCancel();
+          assert(modeResult === 'mode:running', 'UI bridge nie deleguje setGenBtnMode do kontrolera progress', captured);
+          assert(running === true && btnMode === 'done' && cancelResult === 'cancelled', 'UI bridge nie deleguje odczytu/stoppu progress do kontrolera', captured);
+          assert(captured.progress.args && captured.progress.args.genBtn && captured.progress.args.statusBox, 'UI bridge nie przekazał elementów statusu do createController', captured);
+          assert(captured.uiPatches.some((patch)=> patch && patch.buttonMode === 'running' && patch.running === true), 'UI bridge nie zapisuje uiState przy setGenBtnMode', captured.uiPatches);
+          assert(captured.uiPatches.some((patch)=> patch && patch.running === true), 'UI bridge nie zapisuje uiState przy isRozrysRunning', captured.uiPatches);
+          assert(captured.uiPatches.some((patch)=> patch && patch.running === false), 'UI bridge nie zapisuje uiState przy requestCancel', captured.uiPatches);
+        } finally {
+          FC.rozrysOptionsModal = prevOptionsModal;
+          FC.rozrysStockModal = prevStockModal;
+          FC.rozrysProgress = prevProgress;
+        }
+      }),
+
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

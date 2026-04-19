@@ -13,6 +13,8 @@ const files = [
   'js/app/rozrys/rozrys-runtime-utils.js',
   'js/app/rozrys/rozrys-plan-helpers.js',
   'js/app/rozrys/rozrys-engine-bridge.js',
+  'js/app/rozrys/rozrys-ui-tools.js',
+  'js/app/rozrys/rozrys-ui-bridge.js',
   'js/app/rozrys/rozrys-state.js',
   'js/app/rozrys/rozrys-pickers.js',
   'js/app/rozrys/rozrys-selection-ui.js',
