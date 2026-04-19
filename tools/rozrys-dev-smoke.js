@@ -8,6 +8,8 @@ const files = [
   'js/app/optimizer/cut-optimizer.js',
   'js/app/rozrys/rozrys-validation.js',
   'js/app/rozrys/rozrys-cache.js',
+  'js/app/rozrys/rozrys-prefs.js',
+  'js/app/rozrys/rozrys-project-source.js',
   'js/app/rozrys/rozrys-state.js',
   'js/app/rozrys/rozrys-pickers.js',
   'js/app/rozrys/rozrys-selection-ui.js',

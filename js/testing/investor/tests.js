@@ -69,9 +69,58 @@
       assert(FC.roomRegistry.isRoomNameTaken('kuchnia dol', inv) === true, 'Duplikat akcento-niezależny nie został wykryty');
       assert(FC.roomRegistry.isRoomNameTaken('Łazienka', inv) === false, 'Fałszywy duplikat dla innej nazwy');
     }),
+
+    makeTest('Inwestor', 'Rejestr pomieszczeń scala meta projektu z kolejnością inwestora bez gubienia etykiet', 'Pilnuje splitu roomRegistry: aktywne pomieszczenia mają zachować kolejność z projektu/meta i końcowe etykiety inwestora po scaleniach.', ()=>{
+      assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak FC.roomRegistry.getActiveRoomDefs');
+      const prevProject = Object.prototype.hasOwnProperty.call(root, 'projectData') ? root.projectData : undefined;
+      const prevWindowProject = root.window && Object.prototype.hasOwnProperty.call(root.window, 'projectData') ? root.window.projectData : undefined;
+      const prevCurrentId = FC.investors && FC.investors.getCurrentId ? FC.investors.getCurrentId() : '';
+      const prevGetById = FC.investors && FC.investors.getById;
+      const investor = {
+        id:'inv_room_merge',
+        rooms:[
+          { id:'room_b', baseType:'pokoj', name:'Salon klienta', label:'Salon klienta', projectStatus:'nowy' },
+          { id:'room_a', baseType:'kuchnia', name:'Kuchnia dół', label:'Kuchnia dół', projectStatus:'nowy' },
+        ]
+      };
+      const project = {
+        schemaVersion:9,
+        meta:{
+          roomDefs:{
+            room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia', label:'Kuchnia' },
+            room_b:{ id:'room_b', baseType:'pokoj', name:'Salon', label:'Salon' },
+          },
+          roomOrder:['room_b','room_a']
+        },
+        room_a:{ cabinets:[], fronts:[], sets:[], settings:{} },
+        room_b:{ cabinets:[], fronts:[], sets:[], settings:{} },
+      };
+      try{
+        root.projectData = project;
+        if(root.window) root.window.projectData = project;
+        if(FC.investors && FC.investors.setCurrentId) FC.investors.setCurrentId(investor.id);
+        if(FC.investors) FC.investors.getById = (id)=> String(id || '') === investor.id ? investor : null;
+        const rooms = FC.roomRegistry.getActiveRoomDefs();
+        assert(Array.isArray(rooms) && rooms.length === 2, 'Rejestr nie zwrócił dwóch aktywnych pomieszczeń po scaleniu meta i inwestora', rooms);
+        assert(String(rooms[0] && rooms[0].id || '') === 'room_b' && String(rooms[1] && rooms[1].id || '') === 'room_a', 'Rejestr nie zachował kolejności pomieszczeń inwestora/meta', rooms);
+        assert(String(rooms[0] && rooms[0].label || '') === 'Salon klienta', 'Scalanie nie zachowało etykiety inwestora dla room_b', rooms);
+      } finally {
+        if(prevProject === undefined){ try{ delete root.projectData; }catch(_){ root.projectData = undefined; } }
+        else root.projectData = prevProject;
+        if(root.window){
+          if(prevWindowProject === undefined){ try{ delete root.window.projectData; }catch(_){ root.window.projectData = undefined; } }
+          else root.window.projectData = prevWindowProject;
+        }
+        if(FC.investors && FC.investors.setCurrentId) FC.investors.setCurrentId(prevCurrentId || null);
+        if(FC.investors) FC.investors.getById = prevGetById;
+      }
+    }),
+
     makeTest('Inwestor', 'Rejestr aktywnych pomieszczeń dla inwestora nie wraca do generatorowych typów bazowych', 'Pilnuje, czy aktywne pokoje dla inwestora biorą się z rzeczywiście dodanych pomieszczeń, a nie z domyślnej listy kuchnia/szafa/pokój/łazienka.', ()=>{
       assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');
       assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function', 'Brak roomRegistry.getActiveRoomIds');
+      try{ delete root.projectData; }catch(_){ root.projectData = undefined; }
+      try{ if(root.window) delete root.window.projectData; }catch(_){ if(root.window) root.window.projectData = undefined; }
       const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
         ? FC.testDataManager.createInvestor({
           kind:'person',
@@ -210,6 +259,8 @@
     makeTest('Inwestor', 'Firma ostrzega, gdy właściciel pasuje do istniejącej osoby prywatnej', 'Pilnuje reguły, że firma z właścicielem Jan Kowalski ma ostrzec o istniejącej osobie prywatnej Jan Kowalski.', ()=>{
       assert(FC.investorActions && FC.investorActions._debug && typeof FC.investorActions._debug.findInvestorConflicts === 'function', 'Brak debug.findInvestorConflicts');
       assert(FC.investors && typeof FC.investors.create === 'function', 'Brak investors.create');
+      try{ delete root.projectData; }catch(_){ root.projectData = undefined; }
+      try{ if(root.window) delete root.window.projectData; }catch(_){ if(root.window) root.window.projectData = undefined; }
       const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
         ? FC.testDataManager.createInvestor({ kind:'person', name:'Jan Kowalski', address:'Test 9' })
         : FC.investors.create({ kind:'person', name:'Jan Kowalski', address:'Test 9' }));

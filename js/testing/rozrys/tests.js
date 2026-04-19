@@ -593,6 +593,29 @@
       }),
 
 
+
+      makeTest('Projekt i agregacja', 'ROZRYS discoverVisibleProjectRoomKeys trzyma meta kolejność i odrzuca puste legacy pokoje', 'Pilnuje splitu helpera źródeł projektu: widoczne pokoje mają brać kolejność z meta projektu, ale nie mogą doklejać pustych legacy kreatorów bez danych.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          meta:{
+            roomDefs:{
+              room_b:{ id:'room_b', baseType:'pokoj', name:'Salon', label:'Salon' },
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia', label:'Kuchnia' },
+            },
+            roomOrder:['room_b','room_a']
+          },
+          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          room_b:{ cabinets:[{ id:'cab-b', width:70, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          pokoj:{ cabinets:[], fronts:[], sets:[], settings:{} },
+        };
+        assert(FC.rozrys && typeof FC.rozrys.discoverVisibleProjectRoomKeys === 'function', 'Brak FC.rozrys.discoverVisibleProjectRoomKeys');
+        const rooms = FC.rozrys.discoverVisibleProjectRoomKeys(fixtureProject);
+        assert(Array.isArray(rooms) && rooms.length === 2, 'Helper widocznych pokoi nadal dokleił puste legacy pokoje albo zgubił meta pokoje', rooms);
+        assert(rooms[0] === 'room_b' && rooms[1] === 'room_a', 'Helper widocznych pokoi nie zachował kolejności roomOrder z meta projektu', rooms);
+        assert(!rooms.includes('kuchnia') && !rooms.includes('pokoj'), 'Helper widocznych pokoi nadal przepuszcza puste legacy kreatory', rooms);
+      }),
+
       makeTest('Projekt i agregacja', 'ROZRYS picker pomieszczeń nie pokazuje legacy kreatorów, gdy inwestor ma własne pokoje', 'Pilnuje regresję, w której do wyboru pomieszczeń w ROZRYS wpadały bazowe kreatory kuchnia/szafa/pokój/łazienka mimo że aktywny inwestor miał już własne realne pokoje.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

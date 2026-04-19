@@ -1405,3 +1405,10 @@ Dopiero potem go zmieniać.
 - `js/app/cabinet/cabinet-modal-set-wizard.js` — presety `zestaw` przestały być rysowane inline w JS. Modal ładuje teraz osobne pliki SVG, dzięki czemu ikonki nie są zaszyte w monolicie i łatwiej je później poprawiać bez ryzyka rozjechania logiki.
 - `assets/set-presets/preset-a.svg`, `preset-c.svg`, `preset-d.svg` — nowe, osobne miniatury lepiej odpowiadają realnym presetom: `A` pokazuje dwa doły + moduł u góry, `C` dół + moduł na pełnej szerokości, `D` dół + moduł środkowy + moduł górny w pionie.
 - Instrukcja antyregresyjna: kolejne poprawki miniaturek presetów robić w osobnych plikach SVG, a nie przez ponowne zaszywanie kształtów inline w `cabinet-modal-set-wizard.js`.
+
+## 2026-04-19 — room-registry / ROZRYS project-source split
+- `js/app/shared/room-registry.js` został odchudzony i nie może znowu mieszać całego rdzenia rejestru, skutków ubocznych usuwania pokoju i UI modali w jednym pliku. Rdzeń definicji/merge/sort siedzi w `js/app/shared/room-registry-core.js`, a cleanup/sync po zmianie listy pokoi w `js/app/shared/room-registry-removal.js`.
+- `js/app/rozrys/rozrys.js` oddaje wykrywanie kandydatów projektu i widocznych pokoi do `js/app/rozrys/rozrys-project-source.js`; nie doklejać z powrotem logiki odkrywania pokoi/projektów do monolitu zakładki.
+- `dev_tests.html`, `tools/app-dev-smoke.js` i `tools/rozrys-dev-smoke.js` muszą ładować nowe moduły w tej samej kolejności co aplikacja (`room-registry-core` → `room-registry-removal` → `room-registry`, oraz `rozrys-prefs` / `rozrys-project-source` przed `rozrys.js`), inaczej smoke może zgłaszać fałszywe regresje.
+- Antyregresja: `js/testing/investor/tests.js` pilnuje, że aktywne pokoje scalają meta projektu z kolejnością inwestora bez gubienia etykiet; `js/testing/rozrys/tests.js` pilnuje, że ROZRYS trzyma kolejność meta i odrzuca puste legacy pokoje.
+- Uwaga architektoniczna: w tym etapie nie ruszać `js/tabs/rysunek.js` — jest tymczasowy i ma być przebudowywany osobno.
