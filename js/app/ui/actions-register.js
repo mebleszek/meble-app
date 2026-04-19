@@ -121,6 +121,12 @@
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
+    'open-room-settings': ({event}) => {
+      try{
+        if(window.FC && window.FC.wywiadRoomSettings && typeof window.FC.wywiadRoomSettings.open === 'function') return !!window.FC.wywiadRoomSettings.open();
+      }catch(_){ }
+      return true;
+    },
 
     'save-material': ({event}) => {
       const btn = document.getElementById('savePriceBtn');

@@ -80,9 +80,38 @@
         <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
         <button id="copyErrorsOnly" data-label="Kopiuj tylko błędy" type="button" disabled>Kopiuj tylko błędy</button>
         <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
+        <a id="openUiPatterns" href="dev_ui_patterns.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--btn-border);background:var(--btn);color:#162033;padding:12px 18px;border-radius:14px;font:800 16px/1.15 inherit;text-decoration:none">Wzorce UI</a>
       </div>
       <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
       <div id="results"></div>
+      <div id="devTestsAppFixture" aria-hidden="true" style="display:none">
+        <div id="homeView"></div>
+        <div id="modeHubView"></div>
+        <div id="investorsListView"><div id="investorsListRoot"></div></div>
+        <div id="serviceOrdersListView"><div id="serviceOrdersListRoot"></div></div>
+        <div id="roomsView"></div>
+        <div id="investorView"><div id="investorRoot"></div></div>
+        <div id="rozrysView"><div id="rozrysRoot"></div></div>
+        <div id="magazynView"><div id="magazynRoot"></div></div>
+        <div id="appView"></div>
+        <button id="floatingAdd" type="button"></button>
+        <div id="topBar" style="display:none">
+          <div id="sessionButtons" style="display:none">
+            <button id="sessionCancel" type="button"></button>
+            <button id="sessionSave" type="button"></button>
+          </div>
+          <nav id="topTabs" class="top-tabs">
+            <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
+            <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
+            <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
+            <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
+            <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
+            <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
+            <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
+            <button class="btn tab-btn" data-tab="magazyn" data-action="tab">MAGAZYN</button>
+          </nav>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -96,35 +125,73 @@
   <script src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/service/service-order-store.js?v=20260408_stage4_cleanup_v1"></script>
+  <script src="js/app/service/service-order-store.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/catalog/catalog-store.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/catalog/catalog-selectors.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
+  <script src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
+  <script src="js/app/service/cutting/service-order-detail.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/material/material-common.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/material/material-registry.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/investor/investors-store.js?v=20260408_stage4_cleanup_v1"></script>
-  <script src="js/app/investor/investor-persistence.js?v=20260412_status_sync_stage3_v1"></script>
+  <script src="js/app/investor/investor-persistence.js?v=20260415_status_master_v1"></script>
   <script src="js/app/investor/project-bootstrap.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/investor/investor-editor-state.js?v=20260406_price_modal_fix_v2"></script>
   <script src="js/app/investor/investor-navigation-guard.js?v=20260407_stage2_rooms_modal_v1"></script>
   <script src="js/app/investor/investor-field-render.js?v=20260407_investor_cleanup_v1"></script>
-  <script src="js/app/shared/room-registry.js?v=20260412_rozrys_first_click_fix_v1"></script>
+      <script src="js/app/shared/room-registry.js?v=20260419_room_registry_revert_fix_v3"></script>
   <script src="js/app/investor/investor-room-actions.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/investor/investor-actions.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/investor/investor-pdf.js?v=20260410_stage9_quote_sync_v1"></script>
-  <script src="js/app/investor/investor-rooms.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/service/service-orders.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/app/investor/investor-rooms.js?v=20260414_status_guard_fix_v1"></script>
+  <script src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
+  <script src="js/app/ui/tabs-router.js?v=20260417_wycena_history_test_hotfix_v1"></script>
+  <script src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
+  <script src="js/app/ui/confirm-box.js?v=20260418_ui_patterns_v1"></script>
+  <script src="js/core/actions.js?v=20260418_wywiad_room_params_modal_v2"></script>
+  <script src="js/app/ui/actions-register.js?v=20260418_wywiad_room_params_modal_v2"></script>
+  <script src="js/app/ui/panel-box.js?v=20260418_wywiad_room_params_modal_v2"></script>
+  <script src="js/app/ui/wywiad-room-settings.js?v=20260418_wywiad_room_params_fix_v3"></script>
+  <script src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
+  <script src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
-  <script src="js/app/quote/quote-offer-store.js?v=20260412_quote_pdf_client_v1"></script>
-  <script src="js/app/quote/quote-snapshot-store.js?v=20260412_status_sync_stage2_v1"></script>
-  <script src="js/app/project/project-status-sync.js?v=20260412_status_sync_stage3_hotfix_v1"></script>
-  <script src="js/app/quote/quote-snapshot.js?v=20260412_quote_pdf_client_v1"></script>
-  <script src="js/app/quote/quote-pdf.js?v=20260412_quote_pdf_client_v1"></script>
-  <script src="js/app/wycena/wycena-core.js?v=20260412_status_sync_stage2_v1"></script>
-  <script src="js/tabs/wycena.js?v=20260412_status_sync_stage3_v1"></script>
+  <script src="js/app/ui/views.js?v=20260416_home_restore_v1"></script>
+  <script src="js/app/quote/quote-offer-store.js?v=20260415_quote_scope_names_v1"></script>
+  <script src="js/app/quote/quote-snapshot-store.js?v=20260417_wycena_scope_canonical_v1"></script>
+<script src="js/app/quote/quote-scope-entry.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
+  <script src="js/app/project/project-status-sync.js?v=20260415_status_cleanup_v1"></script>
+  <script src="js/app/project/project-status-manual-guard.js?v=20260415_status_engine_v1"></script>
+  <script src="js/app/quote/quote-snapshot.js?v=20260417_quote_scope_labels_v1"></script>
+  <script src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
+  <script src="js/app/wycena/wycena-core.js?v=20260416_quote_validation_v1"></script>
+  <script src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
+  <script src="js/app/wycena/wycena-tab-selection.js?v=20260417_wycena_scope_name_fix_v1"></script>
+  <script src="js/app/wycena/wycena-tab-editor.js?v=20260416_wycena_tab_editor_v1"></script>
+  <script src="js/app/wycena/wycena-tab-scroll.js?v=20260416_wycena_tab_scroll_v1"></script>
+  <script src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
+  <script src="js/app/wycena/wycena-tab-status-bridge.js?v=20260417_wycena_status_bridge_v1"></script>
+  <script src="js/tabs/wycena.js?v=20260417_wycena_scope_labels_v1"></script>
   <script src="js/app/material/price-modal.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/cabinet/cabinet-cutlist.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/cabinet/cabinet-cutlist.js?v=20260415_cabinet_cutlist_fix_v3"></script>
+  <script src="js/app/cabinet/cabinet-fronts.js?v=20260418_wywiad_modal_foundation_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-validation.js?v=20260418_wywiad_set_wizard_split_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-draft.js?v=20260418_wywiad_set_wizard_split_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-fields.js?v=20260418_wywiad_set_wizard_split_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-finalize.js?v=20260419_wywiad_finalize_stage5_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20260418_set_preset_icons_v1"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-corner-standard.js?v=20260419_wywiad_standing_split_v2"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20260419_wywiad_standing_split_v2"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-extras.js?v=20260419_wywiad_standing_split_v2"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-front-controls.js?v=20260419_wywiad_standing_split_v1"></script>
+<script src="js/app/cabinet/cabinet-modal-standing.js?v=20260419_wywiad_standing_split_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
+  <script src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal.js?v=20260419_wywiad_standing_split_v1"></script>
+  <script src="js/app/cabinet/cabinet-actions.js?v=20260417_wywiad_test_guard_v1"></script>
   <script src="js/app/optimizer/cut-optimizer.js?v=20260328_dev_tests_single_v1"></script>
     <script src="js/app/rozrys/rozrys-cache.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/app/rozrys/rozrys-prefs.js?v=20260419_room_rozrys_split_v1"></script>
   <script src="js/app/rozrys/rozrys-state.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/rozrys/rozrys-scope.js?v=20260407_stage2_fix_v2"></script>
     <script src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_dev_tests_single_v1"></script>
@@ -133,21 +200,30 @@
   <script src="js/app/rozrys/rozrys-validation.js?v=20260406_price_modal_fix_v2"></script>
   <script src="js/app/rozrys/rozrys-stock.js?v=20260406_price_modal_fix_v2"></script>
   <script src="js/app/rozrys/rozrys-render.js?v=20260406_price_item_popup_v1"></script>
-  <script src="js/app/rozrys/rozrys.js?v=20260412_rozrys_first_click_fix_v1"></script>
+  <script src="js/app/rozrys/rozrys-project-source.js?v=20260419_room_rozrys_split_v1"></script>
+  <script src="js/app/rozrys/rozrys.js?v=20260419_exact_room_scope_v2"></script>
   <script src="js/app/rozrys/rozrys-pickers.js?v=20260330_material_footer_restore_v1"></script>
   <script src="js/app/rozrys/rozrys-selection-ui.js?v=20260329_material_scope_chip_sync_v1"></script>
-  <script src="js/testing/shared/harness.js?v=20260328_dev_tests_single_v1"></script>
+  <script src="js/testing/shared/harness.js?v=20260416_async_harness_v1"></script>
   <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/test-data-manager.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
-  <script src="js/testing/rozrys/tests.js?v=20260412_rozrys_first_click_fix_v1"></script>
-  <script src="js/testing/project/tests.js?v=20260408_stage4_cleanup_v1"></script>
-  <script src="js/testing/investor/tests.js?v=20260412_foundation_tests_v1"></script>
+  <script src="js/testing/rozrys/tests.js?v=20260419_room_context_scope_v1"></script>
+  <script src="js/testing/project/tests.js?v=20260418_wywiad_room_params_fix_v3"></script>
+  <script src="js/testing/investor/tests.js?v=20260419_room_registry_revert_fix_v3"></script>
   <script src="js/testing/material/tests.js?v=20260412_foundation_tests_v1"></script>
-  <script src="js/testing/wycena/tests.js?v=20260412_status_sync_stage3_hotfix_v1"></script>
-  <script src="js/testing/cabinet/tests.js?v=20260406_quote_ui_pdf_v1"></script>
-  <script src="js/testing/service/tests.js?v=20260412_service_catalog_sync_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260412_service_suite_v1"></script>
+  <script src="js/testing/wycena/fixtures.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/wycena/suites/core-offer-basics.js?v=20260417_wycena_history_hotfix_v1"></script>
+  <script src="js/testing/wycena/suites/core-offer-workflow.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/wycena/suites/central-status-sync.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/wycena/suites/scope-entry.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
+  <script src="js/testing/wycena/suites/investor-integration.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/wycena/suites/cross-systems.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/wycena/suites/status-anti-regression.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/wycena/tests.js?v=20260416_wycena_test_split_v1"></script>
+  <script src="js/testing/cabinet/tests.js?v=20260419_wywiad_fridge_fix_v1"></script>
+  <script src="js/testing/service/tests.js?v=20260414_service_cutting_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260416_async_runner_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};

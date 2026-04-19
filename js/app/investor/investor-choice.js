@@ -18,7 +18,12 @@
       const picked = await choiceApi.openRozrysChoiceOverlay({
         title: cfg.title,
         value: String(cfg.selectEl.value || ''),
-        options: Array.from(cfg.selectEl.options || []).map((opt)=> ({ value:String(opt.value || ''), label:String(opt.textContent || opt.label || opt.value || '') }))
+        options: Array.from(cfg.selectEl.options || []).map((opt)=> ({
+          value:String(opt.value || ''),
+          label:String(opt.textContent || opt.label || opt.value || ''),
+          disabled: !!opt.disabled,
+          description: String(opt.getAttribute('data-description') || '').trim()
+        }))
       });
       if(picked == null || String(picked) === String(cfg.selectEl.value || '')) return;
       cfg.selectEl.value = String(picked || '');

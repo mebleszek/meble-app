@@ -308,6 +308,26 @@
       FC.roomRegistry = prevRoomRegistry;
     }
   }
+
+  function withPatchedUiState(statePatch, run){
+    const prevHostUiState = host.uiState;
+    const prevFcUiState = FC.uiState;
+    const baseState = (()=>{
+      try{
+        if(prevFcUiState && typeof prevFcUiState.get === 'function') return prevFcUiState.get() || {};
+      }catch(_error){}
+      return (prevHostUiState && typeof prevHostUiState === 'object') ? prevHostUiState : {};
+    })();
+    const nextState = Object.assign({}, baseState, statePatch || {});
+    host.uiState = nextState;
+    FC.uiState = Object.assign({}, prevFcUiState || {}, { get: ()=> nextState });
+    try{
+      return run();
+    }finally{
+      host.uiState = prevHostUiState;
+      FC.uiState = prevFcUiState;
+    }
+  }
   function buildPrintDeps(){
     return {
       measurePrintHeaderMm: ()=> 14,
@@ -592,6 +612,112 @@
         assert(Array.isArray(agg.materials) && agg.materials.includes('Jesion test'), 'ROZRYS po retry nadal nie zbudował materiału', agg);
       }),
 
+      makeTest('Projekt i agregacja', 'ROZRYS nie poszerza scope pustego, ale istniejącego pokoju do innych pokoi projektu', 'Pilnuje dokładnego zakresu: jeśli wybrany pokój istnieje, ale nie ma żadnych szafek, agregacja ma zostać pusta zamiast po cichu pobierać materiał z innego pokoju.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          room_h:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          meta:{
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'A', label:'A' },
+              room_h:{ id:'room_h', baseType:'pokoj', name:'H', label:'H' },
+            },
+            roomOrder:['room_a','room_h']
+          }
+        };
+        const fixtureCutList = (cabinet, roomId)=>{
+          if(String(roomId || '') !== 'room_a') return [];
+          return [
+            { name:'Bok A', qty:2, a:72, b:56, material:'Materiał A' },
+          ];
+        };
+        const agg = withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=> FC.rozrys.aggregatePartsForProject(['room_h']));
+        assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.length === 1 && String(agg.selectedRooms[0] || '') === 'room_h', 'ROZRYS zgubił exact selectedRooms dla pustego pokoju', agg);
+        assert(Array.isArray(agg.materials) && agg.materials.length === 0, 'ROZRYS nie może po cichu pobierać materiału z innego pokoju, gdy exact scope jest pusty', agg);
+      }),
+
+      makeTest('Projekt i agregacja', 'ROZRYS startując z pokoju bierze exact current room zamiast starego globalnego scope z innego pokoju', 'Pilnuje regresji po fixie exact-scope: gdy zapisany globalny wybór pokoi wskazuje inny pokój niż aktualnie otwarty, ROZRYS ma wystartować od bieżącego roomType zamiast odziedziczyć obcy scope i pokazać pusty stan.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          room_h:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          meta:{
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'A', label:'A' },
+              room_h:{ id:'room_h', baseType:'pokoj', name:'H', label:'H' },
+            },
+            roomOrder:['room_a','room_h']
+          }
+        };
+        const fixtureCutList = (cabinet, roomId)=>{
+          if(String(roomId || '') !== 'room_a') return [];
+          return [
+            { name:'Bok A', qty:2, a:72, b:56, material:'Materiał A' },
+          ];
+        };
+        assert(FC.rozrys && typeof FC.rozrys.resolveInitialSelectedRooms === 'function', 'Brak FC.rozrys.resolveInitialSelectedRooms');
+        const resolved = withPatchedRoomRegistry({
+          hasCurrentInvestor: ()=> true,
+          getActiveRoomIds: ()=> ['room_a', 'room_h'],
+        }, ()=> withPatchedUiState({ roomType:'room_a' }, ()=> withPatchedProjectFixture(fixtureProject, fixtureCutList, ()=>{
+          const rooms = FC.rozrys.resolveInitialSelectedRooms('room_h');
+          const agg = FC.rozrys.aggregatePartsForProject(rooms);
+          return { rooms, agg };
+        })));
+        assert(Array.isArray(resolved.rooms) && resolved.rooms.length === 1 && resolved.rooms[0] === 'room_a', 'ROZRYS nie nadpisał starego scope bieżącym pokojem', resolved);
+        assert(Array.isArray(resolved.agg && resolved.agg.materials) && resolved.agg.materials.includes('Materiał A'), 'ROZRYS po starcie z pokoju nadal nie zbudował materiałów bieżącego pokoju', resolved);
+      }),
+
+
+
+      makeTest('Projekt i agregacja', 'ROZRYS discoverVisibleProjectRoomKeys trzyma meta kolejność i odrzuca puste legacy pokoje', 'Pilnuje splitu helpera źródeł projektu: widoczne pokoje mają brać kolejność z meta projektu, ale nie mogą doklejać pustych legacy kreatorów bez danych.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          meta:{
+            roomDefs:{
+              room_b:{ id:'room_b', baseType:'pokoj', name:'Salon', label:'Salon' },
+              room_a:{ id:'room_a', baseType:'kuchnia', name:'Kuchnia', label:'Kuchnia' },
+            },
+            roomOrder:['room_b','room_a']
+          },
+          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          room_b:{ cabinets:[{ id:'cab-b', width:70, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          pokoj:{ cabinets:[], fronts:[], sets:[], settings:{} },
+        };
+        assert(FC.rozrys && typeof FC.rozrys.discoverVisibleProjectRoomKeys === 'function', 'Brak FC.rozrys.discoverVisibleProjectRoomKeys');
+        const rooms = FC.rozrys.discoverVisibleProjectRoomKeys(fixtureProject);
+        assert(Array.isArray(rooms) && rooms.length === 2, 'Helper widocznych pokoi nadal dokleił puste legacy pokoje albo zgubił meta pokoje', rooms);
+        assert(rooms[0] === 'room_b' && rooms[1] === 'room_a', 'Helper widocznych pokoi nie zachował kolejności roomOrder z meta projektu', rooms);
+        assert(!rooms.includes('kuchnia') && !rooms.includes('pokoj'), 'Helper widocznych pokoi nadal przepuszcza puste legacy kreatory', rooms);
+      }),
+
+      makeTest('Projekt i agregacja', 'ROZRYS picker pomieszczeń nie pokazuje legacy kreatorów, gdy inwestor ma własne pokoje', 'Pilnuje regresję, w której do wyboru pomieszczeń w ROZRYS wpadały bazowe kreatory kuchnia/szafa/pokój/łazienka mimo że aktywny inwestor miał już własne realne pokoje.', ()=>{
+        const fixtureProject = {
+          schemaVersion: 9,
+          meta:{
+            roomDefs:{
+              room_a:{ id:'room_a', baseType:'pokoj', name:'a', label:'a' },
+              room_j:{ id:'room_j', baseType:'pokoj', name:'J', label:'J' },
+            },
+            roomOrder:['room_a','room_j']
+          },
+          room_a:{ cabinets:[{ id:'cab-a', width:80, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          room_j:{ cabinets:[{ id:'cab-j', width:70, height:72, depth:56 }], fronts:[], sets:[], settings:{} },
+          kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          szafa:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          pokoj:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          lazienka:{ cabinets:[], fronts:[], sets:[], settings:{} },
+        };
+        const rooms = withPatchedRoomRegistry({
+          hasCurrentInvestor: ()=> true,
+          getActiveRoomIds: ()=> ['room_a','room_j'],
+          getRoomLabel: (room)=> room === 'room_a' ? 'a' : (room === 'room_j' ? 'J' : String(room || '')),
+        }, ()=> withPatchedProjectFixture(fixtureProject, ()=> ([]), ()=> FC.rozrys.getRoomsForProject(fixtureProject)));
+        assert(Array.isArray(rooms) && rooms.length === 2, 'ROZRYS nadal miesza realne pokoje inwestora z legacy kreatorami', rooms);
+        assert(rooms.includes('room_a') && rooms.includes('room_j'), 'ROZRYS zgubił realne pokoje inwestora po odfiltrowaniu legacy kreatorów', rooms);
+        assert(!rooms.includes('kuchnia') && !rooms.includes('szafa') && !rooms.includes('pokoj') && !rooms.includes('lazienka'), 'ROZRYS nadal pokazuje legacy kreatory jako pokoje wyboru', rooms);
+      }),
       makeTest('Projekt i agregacja', 'ROZRYS przy aktywnym roomRegistry nie gubi pokojów odkrytych w projekcie', 'Pilnuje first-click regresji, w której aktywny inwestor zwracał stare pokoje z registry i blokował materiały z faktycznego projektu.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,

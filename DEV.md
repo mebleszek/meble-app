@@ -1,3 +1,223 @@
+## 2026-04-19 — ROZRYS room-context scope guard over stale global prefs
+- `js/app/rozrys/rozrys.js` — start ROZRYS w kontekście pokoju (`uiState.roomType`) bierze teraz exact bieżący pokój jako wejściowy scope, zamiast odziedziczyć stary globalny `selectedRooms` z poprzednio otwartego pokoju. Dzięki temu fix exact-scope nie zeruje ROZRYS dla pokoju z szafkami tylko dlatego, że w prefs został pusty pokój otwarty wcześniej.
+- `js/testing/rozrys/tests.js` — dodany test pilnujący, że stale zapisany scope innego pokoju nie może nadpisać bieżącego roomType przy starcie ROZRYS.
+- Instrukcja antyregresyjna: przy wejściu do działu w kontekście konkretnego pokoju nie ufać bezwarunkowo globalnym prefs zakresu pokoi. Najpierw ustalić bieżący room context z `uiState`, a dopiero potem stosować zapisany scope jako fallback poza kontekstem pokoju.
+
+## 2026-04-19 — Exact room scope guard for empty room in ROZRYS/WYCENA
+- `js/app/rozrys/rozrys.js` — naprawiony centralny fallback agregacji: jeśli użytkownik wybiera istniejący pokój/exact scope i ten pokój nie ma szafek, ROZRYS nie może już po cichu rozszerzać zakresu do innych pokoi projektu. Retry do pełnej listy pokoi wolno robić tylko wtedy, gdy wejściowy wybór pokoi realnie znormalizował się do pustego scope (np. stary/nieistniejący zapis).
+- `js/testing/rozrys/tests.js` — dodany test pilnujący, że pusty, ale istniejący pokój zostaje pusty i nie pożycza materiałów z innego pokoju.
+- `js/testing/wycena/suites/cross-systems.js` — dodany test pilnujący, że Wycena dla takiego exact scope kończy się `empty_quote_scope`, a nie ofertą policzoną z obcego pokoju.
+- Instrukcja antyregresyjna: przy scope pokoi rozróżniać dwa przypadki: (1) exact room istnieje, ale nie ma danych — wynik ma zostać pusty; (2) zapisany wybór jest nieprawidłowy/stary i po normalizacji znika — dopiero wtedy można retryować pełną listę realnych pokoi projektu.
+
+## 2026-04-19 — Wywiad standing extras split into corner/standard + specials
+- `js/app/cabinet/cabinet-modal-standing-corner-standard.js` — wydzielone z dużego `cabinet-modal-standing-extras.js` rzeczy narożno-standardowe: `narozna_l` (GL/GP/ST/SP + szkic) oraz blok `standardowa / rogowa_slepa / narozna_l`.
+- `js/app/cabinet/cabinet-modal-standing-specials.js` — wydzielone subtype’y specjalne `stojąca`: `szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, razem z ostrzeżeniem systemowym dla GTV/Rejs.
+- `js/app/cabinet/cabinet-modal-standing-extras.js` — zostaje cienkim routerem API zgodnym z dotychczasowym kontraktem; tylko deleguje do dwóch nowych modułów.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` — dopięte nowe pliki do realnego ładowania aplikacji i smoke runnera.
+- Instrukcja antyregresyjna: przy kolejnych zmianach `stojąca` nie dokładać wszystkiego do jednego `standing-extras`. Rzeczy narożne/standardowe trzymać w `cabinet-modal-standing-corner-standard.js`, a subtype’y specjalne w `cabinet-modal-standing-specials.js`.
+
+## 2026-04-19 — Wywiad standing split into smaller technical modules
+- `js/app/cabinet/cabinet-modal-standing-extras.js` — wydzielone ciężkie renderery subtype'ów `stojąca`: narożna L (wymiary + szkic), szuflady, zlewowa, zmywarkowa, lodówkowa, piekarnikowa oraz blok `standardowa / rogowa_slepa / narozna_l`, bez zmiany UI i bez zmiany logiki pól.
+- `js/app/cabinet/cabinet-modal-standing-front-controls.js` — wydzielone sterowanie `frontCount`/hintami/półkami dla typu `stojąca` oraz efekt zmiany subtype `zmywarkowa`.
+- `js/app/cabinet/cabinet-modal-standing.js` — zostaje cienkim adapterem rodziny `stojąca`; tylko deleguje render extra details, konfigurację front controls i hook po zmianie subtype do dwóch nowych modułów.
+- `index.html` + `dev_tests.html` + `tools/app-dev-smoke.js` — dopięte nowe pliki do realnego ładowania aplikacji i smoke runnera.
+- Instrukcja antyregresyjna: przy kolejnych zmianach subtype'ów `stojąca` nie rozrastać znowu `cabinet-modal-standing.js`; nowe pola/render wrzucać do `cabinet-modal-standing-extras.js`, a logikę sterowania frontami / hooki subtype do `cabinet-modal-standing-front-controls.js`.
+
+## 2026-04-19 — Wywiad finalize/save split from cabinet modal
+- `js/app/cabinet/cabinet-modal-finalize.js` — wydzielona finalizacja zwykłej szafki: sync draftu z formularza, walidacja Aventosa, rozróżnienie add/edit, zapis do `projectData`, persist `project/ui`, odświeżenie listy i zamknięcie modala. Tryb `zestaw` pozostaje obsługiwany przez delegację do `cabinet-modal-set-wizard.js`.
+- `js/app/cabinet/cabinet-modal.js` — orchestrator nie trzyma już lokalnie dużego bloku zapisu z przycisku `Dodaj / Zapisz zmiany`; binduje top save przez moduł finalizacji.
+- `js/testing/cabinet/tests.js` + `tools/app-dev-smoke.js` — dodane antyregresje dla zapisu dodawanej i edytowanej szafki oraz dopięte do node smoke brakujące moduły `set-wizard / standing / hanging / module / finalize`, żeby runner wykonywał realny stan `Wywiadu`, a nie okrojoną wersję bez splitów.
+- Instrukcja antyregresyjna: dalszy zapis zwykłej szafki rozwijać w `cabinet-modal-finalize.js`, nie wrzucać z powrotem do `cabinet-modal.js`. Orchestrator ma tylko spinać tryb, render i delegację do finalizacji.
+
+## 2026-04-19 — Wywiad fridge launcher regression real fix
+- `js/app/cabinet/cabinet-modal.js` — naprawiony realny błąd fallbacku dla legacy/test fixture lodówkowej: wcześniejszy fallback po `subType` był martwy, bo `getCabinetModalTypeApi(...)` najpierw bezwarunkowo ufał `type`. Teraz warstwa UI sprawdza zgodność `type` z dozwolonymi subtype’ami danej rodziny i tylko gdy `subType` jednoznacznie należy do innej rodziny (`lodowkowa`, `zlewowa`, `zmywarkowa`, `piekarnikowa`, `dolna_podblatowa`), deleguje render do właściwego modułu typu.
+- `index.html` + `dev_tests.html` — podbity cache-busting `cabinet-modal.js`, żeby przeglądarka nie trzymała starej wersji z martwym fallbackiem.
+- Instrukcja antyregresyjna: przy legacy/test danych z niespójnym `type`/`subType` nie wystarczy fallback „gdy type jest pusty”. Najpierw sprawdzić, czy wskazany `type` w ogóle posiada dany `subType`; dopiero potem można bezpiecznie użyć wąskiego fallbacku po jednoznacznym `subType`, wyłącznie dla warstwy UI/renderu.
+
+## 2026-04-19 — Wywiad lodówkowa niche restore + legacy dynamic renderer fallback
+- `js/app/cabinet/cabinet-modal-standing.js` — przywrócona pełna lista wysokości niszy lodówkowej z wcześniejszej wersji (`82`, `122`, `158`, `178`, `194`, `204`) oraz dawny wariant opcji lodówki wolnostojącej (`Brak`, `Podest`, `Obudowa`), bez zmiany logiki wyliczeń lodówkowej.
+- `js/app/cabinet/cabinet-modal.js` — `renderCabinetExtraDetailsInto(...)` ma wąski fallback antyregresyjny dla jednoznacznych subtype'ów (`zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, `dolna_podblatowa`), więc legacy/test fixture z niezgodnym `type` nie traci dynamicznych selectów i launcherów.
+- `js/testing/cabinet/tests.js` — dodany test pilnujący, że lodówkowa nie gubi wysokich nisz po refaktorze typów.
+- Instrukcja antyregresyjna: przy kolejnych porządkach `Wywiadu` nie zakładać, że sam `type` w test fixture/legacy danych zawsze jest poprawny. Dla renderu dynamicznych pól można stosować tylko wąski fallback dla subtype'ów jednoznacznie należących do jednej rodziny, bez rozlewania tego na logikę biznesową.
+
+## 2026-04-19 — Wywiad type split: standing / hanging / module
+- `js/app/cabinet/cabinet-modal-standing.js` — wydzielona logika typu `stojąca`: dodatkowe pola subtype'ów (`szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, `standardowa`, `rogowa_slepa`, `narozna_l`), konfiguracja frontCount UI i reakcja na zmianę subtype bez zmiany zachowania modala.
+- `js/app/cabinet/cabinet-modal-hanging.js` — wydzielona logika typu `wisząca`: `dolna_podblatowa`, `rogowa_slepa`, `narozna_l`, `uchylne`, wraz z frontCount/flap UI i plecami podblatowej.
+- `js/app/cabinet/cabinet-modal-module.js` — wydzielona logika typu `moduł`: `standardowa`, `szuflady`, `uchylne`, wraz z drawer extras, flap UI i reakcją na zmianę subtype na klapę.
+- `js/app/cabinet/cabinet-modal.js` — orchestrator deleguje już render dodatkowych pól, konfigurację frontów i reakcję na zmianę subtype do modułów typów; nie trzyma lokalnie tej logiki.
+- Instrukcja antyregresyjna: przy kolejnych zmianach w `Wywiadzie` nie dopisywać nowych subtype'ów z powrotem do `cabinet-modal.js`. Najpierw sprawdzać odpowiedni moduł typu (`standing` / `hanging` / `module`) i tam trzymać logikę specyficzną dla rodziny.
+
+## 2026-04-18 — Wywiad set wizard split from cabinet modal
+- `js/app/cabinet/cabinet-modal-set-wizard.js` — wyjęta z monolitu pełna obsługa trybu `zestaw`: wejście w edycję, render kafli i parametrów, live-przeliczanie wynikowych pól, blok frontów, detekcja trybu zestawu dla górnego przycisku oraz zapis/aktualizacja zestawu bez zmiany UI i bez zmiany logiki biznesowej.
+- `js/app/cabinet/cabinet-modal.js` — `zestaw` nie siedzi już lokalnie w środku pliku; modal deleguje tryb zestawu do osobnego modułu i zostaje cieńszym orchestrator-em.
+- `js/testing/cabinet/tests.js` — nowy test pilnuje edycji istniejącego zestawu po wydzieleniu set-wizarda: preset, parametry i kolor frontów muszą się wczytać bez regresji.
+- Instrukcja antyregresyjna: kolejne etapy (`stojąca`, `wisząca`, `moduł`) mają iść tym samym kierunkiem — logika specyficzna dla trybu/rodziny ma siedzieć we własnym module, a `cabinet-modal.js` ma tylko spinać ścieżkę renderu i zapisu.
+
+## 2026-04-18 — Wywiad cabinet modal foundation split (draft / fields / validation)
+- `js/app/cabinet/cabinet-modal-validation.js` — wyjęte z monolitu bezpieczne delegatory/guardy do `cabinetFronts` i `calc` oraz normalizacja legacy subtype (`szufladowa` -> `szuflady`).
+- `js/app/cabinet/cabinet-modal-draft.js` — wyjęte przygotowanie draftu i techniczne ustawianie stanu modala dla dodawania/edycji/zestawu, bez zmiany typów realnie używanych w programie (`stojąca`, `wisząca`, `moduł`, `zestaw`).
+- `js/app/cabinet/cabinet-modal-fields.js` — wyjęte helpery pól formularza: populowanie selectów i techniczne dokładanie dynamicznych pól select/number do `cmExtraDetails`, bez zmiany renderu UI.
+- `js/app/cabinet/cabinet-modal.js` — zostaje głównym orchestrator-em, ale korzysta już z nowych modułów fundamentu zamiast trzymać cały ten kod lokalnie.
+- Instrukcja antyregresyjna: w kolejnych etapach nie wrzucać z powrotem draftu, helperów pól ani guardów kompatybilności do `cabinet-modal.js`; nowe typy i `zestaw` mają nad tym tylko budować własne warstwy.
+
+## 2026-04-18 — cabinet modal legacy subtype alias for inner drawer launcher test
+- `js/app/cabinet/cabinet-modal.js` — `renderCabinetExtraDetailsInto(...)` normalizuje legacy alias `subType:'szufladowa'` do aktualnego `szuflady` na potrzeby renderu dodatkowych pól. Dzięki temu stary draft/test fixture dalej pokazuje właściwe pola szafek szufladowych, w tym launcher `Ilość szuflad wewnętrznych`, bez zmiany aktualnej logiki UI dla bieżących subtype'ów.
+- Instrukcja antyregresyjna: jeśli test/legacy dane używają starej nazwy subtype, nie poprawiać tego zgadywaniem po całym kodzie ani przez zmianę UI; najpierw normalizować alias przy wejściu do warstwy renderu/odczytu.
+
+## 2026-04-18 — Wywiad room params real data source fix + dynamic launcher hidden-root guard
+- `js/app/ui/wywiad-room-settings.js` — topka `Wywiad` nie czyta już tylko `window.projectData/window.uiState`; najpierw bierze wspólny stan aplikacji (`projectData`, `uiState`), a dopiero potem fallbacki na `window.*`. To domyka realny błąd przycisku `Parametry`, który wyglądał na zbindowany, ale nie otwierał modala, bo moduł nie widział aktualnych ustawień pokoju.
+- `js/app/cabinet/cabinet-choice-launchers.js` — hidden-root guard dla launcherów obejmuje też strukturalne rooty modala/test-fixture (`cabinetFormArea`, `cabinet-choice-sync`, lokalny test fixture), ale nadal nie ignoruje lokalnie ukrytych wrapperów konkretnych pól. Dzięki temu testowe/dynamiczne selecty lodówki i szuflad wewnętrznych dalej dostają launchery bez regresji dla naprawdę schowanych pól.
+- `js/boot.js` — recovery nie doładowuje już ponownie `js/app.js`; przy klasycznym skrypcie z top-level state dawało to fałszywy `SyntaxError: Identifier ... has already been declared` i maskowało prawdziwy problem startu.
+- Instrukcja antyregresyjna: helpery UI poza `app.js` nie mogą zakładać, że cały stan żyje na `window.*`. Najpierw próbować współdzielonych globali aplikacji (`projectData`, `uiState` itd.), a dopiero potem fallback do `window.*`. Przy launcherach rozróżniać ukryty root testowy/strukturalny od naprawdę ukrytego pola.
+
+## 2026-04-18 — Wywiad room params compact top + direct trigger + dev-tests sync
+- `index.html` + `css/style.css` + `js/app/ui/wywiad-room-settings.js` — góra `Wywiad` została odchudzona do kompaktowego shellu: krótki tytuł, auto-wysokość, jedna zwarta linia parametrów i mniejszy przycisk `Parametry`; przycisk ma też bezpośredni binding jako bezpieczny fallback, więc nie zależy wyłącznie od delegacji `data-action`.
+- `js/app/cabinet/cabinet-choice-launchers.js` — dynamiczne selecty mogą dostać launcher także wtedy, gdy cały `cabinetModal` jest jeszcze ukrytym rootem testowym; nadal nie montujemy launcherów dla lokalnie ukrytych pól typu `display:none` we wrapperze.
+- `dev_tests.html` + `js/testing/project/tests.js` — strona testów ładuje teraz także `panel-box` i `wywiad-room-settings`, a test projektu pilnuje kompaktowego summary zamiast starej siatki/pigułek.
+- Instrukcja antyregresyjna: przy następnych zmianach góra `Wywiad` ma pozostać mała i użytkowa; nie wracać do ciężkiej listy wielu pigułek ani do przycisku zależnego wyłącznie od jednej ścieżki eventów.
+
+## 2026-04-18 — Wywiad góra jako lekki shell + parametry pomieszczenia w osobnym oknie
+- `index.html` + `js/app/ui/wywiad-room-settings.js` — ciężki blok parametrów nad listą szafek został zastąpiony lekkim shellem z podsumowaniem i jednym wejściem `Parametry pomieszczenia`; sama edycja odbywa się w programowym oknie `panelBox` w stylu ROZRYS, bez systemowych dialogów i bez ruszania logiki obliczeń.
+- `js/app.js` — render `Wywiad` nie próbuje już zasilać stałych inputów w topce; zamiast tego odświeża kompaktowe podsumowanie parametrów pokoju.
+- `css/style.css` — nowe klasy `wywiad-room-settings-*` utrzymują lekki wygląd topki i spójny modal z własnym wewnętrznym układem pól.
+- Instrukcja antyregresyjna: parametry pomieszczenia w `Wywiad` mają pozostać lekkim summary + osobne okno. Nie przywracać pełnej siatki inputów stale wiszącej nad listą szafek.
+
+## 2026-04-18 — Wywiad programowe pickery full sync + bez systemowego confirm
+- `js/app/cabinet/cabinet-choice-launchers.js` — naprawiony realny powód regresji: fallback launcherów nie sprząta już własnych pickerów po ukryciu selecta źródłowego. Select z launcherem jest traktowany jako nadal aktywne źródło prawdy, a cały modal można odświeżyć jednym wywołaniem `refreshCabinetChoices(...)`.
+- `index.html` + `js/app/cabinet/cabinet-modal.js` — wszystkie główne i dynamiczne selecty modala szafki / zestawu są jawnie oznaczone jako źródła pickerów (`cabinet-choice-source` + `data-choice-*`), więc konfiguracja nie opiera się już na kruchym zgadywaniu etykiet.
+- `css/style.css` — select pod launcherem nie jest już chowany przez `display:none`, tylko bezpiecznie wyprowadzany poza ekran (`pointer-events:none`, off-screen), żeby Android nie wracał do systemowego popupu przy kolejnych przebiegach renderu.
+- `js/app/cabinet/cabinet-actions.js` — usuwanie szafki w `Wywiad` nie ma już fallbacku do systemowego `window.confirm`; używa wyłącznie programowego okna aplikacji.
+- `js/testing/cabinet/tests.js` — nowy test pilnuje dokładnie tej regresji: kolejny przebieg fallbacku nie może już usunąć launchera i odsłonić natywnego selecta.
+- Instrukcja antyregresyjna: w `Wywiad` nie wracać do `display:none` jako mechanizmu chowania selectów źródłowych pod launcherem. Select ma zostać aktywnym źródłem prawdy poza ekranem, a nie „znikać” z layoutu w sposób, który psuje kolejne przebiegi mountu.
+
+
+## 2026-04-18 — Wywiad launcher hotfix v7
+- `js/app/cabinet/cabinet-choice-launchers.js` — launchery szafki mają już lokalny fallback API kopiujący overlay/launcher ROZRYS, więc jeśli `FC.rozrysChoice` nie jest jeszcze gotowe albo nie jest dostępne, widoczny UI nadal nie wraca do surowego systemowego selecta.
+- `js/app/cabinet/cabinet-modal.js` — tryb zestawu montuje launchery `setFront*` jeszcze przed wyjściem z gałęzi `zestaw`; dynamiczne `addSelect(...)` oznacza też pola klasą `cabinet-dynamic-choice-source`, żeby fallback widział je po rerenderze.
+- `css/style.css` — w `#cabinetModal` każdy select oznaczony `cabinet-choice-source--enhanced` jest ukrywany globalnie jako źródło prawdy, a launcher zostaje jedynym widocznym UI.
+- Instrukcja antyregresyjna: w `Wywiad` nie stylizować już natywnego selecta jako „udawanego launchera”. Jeśli pole ma być wybierane jak reszta aplikacji, select ma zostać tylko ukrytym źródłem prawdy pod launcherem.
+
+## 2026-04-18 — UI patterns fixture + Wywiad no-system-dialog step
+- `dev_tests.html` + `dev_ui_patterns.html` — w testach pojawiła się sekcja `Wzorce UI` z żywymi referencjami do kopiowania 1:1: modal / header / X / stopka z ROZRYS oraz input z Inwestor. To jest teraz źródło prawdy przy nowych modalach i polach.
+- `js/app/cabinet/cabinet-choice-launchers.js` + `js/app/cabinet/cabinet-modal.js` — kolejny krok Wywiadu bez systemowych elementów: launchery obejmują już także dynamiczne selecty lodówki oraz select ilości szuflad wewnętrznych; natywny `select` dalej zostaje źródłem prawdy.
+- `js/app/cabinet/cabinet-actions.js` + `js/app/cabinet/cabinet-modal.js` — w dotkniętym obszarze Wywiadu nie wracamy do systemowych `alert/confirm`; pierwszeństwo mają `FC.infoBox` i `FC.confirmBox`.
+- Instrukcja antyregresyjna: przy nowych oknach i polach nie tworzyć lokalnych wariantów „podobnych”. Najpierw sprawdzać sekcję `Wzorce UI` i kopiować odpowiedni wzorzec 1:1. W Wywiadzie widoczny UI ma iść przez launchery / modale aplikacji; native select zostaje tylko źródłem prawdy pod spodem.
+
+## 2026-04-18 — Wywiad broader launcher coverage + top/cards/set grid polish
+- `js/app/cabinet/cabinet-choice-launchers.js` — launchery obejmują już nie tylko bezpieczne pola główne modala szafki, ale też dynamiczne selecty dokładane w `cmExtraDetails` oraz selecty bloku `Fronty w zestawie` (`setFrontCount`, `setFrontMaterial`, `setFrontColor`). Native `select` dalej zostaje źródłem prawdy.
+- `js/app/cabinet/cabinet-modal.js` — dynamiczne selecty dostają stałe id/etykiety pod launcher, kompaktowe pola liczbowe (`Ilość półek`, podobne krótkie pola) nie rozciągają się już bez sensu na pełną szerokość, a siatka parametrów zestawu dostała lokalne klasy do równego wyrównania etykiet i pól.
+- `index.html` + `css/style.css` + `js/app.js` — góra `Wywiad` i karty szafek dostały lokalny shell/rytmy (`wywiad-room-shell`, `wywiad-cabinets-shell`, `cabinet-card-shell`) bez ruszania logiki; karty i parametry pomieszczenia są wizualnie lżejsze i spójniejsze z resztą aplikacji.
+- `js/testing/cabinet/tests.js` — testy pilnują launcherów dla dynamicznego pola `Wnętrze` oraz launcherów bloku `Fronty w zestawie`, żeby przy kolejnych zmianach nie wróciły systemowe selecty.
+- Instrukcja antyregresyjna: w `Wywiad` każde nowe pole wyboru ma najpierw dostać lokalny launcher nad natywnym `select` (źródło prawdy zostaje), a rzędy parametrów zestawu mają być wyrównywane klasami lokalnymi (`set-param-*`) zamiast ręcznego stylowania inline.
+
+## 2026-04-18 — Wycena prompt text tweak + Wywiad modal form rhythm sync
+- `js/app/wycena/wycena-tab-selection.js` — komunikat modala nowego wariantu używa teraz naturalnej formy `Dla pomieszczenia ...` / `Dla pomieszczeń ...` zależnie od liczby wybranych pokoi, zamiast stałego `Dla zakresu ...`.
+- `css/style.css` — modal nazwy wyceny dostał dodatkowy dolny oddech w stopce akcji, bez ruszania reszty `Wycena`.
+- `index.html` + `js/app/cabinet/cabinet-modal.js` + `css/style.css` — wnętrze modala szafki w `Wywiad` ma teraz bardziej uporządkowany shell formularza: lokalne klasy konfiguracji (`cabinet-config-card`, `cabinet-form-grid`, `cabinet-extra-details`, `cabinet-inline-hint`) porządkują rytm sekcji, etykiety, hinty i dodatkowe pola bez zmiany logiki formularza.
+- `js/testing/wycena/suites/scope-entry.js` + `js/testing/cabinet/tests.js` — testy pilnują nowego komunikatu `pomieszczenie/pomieszczenia` oraz lokalnego shellu konfiguracji `Wywiad` po bezpiecznych poprawkach UI.
+- Instrukcja antyregresyjna: w `Wycena` traktować komunikat modala jako tekst zależny od liczby wybranych pokoi, nie od technicznego słowa `zakres`. W `Wywiad` porządkować wnętrze modala tylko lokalnymi klasami namespacowanymi dla formularza szafki; nie ruszać globalnych styli modali ani logiki selectów.
+
+## 2026-04-18 — Wycena modal ref header/footer sync + Wywiad second safe launcher batch
+- `js/app/quote/quote-scope-entry.js` + `css/style.css` — modal `Nazwa nowej wyceny` używa teraz shellu `panel-box--rozrys`, a stopka akcji jest złożona z tych samych klas co w referencyjnym modalu `Wybierz materiał / grupę` (`rozrys-picker-footer*`). Dzięki temu header, kwadratowy `X`, rytm górnej belki i prawa, lekka stopka z mniejszymi przyciskami są kopiowane z referencji zamiast stylizowane „podobnie”.
+- `js/app/cabinet/cabinet-choice-launchers.js` — druga paczka bezpiecznych launcherów w `Wywiad`: do launcherów dochodzą `cmFrontColor`, `cmFrontCount` oraz warunkowe launchery `cmFlapVendor` / `cmFlapKind`; nadal native `select` zostaje źródłem prawdy i launcher ma tylko przykrywać UI.
+- `js/testing/cabinet/tests.js` + `js/testing/wycena/suites/scope-entry.js` — rozszerzone testy pilnują nowego shellu/stopek modala `Wycena` oraz drugiej partii launcherów `Wywiad` bez utraty natywnych `select`.
+- Instrukcja antyregresyjna: przy dalszym dopinaniu modali w `Wycena` kopiować header/footer przez te same klasy co w zaakceptowanym modalu ROZRYS (`panel-box--rozrys`, `rozrys-picker-footer*`), zamiast odtwarzać je lokalnymi przybliżeniami. W `Wywiad` każde kolejne pole launcherowe musi przechodzić przez `shouldMount`/`cleanupLauncher`, żeby pola dynamicznie ukrywane nie zostawiały martwych launcherów.
+
+## 2026-04-18 — Wywiad safe choice launchers + quote name modal local ref sync
+- `js/app/cabinet/cabinet-choice-launchers.js` — nowy, mały moduł launcherów dla najbezpieczniejszych selectów modala szafki (`cmSubType`, `cmFrontMaterial`, `cmBackMaterial`, `cmBodyColor`, `cmOpeningSystem`). Native `select` zostaje źródłem prawdy; launcher tylko przykrywa UI i po wyborze aktualizuje oryginalny select + odpala jego `change`.
+- `js/app/cabinet/cabinet-modal.js` — render modala szafki montuje launchery dopiero po zasileniu selectów opcjami i po podpięciu istniejących handlerów; nie przenosi stanu do osobnego store launchera.
+- `css/style.css` — launchery `Wywiad` są namespacowane przez `.cabinet-choice-sync`, więc nie ruszają innych selectów / launcherów w aplikacji.
+- `js/app/quote/quote-scope-entry.js` + `css/style.css` — modal nazwy nowej wyceny używa lokalnych klas `quote-scope-entry-name__*` na shellu `panel-box`, żeby nie dziedziczyć starego, ogólnego CSS `quote-scope-entry-modal__*` i nie rozjeżdżać się względem referencyjnego modala.
+- Instrukcja antyregresyjna: przy kolejnych polach `Wywiadu` nie ukrywać selecta globalnie ani nie robić osobnego stanu launchera. Launcher ma być tylko lokalną nakładką na konkretny select. Przy poprawkach modala `Wycena` nie mieszać lokalnych klas `quote-scope-entry-name__*` z ogólnymi `quote-scope-entry-modal__*` używanymi przez inne okna scope.
+
+## 2026-04-18 — Wywiad modal helper dependency hotfix
+- `js/app/cabinet/cabinet-modal.js` — modal szafki nie zależy już od globalnych wrapperów z `app.js` przy odczycie helperów frontów; lokalne, namespacowane resolvery czytają `FC.cabinetFronts` (z fallbackiem), więc testy i środowiska bez `app.js` nie wpadają już w `getSubTypeOptionsForType is not defined`.
+- `js/testing/cabinet/tests.js` — dodany antyregresyjny test pilnujący, że modal renderuje warianty także po usunięciu globalnej `getSubTypeOptionsForType`; źródłem prawdy ma być moduł `FC.cabinetFronts`.
+- Instrukcja antyregresyjna: przy dalszych pracach nad `Wywiad` nie opierać modala szafki o przypadkowe globalne helpery z `app.js`. Jeżeli logika należy do domeny szafek/frontów, czytać ją przez namespace `FC.cabinetFronts` albo lokalny resolver namespacowany.
+
+## 2026-04-17 — Wywiad test hardening before UI changes
+- `js/testing/cabinet/tests.js` — mocno rozszerzone testy działu `Wywiad` / modala szafki: domyślny draft kuchni, klonowanie ostatniej szafki, opcje otwierania dla wiszącej vs stojącej, render modala w trybie dodawania, obecność natywnych selectów źródłowych (`cmSubType`, `cmFrontMaterial`, `cmBackMaterial`, `cmBodyColor`, `cmOpeningSystem`), aktualizacja draftu po zmianie tych pól oraz render modala w trybie edycji z CTA `Zapisz zmiany`.
+- `dev_tests.html` + `tools/app-dev-smoke.js` — środowiska testowe ładują teraz także `js/app/cabinet/cabinet-fronts.js`, `js/app/cabinet/cabinet-modal.js` i `js/app/cabinet/cabinet-actions.js`, żeby testy `Wywiad` nie były ślepe na realny modal szafki.
+- Instrukcja antyregresyjna: zanim ruszy UI `Wywiadu`, utrzymywać natywne selecty jako źródło prawdy i pilnować ich obecności/testów. Każda przyszła warstwa launcher/picker ma tylko przykrywać native `select`, nie zastępować go własnym stanem.
+
+## 2026-04-17 — hotfix lokalnego shellu modala nazwy wyceny
+- `js/app/quote/quote-scope-entry.js` — modal `Nazwa nowej wyceny` dostał lokalny shell oparty o istniejące klasy `panel-box` / `panel-box-form`, ale tylko dla tego jednego okna; usunięty osobny blok `Pomieszczenia`, a `Anuluj / OK` siedzą w stopce 50/50 bez dotykania wyglądu reszty `Wycena`.
+- `css/style.css` — dodane wyłącznie namespacowane reguły `.quote-scope-entry-modal--name ...`; nie zmieniać przy tym wspólnych klas `panel-box*`, `info-trigger`, `label-help` ani launcherów/sekcji `Wycena`.
+- `js/testing/wycena/suites/scope-entry.js` — dodany test antyregresyjny pilnujący, że modal nazwy ma shell `panel-box`, brak bloku `Pomieszczenia` i układ akcji 50/50.
+- Instrukcja antyregresyjna: poprawiając pojedynczy modal, dopisywać lokalne klasy namespacowane dla tego modala zamiast ruszać współdzielone style używane przez inne sekcje (`info-trigger`, `panel-box`, launchery, sekcje Wycena/ROZRYS).
+
+## 2026-04-17 — hotfix kanonicznego scope dla nazw i historii wycen
+- `js/app/quote/quote-snapshot.js` + `js/app/quote/quote-snapshot-store.js` — scope ofert traktuje teraz `selectedRooms` jako kanoniczne źródło prawdy dla etykiet pokoi; `roomLabels` są odtwarzane z `selectedRooms` zamiast ślepo ufać starym/złym labelom zapisanym w snapshotcie.
+- `js/app/quote/quote-snapshot-store.js` — zapis snapshotu prostuje auto-nazwy z obcego scope (`J` zapisane pod `a`, `a+J` itd.) do bieżącego exact-scope zanim trafią do historii; `getEffectiveVersionName()` oraz `getScopeRoomLabels()` prostują też stare skażone snapshoty przy odczycie.
+- `js/app/wycena/wycena-tab-history.js`, `js/tabs/wycena.js`, `js/app/quote/quote-pdf.js` — historia, preview i PDF czytają już etykiety scope przez wspólny resolver zamiast z surowego `scope.roomLabels`.
+- `js/testing/wycena/suites/scope-entry.js` — dodane dwa antyregresyjne testy pod flow `a / J / a+J`: (1) zapis nowej wyceny prostuje auto-nazwę i roomLabels na save, (2) odczyt historii prostuje stare snapshoty ze złym `roomLabels`/`versionName`.
+- Instrukcja antyregresyjna: w `Wycena` i PDF nie ufać bezpośrednio `scope.roomLabels`; źródłem prawdy dla zakresu są `scope.selectedRooms`, a etykiety mają być wyliczane wspólnym resolverem. Auto-nazwy wygenerowane przez aplikację, które nie pasują do bieżącego scope, mają być prostowane już na save, nie tylko maskowane w UI.
+
+## 2026-04-17 — WYCENA status bridge split
+- `js/app/wycena/wycena-tab-status-bridge.js` przejął workflow statusów zakładki `Wycena`: `currentProjectStatus`, `setProjectStatusFromSnapshot`, `syncGeneratedQuoteStatus`, `commitAcceptedSnapshotWithSync`, `reconcileAfterSnapshotRemoval`, `promotePreliminarySnapshotToFinal`, `acceptSnapshot`. `js/tabs/wycena.js` ma tylko delegować do bridge'a.
+- Instrukcja antyregresyjna: nowa logika statusów i akceptacji nie wraca już do `js/tabs/wycena.js`; jeśli trzeba zmieniać flow `accept/remove/promote`, robić to w `wycena-tab-status-bridge.js` albo w `project-status-sync.js`, nie dopisywać lokalnych wyjątków do taba.
+
+## 2026-04-17 — hotfix znikającej historii wycen po splicie
+- `js/tabs/wycena.js` — hotfix po wydzieleniu `wycena-tab-history.js`: do zależności przekazywanych do modułu historii wrócił `currentProjectStatus`, bez którego render historii wpadał w cichy wyjątek i cała sekcja znikała z UI.
+- `js/testing/wycena/suites/core-offer-basics.js` — dodany test antyregresyjny renderu: zapisany snapshot musi zbudować sekcję `Historia wycen` i wpisy listy po renderze zakładki `Wycena`.
+- Instrukcja antyregresyjna: przy kolejnych splitach renderujących modułów `Wycena` testować nie tylko helpery biznesowe, ale też pełny render sekcji w DOM. Jeśli wrapper delegacji ma `try/catch`, brak zależności może schować błąd i wyczyścić cały fragment UI bez czerwonego wyjątku.
+
+## 2026-04-16 — wycena history/preview/scroll split + krótki modal nazwy
+- `js/app/wycena/wycena-tab-scroll.js` — wydzielona pamięć i przywracanie scrolla historii/podglądu w `Wycena`; `js/tabs/wycena.js` tylko deleguje do modułu.
+- `js/app/wycena/wycena-tab-history.js` — wydzielony render historii ofert, preview snapshotu i wybór aktualnie wyświetlanej oferty bez ruszania workflow statusów `accept/remove/promote`.
+- `js/app/wycena/wycena-tab-selection.js` + `js/app/quote/quote-scope-entry.js` — modal nazwy nowej wyceny używa krótkiego komunikatu nad polem i nie pokazuje dolnego opisu/hintu.
+- Instrukcja antyregresyjna: przy dalszym splicie `Wycena` zostawić workflow statusów (`commitAcceptedSnapshotWithSync`, `reconcileAfterSnapshotRemoval`, `promotePreliminarySnapshotToFinal`, `acceptSnapshot`) w `js/tabs/wycena.js`, dopóki nie powstanie osobny status bridge. Moduły historii/scrolla mają tylko renderować i obsługiwać stan widoku.
+
+## 2026-04-16 — wycena helper split hotfix
+- `js/tabs/wycena.js` — hotfix po pierwszym splicie helperów: przywrócone lokalne funkcje, które nie miały jeszcze wychodzić z taba (`h`, `getCurrentProjectId`, `getCurrentInvestorId`, `getSnapshotHistory`, `normalizeSnapshot`, `getOfferDraft`, `patchOfferDraft`, `resolveDisplayedQuote`). To usuwa regres `normalizeSnapshot is not defined` / `getCurrentProjectId is not defined` bez cofania samego wydzielenia czystych helperów do `js/app/wycena/wycena-tab-helpers.js`.
+- Instrukcja antyregresyjna: przy kolejnych etapach splitu `js/tabs/wycena.js` najpierw porównać listę funkcji wyciętych z listą realnych wywołań w tabie. Nie wynosić z taba helperów stanu/odczytu draftu/historii ani funkcji render-selection bez jednoczesnego podpięcia nowego modułu i testów.
+
+## 2026-04-16 — status tests mini-package 5
+- `js/testing/wycena/tests.js` — dopięte antyregresje dla późnych etapów procesu (`umowa`, `produkcja`, `montaz`, `zakonczone`): sekwencja późnych statusów utrzymuje scoped końcową ofertę, nie przywraca martwych zaznaczeń starych wycen i nie rusza rozłącznego pokoju.
+- `js/testing/wycena/tests.js` — dodany guard coverage dla późnych etapów: bez zaakceptowanej wyceny końcowej exact-scope ręczne przejścia na późne statusy mają być blokowane, a po zaakceptowaniu finalnej oferty mają się odblokować.
+- `js/testing/investor/tests.js` — dopięty test przepływu z poziomu `Inwestor`: ręczne przejścia `umowa -> produkcja -> montaz -> zakonczone` zwracają poprawny `masterStatus`/`mirrorStatus`, aktualizują lustra i nie ruszają zaakceptowanej oferty rozłącznego pokoju.
+- Instrukcja antyregresyjna: przy dokładaniu kolejnych reguł dla późnych etapów zawsze testować dwa scenariusze naraz: (1) pełną sekwencję późnych statusów dla jednego pokoju, (2) współistnienie drugiego, rozłącznego pokoju z własną zaakceptowaną ofertą. Brak regresji oznacza nie tylko poprawny status pokoju docelowego, ale też brak zmian `selectedByClient`, `acceptedStage`, `rejected*` i statusu snapshotów w rozłącznym scope.
+
+## 2026-04-16 — scoped accept/convert hotfix + refresh restore
+- `js/app/quote/quote-snapshot-store.js` — naprawiony kolejny regres multi-scope z historii wycen: akceptacja snapshotu dla jednego pokoju nie może już nadpisywać `project.status` w rozłącznych snapshotach tego samego `projectId`; nieimpaktowane scope są zostawiane bez bocznych dopisków statusu.
+- `js/app/quote/quote-snapshot-store.js` — `convertPreliminaryToFinal(projectId, snapshotId)` działa teraz tylko na **kolidującym scope** targetu. Konwersja pokoju A do oferty końcowej nie zdejmuje już akceptacji, nie zmienia typu i nie narzuca końcowego statusu snapshotom rozłącznego pokoju B.
+- `js/app.js` — dodany lekki mechanizm przywracania kontekstu po zwykłym odświeżeniu w tej samej karcie (`sessionStorage`): zapisuje aktualny `uiState` i scroll przy `pagehide/beforeunload`, a po reloadzie przywraca ostatni widok zamiast wypadać na stronę główną. To jest techniczny restore tylko na refresh/tej samej karcie, nie nowy globalny stan aplikacji.
+- `js/testing/wycena/tests.js` — dopięte antyregresje: (1) akceptacja solo scope nie nadpisuje statusu snapshotów rozłącznego scope, (2) konwersja wstępnej oferty do końcowej nie zdejmuje akceptacji z innego solo pokoju.
+- Instrukcja antyregresyjna: przy logice `markSelectedForProject` i `convertPreliminaryToFinal` rozróżniać **scope impaktowany** od **scope rozłącznego**. Rozłączne snapshoty mogą współistnieć i nie wolno im masowo czyścić `selectedByClient`, `acceptedAt`, `acceptedStage`, `rejected*` ani `project.status` tylko dlatego, że dzielą ten sam techniczny `projectId`.
+- Instrukcja antyregresyjna: fix odświeżenia ma działać jako restore ostatniego realnego widoku w tej samej karcie. Nie przywracać strony przez zgadywanie na podstawie samego `currentInvestorId`; źródłem ma być zapisany bieżący kontekst z chwili refreshu.
+
+## 2026-04-16 — multi-scope accepted quotes hotfix
+- `js/app/quote/quote-snapshot-store.js` — hotfix regresji statusów: akceptacja oferty dla jednego, rozłącznego scope nie może już odrzucać ani zdejmować akceptacji z innego solo scope tego samego inwestora/projektu-kontenera. Selekcja snapshotów działa teraz per **zakres kolidujący**, a nie globalnie dla całego `projectId`; rozłączne pokoje mogą mieć równolegle własne zaakceptowane oferty.
+- `js/app/quote/quote-snapshot-store.js` — `getSelectedForProject(projectId, { roomIds })` obsługuje teraz scoped odczyt wybranej oferty exact-scope; przy dalszym rozwoju wszędzie, gdzie wybór ma dotyczyć konkretnego pokoju lub exact scope, używać tej wersji zamiast szerokiego odczytu projektowego bez scope.
+- `js/testing/wycena/tests.js` — dodany test antyregresyjny: zaakceptowanie solo oferty dla pokoju A nie może odrzucić ani odznaczyć zaakceptowanej solo oferty pokoju B.
+- Instrukcja antyregresyjna: przy logice akceptacji/odrzucania snapshotów traktować `projectId` tylko jako kontener techniczny. Reguły `selectedByClient`, `acceptedAt`, `rejectedAt` i `rejectedReason` wolno zmieniać tylko w obrębie **kolidującego scope** (overlap), nigdy globalnie dla wszystkich snapshotów projektu, jeśli scope są rozłączne.
+
+## 2026-04-15 — status cleanup mini-package 4
+- `js/tabs/wycena.js` — mini-paczka 4: wycięte stare wysokopoziomowe fallbacki statusów dla akceptacji / usuwania / konwersji snapshotów. `Wycena` nie wraca już do lokalnego `markSelectedForProject`, ogólnego `reconcileProjectStatuses` ani lokalnej konwersji + ręcznego zapisu statusów, jeśli zabraknie dedykowanych helperów centralnego syncu. Zostaje tylko najniższy fallback kompatybilności w `setProjectStatusFromSnapshot()` jako awaryjna ścieżka techniczna.
+- `js/app/project/project-status-sync.js` — uporządkowany silnik map statusów: `computeRecommendedRoomStatusMap()` przejął rolę jednej ścieżki liczenia rekomendowanych statusów pokoi; stary `buildRecommendedRoomStatusMap()` został sprowadzony do wrappera kompatybilności zamiast osobnej, dublującej logiki fallbacków.
+- `js/testing/wycena/tests.js` — dodane antyregresje dla ETAPU 4: brak dedykowanych helperów centralnego syncu nie może już uruchamiać starych lokalnych fallbacków w `Wycena`.
+- Instrukcja antyregresyjna na dalszy rozwój: jeśli dokładamy nowe flow statusowe, to dedykowany helper ma powstać w `project-status-sync.js`, a `js/tabs/wycena.js` ma go tylko wywołać. Nie dopisywać już nowych lokalnych obejść typu „jak nie ma helpera, to zróbmy selekcję snapshotu / reconcile / zapis luster ręcznie w Wycena”.
+
+## 2026-04-15 — status engine responsibilities mini-package 3
+- `js/app/project/project-status-sync.js` — mini-paczka 3: dopięte jawne role silnika statusów. Sync ma teraz nie tylko liczyć `masterStatus` i lustra, ale też orkiestruje trzy przepływy statusowe z `Wycena`: akceptację oferty (`commitAcceptedSnapshot`), rekonsyliację po usunięciu snapshotu (`reconcileStatusAfterSnapshotRemoval`) oraz konwersję zaakceptowanej wstępnej oferty do końcowej (`promotePreliminarySnapshotToFinal`). To ogranicza rozproszenie reguł biznesowych poza `wycena.js`.
+- `js/tabs/wycena.js` — lokalne sklejanie akceptacji / usuwania / konwersji snapshotów zostało odchudzone do wywołań centralnego syncu. `Wycena` zostaje warstwą UI/orchestration zamiast trzymać własne boczne reguły statusowe.
+- `js/app/project/project-status-manual-guard.js` — dopisany komentarz kontraktowy: guard ma tylko walidować ręczne przejścia statusu i nie może sam zapisywać końcowego stanu projektu ani luster.
+- `js/app/quote/quote-snapshot-store.js` — dopisany komentarz kontraktowy: snapshot store przechowuje i filtruje historię exact-scope ofert, ale nie jest miejscem finalnego liczenia biznesowego statusu projektu.
+- `js/testing/wycena/tests.js` — dodane antyregresje dla mini-paczki 3: `Wycena` deleguje akceptację/usuwanie/konwersję do centralnego syncu; guard pozostaje read-only; snapshot store sam nie ustala statusu projektu.
+- Instrukcja na dalszy rozwój statusów: nowe etapy i nowe reguły biznesowe dopisywać najpierw w `project-status-sync.js` (finalny wynik) i `project-status-manual-guard.js` (dozwoloność ręcznych przejść). `quote-snapshot-store.js` ma tylko dostarczać dane/historyczne snapshoty, a `js/tabs/wycena.js` ma jedynie wywoływać centralne helpery syncu bez dokładania równoległej logiki statusowej.
+
+## 2026-04-15 — status scope rules mini-package 1
+- `js/app/project/project-status-sync.js` — mini-paczka 1 logiki statusów: brak jawnego scope nie skleja już automatycznie wszystkich pokoi inwestora w jeden projekt; scoped zmiany i scoped rekonsyliacje liczą status kompatybilności tylko z exact scope, a brak pokoi wraca do `nowy`.
+- `js/tabs/wycena.js` — usuwanie oferty przekazuje do rekonsyliacji exact scope usuwanego snapshotu zamiast niejawnie wpadać w cały zestaw pokoi inwestora.
+- `js/testing/wycena/tests.js` — dodane antyregresje dla mini-paczki 1: brak niejawnej agregacji po całym inwestorze oraz ignorowanie obcego pokoju przy scoped statusie A+B.
+- `js/tabs/wycena.js` — poprawiony scroll po akceptacji oferty z przycisku pod `Podsumowanie`; widok zostaje w miejscu zamiast skakać na górę.
+- `js/app/quote/quote-snapshot.js`, `js/app/quote/quote-offer-store.js`, `js/app/quote/quote-snapshot-store.js`, `js/app/quote/quote-scope-entry.js`, `js/app/wycena/wycena-core.js` — domyślne nazwy ofert i wariantów uwzględniają teraz scope pomieszczeń (`Oferta — Kuchnia + Salon`, `Wstępna oferta — Salon — wariant 2`).
+## 2026-04-15 — quote accept + roomless wycena + tab order
+- `js/tabs/wycena.js` — dodany wspólny helper akceptacji oferty i nowy przycisk `Zaakceptuj ofertę` pod `Podsumowanie`, podpięty do tej samej logiki co karta historii.
+- `js/app/ui/views.js` + `js/app/ui/tab-navigation.js` + `js/app.js` — wejście zakładką `WYCENA` bez wybranego pokoju otwiera teraz od razu moduł wyceny zamiast ekranu `Wybierz pomieszczenie`; render tabów działa też dla roomless `WYCENA`.
+- `index.html` — przestawiona kolejność zakładek: u góry `MATERIAŁ` przed `RYSUNEK`, na dole `INWESTOR`, `WYCENA`, `ROZRYS`, `MAGAZYN`; podbity cache-busting zmienionych plików.
+- `js/testing/project/tests.js` + `js/testing/wycena/tests.js` — dodane antyregresje dla roomless wejścia do `WYCENA`, kolejności zakładek oraz kwalifikacji przycisku akceptacji w podglądzie oferty.
+
 
 ## 2026-04-12 — foundation tests follow-up
 - rozszerzone smoke testy działowe dla `Inwestor`, `Materiały` i `Usługi`
@@ -1089,3 +1309,120 @@ Dopiero potem go zmieniać.
 
 
 - 2026-04-12: Hotfix po ETAPIE 3 statusów — `js/app/project/project-status-sync.js` nie bierze już do agregacji projectStore obcych / starych statusów z `roomRegistry`, jeśli projekt i inwestor mają już własną listę pokojów. Przy zapisie statusów centralny serwis agreguje teraz status projektu po zakresie bieżącej zmiany (`scope.selectedRooms` albo wskazany pokój), a nie po przypadkowych pokojach wiszących w runtime. `js/testing/wycena/tests.js` dostał regresję na „brudny roomRegistry”, który wcześniej potrafił zostawić `projectStore.status = wycena` mimo poprawnej zmiany scoped na `pomiar`.
+
+- 2026-04-13: Statusy ręczne w `Inwestor` dostały nowy guard `js/app/project/project-status-manual-guard.js`. Ręczne wejście na `Pomiar` wymaga teraz zaakceptowanej wyceny wstępnej solo dla danego pokoju; ręczne wejście na `Zaakceptowany` i dalsze statusy końcowe wymaga zaakceptowanej wyceny końcowej solo. Gdy brakuje wyceny solo, `Inwestor` pokazuje modal z pytaniem o wygenerowanie odpowiedniej wyceny dla tego jednego pomieszczenia i po potwierdzeniu przerzuca do `Wycena`; gdy wycena solo istnieje, ale nie jest zaakceptowana, pokazuje komunikat blokujący bez cichego podnoszenia statusu. Dodatkowo rekomendacja statusów per pokój po rozpięciu wspólnej wyceny wraca teraz do własnych ofert solo (`nowy` albo `wstepna_wycena`) zamiast liczyć dalej starą wycenę wspólną jako podstawę dla pokoju pojedynczego. Smoke testy Wycena/Inwestor dostały regresje na blokady ręcznych zmian, brak wyceny solo i powrót do statusu solo po zdjęciu wspólnej akceptacji.
+
+- 2026-04-13: Rozbicie zaakceptowanej wyceny wspólnej nie zostawia już jej jako ukrytego blokera dla ofert solo. `js/app/quote/quote-snapshot-store.js` oznacza poprzednio zaakceptowaną ofertę jako odrzuconą po zmianie zakresu (`rejectedReason: scope_changed`), zamiast tylko cicho zdejmować akceptację; dzięki temu oferta wspólna przestaje blokować ponowną akceptację wycen solo. `js/tabs/wycena.js` renderuje taki stan jako żeńskie `Odrzucona`, a archiwizacja wstępnych ofert patrzy już po dokładnie tym samym zakresie pomieszczeń zamiast po całym projekcie. `js/app/project/project-status-manual-guard.js` blokuje też ręczne wejście na status `wycena` bez własnej zaakceptowanej wyceny wstępnej solo. `js/testing/wycena/tests.js` dostał regresje na odrzucenie wspólnej oferty po rozbiciu zakresu, odblokowanie solo wstępnych i blokadę ręcznego wejścia na `wycena` bez zaakceptowanej podstawy solo.
+
+- 2026-04-14: Usługi stolarskie dostały uproszczony detal cięcia oparty na silniku ROZRYS (nowe pliki w js/app/service/cutting/). Poprawiono też scoped rekomendację statusu po odrzuceniu wspólnej oferty oraz zamieniono kolory przycisków na ekranie Start.
+
+- 2026-04-14: Hotfix ręcznych statusów w `Inwestor` — `js/app/project/project-status-manual-guard.js` przestał traktować blokady tylko jako ruch „w górę”. Statusy wymagające podstawy ofertowej (`pomiar`, `wycena`, końcowe) są teraz walidowane zawsze względem własnej zaakceptowanej oferty solo dla danego pokoju, nawet jeśli bieżący status pokoju był omyłkowo wyższy. Dzięki temu nie da się już ręcznie wskoczyć ani wrócić na `Pomiar` / `Wycena` bez zaakceptowanej wyceny wstępnej solo. `js/app/investor/investor-choice.js`, `js/app/investor/investor-rooms.js` i `js/app/rozrys/rozrys-choice.js` dostały zgodne wsparcie dla zablokowanych opcji w overlayu wyboru statusu, a `js/testing/wycena/tests.js` dostał regresję na pokój z błędnie wyższym statusem, który bez zaakceptowanej wyceny wstępnej solo nie może już przejść na `Pomiar` ani `Wycena`.
+
+
+## 2026-04-14 — choice click fix
+- Naprawa overlayu wyboru statusu: tylko faktycznie zablokowane opcje dostają disabled; dozwolone znów klikają się poprawnie.
+- Dodany lekki helper js/app/ui/app-view.js eksportujący FC.appView.shouldHideRoomSettingsForTab także dla dev_tests bez ładowania całego js/app.js.
+
+## 2026-04-14: Scope-aware entry do Wstępnej wyceny
+- Dodano nowy moduł `js/app/quote/quote-scope-entry.js` jako jedno źródło prawdy dla wejścia do wyceny scoped. Moduł rozpoznaje dokładny `scope.selectedRooms`, odróżnia solo od kombinacji A+B, umie znaleźć istniejącą wycenę tego samego typu i scope oraz prowadzi flow `Otwórz istniejącą` / `Utwórz nową` z drugim krokiem nadania nazwy wariantowi.
+- `js/app/quote/quote-snapshot-store.js` dostał helpery exact-scope (`listExactScopeSnapshots`, `findExactScopeSnapshot`) filtrowane po typie wyceny i dokładnym zestawie pomieszczeń, bez mieszania scope solo i wspólnego.
+- `js/app/investor/investor-ui.js` przechwytuje wejście na status `wstepna_wycena` i zamiast ślepo tylko przestawiać status otwiera scoped flow wyceny. Jeżeli draft Wyceny ma zaznaczoną kombinację pomieszczeń zawierającą kliknięty pokój, flow używa tej kombinacji; w przeciwnym razie spada do scope solo.
+- `js/app/project/project-status-manual-guard.js` został przepięty na nowe scoped wejście przy generowaniu wyceny z blokad ręcznych statusów, dzięki czemu także ścieżka guardów korzysta z tych samych reguł exact-scope i nie robi cichych duplikatów.
+- `js/tabs/wycena.js` dostał helper `showSnapshotPreview`, żeby flow `Otwórz istniejącą` mogło otworzyć dokładnie wskazaną wersję w historii bez generowania nowego snapshotu.
+- `css/style.css` dostał lokalny styl modali scope-entry, a `index.html` / `dev_tests.html` zostały zaktualizowane o nowy moduł i cache-busting.
+- `js/testing/wycena/tests.js` rozszerzono o regresje na: istniejącą wycenę solo, istniejącą wycenę wspólną dla konkretnej kombinacji, brak exact-scope dla innego zakresu, rozróżnienie A od A+B, podpowiedź nazwy kolejnego wariantu oraz otwarcie istniejącej wyceny bez tworzenia duplikatu.
+
+- 2026-04-14: Room cleanup + status fallback fix — `js/app/shared/room-registry.js` pozwala teraz zapisać pustą listę pomieszczeń w modalu zarządzania, czyści zaznaczenie pokoi w draftcie `Wycena` po usunięciu pokoi i po zmianie zestawu pokojów przelicza statusy projektu/pokoi bez zostawiania starych etapów. `js/app/project/project-status-sync.js` dostał helper `reconcileProjectStatuses`, używany do pełnego przeliczenia statusów po sprzątaniu danych zamiast ręcznego nadpisywania tylko jednego scope. `js/app/quote/quote-snapshot-store.js` nie zostawia już statusu `wstepna_wycena` po skasowaniu ostatniej oferty — bez aktywnych ofert fallback wraca do `nowy` (poza `odrzucone`). `js/tabs/wycena.js` po usunięciu snapshotu woła pełną rekonsyliację statusów projektu, dzięki czemu usunięcie scope A+B nie zeruje błędnie solo A. `js/testing/investor/tests.js` i `js/testing/wycena/tests.js` dostały regresje na: zapis pustej listy pomieszczeń, czyszczenie scope draftu, powrót statusu do `nowy` po usunięciu ostatniej wyceny wstępnej oraz zachowanie solo A po usunięciu wspólnej wyceny A+B. `tools/app-dev-smoke.js` ładuje też `js/app/quote/quote-scope-entry.js`, więc pełny smoke node obejmuje teraz również testy scope-entry.
+
+
+### 2026-04-16 — dev_tests fixture sync
+- `dev_tests.html` now includes hidden app-view fixture nodes (`topTabs`, `roomsView`, `appView`, session/floating controls) so project smoke tests can validate tab order and roomless WYCENA entry against a stable DOM.
+- `js/app/ui/views.js` is loaded in `dev_tests.html`, because project tests assert `FC.views.shouldOpenRoomlessWycena()` and `FC.views.applyFromState()` directly.
+
+- WYCENA: po faktycznym utworzeniu nowej wyceny wstępnej `quote-scope-entry` pokazuje prosty modal tylko z `OK`; otwarcie istniejącej wersji ani zwykłej wyceny końcowej nie pokazuje tego komunikatu.
+- WYCENA: przycisk `Zaakceptuj ofertę` pod `Podsumowanie` rozciąga się teraz na szerokość sekcji akcji, żeby był wyrównany do układu lewo-prawo tej karty.
+
+- 2026-04-16: WYCENA dostała twardą walidację pustych ofert w `js/app/wycena/wycena-core.js`: brak pomieszczeń, nieistniejący scope albo scope bez żadnych danych do wyceny nie zapisuje już zerowego snapshotu. `js/tabs/wycena.js` pokazuje wtedy prosty komunikat tylko z `OK` zamiast tworzyć pustą ofertę. Dodatkowo `js/app/ui/info-box.js` obsługuje teraz wariant `okOnly`, a `js/app/quote/quote-scope-entry.js` używa go jako domyślnego potwierdzenia po faktycznym utworzeniu nowej wyceny wstępnej. `dev_tests.html` ładuje też `info-box.js`, a `js/testing/wycena/tests.js` dostał regresje na: brak pomieszczeń, nieistniejący wybrany pokój, pusty scope bez danych i domyślny komunikat OK po nowej wycenie wstępnej.
+
+- 2026-04-15: Odtworzona paczka cabinet_room_quote_cleanup na bazie site_quote_guard_notice_fix.zip. Naprawa cabinet-cutlist (bez kruchej zależności od luźnych globali), czyszczenie wycen solo/wspólnych przy usuwaniu pomieszczeń oraz ostrzeżenia o kasowanych wycenach w modalach usuwania pokoju.
+
+- 2026-04-15: WYCENA — przy kliknięciu `Wyceń` dla zakresu, który ma już exact-scope historię tego samego typu, `js/tabs/wycena.js` wymusza teraz nadanie nazwy kolejnemu wariantowi jeszcze przed zapisaniem snapshotu. Nowy flow używa modalnego pola nazwy z przyciskami `OK` / `Anuluj`, z proponowaną unikalną nazwą wariantu oraz walidacją duplikatu po normalizacji (case/spacing/diacritics) w `js/app/quote/quote-scope-entry.js`. `js/testing/wycena/tests.js` dostał regresje na wymuszenie nazwania nowego wariantu przy istniejącej historii scope oraz na blokadę nazwy różniącej się tylko zapisem.
+
+
+## 2026-04-15 — wywiad room choice + cabinet cutlist guard
+- `js/app/ui/tab-navigation.js`: `WYWIAD` bez aktywnego pokoju wraca do wyboru pomieszczeń (`roomsView`) zamiast przeskakiwać do `Inwestor`.
+- `js/app/cabinet/cabinet-cutlist.js`: obudowano wywołania helperów frontów/okuć (`frontHardware`) bezpiecznymi fallbackami, żeby testy i podstawowa geometria korpusu nie wysypywały się przez brak kontekstu projektu.
+- `js/testing/project/tests.js`: dodany regres pod wejście do `WYWIAD` bez aktywnego pomieszczenia.
+
+
+## 2026-04-16 — async runner + home restore
+- `js/testing/shared/harness.js` uruchamia i **awaituje** testy asynchroniczne, żeby suite `WYCENA` nie zostawiała po sobie stubów `FC.cabinetCutlist.getCabinetCutList` przed sekcją `Szafki`.
+- `js/testing/dev-tests-page.js` zbiera raporty asynchronicznie; `APP` czeka teraz na pełne zakończenie suite zamiast scalać niegotowe obietnice.
+- `js/app/ui/views.js` traktuje `entry:'home'` jako nadrzędne wobec helpera roomless `WYCENA`, więc po wyjściu na stronę główną i odświeżeniu nie powinno już wskakiwać z powrotem do `WYCENA` tylko dlatego, że zachował się `currentInvestorId`.
+- `js/testing/project/tests.js` ma regresję pilnującą, że zapisany kontekst inwestora nie otwiera roomless `WYCENA` z ekranu głównego.
+
+- 2026-04-15: Fix test fixture in `js/testing/wycena/tests.js` so explicit `rooms: []` stays empty instead of falling back to default rooms; this restores the `no_rooms` regression path for quote validation tests.
+
+## 2026-04-15 — mini-paczka 2 / status master + mirrors
+- `js/app/project/project-status-sync.js`: scoped status projektu został nazwany i domknięty jako centralny `masterStatus`; `projectStore.status` oraz `meta.projectStatus` są zapisywane wyłącznie jako lustra (`mirrorStatus`) przez jedną ścieżkę sync.
+- `js/app/investor/investor-persistence.js`: `setInvestorProjectStatus(..., { returnDetails:true })` zwraca teraz wynik centralnego syncu zamiast gubić go w `result:null`.
+- `js/testing/wycena/tests.js`, `js/testing/investor/tests.js`: testy pilnują zgodności master ↔ mirror dla scoped rekonsyliacji i ręcznej zmiany statusu z poziomu Inwestora.
+- Cache-busting podbity w `index.html` i `dev_tests.html` dla modułów/statusów i testów tej paczki.
+
+
+## 2026-04-16 — wycena anti-regression package 1
+- `js/testing/wycena/fixtures.js` — wydzielone wspólne fixture/helpery dla testów `Wycena`, żeby dalszy split testów i samego `wycena.js` nie wymagał kopiowania setupów po plikach.
+- `js/testing/wycena/suites/status-anti-regression.js` — nowy moduł exact-scope podpięty pod jeden runner `dev_tests.html`; dopięte antyregresje dla 3 krytycznych flow: (1) usunięcie zaakceptowanej końcowej oferty jednego pokoju nie rusza rozłącznego pokoju i wraca do aktywnej historii tego scope, (2) promocja zaakceptowanej wstępnej do końcowej nie zdejmuje `selectedByClient` z drugiego pokoju, (3) manual guard późnych etapów sprawdza exact-scope pokoju zamiast obcej końcowej oferty z innego pokoju.
+- `js/testing/wycena/tests.js` — zostaje wejściem/startem dla testów `Wycena`, ale potrafi już zbierać dodatkowe moduły testowe z rejestru; to ma być wzorzec na dalsze porządki zamiast dokładania wszystkiego do jednego kloca.
+- `dev_tests.html` — nadal jeden punkt wejścia; nowe moduły testów ładujemy z folderu `js/testing/wycena/suites/`, żeby nie robić bałaganu w repo.
+- Instrukcja antyregresyjna: przed rozbijaniem `js/tabs/wycena.js` utrzymywać jeden browser runner i dokładać nowe suite'y modułowo pod `js/testing/wycena/suites/`, a nie przez nowe strony testowe.
+- Instrukcja organizacyjna: dla nowych testów zostawiać tylko plik startowy/agregujący jako wejście (`js/testing/wycena/tests.js`), a kolejne moduły trzymać w podfolderach (`fixtures`, `suites`, itp.), żeby repo i GitHub Pages nie puchły od luźnych plików na wierzchu.
+
+
+## WYCENA testy — organizacja
+- Punkt wejścia dla użytkownika pozostaje jeden: `dev_tests.html`.
+- Punkt wejścia kodu dla testów Wycena pozostaje jeden: `js/testing/wycena/tests.js`.
+- Nowe i rozdzielane suite’y testów Wycena trafiają do folderu `js/testing/wycena/suites/`, a nie do katalogu głównego `js/testing/wycena/`.
+- `js/testing/wycena/tests.js` ma być cienkim runnerem zbierającym testy z rejestru; nie doklejać z powrotem dużych inline suite’ów do tego pliku.
+- Przy kolejnych paczkach antyregresyjnych dla Wycena dopinać nowe suite’y jako osobne pliki w `suites/`, zachowując jeden runner i jedną stronę testową.
+
+
+## WYCENA — split i antyregresja
+- `js/app/wycena/wycena-tab-helpers.js` przechowuje czyste helpery formatowania, klasyfikacji snapshotów i normalizacji scope dla zakładki `Wycena`; nie wrzucać ich z powrotem do `js/tabs/wycena.js`.
+- `js/tabs/wycena.js` po starcie splitu ma być odchudzany etapami; najpierw helpery bez skutków ubocznych, dopiero później selection/history/status workflow.
+- `js/app/wycena/wycena-tab-status-bridge.js` jest jedynym miejscem mostkującym workflow statusów między `Wycena` a `project-status-sync`; nie cofać `accept/remove/promote` do `js/tabs/wycena.js`.
+
+
+## 2026-04-16 — WYCENA split / ROZRYS room picker guard
+- `js/app/wycena/wycena-tab-selection.js` przejął selection UI zakładki `Wycena` (wybór pomieszczeń, zakres fronty/korpusy, summary, naming exact-scope). `js/tabs/wycena.js` ma tylko delegować do tego modułu, bez przywracania dużego inline bloku selection UI.
+- W ROZRYS lista/picker pomieszczeń nie może mieszać realnych pokoi inwestora z legacy kreatorami `kuchnia/szafa/pokoj/lazienka`, jeśli te legacy klucze są tylko pustymi szablonami projektu. Przy aktywnym inwestorze pokazywać realne pokoje + ewentualnie pokoje odkryte w projekcie z rzeczywistymi danymi.
+
+## 2026-04-16 — WYCENA editor split + shorter scope-entry copy
+- `js/app/wycena/wycena-tab-editor.js` przejął editor handlowy zakładki `Wycena` (stawki, pola handlowe, toggle `wstępna / końcowa`, accordion ustawień oferty). `js/tabs/wycena.js` ma tylko delegować do tego modułu i nie odzyskiwać już dużego inline bloku edytora.
+- Modal nadawania nazwy kolejnej wyceny exact-scope ma używać krótszego, praktycznego komunikatu; gdy caller poda pusty `hint`, `js/app/quote/quote-scope-entry.js` nie dokleja już dodatkowego bloku wyjaśniającego pod polem nazwy.
+
+- 2026-04-17: dev_tests.html i tools/app-dev-smoke.js muszą ładować js/app/ui/tabs-router.js, bo testy renderu zakładki Wycena korzystają z FC.tabsRouter.get; nie zakładać już fallbacku tylko do FC.tabs w środowisku testowym.
+
+- 2026-04-17: `js/app/wycena/wycena-tab-selection.js` ma resetować roboczą nazwę oferty po zmianie wybranego scope, jeśli draft niesie auto-/snapshotową nazwę z poprzedniego exact-scope; nie wolno przenosić nazw wariantów jednego pokoju na inny pokój albo scope wspólne. Dopina to test w `js/testing/wycena/suites/scope-entry.js`.
+- 2026-04-17: Po analizie flow `Wyceń` wyszło, że zły warunek nie siedział w exact-scope modala, tylko w przenoszeniu starej auto-nazwy do nowego zakresu przy samym generowaniu. `js/app/wycena/wycena-tab-selection.js` prostuje teraz draftową nazwę także tuż przed `Wyceń`, jeśli ta sama auto-nazwa występuje w innym exact-scope projektu; `js/app/quote/quote-snapshot-store.js` oraz podgląd/modale/PDF używają scoped fallbacku nazwy dla starych snapshotów z regresji a / J / a+J, żeby historia nie udawała dalej wariantu pokoju J dla zakresów a i a+J. Test antyregresyjny siedzi w `js/testing/wycena/suites/scope-entry.js`.
+
+## 2026-04-18 — WYWIAD launcher fallback + wzorce poza test runnerem
+- `dev_tests.html` nie osadza już wzorców UI nad wynikami testów; wzorce otwierają się osobnym przyciskiem `Wzorce UI` i osobną stroną `dev_ui_patterns.html`, żeby wyniki smoke/testów nie mieszały się z referencjami do kopiowania 1:1.
+- `js/app/cabinet/cabinet-modal.js` nie może zależeć od globalnej `calcTopForSet` z `app.js`; render zestawów ma używać namespacowanego helpera `FC.calc` przez lokalny safe-wrapper.
+- `js/app/cabinet/cabinet-choice-launchers.js` ma po zwykłym montażu robić fallback-scan widocznych selectów w formularzu szafki i zakładać launcher także dla pól, które pojawiły się późno lub przeszły przez dynamiczny rerender (np. `cmFlapKind`, `setFrontCount`).
+- W obszarze szafki natywne `select` pozostają źródłem prawdy, ale widoczny UI nie może wracać do systemowego selecta, jeśli pole jest objęte launcherem aplikacji.
+
+## 2026-04-18 — Wywiad set preset SVG icons fix
+- `js/app/cabinet/cabinet-modal-set-wizard.js` — presety `zestaw` przestały być rysowane inline w JS. Modal ładuje teraz osobne pliki SVG, dzięki czemu ikonki nie są zaszyte w monolicie i łatwiej je później poprawiać bez ryzyka rozjechania logiki.
+- `assets/set-presets/preset-a.svg`, `preset-c.svg`, `preset-d.svg` — nowe, osobne miniatury lepiej odpowiadają realnym presetom: `A` pokazuje dwa doły + moduł u góry, `C` dół + moduł na pełnej szerokości, `D` dół + moduł środkowy + moduł górny w pionie.
+- Instrukcja antyregresyjna: kolejne poprawki miniaturek presetów robić w osobnych plikach SVG, a nie przez ponowne zaszywanie kształtów inline w `cabinet-modal-set-wizard.js`.
+
+## 2026-04-19 — room-registry / ROZRYS project-source split
+- `js/app/shared/room-registry.js` został odchudzony i nie może znowu mieszać całego rdzenia rejestru, skutków ubocznych usuwania pokoju i UI modali w jednym pliku. Rdzeń definicji/merge/sort siedzi w `js/app/shared/room-registry-core.js`, a cleanup/sync po zmianie listy pokoi w `js/app/shared/room-registry-removal.js`.
+- `js/app/rozrys/rozrys.js` oddaje wykrywanie kandydatów projektu i widocznych pokoi do `js/app/rozrys/rozrys-project-source.js`; nie doklejać z powrotem logiki odkrywania pokoi/projektów do monolitu zakładki.
+- `dev_tests.html`, `tools/app-dev-smoke.js` i `tools/rozrys-dev-smoke.js` muszą ładować nowe moduły w tej samej kolejności co aplikacja (`room-registry-core` → `room-registry-removal` → `room-registry`, oraz `rozrys-prefs` / `rozrys-project-source` przed `rozrys.js`), inaczej smoke może zgłaszać fałszywe regresje.
+- Antyregresja: `js/testing/investor/tests.js` pilnuje, że aktywne pokoje scalają meta projektu z kolejnością inwestora bez gubienia etykiet; `js/testing/rozrys/tests.js` pilnuje, że ROZRYS trzyma kolejność meta i odrzuca puste legacy pokoje.
+- Uwaga architektoniczna: w tym etapie nie ruszać `js/tabs/rysunek.js` — jest tymczasowy i ma być przebudowywany osobno.
+
+
+- do not split room-registry again without reproducing live app behavior against the real global `projectData` from app.js and legacy-kitchen fallback rules; tests must cover investor rooms with no `window.projectData` mirror.

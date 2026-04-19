@@ -106,6 +106,42 @@
           H.assert(String(draft.status || '') === 'nowe', 'Szkic zlecenia nie dostał domyślnego statusu nowe', draft);
         });
       }),
+
+      H.makeTest('Usługi', 'Szkic cięcia usługowego normalizuje materiał, płytę i krawędzie', 'Pilnuje, czy uproszczony draft cięcia dla małych zleceń ma bezpieczne domyślne pola i nie gubi liczby krawędzi do oklejania.', ()=>{
+        H.assert(FC.serviceCuttingCommon && typeof FC.serviceCuttingCommon.normalizeDraft === 'function', 'Brak FC.serviceCuttingCommon.normalizeDraft');
+        const draft = FC.serviceCuttingCommon.normalizeDraft({
+          materialMode:'client',
+          materialName:'Płyta klienta',
+          boardW:'3050',
+          boardH:'2070',
+          parts:[{ name:'Bok', qty:'2', along:'720', across:'560', edgesAlong:'2', edgesAcross:'1' }]
+        });
+        H.assert(String(draft.materialMode || '') === 'client', 'Draft cięcia nie zachował trybu materiału klienta', draft);
+        H.assert(Number(draft.boardW) === 3050 && Number(draft.boardH) === 2070, 'Draft cięcia nie zachował wymiarów płyty', draft);
+        H.assert(Array.isArray(draft.parts) && draft.parts.length === 1, 'Draft cięcia nie zachował listy formatek', draft);
+        H.assert(Number(draft.parts[0].edgesAlong) === 2 && Number(draft.parts[0].edgesAcross) === 1, 'Draft cięcia nie zachował krawędzi do oklejania', draft.parts[0]);
+      }),
+      H.makeTest('Usługi', 'Usługowy rozrys generuje plan z formatek bez ingerencji w stary ROZRYS', 'Pilnuje, czy uproszczone zlecenie usługowe potrafi wygenerować plan z istniejącego silnika rozrysu bez pomieszczeń i meblowych danych projektu.', ()=>{
+        H.assert(FC.serviceCuttingRozrys && typeof FC.serviceCuttingRozrys.generatePlan === 'function', 'Brak FC.serviceCuttingRozrys.generatePlan');
+        const payload = FC.serviceCuttingRozrys.generatePlan({
+          materialMode:'client',
+          materialName:'Materiał klienta',
+          boardW:2800,
+          boardH:2070,
+          kerf:4,
+          edgeTrim:10,
+          parts:[
+            { id:'p1', name:'Formatka A', qty:2, along:720, across:560, edgesAlong:2, edgesAcross:1 },
+            { id:'p2', name:'Formatka B', qty:1, along:400, across:300, edgesAlong:0, edgesAcross:2 }
+          ]
+        });
+        H.assert(payload && typeof payload.then === 'undefined', 'Usługowy rozrys nie powinien wymagać async workera w smoke testach', payload);
+        H.assert(payload && payload.ok === true, 'Usługowy rozrys nie wygenerował planu', payload);
+        H.assert(payload.plan && Array.isArray(payload.plan.sheets) && payload.plan.sheets.length >= 1, 'Usługowy rozrys nie zwrócił arkuszy', payload && payload.plan);
+      }),
+      H.makeTest('Usługi', 'Lista zleceń ma wejście do szczegółu usługowego cięcia', 'Pilnuje, czy warstwa usług ma osobny moduł wejścia do szczegółu zlecenia, a nie tylko edycję ogólnych danych.', ()=>{
+        H.assert(FC.serviceOrderDetail && typeof FC.serviceOrderDetail.open === 'function', 'Brak FC.serviceOrderDetail.open');
+      }),
     ]);
   }
 

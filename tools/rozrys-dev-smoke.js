@@ -8,6 +8,8 @@ const files = [
   'js/app/optimizer/cut-optimizer.js',
   'js/app/rozrys/rozrys-validation.js',
   'js/app/rozrys/rozrys-cache.js',
+  'js/app/rozrys/rozrys-prefs.js',
+  'js/app/rozrys/rozrys-project-source.js',
   'js/app/rozrys/rozrys-state.js',
   'js/app/rozrys/rozrys-pickers.js',
   'js/app/rozrys/rozrys-selection-ui.js',
@@ -132,15 +134,19 @@ if(!runner || typeof runner.runAll !== 'function'){
   process.exit(2);
 }
 
-const report = runner.runAll();
-console.log(`ROZRYS smoke tests: ${report.passed}/${report.total} OK (${report.durationMs} ms)`);
-for(const row of report.results){
-  const prefix = row.ok ? '✔' : '✘';
-  console.log(`${prefix} ${row.name}`);
-  if(!row.ok){
-    if(row.message) console.log(`    ${row.message}`);
-    if(row.details) console.log(`    details: ${JSON.stringify(row.details)}`);
+(async ()=>{
+  const report = await runner.runAll();
+  console.log(`ROZRYS smoke tests: ${report.passed}/${report.total} OK (${report.durationMs} ms)`);
+  for(const row of report.results){
+    const prefix = row.ok ? '✔' : '✘';
+    console.log(`${prefix} ${row.name}`);
+    if(!row.ok){
+      if(row.message) console.log(`    ${row.message}`);
+      if(row.details) console.log(`    details: ${JSON.stringify(row.details)}`);
+    }
   }
-}
-
-process.exit(report.failed > 0 ? 1 : 0);
+  process.exit(report.failed > 0 ? 1 : 0);
+})().catch((error)=>{
+  console.error(error && error.stack ? error.stack : String(error));
+  process.exit(2);
+});

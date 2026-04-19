@@ -44,6 +44,25 @@
       const selectEl = document.getElementById(`invProjectStatus_${room.id}`);
       const mount = document.getElementById(`invProjectStatus_${room.id}Launch`);
       if(!(selectEl && mount)) return;
+      try{
+        const currentValue = String(selectEl.value || '');
+        Array.from(selectEl.options || []).forEach((opt)=> {
+          if(!opt) return;
+          opt.disabled = false;
+          opt.removeAttribute('data-description');
+          if(cfg.disabled) return;
+          try{
+            if(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function'){
+              const validation = FC.projectStatusManualGuard.validateManualStatusChange(String(inv && inv.id || ''), String(room.id || ''), String(opt.value || ''));
+              if(validation && validation.blocked){
+                opt.disabled = true;
+                opt.setAttribute('data-description', String(validation.title || validation.message || 'Niedostępne w tym stanie.'));
+              }
+            }
+          }catch(_){ }
+          if(String(opt.value || '') === currentValue) opt.selected = true;
+        });
+      }catch(_){ }
       choiceApi.mountChoice({
         mount,
         selectEl,

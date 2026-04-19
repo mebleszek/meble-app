@@ -21,18 +21,20 @@
     return { group, name, explain, fn };
   }
 
-  function runSuite(label, tests){
+  async function runSuite(label, tests){
     const started = Date.now();
     const groupsMap = new Map();
     const results = [];
-    (Array.isArray(tests) ? tests : []).forEach((test)=>{
+    const queue = Array.isArray(tests) ? tests : [];
+    for(const test of queue){
       try{
-        test.fn();
+        const out = test && typeof test.fn === 'function' ? test.fn() : null;
+        if(out && typeof out.then === 'function') await out;
         results.push({ group:test.group, name:test.name, explain:test.explain, ok:true });
       }catch(error){
         results.push({ group:test.group, name:test.name, explain:test.explain, ok:false, message:error && error.message ? error.message : String(error), details:error && error.details });
       }
-    });
+    }
     results.forEach((row)=>{
       if(!groupsMap.has(row.group)) groupsMap.set(row.group, { name:row.group, passed:0, failed:0, total:0, results:[] });
       const bucket = groupsMap.get(row.group);

@@ -45,6 +45,7 @@
               </div>
               <div style="display:flex;gap:8px;align-items:center">
                 <span class="muted xs" style="font-weight:800">${escapeHtml((STATUS_OPTIONS.find((opt)=> opt.value === row.status) || {}).label || row.status || 'Nowe')}</span>
+                <button class="btn-primary" type="button" data-service-order-open="${escapeHtml(row.id)}">Otwórz</button>
                 <button class="btn" type="button" data-service-order-edit="${escapeHtml(row.id)}">Edytuj</button>
               </div>
             </div>
@@ -52,6 +53,11 @@
         </div>
       </div>
     `;
+    root.querySelectorAll('[data-service-order-open]').forEach((btn)=>{
+      btn.addEventListener('click', ()=>{
+        try{ FC.serviceOrderDetail && typeof FC.serviceOrderDetail.open === 'function' && FC.serviceOrderDetail.open(btn.getAttribute('data-service-order-open')); }catch(_){ }
+      });
+    });
     root.querySelectorAll('[data-service-order-edit]').forEach((btn)=>{
       btn.addEventListener('click', ()=> openEditor(btn.getAttribute('data-service-order-edit')));
     });

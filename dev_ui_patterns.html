@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wzorce UI aplikacji</title>
+  <link rel="stylesheet" href="css/style.css?v=20260418_ui_patterns_v1">
+  <link rel="stylesheet" href="css/investor-form.css?v=20260418_ui_patterns_v1">
+  <link rel="stylesheet" href="css/rozrys-reference-sync.css?v=20260418_ui_patterns_v1">
+  <link rel="stylesheet" href="css/rozrys-picker-exact-sync.css?v=20260418_ui_patterns_v1">
+  <style>
+    body{margin:0;padding:20px;background:#f6f7fb;color:#162033;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+    .patterns{display:grid;gap:18px;max-width:1180px;margin:0 auto;}
+    .patterns__intro{background:#fff;border:1px solid #d9deea;border-radius:20px;padding:18px 20px;box-shadow:0 8px 24px rgba(17,24,39,.06);}
+    .patterns__intro h1{margin:0 0 8px;font-size:24px;line-height:1.15;}
+    .patterns__intro p{margin:0;color:#5d6b86;line-height:1.45;}
+    .patterns__grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;}
+    .pattern-card{background:#fff;border:1px solid #d9deea;border-radius:20px;padding:18px;box-shadow:0 8px 24px rgba(17,24,39,.06);display:flex;flex-direction:column;gap:14px;}
+    .pattern-card h2{margin:0;font-size:18px;line-height:1.2;}
+    .pattern-card p{margin:0;color:#5d6b86;font-size:14px;line-height:1.45;}
+    .pattern-card code{background:#eef4ff;border:1px solid #c8d6f2;border-radius:10px;padding:2px 6px;font-size:12px;}
+    .pattern-preview{border:1px dashed rgba(148,163,184,.5);border-radius:18px;padding:14px;background:linear-gradient(180deg,#fbfcff 0%,#f7f9fc 100%);}
+    .pattern-preview--modal{padding:0;background:transparent;border:none;}
+    .ui-pattern-modal{max-width:520px;margin:0 auto;}
+    .ui-pattern-field{max-width:320px;}
+    .pattern-preview .panel-box{margin:0;}
+    .ui-pattern-footer-note{color:#64748b;font-size:12px;line-height:1.35;}
+  </style>
+</head>
+<body>
+  <main class="patterns">
+    <section class="patterns__intro">
+      <h1>Wzorce UI do kopiowania 1:1</h1>
+      <p>To jest źródło prawdy dla nowych elementów. Modal bierz z <b>ROZRYS</b>, pola wpisywania z <b>Inwestor</b>, a launchery / stopki z zaakceptowanych wzorców <b>ROZRYS</b>. Nie tworzyć lokalnych wariantów, jeśli odpowiednik już istnieje.</p>
+    </section>
+    <section class="patterns__grid">
+      <article class="pattern-card" data-ui-pattern="modal-shell">
+        <h2>Modal / shell / header / X</h2>
+        <p>Kopiować 1:1 przez klasy: <code>panel-box panel-box--rozrys</code>, <code>panel-box__head</code>, <code>panel-box__title</code>, <code>panel-box__close</code>.</p>
+        <div class="pattern-preview pattern-preview--modal">
+          <div class="panel-box panel-box--rozrys ui-pattern-modal">
+            <div class="panel-box__head">
+              <div class="panel-box__title">Wzorcowy modal</div>
+              <button class="panel-box__close" type="button" aria-label="Zamknij">×</button>
+            </div>
+            <div class="panel-box__body">
+              <div class="rozrys-panel-form rozrys-panel-form--options">
+                <div class="rozrys-panel-grid rozrys-panel-grid--options">
+                  <div class="rozrys-panel-field">
+                    <label class="rozrys-field__label">Wzorcowe pole</label>
+                    <button class="investor-choice-launch" type="button">
+                      <span class="rozrys-choice-launch__value"><span class="rozrys-choice-launch__label">Wybierz opcję</span></span>
+                    </button>
+                  </div>
+                </div>
+                <div class="rozrys-picker-footer rozrys-picker-footer--material">
+                  <div class="rozrys-picker-footer-actions">
+                    <button class="btn" type="button">Anuluj</button>
+                    <button class="btn-primary" type="button">Zatwierdź</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="pattern-card" data-ui-pattern="input-field">
+        <h2>Pole wpisywania</h2>
+        <p>Pola tekstowe / liczbowe w formularzach mają kopiować shell i rytm z <b>Inwestor</b>. Nie robić „podobnych” inputów lokalnie.</p>
+        <div class="pattern-preview investor-card-sync">
+          <div class="ui-pattern-field">
+            <label class="label-help">Nazwa pola</label>
+            <input class="input" type="text" value="Przykładowa wartość">
+          </div>
+        </div>
+      </article>
+
+      <article class="pattern-card" data-ui-pattern="launcher-picker">
+        <h2>Launcher / picker</h2>
+        <p>Widoczny wybór ma wyglądać jak launcher z aplikacji. Native <code>select</code> zostaje źródłem prawdy i siedzi pod spodem.</p>
+        <div class="pattern-preview investor-card-sync">
+          <div class="ui-pattern-field">
+            <label class="label-help">Wzorcowy launcher</label>
+            <button class="investor-choice-launch" type="button">
+              <span class="rozrys-choice-launch__value"><span class="rozrys-choice-launch__label">Wybierz wariant</span></span>
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pattern-card" data-ui-pattern="footer-actions">
+        <h2>Stopka akcji</h2>
+        <p>Dół modala kopiować z <b>ROZRYS</b>: <code>rozrys-picker-footer</code>, prawa grupa akcji, mniejsze przyciski i powietrze pod spodem.</p>
+        <div class="pattern-preview">
+          <div class="rozrys-picker-footer rozrys-picker-footer--material">
+            <div class="rozrys-picker-footer-actions">
+              <button class="btn" type="button">Anuluj</button>
+              <button class="btn-primary" type="button">Zapisz</button>
+            </div>
+          </div>
+          <div class="ui-pattern-footer-note">Przyciski nie mają tworzyć ciężkiego pasa przez całą szerokość. Mają siedzieć po prawej stronie w lekkiej stopce.</div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

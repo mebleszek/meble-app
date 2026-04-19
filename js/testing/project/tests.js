@@ -139,6 +139,30 @@
         H.assert(Array.isArray(split.sheetMaterials) && split.sheetMaterials.length === 1, 'Domena katalogów nie wydzieliła materiałów arkuszowych', split);
         H.assert(Array.isArray(split.accessories) && split.accessories.length === 1, 'Domena katalogów nie wydzieliła akcesoriów', split);
       }),
+      H.makeTest('Projekt', 'Wywiad renderuje lekkie podsumowanie parametrów pokoju', 'Sprawdza, czy góra Wywiadu nie oczekuje już stałej siatki inputów i potrafi odświeżyć kompaktowe summary parametrów pokoju.', ()=>{
+        H.assert(FC.wywiadRoomSettings && typeof FC.wywiadRoomSettings.renderSummary === 'function', 'Brak FC.wywiadRoomSettings.renderSummary');
+        const prevProjectData = Object.prototype.hasOwnProperty.call(host, 'projectData') ? host.projectData : undefined;
+        const prevUiState = Object.prototype.hasOwnProperty.call(host, 'uiState') ? host.uiState : undefined;
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<div id="roomSettingsSummary"></div>';
+        document.body.appendChild(fixture);
+        try{
+          host.projectData = { kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:260, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:58, ceilingBlende:12 } } };
+          host.uiState = { roomType:'kuchnia' };
+          FC.wywiadRoomSettings.renderSummary('kuchnia');
+          const stats = fixture.querySelectorAll('.wywiad-room-shell__stat');
+          const line = fixture.querySelector('.wywiad-room-shell__stats-line');
+          H.assert(!!line, 'Summary parametrów pokoju nie wyrenderowało kompaktowej linii', fixture.innerHTML);
+          H.assert(/260\s*cm/.test(fixture.textContent || ''), 'Summary nie pokazuje wysokości pomieszczenia', fixture.textContent);
+          H.assert(/3,8\s*cm|3.8\s*cm/.test(fixture.textContent || ''), 'Summary nie pokazuje grubości blatu', fixture.textContent);
+        } finally {
+          fixture.remove();
+          if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
+          else host.projectData = prevProjectData;
+          if(prevUiState === undefined) { try{ delete host.uiState; }catch(_){ host.uiState = undefined; } }
+          else host.uiState = prevUiState;
+        }
+      }),
       H.makeTest('Projekt', 'Tryby pracy mają rozłączne, kontekstowe wejścia', 'Sprawdza, czy ekran startowy prowadzi do dwóch osobnych trybów z różnymi akcjami zamiast jednego wspólnego centrum cenników.', ()=>{
         H.assert(FC.workModeHub && typeof FC.workModeHub.getModeConfig === 'function', 'Brak FC.workModeHub.getModeConfig');
         const furniture = FC.workModeHub.getModeConfig('furnitureProjects');
@@ -173,6 +197,64 @@
           FC.serviceOrderStore.writeAll(prevOrders);
         }
       }),
+      H.makeTest('Projekt', 'WYCENA ukrywa kartę parametrów pomieszczenia', 'Sprawdza, czy karta z parametrami pomieszczenia nie pokazuje się już w zakładce WYCENA, ale nadal może działać w innych zakładkach.', ()=>{
+        H.assert(FC.appView && typeof FC.appView.shouldHideRoomSettingsForTab === 'function', 'Brak helpera widoczności karty parametrów pokoju', FC.appView);
+        H.assert(FC.appView.shouldHideRoomSettingsForTab('wycena') === true, 'Karta parametrów pokoju nie jest ukrywana dla WYCENA');
+        H.assert(FC.appView.shouldHideRoomSettingsForTab('wywiad') === false, 'Karta parametrów pokoju została ukryta także dla WYWIAD');
+      }),
+      H.makeTest('Projekt', 'Wejście zakładką WYCENA bez wybranego pomieszczenia omija ekran wyboru pokoju', 'Sprawdza, czy kliknięcie zakładki WYCENA przy aktywnym inwestorze może otworzyć appView bez wymuszania ekranu „Wybierz pomieszczenie”.', ()=>{
+        if(!(FC.views && typeof FC.views.shouldOpenRoomlessWycena === 'function')){
+          H.assert(typeof document === 'undefined', 'Brak helpera roomless WYCENA', FC.views);
+          return;
+        }
+        H.assert(FC.views.shouldOpenRoomlessWycena({ entry:'rooms', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' }) === true, 'Helper roomless WYCENA nie rozpoznaje wejścia z inwestora');
+        if(typeof document === 'undefined' || !(typeof FC.views.applyFromState === 'function')) return;
+        const roomsView = document.getElementById('roomsView');
+        const appView = document.getElementById('appView');
+        H.assert(roomsView && appView, 'Brak wymaganych widoków DOM dla testu wejścia do WYCENA', { roomsView, appView });
+        const prevRooms = roomsView ? roomsView.style.display : '';
+        const prevApp = appView ? appView.style.display : '';
+        try{
+          FC.views.applyFromState({ entry:'rooms', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' });
+          H.assert(appView.style.display === 'block', 'appView nie otworzył się dla roomless WYCENA', { app:appView.style.display, rooms:roomsView.style.display });
+          H.assert(roomsView.style.display === 'none', 'roomsView nadal został pokazany zamiast WYCENA', { app:appView.style.display, rooms:roomsView.style.display });
+        } finally {
+          if(roomsView) roomsView.style.display = prevRooms;
+          if(appView) appView.style.display = prevApp;
+        }
+      }),
+      H.makeTest('Projekt', 'Strona główna po odświeżeniu nie wskakuje z powrotem do WYCENA', 'Pilnuje, czy zapisany kontekst inwestora nie nadpisuje wejścia home po odświeżeniu i nie otwiera roomless WYCENA.', ()=>{
+        H.assert(FC.views && typeof FC.views.shouldOpenRoomlessWycena === 'function', 'Brak helpera roomless WYCENA', FC.views);
+        H.assert(FC.views.shouldOpenRoomlessWycena({ entry:'home', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' }) === false, 'Helper roomless WYCENA błędnie otwiera wycenę z ekranu głównego');
+        if(typeof document === 'undefined' || !(typeof FC.views.applyFromState === 'function')) return;
+        const homeView = document.getElementById('homeView');
+        const appView = document.getElementById('appView');
+        H.assert(homeView && appView, 'Brak wymaganych widoków DOM dla testu strony głównej', { homeView, appView });
+        const prevHome = homeView ? homeView.style.display : '';
+        const prevApp = appView ? appView.style.display : '';
+        try{
+          FC.views.applyFromState({ entry:'home', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test' });
+          H.assert(homeView.style.display === 'block', 'homeView nie pozostał otwarty po odświeżeniu strony głównej', { home:homeView.style.display, app:appView.style.display });
+          H.assert(appView.style.display === 'none', 'appView otworzył się mimo wejścia na stronę główną', { home:homeView.style.display, app:appView.style.display });
+        } finally {
+          if(homeView) homeView.style.display = prevHome;
+          if(appView) appView.style.display = prevApp;
+        }
+      }),
+      H.makeTest('Projekt', 'Kolejność przycisków zakładek zgadza się z nowym układem', 'Pilnuje, czy paski zakładek mają zamienione MATERIAŁ z RYSUNEK oraz dolny rząd zaczyna się od INWESTOR.', ()=>{
+        if(typeof document === 'undefined') return;
+        const order = Array.from(document.querySelectorAll('#topTabs .tab-btn')).map((btn)=> String(btn && btn.dataset && btn.dataset.tab || ''));
+        H.assert(order.length >= 8, 'Brak pełnego zestawu zakładek do testu kolejności', order);
+        H.assert(order.slice(0, 4).join(',') === 'wywiad,material,rysunek,czynnosci', 'Górny rząd zakładek ma złą kolejność', order);
+        H.assert(order.slice(4, 8).join(',') === 'inwestor,wycena,rozrys,magazyn', 'Dolny rząd zakładek ma złą kolejność', order);
+      }),
+      H.makeTest('Projekt', 'Zablokowane opcje statusu niosą stan disabled do overlayu', 'Sprawdza, czy overlay wyboru statusu dostaje klasę disabled także dla aktualnie zaznaczonej opcji, żeby UI mogło ją wyszarzyć zamiast pokazywać na zielono.', ()=>{
+        H.assert(FC.rozrysChoice && typeof FC.rozrysChoice.buildChoiceOptionClass === 'function', 'Brak helpera klas opcji overlayu', FC.rozrysChoice);
+        const cls = FC.rozrysChoice.buildChoiceOptionClass('zaakceptowany', 'zaakceptowany', true);
+        H.assert(/is-selected/.test(String(cls || '')), 'Zablokowana bieżąca opcja utraciła klasę selected potrzebną do identyfikacji stanu', { cls });
+        H.assert(/is-disabled/.test(String(cls || '')), 'Zablokowana opcja nie niesie klasy disabled do overlayu', { cls });
+      }),
+
       H.makeTest('Projekt', 'Lista zleceń usługowych działa niezależnie od inwestorów', 'Sprawdza, czy drobne zlecenia usługowe mają własny byt danych i nie używają listy inwestorów.', ()=>{
         H.assert(FC.catalogStore && typeof FC.catalogStore.upsertServiceOrder === 'function', 'Brak FC.catalogStore.upsertServiceOrder');
         const beforeOrders = FC.catalogStore.getServiceOrders();
