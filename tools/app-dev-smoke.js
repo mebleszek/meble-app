@@ -43,6 +43,7 @@ const FILES = [
   'js/app/rozrys/rozrys-choice.js',
   'js/app/rozrys/rozrys-prefs.js',
   'js/app/rozrys/rozrys-project-source.js',
+  'js/app/rozrys/rozrys-part-helpers.js',
   'js/app/rozrys/rozrys-runtime-utils.js',
   'js/app/rozrys/rozrys-plan-helpers.js',
   'js/app/rozrys/rozrys-engine-bridge.js',

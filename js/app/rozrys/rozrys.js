@@ -90,6 +90,72 @@
   const openRozrysChoiceOverlay = uiTools.openRozrysChoiceOverlay;
   const askRozrysConfirm = uiTools.askRozrysConfirm;
 
+  const partHelpers = (FC.rozrysPartHelpers && typeof FC.rozrysPartHelpers.createApi === 'function')
+    ? FC.rozrysPartHelpers.createApi({ FC, host:window, cmToMm, partSignature })
+    : (()=> {
+      function getPartOptionsStore(){
+        return (FC && FC.materialPartOptions) || null;
+      }
+      function normalizeFrontLaminatMaterialKey(materialKey){
+        const m = String(materialKey || '').match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
+        return m ? String(m[1] || '').trim() : String(materialKey || '').trim();
+      }
+      function resolveCabinetCutListFn(){
+        try{
+          if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function') return FC.cabinetCutlist.getCabinetCutList.bind(FC.cabinetCutlist);
+        }catch(_){ }
+        try{
+          if(typeof getCabinetCutList === 'function') return getCabinetCutList;
+        }catch(_){ }
+        try{
+          if(typeof window.getCabinetCutList === 'function') return window.getCabinetCutList;
+        }catch(_){ }
+        return null;
+      }
+      function resolveRozrysPartFromSource(p){
+        try{
+          const store = getPartOptionsStore();
+          if(store && typeof store.resolvePartForRozrys === 'function') return store.resolvePartForRozrys(p);
+        }catch(_){ }
+        const materialKey = normalizeFrontLaminatMaterialKey(String((p && p.material) || '').trim());
+        return {
+          materialKey,
+          name: String((p && p.name) || 'Element'),
+          sourceSig: `${materialKey}||${String((p && p.name) || 'Element')}||${cmToMm(p && p.a)}x${cmToMm(p && p.b)}` ,
+          direction: 'default',
+          ignoreGrain: false,
+          w: cmToMm(p && p.a),
+          h: cmToMm(p && p.b),
+          qty: Math.max(1, Math.round(Number(p && p.qty) || 0)),
+        };
+      }
+      function materialPartDirectionLabel(part){
+        try{
+          const store = getPartOptionsStore();
+          if(store && typeof store.labelForDirection === 'function') return store.labelForDirection(part && part.direction);
+        }catch(_){ }
+        return 'Domyślny z materiału';
+      }
+      function isPartRotationAllowed(part, grainOn, overrides){
+        if(!grainOn) return true;
+        if(part && part.ignoreGrain) return true;
+        const sig = partSignature(part);
+        return !!(overrides && overrides[sig]);
+      }
+      function isFrontMaterialKey(materialKey){
+        return /^\s*Front\s*:/i.test(String(materialKey||''));
+      }
+      return { getPartOptionsStore, resolveCabinetCutListFn, resolveRozrysPartFromSource, materialPartDirectionLabel, isPartRotationAllowed, isFrontMaterialKey, normalizeFrontLaminatMaterialKey };
+    })();
+
+  const getPartOptionsStore = partHelpers.getPartOptionsStore;
+  const resolveCabinetCutListFn = partHelpers.resolveCabinetCutListFn;
+  const resolveRozrysPartFromSource = partHelpers.resolveRozrysPartFromSource;
+  const materialPartDirectionLabel = partHelpers.materialPartDirectionLabel;
+  const isPartRotationAllowed = partHelpers.isPartRotationAllowed;
+  const isFrontMaterialKey = partHelpers.isFrontMaterialKey;
+  const normalizeFrontLaminatMaterialKey = partHelpers.normalizeFrontLaminatMaterialKey;
+
   const engineBridge = (FC.rozrysEngineBridge && typeof FC.rozrysEngineBridge.createApi === 'function')
     ? FC.rozrysEngineBridge.createApi({ FC, loadEdgeStore, partSignature, isPartRotationAllowed, mmToUnitStr })
     : {};
@@ -108,55 +174,6 @@
       openAddStockModal: ()=> undefined,
     };
 
-  function getPartOptionsStore(){
-    return (FC && FC.materialPartOptions) || null;
-  }
-
-  function resolveCabinetCutListFn(){
-    try{
-      if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function') return FC.cabinetCutlist.getCabinetCutList.bind(FC.cabinetCutlist);
-    }catch(_){ }
-    try{
-      if(typeof getCabinetCutList === 'function') return getCabinetCutList;
-    }catch(_){ }
-    try{
-      if(typeof window.getCabinetCutList === 'function') return window.getCabinetCutList;
-    }catch(_){ }
-    return null;
-  }
-
-  function resolveRozrysPartFromSource(p){
-    try{
-      const store = getPartOptionsStore();
-      if(store && typeof store.resolvePartForRozrys === 'function') return store.resolvePartForRozrys(p);
-    }catch(_){ }
-    const materialKey = normalizeFrontLaminatMaterialKey(String((p && p.material) || '').trim());
-    return {
-      materialKey,
-      name: String((p && p.name) || 'Element'),
-      sourceSig: `${materialKey}||${String((p && p.name) || 'Element')}||${cmToMm(p && p.a)}x${cmToMm(p && p.b)}`,
-      direction: 'default',
-      ignoreGrain: false,
-      w: cmToMm(p && p.a),
-      h: cmToMm(p && p.b),
-      qty: Math.max(1, Math.round(Number(p && p.qty) || 0)),
-    };
-  }
-
-  function materialPartDirectionLabel(part){
-    try{
-      const store = getPartOptionsStore();
-      if(store && typeof store.labelForDirection === 'function') return store.labelForDirection(part && part.direction);
-    }catch(_){ }
-    return 'Domyślny z materiału';
-  }
-
-  function isPartRotationAllowed(part, grainOn, overrides){
-    if(!grainOn) return true;
-    if(part && part.ignoreGrain) return true;
-    const sig = partSignature(part);
-    return !!(overrides && overrides[sig]);
-  }
 
 function roomLabel(room){
   if(FC.rozrysScope && typeof FC.rozrysScope.roomLabel === 'function'){
@@ -340,18 +357,6 @@ function aggregatePartsForProject(selectedRooms){
   return { byMaterial: {}, materials: [], groups: {}, selectedRooms: Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
 }
 
-
-
-  function isFrontMaterialKey(materialKey){
-    return /^\s*Front\s*:/i.test(String(materialKey||''));
-  }
-
-  function normalizeFrontLaminatMaterialKey(materialKey){
-    // Jeśli front jest z laminatu i ma kolor jak korpus, łączymy pod ten sam klucz materiału.
-    // Fronty w Materiałach mają postać: "Front: laminat • <KOLOR>".
-    const m = String(materialKey||'').match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
-    return m ? String(m[1]||'').trim() : String(materialKey||'').trim();
-  }
 
   // edgeSubMm: 0 => show nominal dimensions, >0 => show "do cięcia" dims (kompensacja okleiny)
   // Zasada kompensacji (zgodnie z ustaleniem):

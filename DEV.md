@@ -1,3 +1,10 @@
+## 2026-04-19 — ROZRYS part helpers split (cutlist/source/rotation adapters)
+- `js/app/rozrys/rozrys-part-helpers.js` — wydzielone helpery części używane przez agregację, engine i plan helpers: `resolveCabinetCutListFn`, `resolveRozrysPartFromSource`, `materialPartDirectionLabel`, `isPartRotationAllowed`, `isFrontMaterialKey`, `normalizeFrontLaminatMaterialKey`. To jest blok techniczny bez wpływu na bootstrap launcherów ani start renderu `ROZRYS`.
+- `js/app/rozrys/rozrys.js` — zamiast trzymać lokalne implementacje helperów części czyta je z `FC.rozrysPartHelpers.createApi(...)`; reszta ścieżek wysokiego ryzyka (`aggregatePartsForProject`, pickery, launchery, render startowy, generate) pozostaje funkcjonalnie bez zmian.
+- `js/testing/rozrys/tests.js` — dodane antyregresje pilnujące kontraktu helperów części oraz load order nowego modułu przed `rozrys.js`.
+- `index.html` + `dev_tests.html` + `tools/*smoke.js` — dopięte ładowanie `rozrys-part-helpers.js` i asset source do smoke.
+- Instrukcja antyregresyjna: przy splitach helperów domenowych, które są używane równocześnie przez agregację, plan helpers i engine bridge, najpierw porównać starą listę wywołań 1:1 (kto bierze cutlist, kto resolve part, kto pyta o rotation), a dopiero potem wynosić moduł. Nie mieszać tego z bootstrapem UI launcherów.
+
 ## 2026-04-19 — ROZRYS UI bridge smoke test hotfix v2
 - `js/testing/rozrys/tests.js` — test dla `rozrysUiTools.labelWithInfo(...)` przestał polegać wyłącznie na jednym helperze `collectNodes(...)`. Najpierw próbuje znaleźć `.info-trigger` przez `querySelector`, potem przez bezpośrednie `children`, a dopiero na końcu przez rekurencyjne `collectNodes`. Dzięki temu smoke nie zgłasza fałszywego błędu przy działającym programie, gdy środowisko testowe inaczej wystawia dzieci węzła.
 - `dev_tests.html` — podbity query string dla `js/testing/rozrys/tests.js`, żeby po wdrożeniu nie trzymał starej wersji smoke testu w cache.

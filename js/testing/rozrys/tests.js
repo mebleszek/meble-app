@@ -770,6 +770,59 @@
       }),
 
 
+      makeTest('Part helpers', 'Wydzielone part helpers ROZRYS delegują resolveCabinetCutListFn, resolveRozrysPartFromSource i rotation bez zmiany kontraktu', 'Pilnuje bezpiecznego splitu helperów części: agregacja i plan helpers nadal muszą dostać te same resolve/fallback helpery bez wchodzenia w UI launchery.', ()=>{
+        assert(FC.rozrysPartHelpers && typeof FC.rozrysPartHelpers.createApi === 'function', 'Brak FC.rozrysPartHelpers.createApi');
+        const prevStore = FC.materialPartOptions;
+        const prevCutlist = FC.cabinetCutlist;
+        const captured = { calls:[] };
+        FC.materialPartOptions = {
+          resolvePartForRozrys(part){ captured.calls.push({ type:'resolve', part }); return { materialKey:'STORE_KEY', name:'Front', sourceSig:'store-sig', direction:'vertical', ignoreGrain:true, w:701, h:502, qty:3 }; },
+          labelForDirection(direction){ captured.calls.push({ type:'label', direction }); return direction === 'vertical' ? 'Pion' : 'Inny'; },
+        };
+        FC.cabinetCutlist = {
+          getCabinetCutList(cab, room){ captured.cutArgs = { cab, room, ctx:this }; return ['ok']; }
+        };
+        try{
+          const api = FC.rozrysPartHelpers.createApi({
+            FC,
+            host: host,
+            cmToMm: (v)=> Math.round((Number(v) || 0) * 10),
+            partSignature: (part)=> `${part.material}||${part.name}||${part.w}x${part.h}`,
+          });
+          const cutListFn = api.resolveCabinetCutListFn();
+          assert(typeof cutListFn === 'function', 'Part helpers nie zwróciły getCabinetCutList z cabinetCutlist', captured);
+          const cutResult = cutListFn({ id:'cab-1' }, 'room-a');
+          assert(Array.isArray(cutResult) && cutResult[0] === 'ok', 'Part helpers nie delegują resolveCabinetCutListFn do cabinetCutlist', captured);
+          const resolved = api.resolveRozrysPartFromSource({ material:'Front: laminat • Dąb', name:'Front', a:70.1, b:50.2, qty:3 });
+          assert(resolved && resolved.materialKey === 'STORE_KEY' && resolved.sourceSig === 'store-sig', 'Part helpers nie delegują resolveRozrysPartFromSource do materialPartOptions', resolved);
+          const directionLabel = api.materialPartDirectionLabel({ direction:'vertical' });
+          assert(directionLabel === 'Pion', 'Part helpers nie delegują materialPartDirectionLabel do materialPartOptions.labelForDirection', { directionLabel, captured });
+          const rotationAllowed = api.isPartRotationAllowed({ material:'MDF', name:'Bok', w:720, h:560 }, true, { 'MDF||Bok||720x560':true });
+          assert(rotationAllowed === true, 'Part helpers zmieniły kontrakt isPartRotationAllowed', { rotationAllowed });
+          assert(api.isFrontMaterialKey('Front: laminat • Dąb') === true, 'Part helpers nie rozpoznają klucza frontu po splicie');
+          assert(api.normalizeFrontLaminatMaterialKey('Front: laminat • Dąb') === 'Dąb', 'Part helpers nie prostują klucza laminatowego frontu po splicie');
+        } finally {
+          FC.materialPartOptions = prevStore;
+          FC.cabinetCutlist = prevCutlist;
+        }
+      }),
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje part helpers przed rozrys.js i zachowuje kontrakt helperów części po splicie', 'Pilnuje regresji, w której nowy moduł helperów części byłby ładowany po rozrys.js albo rozrys.js straciłby przekazywanie helperów resolve/rotation do engine/plan helpers.', ()=>{
+        const indexHtml = readAssetSource('index.html');
+        const devHtml = readAssetSource('dev_tests.html');
+        const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
+        const partHelpersSrc = readAssetSource('js/app/rozrys/rozrys-part-helpers.js');
+        assert(partHelpersSrc && partHelpersSrc.includes('FC.rozrysPartHelpers'), 'Brak źródła nowego modułu part helpers w assetach smoke');
+        const partIdx = indexHtml.indexOf('js/app/rozrys/rozrys-part-helpers.js');
+        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(partIdx >= 0 && rozrysIdx >= 0 && partIdx < rozrysIdx, 'index.html ładuje rozrys-part-helpers po rozrys.js', { partIdx, rozrysIdx });
+        const partDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-part-helpers.js');
+        const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(partDevIdx >= 0 && rozrysDevIdx >= 0 && partDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-part-helpers po rozrys.js', { partDevIdx, rozrysDevIdx });
+        assert(/const\s+resolveCabinetCutListFn\s*=\s*partHelpers\.resolveCabinetCutListFn/.test(rozrysSrc), 'rozrys.js po splicie nie czyta resolveCabinetCutListFn z partHelpers', { snippet: rozrysSrc.slice(0, 2600) });
+        assert(/const\s+isPartRotationAllowed\s*=\s*partHelpers\.isPartRotationAllowed/.test(rozrysSrc), 'rozrys.js po splicie nie czyta isPartRotationAllowed z partHelpers', { snippet: rozrysSrc.slice(0, 2600) });
+      }),
+
+
       makeTest('UI bridge', 'Wydzielone UI tools ROZRYS budują label z info i delegują confirm przez confirmBox', 'Pilnuje splitu helperów UI: labelWithInfo ma dalej renderować info-trigger, a askRozrysConfirm ma przejść przez confirmBox z pełnym payloadem.', ()=>{
         assert(FC.rozrysUiTools && typeof FC.rozrysUiTools.createApi === 'function', 'Brak FC.rozrysUiTools.createApi');
         const prevInfoBox = FC.infoBox;
