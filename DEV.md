@@ -1,3 +1,10 @@
+## 2026-04-19 — ROZRYS room picker marks empty rooms without blocking them
+- `js/app/rozrys/rozrys.js` — dodany lekki `getRoomPickerMeta(room)` oparty na tej samej centralnej agregacji ROZRYS, żeby picker wiedział, czy konkretny pokój ma elementy do rozkroju. To jest tylko oznaczenie UI; nie zmienia logiki scope ani działania silnika.
+- `js/app/rozrys/rozrys-selection-ui.js` + `js/app/rozrys/rozrys-pickers.js` — picker pomieszczeń dostaje meta pokoju i przy pustym pokoju pokazuje drobną informację `Brak elementów do rozkroju`, ale nadal pozwala go zaznaczyć. Dzięki temu wejście z `Inwestora` do pustego pokoju pozostaje spójne.
+- `css/rozrys-checkbox-chip-pattern.css` — dopięty drobny układ tekstu/note pod etykietą pokoju bez zmiany bazowego wzorca checkbox-chip.
+- `js/testing/rozrys/tests.js` — dodany test pilnujący, że pusty pokój jest oznaczony, ale nie jest blokowany i może pozostać zaznaczony jako aktualny pokój wejściowy.
+- Instrukcja antyregresyjna: przy pustych pokojach w ROZRYS nie blokować checkboxa ani nie ukrywać pokoju w pickerze. Aktualny pokój z `Inwestora` ma pozostać wybieralny; UI ma go tylko oznaczać jako pusty.
+
 ## 2026-04-19 — ROZRYS room-context scope guard over stale global prefs
 - `js/app/rozrys/rozrys.js` — start ROZRYS w kontekście pokoju (`uiState.roomType`) bierze teraz exact bieżący pokój jako wejściowy scope, zamiast odziedziczyć stary globalny `selectedRooms` z poprzednio otwartego pokoju. Dzięki temu fix exact-scope nie zeruje ROZRYS dla pokoju z szafkami tylko dlatego, że w prefs został pusty pokój otwarty wcześniej.
 - `js/testing/rozrys/tests.js` — dodany test pilnujący, że stale zapisany scope innego pokoju nie może nadpisać bieżącego roomType przy starcie ROZRYS.

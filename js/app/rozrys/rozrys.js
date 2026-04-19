@@ -863,11 +863,18 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
       return { title:'Wszystkie materiały', subtitle:'', detail:'' };
     }
 
-    function getRoomsSummary(rooms){
-      if(FC.rozrysScope && typeof FC.rozrysScope.getRoomsSummary === 'function'){
-        return FC.rozrysScope.getRoomsSummary(rooms, { getRooms });
-      }
-      return { title:'Pomieszczenia', subtitle:'' };
+    const roomPickerMetaCache = Object.create(null);
+    function getRoomPickerMeta(room){
+      const key = String(room || '').trim();
+      if(!key) return { empty:true, note:'Brak elementów do rozkroju' };
+      if(Object.prototype.hasOwnProperty.call(roomPickerMetaCache, key)) return roomPickerMetaCache[key];
+      const roomAgg = aggregatePartsForProject([key]) || { materials:[] };
+      const hasMaterials = Array.isArray(roomAgg.materials) && roomAgg.materials.length > 0;
+      const meta = hasMaterials
+        ? { empty:false, note:'' }
+        : { empty:true, note:'Brak elementów do rozkroju' };
+      roomPickerMetaCache[key] = meta;
+      return meta;
     }
 
     const selectionUi = (FC.rozrysSelectionUi && typeof FC.rozrysSelectionUi.createController === 'function')
@@ -901,6 +908,7 @@ function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
           roomLabel,
           splitMaterialAccordionTitle,
           makeMaterialScope,
+          getRoomPickerMeta,
         })
       : null;
 

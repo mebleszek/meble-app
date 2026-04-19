@@ -446,6 +446,42 @@
         });
         assert(chips[0].classList.contains('is-checked'), 'Zaznaczone pomieszczenie nie dostaje klasy is-checked', { className: chips[0].className });
       }),
+      makeTest('UI i styl', 'Picker pomieszczeń oznacza pusty pokój, ale nadal pozwala go zaznaczyć', 'Pilnuje, czy pusty pokój w ROZRYS dostaje tylko drobną informację o braku elementów do rozkroju, bez blokowania checkboxa i bez zrywania spójności z wejściem z Inwestora.', ()=>{
+        assert(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function', 'Brak FC.rozrysPickers.openRoomsPicker');
+        const prevPanelBox = FC.panelBox;
+        const opened = [];
+        const fakeDoc = { createElement:(tag)=> createFakeNode(tag, {}) };
+        FC.panelBox = {
+          open(config){ opened.push(config); },
+          close(){}
+        };
+        try{
+          FC.rozrysPickers.openRoomsPicker({
+            getSelectedRooms: ()=> ['h'],
+            setSelectedRooms: ()=> {},
+            getRooms: ()=> ['a', 'h'],
+            normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
+            roomLabel: (room)=> String(room || '').toUpperCase(),
+            getRoomPickerMeta: (room)=> String(room || '').trim() === 'h' ? { empty:true, note:'Brak elementów do rozkroju' } : { empty:false, note:'' },
+            refreshSelectionState: ()=> {},
+            askConfirm: ()=> true,
+            doc: fakeDoc,
+          });
+        }finally{
+          FC.panelBox = prevPanelBox;
+        }
+        assert(opened.length === 1, 'Picker pomieszczeń nie otworzył panel-boxa dla wariantu z pustym pokojem');
+        const chips = collectNodes(opened[0].contentNode, (node)=> node.classList && node.classList.contains('rozrys-scope-chip--room-option'));
+        assert(chips.length === 2, 'Picker pomieszczeń nie wyrenderował dwóch pokojów w teście pustego pokoju', { count: chips.length });
+        const emptyChip = chips.find((chip)=> collectNodes(chip, (node)=> String(node.textContent || '') === 'H').length > 0);
+        assert(emptyChip, 'Nie znaleziono chipa pustego pokoju H');
+        const noteNode = collectNodes(emptyChip, (node)=> String(node.textContent || '').includes('Brak elementów do rozkroju'))[0];
+        assert(noteNode, 'Pusty pokój nie dostał drobnej informacji o braku elementów do rozkroju');
+        const emptyCheckbox = collectNodes(emptyChip, (node)=> node.tagName === 'INPUT' && String(node.attributes && node.attributes.type || '') === 'checkbox')[0];
+        assert(emptyCheckbox, 'Chip pustego pokoju nie zawiera checkboxa');
+        assert(emptyCheckbox.disabled !== true, 'Pusty pokój został zablokowany zamiast tylko oznaczony');
+        assert(emptyCheckbox.checked === true, 'Aktualny pusty pokój nie pozostał zaznaczony mimo wejścia z Inwestora', { checked: emptyCheckbox.checked });
+      }),
       makeTest('UI i styl', 'CSS dużego chipa pomieszczeń utrzymuje stan jak w materiale i nie zostawia grubszego obrysu po kliknięciu', 'Sprawdza, czy duży wariant stylu scope-chip dla pomieszczeń ma dokładnie dwa stany jak w materiale: bazowy/odznaczony i zaznaczony, a sticky hover na mobile nie zostawia trzeciego stanu obrysu po tapnięciu.', ()=>{
         const css = readAssetSource('css/rozrys-checkbox-chip-pattern.css');
         assert(css && css.includes('.rozrys-scope-chip--room-option'), 'Brak pliku albo wariantu room-option dla dużego chipa pomieszczeń');

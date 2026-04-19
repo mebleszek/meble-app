@@ -31,6 +31,7 @@
       getRooms:null,
       normalizeRoomSelection:null,
       roomLabel:null,
+      getRoomPickerMeta:null,
       askConfirm:null,
       refreshSelectionState:null,
       doc:null,
@@ -46,15 +47,20 @@
       : (rooms)=> Array.isArray(rooms) ? rooms.slice() : [];
     const getRooms = typeof cfg.getRooms === 'function' ? cfg.getRooms : ()=> [];
     const roomLabel = typeof cfg.roomLabel === 'function' ? cfg.roomLabel : (room)=> String(room || '');
+    const getRoomPickerMeta = typeof cfg.getRoomPickerMeta === 'function'
+      ? cfg.getRoomPickerMeta
+      : ()=> ({ empty:false, note:'' });
     const initialSignature = JSON.stringify(normalizeRoomSelection(currentRooms));
     const nextRooms = ()=> normalizeRoomSelection(Array.from(draft));
     const hasSelection = ()=> nextRooms().length > 0;
     const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
 
     getRooms().forEach((room)=>{
+      const meta = getRoomPickerMeta(room) || {};
       const cardNode = h('label', { class:'rozrys-scope-chip rozrys-scope-chip--room-match rozrys-scope-chip--room-option' }, null, cfg.doc);
       const top = h('div', { class:'rozrys-room-chip__top' }, null, cfg.doc);
       const cb = h('input', { type:'checkbox' }, null, cfg.doc);
+      const textWrap = h('div', { class:'rozrys-room-chip__text' }, null, cfg.doc);
       const titleNode = h('div', { class:'rozrys-room-chip__label', text:roomLabel(room) }, null, cfg.doc);
       const syncCardState = ()=> cardNode.classList.toggle('is-checked', !!cb.checked);
       cb.checked = draft.has(room);
@@ -69,7 +75,11 @@
         releaseChipFocus(cardNode);
       });
       top.appendChild(cb);
-      top.appendChild(titleNode);
+      textWrap.appendChild(titleNode);
+      if(meta.empty){
+        textWrap.appendChild(h('div', { class:'rozrys-room-chip__note muted xs', text:String(meta.note || 'Brak elementów do rozkroju') }, null, cfg.doc));
+      }
+      top.appendChild(textWrap);
       cardNode.appendChild(top);
       list.appendChild(cardNode);
     });
