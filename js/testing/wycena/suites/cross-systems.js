@@ -77,6 +77,37 @@
         });
       }),
 
+    H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Wycena dla pustego, ale istniejącego pokoju nie pobiera danych z innego pokoju projektu', 'Pilnuje exact scope: gdy wybrany pokój istnieje, ale nie ma żadnych szafek, Wycena ma zwrócić empty_quote_scope zamiast policzyć ofertę na podstawie danych z innego pokoju.', async ()=>{
+        H.assert(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function', 'Brak FC.wycenaCore.collectQuoteData');
+        await withInvestorProjectFixture({
+          projectData:{
+            schemaVersion: 2,
+            meta:{
+              roomDefs:{
+                room_kuchnia_gora:{ id:'room_kuchnia_gora', baseType:'kuchnia', name:'A', label:'A' },
+                room_salon:{ id:'room_salon', baseType:'pokoj', name:'H', label:'H' },
+              },
+              roomOrder:['room_kuchnia_gora','room_salon'],
+            },
+            room_kuchnia_gora:{ cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
+            room_salon:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          },
+          cutListFn(cabinet, roomId){
+            if(String(roomId || '') !== 'room_kuchnia_gora') return [];
+            return [{ name:'Kuchnia bok', material:'Biały mat', a:72, b:56, qty:1 }];
+          }
+        }, async ()=>{
+          let caught = null;
+          try{
+            await FC.wycenaCore.collectQuoteData({ selection:{ selectedRooms:['room_salon'], materialScope:{ includeFronts:false, includeCorpus:true } } });
+          }catch(error){
+            caught = error;
+          }
+          H.assert(caught && caught.quoteValidation === true, 'Wycena powinna zgłosić błąd walidacji dla pustego exact scope', caught);
+          H.assert(String(caught && caught.code || '') === 'empty_quote_scope', 'Wycena dla pustego exact scope zwróciła zły kod błędu', caught);
+        });
+      }),
+
     H.makeTest('Wycena ↔ PDF', 'PDF budowany z zapisanej końcowej oferty zachowuje handlowy charakter po konwersji z wstępnej', 'Pilnuje, czy po konwersji zaakceptowanej wyceny wstępnej na końcową PDF nadal bierze tę samą wersję oferty, pokazuje pomieszczenia i nie wraca do technicznych formatek.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function', 'Brak FC.quoteSnapshotStore.convertPreliminaryToFinal');
         H.assert(FC.quotePdf && typeof FC.quotePdf.buildPrintHtml === 'function', 'Brak FC.quotePdf.buildPrintHtml');
