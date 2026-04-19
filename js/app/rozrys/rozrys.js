@@ -108,6 +108,45 @@
       openAddStockModal: ()=> undefined,
     };
 
+  const selectionBridge = (FC.rozrysSelectionBridge && typeof FC.rozrysSelectionBridge.createApi === 'function')
+    ? FC.rozrysSelectionBridge.createApi({ FC })
+    : { createController: ()=> ({
+        updateRoomsPickerButton(){},
+        updateMaterialPickerButton(){},
+        persistSelectionPrefs(){},
+        syncHiddenSelections(){},
+        refreshSelectionState(){},
+        buildScopeDraftControls(){},
+        openRoomsPicker(){},
+        openMaterialPicker(){},
+      }) };
+
+  const optionsStateBridge = (FC.rozrysOptionsState && typeof FC.rozrysOptionsState.createApi === 'function')
+    ? FC.rozrysOptionsState.createApi({ FC })
+    : { createController: ()=> ({
+        persistOptionPrefs(){},
+        applyUnitChange(){},
+        getBaseState(){ return {}; },
+      }) };
+
+  const outputBridge = (FC.rozrysOutputBridge && typeof FC.rozrysOutputBridge.createApi === 'function')
+    ? FC.rozrysOutputBridge.createApi({ FC })
+    : {
+      tryAutoRenderFromCache: ()=> false,
+      buildEntriesForScope: ()=> [],
+      splitMaterialAccordionTitle: (material)=> ({ line1:String(material || 'Materiał'), line2:'' }),
+      createMaterialAccordionSection: (_material, _options, deps)=> {
+        const h = deps && typeof deps.h === 'function' ? deps.h : ((tag)=> document.createElement(tag));
+        const wrap = h('div');
+        const body = h('div');
+        wrap.appendChild(body);
+        return { wrap, body, trigger:null, setOpenState:()=>{} };
+      },
+      renderMaterialAccordionPlans: ()=> false,
+      renderOutput: ()=> undefined,
+      renderLoadingInto: ()=> null,
+    };
+
   function getPartOptionsStore(){
     return (FC && FC.materialPartOptions) || null;
   }
@@ -563,64 +602,6 @@ function aggregatePartsForProject(selectedRooms){
 
     card.appendChild(controls);
     card.appendChild(controls2);
-    function persistOptionPrefs(){
-      savePanelPrefs(Object.assign({}, loadPanelPrefs(), {
-        selectedRooms: encodeRoomsSelection(selectedRooms),
-        materialScope: encodeMaterialScope(materialScope),
-        unit: unitSel.value,
-        boardW: Math.max(1, Number(inW.value) || (unitSel.value === 'mm' ? 2800 : 280)),
-        boardH: Math.max(1, Number(inH.value) || (unitSel.value === 'mm' ? 2070 : 207)),
-        edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
-        kerf: Math.max(0, Number(inK.value)||0),
-        edgeTrim: Math.max(0, Number(inTrim.value)||0),
-        minScrapW: Math.max(0, Number(inMinW.value)||0),
-        minScrapH: Math.max(0, Number(inMinH.value)||0),
-      }));
-    }
-
-    function applyUnitChange(next){
-      const prev = state.unit;
-      if(prev === next) return;
-      const factor = (prev==='cm' && next==='mm') ? 10 : (prev==='mm' && next==='cm') ? 0.1 : 1;
-      const conv = (el)=>{
-        const n = Number(el.value);
-        if(!Number.isFinite(n)) return;
-        const v = n * factor;
-        el.value = (next==='cm') ? String(Math.round(v*10)/10) : String(Math.round(v));
-      };
-      conv(inW); conv(inH); conv(inK); conv(inTrim); conv(inMinW); conv(inMinH);
-      state.unit = next;
-      unitSel.value = next;
-      kerfWrap.querySelector('label').textContent = `Rzaz piły (${next})`;
-      trimWrap.querySelector('label').textContent = `Obrównanie krawędzi — arkusz standardowy (${next})`;
-      minScrapWrap.querySelector('label').textContent = `Najmniejszy użyteczny odpad (${next})`;
-    }
-
-    function openOptionsModal(){
-      return uiBridge.openOptionsModal({
-        unitSel,
-        edgeSel,
-        inW,
-        inH,
-        inK,
-        inTrim,
-        inMinW,
-        inMinH,
-      }, {
-        h,
-        labelWithInfo,
-        createChoiceLauncher,
-        getSelectOptionLabel,
-        setChoiceLaunchValue,
-        openRozrysChoiceOverlay,
-        askRozrysConfirm,
-        parseLocaleNumber,
-        getDefaultRozrysOptionValues,
-        applyUnitChange,
-        persistOptionPrefs,
-        tryAutoRenderFromCache,
-      });
-    }
 
     // action buttons
     const actionRow = h('div', { class:'rozrys-actions-row' });
@@ -664,95 +645,6 @@ function aggregatePartsForProject(selectedRooms){
       void material;
       void opts;
     }
-
-    function getScopeSummary(scope, aggregate){
-      if(FC.rozrysScope && typeof FC.rozrysScope.getScopeSummary === 'function'){
-        return FC.rozrysScope.getScopeSummary(scope, aggregate, {
-          splitMaterialAccordionTitle,
-          aggregatePartsForProject,
-        });
-      }
-      return { title:'Wszystkie materiały', subtitle:'', detail:'' };
-    }
-
-    function getRoomsSummary(rooms){
-      if(FC.rozrysScope && typeof FC.rozrysScope.getRoomsSummary === 'function'){
-        return FC.rozrysScope.getRoomsSummary(rooms, { getRooms });
-      }
-      return { title:'Pomieszczenia', subtitle:'' };
-    }
-
-    const selectionUi = (FC.rozrysSelectionUi && typeof FC.rozrysSelectionUi.createController === 'function')
-      ? FC.rozrysSelectionUi.createController({
-          h,
-          state,
-          roomsPickerValue,
-          matPickerValue,
-          roomsSel,
-          matSel,
-          rozState,
-          getRooms,
-          getSelectedRooms: ()=> selectedRooms,
-          setSelectedRooms: (rooms)=>{ selectedRooms = Array.isArray(rooms) ? rooms.slice() : []; },
-          getMaterialScope: ()=> materialScope,
-          setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
-          getAggregate: ()=> agg,
-          setAggregate: (nextAgg)=>{ agg = nextAgg; },
-          tryAutoRenderFromCache: ()=> tryAutoRenderFromCache(),
-        }, {
-          getScopeSummary,
-          getRoomsSummary,
-          savePanelPrefs,
-          loadPanelPrefs,
-          encodeRoomsSelection,
-          encodeMaterialScope,
-          normalizeMaterialScopeForAggregate,
-          aggregatePartsForProject,
-          askRozrysConfirm,
-          normalizeRoomSelection,
-          roomLabel,
-          splitMaterialAccordionTitle,
-          makeMaterialScope,
-        })
-      : null;
-
-    function updateRoomsPickerButton(){
-      if(selectionUi && typeof selectionUi.updateRoomsPickerButton === 'function') selectionUi.updateRoomsPickerButton();
-    }
-
-    function updateMaterialPickerButton(){
-      if(selectionUi && typeof selectionUi.updateMaterialPickerButton === 'function') selectionUi.updateMaterialPickerButton();
-    }
-
-    function persistSelectionPrefs(){
-      if(selectionUi && typeof selectionUi.persistSelectionPrefs === 'function') selectionUi.persistSelectionPrefs();
-    }
-
-    function syncHiddenSelections(){
-      if(selectionUi && typeof selectionUi.syncHiddenSelections === 'function') selectionUi.syncHiddenSelections();
-    }
-
-    function refreshSelectionState(opts){
-      if(selectionUi && typeof selectionUi.refreshSelectionState === 'function') selectionUi.refreshSelectionState(opts);
-    }
-
-    function buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts){
-      if(selectionUi && typeof selectionUi.buildScopeDraftControls === 'function') return selectionUi.buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts);
-    }
-
-    function openRoomsPicker(){
-      if(selectionUi && typeof selectionUi.openRoomsPicker === 'function') return selectionUi.openRoomsPicker();
-    }
-
-    function openMaterialPicker(){
-      if(selectionUi && typeof selectionUi.openMaterialPicker === 'function') return selectionUi.openMaterialPicker();
-    }
-
-    updateRoomsPickerButton();
-    updateMaterialPickerButton();
-    syncHiddenSelections();
-    roomsPickerBtn.addEventListener('click', openRoomsPicker);
-    matPickerBtn.addEventListener('click', openMaterialPicker);
 
     const planHelpers = (FC.rozrysPlanHelpers && typeof FC.rozrysPlanHelpers.createApi === 'function')
       ? FC.rozrysPlanHelpers.createApi({
@@ -821,152 +713,155 @@ function aggregatePartsForProject(selectedRooms){
     const savePlanCache = planHelpers.savePlanCache;
     const makePlanCacheKey = planHelpers.makePlanCacheKey;
 
-    function getBaseState(){
-      const base = (FC.rozrysState && typeof FC.rozrysState.buildBaseStateFromControls === 'function')
-        ? FC.rozrysState.buildBaseStateFromControls({ unitSel, edgeSel, inW, inH, inK, inTrim, inMinW, inMinH, heurSel, dirSel }, { normalizeCutDirection })
-        : {
-            unit: unitSel.value,
-            edgeSubMm: Math.max(0, Number(edgeSel.value)||0),
-            boardW: Number(inW.value)|| (unitSel.value==="mm"?2800:280),
-            boardH: Number(inH.value)|| (unitSel.value==="mm"?2070:207),
-            kerf: Number(inK.value)|| (unitSel.value==="mm"?4:0.4),
-            edgeTrim: Number(inTrim.value)|| (unitSel.value==="mm"?10:1),
-            minScrapW: Math.max(0, Number(inMinW.value)||0),
-            minScrapH: Math.max(0, Number(inMinH.value)||0),
-            heur: 'optimax',
-            optimaxProfile: heurSel.value,
-            direction: normalizeCutDirection(dirSel.value),
-          };
-      try{ if(rozState) rozState.setOptionState(Object.assign({}, state, base)); }catch(_){ }
-      return base;
-    }
+    const selectionCtrl = selectionBridge.createController({
+      h,
+      state,
+      roomsPickerValue,
+      matPickerValue,
+      roomsSel,
+      matSel,
+      rozState,
+      getRooms,
+      getSelectedRooms: ()=> selectedRooms,
+      setSelectedRooms: (rooms)=>{ selectedRooms = Array.isArray(rooms) ? rooms.slice() : []; },
+      getMaterialScope: ()=> materialScope,
+      setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
+      getAggregate: ()=> agg,
+      setAggregate: (nextAgg)=>{ agg = nextAgg; },
+      tryAutoRenderFromCache: ()=> tryAutoRenderFromCache(),
+    }, {
+      getRooms,
+      savePanelPrefs,
+      loadPanelPrefs,
+      encodeRoomsSelection,
+      encodeMaterialScope,
+      normalizeMaterialScopeForAggregate,
+      aggregatePartsForProject,
+      askRozrysConfirm,
+      normalizeRoomSelection,
+      roomLabel,
+      splitMaterialAccordionTitle: (...args)=> splitMaterialAccordionTitle(...args),
+      makeMaterialScope,
+    });
 
+    const updateRoomsPickerButton = ()=> selectionCtrl.updateRoomsPickerButton();
+    const updateMaterialPickerButton = ()=> selectionCtrl.updateMaterialPickerButton();
+    const persistSelectionPrefs = ()=> selectionCtrl.persistSelectionPrefs();
+    const syncHiddenSelections = ()=> selectionCtrl.syncHiddenSelections();
+    const refreshSelectionState = (opts)=> selectionCtrl.refreshSelectionState(opts);
+    const buildScopeDraftControls = (holder, draftScope, hasFronts, hasCorpus, opts)=> selectionCtrl.buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts);
+    const openRoomsPicker = ()=> selectionCtrl.openRoomsPicker();
+    const openMaterialPicker = ()=> selectionCtrl.openMaterialPicker();
 
-    function tryAutoRenderFromCache(){
-      if(FC.rozrysRender && typeof FC.rozrysRender.tryAutoRenderFromCache === 'function'){
-        return FC.rozrysRender.tryAutoRenderFromCache({
-          _rozrysRunning: isRozrysRunning(),
-          normalizeMaterialScopeForAggregate,
-          decodeMaterialScope,
-          matSelValue: matSel.value,
-          agg,
-          buildEntriesForScope,
-          out,
-          setGenBtnMode,
-          loadPlanCache,
-          getBaseState,
-          toMmByUnit,
-          getRealHalfStockForMaterial,
-          getExactSheetStockForMaterial,
-          getLargestSheetFormatForMaterial,
-          materialHasGrain,
-          getMaterialGrainEnabled,
-          getMaterialGrainExceptions,
-          partSignature,
-          buildStockSignatureForMaterial,
-          makePlanCacheKey,
-          getAccordionScopeKey,
-          getRozrysScopeMode,
-          renderMaterialAccordionPlans,
-          setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
-        });
-      }
-      out.innerHTML = '';
-      setGenBtnMode('idle');
-      return false;
-    }
+    const optionsStateCtrl = optionsStateBridge.createController({
+      controls:{ unitSel, edgeSel, inW, inH, inK, inTrim, inMinW, inMinH, heurSel, dirSel, kerfWrap, trimWrap, minScrapWrap },
+      state,
+      selectedRooms: ()=> selectedRooms,
+      materialScope: ()=> materialScope,
+      rozState,
+    }, {
+      savePanelPrefs,
+      loadPanelPrefs,
+      encodeRoomsSelection,
+      encodeMaterialScope,
+      normalizeCutDirection,
+    });
 
+    const persistOptionPrefs = ()=> optionsStateCtrl.persistOptionPrefs();
+    const applyUnitChange = (next)=> optionsStateCtrl.applyUnitChange(next);
+    const getBaseState = ()=> optionsStateCtrl.getBaseState();
 
-    function buildEntriesForScope(selection, aggregate){
-      if(FC.rozrysRender && typeof FC.rozrysRender.buildEntriesForScope === 'function'){
-        return FC.rozrysRender.buildEntriesForScope(selection, aggregate, {
-          normalizeMaterialScopeForAggregate,
-          aggregatePartsForProject,
-          getOrderedMaterialsForSelection,
-          getGroupPartsForScope,
-        });
-      }
-      return [];
-    }
-
-
-
-
-  function splitMaterialAccordionTitle(material){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'){
-      return FC.rozrysAccordion.splitMaterialAccordionTitle(material);
-    }
-    return { line1:String(material || 'Materiał'), line2:'' };
-  }
-
-
-  function createMaterialAccordionSection(material, options){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'){
-      return FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh });
-    }
-    const wrap = h('div');
-    const body = h('div');
-    wrap.appendChild(body);
-    return { wrap, body, trigger:null, setOpenState:()=>{} };
-  }
-
-  function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'){
-      return FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
-        out,
-        getAccordionPref,
-        materialHasGrain,
-        getMaterialGrainEnabled,
-        setAccordionPref,
-        setMaterialGrainEnabled,
+    function openOptionsModal(){
+      return uiBridge.openOptionsModal({
+        unitSel,
+        edgeSel,
+        inW,
+        inH,
+        inK,
+        inTrim,
+        inMinW,
+        inMinH,
+      }, {
+        h,
+        labelWithInfo,
+        createChoiceLauncher,
+        getSelectOptionLabel,
+        setChoiceLaunchValue,
+        openRozrysChoiceOverlay,
+        askRozrysConfirm,
+        parseLocaleNumber,
+        getDefaultRozrysOptionValues,
+        applyUnitChange,
+        persistOptionPrefs,
         tryAutoRenderFromCache,
-        openMaterialGrainExceptions,
-        renderOutput,
-        formatHeurLabel,
-        scheduleSheetCanvasRefresh,
       });
     }
-    out.innerHTML = '';
-    return false;
-  }
 
+    let tryAutoRenderFromCache = ()=> false;
+    let buildEntriesForScope = ()=> [];
+    let splitMaterialAccordionTitle = (material)=> ({ line1:String(material || 'Materiał'), line2:'' });
+    let createMaterialAccordionSection = ()=> ({ wrap:h('div'), body:h('div'), trigger:null, setOpenState:()=>{} });
+    let renderMaterialAccordionPlans = ()=> false;
+    let renderOutput = ()=> undefined;
+    let renderLoadingInto = ()=> null;
+    let renderLoading = (text)=> renderLoadingInto(null, text);
 
-    function renderOutput(plan, meta, target){
-      if(FC.rozrysRender && typeof FC.rozrysRender.renderOutput === 'function'){
-        return FC.rozrysRender.renderOutput(plan, meta, {
-          target: target || out,
-          out,
-          buildRozrysDiagnostics,
-          validationSummaryLabel,
-          openValidationListModal,
-          openSheetListModal,
-          buildCsv,
-          downloadText,
-          openPrintView,
-          measurePrintHeaderMm,
-          mmToUnitStr,
-          drawSheet,
-          cutOptimizer: FC.cutOptimizer,
-        });
-      }
-      (target || out).innerHTML = '';
-    }
+    const outputCtrl = outputBridge.createController({
+      out,
+      h,
+      isRozrysRunning: ()=> isRozrysRunning(),
+      normalizeMaterialScopeForAggregate,
+      decodeMaterialScope,
+      matSelValue: matSel.value,
+      agg,
+      setGenBtnMode: (mode)=> setGenBtnMode(mode),
+      loadPlanCache,
+      getBaseState,
+      toMmByUnit,
+      getRealHalfStockForMaterial,
+      getExactSheetStockForMaterial,
+      getLargestSheetFormatForMaterial,
+      materialHasGrain,
+      getMaterialGrainEnabled,
+      getMaterialGrainExceptions,
+      partSignature,
+      buildStockSignatureForMaterial,
+      makePlanCacheKey,
+      getAccordionScopeKey,
+      getRozrysScopeMode,
+      setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
+      aggregatePartsForProject,
+      getOrderedMaterialsForSelection,
+      getGroupPartsForScope,
+      scheduleSheetCanvasRefresh,
+      getAccordionPref,
+      setAccordionPref,
+      setMaterialGrainEnabled,
+      openMaterialGrainExceptions,
+      formatHeurLabel,
+      buildRozrysDiagnostics,
+      validationSummaryLabel,
+      openValidationListModal,
+      openSheetListModal,
+      buildCsv,
+      downloadText,
+      openPrintView,
+      measurePrintHeaderMm,
+      mmToUnitStr,
+      drawSheet,
+      cutOptimizer: FC.cutOptimizer,
+      tryAutoRenderFromCache: (...args)=> tryAutoRenderFromCache(...args),
+      renderOutput: (...args)=> renderOutput(...args),
+    });
 
-
-    function renderLoading(text){
-      return renderLoadingInto(null, text);
-    }
-
-    function renderLoadingInto(target, text, subText){
-      if(FC.rozrysRender && typeof FC.rozrysRender.renderLoadingInto === 'function'){
-        return FC.rozrysRender.renderLoadingInto(target, text, subText, { out });
-      }
-      const tgt = target || out;
-      tgt.innerHTML = '';
-      return null;
-    }
-
-    
+    tryAutoRenderFromCache = outputCtrl.tryAutoRenderFromCache;
+    buildEntriesForScope = outputCtrl.buildEntriesForScope;
+    splitMaterialAccordionTitle = outputCtrl.splitMaterialAccordionTitle;
+    createMaterialAccordionSection = outputCtrl.createMaterialAccordionSection;
+    renderMaterialAccordionPlans = outputCtrl.renderMaterialAccordionPlans;
+    renderOutput = outputCtrl.renderOutput;
+    renderLoadingInto = outputCtrl.renderLoadingInto;
+    renderLoading = outputCtrl.renderLoading;
 
 
     const progressApi = uiBridge.createProgressApi({
