@@ -31,8 +31,6 @@ const FILES = [
   'js/app/investor/investor-pdf.js',
   'js/app/investor/investor-field-render.js',
   'js/app/investor/investor-actions.js',
-  'js/app/shared/room-registry-core.js',
-  'js/app/shared/room-registry-removal.js',
   'js/app/shared/room-registry.js',
   'js/app/investor/investor-room-actions.js',
   'js/app/investor/investor-editor-state.js',
