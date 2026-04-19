@@ -360,8 +360,17 @@
     try{
       const removedIds = readRemovedIds();
       const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
-      const preferTestOnly = current.length > 0 || (current.length === 0 && hasExplicitTestRecoverySources());
-      const recovered = buildRecoveryCandidates({ testOnly: preferTestOnly });
+      let recovered = buildRecoveryCandidates({ testOnly: current.length > 0 });
+      if(current.length === 0){
+        const explicitTestSources = hasExplicitTestRecoverySources();
+        if(explicitTestSources){
+          const filtered = new Map();
+          recovered.forEach((candidate, id)=> {
+            if(isTestRecoveryRecord(candidate)) filtered.set(id, candidate);
+          });
+          recovered = filtered;
+        }
+      }
       const additions = [];
       recovered.forEach((candidate, id)=> {
         const key = String(id || '').trim();

@@ -1537,3 +1537,5 @@ Dopiero potem go zmieniać.
 - `js/app/investor/investors-store.js` nie może budować recovery przez znormalizowane `FC.quoteSnapshotStore.readAll()`, bo snapshot normalization woła `room-registry`, a ten może wrócić do `FC.investors.readAll()` i zawiesić aplikację pętlą. Recovery ma czytać surowe rekordy snapshotów/projektów ze storage albo działać za reentry guardem.
 
 - Quote snapshot store przy odczycie historii musi kanonizować `roomLabels` z `selectedRooms`/`roomRegistry`, a nie ufać ślepo starym labelom zapisanym w snapshotach z innego scope.
+
+- `js/app/investor/investors-store.js`: przy recovery pustej listy decyzję o preferowaniu testowych snapshotów robić po zebraniu kandydatów, nie przez zbyt wczesny globalny `testOnly`; jeśli istnieją jawne testowe źródła recovery, do wyniku mają wejść tylko one, bez mieszania zwykłych snapshotów użytkownika.
