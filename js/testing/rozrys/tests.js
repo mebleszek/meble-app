@@ -241,7 +241,11 @@
     const bucket = out || [];
     if(!node) return bucket;
     if(typeof predicate === 'function' && predicate(node)) bucket.push(node);
-    (Array.isArray(node.children) ? node.children : []).forEach((child)=> collectNodes(child, predicate, bucket));
+    const children = node.children;
+    const iterableChildren = Array.isArray(children)
+      ? children
+      : (children && typeof children.length === 'number' ? Array.from(children) : []);
+    iterableChildren.forEach((child)=> collectNodes(child, predicate, bucket));
     return bucket;
   }
 
