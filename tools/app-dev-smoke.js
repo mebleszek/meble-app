@@ -50,6 +50,7 @@ const FILES = [
   'js/app/rozrys/rozrys-ui-tools.js',
   'js/app/rozrys/rozrys-ui-bridge.js',
   'js/app/rozrys/rozrys-run-controller.js',
+  'js/app/rozrys/rozrys-output-controller.js',
   'js/app.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',

@@ -393,6 +393,20 @@ function aggregatePartsForProject(selectedRooms){
   const formatHeurLabel = typeof engineBridge.formatHeurLabel === 'function' ? engineBridge.formatHeurLabel : ((st)=> String((st && st.heur) || ''));
   const computePlanPanelProAsync = typeof engineBridge.computePlanPanelProAsync === 'function' ? engineBridge.computePlanPanelProAsync : (()=> Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' }));
 
+  const outputControllerApi = (FC.rozrysOutputController && typeof FC.rozrysOutputController.createApi === 'function')
+    ? FC.rozrysOutputController.createApi({ FC })
+    : {
+      createController:(ctx)=> ({
+        buildEntriesForScope:()=> [],
+        splitMaterialAccordionTitle:(material)=> ({ line1:String(material || 'Materiał'), line2:'' }),
+        createMaterialAccordionSection:()=> { const wrap = document.createElement('div'); const body = document.createElement('div'); wrap.appendChild(body); return { wrap, body, trigger:null, setOpenState:()=>{} }; },
+        renderOutput:(plan, meta, target)=> { const tgt = target || ctx.out; if(tgt) tgt.innerHTML = ''; return undefined; },
+        renderLoadingInto:(target)=> { const tgt = target || ctx.out; if(tgt) tgt.innerHTML = ''; return null; },
+        renderLoading:(text)=> { const tgt = ctx.out; if(tgt) tgt.innerHTML = ''; return null; },
+        renderMaterialAccordionPlans:()=> false,
+        tryAutoRenderFromCache:()=> { const tgt = ctx.out; if(tgt) tgt.innerHTML = ''; const fn = typeof ctx.getSetGenBtnMode === 'function' ? ctx.getSetGenBtnMode() : null; if(typeof fn === 'function') fn('idle'); return false; },
+      }),
+    };
 
   function render(){
     const root = document.getElementById('rozrysRoot');
@@ -835,132 +849,59 @@ function aggregatePartsForProject(selectedRooms){
     }
 
 
-    function tryAutoRenderFromCache(){
-      if(FC.rozrysRender && typeof FC.rozrysRender.tryAutoRenderFromCache === 'function'){
-        return FC.rozrysRender.tryAutoRenderFromCache({
-          _rozrysRunning: isRozrysRunning(),
-          normalizeMaterialScopeForAggregate,
-          decodeMaterialScope,
-          matSelValue: matSel.value,
-          agg,
-          buildEntriesForScope,
-          out,
-          setGenBtnMode,
-          loadPlanCache,
-          getBaseState,
-          toMmByUnit,
-          getRealHalfStockForMaterial,
-          getExactSheetStockForMaterial,
-          getLargestSheetFormatForMaterial,
-          materialHasGrain,
-          getMaterialGrainEnabled,
-          getMaterialGrainExceptions,
-          partSignature,
-          buildStockSignatureForMaterial,
-          makePlanCacheKey,
-          getAccordionScopeKey,
-          getRozrysScopeMode,
-          renderMaterialAccordionPlans,
-          setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
-        });
-      }
-      out.innerHTML = '';
-      setGenBtnMode('idle');
-      return false;
-    }
-
-
-    function buildEntriesForScope(selection, aggregate){
-      if(FC.rozrysRender && typeof FC.rozrysRender.buildEntriesForScope === 'function'){
-        return FC.rozrysRender.buildEntriesForScope(selection, aggregate, {
-          normalizeMaterialScopeForAggregate,
-          aggregatePartsForProject,
-          getOrderedMaterialsForSelection,
-          getGroupPartsForScope,
-        });
-      }
-      return [];
-    }
-
-
-
-
-  function splitMaterialAccordionTitle(material){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.splitMaterialAccordionTitle === 'function'){
-      return FC.rozrysAccordion.splitMaterialAccordionTitle(material);
-    }
-    return { line1:String(material || 'Materiał'), line2:'' };
-  }
-
-
-  function createMaterialAccordionSection(material, options){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.createMaterialAccordionSection === 'function'){
-      return FC.rozrysAccordion.createMaterialAccordionSection(material, options, { scheduleSheetCanvasRefresh });
-    }
-    const wrap = h('div');
-    const body = h('div');
-    wrap.appendChild(body);
-    return { wrap, body, trigger:null, setOpenState:()=>{} };
-  }
-
-  function renderMaterialAccordionPlans(scopeKey, scopeMode, entries){
-    if(FC.rozrysAccordion && typeof FC.rozrysAccordion.renderMaterialAccordionPlans === 'function'){
-      return FC.rozrysAccordion.renderMaterialAccordionPlans(scopeKey, scopeMode, entries, {
-        out,
-        getAccordionPref,
-        materialHasGrain,
-        getMaterialGrainEnabled,
-        setAccordionPref,
-        setMaterialGrainEnabled,
-        tryAutoRenderFromCache,
-        openMaterialGrainExceptions,
-        renderOutput,
-        formatHeurLabel,
-        scheduleSheetCanvasRefresh,
-      });
-    }
-    out.innerHTML = '';
-    return false;
-  }
-
-
-    function renderOutput(plan, meta, target){
-      if(FC.rozrysRender && typeof FC.rozrysRender.renderOutput === 'function'){
-        return FC.rozrysRender.renderOutput(plan, meta, {
-          target: target || out,
-          out,
-          buildRozrysDiagnostics,
-          validationSummaryLabel,
-          openValidationListModal,
-          openSheetListModal,
-          buildCsv,
-          downloadText,
-          openPrintView,
-          measurePrintHeaderMm,
-          mmToUnitStr,
-          drawSheet,
-          cutOptimizer: FC.cutOptimizer,
-        });
-      }
-      (target || out).innerHTML = '';
-    }
-
-
-    function renderLoading(text){
-      return renderLoadingInto(null, text);
-    }
-
-    function renderLoadingInto(target, text, subText){
-      if(FC.rozrysRender && typeof FC.rozrysRender.renderLoadingInto === 'function'){
-        return FC.rozrysRender.renderLoadingInto(target, text, subText, { out });
-      }
-      const tgt = target || out;
-      tgt.innerHTML = '';
-      return null;
-    }
-
-    
-
+    const outputCtrl = outputControllerApi.createController({
+      out,
+      getAggregate: ()=> agg,
+      getMatSelValue: ()=> matSel.value,
+      getBaseState,
+      setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
+      isRozrysRunning: ()=> isRozrysRunning(),
+      getSetGenBtnMode: ()=> setGenBtnMode,
+    }, {
+      normalizeMaterialScopeForAggregate,
+      decodeMaterialScope,
+      aggregatePartsForProject,
+      getOrderedMaterialsForSelection,
+      getGroupPartsForScope,
+      getAccordionPref,
+      setAccordionPref,
+      materialHasGrain,
+      getMaterialGrainEnabled,
+      getMaterialGrainExceptions,
+      setMaterialGrainEnabled,
+      openMaterialGrainExceptions,
+      formatHeurLabel,
+      scheduleSheetCanvasRefresh,
+      buildRozrysDiagnostics,
+      validationSummaryLabel,
+      openValidationListModal,
+      openSheetListModal,
+      buildCsv,
+      downloadText,
+      openPrintView,
+      measurePrintHeaderMm,
+      mmToUnitStr,
+      drawSheet,
+      cutOptimizer: FC.cutOptimizer,
+      loadPlanCache,
+      toMmByUnit,
+      getRealHalfStockForMaterial,
+      getExactSheetStockForMaterial,
+      getLargestSheetFormatForMaterial,
+      partSignature,
+      buildStockSignatureForMaterial,
+      makePlanCacheKey,
+      getAccordionScopeKey,
+      getRozrysScopeMode,
+    });
+    const tryAutoRenderFromCache = outputCtrl.tryAutoRenderFromCache;
+    const buildEntriesForScope = outputCtrl.buildEntriesForScope;
+    const splitMaterialAccordionTitle = outputCtrl.splitMaterialAccordionTitle;
+    const createMaterialAccordionSection = outputCtrl.createMaterialAccordionSection;
+    const renderMaterialAccordionPlans = outputCtrl.renderMaterialAccordionPlans;
+    const renderOutput = outputCtrl.renderOutput;
+    const renderLoading = outputCtrl.renderLoading;
+    const renderLoadingInto = outputCtrl.renderLoadingInto;
 
     const runCtrl = runControllerApi.createController({
       FC,

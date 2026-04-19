@@ -1,3 +1,10 @@
+## 2026-04-19 — ROZRYS output controller split (output/render/cache path)
+- `js/app/rozrys/rozrys-output-controller.js` — wydzielony większy controller ścieżki wyników `ROZRYS`: przejął `tryAutoRenderFromCache`, `buildEntriesForScope`, `splitMaterialAccordionTitle`, `createMaterialAccordionSection`, `renderMaterialAccordionPlans`, `renderOutput` i `renderLoadingInto`. To jest jedna spójna warstwa output/render/cache zamiast kolejnego mikro-helpera.
+- `js/app/rozrys/rozrys.js` — po splicie nie trzyma już lokalnie całego bloku wyników/cache; tylko składa `outputCtrl` i czyta z niego metody używane przez selection glue i run controller. Nie były ruszane: bootstrap launcherów `Pomieszczenia` / `Materiał / grupa`, `aggregatePartsForProject`, `resolveInitialSelectedRooms`, wejście do zakładki ani `generate()`.
+- `js/testing/rozrys/tests.js` — dodane antyregresje dla nowego controllera: kontrakt cache/render/accordion, load order nowego modułu przed `rozrys.js` oraz bezpieczny fallback `createController` w samym `rozrys.js`.
+- `tools/rozrys-dev-smoke.js` + `tools/app-dev-smoke.js` + `index.html` + `dev_tests.html` — dopięte ładowanie i asset source nowego modułu do smoke i produkcji.
+- Instrukcja antyregresyjna: przy ścieżce output/render/cache sprawdzać nie tylko główny tor `renderOutput`, ale też odnogi współbieżne: `tryAutoRenderFromCache`, accordion callbacki (`renderOutput`, `tryAutoRenderFromCache`) oraz render z pustego stanu. To jest jeden controller z rozgałęzieniami, nie kilka niezależnych helperów.
+
 
 ## 2026-04-19 — ROZRYS run controller split (progress/generate/add-stock glue)
 - `js/app/rozrys/rozrys-run-controller.js` — wydzielony controller akcji ROZRYS: most do `rozrysProgress`, `rozrysRunner` i modala `Dodaj płytę`. Przejął `createProgressApi` glue, `generate(force)` oraz `openAddStockModal()`, ale nie dotyka pickerów, scope, `aggregatePartsForProject`, `resolveInitialSelectedRooms` ani bootstrapu launcherów.

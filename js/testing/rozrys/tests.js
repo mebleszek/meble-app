@@ -1052,6 +1052,130 @@
         assert(/const\s+runCtrl\s*=\s*runControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy run controllera z bridgea', { snippet: rozrysSrc.slice(9000, 11600) });
         assert(/const runControllerApi[\s\S]*createController:\s*\(\)=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla run controllera', { snippet: rozrysSrc.slice(0, 2600) });
       }),
+      makeTest('Output controller', 'Wydzielony output controller ROZRYS deleguje cache, render i accordiony bez zmiany kontraktu', 'Pilnuje większego splitu ścieżki output/render/cache: tryAutoRenderFromCache, renderOutput i wrappery accordionów nadal dostają ten sam payload oraz nie gubią callbacków współbieżnych z renderem wyników.', ()=>{
+        assert(FC.rozrysOutputController && typeof FC.rozrysOutputController.createApi === 'function', 'Brak FC.rozrysOutputController.createApi');
+        const prevRender = FC.rozrysRender;
+        const prevAccordion = FC.rozrysAccordion;
+        const captured = { buildEntries:null, auto:null, output:null, section:null, accordion:null, title:null, setModeCalls:[] };
+        FC.rozrysRender = Object.assign({}, prevRender, {
+          buildEntriesForScope(selection, aggregate, deps){
+            captured.buildEntries = { selection, aggregate, deps };
+            return [{ material:'MDF', parts:[{ id:1 }] }];
+          },
+          tryAutoRenderFromCache(deps){
+            captured.auto = deps;
+            return true;
+          },
+          renderOutput(plan, meta, deps){
+            captured.output = { plan, meta, deps };
+            return 'render-ok';
+          },
+          renderLoadingInto(target, text, subText, deps){
+            captured.loading = { target, text, subText, deps };
+            return 'loading-ok';
+          }
+        });
+        FC.rozrysAccordion = Object.assign({}, prevAccordion, {
+          splitMaterialAccordionTitle(material){
+            captured.title = material;
+            return { line1:String(material || ''), line2:'group' };
+          },
+          createMaterialAccordionSection(material, options, deps){
+            captured.section = { material, options, deps };
+            return { wrap:{}, body:{}, trigger:{}, setOpenState:()=>{} };
+          },
+          renderMaterialAccordionPlans(scopeKey, scopeMode, entries, deps){
+            captured.accordion = { scopeKey, scopeMode, entries, deps };
+            return true;
+          }
+        });
+        try{
+          const api = FC.rozrysOutputController.createApi({ FC });
+          const agg = { materials:['MDF'], groups:{ MDF:{ all:[{ id:'p1' }] } }, selectedRooms:['a'] };
+          const ctrl = api.createController({
+            out:{ id:'out' },
+            getAggregate: ()=> agg,
+            getMatSelValue: ()=> '{"kind":"all"}',
+            getBaseState: ()=> ({ unit:'cm' }),
+            setCacheState: (patch)=>{ captured.cachePatch = patch; },
+            isRozrysRunning: ()=> false,
+            getSetGenBtnMode: ()=> (mode)=> captured.setModeCalls.push(mode),
+          }, {
+            normalizeMaterialScopeForAggregate: (selection)=> selection,
+            decodeMaterialScope: ()=> ({ kind:'all' }),
+            aggregatePartsForProject: ()=> agg,
+            getOrderedMaterialsForSelection: ()=> ['MDF'],
+            getGroupPartsForScope: ()=> [{ id:'p1' }],
+            getAccordionPref: ()=> ({ open:true }),
+            setAccordionPref: ()=> undefined,
+            materialHasGrain: ()=> false,
+            getMaterialGrainEnabled: ()=> false,
+            getMaterialGrainExceptions: ()=> ({}),
+            setMaterialGrainEnabled: ()=> undefined,
+            openMaterialGrainExceptions: ()=> undefined,
+            formatHeurLabel: ()=> 'MAX',
+            scheduleSheetCanvasRefresh: ()=> undefined,
+            buildRozrysDiagnostics: ()=> ({ ok:true }),
+            validationSummaryLabel: ()=> ({ tone:'ok', text:'OK' }),
+            openValidationListModal: ()=> undefined,
+            openSheetListModal: ()=> undefined,
+            buildCsv: ()=> 'csv',
+            downloadText: ()=> undefined,
+            openPrintView: ()=> undefined,
+            measurePrintHeaderMm: ()=> 0,
+            mmToUnitStr: ()=> '10',
+            drawSheet: ()=> undefined,
+            cutOptimizer: { placedArea: ()=> 0 },
+            loadPlanCache: ()=> ({}),
+            toMmByUnit: ()=> 0,
+            getRealHalfStockForMaterial: ()=> ({ qty:0 }),
+            getExactSheetStockForMaterial: ()=> ({ qty:0 }),
+            getLargestSheetFormatForMaterial: ()=> ({ width:2800, height:2070 }),
+            partSignature: ()=> 'sig',
+            buildStockSignatureForMaterial: ()=> 'stock',
+            makePlanCacheKey: ()=> 'cache-key',
+            getAccordionScopeKey: ()=> 'scope-key',
+            getRozrysScopeMode: ()=> 'both',
+          });
+          const entries = ctrl.buildEntriesForScope({ kind:'all' }, agg);
+          assert(Array.isArray(entries) && entries.length === 1, 'Output controller nie deleguje buildEntriesForScope do rozrysRender', captured);
+          assert(captured.buildEntries && captured.buildEntries.aggregate === agg && typeof captured.buildEntries.deps.getOrderedMaterialsForSelection === 'function', 'Output controller nie przekazał deps buildEntries 1:1', captured);
+          const title = ctrl.splitMaterialAccordionTitle('MDF');
+          assert(title && title.line1 === 'MDF' && captured.title === 'MDF', 'Output controller nie deleguje splitMaterialAccordionTitle do rozrysAccordion', captured);
+          ctrl.createMaterialAccordionSection('MDF', { grain:true });
+          assert(captured.section && captured.section.material === 'MDF' && typeof captured.section.deps.scheduleSheetCanvasRefresh === 'function', 'Output controller nie przekazał deps do createMaterialAccordionSection', captured);
+          const rendered = ctrl.renderMaterialAccordionPlans('scope-key', 'both', [{ material:'MDF', plan:{ sheets:[] }, parts:[{ id:1 }] }]);
+          assert(rendered === true, 'Output controller nie deleguje renderMaterialAccordionPlans do rozrysAccordion', captured);
+          assert(captured.accordion && captured.accordion.deps && typeof captured.accordion.deps.tryAutoRenderFromCache === 'function' && typeof captured.accordion.deps.renderOutput === 'function', 'Output controller nie przekazał callbacków render/cache do accordion bridge', captured);
+          const outRes = ctrl.renderOutput({ sheets:[] }, { material:'MDF' }, { id:'target' });
+          assert(outRes === 'render-ok', 'Output controller nie deleguje renderOutput do rozrysRender', captured);
+          assert(captured.output && captured.output.deps && captured.output.deps.target && captured.output.deps.out && typeof captured.output.deps.buildRozrysDiagnostics === 'function', 'Output controller nie przekazał deps renderOutput 1:1', captured);
+          const loadRes = ctrl.renderLoadingInto({ id:'target' }, 'Liczę', 'sub');
+          assert(loadRes === 'loading-ok', 'Output controller nie deleguje renderLoadingInto do rozrysRender', captured);
+          const autoRes = ctrl.tryAutoRenderFromCache();
+          assert(autoRes === true, 'Output controller nie deleguje tryAutoRenderFromCache do rozrysRender', captured);
+          assert(captured.auto && captured.auto.agg === agg && typeof captured.auto.buildEntriesForScope === 'function' && typeof captured.auto.renderMaterialAccordionPlans === 'function', 'Output controller nie przekazał deps cache/output 1:1', captured);
+        } finally {
+          FC.rozrysRender = prevRender;
+          FC.rozrysAccordion = prevAccordion;
+        }
+      }),
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje output controller przed rozrys.js i zachowuje bezpieczny kontrakt createController', 'Pilnuje regresji, w której nowy moduł output/render/cache byłby ładowany po rozrys.js albo rozrys.js straciłby bezpieczne spięcie createController dla warstwy wyników.', ()=>{
+        const indexHtml = readAssetSource('index.html');
+        const devHtml = readAssetSource('dev_tests.html');
+        const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
+        const outputSrc = readAssetSource('js/app/rozrys/rozrys-output-controller.js');
+        assert(outputSrc && outputSrc.includes('FC.rozrysOutputController'), 'Brak źródła nowego modułu output controller w assetach smoke');
+        const outIdx = indexHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
+        const rozIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(outIdx >= 0 && rozIdx >= 0 && outIdx < rozIdx, 'index.html ładuje rozrys-output-controller po rozrys.js', { outIdx, rozIdx });
+        const outDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
+        const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(outDevIdx >= 0 && rozDevIdx >= 0 && outDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-output-controller po rozrys.js', { outDevIdx, rozDevIdx });
+        assert(/const\s+outputCtrl\s*=\s*outputControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera z bridgea', { snippet: rozrysSrc.slice(18000, 23500) });
+        assert(/const outputControllerApi[\s\S]*createController:\s*\(ctx[^)]*\)\s*=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla output controllera', { snippet: rozrysSrc.slice(9000, 16000) });
+      }),
+
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
         const fixtureProject = {
           schemaVersion: 9,
