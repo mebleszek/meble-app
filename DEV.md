@@ -1,9 +1,3 @@
-## 2026-04-19 — Exact room scope guard for empty room in ROZRYS/WYCENA
-- `js/app/rozrys/rozrys.js` — naprawiony centralny fallback agregacji: jeśli użytkownik wybiera istniejący pokój/exact scope i ten pokój nie ma szafek, ROZRYS nie może już po cichu rozszerzać zakresu do innych pokoi projektu. Retry do pełnej listy pokoi wolno robić tylko wtedy, gdy wejściowy wybór pokoi realnie znormalizował się do pustego scope (np. stary/nieistniejący zapis).
-- `js/testing/rozrys/tests.js` — dodany test pilnujący, że pusty, ale istniejący pokój zostaje pusty i nie pożycza materiałów z innego pokoju.
-- `js/testing/wycena/suites/cross-systems.js` — dodany test pilnujący, że Wycena dla takiego exact scope kończy się `empty_quote_scope`, a nie ofertą policzoną z obcego pokoju.
-- Instrukcja antyregresyjna: przy scope pokoi rozróżniać dwa przypadki: (1) exact room istnieje, ale nie ma danych — wynik ma zostać pusty; (2) zapisany wybór jest nieprawidłowy/stary i po normalizacji znika — dopiero wtedy można retryować pełną listę realnych pokoi projektu.
-
 ## 2026-04-19 — Wywiad standing extras split into corner/standard + specials
 - `js/app/cabinet/cabinet-modal-standing-corner-standard.js` — wydzielone z dużego `cabinet-modal-standing-extras.js` rzeczy narożno-standardowe: `narozna_l` (GL/GP/ST/SP + szkic) oraz blok `standardowa / rogowa_slepa / narozna_l`.
 - `js/app/cabinet/cabinet-modal-standing-specials.js` — wydzielone subtype’y specjalne `stojąca`: `szuflady`, `zlewowa`, `zmywarkowa`, `lodowkowa`, `piekarnikowa`, razem z ostrzeżeniem systemowym dla GTV/Rejs.
