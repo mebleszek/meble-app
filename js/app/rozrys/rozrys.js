@@ -194,35 +194,45 @@
       createWorkspace: ()=> null,
     };
 
+  const scopeApi = (FC.rozrysScope && typeof FC.rozrysScope.createApi === 'function')
+    ? FC.rozrysScope.createApi({
+      getRooms,
+      getAggregatePartsForProject: ()=> aggregatePartsForProject,
+    })
+    : {
+      roomLabel: (room)=> String(room || '').trim() || 'Pomieszczenie',
+      normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
+      encodeRoomsSelection: ()=> '',
+      decodeRoomsSelection: ()=> getRooms().slice(),
+      makeMaterialScope: (selection)=> Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {}),
+      encodeMaterialScope: (selection)=> { try{ return JSON.stringify(selection || {}); }catch(_){ return '{}'; } },
+      decodeMaterialScope: (raw)=> { try{ return JSON.parse(String(raw || '')); }catch(_){ return { kind:'all', material:'', includeFronts:true, includeCorpus:true }; } },
+      sortRozrysParts: (list)=> Array.isArray(list) ? list.slice() : [],
+      getGroupPartsForScope: ()=> [],
+      normalizeMaterialScopeForAggregate: (selection)=> Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {}),
+      getRozrysScopeMode: (selection)=> {
+        const scope = Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {});
+        return scope.includeFronts && scope.includeCorpus ? 'both' : (scope.includeFronts ? 'fronts' : 'corpus');
+      },
+      getOrderedMaterialsForSelection: ()=> [],
+      getAccordionScopeKey: ()=> 'scope:fallback',
+      getScopeSummary: ()=> ({ title:'Wszystkie materiały', subtitle:'', detail:'' }),
+      getRoomsSummary: ()=> ({ title:'Pomieszczenia', subtitle:'' }),
+    };
 
-function roomLabel(room){
-  if(FC.rozrysScope && typeof FC.rozrysScope.roomLabel === 'function'){
-    return FC.rozrysScope.roomLabel(room);
-  }
-  const key = String(room || '').trim();
-  return key || 'Pomieszczenie';
-}
-
-function normalizeRoomSelection(rooms){
-  if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
-    return FC.rozrysScope.normalizeRoomSelection(rooms, { getRooms });
-  }
-  return Array.isArray(rooms) ? rooms.slice() : [];
-}
-
-function encodeRoomsSelection(rooms){
-  if(FC.rozrysScope && typeof FC.rozrysScope.encodeRoomsSelection === 'function'){
-    return FC.rozrysScope.encodeRoomsSelection(rooms, { getRooms });
-  }
-  return '';
-}
-
-function decodeRoomsSelection(raw){
-  if(FC.rozrysScope && typeof FC.rozrysScope.decodeRoomsSelection === 'function'){
-    return FC.rozrysScope.decodeRoomsSelection(raw, { getRooms });
-  }
-  return getRooms().slice();
-}
+  const roomLabel = scopeApi.roomLabel;
+  const normalizeRoomSelection = scopeApi.normalizeRoomSelection;
+  const encodeRoomsSelection = scopeApi.encodeRoomsSelection;
+  const decodeRoomsSelection = scopeApi.decodeRoomsSelection;
+  const makeMaterialScope = scopeApi.makeMaterialScope;
+  const encodeMaterialScope = scopeApi.encodeMaterialScope;
+  const decodeMaterialScope = scopeApi.decodeMaterialScope;
+  const sortRozrysParts = scopeApi.sortRozrysParts;
+  const getGroupPartsForScope = scopeApi.getGroupPartsForScope;
+  const normalizeMaterialScopeForAggregate = scopeApi.normalizeMaterialScopeForAggregate;
+  const getRozrysScopeMode = scopeApi.getRozrysScopeMode;
+  const getOrderedMaterialsForSelection = scopeApi.getOrderedMaterialsForSelection;
+  const getAccordionScopeKey = scopeApi.getAccordionScopeKey;
 
 function getCurrentRoomContext(){
   try{
@@ -242,58 +252,6 @@ function resolveInitialSelectedRooms(raw){
   const decoded = decodeRoomsSelection(raw).map((room)=> String(room || '').trim()).filter(Boolean);
   if(decoded.length) return decoded;
   return activeRooms.slice();
-}
-
-function makeMaterialScope(selection, opts){
-  if(FC.rozrysScope && typeof FC.rozrysScope.makeMaterialScope === 'function') return FC.rozrysScope.makeMaterialScope(selection, opts);
-  return Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {});
-}
-
-function encodeMaterialScope(selection){
-  if(FC.rozrysScope && typeof FC.rozrysScope.encodeMaterialScope === 'function') return FC.rozrysScope.encodeMaterialScope(selection);
-  try{ return JSON.stringify(selection || {}); }catch(_){ return '{}'; }
-}
-
-function decodeMaterialScope(raw){
-  if(FC.rozrysScope && typeof FC.rozrysScope.decodeMaterialScope === 'function') return FC.rozrysScope.decodeMaterialScope(raw);
-  try{ return JSON.parse(String(raw || '')); }catch(_){ return { kind:'all', material:'', includeFronts:true, includeCorpus:true }; }
-}
-
-function sortRozrysParts(list){
-  if(FC.rozrysScope && typeof FC.rozrysScope.sortRozrysParts === 'function') return FC.rozrysScope.sortRozrysParts(list);
-  return Array.isArray(list) ? list.slice() : [];
-}
-
-function getGroupPartsForScope(group, selection){
-  if(FC.rozrysScope && typeof FC.rozrysScope.getGroupPartsForScope === 'function') return FC.rozrysScope.getGroupPartsForScope(group, selection);
-  return [];
-}
-
-function normalizeMaterialScopeForAggregate(selection, aggregate){
-  if(FC.rozrysScope && typeof FC.rozrysScope.normalizeMaterialScopeForAggregate === 'function'){
-    return FC.rozrysScope.normalizeMaterialScopeForAggregate(selection, aggregate, { aggregatePartsForProject });
-  }
-  return makeMaterialScope(selection);
-}
-
-function getRozrysScopeMode(selection){
-  if(FC.rozrysScope && typeof FC.rozrysScope.getRozrysScopeMode === 'function') return FC.rozrysScope.getRozrysScopeMode(selection);
-  const scope = makeMaterialScope(selection);
-  return scope.includeFronts && scope.includeCorpus ? 'both' : (scope.includeFronts ? 'fronts' : 'corpus');
-}
-
-function getOrderedMaterialsForSelection(selection, aggregate){
-  if(FC.rozrysScope && typeof FC.rozrysScope.getOrderedMaterialsForSelection === 'function'){
-    return FC.rozrysScope.getOrderedMaterialsForSelection(selection, aggregate, { aggregatePartsForProject });
-  }
-  return [];
-}
-
-function getAccordionScopeKey(selection, aggregate){
-  if(FC.rozrysScope && typeof FC.rozrysScope.getAccordionScopeKey === 'function'){
-    return FC.rozrysScope.getAccordionScopeKey(selection, aggregate, { getRooms });
-  }
-  return 'scope:fallback';
 }
 
 
@@ -552,22 +510,15 @@ function aggregatePartsForProject(selectedRooms){
       void opts;
     }
 
-    function getScopeSummary(scope, aggregate){
-      if(FC.rozrysScope && typeof FC.rozrysScope.getScopeSummary === 'function'){
-        return FC.rozrysScope.getScopeSummary(scope, aggregate, {
-          splitMaterialAccordionTitle,
-          aggregatePartsForProject,
-        });
-      }
-      return { title:'Wszystkie materiały', subtitle:'', detail:'' };
-    }
-
-    function getRoomsSummary(rooms){
-      if(FC.rozrysScope && typeof FC.rozrysScope.getRoomsSummary === 'function'){
-        return FC.rozrysScope.getRoomsSummary(rooms, { getRooms });
-      }
-      return { title:'Pomieszczenia', subtitle:'' };
-    }
+    const renderScopeApi = (FC.rozrysScope && typeof FC.rozrysScope.createApi === 'function')
+      ? FC.rozrysScope.createApi({
+        getRooms,
+        getAggregatePartsForProject: ()=> aggregatePartsForProject,
+        splitMaterialAccordionTitle,
+      })
+      : scopeApi;
+    const getScopeSummary = renderScopeApi.getScopeSummary;
+    const getRoomsSummary = renderScopeApi.getRoomsSummary;
 
     const selectionUi = (FC.rozrysSelectionUi && typeof FC.rozrysSelectionUi.createController === 'function')
       ? FC.rozrysSelectionUi.createController({

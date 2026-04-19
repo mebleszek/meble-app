@@ -974,6 +974,42 @@
         }
       }),
 
+      makeTest('Scope helpers', 'ROZRYS scope createApi wiąże live deps pokojów i agregacji bez lokalnych wrapperów w rozrys.js', 'Pilnuje następnego większego splitu: rozrys.js ma używać związanego API z rozrys-scope.js, a helpery scope/material dalej muszą czytać aktualne getRooms i aggregatePartsForProject przy wywołaniu.', ()=>{
+        assert(FC.rozrysScope && typeof FC.rozrysScope.createApi === 'function', 'Brak FC.rozrysScope.createApi');
+        let rooms = ['kuchnia', 'salon'];
+        let aggregateCalls = 0;
+        let aggregateFn = ()=>{
+          aggregateCalls += 1;
+          return {
+            materials:['MDF test'],
+            groups:{
+              'MDF test': { hasFronts:true, hasCorpus:false }
+            },
+            selectedRooms:['salon']
+          };
+        };
+        const api = FC.rozrysScope.createApi({
+          getRooms: ()=> rooms.slice(),
+          getAggregatePartsForProject: ()=> aggregateFn,
+          splitMaterialAccordionTitle: (material)=> ({ line1:`MAT:${material}`, line2:'Fronty' }),
+        });
+        assert(api.encodeRoomsSelection(['salon', 'ghost']) === 'salon', 'Scope createApi nie filtruje encodeRoomsSelection po live getRooms', { encoded: api.encodeRoomsSelection(['salon', 'ghost']) });
+        rooms = ['salon'];
+        const decoded = api.decodeRoomsSelection('kuchnia|salon|ghost');
+        assert(Array.isArray(decoded) && decoded.length === 1 && decoded[0] === 'salon', 'Scope createApi nie czyta aktualnych pokojów przy decodeRoomsSelection', decoded);
+        const normalizedScope = api.normalizeMaterialScopeForAggregate({ kind:'material', material:'MDF test', includeFronts:true, includeCorpus:true });
+        assert(normalizedScope && normalizedScope.includeFronts === true && normalizedScope.includeCorpus === false, 'Scope createApi nie użył live aggregatePartsForProject przy normalizeMaterialScopeForAggregate', normalizedScope);
+        const summary = api.getScopeSummary({ kind:'material', material:'MDF test', includeFronts:true, includeCorpus:false }, {
+          materials:['MDF test'],
+          groups:{ 'MDF test': { hasFronts:true, hasCorpus:false } },
+          selectedRooms:['salon']
+        });
+        assert(summary && summary.title === 'MAT:MDF test' && summary.detail === 'Same fronty', 'Scope createApi nie deleguje getScopeSummary z lokalnym splitMaterialAccordionTitle', summary);
+        const key = api.getAccordionScopeKey({ kind:'material', material:'MDF test', includeFronts:true, includeCorpus:false }, { selectedRooms:['salon'] });
+        assert(String(key || '').includes('salon') && String(key || '').includes('fronts'), 'Scope createApi nie buduje scope key na związanych helperach', { key });
+        assert(aggregateCalls >= 1, 'Scope createApi nie wywołał live aggregatePartsForProject podczas normalizacji scope', { aggregateCalls });
+      }),
+
 
 
       makeTest('Run controller', 'Wydzielony run controller ROZRYS deleguje progress, generowanie i magazyn bez zmiany kontraktu', 'Pilnuje dużego splitu action/run: progress bridge nadal steruje stanem przycisku, generate przekazuje pełny payload do rozrysRunner, a Dodaj płytę dalej dostaje ten sam ctx/deps.', async ()=>{
@@ -1235,27 +1271,36 @@
           FC.rozrysAccordion = prevAccordion;
         }
       }),
-      makeTest('Bootstrap i splity', 'ROZRYS ładuje panel workspace i output controller przed rozrys.js oraz zachowuje bezpieczne spięcia', 'Pilnuje regresji, w której nowy moduł panelu/workspace albo output/render/cache byłby ładowany po rozrys.js lub rozrys.js straciłby bezpieczne spięcia createWorkspace/createController wymagane podczas bootstrapu.', ()=>{
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje scope, panel workspace i output controller przed rozrys.js oraz zachowuje bezpieczne spięcia', 'Pilnuje regresji, w której moduł scope/material, panel/workspace albo output/render/cache byłby ładowany po rozrys.js lub rozrys.js wróciłby do lokalnych wrapperów zamiast związanego API createApi.', ()=>{
         const indexHtml = readAssetSource('index.html');
         const devHtml = readAssetSource('dev_tests.html');
         const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
+        const scopeSrc = readAssetSource('js/app/rozrys/rozrys-scope.js');
         const panelSrc = readAssetSource('js/app/rozrys/rozrys-panel-workspace.js');
         const outputSrc = readAssetSource('js/app/rozrys/rozrys-output-controller.js');
+        assert(scopeSrc && scopeSrc.includes('FC.rozrysScope') && scopeSrc.includes('createApi'), 'Brak źródła modułu rozrys-scope z createApi w assetach smoke');
         assert(panelSrc && panelSrc.includes('FC.rozrysPanelWorkspace'), 'Brak źródła nowego modułu panel workspace w assetach smoke');
         assert(outputSrc && outputSrc.includes('FC.rozrysOutputController'), 'Brak źródła nowego modułu output controller w assetach smoke');
+        const scopeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-scope.js');
         const panelIdx = indexHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
         const outIdx = indexHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(scopeIdx >= 0 && rozIdx >= 0 && scopeIdx < rozIdx, 'index.html ładuje rozrys-scope po rozrys.js', { scopeIdx, rozIdx });
         assert(panelIdx >= 0 && rozIdx >= 0 && panelIdx < rozIdx, 'index.html ładuje rozrys-panel-workspace po rozrys.js', { panelIdx, rozIdx });
         assert(outIdx >= 0 && rozIdx >= 0 && outIdx < rozIdx, 'index.html ładuje rozrys-output-controller po rozrys.js', { outIdx, rozIdx });
+        const scopeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-scope.js');
         const panelDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
         const outDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
+        assert(scopeDevIdx >= 0 && rozDevIdx >= 0 && scopeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-scope po rozrys.js', { scopeDevIdx, rozDevIdx });
         assert(panelDevIdx >= 0 && rozDevIdx >= 0 && panelDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-panel-workspace po rozrys.js', { panelDevIdx, rozDevIdx });
         assert(outDevIdx >= 0 && rozDevIdx >= 0 && outDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-output-controller po rozrys.js', { outDevIdx, rozDevIdx });
-        assert(/const panelWorkspaceApi[\s\S]*createWorkspace:\s*\(\)\s*=>\s*null/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego spięcia panelWorkspaceApi', { snippet: rozrysSrc.slice(9000, 14000) });
-        assert(/const workspace\s*=\s*panelWorkspaceApi\.createWorkspace\([\s\S]*const persistOptionPrefs\s*=\s*workspace\.persistOptionPrefs;/.test(rozrysSrc), 'rozrys.js po splicie panelu nie składa workspace z bridgea i nie pobiera z niego live helperów/refów', { snippet: rozrysSrc.slice(17000, 25000) });
-        assert(!/function\s+persistOptionPrefs\s*\(/.test(rozrysSrc) && !/function\s+applyUnitChange\s*\(/.test(rozrysSrc), 'rozrys.js nadal trzyma lokalne helpery opcji zamiast czytać je z panel workspace', { snippet: rozrysSrc.slice(17000, 25000) });
+        assert(/const scopeApi\s*=\s*\(FC\.rozrysScope && typeof FC\.rozrysScope\.createApi === 'function'\)/.test(rozrysSrc), 'rozrys.js nie spina związanego scopeApi przez FC.rozrysScope.createApi', { snippet: rozrysSrc.slice(8500, 14500) });
+        assert(/const panelWorkspaceApi[\s\S]*createWorkspace:\s*\(\)\s*=>\s*null/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego spięcia panelWorkspaceApi', { snippet: rozrysSrc.slice(9000, 14500) });
+        assert(/const workspace\s*=\s*panelWorkspaceApi\.createWorkspace\([\s\S]*const persistOptionPrefs\s*=\s*workspace\.persistOptionPrefs;/.test(rozrysSrc), 'rozrys.js po splicie panelu nie składa workspace z bridgea i nie pobiera z niego live helperów/refów', { snippet: rozrysSrc.slice(16500, 24500) });
+        assert(!/function\s+persistOptionPrefs\s*\(/.test(rozrysSrc) && !/function\s+applyUnitChange\s*\(/.test(rozrysSrc), 'rozrys.js nadal trzyma lokalne helpery opcji zamiast czytać je z panel workspace', { snippet: rozrysSrc.slice(16500, 24500) });
+        assert(!/function\s+roomLabel\s*\(/.test(rozrysSrc) && !/function\s+normalizeRoomSelection\s*\(/.test(rozrysSrc) && !/function\s+encodeRoomsSelection\s*\(/.test(rozrysSrc) && !/function\s+decodeMaterialScope\s*\(/.test(rozrysSrc), 'rozrys.js nadal trzyma lokalne wrappery scope/material zamiast scopeApi', { snippet: rozrysSrc.slice(8500, 16000) });
+        assert(/const renderScopeApi\s*=\s*\(FC\.rozrysScope && typeof FC\.rozrysScope\.createApi === 'function'\)/.test(rozrysSrc), 'rozrys.js nie buduje związanego renderScopeApi dla getScopeSummary/getRoomsSummary', { snippet: rozrysSrc.slice(16500, 22000) });
         assert(/(?:let|const)\s+outputCtrl\s*=\s*null[\s\S]*outputCtrl\s*=\s*outputControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera z bridgea albo nie inicjalizuje go jawnie po bootstrapie helperów', { snippet: rozrysSrc.slice(18000, 25500) });
         assert(/const outputControllerApi[\s\S]*createController:\s*\(ctx[^)]*\)\s*=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla output controllera', { snippet: rozrysSrc.slice(9000, 16000) });
         assert(/function\s+tryAutoRenderFromCache\s*\(/.test(rozrysSrc) && /function\s+splitMaterialAccordionTitle\s*\(/.test(rozrysSrc) && /function\s+buildEntriesForScope\s*\(/.test(rozrysSrc), 'rozrys.js po splicie output controllera nie zachowuje hoistowanych fasad helperów cache/output wymaganych podczas bootstrapu', { snippet: rozrysSrc.slice(15000, 26000) });
