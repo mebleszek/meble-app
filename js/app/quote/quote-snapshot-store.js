@@ -194,9 +194,9 @@
     if(roomIds.length){
       const labels = roomIds.map((roomId, index)=> {
         const explicitLabel = String(explicitLabels[index] || '').trim();
+        if(explicitLabel) return explicitLabel;
         const registryLabel = String(getRoomLabel(roomId) || '').trim();
-        if(registryLabel && (registryLabel !== String(roomId || '').trim() || !explicitLabel)) return registryLabel;
-        return explicitLabel || registryLabel || roomId;
+        return registryLabel || roomId;
       }).filter(Boolean);
       if(labels.length) return labels;
       return roomIds;

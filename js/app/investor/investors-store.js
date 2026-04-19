@@ -299,11 +299,22 @@
     return readStorageArray(KEY_QUOTE_SNAPSHOTS);
   }
 
-  function buildRecoveryCandidates(){
+  function isTestRecoveryRecord(record){
+    const src = record && typeof record === 'object' ? record : {};
+    const meta = src.meta && typeof src.meta === 'object' ? src.meta : {};
+    const source = String(meta.source || src.source || '').trim().toLowerCase();
+    if(meta.testData === true) return true;
+    return source.startsWith('test-');
+  }
+
+  function buildRecoveryCandidates(options){
+    const cfg = options && typeof options === 'object' ? options : {};
+    const testOnly = !!cfg.testOnly;
     const recovered = new Map();
     try{
       const projects = readRawProjectRecords();
       (Array.isArray(projects) ? projects : []).forEach((record)=> {
+        if(testOnly && !isTestRecoveryRecord(record)) return;
         const investorId = String(record && record.investorId || '').trim();
         if(!investorId) return;
         mergeCandidateInto(recovered, { id:investorId, name:String(record && record.title || '') }, roomsFromProjectRecord(record), record);
@@ -312,6 +323,7 @@
     try{
       const snapshots = readRawQuoteSnapshots();
       (Array.isArray(snapshots) ? snapshots : []).forEach((snapshot)=> {
+        if(testOnly && !isTestRecoveryRecord(snapshot)) return;
         const investorId = String(snapshot && snapshot.investor && snapshot.investor.id || snapshot && snapshot.project && snapshot.project.investorId || '').trim();
         if(!investorId) return;
         const investorLike = Object.assign({}, snapshot && snapshot.investor || {}, { id:investorId });
@@ -321,6 +333,7 @@
           createdAt: Number(snapshot && snapshot.generatedAt) || 0,
           updatedAt: Number(snapshot && snapshot.generatedAt) || 0,
           source: String(snapshot && snapshot.meta && snapshot.meta.source || 'quote-snapshot-store'),
+          meta: snapshot && snapshot.meta,
         };
         mergeCandidateInto(recovered, investorLike, roomsFromSnapshot(snapshot), fallback);
       });
@@ -335,7 +348,7 @@
     try{
       const removedIds = readRemovedIds();
       const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
-      const recovered = buildRecoveryCandidates();
+      const recovered = buildRecoveryCandidates({ testOnly: current.length > 0 });
       const additions = [];
       recovered.forEach((candidate, id)=> {
         const key = String(id || '').trim();
