@@ -8,6 +8,7 @@
   const KEY_INVESTORS = 'fc_investors_v1';
   const KEY_CURRENT = 'fc_current_investor_v1';
   const DEFAULT_PROJECT_STATUS = 'nowy';
+  const recovery = FC.investorStoreRecovery || null;
 
   function now(){ return Date.now(); }
   function uid(){ return 'inv_' + Math.random().toString(36).slice(2,10) + '_' + now().toString(36); }
@@ -93,16 +94,44 @@
     };
   }
 
+  function writeAllRaw(list){
+    const normalized = Array.isArray(list) ? list.map(normalizeInvestor) : [];
+    try{ localStorage.setItem(KEY_INVESTORS, JSON.stringify(normalized)); }catch(_){ }
+    try{ if(recovery && typeof recovery.backupInvestors === 'function') recovery.backupInvestors(normalized); }catch(_){ }
+    return normalized;
+  }
+
   function readAll(){
     try{
       const raw = localStorage.getItem(KEY_INVESTORS);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr.map(normalizeInvestor) : [];
+      const parsed = recovery && typeof recovery.parseInvestorListRaw === 'function'
+        ? recovery.parseInvestorListRaw(raw)
+        : (()=> { try{ const arr = raw ? JSON.parse(raw) : []; return Array.isArray(arr) ? arr : []; }catch(_){ return []; } })();
+      let list = Array.isArray(parsed) ? parsed.map(normalizeInvestor) : [];
+      if(recovery && typeof recovery.recoverList === 'function'){
+        const backupRaw = (()=> { try{ return localStorage.getItem(recovery.KEY_BACKUP || 'fc_investors_backup_v1'); }catch(_){ return null; } })();
+        const result = recovery.recoverList({
+          primaryRaw: raw,
+          backupRaw,
+          primaryList: list,
+          currentInvestorId: getCurrentId(),
+          normalizeInvestor,
+          projectStore: FC.projectStore || null,
+          quoteSnapshotStore: FC.quoteSnapshotStore || null,
+          quoteOfferStore: FC.quoteOfferStore || null,
+        });
+        if(result && Array.isArray(result.list)){
+          list = result.list.map(normalizeInvestor);
+          try{ FC.investorsLastRecovery = result.stats || null; }catch(_){ }
+          if(result.repaired) writeAllRaw(list);
+        }
+      }
+      return list;
     }catch(_){ return []; }
   }
 
   function writeAll(list){
-    try{ localStorage.setItem(KEY_INVESTORS, JSON.stringify((list || []).map(normalizeInvestor))); }catch(_){ }
+    return writeAllRaw(list);
   }
 
   function getCurrentId(){
@@ -209,5 +238,6 @@
     DEFAULT_PROJECT_STATUS,
     KEY_INVESTORS,
     KEY_CURRENT,
+    getRecoveryState(){ return FC.investorsLastRecovery || null; },
   };
 })();

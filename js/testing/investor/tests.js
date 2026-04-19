@@ -61,6 +61,86 @@
       const patch = FC.investorEditorState.buildPatchFromDraft({ kind:'company', companyName:'ABC', ownerName:'Jan Nowak', nip:'123' });
       assert(String(patch.ownerName || '') === 'Jan Nowak', 'Patch inwestora nie zachował ownerName firmy', patch);
     }),
+    makeTest('Inwestor', 'Store inwestorów odzyskuje brakujące rekordy z projectStore i snapshotów bez kasowania istniejących', 'Pilnuje pakietu ratunkowego: gdy główna lista inwestorów zgubi stare rekordy, store ma je odbudować z projektów/snapshotów i zachować już widoczne nowe wpisy.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      assert(FC.projectStore && typeof FC.projectStore.writeAll === 'function', 'Brak FC.projectStore.writeAll');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function', 'Brak FC.quoteSnapshotStore.writeAll');
+      const prevInvestorsRaw = localStorage.getItem('fc_investors_v1');
+      const prevBackupRaw = localStorage.getItem('fc_investors_backup_v1');
+      const prevProjects = FC.projectStore.readAll();
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      try{
+        localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'inv_new_only', kind:'person', name:'Jan Test', phone:'111', rooms:[] }]));
+        FC.projectStore.writeAll([{
+          id:'proj_old_only',
+          investorId:'inv_old_missing',
+          title:'Projekt starego inwestora',
+          status:'pomiar',
+          projectData:{
+            schemaVersion:2,
+            meta:{ roomDefs:{ room_kuchnia_old:{ id:'room_kuchnia_old', baseType:'kuchnia', name:'Kuchnia stara', label:'Kuchnia stara' } }, roomOrder:['room_kuchnia_old'] },
+            room_kuchnia_old:{ cabinets:[{ id:'cab_old' }], fronts:[], sets:[], settings:{} }
+          },
+          createdAt:1712800000000,
+          updatedAt:1712800100000,
+          meta:{}
+        }]);
+        FC.quoteSnapshotStore.writeAll([{
+          id:'snap_old_missing',
+          generatedAt:1712800200000,
+          investor:{ id:'inv_old_missing', kind:'person', name:'Stary klient', phone:'222', city:'Łódź', address:'Test 9' },
+          project:{ id:'proj_old_only', investorId:'inv_old_missing', status:'pomiar' },
+          scope:{ selectedRooms:['room_kuchnia_old'], roomLabels:['Kuchnia stara'] },
+          commercial:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia stara' },
+          meta:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia stara' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{}
+        }]);
+        const list = FC.investors.readAll();
+        const newInvestor = list.find((row)=> String(row && row.id || '') === 'inv_new_only');
+        const oldInvestor = list.find((row)=> String(row && row.id || '') === 'inv_old_missing');
+        assert(Array.isArray(list) && list.length >= 2, 'Store nie odzyskał brakującego inwestora obok istniejącego wpisu', list);
+        assert(newInvestor && String(newInvestor.name || '') === 'Jan Test', 'Store uszkodził istniejącego inwestora podczas odzysku', list);
+        assert(oldInvestor && String(oldInvestor.name || '') === 'Stary klient', 'Store nie wzbogacił odzyskanego inwestora danymi ze snapshotu', oldInvestor);
+        assert(Array.isArray(oldInvestor && oldInvestor.rooms) && oldInvestor.rooms.some((room)=> String(room && room.id || '') === 'room_kuchnia_old'), 'Store nie odzyskał pokojów starego inwestora z projektu/snapshotu', oldInvestor);
+        assert(localStorage.getItem('fc_investors_v1') && localStorage.getItem('fc_investors_v1').includes('inv_old_missing'), 'Pakiet ratunkowy nie zapisał odzyskanej listy z powrotem do storage', localStorage.getItem('fc_investors_v1'));
+      } finally {
+        if(prevInvestorsRaw == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', prevInvestorsRaw);
+        if(prevBackupRaw == null) localStorage.removeItem('fc_investors_backup_v1'); else localStorage.setItem('fc_investors_backup_v1', prevBackupRaw);
+        FC.projectStore.writeAll(prevProjects);
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+      }
+    }),
+    makeTest('Inwestor', 'Store inwestorów umie odbudować pustą listę z samych snapshotów ofert', 'Pilnuje awaryjnego odzysku: gdy główna lista inwestorów jest pusta, ale zostały snapshoty ofert, inwestor ma wrócić na listę zamiast znikać całkowicie.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function', 'Brak FC.quoteSnapshotStore.writeAll');
+      const prevInvestorsRaw = localStorage.getItem('fc_investors_v1');
+      const prevBackupRaw = localStorage.getItem('fc_investors_backup_v1');
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      try{
+        localStorage.removeItem('fc_investors_v1');
+        localStorage.removeItem('fc_investors_backup_v1');
+        FC.quoteSnapshotStore.writeAll([{
+          id:'snap_only_investor',
+          generatedAt:1712800300000,
+          investor:{ id:'inv_from_snapshot_only', kind:'person', name:'Snapshot Only', phone:'333' },
+          project:{ id:'proj_snapshot_only', investorId:'inv_from_snapshot_only', status:'wycena' },
+          scope:{ selectedRooms:['room_snapshot_only'], roomLabels:['Pokój snapshot'] },
+          commercial:{ preliminary:false, versionName:'Oferta — Pokój snapshot' },
+          meta:{ preliminary:false, versionName:'Oferta — Pokój snapshot' },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          totals:{}
+        }]);
+        const list = FC.investors.readAll();
+        const recovered = list.find((row)=> String(row && row.id || '') === 'inv_from_snapshot_only');
+        assert(recovered, 'Store nie odbudował inwestora z pustej listy na podstawie snapshotu', list);
+        assert(String(recovered && recovered.name || '') === 'Snapshot Only', 'Store nie zachował nazwy inwestora przy odzysku ze snapshotu', recovered);
+      } finally {
+        if(prevInvestorsRaw == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', prevInvestorsRaw);
+        if(prevBackupRaw == null) localStorage.removeItem('fc_investors_backup_v1'); else localStorage.setItem('fc_investors_backup_v1', prevBackupRaw);
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+      }
+    }),
     makeTest('Inwestor', 'Rejestr pomieszczeń wykrywa duplikat nazwy niezależnie od wielkości liter i polskich znaków', 'Pilnuje, czy dla jednego inwestora nie da się dodać dwóch pomieszczeń o tej samej nazwie także po normalizacji diakrytyków.', ()=>{
       assert(FC.roomRegistry && typeof FC.roomRegistry.isRoomNameTaken === 'function', 'Brak roomRegistry.isRoomNameTaken');
       const inv = sampleInvestor();
