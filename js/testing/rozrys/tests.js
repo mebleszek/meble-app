@@ -66,6 +66,19 @@
     return '';
   }
 
+  function getRozrysStartupOrderSource(requiredAssets){
+    const assets = Array.isArray(requiredAssets) ? requiredAssets.filter(Boolean) : [];
+    const indexHtml = readAssetSource('index.html');
+    if(assets.every((asset)=> indexHtml.indexOf(asset) >= 0)){
+      return { name:'index.html', text:indexHtml };
+    }
+    const lazyManifestSrc = readAssetSource('js/app/rozrys/rozrys-lazy-manifest.js');
+    if(assets.every((asset)=> lazyManifestSrc.indexOf(asset) >= 0)){
+      return { name:'js/app/rozrys/rozrys-lazy-manifest.js', text:lazyManifestSrc };
+    }
+    return { name:'missing', text:'', indexHtml, lazyManifestSrc };
+  }
+
   function createFakeNode(tag, attrs){
     const classes = String((attrs && attrs.class) || '').split(/\s+/).filter(Boolean);
     const listeners = {};
@@ -814,9 +827,10 @@
         assert(FC.rozrysPartHelpers && typeof FC.rozrysPartHelpers.createApi === 'function', 'Brak FC.rozrysPartHelpers.createApi po załadowaniu assetów');
         const api = FC.rozrysPartHelpers.createApi({ FC, host:host, cmToMm:(v)=> Number(v)||0, partSignature:(part)=> `${part && part.material || ''}||${part && part.name || ''}||${part && part.w || 0}x${part && part.h || 0}` });
         assert(api && typeof api.resolveCabinetCutListFn === 'function' && typeof api.isPartRotationAllowed === 'function', 'Part helpers po załadowaniu assetów nie mają oczekiwanego kontraktu API', { keys:Object.keys(api || {}) });
-        const partIdx = indexHtml.indexOf('js/app/rozrys/rozrys-part-helpers.js');
-        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(partIdx >= 0 && rozrysIdx >= 0 && partIdx < rozrysIdx, 'index.html ładuje rozrys-part-helpers po rozrys.js', { partIdx, rozrysIdx });
+        const startupOrder = getRozrysStartupOrderSource(['js/app/rozrys/rozrys-part-helpers.js', 'js/app/rozrys/rozrys.js']);
+        const partIdx = startupOrder.text.indexOf('js/app/rozrys/rozrys-part-helpers.js');
+        const rozrysIdx = startupOrder.text.indexOf('js/app/rozrys/rozrys.js');
+        assert(startupOrder.name !== 'missing' && partIdx >= 0 && rozrysIdx >= 0 && partIdx < rozrysIdx, `Startup entrypoint ładuje rozrys-part-helpers po rozrys.js (${startupOrder.name})`, { entrypoint:startupOrder.name, partIdx, rozrysIdx });
         const partDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-part-helpers.js');
         const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(partDevIdx >= 0 && rozrysDevIdx >= 0 && partDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-part-helpers po rozrys.js', { partDevIdx, rozrysDevIdx });
@@ -1615,11 +1629,12 @@
         const indexHtml = readAssetSource('index.html');
         const devHtml = readAssetSource('dev_tests.html');
         const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
-        const controllerBridgeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-controller-bridges.js');
-        const renderComposeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-render-compose.js');
-        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(controllerBridgeIdx >= 0 && rozrysIdx >= 0 && controllerBridgeIdx < rozrysIdx, 'index.html ładuje rozrys-controller-bridges po rozrys.js', { controllerBridgeIdx, rozrysIdx });
-        assert(renderComposeIdx >= 0 && rozrysIdx >= 0 && renderComposeIdx < rozrysIdx, 'index.html ładuje rozrys-render-compose po rozrys.js', { renderComposeIdx, rozrysIdx });
+        const startupOrder = getRozrysStartupOrderSource(['js/app/rozrys/rozrys-controller-bridges.js', 'js/app/rozrys/rozrys-render-compose.js', 'js/app/rozrys/rozrys.js']);
+        const controllerBridgeIdx = startupOrder.text.indexOf('js/app/rozrys/rozrys-controller-bridges.js');
+        const renderComposeIdx = startupOrder.text.indexOf('js/app/rozrys/rozrys-render-compose.js');
+        const rozrysIdx = startupOrder.text.indexOf('js/app/rozrys/rozrys.js');
+        assert(startupOrder.name !== 'missing' && controllerBridgeIdx >= 0 && rozrysIdx >= 0 && controllerBridgeIdx < rozrysIdx, `Startup entrypoint ładuje rozrys-controller-bridges po rozrys.js (${startupOrder.name})`, { entrypoint:startupOrder.name, controllerBridgeIdx, rozrysIdx });
+        assert(startupOrder.name !== 'missing' && renderComposeIdx >= 0 && rozrysIdx >= 0 && renderComposeIdx < rozrysIdx, `Startup entrypoint ładuje rozrys-render-compose po rozrys.js (${startupOrder.name})`, { entrypoint:startupOrder.name, renderComposeIdx, rozrysIdx });
         const controllerBridgeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-controller-bridges.js');
         const renderComposeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-render-compose.js');
         const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');

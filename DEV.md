@@ -1,3 +1,8 @@
+## 2026-04-20 — ROZRYS bootstrap tests accept deferred startup manifest
+- `js/testing/rozrys/tests.js` — testy `Bootstrap i splity` dla ROZRYS nie zakładają już, że każdy runtime asset musi siedzieć bezpośrednio w `index.html`. Jeśli asset został świadomie przeniesiony do `js/app/rozrys/rozrys-lazy-manifest.js`, test sprawdza kolejność właśnie w tym deferred entrypoincie.
+- `dev_tests.html` — podbity cache-busting dla zaktualizowanego smoke testu ROZRYS, żeby runner nie trzymał starej wersji oczekującej bezpośrednich wpisów w `index.html`.
+- Instrukcja antyregresyjna: przy kolejnych splitach startupu nie przywracać ciężkich assetów ROZRYS do `index.html` tylko po to, żeby zadowolić test. Test ma pilnować realnego kontraktu entrypointu (`index.html` albo deferred manifest), a nie zamrażać starą architekturę.
+
 ## 2026-04-20 — app.js bootstrap split: state bootstrap + UI bootstrap
 - `js/app/bootstrap/app-state-bootstrap.js` — wydzielony bootstrap stanu startowego z `app.js`: składa materiały, stawki, projekt oraz `uiDefaults/uiState` przez jedno jawne API `FC.appStateBootstrap.createInitialState(...)`. Dzięki temu `app.js` nie trzyma już całego ciężkiego bloku bootstrapa danych na wejściu.
 - `js/app/bootstrap/app-ui-bootstrap.js` — wydzielona warstwa startu UI z `app.js`: rejestracja core modali/akcji, wejściowy `initApp()` i `initUI()` z restore po reloadzie, bindingami, autosave oraz background warmup ROZRYS. `app.js` zostawia tylko cienkie wrappery przekazujące kontekst i callbacki.
