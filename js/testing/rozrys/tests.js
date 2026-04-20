@@ -823,23 +823,6 @@
       }),
 
 
-      makeTest('Bootstrap i splity', 'ROZRYS ładuje bootstrap env przed rozrys.js, a kontrakt helperów środowiska pilnuje moduł zamiast snippetów', 'Pilnuje większy split bootstrap/env: rozrys.js ma dostać project source, prefs, ui tools, part helpers, engine/ui bridge i factory runtime utils z jednego modułu, bez zamrażania starego kształtu kodu.', ()=>{
-        const indexHtml = readAssetSource('index.html');
-        const devHtml = readAssetSource('dev_tests.html');
-        const envSrc = readAssetSource('js/app/rozrys/rozrys-bootstrap-env.js');
-        assert(envSrc && envSrc.includes('FC.rozrysBootstrapEnv') && envSrc.includes('createRuntimeUtils'), 'Brak źródła modułu rozrys-bootstrap-env w assetach smoke');
-        assert(FC.rozrysBootstrapEnv && typeof FC.rozrysBootstrapEnv.createApi === 'function', 'Brak FC.rozrysBootstrapEnv.createApi po załadowaniu assetów');
-        const api = FC.rozrysBootstrapEnv.createApi({ FC, host:host });
-        assert(api && api.projectSource && api.prefsApi && api.uiTools && api.partHelpers && api.engineBridge && api.uiBridge && typeof api.createRuntimeUtils === 'function', 'Bootstrap env po załadowaniu assetów nie ma oczekiwanego kontraktu API', { keys:Object.keys(api || {}) });
-        const envIdx = indexHtml.indexOf('js/app/rozrys/rozrys-bootstrap-env.js');
-        const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(envIdx >= 0 && rozrysIdx >= 0 && envIdx < rozrysIdx, 'index.html ładuje rozrys-bootstrap-env po rozrys.js', { envIdx, rozrysIdx });
-        const envDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-bootstrap-env.js');
-        const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(envDevIdx >= 0 && rozrysDevIdx >= 0 && envDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-bootstrap-env po rozrys.js', { envDevIdx, rozrysDevIdx });
-      }),
-
-
       makeTest('UI bridge', 'Wydzielone UI tools ROZRYS budują label z info i delegują confirm przez confirmBox', 'Pilnuje splitu helperów UI: labelWithInfo ma dalej renderować info-trigger, a askRozrysConfirm ma przejść przez confirmBox z pełnym payloadem.', ()=>{
         assert(FC.rozrysUiTools && typeof FC.rozrysUiTools.createApi === 'function', 'Brak FC.rozrysUiTools.createApi');
         const prevInfoBox = FC.infoBox;
@@ -987,131 +970,6 @@
           assert(base.direction === 'norm:start-optimax' && captured.optionWrites.length === 1, 'getBaseState nie zwrócił / nie zapisał znormalizowanego stanu opcji', { base, optionWrites:captured.optionWrites });
         } finally {
           FC.rozrysState = prevRozrysState;
-          restoreDom();
-        }
-      }),
-
-      makeTest('Render shell', 'Wydzielony render shell ROZRYS składa launchery, workspace i selection init przez jeden moduł kontraktowy', 'Pilnuje większego splitu render/selection shell: launchery Pomieszczenia i Materiał / grupa, workspace oraz selection bridge mają być spinane przez jeden moduł, bez trzymania całego glue lokalnie w rozrys.js.', ()=>{
-        assert(FC.rozrysRenderShell && typeof FC.rozrysRenderShell.createApi === 'function', 'Brak FC.rozrysRenderShell.createApi');
-        const restoreDom = installFakeDom();
-        const prevPanelWorkspace = FC.rozrysPanelWorkspace;
-        const prevControllerBridges = FC.rozrysControllerBridges;
-        const prevRenderCompose = FC.rozrysRenderCompose;
-        const captured = { workspaceCtx:null, workspaceDeps:null, selectionConfig:null, selectionInit:0 };
-        const makeRef = (tag)=> createFakeNode(tag, {});
-        try{
-          FC.rozrysPanelWorkspace = {
-            createApi(){
-              return {
-                createWorkspace(ctx, deps){
-                  captured.workspaceCtx = ctx;
-                  captured.workspaceDeps = deps;
-                  return {
-                    unitSel: makeRef('select'),
-                    edgeSel: makeRef('select'),
-                    inW: makeRef('input'),
-                    inH: makeRef('input'),
-                    inK: makeRef('input'),
-                    inTrim: makeRef('input'),
-                    inMinW: makeRef('input'),
-                    inMinH: makeRef('input'),
-                    heurSel: makeRef('select'),
-                    dirSel: makeRef('select'),
-                    addStockBtn: makeRef('button'),
-                    openOptionsBtnInline: makeRef('button'),
-                    genBtn: makeRef('button'),
-                    statusBox: makeRef('div'),
-                    statusMain: makeRef('div'),
-                    statusSub: makeRef('div'),
-                    statusMeta: makeRef('div'),
-                    statusProg: makeRef('div'),
-                    statusProgBar: makeRef('div'),
-                    out: makeRef('div'),
-                    persistOptionPrefs: ()=> 'workspace-persist',
-                    applyUnitChange: ()=> 'workspace-unit',
-                    getBaseState: ()=> ({ ok:true }),
-                  };
-                },
-              };
-            },
-          };
-          FC.rozrysControllerBridges = {
-            createApi(){
-              return {
-                createSelectionBridge(config){
-                  captured.selectionConfig = config;
-                  return {
-                    updateRoomsPickerButton: ()=> 'rooms-btn',
-                    updateMaterialPickerButton: ()=> 'mat-btn',
-                    persistSelectionPrefs: ()=> 'persist-selection',
-                    syncHiddenSelections: ()=> 'sync-selection',
-                    refreshSelectionState: ()=> 'refresh-selection',
-                    buildScopeDraftControls: ()=> 'draft-controls',
-                    openRoomsPicker: ()=> 'rooms-picker',
-                    openMaterialPicker: ()=> 'material-picker',
-                    init: ()=> { captured.selectionInit += 1; },
-                  };
-                },
-              };
-            },
-          };
-          FC.rozrysRenderCompose = {
-            createApi(){
-              return {
-                buildWorkspaceCtx: (config)=> config,
-                buildWorkspaceDeps: (config)=> config,
-                buildSelectionBridgeConfig: (config)=> ({ ctx:config, deps:{} }),
-              };
-            },
-          };
-          let selectedRooms = ['room_a'];
-          let materialScope = { kind:'all', material:'', includeFronts:true, includeCorpus:true };
-          let aggregate = { materials:['MDF test'] };
-          const card = createFakeNode('div', {});
-          const api = FC.rozrysRenderShell.createApi({ FC });
-          const shell = api.createShell({
-            h: (tag, attrs)=> createFakeNode(tag, attrs),
-            labelWithInfo: (title)=> createFakeNode('div', { text:title }),
-            createChoiceLauncher: (label)=> createFakeNode('button', { text:label }),
-            getSelectOptionLabel: ()=> 'label',
-            setChoiceLaunchValue: ()=> undefined,
-            openRozrysChoiceOverlay: async ()=> null,
-            card,
-            state: { unit:'cm' },
-            panelPrefs: { edgeSubMm:1 },
-            getSelectedRooms: ()=> selectedRooms.slice(),
-            setSelectedRooms: (rooms)=> { selectedRooms = Array.isArray(rooms) ? rooms.slice() : []; },
-            getMaterialScope: ()=> Object.assign({}, materialScope),
-            setMaterialScope: (next)=> { materialScope = Object.assign({}, next); },
-            getAggregate: ()=> aggregate,
-            setAggregate: (next)=> { aggregate = next; },
-            encodeRoomsSelection: (rooms)=> rooms.join('|'),
-            encodeMaterialScope: (scope)=> JSON.stringify(scope || {}),
-            loadPanelPrefs: ()=> ({ keep:'ok' }),
-            savePanelPrefs: ()=> undefined,
-            rozState: {},
-            normalizeCutDirection: (value)=> `norm:${value}`,
-            getRooms: ()=> ['room_a', 'room_b'],
-            tryAutoRenderFromCache: ()=> false,
-            scopeApi: { getScopeSummary: ()=> ({ title:'scope' }), getRoomsSummary: ()=> ({ title:'rooms' }) },
-            aggregatePartsForProject: ()=> aggregate,
-            normalizeMaterialScopeForAggregate: (scope)=> scope,
-            askRozrysConfirm: ()=> Promise.resolve(true),
-            normalizeRoomSelection: (rooms)=> Array.isArray(rooms) ? rooms.slice() : [],
-            roomLabel: (room)=> String(room || ''),
-            splitMaterialAccordionTitle: (material)=> ({ line1:String(material || ''), line2:'' }),
-            makeMaterialScope: (selection)=> Object.assign({ kind:'all', material:'', includeFronts:true, includeCorpus:true }, selection || {}),
-          });
-          assert(shell && shell.workspace && shell.selection && shell.roomsSel && shell.matSel, 'Render shell nie zwrócił shell refs/workspace/selection', shell);
-          assert(captured.workspaceCtx && captured.workspaceCtx.card === card, 'Render shell nie zbudował workspace przez rozrys-panel-workspace', captured);
-          assert(captured.workspaceDeps && captured.workspaceDeps.normalizeCutDirection('start-optimax') === 'norm:start-optimax', 'Render shell nie przekazał live deps do workspace', captured.workspaceDeps);
-          assert(captured.selectionConfig && captured.selectionConfig.ctx && captured.selectionConfig.ctx.roomsSel === shell.roomsSel, 'Render shell nie zbudował selection bridge na shell refs', captured.selectionConfig);
-          assert(captured.selectionInit === 1, 'Render shell nie wykonał init selection bridge', captured);
-          assert(shell.selection.persistSelectionPrefs() === 'persist-selection' && shell.selection.openMaterialPicker() === 'material-picker', 'Render shell nie deleguje wrapperów selection do bridge', shell.selection);
-        } finally {
-          FC.rozrysPanelWorkspace = prevPanelWorkspace;
-          FC.rozrysControllerBridges = prevControllerBridges;
-          FC.rozrysRenderCompose = prevRenderCompose;
           restoreDom();
         }
       }),
@@ -1615,7 +1473,6 @@
         assert(composeApi && typeof composeApi.buildWorkspaceCtx === 'function' && typeof composeApi.buildSelectionBridgeConfig === 'function' && typeof composeApi.buildRunControllerConfig === 'function', 'Render compose po załadowaniu assetów nie ma oczekiwanego kontraktu builderów', { keys:Object.keys(composeApi || {}) });
         const scopeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-scope.js');
         const panelIdx = indexHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
-        const renderShellIdx = indexHtml.indexOf('js/app/rozrys/rozrys-render-shell.js');
         const runtimeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-runtime-bundle.js');
         const bridgeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-controller-bridges.js');
         const composeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-render-compose.js');
@@ -1623,14 +1480,12 @@
         const rozIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(scopeIdx >= 0 && rozIdx >= 0 && scopeIdx < rozIdx, 'index.html ładuje rozrys-scope po rozrys.js', { scopeIdx, rozIdx });
         assert(panelIdx >= 0 && rozIdx >= 0 && panelIdx < rozIdx, 'index.html ładuje rozrys-panel-workspace po rozrys.js', { panelIdx, rozIdx });
-        assert(renderShellIdx >= 0 && rozIdx >= 0 && renderShellIdx < rozIdx, 'index.html ładuje rozrys-render-shell po rozrys.js', { renderShellIdx, rozIdx });
         assert(runtimeIdx >= 0 && rozIdx >= 0 && runtimeIdx < rozIdx, 'index.html ładuje rozrys-runtime-bundle po rozrys.js', { runtimeIdx, rozIdx });
         assert(bridgeIdx >= 0 && rozIdx >= 0 && bridgeIdx < rozIdx, 'index.html ładuje rozrys-controller-bridges po rozrys.js', { bridgeIdx, rozIdx });
         assert(composeIdx >= 0 && rozIdx >= 0 && composeIdx < rozIdx, 'index.html ładuje rozrys-render-compose po rozrys.js', { composeIdx, rozIdx });
         assert(outIdx >= 0 && rozIdx >= 0 && outIdx < rozIdx, 'index.html ładuje rozrys-output-controller po rozrys.js', { outIdx, rozIdx });
         const scopeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-scope.js');
         const panelDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
-        const renderShellDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-render-shell.js');
         const runtimeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-runtime-bundle.js');
         const bridgeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-controller-bridges.js');
         const composeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-render-compose.js');
@@ -1638,7 +1493,6 @@
         const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(scopeDevIdx >= 0 && rozDevIdx >= 0 && scopeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-scope po rozrys.js', { scopeDevIdx, rozDevIdx });
         assert(panelDevIdx >= 0 && rozDevIdx >= 0 && panelDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-panel-workspace po rozrys.js', { panelDevIdx, rozDevIdx });
-        assert(renderShellDevIdx >= 0 && rozDevIdx >= 0 && renderShellDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-render-shell po rozrys.js', { renderShellDevIdx, rozDevIdx });
         assert(runtimeDevIdx >= 0 && rozDevIdx >= 0 && runtimeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-runtime-bundle po rozrys.js', { runtimeDevIdx, rozDevIdx });
         assert(bridgeDevIdx >= 0 && rozDevIdx >= 0 && bridgeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-controller-bridges po rozrys.js', { bridgeDevIdx, rozDevIdx });
         assert(composeDevIdx >= 0 && rozDevIdx >= 0 && composeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-render-compose po rozrys.js', { composeDevIdx, rozDevIdx });
@@ -1747,19 +1601,14 @@
         assert(Array.isArray(agg.materials) && agg.materials.length === 0, 'ROZRYS nie może po cichu pobierać materiału z innego pokoju, gdy exact scope jest pusty', agg);
       }),
 
-      makeTest('Bootstrap i splity', 'ROZRYS source zachowuje bootstrap launcherów przez render shell po init i po splitach', 'Pilnuje regresji, w której shell launcherów Pomieszczenia / Materiał-grupa znika z osobnego modułu albo rozrys.js przestaje budować go przez render shell.', ()=>{
+      makeTest('Bootstrap i splity', 'ROZRYS source zachowuje bootstrap launcherów po init i po splitach', 'Pilnuje regresji, w której po splicie puste launchery Pomieszczenia / Materiał-grupa zostawały bez labeli i bez klikalności, bo init tracił obowiązkowe kroki bootstrapu.', ()=>{
         const src = readAssetSource('js/app/rozrys/rozrys.js');
-        const shellSrc = readAssetSource('js/app/rozrys/rozrys-render-shell.js');
-        const indexHtml = readAssetSource('index.html');
-        const devHtml = readAssetSource('dev_tests.html');
-        assert(shellSrc && shellSrc.includes('FC.rozrysRenderShell') && shellSrc.includes('createShell'), 'Brak źródła modułu rozrys-render-shell w assetach smoke');
-        assert(src && src.includes('renderShellApi.createShell({'), 'Rozrys.js nie buduje launcherów/workspace przez render shell', { src });
-        const shellIdx = indexHtml.indexOf('js/app/rozrys/rozrys-render-shell.js');
-        const rozIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(shellIdx >= 0 && rozIdx >= 0 && shellIdx < rozIdx, 'index.html ładuje rozrys-render-shell po rozrys.js', { shellIdx, rozIdx });
-        const shellDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-render-shell.js');
-        const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
-        assert(shellDevIdx >= 0 && rozDevIdx >= 0 && shellDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-render-shell po rozrys.js', { shellDevIdx, rozDevIdx });
+        assert(src && src.includes('selectionBridge.init();'), 'Brak bootstrapu selectionBridge.init po splicie ROZRYS');
+        assert(/function\s+updateRoomsPickerButton\s*\(\)\s*\{\s*return\s+selectionBridge\.updateRoomsPickerButton\(\);\s*\}/.test(src), 'Rozrys.js nie trzyma wrappera updateRoomsPickerButton nad selectionBridge', { src });
+        assert(/function\s+updateMaterialPickerButton\s*\(\)\s*\{\s*return\s+selectionBridge\.updateMaterialPickerButton\(\);\s*\}/.test(src), 'Rozrys.js nie trzyma wrappera updateMaterialPickerButton nad selectionBridge', { src });
+        assert(/function\s+syncHiddenSelections\s*\(\)\s*\{\s*return\s+selectionBridge\.syncHiddenSelections\(\);\s*\}/.test(src), 'Rozrys.js nie trzyma wrappera syncHiddenSelections nad selectionBridge', { src });
+        assert(/function\s+openRoomsPicker\s*\(\)\s*\{\s*return\s+selectionBridge\.openRoomsPicker\(\);\s*\}/.test(src), 'Launcher Pomieszczenia stracił wrapper do openRoomsPicker po splicie', { src });
+        assert(/function\s+openMaterialPicker\s*\(\)\s*\{\s*return\s+selectionBridge\.openMaterialPicker\(\);\s*\}/.test(src), 'Launcher Materiał / grupa stracił wrapper do openMaterialPicker po splicie', { src });
       }),
 
       makeTest('Bootstrap i splity', 'Nowe bridge moduły ROZRYS muszą być załadowane przed rozrys.js i mieć bezpieczny kontrakt fallbacku', 'Pilnuje regresji po splitach bridge: jeśli rozrys.js wywołuje createController/createApi nowego modułu, to index i dev_tests muszą ładować plik przed rozrys.js, a fallback w rozrys.js nie może kończyć się TypeError-em przy braku modułu.', ()=>{

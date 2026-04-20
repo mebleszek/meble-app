@@ -6,71 +6,68 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link rel="stylesheet" href="css/style.css?v=20260418_wywiad_room_params_modal_v1">
-<link rel="stylesheet" href="css/investor-layout.css?v=20260407_stage2_fix_v2">
-<link rel="stylesheet" href="css/investor-form.css?v=20260405_field_unify_width_sync_v1">
-<link rel="stylesheet" href="css/rozrys-reference-sync.css?v=20260414_status_modal_grey_v1">
-<link rel="stylesheet" href="css/rozrys-picker-exact-sync.css?v=20260330_material_footer_restore_v1">
-<link rel="stylesheet" href="css/rozrys-panel-modal-sync.css?v=20260402_investor_refactor_v1">
-<link rel="stylesheet" href="css/rozrys-stock-modal-sync.css?v=20260402_followup_v3">
-<link rel="stylesheet" href="css/rozrys-checkboxes.css?v=20260329_rozrys_checkboxes_v4">
-<link rel="stylesheet" href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2">
-<link rel="stylesheet" href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1">
-<link rel="stylesheet" href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1">
-<link rel="stylesheet" href="css/price-item-popup.css?v=20260406_price_item_popup_v1">
+<link href="css/style.css?v=20260418_wywiad_room_params_modal_v1" rel="stylesheet"/>
+<link href="css/investor-layout.css?v=20260407_stage2_fix_v2" rel="stylesheet"/>
+<link href="css/investor-form.css?v=20260405_field_unify_width_sync_v1" rel="stylesheet"/>
+<link href="css/rozrys-reference-sync.css?v=20260414_status_modal_grey_v1" rel="stylesheet"/>
+<link href="css/rozrys-picker-exact-sync.css?v=20260330_material_footer_restore_v1" rel="stylesheet"/>
+<link href="css/rozrys-panel-modal-sync.css?v=20260402_investor_refactor_v1" rel="stylesheet"/>
+<link href="css/rozrys-stock-modal-sync.css?v=20260402_followup_v3" rel="stylesheet"/>
+<link href="css/rozrys-checkboxes.css?v=20260329_rozrys_checkboxes_v4" rel="stylesheet"/>
+<link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
+<link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
+<link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260406_price_item_popup_v1" rel="stylesheet"/>
 </head>
 <body>
 <header>
 <div class="left">
 <!-- legacy: wymagane przez validator (nie pokazujemy w UI) -->
-<button id="backToRooms" type="button" style="display:none" aria-hidden="true" tabindex="-1"></button>
-<div id="topBar" class="topbar" style="display:none">
-  <div id="sessionButtons" class="session-btns">
-    <button class="btn btn-danger" id="sessionCancel" data-action="session-cancel">Anuluj</button>
-    <button class="btn btn-success" id="sessionSave" data-action="session-save">Zapisz</button>
-  </div>
-  <nav id="topTabs" class="top-tabs">
-    <button class="btn tab-btn" data-tab="wywiad" data-action="tab">WYWIAD</button>
-    <button class="btn tab-btn" data-tab="material" data-action="tab">MATERIAŁ</button>
-    <button class="btn tab-btn" data-tab="rysunek" data-action="tab">RYSUNEK</button>
-    <button class="btn tab-btn" data-tab="czynnosci" data-action="tab">CZYNNOŚCI</button>
-    <button class="btn tab-btn" data-tab="inwestor" data-action="tab">INWESTOR</button>
-    <button class="btn tab-btn" data-tab="wycena" data-action="tab">WYCENA</button>
-    <button class="btn tab-btn" data-tab="rozrys" data-action="tab">ROZRYS</button>
-    <button class="btn tab-btn" data-tab="magazyn" data-action="tab">MAGAZYN</button>
-  </nav>
+<button aria-hidden="true" id="backToRooms" style="display:none" tabindex="-1" type="button"></button>
+<div class="topbar" id="topBar" style="display:none">
+<div class="session-btns" id="sessionButtons">
+<button class="btn btn-danger" data-action="session-cancel" id="sessionCancel">Anuluj</button>
+<button class="btn btn-success" data-action="session-save" id="sessionSave">Zapisz</button>
+</div>
+<nav class="top-tabs" id="topTabs">
+<button class="btn tab-btn" data-action="tab" data-tab="wywiad">WYWIAD</button>
+<button class="btn tab-btn" data-action="tab" data-tab="material">MATERIAŁ</button>
+<button class="btn tab-btn" data-action="tab" data-tab="rysunek">RYSUNEK</button>
+<button class="btn tab-btn" data-action="tab" data-tab="czynnosci">CZYNNOŚCI</button>
+<button class="btn tab-btn" data-action="tab" data-tab="inwestor">INWESTOR</button>
+<button class="btn tab-btn" data-action="tab" data-tab="wycena">WYCENA</button>
+<button class="btn tab-btn" data-action="tab" data-tab="rozrys">ROZRYS</button>
+<button class="btn tab-btn" data-action="tab" data-tab="magazyn">MAGAZYN</button>
+</nav>
 </div>
 </div>
 <div style="margin-left:auto;display:flex;gap:8px;align-items:center"></div>
 </header>
 <div class="container">
 <div id="homeView">
-  <div class="card home-hero">
-    <h2 style="margin:0">Start</h2>
-    <p class="muted" style="margin:6px 0 0">Wybierz główny tryb pracy</p>
-    <div class="home-actions" style="margin-top:14px">
-      <button class="btn-primary home-btn" id="openFurnitureProjectsBtn" data-action="open-furniture-hub">Projekty meblowe</button>
-      <button class="btn home-btn" id="openWorkshopServicesBtn" data-action="open-workshop-hub">Drobne usługi stolarskie</button>
-    </div>
-  </div>
+<div class="card home-hero">
+<h2 style="margin:0">Start</h2>
+<p class="muted" style="margin:6px 0 0">Wybierz główny tryb pracy</p>
+<div class="home-actions" style="margin-top:14px">
+<button class="btn-primary home-btn" data-action="open-furniture-hub" id="openFurnitureProjectsBtn">Projekty meblowe</button>
+<button class="btn home-btn" data-action="open-workshop-hub" id="openWorkshopServicesBtn">Drobne usługi stolarskie</button>
 </div>
-
+</div>
+</div>
 <div id="modeHubView" style="display:none">
-  <div id="modeHubRoot"></div>
+<div id="modeHubRoot"></div>
 </div>
-
 <div id="investorsListView" style="display:none">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <h3 style="margin:0">Lista inwestorów</h3>
-      <button class="window-close-btn" aria-label="Zamknij listę inwestorów" data-action="close-investors-list" type="button">×</button>
-    </div>
-    <div id="investorsListRoot" style="margin-top:12px"></div>
-  </div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+<h3 style="margin:0">Lista inwestorów</h3>
+<button aria-label="Zamknij listę inwestorów" class="window-close-btn" data-action="close-investors-list" type="button">×</button>
 </div>
-
+<div id="investorsListRoot" style="margin-top:12px"></div>
+</div>
+</div>
 <div id="serviceOrdersListView" style="display:none">
-  <div id="serviceOrdersListRoot"></div>
+<div id="serviceOrdersListRoot"></div>
 </div>
 <div id="roomsView" style="display:none">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
@@ -80,35 +77,33 @@
 </div>
 </div>
 <div class="rooms">
-<div class="room-btn" data-room="kuchnia" data-action="open-room"><div style="font-size:28px">🍳</div><span>Kuchnia</span></div>
-<div class="room-btn" data-room="szafa" data-action="open-room"><div style="font-size:28px">🚪</div><span>Szafa</span></div>
-<div class="room-btn" data-room="pokoj" data-action="open-room"><div style="font-size:28px">🏠</div><span>Pokój</span></div>
-<div class="room-btn" data-room="lazienka" data-action="open-room"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
+<div class="room-btn" data-action="open-room" data-room="kuchnia"><div style="font-size:28px">🍳</div><span>Kuchnia</span></div>
+<div class="room-btn" data-action="open-room" data-room="szafa"><div style="font-size:28px">🚪</div><span>Szafa</span></div>
+<div class="room-btn" data-action="open-room" data-room="pokoj"><div style="font-size:28px">🏠</div><span>Pokój</span></div>
+<div class="room-btn" data-action="open-room" data-room="lazienka"><div style="font-size:28px">🛁</div><span>Łazienka</span></div>
 </div>
 </div>
 <div id="investorView" style="display:none">
-  <div id="investorRoot"></div>
+<div id="investorRoot"></div>
 </div>
-
 <div id="rozrysView" style="display:none">
-  <div id="rozrysRoot"></div>
+<div id="rozrysRoot"></div>
 </div>
-
 <div id="magazynView" style="display:none">
-  <div id="magazynRoot"></div>
+<div id="magazynRoot"></div>
 </div>
 <div id="appView" style="display:none">
 <div class="card wywiad-room-shell wywiad-room-shell--compact" id="roomSettingsCard">
 <div class="wywiad-room-shell__head">
-  <div class="wywiad-room-shell__title-wrap">
-    <h3 id="roomTitle">Pomieszczenie</h3>
-    <div class="wywiad-room-shell__sub">Ustawienia pokoju pod osobnym wejściem.</div>
-  </div>
-  <div class="wywiad-room-shell__summary muted xs">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div>
+<div class="wywiad-room-shell__title-wrap">
+<h3 id="roomTitle">Pomieszczenie</h3>
+<div class="wywiad-room-shell__sub">Ustawienia pokoju pod osobnym wejściem.</div>
+</div>
+<div class="wywiad-room-shell__summary muted xs">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div>
 </div>
 <div class="wywiad-room-shell__stats wywiad-room-shell__stats--compact" id="roomSettingsSummary"></div>
 <div class="wywiad-room-shell__actions">
-<button type="button" id="openRoomSettingsBtn" class="btn wywiad-room-shell__open-btn" data-action="open-room-settings">Parametry</button>
+<button class="btn wywiad-room-shell__open-btn" data-action="open-room-settings" id="openRoomSettingsBtn" type="button">Parametry</button>
 </div>
 </div>
 <div class="card wywiad-cabinets-shell" style="margin-top:12px">
@@ -130,18 +125,18 @@
 </div>
 </div>
 <!-- PRICE MODAL -->
-<div aria-modal="true" class="modal-back" id="priceModal" role="dialog" data-modal-close="priceModal">
+<div aria-modal="true" class="modal-back" data-modal-close="priceModal" id="priceModal" role="dialog">
 <div class="modal">
 <div class="header">
 <div style="display:flex;gap:12px;align-items:center">
 <div id="priceModalIcon">📦</div>
 <div>
-<div id="priceModalTitle" class="window-modal-title"></div>
+<div class="window-modal-title" id="priceModalTitle"></div>
 <div class="window-modal-subtitle" id="priceModalSubtitle"></div>
 </div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
-<button type="button" class="window-close-btn" id="closePriceModal" aria-label="Zamknij okno cen" data-action="close-price">×</button>
+<button aria-label="Zamknij okno cen" class="window-close-btn" data-action="close-price" id="closePriceModal" type="button">×</button>
 </div>
 </div>
 <div class="body">
@@ -150,24 +145,24 @@
 <div class="price-toolbar__main">
 <div class="price-toolbar__search">
 <label for="priceSearch">Wyszukaj</label>
-<input id="priceSearch" class="investor-form-input" type="text" placeholder="Wyszukaj pozycję..." />
+<input class="investor-form-input" id="priceSearch" placeholder="Wyszukaj pozycję..." type="text"/>
 </div>
-<div id="materialFilters" class="grid-2" style="margin-top:10px;display:none">
+<div class="grid-2" id="materialFilters" style="margin-top:10px;display:none">
 <div>
 <label>Typ materiału</label>
-<select id="priceFilterMaterialType" hidden></select>
+<select hidden="" id="priceFilterMaterialType"></select>
 <div id="priceFilterMaterialTypeLaunch"></div>
 </div>
 <div>
 <label>Producent</label>
-<select id="priceFilterManufacturer" hidden></select>
+<select hidden="" id="priceFilterManufacturer"></select>
 <div id="priceFilterManufacturerLaunch"></div>
 </div>
 </div>
-<div id="serviceFilters" class="grid-2" style="margin-top:10px;display:none">
+<div class="grid-2" id="serviceFilters" style="margin-top:10px;display:none">
 <div style="grid-column:span 2">
 <label>Kategoria</label>
-<select id="priceFilterCategory" hidden></select>
+<select hidden="" id="priceFilterCategory"></select>
 <div id="priceFilterCategoryLaunch"></div>
 </div>
 </div>
@@ -184,19 +179,18 @@
 </div>
 </div>
 </div>
-
-<div aria-modal="true" class="modal-back" id="priceItemModal" role="dialog" data-modal-close="priceItemModal">
+<div aria-modal="true" class="modal-back" data-modal-close="priceItemModal" id="priceItemModal" role="dialog">
 <div class="modal">
 <div class="header">
 <div style="display:flex;gap:12px;align-items:center">
 <div id="priceItemModalIcon">🧩</div>
 <div>
-<div id="priceItemModalTitle" class="window-modal-title">Dodaj pozycję</div>
+<div class="window-modal-title" id="priceItemModalTitle">Dodaj pozycję</div>
 <div class="window-modal-subtitle" id="priceItemModalSubtitle"></div>
 </div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
-<button type="button" class="window-close-btn" id="closePriceItemModal" aria-label="Zamknij formularz pozycji" data-action="close-price-item">×</button>
+<button aria-label="Zamknij formularz pozycji" class="window-close-btn" data-action="close-price-item" id="closePriceItemModal" type="button">×</button>
 </div>
 </div>
 <div class="body">
@@ -210,57 +204,57 @@
 <div class="grid-3">
 <div>
 <label>Typ materiału</label>
-<select id="formMaterialType" hidden></select>
+<select hidden="" id="formMaterialType"></select>
 <div id="formMaterialTypeLaunch"></div>
 </div>
 <div>
 <label>Producent</label>
-<select id="formManufacturer" hidden></select>
+<select hidden="" id="formManufacturer"></select>
 <div id="formManufacturerLaunch"></div>
 </div>
 <div>
 <label>Symbol</label>
-<input id="formSymbol" class="investor-form-input" type="text"/>
+<input class="investor-form-input" id="formSymbol" type="text"/>
 </div>
 </div>
 <div style="margin-top:10px">
 <label>Nazwa</label>
-<input id="formName" class="investor-form-input" type="text"/>
+<input class="investor-form-input" id="formName" type="text"/>
 </div>
 <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
-  <input id="formHasGrain" type="checkbox" />
-  <label for="formHasGrain" class="muted-tag xs" style="margin:0">Ma słoje (ROZRYS: pilnuj kierunku)</label>
+<input id="formHasGrain" type="checkbox"/>
+<label class="muted-tag xs" for="formHasGrain" style="margin:0">Ma słoje (ROZRYS: pilnuj kierunku)</label>
 </div>
 <div style="margin-top:10px">
 <label>Cena (PLN)</label>
-<input id="formPrice" class="investor-form-input" step="0.01" type="number"/>
+<input class="investor-form-input" id="formPrice" step="0.01" type="number"/>
 </div>
 </div>
 <div id="serviceFormFields" style="display:none">
 <div class="grid-2">
 <div>
 <label>Kategoria</label>
-<select id="formCategory" hidden></select>
+<select hidden="" id="formCategory"></select>
 <div id="formCategoryLaunch"></div>
 </div>
 <div>
 <label>Nazwa</label>
-<input id="formServiceName" class="investor-form-input" type="text"/>
+<input class="investor-form-input" id="formServiceName" type="text"/>
 </div>
 </div>
 <div style="margin-top:10px">
 <label>Cena (PLN)</label>
-<input id="formServicePrice" class="investor-form-input" step="0.01" type="number"/>
+<input class="investor-form-input" id="formServicePrice" step="0.01" type="number"/>
 </div>
 </div>
 <div class="price-item-footer" id="priceItemFooter">
 <div class="price-item-footer__left">
-<button class="btn-danger" id="deletePriceItemBtn" data-action="price-item-delete" type="button" style="display:none">Usuń</button>
+<button class="btn-danger" data-action="price-item-delete" id="deletePriceItemBtn" style="display:none" type="button">Usuń</button>
 </div>
 <div class="price-item-footer__right">
-<button class="btn-primary" id="priceItemExitBtn" data-action="price-item-exit" type="button">Wyjdź</button>
-<button class="btn-danger" id="priceItemCancelBtn" data-action="price-item-cancel" type="button" style="display:none">Anuluj</button>
-<button class="btn-success" id="priceItemSaveBtn" data-action="price-item-save" type="button" style="display:none">Zapisz</button>
+<button class="btn-primary" data-action="price-item-exit" id="priceItemExitBtn" type="button">Wyjdź</button>
+<button class="btn-danger" data-action="price-item-cancel" id="priceItemCancelBtn" style="display:none" type="button">Anuluj</button>
+<button class="btn-success" data-action="price-item-save" id="priceItemSaveBtn" style="display:none" type="button">Zapisz</button>
 </div>
 </div>
 </div>
@@ -268,21 +262,20 @@
 </div>
 </div>
 </div>
-
 <!-- CABINET ADD/EDIT MODAL -->
-<div aria-modal="true" class="modal-back" id="cabinetModal" role="dialog" data-modal-close="cabinetModal">
+<div aria-modal="true" class="modal-back" data-modal-close="cabinetModal" id="cabinetModal" role="dialog">
 <div class="modal">
 <div class="header">
 <div style="display:flex;gap:12px;align-items:center">
 <div id="cabinetModalIcon">➕</div>
 <div>
-<div id="cabinetModalTitle" class="window-modal-title">Dodaj</div>
+<div class="window-modal-title" id="cabinetModalTitle">Dodaj</div>
 <div class="window-modal-subtitle" id="cabinetModalSubtitle">Wybierz rodzaj / zestaw</div>
 </div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-<button type="button" class="btn btn-danger" id="cabinetModalCancel" data-action="cancel-cabinet">Anuluj</button>
-<button type="button" class="btn btn-success" id="cabinetModalSave" style="display:none">Zatwierdź</button>
+<button class="btn btn-danger" data-action="cancel-cabinet" id="cabinetModalCancel" type="button">Anuluj</button>
+<button class="btn btn-success" id="cabinetModalSave" style="display:none" type="button">Zatwierdź</button>
 </div>
 </div>
 <div class="body">
@@ -297,12 +290,12 @@
 <div class="grid-3 cabinet-form-grid cabinet-form-grid--core">
 <div>
 <label>Wariant</label>
-<select id="cmSubType" class="cabinet-choice-source" data-choice-title="Wybierz wariant" data-choice-placeholder="Wybierz wariant"></select>
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz wariant" data-choice-title="Wybierz wariant" id="cmSubType"></select>
 </div>
 <div>
 <div id="cmFrontCountWrap">
 <label id="cmFrontCountLabel">Ilość frontów</label>
-<select id="cmFrontCount" class="cabinet-choice-source" data-choice-title="Wybierz ilość frontów" data-choice-placeholder="Wybierz ilość frontów"></select>
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz ilość frontów" data-choice-title="Wybierz ilość frontów" id="cmFrontCount"></select>
 <div class="muted-tag xs" id="cmFrontCountStatic" style="display:none;margin-top:8px"></div>
 <div class="muted xs" id="cmFrontCountHint" style="margin-top:6px;display:none">
                   Ilość frontów dopasowana automatycznie dla tej szafki.
@@ -310,21 +303,21 @@
 </div>
 <div id="cmFlapWrap" style="display:none">
 <label>Firma</label>
-<select id="cmFlapVendor" class="cabinet-choice-source" data-choice-title="Wybierz producenta podnośnika" data-choice-placeholder="Wybierz producenta podnośnika">
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz producenta podnośnika" data-choice-title="Wybierz producenta podnośnika" id="cmFlapVendor">
 <option value="blum">BLUM AVENTOS</option>
 <option value="gtv">GTV</option>
 <option value="hafele">Häfele</option>
 </select>
 <div id="cmFlapKindWrap" style="margin-top:10px">
 <label>Rodzaj</label>
-<select id="cmFlapKind" class="cabinet-choice-source" data-choice-title="Wybierz rodzaj podnośnika" data-choice-placeholder="Wybierz rodzaj podnośnika"></select>
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz rodzaj podnośnika" data-choice-title="Wybierz rodzaj podnośnika" id="cmFlapKind"></select>
 </div>
 <div class="muted-tag xs" id="cmFlapFrontInfo" style="margin-top:8px;display:none"></div>
 <div class="muted xs" id="cmFlapInfo" style="margin-top:6px;display:none"></div>
 </div>
-<div id="cmShelvesWrap" class="cabinet-extra-field cabinet-extra-field--number cabinet-extra-field--compact" style="display:none">
+<div class="cabinet-extra-field cabinet-extra-field--number cabinet-extra-field--compact" id="cmShelvesWrap" style="display:none">
 <label class="cabinet-extra-field__label">Półki (szt.)</label>
-<input id="cmShelves" class="cabinet-extra-field__control" min="0" step="1" type="number"/>
+<input class="cabinet-extra-field__control" id="cmShelves" min="0" step="1" type="number"/>
 <div class="muted xs cabinet-inline-hint" style="margin-top:6px">Ile półek ma być w środku (do wyceny i rozrysu).</div>
 </div>
 </div>
@@ -335,7 +328,7 @@
               </div>
 </div>
 </div>
-<div id="cmExtraDetails" class="cabinet-extra-details" style="margin-top:12px"></div>
+<div class="cabinet-extra-details" id="cmExtraDetails" style="margin-top:12px"></div>
 <div class="hr"></div>
 <div class="grid-3 cabinet-form-grid cabinet-form-grid--dims" id="cmDims">
 <div><label>Szerokość</label><input id="cmWidth" step="0.1" type="number"/></div>
@@ -346,7 +339,7 @@
 <div class="grid-3 cabinet-form-grid cabinet-form-grid--materials" style="gap:12px">
 <div>
 <label>Materiał Frontu</label>
-<select id="cmFrontMaterial" class="cabinet-choice-source" data-choice-title="Wybierz materiał frontu" data-choice-placeholder="Wybierz materiał frontu">
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz materiał frontu" data-choice-title="Wybierz materiał frontu" id="cmFrontMaterial">
 <option value="laminat">Laminat</option>
 <option value="akryl">Akryl</option>
 <option value="lakier">Lakier</option>
@@ -354,11 +347,11 @@
 </div>
 <div>
 <label>Kolor Frontu</label>
-<select id="cmFrontColor" class="cabinet-choice-source" data-choice-title="Wybierz kolor frontu" data-choice-placeholder="Wybierz kolor frontu"></select>
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz kolor frontu" data-choice-title="Wybierz kolor frontu" id="cmFrontColor"></select>
 </div>
 <div>
 <label>Plecy</label>
-<select id="cmBackMaterial" class="cabinet-choice-source" data-choice-title="Wybierz plecy" data-choice-placeholder="Wybierz plecy">
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz plecy" data-choice-title="Wybierz plecy" id="cmBackMaterial">
 <option value="HDF 3mm biała">HDF 3mm biała</option>
 <option value="18 mm pod kolor korpusu">18 mm pod kolor</option>
 <option value="Brak">Brak pleców</option>
@@ -366,18 +359,18 @@
 </div>
 <div>
 <label>Korpus</label>
-<select id="cmBodyColor" class="cabinet-choice-source" data-choice-title="Wybierz korpus" data-choice-placeholder="Wybierz korpus"></select>
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz korpus" data-choice-title="Wybierz korpus" id="cmBodyColor"></select>
 </div>
 <div>
 <label>Otwieranie</label>
-<select id="cmOpeningSystem" class="cabinet-choice-source" data-choice-title="Wybierz system otwierania" data-choice-placeholder="Wybierz system otwierania"></select>
+<select class="cabinet-choice-source" data-choice-placeholder="Wybierz system otwierania" data-choice-title="Wybierz system otwierania" id="cmOpeningSystem"></select>
 </div>
 <div></div>
 </div>
 </div>
 <!-- Przyciski: Zatwierdź jest na górze obok Zamknij (zawsze widoczny). -->
 </div>
-<div id="setWizardArea" class="cabinet-choice-sync" style="display:none">
+<div class="cabinet-choice-sync" id="setWizardArea" style="display:none">
 <div class="card" style="margin-bottom:12px">
 <h3 class="section-title" id="setWizardTitle" style="margin:0 0 10px 0">Zestaw</h3>
 <div class="muted xs" id="setWizardDesc" style="margin-bottom:12px;line-height:1.35">
@@ -392,14 +385,14 @@
 <div class="grid-3">
 <div>
 <label>Ilość frontów</label>
-<select id="setFrontCount" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Ilość frontów" data-choice-title="Wybierz ilość frontów zestawu" data-choice-placeholder="Ilość frontów">
+<select class="cabinet-choice-source set-front-choice-source" data-choice-placeholder="Ilość frontów" data-choice-title="Wybierz ilość frontów zestawu" data-launcher-label="Ilość frontów" id="setFrontCount">
 <option value="1">1</option>
 <option value="2">2</option>
 </select>
 </div>
 <div>
 <label>Materiał frontów</label>
-<select id="setFrontMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-choice-placeholder="Materiał frontów">
+<select class="cabinet-choice-source set-front-choice-source" data-choice-placeholder="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-launcher-label="Materiał frontów" id="setFrontMaterial">
 <option value="laminat">Laminat</option>
 <option value="akryl">Akryl</option>
 <option value="lakier">Lakier</option>
@@ -407,7 +400,7 @@
 </div>
 <div>
 <label>Kolor frontów</label>
-<select id="setFrontColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Kolor frontów" data-choice-title="Wybierz kolor frontów zestawu" data-choice-placeholder="Kolor frontów"></select>
+<select class="cabinet-choice-source set-front-choice-source" data-choice-placeholder="Kolor frontów" data-choice-title="Wybierz kolor frontów zestawu" data-launcher-label="Kolor frontów" id="setFrontColor"></select>
 </div>
 </div>
 <div class="muted xs" id="setFrontHint" style="margin-top:10px;padding:10px;border:1px solid #eef6fb;border-radius:10px;background:#fbfdff">
@@ -416,8 +409,8 @@
 </div>
 </div>
 <div style="display:flex;justify-content:flex-end;gap:8px">
-<button class="btn" id="setWizardCancel" data-action="cancel-cabinet">Anuluj</button>
-<button class="btn-primary" id="setWizardCreate" data-action="create-set">Zatwierdź</button>
+<button class="btn" data-action="cancel-cabinet" id="setWizardCancel">Anuluj</button>
+<button class="btn-primary" data-action="create-set" id="setWizardCreate">Zatwierdź</button>
 </div>
 </div>
 </div>
@@ -425,175 +418,321 @@
 </div>
 <!-- floating add button -->
 <!-- FAB: pokazujemy dopiero po wejściu w edycję pokoju (JS włącza w widoku app) -->
-<div class="floating-add" id="floatingAdd" data-action="add-cabinet" title="Dodaj" style="display:none">+</div>
+<div class="floating-add" data-action="add-cabinet" id="floatingAdd" style="display:none" title="Dodaj">+</div>
 
 
 
-
-<script defer src="js/boot.js?v=20260418_boot_recovery_guard_v1"></script>
-<script defer src="js/core/actions.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/core/modals.js?v=20260328_rozrys_choice_clean_v1"></script>
 <!-- shared app modules (no DOM side-effects) -->
-<script defer src="js/app/shared/core-failsafe.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/shared/dom-guard.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/shared/constants.js?v=20260408_stage4_cleanup_v1"></script>
-<script defer src="js/app/shared/utils.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/shared/migrate.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/shared/schema.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/shared/storage.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/project/project-model.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
-<script defer src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/shared/ui-state.js?v=20260404_investor_project_status_v1"></script>
-<script defer src="js/app/investor/session.js?v=20260406_session_fix_v2"></script>
-<script defer src="js/app/investor/investors-store.js?v=20260420_investor_recovery_non_destructive_v1"></script>
-<script defer src="js/app/shared/room-registry.js?v=20260419_room_registry_revert_fix_v3"></script>
-<script defer src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/service/service-order-store.js?v=20260414_service_cutting_v1"></script>
-<script defer src="js/app/catalog/catalog-store.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/catalog/catalog-selectors.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
-<script defer src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
-<script defer src="js/app/service/cutting/service-order-detail.js?v=20260414_service_cutting_v1"></script>
-<script defer src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
-<script defer src="js/app/investor/investor-editor-state.js?v=20260404_investor_company_owner_v1"></script>
-<script defer src="js/app/investor/investor-persistence.js?v=20260415_status_master_v1"></script>
-<script defer src="js/app/investor/investor-navigation-guard.js?v=20260407_stage2_fix_v2"></script>
-<script defer src="js/app/investor/investor-choice.js?v=20260414_status_guard_fix_v1"></script>
-<script defer src="js/app/investor/investor-links.js?v=20260403_investor_arch_sync_v1"></script>
-<script defer src="js/app/investor/investor-field-render.js?v=20260406_session_source_fix_v1"></script>
-<script defer src="js/app/investor/investor-room-actions.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/investor/investor-actions.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/investor/investor-modals.js?v=20260405_dup_owner_v1"></script>
-<script defer src="js/app/investor/investor-pdf.js?v=20260410_stage9_quote_sync_v1"></script>
-<script defer src="js/app/investor/investor-rooms.js?v=20260414_status_guard_fix_v1"></script>
-<script defer src="js/app/investor/investor-ui.js?v=20260414_scope_entry_v1"></script>
-<script defer src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
-<script defer src="js/app/ui/sections.js?v=20260331_boot_fix_v1"></script>
-<script defer src="js/app/ui/views.js?v=20260416_home_restore_v1"></script>
-<script defer src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
-<script defer src="js/app/shared/validate.js?v=20260404_investor_project_status_v1"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- bindings extracted from app.js (event wiring + delegation) -->
-<script defer src="js/app/ui/bindings.js?v=20260405_ghostfix_v1"></script>
 
 <!-- Actions registry MUST load before app.js init validates data-action in DOM. -->
-<script defer src="js/app/ui/actions-register.js?v=20260418_wywiad_room_params_modal_v2"></script>
 
-<script defer src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
-<script defer src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/material/price-modal.js?v=20260408_stage3_arch_v1"></script>
-<script defer src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
-<script defer src="js/app/ui/panel-box.js?v=20260329_rozrys_visual_polish_v1"></script>
-<script defer src="js/app/material/material-part-options.js?v=20260406_session_fix_v2"></script>
-<script defer src="js/app/rozrys/rozrys-grain.js?v=20260331_boot_fix_v1"></script>
-<script defer src="js/app/rozrys/rozrys-validation.js?v=20260406_merge_validation_guard_v1"></script>
-<script defer src="js/app/cabinet/corner-sketch.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/cabinet/cabinet-cutlist.js?v=20260415_cabinet_cutlist_fix_v3"></script>
-<script defer src="js/app/cabinet/cabinet-actions.js?v=20260418_wywiad_program_choice_sync_v1"></script>
-<script defer src="js/app/cabinet/cabinet-summary.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/ui/layout-state.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/ui/list-scroll-memory.js?v=20260331_boot_fix_v1"></script>
-<script defer src="js/app/ui/tab-navigation.js?v=20260415_wywiad_room_entry_v1"></script>
-<script defer src="js/app/cabinet/front-hardware.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/shared/calc.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/investor/project-bootstrap.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/ui/settings-ui.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/ui/wywiad-room-settings.js?v=20260418_wywiad_room_params_fix_v3"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- core app (definiuje globalne funkcje wykorzystywane przez akcje i zakładki) -->
-<script defer src="js/app.js?v=20260418_wywiad_room_params_modal_v2"></script>
-<script defer src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
-<script defer src="js/app/cabinet/cabinet-fronts.js?v=20260418_wywiad_modal_foundation_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-validation.js?v=20260418_wywiad_set_wizard_split_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-draft.js?v=20260418_wywiad_set_wizard_split_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-fields.js?v=20260418_wywiad_set_wizard_split_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-finalize.js?v=20260419_wywiad_finalize_stage5_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20260418_set_preset_icons_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-standing-corner-standard.js?v=20260419_wywiad_standing_split_v2"></script>
-<script defer src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20260419_wywiad_standing_split_v2"></script>
-<script defer src="js/app/cabinet/cabinet-modal-standing-extras.js?v=20260419_wywiad_standing_split_v2"></script>
-<script defer src="js/app/cabinet/cabinet-modal-standing-front-controls.js?v=20260419_wywiad_standing_split_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-standing.js?v=20260419_wywiad_standing_split_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
-<script defer src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
-<script defer src="js/app/cabinet/cabinet-modal.js?v=20260419_wywiad_standing_split_v1"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- Per-investor isolated projects (cabinets/rooms/materials) -->
-<script defer src="js/app/investor/investor-project.js?v=20260408_stage3_arch_v1"></script>
 
 <!-- router zakładek + moduły zakładek (wydzielone pliki) -->
-<script defer src="js/app/ui/tabs-router.js?v=20260331_boot_fix_v1"></script>
-<script defer src="js/tabs/wywiad.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/tabs/material.js?v=20260406_session_fix_v2"></script>
-<script defer src="js/tabs/czynnosci.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/quote/quote-offer-store.js?v=20260415_quote_scope_names_v1"></script>
-<script defer src="js/app/quote/quote-snapshot-store.js?v=20260420_quote_store_include_fix_v8"></script>
-<script defer src="js/app/quote/quote-scope-entry.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
-<script defer src="js/app/project/project-status-sync.js?v=20260415_status_cleanup_v1"></script>
-<script defer src="js/app/project/project-status-manual-guard.js?v=20260415_status_engine_v1"></script>
-<script defer src="js/app/quote/quote-snapshot.js?v=20260417_quote_scope_labels_v1"></script>
-<script defer src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
-<script defer src="js/app/wycena/wycena-core.js?v=20260416_quote_validation_v1"></script>
-<script defer src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
-<script defer src="js/app/wycena/wycena-tab-selection.js?v=20260417_wycena_scope_name_fix_v1"></script>
-<script defer src="js/app/wycena/wycena-tab-editor.js?v=20260416_wycena_tab_editor_v1"></script>
-<script defer src="js/app/wycena/wycena-tab-scroll.js?v=20260416_wycena_tab_scroll_v1"></script>
-<script defer src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
-<script defer src="js/app/wycena/wycena-tab-status-bridge.js?v=20260417_wycena_status_bridge_v1"></script>
-<script defer src="js/tabs/wycena.js?v=20260417_wycena_scope_labels_v1"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- rozrys/magazyn -->
-<script defer src="js/app/optimizer/cut-optimizer.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/optimizer/start-along.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/optimizer/start-across.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/optimizer/start-optimax.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/optimizer/speed-turbo.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/optimizer/speed-dokladnie.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/optimizer/speed-max.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/material/magazyn.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
-<script defer src="js/app/rozrys/rozrys-prefs.js?v=20260419_room_rozrys_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-state.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-scope.js?v=20260419_rozrys_scope_api_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-pickers.js?v=20260331_boot_fix_v1"></script>
-<script defer src="js/app/rozrys/rozrys-selection-ui.js?v=20260329_material_scope_chip_sync_v1"></script>
-<script defer src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-sheet-helpers.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-sheet-draw.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-print.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-print-layout.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-engine.js?v=20260402_investor_refactor_v1"></script>
-<script defer src="js/app/rozrys/rozrys-stock.js?v=20260402_investor_refactor_v1"></script>
-<script defer src="js/app/rozrys/rozrys-cache.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-accordion.js?v=20260406_render_guard_v1"></script>
-<script defer src="js/app/rozrys/rozrys-lists.js?v=20260406_merge_list_sumcheck_v2"></script>
-<script defer src="js/app/rozrys/rozrys-render.js?v=20260406_session_fix_v2"></script>
-<script defer src="js/app/rozrys/rozrys-summary.js?v=20260406_merge_list_sumcheck_v2"></script>
-<script defer src="js/app/rozrys/rozrys-progress.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-stock-modal.js?v=20260402_investor_refactor_v1"></script>
-<script defer src="js/app/rozrys/rozrys-options-modal.js?v=20260402_investor_refactor_v1"></script>
-<script defer src="js/app/rozrys/rozrys-grain-modal.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script defer src="js/app/rozrys/rozrys-runner.js?v=20260402_investor_refactor_v1"></script>
-<script defer src="js/app/rozrys/rozrys-project-source.js?v=20260419_room_rozrys_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-part-helpers.js?v=20260419_rozrys_part_helpers_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-runtime-utils.js?v=20260419_rozrys_runtime_utils_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-plan-helpers.js?v=20260419_rozrys_grain_modal_fix_v1"></script>
-<script defer src="js/app/rozrys/rozrys-engine-bridge.js?v=20260419_rozrys_engine_bridge_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-ui-tools.js?v=20260419_rozrys_ui_bridge_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-ui-bridge.js?v=20260419_rozrys_ui_bridge_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-bootstrap-env.js?v=20260420_rozrys_bootstrap_env_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-panel-workspace.js?v=20260419_rozrys_panel_workspace_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-runtime-bundle.js?v=20260420_rozrys_render_compose_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-controller-bridges.js?v=20260420_rozrys_render_compose_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-render-compose.js?v=20260420_rozrys_render_compose_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-render-shell.js?v=20260420_rozrys_render_selection_shell_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-run-controller.js?v=20260420_rozrys_controller_bridge_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys-output-controller.js?v=20260420_rozrys_controller_bridge_split_v1"></script>
-<script defer src="js/app/rozrys/rozrys.js?v=20260420_rozrys_render_selection_shell_split_v1"></script>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- STARTUP LOAD GROUPS: keeping exact order, now grouped for maintainability. Future lazy-load candidates start from cabinet-wywiad / tabs-quote-wycena / optimizer-and-stock / rozrys-feature. -->
+<!-- startup-foundation: Bootstrap / core / state foundation -->
+<script data-load-group="startup-foundation" defer="" src="js/boot.js?v=20260418_boot_recovery_guard_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/core/actions.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/core/modals.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/core-failsafe.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/dom-guard.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/constants.js?v=20260408_stage4_cleanup_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/utils.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/migrate.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/schema.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/storage.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/project/project-model.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/ui-state.js?v=20260404_investor_project_status_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/session.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20260420_investor_recovery_non_destructive_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260419_room_registry_revert_fix_v3"></script>
+<!-- business-domains: Catalog / service / investor domains -->
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260414_service_cutting_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-order-detail.js?v=20260414_service_cutting_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-editor-state.js?v=20260404_investor_company_owner_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-persistence.js?v=20260415_status_master_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-navigation-guard.js?v=20260407_stage2_fix_v2"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-choice.js?v=20260414_status_guard_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-links.js?v=20260403_investor_arch_sync_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-field-render.js?v=20260406_session_source_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-room-actions.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-actions.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-modals.js?v=20260405_dup_owner_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-pdf.js?v=20260410_stage9_quote_sync_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-rooms.js?v=20260414_status_guard_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui.js?v=20260414_scope_entry_v1"></script>
+<!-- ui-shell: Global UI shell / bindings / shared modal helpers -->
+<script data-load-group="ui-shell" defer="" src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/sections.js?v=20260331_boot_fix_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/views.js?v=20260416_home_restore_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/shared/validate.js?v=20260404_investor_project_status_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/bindings.js?v=20260405_ghostfix_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/actions-register.js?v=20260418_wywiad_room_params_modal_v2"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/panel-box.js?v=20260329_rozrys_visual_polish_v1"></script>
+<!-- app-runtime: Room / session / app runtime foundation -->
+<script data-load-group="app-runtime" defer="" src="js/app/material/material-part-options.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-grain.js?v=20260331_boot_fix_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-validation.js?v=20260406_merge_validation_guard_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/corner-sketch.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-cutlist.js?v=20260415_cabinet_cutlist_fix_v3"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-actions.js?v=20260418_wywiad_program_choice_sync_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-summary.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/layout-state.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/list-scroll-memory.js?v=20260331_boot_fix_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/tab-navigation.js?v=20260415_wywiad_room_entry_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/shared/calc.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/investor/project-bootstrap.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/settings-ui.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-settings.js?v=20260418_wywiad_room_params_fix_v3"></script>
+<script data-load-group="app-runtime" defer="" src="js/app.js?v=20260418_wywiad_room_params_modal_v2"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
+<!-- cabinet-wywiad: Wywiad / cabinet modal stack -->
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-fronts.js?v=20260418_wywiad_modal_foundation_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-validation.js?v=20260418_wywiad_set_wizard_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-draft.js?v=20260418_wywiad_set_wizard_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-fields.js?v=20260418_wywiad_set_wizard_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-finalize.js?v=20260419_wywiad_finalize_stage5_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20260418_set_preset_icons_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-corner-standard.js?v=20260419_wywiad_standing_split_v2"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20260419_wywiad_standing_split_v2"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-extras.js?v=20260419_wywiad_standing_split_v2"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-front-controls.js?v=20260419_wywiad_standing_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing.js?v=20260419_wywiad_standing_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260419_wywiad_standing_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/ui/tabs-router.js?v=20260331_boot_fix_v1"></script>
+<!-- tabs-quote-wycena: Classic tabs / quote / wycena -->
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/czynnosci.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-offer-store.js?v=20260415_quote_scope_names_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20260420_quote_store_include_fix_v8"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-sync.js?v=20260415_status_cleanup_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-manual-guard.js?v=20260415_status_engine_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260417_quote_scope_labels_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260416_quote_validation_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection.js?v=20260417_wycena_scope_name_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260416_wycena_tab_editor_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-scroll.js?v=20260416_wycena_tab_scroll_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20260417_wycena_status_bridge_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260417_wycena_scope_labels_v1"></script>
+<!-- optimizer-and-stock: Optimizer / stock base -->
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/cut-optimizer.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/start-along.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/start-across.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/start-optimax.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-turbo.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-dokladnie.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-max.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/material/magazyn.js?v=20260328_rozrys_choice_clean_v1"></script>
+<!-- rozrys-feature: ROZRYS feature stack -->
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-prefs.js?v=20260419_room_rozrys_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-state.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-scope.js?v=20260419_rozrys_scope_api_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-pickers.js?v=20260331_boot_fix_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-selection-ui.js?v=20260329_material_scope_chip_sync_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-sheet-helpers.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-sheet-draw.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-print.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-print-layout.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-engine.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-stock.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-cache.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-accordion.js?v=20260406_render_guard_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-lists.js?v=20260406_merge_list_sumcheck_v2"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-render.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-summary.js?v=20260406_merge_list_sumcheck_v2"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-progress.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-stock-modal.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-options-modal.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-grain-modal.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-runner.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-project-source.js?v=20260419_room_rozrys_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-part-helpers.js?v=20260419_rozrys_part_helpers_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-runtime-utils.js?v=20260419_rozrys_runtime_utils_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-plan-helpers.js?v=20260419_rozrys_grain_modal_fix_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-engine-bridge.js?v=20260419_rozrys_engine_bridge_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-ui-tools.js?v=20260419_rozrys_ui_bridge_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-ui-bridge.js?v=20260419_rozrys_ui_bridge_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-panel-workspace.js?v=20260419_rozrys_panel_workspace_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-runtime-bundle.js?v=20260420_rozrys_render_compose_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-controller-bridges.js?v=20260420_rozrys_render_compose_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-render-compose.js?v=20260420_rozrys_render_compose_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-run-controller.js?v=20260420_rozrys_controller_bridge_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-output-controller.js?v=20260420_rozrys_controller_bridge_split_v1"></script>
+<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys.js?v=20260420_rozrys_render_compose_split_v1"></script>
 </body>
 </html>
