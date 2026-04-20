@@ -87,6 +87,10 @@ const INDEX_LOAD_GROUPS = [
       "js/app/investor/project-bootstrap.js",
       "js/app/ui/settings-ui.js",
       "js/app/ui/wywiad-room-settings.js",
+      "js/app/rozrys/rozrys-project-source.js",
+      "js/app/rozrys/rozrys-lazy-manifest.js",
+      "js/app/rozrys/rozrys-lazy-loader.js",
+      "js/app/rozrys/rozrys-shell.js",
       "js/app.js",
       "js/app/shared/public-api.js"
     ]
@@ -154,15 +158,13 @@ const INDEX_LOAD_GROUPS = [
     ]
   },
   {
-    "id": "rozrys-feature",
-    "label": "ROZRYS feature stack",
+    "id": "rozrys-shared",
+    "label": "ROZRYS shared APIs kept on startup",
     "scripts": [
       "js/app/rozrys/rozrys-choice.js",
       "js/app/rozrys/rozrys-prefs.js",
-      "js/app/rozrys/rozrys-state.js",
       "js/app/rozrys/rozrys-scope.js",
       "js/app/rozrys/rozrys-pickers.js",
-      "js/app/rozrys/rozrys-selection-ui.js",
       "js/app/rozrys/rozrys-sheet-model.js",
       "js/app/rozrys/rozrys-sheet-helpers.js",
       "js/app/rozrys/rozrys-sheet-draw.js",
@@ -171,29 +173,9 @@ const INDEX_LOAD_GROUPS = [
       "js/app/rozrys/rozrys-engine.js",
       "js/app/rozrys/rozrys-stock.js",
       "js/app/rozrys/rozrys-cache.js",
-      "js/app/rozrys/rozrys-accordion.js",
       "js/app/rozrys/rozrys-lists.js",
       "js/app/rozrys/rozrys-render.js",
-      "js/app/rozrys/rozrys-summary.js",
-      "js/app/rozrys/rozrys-progress.js",
-      "js/app/rozrys/rozrys-stock-modal.js",
-      "js/app/rozrys/rozrys-options-modal.js",
-      "js/app/rozrys/rozrys-grain-modal.js",
-      "js/app/rozrys/rozrys-runner.js",
-      "js/app/rozrys/rozrys-project-source.js",
-      "js/app/rozrys/rozrys-part-helpers.js",
-      "js/app/rozrys/rozrys-runtime-utils.js",
-      "js/app/rozrys/rozrys-plan-helpers.js",
-      "js/app/rozrys/rozrys-engine-bridge.js",
-      "js/app/rozrys/rozrys-ui-tools.js",
-      "js/app/rozrys/rozrys-ui-bridge.js",
-      "js/app/rozrys/rozrys-panel-workspace.js",
-      "js/app/rozrys/rozrys-runtime-bundle.js",
-      "js/app/rozrys/rozrys-controller-bridges.js",
-      "js/app/rozrys/rozrys-render-compose.js",
-      "js/app/rozrys/rozrys-run-controller.js",
-      "js/app/rozrys/rozrys-output-controller.js",
-      "js/app/rozrys/rozrys.js"
+      "js/app/rozrys/rozrys-summary.js"
     ]
   }
 ];

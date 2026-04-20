@@ -828,7 +828,8 @@ function aggregatePartsForProject(selectedRooms){
     runCtrl.init();
   }
 
-  FC.rozrys = {
+  const existingRozrys = (FC.rozrys && typeof FC.rozrys === 'object') ? FC.rozrys : {};
+  FC.rozrys = Object.assign(existingRozrys, {
     render,
     aggregatePartsForProject,
     safeGetProject,
@@ -837,5 +838,5 @@ function aggregatePartsForProject(selectedRooms){
     getRoomsForProject,
     resolveInitialSelectedRooms,
     getCurrentRoomContext,
-  };
+  });
 })();

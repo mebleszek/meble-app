@@ -578,6 +578,8 @@
 
 <!-- STARTUP LOAD GROUPS: keeping exact order, now grouped for maintainability. Future lazy-load candidates start from cabinet-wywiad / tabs-quote-wycena / optimizer-and-stock / rozrys-feature. -->
 <!-- startup-foundation: Bootstrap / core / state foundation -->
+<!-- load-group: startup-foundation | Bootstrap / core / state foundation -->
+<!-- load-group: startup-foundation | Bootstrap / core / state foundation -->
 <script data-load-group="startup-foundation" defer="" src="js/boot.js?v=20260418_boot_recovery_guard_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/core/actions.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/core/modals.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -595,7 +597,8 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/session.js?v=20260406_session_fix_v2"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20260420_investor_recovery_non_destructive_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260419_room_registry_revert_fix_v3"></script>
-<!-- business-domains: Catalog / service / investor domains -->
+
+<!-- load-group: business-domains | Catalog / service / investor domains -->
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260414_service_cutting_v1"></script>
@@ -617,7 +620,8 @@
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-pdf.js?v=20260410_stage9_quote_sync_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-rooms.js?v=20260414_status_guard_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui.js?v=20260414_scope_entry_v1"></script>
-<!-- ui-shell: Global UI shell / bindings / shared modal helpers -->
+
+<!-- load-group: ui-shell | Global UI shell / bindings / shared modal helpers -->
 <script data-load-group="ui-shell" defer="" src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/sections.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/views.js?v=20260416_home_restore_v1"></script>
@@ -631,7 +635,8 @@
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/panel-box.js?v=20260329_rozrys_visual_polish_v1"></script>
-<!-- app-runtime: Room / session / app runtime foundation -->
+
+<!-- load-group: app-runtime | Room / session / app runtime foundation -->
 <script data-load-group="app-runtime" defer="" src="js/app/material/material-part-options.js?v=20260406_session_fix_v2"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-grain.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-validation.js?v=20260406_merge_validation_guard_v1"></script>
@@ -647,9 +652,14 @@
 <script data-load-group="app-runtime" defer="" src="js/app/investor/project-bootstrap.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/settings-ui.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-settings.js?v=20260418_wywiad_room_params_fix_v3"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-project-source.js?v=20260419_room_rozrys_split_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-manifest.js?v=20260420_rozrys_lazy_tab_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-loader.js?v=20260420_rozrys_lazy_tab_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-shell.js?v=20260420_rozrys_lazy_tab_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app.js?v=20260418_wywiad_room_params_modal_v2"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
-<!-- cabinet-wywiad: Wywiad / cabinet modal stack -->
+
+<!-- load-group: cabinet-wywiad | Wywiad / cabinet modal stack -->
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-fronts.js?v=20260418_wywiad_modal_foundation_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-validation.js?v=20260418_wywiad_set_wizard_split_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-draft.js?v=20260418_wywiad_set_wizard_split_v1"></script>
@@ -667,7 +677,8 @@
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260419_wywiad_standing_split_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/ui/tabs-router.js?v=20260331_boot_fix_v1"></script>
-<!-- tabs-quote-wycena: Classic tabs / quote / wycena -->
+
+<!-- load-group: tabs-quote-wycena | Classic tabs / quote / wycena -->
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20260406_session_fix_v2"></script>
@@ -687,7 +698,8 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20260417_wycena_status_bridge_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260417_wycena_scope_labels_v1"></script>
-<!-- optimizer-and-stock: Optimizer / stock base -->
+
+<!-- load-group: optimizer-and-stock | Optimizer / stock base -->
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/cut-optimizer.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/start-along.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/start-across.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -696,43 +708,22 @@
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-dokladnie.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-max.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/material/magazyn.js?v=20260328_rozrys_choice_clean_v1"></script>
-<!-- rozrys-feature: ROZRYS feature stack -->
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-prefs.js?v=20260419_room_rozrys_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-state.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-scope.js?v=20260419_rozrys_scope_api_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-pickers.js?v=20260331_boot_fix_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-selection-ui.js?v=20260329_material_scope_chip_sync_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-sheet-helpers.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-sheet-draw.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-print.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-print-layout.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-engine.js?v=20260402_investor_refactor_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-stock.js?v=20260402_investor_refactor_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-cache.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-accordion.js?v=20260406_render_guard_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-lists.js?v=20260406_merge_list_sumcheck_v2"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-render.js?v=20260406_session_fix_v2"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-summary.js?v=20260406_merge_list_sumcheck_v2"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-progress.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-stock-modal.js?v=20260402_investor_refactor_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-options-modal.js?v=20260402_investor_refactor_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-grain-modal.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-runner.js?v=20260402_investor_refactor_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-project-source.js?v=20260419_room_rozrys_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-part-helpers.js?v=20260419_rozrys_part_helpers_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-runtime-utils.js?v=20260419_rozrys_runtime_utils_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-plan-helpers.js?v=20260419_rozrys_grain_modal_fix_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-engine-bridge.js?v=20260419_rozrys_engine_bridge_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-ui-tools.js?v=20260419_rozrys_ui_bridge_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-ui-bridge.js?v=20260419_rozrys_ui_bridge_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-panel-workspace.js?v=20260419_rozrys_panel_workspace_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-runtime-bundle.js?v=20260420_rozrys_render_compose_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-controller-bridges.js?v=20260420_rozrys_render_compose_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-render-compose.js?v=20260420_rozrys_render_compose_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-run-controller.js?v=20260420_rozrys_controller_bridge_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys-output-controller.js?v=20260420_rozrys_controller_bridge_split_v1"></script>
-<script data-load-group="rozrys-feature" defer="" src="js/app/rozrys/rozrys.js?v=20260420_rozrys_render_compose_split_v1"></script>
+
+<!-- load-group: rozrys-shared | ROZRYS shared APIs kept on startup -->
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-prefs.js?v=20260419_room_rozrys_split_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-scope.js?v=20260419_rozrys_scope_api_split_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-pickers.js?v=20260331_boot_fix_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-helpers.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-draw.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-print.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-print-layout.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-engine.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-stock.js?v=20260402_investor_refactor_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-cache.js?v=20260328_rozrys_choice_clean_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-lists.js?v=20260406_merge_list_sumcheck_v2"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-render.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-summary.js?v=20260406_merge_list_sumcheck_v2"></script>
 </body>
 </html>

@@ -1571,3 +1571,10 @@ Dopiero potem go zmieniać.
 - ROZRYS: po splicie panel workspace rozrys.js ma pobierać helpery/refy z obiektu `workspace` przez live property refs (`workspace.xxx`), nie przez duże destrukturyzowanie, bo smoke/testy pilnują tego bezpiecznego spięcia po wydzieleniu panelu.
 
 - 2026-04-20: kolejny bezpieczny split ROZRYS może wynosić duże obiekty `ctx/deps` z `render()` do osobnego assemblera configów, ale bez ruszania launcherów, `aggregatePartsForProject(...)`, `resolveInitialSelectedRooms(...)` i bez zmiany jawnej kolejności `selectionBridge.init()` oraz `outputCtrl -> runCtrl`.
+
+## 2026-04-20 — ROZRYS lazy tab bootstrap shell
+- `index.html` — ciężki interaktywny stos zakładki `ROZRYS` nie jest już ładowany w krytycznym starcie. W startupie zostają shared API (`scope`, `prefs`, `engine`, `render`, pickery itd.), a sam tab-specific runtime (`state`, modale, workspace, runtime bundle, controllers, `rozrys.js`) jest dociągany dopiero przy wejściu do zakładki.
+- `js/app/rozrys/rozrys-lazy-manifest.js` + `rozrys-lazy-loader.js` — jawny manifest i loader sekwencyjny dla deferred skryptów ROZRYS. To ma utrzymać kolejność bootstrapu bez dokładania ręcznych `<script>` do `index.html`.
+- `js/app/rozrys/rozrys-shell.js` — lekki shell API dla `FC.rozrys`: daje helpery potrzebne innym działom (`safeGetProject`, `aggregatePartsForProject`, room discovery) i placeholder `render()` uruchamiający lazy-load właściwego modułu. Dzięki temu `Wycena` i inne działy nie muszą czekać na pełen tab runtime.
+- `js/app/rozrys/rozrys.js` — końcowy eksport nie nadpisuje już ślepo `FC.rozrys`, tylko merguje się z istniejącym shellem. To zachowuje pola pomocnicze typu `__projectOverride` i nie gubi stanu po lazy-loadzie.
+- Instrukcja antyregresyjna: kolejne helpery wykorzystywane poza zakładką `ROZRYS` trafiają do startup shared API albo lekkiego shellu, a nie do deferred tab runtime. Do lazy group wrzucać tylko moduły naprawdę potrzebne dopiero po wejściu w `ROZRYS`.
