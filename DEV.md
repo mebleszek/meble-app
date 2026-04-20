@@ -1,3 +1,10 @@
+## 2026-04-20 — app.js bootstrap split: state bootstrap + UI bootstrap
+- `js/app/bootstrap/app-state-bootstrap.js` — wydzielony bootstrap stanu startowego z `app.js`: składa materiały, stawki, projekt oraz `uiDefaults/uiState` przez jedno jawne API `FC.appStateBootstrap.createInitialState(...)`. Dzięki temu `app.js` nie trzyma już całego ciężkiego bloku bootstrapa danych na wejściu.
+- `js/app/bootstrap/app-ui-bootstrap.js` — wydzielona warstwa startu UI z `app.js`: rejestracja core modali/akcji, wejściowy `initApp()` i `initUI()` z restore po reloadzie, bindingami, autosave oraz background warmup ROZRYS. `app.js` zostawia tylko cienkie wrappery przekazujące kontekst i callbacki.
+- `index.html` + `tools/index-load-groups.js` — nowe moduły bootstrapu są częścią `app-runtime` i muszą być ładowane przed `js/app.js`; audyt `tools/check-index-load-groups.js` pilnuje tej kolejności.
+- `dev_tests.html` + `js/testing/project/tests.js` — dodane kontraktowe testy wydzielonych bootstrapów: pakiet stanu startowego oraz init UI bez zależności od pełnego `app.js`.
+- Instrukcja antyregresyjna: nie dopisywać z powrotem ciężkiej logiki startowej do `app.js`. Nowe rzeczy typu initial state / restore / init UI dokładać do wydzielonych bootstrapów, a w `app.js` zostawiać tylko cienkie wrappery i lokalny glue potrzebny reszcie modułów. Traktować `js/app/bootstrap/app-state-bootstrap.js` i `js/app/bootstrap/app-ui-bootstrap.js` jako krytyczne assety startowe — przy zmianach entrypointu zawsze aktualizować też `index.html` i audit load groups.
+
 
 ## 2026-04-20 — ROZRYS background warmup after base startup
 - `js/app/rozrys/rozrys-lazy-loader.js` — lazy loader ROZRYS dostał tryb rozgrzewki w tle po starcie (`scheduleWarmup`). Loader czeka na pełne załadowanie strony (`window.load`), potem na krótki delay i idle slot (`requestIdleCallback` z timeoutem), a dopiero wtedy dociąga deferred runtime zakładki ROZRYS. Jeśli użytkownik kliknie zakładkę wcześniej, nadal działa ten sam główny `ensureFeatureLoaded()` bez duplikacji ładowania.

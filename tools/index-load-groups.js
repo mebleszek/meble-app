@@ -85,6 +85,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/cabinet/front-hardware.js",
       "js/app/shared/calc.js",
       "js/app/investor/project-bootstrap.js",
+      "js/app/bootstrap/app-state-bootstrap.js",
+      "js/app/bootstrap/app-ui-bootstrap.js",
       "js/app/ui/settings-ui.js",
       "js/app/ui/wywiad-room-settings.js",
       "js/app/rozrys/rozrys-project-source.js",

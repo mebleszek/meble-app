@@ -43,6 +43,80 @@
         H.assert(Array.isArray(out.szafa.cabinets), 'Brak domyślnej szafy po normalizacji', out);
         H.assert(Array.isArray(out.pokoj.fronts), 'Brak domyślnych fronts w pokoju', out);
       }),
+      H.makeTest('Projekt', 'Bootstrap stanu aplikacji zwraca kompletny pakiet startowy', 'Pilnuje, czy wydzielony bootstrap stanu z app.js potrafi złożyć materiały, stawki, projekt i uiState bez zależności od pełnego app.js.', ()=>{
+        H.assert(FC.appStateBootstrap && typeof FC.appStateBootstrap.createInitialState === 'function', 'Brak FC.appStateBootstrap.createInitialState');
+        const fakeFC = {
+          storage: {
+            getJSON(key, fallback){ return Array.isArray(fallback) ? fallback.slice() : Object.assign({}, fallback || {}); },
+            setJSON(){},
+          },
+          project: { load(){ return { kuchnia:{ cabinets:[{ id:'cab' }], fronts:[], sets:[], settings:{} } }; } },
+          uiState: {
+            defaults(){ return { activeTab:'wywiad', expanded:{}, roomType:null, selectedCabinetId:null }; },
+            get(){ return { activeTab:'material', roomType:'kuchnia' }; },
+          },
+          validate: {
+            validateMaterials(items){ return items.concat([{ id:'m_extra' }]); },
+            validateServices(items){ return items; },
+            validateProject(project){ project.validated = true; return project; },
+            validateUIState(state){ state.validated = true; return state; },
+            persistIfPossible(){},
+          },
+        };
+        const out = FC.appStateBootstrap.createInitialState({
+          FC: fakeFC,
+          storageKeys: { materials:'m', services:'s', projectData:'p', ui:'u' },
+          defaultProject: buildDefaultProject(),
+        });
+        H.assert(Array.isArray(out.materials) && out.materials.length >= 3, 'Bootstrap stanu nie zwrócił materiałów po walidacji', out);
+        H.assert(out.projectData && out.projectData.validated === true, 'Bootstrap stanu nie przepuścił projektu przez walidację', out);
+        H.assert(out.uiState && out.uiState.validated === true, 'Bootstrap stanu nie przepuścił uiState przez walidację', out);
+        H.assert(out.uiDefaults && Object.prototype.hasOwnProperty.call(out.uiDefaults, 'lastAddedCabinetId'), 'Bootstrap stanu nie dodał pól pomocniczych do uiDefaults', out.uiDefaults);
+      }),
+      H.makeTest('Projekt', 'Bootstrap UI przywraca widok aplikacji i planuje warmup', 'Pilnuje, czy wydzielony init UI dalej spina przywrócenie entrypointu, podstawowy render i background warmup bez pełnego app.js.', ()=>{
+        H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<button class="tab-btn" data-tab="wywiad"></button><div id="roomsView"></div><div id="appView"></div><div id="topTabs"></div>';
+        document.body.appendChild(fixture);
+        let savedState = null;
+        let viewsApplied = null;
+        let bindingsInstalled = false;
+        let autosaveInstalled = false;
+        let topRendered = false;
+        let cabinetsRendered = false;
+        let warmupScheduled = false;
+        let scrollRestored = false;
+        try{
+          const uiState = { activeTab:'wywiad', roomType:'kuchnia', entry:'home' };
+          const out = FC.appUiBootstrap.initUI({
+            FC: {
+              storage: { setJSON(_key, value){ savedState = value; } },
+              views: { applyFromState(state){ viewsApplied = Object.assign({}, state); } },
+            },
+            document: fixture,
+            storageKeys: { ui:'ui' },
+            uiDefaults: { activeTab:'wywiad' },
+            getUiState(){ return uiState; },
+            setUiState(next){ savedState = Object.assign({}, next); return next; },
+            applyReloadRestoreSnapshot(){ return null; },
+            installBindings(){ bindingsInstalled = true; },
+            installProjectAutosave(){ autosaveInstalled = true; },
+            renderTopHeight(){ topRendered = true; },
+            renderCabinets(){ cabinetsRendered = true; },
+            restoreReloadScroll(){ scrollRestored = true; },
+            scheduleRozrysWarmup(){ warmupScheduled = true; },
+          });
+          H.assert(bindingsInstalled, 'Bootstrap UI nie zainstalował bindingów');
+          H.assert(autosaveInstalled, 'Bootstrap UI nie zainstalował autosave');
+          H.assert(topRendered && cabinetsRendered, 'Bootstrap UI nie wykonał bazowego renderu', { topRendered, cabinetsRendered });
+          H.assert(warmupScheduled, 'Bootstrap UI nie zaplanował warmupu ROZRYS');
+          H.assert(scrollRestored, 'Bootstrap UI nie przywrócił scrolla po reload restore');
+          H.assert(out && out.entry === 'app', 'Bootstrap UI nie przestawił entry na app dla wybranego pokoju', out);
+          H.assert(viewsApplied && viewsApplied.entry === 'app', 'Bootstrap UI nie przekazał poprawnego stanu do views.applyFromState', viewsApplied);
+        } finally {
+          fixture.remove();
+        }
+      }),
       H.makeTest('Projekt', 'Store inwestorów tworzy, wyszukuje i aktualizuje wpis bez gubienia bieżącego ID', 'Sprawdza, czy lokalna baza inwestorów działa stabilnie przy tworzeniu i edycji.', ()=>{
         withInvestorStorage((inv)=>{
           const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'

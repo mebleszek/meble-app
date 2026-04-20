@@ -169,27 +169,20 @@ try{
 }catch(_){ }
 
 /* ===== State initialization ===== */
-let materials = (window.FC && window.FC.catalogStore && typeof window.FC.catalogStore.getSheetMaterials === 'function')
-  ? window.FC.catalogStore.getSheetMaterials()
-  : FC.storage.getJSON(STORAGE_KEYS.materials, [
-      { id: 'm1', materialType: 'laminat', manufacturer: 'Egger', symbol: 'W1100', name: 'Egger W1100 ST9 Biały Alpejski', price: 35, hasGrain: false },
-      { id: 'm2', materialType: 'akryl', manufacturer: 'Rehau', symbol: 'A01', name: 'Akryl Biały', price: 180, hasGrain: false },
-    ]);
+const __initialAppState = callExtracted('appStateBootstrap', 'createInitialState', [{
+  FC,
+  storageKeys: STORAGE_KEYS,
+  defaultProject: DEFAULT_PROJECT,
+}]) || {};
 
-let services = (window.FC && window.FC.catalogStore && typeof window.FC.catalogStore.getQuoteRates === 'function')
-  ? window.FC.catalogStore.getQuoteRates()
-  : FC.storage.getJSON(STORAGE_KEYS.services, [ { id: 's1', category: 'Montaż', name: 'Montaż Express', price: 120 } ]);
-let projectData = FC.project.load();
-const __uiDefaults = ((window.FC && window.FC.uiState && typeof window.FC.uiState.defaults === 'function')
-  ? window.FC.uiState.defaults()
-  : { activeTab:'wywiad', roomType:null, showPriceList:null, expanded:{}, matExpandedId:null, searchTerm:'', editingId:null, selectedCabinetId:null }) || {};
-__uiDefaults.lastAddedAt = null;
-__uiDefaults.lastAddedCabinetId = null;
-__uiDefaults.lastAddedCabinetType = null;
-var uiState = ((window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function')
-  ? window.FC.uiState.get()
-  : FC.storage.getJSON(STORAGE_KEYS.ui, __uiDefaults)) || {};
-uiState = Object.assign({}, __uiDefaults, uiState);
+let materials = __initialAppState.materials;
+let services = __initialAppState.services;
+let projectData = __initialAppState.projectData;
+const __uiDefaults = (__initialAppState.uiDefaults && typeof __initialAppState.uiDefaults === 'object')
+  ? __initialAppState.uiDefaults
+  : {};
+var uiState = __initialAppState.uiState || {};
+uiState = Object.assign({}, __uiDefaults, uiState || {});
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
@@ -261,13 +254,11 @@ try{
 try{
   if (window.FC && window.FC.validate){
     const V = window.FC.validate;
-    // Validate & repair lists.
     materials = V.validateMaterials ? V.validateMaterials(materials) : materials;
     services  = V.validateServices ? V.validateServices(services) : services;
     projectData = V.validateProject ? V.validateProject(projectData) : projectData;
     uiState   = V.validateUIState ? V.validateUIState(uiState) : uiState;
 
-    // Persist repairs back to storage.
     if (V.persistIfPossible){
       V.persistIfPossible(STORAGE_KEYS.materials, materials);
       V.persistIfPossible(STORAGE_KEYS.services, services);
@@ -283,22 +274,9 @@ try{
       }
       FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-  // Special top-level tabs (available even before selecting a room)
-  if(tabName === 'pokoje'){
-    uiState.entry = 'rooms';
-    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
-  }
-  if(tabName === 'inwestor' || tabName === 'rozrys'){
-    // keep entry out of home
-    if(uiState.entry === 'home') uiState.entry = 'rooms';
-    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
-  }
     }
   }
 }catch(_){ }
-
 
 /* ===== Normalize (backward compatibility) ===== */
 function normalizeProjectData(data, defaults){
@@ -770,33 +748,22 @@ try{
 /* ===== UI wiring & init ===== */
 
 function registerCoreActions(){
-  // Core modules are optional at runtime (GitHub Pages/cache can temporarily serve stale assets).
-  // Top-level fail-soft bootstrap already creates awaryjne window.FC.actions / window.FC.modal.
-  window.FC = window.FC || {};
-  FC.actions = window.FC.actions || FC.actions;
-  FC.modal = window.FC.modal || FC.modal;
-  if(!FC.actions || !FC.modal) throw new Error('Brak core actions/modal');
-
-  // Register modal close functions for ESC/overlay stack handling
-  try{
-    FC.modal.register('priceModal', () => { try{ closePriceModal(); }catch(_){ } });
-    FC.modal.register('priceItemModal', () => { try{ closePriceItemModal(); }catch(_){ } });
-    FC.modal.register('cabinetModal', () => { try{ closeCabinetModal(); }catch(_){ } });
-  }catch(_){}
-
-  /* Actions moved to js/app/ui/actions-register.js */
-
+  return callExtracted('appUiBootstrap', 'registerCoreActions', [{
+    FC,
+    closePriceModal,
+    closePriceItemModal,
+    closeCabinetModal,
+  }]);
 }
 
 function initApp(){
-  // Fail fast if HTML is missing required elements
-  validateRequiredDOM();
-
-  // Register actions + modals and validate that DOM doesn't reference unknown actions
-  registerCoreActions();
-  FC.actions.validateDOMActions(document);
-
-  return initUI();
+  return callExtracted('appUiBootstrap', 'initApp', [{
+    FC,
+    document,
+    validateRequiredDOM,
+    registerCoreActions,
+    initUI,
+  }]);
 }
 
 // RYZYKO REGRESJI: główny start aplikacji.
@@ -806,62 +773,35 @@ function scheduleProjectAutosave(){ return callExtracted('projectAutosave','sche
 function installProjectAutosave(){ return callExtracted('projectAutosave','installProjectAutosave',[], function(){}); }
 
 function initUI(){
-  uiState = uiState || __uiDefaults;
-  try{
-    const reloadRestore = applyReloadRestoreSnapshot();
-    if(reloadRestore && reloadRestore.uiState && typeof reloadRestore.uiState === 'object'){
-      uiState = Object.assign({}, __uiDefaults, uiState || {}, reloadRestore.uiState || {});
-      if(window.FC && window.FC.uiState && typeof window.FC.uiState.save === 'function') uiState = window.FC.uiState.save(uiState);
-      else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    }
-  }catch(_){ }
-
-  // Event wiring extracted to js/app/ui/bindings.js
-  try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
-  catch(_){ /* keep UI alive even if bindings fail */ }
-
-  try{ installProjectAutosave(); }catch(_){ }
-
-  // Views (home/rooms/app/placeholders)
-  try{
-    if(!uiState.entry) uiState.entry = 'home';
-    // Restore sensible working context after refresh: if a room is already selected,
-    // do not fall back to home just because persisted entry stayed as 'home'.
-    if(uiState.roomType && (!uiState.entry || uiState.entry === 'home')){
-      uiState.entry = 'app';
-      try{ FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
-    }
-    if(window.FC && window.FC.views && window.FC.views.applyFromState) window.FC.views.applyFromState(uiState);
-  }catch(_){
-    // fallback legacy behavior
-    if(uiState.roomType){
-      document.getElementById('roomsView').style.display='none';
-      document.getElementById('appView').style.display='block';
-      document.getElementById('topTabs').style.display = 'grid';
-    } else {
-      document.getElementById('roomsView').style.display='block';
-      document.getElementById('appView').style.display='none';
-      document.getElementById('topTabs').style.display = 'none';
-    }
-  }
-
-  document.querySelectorAll('.tab-btn').forEach(t=> t.style.background = (t.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)');
-
-  renderTopHeight();
-  renderCabinets();
-  try{
-    if(window.FC && window.FC.rozrysLazy && typeof window.FC.rozrysLazy.scheduleWarmup === 'function'){
-      window.FC.rozrysLazy.scheduleWarmup({
-        reason:'post-init-ui',
-        delayMs: 900,
-        idleTimeoutMs: 3500,
-      });
-    }
-  }catch(_){ }
-  try{ restoreReloadScroll(); }catch(_){ }
+  return callExtracted('appUiBootstrap', 'initUI', [{
+    FC,
+    document,
+    storageKeys: STORAGE_KEYS,
+    uiDefaults: __uiDefaults,
+    getUiState: function(){ return uiState; },
+    setUiState: function(nextState){ uiState = nextState; return uiState; },
+    applyReloadRestoreSnapshot,
+    installBindings: function(){
+      try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
+      catch(_){ }
+    },
+    installProjectAutosave,
+    renderTopHeight,
+    renderCabinets,
+    restoreReloadScroll,
+    scheduleRozrysWarmup: function(){
+      try{
+        if(window.FC && window.FC.rozrysLazy && typeof window.FC.rozrysLazy.scheduleWarmup === 'function'){
+          window.FC.rozrysLazy.scheduleWarmup({
+            reason:'post-init-ui',
+            delayMs: 900,
+            idleTimeoutMs: 3500,
+          });
+        }
+      }catch(_){ }
+    },
+  }]);
 }
-
-
 
 /* ===== Set wizard minimal (reuse existing from previous version) ===== */
 /* Layout/state helpers for RYSUNEK moved to js/app/ui/layout-state.js.
