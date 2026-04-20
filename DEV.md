@@ -1,3 +1,9 @@
+## 2026-04-20 — ROZRYS bootstrap/split tests refactor to module contracts
+- `js/testing/rozrys/tests.js` — testy `Bootstrap i splity` dla ROZRYS nie pilnują już ciasno snippetów `rozrys.js` typu konkretne `const ... = ...` albo lokalny układ glue. Zamiast tego pilnują load-order assetów oraz kontraktów modułów (`part helpers`, `runtime bundle`, `controller bridges`, `render compose`, `panel workspace`, `output controller`) dostępnych po załadowaniu aplikacji.
+- `js/testing/rozrys/tests.js` — zachowania modułów nadal są sprawdzane osobnymi testami kontraktowymi (`Part helpers`, `Runtime bundle`, `Controller bridges`, `Panel workspace`, `Scope helpers`, `Output controller`), więc bootstrap testy nie blokują już sensownego prucia `rozrys.js` tylko dlatego, że zmienił się kształt snippetów.
+- `dev_tests.html` — podbity cache-busting dla `js/testing/rozrys/tests.js`.
+- Instrukcja antyregresyjna: przy kolejnych splitach ROZRYS najpierw oceniać, czy test pilnuje kontraktu/zachowania czy tylko starego kształtu implementacji. Jeśli test zaczyna zamrażać architekturę bez wartości użytkowej, przepinać go na kontrakt modułów, kolejność ładowania albo rzeczywisty przepływ przez API.
+
 ## 2026-04-20 — Inwestor recovery non-destructive read + session snapshot backfill
 - `js/app/investor/investors-store.js` — recovery inwestorów przy `readAll()` nie zapisuje już automatycznie odbudowanych szkieletów do `fc_investors_v1`. Dzięki temu awaryjne odczyty z projektów/snapshotów nie nadpisują trwałej listy inwestorów ubogimi rekordami bez telefonu/maila/adresu.
 - `js/app/investor/investors-store.js` — `readStoredAll()` robi best-effort merge brakujących pól kontaktowych z `fc_edit_session_v1.snapshot.fc_investors_v1`, jeśli taka sesyjna migawka istnieje. To daje szansę odzyskać telefon/mail/adres dla tych samych `investorId` bez zgadywania i bez ruszania innych danych.
