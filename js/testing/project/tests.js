@@ -117,6 +117,41 @@
           fixture.remove();
         }
       }),
+      H.makeTest('Projekt', 'Bootstrap UI fallback nie dokleja widoku pomieszczeń do ekranu startowego', 'Pilnuje regresji po splitach startu: jeśli router widoków nie jest dostępny albo rzuci wyjątek, awaryjny fallback nie może pokazać starego roomsView pod ekranem Start.', ()=>{
+        H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<div id="homeView" style="display:block"></div><div id="modeHubView" style="display:none"></div><div id="investorsListView" style="display:none"></div><div id="serviceOrdersListView" style="display:none"></div><div id="roomsView" style="display:none"></div><div id="appView" style="display:none"></div><div id="investorView" style="display:none"></div><div id="rozrysView" style="display:none"></div><div id="magazynView" style="display:none"></div><div id="topBar" style="display:none"></div><div id="topTabs" style="display:none"></div><div id="sessionButtons" style="display:none"></div><div id="floatingAdd" style="display:none"></div>';
+        document.body.appendChild(fixture);
+        try{
+          const out = FC.appUiBootstrap.initUI({
+            FC: {
+              storage: { setJSON(){} },
+              views: { applyFromState(){ throw new Error('boom'); } },
+            },
+            document: fixture,
+            storageKeys: { ui:'ui' },
+            uiDefaults: { activeTab:'pokoje', entry:'home' },
+            getUiState(){ return { activeTab:'pokoje', entry:'home', roomType:null, currentInvestorId:null }; },
+            setUiState(next){ return next; },
+            applyReloadRestoreSnapshot(){ return null; },
+            installBindings(){},
+            installProjectAutosave(){},
+            renderTopHeight(){},
+            renderCabinets(){},
+            restoreReloadScroll(){},
+            scheduleRozrysWarmup(){},
+          });
+          const homeView = fixture.querySelector('#homeView');
+          const roomsView = fixture.querySelector('#roomsView');
+          const topTabs = fixture.querySelector('#topTabs');
+          H.assert(out && out.entry === 'home', 'Fallback bootstrap UI zmienił entry mimo braku pokoju', out);
+          H.assert(homeView && homeView.style.display === 'block', 'Fallback bootstrap UI nie zostawił ekranu Start jako jedynego widoku', { home:homeView && homeView.style.display, rooms:roomsView && roomsView.style.display });
+          H.assert(roomsView && roomsView.style.display === 'none', 'Fallback bootstrap UI dokleił roomsView pod ekran startowy', { home:homeView && homeView.style.display, rooms:roomsView && roomsView.style.display });
+          H.assert(topTabs && topTabs.style.display === 'none', 'Fallback bootstrap UI pokazał top tabs na ekranie Start', { topTabs:topTabs && topTabs.style.display });
+        } finally {
+          fixture.remove();
+        }
+      }),
       H.makeTest('Projekt', 'Store inwestorów tworzy, wyszukuje i aktualizuje wpis bez gubienia bieżącego ID', 'Sprawdza, czy lokalna baza inwestorów działa stabilnie przy tworzeniu i edycji.', ()=>{
         withInvestorStorage((inv)=>{
           const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'

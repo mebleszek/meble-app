@@ -69,12 +69,21 @@
   function getRozrysStartupOrderSource(requiredAssets){
     const assets = Array.isArray(requiredAssets) ? requiredAssets.filter(Boolean) : [];
     const indexHtml = readAssetSource('index.html');
+    const lazyManifestSrc = readAssetSource('js/app/rozrys/rozrys-lazy-manifest.js');
     if(assets.every((asset)=> indexHtml.indexOf(asset) >= 0)){
       return { name:'index.html', text:indexHtml };
     }
-    const lazyManifestSrc = readAssetSource('js/app/rozrys/rozrys-lazy-manifest.js');
     if(assets.every((asset)=> lazyManifestSrc.indexOf(asset) >= 0)){
       return { name:'js/app/rozrys/rozrys-lazy-manifest.js', text:lazyManifestSrc };
+    }
+    const distributed = assets.length && assets.every((asset)=> indexHtml.indexOf(asset) >= 0 || lazyManifestSrc.indexOf(asset) >= 0);
+    if(distributed){
+      return {
+        name:'index.html + js/app/rozrys/rozrys-lazy-manifest.js',
+        text:indexHtml + '\n/* deferred-rozrys-startup */\n' + lazyManifestSrc,
+        indexHtml,
+        lazyManifestSrc,
+      };
     }
     return { name:'missing', text:'', indexHtml, lazyManifestSrc };
   }
