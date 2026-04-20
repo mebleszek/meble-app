@@ -1012,6 +1012,64 @@
 
 
 
+
+      makeTest('Runtime bundle', 'Wydzielony runtime bundle ROZRYS składa plan/output/run bez zmiany kontraktów modułów', 'Pilnuje bezpiecznego splitu assemblera runtime: rozrys.js ma dalej przekazywać te same payloady do plan helpers, output controllera i run controllera, tylko przez jeden moduł spinający.', ()=>{
+        assert(FC.rozrysRuntimeBundle && typeof FC.rozrysRuntimeBundle.createApi === 'function', 'Brak FC.rozrysRuntimeBundle.createApi');
+        const prevPlanHelpers = FC.rozrysPlanHelpers;
+        const prevOutputController = FC.rozrysOutputController;
+        const prevRunController = FC.rozrysRunController;
+        const captured = {};
+        try{
+          FC.rozrysPlanHelpers = {
+            createApi(args){
+              captured.plan = args;
+              return { marker:'plan-ok' };
+            }
+          };
+          FC.rozrysOutputController = {
+            createApi(args){
+              captured.outputApi = args;
+              return {
+                createController(ctx, deps){
+                  captured.output = { ctx, deps };
+                  return { marker:'output-ok' };
+                }
+              };
+            }
+          };
+          FC.rozrysRunController = {
+            createApi(args){
+              captured.runApi = args;
+              return {
+                createController(ctx, deps){
+                  captured.run = { ctx, deps };
+                  return { marker:'run-ok' };
+                }
+              };
+            }
+          };
+          const api = FC.rozrysRuntimeBundle.createApi({ FC });
+          const plan = api.createPlanHelpers({ id:'plan-deps' });
+          const output = api.createOutputController({
+            ctx:{ out:{ id:'out' }, getSetGenBtnMode: ()=> ()=> undefined },
+            deps:{ id:'output-deps' },
+          });
+          const run = api.createRunController({
+            ctx:{ genBtn:{ id:'btn' } },
+            deps:{ id:'run-deps' },
+          });
+          assert(plan && plan.marker === 'plan-ok' && captured.plan && captured.plan.id === 'plan-deps', 'Runtime bundle nie deleguje createPlanHelpers 1:1 do rozrysPlanHelpers', captured);
+          assert(output && output.marker === 'output-ok' && captured.outputApi && captured.outputApi.FC === FC, 'Runtime bundle nie buduje output controllera przez FC.rozrysOutputController.createApi', captured);
+          assert(captured.output && captured.output.ctx && captured.output.ctx.out && captured.output.deps && captured.output.deps.id === 'output-deps', 'Runtime bundle nie przekazał ctx/deps output controllera 1:1', captured);
+          assert(run && run.marker === 'run-ok' && captured.runApi && captured.runApi.FC === FC, 'Runtime bundle nie buduje run controllera przez FC.rozrysRunController.createApi', captured);
+          assert(captured.run && captured.run.ctx && captured.run.ctx.genBtn && captured.run.deps && captured.run.deps.id === 'run-deps', 'Runtime bundle nie przekazał ctx/deps run controllera 1:1', captured);
+        } finally {
+          FC.rozrysPlanHelpers = prevPlanHelpers;
+          FC.rozrysOutputController = prevOutputController;
+          FC.rozrysRunController = prevRunController;
+        }
+      }),
+
       makeTest('Run controller', 'Wydzielony run controller ROZRYS deleguje progress, generowanie i magazyn bez zmiany kontraktu', 'Pilnuje dużego splitu action/run: progress bridge nadal steruje stanem przycisku, generate przekazuje pełny payload do rozrysRunner, a Dodaj płytę dalej dostaje ten sam ctx/deps.', async ()=>{
         assert(FC.rozrysRunController && typeof FC.rozrysRunController.createApi === 'function', 'Brak FC.rozrysRunController.createApi');
         const prevRunner = FC.rozrysRunner;
@@ -1148,20 +1206,26 @@
           FC.rozrysRunner = prevRunner;
         }
       }),
-      makeTest('Bootstrap i splity', 'ROZRYS ładuje run controller przed rozrys.js i zachowuje bezpieczny kontrakt createController', 'Pilnuje regresji, w której nowy moduł action/run byłby ładowany po rozrys.js albo rozrys.js wołałby createController bez bezpiecznego fallbacku.', ()=>{
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje run controller i runtime bundle przed rozrys.js oraz zachowuje bezpieczne spięcie createRunController', 'Pilnuje regresji, w której moduł action/run albo assembler runtime byłby ładowany po rozrys.js lub rozrys.js wróciłby do bezpośredniego createController zamiast createRunController z runtime bundle.', ()=>{
         const indexHtml = readAssetSource('index.html');
         const devHtml = readAssetSource('dev_tests.html');
         const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
         const runCtrlSrc = readAssetSource('js/app/rozrys/rozrys-run-controller.js');
+        const runtimeBundleSrc = readAssetSource('js/app/rozrys/rozrys-runtime-bundle.js');
         assert(runCtrlSrc && runCtrlSrc.includes('FC.rozrysRunController'), 'Brak źródła nowego modułu run controller w assetach smoke');
+        assert(runtimeBundleSrc && runtimeBundleSrc.includes('FC.rozrysRuntimeBundle'), 'Brak źródła modułu runtime bundle w assetach smoke');
         const runIdx = indexHtml.indexOf('js/app/rozrys/rozrys-run-controller.js');
+        const runtimeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-runtime-bundle.js');
         const rozrysIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(runIdx >= 0 && rozrysIdx >= 0 && runIdx < rozrysIdx, 'index.html ładuje rozrys-run-controller po rozrys.js', { runIdx, rozrysIdx });
+        assert(runtimeIdx >= 0 && rozrysIdx >= 0 && runtimeIdx < rozrysIdx, 'index.html ładuje rozrys-runtime-bundle po rozrys.js', { runtimeIdx, rozrysIdx });
         const runDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-run-controller.js');
+        const runtimeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-runtime-bundle.js');
         const rozrysDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(runDevIdx >= 0 && rozrysDevIdx >= 0 && runDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-run-controller po rozrys.js', { runDevIdx, rozrysDevIdx });
-        assert(/const\s+runCtrl\s*=\s*runControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy run controllera z bridgea', { snippet: rozrysSrc.slice(9000, 11600) });
-        assert(/const runControllerApi[\s\S]*createController:\s*\(\)=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla run controllera', { snippet: rozrysSrc.slice(0, 2600) });
+        assert(runtimeDevIdx >= 0 && rozrysDevIdx >= 0 && runtimeDevIdx < rozrysDevIdx, 'dev_tests.html ładuje rozrys-runtime-bundle po rozrys.js', { runtimeDevIdx, rozrysDevIdx });
+        assert(/const\s+runCtrl\s*=\s*runtimeBundleApi\.createRunController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy run controllera przez runtime bundle', { snippet: rozrysSrc.slice(22000, 31500) });
+        assert(/const runtimeBundleApi\s*=\s*\(FC\.rozrysRuntimeBundle && typeof FC\.rozrysRuntimeBundle\.createApi === 'function'\)/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createApi dla runtime bundle', { snippet: rozrysSrc.slice(9000, 16500) });
       }),
       makeTest('Output controller', 'Wydzielony output controller ROZRYS deleguje cache, render i accordiony bez zmiany kontraktu', 'Pilnuje większego splitu ścieżki output/render/cache: tryAutoRenderFromCache, renderOutput i wrappery accordionów nadal dostają ten sam payload oraz nie gubią callbacków współbieżnych z renderem wyników.', ()=>{
         assert(FC.rozrysOutputController && typeof FC.rozrysOutputController.createApi === 'function', 'Brak FC.rozrysOutputController.createApi');
@@ -1271,39 +1335,48 @@
           FC.rozrysAccordion = prevAccordion;
         }
       }),
-      makeTest('Bootstrap i splity', 'ROZRYS ładuje scope, panel workspace i output controller przed rozrys.js oraz zachowuje bezpieczne spięcia', 'Pilnuje regresji, w której moduł scope/material, panel/workspace albo output/render/cache byłby ładowany po rozrys.js lub rozrys.js wróciłby do lokalnych wrapperów zamiast związanego API createApi.', ()=>{
+      makeTest('Bootstrap i splity', 'ROZRYS ładuje scope, panel workspace, runtime bundle i output controller przed rozrys.js oraz zachowuje bezpieczne spięcia', 'Pilnuje regresji, w której assembler runtime byłby ładowany po rozrys.js lub rozrys.js wróciłby do ręcznego sklejania plan/output/run zamiast jednego modułu spinającego z zachowaniem hoistowanych fasad.', ()=>{
         const indexHtml = readAssetSource('index.html');
         const devHtml = readAssetSource('dev_tests.html');
         const rozrysSrc = readAssetSource('js/app/rozrys/rozrys.js');
         const scopeSrc = readAssetSource('js/app/rozrys/rozrys-scope.js');
         const panelSrc = readAssetSource('js/app/rozrys/rozrys-panel-workspace.js');
+        const runtimeBundleSrc = readAssetSource('js/app/rozrys/rozrys-runtime-bundle.js');
         const outputSrc = readAssetSource('js/app/rozrys/rozrys-output-controller.js');
         assert(scopeSrc && scopeSrc.includes('FC.rozrysScope') && scopeSrc.includes('createApi'), 'Brak źródła modułu rozrys-scope z createApi w assetach smoke');
         assert(panelSrc && panelSrc.includes('FC.rozrysPanelWorkspace'), 'Brak źródła nowego modułu panel workspace w assetach smoke');
+        assert(runtimeBundleSrc && runtimeBundleSrc.includes('FC.rozrysRuntimeBundle') && runtimeBundleSrc.includes('createApi'), 'Brak źródła modułu rozrys-runtime-bundle w assetach smoke');
         assert(outputSrc && outputSrc.includes('FC.rozrysOutputController'), 'Brak źródła nowego modułu output controller w assetach smoke');
         const scopeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-scope.js');
         const panelIdx = indexHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
+        const runtimeIdx = indexHtml.indexOf('js/app/rozrys/rozrys-runtime-bundle.js');
         const outIdx = indexHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozIdx = indexHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(scopeIdx >= 0 && rozIdx >= 0 && scopeIdx < rozIdx, 'index.html ładuje rozrys-scope po rozrys.js', { scopeIdx, rozIdx });
         assert(panelIdx >= 0 && rozIdx >= 0 && panelIdx < rozIdx, 'index.html ładuje rozrys-panel-workspace po rozrys.js', { panelIdx, rozIdx });
+        assert(runtimeIdx >= 0 && rozIdx >= 0 && runtimeIdx < rozIdx, 'index.html ładuje rozrys-runtime-bundle po rozrys.js', { runtimeIdx, rozIdx });
         assert(outIdx >= 0 && rozIdx >= 0 && outIdx < rozIdx, 'index.html ładuje rozrys-output-controller po rozrys.js', { outIdx, rozIdx });
         const scopeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-scope.js');
         const panelDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-panel-workspace.js');
+        const runtimeDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-runtime-bundle.js');
         const outDevIdx = devHtml.indexOf('js/app/rozrys/rozrys-output-controller.js');
         const rozDevIdx = devHtml.indexOf('js/app/rozrys/rozrys.js');
         assert(scopeDevIdx >= 0 && rozDevIdx >= 0 && scopeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-scope po rozrys.js', { scopeDevIdx, rozDevIdx });
         assert(panelDevIdx >= 0 && rozDevIdx >= 0 && panelDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-panel-workspace po rozrys.js', { panelDevIdx, rozDevIdx });
+        assert(runtimeDevIdx >= 0 && rozDevIdx >= 0 && runtimeDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-runtime-bundle po rozrys.js', { runtimeDevIdx, rozDevIdx });
         assert(outDevIdx >= 0 && rozDevIdx >= 0 && outDevIdx < rozDevIdx, 'dev_tests.html ładuje rozrys-output-controller po rozrys.js', { outDevIdx, rozDevIdx });
         assert(/const scopeApi\s*=\s*\(FC\.rozrysScope && typeof FC\.rozrysScope\.createApi === 'function'\)/.test(rozrysSrc), 'rozrys.js nie spina związanego scopeApi przez FC.rozrysScope.createApi', { snippet: rozrysSrc.slice(8500, 14500) });
         assert(/const panelWorkspaceApi[\s\S]*createWorkspace:\s*\(\)\s*=>\s*null/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego spięcia panelWorkspaceApi', { snippet: rozrysSrc.slice(9000, 14500) });
+        assert(/const runtimeBundleApi\s*=\s*\(FC\.rozrysRuntimeBundle && typeof FC\.rozrysRuntimeBundle\.createApi === 'function'\)/.test(rozrysSrc), 'rozrys.js nie spina assemblera runtime przez FC.rozrysRuntimeBundle.createApi', { snippet: rozrysSrc.slice(9000, 16500) });
         assert(/const workspace\s*=\s*panelWorkspaceApi\.createWorkspace\([\s\S]*const persistOptionPrefs\s*=\s*workspace\.persistOptionPrefs;/.test(rozrysSrc), 'rozrys.js po splicie panelu nie składa workspace z bridgea i nie pobiera z niego live helperów/refów', { snippet: rozrysSrc.slice(16500, 24500) });
         assert(!/function\s+persistOptionPrefs\s*\(/.test(rozrysSrc) && !/function\s+applyUnitChange\s*\(/.test(rozrysSrc), 'rozrys.js nadal trzyma lokalne helpery opcji zamiast czytać je z panel workspace', { snippet: rozrysSrc.slice(16500, 24500) });
         assert(!/function\s+roomLabel\s*\(/.test(rozrysSrc) && !/function\s+normalizeRoomSelection\s*\(/.test(rozrysSrc) && !/function\s+encodeRoomsSelection\s*\(/.test(rozrysSrc) && !/function\s+decodeMaterialScope\s*\(/.test(rozrysSrc), 'rozrys.js nadal trzyma lokalne wrappery scope/material zamiast scopeApi', { snippet: rozrysSrc.slice(8500, 16000) });
         assert(/const renderScopeApi\s*=\s*\(FC\.rozrysScope && typeof FC\.rozrysScope\.createApi === 'function'\)/.test(rozrysSrc), 'rozrys.js nie buduje związanego renderScopeApi dla getScopeSummary/getRoomsSummary', { snippet: rozrysSrc.slice(16500, 22000) });
-        assert(/(?:let|const)\s+outputCtrl\s*=\s*null[\s\S]*outputCtrl\s*=\s*outputControllerApi\.createController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera z bridgea albo nie inicjalizuje go jawnie po bootstrapie helperów', { snippet: rozrysSrc.slice(18000, 25500) });
-        assert(/const outputControllerApi[\s\S]*createController:\s*\(ctx[^)]*\)\s*=>\s*\(\{/.test(rozrysSrc), 'rozrys.js nie ma bezpiecznego fallbacku createController dla output controllera', { snippet: rozrysSrc.slice(9000, 16000) });
-        assert(/function\s+tryAutoRenderFromCache\s*\(/.test(rozrysSrc) && /function\s+splitMaterialAccordionTitle\s*\(/.test(rozrysSrc) && /function\s+buildEntriesForScope\s*\(/.test(rozrysSrc), 'rozrys.js po splicie output controllera nie zachowuje hoistowanych fasad helperów cache/output wymaganych podczas bootstrapu', { snippet: rozrysSrc.slice(15000, 26000) });
+        assert(/const planHelpers\s*=\s*runtimeBundleApi\.createPlanHelpers\(/.test(rozrysSrc), 'rozrys.js po splicie nie składa plan helpers przez runtime bundle', { snippet: rozrysSrc.slice(20500, 24500) });
+        assert(/(?:let|const)\s+outputCtrl\s*=\s*null[\s\S]*outputCtrl\s*=\s*runtimeBundleApi\.createOutputController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy output controllera przez runtime bundle albo nie inicjalizuje go jawnie po bootstrapie helperów', { snippet: rozrysSrc.slice(18000, 28500) });
+        assert(/const\s+runCtrl\s*=\s*runtimeBundleApi\.createRunController\(/.test(rozrysSrc), 'rozrys.js po splicie nie tworzy run controllera przez runtime bundle', { snippet: rozrysSrc.slice(23000, 31500) });
+        assert(!/const outputControllerApi\s*=/.test(rozrysSrc) && !/const runControllerApi\s*=/.test(rozrysSrc), 'rozrys.js nadal ręcznie trzyma lokalne bridge API output/run zamiast runtime bundle', { snippet: rozrysSrc.slice(9000, 18000) });
+        assert(/function\s+tryAutoRenderFromCache\s*\(/.test(rozrysSrc) && /function\s+splitMaterialAccordionTitle\s*\(/.test(rozrysSrc) && /function\s+buildEntriesForScope\s*\(/.test(rozrysSrc), 'rozrys.js po splicie runtime bundle nie zachowuje hoistowanych fasad helperów cache/output wymaganych podczas bootstrapu', { snippet: rozrysSrc.slice(15000, 30000) });
       }),
 
       makeTest('Projekt i agregacja', 'ROZRYS buduje materiały z projektu i resolvera cutlist', 'Sprawdza, czy przy realnym projekcie z szafką ROZRYS nie pokaże pustego stanu tylko dlatego, że nie podpiął źródła formatek.', ()=>{
