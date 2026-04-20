@@ -1547,3 +1547,5 @@ Dopiero potem go zmieniać.
 
 - `js/app/investor/investors-store.js`: przy recovery pustej listy decyzję o preferowaniu testowych snapshotów robić po zebraniu kandydatów, nie przez zbyt wczesny globalny `testOnly`; jeśli istnieją jawne testowe źródła recovery, do wyniku mają wejść tylko one, bez mieszania zwykłych snapshotów użytkownika.
 - 2026-04-20: `quoteSnapshotStore.writeAll/save` nie mogą podczas normalizacji jawnych `roomLabels` odpalać `roomRegistry` i pośrednio `investors.readAll()`. Na zapisie zachowujemy kompletne explicit labels bez lookupu; kanonizacja/stara korekta etykiet ma działać dopiero przy odczycie (`readAll`).
+
+- 2026-04-20: Po splicie runtime bundle kolejny bezpieczny split ROZRYS to mosty selection/output. Można wydzielać adaptery kontrolerów i scope summary, ale trzeba zachować lokalną kolejność bootstrapu `outputCtrl -> runCtrl` oraz hoistowane wrappery (`splitMaterialAccordionTitle`, `tryAutoRenderFromCache`, `buildEntriesForScope`).
