@@ -110,6 +110,35 @@
     return null;
   }
 
+  function syncGlobalUiState(nextState){
+    try{ if(typeof uiState !== 'undefined') uiState = nextState; }catch(_){ }
+    return nextState;
+  }
+
+  function setUiStatePatch(patch){
+    const nextPatch = patch && typeof patch === 'object' ? patch : {};
+    try{
+      if(FC.uiState && typeof FC.uiState.set === 'function'){
+        return syncGlobalUiState(FC.uiState.set(nextPatch));
+      }
+    }catch(_){ }
+    try{
+      const current = (typeof uiState !== 'undefined' && uiState && typeof uiState === 'object') ? uiState : {};
+      const next = Object.assign({}, current, nextPatch);
+      if(FC.storage && typeof FC.storage.setJSON === 'function'){
+        const storageKeys = (FC.constants && FC.constants.STORAGE_KEYS) || { ui:'fc_ui_v1' };
+        FC.storage.setJSON(storageKeys.ui, next);
+      }
+      return syncGlobalUiState(next);
+    }catch(_){ }
+    return syncGlobalUiState(Object.assign({}, nextPatch));
+  }
+
+  function clearProjectContext(){
+    try{ if(FC.investorPersistence && typeof FC.investorPersistence.setCurrentInvestorId === 'function') FC.investorPersistence.setCurrentInvestorId(null); }catch(_){ }
+    try{ if(FC.reloadRestore && typeof FC.reloadRestore.clear === 'function') FC.reloadRestore.clear(); }catch(_){ }
+  }
+
   function shouldOpenRoomlessWycena(state){
     const st = state && typeof state === 'object' ? state : {};
     const tab = String(st.activeTab || '').trim().toLowerCase();
@@ -142,42 +171,55 @@
   }
 
   function openHome(){
-    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'home', roomType:null, workMode:null });
-    applyFromState({ entry:'home', roomType:null, activeTab:'pokoje', workMode:null });
+    clearProjectContext();
+    const nextState = setUiStatePatch({
+      entry:'home',
+      workMode:null,
+      activeTab:'pokoje',
+      roomType:null,
+      lastRoomType:null,
+      currentInvestorId:null,
+      selectedCabinetId:null,
+      showPriceList:null,
+    });
+    applyFromState(nextState || { entry:'home', roomType:null, activeTab:'pokoje', workMode:null, currentInvestorId:null });
   }
 
   function openModeHub(mode){
     const resolved = String(mode || 'furnitureProjects');
-    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'modeHub', workMode:resolved, activeTab:null, roomType:null });
-    applyFromState({ entry:'modeHub', workMode:resolved, activeTab:null, roomType:null });
+    clearProjectContext();
+    const nextState = setUiStatePatch({ entry:'modeHub', workMode:resolved, activeTab:null, roomType:null, lastRoomType:null, currentInvestorId:null, selectedCabinetId:null, showPriceList:null });
+    applyFromState(nextState || { entry:'modeHub', workMode:resolved, activeTab:null, roomType:null, currentInvestorId:null });
   }
 
   function openInvestorsList(){
-    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'investorsList', activeTab:null, currentInvestorId:null, workMode:'furnitureProjects' });
-    applyFromState({ entry:'investorsList', activeTab:null, currentInvestorId:null, workMode:'furnitureProjects' });
+    try{ if(FC.investorPersistence && typeof FC.investorPersistence.setCurrentInvestorId === 'function') FC.investorPersistence.setCurrentInvestorId(null); }catch(_){ }
+    const nextState = setUiStatePatch({ entry:'investorsList', activeTab:null, roomType:null, lastRoomType:null, currentInvestorId:null, selectedCabinetId:null, workMode:'furnitureProjects' });
+    applyFromState(nextState || { entry:'investorsList', activeTab:null, currentInvestorId:null, workMode:'furnitureProjects' });
   }
 
   function openServiceOrdersList(){
-    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'serviceOrdersList', activeTab:null, roomType:null, currentInvestorId:null, workMode:'workshopServices' });
-    applyFromState({ entry:'serviceOrdersList', activeTab:null, roomType:null, currentInvestorId:null, workMode:'workshopServices' });
+    clearProjectContext();
+    const nextState = setUiStatePatch({ entry:'serviceOrdersList', activeTab:null, roomType:null, lastRoomType:null, currentInvestorId:null, selectedCabinetId:null, workMode:'workshopServices' });
+    applyFromState(nextState || { entry:'serviceOrdersList', activeTab:null, roomType:null, currentInvestorId:null, workMode:'workshopServices' });
   }
 
   function openRooms(){
-    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'rooms', activeTab:'pokoje' });
-    applyFromState({ entry:'rooms', activeTab:'pokoje' });
+    const nextState = setUiStatePatch({ entry:'rooms', activeTab:'pokoje', roomType:null, selectedCabinetId:null });
+    applyFromState(nextState || { entry:'rooms', activeTab:'pokoje' });
   }
 
   function openRoom(room){
     if(!room) return;
-    if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'app', roomType:room });
-    applyFromState({ entry:'app', roomType:room });
+    const nextState = setUiStatePatch({ entry:'app', roomType:room });
+    applyFromState(nextState || { entry:'app', roomType:room });
   }
 
   function back(){
     const st = (FC.uiState && FC.uiState.get) ? FC.uiState.get() : {};
     if(st && st.entry === 'app'){
-      if(FC.uiState && FC.uiState.set) FC.uiState.set({ entry:'rooms', roomType:null, activeTab:'pokoje' });
-      return applyFromState({ entry:'rooms', roomType:null, activeTab:'pokoje' });
+      const nextState = setUiStatePatch({ entry:'rooms', roomType:null, activeTab:'pokoje', selectedCabinetId:null });
+      return applyFromState(nextState || { entry:'rooms', roomType:null, activeTab:'pokoje' });
     }
     if(st && st.entry === 'investorsList') return openModeHub('furnitureProjects');
     if(st && st.entry === 'serviceOrdersList') return openModeHub('workshopServices');

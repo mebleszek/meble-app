@@ -350,6 +350,83 @@
           if(appView) appView.style.display = prevApp;
         }
       }),
+
+      H.makeTest('Projekt', 'Fallback bootstrapu nie pokazuje wyboru pomieszczeń dla roomless WYCENA', 'Pilnuje, czy awaryjne przywracanie widoków po reloadzie rozpoznaje wejście do WYCENA bez wybranego pokoju i nie zostawia ekranu pomieszczeń pod aktywną zakładką.', ()=>{
+        const bootstrap = FC.appUiBootstrap;
+        H.assert(bootstrap && typeof bootstrap.initUI === 'function', 'Brak bootstrapu UI do testu fallbacku roomless WYCENA', bootstrap);
+        if(typeof document === 'undefined') return;
+        const roomsView = document.getElementById('roomsView');
+        const appView = document.getElementById('appView');
+        H.assert(roomsView && appView, 'Brak wymaganych widoków DOM dla testu fallbacku roomless WYCENA', { roomsView, appView });
+        const prevRooms = roomsView.style.display;
+        const prevApp = appView.style.display;
+        const prevViews = FC.views;
+        const prevWarmup = FC.rozrysLazy;
+        try{
+          FC.views = Object.assign({}, prevViews || {});
+          delete FC.views.applyFromState;
+          FC.views.shouldOpenRoomlessWycena = prevViews && prevViews.shouldOpenRoomlessWycena;
+          FC.rozrysLazy = { scheduleWarmup(){} };
+          bootstrap.initUI({
+            FC,
+            document,
+            storageKeys: { ui:'fc_ui_v1' },
+            uiDefaults: { activeTab:'pokoje', entry:'home' },
+            getUiState(){ return { activeTab:'wycena', entry:'rooms', roomType:null, currentInvestorId:'inv_test' }; },
+            setUiState(){},
+            applyReloadRestoreSnapshot(){ return null; },
+            installBindings(){},
+            installProjectAutosave(){},
+            renderTopHeight(){},
+            renderCabinets(){},
+            restoreReloadScroll(){},
+            scheduleRozrysWarmup(){},
+          });
+          H.assert(appView.style.display === 'block', 'Fallback bootstrapu nie otworzył appView dla roomless WYCENA', { app:appView.style.display, rooms:roomsView.style.display });
+          H.assert(roomsView.style.display === 'none', 'Fallback bootstrapu zostawił roomsView dla roomless WYCENA', { app:appView.style.display, rooms:roomsView.style.display });
+        } finally {
+          FC.views = prevViews;
+          FC.rozrysLazy = prevWarmup;
+          roomsView.style.display = prevRooms;
+          appView.style.display = prevApp;
+        }
+      }),
+
+      H.makeTest('Projekt', 'Wyjście do Start czyści kontekst projektu do reload restore', 'Pilnuje, czy wejście na Start nie zostawia aktywnego inwestora ani zakładki WYCENA w stanie, który po odświeżeniu mógłby z powrotem otworzyć projekt.', ()=>{
+        H.assert(FC.views && typeof FC.views.openHome === 'function', 'Brak FC.views.openHome do testu czyszczenia Startu', FC.views);
+        const prevGet = FC.uiState && FC.uiState.get;
+        const prevSet = FC.uiState && FC.uiState.set;
+        const prevReloadRestore = FC.reloadRestore;
+        const prevInvestorPersistence = FC.investorPersistence;
+        const prevUiState = (typeof uiState !== 'undefined') ? uiState : undefined;
+        let saved = null;
+        let cleared = 0;
+        try{
+          if(!FC.uiState) FC.uiState = {};
+          FC.uiState.get = () => ({ entry:'app', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test', workMode:'furnitureProjects' });
+          FC.uiState.set = (patch) => {
+            saved = Object.assign({}, FC.uiState.get(), patch || {});
+            return saved;
+          };
+          FC.reloadRestore = { clear(){ cleared += 1; } };
+          FC.investorPersistence = { setCurrentInvestorId(){} };
+          if(typeof uiState !== 'undefined') uiState = { entry:'app', activeTab:'wycena', roomType:null, currentInvestorId:'inv_test', workMode:'furnitureProjects' };
+          FC.views.openHome();
+          H.assert(saved && saved.entry === 'home', 'openHome nie przełączył entry na home', saved);
+          H.assert(saved && saved.currentInvestorId == null, 'openHome nie wyczyścił currentInvestorId', saved);
+          H.assert(saved && saved.roomType == null, 'openHome nie wyczyścił roomType', saved);
+          H.assert(saved && saved.activeTab === 'pokoje', 'openHome nie zresetował aktywnej zakładki do bezpiecznego pokoje', saved);
+          H.assert(cleared === 1, 'openHome nie wyczyścił reload restore przy wyjściu do Start', { cleared, saved });
+        } finally {
+          if(FC.uiState){
+            FC.uiState.get = prevGet;
+            FC.uiState.set = prevSet;
+          }
+          FC.reloadRestore = prevReloadRestore;
+          FC.investorPersistence = prevInvestorPersistence;
+          try{ if(typeof uiState !== 'undefined') uiState = prevUiState; }catch(_){ }
+        }
+      }),
       H.makeTest('Projekt', 'Kolejność przycisków zakładek zgadza się z nowym układem', 'Pilnuje, czy paski zakładek mają zamienione MATERIAŁ z RYSUNEK oraz dolny rząd zaczyna się od INWESTOR.', ()=>{
         if(typeof document === 'undefined') return;
         const order = Array.from(document.querySelectorAll('#topTabs .tab-btn')).map((btn)=> String(btn && btn.dataset && btn.dataset.tab || ''));

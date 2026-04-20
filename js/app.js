@@ -246,6 +246,15 @@ function restoreReloadScroll(){
 }
 
 try{
+  window.FC = window.FC || {};
+  window.FC.reloadRestore = Object.assign(window.FC.reloadRestore || {}, {
+    read: readReloadRestore,
+    clear: clearReloadRestore,
+    persist: persistReloadRestore,
+  });
+}catch(_){ }
+
+try{
   window.addEventListener('pagehide', persistReloadRestore, { capture:true });
   window.addEventListener('beforeunload', persistReloadRestore, { capture:true });
 }catch(_){ }

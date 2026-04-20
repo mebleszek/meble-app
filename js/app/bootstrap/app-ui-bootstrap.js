@@ -63,6 +63,20 @@
     fallbackSetFloatingVisible(ctx, cfg.floating);
   }
 
+  function shouldOpenRoomlessWycenaFallback(ctx, state){
+    const st = state && typeof state === 'object' ? state : {};
+    try{
+      if(ctx && ctx.FC && ctx.FC.views && typeof ctx.FC.views.shouldOpenRoomlessWycena === 'function'){
+        return !!ctx.FC.views.shouldOpenRoomlessWycena(st);
+      }
+    }catch(_){ }
+    const tab = String(st.activeTab || '').trim().toLowerCase();
+    const entry = String(st.entry || '').trim().toLowerCase();
+    const hasInvestorContext = !!fallbackReadCurrentInvestorId(ctx, st);
+    if(entry === 'home' || entry === 'modehub' || entry === 'investorslist' || entry === 'serviceorderslist') return false;
+    return tab === 'wycena' && !st.roomType && (entry === 'app' || entry === 'rooms' || hasInvestorContext);
+  }
+
   function applyViewsFallback(ctx, uiState){
     const st = uiState && typeof uiState === 'object' ? uiState : {};
     const entry = st.entry ? String(st.entry) : 'home';
@@ -71,6 +85,7 @@
 
     if(tab === 'inwestor') return fallbackShowView(ctx, 'investorView', { tabs:true, session:true, floating:false });
     if(st.roomType && (!st.entry || st.entry === 'home')) return fallbackShowView(ctx, 'appView', { tabs:true, session:true, floating:true });
+    if(shouldOpenRoomlessWycenaFallback(ctx, st)) return fallbackShowView(ctx, 'appView', { tabs:true, session:true, floating:true });
     if(entry === 'home') return fallbackShowView(ctx, 'homeView', { tabs:false, session:false, floating:false });
     if(entry === 'modeHub') return fallbackShowView(ctx, 'modeHubView', { tabs:false, session:false, floating:false });
     if(entry === 'investorsList') return fallbackShowView(ctx, 'investorsListView', { tabs:false, session:false, floating:false });

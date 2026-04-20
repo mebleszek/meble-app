@@ -1,3 +1,11 @@
+## 2026-04-21 — Start/home clears project context + fallback bootstrap respects roomless WYCENA
+- `js/app/ui/views.js` — przejścia widoków (`openHome/openModeHub/openInvestorsList/openServiceOrdersList/openRooms/openRoom/back`) synchronizują teraz także globalne `uiState`, nie tylko zapis przez `FC.uiState.set(...)`. Dzięki temu po wyjściu do Startu nie zostaje w pamięci stary aktywny kontekst typu `wycena + currentInvestorId`, który mógł później wracać przy reloadzie.
+- `js/app/ui/views.js` — `openHome()` czyści też kontekst projektu/inwestora (`currentInvestorId`, `roomType`, `lastRoomType`, `selectedCabinetId`, `showPriceList`) oraz czyści `reload restore` przez `FC.reloadRestore.clear()`. To ma zapobiegać sytuacji, w której Start po odświeżeniu wracał do starego projektu/zakładki.
+- `js/app.js` — wystawione jawne API `FC.reloadRestore.{read,clear,persist}`, żeby router/nawigacja mogły świadomie wyczyścić snapshot reloadu przy przejściu na ekrany typu Start/hub, zamiast liczyć tylko na pasywny cleanup w init.
+- `js/app/bootstrap/app-ui-bootstrap.js` — fallback bootstrapu rozumie teraz także `roomless WYCENA` (wejście do WYCENA bez wybranego pokoju), więc jeśli główny router widoków nie zadziała, awaryjny fallback pokaże `appView`, a nie `roomsView` z aktywną zakładką WYCENA.
+- `js/testing/project/tests.js` — dodane antyregresje dla obu rzeczy: fallback roomless WYCENA oraz `openHome()` czyszczącego kontekst projektu/reload restore.
+- Instrukcja antyregresyjna: przy ekranach poza workflow projektu (Start, hub trybów, lista usług) czyścić także kontekst projektu/inwestora i reload snapshot, a nie tylko sam `entry`. Samo przełączenie widoku bez wyczyszczenia kontekstu może później dać pozorny „powrót” do starego projektu po odświeżeniu.
+
 ## 2026-04-20 — ROZRYS bootstrap tests accept deferred startup manifest
 - `js/testing/rozrys/tests.js` — testy `Bootstrap i splity` dla ROZRYS nie zakładają już, że każdy runtime asset musi siedzieć bezpośrednio w `index.html`. Jeśli asset został świadomie przeniesiony do `js/app/rozrys/rozrys-lazy-manifest.js`, test sprawdza kolejność właśnie w tym deferred entrypoincie.
 - `dev_tests.html` — podbity cache-busting dla zaktualizowanego smoke testu ROZRYS, żeby runner nie trzymał starej wersji oczekującej bezpośrednich wpisów w `index.html`.
