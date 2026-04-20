@@ -1597,3 +1597,8 @@ Dopiero potem go zmieniać.
 - `js/app/rozrys/rozrys-shell.js` — lekki shell API dla `FC.rozrys`: daje helpery potrzebne innym działom (`safeGetProject`, `aggregatePartsForProject`, room discovery) i placeholder `render()` uruchamiający lazy-load właściwego modułu. Dzięki temu `Wycena` i inne działy nie muszą czekać na pełen tab runtime.
 - `js/app/rozrys/rozrys.js` — końcowy eksport nie nadpisuje już ślepo `FC.rozrys`, tylko merguje się z istniejącym shellem. To zachowuje pola pomocnicze typu `__projectOverride` i nie gubi stanu po lazy-loadzie.
 - Instrukcja antyregresyjna: kolejne helpery wykorzystywane poza zakładką `ROZRYS` trafiają do startup shared API albo lekkiego shellu, a nie do deferred tab runtime. Do lazy group wrzucać tylko moduły naprawdę potrzebne dopiero po wejściu w `ROZRYS`.
+
+## 2026-04-20 — ROZRYS bootstrap tests use deferred entrypoint for runtime/scope bundles too
+- `js/testing/rozrys/tests.js` — pozostałe dwa testy `Bootstrap i splity` (`run controller/runtime bundle` oraz `scope/panel/runtime/output`) też zostały przepięte na wspólny helper `getRozrysStartupOrderSource(...)`. Dzięki temu dla nowych splitów startupu test sprawdza prawdziwy entrypoint ROZRYS (`index.html` albo `rozrys-lazy-manifest.js`), zamiast ślepo wymuszać stare wpisy bezpośrednio w `index.html`.
+- `dev_tests.html` — podbity cache-busting dla testów ROZRYS po tej korekcie.
+- Instrukcja antyregresyjna: jeśli runtime asset ROZRYS jest świadomie deferred, test bootstrapu ma pilnować jego kolejności w realnym entrypoincie, a nie traktować braku wpisu w `index.html` jako błąd sam w sobie.
