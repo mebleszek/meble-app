@@ -1,3 +1,10 @@
+## 2026-04-20 — ROZRYS render shell / selection shell split
+- `js/app/rozrys/rozrys-render-shell.js` — nowy moduł sklejający shell launcherów (`Pomieszczenia`, `Materiał / grupa`), montaż `panel workspace` oraz bootstrap `selection bridge` przez jeden kontrakt `createShell(...)`. Moduł zwraca refs shell/workspace i wrappery selection, dzięki czemu `rozrys.js` nie trzyma już lokalnie całego glue do launcherów i initu selection.
+- `js/app/rozrys/rozrys.js` — render nie buduje już ręcznie launchers/workspace/selection bridge. Zamiast tego bierze gotowy shell z `renderShellApi.createShell(...)`, zachowując lokalnie zabronione/czułe miejsca: `resolveInitialSelectedRooms(...)`, `aggregatePartsForProject(...)`, jawny bootstrap renderu oraz kolejność `outputCtrl -> runCtrl`.
+- `js/testing/rozrys/tests.js` — dodany kontrakt modułu `rozrys-render-shell`; test bootstrapu launcherów nie pilnuje już regexami lokalnych wrapperów nad `selectionBridge`, tylko load-order `rozrys-render-shell.js` i fakt, że `rozrys.js` buduje shell przez moduł.
+- `index.html` + `dev_tests.html` + smoke tools — dopięte ładowanie `rozrys-render-shell.js` i podbity cache-busting.
+- Instrukcja antyregresyjna: kolejne cięcia `rozrys.js` w obszarze launcherów/selection robić przez shell/adapter modułowy, a nie przez ponowne dopisywanie lokalnych wrapperów tylko po to, żeby przejść regex testu. Test ma pilnować kontraktu shella i load-order, nie starego układu linijek w `rozrys.js`.
+
 ## 2026-04-20 — ROZRYS bootstrap/split tests refactor to module contracts
 - `js/testing/rozrys/tests.js` — testy `Bootstrap i splity` dla ROZRYS nie pilnują już ciasno snippetów `rozrys.js` typu konkretne `const ... = ...` albo lokalny układ glue. Zamiast tego pilnują load-order assetów oraz kontraktów modułów (`part helpers`, `runtime bundle`, `controller bridges`, `render compose`, `panel workspace`, `output controller`) dostępnych po załadowaniu aplikacji.
 - `js/testing/rozrys/tests.js` — zachowania modułów nadal są sprawdzane osobnymi testami kontraktowymi (`Part helpers`, `Runtime bundle`, `Controller bridges`, `Panel workspace`, `Scope helpers`, `Output controller`), więc bootstrap testy nie blokują już sensownego prucia `rozrys.js` tylko dlatego, że zmienił się kształt snippetów.
@@ -1565,3 +1572,4 @@ Dopiero potem go zmieniać.
 - ROZRYS: po splicie panel workspace rozrys.js ma pobierać helpery/refy z obiektu `workspace` przez live property refs (`workspace.xxx`), nie przez duże destrukturyzowanie, bo smoke/testy pilnują tego bezpiecznego spięcia po wydzieleniu panelu.
 
 - 2026-04-20: kolejny bezpieczny split ROZRYS może wynosić duże obiekty `ctx/deps` z `render()` do osobnego assemblera configów, ale bez ruszania launcherów, `aggregatePartsForProject(...)`, `resolveInitialSelectedRooms(...)` i bez zmiany jawnej kolejności `selectionBridge.init()` oraz `outputCtrl -> runCtrl`.
+- ROZRYS: po splicie bootstrap/env testy bootstrapu mają pilnować kontraktu modułu `rozrys-bootstrap-env.js` i load order, a nie starego snippetowego kształtu góry `rozrys.js`.

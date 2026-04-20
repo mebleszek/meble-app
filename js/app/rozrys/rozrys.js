@@ -14,9 +14,91 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const projectSource = (FC.rozrysProjectSource && typeof FC.rozrysProjectSource.createApi === 'function')
-    ? FC.rozrysProjectSource.createApi({ FC, host:window })
-    : {};
+  const bootstrapEnvApi = (FC.rozrysBootstrapEnv && typeof FC.rozrysBootstrapEnv.createApi === 'function')
+    ? FC.rozrysBootstrapEnv.createApi({ FC, host:window })
+    : {
+      projectSource: {},
+      prefsApi: {},
+      uiTools: {
+        h: (tag, attrs, children)=> {
+          const el = document.createElement(tag);
+          if(attrs){
+            for(const k in attrs){
+              if(k==='class') el.className = attrs[k];
+              else if(k==='html') el.innerHTML = attrs[k];
+              else if(k==='text') el.textContent = attrs[k];
+              else el.setAttribute(k, attrs[k]);
+            }
+          }
+          (children||[]).forEach((ch)=> el.appendChild(ch));
+          return el;
+        },
+        labelWithInfo: ()=> document.createElement('div'),
+        openRozrysInfo: ()=> undefined,
+        getSelectOptionLabel: ()=> '',
+        setChoiceLaunchValue: ()=> undefined,
+        createChoiceLauncher: (label)=> {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'rozrys-choice-launch';
+          btn.textContent = String(label || '');
+          return btn;
+        },
+        openRozrysChoiceOverlay: ()=> Promise.resolve(null),
+        askRozrysConfirm: ()=> Promise.resolve(false),
+      },
+      partHelpers: {
+        resolveCabinetCutListFn: ()=> null,
+        resolveRozrysPartFromSource: (p)=> {
+          const rawMaterial = String((p && p.material) || '').trim();
+          const toMm = (v)=> {
+            const s = String(v == null ? '' : v).trim().replace(',', '.');
+            const n = Number(s);
+            return Number.isFinite(n) ? Math.round(n * 10) : 0;
+          };
+          return {
+            materialKey: rawMaterial,
+            name: String((p && p.name) || 'Element'),
+            sourceSig: `${rawMaterial}||${String((p && p.name) || 'Element')}||${toMm(p && p.a)}x${toMm(p && p.b)}`,
+            direction: 'default',
+            ignoreGrain: false,
+            w: toMm(p && p.a),
+            h: toMm(p && p.b),
+            qty: Math.max(1, Math.round(Number(p && p.qty) || 0)),
+          };
+        },
+        materialPartDirectionLabel: ()=> 'Domyślny z materiału',
+        isPartRotationAllowed: ()=> true,
+        isFrontMaterialKey: (materialKey)=> /^\s*Front\s*:/i.test(String(materialKey||'')),
+      },
+      engineBridge: {},
+      uiBridge: {
+        createProgressApi: ()=> ({
+          controller:null,
+          setGenBtnMode: ()=> undefined,
+          requestCancel: ()=> undefined,
+          isRozrysRunning: ()=> false,
+          getRozrysBtnMode: ()=> 'idle',
+        }),
+        openOptionsModal: ()=> undefined,
+        openAddStockModal: ()=> undefined,
+      },
+      createRuntimeUtils: ()=> ({
+        buildResolvedSnapshotFromParts: ()=> [],
+        buildRawSnapshotForMaterial: ()=> [],
+        buildRozrysDiagnostics: ()=> null,
+        validationSummaryLabel: ()=> ({ text:'Walidacja: brak danych', tone:'is-warn' }),
+        openValidationListModal: ()=> undefined,
+        openSheetListModal: ()=> undefined,
+        buildCsv: ()=> '',
+        downloadText: ()=> undefined,
+        openPrintView: ()=> undefined,
+        pxToMm: (px)=>{ const n = Number(px); return Number.isFinite(n) ? n * 25.4 / 96 : 0; },
+        measurePrintHeaderMm: ()=> 14,
+      }),
+    };
+
+  const projectSource = bootstrapEnvApi.projectSource || {};
   const discoverProjectRoomKeys = projectSource.discoverProjectRoomKeys || function(){ return []; };
   const discoverVisibleProjectRoomKeys = projectSource.discoverVisibleProjectRoomKeys || function(){ return []; };
   const collectProjectCandidates = projectSource.collectProjectCandidates || function(){ return []; };
@@ -24,7 +106,7 @@
   const getRoomsForProject = projectSource.getRoomsForProject || function(){ return []; };
   const getRooms = projectSource.getRooms || function(){ return []; };
 
-  const rozrysPrefsApi = FC.rozrysPrefs || {};
+  const rozrysPrefsApi = bootstrapEnvApi.prefsApi || {};
   const parseLocaleNumber = typeof rozrysPrefsApi.parseLocaleNumber === 'function'
     ? rozrysPrefsApi.parseLocaleNumber.bind(rozrysPrefsApi)
     : ((v)=>{ if(v === null || v === undefined) return NaN; if(typeof v === 'number') return Number.isFinite(v) ? v : NaN; const s = String(v).trim().replace(',', '.'); return s ? Number(s) : NaN; });
@@ -50,37 +132,7 @@
     ? rozrysPrefsApi.partSignature.bind(rozrysPrefsApi)
     : ((p)=> `${p && p.material || ''}||${p && p.name || ''}||${p && p.w || 0}x${p && p.h || 0}`);
 
-  const uiTools = (FC.rozrysUiTools && typeof FC.rozrysUiTools.createApi === 'function')
-    ? FC.rozrysUiTools.createApi({ FC })
-    : {
-      h: (tag, attrs, children)=> {
-        const el = document.createElement(tag);
-        if(attrs){
-          for(const k in attrs){
-            if(k==='class') el.className = attrs[k];
-            else if(k==='html') el.innerHTML = attrs[k];
-            else if(k==='text') el.textContent = attrs[k];
-            else el.setAttribute(k, attrs[k]);
-          }
-        }
-        (children||[]).forEach((ch)=> el.appendChild(ch));
-        return el;
-      },
-      labelWithInfo: ()=> document.createElement('div'),
-      openRozrysInfo: ()=> undefined,
-      getSelectOptionLabel: ()=> '',
-      setChoiceLaunchValue: ()=> undefined,
-      createChoiceLauncher: (label)=> {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'rozrys-choice-launch';
-        btn.textContent = String(label || '');
-        return btn;
-      },
-      openRozrysChoiceOverlay: ()=> Promise.resolve(null),
-      askRozrysConfirm: ()=> Promise.resolve(false),
-    };
-
+  const uiTools = bootstrapEnvApi.uiTools || {};
   const h = uiTools.h;
   const labelWithInfo = uiTools.labelWithInfo;
   const openRozrysInfo = uiTools.openRozrysInfo;
@@ -90,95 +142,19 @@
   const openRozrysChoiceOverlay = uiTools.openRozrysChoiceOverlay;
   const askRozrysConfirm = uiTools.askRozrysConfirm;
 
-  const partHelpers = (FC.rozrysPartHelpers && typeof FC.rozrysPartHelpers.createApi === 'function')
-    ? FC.rozrysPartHelpers.createApi({ FC, host:window, cmToMm, partSignature })
-    : (()=> {
-      function getPartOptionsStore(){
-        return (FC && FC.materialPartOptions) || null;
-      }
-      function normalizeFrontLaminatMaterialKey(materialKey){
-        const m = String(materialKey || '').match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
-        return m ? String(m[1] || '').trim() : String(materialKey || '').trim();
-      }
-      function resolveCabinetCutListFn(){
-        try{
-          if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function') return FC.cabinetCutlist.getCabinetCutList.bind(FC.cabinetCutlist);
-        }catch(_){ }
-        try{
-          if(typeof getCabinetCutList === 'function') return getCabinetCutList;
-        }catch(_){ }
-        try{
-          if(typeof window.getCabinetCutList === 'function') return window.getCabinetCutList;
-        }catch(_){ }
-        return null;
-      }
-      function resolveRozrysPartFromSource(p){
-        try{
-          const store = getPartOptionsStore();
-          if(store && typeof store.resolvePartForRozrys === 'function') return store.resolvePartForRozrys(p);
-        }catch(_){ }
-        const materialKey = normalizeFrontLaminatMaterialKey(String((p && p.material) || '').trim());
-        return {
-          materialKey,
-          name: String((p && p.name) || 'Element'),
-          sourceSig: `${materialKey}||${String((p && p.name) || 'Element')}||${cmToMm(p && p.a)}x${cmToMm(p && p.b)}` ,
-          direction: 'default',
-          ignoreGrain: false,
-          w: cmToMm(p && p.a),
-          h: cmToMm(p && p.b),
-          qty: Math.max(1, Math.round(Number(p && p.qty) || 0)),
-        };
-      }
-      function materialPartDirectionLabel(part){
-        try{
-          const store = getPartOptionsStore();
-          if(store && typeof store.labelForDirection === 'function') return store.labelForDirection(part && part.direction);
-        }catch(_){ }
-        return 'Domyślny z materiału';
-      }
-      function isPartRotationAllowed(part, grainOn, overrides){
-        if(!grainOn) return true;
-        if(part && part.ignoreGrain) return true;
-        const sig = partSignature(part);
-        return !!(overrides && overrides[sig]);
-      }
-      function isFrontMaterialKey(materialKey){
-        return /^\s*Front\s*:/i.test(String(materialKey||''));
-      }
-      return { getPartOptionsStore, resolveCabinetCutListFn, resolveRozrysPartFromSource, materialPartDirectionLabel, isPartRotationAllowed, isFrontMaterialKey, normalizeFrontLaminatMaterialKey };
-    })();
+  const partHelpers = bootstrapEnvApi.partHelpers || {};
+  const resolveCabinetCutListFn = partHelpers.resolveCabinetCutListFn || (()=> null);
+  const resolveRozrysPartFromSource = partHelpers.resolveRozrysPartFromSource || (()=> ({ materialKey:'', name:'Element', sourceSig:'', direction:'default', ignoreGrain:false, w:0, h:0, qty:1 }));
+  const materialPartDirectionLabel = partHelpers.materialPartDirectionLabel || (()=> 'Domyślny z materiału');
+  const isPartRotationAllowed = partHelpers.isPartRotationAllowed || (()=> true);
+  const isFrontMaterialKey = partHelpers.isFrontMaterialKey || ((materialKey)=> /^\s*Front\s*:/i.test(String(materialKey||'')));
 
-  const getPartOptionsStore = partHelpers.getPartOptionsStore;
-  const resolveCabinetCutListFn = partHelpers.resolveCabinetCutListFn;
-  const resolveRozrysPartFromSource = partHelpers.resolveRozrysPartFromSource;
-  const materialPartDirectionLabel = partHelpers.materialPartDirectionLabel;
-  const isPartRotationAllowed = partHelpers.isPartRotationAllowed;
-  const isFrontMaterialKey = partHelpers.isFrontMaterialKey;
-  const normalizeFrontLaminatMaterialKey = partHelpers.normalizeFrontLaminatMaterialKey;
-
-  const engineBridge = (FC.rozrysEngineBridge && typeof FC.rozrysEngineBridge.createApi === 'function')
-    ? FC.rozrysEngineBridge.createApi({ FC, loadEdgeStore, partSignature, isPartRotationAllowed, mmToUnitStr })
-    : {};
-
-  const uiBridge = (FC.rozrysUiBridge && typeof FC.rozrysUiBridge.createApi === 'function')
-    ? FC.rozrysUiBridge.createApi({ FC })
-    : {
-      createProgressApi: ()=> ({
-        controller:null,
-        setGenBtnMode: ()=> undefined,
-        requestCancel: ()=> undefined,
-        isRozrysRunning: ()=> false,
-        getRozrysBtnMode: ()=> 'idle',
-      }),
-      openOptionsModal: ()=> undefined,
-      openAddStockModal: ()=> undefined,
-    };
-
-  const panelWorkspaceApi = (FC.rozrysPanelWorkspace && typeof FC.rozrysPanelWorkspace.createApi === 'function')
-    ? FC.rozrysPanelWorkspace.createApi({ FC })
-    : {
-      createWorkspace: ()=> null,
-    };
+  const engineBridge = bootstrapEnvApi.engineBridge || {};
+  const uiBridge = bootstrapEnvApi.uiBridge || {
+    createProgressApi: ()=> ({ controller:null, setGenBtnMode: ()=> undefined, requestCancel: ()=> undefined, isRozrysRunning: ()=> false, getRozrysBtnMode: ()=> 'idle' }),
+    openOptionsModal: ()=> undefined,
+    openAddStockModal: ()=> undefined,
+  };
 
   const runtimeBundleApi = (FC.rozrysRuntimeBundle && typeof FC.rozrysRuntimeBundle.createApi === 'function')
     ? FC.rozrysRuntimeBundle.createApi({ FC })
@@ -305,6 +281,26 @@
     };
 
 
+  const renderShellApi = (FC.rozrysRenderShell && typeof FC.rozrysRenderShell.createApi === 'function')
+    ? FC.rozrysRenderShell.createApi({ FC })
+    : {
+      createShell: ()=> ({
+        workspace:null,
+        matSel:null,
+        selection:{
+          updateRoomsPickerButton: ()=> undefined,
+          updateMaterialPickerButton: ()=> undefined,
+          persistSelectionPrefs: ()=> undefined,
+          syncHiddenSelections: ()=> undefined,
+          refreshSelectionState: ()=> undefined,
+          buildScopeDraftControls: ()=> undefined,
+          openRoomsPicker: ()=> undefined,
+          openMaterialPicker: ()=> undefined,
+        },
+      }),
+    };
+
+
   const scopeApi = (FC.rozrysScope && typeof FC.rozrysScope.createApi === 'function')
     ? FC.rozrysScope.createApi({
       getRooms,
@@ -366,32 +362,32 @@ function resolveInitialSelectedRooms(raw){
 }
 
 
-  const runtimeUtils = (FC.rozrysRuntimeUtils && typeof FC.rozrysRuntimeUtils.createApi === 'function')
-    ? FC.rozrysRuntimeUtils.createApi({
-      FC,
-      safeGetProject,
-      getRooms,
-      normalizeRoomSelection,
-      resolveCabinetCutListFn,
-      resolveRozrysPartFromSource,
-      isFrontMaterialKey,
-      partSignature,
-      mmToUnitStr,
-      openRozrysInfo,
-    })
+  const runtimeUtils = typeof bootstrapEnvApi.createRuntimeUtils === 'function'
+    ? bootstrapEnvApi.createRuntimeUtils({
+        FC,
+        safeGetProject,
+        getRooms,
+        normalizeRoomSelection,
+        resolveCabinetCutListFn,
+        resolveRozrysPartFromSource,
+        isFrontMaterialKey,
+        partSignature,
+        mmToUnitStr,
+        openRozrysInfo,
+      })
     : {
-      buildResolvedSnapshotFromParts: ()=> [],
-      buildRawSnapshotForMaterial: ()=> [],
-      buildRozrysDiagnostics: ()=> null,
-      validationSummaryLabel: ()=> ({ text:'Walidacja: brak danych', tone:'is-warn' }),
-      openValidationListModal: ()=> undefined,
-      openSheetListModal: ()=> undefined,
-      buildCsv: ()=> '',
-      downloadText: ()=> undefined,
-      openPrintView: ()=> undefined,
-      pxToMm: (px)=>{ const n = Number(px); return Number.isFinite(n) ? n * 25.4 / 96 : 0; },
-      measurePrintHeaderMm: ()=> 14,
-    };
+        buildResolvedSnapshotFromParts: ()=> [],
+        buildRawSnapshotForMaterial: ()=> [],
+        buildRozrysDiagnostics: ()=> null,
+        validationSummaryLabel: ()=> ({ text:'Walidacja: brak danych', tone:'is-warn' }),
+        openValidationListModal: ()=> undefined,
+        openSheetListModal: ()=> undefined,
+        buildCsv: ()=> '',
+        downloadText: ()=> undefined,
+        openPrintView: ()=> undefined,
+        pxToMm: (px)=>{ const n = Number(px); return Number.isFinite(n) ? n * 25.4 / 96 : 0; },
+        measurePrintHeaderMm: ()=> 14,
+      };
   const buildResolvedSnapshotFromParts = runtimeUtils.buildResolvedSnapshotFromParts;
   const buildRawSnapshotForMaterial = runtimeUtils.buildRawSnapshotForMaterial;
   const buildRozrysDiagnostics = runtimeUtils.buildRozrysDiagnostics;
@@ -441,7 +437,7 @@ function aggregatePartsForProject(selectedRooms){
     if(bestExplicitEmpty) return bestExplicitEmpty;
     const deps = Object.assign({}, baseDeps, { safeGetProject });
     const fallback = FC.rozrysScope.aggregatePartsForProject(selectedRooms, deps);
-    return fallback || { byMaterial:{}, materials:[], groups:{}, selectedRooms:Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
+    return fallback || { byMaterial: {}, materials: [], groups: {}, selectedRooms: Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
   }
   return { byMaterial: {}, materials: [], groups: {}, selectedRooms: Array.isArray(selectedRooms) ? selectedRooms.slice() : [] };
 }
@@ -522,31 +518,7 @@ function aggregatePartsForProject(selectedRooms){
     // Format pełnej płyty ma pozostać pod kontrolą użytkownika.
     // Nie nadpisujemy go automatycznie mniejszym formatem z magazynu.
 
-    // top row: material + format arkusza + opcje
-    const controls = h('div', { class:'rozrys-selection-grid', style:'margin-top:12px' });
-    // room + material picker
-    const roomsWrap = h('div', { class:'rozrys-field rozrys-selection-grid__rooms' });
-    roomsWrap.appendChild(labelWithInfo('Pomieszczenia', 'Pomieszczenia', 'Wybierz, z których pomieszczeń mam zebrać formatki do rozrysu. Ten sam materiał z kilku pomieszczeń zostanie zsumowany.'));
-    const roomsSel = h('input', { id:'rozRooms', type:'hidden', value:encodeRoomsSelection(selectedRooms) });
-    const roomsPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--rooms' });
-    const roomsPickerValue = h('div', { class:'rozrys-picker-launch__value' });
-    roomsPickerBtn.appendChild(roomsPickerValue);
-    roomsWrap.appendChild(roomsPickerBtn);
-    roomsWrap.appendChild(roomsSel);
-    controls.appendChild(roomsWrap);
-
-    const matWrap = h('div', { class:'rozrys-field rozrys-selection-grid__material' });
-    matWrap.appendChild(labelWithInfo('Materiał / grupa', 'Materiał / grupa', 'Wybierz wszystkie materiały albo jeden kolor. Dla koloru, który ma i fronty, i korpusy, możesz zaznaczyć sam front, sam korpus albo oba.'));
-    const matSel = h('input', { id:'rozMat', type:'hidden', value:encodeMaterialScope(materialScope) });
-    const matPickerBtn = h('button', { type:'button', class:'btn rozrys-picker-launch rozrys-picker-launch--material' });
-    const matPickerValue = h('div', { class:'rozrys-picker-launch__value' });
-    matPickerBtn.appendChild(matPickerValue);
-    matWrap.appendChild(matPickerBtn);
-    matWrap.appendChild(matSel);
-    controls.appendChild(matWrap);
-    card.appendChild(controls);
-
-    const workspace = panelWorkspaceApi.createWorkspace(renderComposeApi.buildWorkspaceCtx({
+    const renderShell = renderShellApi.createShell({
       h,
       labelWithInfo,
       createChoiceLauncher,
@@ -557,97 +529,73 @@ function aggregatePartsForProject(selectedRooms){
       state,
       panelPrefs,
       getSelectedRooms: ()=> selectedRooms,
-      getMaterialScope: ()=> materialScope,
-      encodeRoomsSelection,
-      encodeMaterialScope,
-      loadPanelPrefs,
-      savePanelPrefs,
-      rozState,
-    }), renderComposeApi.buildWorkspaceDeps({
-      normalizeCutDirection,
-    }));
-    if(!workspace){
-      card.appendChild(h('div', { class:'muted', style:'margin-top:12px', text:'Brak modułu panelu ROZRYS.' }));
-      root.appendChild(card);
-      return;
-    }
-
-    const unitSel = workspace.unitSel;
-    const edgeSel = workspace.edgeSel;
-    const inW = workspace.inW;
-    const inH = workspace.inH;
-    const inK = workspace.inK;
-    const inTrim = workspace.inTrim;
-    const inMinW = workspace.inMinW;
-    const inMinH = workspace.inMinH;
-    const heurSel = workspace.heurSel;
-    const dirSel = workspace.dirSel;
-    const addStockBtn = workspace.addStockBtn;
-    const openOptionsBtnInline = workspace.openOptionsBtnInline;
-    const genBtn = workspace.genBtn;
-    const statusBox = workspace.statusBox;
-    const statusMain = workspace.statusMain;
-    const statusSub = workspace.statusSub;
-    const statusMeta = workspace.statusMeta;
-    const statusProg = workspace.statusProg;
-    const statusProgBar = workspace.statusProgBar;
-    const out = workspace.out;
-    const persistOptionPrefs = workspace.persistOptionPrefs;
-    const applyUnitChange = workspace.applyUnitChange;
-    const getBaseState = workspace.getBaseState;
-
-    root.appendChild(card);
-
-
-    function applyHintFromMagazyn(material, opts){
-      // Format bazowy pozostaje pod kontrolą użytkownika w ustawieniach.
-      // Stan magazynu nie może już nadpisywać głównego formatu rozrysu.
-      void material;
-      void opts;
-    }
-
-    const selectionBridge = controllerBridgeApi.createSelectionBridge(renderComposeApi.buildSelectionBridgeConfig({
-      h,
-      state,
-      roomsPickerBtn,
-      matPickerBtn,
-      roomsPickerValue,
-      matPickerValue,
-      roomsSel,
-      matSel,
-      rozState,
-      getRooms,
-      getSelectedRooms: ()=> selectedRooms,
       setSelectedRooms: (rooms)=>{ selectedRooms = Array.isArray(rooms) ? rooms.slice() : []; },
       getMaterialScope: ()=> materialScope,
       setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
       getAggregate: ()=> agg,
       setAggregate: (nextAgg)=>{ agg = nextAgg; },
+      encodeRoomsSelection,
+      encodeMaterialScope,
+      loadPanelPrefs,
+      savePanelPrefs,
+      rozState,
+      normalizeCutDirection,
+      getRooms,
       tryAutoRenderFromCache,
       scopeApi,
       aggregatePartsForProject,
-      savePanelPrefs,
-      loadPanelPrefs,
-      encodeRoomsSelection,
-      encodeMaterialScope,
       normalizeMaterialScopeForAggregate,
       askRozrysConfirm,
       normalizeRoomSelection,
       roomLabel,
       splitMaterialAccordionTitle,
       makeMaterialScope,
-    }));
+    });
+    const workspace = renderShell.workspace;
+    if(!workspace){
+      card.appendChild(h('div', { class:'muted', style:'margin-top:12px', text:'Brak modułu panelu ROZRYS.' }));
+      root.appendChild(card);
+      return;
+    }
 
-    function updateRoomsPickerButton(){ return selectionBridge.updateRoomsPickerButton(); }
-    function updateMaterialPickerButton(){ return selectionBridge.updateMaterialPickerButton(); }
-    function persistSelectionPrefs(){ return selectionBridge.persistSelectionPrefs(); }
-    function syncHiddenSelections(){ return selectionBridge.syncHiddenSelections(); }
-    function refreshSelectionState(opts){ return selectionBridge.refreshSelectionState(opts); }
-    function buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts){ return selectionBridge.buildScopeDraftControls(holder, draftScope, hasFronts, hasCorpus, opts); }
-    function openRoomsPicker(){ return selectionBridge.openRoomsPicker(); }
-    function openMaterialPicker(){ return selectionBridge.openMaterialPicker(); }
+    const matSel = renderShell.matSel;
+    const {
+      unitSel,
+      edgeSel,
+      inW,
+      inH,
+      inK,
+      inTrim,
+      inMinW,
+      inMinH,
+      heurSel,
+      dirSel,
+      addStockBtn,
+      openOptionsBtnInline,
+      genBtn,
+      statusBox,
+      statusMain,
+      statusSub,
+      statusMeta,
+      statusProg,
+      statusProgBar,
+      out,
+      persistOptionPrefs,
+      applyUnitChange,
+      getBaseState,
+    } = workspace;
+    const selectionShell = renderShell.selection || {};
+    const updateMaterialPickerButton = typeof selectionShell.updateMaterialPickerButton === 'function'
+      ? selectionShell.updateMaterialPickerButton
+      : (()=> undefined);
+    const persistSelectionPrefs = typeof selectionShell.persistSelectionPrefs === 'function'
+      ? selectionShell.persistSelectionPrefs
+      : (()=> undefined);
+    const syncHiddenSelections = typeof selectionShell.syncHiddenSelections === 'function'
+      ? selectionShell.syncHiddenSelections
+      : (()=> undefined);
 
-    selectionBridge.init();
+    root.appendChild(card);
 
     const planHelpers = runtimeBundleApi.createPlanHelpers(renderComposeApi.buildPlanHelpersConfig({
       FC,
