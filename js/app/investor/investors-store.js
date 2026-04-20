@@ -98,11 +98,53 @@
     };
   }
 
+  function readSessionSnapshotInvestors(){
+    try{
+      const raw = localStorage.getItem('fc_edit_session_v1');
+      if(!raw) return [];
+      const parsed = JSON.parse(raw);
+      const snapshot = parsed && parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
+      const investorsRaw = snapshot && Object.prototype.hasOwnProperty.call(snapshot, KEY_INVESTORS)
+        ? snapshot[KEY_INVESTORS]
+        : null;
+      if(!investorsRaw) return [];
+      const arr = JSON.parse(investorsRaw);
+      return Array.isArray(arr) ? arr.map(normalizeInvestor) : [];
+    }catch(_){ return []; }
+  }
+
+  function mergeMissingContactFieldsFromSession(list){
+    const current = Array.isArray(list) ? list.map(normalizeInvestor) : [];
+    if(!current.length) return current;
+    const sessionInvestors = readSessionSnapshotInvestors();
+    if(!sessionInvestors.length) return current;
+    const byId = new Map(sessionInvestors.map((inv)=> [String(inv && inv.id || ''), normalizeInvestor(inv)]));
+    return current.map((inv)=> {
+      const key = String(inv && inv.id || '').trim();
+      const backup = byId.get(key);
+      if(!backup) return inv;
+      return normalizeInvestor(Object.assign({}, inv, {
+        name: inv.name || backup.name || '',
+        companyName: inv.companyName || backup.companyName || '',
+        ownerName: inv.ownerName || backup.ownerName || '',
+        phone: inv.phone || backup.phone || '',
+        email: inv.email || backup.email || '',
+        city: inv.city || backup.city || '',
+        address: inv.address || backup.address || '',
+        nip: inv.nip || backup.nip || '',
+        notes: inv.notes || backup.notes || '',
+        source: inv.source || backup.source || '',
+        rooms: Array.isArray(inv.rooms) && inv.rooms.length ? inv.rooms : backup.rooms,
+      }));
+    });
+  }
+
   function readStoredAll(){
     try{
       const raw = localStorage.getItem(KEY_INVESTORS);
       const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr.map(normalizeInvestor) : [];
+      const normalized = Array.isArray(arr) ? arr.map(normalizeInvestor) : [];
+      return mergeMissingContactFieldsFromSession(normalized);
     }catch(_){ return []; }
   }
 
@@ -379,7 +421,6 @@
       });
       if(!additions.length) return current;
       const next = current.concat(additions);
-      writeAll(next);
       return next;
     }finally{
       _isRecovering = false;
@@ -499,6 +540,7 @@
     KEY_REMOVED,
     _debug: {
       readStoredAll,
+      readSessionSnapshotInvestors,
       buildRecoveryCandidates,
       recoverMissingInvestors,
       readRemovedIds,

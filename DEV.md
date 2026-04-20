@@ -1,3 +1,9 @@
+## 2026-04-20 — Inwestor recovery non-destructive read + session snapshot backfill
+- `js/app/investor/investors-store.js` — recovery inwestorów przy `readAll()` nie zapisuje już automatycznie odbudowanych szkieletów do `fc_investors_v1`. Dzięki temu awaryjne odczyty z projektów/snapshotów nie nadpisują trwałej listy inwestorów ubogimi rekordami bez telefonu/maila/adresu.
+- `js/app/investor/investors-store.js` — `readStoredAll()` robi best-effort merge brakujących pól kontaktowych z `fc_edit_session_v1.snapshot.fc_investors_v1`, jeśli taka sesyjna migawka istnieje. To daje szansę odzyskać telefon/mail/adres dla tych samych `investorId` bez zgadywania i bez ruszania innych danych.
+- `index.html` + `dev_tests.html` — podbity cache-busting dla `investors-store.js`.
+- Instrukcja antyregresyjna: `readAll()` w store inwestorów nie może mieć efektu ubocznego zapisującego zrekonstruowane szkielety jako nowy stan źródłowy. Recovery ma pomagać w odczycie, a nie utrwalać stratę pól kontaktowych zubożonym fallbackiem z projektów/snapshotów.
+
 ## 2026-04-20 — ROZRYS runtime bundle split (plan/output/run assembler)
 - `js/app/rozrys/rozrys-runtime-bundle.js` — nowy moduł assemblera runtime ROZRYS. Składa trzy czułe odnogi `render()` bez ruszania bootstrap orderu: `createPlanHelpers(...)`, `createOutputController(...)` i `createRunController(...)`. To jest bezpieczny split warstwy spinającej plan/cache/output/run, a nie split pickerów albo agregacji.
 - `js/app/rozrys/rozrys.js` — nie trzyma już lokalnego bridge/fallback bloku dla `rozrysPlanHelpers`, `rozrysRunController` i `rozrysOutputController`, ani ręcznego składania controllerów przez osobne API. Render nadal zachowuje lokalne hoistowane fasady (`tryAutoRenderFromCache`, `buildEntriesForScope`, `splitMaterialAccordionTitle`, `createMaterialAccordionSection`, `renderOutput`, `renderLoadingInto`) oraz kolejność `outputCtrl` -> `runCtrl`.
