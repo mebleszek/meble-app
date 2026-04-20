@@ -1557,3 +1557,5 @@ Dopiero potem go zmieniać.
 - 2026-04-20: Po splicie runtime bundle kolejny bezpieczny split ROZRYS to mosty selection/output. Można wydzielać adaptery kontrolerów i scope summary, ale trzeba zachować lokalną kolejność bootstrapu `outputCtrl -> runCtrl` oraz hoistowane wrappery (`splitMaterialAccordionTitle`, `tryAutoRenderFromCache`, `buildEntriesForScope`).
 
 - ROZRYS: po splicie panel workspace rozrys.js ma pobierać helpery/refy z obiektu `workspace` przez live property refs (`workspace.xxx`), nie przez duże destrukturyzowanie, bo smoke/testy pilnują tego bezpiecznego spięcia po wydzieleniu panelu.
+
+- 2026-04-20: kolejny bezpieczny split ROZRYS może wynosić duże obiekty `ctx/deps` z `render()` do osobnego assemblera configów, ale bez ruszania launcherów, `aggregatePartsForProject(...)`, `resolveInitialSelectedRooms(...)` i bez zmiany jawnej kolejności `selectionBridge.init()` oraz `outputCtrl -> runCtrl`.

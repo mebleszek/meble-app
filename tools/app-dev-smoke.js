@@ -52,6 +52,7 @@ const FILES = [
   'js/app/rozrys/rozrys-panel-workspace.js',
   'js/app/rozrys/rozrys-runtime-bundle.js',
   'js/app/rozrys/rozrys-controller-bridges.js',
+  'js/app/rozrys/rozrys-render-compose.js',
   'js/app/rozrys/rozrys-run-controller.js',
   'js/app/rozrys/rozrys-output-controller.js',
   'js/app.js',
