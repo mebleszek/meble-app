@@ -849,6 +849,15 @@ function initUI(){
 
   renderTopHeight();
   renderCabinets();
+  try{
+    if(window.FC && window.FC.rozrysLazy && typeof window.FC.rozrysLazy.scheduleWarmup === 'function'){
+      window.FC.rozrysLazy.scheduleWarmup({
+        reason:'post-init-ui',
+        delayMs: 900,
+        idleTimeoutMs: 3500,
+      });
+    }
+  }catch(_){ }
   try{ restoreReloadScroll(); }catch(_){ }
 }
 

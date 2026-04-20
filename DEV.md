@@ -1,3 +1,10 @@
+
+## 2026-04-20 — ROZRYS background warmup after base startup
+- `js/app/rozrys/rozrys-lazy-loader.js` — lazy loader ROZRYS dostał tryb rozgrzewki w tle po starcie (`scheduleWarmup`). Loader czeka na pełne załadowanie strony (`window.load`), potem na krótki delay i idle slot (`requestIdleCallback` z timeoutem), a dopiero wtedy dociąga deferred runtime zakładki ROZRYS. Jeśli użytkownik kliknie zakładkę wcześniej, nadal działa ten sam główny `ensureFeatureLoaded()` bez duplikacji ładowania.
+- `js/app/rozrys/rozrys-lazy-loader.js` — dodane bezpieczniki dla słabego łącza: warmup nie startuje automatycznie przy `navigator.connection.saveData` ani dla `2g/slow-2g`. To ma chronić start aplikacji na gorszych urządzeniach/łączach, zamiast ślepo dogrywać ciężki moduł zawsze i wszędzie.
+- `js/app.js` — po podstawowym renderze UI (`renderTopHeight()` + `renderCabinets()`) aplikacja planuje background warmup ROZRYS zamiast czekać wyłącznie na pierwszy klik w zakładkę. Dzięki temu pierwszy wejściowy klik w `ROZRYS` powinien zwykle być szybszy, ale krytyczny bootstrap dalej nie jest obciążony pełnym runtime od razu.
+- Instrukcja antyregresyjna: background warmup ma tylko dogrywać deferred runtime po starcie podstawy. Nie dokładać do niego ciężkich efektów ubocznych zależnych od aktywnej zakładki ani synchronizacji, które zmieniają stan UI bez wejścia użytkownika w `ROZRYS`.
+
 ## 2026-04-20 — Index load groups baseline + audit
 - `index.html` — sekcja skryptów dostała jawne grupy ładowania przez `data-load-group` i komentarze bloków (`startup-foundation`, `business-domains`, `ui-shell`, `app-runtime`, `cabinet-wywiad`, `tabs-quote-wycena`, `optimizer-and-stock`, `rozrys-feature`). Kolejność skryptów nie została zmieniona; celem jest uczynienie bootstrapu czytelnym i przygotowanie gruntu pod przyszłe lazy-load / dalsze odchudzanie startu bez zgadywania zależności.
 - `tools/index-load-groups.js` — nowe źródło prawdy dla kolejności grup startowych w `index.html`; trzyma ordered listę grup i skryptów bez query-stringów, żeby kolejne splity nie rozjeżdżały ręcznie entrypointu.
