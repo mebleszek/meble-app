@@ -559,11 +559,29 @@ function aggregatePartsForProject(selectedRooms){
       return;
     }
 
-    const {
-      unitSel, edgeSel, inW, inH, inK, inTrim, inMinW, inMinH, heurSel, dirSel,
-      addStockBtn, openOptionsBtnInline, genBtn, statusBox, statusMain, statusSub,
-      statusMeta, statusProg, statusProgBar, out, persistOptionPrefs, applyUnitChange, getBaseState,
-    } = workspace;
+    const unitSel = workspace.unitSel;
+    const edgeSel = workspace.edgeSel;
+    const inW = workspace.inW;
+    const inH = workspace.inH;
+    const inK = workspace.inK;
+    const inTrim = workspace.inTrim;
+    const inMinW = workspace.inMinW;
+    const inMinH = workspace.inMinH;
+    const heurSel = workspace.heurSel;
+    const dirSel = workspace.dirSel;
+    const addStockBtn = workspace.addStockBtn;
+    const openOptionsBtnInline = workspace.openOptionsBtnInline;
+    const genBtn = workspace.genBtn;
+    const statusBox = workspace.statusBox;
+    const statusMain = workspace.statusMain;
+    const statusSub = workspace.statusSub;
+    const statusMeta = workspace.statusMeta;
+    const statusProg = workspace.statusProg;
+    const statusProgBar = workspace.statusProgBar;
+    const out = workspace.out;
+    const persistOptionPrefs = workspace.persistOptionPrefs;
+    const applyUnitChange = workspace.applyUnitChange;
+    const getBaseState = workspace.getBaseState;
 
     root.appendChild(card);
 

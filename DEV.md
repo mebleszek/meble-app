@@ -1549,3 +1549,5 @@ Dopiero potem go zmieniać.
 - 2026-04-20: `quoteSnapshotStore.writeAll/save` nie mogą podczas normalizacji jawnych `roomLabels` odpalać `roomRegistry` i pośrednio `investors.readAll()`. Na zapisie zachowujemy kompletne explicit labels bez lookupu; kanonizacja/stara korekta etykiet ma działać dopiero przy odczycie (`readAll`).
 
 - 2026-04-20: Po splicie runtime bundle kolejny bezpieczny split ROZRYS to mosty selection/output. Można wydzielać adaptery kontrolerów i scope summary, ale trzeba zachować lokalną kolejność bootstrapu `outputCtrl -> runCtrl` oraz hoistowane wrappery (`splitMaterialAccordionTitle`, `tryAutoRenderFromCache`, `buildEntriesForScope`).
+
+- ROZRYS: po splicie panel workspace rozrys.js ma pobierać helpery/refy z obiektu `workspace` przez live property refs (`workspace.xxx`), nie przez duże destrukturyzowanie, bo smoke/testy pilnują tego bezpiecznego spięcia po wydzieleniu panelu.
