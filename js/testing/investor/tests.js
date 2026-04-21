@@ -35,14 +35,22 @@
       assert(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function', 'Brak roomRegistry.openManageRoomsModal');
       assert(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function', 'Brak investorRoomActions.bindRoomActions');
     }),
-    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core i cienki shell', 'Pilnuje kolejnego splitu roomRegistry: core trzyma logikę projektu, osobne moduły obsługują modale i render, a shell tylko scala publiczne API.', ()=>{
+    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core, render i split modali', 'Pilnuje kolejnego splitu roomRegistry: core trzyma logikę projektu, render jest osobny, a modale są podzielone na add/edit oraz manage/remove zanim trafią do cienkiego shell-a.', ()=>{
       assert(FC.roomRegistryCore && typeof FC.roomRegistryCore.getActiveRoomDefs === 'function', 'Brak roomRegistryCore.getActiveRoomDefs');
       assert(typeof FC.roomRegistryCore.applyManageRoomsDraft === 'function', 'Brak roomRegistryCore.applyManageRoomsDraft');
+      assert(FC.roomRegistryModalsAddEdit && typeof FC.roomRegistryModalsAddEdit.openAddRoomModal === 'function', 'Brak roomRegistryModalsAddEdit.openAddRoomModal');
+      assert(FC.roomRegistryModalsAddEdit._debug && typeof FC.roomRegistryModalsAddEdit._debug.openEditRoomModal === 'function', 'Brak roomRegistryModalsAddEdit._debug.openEditRoomModal');
+      assert(FC.roomRegistryModalsManageRemove && typeof FC.roomRegistryModalsManageRemove.openManageRoomsModal === 'function', 'Brak roomRegistryModalsManageRemove.openManageRoomsModal');
+      assert(typeof FC.roomRegistryModalsManageRemove.openRemoveRoomModal === 'function', 'Brak roomRegistryModalsManageRemove.openRemoveRoomModal');
       assert(FC.roomRegistryModals && typeof FC.roomRegistryModals.openManageRoomsModal === 'function', 'Brak roomRegistryModals.openManageRoomsModal');
       assert(FC.roomRegistryRender && typeof FC.roomRegistryRender.renderRoomsView === 'function', 'Brak roomRegistryRender.renderRoomsView');
       assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak roomRegistry.getActiveRoomDefs');
       assert(typeof FC.roomRegistry.openAddRoomModal === 'function', 'Brak roomRegistry.openAddRoomModal');
-      assert(FC.roomRegistry.openManageRoomsModal === FC.roomRegistryModals.openManageRoomsModal, 'Shell roomRegistry nie deleguje spójnie modali do roomRegistryModals');
+      assert(FC.roomRegistry.openAddRoomModal === FC.roomRegistryModalsAddEdit.openAddRoomModal, 'Shell roomRegistry nie deleguje add modal do roomRegistryModalsAddEdit');
+      assert(FC.roomRegistry.openManageRoomsModal === FC.roomRegistryModalsManageRemove.openManageRoomsModal, 'Shell roomRegistry nie deleguje manage modal do roomRegistryModalsManageRemove');
+      assert(FC.roomRegistry.openRemoveRoomModal === FC.roomRegistryModalsManageRemove.openRemoveRoomModal, 'Shell roomRegistry nie deleguje remove modal do roomRegistryModalsManageRemove');
+      assert(FC.roomRegistryModals.openAddRoomModal === FC.roomRegistryModalsAddEdit.openAddRoomModal, 'Shell roomRegistryModals nie deleguje add modal do roomRegistryModalsAddEdit');
+      assert(FC.roomRegistryModals.openManageRoomsModal === FC.roomRegistryModalsManageRemove.openManageRoomsModal, 'Shell roomRegistryModals nie deleguje manage modal do roomRegistryModalsManageRemove');
       assert(FC.roomRegistry.renderRoomsView === FC.roomRegistryRender.renderRoomsView, 'Shell roomRegistry nie deleguje spójnie renderu do roomRegistryRender');
       const shellDefs = FC.roomRegistry.getActiveRoomDefs();
       const coreDefs = FC.roomRegistryCore.getActiveRoomDefs();

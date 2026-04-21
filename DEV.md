@@ -1,3 +1,11 @@
+## 2026-04-21 — room-registry modal layer split into add/edit + manage/remove
+- `js/app/shared/room-registry-modals-add-edit.js` — nowy moduł trzyma tylko modale dodawania i edycji pojedynczego pomieszczenia. Dzięki temu formularz typu/nazwy i zapis pojedynczego pokoju nie siedzą już w tym samym pliku co zarządzanie całą listą.
+- `js/app/shared/room-registry-modals-manage-remove.js` — nowy moduł trzyma modal zarządzania listą pomieszczeń oraz dedykowany modal usuwania. To oddziela pracę na wielu pokojach/draftach od formularza pojedynczego pokoju.
+- `js/app/shared/room-registry-modals.js` — odchudzony do cienkiego shell-a, który tylko scala API z dwóch modułów modalnych (`add-edit` oraz `manage-remove`).
+- `index.html` + `dev_tests.html` + `tools/index-load-groups.js` — nowa kolejność krytycznych assetów: `room-registry-core` -> `room-registry-modals-add-edit` -> `room-registry-modals-manage-remove` -> `room-registry-modals` -> `room-registry-render` -> `room-registry`.
+- `js/testing/investor/tests.js` — kontrakt splitu pilnuje istnienia obu nowych modułów i tego, że shelle `roomRegistryModals` oraz `roomRegistry` delegują do właściwych warstw.
+- Instrukcja antyregresyjna: dalsze zmiany formularza pojedynczego pomieszczenia (`Dodaj` / `Edytuj`) dokładać do `room-registry-modals-add-edit.js`, a zmiany zarządzania listą i usuwania do `room-registry-modals-manage-remove.js`. Nie dokarmiać ponownie `room-registry-modals.js` ciężkim UI.
+
 ## 2026-04-21 — app-ui-bootstrap fixture-document fix really versioned + bootstrap API now overrides stale namespace
 - `js/app/bootstrap/app-ui-bootstrap.js` — helper `getById(...)` dalej wspiera fixture-root bez `getElementById`, ale teraz moduł jawnie nadpisuje `FC.appUiBootstrap.{registerCoreActions,initApp,initUI}` przy załadowaniu zamiast zostawiać stare implementacje pod warunkiem `if(typeof ... !== 'function')`. To usuwa ryzyko, że test runner albo cache utrzyma starą wersję API w namespace i nadal będzie rzucał `doc.getElementById is not a function` mimo poprawionego helpera.
 - `index.html` + `dev_tests.html` — podbity query-string dla `app-ui-bootstrap.js` i `js/testing/project/tests.js`, żeby po wdrożeniu nie zostać na starej wersji plików z cache/CDN.
