@@ -1,3 +1,8 @@
+## 2026-04-21 — app-ui-bootstrap fixture-document fix really versioned + bootstrap API now overrides stale namespace
+- `js/app/bootstrap/app-ui-bootstrap.js` — helper `getById(...)` dalej wspiera fixture-root bez `getElementById`, ale teraz moduł jawnie nadpisuje `FC.appUiBootstrap.{registerCoreActions,initApp,initUI}` przy załadowaniu zamiast zostawiać stare implementacje pod warunkiem `if(typeof ... !== 'function')`. To usuwa ryzyko, że test runner albo cache utrzyma starą wersję API w namespace i nadal będzie rzucał `doc.getElementById is not a function` mimo poprawionego helpera.
+- `index.html` + `dev_tests.html` — podbity query-string dla `app-ui-bootstrap.js` i `js/testing/project/tests.js`, żeby po wdrożeniu nie zostać na starej wersji plików z cache/CDN.
+- Instrukcja antyregresyjna: gdy poprawka ma usunąć regresję testów/startupu, zawsze sprawdzić, czy rzeczywiście został podbity cache-busting wszystkich dotkniętych plików. Nie deklarować „podbitej wersji”, jeśli URL assetu pozostał bez zmian.
+
 ## 2026-04-21 — startup blank-screen guard for empty shell views
 - `js/app/bootstrap/app-ui-bootstrap.js` — po `applyViews(...)` bootstrap sprawdza teraz, czy startup nie schował Startu i nie zostawił pustego shell view (`modeHubView`, `investorsListView`, `serviceOrdersListView`). Jeśli shell jest pusty nawet po próbie dogrania jego renderera, bootstrap odzyskuje bezpieczny ekran `Start`, czyści kontekst entry i zapisuje poprawiony `uiState`, zamiast zostawić użytkownika na pustej stronie.
 - `js/testing/project/tests.js` — dodany test antyregresyjny pilnujący, że pusty shell view po restore/startupie wraca do `Start`, a nie zostawia białego ekranu.
@@ -1636,3 +1641,4 @@ Dopiero potem go zmieniać.
 - `js/testing/project/tests.js` — dodany test antyregresyjny dla awaryjnego fallbacku startu: jeśli `views.applyFromState` rzuci wyjątek, Start ma pozostać jedynym widokiem i nie może pojawić się `roomsView` ani top tabs.
 - `js/testing/rozrys/tests.js` — helper startup entrypointu akceptuje teraz także mieszany model eager+deferred: część assetów ROZRYS może siedzieć w `index.html` (np. `rozrys-scope.js`), a część w `js/app/rozrys/rozrys-lazy-manifest.js`. Test nadal pilnuje kontraktu kolejności, ale nie wymusza już sztucznie jednego wspólnego źródła.
 - Instrukcja antyregresyjna: jeśli fallback startu musi przejąć routing, ma używać pełnego `showOnly` dla wszystkich głównych widoków, a nie tylko przełączać `roomsView/appView`. Przy testach bootstrapu ROZRYS dopuszczać rozdzielony entrypoint eager+deferred, o ile kolejność pozostaje poprawna.
+- Bootstrap UI test harness may pass a fixture element instead of full document; startup fallback helpers must support both getElementById and querySelector roots to avoid false regressions.

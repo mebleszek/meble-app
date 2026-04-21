@@ -9,37 +9,53 @@
 
   const FALLBACK_VIEW_IDS = ['homeView','modeHubView','roomsView','appView','investorView','rozrysView','magazynView','investorsListView','serviceOrdersListView'];
 
+  function resolveDoc(ctx){
+    return ctx && ctx.document ? ctx.document : document;
+  }
+
+  function getById(ctxOrDoc, id){
+    const doc = ctxOrDoc && ctxOrDoc.document ? ctxOrDoc.document : ctxOrDoc;
+    if(!doc || !id) return null;
+    try{
+      if(typeof doc.getElementById === 'function') return doc.getElementById(id);
+    }catch(_){ }
+    try{
+      if(typeof doc.querySelector === 'function') return doc.querySelector('#' + id);
+    }catch(_){ }
+    return null;
+  }
+
   function fallbackShowOnly(ctx, ids){
-    const doc = ctx && ctx.document ? ctx.document : document;
+    const doc = resolveDoc(ctx);
     FALLBACK_VIEW_IDS.forEach((id)=>{
-      const el = doc.getElementById(id);
+      const el = getById(doc, id);
       if(!el) return;
       el.style.display = ids.includes(id) ? 'block' : 'none';
     });
   }
 
   function fallbackSetTopBarVisible(ctx, on){
-    const doc = ctx && ctx.document ? ctx.document : document;
-    const topBar = doc.getElementById('topBar');
+    const doc = resolveDoc(ctx);
+    const topBar = getById(doc, 'topBar');
     if(topBar) topBar.style.display = on ? 'flex' : 'none';
   }
 
   function fallbackSetTabsVisible(ctx, on){
-    const doc = ctx && ctx.document ? ctx.document : document;
-    const tabs = doc.getElementById('topTabs');
+    const doc = resolveDoc(ctx);
+    const tabs = getById(doc, 'topTabs');
     if(tabs) tabs.style.display = on ? 'grid' : 'none';
     fallbackSetTopBarVisible(ctx, !!on);
   }
 
   function fallbackSetSessionButtonsVisible(ctx, on){
-    const doc = ctx && ctx.document ? ctx.document : document;
-    const sessionButtons = doc.getElementById('sessionButtons');
+    const doc = resolveDoc(ctx);
+    const sessionButtons = getById(doc, 'sessionButtons');
     if(sessionButtons) sessionButtons.style.display = on ? 'flex' : 'none';
   }
 
   function fallbackSetFloatingVisible(ctx, on){
-    const doc = ctx && ctx.document ? ctx.document : document;
-    const fab = doc.getElementById('floatingAdd');
+    const doc = resolveDoc(ctx);
+    const fab = getById(doc, 'floatingAdd');
     if(fab) fab.style.display = on ? 'flex' : 'none';
   }
 
@@ -145,7 +161,7 @@
     }catch(_){ }
     try{
       if(viewId === 'investorsListView'){
-        const root = (ctx && ctx.document ? ctx.document : document).getElementById('investorsListRoot');
+        const root = getById(resolveDoc(ctx), 'investorsListRoot');
         if(root && FC.investorUI && typeof FC.investorUI.renderListOnly === 'function'){
           if(FC.investorUI.state){
             FC.investorUI.state.mode = 'list';
@@ -161,9 +177,9 @@
   }
 
   function ensureStartupViewReady(ctx, uiState){
-    const doc = ctx && ctx.document ? ctx.document : document;
+    const doc = resolveDoc(ctx);
     const visible = FALLBACK_VIEW_IDS.filter((id)=>{
-      const el = doc.getElementById(id);
+      const el = getById(doc, id);
       if(!el) return false;
       return el.style.display !== 'none';
     });
@@ -176,7 +192,7 @@
     };
     const rootId = shellRootMap[viewId];
     if(!rootId) return uiState;
-    const root = doc.getElementById(rootId);
+    const root = getById(doc, rootId);
     if(hasMeaningfulContent(root)) return uiState;
     rerenderStartupShellIfPossible(ctx, viewId, uiState);
     if(hasMeaningfulContent(root)) return uiState;
@@ -203,8 +219,7 @@
     window.FC = window.FC || {};
     const ns = window.FC.appUiBootstrap = window.FC.appUiBootstrap || {};
 
-    if(typeof ns.registerCoreActions !== 'function'){
-      ns.registerCoreActions = function registerCoreActions(ctx){
+    ns.registerCoreActions = function registerCoreActions(ctx){
         ctx = ctx || {};
         const FC = ctx.FC || window.FC || {};
         window.FC = window.FC || {};
@@ -220,10 +235,8 @@
 
         return FC;
       };
-    }
 
-    if(typeof ns.initApp !== 'function'){
-      ns.initApp = function initApp(ctx){
+    ns.initApp = function initApp(ctx){
         ctx = ctx || {};
         if(typeof ctx.validateRequiredDOM === 'function') ctx.validateRequiredDOM();
         if(typeof ctx.registerCoreActions === 'function') ctx.registerCoreActions();
@@ -232,10 +245,8 @@
         }
         if(typeof ctx.initUI === 'function') return ctx.initUI();
       };
-    }
 
-    if(typeof ns.initUI !== 'function'){
-      ns.initUI = function initUI(ctx){
+    ns.initUI = function initUI(ctx){
         ctx = ctx || {};
         const FC = ctx.FC || window.FC || {};
         const uiDefaults = ctx.uiDefaults || {};
@@ -272,6 +283,5 @@
         if(typeof ctx.setUiState === 'function') ctx.setUiState(uiState);
         return uiState;
       };
-    }
   }catch(_){ }
 })();
