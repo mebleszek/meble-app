@@ -20,6 +20,7 @@
       getActiveRoomIds:()=> [],
       getRoomLabel:(id)=> String(id || '') || 'Pomieszczenie',
       isRoomNameTaken:()=> false,
+      invalidateCache:()=> {},
     };
     return;
   }
@@ -31,6 +32,20 @@
     ensureProjectMeta,
     discoverProjectRoomKeys,
   } = foundation;
+
+  const cache = {
+    key: null,
+    defs: null,
+    ids: null,
+    labelMap: null,
+  };
+
+  function invalidateCache(){
+    cache.key = null;
+    cache.defs = null;
+    cache.ids = null;
+    cache.labelMap = null;
+  }
 
   function slugify(text){
     return String(text || '')
@@ -70,9 +85,9 @@
 
   function normalizeRoomDef(raw, fallback){
     const src = Object.assign({}, fallback || {}, raw || {});
-    const baseType = String(src.baseType || src.kind || src.type || fallback && fallback.baseType || 'pokoj');
-    const id = String(src.id || fallback && fallback.id || '');
-    const rawName = src.name || src.label || fallback && fallback.name || BASE_LABELS[baseType] || id;
+    const baseType = String(src.baseType || src.kind || src.type || (fallback && fallback.baseType) || 'pokoj');
+    const id = String(src.id || (fallback && fallback.id) || '');
+    const rawName = src.name || src.label || (fallback && fallback.name) || BASE_LABELS[baseType] || id;
     const safeName = prettifyTechnicalRoomText(rawName, baseType);
     const safeLabel = prettifyTechnicalRoomText(src.label || safeName, baseType);
     const finalName = normalizeLabel(safeName || BASE_LABELS[baseType] || id);
@@ -106,14 +121,66 @@
   function hasLegacyKitchen(proj){
     if(!proj || typeof proj !== 'object') return false;
     const room = proj.kuchnia;
-    return !!(room && typeof room === 'object' && (Array.isArray(room.cabinets) && room.cabinets.length || Array.isArray(room.fronts) && room.fronts.length || Array.isArray(room.sets) && room.sets.length));
+    return !!(room && typeof room === 'object' && ((Array.isArray(room.cabinets) && room.cabinets.length) || (Array.isArray(room.fronts) && room.fronts.length) || (Array.isArray(room.sets) && room.sets.length)));
   }
 
   function createLegacyKitchenDef(){
     return normalizeRoomDef({ id:'kuchnia', baseType:'kuchnia', name:'kuchnia stary program', label:'kuchnia stary program', legacy:true });
   }
 
-  function getActiveRoomDefs(){
+  function buildProjectMetaSignature(proj){
+    const meta = ensureProjectMeta(proj);
+    if(meta && meta.roomDefs && Object.keys(meta.roomDefs).length){
+      const orderedIds = [];
+      const seen = new Set();
+      (Array.isArray(meta.roomOrder) ? meta.roomOrder : []).forEach((id)=> {
+        const key = String(id || '');
+        if(!key || seen.has(key)) return;
+        seen.add(key);
+        orderedIds.push(key);
+      });
+      Object.keys(meta.roomDefs).forEach((id)=> {
+        const key = String(id || '');
+        if(!key || seen.has(key)) return;
+        seen.add(key);
+        orderedIds.push(key);
+      });
+      return orderedIds.map((id)=> {
+        const raw = meta.roomDefs[id] || {};
+        return [
+          id,
+          String(raw.baseType || ''),
+          normalizeComparableLabel(raw.name || ''),
+          normalizeComparableLabel(raw.label || ''),
+          raw.legacy ? '1' : '0'
+        ].join('~');
+      }).join('|');
+    }
+    return 'fallback:' + discoverProjectRoomKeys(proj).join('|');
+  }
+
+  function buildInvestorRoomsSignature(inv){
+    const rooms = Array.isArray(inv && inv.rooms) ? inv.rooms : [];
+    return rooms.map((room)=> [
+      String(room && room.id || ''),
+      String(room && room.baseType || ''),
+      normalizeComparableLabel(room && (room.label || room.name) || ''),
+      String(room && (room.projectStatus || room.status) || '')
+    ].join('~')).join('|');
+  }
+
+  function getActiveRoomsCacheKey(){
+    const proj = getProject();
+    const inv = getCurrentInvestor();
+    return [
+      String(inv && inv.id || ''),
+      buildInvestorRoomsSignature(inv),
+      buildProjectMetaSignature(proj),
+      hasLegacyKitchen(proj) ? 'legacy1' : 'legacy0'
+    ].join('||');
+  }
+
+  function buildActiveRoomDefs(){
     const proj = getProject();
     const inv = getCurrentInvestor();
     const defs = [];
@@ -130,28 +197,41 @@
 
     if(inv && Array.isArray(inv.rooms) && inv.rooms.length){
       inv.rooms.forEach((room)=>{
-        const id = String(room && room.id || '');
+        const id = String((room && room.id) || '');
         push(Object.assign({}, projectMap.get(id) || {}, room || {}, { id }));
       });
     }else{
       projectMetaRooms.filter((room)=> String(room.id || '').startsWith('room_')).forEach(push);
     }
 
-    if(hasLegacyKitchen(proj) && !seen.has('kuchnia')){
-      push(createLegacyKitchenDef());
-    }
-
+    if(hasLegacyKitchen(proj) && !seen.has('kuchnia')) push(createLegacyKitchenDef());
     return defs;
   }
 
+  function getCachedActiveRooms(){
+    const key = getActiveRoomsCacheKey();
+    if(cache.key === key && Array.isArray(cache.defs)) return cache.defs;
+    const defs = buildActiveRoomDefs();
+    cache.key = key;
+    cache.defs = defs;
+    cache.ids = defs.map((room)=> room.id).filter(Boolean);
+    cache.labelMap = new Map(defs.map((room)=> [String(room.id || ''), room.label || room.name || prettifyTechnicalRoomText(room.id, room.baseType) || room.id]));
+    return defs;
+  }
+
+  function getActiveRoomDefs(){
+    return getCachedActiveRooms();
+  }
+
   function getActiveRoomIds(){
-    return getActiveRoomDefs().map((room)=> room.id).filter(Boolean);
+    getCachedActiveRooms();
+    return Array.isArray(cache.ids) ? cache.ids : [];
   }
 
   function getRoomLabel(id){
     const key = String(id || '');
-    const found = getActiveRoomDefs().find((room)=> room.id === key);
-    if(found) return found.label || found.name || prettifyTechnicalRoomText(key, found.baseType) || key;
+    getCachedActiveRooms();
+    if(cache.labelMap && cache.labelMap.has(key)) return cache.labelMap.get(key);
     return prettifyTechnicalRoomText(key, '') || key || 'Pomieszczenie';
   }
 
@@ -180,5 +260,6 @@
     getActiveRoomIds,
     getRoomLabel,
     isRoomNameTaken,
+    invalidateCache,
   };
 })();

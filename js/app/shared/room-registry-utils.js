@@ -30,6 +30,29 @@
       : [];
   }
 
+  function normalizeRoomDraftValue(value, normalizeLabel){
+    const normalize = typeof normalizeLabel === 'function'
+      ? normalizeLabel
+      : (entry)=> String(entry || '').trim();
+    return normalize(value);
+  }
+
+  function areRoomDraftsEqual(left, right, normalizeLabel){
+    const a = Array.isArray(left) ? left : [];
+    const b = Array.isArray(right) ? right : [];
+    if(a.length !== b.length) return false;
+    for(let i = 0; i < a.length; i++){
+      const lhs = a[i] || {};
+      const rhs = b[i] || {};
+      if(String(lhs.id || '') !== String(rhs.id || '')) return false;
+      if(String(lhs.baseType || '') !== String(rhs.baseType || '')) return false;
+      if(normalizeRoomDraftValue(lhs.name, normalizeLabel) !== normalizeRoomDraftValue(rhs.name, normalizeLabel)) return false;
+      if(normalizeRoomDraftValue(lhs.label, normalizeLabel) !== normalizeRoomDraftValue(rhs.label, normalizeLabel)) return false;
+      if(!!lhs.legacy !== !!rhs.legacy) return false;
+    }
+    return true;
+  }
+
   function serializeRoomDrafts(list, normalizeLabel){
     const normalize = typeof normalizeLabel === 'function'
       ? normalizeLabel
@@ -70,6 +93,7 @@
   FC.roomRegistryUtils = {
     createElement,
     cloneRoomDrafts,
+    areRoomDraftsEqual,
     serializeRoomDrafts,
     mergeRoomCollections,
   };

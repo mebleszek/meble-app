@@ -3,9 +3,10 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const core = FC.roomRegistryCore;
+  const utils = FC.roomRegistryUtils;
 
-  if(!core){
-    try{ console.error('[room-registry-modals-manage-remove] Missing FC.roomRegistryCore before modal layer load'); }catch(_ ){ }
+  if(!(core && utils)){
+    try{ console.error('[room-registry-modals-manage-remove] Missing FC.roomRegistryCore/utils before modal layer load'); }catch(_){ }
     FC.roomRegistryModalsManageRemove = FC.roomRegistryModalsManageRemove || {
       openManageRoomsModal: async()=> null,
       openRemoveRoomModal: async()=> null,
@@ -14,39 +15,45 @@
   }
 
   const {
-    BASE_LABELS,
-    createElement,
-    cloneRoomDrafts,
-    serializeRoomDrafts,
     normalizeLabel,
     normalizeComparableLabel,
     getCurrentInvestor,
     getManageableRooms,
+    askDeleteRoomWithQuotes,
     applyManageRoomsDraftDetailed,
     removeRoomByIdDetailed,
-    askDeleteRoomWithQuotes,
   } = core;
+  const {
+    createElement,
+    cloneRoomDrafts,
+    areRoomDraftsEqual,
+  } = utils;
+
+  const BASE_LABELS = (FC.roomRegistryFoundation && FC.roomRegistryFoundation.BASE_LABELS) || {
+    kuchnia:'Kuchnia',
+    szafa:'Szafa',
+    pokoj:'Pokój',
+    lazienka:'Łazienka',
+  };
 
   function openInfo(title, message){
-    try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ }
+    try{ if(FC.infoBox && typeof FC.infoBox.show === 'function') return FC.infoBox.show(title, message); }catch(_){ }
+    try{ alert(message || title); }catch(_){ }
   }
 
   async function openManageRoomsModal(){
     const inv = getCurrentInvestor();
-    if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
+    if(!(inv && FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
-      openInfo('Brak pomieszczeń', 'Najpierw dodaj pomieszczenie, żeby móc nimi zarządzać.');
+      openInfo('Brak pomieszczeń', 'Najpierw dodaj pomieszczenie, żeby móc nim zarządzać.');
       return null;
     }
     return new Promise((resolve)=>{
       let drafts = cloneRoomDrafts(rooms);
       let initialDrafts = cloneRoomDrafts(drafts);
-      let initial = serializeRoomDrafts(initialDrafts, normalizeLabel);
-      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal room-registry-manage-modal' });
+      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
       const scroll = createElement('div', { class:'panel-box-form__scroll' });
-      const intro = createElement('div', { class:'muted', text:'Tutaj zarządzasz wszystkimi pomieszczeniami tego inwestora. Możesz zmienić ich nazwy albo usunąć wybrane pozycje.' });
-      scroll.appendChild(intro);
       const list = createElement('div', { class:'room-registry-manage-list' });
       scroll.appendChild(list);
       body.appendChild(scroll);
@@ -55,15 +62,13 @@
       const exitBtn = createElement('button', { type:'button', class:'btn btn-primary', text:'Wyjdź' });
       const cancelBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
       const saveBtn = createElement('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
-      cancelBtn.style.display = 'none';
-      saveBtn.style.display = 'none';
       actions.appendChild(exitBtn);
       actions.appendChild(cancelBtn);
       actions.appendChild(saveBtn);
       footer.appendChild(actions);
       body.appendChild(footer);
 
-      const isDirty = ()=> serializeRoomDrafts(drafts, normalizeLabel) !== initial;
+      const isDirty = ()=> !areRoomDraftsEqual(drafts, initialDrafts, normalizeLabel);
       const refreshFooter = ()=>{
         const dirty = isDirty();
         exitBtn.style.display = dirty ? 'none' : '';
@@ -118,6 +123,7 @@
           list.appendChild(createElement('div', { class:'muted', text:'Brak pomieszczeń. Możesz zamknąć okno albo dodać nowe pomieszczenie poza tym ekranem.' }));
         }
       };
+
       exitBtn.addEventListener('click', ()=> done(null));
       cancelBtn.addEventListener('click', async ()=>{
         if(!(await askDiscard())) return;
@@ -154,7 +160,6 @@
         const result = applyManageRoomsDraftDetailed(inv, drafts);
         if(!(result && result.ok)) return;
         initialDrafts = cloneRoomDrafts(drafts);
-        initial = serializeRoomDrafts(initialDrafts, normalizeLabel);
         done({ saved:true, rooms:cloneRoomDrafts(drafts), removedRoomIds:result.removedRoomIds || [] });
       });
       renderRows();
