@@ -36,8 +36,18 @@
       assert(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function', 'Brak investorRoomActions.bindRoomActions');
     }),
     makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core, render i split modali', 'Pilnuje kolejnego splitu roomRegistry: core trzyma logikę projektu, render jest osobny, a modale są podzielone na add/edit oraz manage/remove zanim trafią do cienkiego shell-a.', ()=>{
+      assert(FC.roomRegistryFoundation && typeof FC.roomRegistryFoundation.getProject === 'function', 'Brak roomRegistryFoundation.getProject');
+      assert(FC.roomRegistryDefinitions && typeof FC.roomRegistryDefinitions.getActiveRoomDefs === 'function', 'Brak roomRegistryDefinitions.getActiveRoomDefs');
+      assert(typeof FC.roomRegistryDefinitions.normalizeRoomDef === 'function', 'Brak roomRegistryDefinitions.normalizeRoomDef');
+      assert(FC.roomRegistryImpact && typeof FC.roomRegistryImpact.buildRoomRemovalWarningMessage === 'function', 'Brak roomRegistryImpact.buildRoomRemovalWarningMessage');
+      assert(typeof FC.roomRegistryImpact.reconcileStatusesAfterRoomSetChange === 'function', 'Brak roomRegistryImpact.reconcileStatusesAfterRoomSetChange');
+      assert(FC.roomRegistryProjectSync && typeof FC.roomRegistryProjectSync.applyManageRoomsDraft === 'function', 'Brak roomRegistryProjectSync.applyManageRoomsDraft');
+      assert(typeof FC.roomRegistryProjectSync.getEditableRoom === 'function', 'Brak roomRegistryProjectSync.getEditableRoom');
       assert(FC.roomRegistryCore && typeof FC.roomRegistryCore.getActiveRoomDefs === 'function', 'Brak roomRegistryCore.getActiveRoomDefs');
       assert(typeof FC.roomRegistryCore.applyManageRoomsDraft === 'function', 'Brak roomRegistryCore.applyManageRoomsDraft');
+      assert(FC.roomRegistryCore.getActiveRoomDefs === FC.roomRegistryDefinitions.getActiveRoomDefs, 'Core nie deleguje getActiveRoomDefs do roomRegistryDefinitions');
+      assert(FC.roomRegistryCore.applyManageRoomsDraft === FC.roomRegistryProjectSync.applyManageRoomsDraft, 'Core nie deleguje applyManageRoomsDraft do roomRegistryProjectSync');
+      assert(FC.roomRegistryCore.buildRoomRemovalWarningMessage === FC.roomRegistryImpact.buildRoomRemovalWarningMessage, 'Core nie deleguje buildRoomRemovalWarningMessage do roomRegistryImpact');
       assert(FC.roomRegistryModalsAddEdit && typeof FC.roomRegistryModalsAddEdit.openAddRoomModal === 'function', 'Brak roomRegistryModalsAddEdit.openAddRoomModal');
       assert(FC.roomRegistryModalsAddEdit._debug && typeof FC.roomRegistryModalsAddEdit._debug.openEditRoomModal === 'function', 'Brak roomRegistryModalsAddEdit._debug.openEditRoomModal');
       assert(FC.roomRegistryModalsManageRemove && typeof FC.roomRegistryModalsManageRemove.openManageRoomsModal === 'function', 'Brak roomRegistryModalsManageRemove.openManageRoomsModal');

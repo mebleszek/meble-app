@@ -1,3 +1,13 @@
+## 2026-04-22 — room-registry core split into foundation + definitions + impact + project-sync
+- `js/app/shared/room-registry-foundation.js` — nowa baza rejestru pokoi. Trzyma tylko helpers środowiska/projektu (`projectData`, zapis projektu, meta, current investor, template pokoju), bez normalizacji nazw, bez mutacji room setów i bez ostrzeżeń o skutkach usunięcia.
+- `js/app/shared/room-registry-definitions.js` — wydzielona warstwa definicji i odczytu: normalizacja nazw/etykiet, `slug`, wykrywanie aktywnych pomieszczeń, legacy kitchen i porównania nazw. Dzięki temu reguły nazw nie siedzą już w tym samym pliku co mutacje projektu lub usuwanie wycen.
+- `js/app/shared/room-registry-impact.js` — osobna warstwa skutków ubocznych: ostrzeżenia przed usunięciem, snapshoty wycen, liczenie szafek, synchronizacja statusów i selekcji po zmianie zbioru pokoi.
+- `js/app/shared/room-registry-project-sync.js` — osobna warstwa mutacji projektu/inwestora: tworzenie danych pokoju, zastosowanie draftu listy pokoi, usuwanie pokoju i sync listy pokoi inwestora.
+- `js/app/shared/room-registry-core.js` — odchudzony do cienkiej fasady sklejącej foundation + definitions + impact + project-sync. Nie dokarmiać go z powrotem logiką domenową; nowe rzeczy dokładać do właściwej warstwy.
+- `index.html` + `dev_tests.html` + `tools/index-load-groups.js` — krytyczna kolejność startupu to teraz: `room-registry-foundation` -> `room-registry-definitions` -> `room-registry-impact` -> `room-registry-project-sync` -> `room-registry-core` -> dalsze warstwy UI registry.
+- `js/testing/investor/tests.js` — kontrakt splitu pilnuje istnienia nowych warstw i tego, że `roomRegistryCore` deleguje do definitions / impact / project-sync, zamiast znowu stawać się workiem na wszystko.
+- Instrukcja antyregresyjna: jeśli zmiana dotyczy reguł nazw/etykiet lub aktywnego zestawu pokoi, trafia do `room-registry-definitions.js`; jeśli dotyczy zapisów/usuwania/synchronizacji danych projektu lub inwestora, trafia do `room-registry-project-sync.js`; jeśli dotyczy ostrzeżeń, snapshotów wycen albo skutków ubocznych po zmianie zbioru pokoi, trafia do `room-registry-impact.js`. Nie dopisywać tych rzeczy z powrotem do `room-registry-core.js`.
+
 ## 2026-04-21 — room-registry modal layer split into add/edit + manage/remove
 - `js/app/shared/room-registry-modals-add-edit.js` — nowy moduł trzyma tylko modale dodawania i edycji pojedynczego pomieszczenia. Dzięki temu formularz typu/nazwy i zapis pojedynczego pokoju nie siedzą już w tym samym pliku co zarządzanie całą listą.
 - `js/app/shared/room-registry-modals-manage-remove.js` — nowy moduł trzyma modal zarządzania listą pomieszczeń oraz dedykowany modal usuwania. To oddziela pracę na wielu pokojach/draftach od formularza pojedynczego pokoju.
