@@ -20,6 +20,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/investor/session.js",
       "js/app/investor/investors-store.js",
       "js/app/shared/room-registry-core.js",
+      "js/app/shared/room-registry-modals.js",
+      "js/app/shared/room-registry-render.js",
       "js/app/shared/room-registry.js"
     ]
   },

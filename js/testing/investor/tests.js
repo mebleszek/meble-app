@@ -35,11 +35,15 @@
       assert(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function', 'Brak roomRegistry.openManageRoomsModal');
       assert(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function', 'Brak investorRoomActions.bindRoomActions');
     }),
-    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core i cienki shell', 'Pilnuje pierwszego splitu roomRegistry: logika projektu/normalizacji siedzi w osobnym core, a shell UI tylko wystawia dotychczasowe API modali i renderu.', ()=>{
+    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core i cienki shell', 'Pilnuje kolejnego splitu roomRegistry: core trzyma logikę projektu, osobne moduły obsługują modale i render, a shell tylko scala publiczne API.', ()=>{
       assert(FC.roomRegistryCore && typeof FC.roomRegistryCore.getActiveRoomDefs === 'function', 'Brak roomRegistryCore.getActiveRoomDefs');
       assert(typeof FC.roomRegistryCore.applyManageRoomsDraft === 'function', 'Brak roomRegistryCore.applyManageRoomsDraft');
+      assert(FC.roomRegistryModals && typeof FC.roomRegistryModals.openManageRoomsModal === 'function', 'Brak roomRegistryModals.openManageRoomsModal');
+      assert(FC.roomRegistryRender && typeof FC.roomRegistryRender.renderRoomsView === 'function', 'Brak roomRegistryRender.renderRoomsView');
       assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak roomRegistry.getActiveRoomDefs');
       assert(typeof FC.roomRegistry.openAddRoomModal === 'function', 'Brak roomRegistry.openAddRoomModal');
+      assert(FC.roomRegistry.openManageRoomsModal === FC.roomRegistryModals.openManageRoomsModal, 'Shell roomRegistry nie deleguje spójnie modali do roomRegistryModals');
+      assert(FC.roomRegistry.renderRoomsView === FC.roomRegistryRender.renderRoomsView, 'Shell roomRegistry nie deleguje spójnie renderu do roomRegistryRender');
       const shellDefs = FC.roomRegistry.getActiveRoomDefs();
       const coreDefs = FC.roomRegistryCore.getActiveRoomDefs();
       assert(JSON.stringify(shellDefs) === JSON.stringify(coreDefs), 'Shell roomRegistry nie deleguje spójnie do core getActiveRoomDefs', { shellDefs, coreDefs });

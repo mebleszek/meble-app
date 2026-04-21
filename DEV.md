@@ -1,3 +1,11 @@
+## 2026-04-21 — room-registry split: modal layer + render layer
+- `js/app/shared/room-registry-modals.js` — nowy moduł modali rejestru pomieszczeń. Trzyma `Dodaj / Edytuj / Usuń / Zarządzaj`, bez logiki core i bez renderu listy widoku.
+- `js/app/shared/room-registry-render.js` — osobny moduł renderu kafli `roomsView`. Dzięki temu render pokojów nie siedzi już w tym samym pliku co modale.
+- `js/app/shared/room-registry.js` — shell został odchudzony do cienkiego sklejenia API: deleguje core do `room-registry-core`, modale do `room-registry-modals`, a render do `room-registry-render`.
+- `index.html` + `dev_tests.html` + `tools/index-load-groups.js` — nowa kolejność krytycznych assetów: `room-registry-core` -> `room-registry-modals` -> `room-registry-render` -> `room-registry`.
+- `js/testing/investor/tests.js` — test kontraktowy pilnuje istnienia nowych warstw i tego, że shell deleguje `openManageRoomsModal` oraz `renderRoomsView` do dedykowanych modułów.
+- Instrukcja antyregresyjna: nowe modale rejestru pokoi dokładać do `room-registry-modals.js`, nowy DOM/render list widoków do `room-registry-render.js`, a `room-registry.js` zostawić jako cienki shell bez dokładania własnego UI lub logiki danych.
+
 ## 2026-04-21 — room-registry split: core + UI shell
 - `js/app/shared/room-registry-core.js` — nowy moduł rdzenia rejestru pomieszczeń. Trzyma logikę projektu/meta, normalizację etykiet, wykrywanie aktywnych pomieszczeń, mutacje draftów i usuwanie/synchronizację statusów bez kodu modali.
 - `js/app/shared/room-registry.js` — odchudzony shell UI. Zostawia dotychczasowe modale (`dodaj/edytuj/usuń/zarządzaj`) i `renderRoomsView`, ale deleguje logikę danych do `FC.roomRegistryCore`. Dzięki temu `room-registry.js` nie miesza już pełnego core domeny z warstwą UI.
