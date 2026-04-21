@@ -1,3 +1,8 @@
+## 2026-04-21 — startup blank-screen guard for empty shell views
+- `js/app/bootstrap/app-ui-bootstrap.js` — po `applyViews(...)` bootstrap sprawdza teraz, czy startup nie schował Startu i nie zostawił pustego shell view (`modeHubView`, `investorsListView`, `serviceOrdersListView`). Jeśli shell jest pusty nawet po próbie dogrania jego renderera, bootstrap odzyskuje bezpieczny ekran `Start`, czyści kontekst entry i zapisuje poprawiony `uiState`, zamiast zostawić użytkownika na pustej stronie.
+- `js/testing/project/tests.js` — dodany test antyregresyjny pilnujący, że pusty shell view po restore/startupie wraca do `Start`, a nie zostawia białego ekranu.
+- Instrukcja antyregresyjna: przy ekranach-shellach bez własnej statycznej treści (`modeHub`, listy, podobne root-only widoki) bootstrap startu musi mieć recovery do `Start`, jeśli renderer nie narysuje niczego. Nie zostawiać pustych rootów jako „poprawnego” stanu po restore.
+
 ## 2026-04-21 — room-registry split: modal layer + render layer
 - `js/app/shared/room-registry-modals.js` — nowy moduł modali rejestru pomieszczeń. Trzyma `Dodaj / Edytuj / Usuń / Zarządzaj`, bez logiki core i bez renderu listy widoku.
 - `js/app/shared/room-registry-render.js` — osobny moduł renderu kafli `roomsView`. Dzięki temu render pokojów nie siedzi już w tym samym pliku co modale.

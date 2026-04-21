@@ -98,6 +98,91 @@
     return fallbackShowView(ctx, 'homeView', { tabs:false, session:false, floating:false });
   }
 
+
+
+  function hasMeaningfulContent(el){
+    if(!el) return false;
+    try{ if(el.childElementCount > 0) return true; }catch(_){ }
+    try{ if(String(el.textContent || '').trim()) return true; }catch(_){ }
+    return false;
+  }
+
+  function persistRecoveredUiState(ctx, nextState){
+    try{
+      if(ctx && ctx.FC && ctx.FC.uiState && typeof ctx.FC.uiState.save === 'function') return ctx.FC.uiState.save(nextState);
+    }catch(_){ }
+    try{
+      if(ctx && ctx.FC && ctx.FC.storage && typeof ctx.FC.storage.setJSON === 'function') ctx.FC.storage.setJSON((ctx.storageKeys || {}).ui, nextState);
+    }catch(_){ }
+    return nextState;
+  }
+
+  function recoverStartupToHome(ctx, uiState){
+    const nextState = Object.assign({}, uiState || {}, {
+      entry:'home',
+      workMode:null,
+      activeTab:'pokoje',
+      roomType:null,
+      lastRoomType:null,
+      currentInvestorId:null,
+      selectedCabinetId:null,
+      showPriceList:null,
+    });
+    try{ if(ctx && ctx.FC && ctx.FC.investorPersistence && typeof ctx.FC.investorPersistence.setCurrentInvestorId === 'function') ctx.FC.investorPersistence.setCurrentInvestorId(null); }catch(_){ }
+    try{ if(ctx && ctx.FC && ctx.FC.reloadRestore && typeof ctx.FC.reloadRestore.clear === 'function') ctx.FC.reloadRestore.clear(); }catch(_){ }
+    persistRecoveredUiState(ctx, nextState);
+    try{ if(typeof ctx.setUiState === 'function') ctx.setUiState(nextState); }catch(_){ }
+    try{ applyViewsFallback(ctx, nextState); }catch(_){ }
+    return nextState;
+  }
+
+  function rerenderStartupShellIfPossible(ctx, viewId, uiState){
+    const FC = ctx && ctx.FC ? ctx.FC : {};
+    try{
+      if(viewId === 'modeHubView' && FC.workModeHub && typeof FC.workModeHub.renderModeHub === 'function'){
+        FC.workModeHub.renderModeHub((uiState && uiState.workMode) || 'furnitureProjects');
+      }
+    }catch(_){ }
+    try{
+      if(viewId === 'investorsListView'){
+        const root = (ctx && ctx.document ? ctx.document : document).getElementById('investorsListRoot');
+        if(root && FC.investorUI && typeof FC.investorUI.renderListOnly === 'function'){
+          if(FC.investorUI.state){
+            FC.investorUI.state.mode = 'list';
+            FC.investorUI.state.allowListAccess = false;
+          }
+          FC.investorUI.renderListOnly(root);
+        }
+      }
+    }catch(_){ }
+    try{
+      if(viewId === 'serviceOrdersListView' && FC.serviceOrders && typeof FC.serviceOrders.renderList === 'function') FC.serviceOrders.renderList();
+    }catch(_){ }
+  }
+
+  function ensureStartupViewReady(ctx, uiState){
+    const doc = ctx && ctx.document ? ctx.document : document;
+    const visible = FALLBACK_VIEW_IDS.filter((id)=>{
+      const el = doc.getElementById(id);
+      if(!el) return false;
+      return el.style.display !== 'none';
+    });
+    if(!visible.length) return recoverStartupToHome(ctx, uiState);
+    const viewId = visible[0];
+    const shellRootMap = {
+      modeHubView:'modeHubRoot',
+      investorsListView:'investorsListRoot',
+      serviceOrdersListView:'serviceOrdersListRoot',
+    };
+    const rootId = shellRootMap[viewId];
+    if(!rootId) return uiState;
+    const root = doc.getElementById(rootId);
+    if(hasMeaningfulContent(root)) return uiState;
+    rerenderStartupShellIfPossible(ctx, viewId, uiState);
+    if(hasMeaningfulContent(root)) return uiState;
+    return recoverStartupToHome(ctx, uiState);
+  }
+
   function applyViews(ctx, uiState){
     try{
       if(!uiState.entry) uiState.entry = 'home';
@@ -172,6 +257,7 @@
         try{ if(typeof ctx.installProjectAutosave === 'function') ctx.installProjectAutosave(); }catch(_){ }
 
         applyViews({ FC, document: ctx.document || document, storageKeys: ctx.storageKeys || {} }, uiState);
+        uiState = ensureStartupViewReady({ FC, document: ctx.document || document, storageKeys: ctx.storageKeys || {}, setUiState: ctx.setUiState }, uiState);
 
         try{
           (ctx.document || document).querySelectorAll('.tab-btn').forEach((t)=>{

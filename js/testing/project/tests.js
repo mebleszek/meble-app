@@ -152,6 +152,51 @@
           fixture.remove();
         }
       }),
+
+      H.makeTest('Projekt', 'Bootstrap UI odzyskuje Start, gdy startup pokazuje pusty shell view', 'Pilnuje regresji pustego ekranu po restore: jeśli startup schowa homeView i pokaże pusty modeHub/service orders shell bez wyrenderowanej zawartości, bootstrap ma wrócić do Startu zamiast zostawić pustą stronę.', ()=>{
+        H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<div id="homeView" style="display:block">HOME</div><div id="modeHubView" style="display:none"><div id="modeHubRoot"></div></div><div id="investorsListView" style="display:none"><div id="investorsListRoot"></div></div><div id="serviceOrdersListView" style="display:none"><div id="serviceOrdersListRoot"></div></div><div id="roomsView" style="display:none"></div><div id="appView" style="display:none"></div><div id="investorView" style="display:none"></div><div id="rozrysView" style="display:none"></div><div id="magazynView" style="display:none"></div><div id="topBar" style="display:none"></div><div id="topTabs" style="display:none"></div><div id="sessionButtons" style="display:none"></div><div id="floatingAdd" style="display:none"></div>';
+        document.body.appendChild(fixture);
+        let savedState = null;
+        try{
+          const out = FC.appUiBootstrap.initUI({
+            FC: {
+              storage: { setJSON(_key, value){ savedState = Object.assign({}, value); } },
+              views: {
+                applyFromState(){
+                  fixture.querySelector('#homeView').style.display = 'none';
+                  fixture.querySelector('#modeHubView').style.display = 'block';
+                },
+              },
+              workModeHub: {
+                renderModeHub(){ /* zostaw pusty shell, ma zadziałać recovery */ },
+              },
+            },
+            document: fixture,
+            storageKeys: { ui:'ui' },
+            uiDefaults: { activeTab:'pokoje', entry:'home' },
+            getUiState(){ return { activeTab:null, entry:'modeHub', workMode:'furnitureProjects', roomType:null, currentInvestorId:null }; },
+            setUiState(next){ savedState = Object.assign({}, next); return next; },
+            applyReloadRestoreSnapshot(){ return null; },
+            installBindings(){},
+            installProjectAutosave(){},
+            renderTopHeight(){},
+            renderCabinets(){},
+            restoreReloadScroll(){},
+            scheduleRozrysWarmup(){},
+          });
+          const homeView = fixture.querySelector('#homeView');
+          const modeHubView = fixture.querySelector('#modeHubView');
+          H.assert(out && out.entry === 'home', 'Bootstrap UI nie odzyskał entry=home po pustym shell view', out);
+          H.assert(homeView && homeView.style.display === 'block', 'Bootstrap UI nie wrócił do Startu po pustym shell view', { home:homeView && homeView.style.display, modeHub:modeHubView && modeHubView.style.display, state:savedState });
+          H.assert(modeHubView && modeHubView.style.display === 'none', 'Bootstrap UI zostawił pusty modeHubView zamiast wrócić do Startu', { home:homeView && homeView.style.display, modeHub:modeHubView && modeHubView.style.display, state:savedState });
+          H.assert(savedState && savedState.entry === 'home', 'Bootstrap UI nie zapisał odzyskanego entry=home po pustym shell view', savedState);
+        } finally {
+          fixture.remove();
+        }
+      }),
+
       H.makeTest('Projekt', 'Store inwestorów tworzy, wyszukuje i aktualizuje wpis bez gubienia bieżącego ID', 'Sprawdza, czy lokalna baza inwestorów działa stabilnie przy tworzeniu i edycji.', ()=>{
         withInvestorStorage((inv)=>{
           const created = (FC.testDataManager && typeof FC.testDataManager.createInvestor === 'function'
