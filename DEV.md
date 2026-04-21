@@ -1,3 +1,10 @@
+## 2026-04-21 — room-registry split: core + UI shell
+- `js/app/shared/room-registry-core.js` — nowy moduł rdzenia rejestru pomieszczeń. Trzyma logikę projektu/meta, normalizację etykiet, wykrywanie aktywnych pomieszczeń, mutacje draftów i usuwanie/synchronizację statusów bez kodu modali.
+- `js/app/shared/room-registry.js` — odchudzony shell UI. Zostawia dotychczasowe modale (`dodaj/edytuj/usuń/zarządzaj`) i `renderRoomsView`, ale deleguje logikę danych do `FC.roomRegistryCore`. Dzięki temu `room-registry.js` nie miesza już pełnego core domeny z warstwą UI.
+- `index.html` + `dev_tests.html` + `tools/index-load-groups.js` — `room-registry-core.js` jest krytycznym assetem `startup-foundation` i musi być ładowany przed `room-registry.js`.
+- `js/testing/investor/tests.js` — dodany kontrakt splitu: core ma istnieć, shell ma zachować publiczne API i delegować `getActiveRoomDefs()` spójnie do core.
+- Instrukcja antyregresyjna: nową logikę projektu/normalizacji/usuwania pokoi dokładać do `room-registry-core.js`. Do `room-registry.js` dokładać tylko UI/modale/render powiązane bezpośrednio z DOM. Nie dokarmiać shell-a trzecią odpowiedzialnością.
+
 ## 2026-04-21 — Start/home clears project context + fallback bootstrap respects roomless WYCENA
 - `js/app/ui/views.js` — przejścia widoków (`openHome/openModeHub/openInvestorsList/openServiceOrdersList/openRooms/openRoom/back`) synchronizują teraz także globalne `uiState`, nie tylko zapis przez `FC.uiState.set(...)`. Dzięki temu po wyjściu do Startu nie zostaje w pamięci stary aktywny kontekst typu `wycena + currentInvestorId`, który mógł później wracać przy reloadzie.
 - `js/app/ui/views.js` — `openHome()` czyści też kontekst projektu/inwestora (`currentInvestorId`, `roomType`, `lastRoomType`, `selectedCabinetId`, `showPriceList`) oraz czyści `reload restore` przez `FC.reloadRestore.clear()`. To ma zapobiegać sytuacji, w której Start po odświeżeniu wracał do starego projektu/zakładki.

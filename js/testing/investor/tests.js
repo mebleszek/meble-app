@@ -35,6 +35,16 @@
       assert(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function', 'Brak roomRegistry.openManageRoomsModal');
       assert(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function', 'Brak investorRoomActions.bindRoomActions');
     }),
+    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core i cienki shell', 'Pilnuje pierwszego splitu roomRegistry: logika projektu/normalizacji siedzi w osobnym core, a shell UI tylko wystawia dotychczasowe API modali i renderu.', ()=>{
+      assert(FC.roomRegistryCore && typeof FC.roomRegistryCore.getActiveRoomDefs === 'function', 'Brak roomRegistryCore.getActiveRoomDefs');
+      assert(typeof FC.roomRegistryCore.applyManageRoomsDraft === 'function', 'Brak roomRegistryCore.applyManageRoomsDraft');
+      assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak roomRegistry.getActiveRoomDefs');
+      assert(typeof FC.roomRegistry.openAddRoomModal === 'function', 'Brak roomRegistry.openAddRoomModal');
+      const shellDefs = FC.roomRegistry.getActiveRoomDefs();
+      const coreDefs = FC.roomRegistryCore.getActiveRoomDefs();
+      assert(JSON.stringify(shellDefs) === JSON.stringify(coreDefs), 'Shell roomRegistry nie deleguje spójnie do core getActiveRoomDefs', { shellDefs, coreDefs });
+    }),
+
     makeTest('Inwestor', 'Stan edytora inwestora przechodzi z podglądu do edycji i wykrywa zmiany', 'Sprawdza, czy nowy moduł stanu edycji inwestora nie gubi draftu i poprawnie liczy dirty.', ()=>{
       assert(FC.investorEditorState && typeof FC.investorEditorState.enter === 'function', 'Brak investorEditorState');
       const inv = sampleInvestor();
