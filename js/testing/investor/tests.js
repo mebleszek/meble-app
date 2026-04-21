@@ -35,19 +35,32 @@
       assert(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function', 'Brak roomRegistry.openManageRoomsModal');
       assert(FC.investorRoomActions && typeof FC.investorRoomActions.bindRoomActions === 'function', 'Brak investorRoomActions.bindRoomActions');
     }),
-    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielony core, render i split modali', 'Pilnuje kolejnego splitu roomRegistry: core trzyma logikę projektu, render jest osobny, a modale są podzielone na add/edit oraz manage/remove zanim trafią do cienkiego shell-a.', ()=>{
+    makeTest('Inwestor', 'Rejestr pomieszczeń ma wydzielone warstwy, spójne API i cienkie shelle UI', 'Pilnuje utwardzenia roomRegistry: wspólne helpery są wydzielone, impact ma własny kontrakt, project-sync ma spójne mutacje create/update/remove, a shelle UI tylko delegują do core/modułów.', ()=>{
       assert(FC.roomRegistryFoundation && typeof FC.roomRegistryFoundation.getProject === 'function', 'Brak roomRegistryFoundation.getProject');
+      assert(FC.roomRegistryUtils && typeof FC.roomRegistryUtils.mergeRoomCollections === 'function', 'Brak roomRegistryUtils.mergeRoomCollections');
+      assert(typeof FC.roomRegistryUtils.cloneRoomDrafts === 'function', 'Brak roomRegistryUtils.cloneRoomDrafts');
       assert(FC.roomRegistryDefinitions && typeof FC.roomRegistryDefinitions.getActiveRoomDefs === 'function', 'Brak roomRegistryDefinitions.getActiveRoomDefs');
       assert(typeof FC.roomRegistryDefinitions.normalizeRoomDef === 'function', 'Brak roomRegistryDefinitions.normalizeRoomDef');
-      assert(FC.roomRegistryImpact && typeof FC.roomRegistryImpact.buildRoomRemovalWarningMessage === 'function', 'Brak roomRegistryImpact.buildRoomRemovalWarningMessage');
+      assert(FC.roomRegistryImpact && typeof FC.roomRegistryImpact.buildRoomRemovalImpact === 'function', 'Brak roomRegistryImpact.buildRoomRemovalImpact');
+      assert(typeof FC.roomRegistryImpact.buildRoomRemovalWarningMessage === 'function', 'Brak roomRegistryImpact.buildRoomRemovalWarningMessage');
+      assert(typeof FC.roomRegistryImpact.listRoomRemovalSnapshots === 'function', 'Brak roomRegistryImpact.listRoomRemovalSnapshots');
       assert(typeof FC.roomRegistryImpact.reconcileStatusesAfterRoomSetChange === 'function', 'Brak roomRegistryImpact.reconcileStatusesAfterRoomSetChange');
-      assert(FC.roomRegistryProjectSync && typeof FC.roomRegistryProjectSync.applyManageRoomsDraft === 'function', 'Brak roomRegistryProjectSync.applyManageRoomsDraft');
+      assert(FC.roomRegistryProjectSync && typeof FC.roomRegistryProjectSync.createRoomRecord === 'function', 'Brak roomRegistryProjectSync.createRoomRecord');
+      assert(typeof FC.roomRegistryProjectSync.updateRoomRecord === 'function', 'Brak roomRegistryProjectSync.updateRoomRecord');
+      assert(typeof FC.roomRegistryProjectSync.applyManageRoomsDraftDetailed === 'function', 'Brak roomRegistryProjectSync.applyManageRoomsDraftDetailed');
+      assert(typeof FC.roomRegistryProjectSync.removeRoomByIdDetailed === 'function', 'Brak roomRegistryProjectSync.removeRoomByIdDetailed');
       assert(typeof FC.roomRegistryProjectSync.getEditableRoom === 'function', 'Brak roomRegistryProjectSync.getEditableRoom');
       assert(FC.roomRegistryCore && typeof FC.roomRegistryCore.getActiveRoomDefs === 'function', 'Brak roomRegistryCore.getActiveRoomDefs');
-      assert(typeof FC.roomRegistryCore.applyManageRoomsDraft === 'function', 'Brak roomRegistryCore.applyManageRoomsDraft');
+      assert(typeof FC.roomRegistryCore.createRoomRecord === 'function', 'Brak roomRegistryCore.createRoomRecord');
+      assert(typeof FC.roomRegistryCore.updateRoomRecord === 'function', 'Brak roomRegistryCore.updateRoomRecord');
+      assert(typeof FC.roomRegistryCore.buildRoomRemovalImpact === 'function', 'Brak roomRegistryCore.buildRoomRemovalImpact');
       assert(FC.roomRegistryCore.getActiveRoomDefs === FC.roomRegistryDefinitions.getActiveRoomDefs, 'Core nie deleguje getActiveRoomDefs do roomRegistryDefinitions');
-      assert(FC.roomRegistryCore.applyManageRoomsDraft === FC.roomRegistryProjectSync.applyManageRoomsDraft, 'Core nie deleguje applyManageRoomsDraft do roomRegistryProjectSync');
-      assert(FC.roomRegistryCore.buildRoomRemovalWarningMessage === FC.roomRegistryImpact.buildRoomRemovalWarningMessage, 'Core nie deleguje buildRoomRemovalWarningMessage do roomRegistryImpact');
+      assert(FC.roomRegistryCore.createRoomRecord === FC.roomRegistryProjectSync.createRoomRecord, 'Core nie deleguje createRoomRecord do roomRegistryProjectSync');
+      assert(FC.roomRegistryCore.updateRoomRecord === FC.roomRegistryProjectSync.updateRoomRecord, 'Core nie deleguje updateRoomRecord do roomRegistryProjectSync');
+      assert(FC.roomRegistryCore.applyManageRoomsDraftDetailed === FC.roomRegistryProjectSync.applyManageRoomsDraftDetailed, 'Core nie deleguje applyManageRoomsDraftDetailed do roomRegistryProjectSync');
+      assert(FC.roomRegistryCore.removeRoomByIdDetailed === FC.roomRegistryProjectSync.removeRoomByIdDetailed, 'Core nie deleguje removeRoomByIdDetailed do roomRegistryProjectSync');
+      assert(FC.roomRegistryCore.buildRoomRemovalImpact === FC.roomRegistryImpact.buildRoomRemovalImpact, 'Core nie deleguje buildRoomRemovalImpact do roomRegistryImpact');
+      assert(FC.roomRegistryCore.listRoomRemovalSnapshots === FC.roomRegistryImpact.listRoomRemovalSnapshots, 'Core nie deleguje listRoomRemovalSnapshots do roomRegistryImpact');
       assert(FC.roomRegistryModalsAddEdit && typeof FC.roomRegistryModalsAddEdit.openAddRoomModal === 'function', 'Brak roomRegistryModalsAddEdit.openAddRoomModal');
       assert(FC.roomRegistryModalsAddEdit._debug && typeof FC.roomRegistryModalsAddEdit._debug.openEditRoomModal === 'function', 'Brak roomRegistryModalsAddEdit._debug.openEditRoomModal');
       assert(FC.roomRegistryModalsManageRemove && typeof FC.roomRegistryModalsManageRemove.openManageRoomsModal === 'function', 'Brak roomRegistryModalsManageRemove.openManageRoomsModal');
@@ -65,6 +78,23 @@
       const shellDefs = FC.roomRegistry.getActiveRoomDefs();
       const coreDefs = FC.roomRegistryCore.getActiveRoomDefs();
       assert(JSON.stringify(shellDefs) === JSON.stringify(coreDefs), 'Shell roomRegistry nie deleguje spójnie do core getActiveRoomDefs', { shellDefs, coreDefs });
+    }),
+    makeTest('Inwestor', 'Registry utils scala pokoje i serializuje drafty bez dublowania helperów w modalach', 'Pilnuje jakościowego porządku: wspólny helper registry musi deduplikować pokoje z meta/inwestora i stabilnie serializować drafty do dirty-checków.', ()=>{
+      assert(FC.roomRegistryUtils && typeof FC.roomRegistryUtils.mergeRoomCollections === 'function', 'Brak roomRegistryUtils.mergeRoomCollections');
+      const merged = FC.roomRegistryUtils.mergeRoomCollections({
+        activeRooms:[{ id:'room_1', baseType:'kuchnia', name:'Kuchnia meta', label:'Kuchnia meta' }],
+        investorRooms:[{ id:'room_1', baseType:'kuchnia', name:'Kuchnia inwestor', label:'Kuchnia inwestor' }, { id:'room_2', baseType:'pokoj', name:'Gabinet', label:'Gabinet' }],
+        includeLegacyKitchen:true,
+        legacyRoom:{ id:'kuchnia', baseType:'kuchnia', name:'kuchnia stary program', label:'kuchnia stary program', legacy:true },
+        normalizeRoomDef: FC.roomRegistryDefinitions.normalizeRoomDef,
+      });
+      const mergedIds = merged.map((room)=> String(room && room.id || ''));
+      assert(mergedIds.length === 3, 'mergeRoomCollections nie zwrócił oczekiwanej liczby unikalnych pokoi', { merged });
+      assert(merged.find((room)=> String(room.id || '') === 'room_1' && String(room.label || '') === 'Kuchnia inwestor'), 'mergeRoomCollections nie nadał priorytetu etykiecie inwestora dla duplikatu room_1', { merged });
+      const drafts = FC.roomRegistryUtils.cloneRoomDrafts(merged);
+      const serialized = FC.roomRegistryUtils.serializeRoomDrafts(drafts, FC.roomRegistryDefinitions.normalizeLabel);
+      assert(Array.isArray(drafts) && drafts.length === merged.length, 'cloneRoomDrafts nie zachował wszystkich draftów', { drafts, merged });
+      assert(/room_1/.test(String(serialized || '')) && /kuchnia/.test(String(serialized || '')), 'serializeRoomDrafts nie zwraca stabilnego snapshotu draftów', { serialized });
     }),
 
     makeTest('Inwestor', 'Stan edytora inwestora przechodzi z podglądu do edycji i wykrywa zmiany', 'Sprawdza, czy nowy moduł stanu edycji inwestora nie gubi draftu i poprawnie liczy dirty.', ()=>{
@@ -316,6 +346,73 @@
         assert(Array.isArray(activeRoomIds) && activeRoomIds.length === 0, 'Rejestr aktywnych pokoi nadal zwraca usunięte pomieszczenia', activeRoomIds);
       } finally {
         FC.quoteOfferStore.writeAll(prevDrafts);
+        if(prevProjectData === undefined) { try{ delete root.projectData; }catch(_){ root.projectData = undefined; } }
+        else root.projectData = prevProjectData;
+        FC.projectStore.writeAll(prevProjects);
+        FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
+        FC.investors.writeAll(prevInvestors);
+        FC.investors.setCurrentId(prevCurrentInvestorId);
+      }
+    }),
+
+
+    makeTest('Inwestor', 'Registry create/update/remove i impact mają spójny kontrakt zachowania', 'Pilnuje jednego porządnego pakietu jakościowego: create/update/remove mają zwracać spójne obiekty wyniku, impact ma pokazać skutki usunięcia, a cleanup nie może zostawić pokoju w projekcie ani inwestorze.', ()=>{
+      assert(FC.roomRegistry && FC.roomRegistry._debug && typeof FC.roomRegistry._debug.createRoomRecord === 'function', 'Brak roomRegistry._debug.createRoomRecord');
+      assert(typeof FC.roomRegistry._debug.updateRoomRecord === 'function', 'Brak roomRegistry._debug.updateRoomRecord');
+      assert(typeof FC.roomRegistry._debug.removeRoomByIdDetailed === 'function', 'Brak roomRegistry._debug.removeRoomByIdDetailed');
+      assert(typeof FC.roomRegistry._debug.buildRoomRemovalImpact === 'function', 'Brak roomRegistry._debug.buildRoomRemovalImpact');
+      const prevInvestors = FC.investors.readAll();
+      const prevCurrentInvestorId = FC.investors.getCurrentId();
+      const prevProjects = FC.projectStore.readAll();
+      const prevCurrentProjectId = FC.projectStore.getCurrentProjectId ? FC.projectStore.getCurrentProjectId() : '';
+      const prevProjectData = Object.prototype.hasOwnProperty.call(root, 'projectData') ? root.projectData : undefined;
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      try{
+        FC.investors.writeAll([]);
+        FC.projectStore.writeAll([]);
+        FC.quoteSnapshotStore.writeAll([]);
+        const investor = FC.investors.create({ id:'inv_registry_contract', kind:'person', name:'Registry Contract', rooms:[{ id:'room_base', baseType:'kuchnia', name:'Kuchnia baza', label:'Kuchnia baza', projectStatus:'nowy' }] });
+        FC.investors.setCurrentId(investor.id);
+        const projectData = {
+          schemaVersion:2,
+          meta:{
+            roomDefs:{ room_base:{ id:'room_base', baseType:'kuchnia', name:'Kuchnia baza', label:'Kuchnia baza' } },
+            roomOrder:['room_base'],
+          },
+          room_base:{ cabinets:[{ id:'cab_base' }], fronts:[], sets:[], settings:{} },
+        };
+        const project = FC.projectStore.ensureForInvestor(investor.id, { status:'nowy', projectData: JSON.parse(JSON.stringify(projectData)) });
+        FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(project.id);
+        root.projectData = JSON.parse(JSON.stringify(projectData));
+        const created = FC.roomRegistry._debug.createRoomRecord(investor, { baseType:'pokoj', name:'Gabinet testowy' });
+        assert(created && created.ok === true && created.room && created.room.id, 'createRoomRecord nie zwrócił poprawnego kontraktu wyniku', created);
+        const createdId = String(created.room.id || '');
+        const afterCreateInvestor = FC.investors.getById(investor.id);
+        assert(afterCreateInvestor && Array.isArray(afterCreateInvestor.rooms) && afterCreateInvestor.rooms.some((room)=> String(room && room.id || '') === createdId), 'createRoomRecord nie dopisał pokoju do inwestora', afterCreateInvestor);
+        assert(root.projectData && root.projectData.meta && root.projectData.meta.roomDefs && root.projectData.meta.roomDefs[createdId], 'createRoomRecord nie dopisał roomDef do projektu', root.projectData);
+        const updated = FC.roomRegistry._debug.updateRoomRecord(afterCreateInvestor, createdId, { baseType:'pokoj', name:'Gabinet premium' });
+        assert(updated && updated.ok === true && String(updated.room && updated.room.label || '') === 'Gabinet premium', 'updateRoomRecord nie zwrócił zaktualizowanej etykiety', updated);
+        root.projectData[createdId] = { cabinets:[{ id:'cab_1' }, { id:'cab_2' }], fronts:[], sets:[], settings:{} };
+        FC.projectStore.ensureForInvestor(investor.id, { status:'wstepna_wycena', projectData: JSON.parse(JSON.stringify(root.projectData)) });
+        FC.quoteSnapshotStore.save({
+          id:'snap_registry_contract',
+          investor:{ id:investor.id, name:investor.name },
+          project:{ id:project.id, investorId:investor.id, status:'wstepna_wycena' },
+          commercial:{ preliminary:true, versionName:'Oferta Gabinet premium' },
+          meta:{ preliminary:true, versionName:'Oferta Gabinet premium', roomIds:[createdId] },
+          generatedAt: 123,
+        });
+        const impact = FC.roomRegistry._debug.buildRoomRemovalImpact(FC.investors.getById(investor.id), [createdId], { deferred:true });
+        assert(impact && /Gabinet premium/.test(String(impact.roomLabel || '')), 'buildRoomRemovalImpact nie zwrócił etykiety pokoju po rename', impact);
+        assert(Number(impact && impact.cabinetCount || 0) === 2, 'buildRoomRemovalImpact nie policzył szafek pokoju', impact);
+        assert(Array.isArray(impact && impact.snapshots) && impact.snapshots.length === 1, 'buildRoomRemovalImpact nie wykrył snapshotu powiązanego z pokojem', impact);
+        const removed = FC.roomRegistry._debug.removeRoomByIdDetailed(createdId);
+        assert(removed && removed.ok === true && String(removed.roomId || '') === createdId, 'removeRoomByIdDetailed nie zwrócił poprawnego kontraktu wyniku', removed);
+        const afterRemoveInvestor = FC.investors.getById(investor.id);
+        assert(afterRemoveInvestor && Array.isArray(afterRemoveInvestor.rooms) && !afterRemoveInvestor.rooms.some((room)=> String(room && room.id || '') === createdId), 'removeRoomByIdDetailed nie usunął pokoju z inwestora', afterRemoveInvestor);
+        assert(!(root.projectData && root.projectData.meta && root.projectData.meta.roomDefs && root.projectData.meta.roomDefs[createdId]), 'removeRoomByIdDetailed nie usunął roomDef z projektu', root.projectData);
+      } finally {
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
         if(prevProjectData === undefined) { try{ delete root.projectData; }catch(_){ root.projectData = undefined; } }
         else root.projectData = prevProjectData;
         FC.projectStore.writeAll(prevProjects);

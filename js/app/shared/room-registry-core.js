@@ -3,11 +3,12 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const foundation = FC.roomRegistryFoundation;
+  const utils = FC.roomRegistryUtils;
   const definitions = FC.roomRegistryDefinitions;
   const projectSync = FC.roomRegistryProjectSync;
   const impact = FC.roomRegistryImpact;
 
-  if(!(foundation && definitions && projectSync && impact)){
+  if(!(foundation && utils && definitions && projectSync && impact)){
     try{ console.error('[room-registry-core] Missing split registry modules before core facade load'); }catch(_){ }
     FC.roomRegistryCore = FC.roomRegistryCore || {
       BASE_LABELS:{},
@@ -18,6 +19,10 @@
       ensureProjectMeta:()=> null,
       discoverProjectRoomKeys:()=> [],
       roomTemplate:()=> ({ cabinets:[], fronts:[], sets:[], settings:{} }),
+      createElement:(tag, attrs, children, doc)=> (doc || document).createElement(tag),
+      cloneRoomDrafts:()=> [],
+      serializeRoomDrafts:()=> '[]',
+      mergeRoomCollections:()=> [],
       slugify:(text)=> String(text || ''),
       makeRoomId:(baseType, name)=> 'room_' + String(baseType || 'pokoj') + '_' + String(name || 'pomieszczenie'),
       normalizeLabel:(text)=> String(text || '').trim(),
@@ -33,21 +38,28 @@
       getRoomLabel:(id)=> String(id || '') || 'Pomieszczenie',
       ensureRoomData:()=> null,
       isRoomNameTaken:()=> false,
+      normalizeRoomIds:()=> [],
       syncRoomSelectionAfterRemoval:()=> {},
       syncQuoteDraftSelectionAfterRoomChange:()=> {},
       reconcileStatusesAfterRoomSetChange:()=> {},
       getCurrentProjectRecord:()=> null,
       getSnapshotVersionName:(snapshot)=> String(snapshot && snapshot.meta && snapshot.meta.versionName || snapshot && snapshot.commercialName || '').trim() || 'Wycena',
       listSnapshotsForRoomRemoval:()=> [],
+      listRoomRemovalSnapshots:()=> [],
       countCabinetsForRoomIds:()=> 0,
+      buildRoomRemovalImpact:()=> ({ roomIds:[], roomNames:[], roomLabel:'', snapshots:[], cabinetCount:0, deferred:false, message:'' }),
       buildRoomRemovalWarningMessage:()=> ({ message:'', snapshots:[], cabinetCount:0 }),
       askDeleteRoomWithQuotes: async()=> true,
       removeQuotesForRooms:()=> [],
       removeRoomsData:()=> {},
       updateInvestorRooms:()=> {},
+      createRoomRecord:()=> ({ ok:false, room:null, rooms:[] }),
+      updateRoomRecord:()=> ({ ok:false, room:null, rooms:[] }),
       removeRoomById:()=> null,
+      removeRoomByIdDetailed:()=> ({ ok:false, roomId:null, rooms:[] }),
       getManageableRooms:()=> [],
       applyManageRoomsDraft:()=> [],
+      applyManageRoomsDraftDetailed:()=> ({ ok:false, rooms:[] }),
       getEditableRoom:()=> null,
     };
     return;
@@ -62,6 +74,10 @@
     ensureProjectMeta: foundation.ensureProjectMeta,
     discoverProjectRoomKeys: foundation.discoverProjectRoomKeys,
     roomTemplate: foundation.roomTemplate,
+    createElement: utils.createElement,
+    cloneRoomDrafts: utils.cloneRoomDrafts,
+    serializeRoomDrafts: utils.serializeRoomDrafts,
+    mergeRoomCollections: utils.mergeRoomCollections,
     slugify: definitions.slugify,
     makeRoomId: definitions.makeRoomId,
     normalizeLabel: definitions.normalizeLabel,
@@ -77,21 +93,28 @@
     getRoomLabel: definitions.getRoomLabel,
     ensureRoomData: projectSync.ensureRoomData,
     isRoomNameTaken: definitions.isRoomNameTaken,
+    normalizeRoomIds: impact.normalizeRoomIds,
     syncRoomSelectionAfterRemoval: impact.syncRoomSelectionAfterRemoval,
     syncQuoteDraftSelectionAfterRoomChange: impact.syncQuoteDraftSelectionAfterRoomChange,
     reconcileStatusesAfterRoomSetChange: impact.reconcileStatusesAfterRoomSetChange,
     getCurrentProjectRecord: impact.getCurrentProjectRecord,
     getSnapshotVersionName: impact.getSnapshotVersionName,
     listSnapshotsForRoomRemoval: impact.listSnapshotsForRoomRemoval,
+    listRoomRemovalSnapshots: impact.listRoomRemovalSnapshots,
     countCabinetsForRoomIds: impact.countCabinetsForRoomIds,
+    buildRoomRemovalImpact: impact.buildRoomRemovalImpact,
     buildRoomRemovalWarningMessage: impact.buildRoomRemovalWarningMessage,
     askDeleteRoomWithQuotes: impact.askDeleteRoomWithQuotes,
     removeQuotesForRooms: impact.removeQuotesForRooms,
     removeRoomsData: projectSync.removeRoomsData,
     updateInvestorRooms: projectSync.updateInvestorRooms,
+    createRoomRecord: projectSync.createRoomRecord,
+    updateRoomRecord: projectSync.updateRoomRecord,
     removeRoomById: projectSync.removeRoomById,
+    removeRoomByIdDetailed: projectSync.removeRoomByIdDetailed,
     getManageableRooms: projectSync.getManageableRooms,
     applyManageRoomsDraft: projectSync.applyManageRoomsDraft,
+    applyManageRoomsDraftDetailed: projectSync.applyManageRoomsDraftDetailed,
     getEditableRoom: projectSync.getEditableRoom,
   };
 })();

@@ -17,64 +17,60 @@
 
   const {
     BASE_LABELS,
+    createElement,
     normalizeLabel,
-    normalizeRoomDef,
-    getProject,
-    saveProject,
     getCurrentInvestor,
-    ensureProjectMeta,
-    roomTemplate,
-    makeRoomId,
     getEditableRoom,
     isRoomNameTaken,
     askDeleteRoomWithQuotes,
-    updateInvestorRooms,
+    createRoomRecord,
+    updateRoomRecord,
+    removeRoomByIdDetailed,
   } = core;
+
+  function openInfo(title, message){
+    try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ }
+  }
 
   async function openEditRoomModal(roomId){
     const inv = getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const room = getEditableRoom(inv, roomId);
     if(!(room && room.id)) return null;
-    const h = (tag, attrs, children)=>{
-      const el = document.createElement(tag);
-      if(attrs){ Object.keys(attrs).forEach((k)=>{ if(k === 'class') el.className = attrs[k]; else if(k === 'text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]); }); }
-      (children || []).forEach((ch)=> el.appendChild(ch));
-      return el;
-    };
     return new Promise((resolve)=>{
       let selectedBase = String(room.baseType || 'pokoj');
       let dirty = false;
-      const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
-      const scroll = h('div', { class:'panel-box-form__scroll' });
-      const form = h('div', { class:'grid-2 rozrys-panel-grid rozrys-panel-grid--stock room-registry-grid' });
-      const baseWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
-      baseWrap.appendChild(h('label', { text:'Typ pomieszczenia' }));
-      const chips = h('div', { class:'room-registry-type-grid' });
+      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
+      const scroll = createElement('div', { class:'panel-box-form__scroll' });
+      const form = createElement('div', { class:'grid-2 rozrys-panel-grid rozrys-panel-grid--stock room-registry-grid' });
+      const baseWrap = createElement('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
+      baseWrap.appendChild(createElement('label', { text:'Typ pomieszczenia' }));
+      const chips = createElement('div', { class:'room-registry-type-grid' });
       Object.keys(BASE_LABELS).forEach((baseType)=>{
-        const btn = h('button', { type:'button', class:'room-registry-type-btn' + (baseType === selectedBase ? ' is-selected' : ''), 'data-base':baseType, text:BASE_LABELS[baseType] });
+        const btn = createElement('button', { type:'button', class:'room-registry-type-btn' + (baseType === selectedBase ? ' is-selected' : ''), 'data-base':baseType, text:BASE_LABELS[baseType] });
         btn.addEventListener('click', ()=>{
           if(selectedBase === baseType) return;
           selectedBase = baseType;
           dirty = true;
           chips.querySelectorAll('.room-registry-type-btn').forEach((node)=> node.classList.toggle('is-selected', node.getAttribute('data-base') === baseType));
+          refreshFooter();
         });
         chips.appendChild(btn);
       });
       baseWrap.appendChild(chips);
       form.appendChild(baseWrap);
-      const nameWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
-      nameWrap.appendChild(h('label', { text:'Nazwa pomieszczenia' }));
-      const nameInput = h('input', { type:'text', placeholder:'Np. Kuchnia góra / Kuchnia garaż', value:room.label || room.name || '' });
+      const nameWrap = createElement('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
+      nameWrap.appendChild(createElement('label', { text:'Nazwa pomieszczenia' }));
+      const nameInput = createElement('input', { type:'text', placeholder:'Np. Kuchnia góra / Kuchnia garaż', value:room.label || room.name || '' });
       nameWrap.appendChild(nameInput);
       form.appendChild(nameWrap);
       scroll.appendChild(form);
       body.appendChild(scroll);
-      const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
-      const actions = h('div', { class:'rozrys-panel-footer__actions' });
-      const deleteBtn = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
-      const cancelBtn = h('button', { type:'button', class:'btn btn-primary', text:'Wyjdź' });
-      const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
+      const footer = createElement('div', { class:'panel-box-form__footer rozrys-panel-footer' });
+      const actions = createElement('div', { class:'rozrys-panel-footer__actions' });
+      const deleteBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
+      const cancelBtn = createElement('button', { type:'button', class:'btn btn-primary', text:'Wyjdź' });
+      const saveBtn = createElement('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
       saveBtn.style.display = 'none';
       actions.appendChild(deleteBtn);
       actions.appendChild(cancelBtn);
@@ -97,14 +93,12 @@
         return true;
       };
       const askDelete = async ()=> await askDeleteRoomWithQuotes(inv, [room.id], { deferred:false });
-      nameInput.addEventListener('input', ()=>{
+      const syncDirty = ()=>{
         dirty = normalizeLabel(nameInput.value) !== normalizeLabel(room.label || room.name || '') || selectedBase !== String(room.baseType || 'pokoj');
         refreshFooter();
-      });
-      nameInput.addEventListener('change', ()=>{
-        dirty = normalizeLabel(nameInput.value) !== normalizeLabel(room.label || room.name || '') || selectedBase !== String(room.baseType || 'pokoj');
-        refreshFooter();
-      });
+      };
+      nameInput.addEventListener('input', syncDirty);
+      nameInput.addEventListener('change', syncDirty);
       cancelBtn.addEventListener('click', async ()=>{
         const ok = await askDiscard();
         if(ok) done(null);
@@ -112,12 +106,12 @@
       saveBtn.addEventListener('click', async ()=>{
         const name = normalizeLabel(nameInput.value);
         if(!name){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak nazwy pomieszczenia', message:'Nadaj nazwę pomieszczeniu, zanim je zapiszesz.' }); }catch(_){ }
+          openInfo('Brak nazwy pomieszczenia', 'Nadaj nazwę pomieszczeniu, zanim je zapiszesz.');
           try{ nameInput.focus(); }catch(_){ }
           return;
         }
         if(isRoomNameTaken(name, inv, room.id)){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Ta nazwa już istnieje', message:'Dla tego inwestora istnieje już pomieszczenie o tej nazwie. Nadaj inną nazwę.' }); }catch(_){ }
+          openInfo('Ta nazwa już istnieje', 'Dla tego inwestora istnieje już pomieszczenie o tej nazwie. Nadaj inną nazwę.');
           try{ nameInput.focus(); nameInput.select && nameInput.select(); }catch(_){ }
           return;
         }
@@ -128,28 +122,16 @@
           }
         }catch(_){ }
         if(!confirmed) return;
-        const proj = getProject() || {};
-        const meta = ensureProjectMeta(proj);
-        const currentDef = normalizeRoomDef(meta && meta.roomDefs && meta.roomDefs[room.id], room);
-        if(meta && meta.roomDefs){
-          meta.roomDefs[room.id] = Object.assign({}, currentDef, { id:room.id, baseType:selectedBase, name, label:name });
-        }
-        if(!proj[room.id]) proj[room.id] = roomTemplate(selectedBase);
-        saveProject(proj);
-        const currentRooms = Array.isArray(inv.rooms) ? inv.rooms : [];
-        const nextRooms = currentRooms.map((item)=> {
-          if(String(item && item.id || '') !== String(room.id || '')) return item;
-          return Object.assign({}, item || {}, { id:room.id, baseType:selectedBase, name, label:name, projectStatus:(item && item.projectStatus) || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy' });
-        });
-        updateInvestorRooms(inv, nextRooms);
+        const result = updateRoomRecord(inv, room.id, { baseType:selectedBase, name, label:name });
+        if(!(result && result.ok && result.room)) return;
         dirty = false;
-        done({ id:room.id, baseType:selectedBase, name, label:name });
+        done(result.room);
       });
       deleteBtn.addEventListener('click', async ()=>{
         const ok = await askDelete();
         if(!ok) return;
-        const removedId = removeRoomById(room.id);
-        done(removedId ? { deleted:true, roomId:removedId } : null);
+        const result = removeRoomByIdDetailed(room.id);
+        done(result && result.ok ? { deleted:true, roomId:result.roomId } : null);
       });
       refreshFooter();
       FC.panelBox.open({ title:'Edytuj pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
@@ -160,22 +142,16 @@
   async function openAddRoomModal(){
     const inv = getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
-    const h = (tag, attrs, children)=>{
-      const el = document.createElement(tag);
-      if(attrs){ Object.keys(attrs).forEach((k)=>{ if(k === 'class') el.className = attrs[k]; else if(k === 'text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]); }); }
-      (children || []).forEach((ch)=> el.appendChild(ch));
-      return el;
-    };
     return new Promise((resolve)=>{
       let selectedBase = 'kuchnia';
-      const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
-      const scroll = h('div', { class:'panel-box-form__scroll' });
-      const form = h('div', { class:'grid-2 rozrys-panel-grid rozrys-panel-grid--stock room-registry-grid' });
-      const baseWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
-      baseWrap.appendChild(h('label', { text:'Typ pomieszczenia' }));
-      const chips = h('div', { class:'room-registry-type-grid' });
+      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
+      const scroll = createElement('div', { class:'panel-box-form__scroll' });
+      const form = createElement('div', { class:'grid-2 rozrys-panel-grid rozrys-panel-grid--stock room-registry-grid' });
+      const baseWrap = createElement('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
+      baseWrap.appendChild(createElement('label', { text:'Typ pomieszczenia' }));
+      const chips = createElement('div', { class:'room-registry-type-grid' });
       Object.keys(BASE_LABELS).forEach((baseType)=>{
-        const btn = h('button', { type:'button', class:'room-registry-type-btn' + (baseType === selectedBase ? ' is-selected' : ''), 'data-base':baseType, text:BASE_LABELS[baseType] });
+        const btn = createElement('button', { type:'button', class:'room-registry-type-btn' + (baseType === selectedBase ? ' is-selected' : ''), 'data-base':baseType, text:BASE_LABELS[baseType] });
         btn.addEventListener('click', ()=>{
           selectedBase = baseType;
           chips.querySelectorAll('.room-registry-type-btn').forEach((node)=> node.classList.toggle('is-selected', node.getAttribute('data-base') === baseType));
@@ -184,17 +160,17 @@
       });
       baseWrap.appendChild(chips);
       form.appendChild(baseWrap);
-      const nameWrap = h('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
-      nameWrap.appendChild(h('label', { text:'Nazwa pomieszczenia' }));
-      const nameInput = h('input', { type:'text', placeholder:'Np. Kuchnia góra / Kuchnia garaż' });
+      const nameWrap = createElement('div', { class:'rozrys-panel-field rozrys-panel-field--full' });
+      nameWrap.appendChild(createElement('label', { text:'Nazwa pomieszczenia' }));
+      const nameInput = createElement('input', { type:'text', placeholder:'Np. Kuchnia góra / Kuchnia garaż' });
       nameWrap.appendChild(nameInput);
       form.appendChild(nameWrap);
       scroll.appendChild(form);
       body.appendChild(scroll);
-      const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
-      const actions = h('div', { class:'rozrys-panel-footer__actions' });
-      const cancelBtn = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Dodaj' });
+      const footer = createElement('div', { class:'panel-box-form__footer rozrys-panel-footer' });
+      const actions = createElement('div', { class:'rozrys-panel-footer__actions' });
+      const cancelBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
+      const saveBtn = createElement('button', { type:'button', class:'btn btn-success', text:'Dodaj' });
       actions.appendChild(cancelBtn);
       actions.appendChild(saveBtn);
       footer.appendChild(actions);
@@ -204,26 +180,18 @@
       saveBtn.addEventListener('click', ()=>{
         const name = normalizeLabel(nameInput.value);
         if(!name){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak nazwy pomieszczenia', message:'Nadaj nazwę pomieszczeniu, zanim je dodasz.' }); }catch(_){ }
+          openInfo('Brak nazwy pomieszczenia', 'Nadaj nazwę pomieszczeniu, zanim je dodasz.');
           try{ nameInput.focus(); }catch(_){ }
           return;
         }
         if(isRoomNameTaken(name, inv)){
-          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Ta nazwa już istnieje', message:'Dla tego inwestora istnieje już pomieszczenie o tej nazwie. Nadaj inną nazwę.' }); }catch(_){ }
+          openInfo('Ta nazwa już istnieje', 'Dla tego inwestora istnieje już pomieszczenie o tej nazwie. Nadaj inną nazwę.');
           try{ nameInput.focus(); nameInput.select && nameInput.select(); }catch(_){ }
           return;
         }
-        const id = makeRoomId(selectedBase, name);
-        const proj = getProject() || {};
-        const meta = ensureProjectMeta(proj);
-        meta.roomDefs[id] = { id, baseType:selectedBase, name, label:name };
-        if(!meta.roomOrder.includes(id)) meta.roomOrder.push(id);
-        if(!proj[id]) proj[id] = roomTemplate(selectedBase);
-        saveProject(proj);
-        const rooms = Array.isArray(inv.rooms) ? inv.rooms.slice() : [];
-        rooms.push({ id, baseType:selectedBase, name, label:name, projectStatus:(FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy' });
-        try{ FC.investors.update(inv.id, { rooms }); }catch(_){ }
-        done({ id, baseType:selectedBase, name, label:name });
+        const result = createRoomRecord(inv, { baseType:selectedBase, name, label:name });
+        if(!(result && result.ok && result.room)) return;
+        done(result.room);
       });
       FC.panelBox.open({ title:'Dodaj pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
       setTimeout(()=>{ try{ nameInput.focus(); }catch(_){ } }, 20);

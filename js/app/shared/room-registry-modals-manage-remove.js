@@ -15,52 +15,46 @@
 
   const {
     BASE_LABELS,
+    createElement,
+    cloneRoomDrafts,
+    serializeRoomDrafts,
     normalizeLabel,
     normalizeComparableLabel,
-    normalizeRoomDef,
-    getProject,
     getCurrentInvestor,
     getManageableRooms,
-    getActiveRoomDefs,
-    hasLegacyKitchen,
-    createLegacyKitchenDef,
-    applyManageRoomsDraft,
-    removeRoomById,
+    applyManageRoomsDraftDetailed,
+    removeRoomByIdDetailed,
     askDeleteRoomWithQuotes,
   } = core;
+
+  function openInfo(title, message){
+    try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ }
+  }
 
   async function openManageRoomsModal(){
     const inv = getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
-      try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Najpierw dodaj pomieszczenie, żeby móc nimi zarządzać.' }); }catch(_){ }
+      openInfo('Brak pomieszczeń', 'Najpierw dodaj pomieszczenie, żeby móc nimi zarządzać.');
       return null;
     }
-    const h = (tag, attrs, children)=>{
-      const el = document.createElement(tag);
-      if(attrs){ Object.keys(attrs).forEach((k)=>{ if(k === 'class') el.className = attrs[k]; else if(k === 'text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]); }); }
-      (children || []).forEach((ch)=> el.appendChild(ch));
-      return el;
-    };
     return new Promise((resolve)=>{
-      const cloneDrafts = (list)=> (Array.isArray(list) ? list.map((room)=> ({ id:room.id, baseType:room.baseType, name:room.name, label:room.label, legacy:!!room.legacy })) : []);
-      const serializeDrafts = (list)=> JSON.stringify((Array.isArray(list) ? list : []).map((room)=> ({ id:room.id, baseType:room.baseType, name:normalizeLabel(room.name), label:normalizeLabel(room.label) })));
-      let drafts = cloneDrafts(rooms);
-      let initialDrafts = cloneDrafts(drafts);
-      let initial = serializeDrafts(initialDrafts);
-      const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal room-registry-manage-modal' });
-      const scroll = h('div', { class:'panel-box-form__scroll' });
-      const intro = h('div', { class:'muted', text:'Tutaj zarządzasz wszystkimi pomieszczeniami tego inwestora. Możesz zmienić ich nazwy albo usunąć wybrane pozycje.' });
+      let drafts = cloneRoomDrafts(rooms);
+      let initialDrafts = cloneRoomDrafts(drafts);
+      let initial = serializeRoomDrafts(initialDrafts, normalizeLabel);
+      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal room-registry-manage-modal' });
+      const scroll = createElement('div', { class:'panel-box-form__scroll' });
+      const intro = createElement('div', { class:'muted', text:'Tutaj zarządzasz wszystkimi pomieszczeniami tego inwestora. Możesz zmienić ich nazwy albo usunąć wybrane pozycje.' });
       scroll.appendChild(intro);
-      const list = h('div', { class:'room-registry-manage-list' });
+      const list = createElement('div', { class:'room-registry-manage-list' });
       scroll.appendChild(list);
       body.appendChild(scroll);
-      const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
-      const actions = h('div', { class:'rozrys-panel-footer__actions' });
-      const exitBtn = h('button', { type:'button', class:'btn btn-primary', text:'Wyjdź' });
-      const cancelBtn = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
-      const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
+      const footer = createElement('div', { class:'panel-box-form__footer rozrys-panel-footer' });
+      const actions = createElement('div', { class:'rozrys-panel-footer__actions' });
+      const exitBtn = createElement('button', { type:'button', class:'btn btn-primary', text:'Wyjdź' });
+      const cancelBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
+      const saveBtn = createElement('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
       cancelBtn.style.display = 'none';
       saveBtn.style.display = 'none';
       actions.appendChild(exitBtn);
@@ -69,7 +63,7 @@
       footer.appendChild(actions);
       body.appendChild(footer);
 
-      const isDirty = ()=> serializeDrafts(drafts) !== initial;
+      const isDirty = ()=> serializeRoomDrafts(drafts, normalizeLabel) !== initial;
       const refreshFooter = ()=>{
         const dirty = isDirty();
         exitBtn.style.display = dirty ? 'none' : '';
@@ -89,16 +83,16 @@
       const renderRows = ()=>{
         list.innerHTML = '';
         drafts.forEach((room)=>{
-          const row = h('div', { class:'investor-project-card room-registry-manage-row' });
-          const top = h('div', { class:'investor-project-card__top room-registry-manage-row__top' });
-          const badge = h('div', { class:'muted-tag xs', text: BASE_LABELS[room.baseType] || room.baseType || 'Pomieszczenie' });
-          const removeBtn = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
+          const row = createElement('div', { class:'investor-project-card room-registry-manage-row' });
+          const top = createElement('div', { class:'investor-project-card__top room-registry-manage-row__top' });
+          const badge = createElement('div', { class:'muted-tag xs', text: BASE_LABELS[room.baseType] || room.baseType || 'Pomieszczenie' });
+          const removeBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
           top.appendChild(badge);
           top.appendChild(removeBtn);
           row.appendChild(top);
-          const field = h('div', { class:'rozrys-panel-field room-registry-manage-row__field' });
-          field.appendChild(h('label', { text:'Nazwa pomieszczenia' }));
-          const input = h('input', { type:'text', class:'investor-form-input', value: room.label || room.name || '' });
+          const field = createElement('div', { class:'rozrys-panel-field room-registry-manage-row__field' });
+          field.appendChild(createElement('label', { text:'Nazwa pomieszczenia' }));
+          const input = createElement('input', { type:'text', class:'investor-form-input', value: room.label || room.name || '' });
           field.appendChild(input);
           row.appendChild(field);
           input.addEventListener('input', ()=>{
@@ -121,13 +115,13 @@
           list.appendChild(row);
         });
         if(!drafts.length){
-          list.appendChild(h('div', { class:'muted', text:'Brak pomieszczeń. Możesz zamknąć okno albo dodać nowe pomieszczenie poza tym ekranem.' }));
+          list.appendChild(createElement('div', { class:'muted', text:'Brak pomieszczeń. Możesz zamknąć okno albo dodać nowe pomieszczenie poza tym ekranem.' }));
         }
       };
       exitBtn.addEventListener('click', ()=> done(null));
       cancelBtn.addEventListener('click', async ()=>{
         if(!(await askDiscard())) return;
-        drafts = cloneDrafts(initialDrafts);
+        drafts = cloneRoomDrafts(initialDrafts);
         renderRows();
         refreshFooter();
         try{
@@ -140,12 +134,12 @@
         for(const room of drafts){
           const name = normalizeLabel(room.label || room.name || '');
           if(!name){
-            try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak nazwy pomieszczenia', message:'Każde pomieszczenie musi mieć nazwę.' }); }catch(_){ }
+            openInfo('Brak nazwy pomieszczenia', 'Każde pomieszczenie musi mieć nazwę.');
             return;
           }
           const key = normalizeComparableLabel(name);
           if(seen.has(key)){
-            try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Powielona nazwa pomieszczenia', message:'Nazwy pomieszczeń muszą być unikalne dla jednego inwestora.' }); }catch(_){ }
+            openInfo('Powielona nazwa pomieszczenia', 'Nazwy pomieszczeń muszą być unikalne dla jednego inwestora.');
             return;
           }
           seen.set(key, room.id);
@@ -157,10 +151,11 @@
           if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') ok = await FC.confirmBox.ask({ title:'ZAPISAĆ ZMIANY?', message:'Zapisać zmiany w liście pomieszczeń?', confirmText:'Zapisz', cancelText:'Wróć', confirmTone:'success', cancelTone:'neutral' });
         }catch(_){ }
         if(!ok) return;
-        applyManageRoomsDraft(inv, drafts);
-        initialDrafts = cloneDrafts(drafts);
-        initial = serializeDrafts(initialDrafts);
-        done({ saved:true, rooms:drafts.map((room)=> Object.assign({}, room)) });
+        const result = applyManageRoomsDraftDetailed(inv, drafts);
+        if(!(result && result.ok)) return;
+        initialDrafts = cloneRoomDrafts(drafts);
+        initial = serializeRoomDrafts(initialDrafts, normalizeLabel);
+        done({ saved:true, rooms:cloneRoomDrafts(drafts), removedRoomIds:result.removedRoomIds || [] });
       });
       renderRows();
       refreshFooter();
@@ -177,58 +172,31 @@
   async function openRemoveRoomModal(){
     const inv = getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
-    const investorRooms = Array.isArray(inv.rooms) ? inv.rooms : [];
-    const activeRooms = getActiveRoomDefs();
-    const roomMap = new Map();
-
-    activeRooms.forEach((room)=> {
-      const normalized = normalizeRoomDef(room, room);
-      if(normalized && normalized.id) roomMap.set(String(normalized.id), normalized);
-    });
-
-    investorRooms.forEach((room)=> {
-      const normalized = normalizeRoomDef(room, room);
-      if(!(normalized && normalized.id)) return;
-      const key = String(normalized.id);
-      roomMap.set(key, normalizeRoomDef(Object.assign({}, roomMap.get(key) || {}, normalized), roomMap.get(key) || normalized));
-    });
-
-    if(hasLegacyKitchen(getProject()) && !roomMap.has('kuchnia')){
-      const legacy = createLegacyKitchenDef();
-      roomMap.set('kuchnia', legacy);
-    }
-
-    const rooms = Array.from(roomMap.values()).filter((room)=> room && room.id);
+    const rooms = getManageableRooms(inv);
     if(!rooms.length){
-      try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak pomieszczeń', message:'Najpierw dodaj pomieszczenie, żeby móc je usunąć.' }); }catch(_){ }
+      openInfo('Brak pomieszczeń', 'Najpierw dodaj pomieszczenie, żeby móc je usunąć.');
       return null;
     }
-    const h = (tag, attrs, children)=>{
-      const el = document.createElement(tag);
-      if(attrs){ Object.keys(attrs).forEach((k)=>{ if(k === 'class') el.className = attrs[k]; else if(k === 'text') el.textContent = attrs[k]; else el.setAttribute(k, attrs[k]); }); }
-      (children || []).forEach((ch)=> el.appendChild(ch));
-      return el;
-    };
     return new Promise((resolve)=>{
       let selectedId = String(rooms[0].id || '');
-      const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
-      const scroll = h('div', { class:'panel-box-form__scroll' });
-      const list = h('div', { class:'room-registry-remove-list' });
+      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
+      const scroll = createElement('div', { class:'panel-box-form__scroll' });
+      const list = createElement('div', { class:'room-registry-remove-list' });
       const sync = ()=>{
         list.querySelectorAll('.room-registry-remove-btn').forEach((btn)=> btn.classList.toggle('is-selected', btn.getAttribute('data-room-id') === selectedId));
       };
       rooms.forEach((room)=>{
-        const btn = h('button', { type:'button', class:'room-registry-remove-btn', 'data-room-id':room.id, text:room.label || room.name || room.id });
+        const btn = createElement('button', { type:'button', class:'room-registry-remove-btn', 'data-room-id':room.id, text:room.label || room.name || room.id });
         btn.addEventListener('click', ()=>{ selectedId = room.id; sync(); });
         list.appendChild(btn);
       });
       sync();
       scroll.appendChild(list);
       body.appendChild(scroll);
-      const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
-      const actions = h('div', { class:'rozrys-panel-footer__actions' });
-      const cancelBtn = h('button', { type:'button', class:'btn btn-primary', text:'Wróć' });
-      const deleteBtn = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
+      const footer = createElement('div', { class:'panel-box-form__footer rozrys-panel-footer' });
+      const actions = createElement('div', { class:'rozrys-panel-footer__actions' });
+      const cancelBtn = createElement('button', { type:'button', class:'btn btn-primary', text:'Wróć' });
+      const deleteBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
       actions.appendChild(cancelBtn);
       actions.appendChild(deleteBtn);
       footer.appendChild(actions);
@@ -239,8 +207,8 @@
         if(!selectedId) return;
         const ok = await askDeleteRoomWithQuotes(inv, [selectedId], { deferred:false });
         if(!ok) return;
-        const removedId = removeRoomById(selectedId);
-        done(removedId);
+        const result = removeRoomByIdDetailed(selectedId);
+        done(result && result.ok ? result.roomId : null);
       });
       FC.panelBox.open({ title:'Usuń pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
     });

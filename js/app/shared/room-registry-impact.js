@@ -14,7 +14,9 @@
       getCurrentProjectRecord:()=> null,
       getSnapshotVersionName:(snapshot)=> String(snapshot && snapshot.meta && snapshot.meta.versionName || snapshot && snapshot.commercialName || '').trim() || 'Wycena',
       listSnapshotsForRoomRemoval:()=> [],
+      listRoomRemovalSnapshots:()=> [],
       countCabinetsForRoomIds:()=> 0,
+      buildRoomRemovalImpact:()=> ({ roomIds:[], roomNames:[], roomLabel:'', snapshots:[], cabinetCount:0, deferred:false, message:'' }),
       buildRoomRemovalWarningMessage:()=> ({ message:'', snapshots:[], cabinetCount:0 }),
       askDeleteRoomWithQuotes: async()=> true,
       removeQuotesForRooms:()=> [],
@@ -24,6 +26,12 @@
 
   const { getProject } = foundation;
   const { getRoomLabel } = definitions;
+
+  function normalizeRoomIds(roomIds){
+    return Array.isArray(roomIds)
+      ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean)
+      : [];
+  }
 
   function syncRoomSelectionAfterRemoval(selectedId){
     try{
@@ -41,18 +49,20 @@
   }
 
   function syncQuoteDraftSelectionAfterRoomChange(keepIds){
-    const allowed = new Set(Array.isArray(keepIds) ? keepIds.map((id)=> String(id || '').trim()).filter(Boolean) : []);
+    const allowed = new Set(normalizeRoomIds(keepIds));
     try{
       if(!(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function' && typeof FC.quoteOfferStore.patchCurrentDraft === 'function')) return;
       const draft = FC.quoteOfferStore.getCurrentDraft();
-      const current = Array.isArray(draft && draft.selection && draft.selection.selectedRooms) ? draft.selection.selectedRooms.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+      const current = Array.isArray(draft && draft.selection && draft.selection.selectedRooms)
+        ? draft.selection.selectedRooms.map((id)=> String(id || '').trim()).filter(Boolean)
+        : [];
       const next = current.filter((id)=> allowed.has(id));
       if(current.length !== next.length) FC.quoteOfferStore.patchCurrentDraft({ selection:{ selectedRooms:next } });
     }catch(_){ }
   }
 
   function reconcileStatusesAfterRoomSetChange(inv, keepIds){
-    const ids = Array.isArray(keepIds) ? keepIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+    const ids = normalizeRoomIds(keepIds);
     syncQuoteDraftSelectionAfterRoomChange(ids);
     try{
       if(FC.projectStatusSync && typeof FC.projectStatusSync.reconcileProjectStatuses === 'function'){
@@ -99,8 +109,8 @@
     return metaName || commercialName || 'Wycena';
   }
 
-  function listSnapshotsForRoomRemoval(inv, roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+  function listRoomRemovalSnapshots(inv, roomIds){
+    const ids = normalizeRoomIds(roomIds);
     if(!ids.length) return [];
     const record = getCurrentProjectRecord(inv);
     const projectId = String(record && record.id || '');
@@ -113,8 +123,12 @@
     return [];
   }
 
+  function listSnapshotsForRoomRemoval(inv, roomIds){
+    return listRoomRemovalSnapshots(inv, roomIds);
+  }
+
   function countCabinetsForRoomIds(roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+    const ids = normalizeRoomIds(roomIds);
     if(!ids.length) return 0;
     const proj = getProject() || {};
     return ids.reduce((sum, roomId)=>{
@@ -124,10 +138,10 @@
     }, 0);
   }
 
-  function buildRoomRemovalWarningMessage(inv, roomIds, options){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+  function buildRoomRemovalImpact(inv, roomIds, options){
+    const ids = normalizeRoomIds(roomIds);
     const opts = options && typeof options === 'object' ? options : {};
-    const snapshots = listSnapshotsForRoomRemoval(inv, ids);
+    const snapshots = listRoomRemovalSnapshots(inv, ids);
     const deferred = !!opts.deferred;
     const roomNames = ids.map((id)=> getRoomLabel(id)).filter(Boolean);
     const roomLabel = roomNames.length === 1 ? roomNames[0] : (roomNames.length ? roomNames.join(', ') : 'wybrane pomieszczenia');
@@ -139,9 +153,7 @@
       ? `Usuwając pomieszczenie „${roomLabel}”, po kliknięciu Zapisz usuniesz powiązane dane.`
       : `Usuwając pomieszczenie „${roomLabel}”, usuniesz powiązane dane.`);
 
-    if(cabinetCount > 0){
-      lines.push(`Usuniesz też ${cabinetCount} ${cabinetLabel} z tego pomieszczenia.`);
-    }
+    if(cabinetCount > 0) lines.push(`Usuniesz też ${cabinetCount} ${cabinetLabel} z tego pomieszczenia.`);
 
     if(snapshots.length){
       if(snapshots.length <= 3){
@@ -152,17 +164,36 @@
       }
     }
 
-    if(!cabinetCount && !snapshots.length){
-      lines.push('Tej operacji nie cofnisz.');
-    }
+    if(!cabinetCount && !snapshots.length) lines.push('Tej operacji nie cofnisz.');
 
-    return { message: lines.join('\n\n'), snapshots, cabinetCount };
+    return {
+      roomIds: ids,
+      roomNames,
+      roomLabel,
+      snapshots,
+      cabinetCount,
+      deferred,
+      message: lines.join('\n\n'),
+    };
+  }
+
+  function buildRoomRemovalWarningMessage(inv, roomIds, options){
+    const impact = buildRoomRemovalImpact(inv, roomIds, options);
+    return {
+      message: impact.message,
+      snapshots: impact.snapshots,
+      cabinetCount: impact.cabinetCount,
+      roomIds: impact.roomIds,
+      roomNames: impact.roomNames,
+      roomLabel: impact.roomLabel,
+      deferred: impact.deferred,
+    };
   }
 
   async function askDeleteRoomWithQuotes(inv, roomIds, options){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+    const ids = normalizeRoomIds(roomIds);
     if(!ids.length) return false;
-    const warning = buildRoomRemovalWarningMessage(inv, ids, options);
+    const warning = buildRoomRemovalImpact(inv, ids, options);
     try{
       if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
         return await FC.confirmBox.ask({
@@ -179,7 +210,7 @@
   }
 
   function removeQuotesForRooms(inv, roomIds){
-    const ids = Array.isArray(roomIds) ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean) : [];
+    const ids = normalizeRoomIds(roomIds);
     if(!ids.length) return [];
     const record = getCurrentProjectRecord(inv);
     const projectId = String(record && record.id || '');
@@ -193,13 +224,16 @@
   }
 
   FC.roomRegistryImpact = {
+    normalizeRoomIds,
     syncRoomSelectionAfterRemoval,
     syncQuoteDraftSelectionAfterRoomChange,
     reconcileStatusesAfterRoomSetChange,
     getCurrentProjectRecord,
     getSnapshotVersionName,
     listSnapshotsForRoomRemoval,
+    listRoomRemovalSnapshots,
     countCabinetsForRoomIds,
+    buildRoomRemovalImpact,
     buildRoomRemovalWarningMessage,
     askDeleteRoomWithQuotes,
     removeQuotesForRooms,
