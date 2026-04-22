@@ -135,7 +135,7 @@
               <div id="setParams" style="display:none"></div>
               <div id="setFrontBlock" style="display:none">
                 <select id="setFrontCount" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Ilość frontów" data-choice-title="Wybierz ilość frontów zestawu" data-choice-placeholder="Ilość frontów"><option value="1">1</option><option value="2">2</option></select>
-                <select id="setFrontMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-choice-placeholder="Materiał frontów"><option value="laminat">Laminat</option></select>
+                <select id="setFrontMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-choice-placeholder="Materiał frontów"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select>
                 <select id="setFrontColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Kolor frontów" data-choice-title="Wybierz kolor frontów zestawu" data-choice-placeholder="Kolor frontów"></select>
                 <div id="setFrontHint"></div>
               </div>
@@ -383,6 +383,64 @@
             H.assert(select && String(select.tagName || '').toLowerCase() === 'select', `Pole ${id} przestało istnieć jako natywny select`, select && select.outerHTML);
             H.assert(!!btn, `Pole ${id} w zestawie nie dostało launchera aplikacyjnego`, slot && slot.innerHTML);
           });
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zmiana materiału frontów zestawu od razu odświeża kolor i launcher', 'Pilnuje regresji set-wizarda: po przejściu z laminatu na akryl/lakier ukryty select koloru i jego launcher mają od razu pokazać pierwszy kolor z nowego materiału, bez czekania na zapis.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetModal === 'function', 'Brak FC.cabinetModal.renderCabinetModal');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({
+          materials:[
+            { name:'Egger W1100 ST9', materialType:'laminat' },
+            { name:'Akryl test', materialType:'akryl' },
+            { name:'Kaszmir angielskie', materialType:'lakier' }
+          ]
+        }, ()=>{
+          host.cabinetModalState.chosen = 'zestaw';
+          host.cabinetModalState.setPreset = 'C';
+          FC.cabinetModal.renderCabinetModal();
+          const matSel = document.getElementById('setFrontMaterial');
+          const colSel = document.getElementById('setFrontColor');
+          H.assert(!!matSel && !!colSel, 'Brak pól frontów zestawu', { matSel:!!matSel, colSel:!!colSel });
+          matSel.value = 'lakier';
+          if(typeof matSel.onchange === 'function') matSel.onchange({ target: matSel });
+          H.assert(String(colSel.value || '') === 'Kaszmir angielskie', 'Zmiana materiału zestawu nie ustawiła pierwszego koloru z nowego materiału', colSel && colSel.outerHTML);
+          const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="setFrontColor"]');
+          const label = slot && slot.querySelector('.rozrys-choice-launch__label');
+          H.assert(String(label && label.textContent || '').includes('Kaszmir angielskie'), 'Launcher koloru zestawu nie odświeżył się po zmianie materiału', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Materiały zestawu pokazują fronty i zawiasy tylko na pierwszym korpusie zestawu', 'Pilnuje regresji materiałów zestawu: fronty wygenerowane dla całego zestawu mają pojawić się przy pierwszym korpusie, a kolejne korpusy zestawu nie mogą dublować frontów ani zawiasów.', ()=>{
+        H.assert(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function', 'Brak FC.cabinetCutlist.getCabinetCutList');
+        return withCabinetGlobals({
+          projectData:{
+            schemaVersion:9,
+            kuchnia:{
+              cabinets:[
+                { id:'cab-set-1', setId:'set-1', setNumber:1, setRole:'dolny', type:'stojąca', subType:'standardowa', width:93, height:210, depth:60, bodyColor:'Egger W1100 ST9 Biały Alpejski', frontMaterial:'lakier', frontColor:'Kaszmir angielskie', backMaterial:'HDF 3mm biała', openingSystem:'uchwyt klienta', frontCount:2, details:{} },
+                { id:'cab-set-2', setId:'set-1', setNumber:1, setRole:'gorny_modul', type:'moduł', subType:'standardowa', width:93, height:25, depth:59, bodyColor:'Egger W1100 ST9 Biały Alpejski', frontMaterial:'lakier', frontColor:'Kaszmir angielskie', backMaterial:'HDF 3mm biała', openingSystem:'uchwyt klienta', frontCount:0, details:{} }
+              ],
+              fronts:[
+                { id:'front-1', setId:'set-1', setNumber:1, material:'lakier', color:'Kaszmir angielskie', width:46.5, height:235, note:'Zestaw 1: front lewy' },
+                { id:'front-2', setId:'set-1', setNumber:1, material:'lakier', color:'Kaszmir angielskie', width:46.5, height:235, note:'Zestaw 1: front prawy' }
+              ],
+              sets:[{ id:'set-1', presetId:'C', number:1, frontCount:2, frontMaterial:'lakier', frontColor:'Kaszmir angielskie', params:{ w:93, hB:210, hTop:25, dBottom:60, dModule:59, blende:5 } }],
+              settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8, gapHeight:0, ceilingBlende:5 }
+            }
+          }
+        }, ()=>{
+          const leadParts = FC.cabinetCutlist.getCabinetCutList(host.projectData.kuchnia.cabinets[0], 'kuchnia');
+          const followerParts = FC.cabinetCutlist.getCabinetCutList(host.projectData.kuchnia.cabinets[1], 'kuchnia');
+          const leadFront = partByName(leadParts, 'Front');
+          const followerFront = partByName(followerParts, 'Front');
+          const leadHinges = partByName(leadParts, 'Zawias BLUM');
+          const followerHinges = partByName(followerParts, 'Zawias BLUM');
+          H.assert(leadFront && Number(leadFront.qty) === 2, 'Pierwszy korpus zestawu nie dostał wspólnych frontów zestawu', leadParts);
+          H.assert(String(leadFront && leadFront.material || '').includes('lakier') && String(leadFront && leadFront.material || '').includes('Kaszmir angielskie'), 'Fronty zestawu na pierwszym korpusie nie trzymają wybranego materiału/koloru', leadFront || leadParts);
+          H.assert(leadHinges && Number(leadHinges.qty) >= 4, 'Pierwszy korpus zestawu nie dostał wspólnej liczby zawiasów zestawu', leadParts);
+          H.assert(!followerFront, 'Kolejny korpus zestawu nadal duplikuje fronty', followerParts);
+          H.assert(!followerHinges, 'Kolejny korpus zestawu nadal duplikuje zawiasy', followerParts);
         });
       }),
 

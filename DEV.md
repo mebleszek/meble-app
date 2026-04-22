@@ -1708,3 +1708,9 @@ Dopiero potem go zmieniać.
 - `js/app/investor/investor-rooms.js` — mount statusów projektu na kartach pokoi używa najpierw bulkowego `buildManualStatusChoiceStates(...)`, a dopiero awaryjnie spada do starego `validateManualStatusChange(...)`. To ma zmniejszyć lag zakładki Inwestor widoczny przy kilku pokojach i szybkich przełączeniach.
 - `js/testing/wycena/suites/investor-integration.js` — test kontraktowy pilnuje, że bulkowy guard zwraca te same blokady/odblokowania co pojedyncze `validateManualStatusChange`.
 - Instrukcja antyregresyjna: przy renderach list/kart z wieloma statusami nie wołać ciężkiego guardu per opcja, jeśli wszystkie opcje dotyczą tego samego pokoju/bazy. Najpierw budować wspólną analizę exact-scope i dopiero z niej wyprowadzać stany wielu opcji.
+
+## 2026-04-22 — set wizard front sync + set materials on lead cabinet
+- `js/app/cabinet/cabinet-modal-set-wizard.js` — zmiana materiału frontów zestawu musi od razu przepopulować `setFrontColor`, ustawić realną wartość selecta i odświeżyć launcher koloru. Nie zostawiać starej etykiety launchera po repopulacji opcji.
+- `js/app/cabinet/cabinet-modal-set-wizard.js` — korpusy tworzone przez preset zestawu mają przejąć wybrany `frontMaterial/frontColor` zestawu jako wspólne meta zestawu; nie zostawiać domyślnego laminatu z bazowego draftu.
+- `js/app/cabinet/front-hardware.js` — dla szafek z `setId` fronty i zawiasy do zakładki Materiały liczyć z faktycznych rekordów `projectData[room].fronts` tylko na pierwszym korpusie zestawu. Kolejne korpusy zestawu nie mogą dublować frontów ani zawiasów.
+

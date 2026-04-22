@@ -124,6 +124,26 @@
     }catch(_){ }
   }
 
+  function syncSetFrontSelectors(opts){
+    const cfg = Object.assign({ keepColor:false, selectedColor:'' }, opts || {});
+    const matSel = document.getElementById('setFrontMaterial');
+    const colSel = document.getElementById('setFrontColor');
+    if(!matSel || !colSel) return;
+
+    const requestedColor = cfg.keepColor ? String(colSel.value || '') : String(cfg.selectedColor || '');
+    populateFrontColorsTo(colSel, matSel.value || 'laminat', requestedColor);
+
+    if(!colSel.value && colSel.options && colSel.options.length){
+      colSel.value = String(colSel.options[0].value || '');
+    }
+
+    try{
+      colSel.dispatchEvent(new Event('change', { bubbles:true }));
+    }catch(_){ }
+
+    refreshSetLaunchers();
+  }
+
   function renderSetTiles(){
     const wrap = document.getElementById('setTiles');
     if(!wrap) return;
@@ -330,14 +350,13 @@
     if(hasPreset){
       const cntSel = document.getElementById('setFrontCount');
       const matSel = document.getElementById('setFrontMaterial');
-      const colSel = document.getElementById('setFrontColor');
 
       if(cntSel && !cntSel.value) cntSel.value = '2';
       if(matSel && !matSel.value) matSel.value = 'laminat';
-      populateFrontColorsTo(colSel, matSel ? matSel.value : 'laminat', (colSel && colSel.value) || '');
+      syncSetFrontSelectors({ keepColor:true });
 
       if(matSel){
-        matSel.onchange = function(){ populateFrontColorsTo(colSel, matSel.value, ''); };
+        matSel.onchange = function(){ syncSetFrontSelectors({ selectedColor:'' }); };
       }
 
       const hint = document.getElementById('setFrontHint');
@@ -495,7 +514,7 @@
     if(cntSel && set.frontCount) cntSel.value = String(set.frontCount);
     if(matSel && set.frontMaterial) matSel.value = set.frontMaterial;
     if(colSel){
-      populateFrontColorsTo(colSel, (matSel ? matSel.value : 'laminat'), set.frontColor || '');
+      syncSetFrontSelectors({ selectedColor:set.frontColor || '' });
       colSel.value = set.frontColor || colSel.value;
     }
 
@@ -591,8 +610,10 @@
         out.id = out.id || uidSafe();
         if(!out.details) out.details = cloneSafe(base.details || {});
         if(!out.bodyColor) out.bodyColor = base.bodyColor;
-        if(!out.frontMaterial) out.frontMaterial = base.frontMaterial || 'laminat';
-        if(!out.frontColor){
+        out.frontMaterial = frontMaterial || out.frontMaterial || base.frontMaterial || 'laminat';
+        if(frontColor){
+          out.frontColor = frontColor;
+        }else if(!out.frontColor){
           const first = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials.find(function(m){ return m && m.materialType === out.frontMaterial; }) : null;
           out.frontColor = first ? first.name : '';
         }
