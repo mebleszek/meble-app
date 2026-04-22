@@ -1,3 +1,9 @@
+## 2026-04-22 — WYCENA musi mieć własny renderer, a etykiety pokoi nie mogą wracać do surowego room_*
+- `js/app/ui/app-room-render.js` — routing aktywnej zakładki pokoju nie może polegać wyłącznie na `tabsRouter.switchTo(...)`. Dla krytycznych zakładek pokoju (`wywiad`, `wycena`, `material`, `rysunek`, `czynnosci`) ma istnieć bezpieczny direct-render fallback do modułu zakładki. Dzięki temu `WYCENA` nie może spaść do fallbacku `WYWIAD`, gdy router chwilowo nie ma pełnej rejestracji albo nie zwróci modułu.
+- `js/tabs/wycena.js` — zakładka wystawia jawne API `FC.tabsWycena.renderWycenaTab(...)` i rejestruje się przez retry, tak jak cięższe zakładki. Nie polegać wyłącznie na jednorazowym `register?.('wycena', ...)`.
+- `js/app/shared/room-registry-definitions.js` — przy scalaniu `investor.rooms` z meta projektu nie pozwalać, żeby techniczna nazwa `room_*` z inwestora nadpisywała czytelną etykietę z `projectData.meta.roomDefs`. Preferować lepszy tekst (`Szafa z lustrem`, `Kuchnia A`) nad surowym identyfikatorem.
+- Instrukcja antyregresyjna: jeśli dynamiczny pokój ma jednocześnie techniczną nazwę w `investor.rooms` i ładną nazwę w meta projektu, UI (`WYWIAD`, nagłówek pokoju, pickery, zakres WYCENY) zawsze ma pokazywać czytelną etykietę. Nie zostawiać `Room_szafa_*` na ekranie.
+
 ## 2026-04-22 — registry musi scalać pokoje z investor.rooms i project meta, inaczej znika Wycena i pojawiają się techniczne room_*
 - `js/app/shared/room-registry-definitions.js` — `buildActiveRoomDefs()` nie może wybierać trybu `albo investor.rooms, albo project meta`. Jeśli `currentInvestor.rooms` jest niepełne, registry nadal musi dodać brakujące pokoje z `projectData.meta.roomDefs/roomOrder`, żeby etykiety, pickery i zakres Wyceny nie gubiły dynamicznych pomieszczeń.
 - `getRoomLabel(...)` w registry ma zwracać czytelną etykietę nawet dla fallbacku technicznego `room_*`; nie zostawiać surowych identyfikatorów na ekranie.

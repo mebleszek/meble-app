@@ -70,11 +70,52 @@
     const match = raw.match(/^room_([^_]+)_(.+)_([a-z0-9]{4,})$/i);
     if(!match) return raw;
     const baseType = String(match[1] || fallbackBaseType || '').trim();
+    const baseLabel = normalizeLabel(BASE_LABELS[baseType] || baseType || '');
     let middle = String(match[2] || '').trim();
     if(baseType && middle.toLowerCase().startsWith(baseType.toLowerCase() + '_')) middle = middle.slice(baseType.length + 1);
-    middle = middle.replace(/_/g, ' ').trim();
-    if(!middle) middle = BASE_LABELS[baseType] || baseType || raw;
-    return middle;
+    middle = normalizeLabel(middle.replace(/_/g, ' '));
+    if(!middle) return baseLabel || raw;
+    const normalizedMiddle = normalizeComparableLabel(middle);
+    const normalizedBase = normalizeComparableLabel(baseLabel);
+    if(!normalizedBase) return middle;
+    if(normalizedMiddle === normalizedBase) return baseLabel;
+    if(normalizedMiddle.startsWith(normalizedBase + ' ')) return middle;
+    return normalizeLabel(baseLabel + ' ' + middle);
+  }
+
+  function isTechnicalRoomText(text){
+    const raw = String(text || '').trim();
+    if(!raw) return false;
+    return /^room_[^\s]+$/i.test(raw);
+  }
+
+  function scoreRoomTextCandidate(text, baseType){
+    const raw = normalizeLabel(text);
+    if(!raw) return -1;
+    let score = 0;
+    if(!isTechnicalRoomText(raw)) score += 4;
+    const pretty = normalizeLabel(prettifyTechnicalRoomText(raw, baseType));
+    if(pretty && normalizeComparableLabel(pretty) !== normalizeComparableLabel(raw)) score += 2;
+    if(!/_/.test(raw)) score += 1;
+    if(/\s/.test(raw)) score += 1;
+    return score;
+  }
+
+  function choosePreferredRoomText(candidates, baseType, fallback){
+    let best = '';
+    let bestScore = -1;
+    (Array.isArray(candidates) ? candidates : []).forEach((candidate)=>{
+      const raw = normalizeLabel(candidate);
+      if(!raw) return;
+      const pretty = normalizeLabel(prettifyTechnicalRoomText(raw, baseType) || raw);
+      const score = scoreRoomTextCandidate(raw, baseType);
+      const finalScore = pretty ? score + 1 : score;
+      if(finalScore > bestScore){
+        bestScore = finalScore;
+        best = pretty || raw;
+      }
+    });
+    return normalizeLabel(best || fallback || '');
   }
 
   function normalizeComparableLabel(text){
@@ -88,11 +129,25 @@
     const src = Object.assign({}, fallback || {}, raw || {});
     const baseType = String(src.baseType || src.kind || src.type || (fallback && fallback.baseType) || 'pokoj');
     const id = String(src.id || (fallback && fallback.id) || '');
-    const rawName = src.name || src.label || (fallback && fallback.name) || BASE_LABELS[baseType] || id;
-    const safeName = prettifyTechnicalRoomText(rawName, baseType);
-    const safeLabel = prettifyTechnicalRoomText(src.label || safeName, baseType);
-    const finalName = normalizeLabel(safeName || BASE_LABELS[baseType] || id);
-    const finalLabel = normalizeLabel(safeLabel || finalName);
+    const finalName = choosePreferredRoomText([
+      src.name,
+      src.label,
+      fallback && fallback.name,
+      fallback && fallback.label,
+      prettifyTechnicalRoomText(id, baseType),
+      BASE_LABELS[baseType],
+      id,
+    ], baseType, BASE_LABELS[baseType] || id);
+    const finalLabel = choosePreferredRoomText([
+      src.label,
+      src.name,
+      fallback && fallback.label,
+      fallback && fallback.name,
+      finalName,
+      prettifyTechnicalRoomText(id, baseType),
+      BASE_LABELS[baseType],
+      id,
+    ], baseType, finalName || BASE_LABELS[baseType] || id);
     return {
       id,
       baseType,

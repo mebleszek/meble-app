@@ -804,5 +804,20 @@
     shouldPromptForVersionNameOnGenerate,
   });
 
-  (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
+  FC.tabsWycena = FC.tabsWycena || {};
+  FC.tabsWycena.renderWycenaTab = function(ctx){ return render(ctx || {}); };
+
+  function registerWithRetry(tries){
+    tries = tries || 0;
+    const reg = (FC.tabsRouter && typeof FC.tabsRouter.register === 'function')
+      ? FC.tabsRouter.register
+      : ((FC.tabs && typeof FC.tabs.register === 'function') ? FC.tabs.register : null);
+    if(typeof reg === 'function'){
+      reg('wycena', { mount(){}, render, unmount(){} });
+      return;
+    }
+    if(tries < 30) setTimeout(()=>registerWithRetry(tries + 1), 25);
+  }
+
+  registerWithRetry(0);
 })();

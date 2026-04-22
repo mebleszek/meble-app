@@ -188,6 +188,42 @@
           FC.listScrollMemory = prevScrollMemory;
         }
       }),
+
+      H.makeTest('Projekt', 'App room render podpina WYCENA do własnego rendereru zamiast fallbacku WYWIAD', 'Pilnuje regresji po splitach routera pokoju: aktywna zakładka WYCENA musi odpalić swój renderer nawet wtedy, gdy router zakładek nie ma kompletnej rejestracji.', ()=>{
+        H.assert(FC.appRoomRender && typeof FC.appRoomRender.renderCabinets === 'function', 'Brak FC.appRoomRender.renderCabinets', FC.appRoomRender);
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<div id="roomSettingsCard"></div><div id="roomTitle"></div><div id="cabinetsList"></div>';
+        const listEl = fixture.querySelector('#cabinetsList');
+        const prevTabsRouter = FC.tabsRouter;
+        const prevTabsWycena = FC.tabsWycena;
+        const prevScrollMemory = FC.listScrollMemory;
+        let wycenaRendered = 0;
+        try{
+          FC.tabsRouter = { get(){ return null; }, switchTo(){ throw new Error('router missing'); } };
+          FC.tabsWycena = { renderWycenaTab(ctx){ wycenaRendered += 1; ctx.listEl.innerHTML = '<div class="quote-root">Wycena ok</div>'; } };
+          FC.listScrollMemory = { restorePending(){} };
+          FC.appRoomRender.renderCabinets({
+            FC,
+            document: fixture,
+            projectData: { room_szafa:{ cabinets:[], settings:{} } },
+            getUiState(){ return { activeTab:'wycena', roomType:'room_szafa' }; },
+            persistUiState(next){ return next; },
+            storageKeys:{ ui:'ui' },
+            shouldHideRoomSettingsForTab(){ return true; },
+            renderTopHeight(){},
+            renderMaterialsTab(){},
+            renderDrawingTab(){},
+            renderWywiadTab(){ listEl.innerHTML = '<div class="cabinet">Wywiad fallback</div>'; },
+          });
+          H.assert(wycenaRendered === 1, 'App room render nie odpalił bezpośrednio rendereru WYCENA', wycenaRendered);
+          H.assert(/quote-root/.test(listEl.innerHTML), 'App room render nie wstawił widoku WYCENA', listEl.innerHTML);
+          H.assert(!/Wywiad fallback/.test(listEl.innerHTML), 'App room render spadł do fallbacku WYWIAD dla zakładki WYCENA', listEl.innerHTML);
+        } finally {
+          FC.tabsRouter = prevTabsRouter;
+          FC.tabsWycena = prevTabsWycena;
+          FC.listScrollMemory = prevScrollMemory;
+        }
+      }),
       H.makeTest('Projekt', 'Auto-wysokość pokoju używa aktywnego pomieszczenia zamiast stałej kuchni', 'Pilnuje regresji po splitach renderu i ustawień pokoju: kafel Auto-wysokość ma liczyć wartości dla aktualnego roomType, a nie zawsze dla kuchni.', ()=>{
         H.assert(typeof calculateAvailableTopHeight === 'function', 'Brak globalnej funkcji calculateAvailableTopHeight');
         H.assert(FC.settingsUI && typeof FC.settingsUI.renderTopHeight === 'function', 'Brak FC.settingsUI.renderTopHeight');
