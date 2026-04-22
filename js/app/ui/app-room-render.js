@@ -47,10 +47,22 @@
         if(label){
           const normalizedRaw = raw.toLowerCase();
           const normalizedLabel = label.toLowerCase();
-          if(normalizedLabel !== normalizedRaw || /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(label)){
+          if(normalizedLabel !== normalizedRaw || /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(label) || !/^room_/i.test(label)){
             return label;
           }
         }
+      }
+    }catch(_){ }
+    try{
+      if(FC && FC.roomRegistryDefinitions){
+        const defs = FC.roomRegistryDefinitions;
+        const pretty = typeof defs.prettifyTechnicalRoomText === 'function'
+          ? defs.prettifyTechnicalRoomText(raw, '')
+          : raw;
+        const display = typeof defs.toDisplayRoomLabel === 'function'
+          ? defs.toDisplayRoomLabel(pretty, raw)
+          : pretty;
+        if(String(display || '').trim()) return String(display).trim();
       }
     }catch(_){ }
     return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'Pomieszczenie';

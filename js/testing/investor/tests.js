@@ -178,6 +178,53 @@
       }
     }),
 
+
+
+    makeTest('Inwestor', 'Rejestr pomieszczeń nie gubi pokoi istniejących tylko w meta projektu, gdy inwestor ma już inną listę', 'Pilnuje regresji widocznej po dodawaniu pokoi dynamicznych: jeśli currentInvestor.rooms jest niepełne, registry i Wycena nadal muszą widzieć pokoje istniejące w projectData.meta.roomDefs zamiast pokazywać techniczne room_* lub gubić pokój z zakresu.', ()=>{
+      assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak FC.roomRegistry.getActiveRoomDefs');
+      assert(typeof FC.roomRegistry.getRoomLabel === 'function', 'Brak FC.roomRegistry.getRoomLabel');
+      const prevProject = Object.prototype.hasOwnProperty.call(root, 'projectData') ? root.projectData : undefined;
+      const prevWindowProject = root.window && Object.prototype.hasOwnProperty.call(root.window, 'projectData') ? root.window.projectData : undefined;
+      const prevCurrentId = FC.investors && FC.investors.getCurrentId ? FC.investors.getCurrentId() : '';
+      const prevGetById = FC.investors && FC.investors.getById;
+      const investor = {
+        id:'inv_room_partial',
+        rooms:[
+          { id:'room_existing', baseType:'kuchnia', name:'Kuchnia dół', label:'Kuchnia dół', projectStatus:'nowy' }
+        ]
+      };
+      const project = {
+        schemaVersion:9,
+        meta:{
+          roomDefs:{
+            room_existing:{ id:'room_existing', baseType:'kuchnia', name:'Kuchnia dół', label:'Kuchnia dół' },
+            room_kuchnia_a_test01:{ id:'room_kuchnia_a_test01', baseType:'kuchnia', name:'A', label:'A' }
+          },
+          roomOrder:['room_existing','room_kuchnia_a_test01']
+        },
+        room_existing:{ cabinets:[], fronts:[], sets:[], settings:{} },
+        room_kuchnia_a_test01:{ cabinets:[{ id:'cab1' }], fronts:[], sets:[], settings:{} },
+      };
+      try{
+        root.projectData = project;
+        if(root.window) root.window.projectData = project;
+        if(FC.investors && FC.investors.setCurrentId) FC.investors.setCurrentId(investor.id);
+        if(FC.investors) FC.investors.getById = (id)=> String(id || '') === investor.id ? investor : null;
+        const rooms = FC.roomRegistry.getActiveRoomDefs();
+        const ids = Array.isArray(rooms) ? rooms.map((room)=> String(room && room.id || '')) : [];
+        assert(ids.includes('room_kuchnia_a_test01'), 'Registry zgubił pokój istniejący tylko w meta projektu, gdy investor.rooms był niepełny', rooms);
+        assert(String(FC.roomRegistry.getRoomLabel('room_kuchnia_a_test01') || '') === 'A', 'Registry nie zwrócił czytelnej etykiety dla dynamicznego pokoju z meta projektu', { rooms, label:FC.roomRegistry.getRoomLabel('room_kuchnia_a_test01') });
+      } finally {
+        if(prevProject === undefined){ try{ delete root.projectData; }catch(_){ root.projectData = undefined; } }
+        else root.projectData = prevProject;
+        if(root.window){
+          if(prevWindowProject === undefined){ try{ delete root.window.projectData; }catch(_){ root.window.projectData = undefined; } }
+          else root.window.projectData = prevWindowProject;
+        }
+        if(FC.investors && FC.investors.setCurrentId) FC.investors.setCurrentId(prevCurrentId || null);
+        if(FC.investors) FC.investors.getById = prevGetById;
+      }
+    }),
     makeTest('Inwestor', 'Rejestr pomieszczeń czyta aktywny projekt także z globalnego projectData bez window.projectData', 'Pilnuje regresji po splicie roomRegistry: realna aplikacja trzyma bieżący projekt w app.js jako globalny projectData, więc rejestr nie może polegać wyłącznie na window.projectData.', ()=>{
       assert(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function', 'Brak FC.roomRegistry.getActiveRoomDefs');
       const prevProject = Object.prototype.hasOwnProperty.call(root, 'projectData') ? root.projectData : undefined;

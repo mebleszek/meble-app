@@ -1,3 +1,9 @@
+## 2026-04-22 — registry musi scalać pokoje z investor.rooms i project meta, inaczej znika Wycena i pojawiają się techniczne room_*
+- `js/app/shared/room-registry-definitions.js` — `buildActiveRoomDefs()` nie może wybierać trybu `albo investor.rooms, albo project meta`. Jeśli `currentInvestor.rooms` jest niepełne, registry nadal musi dodać brakujące pokoje z `projectData.meta.roomDefs/roomOrder`, żeby etykiety, pickery i zakres Wyceny nie gubiły dynamicznych pomieszczeń.
+- `getRoomLabel(...)` w registry ma zwracać czytelną etykietę nawet dla fallbacku technicznego `room_*`; nie zostawiać surowych identyfikatorów na ekranie.
+- `js/app/ui/app-room-render.js` — fallback tytułu pokoju ma korzystać z `roomRegistryDefinitions.prettifyTechnicalRoomText/toDisplayRoomLabel`, a nie tylko kapitalizować surowe `room_*`.
+- Instrukcja antyregresyjna: jeśli pokój istnieje w projekcie, ale chwilowo nie ma go w `investor.rooms`, aplikacja ma go nadal widzieć w `WYWIAD`, `WYCENA`, scope pickerach i labelach. Nie polegać wyłącznie na jednej liście.
+
 ## 2026-04-22 — app room render title fallback + global calc contract in dev tests
 - `js/app/ui/app-room-render.js` — renderer pokoju nie może ślepo ufać `roomRegistry.getRoomLabel(...)`, bo w środowisku testowym i części fallbacków registry może zwrócić surowy klucz `kuchnia`. Jeśli label jest tylko technicznym kluczem pokoju, renderer ma sam zrobić bezpieczne `Kuchnia` zamiast zostawiać małe litery.
 - `js/app/shared/calc.js` — globalny kontrakt `calculateAvailableTopHeight(...)` jest wystawiany bezpośrednio z warstwy obliczeń, a nie tylko pośrednio przez `app.js`. Dzięki temu dev testy i starsze call-site'y działają także wtedy, gdy `dev_tests.html` nie ładuje pełnego `app.js`.

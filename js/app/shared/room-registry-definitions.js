@@ -12,6 +12,7 @@
       normalizeLabel:(text)=> String(text || '').trim(),
       prettifyTechnicalRoomText:(text)=> String(text || '').trim(),
       normalizeComparableLabel:(text)=> String(text || '').trim().toLowerCase(),
+      toDisplayRoomLabel:(text, fallback)=> String(text || fallback || '').trim(),
       normalizeRoomDef:(raw)=> Object.assign({ id:'', baseType:'pokoj', name:'', label:'', legacy:false }, raw || {}),
       getProjectRoomDefs:()=> [],
       hasLegacyKitchen:()=> false,
@@ -180,6 +181,13 @@
     ].join('||');
   }
 
+  function toDisplayRoomLabel(text, fallback){
+    const raw = normalizeLabel(text || fallback || '');
+    if(!raw) return '';
+    if(raw.length === 1) return raw.toUpperCase();
+    return raw.replace(/(^|\s)([a-ząćęłńóśźż])/g, (_, prefix, ch)=> prefix + ch.toUpperCase());
+  }
+
   function buildActiveRoomDefs(){
     const proj = getProject();
     const inv = getCurrentInvestor();
@@ -200,9 +208,15 @@
         const id = String((room && room.id) || '');
         push(Object.assign({}, projectMap.get(id) || {}, room || {}, { id }));
       });
-    }else{
-      projectMetaRooms.filter((room)=> String(room.id || '').startsWith('room_')).forEach(push);
     }
+
+    projectMetaRooms.forEach((room)=> {
+      if(!room || !room.id) return;
+      const investorRoom = inv && Array.isArray(inv.rooms)
+        ? inv.rooms.find((item)=> String(item && item.id || '') === String(room.id || ''))
+        : null;
+      push(Object.assign({}, room, investorRoom || {}, { id:String(room.id || '') }));
+    });
 
     if(hasLegacyKitchen(proj) && !seen.has('kuchnia')) push(createLegacyKitchenDef());
     return defs;
@@ -231,8 +245,10 @@
   function getRoomLabel(id){
     const key = String(id || '');
     getCachedActiveRooms();
-    if(cache.labelMap && cache.labelMap.has(key)) return cache.labelMap.get(key);
-    return prettifyTechnicalRoomText(key, '') || key || 'Pomieszczenie';
+    if(cache.labelMap && cache.labelMap.has(key)){
+      return toDisplayRoomLabel(cache.labelMap.get(key), key) || 'Pomieszczenie';
+    }
+    return toDisplayRoomLabel(prettifyTechnicalRoomText(key, ''), key) || 'Pomieszczenie';
   }
 
   function isRoomNameTaken(name, investor, exceptId){
@@ -252,6 +268,7 @@
     normalizeLabel,
     prettifyTechnicalRoomText,
     normalizeComparableLabel,
+    toDisplayRoomLabel,
     normalizeRoomDef,
     getProjectRoomDefs,
     hasLegacyKitchen,
