@@ -40,12 +40,19 @@
   }
 
   function getRoomLabel(FC, room){
+    const raw = String(room || '').trim();
     try{
       if(FC && FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
-        return FC.roomRegistry.getRoomLabel(room);
+        const label = String(FC.roomRegistry.getRoomLabel(room) || '').trim();
+        if(label){
+          const normalizedRaw = raw.toLowerCase();
+          const normalizedLabel = label.toLowerCase();
+          if(normalizedLabel !== normalizedRaw || /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(label)){
+            return label;
+          }
+        }
       }
     }catch(_){ }
-    const raw = String(room || '').trim();
     return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'Pomieszczenie';
   }
 

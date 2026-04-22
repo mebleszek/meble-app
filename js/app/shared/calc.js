@@ -39,4 +39,11 @@
 
   // Expose
   window.FC.calc = window.FC.calc || calc;
+  try{
+    window.calculateAvailableTopHeight = function(room){
+      const hostProjectData = (typeof projectData !== 'undefined') ? projectData : (window.projectData || {});
+      const roomKey = String(room || (((typeof uiState !== 'undefined' && uiState) ? uiState.roomType : (window.uiState && window.uiState.roomType)) || '')).trim() || 'kuchnia';
+      return calc.calculateAvailableTopHeight(hostProjectData, roomKey);
+    };
+  }catch(_){ }
 })();

@@ -1,3 +1,8 @@
+## 2026-04-22 — app room render title fallback + global calc contract in dev tests
+- `js/app/ui/app-room-render.js` — renderer pokoju nie może ślepo ufać `roomRegistry.getRoomLabel(...)`, bo w środowisku testowym i części fallbacków registry może zwrócić surowy klucz `kuchnia`. Jeśli label jest tylko technicznym kluczem pokoju, renderer ma sam zrobić bezpieczne `Kuchnia` zamiast zostawiać małe litery.
+- `js/app/shared/calc.js` — globalny kontrakt `calculateAvailableTopHeight(...)` jest wystawiany bezpośrednio z warstwy obliczeń, a nie tylko pośrednio przez `app.js`. Dzięki temu dev testy i starsze call-site'y działają także wtedy, gdy `dev_tests.html` nie ładuje pełnego `app.js`.
+- `dev_tests.html` — środowisko testowe musi ładować `calc.js` i `settings-ui.js`, bo test Auto-wysokości sprawdza jawnie oba kontrakty: globalny helper i `FC.settingsUI.renderTopHeight`.
+
 ## 2026-04-22 — app room render fixture-doc support + global auto-top-height bridge
 - `js/app/ui/app-room-render.js` — renderer pokoju nie może zakładać pełnego `document`. Testy i część fallbacków przekazują fixture root z `querySelector`, więc pobieranie `cabinetsList`, `roomSettingsCard` i `roomTitle` ma iść przez helper wspierający zarówno `getElementById`, jak i `querySelector`.
 - `js/app.js` — globalne bridge funkcje `calculateAvailableTopHeight` i `renderTopHeight` muszą być jawnie wystawione na `window`, bo testy projektu i część starszych wywołań traktują je jako globalny kontrakt po splicie do `calc.js` / `settings-ui.js`.
