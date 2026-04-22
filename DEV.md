@@ -1670,3 +1670,9 @@ Dopiero potem go zmieniać.
 - Bootstrap UI test harness may pass a fixture element instead of full document; startup fallback helpers must support both getElementById and querySelector roots to avoid false regressions.
 
 - 2026-04-22: Registry/performance hardening: `room-registry-definitions` now caches active room defs/ids/labels by lightweight room/project signatures, and `room-registry-modals-manage-remove` uses structural draft comparison instead of repeated JSON serialization on each footer refresh. `FC.session.isDirty()` now caches comparable keys and short-window dirty checks; storage writes invalidate the cache. Do not reintroduce repeated full recomputation of room labels/active rooms on hot UI paths without profiling.
+
+## 2026-04-22 — Investor tab perf: bulk manual-status guard for room cards
+- `js/app/project/project-status-manual-guard.js` — dodane `evaluateManualStatusChangeFromBasis(...)` i `buildManualStatusChoiceStates(...)`. Guard może teraz policzyć analizę exact-scope pokoju raz i użyć jej do wielu statusów zamiast powtarzać ciężkie `analyzeRoomQuoteState` dla każdego `<option>` osobno.
+- `js/app/investor/investor-rooms.js` — mount statusów projektu na kartach pokoi używa najpierw bulkowego `buildManualStatusChoiceStates(...)`, a dopiero awaryjnie spada do starego `validateManualStatusChange(...)`. To ma zmniejszyć lag zakładki Inwestor widoczny przy kilku pokojach i szybkich przełączeniach.
+- `js/testing/wycena/suites/investor-integration.js` — test kontraktowy pilnuje, że bulkowy guard zwraca te same blokady/odblokowania co pojedyncze `validateManualStatusChange`.
+- Instrukcja antyregresyjna: przy renderach list/kart z wieloma statusami nie wołać ciężkiego guardu per opcja, jeśli wszystkie opcje dotyczą tego samego pokoju/bazy. Najpierw budować wspólną analizę exact-scope i dopiero z niej wyprowadzać stany wielu opcji.
