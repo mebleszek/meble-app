@@ -73,6 +73,56 @@
         H.assert(out.uiState && out.uiState.validated === true, 'Bootstrap stanu nie przepuścił uiState przez walidację', out);
         H.assert(out.uiDefaults && Object.prototype.hasOwnProperty.call(out.uiDefaults, 'lastAddedCabinetId'), 'Bootstrap stanu nie dodał pól pomocniczych do uiDefaults', out.uiDefaults);
       }),
+      H.makeTest('Projekt', 'Reload restore zapisuje snapshot UI i przywraca scroll po reloadzie', 'Pilnuje kontraktu wydzielonego modułu reload restore: zapis uiState do sessionStorage, jednorazowe przejęcie snapshotu i przywrócenie scrolla.', ()=>{
+        H.assert(FC.reloadRestore && typeof FC.reloadRestore.persist === 'function', 'Brak FC.reloadRestore.persist');
+        H.assert(typeof FC.reloadRestore.applySnapshot === 'function', 'Brak FC.reloadRestore.applySnapshot');
+        H.assert(typeof FC.reloadRestore.restoreScroll === 'function', 'Brak FC.reloadRestore.restoreScroll');
+        const key = 'fc_reload_restore_v1';
+        const prevRaw = sessionStorage.getItem(key);
+        const prevScrollTo = window.scrollTo;
+        const prevRAF = window.requestAnimationFrame;
+        const prevSetTimeout = window.setTimeout;
+        let scrollTarget = null;
+        try{
+          sessionStorage.removeItem(key);
+          window.scrollTo = function(_x, y){ scrollTarget = y; };
+          window.requestAnimationFrame = function(fn){ try{ fn(); }catch(_){} return 1; };
+          window.setTimeout = function(fn){ try{ fn(); }catch(_){} return 1; };
+          FC.reloadRestore.persist({ getUiState(){ return { entry:'app', activeTab:'wywiad', roomType:'kuchnia' }; } });
+          const raw = sessionStorage.getItem(key);
+          H.assert(!!raw, 'Reload restore nie zapisał snapshotu do sessionStorage');
+          const applied = FC.reloadRestore.applySnapshot();
+          H.assert(applied && applied.uiState && applied.uiState.roomType === 'kuchnia', 'Reload restore nie zwrócił snapshotu po applySnapshot', applied);
+          H.assert(sessionStorage.getItem(key) === null, 'Reload restore nie wyczyścił snapshotu po applySnapshot');
+          FC.reloadRestore.restoreScroll();
+          H.assert(typeof scrollTarget === 'number', 'Reload restore nie próbował przywrócić scrolla', { scrollTarget });
+        } finally {
+          if(prevRaw === null) sessionStorage.removeItem(key);
+          else sessionStorage.setItem(key, prevRaw);
+          window.scrollTo = prevScrollTo;
+          window.requestAnimationFrame = prevRAF;
+          window.setTimeout = prevSetTimeout;
+        }
+      }),
+      H.makeTest('Projekt', 'Runtime services UI delegują bindingi i warmup ROZRYS', 'Pilnuje kontraktu wydzielonych helperów runtime UI: installBindings uruchamia wspólny binding installer, a warmup przekazuje parametry do deferred ROZRYS.', ()=>{
+        H.assert(FC.appUiRuntimeServices && typeof FC.appUiRuntimeServices.installBindings === 'function', 'Brak FC.appUiRuntimeServices.installBindings');
+        H.assert(typeof FC.appUiRuntimeServices.scheduleRozrysWarmup === 'function', 'Brak FC.appUiRuntimeServices.scheduleRozrysWarmup');
+        const prevBindings = FC.bindings;
+        const prevRozrysLazy = FC.rozrysLazy;
+        let bindingsInstalled = 0;
+        let warmupCfg = null;
+        try{
+          FC.bindings = { install(){ bindingsInstalled += 1; } };
+          FC.rozrysLazy = { scheduleWarmup(cfg){ warmupCfg = Object.assign({}, cfg); } };
+          FC.appUiRuntimeServices.installBindings();
+          FC.appUiRuntimeServices.scheduleRozrysWarmup({ reason:'test', delayMs:123, idleTimeoutMs:456 });
+          H.assert(bindingsInstalled === 1, 'Runtime services UI nie uruchomiły bindings.install', bindingsInstalled);
+          H.assert(warmupCfg && warmupCfg.reason === 'test' && warmupCfg.delayMs === 123 && warmupCfg.idleTimeoutMs === 456, 'Runtime services UI nie przekazały poprawnego warmupu ROZRYS', warmupCfg);
+        } finally {
+          FC.bindings = prevBindings;
+          FC.rozrysLazy = prevRozrysLazy;
+        }
+      }),
       H.makeTest('Projekt', 'Bootstrap UI przywraca widok aplikacji i planuje warmup', 'Pilnuje, czy wydzielony init UI dalej spina przywrócenie entrypointu, podstawowy render i background warmup bez pełnego app.js.', ()=>{
         H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
         const fixture = document.createElement('div');

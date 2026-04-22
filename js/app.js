@@ -186,64 +186,20 @@ uiState = Object.assign({}, __uiDefaults, uiState || {});
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
-const RELOAD_RESTORE_KEY = 'fc_reload_restore_v1';
-let __pendingReloadRestore = null;
-
-function readReloadRestore(){
-  try{
-    const raw = sessionStorage.getItem(RELOAD_RESTORE_KEY);
-    if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
-  }catch(_){ return null; }
-}
-
-function clearReloadRestore(){
-  try{ sessionStorage.removeItem(RELOAD_RESTORE_KEY); }catch(_){ }
-}
-
+function readReloadRestore(){ return callExtracted('reloadRestore', 'read', [], function(){ return null; }); }
+function clearReloadRestore(){ return callExtracted('reloadRestore', 'clear', [], function(){}); }
 function persistReloadRestore(){
-  try{
-    const snapshotState = (window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function')
-      ? window.FC.uiState.get()
-      : (typeof uiState !== 'undefined' ? uiState : null);
-    if(!(snapshotState && typeof snapshotState === 'object')) return;
-    const payload = {
-      savedAt: Date.now(),
-      uiState: snapshotState,
-      scrollY: (()=> {
-        try{ return typeof window.scrollY === 'number' ? Math.max(0, Math.round(window.scrollY)) : 0; }catch(_){ return 0; }
-      })(),
-    };
-    sessionStorage.setItem(RELOAD_RESTORE_KEY, JSON.stringify(payload));
-  }catch(_){ }
+  return callExtracted('reloadRestore', 'persist', [{
+    getUiState: function(){
+      try{
+        if(window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function') return window.FC.uiState.get();
+      }catch(_){ }
+      return uiState;
+    },
+  }], function(){});
 }
-
-function applyReloadRestoreSnapshot(){
-  const snapshot = readReloadRestore();
-  if(!(snapshot && snapshot.uiState && typeof snapshot.uiState === 'object')) return null;
-  __pendingReloadRestore = snapshot;
-  clearReloadRestore();
-  return snapshot;
-}
-
-function restoreReloadScroll(){
-  const snapshot = __pendingReloadRestore && typeof __pendingReloadRestore === 'object' ? __pendingReloadRestore : null;
-  __pendingReloadRestore = null;
-  if(!snapshot) return;
-  const targetY = Math.max(0, Math.round(Number(snapshot.scrollY) || 0));
-  const apply = ()=> {
-    try{ window.scrollTo(0, targetY); }catch(_){ }
-  };
-  [0, 16, 48, 120, 240, 420].forEach((delay)=> {
-    try{
-      if(delay === 0) requestAnimationFrame(()=> requestAnimationFrame(apply));
-      else setTimeout(apply, delay);
-    }catch(_){
-      try{ setTimeout(apply, delay); }catch(__){ }
-    }
-  });
-}
+function applyReloadRestoreSnapshot(){ return callExtracted('reloadRestore', 'applySnapshot', [], function(){ return null; }); }
+function restoreReloadScroll(){ return callExtracted('reloadRestore', 'restoreScroll', [], function(){}); }
 
 try{
   window.FC = window.FC || {};
@@ -255,38 +211,17 @@ try{
 }catch(_){ }
 
 try{
-  window.addEventListener('pagehide', persistReloadRestore, { capture:true });
-  window.addEventListener('beforeunload', persistReloadRestore, { capture:true });
+  callExtracted('reloadRestore', 'installPersistence', [{
+    getUiState: function(){
+      try{
+        if(window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function') return window.FC.uiState.get();
+      }catch(_){ }
+      return uiState;
+    },
+  }]);
 }catch(_){ }
 
-/* ===== Runtime validation (self-healing persisted state) ===== */
-try{
-  if (window.FC && window.FC.validate){
-    const V = window.FC.validate;
-    materials = V.validateMaterials ? V.validateMaterials(materials) : materials;
-    services  = V.validateServices ? V.validateServices(services) : services;
-    projectData = V.validateProject ? V.validateProject(projectData) : projectData;
-    uiState   = V.validateUIState ? V.validateUIState(uiState) : uiState;
-
-    if (V.persistIfPossible){
-      V.persistIfPossible(STORAGE_KEYS.materials, materials);
-      V.persistIfPossible(STORAGE_KEYS.services, services);
-      V.persistIfPossible(STORAGE_KEYS.projectData, projectData);
-      V.persistIfPossible(STORAGE_KEYS.ui, uiState);
-    } else {
-      if(window.FC && window.FC.catalogStore){
-        try{ if(typeof window.FC.catalogStore.setSheetMaterials === 'function') materials = window.FC.catalogStore.setSheetMaterials(materials); }catch(_){ FC.storage.setJSON(STORAGE_KEYS.materials, materials); }
-        try{ if(typeof window.FC.catalogStore.setQuoteRates === 'function') services = window.FC.catalogStore.setQuoteRates(services); }catch(_){ FC.storage.setJSON(STORAGE_KEYS.services, services); }
-      } else {
-        FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-        FC.storage.setJSON(STORAGE_KEYS.services, services);
-      }
-      FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    }
-  }
-}catch(_){ }
-
+/* ===== Runtime validation moved to app-state-bootstrap.js (single source of truth for startup self-healing) ===== */
 /* ===== Normalize (backward compatibility) ===== */
 function normalizeProjectData(data, defaults){
   const pd = (typeof data === 'undefined' || data === null) ? projectData : data;
@@ -790,24 +725,17 @@ function initUI(){
     getUiState: function(){ return uiState; },
     setUiState: function(nextState){ uiState = nextState; return uiState; },
     applyReloadRestoreSnapshot,
-    installBindings: function(){
-      try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
-      catch(_){ }
-    },
+    installBindings: function(){ return callExtracted('appUiRuntimeServices', 'installBindings', [], function(){}); },
     installProjectAutosave,
     renderTopHeight,
     renderCabinets,
     restoreReloadScroll,
     scheduleRozrysWarmup: function(){
-      try{
-        if(window.FC && window.FC.rozrysLazy && typeof window.FC.rozrysLazy.scheduleWarmup === 'function'){
-          window.FC.rozrysLazy.scheduleWarmup({
-            reason:'post-init-ui',
-            delayMs: 900,
-            idleTimeoutMs: 3500,
-          });
-        }
-      }catch(_){ }
+      return callExtracted('appUiRuntimeServices', 'scheduleRozrysWarmup', [{
+        reason:'post-init-ui',
+        delayMs: 900,
+        idleTimeoutMs: 3500,
+      }], function(){});
     },
   }]);
 }

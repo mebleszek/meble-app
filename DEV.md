@@ -1,3 +1,10 @@
+## 2026-04-22 — app.js split: reload-restore + UI runtime services
+- `js/app/bootstrap/app-reload-restore.js` — wydzielony moduł snapshotu odświeżenia (`read/clear/persist/applySnapshot/restoreScroll/installPersistence`). `js/app.js` trzyma już tylko cienkie wrappery, a sam mechanizm restore scrolla i snapshotu UI nie miesza się z resztą startu aplikacji.
+- `js/app/bootstrap/app-ui-runtime-services.js` — wydzielone lekkie usługi runtime UI: wspólny installer bindingów i warmup deferred ROZRYS. `initUI` w `js/app.js` nie trzyma już inline-owych helperów dla tych dwóch rzeczy.
+- `js/app.js` — usunięty duplikat runtime validation/self-healing na starcie. Źródłem prawdy dla walidacji pakietu startowego jest teraz `js/app/bootstrap/app-state-bootstrap.js`; nie przywracać drugiego, równoległego walidatora w `app.js`.
+- `index.html` + `dev_tests.html` + `tools/index-load-groups.js` — nowa krytyczna kolejność startupu: `app-state-bootstrap` -> `app-ui-bootstrap` -> `app-reload-restore` -> `app-ui-runtime-services` -> `app.js`.
+- Instrukcja antyregresyjna: dalsze rzeczy związane z reload restore, snapshotem wejścia i przywracaniem scrolla dokładać do `app-reload-restore.js`, a nie z powrotem do `app.js`. Dalsze lekkie usługi startu UI (bindings/warmup podobnego typu) dokładać do `app-ui-runtime-services.js`, zamiast rozrastać `initUI` inline.
+
 ## 2026-04-22 — room-registry hardening: utils + spójne mutacje + impact contract
 - `js/app/shared/room-registry-utils.js` — nowy wspólny helper registry. Trzyma tylko rzeczy powtarzalne i neutralne architektonicznie: `createElement`, `cloneRoomDrafts`, `serializeRoomDrafts`, `mergeRoomCollections`. Dzięki temu te same helpery nie siedzą już osobno w `manage/remove` i w sync warstw danych.
 - `js/app/shared/room-registry-impact.js` — utwardzony kontrakt skutków ubocznych. Głównym API skutków usunięcia jest teraz `buildRoomRemovalImpact(...)`, a stary `buildRoomRemovalWarningMessage(...)` jest cienką adaptacją pod wcześniejsze call-site'y. Dodane też czytelniejsze `listRoomRemovalSnapshots(...)` obok kompatybilnego aliasu.
