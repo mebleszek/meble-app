@@ -1,3 +1,10 @@
+## 2026-04-22 — auto-wysokość pokoju liczona dla aktywnego roomType, nie stałej kuchni
+- `js/app/shared/calc.js` — `calculateAvailableTopHeight(projectData, room)` przyjmuje już jawny `room` i nie zakłada na sztywno `projectData.kuchnia`. To jest wspólny helper dla kafla Auto-wysokość i dla domyślnych wysokości szafek wiszących.
+- `js/app/ui/settings-ui.js` + `js/app.js` — `renderTopHeight(room)` odświeża `#autoTopHeight` dla bieżącego `uiState.roomType` albo jawnie przekazanego pokoju.
+- `js/app/cabinet/cabinet-fronts.js` — miejsca ustawiające domyślną wysokość dla szafek wiszących pytają teraz `calculateAvailableTopHeight(room)`, żeby dynamiczne pokoje typu `room_*` nie brały wysokości z kuchni.
+- `js/testing/project/tests.js` — test antyregresyjny pilnuje, że Auto-wysokość dla pokoju np. `room_szafa_lustro` nie pokazuje starej wartości z kuchni.
+- Instrukcja antyregresyjna: przy wszelkich obliczeniach zależnych od parametrów pokoju nie zakładać już statycznych kluczy `kuchnia/szafa/pokoj/lazienka`. Bazować na aktywnym `roomType` albo jawnie przekazanym `roomId`.
+
 ## 2026-04-22 — app.js split: room/app render routing + WYWIAD cabinet renderer
 - `js/app/ui/app-room-render.js` — wydzielony centralny renderer pokoju z `app.js`. Trzyma routing aktywnego pomieszczenia przez `tabsRouter`, roomless fallback do `WYCENA`, tytuł pokoju, pokaz/ukrycie `roomSettingsCard` i odtworzenie pamięci scrolla listy. To jest warstwa UI routingu pokoju, nie logika kart szafek.
 - `js/app/cabinet/cabinet-wywiad-render.js` — wydzielony renderer listy kart szafek w zakładce `WYWIAD`, razem z akcjami `Edytuj / Materiały / Usuń` i rozwijaną sekcją szczegółów/frontów. Dzięki temu `app.js` nie miesza już centralnego routingu widoku pokoju z DOM-em kart szafek.

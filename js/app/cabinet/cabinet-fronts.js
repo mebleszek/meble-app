@@ -38,7 +38,7 @@ function getSubTypeOptionsForType(typeVal){
 function applyTypeRules(room, updated, typeVal){
   if(typeVal === 'wisząca'){
     updated.subType = 'standardowa';
-    updated.height = calculateAvailableTopHeight();
+    updated.height = calculateAvailableTopHeight(room);
     updated.depth = 36;
     updated.details = Object.assign({}, updated.details || {}, { shelves: 2 });
     if(!['TIP-ON','podchwyt','uchwyt klienta','krawędziowy HEXA GTV','korytkowy','UKW'].includes(updated.openingSystem)){
@@ -80,7 +80,7 @@ function applySubTypeRules(room, updated, subTypeVal){
       updated.details = Object.assign({}, updated.details || {}, { podFrontMode: 'drzwi', podInsideMode: 'polki', podInnerDrawerCount: '1', shelves: 1 });
     } else {
       updated.depth = 36;
-      updated.height = calculateAvailableTopHeight();
+      updated.height = calculateAvailableTopHeight(room);
     }
   } else if(updated.type === 'stojąca'){
     if(subTypeVal === 'zlewowa'){
