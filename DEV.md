@@ -1,3 +1,11 @@
+## 2026-04-22 — app.js split: room/app render routing + WYWIAD cabinet renderer
+- `js/app/ui/app-room-render.js` — wydzielony centralny renderer pokoju z `app.js`. Trzyma routing aktywnego pomieszczenia przez `tabsRouter`, roomless fallback do `WYCENA`, tytuł pokoju, pokaz/ukrycie `roomSettingsCard` i odtworzenie pamięci scrolla listy. To jest warstwa UI routingu pokoju, nie logika kart szafek.
+- `js/app/cabinet/cabinet-wywiad-render.js` — wydzielony renderer listy kart szafek w zakładce `WYWIAD`, razem z akcjami `Edytuj / Materiały / Usuń` i rozwijaną sekcją szczegółów/frontów. Dzięki temu `app.js` nie miesza już centralnego routingu widoku pokoju z DOM-em kart szafek.
+- `js/app.js` — `renderCabinets()` i `renderWywiadTab()` są teraz cienkimi wrapperami delegującymi do nowych modułów. Jeśli renderer nie załaduje się poprawnie, wrapper pokazuje jawny komunikat fallback zamiast pustego widoku.
+- `index.html` + `dev_tests.html` + `tools/index-load-groups.js` — nowe assety są jawnie częścią warstwy runtime przed `js/app.js`: `app-room-render` oraz `cabinet-wywiad-render`.
+- `js/testing/project/tests.js` — dodane testy kontraktowe dla obu nowych modułów oraz test routingu pokoju + grupowania kart zestawu po splicie renderu.
+- Instrukcja antyregresyjna: dalsze zmiany routingu aktywnego pokoju (`roomless WYCENA`, tytuł pokoju, ukrywanie `roomSettingsCard`, restore scrolla listy) dokładać do `app-room-render.js`, a nie z powrotem do `app.js`. Dalsze zmiany DOM-u kart zakładki `WYWIAD` dokładać do `cabinet-wywiad-render.js`, a nie do `app.js` ani do ogólnego routera pokoju.
+
 ## 2026-04-22 — app.js split: reload-restore + UI runtime services
 - `js/app/bootstrap/app-reload-restore.js` — wydzielony moduł snapshotu odświeżenia (`read/clear/persist/applySnapshot/restoreScroll/installPersistence`). `js/app.js` trzyma już tylko cienkie wrappery, a sam mechanizm restore scrolla i snapshotu UI nie miesza się z resztą startu aplikacji.
 - `js/app/bootstrap/app-ui-runtime-services.js` — wydzielone lekkie usługi runtime UI: wspólny installer bindingów i warmup deferred ROZRYS. `initUI` w `js/app.js` nie trzyma już inline-owych helperów dla tych dwóch rzeczy.

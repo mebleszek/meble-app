@@ -123,6 +123,71 @@
           FC.rozrysLazy = prevRozrysLazy;
         }
       }),
+      H.makeTest('Projekt', 'Ekstraktory renderu pokoju i WYWIAD mają jawne API modułów', 'Pilnuje, czy po kolejnym splicie app.js centralny render pokoju i lista szafek WYWIAD siedzą już w osobnych modułach, a nie wracają do grubego app.js.', ()=>{
+        H.assert(FC.appRoomRender && typeof FC.appRoomRender.renderCabinets === 'function', 'Brak FC.appRoomRender.renderCabinets', FC.appRoomRender);
+        H.assert(FC.cabinetWywiadRender && typeof FC.cabinetWywiadRender.renderWywiadTab === 'function', 'Brak FC.cabinetWywiadRender.renderWywiadTab', FC.cabinetWywiadRender);
+      }),
+      H.makeTest('Projekt', 'App room render routuje aktywne pomieszczenie przez tabsRouter bez duplikacji kart zestawu', 'Pilnuje, czy wydzielone moduły renderu nadal spinają routing pokoju przez tabsRouter oraz grupowanie kart zestawu w WYWIAD bez dublowania tych samych szafek.', ()=>{
+        H.assert(FC.appRoomRender && typeof FC.appRoomRender.renderCabinets === 'function', 'Brak FC.appRoomRender.renderCabinets', FC.appRoomRender);
+        H.assert(FC.cabinetWywiadRender && typeof FC.cabinetWywiadRender.renderWywiadTab === 'function', 'Brak FC.cabinetWywiadRender.renderWywiadTab', FC.cabinetWywiadRender);
+        const fixture = document.createElement('div');
+        fixture.innerHTML = '<div id="roomSettingsCard"></div><div id="roomTitle"></div><div id="cabinetsList"></div>';
+        const listEl = fixture.querySelector('#cabinetsList');
+        let routed = null;
+        let restored = 0;
+        const prevTabsRouter = FC.tabsRouter;
+        const prevScrollMemory = FC.listScrollMemory;
+        try{
+          FC.tabsRouter = { switchTo(tab, payload){ routed = { tab, room: payload && payload.room, listEl: payload && payload.listEl }; } };
+          FC.listScrollMemory = { restorePending(){ restored += 1; } };
+          FC.appRoomRender.renderCabinets({
+            FC,
+            document: fixture,
+            projectData: { kuchnia:{ cabinets:[], settings:{} } },
+            getUiState(){ return { activeTab:'wywiad', roomType:'kuchnia' }; },
+            persistUiState(next){ return next; },
+            storageKeys:{ ui:'ui' },
+            shouldHideRoomSettingsForTab(){ return false; },
+            renderTopHeight(){},
+            renderMaterialsTab(){},
+            renderDrawingTab(){},
+            renderWywiadTab(){},
+          });
+          H.assert(routed && routed.tab === 'wywiad' && routed.room === 'kuchnia' && routed.listEl === listEl, 'App room render nie przekazał aktywnego pokoju do tabsRouter', routed);
+          H.assert(restored === 1, 'App room render nie odtworzył pamięci scrolla po routingu', restored);
+          H.assert(fixture.querySelector('#roomTitle').textContent === 'Kuchnia', 'App room render nie ustawił tytułu pokoju', fixture.querySelector('#roomTitle').textContent);
+
+          listEl.innerHTML = '';
+          FC.cabinetWywiadRender.renderWywiadTab({
+            listEl,
+            room:'kuchnia',
+            projectData: {
+              kuchnia: {
+                cabinets: [
+                  { id:'set_a', setId:'set1', setNumber:1, type:'stojąca', subType:'dolna', width:60, height:72, depth:56, bodyColor:'Biały', backMaterial:'HDF', frontMaterial:'Laminat', frontColor:'Dąb' },
+                  { id:'set_b', setId:'set1', setNumber:1, type:'stojąca', subType:'dolna', width:40, height:72, depth:56, bodyColor:'Biały', backMaterial:'HDF', frontMaterial:'Laminat', frontColor:'Dąb' },
+                  { id:'single_c', type:'wisząca', subType:'górna', width:80, height:72, depth:32, bodyColor:'Grafit', backMaterial:'HDF', frontMaterial:'Akryl', frontColor:'Biały' }
+                ]
+              }
+            },
+            getUiState(){ return { activeTab:'wywiad', expanded:{}, selectedCabinetId:null }; },
+            persistUiState(next){ return next; },
+            toggleExpandAll(){},
+            getCabinetExtraSummary(){ return ''; },
+            getFrontsForSet(){ return []; },
+            getFrontsForCab(){ return []; },
+            openCabinetModalForEdit(){},
+            jumpToMaterialsForCabinet(){},
+            deleteCabinetById(){},
+            renderCabinets(){},
+          });
+          H.assert(listEl.querySelectorAll('.cabinet').length === 3, 'Renderer WYWIAD zdublował albo zgubił kartę zestawu/szafki', listEl.innerHTML);
+          H.assert(listEl.querySelectorAll('[data-act="edit"]').length === 3, 'Renderer WYWIAD nie zmontował akcji kart po splicie', listEl.innerHTML);
+        } finally {
+          FC.tabsRouter = prevTabsRouter;
+          FC.listScrollMemory = prevScrollMemory;
+        }
+      }),
       H.makeTest('Projekt', 'Bootstrap UI przywraca widok aplikacji i planuje warmup', 'Pilnuje, czy wydzielony init UI dalej spina przywrócenie entrypointu, podstawowy render i background warmup bez pełnego app.js.', ()=>{
         H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
         const fixture = document.createElement('div');
