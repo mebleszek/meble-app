@@ -1,3 +1,8 @@
+## 2026-04-22 — app room render fixture-doc support + global auto-top-height bridge
+- `js/app/ui/app-room-render.js` — renderer pokoju nie może zakładać pełnego `document`. Testy i część fallbacków przekazują fixture root z `querySelector`, więc pobieranie `cabinetsList`, `roomSettingsCard` i `roomTitle` ma iść przez helper wspierający zarówno `getElementById`, jak i `querySelector`.
+- `js/app.js` — globalne bridge funkcje `calculateAvailableTopHeight` i `renderTopHeight` muszą być jawnie wystawione na `window`, bo testy projektu i część starszych wywołań traktują je jako globalny kontrakt po splicie do `calc.js` / `settings-ui.js`.
+- Instrukcja antyregresyjna: przy dalszych splitach helperów z `app.js` nie zakładać, że sama funkcja top-level pozostanie automatycznie widoczna w każdym środowisku testowym. Jeśli test/legacy call-site używa globalnego kontraktu, wystawić go jawnie na `window`.
+
 ## 2026-04-22 — auto-wysokość pokoju liczona dla aktywnego roomType, nie stałej kuchni
 - `js/app/shared/calc.js` — `calculateAvailableTopHeight(projectData, room)` przyjmuje już jawny `room` i nie zakłada na sztywno `projectData.kuchnia`. To jest wspólny helper dla kafla Auto-wysokość i dla domyślnych wysokości szafek wiszących.
 - `js/app/ui/settings-ui.js` + `js/app.js` — `renderTopHeight(room)` odświeża `#autoTopHeight` dla bieżącego `uiState.roomType` albo jawnie przekazanego pokoju.

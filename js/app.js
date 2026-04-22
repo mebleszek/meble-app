@@ -595,4 +595,6 @@ try{
   window.App = Object.assign(window.App || {}, { init: initApp });
   window.initApp = initApp;
   window.initUI = initUI;
+  window.calculateAvailableTopHeight = calculateAvailableTopHeight;
+  window.renderTopHeight = renderTopHeight;
 }catch(e){}
