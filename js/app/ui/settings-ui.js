@@ -5,9 +5,10 @@
 */
 (function(){
   const ns = (window.FC = window.FC || {});
-  function renderTopHeight(){
+  function renderTopHeight(roomArg){
+    const room = String(roomArg || (uiState && uiState.roomType) || '').trim() || 'kuchnia';
     const el = document.getElementById('autoTopHeight');
-    if(el) el.textContent = calculateAvailableTopHeight();
+    if(el) el.textContent = calculateAvailableTopHeight(room);
   }
   function toggleExpandAll(id){
     const key = String(id);

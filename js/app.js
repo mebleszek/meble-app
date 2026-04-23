@@ -312,17 +312,18 @@ const cabinetModalState = {
 };
 
 /* ===== Utility & core functions ===== */
-function calculateAvailableTopHeight(){
-  return callExtracted('calc', 'calculateAvailableTopHeight', [projectData], function(){
-    const s = projectData && projectData.kuchnia && projectData.kuchnia.settings ? projectData.kuchnia.settings : {};
+function calculateAvailableTopHeight(room){
+  const roomKey = String(room || (uiState && uiState.roomType) || '').trim() || 'kuchnia';
+  return callExtracted('calc', 'calculateAvailableTopHeight', [projectData, roomKey], function(){
+    const s = projectData && projectData[roomKey] && projectData[roomKey].settings ? projectData[roomKey].settings : {};
     const h = (Number(s.roomHeight)||0) - (Number(s.bottomHeight)||0) - (Number(s.counterThickness)||0) - (Number(s.gapHeight)||0) - (Number(s.ceilingBlende)||0);
     return h>0?Math.round(h*10)/10:0;
   });
 }
-function renderTopHeight(){
-  return callExtracted('settingsUI', 'renderTopHeight', arguments, function(){
+function renderTopHeight(room){
+  return callExtracted('settingsUI', 'renderTopHeight', arguments, function(roomArg){
     const el = document.getElementById('autoTopHeight');
-    if(el) el.textContent = calculateAvailableTopHeight();
+    if(el) el.textContent = calculateAvailableTopHeight(roomArg);
   });
 }
 
