@@ -22,32 +22,31 @@
   const PROJECT_INV_PREFIX = 'fc_project_inv_';
   const PROJECT_INV_SUFFIX = '_v1';
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
-  const DIRTY_CACHE_WINDOW_MS = 120;
 
   function getKeysToSnapshot(){
     const keys = [];
     const K = FC.constants && FC.constants.STORAGE_KEYS ? FC.constants.STORAGE_KEYS : null;
     if(K){
-      Object.keys(K).forEach((k)=> { if(K[k]) keys.push(String(K[k])); });
+      Object.keys(K).forEach(k => { if(K[k]) keys.push(String(K[k])); });
     }
-    EXTRA_KEYS.forEach((k)=> keys.push(k));
+    EXTRA_KEYS.forEach(k => keys.push(k));
 
     // Include all per-investor project slots so Cancel can restore them.
     // (Without this, Cancel could revert only the active project and leave investor slots modified.)
     try{
-      for(let i = 0; i < localStorage.length; i++){
+      for(let i=0;i<localStorage.length;i++){
         const k = localStorage.key(i);
         if(!k) continue;
         if(k.startsWith(PROJECT_INV_PREFIX) && k.endsWith(PROJECT_INV_SUFFIX)) keys.push(k);
       }
     }catch(_){ }
+    // unique
     return Array.from(new Set(keys));
   }
 
   function readRaw(key){
     try{ return localStorage.getItem(key); }catch(_){ return null; }
   }
-
   function writeRaw(key, raw){
     try{
       if(raw === null || typeof raw === 'undefined') localStorage.removeItem(key);
@@ -55,39 +54,22 @@
     }catch(_){ }
   }
 
-  function invalidateDirtyCache(){
-    session.lastDirtyCheckAt = 0;
-    session.lastDirtyValue = false;
-  }
-
   function getComparableKeys(){
-    if(Array.isArray(session.comparableKeys) && session.comparableKeys.length) return session.comparableKeys;
     const keys = new Set(Object.keys(session.snapshot || {}));
     try{ getKeysToSnapshot().forEach((k)=> keys.add(k)); }catch(_){ }
-    session.comparableKeys = Array.from(keys);
-    return session.comparableKeys;
+    return Array.from(keys);
   }
 
   function isDirty(){
     if(!session.active || !session.snapshot) return false;
-    const now = Date.now();
-    if(session.lastDirtyCheckAt && (now - session.lastDirtyCheckAt) < DIRTY_CACHE_WINDOW_MS){
-      return !!session.lastDirtyValue;
-    }
-    let dirty = false;
     try{
       for(const k of getComparableKeys()){
         const before = Object.prototype.hasOwnProperty.call(session.snapshot, k) ? session.snapshot[k] : null;
-        const current = readRaw(k);
-        if(before !== current){
-          dirty = true;
-          break;
-        }
+        const now = readRaw(k);
+        if(before !== now) return true;
       }
     }catch(_){ }
-    session.lastDirtyCheckAt = now;
-    session.lastDirtyValue = dirty;
-    return dirty;
+    return false;
   }
 
   function persistSession(){
@@ -112,55 +94,37 @@
       if(!parsed || typeof parsed !== 'object') return;
       session.active = !!parsed.active;
       session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
-      session.comparableKeys = session.snapshot ? Array.from(new Set(Object.keys(session.snapshot))) : null;
       if(!session.active && !session.snapshot){
         localStorage.removeItem(SESSION_STORAGE_KEY);
       }
     }catch(_){ }
-    invalidateDirtyCache();
   }
 
   const session = {
     active: false,
     snapshot: null,
-    comparableKeys: null,
-    lastDirtyCheckAt: 0,
-    lastDirtyValue: false,
     begin(){
       // Idempotent: once we started an edit session, do not overwrite the snapshot.
       if(session.active && session.snapshot) return;
-      const keys = getKeysToSnapshot();
       const snap = {};
-      keys.forEach((k)=> { snap[k] = readRaw(k); });
+      for(const k of getKeysToSnapshot()) snap[k] = readRaw(k);
       session.snapshot = snap;
-      session.comparableKeys = keys.slice();
       session.active = true;
-      invalidateDirtyCache();
       persistSession();
     },
     commit(){
       session.snapshot = null;
-      session.comparableKeys = null;
       session.active = false;
-      invalidateDirtyCache();
+      persistSession();
       persistSession();
     },
     cancel(){
-      if(!session.snapshot){
-        session.active = false;
-        session.comparableKeys = null;
-        invalidateDirtyCache();
-        persistSession();
-        return;
-      }
+      if(!session.snapshot){ session.active = false; persistSession(); return; }
       for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
       session.snapshot = null;
-      session.comparableKeys = null;
       session.active = false;
-      invalidateDirtyCache();
       persistSession();
     },
-    invalidateDirtyCache,
     isDirty
   };
 

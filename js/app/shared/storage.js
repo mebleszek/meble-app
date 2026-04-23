@@ -21,14 +21,13 @@
         setJSON(key, value){
           try{
             localStorage.setItem(key, JSON.stringify(value));
-            try{ if(window.FC && window.FC.session && typeof window.FC.session.invalidateDirtyCache === 'function') window.FC.session.invalidateDirtyCache(); }catch(_){ }
           }catch(e){}
         },
         getRaw(key){
           try{ return localStorage.getItem(key); }catch(e){ return null; }
         },
         setRaw(key, raw){
-          try{ localStorage.setItem(key, raw); try{ if(window.FC && window.FC.session && typeof window.FC.session.invalidateDirtyCache === 'function') window.FC.session.invalidateDirtyCache(); }catch(_){ } }catch(e){}
+          try{ localStorage.setItem(key, raw); }catch(e){}
         }
       };
     }

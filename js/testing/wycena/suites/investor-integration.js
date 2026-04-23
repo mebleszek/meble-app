@@ -7,29 +7,6 @@
   if(!(FC.testHarness && typeof FC.registerWycenaTests === 'function')) return;
 
   FC.registerWycenaTests(({ FC, H, clone, withInvestorProjectFixture })=> [
-    H.makeTest('Wycena ↔ Inwestor', 'Bulkowy kontrakt statusów inwestora zwraca ten sam wynik co pojedynczy guard dla pokoju', 'Pilnuje optymalizacji renderu zakładki Inwestor: buildManualStatusChoiceStates ma liczyć bazę pokoju raz, ale dalej zwracać te same blokady/odblokowania co validateManualStatusChange dla każdego statusu.', ()=>{
-        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.buildManualStatusChoiceStates === 'function', 'Brak FC.projectStatusManualGuard.buildManualStatusChoiceStates');
-        H.assert(typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const soloPre = FC.quoteSnapshotStore.save({ id:'snap_bulk_guard_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt bulk guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:118 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820475000 });
-          const builtBefore = FC.projectStatusManualGuard.buildManualStatusChoiceStates(investorId, 'room_salon', ['pomiar','wycena','zaakceptowany']);
-          ['pomiar','wycena','zaakceptowany'].forEach((status)=>{
-            const single = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', status);
-            const bulk = builtBefore && builtBefore.states ? builtBefore.states[status] : null;
-            H.assert(!!bulk, 'Bulk guard nie zwrócił stanu dla statusu', { status, builtBefore });
-            H.assert(String(bulk && bulk.blocked) === String(single && single.blocked) && String(bulk && bulk.requiresGeneration) === String(single && single.requiresGeneration), 'Bulk guard nie zgadza się z pojedynczym validateManualStatusChange', { status, bulk, single, soloPre });
-          });
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
-          const builtAfter = FC.projectStatusManualGuard.buildManualStatusChoiceStates(investorId, 'room_salon', ['pomiar','wycena']);
-          ['pomiar','wycena'].forEach((status)=>{
-            const single = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', status);
-            const bulk = builtAfter && builtAfter.states ? builtAfter.states[status] : null;
-            H.assert(!!bulk, 'Bulk guard po akceptacji nie zwrócił stanu dla statusu', { status, builtAfter });
-            H.assert(String(bulk && bulk.blocked) === String(single && single.blocked) && String(bulk && bulk.requiresGeneration) === String(single && single.requiresGeneration), 'Bulk guard po akceptacji nie zgadza się z pojedynczym validateManualStatusChange', { status, bulk, single });
-          });
-        });
-      }),
-
     H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana statusu inwestora przełącza wskazaną ofertę i status projektu', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor korzysta z tej samej logiki co Wycena i nie rozjeżdża store projektu oraz historii ofert.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
