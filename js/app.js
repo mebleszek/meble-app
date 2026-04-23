@@ -186,64 +186,20 @@ uiState = Object.assign({}, __uiDefaults, uiState || {});
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
-const RELOAD_RESTORE_KEY = 'fc_reload_restore_v1';
-let __pendingReloadRestore = null;
-
-function readReloadRestore(){
-  try{
-    const raw = sessionStorage.getItem(RELOAD_RESTORE_KEY);
-    if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
-  }catch(_){ return null; }
-}
-
-function clearReloadRestore(){
-  try{ sessionStorage.removeItem(RELOAD_RESTORE_KEY); }catch(_){ }
-}
-
+function readReloadRestore(){ return callExtracted('reloadRestore', 'read', [], function(){ return null; }); }
+function clearReloadRestore(){ return callExtracted('reloadRestore', 'clear', [], function(){}); }
 function persistReloadRestore(){
-  try{
-    const snapshotState = (window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function')
-      ? window.FC.uiState.get()
-      : (typeof uiState !== 'undefined' ? uiState : null);
-    if(!(snapshotState && typeof snapshotState === 'object')) return;
-    const payload = {
-      savedAt: Date.now(),
-      uiState: snapshotState,
-      scrollY: (()=> {
-        try{ return typeof window.scrollY === 'number' ? Math.max(0, Math.round(window.scrollY)) : 0; }catch(_){ return 0; }
-      })(),
-    };
-    sessionStorage.setItem(RELOAD_RESTORE_KEY, JSON.stringify(payload));
-  }catch(_){ }
+  return callExtracted('reloadRestore', 'persist', [{
+    getUiState: function(){
+      try{
+        if(window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function') return window.FC.uiState.get();
+      }catch(_){ }
+      return uiState;
+    },
+  }], function(){});
 }
-
-function applyReloadRestoreSnapshot(){
-  const snapshot = readReloadRestore();
-  if(!(snapshot && snapshot.uiState && typeof snapshot.uiState === 'object')) return null;
-  __pendingReloadRestore = snapshot;
-  clearReloadRestore();
-  return snapshot;
-}
-
-function restoreReloadScroll(){
-  const snapshot = __pendingReloadRestore && typeof __pendingReloadRestore === 'object' ? __pendingReloadRestore : null;
-  __pendingReloadRestore = null;
-  if(!snapshot) return;
-  const targetY = Math.max(0, Math.round(Number(snapshot.scrollY) || 0));
-  const apply = ()=> {
-    try{ window.scrollTo(0, targetY); }catch(_){ }
-  };
-  [0, 16, 48, 120, 240, 420].forEach((delay)=> {
-    try{
-      if(delay === 0) requestAnimationFrame(()=> requestAnimationFrame(apply));
-      else setTimeout(apply, delay);
-    }catch(_){
-      try{ setTimeout(apply, delay); }catch(__){ }
-    }
-  });
-}
+function applyReloadRestoreSnapshot(){ return callExtracted('reloadRestore', 'applySnapshot', [], function(){ return null; }); }
+function restoreReloadScroll(){ return callExtracted('reloadRestore', 'restoreScroll', [], function(){}); }
 
 try{
   window.FC = window.FC || {};
@@ -255,38 +211,17 @@ try{
 }catch(_){ }
 
 try{
-  window.addEventListener('pagehide', persistReloadRestore, { capture:true });
-  window.addEventListener('beforeunload', persistReloadRestore, { capture:true });
+  callExtracted('reloadRestore', 'installPersistence', [{
+    getUiState: function(){
+      try{
+        if(window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function') return window.FC.uiState.get();
+      }catch(_){ }
+      return uiState;
+    },
+  }]);
 }catch(_){ }
 
-/* ===== Runtime validation (self-healing persisted state) ===== */
-try{
-  if (window.FC && window.FC.validate){
-    const V = window.FC.validate;
-    materials = V.validateMaterials ? V.validateMaterials(materials) : materials;
-    services  = V.validateServices ? V.validateServices(services) : services;
-    projectData = V.validateProject ? V.validateProject(projectData) : projectData;
-    uiState   = V.validateUIState ? V.validateUIState(uiState) : uiState;
-
-    if (V.persistIfPossible){
-      V.persistIfPossible(STORAGE_KEYS.materials, materials);
-      V.persistIfPossible(STORAGE_KEYS.services, services);
-      V.persistIfPossible(STORAGE_KEYS.projectData, projectData);
-      V.persistIfPossible(STORAGE_KEYS.ui, uiState);
-    } else {
-      if(window.FC && window.FC.catalogStore){
-        try{ if(typeof window.FC.catalogStore.setSheetMaterials === 'function') materials = window.FC.catalogStore.setSheetMaterials(materials); }catch(_){ FC.storage.setJSON(STORAGE_KEYS.materials, materials); }
-        try{ if(typeof window.FC.catalogStore.setQuoteRates === 'function') services = window.FC.catalogStore.setQuoteRates(services); }catch(_){ FC.storage.setJSON(STORAGE_KEYS.services, services); }
-      } else {
-        FC.storage.setJSON(STORAGE_KEYS.materials, materials);
-        FC.storage.setJSON(STORAGE_KEYS.services, services);
-      }
-      FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    }
-  }
-}catch(_){ }
-
+/* ===== Runtime validation moved to app-state-bootstrap.js (single source of truth for startup self-healing) ===== */
 /* ===== Normalize (backward compatibility) ===== */
 function normalizeProjectData(data, defaults){
   const pd = (typeof data === 'undefined' || data === null) ? projectData : data;
@@ -312,17 +247,18 @@ const cabinetModalState = {
 };
 
 /* ===== Utility & core functions ===== */
-function calculateAvailableTopHeight(){
-  return callExtracted('calc', 'calculateAvailableTopHeight', [projectData], function(){
-    const s = projectData && projectData.kuchnia && projectData.kuchnia.settings ? projectData.kuchnia.settings : {};
+function calculateAvailableTopHeight(room){
+  const roomKey = String(room || (uiState && uiState.roomType) || '').trim() || 'kuchnia';
+  return callExtracted('calc', 'calculateAvailableTopHeight', [projectData, roomKey], function(){
+    const s = projectData && projectData[roomKey] && projectData[roomKey].settings ? projectData[roomKey].settings : {};
     const h = (Number(s.roomHeight)||0) - (Number(s.bottomHeight)||0) - (Number(s.counterThickness)||0) - (Number(s.gapHeight)||0) - (Number(s.ceilingBlende)||0);
     return h>0?Math.round(h*10)/10:0;
   });
 }
-function renderTopHeight(){
-  return callExtracted('settingsUI', 'renderTopHeight', arguments, function(){
+function renderTopHeight(room){
+  return callExtracted('settingsUI', 'renderTopHeight', arguments, function(roomArg){
     const el = document.getElementById('autoTopHeight');
-    if(el) el.textContent = calculateAvailableTopHeight();
+    if(el) el.textContent = calculateAvailableTopHeight(roomArg);
   });
 }
 
@@ -491,242 +427,60 @@ function renderMaterialsTab(listEl, room){
 
 /* ===== Render UI: cabinets (NO inline editing) ===== */
 // RYZYKO REGRESJI: centralny render szafek.
-// Każda zmiana tutaj może psuć kilka widoków naraz, więc testować dodawanie/edycję/usuwanie oraz przełączanie zakładek.
+// Routing widoku pokoju siedzi teraz w js/app/ui/app-room-render.js,
+// a renderer WYWIAD listy szafek w js/app/cabinet/cabinet-wywiad-render.js.
 function renderCabinets(){
-  const list = document.getElementById('cabinetsList');
-  if(!list) return;
-  list.innerHTML = '';
-  const requestedRoom = String((uiState && uiState.roomType) || '').trim();
-  const roomData = requestedRoom && projectData && projectData[requestedRoom] && typeof projectData[requestedRoom] === 'object'
-    ? projectData[requestedRoom]
-    : null;
-  const room = roomData ? requestedRoom : '';
-  const roomSettingsCardEl = document.getElementById('roomSettingsCard');
-  if(roomSettingsCardEl) roomSettingsCardEl.style.display = shouldHideRoomSettingsForTab(uiState && uiState.activeTab) ? 'none' : '';
-  const roomTitleEl = document.getElementById('roomTitle');
-  if(roomTitleEl){
-    roomTitleEl.textContent = room
-      ? ((window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.getRoomLabel === 'function')
-          ? window.FC.roomRegistry.getRoomLabel(room)
-          : room.charAt(0).toUpperCase()+room.slice(1))
-      : 'Pomieszczenie';
-  }
-  if(!room){
-    const roomlessTab = String(uiState && uiState.activeTab || '').trim().toLowerCase();
-    if(roomlessTab === 'wycena'){
-      try{
-        if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
-          window.FC.tabsRouter.switchTo('wycena', { listEl: list, room:'' });
-          try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-          return;
-        }
-      }catch(_){ }
-    }
-    if(requestedRoom){
-      const hasInvestorContext = !!((uiState && uiState.currentInvestorId)
-        || (window.FC && window.FC.investors && typeof window.FC.investors.getCurrentId === 'function' && window.FC.investors.getCurrentId()));
-      const nextState = Object.assign({}, uiState || {}, {
-        roomType: null,
-        selectedCabinetId: null,
-        expanded: {},
-        entry: hasInvestorContext ? 'rooms' : ((uiState && uiState.workMode) ? 'modeHub' : 'home'),
-      });
-      if(nextState.activeTab === 'wywiad' || nextState.activeTab === 'rysunek' || nextState.activeTab === 'material') nextState.activeTab = 'pokoje';
+  return callExtracted('appRoomRender', 'renderCabinets', [{
+    FC,
+    document,
+    projectData,
+    storageKeys: STORAGE_KEYS,
+    getUiState: function(){ return uiState; },
+    persistUiState: function(nextState){
       uiState = nextState;
       try{
         if(window.FC && window.FC.uiState && typeof window.FC.uiState.set === 'function') uiState = window.FC.uiState.set(nextState);
         else FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
       }catch(_){ }
-      try{ if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function') window.FC.views.applyFromState(uiState); }catch(_){ }
-    }
-    return;
-  }
-
-  const s = roomData.settings || {};
-  renderTopHeight();
-  try{
-    if(window.FC && window.FC.wywiadRoomSettings){
-      if(typeof window.FC.wywiadRoomSettings.renderSummary === 'function') window.FC.wywiadRoomSettings.renderSummary(room);
-      if(typeof window.FC.wywiadRoomSettings.bindTriggerButtons === 'function') window.FC.wywiadRoomSettings.bindTriggerButtons(document);
-    }
-  }catch(_){ }
-
-  // Zakładki — routing przez moduły (js/app/ui/tabs-router.js + js/tabs/*)
-  // Dzięki temu każda zakładka ma osobny plik i minimalizujemy ryzyko psucia innych sekcji.
-  try{
-    if(window.FC && window.FC.tabsRouter && typeof window.FC.tabsRouter.switchTo === 'function'){
-      window.FC.tabsRouter.switchTo(uiState.activeTab, { listEl: list, room });
-      try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-      return;
-    }
-  }catch(_){ }
-
-  // Fallback (gdyby router nie był dostępny): zachowaj minimalne działanie.
-  if(uiState.activeTab === 'material'){
-    renderMaterialsTab(list, room);
-    try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-    return;
-  }
-  if(uiState.activeTab === 'rysunek'){
-    renderDrawingTab(list, room);
-    try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-    return;
-  }
-  renderWywiadTab(list, room);
-  try{ window.FC && window.FC.listScrollMemory && window.FC.listScrollMemory.restorePending && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-  return;
+      return uiState;
+    },
+    shouldHideRoomSettingsForTab,
+    renderTopHeight,
+    renderMaterialsTab,
+    renderDrawingTab,
+    renderWywiadTab: function(list, room){ return renderWywiadTab(list, room); },
+  }], function(){
+    const list = document.getElementById('cabinetsList');
+    if(!list) return;
+    list.innerHTML = '<div class="build-card"><h3>Widok niedostępny</h3><p class="muted">Moduł renderu pokoju nie został załadowany. Odśwież aplikację.</p></div>';
+  });
 }
 
 // Wydzielony renderer WYWIAD — aktywny render listy szafek i szczegółów
 function renderWywiadTab(list, room){
-  // grupowanie: zestawy renderujemy jako blok: korpusy + fronty zestawu pod spodem
-  const cabinets = projectData[room].cabinets || [];
-  const renderedSets = new Set();
-
-  list.innerHTML = '';
-
-  cabinets.forEach((cab, idx) => {
-    if(cab.setId && !renderedSets.has(cab.setId)){
-      const setId = cab.setId;
-      renderedSets.add(setId);
-      const setCabs = cabinets.filter(c => c.setId === setId);
-      setCabs.forEach((sc, jdx) => {
-        renderSingleCabinetCard(list, room, sc, idx + jdx + 1);
-      });
-      return;
-    }
-
-    if(cab.setId && renderedSets.has(cab.setId)) return;
-
-    renderSingleCabinetCard(list, room, cab, idx+1);
+  return callExtracted('cabinetWywiadRender', 'renderWywiadTab', [{
+    FC,
+    document,
+    projectData,
+    room,
+    listEl: list,
+    getUiState: function(){ return uiState; },
+    persistUiState: function(nextState){
+      uiState = nextState;
+      try{ FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+      return uiState;
+    },
+    toggleExpandAll,
+    getCabinetExtraSummary,
+    getFrontsForSet,
+    getFrontsForCab,
+    openCabinetModalForEdit,
+    jumpToMaterialsForCabinet,
+    deleteCabinetById,
+    renderCabinets,
+  }], function(){
+    if(list) list.innerHTML = '<div class="build-card"><h3>Wywiad niedostępny</h3><p class="muted">Renderer listy szafek nie został załadowany. Odśwież aplikację.</p></div>';
   });
-}
-
-function renderSingleCabinetCard(list, room, cab, displayIndex){
-  const cabEl = document.createElement('div');
-  cabEl.className = 'cabinet cabinet-card-shell';
-  cabEl.id = `cab-${cab.id}`;
-  if(uiState.selectedCabinetId === cab.id) cabEl.classList.add('selected');
-
-  const header = document.createElement('div');
-  header.className = 'cabinet-header cabinet-header--stacked cabinet-card-shell__header';
-
-  const badge = cab.setId && typeof cab.setNumber === 'number'
-    ? `<span class="badge">Zestaw ${cab.setNumber}</span>`
-    : '';
-  const bodyMeta = [cab.bodyColor || '', cab.backMaterial || ''].filter(Boolean).join(' • ') || '—';
-  const frontMeta = [cab.frontMaterial || '', cab.frontColor || ''].filter(Boolean).join(' • ') || '—';
-  const copy = document.createElement('div');
-  copy.className = 'cabinet-header__copy cabinet-card-shell__copy';
-  copy.innerHTML = `
-    <div class="cabinet-header__title">#${displayIndex} • ${cab.type} • ${cab.subType||''}${badge}</div>
-    <div class="cabinet-header__meta">Korpus: ${bodyMeta}</div>
-    <div class="cabinet-header__meta">Front: ${frontMeta}</div>
-    <div class="cabinet-header__meta">${cab.width} × ${cab.height} × ${cab.depth}</div>
-  `;
-
-  const actions = document.createElement('div');
-  actions.className = 'cab-actions cabinet-header__actions cabinet-card-shell__actions';
-  actions.innerHTML = `<button class="btn" data-act="edit" type="button">Edytuj</button> <button class="btn" data-act="mat" type="button">Materiały</button> <button class="btn btn-danger" data-act="del" type="button">Usuń</button>`;
-
-  header.appendChild(copy);
-  header.appendChild(actions);
-  cabEl.appendChild(header);
-  cabEl.setAttribute('data-cabinet-kind', String(cab.type || ''));
-
-  actions.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const btn = e.target && e.target.closest ? e.target.closest('button') : null;
-    if(!btn) return;
-    const act = btn.getAttribute('data-act');
-    if(act === 'edit'){
-      openCabinetModalForEdit(cab.id);
-      return;
-    }
-    if(act === 'mat'){
-      jumpToMaterialsForCabinet(cab.id);
-      return;
-    }
-    if(act === 'del'){
-      deleteCabinetById(cab.id);
-      return;
-    }
-  });
-
-  if(uiState.expanded[cab.id]){
-    const body = document.createElement('div');
-    body.className = 'cabinet-body';
-
-    const summary = getCabinetExtraSummary(room, cab);
-
-    const ro = document.createElement('div');
-    ro.className = 'ro-grid';
-    ro.innerHTML = `
-      <div class="ro-box"><div class="muted xs">Rodzaj</div><div class="ro-val">${cab.type || ''}</div></div>
-      <div class="ro-box"><div class="muted xs">Wariant</div><div class="ro-val">${cab.subType || ''}</div></div>
-      <div class="ro-box"><div class="muted xs">Szczegóły</div><div class="ro-val">${summary || '—'}</div></div>
-
-      <div class="ro-box"><div class="muted xs">Wymiary</div><div class="ro-val">${cab.width} × ${cab.height} × ${cab.depth}</div></div>
-      <div class="ro-box"><div class="muted xs">Front</div><div class="ro-val">${cab.frontMaterial || ''}</div><div class="muted xs">${cab.frontColor || ''}</div></div>
-      <div class="ro-box"><div class="muted xs">Korpus / Plecy</div><div class="ro-val">${cab.bodyColor || ''}</div><div class="muted xs">${cab.backMaterial || ''}</div></div>
-
-      <div class="ro-box"><div class="muted xs">Otwieranie</div><div class="ro-val">${cab.openingSystem || ''}</div></div>
-    `;
-    body.appendChild(ro);
-
-    const frontsForThis = cab.setId ? getFrontsForSet(room, cab.setId) : getFrontsForCab(room, cab.id);
-    if(frontsForThis && frontsForThis.length){
-      const fb = document.createElement('div');
-      fb.className = 'front-block';
-      const title = cab.setId
-        ? `Fronty zestawu <span class="badge">Zestaw ${cab.setNumber}</span>`
-        : 'Fronty szafki';
-      fb.innerHTML = `
-        <div class="head">
-          <div>${title}</div>
-          <div class="front-meta">${frontsForThis.length} szt.</div>
-        </div>
-      `;
-      frontsForThis.forEach((f) => {
-        const row = document.createElement('div');
-        row.className = 'front-row';
-        row.innerHTML = `
-          <div>
-            <div style="font-weight:900">Front: ${f.width} × ${f.height}</div>
-            <div class="front-meta">${(f.material||'')}${(f.color ? ' • ' + f.color : '')}${(f.note ? ' • ' + f.note : '')}</div>
-          </div>
-          <div style="font-weight:900">${Number(f.width)||0}×${Number(f.height)||0}</div>
-        `;
-        fb.appendChild(row);
-      });
-      body.appendChild(fb);
-    }
-
-    const hint = document.createElement('div');
-    hint.className = 'muted xs';
-    hint.style.marginTop = '10px';
-    hint.style.padding = '10px';
-    hint.style.border = '1px solid #eef6fb';
-    hint.style.borderRadius = '10px';
-    hint.style.background = '#fbfdff';
-    hint.textContent = 'Edycja tylko przez przycisk „Edytuj”.';
-    body.appendChild(hint);
-
-    cabEl.appendChild(body);
-  }
-
-  header.addEventListener('click', (e) => {
-    if(e.target && e.target.closest && e.target.closest('button')) return;
-
-    if(uiState.activeTab === 'wywiad'){
-      uiState.selectedCabinetId = (uiState.selectedCabinetId === cab.id) ? null : cab.id;
-    }
-    toggleExpandAll(cab.id);
-    FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-    renderCabinets();
-  });
-
-  list.appendChild(cabEl);
 }
 
 /* ===== Price modal render ===== */
@@ -790,24 +544,17 @@ function initUI(){
     getUiState: function(){ return uiState; },
     setUiState: function(nextState){ uiState = nextState; return uiState; },
     applyReloadRestoreSnapshot,
-    installBindings: function(){
-      try{ window.FC && window.FC.bindings && typeof window.FC.bindings.install === 'function' && window.FC.bindings.install(); }
-      catch(_){ }
-    },
+    installBindings: function(){ return callExtracted('appUiRuntimeServices', 'installBindings', [], function(){}); },
     installProjectAutosave,
     renderTopHeight,
     renderCabinets,
     restoreReloadScroll,
     scheduleRozrysWarmup: function(){
-      try{
-        if(window.FC && window.FC.rozrysLazy && typeof window.FC.rozrysLazy.scheduleWarmup === 'function'){
-          window.FC.rozrysLazy.scheduleWarmup({
-            reason:'post-init-ui',
-            delayMs: 900,
-            idleTimeoutMs: 3500,
-          });
-        }
-      }catch(_){ }
+      return callExtracted('appUiRuntimeServices', 'scheduleRozrysWarmup', [{
+        reason:'post-init-ui',
+        delayMs: 900,
+        idleTimeoutMs: 3500,
+      }], function(){});
     },
   }]);
 }
@@ -848,4 +595,6 @@ try{
   window.App = Object.assign(window.App || {}, { init: initApp });
   window.initApp = initApp;
   window.initUI = initUI;
+  window.calculateAvailableTopHeight = calculateAvailableTopHeight;
+  window.renderTopHeight = renderTopHeight;
 }catch(e){}

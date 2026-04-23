@@ -46,18 +46,31 @@
       if(!(selectEl && mount)) return;
       try{
         const currentValue = String(selectEl.value || '');
+        let validationMap = null;
+        try{
+          if(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.buildManualStatusChoiceStates === 'function'){
+            const built = FC.projectStatusManualGuard.buildManualStatusChoiceStates(
+              String(inv && inv.id || ''),
+              String(room.id || ''),
+              Array.from(selectEl.options || []).map((opt)=> String(opt && opt.value || ''))
+            );
+            validationMap = built && built.states && typeof built.states === 'object' ? built.states : null;
+          }
+        }catch(_){ validationMap = null; }
         Array.from(selectEl.options || []).forEach((opt)=> {
           if(!opt) return;
           opt.disabled = false;
           opt.removeAttribute('data-description');
           if(cfg.disabled) return;
           try{
-            if(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function'){
-              const validation = FC.projectStatusManualGuard.validateManualStatusChange(String(inv && inv.id || ''), String(room.id || ''), String(opt.value || ''));
-              if(validation && validation.blocked){
-                opt.disabled = true;
-                opt.setAttribute('data-description', String(validation.title || validation.message || 'Niedostępne w tym stanie.'));
-              }
+            const value = String(opt.value || '');
+            let validation = validationMap ? validationMap[value] : null;
+            if(!validation && FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function'){
+              validation = FC.projectStatusManualGuard.validateManualStatusChange(String(inv && inv.id || ''), String(room.id || ''), value);
+            }
+            if(validation && validation.blocked){
+              opt.disabled = true;
+              opt.setAttribute('data-description', String(validation.title || validation.message || 'Niedostępne w tym stanie.'));
             }
           }catch(_){ }
           if(String(opt.value || '') === currentValue) opt.selected = true;

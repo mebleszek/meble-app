@@ -127,13 +127,21 @@
     }, base || {}, extra || {});
   }
 
-  function validateManualStatusChange(investorId, roomId, targetStatus){
+  function evaluateManualStatusChangeFromBasis(basisInput, targetStatus){
+    const basis = basisInput && typeof basisInput === 'object' ? basisInput : analyzeRoomQuoteState('', '');
     const nextStatus = normalizeStatus(targetStatus);
-    const basis = analyzeRoomQuoteState(investorId, roomId);
     const currentRank = statusRank(basis.currentStatus || '');
     const nextRank = statusRank(nextStatus);
     const movingUp = nextRank > currentRank;
-    const base = { investorId:basis.investorId, projectId:basis.projectId, roomId:basis.roomId, roomLabel:basis.roomLabel, currentStatus:basis.currentStatus, targetStatus:nextStatus, basis };
+    const base = {
+      investorId:basis.investorId,
+      projectId:basis.projectId,
+      roomId:basis.roomId,
+      roomLabel:basis.roomLabel,
+      currentStatus:basis.currentStatus,
+      targetStatus:nextStatus,
+      basis
+    };
 
     if(nextStatus === 'pomiar'){
       if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
@@ -199,6 +207,28 @@
     return buildResult(base, { ok:true, blocked:false });
   }
 
+  function validateManualStatusChange(investorId, roomId, targetStatus){
+    return evaluateManualStatusChangeFromBasis(analyzeRoomQuoteState(investorId, roomId), targetStatus);
+  }
+
+  function buildManualStatusChoiceStates(investorId, roomId, targetStatuses){
+    const basis = analyzeRoomQuoteState(investorId, roomId);
+    const values = Array.isArray(targetStatuses)
+      ? targetStatuses.map((value)=> normalizeStatus(value)).filter(Boolean)
+      : Object.keys(STATUS_LABELS);
+    const uniqueValues = Array.from(new Set(values));
+    const map = {};
+    uniqueValues.forEach((value)=>{
+      map[value] = evaluateManualStatusChangeFromBasis(basis, value);
+    });
+    return {
+      investorId:String(investorId || ''),
+      roomId:String(roomId || ''),
+      basis,
+      states: map,
+    };
+  }
+
   async function generateScopedQuoteForRoom(investorId, roomId, kind, options){
     const opts = options && typeof options === 'object' ? options : {};
     const basis = analyzeRoomQuoteState(investorId, roomId);
@@ -239,7 +269,9 @@
     STATUS_LABELS,
     FINAL_MANUAL_TARGETS,
     analyzeRoomQuoteState,
+    evaluateManualStatusChangeFromBasis,
     validateManualStatusChange,
+    buildManualStatusChoiceStates,
     generateScopedQuoteForRoom,
   };
 })();
