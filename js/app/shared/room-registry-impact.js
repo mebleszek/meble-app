@@ -4,6 +4,7 @@
   const FC = window.FC;
   const foundation = FC.roomRegistryFoundation;
   const definitions = FC.roomRegistryDefinitions;
+  const roomScopeResolver = FC.roomScopeResolver;
 
   if(!(foundation && definitions)){
     try{ console.error('[room-registry-impact] Missing registry foundation/definitions before impact load'); }catch(_){ }
@@ -28,8 +29,11 @@
   const { getRoomLabel } = definitions;
 
   function normalizeRoomIds(roomIds){
+    try{
+      if(roomScopeResolver && typeof roomScopeResolver.normalizeRoomIds === 'function') return roomScopeResolver.normalizeRoomIds(roomIds);
+    }catch(_){ }
     return Array.isArray(roomIds)
-      ? roomIds.map((id)=> String(id || '').trim()).filter(Boolean)
+      ? Array.from(new Set(roomIds.map((id)=> String(id || '').trim()).filter(Boolean)))
       : [];
   }
 
@@ -127,10 +131,17 @@
     return listRoomRemovalSnapshots(inv, roomIds);
   }
 
-  function countCabinetsForRoomIds(roomIds){
+  function countCabinetsForRoomIds(roomIds, inv){
     const ids = normalizeRoomIds(roomIds);
     if(!ids.length) return 0;
-    const proj = getProject() || {};
+    const liveProject = getProject();
+    const recordProject = (()=> {
+      try{
+        const record = getCurrentProjectRecord(inv || null);
+        return record && record.projectData && typeof record.projectData === 'object' ? record.projectData : null;
+      }catch(_){ return null; }
+    })();
+    const proj = (liveProject && typeof liveProject === 'object') ? liveProject : (recordProject || {});
     return ids.reduce((sum, roomId)=>{
       const room = proj && proj[roomId];
       const cabinets = Array.isArray(room && room.cabinets) ? room.cabinets.length : 0;
@@ -145,7 +156,7 @@
     const deferred = !!opts.deferred;
     const roomNames = ids.map((id)=> getRoomLabel(id)).filter(Boolean);
     const roomLabel = roomNames.length === 1 ? roomNames[0] : (roomNames.length ? roomNames.join(', ') : 'wybrane pomieszczenia');
-    const cabinetCount = countCabinetsForRoomIds(ids);
+    const cabinetCount = countCabinetsForRoomIds(ids, inv);
     const cabinetLabel = cabinetCount === 1 ? 'szafkę' : (cabinetCount >= 2 && cabinetCount <= 4 ? 'szafki' : 'szafek');
     const lines = [];
 

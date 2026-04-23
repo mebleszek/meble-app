@@ -22,6 +22,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/shared/room-registry-foundation.js",
       "js/app/shared/room-registry-utils.js",
       "js/app/shared/room-registry-definitions.js",
+      "js/app/shared/room-scope-resolver.js",
       "js/app/shared/room-registry-impact.js",
       "js/app/shared/room-registry-project-sync.js",
       "js/app/shared/room-registry-core.js",

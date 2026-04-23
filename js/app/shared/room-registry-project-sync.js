@@ -42,6 +42,7 @@
     hasLegacyKitchen,
     createLegacyKitchenDef,
     getActiveRoomDefs,
+    invalidateCache,
   } = definitions;
   const {
     syncRoomSelectionAfterRemoval,
@@ -81,25 +82,61 @@
     const proj = getProject();
     if(!proj || !id) return null;
     const meta = ensureProjectMeta(proj);
-    if(!proj[id]) proj[id] = roomTemplate(baseType);
-    if(!meta.roomDefs[id]) meta.roomDefs[id] = { id, baseType, name: BASE_LABELS[baseType] || id, label: BASE_LABELS[baseType] || id };
-    if(!meta.roomOrder.includes(id)) meta.roomOrder.push(id);
-    saveProject(proj);
+    let changed = false;
+    if(!proj[id]){
+      proj[id] = roomTemplate(baseType);
+      changed = true;
+    }
+    if(!meta.roomDefs[id]){
+      meta.roomDefs[id] = { id, baseType, name: BASE_LABELS[baseType] || id, label: BASE_LABELS[baseType] || id };
+      changed = true;
+    }
+    if(!meta.roomOrder.includes(id)){
+      meta.roomOrder.push(id);
+      changed = true;
+    }
+    if(changed){
+      try{ invalidateCache(); }catch(_){ }
+      saveProject(proj);
+    }
     return proj[id];
   }
 
   function removeRoomsData(proj, meta, roomIds){
     const ids = impact.normalizeRoomIds(roomIds);
+    let changed = false;
     ids.forEach((selectedId)=>{
-      try{ delete proj[selectedId]; }catch(_){ }
-      try{ if(meta && meta.roomDefs) delete meta.roomDefs[selectedId]; }catch(_){ }
-      try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> String(id || '') !== selectedId); }catch(_){ }
+      try{
+        if(Object.prototype.hasOwnProperty.call(proj || {}, selectedId)){
+          delete proj[selectedId];
+          changed = true;
+        }
+      }catch(_){ }
+      try{
+        if(meta && meta.roomDefs && Object.prototype.hasOwnProperty.call(meta.roomDefs, selectedId)){
+          delete meta.roomDefs[selectedId];
+          changed = true;
+        }
+      }catch(_){ }
+      try{
+        if(meta && Array.isArray(meta.roomOrder)) {
+          const nextOrder = meta.roomOrder.filter((id)=> String(id || '') !== selectedId);
+          if(nextOrder.length !== meta.roomOrder.length){
+            meta.roomOrder = nextOrder;
+            changed = true;
+          }
+        }
+      }catch(_){ }
       syncRoomSelectionAfterRemoval(selectedId);
     });
+    if(changed){
+      try{ invalidateCache(); }catch(_){ }
+    }
   }
 
   function updateInvestorRooms(inv, rooms){
     try{ FC.investors && FC.investors.update && FC.investors.update(inv.id, { rooms }); }catch(_){ }
+    try{ invalidateCache(); }catch(_){ }
   }
 
   function createRoomRecord(inv, payload){

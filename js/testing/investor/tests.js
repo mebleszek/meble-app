@@ -243,6 +243,54 @@
       assert(!ids.includes('kuchnia') && !ids.includes('szafa') && !ids.includes('pokoj') && !ids.includes('lazienka'), 'Do listy wróciły typy bazowe zamiast pokoi inwestora', ids);
     }),
 
+
+    makeTest('Inwestor', 'Mutacje registry odświeżają cache aktywnych pomieszczeń bez ręcznego resetu widoku', 'Pilnuje nowego twardego odświeżania cache: po dodaniu pokoju przez project-sync lista aktywnych pomieszczeń ma się odświeżyć od razu, bez ręcznego czyszczenia cache.', ()=>{
+      assert(FC.roomRegistryProjectSync && typeof FC.roomRegistryProjectSync.createRoomRecord === 'function', 'Brak FC.roomRegistryProjectSync.createRoomRecord');
+      assert(FC.roomRegistryDefinitions && typeof FC.roomRegistryDefinitions.getActiveRoomDefs === 'function', 'Brak FC.roomRegistryDefinitions.getActiveRoomDefs');
+      const prevProject = Object.prototype.hasOwnProperty.call(root, 'projectData') ? root.projectData : undefined;
+      const prevWindowProject = root.window && Object.prototype.hasOwnProperty.call(root.window, 'projectData') ? root.window.projectData : undefined;
+      const prevCurrentId = FC.investors && FC.investors.getCurrentId ? FC.investors.getCurrentId() : '';
+      const prevGetById = FC.investors && FC.investors.getById;
+      const prevUpdate = FC.investors && FC.investors.update;
+      const investor = {
+        id:'inv_cache_refresh',
+        rooms:[
+          { id:'room_start', baseType:'kuchnia', name:'Kuchnia start', label:'Kuchnia start', projectStatus:'nowy' }
+        ]
+      };
+      const project = {
+        schemaVersion:9,
+        meta:{ roomDefs:{ room_start:{ id:'room_start', baseType:'kuchnia', name:'Kuchnia start', label:'Kuchnia start' } }, roomOrder:['room_start'] },
+        room_start:{ cabinets:[], fronts:[], sets:[], settings:{} },
+      };
+      try{
+        root.projectData = project;
+        if(root.window) root.window.projectData = project;
+        if(FC.investors && FC.investors.setCurrentId) FC.investors.setCurrentId(investor.id);
+        if(FC.investors){
+          FC.investors.getById = (id)=> String(id || '') === investor.id ? investor : null;
+          FC.investors.update = (_id, patch)=> { investor.rooms = Array.isArray(patch && patch.rooms) ? patch.rooms : investor.rooms; return investor; };
+        }
+        const before = FC.roomRegistryDefinitions.getActiveRoomDefs().map((room)=> String(room && room.id || ''));
+        assert(before.length === 1 && before[0] === 'room_start', 'Stan początkowy cache aktywnych pokoi jest zły', before);
+        const created = FC.roomRegistryProjectSync.createRoomRecord(investor, { baseType:'pokoj', name:'Gabinet' });
+        assert(created && created.ok === true, 'createRoomRecord nie utworzył nowego pokoju', created);
+        const after = FC.roomRegistryDefinitions.getActiveRoomDefs().map((room)=> String(room && room.id || ''));
+        assert(after.length === 2 && after.some((id)=> id === 'room_start') && after.some((id)=> id === created.room.id), 'Cache aktywnych pokoi nie odświeżył się po createRoomRecord', { before, after, created });
+      } finally {
+        if(prevProject === undefined){ try{ delete root.projectData; }catch(_){ root.projectData = undefined; } }
+        else root.projectData = prevProject;
+        if(root.window){
+          if(prevWindowProject === undefined){ try{ delete root.window.projectData; }catch(_){ root.window.projectData = undefined; } }
+          else root.window.projectData = prevWindowProject;
+        }
+        if(FC.investors && FC.investors.setCurrentId) FC.investors.setCurrentId(prevCurrentId || null);
+        if(FC.investors) FC.investors.getById = prevGetById;
+        if(FC.investors) FC.investors.update = prevUpdate;
+        try{ FC.roomRegistryDefinitions && FC.roomRegistryDefinitions.invalidateCache && FC.roomRegistryDefinitions.invalidateCache(); }catch(_){ }
+      }
+    }),
+
     makeTest('Inwestor', 'Ostrzeżenie przy usuwaniu pomieszczenia pokazuje szafki i powiązane wyceny', 'Pilnuje, czy komunikat kasowania pokoju informuje nie tylko o szafkach, ale też o wycenach powiązanych z tym pomieszczeniem.', ()=>{
       assert(FC.roomRegistry && FC.roomRegistry._debug && typeof FC.roomRegistry._debug.buildRoomRemovalWarningMessage === 'function', 'Brak roomRegistry._debug.buildRoomRemovalWarningMessage');
       assert(FC.projectStore && typeof FC.projectStore.ensureForInvestor === 'function', 'Brak FC.projectStore.ensureForInvestor');

@@ -2,6 +2,7 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
+  const roomScopeResolver = FC.roomScopeResolver;
 
   const STATUS_RANK = {
     nowy:0,
@@ -38,6 +39,9 @@
 
   function normalizeRoomIds(roomIds){
     try{
+      if(roomScopeResolver && typeof roomScopeResolver.normalizeRoomIds === 'function') return roomScopeResolver.normalizeRoomIds(roomIds);
+    }catch(_){ }
+    try{
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.normalizeRoomIds === 'function') return FC.quoteSnapshotStore.normalizeRoomIds(roomIds);
     }catch(_){ }
     return Array.isArray(roomIds)
@@ -63,7 +67,10 @@
   }
 
   function getAllActiveRoomIds(){
-    try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()) : []; }
+    try{
+      if(roomScopeResolver && typeof roomScopeResolver.getActiveRoomIds === 'function') return roomScopeResolver.getActiveRoomIds();
+      return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()) : [];
+    }
     catch(_){ return []; }
   }
 

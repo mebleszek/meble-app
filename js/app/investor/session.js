@@ -23,6 +23,7 @@
   const PROJECT_INV_SUFFIX = '_v1';
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
   const DIRTY_CACHE_WINDOW_MS = 120;
+  const TRACKING_IGNORE_KEYS = new Set([SESSION_STORAGE_KEY]);
 
   function getKeysToSnapshot(){
     const keys = [];
@@ -58,6 +59,69 @@
   function invalidateDirtyCache(){
     session.lastDirtyCheckAt = 0;
     session.lastDirtyValue = false;
+    session.changedKeys = new Set();
+  }
+
+
+  function hasComparableKey(key){
+    const comparable = getComparableKeys();
+    return comparable.includes(String(key || ''));
+  }
+
+  function shouldTrackKey(key){
+    const normalizedKey = String(key || '');
+    if(!normalizedKey || TRACKING_IGNORE_KEYS.has(normalizedKey)) return false;
+    if(!session.active || !session.snapshot || session.suspendTracking) return false;
+    if(hasComparableKey(normalizedKey)) return true;
+    return normalizedKey.startsWith(PROJECT_INV_PREFIX) && normalizedKey.endsWith(PROJECT_INV_SUFFIX);
+  }
+
+  function trackKeyMutation(key, nextRaw){
+    const normalizedKey = String(key || '');
+    if(!shouldTrackKey(normalizedKey)) return;
+    const before = Object.prototype.hasOwnProperty.call(session.snapshot || {}, normalizedKey) ? session.snapshot[normalizedKey] : null;
+    if(before !== nextRaw) session.changedKeys.add(normalizedKey);
+    else session.changedKeys.delete(normalizedKey);
+    session.lastDirtyCheckAt = Date.now();
+    session.lastDirtyValue = session.changedKeys.size > 0;
+  }
+
+  function withTrackingSuspended(work){
+    const previous = !!session.suspendTracking;
+    session.suspendTracking = true;
+    try{ return typeof work === 'function' ? work() : undefined; }
+    finally{ session.suspendTracking = previous; }
+  }
+
+  function installStorageTracking(){
+    try{
+      const storage = localStorage;
+      if(!storage || storage.__fcSessionTrackingInstalled) return;
+      const rawSetItem = typeof storage.setItem === 'function' ? storage.setItem.bind(storage) : null;
+      const rawRemoveItem = typeof storage.removeItem === 'function' ? storage.removeItem.bind(storage) : null;
+      const rawClear = typeof storage.clear === 'function' ? storage.clear.bind(storage) : null;
+      if(rawSetItem){
+        storage.setItem = function(key, value){
+          rawSetItem(key, value);
+          trackKeyMutation(key, String(value));
+        };
+      }
+      if(rawRemoveItem){
+        storage.removeItem = function(key){
+          rawRemoveItem(key);
+          trackKeyMutation(key, null);
+        };
+      }
+      if(rawClear){
+        storage.clear = function(){
+          rawClear();
+          try{
+            getComparableKeys().forEach((key)=> trackKeyMutation(key, null));
+          }catch(_){ }
+        };
+      }
+      storage.__fcSessionTrackingInstalled = true;
+    }catch(_){ }
   }
 
   function getComparableKeys(){
@@ -70,6 +134,7 @@
 
   function isDirty(){
     if(!session.active || !session.snapshot) return false;
+    if(session.changedKeys && session.changedKeys.size) return true;
     const now = Date.now();
     if(session.lastDirtyCheckAt && (now - session.lastDirtyCheckAt) < DIRTY_CACHE_WINDOW_MS){
       return !!session.lastDirtyValue;
@@ -81,6 +146,7 @@
         const current = readRaw(k);
         if(before !== current){
           dirty = true;
+          if(session.changedKeys) session.changedKeys.add(k);
           break;
         }
       }
@@ -92,15 +158,17 @@
 
   function persistSession(){
     try{
-      const payload = {
-        active: !!session.active,
-        snapshot: session.snapshot || null
-      };
-      if(!payload.active && !payload.snapshot){
-        localStorage.removeItem(SESSION_STORAGE_KEY);
-        return;
-      }
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+      withTrackingSuspended(()=> {
+        const payload = {
+          active: !!session.active,
+          snapshot: session.snapshot || null
+        };
+        if(!payload.active && !payload.snapshot){
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+          return;
+        }
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+      });
     }catch(_){ }
   }
 
@@ -113,6 +181,7 @@
       session.active = !!parsed.active;
       session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
       session.comparableKeys = session.snapshot ? Array.from(new Set(Object.keys(session.snapshot))) : null;
+      session.changedKeys = new Set();
       if(!session.active && !session.snapshot){
         localStorage.removeItem(SESSION_STORAGE_KEY);
       }
@@ -124,6 +193,8 @@
     active: false,
     snapshot: null,
     comparableKeys: null,
+    changedKeys: new Set(),
+    suspendTracking: false,
     lastDirtyCheckAt: 0,
     lastDirtyValue: false,
     begin(){
@@ -139,31 +210,40 @@
       persistSession();
     },
     commit(){
-      session.snapshot = null;
-      session.comparableKeys = null;
-      session.active = false;
-      invalidateDirtyCache();
-      persistSession();
+      withTrackingSuspended(()=> {
+        session.snapshot = null;
+        session.comparableKeys = null;
+        session.active = false;
+        invalidateDirtyCache();
+        persistSession();
+      });
     },
     cancel(){
       if(!session.snapshot){
-        session.active = false;
-        session.comparableKeys = null;
-        invalidateDirtyCache();
-        persistSession();
+        withTrackingSuspended(()=> {
+          session.active = false;
+          session.comparableKeys = null;
+          invalidateDirtyCache();
+          persistSession();
+        });
         return;
       }
-      for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
-      session.snapshot = null;
-      session.comparableKeys = null;
-      session.active = false;
-      invalidateDirtyCache();
-      persistSession();
+      withTrackingSuspended(()=> {
+        for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
+        session.snapshot = null;
+        session.comparableKeys = null;
+        session.active = false;
+        invalidateDirtyCache();
+        persistSession();
+      });
     },
     invalidateDirtyCache,
-    isDirty
+    isDirty,
+    trackKeyMutation,
+    withTrackingSuspended
   };
 
   restoreSession();
+  installStorageTracking();
   FC.session = session;
 })();

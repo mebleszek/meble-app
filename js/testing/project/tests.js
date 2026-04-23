@@ -43,6 +43,38 @@
         H.assert(Array.isArray(out.szafa.cabinets), 'Brak domyślnej szafy po normalizacji', out);
         H.assert(Array.isArray(out.pokoj.fronts), 'Brak domyślnych fronts w pokoju', out);
       }),
+
+      H.makeTest('Projekt', 'Resolver zakresu pokoi zachowuje zły exact scope zamiast po cichu przełączać na inne pomieszczenie', 'Pilnuje rdzenia pokojów: jeśli użytkownik ma zapisany konkretny pokój, którego już nie ma w aktywnej liście, resolver ma go zachować do walidacji zamiast zamieniać po cichu na inne pomieszczenie.', ()=>{
+        H.assert(FC.roomScopeResolver && typeof FC.roomScopeResolver.resolveSelection === 'function', 'Brak FC.roomScopeResolver.resolveSelection');
+        const resolved = FC.roomScopeResolver.resolveSelection({ selectedRooms:['room_missing'] }, { getActiveRooms:()=> ['room_kuchnia','room_salon'], useRozrysScope:false });
+        H.assert(Array.isArray(resolved.selectedRooms) && resolved.selectedRooms.length === 1 && resolved.selectedRooms[0] === 'room_missing', 'Resolver nie zachował wyraźnie wybranego, ale brakującego pokoju', resolved);
+        H.assert(Array.isArray(resolved.validSelectedRooms) && resolved.validSelectedRooms.length === 0, 'Resolver błędnie uznał brakujący pokój za poprawny', resolved);
+        H.assert(String(resolved.fallbackReason || '') === 'preserve-explicit', 'Resolver nie oznaczył zachowanego exact scope jako preserve-explicit', resolved);
+      }),
+
+      H.makeTest('Projekt', 'Sesja wykrywa zmianę od razu po zapisie do localStorage i czyści ją po commit', 'Pilnuje nowego lżejszego wykrywania zmian: po edycji nie trzeba czekać na pełne skanowanie storage, a po Zapisz stan dirty ma zniknąć.', ()=>{
+        H.assert(FC.session && typeof FC.session.begin === 'function', 'Brak FC.session.begin');
+        const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.ui) || 'fc_ui_v1';
+        const prevRaw = localStorage.getItem(key);
+        const prevSessionRaw = localStorage.getItem('fc_edit_session_v1');
+        try{
+          localStorage.setItem(key, JSON.stringify({ activeTab:'wywiad' }));
+          FC.session.commit();
+          FC.session.begin();
+          H.assert(FC.session.isDirty() === false, 'Nowa sesja nie powinna startować jako dirty');
+          localStorage.setItem(key, JSON.stringify({ activeTab:'wycena' }));
+          H.assert(FC.session.isDirty() === true, 'Sesja nie wykryła zmiany od razu po zapisie do localStorage');
+          FC.session.commit();
+          H.assert(FC.session.isDirty() === false, 'Commit nie wyczyścił stanu dirty');
+        } finally {
+          if(prevRaw === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, prevRaw);
+          if(prevSessionRaw === null) localStorage.removeItem('fc_edit_session_v1');
+          else localStorage.setItem('fc_edit_session_v1', prevSessionRaw);
+          try{ FC.session.commit(); }catch(_){ }
+        }
+      }),
+
       H.makeTest('Projekt', 'Bootstrap stanu aplikacji zwraca kompletny pakiet startowy', 'Pilnuje, czy wydzielony bootstrap stanu z app.js potrafi złożyć materiały, stawki, projekt i uiState bez zależności od pełnego app.js.', ()=>{
         H.assert(FC.appStateBootstrap && typeof FC.appStateBootstrap.createInitialState === 'function', 'Brak FC.appStateBootstrap.createInitialState');
         const fakeFC = {

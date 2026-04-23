@@ -2,6 +2,7 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
+  const roomScopeResolver = FC.roomScopeResolver;
 
   const FINAL_MANUAL_TARGETS = new Set(['zaakceptowany','umowa','produkcja','montaz','zakonczone']);
   const STATUS_LABELS = {
@@ -36,6 +37,9 @@
   }
 
   function normalizeRoomIds(roomIds){
+    try{
+      if(roomScopeResolver && typeof roomScopeResolver.normalizeRoomIds === 'function') return roomScopeResolver.normalizeRoomIds(roomIds);
+    }catch(_){ }
     try{
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.normalizeRoomIds === 'function') return FC.quoteSnapshotStore.normalizeRoomIds(roomIds);
     }catch(_){ }
@@ -75,10 +79,28 @@
     const opts = options && typeof options === 'object' ? options : {};
     if(!pid || !ids.length) return [];
     try{
+      if(roomScopeResolver && typeof roomScopeResolver.filterExactScopedRows === 'function'){
+        return roomScopeResolver.filterExactScopedRows(pid, ids, { allowProjectWideExact: !!opts.allowProjectWideExact });
+      }
+    }catch(_){ }
+    try{
       if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function' && typeof FC.quoteSnapshotStore.filterRowsByRoomScope === 'function')) return [];
       const rows = FC.quoteSnapshotStore.listForProject(pid);
       return FC.quoteSnapshotStore.filterRowsByRoomScope(rows, ids, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact }) || [];
     }catch(_){ return []; }
+  }
+
+  function splitQuoteRows(rows){
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const preliminaryRows = safeRows.filter((row)=> !!(FC.quoteSnapshotStore && FC.quoteSnapshotStore.isPreliminarySnapshot && FC.quoteSnapshotStore.isPreliminarySnapshot(row)));
+    const finalRows = safeRows.filter((row)=> !(FC.quoteSnapshotStore && FC.quoteSnapshotStore.isPreliminarySnapshot && FC.quoteSnapshotStore.isPreliminarySnapshot(row)));
+    return {
+      rows: safeRows,
+      preliminaryRows,
+      finalRows,
+      acceptedPreliminary: preliminaryRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null,
+      acceptedFinal: finalRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null,
+    };
   }
 
   function analyzeRoomQuoteState(investorId, roomId){
@@ -88,11 +110,7 @@
     const currentStatus = normalizeStatus(getRoom(investor, resolvedRoomId) && getRoom(investor, resolvedRoomId).projectStatus || '');
     const roomLabel = getRoomLabel(investor, resolvedRoomId);
     const investorRoomCount = investor && Array.isArray(investor.rooms) ? investor.rooms.length : 0;
-    const rows = getExactScopedRows(project && project.id, [resolvedRoomId], { allowProjectWideExact: investorRoomCount === 1 });
-    const preliminaryRows = rows.filter((row)=> !!(FC.quoteSnapshotStore && FC.quoteSnapshotStore.isPreliminarySnapshot && FC.quoteSnapshotStore.isPreliminarySnapshot(row)));
-    const finalRows = rows.filter((row)=> !(FC.quoteSnapshotStore && FC.quoteSnapshotStore.isPreliminarySnapshot && FC.quoteSnapshotStore.isPreliminarySnapshot(row)));
-    const acceptedPreliminary = preliminaryRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
-    const acceptedFinal = finalRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
+    const quoteRows = splitQuoteRows(getExactScopedRows(project && project.id, [resolvedRoomId], { allowProjectWideExact: investorRoomCount === 1 }));
     return {
       investorId:String(investorId || ''),
       projectId:String(project && project.id || ''),
@@ -102,15 +120,15 @@
       room:getRoom(investor, resolvedRoomId),
       investor,
       project,
-      rows,
-      preliminaryRows,
-      finalRows,
-      hasPreliminary: preliminaryRows.length > 0,
-      hasFinal: finalRows.length > 0,
-      acceptedPreliminary,
-      acceptedFinal,
-      hasAcceptedPreliminary: !!acceptedPreliminary,
-      hasAcceptedFinal: !!acceptedFinal,
+      rows: quoteRows.rows,
+      preliminaryRows: quoteRows.preliminaryRows,
+      finalRows: quoteRows.finalRows,
+      hasPreliminary: quoteRows.preliminaryRows.length > 0,
+      hasFinal: quoteRows.finalRows.length > 0,
+      acceptedPreliminary: quoteRows.acceptedPreliminary,
+      acceptedFinal: quoteRows.acceptedFinal,
+      hasAcceptedPreliminary: !!quoteRows.acceptedPreliminary,
+      hasAcceptedFinal: !!quoteRows.acceptedFinal,
     };
   }
 

@@ -2,6 +2,7 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
+  const roomScopeResolver = FC.roomScopeResolver;
 
   const AGD_SERVICE_DEFAULTS = [
     { category:'AGD', name:'Piekarnik do zabudowy', price:120 },
@@ -71,7 +72,10 @@
   }
 
   function getActiveRooms(){
-    try{ return (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function') ? FC.roomRegistry.getActiveRoomIds() : []; }catch(_){ return []; }
+    try{
+      if(roomScopeResolver && typeof roomScopeResolver.getActiveRoomIds === 'function') return roomScopeResolver.getActiveRoomIds();
+      return (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function') ? FC.roomRegistry.getActiveRoomIds() : [];
+    }catch(_){ return []; }
   }
 
   function normalizeMaterialScope(value){
@@ -91,24 +95,11 @@
 
   function normalizeQuoteSelection(selection){
     const src = selection && typeof selection === 'object' ? selection : {};
-    const activeRooms = getActiveRooms();
-    const explicitRooms = Array.isArray(src.selectedRooms)
-      ? Array.from(new Set(src.selectedRooms.map((room)=> String(room || '').trim()).filter(Boolean)))
-      : [];
-    let selectedRooms = [];
-    try{
-      if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
-        selectedRooms = FC.rozrysScope.normalizeRoomSelection(explicitRooms, { getRooms:()=> activeRooms });
-      }
-    }catch(_){ }
-    if((!Array.isArray(selectedRooms) || !selectedRooms.length) && explicitRooms.length){
-      selectedRooms = explicitRooms.slice();
-    }
-    if(!Array.isArray(selectedRooms) || !selectedRooms.length){
-      selectedRooms = activeRooms.slice();
-    }
+    const resolved = roomScopeResolver && typeof roomScopeResolver.resolveSelection === 'function'
+      ? roomScopeResolver.resolveSelection(src, { getActiveRooms:getActiveRooms })
+      : { selectedRooms:getActiveRooms() };
     return {
-      selectedRooms,
+      selectedRooms: Array.isArray(resolved && resolved.selectedRooms) ? resolved.selectedRooms : getActiveRooms(),
       materialScope: normalizeMaterialScope(src.materialScope),
     };
   }
@@ -118,6 +109,9 @@
     if(Array.isArray(normalizedOverride.selectedRooms) && normalizedOverride.selectedRooms.length) return normalizedOverride.selectedRooms;
     try{
       const prefs = FC.rozrysPrefs && typeof FC.rozrysPrefs.loadPanelPrefs === 'function' ? (FC.rozrysPrefs.loadPanelPrefs() || {}) : {};
+      if(roomScopeResolver && typeof roomScopeResolver.decodeSelectionFromPrefs === 'function'){
+        return roomScopeResolver.decodeSelectionFromPrefs(prefs.selectedRooms, { getActiveRooms:getActiveRooms });
+      }
       const decoded = FC.rozrysScope && typeof FC.rozrysScope.decodeRoomsSelection === 'function'
         ? FC.rozrysScope.decodeRoomsSelection(prefs.selectedRooms, { getRooms:getActiveRooms })
         : [];
@@ -139,11 +133,12 @@
 
   function validateQuoteSelection(normalizedSelection){
     const selection = normalizedSelection && typeof normalizedSelection === 'object' ? normalizedSelection : normalizeQuoteSelection({});
-    const activeRooms = getActiveRooms().map((roomId)=> String(roomId || '').trim()).filter(Boolean);
+    const resolved = roomScopeResolver && typeof roomScopeResolver.resolveSelection === 'function'
+      ? roomScopeResolver.resolveSelection(selection, { getActiveRooms:getActiveRooms })
+      : { activeRooms:getActiveRooms().map((roomId)=> String(roomId || '').trim()).filter(Boolean), selectedRooms:Array.isArray(selection.selectedRooms) ? selection.selectedRooms.map((roomId)=> String(roomId || '').trim()).filter(Boolean) : [] };
+    const activeRooms = Array.isArray(resolved.activeRooms) ? resolved.activeRooms : [];
     const activeSet = new Set(activeRooms);
-    const selectedRooms = Array.isArray(selection.selectedRooms)
-      ? selection.selectedRooms.map((roomId)=> String(roomId || '').trim()).filter(Boolean)
-      : [];
+    const selectedRooms = Array.isArray(resolved.selectedRooms) ? resolved.selectedRooms : [];
     if(!activeRooms.length){
       throw createQuoteValidationError(
         'no_rooms',
