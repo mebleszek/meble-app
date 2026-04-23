@@ -14,7 +14,7 @@
         if(isLocked()) return;
         try{
           if(FC.roomRegistry && typeof FC.roomRegistry.openAddRoomModal === 'function'){
-            const room = await FC.roomRegistry.openAddRoomModal();
+            const room = await FC.roomRegistry.openAddRoomModal(investor);
             if(room) refresh();
           }
         }catch(_){ }

@@ -47,7 +47,7 @@
         if(label){
           const normalizedRaw = raw.toLowerCase();
           const normalizedLabel = label.toLowerCase();
-          if(normalizedLabel !== normalizedRaw || /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(label) || !/^room_/i.test(label)){
+          if((normalizedLabel !== normalizedRaw && !/^room_/i.test(label)) || /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(label) || !/^room_/i.test(label)){
             return label;
           }
         }

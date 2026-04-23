@@ -139,8 +139,8 @@
     });
   }
 
-  async function openAddRoomModal(){
-    const inv = getCurrentInvestor();
+  async function openAddRoomModal(preferredInvestor){
+    const inv = preferredInvestor || getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     return new Promise((resolve)=>{
       let selectedBase = 'kuchnia';

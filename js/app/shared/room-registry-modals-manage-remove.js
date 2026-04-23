@@ -41,8 +41,8 @@
     try{ alert(message || title); }catch(_){ }
   }
 
-  async function openManageRoomsModal(){
-    const inv = getCurrentInvestor();
+  async function openManageRoomsModal(preferredInvestor){
+    const inv = preferredInvestor || getCurrentInvestor();
     if(!(inv && FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
@@ -174,8 +174,8 @@
     });
   }
 
-  async function openRemoveRoomModal(){
-    const inv = getCurrentInvestor();
+  async function openRemoveRoomModal(preferredInvestor){
+    const inv = preferredInvestor || getCurrentInvestor();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){

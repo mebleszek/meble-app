@@ -7,6 +7,27 @@
     return String(s ?? '').replace(/[&<>"']/g, (c)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+
+  function resolveDisplayedRooms(inv){
+    try{
+      if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
+        const active = FC.roomRegistry.getActiveRoomDefs() || [];
+        if(active.length) return active;
+      }
+    }catch(_){ }
+    try{
+      const defsApi = FC.roomRegistryDefinitions;
+      const foundation = FC.roomRegistryFoundation;
+      const project = foundation && typeof foundation.getProject === 'function' ? foundation.getProject() : null;
+      const defs = defsApi && typeof defsApi.getProjectRoomDefs === 'function' ? (defsApi.getProjectRoomDefs(project) || []) : [];
+      if(defs.length) return defs;
+      const rooms = Array.isArray(inv && inv.rooms) ? inv.rooms : [];
+      if(rooms.length && defsApi && typeof defsApi.normalizeRoomDef === 'function') return rooms.map((room)=> defsApi.normalizeRoomDef(room, room)).filter((room)=> room && room.id);
+      return rooms;
+    }catch(_){ }
+    return [];
+  }
+
   function getRoomStatus(inv, roomId){
     const rooms = inv && Array.isArray(inv.rooms) ? inv.rooms : [];
     const found = rooms.find((room)=> room && String(room.id || '') === String(roomId || ''));
@@ -14,7 +35,7 @@
   }
 
   function buildProjectCards(inv, disabled, statusOptions){
-    const rooms = (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') ? FC.roomRegistry.getActiveRoomDefs() : [];
+    const rooms = resolveDisplayedRooms(inv);
     if(!rooms.length) return '<div class="muted">Brak dodanych pomieszczeń.</div>';
     const optsHtml = (statusOptions || []).map((opt)=> `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`).join('');
     return rooms.map((room)=> {
@@ -37,7 +58,7 @@
 
   function mountProjectStatusChoices(inv, statusOptions, opts){
     const cfg = Object.assign({ disabled:false, onChange:null }, opts || {});
-    const rooms = (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') ? FC.roomRegistry.getActiveRoomDefs() : [];
+    const rooms = resolveDisplayedRooms(inv);
     const choiceApi = FC.investorChoice;
     if(!(choiceApi && typeof choiceApi.mountChoice === 'function')) return;
     rooms.forEach((room)=> {

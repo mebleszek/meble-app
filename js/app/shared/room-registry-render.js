@@ -14,12 +14,27 @@
 
   const {
     getActiveRoomDefs,
+    getProject,
+    getProjectRoomDefs,
+    normalizeRoomDef,
   } = core;
+
+  function resolveDisplayedRooms(){
+    try{
+      const active = getActiveRoomDefs() || [];
+      if(active.length) return active;
+    }catch(_){ }
+    try{
+      const defs = getProjectRoomDefs(getProject()) || [];
+      if(defs.length) return defs.map((room)=> normalizeRoomDef(room, room)).filter((room)=> room && room.id);
+    }catch(_){ }
+    return [];
+  }
 
 function renderRoomsView(){
     const view = document.getElementById('roomsView');
     if(!view) return;
-    const rooms = getActiveRoomDefs();
+    const rooms = resolveDisplayedRooms();
     const list = view.querySelector('.rooms');
     if(!list) return;
     list.innerHTML = '';

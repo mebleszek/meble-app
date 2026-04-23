@@ -125,6 +125,44 @@
       .normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
+  function deriveBaseTypeFromId(id, fallbackBaseType){
+    const raw = String(id || '').trim();
+    if(!raw) return String(fallbackBaseType || 'pokoj');
+    const match = raw.match(/^room_([^_]+)_.+/i);
+    return String((match && match[1]) || fallbackBaseType || raw || 'pokoj').trim() || 'pokoj';
+  }
+
+  function buildMergedRoomDef(projectRoom, investorRoom, fallbackId){
+    const projectSrc = projectRoom && typeof projectRoom === 'object' ? projectRoom : {};
+    const investorSrc = investorRoom && typeof investorRoom === 'object' ? investorRoom : {};
+    const id = String(fallbackId || projectSrc.id || investorSrc.id || '').trim();
+    const baseType = String(projectSrc.baseType || investorSrc.baseType || deriveBaseTypeFromId(id, 'pokoj')).trim() || 'pokoj';
+    const merged = normalizeRoomDef({
+      id,
+      baseType,
+      name: choosePreferredRoomText([
+        projectSrc.name,
+        projectSrc.label,
+        investorSrc.name,
+        investorSrc.label,
+        prettifyTechnicalRoomText(id, baseType),
+        BASE_LABELS[baseType],
+        id,
+      ], baseType, BASE_LABELS[baseType] || id),
+      label: choosePreferredRoomText([
+        projectSrc.label,
+        projectSrc.name,
+        investorSrc.label,
+        investorSrc.name,
+        prettifyTechnicalRoomText(id, baseType),
+        BASE_LABELS[baseType],
+        id,
+      ], baseType, BASE_LABELS[baseType] || id),
+      legacy: !!(projectSrc.legacy || investorSrc.legacy),
+    });
+    return merged;
+  }
+
   function normalizeRoomDef(raw, fallback){
     const src = Object.assign({}, fallback || {}, raw || {});
     const baseType = String(src.baseType || src.kind || src.type || (fallback && fallback.baseType) || 'pokoj');
@@ -163,15 +201,15 @@
     if(meta){
       meta.roomOrder.forEach((id)=>{
         const raw = meta.roomDefs[id];
-        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || id }));
+        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || deriveBaseTypeFromId(id, id) }));
       });
       Object.keys(meta.roomDefs).forEach((id)=>{
         const raw = meta.roomDefs[id];
-        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || id }));
+        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || deriveBaseTypeFromId(id, id) }));
       });
     }
     if(defs.length) return defs;
-    return discoverProjectRoomKeys(proj).map((id)=> normalizeRoomDef({ id, baseType:id, name:BASE_LABELS[id] || id, label:BASE_LABELS[id] || id }));
+    return discoverProjectRoomKeys(proj).map((id)=> { const baseType = deriveBaseTypeFromId(id, id); return normalizeRoomDef({ id, baseType, name:BASE_LABELS[baseType] || id, label:BASE_LABELS[baseType] || id }); });
   }
 
   function hasLegacyKitchen(proj){
@@ -256,22 +294,30 @@
     };
 
     const projectMetaRooms = getProjectRoomDefs(proj);
-    const projectMap = new Map(projectMetaRooms.map((room)=> [room.id, room]));
+    const projectMap = new Map(projectMetaRooms.map((room)=> [String(room.id || ''), room]));
+    const investorRooms = Array.isArray(inv && inv.rooms) ? inv.rooms : [];
+    const investorMap = new Map(investorRooms.map((room)=> [String(room && room.id || ''), room]));
 
-    if(inv && Array.isArray(inv.rooms) && inv.rooms.length){
-      inv.rooms.forEach((room)=>{
-        const id = String((room && room.id) || '');
-        push(Object.assign({}, projectMap.get(id) || {}, room || {}, { id }));
-      });
-    }
+    investorRooms.forEach((room)=>{
+      const id = String(room && room.id || '');
+      if(!id) return;
+      push(buildMergedRoomDef(projectMap.get(id), room, id));
+    });
 
     projectMetaRooms.forEach((room)=> {
-      if(!room || !room.id) return;
-      const investorRoom = inv && Array.isArray(inv.rooms)
-        ? inv.rooms.find((item)=> String(item && item.id || '') === String(room.id || ''))
-        : null;
-      push(Object.assign({}, room, investorRoom || {}, { id:String(room.id || '') }));
+      const id = String(room && room.id || '');
+      if(!id) return;
+      push(buildMergedRoomDef(room, investorMap.get(id), id));
     });
+
+    try{
+      const ui = (FC.uiState && typeof FC.uiState.get === 'function') ? (FC.uiState.get() || {}) : {};
+      [ui.roomType, ui.lastRoomType].forEach((roomId)=> {
+        const id = String(roomId || '').trim();
+        if(!id || seen.has(id) || !(proj && proj[id] && typeof proj[id] === 'object')) return;
+        push(buildMergedRoomDef(projectMap.get(id) || { id, baseType:deriveBaseTypeFromId(id, 'pokoj') }, investorMap.get(id), id));
+      });
+    }catch(_){ }
 
     if(hasLegacyKitchen(proj) && !seen.has('kuchnia')) push(createLegacyKitchenDef());
     return defs;
