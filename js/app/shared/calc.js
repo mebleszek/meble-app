@@ -13,12 +13,11 @@
    * Functions accept projectData explicitly to avoid hidden coupling.
    */
   const calc = {
-    // Available top cabinet height for the active room = roomHeight - bottom - counter - gap - ceiling blende
-    calculateAvailableTopHeight(projectData, room){
+    // Kitchen: available top cabinet height = roomHeight - bottom - counter - gap - ceiling blende
+    calculateAvailableTopHeight(projectData){
       try{
-        const roomKey = String(room || '').trim() || 'kuchnia';
-        const settings = projectData && projectData[roomKey] && projectData[roomKey].settings ? projectData[roomKey].settings : {};
-        const h = (Number(settings.roomHeight)||0) - (Number(settings.bottomHeight)||0) - (Number(settings.counterThickness)||0) - (Number(settings.gapHeight)||0) - (Number(settings.ceilingBlende)||0);
+        const s = projectData && projectData.kuchnia && projectData.kuchnia.settings ? projectData.kuchnia.settings : {};
+        const h = (Number(s.roomHeight)||0) - (Number(s.bottomHeight)||0) - (Number(s.counterThickness)||0) - (Number(s.gapHeight)||0) - (Number(s.ceilingBlende)||0);
         return h>0 ? Math.round(h*10)/10 : 0;
       }catch(_){
         return 0;
@@ -39,11 +38,4 @@
 
   // Expose
   window.FC.calc = window.FC.calc || calc;
-  try{
-    window.calculateAvailableTopHeight = function(room){
-      const hostProjectData = (typeof projectData !== 'undefined') ? projectData : (window.projectData || {});
-      const roomKey = String(room || (((typeof uiState !== 'undefined' && uiState) ? uiState.roomType : (window.uiState && window.uiState.roomType)) || '')).trim() || 'kuchnia';
-      return calc.calculateAvailableTopHeight(hostProjectData, roomKey);
-    };
-  }catch(_){ }
 })();

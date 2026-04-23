@@ -28,38 +28,20 @@
     try{ if(FC && FC.listScrollMemory && typeof FC.listScrollMemory.restorePending === 'function') FC.listScrollMemory.restorePending(); }catch(_){ }
   }
 
-  function getById(root, id){
-    if(!root || !id) return null;
-    try{
-      if(typeof root.getElementById === 'function') return root.getElementById(id);
-    }catch(_){ }
-    try{
-      if(typeof root.querySelector === 'function') return root.querySelector('#' + String(id));
-    }catch(_){ }
-    return null;
-  }
-
   function getRoomLabel(FC, room){
-    const raw = String(room || '').trim();
     try{
       if(FC && FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function'){
-        const label = String(FC.roomRegistry.getRoomLabel(room) || '').trim();
-        if(label){
-          const normalizedRaw = raw.toLowerCase();
-          const normalizedLabel = label.toLowerCase();
-          if(normalizedLabel !== normalizedRaw || /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(label)){
-            return label;
-          }
-        }
+        return FC.roomRegistry.getRoomLabel(room);
       }
     }catch(_){ }
+    const raw = String(room || '').trim();
     return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'Pomieszczenie';
   }
 
   function renderCabinets(ctx){
     const FC = (ctx && ctx.FC) || window.FC || {};
     const doc = ctx && ctx.document;
-    const list = getById(doc, 'cabinetsList');
+    const list = doc && typeof doc.getElementById === 'function' ? doc.getElementById('cabinetsList') : null;
     if(!list) return;
     list.innerHTML = '';
 
@@ -71,13 +53,13 @@
       : null;
     const room = roomData ? requestedRoom : '';
 
-    const roomSettingsCardEl = getById(doc, 'roomSettingsCard');
+    const roomSettingsCardEl = doc && typeof doc.getElementById === 'function' ? doc.getElementById('roomSettingsCard') : null;
     if(roomSettingsCardEl){
       const shouldHide = !!(ctx && typeof ctx.shouldHideRoomSettingsForTab === 'function' && ctx.shouldHideRoomSettingsForTab(uiState && uiState.activeTab));
       roomSettingsCardEl.style.display = shouldHide ? 'none' : '';
     }
 
-    const roomTitleEl = getById(doc, 'roomTitle');
+    const roomTitleEl = doc && typeof doc.getElementById === 'function' ? doc.getElementById('roomTitle') : null;
     if(roomTitleEl) roomTitleEl.textContent = room ? getRoomLabel(FC, room) : 'Pomieszczenie';
 
     if(!room){

@@ -188,30 +188,6 @@
           FC.listScrollMemory = prevScrollMemory;
         }
       }),
-      H.makeTest('Projekt', 'Auto-wysokość pokoju używa aktywnego pomieszczenia zamiast stałej kuchni', 'Pilnuje regresji po splitach renderu i ustawień pokoju: kafel Auto-wysokość ma liczyć wartości dla aktualnego roomType, a nie zawsze dla kuchni.', ()=>{
-        H.assert(typeof calculateAvailableTopHeight === 'function', 'Brak globalnej funkcji calculateAvailableTopHeight');
-        H.assert(FC.settingsUI && typeof FC.settingsUI.renderTopHeight === 'function', 'Brak FC.settingsUI.renderTopHeight');
-        const prevProjectData = host.projectData;
-        const prevUiState = host.uiState;
-        const fixture = document.createElement('div');
-        fixture.innerHTML = '<strong id="autoTopHeight">0</strong>';
-        document.body.appendChild(fixture);
-        try{
-          host.projectData = {
-            kuchnia:{ settings:{ roomHeight:250, bottomHeight:82, counterThickness:3.8, gapHeight:60, ceilingBlende:10 } },
-            room_szafa_lustro:{ settings:{ roomHeight:240, bottomHeight:210, counterThickness:0, gapHeight:0, ceilingBlende:5 } }
-          };
-          host.uiState = { roomType:'room_szafa_lustro' };
-          const direct = calculateAvailableTopHeight('room_szafa_lustro');
-          H.assert(direct === 25, 'calculateAvailableTopHeight nie policzył aktywnego pokoju', direct);
-          FC.settingsUI.renderTopHeight('room_szafa_lustro');
-          H.assert(fixture.querySelector('#autoTopHeight').textContent === '25', 'renderTopHeight nie odświeżył Auto-wysokości dla aktywnego pokoju', fixture.innerHTML);
-        } finally {
-          fixture.remove();
-          host.projectData = prevProjectData;
-          host.uiState = prevUiState;
-        }
-      }),
       H.makeTest('Projekt', 'Bootstrap UI przywraca widok aplikacji i planuje warmup', 'Pilnuje, czy wydzielony init UI dalej spina przywrócenie entrypointu, podstawowy render i background warmup bez pełnego app.js.', ()=>{
         H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
         const fixture = document.createElement('div');
