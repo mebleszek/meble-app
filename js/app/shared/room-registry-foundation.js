@@ -42,34 +42,7 @@
     try{
       if(FC.investors && typeof FC.investors.getCurrentId === 'function' && typeof FC.investors.getById === 'function'){
         const id = FC.investors.getCurrentId();
-        const investor = id ? FC.investors.getById(id) : null;
-        if(investor) return investor;
-      }
-    }catch(_){ }
-    try{
-      if(FC.investorPersistence && typeof FC.investorPersistence.getCurrentInvestorId === 'function' && typeof FC.investorPersistence.getInvestorById === 'function'){
-        const id = FC.investorPersistence.getCurrentInvestorId();
-        const investor = id ? FC.investorPersistence.getInvestorById(id) : null;
-        if(investor) return investor;
-      }
-    }catch(_){ }
-    try{
-      if(FC.uiState && typeof FC.uiState.get === 'function' && typeof FC.investorPersistence?.getInvestorById === 'function'){
-        const state = FC.uiState.get() || {};
-        const id = state.currentInvestorId ? String(state.currentInvestorId) : '';
-        const investor = id ? FC.investorPersistence.getInvestorById(id) : null;
-        if(investor) return investor;
-      }
-    }catch(_){ }
-    try{
-      if(FC.investorUI && FC.investorUI.state){
-        const state = FC.investorUI.state;
-        const transient = state.transientInvestor && typeof state.transientInvestor === 'object' ? state.transientInvestor : null;
-        if(transient && transient.id) return transient;
-        if(state.selectedId && FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function'){
-          const investor = FC.investorPersistence.getInvestorById(String(state.selectedId || ''));
-          if(investor) return investor;
-        }
+        return id ? FC.investors.getById(id) : null;
       }
     }catch(_){ }
     return null;

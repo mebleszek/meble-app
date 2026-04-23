@@ -11,32 +11,12 @@
     window.setTimeout(() => el.classList.remove('focus-flash'), 1300);
   }
 
-
-  function inferCurrentInvestorId(){
-    try{
-      if(window.FC && window.FC.investorPersistence && typeof window.FC.investorPersistence.getCurrentInvestorId === 'function'){
-        const id = window.FC.investorPersistence.getCurrentInvestorId();
-        if(id) return String(id);
-      }
-    }catch(_){ }
-    try{
-      if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-        const state = window.FC.investorUI.state;
-        const selected = String(state.selectedId || (state.transientInvestor && state.transientInvestor.id) || '').trim();
-        if(selected) return selected;
-      }
-    }catch(_){ }
-    return '';
-  }
-
   function setActiveTab(tabName){
     if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
-    const inferredInvestorId = inferCurrentInvestorId();
-    if(!uiState.currentInvestorId && inferredInvestorId) uiState.currentInvestorId = inferredInvestorId;
     if(tabName === 'wywiad' && !uiState.roomType){
       uiState.entry = 'rooms';
     }
-    if(tabName === 'wycena' && !uiState.roomType && (uiState.entry === 'rooms' || uiState.currentInvestorId || inferredInvestorId)) uiState.entry = 'app';
+    if(tabName === 'wycena' && !uiState.roomType && (uiState.entry === 'rooms' || uiState.currentInvestorId)) uiState.entry = 'app';
     uiState.activeTab = tabName;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 

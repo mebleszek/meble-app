@@ -12,7 +12,6 @@
       normalizeLabel:(text)=> String(text || '').trim(),
       prettifyTechnicalRoomText:(text)=> String(text || '').trim(),
       normalizeComparableLabel:(text)=> String(text || '').trim().toLowerCase(),
-      toDisplayRoomLabel:(text, fallback)=> String(text || fallback || '').trim(),
       normalizeRoomDef:(raw)=> Object.assign({ id:'', baseType:'pokoj', name:'', label:'', legacy:false }, raw || {}),
       getProjectRoomDefs:()=> [],
       hasLegacyKitchen:()=> false,
@@ -70,52 +69,11 @@
     const match = raw.match(/^room_([^_]+)_(.+)_([a-z0-9]{4,})$/i);
     if(!match) return raw;
     const baseType = String(match[1] || fallbackBaseType || '').trim();
-    const baseLabel = normalizeLabel(BASE_LABELS[baseType] || baseType || '');
     let middle = String(match[2] || '').trim();
     if(baseType && middle.toLowerCase().startsWith(baseType.toLowerCase() + '_')) middle = middle.slice(baseType.length + 1);
-    middle = normalizeLabel(middle.replace(/_/g, ' '));
-    if(!middle) return baseLabel || raw;
-    const normalizedMiddle = normalizeComparableLabel(middle);
-    const normalizedBase = normalizeComparableLabel(baseLabel);
-    if(!normalizedBase) return middle;
-    if(normalizedMiddle === normalizedBase) return baseLabel;
-    if(normalizedMiddle.startsWith(normalizedBase + ' ')) return middle;
-    return normalizeLabel(baseLabel + ' ' + middle);
-  }
-
-  function isTechnicalRoomText(text){
-    const raw = String(text || '').trim();
-    if(!raw) return false;
-    return /^room_[^\s]+$/i.test(raw);
-  }
-
-  function scoreRoomTextCandidate(text, baseType){
-    const raw = normalizeLabel(text);
-    if(!raw) return -1;
-    let score = 0;
-    if(!isTechnicalRoomText(raw)) score += 4;
-    const pretty = normalizeLabel(prettifyTechnicalRoomText(raw, baseType));
-    if(pretty && normalizeComparableLabel(pretty) !== normalizeComparableLabel(raw)) score += 2;
-    if(!/_/.test(raw)) score += 1;
-    if(/\s/.test(raw)) score += 1;
-    return score;
-  }
-
-  function choosePreferredRoomText(candidates, baseType, fallback){
-    let best = '';
-    let bestScore = -1;
-    (Array.isArray(candidates) ? candidates : []).forEach((candidate)=>{
-      const raw = normalizeLabel(candidate);
-      if(!raw) return;
-      const pretty = normalizeLabel(prettifyTechnicalRoomText(raw, baseType) || raw);
-      const score = scoreRoomTextCandidate(raw, baseType);
-      const finalScore = pretty ? score + 1 : score;
-      if(finalScore > bestScore){
-        bestScore = finalScore;
-        best = pretty || raw;
-      }
-    });
-    return normalizeLabel(best || fallback || '');
+    middle = middle.replace(/_/g, ' ').trim();
+    if(!middle) middle = BASE_LABELS[baseType] || baseType || raw;
+    return middle;
   }
 
   function normalizeComparableLabel(text){
@@ -125,67 +83,15 @@
       .normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
-  function deriveBaseTypeFromId(id, fallbackBaseType){
-    const raw = String(id || '').trim();
-    if(!raw) return String(fallbackBaseType || 'pokoj');
-    const match = raw.match(/^room_([^_]+)_.+/i);
-    return String((match && match[1]) || fallbackBaseType || raw || 'pokoj').trim() || 'pokoj';
-  }
-
-  function buildMergedRoomDef(projectRoom, investorRoom, fallbackId){
-    const projectSrc = projectRoom && typeof projectRoom === 'object' ? projectRoom : {};
-    const investorSrc = investorRoom && typeof investorRoom === 'object' ? investorRoom : {};
-    const id = String(fallbackId || projectSrc.id || investorSrc.id || '').trim();
-    const baseType = String(projectSrc.baseType || investorSrc.baseType || deriveBaseTypeFromId(id, 'pokoj')).trim() || 'pokoj';
-    const merged = normalizeRoomDef({
-      id,
-      baseType,
-      name: choosePreferredRoomText([
-        projectSrc.name,
-        projectSrc.label,
-        investorSrc.name,
-        investorSrc.label,
-        prettifyTechnicalRoomText(id, baseType),
-        BASE_LABELS[baseType],
-        id,
-      ], baseType, BASE_LABELS[baseType] || id),
-      label: choosePreferredRoomText([
-        projectSrc.label,
-        projectSrc.name,
-        investorSrc.label,
-        investorSrc.name,
-        prettifyTechnicalRoomText(id, baseType),
-        BASE_LABELS[baseType],
-        id,
-      ], baseType, BASE_LABELS[baseType] || id),
-      legacy: !!(projectSrc.legacy || investorSrc.legacy),
-    });
-    return merged;
-  }
-
   function normalizeRoomDef(raw, fallback){
     const src = Object.assign({}, fallback || {}, raw || {});
     const baseType = String(src.baseType || src.kind || src.type || (fallback && fallback.baseType) || 'pokoj');
     const id = String(src.id || (fallback && fallback.id) || '');
-    const finalName = choosePreferredRoomText([
-      src.name,
-      src.label,
-      fallback && fallback.name,
-      fallback && fallback.label,
-      prettifyTechnicalRoomText(id, baseType),
-      BASE_LABELS[baseType],
-      id,
-    ], baseType, BASE_LABELS[baseType] || id);
-    const finalLabel = choosePreferredRoomText([
-      src.label,
-      src.name,
-      fallback && fallback.label,
-      fallback && fallback.name,
-      finalName,
-      prettifyTechnicalRoomText(id, baseType),
-      BASE_LABELS[baseType],
-      id,
-    ], baseType, finalName || BASE_LABELS[baseType] || id);
+    const rawName = src.name || src.label || (fallback && fallback.name) || BASE_LABELS[baseType] || id;
+    const safeName = prettifyTechnicalRoomText(rawName, baseType);
+    const safeLabel = prettifyTechnicalRoomText(src.label || safeName, baseType);
+    const finalName = normalizeLabel(safeName || BASE_LABELS[baseType] || id);
+    const finalLabel = normalizeLabel(safeLabel || finalName);
     return {
       id,
       baseType,
@@ -201,15 +107,15 @@
     if(meta){
       meta.roomOrder.forEach((id)=>{
         const raw = meta.roomDefs[id];
-        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || deriveBaseTypeFromId(id, id) }));
+        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || id }));
       });
       Object.keys(meta.roomDefs).forEach((id)=>{
         const raw = meta.roomDefs[id];
-        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || deriveBaseTypeFromId(id, id) }));
+        if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || id }));
       });
     }
     if(defs.length) return defs;
-    return discoverProjectRoomKeys(proj).map((id)=> { const baseType = deriveBaseTypeFromId(id, id); return normalizeRoomDef({ id, baseType, name:BASE_LABELS[baseType] || id, label:BASE_LABELS[baseType] || id }); });
+    return discoverProjectRoomKeys(proj).map((id)=> normalizeRoomDef({ id, baseType:id, name:BASE_LABELS[id] || id, label:BASE_LABELS[id] || id }));
   }
 
   function hasLegacyKitchen(proj){
@@ -274,13 +180,6 @@
     ].join('||');
   }
 
-  function toDisplayRoomLabel(text, fallback){
-    const raw = normalizeLabel(text || fallback || '');
-    if(!raw) return '';
-    if(raw.length === 1) return raw.toUpperCase();
-    return raw.replace(/(^|\s)([a-ząćęłńóśźż])/g, (_, prefix, ch)=> prefix + ch.toUpperCase());
-  }
-
   function buildActiveRoomDefs(){
     const proj = getProject();
     const inv = getCurrentInvestor();
@@ -294,30 +193,16 @@
     };
 
     const projectMetaRooms = getProjectRoomDefs(proj);
-    const projectMap = new Map(projectMetaRooms.map((room)=> [String(room.id || ''), room]));
-    const investorRooms = Array.isArray(inv && inv.rooms) ? inv.rooms : [];
-    const investorMap = new Map(investorRooms.map((room)=> [String(room && room.id || ''), room]));
+    const projectMap = new Map(projectMetaRooms.map((room)=> [room.id, room]));
 
-    investorRooms.forEach((room)=>{
-      const id = String(room && room.id || '');
-      if(!id) return;
-      push(buildMergedRoomDef(projectMap.get(id), room, id));
-    });
-
-    projectMetaRooms.forEach((room)=> {
-      const id = String(room && room.id || '');
-      if(!id) return;
-      push(buildMergedRoomDef(room, investorMap.get(id), id));
-    });
-
-    try{
-      const ui = (FC.uiState && typeof FC.uiState.get === 'function') ? (FC.uiState.get() || {}) : {};
-      [ui.roomType, ui.lastRoomType].forEach((roomId)=> {
-        const id = String(roomId || '').trim();
-        if(!id || seen.has(id) || !(proj && proj[id] && typeof proj[id] === 'object')) return;
-        push(buildMergedRoomDef(projectMap.get(id) || { id, baseType:deriveBaseTypeFromId(id, 'pokoj') }, investorMap.get(id), id));
+    if(inv && Array.isArray(inv.rooms) && inv.rooms.length){
+      inv.rooms.forEach((room)=>{
+        const id = String((room && room.id) || '');
+        push(Object.assign({}, projectMap.get(id) || {}, room || {}, { id }));
       });
-    }catch(_){ }
+    }else{
+      projectMetaRooms.filter((room)=> String(room.id || '').startsWith('room_')).forEach(push);
+    }
 
     if(hasLegacyKitchen(proj) && !seen.has('kuchnia')) push(createLegacyKitchenDef());
     return defs;
@@ -346,10 +231,8 @@
   function getRoomLabel(id){
     const key = String(id || '');
     getCachedActiveRooms();
-    if(cache.labelMap && cache.labelMap.has(key)){
-      return toDisplayRoomLabel(cache.labelMap.get(key), key) || 'Pomieszczenie';
-    }
-    return toDisplayRoomLabel(prettifyTechnicalRoomText(key, ''), key) || 'Pomieszczenie';
+    if(cache.labelMap && cache.labelMap.has(key)) return cache.labelMap.get(key);
+    return prettifyTechnicalRoomText(key, '') || key || 'Pomieszczenie';
   }
 
   function isRoomNameTaken(name, investor, exceptId){
@@ -369,7 +252,6 @@
     normalizeLabel,
     prettifyTechnicalRoomText,
     normalizeComparableLabel,
-    toDisplayRoomLabel,
     normalizeRoomDef,
     getProjectRoomDefs,
     hasLegacyKitchen,

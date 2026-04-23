@@ -1,77 +1,11 @@
 (function(){
   const ns = (window.FC = window.FC || {});
 
-function getRoomSetFronts(room, setId){
-  const rid = String(room || '');
-  const sid = String(setId || '');
-  const roomData = (projectData && projectData[rid]) || null;
-  const fronts = Array.isArray(roomData && roomData.fronts) ? roomData.fronts : [];
-  return fronts.filter((front)=> String(front && front.setId || '') === sid);
-}
-
-function isLeadSetCabinet(room, cab){
-  if(!cab || !cab.setId) return false;
-  const rid = String(room || '');
-  const sid = String(cab.setId || '');
-  const roomData = (projectData && projectData[rid]) || null;
-  const cabinets = Array.isArray(roomData && roomData.cabinets) ? roomData.cabinets : [];
-  const first = cabinets.find((entry)=> String(entry && entry.setId || '') === sid) || null;
-  return !!(first && String(first.id || '') === String(cab.id || ''));
-}
-
-function aggregateSetFrontParts(room, cab){
-  if(!cab || !cab.setId || !isLeadSetCabinet(room, cab)) return [];
-  const fronts = getRoomSetFronts(room, cab.setId);
-  if(!fronts.length) return [];
-  const acc = new Map();
-  fronts.forEach((front)=>{
-    const w = Math.max(0, Number(front && front.width) || 0);
-    const h = Math.max(0, Number(front && front.height) || 0);
-    if(w <= 0 || h <= 0) return;
-    const material = String(front && front.material || cab.frontMaterial || 'laminat');
-    const color = String(front && front.color || cab.frontColor || '');
-    const materialKey = `Front: ${material}${color ? ` • ${color}` : ''}`;
-    const wr = Math.round(w * 10) / 10;
-    const hr = Math.round(h * 10) / 10;
-    const key = `${materialKey}|${wr}|${hr}`;
-    if(acc.has(key)){
-      acc.get(key).qty += 1;
-      return;
-    }
-    acc.set(key, {
-      name:'Front',
-      qty:1,
-      a: wr,
-      b: hr,
-      dims:`${fmtCm(wr)} × ${fmtCm(hr)}`,
-      material: materialKey
-    });
-  });
-  return Array.from(acc.values());
-}
-
-function getSetDoorFrontPanels(room, cab){
-  if(!cab || !cab.setId || !isLeadSetCabinet(room, cab)) return [];
-  const hasHandle = cabinetHasHandle(cab);
-  return getRoomSetFronts(room, cab.setId)
-    .map((front)=>({
-      w: Math.max(0, Number(front && front.width) || 0),
-      h: Math.max(0, Number(front && front.height) || 0),
-      material: String(front && front.material || cab.frontMaterial || 'laminat'),
-      hasHandle
-    }))
-    .filter((front)=> front.w > 0 && front.h > 0);
-}
-
 function getCabinetFrontCutListForMaterials(room, cab){
   // Zwraca listę elementów "Front" do zakładki Materiały.
   // Ważne: bez komentarzy w polu wymiarów oraz z agregacją identycznych frontów (qty zamiast duplikatów).
   const out = [];
   if(!cab || !(cab.type === 'stojąca' || cab.type === 'wisząca' || cab.type === 'moduł')) return out;
-
-  const setParts = aggregateSetFrontParts(room, cab);
-  if(setParts.length) return setParts;
-  if(cab && cab.setId && !isLeadSetCabinet(room, cab)) return out;
 
   const mat = cab.frontMaterial || 'laminat';
   const col = cab.frontColor || '';
@@ -284,9 +218,6 @@ function blumHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){
 function getDoorFrontPanelsForHinges(room, cab){
   const out = [];
   if(!cab) return out;
-  const setDoors = getSetDoorFrontPanels(room, cab);
-  if(setDoors.length) return setDoors;
-  if(cab && cab.setId && !isLeadSetCabinet(room, cab)) return out;
   const type = String(cab.type || '');
   const sub = String(cab.subType || '');
 
