@@ -26,7 +26,6 @@
   const {
     createElement,
     cloneRoomDrafts,
-    areRoomDraftsEqual,
   } = utils;
 
   const BASE_LABELS = (FC.roomRegistryFoundation && FC.roomRegistryFoundation.BASE_LABELS) || {
@@ -52,7 +51,13 @@
     return new Promise((resolve)=>{
       let drafts = cloneRoomDrafts(rooms);
       let initialDrafts = cloneRoomDrafts(drafts);
-      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal' });
+      const initialById = new Map(initialDrafts.map((room)=> [String(room && room.id || ''), {
+        name: normalizeLabel(room && (room.label || room.name || '')),
+        baseType: String(room && room.baseType || 'pokoj'),
+      }]));
+      const changedRoomIds = new Set();
+      const removedRoomIds = new Set();
+      const body = createElement('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock room-registry-modal room-registry-manage-modal' });
       const scroll = createElement('div', { class:'panel-box-form__scroll' });
       const list = createElement('div', { class:'room-registry-manage-list' });
       scroll.appendChild(list);
@@ -68,12 +73,24 @@
       footer.appendChild(actions);
       body.appendChild(footer);
 
-      const isDirty = ()=> !areRoomDraftsEqual(drafts, initialDrafts, normalizeLabel);
+      const isDirty = ()=> changedRoomIds.size > 0 || removedRoomIds.size > 0 || drafts.length !== initialDrafts.length;
       const refreshFooter = ()=>{
         const dirty = isDirty();
         exitBtn.style.display = dirty ? 'none' : '';
         cancelBtn.style.display = dirty ? '' : 'none';
         saveBtn.style.display = dirty ? '' : 'none';
+      };
+      const recalcRoomDirty = (room)=>{
+        const roomId = String(room && room.id || '');
+        const initial = initialById.get(roomId);
+        if(!initial){
+          changedRoomIds.add(roomId);
+          return;
+        }
+        const currentName = normalizeLabel(room && (room.label || room.name || ''));
+        const currentBaseType = String(room && room.baseType || 'pokoj');
+        if(currentName !== initial.name || currentBaseType !== initial.baseType) changedRoomIds.add(roomId);
+        else changedRoomIds.delete(roomId);
       };
       const done = (result)=>{ try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
       const askDiscard = async ()=>{
@@ -89,31 +106,32 @@
         list.innerHTML = '';
         drafts.forEach((room)=>{
           const row = createElement('div', { class:'investor-project-card room-registry-manage-row' });
-          const top = createElement('div', { class:'investor-project-card__top room-registry-manage-row__top' });
-          const badge = createElement('div', { class:'muted-tag xs', text: BASE_LABELS[room.baseType] || room.baseType || 'Pomieszczenie' });
-          const removeBtn = createElement('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
-          top.appendChild(badge);
-          top.appendChild(removeBtn);
-          row.appendChild(top);
+          const badge = createElement('div', { class:'muted-tag xs room-registry-manage-row__badge', text: BASE_LABELS[room.baseType] || room.baseType || 'Pomieszczenie' });
+          row.appendChild(badge);
           const field = createElement('div', { class:'rozrys-panel-field room-registry-manage-row__field' });
           field.appendChild(createElement('label', { text:'Nazwa pomieszczenia' }));
-          const input = createElement('input', { type:'text', class:'investor-form-input', value: room.label || room.name || '' });
-          field.appendChild(input);
+          const controls = createElement('div', { class:'room-registry-manage-row__controls' });
+          const input = createElement('input', { type:'text', class:'investor-form-input room-registry-manage-row__input', value: room.label || room.name || '' });
+          const removeBtn = createElement('button', { type:'button', class:'btn btn-danger room-registry-manage-row__remove', text:'Usuń' });
+          controls.appendChild(input);
+          controls.appendChild(removeBtn);
+          field.appendChild(controls);
           row.appendChild(field);
-          input.addEventListener('input', ()=>{
+          const syncRoomFromInput = ()=>{
             room.name = normalizeLabel(input.value);
             room.label = room.name;
+            recalcRoomDirty(room);
             refreshFooter();
-          });
-          input.addEventListener('change', ()=>{
-            room.name = normalizeLabel(input.value);
-            room.label = room.name;
-            refreshFooter();
-          });
+          };
+          input.addEventListener('input', syncRoomFromInput);
+          input.addEventListener('change', syncRoomFromInput);
           removeBtn.addEventListener('click', async ()=>{
             const ok = await askDeleteRoomWithQuotes(inv, [room.id], { deferred:true });
             if(!ok) return;
-            drafts = drafts.filter((item)=> String(item.id || '') !== String(room.id || ''));
+            const roomId = String(room && room.id || '');
+            drafts = drafts.filter((item)=> String(item && item.id || '') !== roomId);
+            changedRoomIds.delete(roomId);
+            removedRoomIds.add(roomId);
             renderRows();
             refreshFooter();
           });
@@ -128,6 +146,8 @@
       cancelBtn.addEventListener('click', async ()=>{
         if(!(await askDiscard())) return;
         drafts = cloneRoomDrafts(initialDrafts);
+        changedRoomIds.clear();
+        removedRoomIds.clear();
         renderRows();
         refreshFooter();
         try{
@@ -160,11 +180,18 @@
         const result = applyManageRoomsDraftDetailed(inv, drafts);
         if(!(result && result.ok)) return;
         initialDrafts = cloneRoomDrafts(drafts);
+        initialById.clear();
+        initialDrafts.forEach((room)=> initialById.set(String(room && room.id || ''), {
+          name: normalizeLabel(room && (room.label || room.name || '')),
+          baseType: String(room && room.baseType || 'pokoj'),
+        }));
+        changedRoomIds.clear();
+        removedRoomIds.clear();
         done({ saved:true, rooms:cloneRoomDrafts(drafts), removedRoomIds:result.removedRoomIds || [] });
       });
       renderRows();
       refreshFooter();
-      FC.panelBox.open({ title:'Edytuj pomieszczenia', contentNode: body, width:'760px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true, beforeClose: async ()=> await askDiscard() });
+      FC.panelBox.open({ title:'Edytuj pomieszczenia', contentNode: body, width:'760px', boxClass:'panel-box--rozrys room-registry-manage-modal', dismissOnOverlay:false, dismissOnEsc:true, beforeClose: async ()=> await askDiscard() });
       setTimeout(()=>{
         try{
           const firstInput = body.querySelector('input');
