@@ -1682,3 +1682,8 @@ Dopiero potem go zmieniać.
 - `js/app/investor/investor-rooms.js` — mount statusów projektu na kartach pokoi używa najpierw bulkowego `buildManualStatusChoiceStates(...)`, a dopiero awaryjnie spada do starego `validateManualStatusChange(...)`. To ma zmniejszyć lag zakładki Inwestor widoczny przy kilku pokojach i szybkich przełączeniach.
 - `js/testing/wycena/suites/investor-integration.js` — test kontraktowy pilnuje, że bulkowy guard zwraca te same blokady/odblokowania co pojedyncze `validateManualStatusChange`.
 - Instrukcja antyregresyjna: przy renderach list/kart z wieloma statusami nie wołać ciężkiego guardu per opcja, jeśli wszystkie opcje dotyczą tego samego pokoju/bazy. Najpierw budować wspólną analizę exact-scope i dopiero z niej wyprowadzać stany wielu opcji.
+
+
+## 2026-04-23 — cabinet tests runtime must load front-hardware for set front/hinge contract
+- `dev_tests.html` (oraz `autorun_cabinet_tests.html`, jeśli jest używany) musi ładować `js/app/cabinet/front-hardware.js` przed testami szafek. Sam `cabinet-cutlist.js` nie wystarcza, bo wtedy testy materiałów zestawu lecą fallbackiem bez frontów i zawiasów.
+- Instrukcja antyregresyjna: przy przenoszeniu stabilnej bazy lub cherry-pickach zmian zestawów sprawdzać nie tylko `index.html`, ale też pełne środowisko testowe. Jeśli funkcja produkcyjna zależy od modułu pomocniczego (`front-hardware`, `calc`, itp.), test runner musi go ładować jawnie.
