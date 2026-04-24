@@ -411,6 +411,15 @@
         });
       }),
 
+      H.makeTest('Szafki', 'Split front-hardware zachowuje publiczne API frontów i okuć', 'Pilnuje, czy po rozcięciu dużego front-hardware na mniejsze moduły nadal istnieją te same funkcje dla Materiałów, zawiasów i AVENTOS.', ()=>{
+        const hw = FC.frontHardware || {};
+        H.assert(typeof hw.getCabinetFrontCutListForMaterials === 'function', 'Brak API frontów po splicie front-hardware');
+        H.assert(typeof hw.getHingeCountForCabinet === 'function', 'Brak API zawiasów po splicie front-hardware');
+        H.assert(typeof hw.getBlumAventosInfo === 'function', 'Brak API AVENTOS po splicie front-hardware');
+        H.assert(typeof host.getCabinetFrontCutListForMaterials === 'function', 'Global getCabinetFrontCutListForMaterials nie istnieje po splicie');
+        H.assert(Number(host.FC_HANDLE_WEIGHT_KG || 0) > 0, 'Globalna stała masy uchwytu nie została odtworzona po splicie');
+      }),
+
       H.makeTest('Szafki', 'Materiały zestawu pokazują fronty i zawiasy tylko na pierwszym korpusie zestawu', 'Pilnuje regresji materiałów zestawu: fronty wygenerowane dla całego zestawu mają pojawić się przy pierwszym korpusie, a kolejne korpusy zestawu nie mogą dublować frontów ani zawiasów.', ()=>{
         H.assert(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function', 'Brak FC.cabinetCutlist.getCabinetCutList');
         return withCabinetGlobals({

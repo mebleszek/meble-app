@@ -1,14 +1,9 @@
-## 2026-04-24 — investor/rooms perf hotfix + manage-rooms layout cleanup
-- `js/app/investor/investor-ui.js` — usunięte podwójne `refreshActionBar()` przy zwykłych polach edycji inwestora. Wcześniej każdy wpis znaku w formularzu odpalał odświeżenie paska akcji dwa razy; przy większej liczbie pomieszczeń mnożyło to niepotrzebne blokowanie/odblokowywanie akcji i spowalniało edycję.
-- `js/app/shared/room-registry-modals-manage-remove.js` — modal `Edytuj pomieszczenia` nie liczy już stanu zmian przez pełne porównywanie całej listy po każdym znaku. Zamiast tego śledzi tylko zmienione/usunięte pokoje, co ogranicza lagi przy dużej liczbie pomieszczeń. Dodatkowo przycisk `Usuń` został przeniesiony do tego samego rzędu co pole nazwy, po prawej stronie.
-- `css/investor-layout.css` — dopięty układ jednego rzędu dla pola nazwy i przycisku `Usuń` w modalu zarządzania pomieszczeniami.
-- Instrukcja antyregresyjna: przy polach formularza inwestora nie dublować odświeżania paska akcji (`refreshActionBar`) w helperze i w samym handlerze zdarzenia naraz. W modalu zarządzania pomieszczeniami nie wracać do pełnego porównywania całej listy na każdy `input`; stan zmian ma być liczony przyrostowo.
-
-## 2026-04-24 — investor/manage rooms modal perf + inline delete layout
-- `js/app/shared/room-registry-modals-manage-remove.js` — modal `Edytuj pomieszczenia` nie liczy już stanu zmian przez porównywanie całej listy pokojów przy każdym wpisanym znaku. Zamiast tego śledzi zmiany lekko per pokój (`changedRoomIds` + `removedRoomIds`), więc edycja przy większej liczbie pomieszczeń jest wyraźnie lżejsza. To samo okno dostało też nowy układ wiersza: przycisk `Usuń` siedzi teraz w tym samym rzędzie co pole nazwy, po prawej stronie.
-- `css/investor-layout.css` — dodane style dla nowego układu wiersza modala zarządzania pomieszczeniami (`room-registry-manage-row__controls`), tak aby input zajmował szerokość, a `Usuń` był po prawej, także na mobile.
-- `js/app/investor/investor-ui.js` — `refreshActionBar()` nie przepina już na nowo wyborów statusów wszystkich pomieszczeń przy każdym wpisanym znaku w trybie edycji inwestora. W tym trybie statusy i tak są zablokowane, więc ich ponowne montowanie tylko spowalniało ekran przy większej liczbie pomieszczeń.
-- Instrukcja antyregresyjna: przy dalszych zmianach tego modala nie wracać do pełnego porównywania wszystkich draftów na każde `input`. Dla dużej liczby pomieszczeń trzeba trzymać lekkie śledzenie zmian per wiersz i dopiero przy zapisie robić pełną walidację listy.
+## 2026-04-24 — WYWIAD core cleanup: split front-hardware into focused modules
+- `js/app/cabinet/front-hardware.js` został odchudzony do cienkiego shell-a kompatybilności. Nie trzyma już ciężkiej logiki frontów i okuć.
+- Nowe moduły: `front-hardware-weights.js` (masy frontów/uchwytów), `front-hardware-fronts.js` (fronty do Materiałów i fronty zestawów), `front-hardware-hinges.js` (zawiasy BLUM), `front-hardware-aventos.js` (dobór podnośników AVENTOS). UI i zachowanie mają zostać bez zmian.
+- `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke.js` ładują nowe moduły przed cienkim `front-hardware.js`, żeby produkcja i testy miały ten sam kontrakt API.
+- Przy okazji zachowano zaakceptowany hotfix inwestora/pomieszczeń: lżejsze odświeżanie edycji inwestora oraz przycisk `Usuń` w tym samym rzędzie co pole nazwy w modalu `Edytuj pomieszczenia`.
+- Antyregresja: nie dokładać nowej logiki frontów/okuć do shell-a `front-hardware.js`. Fronty idą do `front-hardware-fronts.js`, zawiasy do `front-hardware-hinges.js`, AVENTOS do `front-hardware-aventos.js`, a masy/stałe do `front-hardware-weights.js`.
 
 ## 2026-04-23 — room core package 1: shared room scope + explicit registry cache invalidation + lighter session dirty tracking
 - `js/app/shared/room-scope-resolver.js` — nowy wspólny moduł zakresu pomieszczeń. Trzyma jedno miejsce dla: normalizacji `roomIds`, zachowania exact-scope nawet gdy zapisany pokój już zniknął, fallbacku do aktywnych pomieszczeń oraz exact filtrowania snapshotów po pokoju. Dzięki temu `WYCENA` i statusy nie muszą już dublować tych samych reguł po swojemu.
@@ -781,7 +776,7 @@ Dopiero potem go zmieniać.
 
 - `js/app/material/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
 
-- `js/app/cabinet/front-hardware.js` — wspólne obliczenia frontów i okuć (fronty do Materiałów, zawiasy BLUM, AVENTOS).
+- `js/app/cabinet/front-hardware.js` — cienki shell kompatybilności dla front-hardware; logika jest w `front-hardware-weights.js`, `front-hardware-fronts.js`, `front-hardware-hinges.js`, `front-hardware-aventos.js`.
 - `js/app/cabinet/cabinet-fronts.js` — reguły typów/podtypów, fronty, walidacja AVENTOS i generowanie frontów; źródło prawdy dla logiki frontów używanej przez modal i materiały.
 - `js/app/cabinet/cabinet-modal.js` — pełna logika modala szafki i kreatora zestawów; źródło prawdy dla renderu modala, dynamicznych pól i zapisu zestawów.
 
@@ -1706,5 +1701,5 @@ Dopiero potem go zmieniać.
 
 
 ## 2026-04-23 — cabinet tests runtime must load front-hardware for set front/hinge contract
-- `dev_tests.html` (oraz `autorun_cabinet_tests.html`, jeśli jest używany) musi ładować `js/app/cabinet/front-hardware.js` przed testami szafek. Sam `cabinet-cutlist.js` nie wystarcza, bo wtedy testy materiałów zestawu lecą fallbackiem bez frontów i zawiasów.
+- `dev_tests.html` musi ładować pełny stack front-hardware (`front-hardware-weights/fronts/hinges/aventos` + shell `front-hardware.js`) przed testami szafek. Sam `cabinet-cutlist.js` nie wystarcza, bo wtedy testy materiałów zestawu lecą fallbackiem bez frontów i zawiasów.
 - Instrukcja antyregresyjna: przy przenoszeniu stabilnej bazy lub cherry-pickach zmian zestawów sprawdzać nie tylko `index.html`, ale też pełne środowisko testowe. Jeśli funkcja produkcyjna zależy od modułu pomocniczego (`front-hardware`, `calc`, itp.), test runner musi go ładować jawnie.

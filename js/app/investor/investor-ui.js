@@ -367,7 +367,6 @@
       topActions.innerHTML = actionsApi ? actionsApi.buildActionBarHtml(currentState) : '';
       bindTopActions();
       try{ guard() && guard().apply(!!currentState.isEditing); }catch(_){ }
-      if(currentState.isEditing) return;
       try{
         if(roomUi() && typeof roomUi().mountProjectStatusChoices === 'function'){
           roomUi().mountProjectStatusChoices(currentInvestor(), PROJECT_STATUS_OPTIONS, {
