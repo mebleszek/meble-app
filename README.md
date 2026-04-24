@@ -274,3 +274,8 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - `USŁUGI`: smoke testy obejmują spójność `catalogStore` ↔ `serviceOrderStore` oraz brak pustego rekordu przy tworzeniu szkicu zlecenia.
 
 - 2026-04-12: Naprawiono synchronizację `catalogStore` ↔ `serviceOrderStore` dla zleceń usługowych i dodano regresję pod odczyt po bezpośrednim zapisie do store.
+
+### 2026-04-24 — session test include fix
+- Naprawiono stronę testów aplikacji: `dev_tests.html` ładuje teraz moduł sesji inwestora przed testami projektu, więc test `FC.session.begin` ma dostęp do właściwego API.
+- Podbito cache-busting dla `session.js`.
+

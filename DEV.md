@@ -1,3 +1,8 @@
+## 2026-04-24 — dev tests session include fix
+- `dev_tests.html` — dodane ładowanie `js/app/investor/session.js` przed testami projektu. Test przeglądarkowy `Sesja wykrywa zmianę...` sprawdza `FC.session.begin`, więc strona testów musi ładować moduł sesji tak samo jak aplikacja i smoke runner Node.
+- `index.html` — podbity cache-busting dla `session.js`, żeby po wdrożeniu przeglądarka nie trzymała starej wersji sesji.
+- Instrukcja antyregresyjna: jeśli test przeglądarkowy sprawdza API modułu, ten moduł musi być dopięty zarówno w `index.html`, jak i `dev_tests.html` oraz w `tools/app-dev-smoke.js`.
+
 ## 2026-04-24 — room modal save closes false global dirty session
 - `js/app/investor/investor-room-actions.js` — po zapisaniu modala `Dodaj pomieszczenie` albo `Edytuj pomieszczenia` program domyka globalną sesję zmian tylko wtedy, gdy przed otwarciem modala sesja była czysta. Dzięki temu zapis w samym modalu nie zostawia fałszywego górnego `Anuluj / Zapisz`, które spowalniało późniejszą edycję inwestora.
 - Zasada bezpieczeństwa: jeśli przed otwarciem modala były już inne niezapisane zmiany, globalna sesja zostaje nietknięta. Nie wolno bezwarunkowo robić `session.commit()` po każdym modalu pokoju, bo mogłoby to schować prawdziwe niezapisane zmiany z innych działów.
