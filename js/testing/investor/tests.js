@@ -689,7 +689,7 @@
           createdAt:1776635559701,
           updatedAt:1776635559701,
           rooms:[],
-          meta:{ testData:false }
+          meta:{ testData:true, testOwner:'dev-tests', source:'investor-recovery-fixture' }
         }]);
         try{ root.localStorage.removeItem(removedKey); }catch(_){ }
         FC.projectStore.writeAll([{

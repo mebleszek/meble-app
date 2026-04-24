@@ -297,3 +297,8 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 
 ### 2026-04-24 — AVENTOS API/message fix
 Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono czerwony/pomarańczowy/zielony komunikat walidacji.
+
+
+### 2026-04-24 — investor recovery leak fix
+- Naprawiono przypadek, w którym po przerwanym teście developerskim lista inwestorów mogła pokazać tylko fixture `Jan Test` i blokować odzysk pozostałych rekordów z projectStore/snapshotów.
+- Dane testowe są teraz mocniej oznaczane i sprzątane przez cleanup testów.

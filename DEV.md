@@ -1,3 +1,9 @@
+## 2026-04-24 — investor recovery leak fix after interrupted dev test fixture
+- `js/app/investor/investors-store.js` — recovery inwestorów nie blokuje już realnego odzysku z `projectStore`/snapshotów tylko dlatego, że w `fc_investors_v1` został pojedynczy wpis testowy. To naprawia przypadek, w którym po przerwanym teście/lista mogła pokazać tylko `Jan Test`, a stare rekordy nie wracały mimo danych pomocniczych w projekcie lub snapshotach.
+- `js/testing/investor/tests.js` — fixture `Jan Test` jest teraz jawnie oznaczony jako dane testowe, żeby przerwany test nie zostawił go jako pozornie prawdziwego inwestora.
+- `js/testing/test-data-manager.js` — cleanup testów usuwa też znane, starsze wycieki fixture (`inv_new_only` / `Jan Test`), które powstały zanim ten rekord był poprawnie oznaczany metadanymi testowymi.
+- Instrukcja antyregresyjna: testy nigdy nie mogą wpisywać do realnego storage nieoznaczonych rekordów testowych. Każdy fixture ma mieć `meta.testData=true` i `meta.testOwner=dev-tests`, a store recovery nie może traktować samego faktu istnienia jednego rekordu w `fc_investors_v1` jako powodu do blokowania odzysku prawdziwych danych z projektów/snapshotów.
+
 ## 2026-04-24 — Material cleanup stage 1: data model + edge store split
 - `js/app/material/material-edge-store.js` — wydzielony store oklein/obrzeży dla zakładki `MATERIAŁ`: podpis elementu, domyślne krawędzie, zapis `fc_edge_v1`, liczenie mb okleiny oraz otwieranie opcji elementu. Dzięki temu render zakładki nie trzyma już lokalnie całej logiki edge store.
 - `js/app/material/material-tab-data.js` — nowy model danych dla zakładki `MATERIAŁ`: zbiera szafki z pokoju, pobiera cutlistę, liczy sumy m² i mb oklein oraz przygotowuje wiersze szafek dla renderu.
