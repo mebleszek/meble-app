@@ -361,12 +361,27 @@
       return (persistenceApi && persistenceApi.getInvestorById(inv.id)) || (state.transientInvestor && String(state.transientInvestor.id || '') === String(inv.id || '') ? state.transientInvestor : null) || inv;
     }
 
+    let lastActionBarSignature = '';
+    let lastGuardEditing = null;
+    let statusChoicesMountedFor = '';
+
     function refreshActionBar(){
       const currentState = editorApi ? editorApi.ensureInvestor(currentInvestor()) : { isEditing:false, dirty:false };
-      if(!topActions) return;
-      topActions.innerHTML = actionsApi ? actionsApi.buildActionBarHtml(currentState) : '';
-      bindTopActions();
-      try{ guard() && guard().apply(!!currentState.isEditing); }catch(_){ }
+      const actionSignature = `${currentState.isEditing ? 1 : 0}:${currentState.dirty ? 1 : 0}`;
+      if(topActions && actionSignature !== lastActionBarSignature){
+        topActions.innerHTML = actionsApi ? actionsApi.buildActionBarHtml(currentState) : '';
+        bindTopActions();
+        lastActionBarSignature = actionSignature;
+      }
+      const editingNow = !!currentState.isEditing;
+      if(lastGuardEditing !== editingNow){
+        try{ guard() && guard().apply(editingNow); }catch(_){ }
+        lastGuardEditing = editingNow;
+      }
+      if(currentState.isEditing) return;
+      const statusMountSignature = String(currentInvestor() && currentInvestor().id || '') + ':' + actionSignature;
+      if(statusChoicesMountedFor === statusMountSignature) return;
+      statusChoicesMountedFor = statusMountSignature;
       try{
         if(roomUi() && typeof roomUi().mountProjectStatusChoices === 'function'){
           roomUi().mountProjectStatusChoices(currentInvestor(), PROJECT_STATUS_OPTIONS, {

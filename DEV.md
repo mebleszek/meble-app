@@ -1,3 +1,12 @@
+## 2026-04-24 — room modal save closes false global dirty session
+- `js/app/investor/investor-room-actions.js` — po zapisaniu modala `Dodaj pomieszczenie` albo `Edytuj pomieszczenia` program domyka globalną sesję zmian tylko wtedy, gdy przed otwarciem modala sesja była czysta. Dzięki temu zapis w samym modalu nie zostawia fałszywego górnego `Anuluj / Zapisz`, które spowalniało późniejszą edycję inwestora.
+- Zasada bezpieczeństwa: jeśli przed otwarciem modala były już inne niezapisane zmiany, globalna sesja zostaje nietknięta. Nie wolno bezwarunkowo robić `session.commit()` po każdym modalu pokoju, bo mogłoby to schować prawdziwe niezapisane zmiany z innych działów.
+
+## 2026-04-24 — investor edit perf fix after Wywiad split package
+- `js/app/investor/investor-ui.js` — poprawka regresji wydajności w edycji inwestora przy większej liczbie pomieszczeń. `refreshActionBar()` nie przebudowuje już paska `Usuń / Anuluj / Zapisz` i nie przelicza blokad pomieszczeń przy każdym wpisanym znaku, jeśli stan paska i tryb edycji się nie zmieniły.
+- Dodatkowo przywrócona jest zasada, że podczas edycji inwestora nie montujemy ponownie wyborów statusu pomieszczeń; statusy są odświeżane dopiero poza trybem edycji. To zmniejsza koszt wpisywania w pola formularza przy wielu pokojach.
+- Instrukcja antyregresyjna: przy inputach formularza inwestora nie odpalać ciężkiego renderu listy/statusów. W trakcie pisania wolno aktualizować draft i lekki stan akcji; pełne montowanie statusów/pokoi ma zostać poza trybem edycji albo po zmianie trybu.
+
 ## 2026-04-24 — WYWIAD core cleanup: split front-hardware into focused modules
 - `js/app/cabinet/front-hardware.js` został odchudzony do cienkiego shell-a kompatybilności. Nie trzyma już ciężkiej logiki frontów i okuć.
 - Nowe moduły: `front-hardware-weights.js` (masy frontów/uchwytów), `front-hardware-fronts.js` (fronty do Materiałów i fronty zestawów), `front-hardware-hinges.js` (zawiasy BLUM), `front-hardware-aventos.js` (dobór podnośników AVENTOS). UI i zachowanie mają zostać bez zmian.
