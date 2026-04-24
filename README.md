@@ -36,6 +36,11 @@ W tej paczce wdrożono pierwszy bezpieczny etap rozdzielenia odpowiedzialności:
 To jeszcze nie jest pełna przebudowa całej domeny pod chmurę.
 Etap 1 porządkuje wejścia, routing i podstawowe byty danych bez przepinania całego projektu meblowego i całej wyceny na nowy model naraz.
 
+## Testy developerskie
+
+- `dev_tests.html` — główna, użytkowa strona testów w przeglądarce.
+- `tools/app-dev-smoke.js` — pomocniczy runner techniczny Node dla APP; ma być zgodny z aktualnym zestawem modułów testowych i nie powinien zgłaszać starych błędów środowiska jako błędów programu.
+
 ## Deploy (GitHub Pages)
 
 Do repo trafia pełna paczka `site.zip` w root.

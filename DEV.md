@@ -1,3 +1,10 @@
+## 2026-04-24 — technical APP smoke runner aligned with browser dev_tests
+- `tools/app-dev-smoke.js` — techniczny runner Node został dopasowany do aktualnego `dev_tests.html`: ładuje wydzielone moduły bootstrapu (`app-state-bootstrap`, `app-ui-bootstrap`), `views`, `wywiad-room-settings` i `info-box`, zamiast zgłaszać stare braki API jako błędy programu.
+- Runner dostał minimalny fixture DOM tylko dla testów projektu/bootstrapu, gdzie realnie potrzebny jest `document`. Dla pozostałych sekcji zostaje w trybie bez DOM, tak jak wcześniej, żeby nie produkował fałszywych błędów przez niedoskonałe sztuczne środowisko.
+- `tools/app-dev-smoke.js` nie ładuje już `js/app.js`, bo `dev_tests.html` testuje moduły bez pełnego głównego kleju aplikacji. Dzięki temu smoke techniczny nie miesza starego globalnego stanu z modułowymi testami.
+- Wynik techniczny po poprawce: APP smoke `170/170 OK`. To porządkuje narzędzie pomocnicze i nie zmienia działania programu użytkownika.
+- Instrukcja antyregresyjna: gdy testy przeglądarkowe `dev_tests.html` są zielone, a Node smoke pokazuje błędy, najpierw sprawdzić różnicę środowiska/fixture i listy ładowanych modułów. Nie poprawiać programu pod fałszywy błąd runnera, jeśli źródłem jest nieaktualne narzędzie testowe.
+
 ## 2026-04-24 — session dirty tracking prototype fix
 - `js/app/investor/session.js` — storage dirty tracking przechodzi teraz przez `Storage.prototype` zamiast próbować nadpisywać metody bezpośrednio na obiekcie `localStorage`. W części przeglądarek nadpisanie instancji może nie działać pewnie, więc sesja nie wykrywała zmiany natychmiast po `localStorage.setItem(...)`.
 - `index.html` + `dev_tests.html` — podbite wersje `session.js`, żeby przeglądarka i test runner nie trzymały starego mechanizmu.
