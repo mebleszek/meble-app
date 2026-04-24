@@ -1,3 +1,8 @@
+## 2026-04-24 — session dirty tracking prototype fix
+- `js/app/investor/session.js` — storage dirty tracking przechodzi teraz przez `Storage.prototype` zamiast próbować nadpisywać metody bezpośrednio na obiekcie `localStorage`. W części przeglądarek nadpisanie instancji może nie działać pewnie, więc sesja nie wykrywała zmiany natychmiast po `localStorage.setItem(...)`.
+- `index.html` + `dev_tests.html` — podbite wersje `session.js`, żeby przeglądarka i test runner nie trzymały starego mechanizmu.
+- Instrukcja antyregresyjna: przy podsłuchiwaniu `localStorage` nie zakładać, że `localStorage.setItem = ...` zawsze zadziała. Dla tego mechanizmu używać patcha na `Storage.prototype` i nadal zawężać śledzenie do `localStorage`, żeby nie mieszać `sessionStorage`.
+
 ## 2026-04-24 — dev tests session include fix
 - `dev_tests.html` — dodane ładowanie `js/app/investor/session.js` przed testami projektu. Test przeglądarkowy `Sesja wykrywa zmianę...` sprawdza `FC.session.begin`, więc strona testów musi ładować moduł sesji tak samo jak aplikacja i smoke runner Node.
 - `index.html` — podbity cache-busting dla `session.js`, żeby po wdrożeniu przeglądarka nie trzymała starej wersji sesji.

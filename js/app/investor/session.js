@@ -96,31 +96,40 @@
   function installStorageTracking(){
     try{
       const storage = localStorage;
-      if(!storage || storage.__fcSessionTrackingInstalled) return;
-      const rawSetItem = typeof storage.setItem === 'function' ? storage.setItem.bind(storage) : null;
-      const rawRemoveItem = typeof storage.removeItem === 'function' ? storage.removeItem.bind(storage) : null;
-      const rawClear = typeof storage.clear === 'function' ? storage.clear.bind(storage) : null;
+      if(!storage) return;
+      const proto = (typeof Storage !== 'undefined' && Storage.prototype)
+        ? Storage.prototype
+        : Object.getPrototypeOf(storage);
+      const protoHasStorageMethods = !!(proto && typeof proto.setItem === 'function');
+      const target = protoHasStorageMethods ? proto : storage;
+      if(!target || target.__fcSessionTrackingInstalled) return;
+      const rawSetItem = typeof target.setItem === 'function' ? target.setItem : (typeof storage.setItem === 'function' ? storage.setItem : null);
+      const rawRemoveItem = typeof target.removeItem === 'function' ? target.removeItem : (typeof storage.removeItem === 'function' ? storage.removeItem : null);
+      const rawClear = typeof target.clear === 'function' ? target.clear : (typeof storage.clear === 'function' ? storage.clear : null);
+      const isLocalStorageCall = (ctx)=>{
+        try{ return !protoHasStorageMethods || ctx === storage || ctx === localStorage; }catch(_){ return true; }
+      };
       if(rawSetItem){
-        storage.setItem = function(key, value){
-          rawSetItem(key, value);
-          trackKeyMutation(key, String(value));
+        target.setItem = function(key, value){
+          rawSetItem.call(this === target && !protoHasStorageMethods ? storage : this, key, value);
+          if(isLocalStorageCall(this)) trackKeyMutation(key, String(value));
         };
       }
       if(rawRemoveItem){
-        storage.removeItem = function(key){
-          rawRemoveItem(key);
-          trackKeyMutation(key, null);
+        target.removeItem = function(key){
+          rawRemoveItem.call(this === target && !protoHasStorageMethods ? storage : this, key);
+          if(isLocalStorageCall(this)) trackKeyMutation(key, null);
         };
       }
       if(rawClear){
-        storage.clear = function(){
-          rawClear();
-          try{
-            getComparableKeys().forEach((key)=> trackKeyMutation(key, null));
-          }catch(_){ }
+        target.clear = function(){
+          rawClear.call(this === target && !protoHasStorageMethods ? storage : this);
+          if(isLocalStorageCall(this)){
+            try{ getComparableKeys().forEach((key)=> trackKeyMutation(key, null)); }catch(_){ }
+          }
         };
       }
-      storage.__fcSessionTrackingInstalled = true;
+      target.__fcSessionTrackingInstalled = true;
     }catch(_){ }
   }
 
