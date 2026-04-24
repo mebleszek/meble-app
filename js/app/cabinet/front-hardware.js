@@ -23,7 +23,4 @@
   window.FC_HANDLE_WEIGHT_KG = hw.FC_HANDLE_WEIGHT_KG;
   window.FC_FRONT_WEIGHT_KG_M2 = hw.FC_FRONT_WEIGHT_KG_M2;
   window.getCabinetFrontCutListForMaterials = hw.getCabinetFrontCutListForMaterials;
-  window.estimateFlapWeightKg = hw.estimateFlapWeightKg;
-  window.blumAventosPowerFactor = hw.blumAventosPowerFactor;
-  window.getBlumAventosInfo = hw.getBlumAventosInfo;
 })();

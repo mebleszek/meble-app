@@ -84,8 +84,6 @@ const INDEX_LOAD_GROUPS = [
     "label": "Room / session / app runtime foundation",
     "scripts": [
       "js/app/material/material-part-options.js",
-      "js/app/material/material-edge-store.js",
-      "js/app/material/material-tab-data.js",
       "js/app/rozrys/rozrys-grain.js",
       "js/app/rozrys/rozrys-validation.js",
       "js/app/cabinet/corner-sketch.js",

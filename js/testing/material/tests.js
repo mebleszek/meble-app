@@ -17,27 +17,6 @@
         H.assert(FC.materialHasGrain('Dąb Halifax', list) === true, 'Nie wykryto słojów dla materiału z flagą', list);
         H.assert(FC.materialHasGrain('Biały Alpejski', list) === false, 'Fałszywie wykryto słoje dla gładkiego materiału', list);
       }),
-      H.makeTest('Materiały', 'Zakładka Materiał ma wydzielony model danych i edge store', 'Pilnuje etapu 1 cleanupu: render MATERIAŁ nie ma sam liczyć całej listy części i oklein, tylko czyta model z materialTabData oraz edge store.', ()=>{
-        H.assert(FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function', 'Brak FC.materialEdgeStore.createEdgeStore');
-        H.assert(FC.materialTabData && typeof FC.materialTabData.collectRoomMaterials === 'function', 'Brak FC.materialTabData.collectRoomMaterials');
-        const prevProjectData = host.projectData;
-        const prevCutList = host.getCabinetCutList;
-        const prevGlobalCutList = typeof getCabinetCutList !== 'undefined' ? getCabinetCutList : undefined;
-        try{
-          host.projectData = { kuchnia:{ cabinets:[{ id:'cab_material_test', type:'wisząca', subType:'standardowa', width:60, height:72, depth:32, bodyColor:'Biały', backMaterial:'HDF' }] } };
-          host.getCabinetCutList = ()=> ([{ name:'Bok testowy', qty:2, a:72, b:32, material:'Biały test' }]);
-          const edgeApi = FC.materialEdgeStore.createEdgeStore({ persist:false, initialStore:{} });
-          const model = FC.materialTabData.collectRoomMaterials('kuchnia', { edgeApi });
-          H.assert(model && Array.isArray(model.cabinetRows) && model.cabinetRows.length === 1, 'Model materiałów nie zebrał jednej szafki testowej', model);
-          H.assert(Array.isArray(model.cabinetRows[0].parts) && model.cabinetRows[0].parts.length === 1, 'Model materiałów nie zebrał części z cutlisty', model.cabinetRows[0]);
-          H.assert(Number(model.projectEdgeMeters) > 0, 'Model materiałów nie policzył okleiny z edge store', model);
-        } finally {
-          host.projectData = prevProjectData;
-          host.getCabinetCutList = prevCutList;
-          try{ if(prevGlobalCutList !== undefined) getCabinetCutList = prevGlobalCutList; }catch(_){ }
-        }
-      }),
-
       H.makeTest('Materiały', 'Walidacja materiałów normalizuje cenę i flagę słojów', 'Sprawdza, czy uszkodzony wpis materiału nie rozwala listy i dostaje bezpieczne wartości.', ()=>{
         if(!FC.validate || typeof FC.validate.validateMaterials !== 'function') throw new Error('Brak validateMaterials');
         const rows = FC.validate.validateMaterials([

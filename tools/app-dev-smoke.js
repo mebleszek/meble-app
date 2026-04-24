@@ -13,8 +13,6 @@ const FILES = [
   'js/app/shared/validate.js',
   'js/app/material/material-common.js',
   'js/app/material/material-registry.js',
-  'js/app/material/material-edge-store.js',
-  'js/app/material/material-tab-data.js',
   'js/app/catalog/catalog-domain.js',
   'js/app/catalog/catalog-migration.js',
   'js/app/service/service-order-store.js',

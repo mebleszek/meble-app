@@ -395,16 +395,6 @@
     return recovered;
   }
 
-  function isKnownLeakedTestInvestor(inv){
-    const src = inv && typeof inv === 'object' ? inv : {};
-    const id = String(src.id || '').trim();
-    if(id === 'inv_new_only') return true;
-    if(id === 'inv_missing_old') return true;
-    if(id === 'inv_snapshot_only' || id === 'inv_snapshot_only_test' || id === 'inv_write_test_only') return true;
-    const name = String(src.name || src.companyName || '').trim().toLowerCase();
-    return id && name === 'jan test' && String(src.phone || '') === '111';
-  }
-
   function recoverMissingInvestors(list){
     const current = Array.isArray(list) ? list.map(normalizeInvestor) : [];
     if(_isRecovering) return current;
@@ -412,7 +402,7 @@
     try{
       const removedIds = readRemovedIds();
       const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
-      let recovered = buildRecoveryCandidates({ testOnly: false });
+      let recovered = buildRecoveryCandidates({ testOnly: current.length > 0 });
       if(current.length === 0){
         const explicitTestSources = hasExplicitTestRecoverySources();
         if(explicitTestSources){
@@ -430,10 +420,8 @@
         additions.push(normalizeInvestor(candidate));
       });
       if(!additions.length) return current;
-      const onlyLeakedFixture = current.length > 0 && current.every(isKnownLeakedTestInvestor);
-      const additionsHaveRealData = additions.some((candidate)=> !isTestRecoveryRecord(candidate));
-      const base = (onlyLeakedFixture && additionsHaveRealData) ? current.filter((inv)=> !isKnownLeakedTestInvestor(inv)) : current;
-      return base.concat(additions);
+      const next = current.concat(additions);
+      return next;
     }finally{
       _isRecovering = false;
     }
