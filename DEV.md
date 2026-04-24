@@ -1,3 +1,8 @@
+## 2026-04-24 — ROZRYS technical smoke runner aligned with lazy manifest assets
+- `tools/rozrys-dev-smoke.js` — techniczny runner ROZRYS dostał do `__DEV_ASSETS__` także `js/app/rozrys/rozrys-lazy-manifest.js`. Wcześniej testy load-order widziały moduły ROZRYS jako `missing`, bo runner miał źródło `index.html`, ale nie miał źródła lazy-manifestu, mimo że realna aplikacja i `dev_tests.html` używały aktualnej ścieżki ładowania.
+- Efekt: `node tools/rozrys-dev-smoke.js` przechodzi `61/61 OK`. To była poprawka narzędzia testowego, bez zmiany działania programu i bez ruszania UI.
+- Instrukcja antyregresyjna: jeśli test load-order ROZRYS sprawdza assety z `rozrys-lazy-manifest.js`, techniczny runner Node musi mieć ten plik w `__DEV_ASSETS__`, inaczej będzie zgłaszał fałszywe `missing`, mimo że przeglądarkowe `dev_tests.html` działa poprawnie.
+
 ## 2026-04-24 — AVENTOS message tones restored
 - `js/app/cabinet/cabinet-fronts.js` — komunikat AVENTOS (`cmFlapInfo`) znowu dostaje wyraźny ton: czerwony dla błędu blokującego zapis, pomarańczowy dla ostrzeżenia i zielony dla komunikatu OK/zalecenia. Styl jest ustawiany klasami oraz inline jako fallback, żeby nie wrócił neutralny szary kafel po zmianach CSS/cache.
 - `css/style.css` — dodane klasy `cabinet-aventos-message--danger/warning/success` dla komunikatów AVENTOS.

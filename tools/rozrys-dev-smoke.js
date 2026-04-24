@@ -133,6 +133,7 @@ const context = {
     'js/app/rozrys/rozrys-run-controller.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-run-controller.js'), 'utf8'),
     'js/app/rozrys/rozrys-output-controller.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-output-controller.js'), 'utf8'),
     'js/app/rozrys/rozrys.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys.js'), 'utf8'),
+    'js/app/rozrys/rozrys-lazy-manifest.js': fs.readFileSync(path.join(rootDir, 'js/app/rozrys/rozrys-lazy-manifest.js'), 'utf8'),
     'index.html': fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8'),
     'dev_tests.html': fs.readFileSync(path.join(rootDir, 'dev_tests.html'), 'utf8'),
   },
