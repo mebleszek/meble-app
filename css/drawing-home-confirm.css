@@ -1,0 +1,116 @@
+/* Drawing import, home screen and reusable confirm box. */
+
+
+    /* Prevent background scroll when modal open (mobile fixes) */
+    html.modal-lock, body.modal-lock{overflow:hidden;height:100%;}
+    .modal-back{touch-action:auto;overscroll-behavior:contain;}
+    .modal{touch-action:auto;}
+
+    /* Mobile safety: when opening a modal under the same tap, prevent accidental instant <select> open */
+    .modal-open-guard, .modal-open-guard *{ pointer-events:none !important; }
+
+
+
+/* ===== RYSUNEK (import) ===== */
+.drawing-wrap{ display:flex; flex-direction:column; gap:12px; }
+    .drawing-toolbar{
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+      padding:10px 12px; border:1px solid #eef6fb; border-radius:12px; background:#fbfdff;
+    }
+    .drawing-toolbar .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .drawing-toolbar .pill{
+      padding:6px 10px; border-radius:999px; border:1px solid #e5eef7;
+      background:#fff; font-size:12px; font-weight:800;
+    }
+    .drawing-stage{
+      border:1px solid #eef6fb; border-radius:14px; background:#fff;
+      padding:10px; overflow:auto;
+    }
+    .drawing-stage svg{ display:block; }
+    .svg-cab{ fill:#eaf4ff; stroke:#1e4b8f; stroke-width:1; cursor:pointer; }
+    .svg-gap{ fill:#ffffff; stroke:#94a3b8; stroke-width:1; stroke-dasharray:4 4; cursor:pointer; }
+    .svg-cab.selected{ fill:#d9f2ff; stroke:#0ea5e9; stroke-width:2; }
+    .svg-range{ fill:rgba(14,165,233,0.14); stroke:#0ea5e9; stroke-width:2; }
+    .svg-label{ font-size:14px; fill:#0f172a; pointer-events:none; font-weight:800; }
+    .svg-finish{ fill:rgba(2,132,199,0.15); stroke:#0284c7; stroke-width:2; pointer-events:none; }
+    .svg-finish-strong{ fill:rgba(16,185,129,0.16); stroke:#10b981; stroke-width:2; pointer-events:none; }
+    .ctxmenu{
+      position:absolute; z-index:50; min-width:260px;
+      background:#fff; border:1px solid #e5eef7; border-radius:14px;
+      box-shadow:0 10px 30px rgba(2,6,23,0.10);
+      padding:10px;
+    }
+    .ctxmenu h4{ margin:0 0 8px 0; font-size:13px; }
+    .ctxmenu .actions{ display:flex; flex-direction:column; gap:6px; }
+    .ctxmenu .actions button{ width:100%; text-align:left; }
+    .finish-list{ display:flex; flex-direction:column; gap:8px; }
+    .finish-item{
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+      padding:10px 12px; border:1px solid #eef6fb; border-radius:12px; background:#fbfdff;
+    }
+    .finish-item .meta{ font-size:12px; }
+    .finish-item .meta b{ display:block; margin-bottom:2px; }
+    .finish-item .meta .muted{ margin:0; }
+
+
+/* Home */
+.home-hero{max-width:640px;margin:24px auto;}
+.home-actions{display:grid;grid-template-columns:1fr;gap:10px;}
+.home-btn{padding:14px 14px;border-radius:14px;font-weight:900;font-size:16px;}
+.home-btn.btn-primary,.home-btn.btn-success,.home-btn.btn-danger{padding:14px 14px;border-radius:14px;font-weight:900;font-size:16px;min-height:auto;line-height:1.15;}
+@media (min-width:720px){
+  .home-actions{grid-template-columns:repeat(3,1fr);}
+}
+
+.tab-btn{width:100%;}
+
+
+/* Reusable confirm box */
+.confirm-backdrop{
+  position:fixed;inset:0;z-index:6200;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.45);
+  padding:16px;
+}
+.confirm-box{
+  width:min(420px, calc(100vw - 24px));
+  background:#fff;border:1px solid #e6eef6;border-radius:18px;
+  box-shadow:0 24px 64px rgba(2,6,23,.26);
+  padding:20px 18px 16px;
+}
+.confirm-title{margin:0;}
+.confirm-message{
+  margin-top:12px;font-size:16px;line-height:1.42;color:#475569;font-weight:700;
+}
+.confirm-actions{
+  margin-top:18px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;
+}
+.confirm-btn{
+  border:1.5px solid transparent;
+  border-radius:10px;
+  padding:6px 10px;
+  font-family:inherit;
+  font-size:16px;
+  font-weight:800;
+  line-height:1.1;
+  cursor:pointer;
+  color:#1f2937!important;
+  min-width:130px;
+  min-height:32px;
+}
+.confirm-btn.is-success{background:#4ade80;border-color:rgba(20,83,45,.58);box-shadow:2px 3px 0 rgba(20,83,45,.16), 4px 9px 16px rgba(74,222,128,.14);color:#1f2937!important}
+.confirm-btn.is-success:hover{background:#5ae28b;border-color:rgba(20,83,45,.60);color:#1f2937!important}
+.confirm-btn.is-danger{background:#f87171;border-color:rgba(127,29,29,.58);box-shadow:2px 3px 0 rgba(127,29,29,.16), 4px 9px 16px rgba(248,113,113,.14);color:#1f2937!important}
+.confirm-btn.is-danger:hover{background:#fb7e7e;border-color:rgba(127,29,29,.60);color:#1f2937!important}
+.confirm-btn.is-neutral{background:#38bdf8;border-color:rgba(12,74,110,.58);box-shadow:2px 3px 0 rgba(12,74,110,.16), 4px 9px 16px rgba(56,189,248,.14);color:#1f2937!important}
+.confirm-btn.is-neutral:hover{background:#4fc6f9;border-color:rgba(12,74,110,.60);color:#1f2937!important}
+@media (max-width:600px){
+  .confirm-box{width:min(420px, calc(100vw - 20px));padding:18px 16px 14px;border-radius:16px;}
+  .confirm-title{font-size:24px;}
+  .confirm-actions{justify-content:stretch;}
+  .confirm-btn{flex:1 1 0;min-width:0;}
+}
+
+
+
+
