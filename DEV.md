@@ -1,3 +1,17 @@
+## 2026-04-24 — Material cleanup stage 1: data model + edge store split
+- `js/app/material/material-edge-store.js` — wydzielony store oklein/obrzeży dla zakładki `MATERIAŁ`: podpis elementu, domyślne krawędzie, zapis `fc_edge_v1`, liczenie mb okleiny oraz otwieranie opcji elementu. Dzięki temu render zakładki nie trzyma już lokalnie całej logiki edge store.
+- `js/app/material/material-tab-data.js` — nowy model danych dla zakładki `MATERIAŁ`: zbiera szafki z pokoju, pobiera cutlistę, liczy sumy m² i mb oklein oraz przygotowuje wiersze szafek dla renderu.
+- `js/tabs/material.js` — odchudzony renderer. Ma nadal składać ten sam widok i te same akcje, ale dane bierze z `materialTabData`, a krawędzie/opcje z `materialEdgeStore`.
+- `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/app-dev-smoke.js` — dopięte ładowanie nowych modułów przed `js/tabs/material.js` i testami.
+- `js/testing/material/tests.js` — dodany test antyregresyjny pilnujący, że zakładka `MATERIAŁ` ma wydzielony model danych i edge store.
+- Instrukcja antyregresyjna: przy rozwoju działu `MATERIAŁ` nie dopisywać obliczeń części, sum m², mb oklein ani podpisów formatek bezpośrednio do `js/tabs/material.js`. Dane i obliczenia mają trafiać do `material-tab-data.js` / `material-edge-store.js`, a `js/tabs/material.js` ma zostać warstwą renderu.
+
+## 2026-04-24 — AVENTOS validation message API fix after hardware split
+- `js/app/cabinet/front-hardware.js` — po splicie AVENTOS przywraca kompatybilne globalne funkcje `getBlumAventosInfo`, `blumAventosPowerFactor` i `estimateFlapWeightKg`. Starsze ścieżki i testy nie mogą dostawać pustego fallbacku zamiast realnego doboru AVENTOS.
+- `js/app/cabinet/cabinet-fronts.js` — walidacja komunikatu AVENTOS czyta teraz najpierw namespacowane API `FC.frontHardware.getBlumAventosInfo`, a dopiero potem globalny fallback. Dzięki temu błędny AVENTOS znowu pokazuje czerwony komunikat i blokuje zapis.
+- `js/testing/cabinet/tests.js` — test splitu front-hardware pilnuje teraz także globalnego `getBlumAventosInfo`, żeby podobna regresja nie przeszła po kolejnym porządkowaniu okuć.
+- Instrukcja antyregresyjna: po podziale plików hardware nie wystarczy zachować `FC.frontHardware`. Dopóki starsze moduły/testy mogą używać nazw globalnych, shell zgodności musi odtwarzać też globalne funkcje używane przez klasyczne ścieżki.
+
 ## 2026-04-24 — full CSS split: style.css split into ordered thematic files without visual changes
 - `css/style.css` został opróżniony do placeholdera zgodności. Dawne reguły nie zostały zmienione ani przestawione logicznie; zostały pocięte na ciągłe bloki i ładowane w tej samej kolejności po `css/base-ui.css`.
 - Nowe pliki po pełnym splicie: `css/app-runtime.css`, `css/cabinet-common.css`, `css/drawing-home-confirm.css`, `css/shared-overlays-choice.css`, `css/rozrys-main.css`, `css/investor-table-sync.css`, `css/wycena.css`, `css/wywiad.css`.
