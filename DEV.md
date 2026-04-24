@@ -1,3 +1,9 @@
+## 2026-04-24 — AVENTOS message tones restored
+- `js/app/cabinet/cabinet-fronts.js` — komunikat AVENTOS (`cmFlapInfo`) znowu dostaje wyraźny ton: czerwony dla błędu blokującego zapis, pomarańczowy dla ostrzeżenia i zielony dla komunikatu OK/zalecenia. Styl jest ustawiany klasami oraz inline jako fallback, żeby nie wrócił neutralny szary kafel po zmianach CSS/cache.
+- `css/style.css` — dodane klasy `cabinet-aventos-message--danger/warning/success` dla komunikatów AVENTOS.
+- `js/testing/cabinet/tests.js` — dodany test antyregresyjny pilnujący, że komunikaty AVENTOS nie tracą kolorów.
+- Instrukcja antyregresyjna: przy zmianach walidacji AVENTOS nie kasować klas `cabinet-aventos-message*` i nie zostawiać samego neutralnego `muted xs`. Komunikat musi wizualnie rozróżniać błąd, ostrzeżenie i OK.
+
 ## 2026-04-24 — AVENTOS split: data + calc + selector + shell
 - `js/app/cabinet/front-hardware-aventos.js` został odchudzony do cienkiego shell-a kompatybilności. Publiczne API (`FC_BLUM_FLAP_KIND_LABEL`, `estimateFlapWeightKg`, `blumAventosPowerFactor`, `getBlumAventosInfo`) dalej wychodzi przez `FC.frontHardware`, więc reszta programu nie musi się zmieniać.
 - Nowe moduły: `front-hardware-aventos-data.js` (dane, zakresy i limity BLUM AVENTOS), `front-hardware-aventos-calc.js` (waga frontu, współczynnik mocy LF i helpery zakresów), `front-hardware-aventos-selector.js` (walidacja wymiarów i dobór modelu AVENTOS).

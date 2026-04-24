@@ -460,13 +460,59 @@ function validateAventosForDraft(room, draft){
     return { ok:false, info, msg };
   }
 
-  // Ostrzeżenia informacyjne (np. zalecenia warsztatowe) przy status='ok'
-  if(info.status === 'ok' && info.message && String(info.message).trim() && info.messageTone === 'orange'){
-    return { ok:true, warning:true, info, msg: String(info.message) };
+  // Ostrzeżenia / komunikaty informacyjne (np. zalecenia warsztatowe) przy status='ok'
+  if(info.status === 'ok' && info.message && String(info.message).trim()){
+    const tone = String(info.messageTone || '').trim();
+    if(tone === 'orange'){
+      return { ok:true, warning:true, tone:'orange', info, msg: String(info.message) };
+    }
+    if(tone === 'green'){
+      return { ok:true, notice:true, tone:'green', info, msg: String(info.message) };
+    }
   }
 
 
   return { ok:true, info };
+}
+
+function clearAventosMessageStyle(infoEl){
+  if(!infoEl) return;
+  try{
+    infoEl.classList.remove(
+      'cabinet-aventos-message',
+      'cabinet-aventos-message--danger',
+      'cabinet-aventos-message--warning',
+      'cabinet-aventos-message--success'
+    );
+  }catch(_){ }
+  infoEl.style.background = '';
+  infoEl.style.border = '';
+  infoEl.style.color = '';
+  infoEl.style.padding = '';
+  infoEl.style.borderRadius = '';
+}
+
+function applyAventosMessageTone(infoEl, tone){
+  if(!infoEl) return;
+  const normalized = String(tone || '').trim();
+  let className = 'cabinet-aventos-message--danger';
+  let style = { background:'#ffe4e6', border:'1px solid #fb7185', color:'#7f1d1d' };
+  if(normalized === 'orange' || normalized === 'warning'){
+    className = 'cabinet-aventos-message--warning';
+    style = { background:'#fff7ed', border:'1px solid #fdba74', color:'#7c2d12' };
+  }else if(normalized === 'green' || normalized === 'success'){
+    className = 'cabinet-aventos-message--success';
+    style = { background:'#dcfce7', border:'1px solid #86efac', color:'#14532d' };
+  }
+  try{
+    infoEl.classList.add('cabinet-aventos-message', className);
+  }catch(_){ }
+  // Inline fallback zostaje celowo: starsze cache CSS albo testowe DOM-y też pokażą poprawny kolor.
+  infoEl.style.background = style.background;
+  infoEl.style.border = style.border;
+  infoEl.style.color = style.color;
+  infoEl.style.padding = '10px';
+  infoEl.style.borderRadius = '8px';
 }
 
 function applyAventosValidationUI(room, draft){
@@ -479,15 +525,16 @@ function applyAventosValidationUI(room, draft){
   // reset
   saveBtn.disabled = false;
 
-  // domyślnie chowamy
+  // domyślnie chowamy i czyścimy poprzedni ton
   infoEl.style.display = 'none';
   infoEl.textContent = '';
+  clearAventosMessageStyle(infoEl);
 
-  if(res.ok && !res.warning){
+  if(res.ok && !res.warning && !res.notice){
     return;
   }
 
-  // pokaż komunikat (ostrzeżenie lub błąd)
+  // pokaż komunikat (OK / ostrzeżenie / błąd)
   infoEl.style.display = 'block';
   infoEl.textContent = res.msg || '';
 
@@ -496,19 +543,8 @@ function applyAventosValidationUI(room, draft){
     saveBtn.disabled = true;
   }
 
-  // Kolory tła: czerwony (blokuje) / pomarańczowy (ostrzeżenie lub za wysoki front)
-  const tone = res.warning ? 'orange' : ((res.info && res.info.messageTone) ? res.info.messageTone : 'red');
-  if(tone === 'orange'){
-    infoEl.style.background = '#fff3cd';
-    infoEl.style.border = '1px solid #ffecb5';
-    infoEl.style.color = '#7a4b00';
-  }else{
-    infoEl.style.background = '#f8d7da';
-    infoEl.style.border = '1px solid #f5c2c7';
-    infoEl.style.color = '#7a0000';
-  }
-  infoEl.style.padding = '10px';
-  infoEl.style.borderRadius = '8px';
+  const tone = res.tone || (res.warning ? 'orange' : ((res.info && res.info.messageTone) ? res.info.messageTone : (res.ok ? 'green' : 'red')));
+  applyAventosMessageTone(infoEl, tone);
 }
 
 

@@ -284,3 +284,7 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 - Naprawiono stronę testów aplikacji: `dev_tests.html` ładuje teraz moduł sesji inwestora przed testami projektu, więc test `FC.session.begin` ma dostęp do właściwego API.
 - Podbito cache-busting dla `session.js`.
 
+
+
+## 2026-04-24 — AVENTOS message tones
+- Przywrócono kolory komunikatów AVENTOS: czerwony błąd, pomarańczowe ostrzeżenie, zielony komunikat OK/zalecenie.

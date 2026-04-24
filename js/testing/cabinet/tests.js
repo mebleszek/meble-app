@@ -423,6 +423,62 @@
         H.assert(Number(host.FC_HANDLE_WEIGHT_KG || 0) > 0, 'Globalna stała masy uchwytu nie została odtworzona po splicie');
       }),
 
+      H.makeTest('Szafki', 'Komunikat AVENTOS ma kolor zgodny ze stanem walidacji', 'Pilnuje, czy komunikat podnośnika nie wraca do neutralnego szarego kafla: błąd ma być czerwony, ostrzeżenie pomarańczowe, a komunikat OK zielony.', ()=>{
+        H.assert(FC.cabinetFronts && typeof FC.cabinetFronts.applyAventosValidationUI === 'function', 'Brak applyAventosValidationUI');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({}, ()=>{
+          const infoEl = document.getElementById('cmFlapInfo');
+          const saveBtn = document.getElementById('cabinetModalSave');
+          H.assert(infoEl && saveBtn, 'Brak elementów AVENTOS w fixture modala');
+
+          const room = { settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8 }, cabinets:[] };
+          const invalidDraft = {
+            type:'moduł',
+            subType:'uchylne',
+            width:60,
+            height:94.2,
+            depth:36,
+            frontMaterial:'laminat',
+            frontColor:'Egger W1100 ST9 Biały Alpejski',
+            details:{ flapVendor:'blum', flapKind:'HK_top' }
+          };
+          FC.cabinetFronts.applyAventosValidationUI(room, invalidDraft);
+          H.assert(infoEl.style.display === 'block', 'Błędny AVENTOS nie pokazał komunikatu');
+          H.assert(infoEl.classList.contains('cabinet-aventos-message--danger') || /ffe4e6|f8d7da/i.test(String(infoEl.style.background || '')), 'Błędny AVENTOS nie dostał czerwonego komunikatu', infoEl.getAttribute('class') + ' ' + infoEl.style.background);
+          H.assert(saveBtn.disabled === true, 'Błędny AVENTOS nie zablokował przycisku zapisu');
+
+          const warningDraft = {
+            type:'moduł',
+            subType:'uchylne',
+            width:40,
+            height:40,
+            depth:15,
+            frontMaterial:'laminat',
+            frontColor:'Egger W1100 ST9 Biały Alpejski',
+            details:{ flapVendor:'blum', flapKind:'HK-XS' }
+          };
+          FC.cabinetFronts.applyAventosValidationUI(room, warningDraft);
+          H.assert(infoEl.style.display === 'block', 'Ostrzeżenie AVENTOS nie pokazało komunikatu');
+          H.assert(infoEl.classList.contains('cabinet-aventos-message--warning') || /fff7ed|fff3cd/i.test(String(infoEl.style.background || '')), 'Ostrzeżenie AVENTOS nie dostało pomarańczowego komunikatu', infoEl.getAttribute('class') + ' ' + infoEl.style.background);
+          H.assert(saveBtn.disabled === false, 'Ostrzeżenie AVENTOS nie powinno blokować zapisu');
+
+          const okDraft = {
+            type:'moduł',
+            subType:'uchylne',
+            width:100,
+            height:40,
+            depth:36,
+            frontMaterial:'laminat',
+            frontColor:'Egger W1100 ST9 Biały Alpejski',
+            details:{ flapVendor:'blum', flapKind:'HK-XS' }
+          };
+          FC.cabinetFronts.applyAventosValidationUI(room, okDraft);
+          H.assert(infoEl.style.display === 'block', 'Zielony komunikat AVENTOS nie pokazał się dla stanu OK z zaleceniem');
+          H.assert(infoEl.classList.contains('cabinet-aventos-message--success') || /dcfce7/i.test(String(infoEl.style.background || '')), 'Komunikat OK AVENTOS nie dostał zielonego koloru', infoEl.getAttribute('class') + ' ' + infoEl.style.background);
+          H.assert(saveBtn.disabled === false, 'Komunikat OK AVENTOS nie powinien blokować zapisu');
+        });
+      }),
+
       H.makeTest('Szafki', 'Materiały zestawu pokazują fronty i zawiasy tylko na pierwszym korpusie zestawu', 'Pilnuje regresji materiałów zestawu: fronty wygenerowane dla całego zestawu mają pojawić się przy pierwszym korpusie, a kolejne korpusy zestawu nie mogą dublować frontów ani zawiasów.', ()=>{
         H.assert(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function', 'Brak FC.cabinetCutlist.getCabinetCutList');
         return withCabinetGlobals({
