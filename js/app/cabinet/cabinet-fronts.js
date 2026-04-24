@@ -440,11 +440,22 @@ function ensureFrontCountRules(cab){
 // ===== Walidacja AVENTOS (klapy uchylne) na etapie dodawania/edycji szafki =====
 // Cel: jeśli KH/LF poza zakresem – nie pozwól zapisać szafki (zamiast ostrzeżeń w "Materiały").
 // Używa istniejącego #cmFlapInfo (bez dodawania nowych elementów UI).
+function resolveBlumAventosInfo(draft, room){
+  try{
+    const api = ns.frontHardware || {};
+    if(api && typeof api.getBlumAventosInfo === 'function') return api.getBlumAventosInfo(draft, room);
+  }catch(_){ }
+  try{
+    if(typeof window.getBlumAventosInfo === 'function') return window.getBlumAventosInfo(draft, room);
+  }catch(_){ }
+  return null;
+}
+
 function validateAventosForDraft(room, draft){
   if(!room || !draft) return { ok:true };
   if(String(draft.subType || '') !== 'uchylne') return { ok:true };
 
-  const info = getBlumAventosInfo(draft, room);
+  const info = resolveBlumAventosInfo(draft, room);
   if(!info) return { ok:true };
 
   if(info.status && info.status !== 'ok'){

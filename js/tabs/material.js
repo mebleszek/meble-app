@@ -6,157 +6,66 @@
   window.FC = window.FC || {};
   window.FC.tabsMaterial = window.FC.tabsMaterial || {};
 
-  function renderMaterialsTab(listEl, room){
-    const cabinets = projectData[room].cabinets || [];
+  function fallbackFmtCm(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return '0';
+    const s = (Math.round(n * 10) / 10).toFixed(1);
+    return s.endsWith('.0') ? s.slice(0, -2) : s;
+  }
 
+  function getMaterialModel(room){
+    const dataApi = window.FC && window.FC.materialTabData;
+    const edgeApi = window.FC && window.FC.materialEdgeStore && typeof window.FC.materialEdgeStore.createEdgeStore === 'function'
+      ? window.FC.materialEdgeStore.createEdgeStore()
+      : null;
+    if(dataApi && typeof dataApi.collectRoomMaterials === 'function'){
+      return dataApi.collectRoomMaterials(room, { edgeApi });
+    }
     const common = (window.FC && window.FC.materialCommon) || {};
     const hw = (window.FC && window.FC.frontHardware) || {};
-
-    const mergeTotalsFn = (typeof mergeTotals === 'function') ? mergeTotals : ((typeof common.mergeTotals === 'function') ? common.mergeTotals : function(dst, src){ Object.keys(src||{}).forEach((k)=>{ dst[k] = (Number(dst[k])||0) + (Number(src[k])||0); }); return dst; });
-    const totalsFromPartsFn = (typeof totalsFromParts === 'function') ? totalsFromParts : ((typeof common.totalsFromParts === 'function') ? common.totalsFromParts : function(){ return {}; });
-    const renderTotalsFn = (typeof renderTotals === 'function') ? renderTotals : ((typeof common.renderTotals === 'function') ? common.renderTotals : function(container){ if(container) container.innerHTML=''; });
-    const getAssemblyRuleTextFn = (typeof getCabinetAssemblyRuleText === 'function') ? getCabinetAssemblyRuleText : ((typeof common.getCabinetAssemblyRuleText === 'function') ? common.getCabinetAssemblyRuleText : function(){ return 'Skręcanie: —'; });
+    const cabinets = ((typeof projectData !== 'undefined') && projectData && projectData[room] && Array.isArray(projectData[room].cabinets)) ? projectData[room].cabinets : [];
     const getCabinetCutListFn = (typeof getCabinetCutList === 'function') ? getCabinetCutList : function(){ return []; };
-    const FC_HANDLE_WEIGHT_KG_SAFE = (typeof window.FC_HANDLE_WEIGHT_KG !== 'undefined') ? window.FC_HANDLE_WEIGHT_KG : (Number(hw.FC_HANDLE_WEIGHT_KG) || 0);
-    const FC_FRONT_WEIGHT_KG_M2_SAFE = (window.FC_FRONT_WEIGHT_KG_M2 && typeof window.FC_FRONT_WEIGHT_KG_M2 === 'object') ? window.FC_FRONT_WEIGHT_KG_M2 : (hw.FC_FRONT_WEIGHT_KG_M2 || { laminat:0, akryl:0, lakier:0 });
-
-    // Edge banding selections (stored locally for now)
-    const EDGE_KEY = 'fc_edge_v1';
-    const cmToMmLocal = (v)=>{ const n=Number(v); return Number.isFinite(n)? Math.round(n*10):0; };
-    function loadEdgeStore(){
-      try{ const raw = localStorage.getItem(EDGE_KEY); const obj = raw ? JSON.parse(raw) : {}; return (obj && typeof obj==='object') ? obj : {}; }
-      catch(_){ return {}; }
-    }
-    function saveEdgeStore(obj){
-      try{
-        const nextRaw = JSON.stringify(obj||{});
-        const prevRaw = localStorage.getItem(EDGE_KEY);
-        if(prevRaw !== nextRaw){
-          try{ if(window.FC && window.FC.session && typeof window.FC.session.begin === 'function' && !(window.FC.session.active)) window.FC.session.begin(); }catch(_){ }
-        }
-        localStorage.setItem(EDGE_KEY, nextRaw);
-      }catch(_){ }
-      try{ window.FC && window.FC.views && typeof window.FC.views.refreshSessionButtons === 'function' && window.FC.views.refreshSessionButtons(); }catch(_){ }
-    }
-    const edgeStore = loadEdgeStore();
-    const partOptionsApi = (window.FC && window.FC.materialPartOptions) || null;
-    function normalizedMaterialKey(material){
-      try{ if(partOptionsApi && typeof partOptionsApi.normalizeMaterialKey === 'function') return String(partOptionsApi.normalizeMaterialKey(material || '') || '').trim(); }catch(_){ }
-      const raw = String(material || '').trim();
-      const m = raw.match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
-      return m ? String(m[1] || '').trim() : raw;
-    }
-    function partSig(p){
-      try{ if(partOptionsApi && typeof partOptionsApi.signatureFromPart === 'function') return String(partOptionsApi.signatureFromPart(p) || ''); }catch(_){ }
-      return `${normalizedMaterialKey(p.material)}||${String(p.name||'').trim()}||${cmToMmLocal(p.a)}x${cmToMmLocal(p.b)}`;
-    }
-    function getPartDirection(sig){
-      try{ if(partOptionsApi && typeof partOptionsApi.getDirection === 'function') return partOptionsApi.getDirection(sig); }catch(_){ }
-      return 'default';
-    }
-    function getPartDirectionLabel(sig){
-      const dir = getPartDirection(sig);
-      try{ if(partOptionsApi && typeof partOptionsApi.labelForDirection === 'function') return partOptionsApi.labelForDirection(dir); }catch(_){ }
-      return 'Domyślny z materiału';
-    }
-    function openPartOptions(part, sig, cabId){
-      try{
-        if(!(partOptionsApi && typeof partOptionsApi.openOptionsModal === 'function')) return;
-        try{ window.FC && window.FC.listScrollMemory && typeof window.FC.listScrollMemory.rememberForCabinet === 'function' && window.FC.listScrollMemory.rememberForCabinet('material', cabId || uiState.selectedCabinetId || ''); }catch(_){ }
-        partOptionsApi.openOptionsModal({
-          sig,
-          name: String((part && part.name) || 'Element'),
-          material: normalizedMaterialKey(part && part.material),
-          sizeText: `${fmtCm(part && part.a)} × ${fmtCm(part && part.b)} cm`,
-          initialDirection: getPartDirection(sig),
-          onSave: ()=> renderCabinets(),
-          onClose: ()=> {
-            try{ window.FC && window.FC.listScrollMemory && typeof window.FC.listScrollMemory.restorePending === 'function' && window.FC.listScrollMemory.restorePending(); }catch(_){ }
-          },
-        });
-      }catch(_){ }
-    }
-    function defaultEdgesForPart(p, cab){
-      const name = String((p && p.name) || '').toLowerCase();
-      const cabType = String((cab && cab.type) || '').toLowerCase();
-      if(name.includes('front') || name.includes('drzwi') || name.includes('blenda') || name.includes('maskown') || name.includes('szufl') || name.includes('klapa')){
-        return { w1:true, w2:true, h1:true, h2:true };
-      }
-      if(name.includes('plecy') || name.includes('hdf') || name.includes('tył') || name.includes('tyl')){
-        return { w1:false, w2:false, h1:false, h2:false };
-      }
-      if(cabType.includes('wis') && name.includes('bok')){
-        return { w1:true, w2:false, h1:true, h2:true };
-      }
-      if(
-        name.includes('bok') || name.includes('półka') || name.includes('polka') || name.includes('wieniec') ||
-        name.includes('trawers') || name.includes('przegrod') || name.includes('ściank') || name.includes('sciank') ||
-        name.includes('dno') || name.includes('góra') || name.includes('gora') || name.includes('cok')
-      ){
-        return { w1:true, w2:false, h1:false, h2:false };
-      }
-      return { w1:false, w2:false, h1:false, h2:false };
-    }
-
-    function getEdges(sig, part, cab){
-      const e = edgeStore[sig] || null;
-      if(!e){
-        const def = defaultEdgesForPart(part, cab);
-        edgeStore[sig] = { ...def };
-        saveEdgeStore(edgeStore);
-        return { ...def };
-      }
-      return {
-        w1: !!(e && e.w1),
-        w2: !!(e && e.w2),
-        h1: !!(e && e.h1),
-        h2: !!(e && e.h2),
-      };
-    }
-    function setEdges(sig, patch){
-      const prev = edgeStore[sig] || {};
-      edgeStore[sig] = { ...prev, ...patch };
-      saveEdgeStore(edgeStore);
-    }
-    function edgingMetersForPart(p, edges){
-      const qty = Number(p.qty)||0;
-      const a = Number(p.a)||0;
-      const b = Number(p.b)||0;
-      if(!(qty>0 && a>0 && b>0)) return 0;
-      const cm = ((edges.w1?1:0) + (edges.w2?1:0)) * a + ((edges.h1?1:0) + (edges.h2?1:0)) * b;
-      return (cm * qty) / 100;
-    }
-
-    function fmtCm(v){
-      const n = Number(v);
-      if(!Number.isFinite(n)) return '0';
-      const s = (Math.round(n*10)/10).toFixed(1);
-      return s.endsWith('.0') ? s.slice(0,-2) : s;
-    }
-
-    function calcEdgeMetersForParts(parts, cab){
-      let sum = 0;
-      (parts||[]).forEach(p=>{
-        if(!(Number(p.a)>0 && Number(p.b)>0)) return;
-        const sig = partSig(p);
-        const e = getEdges(sig, p, cab);
-        sum += edgingMetersForPart(p, e);
-      });
-      return sum;
-    }
-
+    const totalsFromPartsFn = (typeof totalsFromParts === 'function') ? totalsFromParts : ((typeof common.totalsFromParts === 'function') ? common.totalsFromParts : function(){ return {}; });
+    const mergeTotalsFn = (typeof mergeTotals === 'function') ? mergeTotals : ((typeof common.mergeTotals === 'function') ? common.mergeTotals : function(dst, src){ Object.keys(src || {}).forEach((k)=>{ dst[k] = (Number(dst[k]) || 0) + (Number(src[k]) || 0); }); return dst; });
+    const renderTotalsFn = (typeof renderTotals === 'function') ? renderTotals : ((typeof common.renderTotals === 'function') ? common.renderTotals : function(container){ if(container) container.innerHTML = ''; });
+    const getAssemblyRuleTextFn = (typeof getCabinetAssemblyRuleText === 'function') ? getCabinetAssemblyRuleText : ((typeof common.getCabinetAssemblyRuleText === 'function') ? common.getCabinetAssemblyRuleText : function(){ return 'Skręcanie: —'; });
     const projectTotals = {};
-    let projectEdgeMeters = 0;
-    cabinets.forEach(cab => {
-      const parts = getCabinetCutListFn(cab, room);
-      mergeTotalsFn(projectTotals, totalsFromPartsFn(parts));
-      (parts||[]).forEach(p=>{
-        if(!(Number(p.a)>0 && Number(p.b)>0)) return;
-        const sig = partSig(p);
-        const e = getEdges(sig, p, cab);
-        projectEdgeMeters += edgingMetersForPart(p, e);
-      });
+    const cabinetRows = cabinets.map((cabinet, index)=>{
+      const parts = getCabinetCutListFn(cabinet, room) || [];
+      const totals = totalsFromPartsFn(parts);
+      mergeTotalsFn(projectTotals, totals);
+      return { cabinet, index, badge: cabinet && cabinet.setId && typeof cabinet.setNumber === 'number' ? `<span class="badge">Zestaw ${cabinet.setNumber}</span>` : '', parts, totals, edgeMeters:0 };
     });
+    return {
+      room,
+      cabinets,
+      cabinetRows,
+      projectTotals,
+      projectEdgeMeters:0,
+      edgeApi,
+      fmtCm:fallbackFmtCm,
+      deps:{
+        renderTotalsFn,
+        totalsFromPartsFn,
+        getAssemblyRuleTextFn,
+        handleWeightKg: (typeof window.FC_HANDLE_WEIGHT_KG !== 'undefined') ? window.FC_HANDLE_WEIGHT_KG : (Number(hw.FC_HANDLE_WEIGHT_KG) || 0),
+        frontWeights: (window.FC_FRONT_WEIGHT_KG_M2 && typeof window.FC_FRONT_WEIGHT_KG_M2 === 'object') ? window.FC_FRONT_WEIGHT_KG_M2 : (hw.FC_FRONT_WEIGHT_KG_M2 || { laminat:0, akryl:0, lakier:0 }),
+      },
+    };
+  }
+
+  function renderMaterialsTab(listEl, room){
+    const model = getMaterialModel(room);
+    const cabinets = model.cabinets || [];
+    const cabinetRows = model.cabinetRows || [];
+    const deps = model.deps || {};
+    const fmtCm = typeof model.fmtCm === 'function' ? model.fmtCm : fallbackFmtCm;
+    const edgeApi = model.edgeApi || null;
+    const renderTotalsFn = typeof deps.renderTotalsFn === 'function' ? deps.renderTotalsFn : function(container){ if(container) container.innerHTML = ''; };
+    const totalsFromPartsFn = typeof deps.totalsFromPartsFn === 'function' ? deps.totalsFromPartsFn : function(){ return {}; };
+    const getAssemblyRuleTextFn = typeof deps.getAssemblyRuleTextFn === 'function' ? deps.getAssemblyRuleTextFn : function(){ return 'Skręcanie: —'; };
+    const handleWeightKg = Number(deps.handleWeightKg) || 0;
+    const frontWeights = deps.frontWeights || { laminat:0, akryl:0, lakier:0 };
 
     const top = document.createElement('div');
     top.className = 'card';
@@ -189,7 +98,7 @@
           <div>• Laminat 18&nbsp;mm: <span id="wLam"></span> kg/m²</div>
           <div>• Akryl (MDF 18&nbsp;mm): <span id="wAkr"></span> kg/m²</div>
           <div>• Lakier (MDF 18&nbsp;mm): <span id="wLak"></span> kg/m²</div>
-          <div>• Uchwyt (zawiasy): ${FC_HANDLE_WEIGHT_KG_SAFE} kg / front; (podnośniki klap): ${FC_HANDLE_WEIGHT_KG_SAFE*2} kg / klapa</div>
+          <div>• Uchwyt (zawiasy): ${handleWeightKg} kg / front; (podnośniki klap): ${handleWeightKg*2} kg / klapa</div>
           <div style="font-size:12px;color:#5b6b7c;margin-top:6px">Uchwyty doliczane tylko gdy wybrany system z uchwytem (TIP-ON/podchwyt = 0 kg).</div>
         </div>
       </div>
@@ -197,19 +106,19 @@
     listEl.appendChild(top);
 
     const projTotalsEl = top.querySelector('#projectMatTotals');
-    if(projTotalsEl) renderTotalsFn(projTotalsEl, projectTotals);
+    if(projTotalsEl) renderTotalsFn(projTotalsEl, model.projectTotals || {});
 
     const projEdgeEl = top.querySelector('#projectEdgeTotals');
     if(projEdgeEl){
-      projEdgeEl.textContent = `${projectEdgeMeters.toFixed(2)} mb`;
+      projEdgeEl.textContent = `${(Number(model.projectEdgeMeters)||0).toFixed(2)} mb`;
     }
 
     const wLamEl = top.querySelector('#wLam');
     const wAkrEl = top.querySelector('#wAkr');
     const wLakEl = top.querySelector('#wLak');
-    if(wLamEl) wLamEl.textContent = String(FC_FRONT_WEIGHT_KG_M2_SAFE.laminat);
-    if(wAkrEl) wAkrEl.textContent = String(FC_FRONT_WEIGHT_KG_M2_SAFE.akryl);
-    if(wLakEl) wLakEl.textContent = String(FC_FRONT_WEIGHT_KG_M2_SAFE.lakier);
+    if(wLamEl) wLamEl.textContent = String(frontWeights.laminat);
+    if(wAkrEl) wAkrEl.textContent = String(frontWeights.akryl);
+    if(wLakEl) wLakEl.textContent = String(frontWeights.lakier);
 
     if(!cabinets.length){
       const empty = document.createElement('div');
@@ -219,14 +128,12 @@
       return;
     }
 
-    cabinets.forEach((cab, idx) => {
+    cabinetRows.forEach((entry) => {
+      const cab = entry.cabinet || {};
+      const idx = Number(entry.index) || 0;
       const card = document.createElement('div');
       card.className = 'card';
       card.id = `mat-${cab.id}`;
-
-      const badge = cab.setId && typeof cab.setNumber === 'number'
-        ? `<span class="badge">Zestaw ${cab.setNumber}</span>`
-        : '';
 
       const head = document.createElement('div');
       head.className = 'mat-cab-head';
@@ -237,7 +144,7 @@
       head.style.flexWrap = 'wrap';
       head.innerHTML = `
         <div>
-          <div style="font-weight:900">#${idx+1} • ${cab.type || ''} • ${cab.subType || ''} ${badge}</div>
+          <div style="font-weight:900">#${idx+1} • ${cab.type || ''} • ${cab.subType || ''} ${entry.badge || ''}</div>
           <div class="muted xs">${cab.width} × ${cab.height} × ${cab.depth} • korpus: ${cab.bodyColor || ''} • plecy: ${cab.backMaterial || ''}</div>
         </div>
         <div class="mat-head-right" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:100%">
@@ -260,19 +167,19 @@
         renderCabinets();
       });
 
-      const _editCabBtn = head.querySelector('[data-act="editCab"]');
-      if(_editCabBtn){
-        _editCabBtn.addEventListener('click', (e) => {
+      const editCabBtn = head.querySelector('[data-act="editCab"]');
+      if(editCabBtn){
+        editCabBtn.addEventListener('click', (e) => {
           e.preventDefault(); e.stopPropagation();
-          openCabinetModalForEdit(_editCabBtn.getAttribute('data-cab'));
+          openCabinetModalForEdit(editCabBtn.getAttribute('data-cab'));
         });
       }
 
-      const _jumpCabBtn = head.querySelector('[data-act="jumpCab"]');
-      if(_jumpCabBtn){
-        _jumpCabBtn.addEventListener('click', (e) => {
+      const jumpCabBtn = head.querySelector('[data-act="jumpCab"]');
+      if(jumpCabBtn){
+        jumpCabBtn.addEventListener('click', (e) => {
           e.preventDefault(); e.stopPropagation();
-          jumpToCabinetFromMaterials(_jumpCabBtn.getAttribute('data-cab'));
+          jumpToCabinetFromMaterials(jumpCabBtn.getAttribute('data-cab'));
         });
       }
 
@@ -286,8 +193,8 @@
         return;
       }
 
-      const parts = getCabinetCutListFn(cab, room);
-      const cabEdgeMeters = calcEdgeMetersForParts(parts, cab);
+      const parts = entry.parts || [];
+      const cabEdgeMeters = Number(entry.edgeMeters) || 0;
 
       const cabTotalsBox = document.createElement('div');
       cabTotalsBox.style.marginTop = '10px';
@@ -297,7 +204,7 @@
       const cabTotalsEl = document.createElement('div');
       cabTotalsBox.appendChild(cabTotalsEl);
       card.appendChild(cabTotalsBox);
-      renderTotals(cabTotalsEl, totalsFromParts(parts));
+      renderTotalsFn(cabTotalsEl, entry.totals || totalsFromPartsFn(parts));
 
       const cabEdgeBox = document.createElement('div');
       cabEdgeBox.className = 'muted xs';
@@ -342,8 +249,11 @@
         }
 
         const isBoard = (Number(p.a)>0 && Number(p.b)>0);
-        const sig = isBoard ? partSig(p) : null;
-        const e = (sig ? getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false});
+        const sig = isBoard && edgeApi && typeof edgeApi.signatureFromPart === 'function'
+          ? edgeApi.signatureFromPart(p)
+          : (isBoard && window.FC && FC.materialEdgeStore && typeof FC.materialEdgeStore.signatureFromPart === 'function' ? FC.materialEdgeStore.signatureFromPart(p) : null);
+        const e = (sig && edgeApi && typeof edgeApi.getEdges === 'function') ? edgeApi.getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false};
+        const dirLabel = sig && edgeApi && typeof edgeApi.labelForDirection === 'function' ? edgeApi.labelForDirection(sig) : 'Domyślny z materiału';
 
         row.innerHTML = `
           <div style="font-weight:900">${p.name}</div>
@@ -389,7 +299,7 @@
                 </div>
                 <div class="material-row-tools__opts">
                   <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">Opcje</button>
-                  <div class="muted xs material-row-tools__opts-meta">Słój: ${getPartDirectionLabel(sig)}</div>
+                  <div class="muted xs material-row-tools__opts-meta">Słój: ${dirLabel}</div>
                 </div>
               </div>
             ` : `<span class="muted xs">—</span>`}
@@ -397,19 +307,28 @@
         `;
         table.appendChild(row);
 
-        if(isBoard){
+        if(isBoard && edgeApi){
           row.querySelectorAll('input[type="checkbox"][data-edge]').forEach(ch => {
             ch.addEventListener('change', ()=>{
               const sig2 = ch.getAttribute('data-sig');
               const edge = ch.getAttribute('data-edge');
-              if(!sig2 || !edge) return;
-              setEdges(sig2, { [edge]: !!ch.checked });
+              if(!sig2 || !edge || !(typeof edgeApi.setEdges === 'function')) return;
+              edgeApi.setEdges(sig2, { [edge]: !!ch.checked });
               renderCabinets();
             });
           });
           const optsBtn = row.querySelector('[data-part-options]');
           if(optsBtn){
-            optsBtn.addEventListener('click', ()=> openPartOptions(p, sig, cab.id));
+            optsBtn.addEventListener('click', ()=> {
+              if(edgeApi && typeof edgeApi.openPartOptions === 'function'){
+                edgeApi.openPartOptions(p, sig, {
+                  cabinetId:cab.id,
+                  selectedCabinetId:(typeof uiState !== 'undefined' && uiState ? uiState.selectedCabinetId : ''),
+                  fmtCm,
+                  onSave:()=> renderCabinets(),
+                });
+              }
+            });
           }
         }
       });

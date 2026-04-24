@@ -420,6 +420,7 @@
         H.assert(!!FC.frontHardwareAventosCalc && typeof FC.frontHardwareAventosCalc.estimateFlapWeightKg === 'function', 'Brak modułu obliczeń AVENTOS po splicie');
         H.assert(!!FC.frontHardwareAventosSelector && typeof FC.frontHardwareAventosSelector.getBlumAventosInfo === 'function', 'Brak modułu doboru AVENTOS po splicie');
         H.assert(typeof host.getCabinetFrontCutListForMaterials === 'function', 'Global getCabinetFrontCutListForMaterials nie istnieje po splicie');
+        H.assert(typeof host.getBlumAventosInfo === 'function', 'Global getBlumAventosInfo nie istnieje po splicie AVENTOS');
         H.assert(Number(host.FC_HANDLE_WEIGHT_KG || 0) > 0, 'Globalna stała masy uchwytu nie została odtworzona po splicie');
       }),
 

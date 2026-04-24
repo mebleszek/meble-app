@@ -1,3 +1,7 @@
+### 2026-04-24 — investor storage recovery visibility fix
+- Normal app hides leaked developer-test investors and can recover missing investor records from the edit-session snapshot as well as project/quote stores.
+- Updated cache-busting for `investors-store.js`.
+
 # meble-app
 Program do wyceny mebli i rozwijania modułów projektowania / rozkroju.
 
@@ -49,6 +53,9 @@ Workflow wypakuje ZIP do roota, usunie ZIP i zrobi commit.
 ## Główne aktywne pliki
 
 - `index.html` — struktura widoków i kolejność ładowania skryptów
+- `css/base-ui.css` — bazowe zmienne i fundament UI, ładowany jako pierwszy plik stylów.
+- `css/app-runtime.css`, `css/cabinet-common.css`, `css/drawing-home-confirm.css`, `css/shared-overlays-choice.css`, `css/rozrys-main.css`, `css/investor-table-sync.css`, `css/wycena.css`, `css/wywiad.css` — pełny split dawnego `css/style.css` na ciągłe bloki ładowane w tej samej kolejności co dawny monolit.
+- `css/style.css` — pusty placeholder zgodności po pełnym splicie CSS; nie dokładać tu nowych reguł.
 - `js/boot.js` — preflight + banner błędów
 - `js/core/actions.js` — Actions registry + walidacja `data-action`
 - `js/core/modals.js` — obsługa modali
@@ -75,6 +82,8 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 
 
 - `js/app/material/material-common.js` — wspólne helpery materiałowe i formatowanie wydzielone z `app.js`.
+- `js/app/material/material-edge-store.js` — store oklein/obrzeży dla zakładki MATERIAŁ: podpisy formatek, domyślne krawędzie, zapis `fc_edge_v1` i liczenie mb.
+- `js/app/material/material-tab-data.js` — model danych zakładki MATERIAŁ: zbiera szafki, cutlisty, sumy m² i mb oklein przed renderem.
 
 - `js/app/cabinet/front-hardware.js` — cienki shell kompatybilności dla front-hardware; logika jest w `front-hardware-weights.js`, `front-hardware-fronts.js`, `front-hardware-hinges.js` oraz splicie AVENTOS (`front-hardware-aventos-data.js`, `front-hardware-aventos-calc.js`, `front-hardware-aventos-selector.js`, `front-hardware-aventos.js`).
 - `js/app/cabinet/cabinet-fronts.js` — reguły typów/podtypów, fronty, walidacja AVENTOS i generowanie frontów; źródło prawdy dla logiki frontów używanej przez modal i materiały.
@@ -288,3 +297,12 @@ Na tym etapie UI nie został przebudowany szeroko — zmiana dotyczy głównie a
 
 ## 2026-04-24 — AVENTOS message tones
 - Przywrócono kolory komunikatów AVENTOS: czerwony błąd, pomarańczowe ostrzeżenie, zielony komunikat OK/zalecenie.
+
+
+### 2026-04-24 — AVENTOS API/message fix
+Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono czerwony/pomarańczowy/zielony komunikat walidacji.
+
+
+### 2026-04-24 — investor recovery leak fix
+- Naprawiono przypadek, w którym po przerwanym teście developerskim lista inwestorów mogła pokazać tylko fixture `Jan Test` i blokować odzysk pozostałych rekordów z projectStore/snapshotów.
+- Dane testowe są teraz mocniej oznaczane i sprzątane przez cleanup testów.

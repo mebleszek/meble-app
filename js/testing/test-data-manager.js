@@ -35,12 +35,26 @@
     return FC.serviceOrderStore.upsert(Object.assign({}, initial || {}, { meta:buildMeta('serviceOrder', initial && initial.meta) }));
   }
 
+  function isKnownLeakedInvestorFixture(value){
+    const row = value && typeof value === 'object' ? value : {};
+    const id = String(row.id || '').trim();
+    if(id === 'inv_new_only') return true;
+    if(id === 'inv_missing_old') return true;
+    if(id === 'inv_snapshot_only' || id === 'inv_snapshot_only_test' || id === 'inv_write_test_only') return true;
+    const name = String(row.name || row.companyName || '').trim().toLowerCase();
+    const email = String(row.email || '').trim().toLowerCase();
+    const city = String(row.city || '').trim().toLowerCase();
+    const phone = String(row.phone || '').trim();
+    if(!id || name !== 'jan test') return false;
+    return phone === '111' || email === 'jan@test.pl' || city === 'łódź' || city === 'lodz';
+  }
+
   function cleanup(){
     const summary = { investors:0, projects:0, serviceOrders:0 };
     try{
       if(FC.investors && typeof FC.investors.readAll === 'function' && typeof FC.investors.writeAll === 'function'){
         const before = FC.investors.readAll();
-        const removedIds = before.filter(isMarked).map((row)=> String(row.id || '')).filter(Boolean);
+        const removedIds = before.filter((row)=> isMarked(row) || isKnownLeakedInvestorFixture(row)).map((row)=> String(row.id || '')).filter(Boolean);
         if(removedIds.length){
           FC.investors.writeAll(before.filter((row)=> !removedIds.includes(String(row && row.id || ''))));
           summary.investors = removedIds.length;

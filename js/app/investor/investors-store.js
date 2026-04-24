@@ -148,6 +148,31 @@
     }catch(_){ return []; }
   }
 
+  function isTestRuntime(){
+    try{ if(FC.testHarness) return true; }catch(_){ }
+    try{
+      const path = String(window && window.location && window.location.pathname || '').toLowerCase();
+      if(path.includes('dev_tests') || path.includes('dev_app_smoke') || path.includes('dev_rozrys_smoke')) return true;
+    }catch(_){ }
+    return false;
+  }
+
+  function isDevTestInvestorRecord(inv){
+    const src = inv && typeof inv === 'object' ? inv : {};
+    const meta = src.meta && typeof src.meta === 'object' ? src.meta : {};
+    const source = String(meta.source || src.source || '').trim().toLowerCase();
+    const owner = String(meta.testOwner || '').trim().toLowerCase();
+    if(meta.testData === true && (!owner || owner === 'dev-tests')) return true;
+    if(source.startsWith('test-') || source === 'investor' || source === 'investor-recovery-fixture') return true;
+    return isKnownLeakedTestInvestor(src);
+  }
+
+  function stripDevTestInvestorsForApp(list){
+    const rows = Array.isArray(list) ? list : [];
+    if(isTestRuntime()) return rows;
+    return rows.filter((inv)=> !isDevTestInvestorRecord(inv));
+  }
+
   function writeAll(list){
     try{ localStorage.setItem(KEY_INVESTORS, JSON.stringify((list || []).map(normalizeInvestor))); }catch(_){ }
   }
@@ -366,6 +391,15 @@
     const testOnly = !!cfg.testOnly;
     const recovered = new Map();
     try{
+      const sessionInvestors = readSessionSnapshotInvestors();
+      (Array.isArray(sessionInvestors) ? sessionInvestors : []).forEach((investor)=> {
+        if(testOnly && !isTestRecoveryRecord(investor)) return;
+        const investorId = String(investor && investor.id || '').trim();
+        if(!investorId) return;
+        mergeCandidateInto(recovered, investor, Array.isArray(investor && investor.rooms) ? investor.rooms : [], Object.assign({}, investor || {}, { source:'edit-session-snapshot' }));
+      });
+    }catch(_){ }
+    try{
       const projects = readRawProjectRecords();
       (Array.isArray(projects) ? projects : []).forEach((record)=> {
         if(testOnly && !isTestRecoveryRecord(record)) return;
@@ -395,15 +429,30 @@
     return recovered;
   }
 
+  function isKnownLeakedTestInvestor(inv){
+    const src = inv && typeof inv === 'object' ? inv : {};
+    const id = String(src.id || '').trim();
+    if(id === 'inv_new_only') return true;
+    if(id === 'inv_missing_old') return true;
+    if(id === 'inv_snapshot_only' || id === 'inv_snapshot_only_test' || id === 'inv_write_test_only') return true;
+    const name = String(src.name || src.companyName || '').trim().toLowerCase();
+    const email = String(src.email || '').trim().toLowerCase();
+    const city = String(src.city || '').trim().toLowerCase();
+    const phone = String(src.phone || '').trim();
+    if(!id || name !== 'jan test') return false;
+    return phone === '111' || email === 'jan@test.pl' || city === 'łódź' || city === 'lodz';
+  }
+
   function recoverMissingInvestors(list){
-    const current = Array.isArray(list) ? list.map(normalizeInvestor) : [];
-    if(_isRecovering) return current;
+    const currentRaw = Array.isArray(list) ? list.map(normalizeInvestor) : [];
+    if(_isRecovering) return stripDevTestInvestorsForApp(currentRaw);
     _isRecovering = true;
     try{
+      const current = stripDevTestInvestorsForApp(currentRaw);
       const removedIds = readRemovedIds();
       const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
-      let recovered = buildRecoveryCandidates({ testOnly: current.length > 0 });
-      if(current.length === 0){
+      let recovered = buildRecoveryCandidates({ testOnly: false });
+      if(current.length === 0 && isTestRuntime()){
         const explicitTestSources = hasExplicitTestRecoverySources();
         if(explicitTestSources){
           const filtered = new Map();
@@ -417,11 +466,12 @@
       recovered.forEach((candidate, id)=> {
         const key = String(id || '').trim();
         if(!key || existingIds.has(key) || removedIds.has(key)) return;
-        additions.push(normalizeInvestor(candidate));
+        const normalized = normalizeInvestor(candidate);
+        if(!isTestRuntime() && isDevTestInvestorRecord(normalized)) return;
+        additions.push(normalized);
       });
       if(!additions.length) return current;
-      const next = current.concat(additions);
-      return next;
+      return current.concat(additions);
     }finally{
       _isRecovering = false;
     }
@@ -544,6 +594,8 @@
       buildRecoveryCandidates,
       recoverMissingInvestors,
       readRemovedIds,
+      isDevTestInvestorRecord,
+      stripDevTestInvestorsForApp,
     },
   };
 })();

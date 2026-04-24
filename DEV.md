@@ -1,3 +1,41 @@
+## 2026-04-24 — investor storage recovery/visibility fix after leaked test fixture
+- `js/app/investor/investors-store.js` — store inwestorów rozdziela teraz tryb testowy od normalnej aplikacji. W normalnej aplikacji ukrywa rekordy testowe z `dev_tests` oraz stare wycieki typu `Jan Test`, ale w samym `dev_tests.html` nadal pozwala testom tworzyć i sprawdzać takie rekordy. Dzięki temu testy nie blokują prawdziwej listy inwestorów w aplikacji.
+- `js/app/investor/investors-store.js` — awaryjne odzyskiwanie inwestorów korzysta teraz także ze snapshotu sesji edycji (`fc_edit_session_v1`), a nie tylko z projectStore i snapshotów wycen. To zabezpiecza przypadek, gdy główna lista inwestorów została nadpisana testowym wpisem, a prawdziwa lista nadal istnieje w snapshotcie sesji.
+- `js/testing/test-data-manager.js` — sprzątanie danych testowych rozpoznaje także starszy wyciek `Jan Test` bez telefonu `111`, jeśli ma testowy email/city z dawnych fixture'ów.
+- Instrukcja antyregresyjna: testowe dane inwestorów muszą być oznaczane metadanymi `meta.testData`. Jeśli testy zapisują dane w tym samym storage co aplikacja, normalna aplikacja ma je ukrywać/ignorować, a strona testów może je widzieć tylko w swoim runtime. Nie diagnozować utraty inwestorów wyłącznie przez pryzmat `fc_investors_v1`; sprawdzać też snapshot sesji, projectStore i snapshoty wycen.
+
+## 2026-04-24 — investor recovery leak fix after interrupted dev test fixture
+- `js/app/investor/investors-store.js` — recovery inwestorów nie blokuje już realnego odzysku z `projectStore`/snapshotów tylko dlatego, że w `fc_investors_v1` został pojedynczy wpis testowy. To naprawia przypadek, w którym po przerwanym teście/lista mogła pokazać tylko `Jan Test`, a stare rekordy nie wracały mimo danych pomocniczych w projekcie lub snapshotach.
+- `js/testing/investor/tests.js` — fixture `Jan Test` jest teraz jawnie oznaczony jako dane testowe, żeby przerwany test nie zostawił go jako pozornie prawdziwego inwestora.
+- `js/testing/test-data-manager.js` — cleanup testów usuwa też znane, starsze wycieki fixture (`inv_new_only` / `Jan Test`), które powstały zanim ten rekord był poprawnie oznaczany metadanymi testowymi.
+- Instrukcja antyregresyjna: testy nigdy nie mogą wpisywać do realnego storage nieoznaczonych rekordów testowych. Każdy fixture ma mieć `meta.testData=true` i `meta.testOwner=dev-tests`, a store recovery nie może traktować samego faktu istnienia jednego rekordu w `fc_investors_v1` jako powodu do blokowania odzysku prawdziwych danych z projektów/snapshotów.
+
+## 2026-04-24 — Material cleanup stage 1: data model + edge store split
+- `js/app/material/material-edge-store.js` — wydzielony store oklein/obrzeży dla zakładki `MATERIAŁ`: podpis elementu, domyślne krawędzie, zapis `fc_edge_v1`, liczenie mb okleiny oraz otwieranie opcji elementu. Dzięki temu render zakładki nie trzyma już lokalnie całej logiki edge store.
+- `js/app/material/material-tab-data.js` — nowy model danych dla zakładki `MATERIAŁ`: zbiera szafki z pokoju, pobiera cutlistę, liczy sumy m² i mb oklein oraz przygotowuje wiersze szafek dla renderu.
+- `js/tabs/material.js` — odchudzony renderer. Ma nadal składać ten sam widok i te same akcje, ale dane bierze z `materialTabData`, a krawędzie/opcje z `materialEdgeStore`.
+- `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/app-dev-smoke.js` — dopięte ładowanie nowych modułów przed `js/tabs/material.js` i testami.
+- `js/testing/material/tests.js` — dodany test antyregresyjny pilnujący, że zakładka `MATERIAŁ` ma wydzielony model danych i edge store.
+- Instrukcja antyregresyjna: przy rozwoju działu `MATERIAŁ` nie dopisywać obliczeń części, sum m², mb oklein ani podpisów formatek bezpośrednio do `js/tabs/material.js`. Dane i obliczenia mają trafiać do `material-tab-data.js` / `material-edge-store.js`, a `js/tabs/material.js` ma zostać warstwą renderu.
+
+## 2026-04-24 — AVENTOS validation message API fix after hardware split
+- `js/app/cabinet/front-hardware.js` — po splicie AVENTOS przywraca kompatybilne globalne funkcje `getBlumAventosInfo`, `blumAventosPowerFactor` i `estimateFlapWeightKg`. Starsze ścieżki i testy nie mogą dostawać pustego fallbacku zamiast realnego doboru AVENTOS.
+- `js/app/cabinet/cabinet-fronts.js` — walidacja komunikatu AVENTOS czyta teraz najpierw namespacowane API `FC.frontHardware.getBlumAventosInfo`, a dopiero potem globalny fallback. Dzięki temu błędny AVENTOS znowu pokazuje czerwony komunikat i blokuje zapis.
+- `js/testing/cabinet/tests.js` — test splitu front-hardware pilnuje teraz także globalnego `getBlumAventosInfo`, żeby podobna regresja nie przeszła po kolejnym porządkowaniu okuć.
+- Instrukcja antyregresyjna: po podziale plików hardware nie wystarczy zachować `FC.frontHardware`. Dopóki starsze moduły/testy mogą używać nazw globalnych, shell zgodności musi odtwarzać też globalne funkcje używane przez klasyczne ścieżki.
+
+## 2026-04-24 — full CSS split: style.css split into ordered thematic files without visual changes
+- `css/style.css` został opróżniony do placeholdera zgodności. Dawne reguły nie zostały zmienione ani przestawione logicznie; zostały pocięte na ciągłe bloki i ładowane w tej samej kolejności po `css/base-ui.css`.
+- Nowe pliki po pełnym splicie: `css/app-runtime.css`, `css/cabinet-common.css`, `css/drawing-home-confirm.css`, `css/shared-overlays-choice.css`, `css/rozrys-main.css`, `css/investor-table-sync.css`, `css/wycena.css`, `css/wywiad.css`.
+- `index.html` i `dev_ui_patterns.html` ładują nowe pliki przed pustym `css/style.css`, a dotychczasowe osobne CSS-y domenowe (`investor-layout`, `investor-form`, ROZRYS sync, price popup) dalej zostają po nich, żeby zachować stare nadpisania.
+- Kontrola antyregresyjna: konkatenacja nowych splitów bez komentarzy odpowiada dawnemu `style.css` 1:1. Przy kolejnych zmianach UI nie dopisywać reguł do `style.css`; wybierać właściwy plik domenowy. Jeśli zmiana dotyczy wzorca przycisków, najpierw zatwierdzić wzorzec w `dev_ui_patterns.html`, a dopiero potem ujednolicać aplikację.
+
+## 2026-04-24 — CSS split stage 1: base UI extracted without visual changes
+- `css/base-ui.css` — wydzielony pierwszy, najbezpieczniejszy blok z dawnego `css/style.css`: zmienne `:root`, podstawy layoutu, główne przyciski, startowe kafle, podstawowy modal i mobilne dopasowanie modala. To jest etap 1 splitu CSS, bez zmian wizualnych i bez zmiany selektorów.
+- `css/style.css` — nadal trzyma resztę stylów domenowych; plik został tylko skrócony o przeniesiony początkowy blok. Konkatenacja `base-ui.css + style.css` jest 1:1 zgodna ze starym `style.css`, więc kolejność reguł zostaje zachowana.
+- `index.html` + `dev_ui_patterns.html` — ładują teraz `base-ui.css` bezpośrednio przed `style.css`, żeby zachować dawną kolejność stylów.
+- Instrukcja antyregresyjna: kolejne etapy splitu CSS robić małymi, ciągłymi blokami albo najpierw udowodnić kolejność override. Nie przenosić przypadkowych selektorów w inne miejsce ładowania, bo nawet bez zmiany wartości CSS można wtedy zmienić wygląd przez inną kolejność kaskady.
+
 ## 2026-04-24 — ROZRYS technical smoke runner aligned with lazy manifest assets
 - `tools/rozrys-dev-smoke.js` — techniczny runner ROZRYS dostał do `__DEV_ASSETS__` także `js/app/rozrys/rozrys-lazy-manifest.js`. Wcześniej testy load-order widziały moduły ROZRYS jako `missing`, bo runner miał źródło `index.html`, ale nie miał źródła lazy-manifestu, mimo że realna aplikacja i `dev_tests.html` używały aktualnej ścieżki ładowania.
 - Efekt: `node tools/rozrys-dev-smoke.js` przechodzi `61/61 OK`. To była poprawka narzędzia testowego, bez zmiany działania programu i bez ruszania UI.

@@ -6,7 +6,16 @@
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Furniture Calc — wariant/rodzaj</title>
-<link href="css/style.css?v=20260424_aventos_message_tones_v1" rel="stylesheet"/>
+<link href="css/base-ui.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/app-runtime.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/cabinet-common.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/drawing-home-confirm.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/shared-overlays-choice.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/rozrys-main.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/investor-table-sync.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/wycena.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/wywiad.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/style.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/investor-layout.css?v=20260424_wywiad_front_hardware_split_v1" rel="stylesheet"/>
 <link href="css/investor-form.css?v=20260405_field_unify_width_sync_v1" rel="stylesheet"/>
 <link href="css/rozrys-reference-sync.css?v=20260414_status_modal_grey_v1" rel="stylesheet"/>
@@ -595,7 +604,7 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/ui-state.js?v=20260404_investor_project_status_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/session.js?v=20260424_session_dirty_proto_fix_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20260420_investor_recovery_non_destructive_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20260424_investor_storage_recovery_visibility_fix_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-foundation.js?v=20260422_room_registry_hardening_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-utils.js?v=20260422_registry_perf_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-definitions.js?v=20260423_room_core_session_v1"></script>
@@ -649,6 +658,8 @@
 
 <!-- load-group: app-runtime | Room / session / app runtime foundation -->
 <script data-load-group="app-runtime" defer="" src="js/app/material/material-part-options.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/material/material-edge-store.js?v=20260424_material_cleanup_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/material/material-tab-data.js?v=20260424_material_cleanup_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-grain.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-validation.js?v=20260406_merge_validation_guard_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/corner-sketch.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -665,7 +676,7 @@
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware-aventos-calc.js?v=20260424_aventos_split_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware-aventos-selector.js?v=20260424_aventos_split_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware-aventos.js?v=20260424_aventos_split_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware.js?v=20260424_wywiad_front_hardware_split_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware.js?v=20260424_aventos_api_fix_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/shared/calc.js?v=20260423_restore_stable_room_flow_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/investor/project-bootstrap.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-state-bootstrap.js?v=20260420_app_bootstrap_split_v1"></script>
@@ -680,7 +691,7 @@
 <script data-load-group="app-runtime" defer="" src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
 
 <!-- load-group: cabinet-wywiad | Wywiad / cabinet modal stack -->
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-fronts.js?v=20260424_aventos_message_tones_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-fronts.js?v=20260424_aventos_api_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-validation.js?v=20260418_wywiad_set_wizard_split_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-draft.js?v=20260418_wywiad_set_wizard_split_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-fields.js?v=20260418_wywiad_set_wizard_split_v1"></script>
@@ -701,7 +712,7 @@
 <!-- load-group: tabs-quote-wycena | Classic tabs / quote / wycena -->
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20260406_session_fix_v2"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20260424_material_cleanup_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/czynnosci.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-offer-store.js?v=20260415_quote_scope_names_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20260420_quote_store_include_fix_v8"></script>
