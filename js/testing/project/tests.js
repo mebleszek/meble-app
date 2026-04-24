@@ -52,6 +52,31 @@
         H.assert(String(resolved.fallbackReason || '') === 'preserve-explicit', 'Resolver nie oznaczył zachowanego exact scope jako preserve-explicit', resolved);
       }),
 
+      H.makeTest('Projekt', 'Backup danych obejmuje pełny storage aplikacji i potrafi przywrócić stan', 'Pilnuje fundamentu bezpieczeństwa danych: backup ma obejmować wszystkie klucze aplikacji, nie tylko inwestorów, i ma umieć wrócić do poprzedniego stanu.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
+        H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.applySnapshot === 'function', 'Brak FC.dataBackupSnapshot.applySnapshot');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const prevBackupsRaw = localStorage.getItem(backupKey);
+        const prevInvRaw = localStorage.getItem('fc_investors_v1');
+        const prevProjectsRaw = localStorage.getItem('fc_projects_v1');
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'backup_test_inv', name:'Backup Test' }]));
+          localStorage.setItem('fc_projects_v1', JSON.stringify([{ id:'backup_test_project', investorId:'backup_test_inv' }]));
+          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Test backup', dedupe:false });
+          H.assert(made && made.created && made.backup && made.backup.snapshot, 'Backup nie został utworzony', made);
+          H.assert(made.backup.snapshot.keys.fc_investors_v1 && made.backup.snapshot.keys.fc_projects_v1, 'Backup nie objął inwestorów i projektów', made.backup.snapshot.keys);
+          localStorage.setItem('fc_investors_v1', JSON.stringify([]));
+          FC.dataBackupStore.restoreBackup(made.backup.id);
+          const restored = JSON.parse(localStorage.getItem('fc_investors_v1') || '[]');
+          H.assert(Array.isArray(restored) && restored.some((row)=> row && row.id === 'backup_test_inv'), 'Przywrócenie backupu nie odtworzyło inwestora', restored);
+        } finally {
+          if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
+          if(prevInvRaw == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', prevInvRaw);
+          if(prevProjectsRaw == null) localStorage.removeItem('fc_projects_v1'); else localStorage.setItem('fc_projects_v1', prevProjectsRaw);
+        }
+      }),
+
       H.makeTest('Projekt', 'Sesja wykrywa zmianę od razu po zapisie do localStorage i czyści ją po commit', 'Pilnuje nowego lżejszego wykrywania zmian: po edycji nie trzeba czekać na pełne skanowanie storage, a po Zapisz stan dirty ma zniknąć.', ()=>{
         H.assert(FC.session && typeof FC.session.begin === 'function', 'Brak FC.session.begin');
         const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.ui) || 'fc_ui_v1';

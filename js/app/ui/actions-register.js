@@ -151,6 +151,10 @@
 
     'open-furniture-hub': ({event}) => openModeHub('furnitureProjects'),
     'open-workshop-hub': ({event}) => openModeHub('workshopServices'),
+    'open-data-settings': ({event}) => {
+      try{ if(window.FC && FC.dataSettingsModal && typeof FC.dataSettingsModal.open === 'function') return !!FC.dataSettingsModal.open(); }catch(_){ }
+      return true;
+    },
     'close-mode-hub': ({event}) => { try{ if(FC.views && FC.views.openHome) FC.views.openHome(); }catch(_){ } return true; },
     'open-sheet-materials': ({event}) => openPriceCatalog('materials'),
     'open-accessories': ({event}) => openPriceCatalog('accessories'),

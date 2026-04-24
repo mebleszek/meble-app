@@ -13,6 +13,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/shared/migrate.js",
       "js/app/shared/schema.js",
       "js/app/shared/storage.js",
+      "js/app/shared/data-backup-snapshot.js",
+      "js/app/shared/data-backup-store.js",
       "js/app/project/project-model.js",
       "js/app/project/project-store.js",
       "js/app/project/project-bridge.js",
@@ -76,7 +78,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/material/price-modal.js",
       "js/app/ui/confirm-box.js",
       "js/app/ui/info-box.js",
-      "js/app/ui/panel-box.js"
+      "js/app/ui/panel-box.js",
+      "js/app/ui/data-settings-modal.js"
     ]
   },
   {

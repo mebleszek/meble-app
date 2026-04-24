@@ -1,3 +1,8 @@
+### 2026-04-24 — data safety foundation
+- Added a system-wide backup module for all app data (`fc_*` localStorage keys), not just investors.
+- Start screen now has a gear settings entry for `Dane programu`: create backup, save safe state, export/import JSON, restore saved backup, pin/delete backups, copy diagnostics.
+- Dev tests now use the same backup module before each run and always cleanup marked test data after runs.
+
 ### 2026-04-24 — investor storage recovery visibility fix
 - Normal app hides leaked developer-test investors and can recover missing investor records from the edit-session snapshot as well as project/quote stores.
 - Updated cache-busting for `investors-store.js`.

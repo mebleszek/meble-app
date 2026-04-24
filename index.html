@@ -10,6 +10,7 @@
 <link href="css/app-runtime.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/cabinet-common.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/drawing-home-confirm.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
+<link href="css/data-settings.css?v=20260424_data_safety_foundation_v1" rel="stylesheet"/>
 <link href="css/shared-overlays-choice.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/rozrys-main.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/investor-table-sync.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
@@ -55,8 +56,13 @@
 <div class="container">
 <div id="homeView">
 <div class="card home-hero">
+<div class="home-hero__head">
+<div>
 <h2 style="margin:0">Start</h2>
 <p class="muted" style="margin:6px 0 0">Wybierz główny tryb pracy</p>
+</div>
+<button class="btn home-settings-btn" data-action="open-data-settings" id="openDataSettingsBtn" type="button" aria-label="Ustawienia danych">⚙</button>
+</div>
 <div class="home-actions" style="margin-top:14px">
 <button class="btn-primary home-btn" data-action="open-furniture-hub" id="openFurnitureProjectsBtn">Projekty meblowe</button>
 <button class="btn home-btn" data-action="open-workshop-hub" id="openWorkshopServicesBtn">Drobne usługi stolarskie</button>
@@ -599,6 +605,8 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/migrate.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/schema.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/storage.js?v=20260422_registry_perf_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-snapshot.js?v=20260424_data_safety_foundation_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-store.js?v=20260424_data_safety_foundation_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-model.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
@@ -655,6 +663,7 @@
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/panel-box.js?v=20260329_rozrys_visual_polish_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-modal.js?v=20260424_data_safety_foundation_v1"></script>
 
 <!-- load-group: app-runtime | Room / session / app runtime foundation -->
 <script data-load-group="app-runtime" defer="" src="js/app/material/material-part-options.js?v=20260406_session_fix_v2"></script>

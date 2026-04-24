@@ -232,12 +232,15 @@
     async function run(mode, sourceBtn){
       setRunning(true, sourceBtn);
       results.innerHTML = '';
+      let safetyContext = null;
       try{
+        if(FC.testDataSafety && typeof FC.testDataSafety.beforeRun === 'function'){
+          safetyContext = FC.testDataSafety.beforeRun({ mode });
+        }
         cleanupTestData(true);
         const suites = await collectSuites(mode);
         lastSuites = suites.slice();
         lastOverall = renderResult(results, suites);
-        cleanupTestData(true);
         copyBtn.disabled = false;
         copyErrorsBtn.disabled = false;
       } catch(error){
@@ -252,10 +255,11 @@
             <div class="overall-sub">${error && error.message ? error.message : String(error)}</div>
           </div>
         `;
-        cleanupTestData(true);
         copyBtn.disabled = false;
         copyErrorsBtn.disabled = false;
       } finally {
+        try{ cleanupTestData(true); }catch(_){ }
+        try{ if(FC.testDataSafety && typeof FC.testDataSafety.afterRun === 'function') FC.testDataSafety.afterRun(safetyContext, { mode, failed:lastOverall && lastOverall.failed }); }catch(_){ }
         setRunning(false);
       }
     }
