@@ -49,9 +49,6 @@ Workflow wypakuje ZIP do roota, usunie ZIP i zrobi commit.
 ## Główne aktywne pliki
 
 - `index.html` — struktura widoków i kolejność ładowania skryptów
-- `css/base-ui.css` — bazowe zmienne i fundament UI, ładowany jako pierwszy plik stylów.
-- `css/app-runtime.css`, `css/cabinet-common.css`, `css/drawing-home-confirm.css`, `css/shared-overlays-choice.css`, `css/rozrys-main.css`, `css/investor-table-sync.css`, `css/wycena.css`, `css/wywiad.css` — pełny split dawnego `css/style.css` na ciągłe bloki ładowane w tej samej kolejności co dawny monolit.
-- `css/style.css` — pusty placeholder zgodności po pełnym splicie CSS; nie dokładać tu nowych reguł.
 - `js/boot.js` — preflight + banner błędów
 - `js/core/actions.js` — Actions registry + walidacja `data-action`
 - `js/core/modals.js` — obsługa modali
