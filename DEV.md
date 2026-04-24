@@ -1,3 +1,9 @@
+## 2026-04-24 — AVENTOS split: data + calc + selector + shell
+- `js/app/cabinet/front-hardware-aventos.js` został odchudzony do cienkiego shell-a kompatybilności. Publiczne API (`FC_BLUM_FLAP_KIND_LABEL`, `estimateFlapWeightKg`, `blumAventosPowerFactor`, `getBlumAventosInfo`) dalej wychodzi przez `FC.frontHardware`, więc reszta programu nie musi się zmieniać.
+- Nowe moduły: `front-hardware-aventos-data.js` (dane, zakresy i limity BLUM AVENTOS), `front-hardware-aventos-calc.js` (waga frontu, współczynnik mocy LF i helpery zakresów), `front-hardware-aventos-selector.js` (walidacja wymiarów i dobór modelu AVENTOS).
+- `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke.js` ładują nowe moduły przed shell-em `front-hardware-aventos.js`. Audyt load-groups i APP smoke przechodzą na zielono.
+- Instrukcja antyregresyjna: nowych zakresów BLUM / limitów wymiarów nie dopisywać do shell-a. Dane trafiają do `front-hardware-aventos-data.js`, obliczenia wag/LF do `front-hardware-aventos-calc.js`, a reguły doboru i komunikaty walidacji do `front-hardware-aventos-selector.js`. Zawiasów na razie nie ruszać — wrócą po rozwoju działu Materiał i Wywiad.
+
 ## 2026-04-24 — technical APP smoke runner aligned with browser dev_tests
 - `tools/app-dev-smoke.js` — techniczny runner Node został dopasowany do aktualnego `dev_tests.html`: ładuje wydzielone moduły bootstrapu (`app-state-bootstrap`, `app-ui-bootstrap`), `views`, `wywiad-room-settings` i `info-box`, zamiast zgłaszać stare braki API jako błędy programu.
 - Runner dostał minimalny fixture DOM tylko dla testów projektu/bootstrapu, gdzie realnie potrzebny jest `document`. Dla pozostałych sekcji zostaje w trybie bez DOM, tak jak wcześniej, żeby nie produkował fałszywych błędów przez niedoskonałe sztuczne środowisko.

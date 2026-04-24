@@ -416,6 +416,9 @@
         H.assert(typeof hw.getCabinetFrontCutListForMaterials === 'function', 'Brak API frontów po splicie front-hardware');
         H.assert(typeof hw.getHingeCountForCabinet === 'function', 'Brak API zawiasów po splicie front-hardware');
         H.assert(typeof hw.getBlumAventosInfo === 'function', 'Brak API AVENTOS po splicie front-hardware');
+        H.assert(!!FC.frontHardwareAventosData, 'Brak modułu danych AVENTOS po splicie');
+        H.assert(!!FC.frontHardwareAventosCalc && typeof FC.frontHardwareAventosCalc.estimateFlapWeightKg === 'function', 'Brak modułu obliczeń AVENTOS po splicie');
+        H.assert(!!FC.frontHardwareAventosSelector && typeof FC.frontHardwareAventosSelector.getBlumAventosInfo === 'function', 'Brak modułu doboru AVENTOS po splicie');
         H.assert(typeof host.getCabinetFrontCutListForMaterials === 'function', 'Global getCabinetFrontCutListForMaterials nie istnieje po splicie');
         H.assert(Number(host.FC_HANDLE_WEIGHT_KG || 0) > 0, 'Globalna stała masy uchwytu nie została odtworzona po splicie');
       }),
