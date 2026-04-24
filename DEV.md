@@ -1,3 +1,9 @@
+## 2026-04-24 — CSS split stage 1: base UI extracted without visual changes
+- `css/base-ui.css` — wydzielony pierwszy, najbezpieczniejszy blok z dawnego `css/style.css`: zmienne `:root`, podstawy layoutu, główne przyciski, startowe kafle, podstawowy modal i mobilne dopasowanie modala. To jest etap 1 splitu CSS, bez zmian wizualnych i bez zmiany selektorów.
+- `css/style.css` — nadal trzyma resztę stylów domenowych; plik został tylko skrócony o przeniesiony początkowy blok. Konkatenacja `base-ui.css + style.css` jest 1:1 zgodna ze starym `style.css`, więc kolejność reguł zostaje zachowana.
+- `index.html` + `dev_ui_patterns.html` — ładują teraz `base-ui.css` bezpośrednio przed `style.css`, żeby zachować dawną kolejność stylów.
+- Instrukcja antyregresyjna: kolejne etapy splitu CSS robić małymi, ciągłymi blokami albo najpierw udowodnić kolejność override. Nie przenosić przypadkowych selektorów w inne miejsce ładowania, bo nawet bez zmiany wartości CSS można wtedy zmienić wygląd przez inną kolejność kaskady.
+
 ## 2026-04-24 — ROZRYS technical smoke runner aligned with lazy manifest assets
 - `tools/rozrys-dev-smoke.js` — techniczny runner ROZRYS dostał do `__DEV_ASSETS__` także `js/app/rozrys/rozrys-lazy-manifest.js`. Wcześniej testy load-order widziały moduły ROZRYS jako `missing`, bo runner miał źródło `index.html`, ale nie miał źródła lazy-manifestu, mimo że realna aplikacja i `dev_tests.html` używały aktualnej ścieżki ładowania.
 - Efekt: `node tools/rozrys-dev-smoke.js` przechodzi `61/61 OK`. To była poprawka narzędzia testowego, bez zmiany działania programu i bez ruszania UI.
