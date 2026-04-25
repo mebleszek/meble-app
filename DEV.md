@@ -1,3 +1,9 @@
+## 2026-04-25 — data safety split cleanup: backup modules by responsibility
+- Backup/data-safety został rozcięty na małe moduły odpowiedzialności: storage keys, hash, normalizer snapshotu, apply/restore snapshotu, eksport payloadów, policy retencji, storage backupów, records oraz cienki `data-backup-store` jako fasada operacji.
+- UI ustawień danych został rozcięty na: wspólne DOM/helpery, menu ustawień, akcje backupu, listę backupów, widok backupu i cienki shell modala. Nie dokładać nowych funkcji z powrotem do `data-settings-modal.js`.
+- Load order jest krytyczny: moduły `data-storage-*` / `data-backup-*` muszą ładować się przed `data-backup-store.js`, a moduły `data-settings-*` przed `data-settings-modal.js`. Przy kolejnych splitach aktualizować równolegle `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke.js`.
+- Anti-regression: przed wydaniem paczki sprawdzać linie i odpowiedzialności nowych/mocno zmienionych plików. Plik mieszający 2+ realne odpowiedzialności dzielić od razu, zamiast zostawiać mini-monolit do późniejszego cleanupu.
+
 ## 2026-04-25 — app smoke warning cleanup for expected fallback tests
 - `js/testing/wycena/suites/central-status-sync.js` — testy, które celowo zerują helpery `FC.projectStatusSync.*`, wyciszają wyłącznie oczekiwane ostrzeżenia z tej ścieżki. Smoke APP ma pozostawać czysty: jeśli pojawia się nowe ostrzeżenie poza kontrolowanym testem, nie maskować go globalnie, tylko znaleźć źródło.
 - `dev_tests.html` — podbity cache-busting dla suite `central-status-sync`.

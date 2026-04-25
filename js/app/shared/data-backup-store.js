@@ -4,140 +4,15 @@
   root.FC = root.FC || {};
   const FC = root.FC;
   const snapApi = FC.dataBackupSnapshot;
-  const STORE_KEY = (snapApi && snapApi.BACKUP_STORE_KEY) || 'fc_data_backups_v1';
-  const RETENTION_DAYS = 7;
-  const MIN_KEEP = 10;
-  const AUTO_PROTECT_LATEST = 3;
+  const policy = FC.dataBackupPolicy || {};
+  const storage = FC.dataBackupStorage || {};
+  const records = FC.dataBackupRecords || {};
+  const STORE_KEY = storage.STORE_KEY || (snapApi && snapApi.BACKUP_STORE_KEY) || 'fc_data_backups_v1';
+  const sortNewest = policy.sortNewest || ((rows)=> Array.isArray(rows) ? rows.slice() : []);
+  const pruneBackups = policy.pruneBackups || ((rows)=> sortNewest(rows));
 
-  function now(){ return Date.now(); }
-  function iso(ts){ try{ return new Date(ts || now()).toISOString(); }catch(_){ return String(ts || now()); } }
-  function uid(prefix){ return String(prefix || 'backup') + '_' + now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
-
-  function readStore(){
-    try{
-      const parsed = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
-      return Array.isArray(parsed) ? parsed.filter((item)=> item && item.id && item.snapshot) : [];
-    }catch(_){ return []; }
-  }
-
-  function describeWriteError(err){
-    const name = String(err && err.name || '');
-    const message = String(err && err.message || '').trim();
-    const quotaLike = /quota|exceed|full|memory|storage/i.test(name + ' ' + message);
-    if(quotaLike) return 'Nie udało się zapisać backupu w pamięci programu. Prawdopodobnie limit localStorage dla tej strony został przekroczony.';
-    return 'Nie udało się zapisać backupu w pamięci programu.' + (message ? ' Szczegóły: ' + message : '');
-  }
-
-  function writeStore(list){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }catch(err){ throw new Error(describeWriteError(err)); }
-  }
-
-  function sortNewest(list){
-    return (Array.isArray(list) ? list : []).slice().sort((a,b)=> Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
-  }
-
-  function makeLabel(reason){
-    const map = {
-      manual:'Ręczny backup',
-      'safe-state':'Ostatni dobry stan',
-      'before-tests':'Przed testami',
-      'before-import':'Przed importem',
-      'before-restore':'Przed przywróceniem',
-      'before-migration':'Przed migracją',
-    };
-    return map[String(reason || '')] || 'Backup danych';
-  }
-
-  function isTestBackup(item){
-    return String(item && item.reason || '') === 'before-tests';
-  }
-
-  function getBackupGroup(item){
-    return isTestBackup(item) ? 'test' : 'app';
-  }
-
-  function isPinnedProtected(item){
-    return !!(item && (item.pinned || item.safeState || String(item.reason || '') === 'safe-state'));
-  }
-
-  function groupBackups(list){
-    const groups = { app:[], test:[] };
-    sortNewest(list).forEach((item)=> groups[getBackupGroup(item)].push(item));
-    return groups;
-  }
-
-  function getLatestProtectedIds(list, group){
-    const grouped = groupBackups(list || readStore());
-    return new Set((grouped[group] || []).slice(0, AUTO_PROTECT_LATEST).map((item)=> String(item.id || '')));
-  }
-
-  function getBackupProtection(item, list){
-    const backup = item || {};
-    const id = String(backup.id || '');
-    const group = getBackupGroup(backup);
-    const pinnedProtected = isPinnedProtected(backup);
-    const latestProtected = !!(id && getLatestProtectedIds(list || readStore(), group).has(id));
-    return {
-      group,
-      protected: pinnedProtected || latestProtected,
-      pinnedProtected,
-      latestProtected,
-    };
-  }
-
-  function isProtected(item, list){
-    return !!getBackupProtection(item, list).protected;
-  }
-
-  function pruneBackups(list, options){
-    const opts = Object.assign({ retentionDays:RETENTION_DAYS, minKeep:MIN_KEEP }, options || {});
-    const all = sortNewest(list);
-    if(!all.length) return all;
-    const cutoff = now() - (Number(opts.retentionDays || RETENTION_DAYS) * 24 * 60 * 60 * 1000);
-    const keepIds = new Set();
-    const grouped = groupBackups(all);
-    Object.keys(grouped).forEach((group)=>{
-      const groupList = grouped[group];
-      groupList.slice(0, Math.max(1, Number(opts.minKeep || MIN_KEEP))).forEach((item)=> keepIds.add(String(item.id || '')));
-      groupList.forEach((item)=>{
-        if(isPinnedProtected(item)) keepIds.add(String(item.id || ''));
-        if(Number(item.createdAtMs || 0) >= cutoff) keepIds.add(String(item.id || ''));
-      });
-    });
-    if(!keepIds.size && all[0]) keepIds.add(String(all[0].id || ''));
-    return all.filter((item)=> keepIds.has(String(item.id || '')));
-  }
-
-  function getBackupHash(item){
-    if(!item) return '';
-    const stored = String(item.hash || '').trim();
-    if(stored) return stored;
-    try{ return item.snapshot ? String(snapApi.hashSnapshot(item.snapshot) || '') : ''; }catch(_){ return ''; }
-  }
-
-  function findBackupByHash(hash, list){
-    const target = String(hash || '').trim();
-    if(!target) return null;
-    return sortNewest(list).find((item)=> getBackupHash(item) === target) || null;
-  }
-
-  function buildBackupFromSnapshot(snapshot, hash, options){
-    const opts = Object.assign({ reason:'manual', pinned:false, safeState:false }, options || {});
-    const createdAtMs = now();
-    const backup = {
-      id:uid('bak'),
-      reason:String(opts.reason || 'manual'),
-      label:String(opts.label || makeLabel(opts.reason)),
-      createdAt:iso(createdAtMs),
-      createdAtMs,
-      hash:String(hash || snapApi.hashSnapshot(snapshot) || ''),
-      pinned:!!opts.pinned,
-      safeState:!!opts.safeState || String(opts.reason || '') === 'safe-state',
-      snapshot,
-    };
-    if(backup.safeState) backup.pinned = true;
-    return backup;
-  }
+  function readStore(){ return storage.readStore ? storage.readStore() : []; }
+  function writeStore(list){ return storage.writeStore ? storage.writeStore(list) : null; }
 
   function saveSnapshotBackup(snapshot, hash, options){
     const opts = Object.assign({ dedupe:true, dedupeAny:false }, options || {});
@@ -145,32 +20,18 @@
     const newest = sortNewest(list)[0] || null;
     const existing = opts.dedupe === false
       ? null
-      : (opts.dedupeAny ? findBackupByHash(hash, list) : (getBackupHash(newest) === String(hash || '').trim() ? newest : null));
+      : (opts.dedupeAny ? records.findBackupByHash(hash, list) : (records.getBackupHash(newest) === String(hash || '').trim() ? newest : null));
     if(existing){
-      existing.lastSeenAt = iso();
-      existing.lastSeenAtMs = now();
+      existing.lastSeenAt = records.iso ? records.iso() : new Date().toISOString();
+      existing.lastSeenAtMs = records.now ? records.now() : Date.now();
       existing.seenCount = Number(existing.seenCount || 1) + 1;
       writeStore(pruneBackups(list));
       return { created:false, duplicate:true, backup:existing };
     }
-    const backup = buildBackupFromSnapshot(snapshot, hash, opts);
+    const backup = records.buildBackupFromSnapshot(snapshot, hash, opts);
     const next = pruneBackups([backup].concat(list));
     writeStore(next);
     return { created:true, duplicate:false, backup };
-  }
-
-  function getStats(){
-    const current = snapApi.collectSnapshot({ reason:'stats' });
-    const stats = snapApi.readStatsFromSnapshot(current);
-    const backups = readStore();
-    const appBackups = backups.filter((item)=> !isTestBackup(item));
-    const testBackups = backups.filter((item)=> isTestBackup(item));
-    return Object.assign({}, stats, {
-      backups:backups.length,
-      appBackups:appBackups.length,
-      testBackups:testBackups.length,
-      protectedBackups:backups.filter((item)=> isProtected(item, backups)).length,
-    });
   }
 
   function createBackup(options){
@@ -186,18 +47,13 @@
     const opts = Object.assign({ reason:'before-restore', label:'Przed przywróceniem backupu', dedupe:false }, options || {});
     const snapshot = snapApi.collectSnapshot({ reason:opts.reason, label:opts.label || '' });
     const hash = snapApi.hashSnapshot(snapshot);
-    const existing = findBackupByHash(hash, readStore());
+    const existing = records.findBackupByHash(hash, readStore());
     if(existing) return { created:false, duplicate:true, backup:existing, alreadySaved:true };
     return saveSnapshotBackup(snapshot, hash, Object.assign({}, opts, { dedupe:false }));
   }
 
   function listBackups(){ return sortNewest(readStore()); }
-
-  function listBackupGroups(){
-    const grouped = groupBackups(readStore());
-    return { app:grouped.app, test:grouped.test };
-  }
-
+  function listBackupGroups(){ return policy.groupBackups ? policy.groupBackups(readStore()) : { app:listBackups(), test:[] }; }
   function findBackup(id){
     const key = String(id || '');
     return readStore().find((item)=> String(item.id || '') === key) || null;
@@ -205,8 +61,7 @@
 
   function updateBackup(id, patch){
     const key = String(id || '');
-    const list = readStore();
-    const next = list.map((item)=> String(item.id || '') === key ? Object.assign({}, item, patch || {}) : item);
+    const next = readStore().map((item)=> String(item.id || '') === key ? Object.assign({}, item, patch || {}) : item);
     writeStore(pruneBackups(next));
     return findBackup(id);
   }
@@ -216,13 +71,12 @@
     const list = readStore();
     if(list.length <= 1) throw new Error('Nie można usunąć ostatniego backupu.');
     const item = list.find((row)=> String(row.id || '') === key);
-    const protection = getBackupProtection(item, list);
+    const protection = policy.getBackupProtection ? policy.getBackupProtection(item, list) : { protected:false };
     if(item && protection.protected){
       if(protection.latestProtected) throw new Error('Ten backup jest chroniony, bo należy do 3 najnowszych backupów w tej grupie.');
       throw new Error('Ten backup jest chroniony. Najpierw go odepnij.');
     }
-    const next = list.filter((row)=> String(row.id || '') !== key);
-    writeStore(next);
+    writeStore(list.filter((row)=> String(row.id || '') !== key));
     return true;
   }
 
@@ -233,7 +87,7 @@
     return snapApi.applySnapshot(backup.snapshot, { clearMissing:true });
   }
 
-  function importSnapshot(snapshot, options){
+  function importSnapshot(snapshot){
     const snap = snapApi.normalizeSnapshot(snapshot);
     if(!snap) throw new Error('Nieprawidłowy plik danych.');
     createBackup({ reason:'before-import', label:'Przed importem danych', dedupe:false });
@@ -251,16 +105,27 @@
     const backup = findBackup(id);
     if(!backup) throw new Error('Nie znaleziono backupu do eksportu.');
     const date = snapApi.safeFilenamePart(String(backup.createdAt || '').slice(0, 19));
-    return {
-      filename:'meble-app-backup-' + date + '.json',
-      payload:snapApi.makeBackupFilePayload(backup),
-      backup,
-    };
+    return { filename:'meble-app-backup-' + date + '.json', payload:snapApi.makeBackupFilePayload(backup), backup };
   }
 
   function exportBackup(id){
     const pack = exportBackupPayload(id);
     snapApi.downloadJson(pack.filename, pack.payload);
+  }
+
+  function getStats(){
+    const current = snapApi.collectSnapshot({ reason:'stats' });
+    const stats = snapApi.readStatsFromSnapshot(current);
+    const backups = readStore();
+    const appBackups = backups.filter((item)=> !(policy.isTestBackup && policy.isTestBackup(item)));
+    const testBackups = backups.filter((item)=> policy.isTestBackup && policy.isTestBackup(item));
+    const isProtected = policy.isProtected || (()=> false);
+    return Object.assign({}, stats, {
+      backups:backups.length,
+      appBackups:appBackups.length,
+      testBackups:testBackups.length,
+      protectedBackups:backups.filter((item)=> isProtected(item, backups)).length,
+    });
   }
 
   function pruneNow(){
@@ -271,9 +136,9 @@
 
   FC.dataBackupStore = {
     STORE_KEY,
-    RETENTION_DAYS,
-    MIN_KEEP,
-    AUTO_PROTECT_LATEST,
+    RETENTION_DAYS:policy.RETENTION_DAYS || 7,
+    MIN_KEEP:policy.MIN_KEEP || 10,
+    AUTO_PROTECT_LATEST:policy.AUTO_PROTECT_LATEST || 3,
     createBackup,
     ensureCurrentStateBackup,
     listBackups,
@@ -288,10 +153,10 @@
     exportBackupPayload,
     getStats,
     pruneNow,
-    isProtected,
-    isPinnedProtected,
-    isTestBackup,
-    getBackupGroup,
-    getBackupProtection,
+    isProtected:policy.isProtected,
+    isPinnedProtected:policy.isPinnedProtected,
+    isTestBackup:policy.isTestBackup,
+    getBackupGroup:policy.getBackupGroup,
+    getBackupProtection:policy.getBackupProtection,
   };
 })();
