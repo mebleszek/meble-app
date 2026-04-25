@@ -453,7 +453,7 @@
             subType:'uchylne',
             width:40,
             height:40,
-            depth:15,
+            depth:11,
             frontMaterial:'laminat',
             frontColor:'Egger W1100 ST9 Biały Alpejski',
             details:{ flapVendor:'blum', flapKind:'HK-XS' }

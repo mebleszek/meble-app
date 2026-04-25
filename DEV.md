@@ -1,3 +1,8 @@
+## 2026-04-25 — dev test isolation false positives: service orders + AVENTOS warning fixture
+- `js/testing/project/tests.js` — testy niezależności zleceń usługowych od inwestorów porównują teraz surowy zapis `fc_investors_v1` przed/po zapisie zlecenia, zamiast opierać się na `FC.investors.readAll()`. `readAll()` może legalnie dołączać odzyskane rekordy z `projectStore`/snapshotów, więc nie może być miarą mutacji storage w tym konkretnym teście.
+- `js/testing/cabinet/tests.js` — fixture ostrzeżenia AVENTOS używa teraz głębokości HK-XS poniżej zalecanej, ale powyżej minimalnej, żeby stabilnie wywołać pomarańczowy komunikat warsztatowy.
+- Anti-regression: testy izolacji danych mają mierzyć właściwą warstwę. Jeśli sprawdzamy „czy moduł X nie nadpisał storage Y”, porównywać raw storage/snapshot, a nie widok po recovery, bo recovery może legalnie zmienić `readAll()` bez mutacji danych.
+
 ## 2026-04-25 — backup policy split: app/test groups + protected latest 3
 - `js/app/shared/data-backup-store.js` — retencja backupów działa teraz osobno dla backupów programu i testowych: automatyczne sprzątanie zostawia 10 najnowszych w każdej grupie, usuwa dopiero nadmiar starszy niż 7 dni i nigdy nie rusza przypiętych / `safe-state`.
 - `js/app/ui/data-settings-modal.js` + `css/data-settings.css` — lista backupów ma dwa akordeony: `Backupy zapisane w programie` i `Backupy testowe`. W każdej grupie 3 najnowsze backupy mają blady, nieaktywny przycisk `Usuń`; backupy 4–10 zostają automatycznie, ale można je usunąć ręcznie.

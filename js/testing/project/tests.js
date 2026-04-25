@@ -418,9 +418,11 @@
         H.assert(FC.serviceOrderStore && typeof FC.serviceOrderStore.upsert === 'function', 'Brak FC.serviceOrderStore.upsert');
         const prevOrders = FC.serviceOrderStore.readAll();
         const inv = FC.investors;
-        const prevAll = inv && inv.readAll ? inv.readAll() : [];
+        const investorKey = (inv && inv.KEY_INVESTORS) || 'fc_investors_v1';
+        const prevInvestorsRaw = localStorage.getItem(investorKey);
         try{
           if(inv && inv.writeAll) inv.writeAll([{ id:'inv_only', kind:'person', name:'Jan Investor', rooms:[] }]);
+          const baselineInvestorsRaw = localStorage.getItem(investorKey);
           FC.serviceOrderStore.writeAll([]);
           const saved = (FC.testDataManager && typeof FC.testDataManager.createServiceOrder === 'function'
             ? FC.testDataManager.createServiceOrder({ title:'Naprawa frontu', clientName:'Adam Klient', phone:'500600700', address:'Łódź' })
@@ -428,10 +430,10 @@
           H.assert(saved && saved.id && String(saved.clientName || '') === 'Adam Klient', 'Store zleceń usługowych nie zapisał podstawowych danych klienta', saved);
           const orders = FC.serviceOrderStore.readAll();
           H.assert(Array.isArray(orders) && orders.length === 1, 'Store zleceń usługowych nie zwrócił zapisanego zlecenia', orders);
-          H.assert(inv && inv.readAll && inv.readAll().length === 1 && inv.readAll()[0].id === 'inv_only', 'Zapis zlecenia usługowego naruszył listę inwestorów', { investors: inv.readAll(), orders });
+          H.assert(localStorage.getItem(investorKey) === baselineInvestorsRaw, 'Zapis zlecenia usługowego naruszył zapisany storage inwestorów', { before: baselineInvestorsRaw, after: localStorage.getItem(investorKey), recoveredView: inv && inv.readAll ? inv.readAll() : [], orders });
         } finally {
           FC.serviceOrderStore.writeAll(prevOrders);
-          if(inv && inv.writeAll) inv.writeAll(prevAll);
+          if(prevInvestorsRaw == null) localStorage.removeItem(investorKey); else localStorage.setItem(investorKey, prevInvestorsRaw);
         }
       }),
       H.makeTest('Projekt', 'Katalogi rozdzielają legacy materiały, akcesoria i stawki meblowe', 'Sprawdza, czy architektura danych nie trzyma już akcesoriów jako typu materiału i czy stare usługi trafiają do stawek wyceny mebli.', ()=>{
@@ -669,17 +671,19 @@
         H.assert(FC.catalogStore && typeof FC.catalogStore.upsertServiceOrder === 'function', 'Brak FC.catalogStore.upsertServiceOrder');
         const beforeOrders = FC.catalogStore.getServiceOrders();
         const inv = FC.investors;
-        const prevAll = inv && inv.readAll ? inv.readAll() : [];
+        const investorKey = (inv && inv.KEY_INVESTORS) || 'fc_investors_v1';
+        const prevInvestorsRaw = localStorage.getItem(investorKey);
         try{
           if(inv && inv.writeAll) inv.writeAll([{ id:'inv_only', kind:'person', name:'Jan Investor', rooms:[] }]);
+          const baselineInvestorsRaw = localStorage.getItem(investorKey);
           FC.catalogStore.saveServiceOrders([]);
           FC.catalogStore.upsertServiceOrder({ title:'Naprawa blatu', customerName:'Adam Klient', phone:'500600700' });
           const orders = FC.catalogStore.getServiceOrders();
           H.assert(Array.isArray(orders) && orders.length === 1, 'Nie zapisano zlecenia usługowego', orders);
-          H.assert(inv && inv.readAll && inv.readAll().length === 1 && inv.readAll()[0].id === 'inv_only', 'Zlecenie usługowe naruszyło listę inwestorów', { investors: inv.readAll(), orders });
+          H.assert(localStorage.getItem(investorKey) === baselineInvestorsRaw, 'Zlecenie usługowe naruszyło zapisany storage inwestorów', { before: baselineInvestorsRaw, after: localStorage.getItem(investorKey), recoveredView: inv && inv.readAll ? inv.readAll() : [], orders });
         } finally {
           FC.catalogStore.saveServiceOrders(beforeOrders);
-          if(inv && inv.writeAll) inv.writeAll(prevAll);
+          if(prevInvestorsRaw == null) localStorage.removeItem(investorKey); else localStorage.setItem(investorKey, prevInvestorsRaw);
         }
       }),
     ]);
