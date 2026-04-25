@@ -77,6 +77,52 @@
         }
       }),
 
+      H.makeTest('Projekt', 'Backup danych pomija techniczne stany sesji i cache przy restore', 'Pilnuje, czy backup nie puchnie od tymczasowych danych pracy oraz czy restore nie przywraca starej aktywnej sesji edycji ani cache ROZRYS.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
+        H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.applySnapshot === 'function', 'Brak FC.dataBackupSnapshot.applySnapshot');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const volatileKeys = ['fc_edit_session_v1', 'fc_reload_restore_v1', 'fc_rozrys_plan_cache_v2'];
+        const saved = {};
+        [backupKey, 'fc_investors_v1'].concat(volatileKeys).forEach((key)=>{ saved[key] = localStorage.getItem(key); });
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'volatile_backup_inv', name:'Volatile Backup' }]));
+          localStorage.setItem('fc_edit_session_v1', JSON.stringify({ active:true, snapshot:{ fc_investors_v1:'[]' } }));
+          localStorage.setItem('fc_reload_restore_v1', JSON.stringify({ activeTab:'wycena' }));
+          localStorage.setItem('fc_rozrys_plan_cache_v2', JSON.stringify({ huge:'x'.repeat(4096) }));
+          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Volatile test backup', dedupe:false });
+          const keys = made && made.backup && made.backup.snapshot && made.backup.snapshot.keys || {};
+          volatileKeys.forEach((key)=> H.assert(!Object.prototype.hasOwnProperty.call(keys, key), 'Backup nie powinien zawierać technicznego klucza ' + key, keys));
+          volatileKeys.forEach((key)=> localStorage.setItem(key, 'stary-stan-techniczny'));
+          FC.dataBackupStore.restoreBackup(made.backup.id);
+          volatileKeys.forEach((key)=> H.assert(localStorage.getItem(key) === null, 'Restore powinien wyczyścić techniczny klucz ' + key));
+        } finally {
+          Object.keys(saved).forEach((key)=>{
+            if(saved[key] == null) localStorage.removeItem(key);
+            else localStorage.setItem(key, saved[key]);
+          });
+        }
+      }),
+
+      H.makeTest('Projekt', 'Przywracanie nie tworzy zbędnego backupu, gdy obecny stan już jest zapisany', 'Pilnuje naprawy restore: jeśli aktualne dane są już w istniejącym backupie, przywracanie nie dokłada drugiego identycznego before-restore i nie ryzykuje błędu zapisu.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const prevBackupsRaw = localStorage.getItem(backupKey);
+        const prevInvRaw = localStorage.getItem('fc_investors_v1');
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'restore_same_state_inv', name:'Same State' }]));
+          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Same state backup', dedupe:false });
+          H.assert(FC.dataBackupStore.listBackups().length === 1, 'Test powinien startować z jednym backupem');
+          FC.dataBackupStore.restoreBackup(made.backup.id);
+          const rows = FC.dataBackupStore.listBackups();
+          H.assert(rows.length === 1, 'Restore identycznego obecnego stanu nie powinien dopisać duplikatu before-restore', rows);
+        } finally {
+          if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
+          if(prevInvRaw == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', prevInvRaw);
+        }
+      }),
+
       H.makeTest('Projekt', 'Sesja wykrywa zmianę od razu po zapisie do localStorage i czyści ją po commit', 'Pilnuje nowego lżejszego wykrywania zmian: po edycji nie trzeba czekać na pełne skanowanie storage, a po Zapisz stan dirty ma zniknąć.', ()=>{
         H.assert(FC.session && typeof FC.session.begin === 'function', 'Brak FC.session.begin');
         const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.ui) || 'fc_ui_v1';

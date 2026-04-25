@@ -13,6 +13,14 @@
   const EXCLUDED_KEYS = new Set([
     BACKUP_STORE_KEY,
   ]);
+  const VOLATILE_KEYS = new Set([
+    // Techniczne stany pracy/cache. Nie są trwałymi danymi użytkownika,
+    // a ich odkładanie w backupach potrafi niepotrzebnie powiększać snapshoty
+    // albo po restore przywrócić stary tryb edycji.
+    'fc_edit_session_v1',
+    'fc_reload_restore_v1',
+    'fc_rozrys_plan_cache_v2',
+  ]);
 
   function nowIso(){
     try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); }
@@ -22,6 +30,7 @@
     const k = String(key || '');
     if(!k) return false;
     if(EXCLUDED_KEYS.has(k)) return false;
+    if(VOLATILE_KEYS.has(k)) return false;
     return k.indexOf('fc_') === 0;
   }
 
@@ -112,6 +121,12 @@
     return normalizeSnapshot(parseJson(raw));
   }
 
+  function cleanupVolatileKeys(){
+    VOLATILE_KEYS.forEach((key)=>{
+      try{ localStorage.removeItem(key); }catch(_){ }
+    });
+  }
+
   function applySnapshot(snapshot, options){
     const snap = normalizeSnapshot(snapshot);
     if(!(snap && snap.keys && typeof snap.keys === 'object')) throw new Error('Nieprawidłowy format backupu danych.');
@@ -131,6 +146,7 @@
         else localStorage.setItem(key, String(raw));
       }catch(_){ }
     });
+    if(opts.clearVolatile !== false) cleanupVolatileKeys();
     return { restoredKeys: incoming.length };
   }
 
@@ -218,12 +234,14 @@
 
   FC.dataBackupSnapshot = {
     BACKUP_STORE_KEY,
+    VOLATILE_KEYS:Array.from(VOLATILE_KEYS),
     SNAPSHOT_KIND,
     EXPORT_KIND,
     BACKUP_KIND,
     VERSION,
     isAppDataKey,
     listStorageKeys,
+    cleanupVolatileKeys,
     collectSnapshot,
     hashSnapshot,
     parseImportPayload,

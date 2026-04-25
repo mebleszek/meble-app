@@ -246,7 +246,7 @@
       restoreBtn.addEventListener('click', async ()=>{
         const ok = await ask({
           title:'PRZYWRÓCIĆ BACKUP?',
-          message:'Przywrócenie nadpisze aktualne dane programu. Przed przywróceniem program utworzy backup obecnego stanu.',
+          message:'Przywrócenie nadpisze aktualne dane programu. Przed przywróceniem program zabezpieczy obecny stan backupem, jeśli nie jest już zapisany.',
           confirmText:'Przywróć',
           cancelText:'Wróć',
           confirmTone:'success',

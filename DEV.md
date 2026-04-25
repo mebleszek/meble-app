@@ -1,3 +1,9 @@
+## 2026-04-25 — restore backup guard without changing retention
+- `js/app/shared/data-backup-store.js` — `restoreBackup()` no longer blindly creates a duplicate `before-restore` backup if the current state already exists in saved backups. This keeps the same retention/protection rules and avoids unnecessary writes during restore.
+- `js/app/shared/data-backup-snapshot.js` — program backups now skip volatile technical keys (`fc_edit_session_v1`, `fc_reload_restore_v1`, `fc_rozrys_plan_cache_v2`) and restore clears those keys, so old edit sessions/cache do not bloat backups or come back after restore.
+- `js/testing/project/tests.js` — added regression coverage for volatile-key exclusion/cleanup and for restoring an already-saved current state without adding a redundant duplicate backup.
+- Anti-regression: do not change backup retention/protection rules silently. If restore needs a safety backup, first check whether the current state is already saved; volatile cache/session keys are not durable user data and should stay out of backup snapshots.
+
 ## 2026-04-25 — settings menu shell + nested backup/data panel
 - `js/app/ui/data-settings-modal.js` — trybik Start otwiera teraz najpierw lekkie menu `Ustawienia`, a backup/dane są drugim poziomem pod kaflem `Backup i dane`. Sam panel backupu został zachowany jako ta sama logika danych, tylko renderowana głębiej.
 - `css/data-settings.css` — dodane style kafli menu ustawień oraz akordeonów dla panelu danych. Statystyki są podzielone na `Dane użytkownika` i `Dane techniczne`, żeby liczba technicznych kluczy storage nie straszyła na pierwszym widoku.

@@ -19,8 +19,16 @@
     }catch(_){ return []; }
   }
 
+  function describeWriteError(err){
+    const name = String(err && err.name || '');
+    const message = String(err && err.message || '').trim();
+    const quotaLike = /quota|exceed|full|memory|storage/i.test(name + ' ' + message);
+    if(quotaLike) return 'Nie udało się zapisać backupu w pamięci programu. Prawdopodobnie limit localStorage dla tej strony został przekroczony.';
+    return 'Nie udało się zapisać backupu w pamięci programu.' + (message ? ' Szczegóły: ' + message : '');
+  }
+
   function writeStore(list){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }catch(err){ throw new Error('Nie udało się zapisać backupu. Możliwe, że pamięć przeglądarki jest pełna.'); }
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }catch(err){ throw new Error(describeWriteError(err)); }
   }
 
   function sortNewest(list){
@@ -58,6 +66,57 @@
     return all.filter((item)=> keepIds.has(item.id));
   }
 
+  function getBackupHash(item){
+    if(!item) return '';
+    const stored = String(item.hash || '').trim();
+    if(stored) return stored;
+    try{ return item.snapshot ? String(snapApi.hashSnapshot(item.snapshot) || '') : ''; }catch(_){ return ''; }
+  }
+
+  function findBackupByHash(hash, list){
+    const target = String(hash || '').trim();
+    if(!target) return null;
+    return sortNewest(list).find((item)=> getBackupHash(item) === target) || null;
+  }
+
+  function buildBackupFromSnapshot(snapshot, hash, options){
+    const opts = Object.assign({ reason:'manual', pinned:false, safeState:false }, options || {});
+    const createdAtMs = now();
+    const backup = {
+      id:uid('bak'),
+      reason:String(opts.reason || 'manual'),
+      label:String(opts.label || makeLabel(opts.reason)),
+      createdAt:iso(createdAtMs),
+      createdAtMs,
+      hash:String(hash || snapApi.hashSnapshot(snapshot) || ''),
+      pinned:!!opts.pinned,
+      safeState:!!opts.safeState || String(opts.reason || '') === 'safe-state',
+      snapshot,
+    };
+    if(backup.safeState) backup.pinned = true;
+    return backup;
+  }
+
+  function saveSnapshotBackup(snapshot, hash, options){
+    const opts = Object.assign({ dedupe:true, dedupeAny:false }, options || {});
+    const list = readStore();
+    const newest = sortNewest(list)[0] || null;
+    const existing = opts.dedupe === false
+      ? null
+      : (opts.dedupeAny ? findBackupByHash(hash, list) : (getBackupHash(newest) === String(hash || '').trim() ? newest : null));
+    if(existing){
+      existing.lastSeenAt = iso();
+      existing.lastSeenAtMs = now();
+      existing.seenCount = Number(existing.seenCount || 1) + 1;
+      writeStore(pruneBackups(list));
+      return { created:false, duplicate:true, backup:existing };
+    }
+    const backup = buildBackupFromSnapshot(snapshot, hash, opts);
+    const next = pruneBackups([backup].concat(list));
+    writeStore(next);
+    return { created:true, duplicate:false, backup };
+  }
+
   function getStats(){
     const current = snapApi.collectSnapshot({ reason:'stats' });
     const stats = snapApi.readStatsFromSnapshot(current);
@@ -70,31 +129,17 @@
     const opts = Object.assign({ reason:'manual', dedupe:true, pinned:false, safeState:false }, options || {});
     const snapshot = snapApi.collectSnapshot({ reason:opts.reason, label:opts.label || '' });
     const hash = snapApi.hashSnapshot(snapshot);
-    const list = readStore();
-    const newest = sortNewest(list)[0] || null;
-    if(opts.dedupe !== false && newest && newest.hash === hash){
-      newest.lastSeenAt = iso();
-      newest.lastSeenAtMs = now();
-      newest.seenCount = Number(newest.seenCount || 1) + 1;
-      writeStore(pruneBackups(list));
-      return { created:false, duplicate:true, backup:newest };
-    }
-    const createdAtMs = now();
-    const backup = {
-      id:uid('bak'),
-      reason:String(opts.reason || 'manual'),
-      label:String(opts.label || makeLabel(opts.reason)),
-      createdAt:iso(createdAtMs),
-      createdAtMs,
-      hash,
-      pinned:!!opts.pinned,
-      safeState:!!opts.safeState || String(opts.reason || '') === 'safe-state',
-      snapshot,
-    };
-    if(backup.safeState) backup.pinned = true;
-    const next = pruneBackups([backup].concat(list));
-    writeStore(next);
-    return { created:true, duplicate:false, backup };
+    return saveSnapshotBackup(snapshot, hash, opts);
+  }
+
+  function ensureCurrentStateBackup(options){
+    if(!snapApi) throw new Error('Brak modułu snapshotu backupu.');
+    const opts = Object.assign({ reason:'before-restore', label:'Przed przywróceniem backupu', dedupe:false }, options || {});
+    const snapshot = snapApi.collectSnapshot({ reason:opts.reason, label:opts.label || '' });
+    const hash = snapApi.hashSnapshot(snapshot);
+    const existing = findBackupByHash(hash, readStore());
+    if(existing) return { created:false, duplicate:true, backup:existing, alreadySaved:true };
+    return saveSnapshotBackup(snapshot, hash, Object.assign({}, opts, { dedupe:false }));
   }
 
   function listBackups(){ return sortNewest(readStore()); }
@@ -126,7 +171,7 @@
   function restoreBackup(id){
     const backup = findBackup(id);
     if(!(backup && backup.snapshot)) throw new Error('Nie znaleziono backupu do przywrócenia.');
-    createBackup({ reason:'before-restore', label:'Przed przywróceniem backupu', dedupe:false });
+    ensureCurrentStateBackup({ reason:'before-restore', label:'Przed przywróceniem backupu' });
     return snapApi.applySnapshot(backup.snapshot, { clearMissing:true });
   }
 
@@ -162,6 +207,7 @@
     RETENTION_DAYS,
     MIN_KEEP,
     createBackup,
+    ensureCurrentStateBackup,
     listBackups,
     findBackup,
     updateBackup,
