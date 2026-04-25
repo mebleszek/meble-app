@@ -34,6 +34,7 @@ const FILES = [
   'js/app/material/price-modal.js',
   'js/app/ui/tabs-router.js',
   'js/app/ui/info-box.js',
+  'js/app/ui/app-icons.js',
   'js/app/ui/data-settings-dom.js',
   'js/app/ui/data-settings-report-view.js',
   'js/app/ui/data-settings-menu-view.js',

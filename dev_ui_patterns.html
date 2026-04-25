@@ -58,7 +58,7 @@
     <section class="patterns__section" data-ui-pattern-section="icons">
       <div class="patterns__section-head">
         <h2>Wzorce ikon</h2>
-        <p>Ikony wzorcowe mają być stabilnym SVG, a nie emoji ani znakami zależnymi od fontu telefonu. Na razie to tylko referencja w testach UI — aplikacja nie jest jeszcze podmieniona na te ikony.</p>
+        <p>Ikony wzorcowe mają być stabilnym SVG, a nie emoji ani znakami zależnymi od fontu telefonu. Kafle ustawień i wejście do testów mają używać tego kierunku zamiast znaków systemowych.</p>
       </div>
       <div class="icon-pattern-grid">
         <article class="icon-pattern-card" data-icon-pattern="floppy-save">
@@ -84,6 +84,19 @@
             <span class="icon-pattern-token">SVG • stable</span>
           </div>
           <p>Do ustawień i narzędzi. Nie używać emoji <code>⚙</code>, bo jego wygląd zależy od systemu.</p>
+        </article>
+        <article class="icon-pattern-card" data-icon-pattern="app-tests">
+          <h3>Kolba / testy aplikacji</h3>
+          <div class="icon-pattern-preview">
+            <svg class="app-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M8 4.5h8" />
+              <path d="M9.5 4.5v5.2l-4.8 7.4c-.9 1.4.1 3.4 1.8 3.4h11c1.7 0 2.7-2 1.8-3.4l-4.8-7.4V4.5" />
+              <path d="M7.2 15.2h9.6" />
+              <path d="M10 18.2l1.4 1.4 3.1-3.3" />
+            </svg>
+            <span class="icon-pattern-token">SVG • stable</span>
+          </div>
+          <p>Do wejścia w testy, smoke testów i diagnostyki. Kolba kojarzy się z kontrolowanym testem, a ptaszek z wynikiem OK.</p>
         </article>
         <article class="icon-pattern-card" data-icon-pattern="rozrys-info-trigger">
           <h3>Znak zapytania / pomoc</h3>

@@ -24,8 +24,11 @@
 
   function buildHeader(){
     const headerCard = h('section', { class:'data-settings-card' });
-    headerCard.appendChild(h('h3', { text:'Backup i dane' }));
-    headerCard.appendChild(h('p', { class:'muted', text:'Backup obejmuje pełny stan programu: inwestorów, pomieszczenia, projekty, szafki, materiał, wyceny, ustawienia i dane pomocnicze.' }));
+    const titleRow = h('div', { class:'data-settings-card-title-row' }, [h('h3', { text:'Backup i dane' })]);
+    const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-card-info', 'aria-label':'Pokaż informację: Backup i dane' });
+    infoBtn.addEventListener('click', ()=> dom.info('Backup i dane', 'Backup obejmuje pełny stan programu: inwestorów, pomieszczenia, projekty, szafki, materiał, wyceny, ustawienia i dane pomocnicze.'));
+    titleRow.appendChild(infoBtn);
+    headerCard.appendChild(titleRow);
     return headerCard;
   }
 

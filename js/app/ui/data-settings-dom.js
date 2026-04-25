@@ -68,17 +68,15 @@
     const details = h('details', { class:'data-settings-accordion' + (opts.open ? ' is-open' : '') });
     if(opts.open) details.setAttribute('open', 'open');
     const titleWrap = h('span', { class:'data-settings-accordion__title-wrap' }, [h('span', { class:'data-settings-accordion__title', text:title })]);
-    const actions = h('span', { class:'data-settings-accordion__actions' });
     if(opts.infoMessage){
       const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-info-trigger', 'aria-label':`Pokaż informację: ${title}` });
       infoBtn.addEventListener('click', (event)=>{
         try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
         info(title, opts.infoMessage);
       });
-      actions.appendChild(infoBtn);
-    }else{
-      actions.appendChild(h('span', { class:'data-settings-accordion__info-slot', 'aria-hidden':'true' }));
+      titleWrap.appendChild(infoBtn);
     }
+    const actions = h('span', { class:'data-settings-accordion__actions' });
     actions.appendChild(opts.sub ? h('span', { class:'data-settings-accordion__sub', text:opts.sub }) : h('span', { class:'data-settings-accordion__sub data-settings-accordion__sub--empty', 'aria-hidden':'true' }));
     actions.appendChild(h('span', { class:'data-settings-accordion__toggle', 'aria-hidden':'true' }));
     const summary = h('summary', { class:'data-settings-accordion__summary' }, [titleWrap, actions]);
