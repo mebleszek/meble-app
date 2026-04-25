@@ -63,11 +63,22 @@
   }
 
   function makeAccordion(title, contentNodes, options){
-    const opts = Object.assign({ open:false, sub:'' }, options || {});
+    const opts = Object.assign({ open:false, sub:'', infoMessage:'' }, options || {});
     const details = h('details', { class:'data-settings-accordion' + (opts.open ? ' is-open' : '') });
     if(opts.open) details.setAttribute('open', 'open');
-    const summary = h('summary', { class:'data-settings-accordion__summary' }, [
+    const titleWrap = h('span', { class:'data-settings-accordion__title-wrap' }, [
       h('span', { class:'data-settings-accordion__title', text:title }),
+    ]);
+    if(opts.infoMessage){
+      const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-info-trigger', 'aria-label':`Pokaż informację: ${title}` });
+      infoBtn.addEventListener('click', (event)=>{
+        try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+        info(title, opts.infoMessage);
+      });
+      titleWrap.appendChild(infoBtn);
+    }
+    const summary = h('summary', { class:'data-settings-accordion__summary' }, [
+      titleWrap,
       opts.sub ? h('span', { class:'data-settings-accordion__sub', text:opts.sub }) : null,
     ]);
     const body = h('div', { class:'data-settings-accordion__body' });
@@ -148,26 +159,23 @@
       headerCard.appendChild(h('p', { class:'muted', text:'Backup obejmuje pełny stan programu: inwestorów, pomieszczenia, projekty, szafki, materiał, wyceny, ustawienia i dane pomocnicze.' }));
       scroll.appendChild(headerCard);
 
-      const userStats = h('div', { class:'data-settings-stats' }, [
-        makeStat('Inwestorzy', stats.investors),
-        makeStat('Projekty', stats.projects),
-        makeStat('Snapshoty wycen', stats.quoteSnapshots),
-        makeStat('Drafty ofert', stats.quoteDrafts),
-        makeStat('Zlecenia usługowe', stats.serviceOrders),
-        makeStat('Backupy', stats.backups),
-      ]);
-
-      const technicalStats = h('div', { class:'data-settings-stats' }, [
-        makeStat('Klucze danych', stats.keys),
-        makeStat('Chronione backupy', stats.protectedBackups),
-      ]);
-      technicalStats.appendChild(h('p', { class:'muted xs data-settings-help', text:'Klucze danych to techniczne „szufladki” w pamięci przeglądarki. Nie oznaczają liczby inwestorów ani projektów.' }));
-
-      const statsCard = h('section', { class:'data-settings-card' }, [
-        makeAccordion('Dane użytkownika', [userStats], { open:true }),
-        makeAccordion('Dane techniczne', [technicalStats], { open:false }),
-      ]);
-      scroll.appendChild(statsCard);
+      const statsCard = FC.dataSettingsReportView && typeof FC.dataSettingsReportView.buildOverview === 'function'
+        ? FC.dataSettingsReportView.buildOverview({ h, makeAccordion, makeStat, snapshot, store, stats })
+        : h('section', { class:'data-settings-card' }, [
+          makeAccordion('Dane użytkownika', [h('div', { class:'data-settings-stats' }, [
+            makeStat('Inwestorzy', stats.investors),
+            makeStat('Projekty', stats.projects),
+            makeStat('Snapshoty wycen', stats.quoteSnapshots),
+            makeStat('Drafty ofert', stats.quoteDrafts),
+            makeStat('Zlecenia usługowe', stats.serviceOrders),
+            makeStat('Backupy', stats.backups),
+          ])], { open:true }),
+          makeAccordion('Dane techniczne', [h('div', { class:'data-settings-stats' }, [
+            makeStat('Klucze danych', stats.keys),
+            makeStat('Chronione backupy', stats.protectedBackups),
+          ])], { open:false, infoMessage:'Klucze danych to techniczne „szufladki” w pamięci przeglądarki. Nie oznaczają liczby inwestorów ani projektów.' }),
+        ]);
+      if(statsCard) scroll.appendChild(statsCard);
 
       const actionsCard = h('section', { class:'data-settings-card' });
       actionsCard.appendChild(makeAccordion('Backup i przenoszenie danych', [buildActions()], { open:true }));

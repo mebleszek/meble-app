@@ -247,11 +247,20 @@
     snapApi.downloadJson('meble-app-export-' + date + '.json', payload);
   }
 
-  function exportBackup(id){
+  function exportBackupPayload(id){
     const backup = findBackup(id);
     if(!backup) throw new Error('Nie znaleziono backupu do eksportu.');
     const date = snapApi.safeFilenamePart(String(backup.createdAt || '').slice(0, 19));
-    snapApi.downloadJson('meble-app-backup-' + date + '.json', snapApi.makeBackupFilePayload(backup));
+    return {
+      filename:'meble-app-backup-' + date + '.json',
+      payload:snapApi.makeBackupFilePayload(backup),
+      backup,
+    };
+  }
+
+  function exportBackup(id){
+    const pack = exportBackupPayload(id);
+    snapApi.downloadJson(pack.filename, pack.payload);
   }
 
   function pruneNow(){
@@ -276,6 +285,7 @@
     importSnapshot,
     exportCurrent,
     exportBackup,
+    exportBackupPayload,
     getStats,
     pruneNow,
     isProtected,

@@ -63,12 +63,13 @@
 
   function normalizeSnapshot(snapshot, options){
     const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
     const preliminary = isPreliminarySnapshot(src);
     const acceptedStage = String(src.meta && src.meta.acceptedStage || (src.meta && src.meta.selectedByClient ? (preliminary ? 'pomiar' : 'zaakceptowany') : '') || '');
     const opts = options && typeof options === 'object' ? options : {};
     const scope = buildCanonicalScope(src.scope || {}, opts);
     const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || getCanonicalDefaultVersionName({ scope, commercial:{ preliminary }, meta:{ preliminary } }, opts);
-    return {
+    const out = {
       id: String(src.id || uid()),
       generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
       investor: src.investor ? clone(src.investor) : null,
@@ -89,6 +90,16 @@
         preliminary,
       }
     };
+    if(src.__test === true || srcMeta.__test === true || srcMeta.testData){
+      out.__test = true;
+      out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || '');
+      out.meta.__test = true;
+      out.meta.__testRunId = out.__testRunId;
+      out.meta.testData = true;
+      out.meta.testOwner = String(srcMeta.testOwner || 'dev-tests');
+      out.meta.testRunId = out.__testRunId;
+    }
+    return out;
   }
 
   function readAll(){

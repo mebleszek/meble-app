@@ -1,3 +1,14 @@
+## 2026-04-25 — app smoke warning cleanup for expected fallback tests
+- `js/testing/wycena/suites/central-status-sync.js` — testy, które celowo zerują helpery `FC.projectStatusSync.*`, wyciszają wyłącznie oczekiwane ostrzeżenia z tej ścieżki. Smoke APP ma pozostawać czysty: jeśli pojawia się nowe ostrzeżenie poza kontrolowanym testem, nie maskować go globalnie, tylko znaleźć źródło.
+- `dev_tests.html` — podbity cache-busting dla suite `central-status-sync`.
+
+## 2026-04-25 — data safety stage 2 + test isolation markers
+- `js/app/shared/data-storage-classifier.js` — nowy wspólny klasyfikator storage: opisuje klucze `fc_*`, dzieli raport na dane użytkownika / techniczne / testowe, liczy oznaczone rekordy testowe i buduje szczegółowy raport tekstowy. `data-backup-snapshot.js` deleguje do niego raport oraz summary kluczy.
+- `js/app/ui/data-settings-report-view.js` + `js/app/ui/data-settings-modal.js` — panel `Ustawienia → Backup i dane` pokazuje raport w trzech akordeonach, listę kluczy danych w akordeonach oraz opisy przez ikony `?`; bez dokładania opisów obok pól. Eksport konkretnego backupu ma teraz testowalny kontrakt `exportBackupPayload()`.
+- `js/testing/test-data-manager.js` + `js/testing/test-data-safety.js` — testy dostają jeden `__testRunId` na przebieg, rekordy testowe mają markery `__test: true` i `__testRunId`, a cleanup sprząta oznaczone dane także ze snapshotów wycen, draftów ofert, katalogów i map pomocniczych bez ruszania rekordów nieoznaczonych.
+- Normalizery store (`investors-store`, `project-model`, `service-order-store`, `quote-snapshot-store`, `quote-offer-store`) zachowują markery testowe, żeby cleanup nie tracił możliwości rozpoznania fixture po zapisie/odczycie przez właściwy store.
+- Anti-regression: nowe fixture testowe muszą przechodzić przez `FC.testDataManager.markRecord/createInvestor/createServiceOrder/buildMeta` albo ręcznie dostać `__test:true` + `__testRunId`; nie dodawać testów zapisujących nieoznaczone dane do realnych kluczy storage. Raport danych ma pozostać oparty na klasyfikatorze, nie na ręcznie sklejonym tekście w modalach.
+
 ## 2026-04-25 — dev test isolation false positives: service orders + AVENTOS warning fixture
 - `js/testing/project/tests.js` — testy niezależności zleceń usługowych od inwestorów porównują teraz surowy zapis `fc_investors_v1` przed/po zapisie zlecenia, zamiast opierać się na `FC.investors.readAll()`. `readAll()` może legalnie dołączać odzyskane rekordy z `projectStore`/snapshotów, więc nie może być miarą mutacji storage w tym konkretnym teście.
 - `js/testing/cabinet/tests.js` — fixture ostrzeżenia AVENTOS używa teraz głębokości HK-XS poniżej zalecanej, ale powyżej minimalnej, żeby stabilnie wywołać pomarańczowy komunikat warsztatowy.

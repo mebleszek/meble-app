@@ -125,9 +125,10 @@
 
   function normalizeDraft(draft, scope){
     const src = draft && typeof draft === 'object' ? draft : {};
+    const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
     const resolved = makeScope(scope && scope.projectId || src.projectId, scope && scope.investorId || src.investorId);
     const selection = normalizeSelection(src.selection);
-    return {
+    const out = {
       projectId: resolved.projectId,
       investorId: resolved.investorId,
       rateSelections: normalizeRateSelections(src.rateSelections),
@@ -135,6 +136,12 @@
       commercial: normalizeCommercial(src.commercial, { selection }),
       updatedAt: Math.max(0, num(src.updatedAt, Date.now())),
     };
+    if(src.__test === true || srcMeta.__test === true || srcMeta.testData){
+      out.__test = true;
+      out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || '');
+      out.meta = Object.assign({}, srcMeta, { __test:true, __testRunId:out.__testRunId, testData:true, testOwner:String(srcMeta.testOwner || 'dev-tests'), testRunId:out.__testRunId });
+    }
+    return out;
   }
 
   function readAll(){

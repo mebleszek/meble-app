@@ -210,9 +210,42 @@
     };
   }
 
+  function readDataSummaryFromSnapshot(snapshot){
+    const snap = normalizeSnapshot(snapshot) || collectSnapshot({});
+    try{
+      if(FC.dataStorageClassifier && typeof FC.dataStorageClassifier.buildSummary === 'function'){
+        return FC.dataStorageClassifier.buildSummary(snap);
+      }
+    }catch(_){ }
+    const entries = Object.keys(snap.keys || {}).sort().map((key)=> ({
+      key,
+      category:'user',
+      baseCategory:'user',
+      label:key,
+      description:'',
+      size:String(snap.keys[key] || '').length,
+      recordCount:1,
+      testRecords:0,
+      hasTestData:false,
+    }));
+    const bytes = entries.reduce((sum, entry)=> sum + (Number(entry.size) || 0), 0);
+    return {
+      entries,
+      user:{ keys:entries.length, bytes, records:entries.length },
+      technical:{ keys:0, bytes:0, records:0 },
+      test:{ keys:0, bytes:0, records:0 },
+      byCategory:{ user:entries, technical:[], test:[] },
+    };
+  }
+
   function buildDiagnosticsReport(){
     const snapshot = collectSnapshot({ reason:'diagnostics' });
     const stats = readStatsFromSnapshot(snapshot);
+    try{
+      if(FC.dataStorageClassifier && typeof FC.dataStorageClassifier.buildDiagnosticsReport === 'function'){
+        return FC.dataStorageClassifier.buildDiagnosticsReport(snapshot, stats);
+      }
+    }catch(_){ }
     const lines = [];
     lines.push('Meble-app — raport danych');
     lines.push('Data: ' + nowIso());
@@ -252,6 +285,7 @@
     safeFilenamePart,
     downloadJson,
     readStatsFromSnapshot,
+    readDataSummaryFromSnapshot,
     buildDiagnosticsReport,
   };
 })();

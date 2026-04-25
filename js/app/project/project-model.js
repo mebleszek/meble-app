@@ -64,12 +64,13 @@
 
   function normalizeProjectRecord(record){
     const src = record && typeof record === 'object' ? record : {};
+    const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
     const now = Date.now();
     const normalizedProjectData = normalizeProjectData(src.projectData);
     const summary = summarizeProjectData(normalizedProjectData);
     const hasRoomCount = Object.prototype.hasOwnProperty.call(src, 'roomCount') && Number.isFinite(Number(src.roomCount));
     const hasCabinetCount = Object.prototype.hasOwnProperty.call(src, 'cabinetCount') && Number.isFinite(Number(src.cabinetCount));
-    return {
+    const out = {
       id: String(src.id || ''),
       investorId: String(src.investorId || ''),
       title: String(src.title || ''),
@@ -82,6 +83,13 @@
       updatedAt: Number(src.updatedAt) > 0 ? Number(src.updatedAt) : now,
       meta: src.meta && typeof src.meta === 'object' ? clone(src.meta) : {},
     };
+    if(src.__test === true || srcMeta.__test === true || out.meta.testData){
+      out.__test = true;
+      out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || out.meta.testRunId || '');
+      out.meta.__test = true;
+      out.meta.__testRunId = out.__testRunId;
+    }
+    return out;
   }
 
   FC.projectModel = {

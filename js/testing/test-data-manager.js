@@ -5,34 +5,77 @@
   const FC = host.FC;
 
   const TEST_OWNER = 'dev-tests';
+  let activeRunId = '';
 
   function uid(){
-    try{ return FC.utils && typeof FC.utils.uid === 'function' ? FC.utils.uid() : ('test_' + Date.now()); }
-    catch(_){ return 'test_' + Date.now(); }
+    try{ return FC.utils && typeof FC.utils.uid === 'function' ? FC.utils.uid() : ('test_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)); }
+    catch(_){ return 'test_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
   }
 
+  function clone(value){
+    try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; }
+  }
+
+  function currentRunId(){
+    if(!activeRunId) activeRunId = uid();
+    return activeRunId;
+  }
+
+  function beginRun(info){
+    activeRunId = String(info && info.runId || uid());
+    return { runId:activeRunId, owner:TEST_OWNER, mode:String(info && info.mode || '') };
+  }
+
+  function endRun(){ activeRunId = ''; }
+
   function buildMeta(kind, extra){
-    return Object.assign({}, extra || {}, {
+    const src = extra && typeof extra === 'object' ? extra : {};
+    const runId = String(src.__testRunId || src.testRunId || activeRunId || uid());
+    return Object.assign({}, src, {
+      __test:true,
+      __testRunId:runId,
       testData:true,
       testOwner:TEST_OWNER,
-      testRunId:String(extra && extra.testRunId || uid()),
+      testRunId:runId,
       createdBy:'test-data-manager',
-      source:String(extra && extra.source || kind || 'test-data'),
+      source:String(src.source || kind || 'test-data'),
     });
   }
 
-  function isMarked(value){
-    return !!(value && value.meta && value.meta.testData && String(value.meta.testOwner || '') === TEST_OWNER);
+  function markRecord(kind, initial){
+    const src = initial && typeof initial === 'object' ? initial : {};
+    const meta = buildMeta(kind, src.meta);
+    return Object.assign({}, src, {
+      __test:true,
+      __testRunId:meta.__testRunId,
+      meta,
+    });
+  }
+
+  function isMarked(value, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    try{
+      if(FC.dataStorageClassifier && typeof FC.dataStorageClassifier.isTestMarked === 'function'){
+        return FC.dataStorageClassifier.isTestMarked(value, opts);
+      }
+    }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    const meta = src.meta && typeof src.meta === 'object' ? src.meta : {};
+    const marked = src.__test === true || meta.__test === true || (!!meta.testData && String(meta.testOwner || '') === TEST_OWNER);
+    if(!marked) return false;
+    const runId = String(opts.runId || '').trim();
+    if(!runId) return true;
+    return String(src.__testRunId || meta.__testRunId || meta.testRunId || '') === runId;
   }
 
   function createInvestor(initial){
     if(!(FC.investors && typeof FC.investors.create === 'function')) return null;
-    return FC.investors.create(Object.assign({}, initial || {}, { meta:buildMeta('investor', initial && initial.meta) }));
+    return FC.investors.create(markRecord('investor', initial));
   }
 
   function createServiceOrder(initial){
     if(!(FC.serviceOrderStore && typeof FC.serviceOrderStore.upsert === 'function')) return null;
-    return FC.serviceOrderStore.upsert(Object.assign({}, initial || {}, { meta:buildMeta('serviceOrder', initial && initial.meta) }));
+    return FC.serviceOrderStore.upsert(markRecord('serviceOrder', initial));
   }
 
   function isKnownLeakedInvestorFixture(value){
@@ -49,52 +92,128 @@
     return phone === '111' || email === 'jan@test.pl' || city === 'łódź' || city === 'lodz';
   }
 
-  function cleanup(){
-    const summary = { investors:0, projects:0, serviceOrders:0 };
+  function parseJson(raw){
+    if(typeof raw !== 'string') return null;
+    try{ return JSON.parse(raw); }catch(_){ return null; }
+  }
+
+  function setJsonKey(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(_){ }
+  }
+
+  function cleanupArrayKey(key, shouldRemove){
+    const raw = (()=>{ try{ return localStorage.getItem(key); }catch(_){ return null; } })();
+    const parsed = parseJson(raw);
+    if(!Array.isArray(parsed)) return 0;
+    const kept = parsed.filter((row)=> !shouldRemove(row));
+    const removed = parsed.length - kept.length;
+    if(removed > 0) setJsonKey(key, kept);
+    return removed;
+  }
+
+  function cleanupObjectMapKey(key, shouldRemove){
+    const raw = (()=>{ try{ return localStorage.getItem(key); }catch(_){ return null; } })();
+    const parsed = parseJson(raw);
+    if(!(parsed && typeof parsed === 'object') || Array.isArray(parsed)) return 0;
+    if(shouldRemove(parsed)){
+      try{ localStorage.removeItem(key); }catch(_){ }
+      return 1;
+    }
+    const next = clone(parsed) || {};
+    let removed = 0;
+    Object.keys(next).forEach((childKey)=>{
+      if(shouldRemove(next[childKey])){ delete next[childKey]; removed++; }
+    });
+    if(removed > 0) setJsonKey(key, next);
+    return removed;
+  }
+
+  function cleanupProjectSlotKeys(removedInvestorIds, shouldRemove){
+    let removed = 0;
+    const ids = removedInvestorIds instanceof Set ? removedInvestorIds : new Set();
+    try{
+      for(let i = localStorage.length - 1; i >= 0; i--){
+        const key = localStorage.key(i);
+        if(!/^fc_project_inv_.+_v1$/.test(String(key || ''))) continue;
+        const id = String(key).replace(/^fc_project_inv_/, '').replace(/_v1$/, '');
+        const value = parseJson(localStorage.getItem(key));
+        if(ids.has(id) || shouldRemove(value)){
+          localStorage.removeItem(key);
+          removed++;
+        }
+      }
+    }catch(_){ }
+    return removed;
+  }
+
+  function cleanup(options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const runId = String(opts.runId || '').trim();
+    const shouldRemove = (row)=> isMarked(row, runId ? { runId } : {}) || (!runId && isKnownLeakedInvestorFixture(row));
+    const summary = { investors:0, projects:0, serviceOrders:0, quoteSnapshots:0, quoteDrafts:0, catalogs:0, projectSlots:0, objectEntries:0 };
+    const removedInvestorIds = new Set();
     try{
       if(FC.investors && typeof FC.investors.readAll === 'function' && typeof FC.investors.writeAll === 'function'){
         const before = FC.investors.readAll();
-        const removedIds = before.filter((row)=> isMarked(row) || isKnownLeakedInvestorFixture(row)).map((row)=> String(row.id || '')).filter(Boolean);
-        if(removedIds.length){
-          FC.investors.writeAll(before.filter((row)=> !removedIds.includes(String(row && row.id || ''))));
-          summary.investors = removedIds.length;
+        const kept = [];
+        before.forEach((row)=>{
+          if(shouldRemove(row)){
+            const id = String(row && row.id || '').trim();
+            if(id) removedInvestorIds.add(id);
+          } else kept.push(row);
+        });
+        if(removedInvestorIds.size){
+          FC.investors.writeAll(kept);
+          summary.investors = removedInvestorIds.size;
           try{
-            if(FC.investors.getCurrentId && removedIds.includes(String(FC.investors.getCurrentId() || ''))) FC.investors.setCurrentId(null);
-          }catch(_){ }
-          try{
-            removedIds.forEach((id)=>{
-              try{ localStorage.removeItem(`fc_project_inv_${String(id)}_v1`); }catch(_){ }
-            });
-          }catch(_){ }
-          try{
-            if(FC.projectStore && typeof FC.projectStore.readAll === 'function' && typeof FC.projectStore.writeAll === 'function'){
-              const beforeProjects = FC.projectStore.readAll();
-              const kept = beforeProjects.filter((row)=> !removedIds.includes(String(row && row.investorId || '')) && !isMarked(row));
-              summary.projects = beforeProjects.length - kept.length;
-              FC.projectStore.writeAll(kept);
-              try{
-                const current = FC.projectStore.getCurrentProjectId && FC.projectStore.getCurrentProjectId();
-                if(current && !kept.some((row)=> String(row && row.id || '') === String(current))) FC.projectStore.setCurrentProjectId('');
-              }catch(_){ }
-            }
+            if(FC.investors.getCurrentId && removedInvestorIds.has(String(FC.investors.getCurrentId() || ''))) FC.investors.setCurrentId(null);
           }catch(_){ }
         }
       }
     }catch(_){ }
+
+    try{
+      if(FC.projectStore && typeof FC.projectStore.readAll === 'function' && typeof FC.projectStore.writeAll === 'function'){
+        const beforeProjects = FC.projectStore.readAll();
+        const kept = beforeProjects.filter((row)=> !removedInvestorIds.has(String(row && row.investorId || '')) && !shouldRemove(row));
+        summary.projects += beforeProjects.length - kept.length;
+        if(kept.length !== beforeProjects.length){
+          FC.projectStore.writeAll(kept);
+          try{
+            const current = FC.projectStore.getCurrentProjectId && FC.projectStore.getCurrentProjectId();
+            if(current && !kept.some((row)=> String(row && row.id || '') === String(current))) FC.projectStore.setCurrentProjectId('');
+          }catch(_){ }
+        }
+      }
+    }catch(_){ }
+
     try{
       if(FC.serviceOrderStore && typeof FC.serviceOrderStore.readAll === 'function' && typeof FC.serviceOrderStore.writeAll === 'function'){
         const before = FC.serviceOrderStore.readAll();
-        const kept = before.filter((row)=> !isMarked(row));
-        summary.serviceOrders = before.length - kept.length;
-        FC.serviceOrderStore.writeAll(kept);
+        const kept = before.filter((row)=> !shouldRemove(row));
+        summary.serviceOrders += before.length - kept.length;
+        if(kept.length !== before.length) FC.serviceOrderStore.writeAll(kept);
       }
     }catch(_){ }
+
+    summary.quoteSnapshots += cleanupArrayKey('fc_quote_snapshots_v1', (row)=> shouldRemove(row) || removedInvestorIds.has(String(row && row.investor && row.investor.id || '')) || removedInvestorIds.has(String(row && row.project && row.project.investorId || '')));
+    summary.quoteDrafts += cleanupArrayKey('fc_quote_offer_drafts_v1', (row)=> shouldRemove(row) || removedInvestorIds.has(String(row && row.investorId || '')));
+    ['fc_sheet_materials_v1','fc_materials_v1','fc_accessories_v1','fc_quote_rates_v1','fc_services_v1','fc_workshop_services_v1'].forEach((key)=>{
+      summary.catalogs += cleanupArrayKey(key, shouldRemove);
+    });
+    summary.objectEntries += cleanupObjectMapKey('fc_edge_v1', shouldRemove);
+    summary.objectEntries += cleanupObjectMapKey('fc_material_part_options_v1', shouldRemove);
+    summary.projectSlots += cleanupProjectSlotKeys(removedInvestorIds, shouldRemove);
     return summary;
   }
 
   FC.testDataManager = {
     TEST_OWNER,
+    beginRun,
+    endRun,
+    currentRunId,
     buildMeta,
+    markRecord,
     isMarked,
     createInvestor,
     createServiceOrder,

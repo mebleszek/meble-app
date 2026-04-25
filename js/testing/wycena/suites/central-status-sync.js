@@ -6,6 +6,32 @@
 
   if(!(FC.testHarness && typeof FC.registerWycenaTests === 'function')) return;
 
+  function withMutedExpectedWarnings(expectedFragments, fn){
+    const fragments = (Array.isArray(expectedFragments) ? expectedFragments : [expectedFragments])
+      .map((item)=> String(item || '').trim())
+      .filter(Boolean);
+    if(!fragments.length || typeof console === 'undefined' || !console || typeof console.warn !== 'function') return fn();
+    const originalWarn = console.warn;
+    console.warn = function(){
+      const text = Array.prototype.slice.call(arguments).map((item)=> {
+        try{ return typeof item === 'string' ? item : JSON.stringify(item); }catch(_){ return String(item); }
+      }).join(' ');
+      if(fragments.some((fragment)=> text.indexOf(fragment) >= 0)) return;
+      return originalWarn.apply(this, arguments);
+    };
+    try{
+      const result = fn();
+      if(result && typeof result.then === 'function'){
+        return result.finally(()=> { console.warn = originalWarn; });
+      }
+      console.warn = originalWarn;
+      return result;
+    }catch(error){
+      console.warn = originalWarn;
+      throw error;
+    }
+  }
+
   FC.registerWycenaTests(({ FC, H, clone, withInvestorProjectFixture })=> [
     H.makeTest('Wycena ↔ Centralny status', 'Rekonsyliacja bez jawnego scope nie skleja wszystkich pokoi inwestora w jeden projekt', 'Pilnuje regułę mini-paczki 1: przy wielu pokojach brak jawnego scope nie może zmusić projectStore.status do agregacji po całym inwestorze.', ()=> withInvestorProjectFixture({
         investorId:'inv_scope_guard',
@@ -252,7 +278,7 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_accept_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup accept fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup accept fallback' }, totals:{ grand:141 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292500 });
-            const result = FC.wycenaTabDebug.commitAcceptedSnapshotWithSync(snapshot, 'pomiar');
+            const result = withMutedExpectedWarnings('Brak FC.projectStatusSync.commitAcceptedSnapshot', ()=> FC.wycenaTabDebug.commitAcceptedSnapshotWithSync(snapshot, 'pomiar'));
             H.assert(result === null, 'Po sprzątaniu ETAPU 4 akceptacja bez helpera powinna się zatrzymać zamiast uruchomić stary fallback', result);
           });
           H.assert(markSelectedCalls === 0, 'Wróciło stare lokalne markSelectedForProject w Wycena', { markSelectedCalls, upsertCalls, saveCalls });
@@ -277,7 +303,7 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_remove_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup remove fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:false, versionName:'Cleanup remove fallback' }, totals:{ grand:151 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292600 });
-            const result = FC.wycenaTabDebug.reconcileAfterSnapshotRemoval(snapshot, { refreshUi:false });
+            const result = withMutedExpectedWarnings('Brak FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval', ()=> FC.wycenaTabDebug.reconcileAfterSnapshotRemoval(snapshot, { refreshUi:false }));
             H.assert(result === null, 'Po sprzątaniu ETAPU 4 brak helpera usuwania powinien zatrzymać flow zamiast wejść w stary generic reconcile', result);
           });
           H.assert(genericCalls === 0, 'Wróciło stare wywołanie reconcileProjectStatuses z Wycena', { genericCalls });
@@ -304,7 +330,7 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_convert_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup convert fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup convert fallback' }, totals:{ grand:161 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292700, meta:{ selectedByClient:true, acceptedAt:1712820292700, acceptedStage:'pomiar', preliminary:true } });
-            const result = FC.wycenaTabDebug.promotePreliminarySnapshotToFinal(snapshot);
+            const result = withMutedExpectedWarnings('Brak FC.projectStatusSync.promotePreliminarySnapshotToFinal', ()=> FC.wycenaTabDebug.promotePreliminarySnapshotToFinal(snapshot));
             H.assert(result === null, 'Po sprzątaniu ETAPU 4 brak helpera konwersji powinien zatrzymać flow zamiast uruchomić stary fallback', result);
           });
           H.assert(convertCalls === 0, 'Wróciło stare lokalne convertPreliminaryToFinal w Wycena', { convertCalls, upsertCalls, saveCalls });

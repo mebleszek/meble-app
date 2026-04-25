@@ -74,10 +74,11 @@
 
   function normalizeInvestor(inv){
     const src = inv && typeof inv === 'object' ? inv : {};
+    const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
     const createdAt = Number(src.createdAt) > 0 ? Number(src.createdAt) : now();
     const updatedAt = Number(src.updatedAt) > 0 ? Number(src.updatedAt) : createdAt;
     const kind = src.kind === 'company' ? 'company' : 'person';
-    return {
+    const out = {
       id: String(src.id || uid()),
       kind,
       name: String(src.name || ''),
@@ -96,6 +97,13 @@
       updatedAt,
       meta: normalizeMeta(src.meta),
     };
+    if(src.__test === true || srcMeta.__test === true || out.meta.testData){
+      out.__test = true;
+      out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || out.meta.testRunId || '');
+      out.meta.__test = true;
+      out.meta.__testRunId = out.__testRunId;
+    }
+    return out;
   }
 
   function readSessionSnapshotInvestors(){

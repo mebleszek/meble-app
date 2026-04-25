@@ -199,6 +199,102 @@
           if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
         }
       }),
+
+      H.makeTest('Projekt', 'Raport danych dzieli storage na użytkownika, techniczne i testowe', 'Pilnuje etapu data safety 2: raport ma pokazywać osobno realne dane, stan techniczny i oznaczone rekordy testowe oraz listę kluczy danych.', ()=>{
+        H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.readDataSummaryFromSnapshot === 'function', 'Brak readDataSummaryFromSnapshot');
+        const saved = {};
+        ['fc_investors_v1','fc_ui_v1','fc_quote_snapshots_v1'].forEach((key)=>{ saved[key] = localStorage.getItem(key); });
+        try{
+          localStorage.setItem('fc_investors_v1', JSON.stringify([
+            { id:'real_data_safety_inv', name:'Realny', meta:{} },
+            { id:'test_data_safety_inv', name:'Testowy', __test:true, __testRunId:'report_run', meta:{ __test:true, __testRunId:'report_run', testData:true, testOwner:'dev-tests', testRunId:'report_run' } }
+          ]));
+          localStorage.setItem('fc_ui_v1', JSON.stringify({ activeTab:'wywiad' }));
+          localStorage.setItem('fc_quote_snapshots_v1', JSON.stringify([
+            { id:'qs_test_report', __test:true, __testRunId:'report_run', meta:{ __test:true, __testRunId:'report_run', testData:true, testOwner:'dev-tests', testRunId:'report_run' } }
+          ]));
+          const snapshot = FC.dataBackupSnapshot.collectSnapshot({ reason:'report-test' });
+          const summary = FC.dataBackupSnapshot.readDataSummaryFromSnapshot(snapshot);
+          H.assert(summary.user.keys >= 1, 'Raport nie wykrył danych użytkownika', summary);
+          H.assert(summary.technical.keys >= 1, 'Raport nie wykrył danych technicznych', summary);
+          H.assert(summary.test.records >= 2, 'Raport nie policzył oznaczonych rekordów testowych', summary);
+          H.assert((summary.byCategory.user || []).some((entry)=> entry.key === 'fc_investors_v1'), 'Lista kluczy nie zawiera inwestorów', summary.byCategory.user);
+          const report = FC.dataBackupSnapshot.buildDiagnosticsReport();
+          H.assert(report.includes('Dane użytkownika:') && report.includes('Dane techniczne:') && report.includes('Dane testowe:') && report.includes('Lista kluczy danych:'), 'Raport tekstowy nie ma wymaganych sekcji', report);
+        } finally {
+          Object.keys(saved).forEach((key)=>{ if(saved[key] == null) localStorage.removeItem(key); else localStorage.setItem(key, saved[key]); });
+        }
+      }),
+
+      H.makeTest('Projekt', 'Eksport pojedynczego backupu zwraca payload konkretnego backupu', 'Pilnuje, czy przycisk Eksportuj przy backupie ma testowalny kontrakt i eksportuje wskazany backup, a nie cały bieżący stan.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.exportBackupPayload === 'function', 'Brak exportBackupPayload');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const prevBackupsRaw = localStorage.getItem(backupKey);
+        const prevInvRaw = localStorage.getItem('fc_investors_v1');
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'export_one_inv', name:'Eksport jeden' }]));
+          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Eksport jednostkowy', dedupe:false });
+          const pack = FC.dataBackupStore.exportBackupPayload(made.backup.id);
+          H.assert(pack && /meble-app-backup-/.test(pack.filename || ''), 'Eksport nie zwrócił nazwy pliku', pack);
+          H.assert(pack.payload && pack.payload.kind === FC.dataBackupSnapshot.BACKUP_KIND, 'Eksport nie zwrócił payloadu backupu', pack.payload);
+          H.assert(pack.payload.backup && pack.payload.backup.id === made.backup.id, 'Eksport zwrócił inny backup niż wskazany', pack.payload);
+          H.assert(pack.payload.backup.snapshot && pack.payload.backup.snapshot.keys && pack.payload.backup.snapshot.keys.fc_investors_v1, 'Eksport backupu nie zawiera snapshotu danych', pack.payload.backup);
+        } finally {
+          if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
+          if(prevInvRaw == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', prevInvRaw);
+        }
+      }),
+
+      H.makeTest('Projekt', 'Test isolation używa __test i __testRunId oraz sprząta tylko oznaczone dane', 'Pilnuje etapu test isolation: fixtures dostają jeden runId, a cleanup usuwa testowych inwestorów, projekty, zlecenia, snapshoty, drafty i katalogi bez ruszania realnych rekordów.', ()=>{
+        H.assert(FC.testDataManager && typeof FC.testDataManager.beginRun === 'function', 'Brak FC.testDataManager.beginRun');
+        const keys = ['fc_investors_v1','fc_projects_v1','fc_service_orders_v1','fc_quote_snapshots_v1','fc_quote_offer_drafts_v1','fc_sheet_materials_v1','fc_edge_v1'];
+        const saved = {};
+        keys.forEach((key)=>{ saved[key] = localStorage.getItem(key); });
+        try{
+          FC.testDataManager.beginRun({ runId:'stage2_run', mode:'unit' });
+          FC.investors.writeAll([{ id:'real_iso_inv', name:'Realny inwestor', rooms:[], meta:{} }]);
+          FC.projectStore.writeAll([{ id:'real_iso_project', investorId:'real_iso_inv', title:'Realny projekt', projectData:{ kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } }, meta:{} }]);
+          FC.serviceOrderStore.writeAll([{ id:'real_iso_order', title:'Realne zlecenie', clientName:'Realny', meta:{} }]);
+          const testInvestor = FC.testDataManager.createInvestor({ name:'Test isolation' });
+          const testOrder = FC.testDataManager.createServiceOrder({ title:'Testowe zlecenie isolation' });
+          FC.projectStore.saveProjectDataForInvestor(testInvestor.id, { kuchnia:{ cabinets:[{ id:'cab_iso_test' }], fronts:[], sets:[], settings:{} } }, { meta: FC.testDataManager.buildMeta('project') });
+          localStorage.setItem('fc_quote_snapshots_v1', JSON.stringify([
+            { id:'real_iso_quote', meta:{} },
+            { id:'test_iso_quote', __test:true, __testRunId:'stage2_run', meta:{ __test:true, __testRunId:'stage2_run', testData:true, testOwner:'dev-tests', testRunId:'stage2_run' } }
+          ]));
+          localStorage.setItem('fc_quote_offer_drafts_v1', JSON.stringify([
+            { projectId:'real_iso_project', investorId:'real_iso_inv' },
+            { projectId:'test_iso_project', investorId:testInvestor.id, __test:true, __testRunId:'stage2_run', meta:{ __test:true, __testRunId:'stage2_run', testData:true, testOwner:'dev-tests', testRunId:'stage2_run' } }
+          ]));
+          localStorage.setItem('fc_sheet_materials_v1', JSON.stringify([
+            { id:'real_iso_mat', name:'Realny materiał' },
+            { id:'test_iso_mat', name:'Test materiał', __test:true, __testRunId:'stage2_run', meta:{ __test:true, __testRunId:'stage2_run', testData:true, testOwner:'dev-tests', testRunId:'stage2_run' } }
+          ]));
+          localStorage.setItem('fc_edge_v1', JSON.stringify({ real_edge:{ value:'real' }, test_edge:{ __test:true, __testRunId:'stage2_run', meta:{ __test:true, __testRunId:'stage2_run', testData:true, testOwner:'dev-tests', testRunId:'stage2_run' } } }));
+          H.assert(testInvestor && testInvestor.__test === true && testInvestor.__testRunId === 'stage2_run', 'Inwestor testowy nie dostał markerów top-level', testInvestor);
+          H.assert(testOrder && testOrder.__test === true && testOrder.__testRunId === 'stage2_run', 'Zlecenie testowe nie dostało markerów top-level', testOrder);
+          const result = FC.testDataManager.cleanup({ runId:'stage2_run' });
+          const investors = FC.investors.readAll();
+          const projects = FC.projectStore.readAll();
+          const orders = FC.serviceOrderStore.readAll();
+          const quotes = JSON.parse(localStorage.getItem('fc_quote_snapshots_v1') || '[]');
+          const drafts = JSON.parse(localStorage.getItem('fc_quote_offer_drafts_v1') || '[]');
+          const mats = JSON.parse(localStorage.getItem('fc_sheet_materials_v1') || '[]');
+          const edge = JSON.parse(localStorage.getItem('fc_edge_v1') || '{}');
+          H.assert(result.investors >= 1 && result.projects >= 1 && result.serviceOrders >= 1, 'Cleanup nie zgłosił usunięcia podstawowych danych testowych', result);
+          H.assert(investors.length === 1 && investors[0].id === 'real_iso_inv', 'Cleanup naruszył inwestorów realnych albo zostawił testowych', investors);
+          H.assert(projects.length === 1 && projects[0].id === 'real_iso_project', 'Cleanup naruszył projekty realne albo zostawił testowe', projects);
+          H.assert(orders.length === 1 && orders[0].id === 'real_iso_order', 'Cleanup naruszył zlecenia realne albo zostawił testowe', orders);
+          H.assert(quotes.length === 1 && quotes[0].id === 'real_iso_quote', 'Cleanup snapshotów wycen nie działa per marker', quotes);
+          H.assert(drafts.length === 1 && drafts[0].projectId === 'real_iso_project', 'Cleanup draftów ofert nie działa per marker/inwestor', drafts);
+          H.assert(mats.length === 1 && mats[0].id === 'real_iso_mat', 'Cleanup katalogów nie działa per marker', mats);
+          H.assert(edge.real_edge && !edge.test_edge, 'Cleanup map obiektowych nie usunął testowego wpisu oklein', edge);
+        } finally {
+          try{ FC.testDataManager.endRun(); }catch(_){ }
+          Object.keys(saved).forEach((key)=>{ if(saved[key] == null) localStorage.removeItem(key); else localStorage.setItem(key, saved[key]); });
+        }
+      }),
       H.makeTest('Projekt', 'Sesja wykrywa zmianę od razu po zapisie do localStorage i czyści ją po commit', 'Pilnuje nowego lżejszego wykrywania zmian: po edycji nie trzeba czekać na pełne skanowanie storage, a po Zapisz stan dirty ma zniknąć.', ()=>{
         H.assert(FC.session && typeof FC.session.begin === 'function', 'Brak FC.session.begin');
         const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.ui) || 'fc_ui_v1';

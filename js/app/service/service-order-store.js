@@ -47,7 +47,7 @@
     const across = Math.max(0, Number(src.across) || Number(src.height) || 0);
     const edgesAlong = Math.max(0, Math.min(2, Number(src.edgesAlong) || 0));
     const edgesAcross = Math.max(0, Math.min(2, Number(src.edgesAcross) || 0));
-    return {
+    const out = {
       id: normalizeText(src.id) || uid(),
       name,
       qty,
@@ -78,6 +78,7 @@
 
   function normalizeOrder(order){
     const src = order && typeof order === 'object' ? order : {};
+    const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
     const now = Date.now();
     const createdAt = Number(src.createdAt) > 0 ? Number(src.createdAt) : (Number(src.updatedAt) > 0 ? Number(src.updatedAt) : now);
     const updatedAt = Number(src.updatedAt) > 0 ? Number(src.updatedAt) : now;
@@ -89,7 +90,7 @@
       unitPrice: Number(item.unitPrice) || 0,
       total: Number(item.total) || ((Number(item.qty) || 0) * (Number(item.unitPrice) || 0)),
     } : null).filter(Boolean) : [];
-    return {
+    const out = {
       id: normalizeText(src.id) || uid(),
       title,
       clientName,
@@ -108,6 +109,13 @@
       cutting: normalizeCutting(src.cutting),
       meta: normalizeMeta(src.meta),
     };
+    if(src.__test === true || srcMeta.__test === true || out.meta.testData){
+      out.__test = true;
+      out.__testRunId = normalizeText(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || out.meta.testRunId);
+      out.meta.__test = true;
+      out.meta.__testRunId = out.__testRunId;
+    }
+    return out;
   }
 
   function readAll(){
