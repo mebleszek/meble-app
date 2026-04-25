@@ -1,3 +1,6 @@
+## 2026-04-25 — Wywiad dev-tests load-order guard
+- `dev_tests.html` musi ładować `js/app/ui/wywiad-room-settings.js`, bo test `Wywiad renderuje lekkie podsumowanie parametrów pokoju` sprawdza publiczne API `FC.wywiadRoomSettings.renderSummary`. Ten plik był w `index.html` i smoke CLI, ale brakowało go w stronie testów, co dawało fałszywy błąd w przeglądarce. Przy dodawaniu/wycinaniu modułów UI aktualizować równolegle `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke.js`.
+
 ## 2026-04-25 — data safety split cleanup: backup modules by responsibility
 - Backup/data-safety został rozcięty na małe moduły odpowiedzialności: storage keys, hash, normalizer snapshotu, apply/restore snapshotu, eksport payloadów, policy retencji, storage backupów, records oraz cienki `data-backup-store` jako fasada operacji.
 - UI ustawień danych został rozcięty na: wspólne DOM/helpery, menu ustawień, akcje backupu, listę backupów, widok backupu i cienki shell modala. Nie dokładać nowych funkcji z powrotem do `data-settings-modal.js`.
