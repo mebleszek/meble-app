@@ -17,9 +17,9 @@
     };
     ctx.scroll.innerHTML = '';
     ctx.scroll.appendChild(buildHeader());
-    ctx.scroll.appendChild(buildOverview({ snapshot, store, stats }));
     ctx.scroll.appendChild(buildActions(ctx));
     ctx.scroll.appendChild(buildBackupGroups(Object.assign({}, ctx, { allBackups, grouped })));
+    ctx.scroll.appendChild(buildOverview({ snapshot, store, stats }));
   }
 
   function buildHeader(){

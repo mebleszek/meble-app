@@ -1,3 +1,7 @@
+## 2026-04-25 — UI icon patterns + backup panel order
+- `dev_ui_patterns.html` ma teraz sekcję `Wzorce ikon` z referencyjnymi ikonami SVG dla dyskietki/backupu i trybika/ustawień. To tylko wzorzec stabilnych ikon; aplikacja nadal nie jest podmieniona z emoji na SVG w tej paczce.
+- `js/app/ui/data-settings-backup-view.js` renderuje panel backupu w kolejności: opis, `Backup i przenoszenie danych`, listy backupów programu/testowe, a raporty danych na dole. Nie przenosić raportów z powrotem nad podstawowe akcje backupu.
+
 ## 2026-04-25 — Wywiad dev-tests load-order guard
 - `dev_tests.html` musi ładować `js/app/ui/wywiad-room-settings.js`, bo test `Wywiad renderuje lekkie podsumowanie parametrów pokoju` sprawdza publiczne API `FC.wywiadRoomSettings.renderSummary`. Ten plik był w `index.html` i smoke CLI, ale brakowało go w stronie testów, co dawało fałszywy błąd w przeglądarce. Przy dodawaniu/wycinaniu modułów UI aktualizować równolegle `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke.js`.
 

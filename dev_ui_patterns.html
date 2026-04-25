@@ -34,6 +34,18 @@
     .ui-pattern-field{max-width:320px;}
     .pattern-preview .panel-box{margin:0;}
     .ui-pattern-footer-note{color:#64748b;font-size:12px;line-height:1.35;}
+
+    .patterns__section{display:grid;gap:14px;}
+    .patterns__section-head{background:#fff;border:1px solid #d9deea;border-radius:20px;padding:16px 18px;box-shadow:0 8px 24px rgba(17,24,39,.06);}
+    .patterns__section-head h2{margin:0 0 6px;font-size:22px;line-height:1.15;}
+    .patterns__section-head p{margin:0;color:#5d6b86;line-height:1.45;}
+    .icon-pattern-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}
+    .icon-pattern-card{background:#fff;border:1px solid #d9deea;border-radius:20px;padding:18px;box-shadow:0 8px 24px rgba(17,24,39,.06);display:grid;gap:12px;}
+    .icon-pattern-card h3{margin:0;font-size:18px;line-height:1.2;}
+    .icon-pattern-card p{margin:0;color:#5d6b86;font-size:14px;line-height:1.45;}
+    .icon-pattern-preview{display:flex;align-items:center;gap:14px;border:1px dashed rgba(148,163,184,.5);border-radius:18px;padding:14px;background:linear-gradient(180deg,#fbfcff 0%,#f7f9fc 100%);}
+    .app-icon-svg{width:44px;height:44px;flex:0 0 auto;color:#162033;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+    .icon-pattern-token{display:inline-flex;align-items:center;border:1px solid #d9deea;border-radius:999px;padding:7px 10px;background:#fff;font-weight:900;font-size:13px;color:#162033;}
   </style>
 </head>
 <body>
@@ -42,6 +54,40 @@
       <h1>Wzorce UI do kopiowania 1:1</h1>
       <p>To jest źródło prawdy dla nowych elementów. Modal bierz z <b>ROZRYS</b>, pola wpisywania z <b>Inwestor</b>, a launchery / stopki z zaakceptowanych wzorców <b>ROZRYS</b>. Nie tworzyć lokalnych wariantów, jeśli odpowiednik już istnieje.</p>
     </section>
+
+    <section class="patterns__section" data-ui-pattern-section="icons">
+      <div class="patterns__section-head">
+        <h2>Wzorce ikon</h2>
+        <p>Ikony wzorcowe mają być stabilnym SVG, a nie emoji ani znakami zależnymi od fontu telefonu. Na razie to tylko referencja w testach UI — aplikacja nie jest jeszcze podmieniona na te ikony.</p>
+      </div>
+      <div class="icon-pattern-grid">
+        <article class="icon-pattern-card" data-icon-pattern="floppy-save">
+          <h3>Dyskietka / backup</h3>
+          <div class="icon-pattern-preview">
+            <svg class="app-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M5 3.5h11.2L19 6.3v14.2H5z" />
+              <path d="M8 3.5v6h7.5v-6" />
+              <path d="M8 20.5v-7h8v7" />
+              <path d="M10.2 16.2h3.6" />
+            </svg>
+            <span class="icon-pattern-token">SVG • stable</span>
+          </div>
+          <p>Do kafli i akcji związanych z backupem, eksportem albo zapisem stanu. Kolor dziedziczy z <code>currentColor</code>.</p>
+        </article>
+        <article class="icon-pattern-card" data-icon-pattern="settings-gear">
+          <h3>Trybik / ustawienia</h3>
+          <div class="icon-pattern-preview">
+            <svg class="app-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z" />
+              <path d="M19.2 13.2c.1-.4.1-.8.1-1.2s0-.8-.1-1.2l2-1.5-2-3.5-2.4 1a8.5 8.5 0 0 0-2.1-1.2L14.4 3h-4.8l-.4 2.6a8.5 8.5 0 0 0-2.1 1.2l-2.4-1-2 3.5 2 1.5c-.1.4-.1.8-.1 1.2s0 .8.1 1.2l-2 1.5 2 3.5 2.4-1a8.5 8.5 0 0 0 2.1 1.2l.4 2.6h4.8l.4-2.6a8.5 8.5 0 0 0 2.1-1.2l2.4 1 2-3.5z" />
+            </svg>
+            <span class="icon-pattern-token">SVG • stable</span>
+          </div>
+          <p>Do ustawień i narzędzi. Nie używać emoji <code>⚙</code>, bo jego wygląd zależy od systemu.</p>
+        </article>
+      </div>
+    </section>
+
     <section class="patterns__grid">
       <article class="pattern-card" data-ui-pattern="modal-shell">
         <h2>Modal / shell / header / X</h2>
