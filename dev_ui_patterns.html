@@ -85,6 +85,17 @@
           </div>
           <p>Do ustawień i narzędzi. Nie używać emoji <code>⚙</code>, bo jego wygląd zależy od systemu.</p>
         </article>
+        <article class="icon-pattern-card" data-icon-pattern="rozrys-info-trigger">
+          <h3>Znak zapytania / pomoc</h3>
+          <div class="icon-pattern-preview">
+            <div class="label-help" style="margin:0;min-height:32px;">
+              <span class="label-help__text">Opis pola</span>
+              <button class="info-trigger" type="button" aria-label="Pokaż informację: opis pola"></button>
+            </div>
+            <span class="icon-pattern-token">ROZRYS • info-trigger</span>
+          </div>
+          <p>Referencja z ROZRYS. Nowe znaki zapytania mają używać klasy <code>info-trigger</code>, bez lokalnego zmniejszania i bez emoji.</p>
+        </article>
       </div>
     </section>
 
@@ -140,6 +151,38 @@
             <button class="investor-choice-launch" type="button">
               <span class="rozrys-choice-launch__value"><span class="rozrys-choice-launch__label">Wybierz wariant</span></span>
             </button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pattern-card" data-ui-pattern="rozrys-accordion">
+        <h2>Accordion ROZRYS</h2>
+        <p>Wzór dla rozwijanych sekcji: ramka, tytuł, drugi wiersz i stabilna ikonka rozwijania z <code>rozrys-material-accordion__chevron</code>.</p>
+        <div class="pattern-preview">
+          <div class="rozrys-material-accordion is-open" style="margin-top:0;">
+            <div class="rozrys-material-accordion__head">
+              <button class="rozrys-material-accordion__trigger" type="button">
+                <div class="rozrys-material-accordion__title">
+                  <div class="rozrys-material-accordion__title-line1">Wzorcowa sekcja rozwijana</div>
+                  <div class="rozrys-material-accordion__title-line2">Drugi wiersz / licznik / krótki opis</div>
+                </div>
+                <span class="rozrys-material-accordion__chevron" aria-hidden="true">&#9662;</span>
+              </button>
+            </div>
+            <div class="rozrys-material-accordion__body">
+              <p>Treść sekcji po rozwinięciu. Nowe accordiony mają kopiować ten kierunek zamiast tworzyć lokalne ikonki plus/minus.</p>
+            </div>
+          </div>
+          <div class="rozrys-material-accordion" style="margin-top:12px;">
+            <div class="rozrys-material-accordion__head">
+              <button class="rozrys-material-accordion__trigger" type="button">
+                <div class="rozrys-material-accordion__title">
+                  <div class="rozrys-material-accordion__title-line1">Wariant zwinięty</div>
+                  <div class="rozrys-material-accordion__title-line2">Ta sama ikonka, bez klasy is-open</div>
+                </div>
+                <span class="rozrys-material-accordion__chevron" aria-hidden="true">&#9662;</span>
+              </button>
+            </div>
           </div>
         </div>
       </article>

@@ -58,7 +58,7 @@
 
   function groupAccordion(ctx, title, backups, emptyText, policyText, open){
     const list = FC.dataSettingsBackupList.buildList(Object.assign({}, ctx, { backups, emptyText }));
-    return dom.makeAccordion(title, [h('p', { class:'muted', text:policyText }), list], { open, sub:String((backups || []).length || 0) });
+    return dom.makeAccordion(title, [list], { open, sub:String((backups || []).length || 0), infoMessage:policyText });
   }
 
   FC.dataSettingsBackupView = { render };

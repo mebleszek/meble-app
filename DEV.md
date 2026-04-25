@@ -1,3 +1,8 @@
+## 2026-04-25 — data settings help column + UI icon/accordion patterns
+- `js/app/ui/data-settings-dom.js` ustawia teraz ikonę `?`, licznik i rozwijanie accordionu w stałej prawej kolumnie (`?` / licznik / `+/-`), żeby znaki zapytania nie pływały zależnie od długości tytułu.
+- Opis polityki backupów programu/testów został przeniesiony z tekstu pod tytułem do ikony `?` przy nagłówku accordionu; nie dokładać opisów luzem pod nagłówkami, jeśli mogą trafić do pomocy.
+- `dev_ui_patterns.html` ma dodatkowe wzorce: `info-trigger` z ROZRYS oraz cały accordion ROZRYS z ikoną `rozrys-material-accordion__chevron`. Nowe ikonki pomocy i rozwijania mają kopiować te wzorce zamiast tworzyć lokalne warianty.
+
 ## 2026-04-25 — UI icon patterns + backup panel order
 - `dev_ui_patterns.html` ma teraz sekcję `Wzorce ikon` z referencyjnymi ikonami SVG dla dyskietki/backupu i trybika/ustawień. To tylko wzorzec stabilnych ikon; aplikacja nadal nie jest podmieniona z emoji na SVG w tej paczce.
 - `js/app/ui/data-settings-backup-view.js` renderuje panel backupu w kolejności: opis, `Backup i przenoszenie danych`, listy backupów programu/testowe, a raporty danych na dole. Nie przenosić raportów z powrotem nad podstawowe akcje backupu.
