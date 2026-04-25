@@ -1,3 +1,9 @@
+## 2026-04-25 — settings menu shell + nested backup/data panel
+- `js/app/ui/data-settings-modal.js` — trybik Start otwiera teraz najpierw lekkie menu `Ustawienia`, a backup/dane są drugim poziomem pod kaflem `Backup i dane`. Sam panel backupu został zachowany jako ta sama logika danych, tylko renderowana głębiej.
+- `css/data-settings.css` — dodane style kafli menu ustawień oraz akordeonów dla panelu danych. Statystyki są podzielone na `Dane użytkownika` i `Dane techniczne`, żeby liczba technicznych kluczy storage nie straszyła na pierwszym widoku.
+- Nazwy akcji są czytelniejsze: `Utwórz zwykły backup`, `Zapisz jako bezpieczny stan`, `Przywróć ten backup`.
+- Instrukcja antyregresyjna: ustawienia mają być rozwijane przez menu/kafle, a nie przez dokładanie wszystkiego do jednego dużego panelu. Nowe obszary ustawień dodawać jako osobne moduły/sekcje, a wspólny backup zostaje jednym źródłem prawdy dla aplikacji i testów.
+
 ## 2026-04-24 — data safety foundation: program backup + test cleanup
 - `js/app/shared/data-backup-snapshot.js` — shared snapshot layer for full app data backup. It captures all `fc_*` application localStorage keys except the backup store itself, hashes snapshots to avoid duplicates, restores snapshots, builds diagnostics reports, and exports/imports JSON payloads.
 - `js/app/shared/data-backup-store.js` — shared backup store used by both the normal app and dev tests. It supports manual backups, safe-state backups, before-tests/before-import/before-restore backups, restore, import, export, pin/delete, duplicate detection, and mixed retention: keep recent backups, always keep at least the latest 5, never delete pinned/safe-state/last backup automatically.

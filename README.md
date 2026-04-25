@@ -311,3 +311,8 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 ### 2026-04-24 — investor recovery leak fix
 - Naprawiono przypadek, w którym po przerwanym teście developerskim lista inwestorów mogła pokazać tylko fixture `Jan Test` i blokować odzysk pozostałych rekordów z projectStore/snapshotów.
 - Dane testowe są teraz mocniej oznaczane i sprzątane przez cleanup testów.
+
+## 2026-04-25 — settings menu shell
+- Startowy trybik `⚙` otwiera teraz menu ustawień, a `Backup i dane` jest osobnym, głębszym panelem.
+- Panel backupów używa akordeonów dla danych użytkownika i danych technicznych oraz ma czytelniejsze nazwy akcji backupu.
+
