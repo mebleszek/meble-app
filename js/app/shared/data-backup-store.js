@@ -6,7 +6,8 @@
   const snapApi = FC.dataBackupSnapshot;
   const STORE_KEY = (snapApi && snapApi.BACKUP_STORE_KEY) || 'fc_data_backups_v1';
   const RETENTION_DAYS = 7;
-  const MIN_KEEP = 5;
+  const MIN_KEEP = 10;
+  const AUTO_PROTECT_LATEST = 3;
 
   function now(){ return Date.now(); }
   function iso(ts){ try{ return new Date(ts || now()).toISOString(); }catch(_){ return String(ts || now()); } }
@@ -47,23 +48,64 @@
     return map[String(reason || '')] || 'Backup danych';
   }
 
-  function isProtected(item){
+  function isTestBackup(item){
+    return String(item && item.reason || '') === 'before-tests';
+  }
+
+  function getBackupGroup(item){
+    return isTestBackup(item) ? 'test' : 'app';
+  }
+
+  function isPinnedProtected(item){
     return !!(item && (item.pinned || item.safeState || String(item.reason || '') === 'safe-state'));
+  }
+
+  function groupBackups(list){
+    const groups = { app:[], test:[] };
+    sortNewest(list).forEach((item)=> groups[getBackupGroup(item)].push(item));
+    return groups;
+  }
+
+  function getLatestProtectedIds(list, group){
+    const grouped = groupBackups(list || readStore());
+    return new Set((grouped[group] || []).slice(0, AUTO_PROTECT_LATEST).map((item)=> String(item.id || '')));
+  }
+
+  function getBackupProtection(item, list){
+    const backup = item || {};
+    const id = String(backup.id || '');
+    const group = getBackupGroup(backup);
+    const pinnedProtected = isPinnedProtected(backup);
+    const latestProtected = !!(id && getLatestProtectedIds(list || readStore(), group).has(id));
+    return {
+      group,
+      protected: pinnedProtected || latestProtected,
+      pinnedProtected,
+      latestProtected,
+    };
+  }
+
+  function isProtected(item, list){
+    return !!getBackupProtection(item, list).protected;
   }
 
   function pruneBackups(list, options){
     const opts = Object.assign({ retentionDays:RETENTION_DAYS, minKeep:MIN_KEEP }, options || {});
     const all = sortNewest(list);
-    if(all.length <= opts.minKeep) return all;
+    if(!all.length) return all;
     const cutoff = now() - (Number(opts.retentionDays || RETENTION_DAYS) * 24 * 60 * 60 * 1000);
     const keepIds = new Set();
-    all.slice(0, Math.max(1, Number(opts.minKeep || MIN_KEEP))).forEach((item)=> keepIds.add(item.id));
-    all.forEach((item)=>{
-      if(isProtected(item)) keepIds.add(item.id);
-      if(Number(item.createdAtMs || 0) >= cutoff) keepIds.add(item.id);
+    const grouped = groupBackups(all);
+    Object.keys(grouped).forEach((group)=>{
+      const groupList = grouped[group];
+      groupList.slice(0, Math.max(1, Number(opts.minKeep || MIN_KEEP))).forEach((item)=> keepIds.add(String(item.id || '')));
+      groupList.forEach((item)=>{
+        if(isPinnedProtected(item)) keepIds.add(String(item.id || ''));
+        if(Number(item.createdAtMs || 0) >= cutoff) keepIds.add(String(item.id || ''));
+      });
     });
-    if(!keepIds.size && all[0]) keepIds.add(all[0].id);
-    return all.filter((item)=> keepIds.has(item.id));
+    if(!keepIds.size && all[0]) keepIds.add(String(all[0].id || ''));
+    return all.filter((item)=> keepIds.has(String(item.id || '')));
   }
 
   function getBackupHash(item){
@@ -121,7 +163,14 @@
     const current = snapApi.collectSnapshot({ reason:'stats' });
     const stats = snapApi.readStatsFromSnapshot(current);
     const backups = readStore();
-    return Object.assign({}, stats, { backups:backups.length, protectedBackups:backups.filter(isProtected).length });
+    const appBackups = backups.filter((item)=> !isTestBackup(item));
+    const testBackups = backups.filter((item)=> isTestBackup(item));
+    return Object.assign({}, stats, {
+      backups:backups.length,
+      appBackups:appBackups.length,
+      testBackups:testBackups.length,
+      protectedBackups:backups.filter((item)=> isProtected(item, backups)).length,
+    });
   }
 
   function createBackup(options){
@@ -144,6 +193,11 @@
 
   function listBackups(){ return sortNewest(readStore()); }
 
+  function listBackupGroups(){
+    const grouped = groupBackups(readStore());
+    return { app:grouped.app, test:grouped.test };
+  }
+
   function findBackup(id){
     const key = String(id || '');
     return readStore().find((item)=> String(item.id || '') === key) || null;
@@ -162,7 +216,11 @@
     const list = readStore();
     if(list.length <= 1) throw new Error('Nie można usunąć ostatniego backupu.');
     const item = list.find((row)=> String(row.id || '') === key);
-    if(item && isProtected(item)) throw new Error('Ten backup jest chroniony. Najpierw go odepnij.');
+    const protection = getBackupProtection(item, list);
+    if(item && protection.protected){
+      if(protection.latestProtected) throw new Error('Ten backup jest chroniony, bo należy do 3 najnowszych backupów w tej grupie.');
+      throw new Error('Ten backup jest chroniony. Najpierw go odepnij.');
+    }
     const next = list.filter((row)=> String(row.id || '') !== key);
     writeStore(next);
     return true;
@@ -206,9 +264,11 @@
     STORE_KEY,
     RETENTION_DAYS,
     MIN_KEEP,
+    AUTO_PROTECT_LATEST,
     createBackup,
     ensureCurrentStateBackup,
     listBackups,
+    listBackupGroups,
     findBackup,
     updateBackup,
     deleteBackup,
@@ -219,5 +279,9 @@
     getStats,
     pruneNow,
     isProtected,
+    isPinnedProtected,
+    isTestBackup,
+    getBackupGroup,
+    getBackupProtection,
   };
 })();

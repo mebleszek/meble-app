@@ -1,3 +1,9 @@
+## 2026-04-25 — backup policy split: app/test groups + protected latest 3
+- `js/app/shared/data-backup-store.js` — retencja backupów działa teraz osobno dla backupów programu i testowych: automatyczne sprzątanie zostawia 10 najnowszych w każdej grupie, usuwa dopiero nadmiar starszy niż 7 dni i nigdy nie rusza przypiętych / `safe-state`.
+- `js/app/ui/data-settings-modal.js` + `css/data-settings.css` — lista backupów ma dwa akordeony: `Backupy zapisane w programie` i `Backupy testowe`. W każdej grupie 3 najnowsze backupy mają blady, nieaktywny przycisk `Usuń`; backupy 4–10 zostają automatycznie, ale można je usunąć ręcznie.
+- `js/testing/project/tests.js` — dodane antyregresje dla osobnej retencji app/test oraz blokady ręcznego usuwania 3 najnowszych backupów w każdej grupie.
+- Anti-regression: backupy testowe nie mogą wypychać ochrony backupów programu. Jeśli zmieniamy politykę backupów, liczyć retencję i ochronę per grupa (`program` / `testy`), a nie po jednej wspólnej liście.
+
 ## 2026-04-25 — restore backup guard without changing retention
 - `js/app/shared/data-backup-store.js` — `restoreBackup()` no longer blindly creates a duplicate `before-restore` backup if the current state already exists in saved backups. This keeps the same retention/protection rules and avoids unnecessary writes during restore.
 - `js/app/shared/data-backup-snapshot.js` — program backups now skip volatile technical keys (`fc_edit_session_v1`, `fc_reload_restore_v1`, `fc_rozrys_plan_cache_v2`) and restore clears those keys, so old edit sessions/cache do not bloat backups or come back after restore.
@@ -12,7 +18,7 @@
 
 ## 2026-04-24 — data safety foundation: program backup + test cleanup
 - `js/app/shared/data-backup-snapshot.js` — shared snapshot layer for full app data backup. It captures all `fc_*` application localStorage keys except the backup store itself, hashes snapshots to avoid duplicates, restores snapshots, builds diagnostics reports, and exports/imports JSON payloads.
-- `js/app/shared/data-backup-store.js` — shared backup store used by both the normal app and dev tests. It supports manual backups, safe-state backups, before-tests/before-import/before-restore backups, restore, import, export, pin/delete, duplicate detection, and mixed retention: keep recent backups, always keep at least the latest 5, never delete pinned/safe-state/last backup automatically.
+- `js/app/shared/data-backup-store.js` — shared backup store used by both the normal app and dev tests. It supports manual backups, safe-state backups, before-tests/before-import/before-restore backups, restore, import, export, pin/delete, duplicate detection, and current retention handled by the later app/test backup policy entry; never delete pinned/safe-state automatically.
 - `js/app/ui/data-settings-modal.js` + `css/data-settings.css` — Start screen gear opens `Ustawienia → Dane programu` with data stats, create backup, save last good state, export all data, import data from file, diagnostic report, and list of saved backups with restore/export/pin/delete.
 - `js/testing/test-data-safety.js` + `js/testing/dev-tests-page.js` — dev tests now create a backup through the same program backup system before each run and always cleanup test data in `finally`, even if tests fail. This is one shared backup system, not a separate test-only mechanism.
 - `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/app-dev-smoke.js` — wired new modules in load order and tests. APP smoke and ROZRYS smoke are green.

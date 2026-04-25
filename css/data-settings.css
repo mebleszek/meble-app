@@ -39,3 +39,5 @@
 .data-settings-accordion__sub{font-size:12px;font-weight:900;color:#64748b;margin-left:auto;}
 .data-settings-accordion__body{padding:0 14px 14px;}
 .data-settings-help{grid-column:1/-1;margin:4px 0 0;}
+.data-settings-delete-btn--protected[disabled]{opacity:.38;filter:saturate(.25);cursor:not-allowed;box-shadow:none;background:#f1f5f9;border-color:rgba(148,163,184,.55);color:#64748b;}
+.data-settings-delete-btn--protected[disabled]:active{background:#f1f5f9;}

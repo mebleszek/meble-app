@@ -123,6 +123,82 @@
         }
       }),
 
+
+      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia 10 najnowszych backupów w każdej grupie, usuwa tylko starszy nadmiar i nie miesza backupów testowych z programowymi.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.pruneNow === 'function', 'Brak FC.dataBackupStore.pruneNow');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const prevBackupsRaw = localStorage.getItem(backupKey);
+        const day = 24 * 60 * 60 * 1000;
+        const base = Date.now();
+        function fakeBackup(id, reason, index, pinned){
+          return {
+            id,
+            reason,
+            label:id,
+            createdAt:new Date(base - index * day).toISOString(),
+            createdAtMs:base - index * day,
+            pinned:!!pinned,
+            snapshot:{ keys:{ fc_backup_policy_test:JSON.stringify({ id }) } },
+          };
+        }
+        try{
+          const seed = [];
+          for(let i=0;i<13;i += 1) seed.push(fakeBackup('app_' + i, 'manual', i, i === 12));
+          for(let i=0;i<13;i += 1) seed.push(fakeBackup('test_' + i, 'before-tests', i, i === 12));
+          localStorage.setItem(backupKey, JSON.stringify(seed));
+          const pruned = FC.dataBackupStore.pruneNow();
+          const ids = new Set(pruned.map((item)=> item.id));
+          for(let i=0;i<10;i += 1){
+            H.assert(ids.has('app_' + i), 'Sprzątanie usunęło jeden z 10 najnowszych backupów programu', pruned);
+            H.assert(ids.has('test_' + i), 'Sprzątanie usunęło jeden z 10 najnowszych backupów testowych', pruned);
+          }
+          H.assert(!ids.has('app_10') && !ids.has('app_11'), 'Sprzątanie nie usunęło starego nadmiaru programu poza ostatnią dziesiątką', pruned);
+          H.assert(!ids.has('test_10') && !ids.has('test_11'), 'Sprzątanie nie usunęło starego nadmiaru testów poza ostatnią dziesiątką', pruned);
+          H.assert(ids.has('app_12') && ids.has('test_12'), 'Sprzątanie usunęło przypięty stary backup', pruned);
+          const groups = FC.dataBackupStore.listBackupGroups();
+          H.assert(groups.app.length === 11 && groups.test.length === 11, 'Grupy backupów nie są liczone osobno po retencji', groups);
+        } finally {
+          if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
+        }
+      }),
+
+      H.makeTest('Projekt', 'Trzy najnowsze backupy w każdej grupie są chronione przed ręcznym usunięciem', 'Pilnuje, czy blokada usuwania działa osobno dla backupów programu i testowych: 3 najnowsze są chronione, a 4. backup można usunąć ręcznie.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.getBackupProtection === 'function', 'Brak FC.dataBackupStore.getBackupProtection');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const prevBackupsRaw = localStorage.getItem(backupKey);
+        const day = 24 * 60 * 60 * 1000;
+        const base = Date.now();
+        function fakeBackup(id, reason, index){
+          return {
+            id,
+            reason,
+            label:id,
+            createdAt:new Date(base - index * day).toISOString(),
+            createdAtMs:base - index * day,
+            snapshot:{ keys:{ fc_backup_delete_test:JSON.stringify({ id }) } },
+          };
+        }
+        try{
+          const seed = [];
+          for(let i=0;i<5;i += 1) seed.push(fakeBackup('app_del_' + i, 'manual', i));
+          for(let i=0;i<5;i += 1) seed.push(fakeBackup('test_del_' + i, 'before-tests', i));
+          localStorage.setItem(backupKey, JSON.stringify(seed));
+          const all = FC.dataBackupStore.listBackups();
+          H.assert(FC.dataBackupStore.getBackupProtection(all.find((item)=> item.id === 'app_del_2'), all).latestProtected === true, 'Trzeci backup programu powinien być automatycznie chroniony', all);
+          H.assert(FC.dataBackupStore.getBackupProtection(all.find((item)=> item.id === 'test_del_2'), all).latestProtected === true, 'Trzeci backup testowy powinien być automatycznie chroniony', all);
+          let appBlocked = false;
+          let testBlocked = false;
+          try{ FC.dataBackupStore.deleteBackup('app_del_2'); }catch(_){ appBlocked = true; }
+          try{ FC.dataBackupStore.deleteBackup('test_del_2'); }catch(_){ testBlocked = true; }
+          H.assert(appBlocked && testBlocked, 'Trzy najnowsze backupy nie zostały zablokowane przed usunięciem');
+          FC.dataBackupStore.deleteBackup('app_del_3');
+          FC.dataBackupStore.deleteBackup('test_del_3');
+          const ids = new Set(FC.dataBackupStore.listBackups().map((item)=> item.id));
+          H.assert(!ids.has('app_del_3') && !ids.has('test_del_3'), 'Czwarty backup w grupie powinien dać się usunąć ręcznie', Array.from(ids));
+        } finally {
+          if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
+        }
+      }),
       H.makeTest('Projekt', 'Sesja wykrywa zmianę od razu po zapisie do localStorage i czyści ją po commit', 'Pilnuje nowego lżejszego wykrywania zmian: po edycji nie trzeba czekać na pełne skanowanie storage, a po Zapisz stan dirty ma zniknąć.', ()=>{
         H.assert(FC.session && typeof FC.session.begin === 'function', 'Brak FC.session.begin');
         const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.ui) || 'fc_ui_v1';

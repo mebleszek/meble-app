@@ -136,7 +136,11 @@
 
     function renderBackup(){
       const stats = store.getStats();
-      const backups = store.listBackups();
+      const allBackups = store.listBackups();
+      const grouped = store.listBackupGroups ? store.listBackupGroups() : {
+        app:allBackups.filter((backup)=> !(store.isTestBackup && store.isTestBackup(backup))),
+        test:allBackups.filter((backup)=> store.isTestBackup && store.isTestBackup(backup)),
+      };
       scroll.innerHTML = '';
 
       const headerCard = h('section', { class:'data-settings-card' });
@@ -170,16 +174,21 @@
       scroll.appendChild(actionsCard);
 
       const listCard = h('section', { class:'data-settings-card' });
-      const listIntro = h('p', { class:'muted', text:`Automatyczne sprzątanie usuwa stare backupy dopiero, gdy zostaje minimum ${store.MIN_KEEP || 5} najnowszych. Backup przypięty i „ostatni dobry stan” nie są usuwane automatycznie.` });
-      const list = h('div', { class:'data-settings-backup-list' });
-      if(!backups.length){
-        list.appendChild(h('div', { class:'muted', text:'Nie ma jeszcze backupów.' }));
-      }
-      backups.forEach((backup)=> list.appendChild(buildBackupRow(backup)));
-      listCard.appendChild(makeAccordion('Backupy zapisane w programie', [listIntro, list], { open:true, sub:String(backups.length || 0) }));
+      const policyText = `Automatyczne sprzątanie działa osobno dla backupów programu i testowych: zostawia ${store.MIN_KEEP || 10} najnowszych w każdej grupie, a nadmiar starszy niż ${store.RETENTION_DAYS || 7} dni usuwa tylko wtedy, gdy nie jest przypięty. ${store.AUTO_PROTECT_LATEST || 3} najnowsze w każdej grupie mają zablokowany przycisk usuwania.`;
+      listCard.appendChild(makeAccordion('Backupy zapisane w programie', [h('p', { class:'muted', text:policyText }), buildBackupList(grouped.app, allBackups, 'Nie ma jeszcze backupów programu.')], { open:true, sub:String((grouped.app || []).length || 0) }));
+      listCard.appendChild(makeAccordion('Backupy testowe', [h('p', { class:'muted', text:policyText }), buildBackupList(grouped.test, allBackups, 'Nie ma jeszcze backupów testowych.')], { open:false, sub:String((grouped.test || []).length || 0) }));
       scroll.appendChild(listCard);
     }
 
+    function buildBackupList(backups, allBackups, emptyText){
+      const list = h('div', { class:'data-settings-backup-list' });
+      if(!(backups && backups.length)){
+        list.appendChild(h('div', { class:'muted', text:emptyText || 'Nie ma jeszcze backupów.' }));
+        return list;
+      }
+      backups.forEach((backup)=> list.appendChild(buildBackupRow(backup, allBackups)));
+      return list;
+    }
     function buildActions(){
       const actionsWrap = h('div', { class:'data-settings-actions' });
       const makeBackupBtn = h('button', { type:'button', class:'btn btn-success', text:'Utwórz zwykły backup' });
@@ -230,9 +239,10 @@
       return actionsWrap;
     }
 
-    function buildBackupRow(backup){
+    function buildBackupRow(backup, allBackups){
       const row = h('div', { class:'data-settings-backup-row' });
       const rowStats = snapshot.readStatsFromSnapshot(backup.snapshot);
+      const protection = store.getBackupProtection ? store.getBackupProtection(backup, allBackups) : { protected:store.isProtected && store.isProtected(backup, allBackups) };
       const title = h('div', { class:'data-settings-backup-title' }, [
         h('strong', { text:backup.label || 'Backup danych' }),
         h('span', { class:'muted xs', text:`${formatDate(backup.createdAt)} • ${backup.reason || 'backup'} • ${rowStats.keys || 0} kluczy` }),
@@ -242,7 +252,7 @@
       const restoreBtn = h('button', { type:'button', class:'btn btn-success', text:'Przywróć ten backup' });
       const exportOneBtn = h('button', { type:'button', class:'btn', text:'Eksportuj' });
       const pinBtn = h('button', { type:'button', class:'btn', text: backup.pinned ? 'Odepnij' : 'Przypnij' });
-      const deleteBtn = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
+      const deleteBtn = h('button', { type:'button', class:'btn btn-danger' + (protection.protected ? ' data-settings-delete-btn--protected' : ''), text:'Usuń' });
       restoreBtn.addEventListener('click', async ()=>{
         const ok = await ask({
           title:'PRZYWRÓCIĆ BACKUP?',
@@ -262,11 +272,17 @@
       });
       exportOneBtn.addEventListener('click', ()=> store.exportBackup(backup.id));
       pinBtn.addEventListener('click', ()=>{ store.updateBackup(backup.id, { pinned:!backup.pinned }); render(); });
-      deleteBtn.addEventListener('click', async ()=>{
-        const ok = await ask({ title:'USUNĄĆ BACKUP?', message:'Tej operacji nie cofniemy.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
-        if(!ok) return;
-        try{ store.deleteBackup(backup.id); render(); }catch(err){ info('Nie można usunąć backupu', String(err && err.message || err)); }
-      });
+      if(protection.protected){
+        deleteBtn.disabled = true;
+        deleteBtn.setAttribute('aria-disabled', 'true');
+        deleteBtn.title = protection.latestProtected ? 'Chroniony — jeden z 3 najnowszych backupów w tej grupie.' : 'Chroniony — backup przypięty albo bezpieczny stan.';
+      } else {
+        deleteBtn.addEventListener('click', async ()=>{
+          const ok = await ask({ title:'USUNĄĆ BACKUP?', message:'Tej operacji nie cofniemy.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
+          if(!ok) return;
+          try{ store.deleteBackup(backup.id); render(); }catch(err){ info('Nie można usunąć backupu', String(err && err.message || err)); }
+        });
+      }
       [restoreBtn, exportOneBtn, pinBtn, deleteBtn].forEach((btn)=> rowActions.appendChild(btn));
       row.appendChild(title);
       row.appendChild(rowActions);
