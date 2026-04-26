@@ -24,6 +24,7 @@
       { key:'project', name:'PROJEKT', inApp:true, run: FC.projectDevTests && typeof FC.projectDevTests.runAll === 'function' ? ()=> FC.projectDevTests.runAll() : null },
       { key:'investor', name:'INWESTOR', inApp:true, run: FC.investorDevTests && typeof FC.investorDevTests.runAll === 'function' ? ()=> FC.investorDevTests.runAll() : null },
       { key:'material', name:'MATERIAŁY', inApp:true, run: FC.materialDevTests && typeof FC.materialDevTests.runAll === 'function' ? ()=> FC.materialDevTests.runAll() : null },
+      { key:'rysunek', name:'RYSUNEK', inApp:true, run: FC.rysunekDevTests && typeof FC.rysunekDevTests.runAll === 'function' ? ()=> FC.rysunekDevTests.runAll() : null },
       { key:'wycena', name:'WYCENA', inApp:true, run: FC.wycenaDevTests && typeof FC.wycenaDevTests.runAll === 'function' ? ()=> FC.wycenaDevTests.runAll() : null },
       { key:'cabinet', name:'SZAFKI', inApp:true, run: FC.cabinetDevTests && typeof FC.cabinetDevTests.runAll === 'function' ? ()=> FC.cabinetDevTests.runAll() : null },
       { key:'service', name:'USŁUGI', inApp:true, run: FC.serviceDevTests && typeof FC.serviceDevTests.runAll === 'function' ? ()=> FC.serviceDevTests.runAll() : null },

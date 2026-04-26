@@ -33,6 +33,8 @@ const FILES = [
   'js/app/catalog/catalog-selectors.js',
   'js/app/material/price-modal.js',
   'js/app/ui/tabs-router.js',
+  'js/app/ui/layout-state.js',
+  'js/tabs/rysunek.js',
   'js/app/ui/info-box.js',
   'js/app/ui/app-icons.js',
   'js/app/ui/data-settings-dom.js',
@@ -150,6 +152,7 @@ const FILES = [
   'js/testing/wycena/suites/status-anti-regression.js',
   'js/testing/wycena/tests.js',
   'js/testing/material/tests.js',
+  'js/testing/rysunek/tests.js',
   'js/testing/cabinet/tests.js',
   'js/testing/service/tests.js',
 ];
@@ -317,6 +320,7 @@ function makeMiniDocument(){
     body: new MiniElement('body'),
     __listeners:{},
     createElement(tag){ return new MiniElement(tag); },
+    createElementNS(_ns, tag){ return new MiniElement(tag); },
     getElementById(id){ return this.body.querySelector('#' + id); },
     querySelector(selector){ return this.body.querySelector(selector); },
     querySelectorAll(selector){ return this.body.querySelectorAll(selector); },
@@ -367,9 +371,11 @@ function mergeReports(reports){
   const smokeDocument = sandbox.document;
   sandbox.document = smokeDocument;
   const projectReport = await sandbox.FC.projectDevTests.runAll();
+  const rysunekReport = await sandbox.FC.rysunekDevTests.runAll();
   sandbox.document = undefined;
   const reports = [
     projectReport,
+    rysunekReport,
     await sandbox.FC.investorDevTests.runAll(),
     await sandbox.FC.materialDevTests.runAll(),
     await sandbox.FC.wycenaDevTests.runAll(),

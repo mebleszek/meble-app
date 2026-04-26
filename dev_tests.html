@@ -74,6 +74,7 @@
         <button id="runProjectTests" data-run-mode="project" data-label="Tylko PROJEKT" type="button">Tylko PROJEKT</button>
         <button id="runInvestorTests" data-run-mode="investor" data-label="Tylko INWESTOR" type="button">Tylko INWESTOR</button>
         <button id="runMaterialTests" data-run-mode="material" data-label="Tylko MATERIAŁY" type="button">Tylko MATERIAŁY</button>
+        <button id="runRysunekTests" data-run-mode="rysunek" data-label="Tylko RYSUNEK" type="button">Tylko RYSUNEK</button>
         <button id="runWycenaTests" data-run-mode="wycena" data-label="Tylko WYCENA" type="button">Tylko WYCENA</button>
         <button id="runCabinetTests" data-run-mode="cabinet" data-label="Tylko SZAFKI" type="button">Tylko SZAFKI</button>
         <button id="runServiceTests" data-run-mode="service" data-label="Tylko USŁUGI" type="button">Tylko USŁUGI</button>
@@ -82,7 +83,7 @@
         <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
         <a id="openUiPatterns" href="dev_ui_patterns.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--btn-border);background:var(--btn);color:#162033;padding:12px 18px;border-radius:14px;font:800 16px/1.15 inherit;text-decoration:none">Wzorce UI</a>
       </div>
-      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
+      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, RYSUNEK, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
       <div id="results"></div>
       <div id="devTestsAppFixture" aria-hidden="true" style="display:none">
         <div id="homeView"></div>
@@ -173,6 +174,8 @@
   <script src="js/app/investor/investor-rooms.js?v=20260422_investor_tab_perf_v1"></script>
   <script src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/ui/tabs-router.js?v=20260417_wycena_history_test_hotfix_v1"></script>
+  <script src="js/app/ui/layout-state.js?v=20260426_rysunek_safety_v1"></script>
+  <script src="js/tabs/rysunek.js?v=20260426_rysunek_safety_v1"></script>
   <script src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
   <script src="js/app/ui/confirm-box.js?v=20260418_ui_patterns_v1"></script>
   <script src="js/core/actions.js?v=20260418_wywiad_room_params_modal_v2"></script>
@@ -268,6 +271,7 @@
   <script src="js/testing/project/tests.js?v=20260425_data_safety_stage2_v1"></script>
   <script src="js/testing/investor/tests.js?v=20260424_investor_recovery_leak_fix_v1"></script>
   <script src="js/testing/material/tests.js?v=20260424_material_cleanup_v1"></script>
+  <script src="js/testing/rysunek/tests.js?v=20260426_rysunek_safety_v1"></script>
   <script src="js/testing/wycena/fixtures.js?v=20260416_wycena_test_split_v1"></script>
   <script src="js/testing/wycena/suites/core-offer-basics.js?v=20260417_wycena_history_hotfix_v1"></script>
   <script src="js/testing/wycena/suites/core-offer-workflow.js?v=20260416_wycena_test_split_v1"></script>
