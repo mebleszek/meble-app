@@ -159,3 +159,8 @@ Decyzja: nie robić ukrytej migracji danych w paczkach porządkowych. Przy nast�
 - `fc_edge_v1` jest relatywnie duże i może wymagać później powiązania z konkretnym projektem/pomieszczeniem zamiast globalnego rośnięcia bez kontroli.
 - Backup lokalny działa, ale przy wielu inwestorach nie może być traktowany jako docelowa chmura. To tylko zabezpieczenie lokalne.
 - Testy i narzędzia pamięci muszą dalej pilnować, czy dane techniczne/cache nie trafiają do backupu użytkownika.
+
+## Decyzja status/meta Wyceny — 2026-04-26
+
+- `projectData.meta` jest częścią modelu projektu i normalizacja projektu nie może go gubić. `meta.projectStatus` pozostaje lustrem statusu używanym przez Wycena/status bridge oraz przyszły adapter chmurowy.
+- Testy cleanup/izolacji nie mogą interpretować inwestorów odbudowanych z realnych snapshotów Wyceny jako danych testowych. Przy testach należy izolować źródła recovery i przywracać je po zakończeniu, bez kasowania danych użytkownika i bez dotykania backupów.

@@ -22,6 +22,9 @@
     }catch(_){ out = null; }
     if(!(out && typeof out === 'object')) out = Object.assign({}, base);
     out = Object.assign({}, base, out, { schemaVersion:CURRENT_SCHEMA_VERSION });
+    if(src.meta && typeof src.meta === 'object'){
+      out.meta = Object.assign({}, out.meta && typeof out.meta === 'object' ? out.meta : {}, clone(src.meta));
+    }
     Object.keys(base || {}).forEach((key)=>{
       if(key === 'schemaVersion' || key === 'meta') return;
       const roomBase = base[key];

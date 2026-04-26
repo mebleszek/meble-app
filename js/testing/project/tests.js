@@ -253,6 +253,8 @@
         keys.forEach((key)=>{ saved[key] = localStorage.getItem(key); });
         try{
           FC.testDataManager.beginRun({ runId:'stage2_run', mode:'unit' });
+          localStorage.setItem('fc_quote_snapshots_v1', '[]');
+          localStorage.setItem('fc_quote_offer_drafts_v1', '[]');
           FC.investors.writeAll([{ id:'real_iso_inv', name:'Realny inwestor', rooms:[], meta:{} }]);
           FC.projectStore.writeAll([{ id:'real_iso_project', investorId:'real_iso_inv', title:'Realny projekt', projectData:{ kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } }, meta:{} }]);
           FC.serviceOrderStore.writeAll([{ id:'real_iso_order', title:'Realne zlecenie', clientName:'Realny', meta:{} }]);
@@ -621,7 +623,11 @@
         const prevInvestors = FC.investors.readAll();
         const prevProjects = FC.projectStore.readAll();
         const prevOrders = FC.serviceOrderStore.readAll();
+        const prevSnapshotsRaw = localStorage.getItem('fc_quote_snapshots_v1');
+        const prevDraftsRaw = localStorage.getItem('fc_quote_offer_drafts_v1');
         try{
+          localStorage.setItem('fc_quote_snapshots_v1', '[]');
+          localStorage.setItem('fc_quote_offer_drafts_v1', '[]');
           FC.investors.writeAll([{ id:'inv_real', kind:'person', name:'Prawdziwy', rooms:[], meta:{} }]);
           FC.projectStore.writeAll([{ id:'proj_real', investorId:'inv_real', title:'Projekt realny', projectData:{ kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } }, meta:{} }]);
           FC.serviceOrderStore.writeAll([{ id:'so_real', title:'Prawdziwe zlecenie', clientName:'Realny klient', meta:{} }]);
@@ -637,6 +643,8 @@
           H.assert(projects.length === 1 && projects[0].id === 'proj_real', 'Cleanup nie usunął projektów testowych albo naruszył realne', projects);
           H.assert(orders.length === 1 && orders[0].id === 'so_real', 'Cleanup nie usunął testowych zleceń albo naruszył realne', orders);
         } finally {
+          if(prevSnapshotsRaw == null) localStorage.removeItem('fc_quote_snapshots_v1'); else localStorage.setItem('fc_quote_snapshots_v1', prevSnapshotsRaw);
+          if(prevDraftsRaw == null) localStorage.removeItem('fc_quote_offer_drafts_v1'); else localStorage.setItem('fc_quote_offer_drafts_v1', prevDraftsRaw);
           FC.investors.writeAll(prevInvestors);
           FC.projectStore.writeAll(prevProjects);
           FC.serviceOrderStore.writeAll(prevOrders);

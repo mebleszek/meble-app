@@ -240,13 +240,18 @@
       try{
         return !!(await wycenaTabStatusBridge.acceptSnapshot(snapshot, ctx, options, {
           normalizeSnapshot,
+          normalizeStatusKey,
           getSnapshotId,
           getSnapshotHistory,
+          isSelectedSnapshot,
+          isRejectedSnapshot,
           isPreliminarySnapshot,
           rememberQuoteScroll,
           clearRememberedQuoteScroll,
           render,
           setHistoryPreviewState:patchHistoryPreviewState,
+          getProjectStatusForHistory,
+          isArchivedPreliminary,
           canAcceptSnapshot,
           commitAcceptedSnapshotWithSync,
         }));

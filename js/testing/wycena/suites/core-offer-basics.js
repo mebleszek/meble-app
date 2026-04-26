@@ -215,6 +215,37 @@
         } finally {
           FC.quoteSnapshotStore.writeAll(prev);
         }
+      }),
+
+    H.makeTest('Wycena', 'Akceptacja z podglądu wyceny nie kończy się martwym kliknięciem', 'Pilnuje, czy zielony przycisk akceptacji z podsumowania ma komplet zależności do status bridge: ma otworzyć confirm i zapisać zaakceptowaną ofertę, a nie tylko dać reakcję wizualną.', async ()=>{
+        H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.acceptSnapshot === 'function', 'Brak FC.wycenaTabDebug.acceptSnapshot', FC.wycenaTabDebug);
+        const prevConfirmBox = FC.confirmBox;
+        let confirmCalls = 0;
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+          try{
+            FC.confirmBox = Object.assign({}, FC.confirmBox || {}, { ask:async ()=>{ confirmCalls += 1; return true; } });
+            const snapshot = FC.quoteSnapshotStore.save({
+              id:'snap_preview_accept_button',
+              investor:{ id:investorId },
+              project:{ id:projectId, investorId, title:'Projekt preview accept' },
+              commercial:{ preliminary:true, versionName:'Preview accept' },
+              scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] },
+              totals:{ grand:100 },
+              lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+              generatedAt:1712800400000,
+            });
+            const ctx = typeof document !== 'undefined' && document && typeof document.createElement === 'function'
+              ? { listEl:document.createElement('div') }
+              : { listEl:null };
+            const accepted = await FC.wycenaTabDebug.acceptSnapshot(snapshot, ctx, { rememberScroll:false });
+            const selected = FC.quoteSnapshotStore.getSelectedForProject(projectId, { roomIds:['room_kuchnia_gora'] });
+            H.assert(accepted === true, 'Akceptacja z podglądu nie zwróciła sukcesu — klik byłby martwy');
+            H.assert(confirmCalls === 1, 'Akceptacja z podglądu nie otworzyła potwierdzenia', { confirmCalls });
+            H.assert(selected && String(selected.id || '') === String(snapshot.id || '') && selected.meta && selected.meta.selectedByClient === true, 'Akceptacja z podglądu nie zapisała zaakceptowanej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          } finally {
+            FC.confirmBox = prevConfirmBox;
+          }
+        });
       })
   ]);
 })(typeof window !== 'undefined' ? window : globalThis);

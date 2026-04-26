@@ -69,6 +69,7 @@ function makeMiniDocument(){
       };
     }
     get childElementCount(){ return this.children.length; }
+    get childNodes(){ return this.children; }
     get textContent(){ return this._textContent + this.children.map((c)=> c.textContent || '').join(''); }
     set textContent(value){ this._textContent = String(value ?? ''); this.children = []; }
     get innerHTML(){ return this._innerHTML || ''; }
