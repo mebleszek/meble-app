@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_orphan_backup_guard_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_test_tools_memory_hub_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -12,13 +12,14 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 1. Startować z ostatniego ZIP-a zaakceptowanego w rozmowie.
 2. Przed zmianami przeczytać aktualny `DEV.md`.
-3. Przed wydaniem uruchomić przynajmniej:
+3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`.
+4. Przed wydaniem uruchomić przynajmniej:
    - `node --check` dla nowych/zmienionych JS,
    - `node tools/check-index-load-groups.js`,
    - `node tools/app-dev-smoke.js`,
    - `node tools/rozrys-dev-smoke.js`, jeśli zmiana może dotknąć ROZRYS albo wspólnych danych.
-4. Przed wydaniem sprawdzić linie i odpowiedzialności nowych/mocno zmienionych plików.
-5. W finalnej odpowiedzi wypisać, co weszło, czego nie ruszano i co użytkownik ma sprawdzić w programie.
+5. Przed wydaniem sprawdzić linie i odpowiedzialności nowych/mocno zmienionych plików.
+6. W finalnej odpowiedzi wypisać, co weszło, czego nie ruszano i co użytkownik ma sprawdzić w programie.
 
 ## Limity plików i odpowiedzialności
 
@@ -28,6 +29,13 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Około 250 linii: próg ostrożności. Może zostać tylko przy jednej spójnej odpowiedzialności i braku sensownego podziału.
 - Około 400 linii: mocne ostrzeżenie. Może zostać tylko tymczasowo albo przy naprawdę dużej jednej odpowiedzialności, której nie da się sensownie podzielić.
 - Około 600 linii: próg nieprzekraczalny dla nowych lub mocno zmienianych plików. Nie wydawać paczki z takim świeżym plikiem.
+
+## Cloud-readiness — obowiązkowy audyt danych
+
+- Szczegółowy plan i checklista są w `CLOUD_MIGRATION.md`; nie dublować ich w całości w `DEV.md`.
+- Każda nowa lub mocno zmieniana funkcja danych musi przejść audyt cloud-readiness podobnie jak audyt linii i odpowiedzialności.
+- Sprawdzać zwłaszcza: bezpośrednie/scattered `localStorage`, mieszanie danych użytkownika z cache/techniką, duplikację rekordów, stabilne ID, granicę store/repository/adapter oraz późniejszą mapowalność do Firestore/synchronizacji.
+- Małe lokalne poprawki cloud-ready robić w tej samej paczce, jeśli nie zmieniają UI ani logiki biznesowej. Większe albo międzydomenowe migracje zgłaszać jako osobny etap.
 
 ## UI i interakcje — zasady aktywne
 
@@ -116,6 +124,7 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 
 ## Najbliższa rekomendowana kolejność
 
-1. Zakończyć krótki etap safety: DEV cleanup + podstawowe testy RYSUNKU + lista długu systemowych dialogów.
-2. Potem `Materiał cleanup etap 2`, zaczynając od analizy `price-modal.js` i wspólnego modelu formatek/oklein.
-3. Następnie osobny etap RYSUNEK: najpierw usunięcie systemowych dialogów i plan splitu, potem dopiero cięcie monolitu.
+1. Przy zmianach danych trzymać `CLOUD_MIGRATION.md` jako obowiązkową checklistę i aktualizować go tylko o istotne decyzje migracyjne.
+2. Kolejny etap materiałów: `magazyn.js`, `material-part-options.js` i wspólny model formatek/oklein dla `Materiał + ROZRYS`.
+3. Osobny etap RYSUNEK: najpierw usunięcie systemowych dialogów i plan splitu, potem dopiero cięcie monolitu.
+4. Osobny etap cloud-readiness: audyt wszystkich bezpośrednich użyć `localStorage` i projekt pierwszych repozytoriów/adapterów lokalnych.
