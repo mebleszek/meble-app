@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_settings_tests_icons_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_architecture_safety_notes_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -71,7 +71,20 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `js/app/rozrys/rozrys.js` — duży, ale lepiej zabezpieczony testami. Nie dopisywać tam logiki, jeśli pasuje do istniejących modułów ROZRYS.
 - `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js` — kontynuować delegowanie do modułów `wycena-tab-*` i store/quote, nie przywracać inline workflow.
 - `js/app/quote/quote-snapshot-store.js`, `js/app/investor/investors-store.js`, `js/app/project/project-status-sync.js` — krytyczne store/statusy. Przy większej zmianie najpierw zaplanować split i testy kontraktowe.
-- `js/app/material/price-modal.js` — kandydat do `Materiał cleanup etap 2`: modal, lista, formularz, filtry, walidacja i zapis powinny iść w osobne odpowiedzialności.
+- `js/app/material/price-modal.js` — po `Materiał cleanup etap 2` jest cienką fasadą. Nie dopisywać tam ciężkiej logiki; kierować zmiany do modułów `price-modal-context/options/filters/item-form/list/persistence`.
+
+## MATERIAŁ — aktualny stan po cleanup etap 2
+
+- `price-modal.js` jest tylko fasadą renderu głównego modala i publicznego API `FC.priceModal`.
+- Odpowiedzialności modala cenników są rozdzielone:
+  - `price-modal-context.js` — wspólny kontekst, stan runtime i helpery modalowe,
+  - `price-modal-options.js` — opcje selectów/launcherów,
+  - `price-modal-filters.js` — filtry, wyszukiwanie i toolbar,
+  - `price-modal-item-form.js` — formularz dodawania/edycji pozycji,
+  - `price-modal-list.js` — render listy pozycji,
+  - `price-modal-persistence.js` — walidacja, zapis i usuwanie pozycji.
+- UI cenników nie został celowo zmieniony w tym etapie; to był split techniczny.
+- Kolejny etap materiałów może objąć `magazyn.js`, `material-part-options.js` i wspólny model formatek/oklein dla `Materiał + ROZRYS`.
 
 ## RYSUNEK — aktualny stan bezpieczeństwa
 
