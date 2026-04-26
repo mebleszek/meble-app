@@ -48,7 +48,9 @@ Etap 1 porządkuje wejścia, routing i podstawowe byty danych bez przepinania ca
 ## Testy developerskie
 
 - `dev_tests.html` — główna, użytkowa strona testów w przeglądarce.
-- `tools/app-dev-smoke.js` — pomocniczy runner techniczny Node dla APP; ma być zgodny z aktualnym zestawem modułów testowych i nie powinien zgłaszać starych błędów środowiska jako błędów programu.
+- `tools/app-dev-smoke.js` — cienki runner techniczny Node dla APP; szczegóły środowiska smoke są w `tools/app-dev-smoke-lib/`.
+- `tools/local-storage-source-audit.js` — źródłowy audyt bezpośrednich użyć `localStorage` / `sessionStorage`.
+- `OPTIMIZATION_PLAN.md` — plan wspólnych mechanik, duplikacji i kolejności porządkowania.
 
 ## Deploy (GitHub Pages)
 

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_test_tools_memory_hub_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_cloud_migration_plan_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -13,13 +13,14 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 1. Startować z ostatniego ZIP-a zaakceptowanego w rozmowie.
 2. Przed zmianami przeczytać aktualny `DEV.md`.
 3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`.
-4. Przed wydaniem uruchomić przynajmniej:
+4. Przy większych porządkach, splitach albo szukaniu duplikacji między działami przeczytać też `OPTIMIZATION_PLAN.md`.
+5. Przed wydaniem uruchomić przynajmniej:
    - `node --check` dla nowych/zmienionych JS,
    - `node tools/check-index-load-groups.js`,
    - `node tools/app-dev-smoke.js`,
    - `node tools/rozrys-dev-smoke.js`, jeśli zmiana może dotknąć ROZRYS albo wspólnych danych.
-5. Przed wydaniem sprawdzić linie i odpowiedzialności nowych/mocno zmienionych plików.
-6. W finalnej odpowiedzi wypisać, co weszło, czego nie ruszano i co użytkownik ma sprawdzić w programie.
+6. Przed wydaniem sprawdzić linie i odpowiedzialności nowych/mocno zmienionych plików.
+7. W finalnej odpowiedzi wypisać, co weszło, czego nie ruszano i co użytkownik ma sprawdzić w programie.
 
 ## Limity plików i odpowiedzialności
 
@@ -54,6 +55,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
   - `tools/index-load-groups.js`,
   - `tools/app-dev-smoke.js`.
 - `dev_tests.html` jest jedynym ręcznym wejściem do testów. Nowe działy testów podpinać jako osobną sekcję, nie tworzyć drugiej strony testowej.
+- `tools/app-dev-smoke.js` jest cienkim runnerem. Lista plików, mock storage i mini-DOM są w `tools/app-dev-smoke-lib/`; nie sklejać tego ponownie w jeden duży plik.
 - Testy mają tworzyć dane tylko z markerami `__test:true` i `__testRunId`, przez `FC.testDataManager` albo równoważny helper.
 - Cleanup testów ma sprzątać tylko oznaczone dane testowe i nie dotykać prawdziwych danych użytkownika.
 - Przycisk `Usuń dane testowe` zostaje awaryjny; normalnie testy sprzątają po sobie automatycznie.
@@ -124,7 +126,8 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 
 ## Najbliższa rekomendowana kolejność
 
-1. Przy zmianach danych trzymać `CLOUD_MIGRATION.md` jako obowiązkową checklistę i aktualizować go tylko o istotne decyzje migracyjne.
-2. Kolejny etap materiałów: `magazyn.js`, `material-part-options.js` i wspólny model formatek/oklein dla `Materiał + ROZRYS`.
-3. Osobny etap RYSUNEK: najpierw usunięcie systemowych dialogów i plan splitu, potem dopiero cięcie monolitu.
-4. Osobny etap cloud-readiness: audyt wszystkich bezpośrednich użyć `localStorage` i projekt pierwszych repozytoriów/adapterów lokalnych.
+1. Przy większych porządkach i szukaniu wspólnych mechanik trzymać `OPTIMIZATION_PLAN.md` jako mapę kolejności i kandydatów do wspólnych modułów.
+2. Przy zmianach danych trzymać `CLOUD_MIGRATION.md` jako obowiązkową checklistę i aktualizować go tylko o istotne decyzje migracyjne.
+3. Kolejny etap materiałów: `magazyn.js`, `material-part-options.js` i wspólny model formatek/oklein dla `Materiał + ROZRYS`.
+4. Osobny etap RYSUNEK: najpierw usunięcie systemowych dialogów i plan splitu, potem dopiero cięcie monolitu.
+5. Osobny etap cloud-readiness: ograniczanie bezpośrednich użyć `localStorage` według audytu `tools/local-storage-source-audit.js` i projekt pierwszych repozytoriów/adapterów lokalnych.

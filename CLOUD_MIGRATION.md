@@ -135,6 +135,22 @@ Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm
 - Nie ukrywać dużej migracji danych w paczce, która miała być zwykłą poprawką UI.
 - Nie tworzyć kolejnych trwałych kopii projektu tylko po to, żeby „na szybko” coś przywrócić.
 
+
+## Audyt źródeł storage — 2026-04-26
+
+Dodano narzędzie `tools/local-storage-source-audit.js`, które skanuje źródła `js` pod kątem bezpośrednich referencji do `localStorage` i `sessionStorage`.
+
+Aktualny wynik:
+
+- 25 plików z referencjami do storage,
+- 217 referencji storage razem,
+- 146 referencji w testach i narzędziach testowych,
+- 71 referencji w kodzie aplikacji poza testami,
+- kontrolowane granice: `js/app/shared/storage.js`, `js/app/shared/data-storage-*`, `js/app/shared/data-backup-*`, store domenowe i `js/app/investor/session.js`,
+- obszary do dalszego wygaszania bezpośrednich zapisów: `js/app.js`, `js/boot.js`, `js/app/investor/investor-project.js`, `js/app/material/*`, `js/app/rozrys/*`.
+
+Decyzja: nie robić ukrytej migracji danych w paczkach porządkowych. Przy następnych zmianach danych lokalnie przesuwać zapisy/odczyty do store/repository/adaptera, jeśli zmiana jest mała i nie zmienia UI ani zachowania biznesowego. Większe przepięcia projektów, inwestorów i cenników robić jako osobne etapy z testami kontraktowymi.
+
 ## Bieżące długi do pilnowania
 
 - `fc_project_v1`, `fc_projects_v1` i `fc_project_inv_*_v1` nadal pokazują historyczną duplikację modelu projektu. Nie dokładać nowych mechanizmów, które ją pogłębiają.
