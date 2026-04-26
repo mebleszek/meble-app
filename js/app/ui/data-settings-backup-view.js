@@ -8,8 +8,6 @@
 
   function render(ctx){
     const store = ctx.store;
-    const snapshot = ctx.snapshot;
-    const stats = store.getStats();
     const allBackups = store.listBackups();
     const grouped = store.listBackupGroups ? store.listBackupGroups() : {
       app:allBackups.filter((backup)=> !(store.isTestBackup && store.isTestBackup(backup))),
@@ -19,7 +17,6 @@
     ctx.scroll.appendChild(buildHeader());
     ctx.scroll.appendChild(buildActions(ctx));
     ctx.scroll.appendChild(buildBackupGroups(Object.assign({}, ctx, { allBackups, grouped })));
-    ctx.scroll.appendChild(buildOverview({ snapshot, store, stats }));
   }
 
   function buildHeader(){
@@ -30,19 +27,6 @@
     titleRow.appendChild(infoBtn);
     headerCard.appendChild(titleRow);
     return headerCard;
-  }
-
-  function buildOverview(ctx){
-    if(FC.dataSettingsReportView && typeof FC.dataSettingsReportView.buildOverview === 'function'){
-      return FC.dataSettingsReportView.buildOverview({ h, makeAccordion:dom.makeAccordion, makeStat:dom.makeStat, snapshot:ctx.snapshot, store:ctx.store, stats:ctx.stats });
-    }
-    return h('section', { class:'data-settings-card' }, [
-      dom.makeAccordion('Dane użytkownika', [h('div', { class:'data-settings-stats' }, [
-        dom.makeStat('Inwestorzy', ctx.stats.investors),
-        dom.makeStat('Projekty', ctx.stats.projects),
-        dom.makeStat('Backupy', ctx.stats.backups),
-      ])], { open:true }),
-    ]);
   }
 
   function buildActions(ctx){

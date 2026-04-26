@@ -59,6 +59,16 @@
     .row-explain{ margin-top:6px; color:var(--muted); }
     .row-msg{ margin-top:8px; color:#6e1c1c; white-space:pre-wrap; font-weight:700; }
     .row-details{ margin-top:8px; color:var(--muted); white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+
+    .dev-tests-home{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:16px; }
+    .dev-tests-card{ min-height:132px; text-align:left; display:flex; flex-direction:column; justify-content:center; gap:8px; border-radius:18px; padding:18px; text-decoration:none; color:var(--text); background:#fbfcff; border:1px solid var(--btn-border); box-shadow:var(--shadow); }
+    .dev-tests-card__title{ font-size:22px; font-weight:900; line-height:1.15; }
+    .dev-tests-card__sub{ color:var(--muted); font-weight:700; line-height:1.35; }
+    .dev-tests-card--link{ cursor:pointer; }
+    .dev-tests-section{ margin-top:16px; padding:16px; border:1px solid var(--border); border-radius:18px; background:#fbfcff; }
+    .section-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+    .report-toolbar{ margin-top:16px; }
+    @media (max-width:820px){ .dev-tests-home{ grid-template-columns:1fr; } .section-head{ flex-direction:column; } }
   </style>
 </head>
 <body>
@@ -67,25 +77,64 @@
       <h1>Testy developerskie aplikacji</h1>
       <p>To jest jedyna strona testowa do ręcznego odpalania. Z tego miejsca uruchomisz zarówno testy ROZRYS, jak i pozostałe smoke-testy aplikacji.</p>
       <p>Pod spodem masz podkategorie, ale do wejścia i uruchamiania jest jeden plik.</p>
-      <div class="toolbar">
-        <button id="runAllTests" data-run-mode="all" data-label="Uruchom wszystkie testy" type="button">Uruchom wszystkie testy</button>
-        <button id="runRozrysTests" data-run-mode="rozrys" data-label="Tylko ROZRYS" type="button">Tylko ROZRYS</button>
-        <button id="runAppTests" data-run-mode="app" data-label="Tylko APP" type="button">Tylko APP</button>
-        <button id="runProjectTests" data-run-mode="project" data-label="Tylko PROJEKT" type="button">Tylko PROJEKT</button>
-        <button id="runInvestorTests" data-run-mode="investor" data-label="Tylko INWESTOR" type="button">Tylko INWESTOR</button>
-        <button id="runMaterialTests" data-run-mode="material" data-label="Tylko MATERIAŁY" type="button">Tylko MATERIAŁY</button>
-        <button id="runDataTests" data-run-mode="data" data-label="Tylko DANE" type="button">Tylko DANE</button>
-        <button id="runRysunekTests" data-run-mode="rysunek" data-label="Tylko RYSUNEK" type="button">Tylko RYSUNEK</button>
-        <button id="runWycenaTests" data-run-mode="wycena" data-label="Tylko WYCENA" type="button">Tylko WYCENA</button>
-        <button id="runCabinetTests" data-run-mode="cabinet" data-label="Tylko SZAFKI" type="button">Tylko SZAFKI</button>
-        <button id="runServiceTests" data-run-mode="service" data-label="Tylko USŁUGI" type="button">Tylko USŁUGI</button>
+      <div id="devTestsHome" class="dev-tests-home">
+        <button id="openMemoryTools" class="dev-tests-card" type="button">
+          <span class="dev-tests-card__title">Narzędzia pamięci</span>
+          <span class="dev-tests-card__sub">Raport danych, audyt localStorage, backup store i czyszczenie osieroconych projektów.</span>
+        </button>
+        <button id="openRegressionTests" class="dev-tests-card" type="button">
+          <span class="dev-tests-card__title">Testy aplikacji</span>
+          <span class="dev-tests-card__sub">Smoke testy, testy regresyjne i wszystkie działy dokładane w trakcie rozwoju programu.</span>
+        </button>
+        <a id="openUiPatterns" class="dev-tests-card dev-tests-card--link" href="dev_ui_patterns.html" target="_blank" rel="noopener">
+          <span class="dev-tests-card__title">Wzorce UI</span>
+          <span class="dev-tests-card__sub">Baza wzorców wyglądu, ikon i elementów interfejsu.</span>
+        </a>
+      </div>
+
+      <section id="memoryToolsSection" class="dev-tests-section" hidden>
+        <div class="section-head">
+          <div>
+            <h2>Narzędzia pamięci</h2>
+            <p>Serwisowe narzędzia do raportu danych, localStorage, backupów i danych testowych.</p>
+          </div>
+          <button id="backFromMemoryTools" data-label="Wróć" type="button">Wróć</button>
+        </div>
+        <div class="toolbar">
+          <button id="auditStorage" data-label="Analiza pamięci" type="button">Analiza pamięci</button>
+          <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
+        </div>
+      </section>
+
+      <section id="regressionTestsSection" class="dev-tests-section" hidden>
+        <div class="section-head">
+          <div>
+            <h2>Testy aplikacji</h2>
+            <p>Testy regresyjne i smoke testy dokładane oraz modyfikowane razem z rozwojem programu.</p>
+          </div>
+          <button id="backFromRegressionTests" data-label="Wróć" type="button">Wróć</button>
+        </div>
+        <div class="toolbar">
+          <button id="runAllTests" data-run-mode="all" data-label="Uruchom wszystkie testy" type="button">Uruchom wszystkie testy</button>
+          <button id="runRozrysTests" data-run-mode="rozrys" data-label="Tylko ROZRYS" type="button">Tylko ROZRYS</button>
+          <button id="runAppTests" data-run-mode="app" data-label="Tylko APP" type="button">Tylko APP</button>
+          <button id="runProjectTests" data-run-mode="project" data-label="Tylko PROJEKT" type="button">Tylko PROJEKT</button>
+          <button id="runInvestorTests" data-run-mode="investor" data-label="Tylko INWESTOR" type="button">Tylko INWESTOR</button>
+          <button id="runMaterialTests" data-run-mode="material" data-label="Tylko MATERIAŁY" type="button">Tylko MATERIAŁY</button>
+          <button id="runDataTests" data-run-mode="data" data-label="Tylko DANE" type="button">Tylko DANE</button>
+          <button id="runRysunekTests" data-run-mode="rysunek" data-label="Tylko RYSUNEK" type="button">Tylko RYSUNEK</button>
+          <button id="runWycenaTests" data-run-mode="wycena" data-label="Tylko WYCENA" type="button">Tylko WYCENA</button>
+          <button id="runCabinetTests" data-run-mode="cabinet" data-label="Tylko SZAFKI" type="button">Tylko SZAFKI</button>
+          <button id="runServiceTests" data-run-mode="service" data-label="Tylko USŁUGI" type="button">Tylko USŁUGI</button>
+        </div>
+      </section>
+
+      <div id="reportToolbar" class="toolbar report-toolbar" hidden>
         <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
         <button id="copyErrorsOnly" data-label="Kopiuj tylko błędy" type="button" disabled>Kopiuj tylko błędy</button>
-        <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
-        <button id="auditStorage" data-label="Analiza pamięci" type="button">Analiza pamięci</button>
-        <a id="openUiPatterns" href="dev_ui_patterns.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--btn-border);background:var(--btn);color:#162033;padding:12px 18px;border-radius:14px;font:800 16px/1.15 inherit;text-decoration:none">Wzorce UI</a>
       </div>
-      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, DANE, RYSUNEK, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
+
+      <div class="hint"><strong>Jak używać:</strong> zacznij od wyboru obszaru. <b>Narzędzia pamięci</b> służą do diagnostyki danych i backupów, a <b>Testy aplikacji</b> do uruchamiania testów regresyjnych.</div>
       <div id="results"></div>
       <div id="devTestsAppFixture" aria-hidden="true" style="display:none">
         <div id="homeView"></div>
@@ -193,10 +242,10 @@
   <script src="js/app/ui/wywiad-room-settings.js?v=20260425_wywiad_dev_tests_load_fix_v1"></script>
   <script src="js/app/ui/data-settings-dom.js?v=20260425_settings_tests_icons_v1"></script>
   <script src="js/app/ui/data-settings-report-view.js?v=20260426_storage_audit_v1"></script>
-  <script src="js/app/ui/data-settings-menu-view.js?v=20260425_settings_tests_icons_v1"></script>
-  <script src="js/app/ui/data-settings-backup-actions.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/app/ui/data-settings-menu-view.js?v=20260426_test_hub_v1"></script>
+  <script src="js/app/ui/data-settings-backup-actions.js?v=20260426_test_hub_v1"></script>
   <script src="js/app/ui/data-settings-backup-list.js?v=20260425_data_safety_split_v1"></script>
-  <script src="js/app/ui/data-settings-backup-view.js?v=20260425_settings_tests_icons_v1"></script>
+  <script src="js/app/ui/data-settings-backup-view.js?v=20260426_test_hub_v1"></script>
   <script src="js/app/ui/data-settings-modal.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
@@ -298,8 +347,10 @@
   <script src="js/testing/wycena/tests.js?v=20260416_wycena_test_split_v1"></script>
   <script src="js/testing/cabinet/tests.js?v=20260425_aventos_warning_fixture_v1"></script>
   <script src="js/testing/service/tests.js?v=20260414_service_cutting_v1"></script>
-  <script src="js/testing/dev-tests-storage-tools.js?v=20260426_orphan_guard_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/testing/dev-tests-registry.js?v=20260426_test_hub_v1"></script>
+  <script src="js/testing/dev-tests-report-view.js?v=20260426_test_hub_v1"></script>
+  <script src="js/testing/dev-tests-storage-tools.js?v=20260426_test_hub_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260426_test_hub_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};

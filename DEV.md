@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_backup_snapshot_audit_fix.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_orphan_backup_guard_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -62,7 +62,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
   - automatyczne czyszczenie rusza tylko nadmiar starszy niż 7 dni i nie rusza chronionych.
 - Backup nie powinien obejmować technicznych stanów sesji/cache: `fc_edit_session_v1`, `fc_reload_restore_v1`, `fc_rozrys_plan_cache_v2`.
 - Snapshot backupu nie obejmuje roboczych kopii awaryjnych projektu/inwestorów ani cache ROZRYS: `fc_project_backup_*`, `fc_project_inv_*_backup*`, `fc_investors_backup_*`, `fc_rozrys_plan_cache_v1/v2`.
-- Przy zapisie backup store stare backupy są sanitizowane z tych technicznych kluczy bez zmiany retencji 10/3/przypięte. Audyt pamięci jest w raporcie danych oraz w `dev_tests.html` jako `Analiza pamięci`.
+- Przy zapisie backup store stare backupy są sanitizowane z tych technicznych kluczy bez zmiany retencji 10/3/przypięte. Raport/audyt pamięci jest przeniesiony do `dev_tests.html` → `Narzędzia pamięci`; zwykły panel `Backup i dane` zostaje do backupu, importu, eksportu i list backupów.
 - Osierocone sloty `fc_project_inv_*` nie są kasowane po cichu. Przy ręcznym backupie i przed testami działa półautomat z własnym modalem: wyczyść i kontynuuj / kontynuuj bez czyszczenia / anuluj.
 - Jeśli backup `before-tests` nie mieści się w `localStorage`, testy mogą pobrać backup do pliku i dopiero wtedy ruszyć. Nie uruchamiać testów bez żadnego zabezpieczenia.
 - Narzędzie `Analiza pamięci` w `dev_tests.html` może ręcznie, po potwierdzeniu, wyczyścić osierocone sloty projektów. Testy nie mogą samodzielnie kasować prawdziwych danych użytkownika.
@@ -77,6 +77,21 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js` — kontynuować delegowanie do modułów `wycena-tab-*` i store/quote, nie przywracać inline workflow.
 - `js/app/quote/quote-snapshot-store.js`, `js/app/investor/investors-store.js`, `js/app/project/project-status-sync.js` — krytyczne store/statusy. Przy większej zmianie najpierw zaplanować split i testy kontraktowe.
 - `js/app/material/price-modal.js` — po `Materiał cleanup etap 2` jest cienką fasadą. Nie dopisywać tam ciężkiej logiki; kierować zmiany do modułów `price-modal-context/options/filters/item-form/list/persistence`.
+
+
+## TESTY / NARZĘDZIA — aktualny układ
+
+- `dev_tests.html` ma ekran wejściowy zamiast jednej przeładowanej listy przycisków.
+- Główne wejścia:
+  - `Narzędzia pamięci` — raport danych, audyt localStorage, backup store, sieroty projektów i awaryjne czyszczenie danych testowych,
+  - `Testy aplikacji` — wszystkie smoke/regression testy dokładane i rozwijane z aplikacją,
+  - `Wzorce UI` — baza wzorców interfejsu i ikon.
+- Nie dokładać kolejnych serwisowych narzędzi do paska testów regresyjnych. Narzędzia pamięci/diagnostyki mają trafiać do sekcji `Narzędzia pamięci` albo osobnego modułu narzędziowego.
+- Logika strony testów jest rozdzielona:
+  - `dev-tests-registry.js` — rejestr i zbieranie raportów testów,
+  - `dev-tests-report-view.js` — render raportów i tekst do schowka,
+  - `dev-tests-storage-tools.js` — narzędzia pamięci,
+  - `dev-tests-page.js` — cienki kontroler ekranu i przełączania sekcji.
 
 ## MATERIAŁ — aktualny stan po cleanup etap 2
 

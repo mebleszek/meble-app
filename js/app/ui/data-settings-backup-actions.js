@@ -8,14 +8,12 @@
 
   function build(ctx){
     const store = ctx.store;
-    const snapshot = ctx.snapshot;
     const render = ctx.render;
     const actionsWrap = h('div', { class:'data-settings-actions' });
     const makeBackupBtn = h('button', { type:'button', class:'btn btn-success', text:'Utwórz zwykły backup' });
     const safeStateBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz jako bezpieczny stan' });
     const exportBtn = h('button', { type:'button', class:'btn', text:'Eksportuj wszystkie dane' });
     const importBtn = h('button', { type:'button', class:'btn', text:'Importuj dane z pliku' });
-    const reportBtn = h('button', { type:'button', class:'btn', text:'Kopiuj raport danych' });
     const fileInput = h('input', { type:'file', accept:'application/json,.json', style:'display:none' });
 
     makeBackupBtn.addEventListener('click', async ()=>{
@@ -44,9 +42,8 @@
 
     exportBtn.addEventListener('click', ()=> store.exportCurrent());
     importBtn.addEventListener('click', ()=> fileInput.click());
-    reportBtn.addEventListener('click', ()=> dom.copyText(snapshot.buildDiagnosticsReport(), reportBtn));
     fileInput.addEventListener('change', async ()=> importSelectedFile({ fileInput, store, snapshot }));
-    [makeBackupBtn, safeStateBtn, exportBtn, importBtn, reportBtn, fileInput].forEach((node)=> actionsWrap.appendChild(node));
+    [makeBackupBtn, safeStateBtn, exportBtn, importBtn, fileInput].forEach((node)=> actionsWrap.appendChild(node));
     return actionsWrap;
   }
 

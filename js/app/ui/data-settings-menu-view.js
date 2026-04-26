@@ -7,8 +7,8 @@
   const h = dom.h;
 
   const INFO = {
-    backup:'Kopie danych służą do zabezpieczenia aktualnego stanu programu oraz przenoszenia danych między urządzeniami. Backup obejmuje dane programu i raport pamięci.',
-    tests:'Testy aplikacji sprawdzają regresje i mogą tworzyć tymczasowe dane testowe. Dane testowe powinny być oznaczone markerami i sprzątane automatycznie po przebiegu.',
+    backup:'Kopie danych służą do zabezpieczenia aktualnego stanu programu oraz przenoszenia danych między urządzeniami. Raport pamięci jest w narzędziach testów.',
+    tests:'Testy aplikacji prowadzą do dwóch obszarów: narzędzi pamięci oraz testów regresyjnych dokładanych w trakcie rozwoju programu.',
   };
 
   function addTileActivation(tile, onClick){
@@ -70,7 +70,7 @@
     grid.appendChild(buildTile({
       icon:'backup',
       title:'Backup i dane',
-      sub:'Kopie danych, eksport, import i raport pamięci programu.',
+      sub:'Kopie danych, eksport i import danych programu.',
       section:'backup',
       infoKey:'backup',
       onClick:()=> setView('backup'),
@@ -78,7 +78,7 @@
     grid.appendChild(buildTile({
       icon:'tests',
       title:'Testy aplikacji',
-      sub:'Diagnostyka, smoke testy i sprawdzanie regresji.',
+      sub:'Narzędzia pamięci, smoke testy i sprawdzanie regresji.',
       section:'tests',
       infoKey:'tests',
       onClick:()=> { root.location.href = 'dev_tests.html'; },
