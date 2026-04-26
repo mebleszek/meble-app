@@ -28,6 +28,7 @@ const files = [
   'js/app/rozrys/rozrys-scope.js',
   'js/app/rozrys/rozrys-sheet-model.js',
   'js/app/rozrys/rozrys-engine.js',
+  'js/app/rozrys/rozrys-stock.js',
   'js/app/rozrys/rozrys-lists.js',
   'js/app/rozrys/rozrys-summary.js',
   'js/app/rozrys/rozrys-render.js',

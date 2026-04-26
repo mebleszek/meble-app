@@ -220,3 +220,6 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - średni zysk, średnie ryzyko: materiał z kontraktem danych,
 - duży zysk, wysokie ryzyko: app shell/statusy/projekty,
 - osobny plan: RYSUNEK.
+
+## 2026-04-26 — ROZRYS smoke dependency note
+- `tools/rozrys-dev-smoke.js` ładuje `js/app/rozrys/rozrys-stock.js` przed suite’ami ROZRYS, bo bezpośredni test opcji domyślnych korzysta z `FC.rozrysStock.getDefaultRozrysOptionValues`.
