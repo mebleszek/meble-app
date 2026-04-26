@@ -18,22 +18,53 @@
     const reportBtn = h('button', { type:'button', class:'btn', text:'Kopiuj raport danych' });
     const fileInput = h('input', { type:'file', accept:'application/json,.json', style:'display:none' });
 
-    makeBackupBtn.addEventListener('click', ()=>{
-      const result = store.createBackup({ reason:'manual', label:'Ręczny backup' });
-      dom.info(result.duplicate ? 'Backup już istnieje' : 'Backup utworzony', result.duplicate ? 'Dane są identyczne jak w ostatnim backupie, więc program nie utworzył duplikatu.' : 'Aktualny stan programu został zapisany w backupie.');
-      render();
+    makeBackupBtn.addEventListener('click', async ()=>{
+      const ready = await prepareBackupWithOrphanGuard();
+      if(!ready) return;
+      try{
+        const result = store.createBackup({ reason:'manual', label:'Ręczny backup' });
+        dom.info(result.duplicate ? 'Backup już istnieje' : 'Backup utworzony', result.duplicate ? 'Dane są identyczne jak w ostatnim backupie, więc program nie utworzył duplikatu.' : 'Aktualny stan programu został zapisany w backupie.');
+        render();
+      }catch(error){
+        dom.info('Nie udało się zapisać backupu', String(error && error.message || error || 'Backup nie został zapisany.'));
+      }
     });
-    safeStateBtn.addEventListener('click', ()=>{
-      store.createBackup({ reason:'safe-state', label:'Ostatni dobry stan', safeState:true, pinned:true, dedupe:false });
-      dom.info('Bezpieczny stan zapisany', 'Ten backup jest przypięty i automatyczne sprzątanie go nie usunie.');
-      render();
+
+    safeStateBtn.addEventListener('click', async ()=>{
+      const ready = await prepareBackupWithOrphanGuard();
+      if(!ready) return;
+      try{
+        store.createBackup({ reason:'safe-state', label:'Ostatni dobry stan', safeState:true, pinned:true, dedupe:false });
+        dom.info('Bezpieczny stan zapisany', 'Ten backup jest przypięty i automatyczne sprzątanie go nie usunie.');
+        render();
+      }catch(error){
+        dom.info('Nie udało się zapisać bezpiecznego stanu', String(error && error.message || error || 'Backup nie został zapisany.'));
+      }
     });
+
     exportBtn.addEventListener('click', ()=> store.exportCurrent());
     importBtn.addEventListener('click', ()=> fileInput.click());
     reportBtn.addEventListener('click', ()=> dom.copyText(snapshot.buildDiagnosticsReport(), reportBtn));
     fileInput.addEventListener('change', async ()=> importSelectedFile({ fileInput, store, snapshot }));
     [makeBackupBtn, safeStateBtn, exportBtn, importBtn, reportBtn, fileInput].forEach((node)=> actionsWrap.appendChild(node));
     return actionsWrap;
+  }
+
+  async function prepareBackupWithOrphanGuard(){
+    const cleanupApi = FC.dataStorageOrphanCleanup;
+    if(!(cleanupApi && typeof cleanupApi.analyzeCurrent === 'function')) return true;
+    const analysis = cleanupApi.analyzeCurrent();
+    if(!analysis.count) return true;
+    const choice = FC.storageOrphanCleanupModal && typeof FC.storageOrphanCleanupModal.askForBackup === 'function'
+      ? await FC.storageOrphanCleanupModal.askForBackup(analysis)
+      : 'skip';
+    if(choice === 'cancel' || !choice) return false;
+    if(choice === 'clean'){
+      const summary = cleanupApi.cleanupCurrent();
+      const size = FC.dataStorageAudit && FC.dataStorageAudit.formatBytes ? FC.dataStorageAudit.formatBytes(summary.removedBytes || 0) : String(summary.removedBytes || 0);
+      dom.info('Osierocone projekty wyczyszczone', `Usunięto ${summary.removed || 0} slotów projektów (${size}).`);
+    }
+    return true;
   }
 
   async function importSelectedFile(ctx){

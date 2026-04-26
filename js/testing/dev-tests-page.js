@@ -207,6 +207,29 @@
       return suites;
     }
 
+    function finishRunStartCancelled(message){
+      lastSuites = [];
+      lastOverall = { failed:0, total:0, passed:0, durationMs:0, clipboardText:message || 'Testy anulowane.' };
+      results.innerHTML = `
+        <div class="overall bad">
+          <div class="overall-title">Testy anulowane</div>
+          <div class="overall-sub">${message || 'Uruchomienie testów zostało przerwane przed startem.'}</div>
+        </div>
+      `;
+      copyBtn.disabled = false;
+      copyErrorsBtn.disabled = true;
+    }
+
+    function appendSafetyNote(ctx){
+      if(!(ctx && ctx.manualFileBackup && lastOverall)) return;
+      const note = `Backup przed testami pobrano do pliku: ${ctx.manualFileBackup.filename || 'plik JSON'}. Nie został zapisany w pamięci programu.`;
+      lastOverall.clipboardText = String(lastOverall.clipboardText || '') + '\n\nUWAGA: ' + note;
+      const box = document.createElement('div');
+      box.className = 'overall ok';
+      box.innerHTML = `<div class="overall-title">Backup testów zapisany do pliku</div><div class="overall-sub">${note}</div>`;
+      results.insertBefore(box, results.firstChild);
+    }
+
     function cleanupTestData(silent){
       try{
         if(!(FC.testDataManager && typeof FC.testDataManager.cleanup === 'function')) return { investors:0, projects:0, serviceOrders:0 };
@@ -239,12 +262,17 @@
       let safetyContext = null;
       try{
         if(FC.testDataSafety && typeof FC.testDataSafety.beforeRun === 'function'){
-          safetyContext = FC.testDataSafety.beforeRun({ mode });
+          safetyContext = await FC.testDataSafety.beforeRun({ mode });
+          if(safetyContext && safetyContext.cancelled){
+            finishRunStartCancelled('Testy nie zostały uruchomione, bo backup przed testami został anulowany.');
+            return;
+          }
         }
         cleanupTestData(true);
         const suites = await collectSuites(mode);
         lastSuites = suites.slice();
         lastOverall = renderResult(results, suites);
+        appendSafetyNote(safetyContext);
         copyBtn.disabled = false;
         copyErrorsBtn.disabled = false;
       } catch(error){
@@ -300,28 +328,16 @@
     }
 
     async function runStorageAudit(){
-      try{
-        if(!(FC.dataStorageAudit && typeof FC.dataStorageAudit.auditCurrent === 'function')) throw new Error('Brak FC.dataStorageAudit.auditCurrent');
-        const report = FC.dataStorageAudit.buildReport(FC.dataStorageAudit.auditCurrent());
-        lastSuites = [];
-        lastOverall = { failed:0, total:0, passed:0, durationMs:0, clipboardText:report };
-        results.innerHTML = `
-          <div class="overall ok">
-            <div class="overall-title">Analiza pamięci gotowa</div>
-            <div class="overall-sub">Raport pokazuje największe klucze, backup store, cache i osierocone sloty projektów. Użyj przycisku Kopiuj raport.</div>
-          </div>
-          <section class="suite ok"><div class="rows"><div class="row ok"><div class="row-details">${detailsToText(report)}</div></div></div></section>
-        `;
-        copyBtn.disabled = false;
-        copyErrorsBtn.disabled = true;
-      }catch(error){
-        results.innerHTML = `
-          <div class="overall bad">
-            <div class="overall-title">Błąd analizy pamięci</div>
-            <div class="overall-sub">${error && error.message ? error.message : String(error)}</div>
-          </div>
-        `;
+      if(FC.devTestsStorageTools && typeof FC.devTestsStorageTools.runStorageAudit === 'function'){
+        return FC.devTestsStorageTools.runStorageAudit({
+          results,
+          copyBtn,
+          copyErrorsBtn,
+          detailsToText,
+          setLastOverall(value){ lastSuites = []; lastOverall = value; },
+        });
       }
+      results.innerHTML = '<div class="overall bad"><div class="overall-title">Błąd analizy pamięci</div><div class="overall-sub">Brak modułu devTestsStorageTools.</div></div>';
     }
 
     runButtons.forEach((btn)=>{

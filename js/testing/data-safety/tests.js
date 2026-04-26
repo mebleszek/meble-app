@@ -75,6 +75,34 @@
         H.assert(report.indexOf('Techniczne kopie awaryjne') >= 0, 'Raport nie pokazuje technicznych kopii awaryjnych', report);
       }),
 
+      H.makeTest('Data safety', 'Plan czyszczenia osieroconych projektów nie obejmuje aktywnego inwestora', 'Pilnuje półautomatu sprzątania bez dotykania realnego localStorage: plan usuwa tylko sloty bez aktualnego inwestora/projektu.', ()=>{
+        H.assert(FC.dataStorageOrphanCleanup && typeof FC.dataStorageOrphanCleanup.planFromKeys === 'function', 'Brak FC.dataStorageOrphanCleanup.planFromKeys');
+        const plan = FC.dataStorageOrphanCleanup.planFromKeys({
+          fc_investors_v1:JSON.stringify([{ id:'inv_live' }]),
+          fc_projects_v1:JSON.stringify([{ id:'p1', investorId:'inv_live' }]),
+          fc_project_inv_inv_live_v1:JSON.stringify({ live:true }),
+          fc_project_inv_inv_old_v1:JSON.stringify({ old:true }),
+        });
+        H.assert(plan.count === 1, 'Plan powinien wykryć jedną sierotę', plan);
+        H.assert(plan.rows[0].key === 'fc_project_inv_inv_old_v1', 'Plan wskazał zły slot do czyszczenia', plan);
+      }),
+
+      H.makeTest('Data safety', 'Awaryjny backup testów potrafi pobrać snapshot do pliku', 'Pilnuje bezpiecznika testów: gdy localStorage nie przyjmie backupu before-tests, program ma dostępny eksport plikowy zamiast startu bez zabezpieczenia.', ()=>{
+        H.assert(FC.testDataSafety && typeof FC.testDataSafety.buildManualBackup === 'function', 'Brak FC.testDataSafety.buildManualBackup');
+        H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.downloadJson === 'function', 'Brak downloadJson');
+        const oldDownload = FC.dataBackupSnapshot.downloadJson;
+        let downloaded = null;
+        try{
+          FC.dataBackupSnapshot.downloadJson = (filename, payload)=>{ downloaded = { filename, payload }; };
+          const info = FC.testDataSafety.buildManualBackup('data-test');
+          H.assert(downloaded && downloaded.filename.indexOf('meble-app-before-tests-') === 0, 'Nie wywołano pobrania pliku backupu', downloaded);
+          H.assert(downloaded.payload && downloaded.payload.kind === 'meble-app-data-export', 'Eksport testów ma zły payload', downloaded);
+          H.assert(info && info.snapshotKeys >= 0, 'Helper nie zwrócił metadanych pliku', info);
+        } finally {
+          FC.dataBackupSnapshot.downloadJson = oldDownload;
+        }
+      }),
+
       H.makeTest('Data safety', 'Zapis backup store odchudza stare backupy bez zmiany retencji', 'Pilnuje naprawy quota: stare zapisane backupy są przepisywane bez technicznych kluczy, ale bez zmiany liczby backupów i zasad ochrony.', ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';

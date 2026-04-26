@@ -124,7 +124,8 @@
   <script src="js/app/shared/storage.js?v=20260422_registry_perf_v1"></script>
   <script src="js/app/shared/data-storage-classifier.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-storage-keys.js?v=20260426_storage_audit_v1"></script>
-  <script src="js/app/shared/data-storage-audit.js?v=20260426_storage_audit_v1"></script>
+  <script src="js/app/shared/data-storage-audit.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/app/shared/data-storage-orphan-cleanup.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/app/shared/data-backup-sanitizer.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-backup-hash.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-snapshot-normalizer.js?v=20260425_data_safety_split_v1"></script>
@@ -182,6 +183,9 @@
   <script src="js/tabs/rysunek.js?v=20260426_rysunek_safety_v1"></script>
   <script src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
   <script src="js/app/ui/confirm-box.js?v=20260418_ui_patterns_v1"></script>
+  <script src="js/app/ui/choice-box.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/app/ui/storage-orphan-cleanup-modal.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/app/ui/test-backup-fallback-modal.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/core/actions.js?v=20260418_wywiad_room_params_modal_v2"></script>
   <script src="js/app/ui/actions-register.js?v=20260418_wywiad_room_params_modal_v2"></script>
   <script src="js/app/ui/panel-box.js?v=20260418_wywiad_room_params_modal_v2"></script>
@@ -190,7 +194,7 @@
   <script src="js/app/ui/data-settings-dom.js?v=20260425_settings_tests_icons_v1"></script>
   <script src="js/app/ui/data-settings-report-view.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/ui/data-settings-menu-view.js?v=20260425_settings_tests_icons_v1"></script>
-  <script src="js/app/ui/data-settings-backup-actions.js?v=20260425_data_safety_split_v1"></script>
+  <script src="js/app/ui/data-settings-backup-actions.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/app/ui/data-settings-backup-list.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/ui/data-settings-backup-view.js?v=20260425_settings_tests_icons_v1"></script>
   <script src="js/app/ui/data-settings-modal.js?v=20260425_data_safety_split_v1"></script>
@@ -275,8 +279,8 @@
   <script src="js/testing/shared/harness.js?v=20260416_async_harness_v1"></script>
   <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/test-data-manager.js?v=20260425_test_isolation_stage2_v1"></script>
-  <script src="js/testing/test-data-safety.js?v=20260425_test_isolation_stage2_v1"></script>
-  <script src="js/testing/data-safety/tests.js?v=20260426_storage_audit_v1"></script>
+  <script src="js/testing/test-data-safety.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/testing/data-safety/tests.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/rozrys/tests.js?v=20260421_rozrys_entrypoint_mix_fix_v1"></script>
   <script src="js/testing/project/tests.js?v=20260425_data_safety_stage2_v1"></script>
@@ -294,7 +298,8 @@
   <script src="js/testing/wycena/tests.js?v=20260416_wycena_test_split_v1"></script>
   <script src="js/testing/cabinet/tests.js?v=20260425_aventos_warning_fixture_v1"></script>
   <script src="js/testing/service/tests.js?v=20260414_service_cutting_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260426_storage_audit_v1"></script>
+  <script src="js/testing/dev-tests-storage-tools.js?v=20260426_orphan_guard_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260426_orphan_guard_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};
