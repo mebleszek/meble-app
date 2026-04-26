@@ -35,6 +35,12 @@ const files = [
   'js/app/rozrys/rozrys-print-layout.js',
   'js/app/rozrys/rozrys.js',
   'js/testing/rozrys/fixtures.js',
+  'js/testing/rozrys/suites/state-ui-runtime.js',
+  'js/testing/rozrys/suites/helpers-bridges.js',
+  'js/testing/rozrys/suites/scope-runtime-controllers.js',
+  'js/testing/rozrys/suites/output-bootstrap.js',
+  'js/testing/rozrys/suites/project-stock.js',
+  'js/testing/rozrys/suites/validation-cache-render.js',
   'js/testing/rozrys/tests.js',
 ];
 

@@ -138,6 +138,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/bootstrap/app-state-bootstrap.js",
       "js/app/bootstrap/app-ui-bootstrap.js",
       "js/app/bootstrap/reload-restore.js",
+      "js/app/investor/project-autosave.js",
       "js/app/ui/settings-ui.js",
       "js/app/ui/wywiad-room-settings.js",
       "js/app/rozrys/rozrys-project-source.js",

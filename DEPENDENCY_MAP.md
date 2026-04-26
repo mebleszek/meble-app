@@ -42,7 +42,7 @@ Aplikacja produkcyjna ładuje obecnie 184 skrypty. Kolejność można czytać ja
 
 ### `dev_tests.html`
 
-Testy ręczne ładują obecnie 185 skryptów. Układ jest podobny, ale uproszczony i dołożony o test harness oraz moduły testowe. To jedyne ręczne wejście do testów.
+Testy ręczne ładują obecnie 192 skrypty. Układ jest podobny, ale uproszczony i dołożony o test harness oraz moduły testowe. To jedyne ręczne wejście do testów. W tej paczce dołożono jawne ładowanie `project-autosave.js` oraz rozbite suite testów ROZRYS.
 
 ### Lazy/special load
 
@@ -54,20 +54,20 @@ Poniższe pliki nie są bezpośrednio w `index.html`/`dev_tests.html`, ale nie w
 - `js/app/rozrys/rozrys-progress.js` — lazy manifest ROZRYS,
 - `js/app/rozrys/rozrys-runner.js` — lazy manifest ROZRYS,
 - `js/app/rozrys/rozrys-stock-modal.js` — lazy manifest ROZRYS,
-- `js/app/investor/project-autosave.js` — wygląda na nieładowany przez główne wejścia; przed usunięciem albo przywróceniem trzeba osobno sprawdzić, czy to porzucony mechanizm, czy brak w load order.
+- `js/app/investor/project-autosave.js` — rozstrzygnięty po audycie: to aktywny runtime boundary autosave, ładowany jawnie po `reload-restore.js` w `index.html` i `dev_tests.html`; nie ładować go do Node `app-dev-smoke` jako zwykłego pliku, bo ten runner ma własny, uproszczony kontekst.
 
 ## Podsumowanie audytu 2026-04-26
 
 | Metryka | Wynik |
 | --- | ---: |
-| Pliki JS | 234 |
-| Skrypty w `index.html` | 184 |
-| Skrypty w `dev_tests.html` | 185 |
-| Krawędzie zależności po symbolach `FC.*` | 938 |
+| Pliki JS | 240 |
+| Skrypty w `index.html` | 185 |
+| Skrypty w `dev_tests.html` | 192 |
+| Krawędzie zależności po symbolach `FC.*` | 1023 |
 | Produkcyjne symbole `FC.*` z właścicielem | 173 |
-| Wszystkie symbole `FC.*` z właścicielem, razem z testami | 194 |
-| Pliki wysokiego ryzyka / nie ruszać bez planu | 14 |
-| Pliki średniego ryzyka | 31 |
+| Wszystkie symbole `FC.*` z właścicielem, razem z testami | 196 |
+| Pliki wysokiego ryzyka / nie ruszać bez planu | 15 |
+| Pliki średniego ryzyka | 36 |
 
 ## Obszary według rozmiaru i ryzyka
 
@@ -186,17 +186,13 @@ Dotyczy obecnie szczególnie `js/tabs/rysunek.js` oraz większych zmian na styku
 
 ## Najlepsze następne kandydaty po tej mapie
 
-### 1. Testy ROZRYS / testy projektu — split testów, nie aplikacji
+### 1. Testy ROZRYS — etap splitu wykonany
 
-Powód: największe pliki w repo to testy, np. `js/testing/rozrys/tests.js` ma 2059 linii, `js/testing/project/tests.js` ma 813 linii. To poprawia utrzymanie i nie rusza UI ani danych.
+`js/testing/rozrys/tests.js` został rozbity na cienki runner i suite'y w `js/testing/rozrys/suites/*`. Raport dla użytkownika ma pozostać taki sam, a kolejne zmiany w testach ROZRYS należy dokładać do właściwej suite zamiast znowu powiększać runner.
 
-Warunek: test runner i raport muszą zostać bez zmian dla użytkownika.
+### 2. `project-autosave.js` — rozstrzygnięty jako aktywny runtime boundary
 
-### 2. `project-autosave.js` — decyzja: usunąć jako martwe albo przywrócić do load order
-
-Powód: plik wygląda na nieładowany przez główne wejścia. Nie wolno go kasować bez analizy, ale trzeba rozstrzygnąć stan, bo ukryty autosave jest ryzykowny.
-
-Warunek: najpierw sprawdzić historię/kontrakty i czy brak ładowania jest celowy.
+Plik nie był ładowany w głównych wejściach, mimo że `app.js` deleguje do `FC.projectAutosave`. Po audycie został jawnie dodany do `index.html`, `dev_tests.html` i `tools/index-load-groups.js`, a test projektu sprawdza obecność tego boundary. Nie kasować go jako martwego pliku. W Node `app-dev-smoke` nie jest ładowany bezpośrednio, bo runner nie odwzorowuje pełnego runtime `index.html`; tam sprawdzana jest obecność w HTML.
 
 ### 3. Materiał stage — tylko po kontrakcie danych
 

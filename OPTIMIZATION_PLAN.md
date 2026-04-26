@@ -55,9 +55,10 @@ Porządkować aplikację etapami bez robienia jednego wielkiego modułu `shared`
 1. Utrzymać split toolingowy `tools/app-dev-smoke.js`, żeby runner APP nie mieszał listy plików, mini-DOM, storage mocka i orkiestracji.
 2. Utrzymywać źródłowy audyt storage przez `tools/local-storage-source-audit.js`.
 3. Przy każdej większej paczce sprawdzać, czy nowy kod nie dokłada bezpośredniego, rozproszonego `localStorage`.
-4. Porządkować raporty/testy tylko w obrębie istniejącego wejścia `dev_tests.html`.
+4. Porządkować raporty/testy tylko w obrębie istniejącego wejścia `dev_tests.html`. Etap splitu testów ROZRYS jest wykonany: runner `js/testing/rozrys/tests.js` ma pozostać cienki, a suite'y są w `js/testing/rozrys/suites/*`.
 5. Reload/restore wyjęty z `app.js` do `js/app/bootstrap/reload-restore.js`; kolejne podobne kroki mają wyciągać poboczne mechaniki app shell bez zmiany UI.
 6. Przed wyborem kolejnego splitu uruchomić/odświeżyć `node tools/dependency-source-audit.js` i sprawdzić `DEPENDENCY_MAP.md`, żeby ocenić wpływ drugiego poziomu.
+7. `project-autosave.js` został rozstrzygnięty jako aktywny runtime boundary i nie jest już kandydatem do usunięcia jako martwy plik.
 
 ### Etap 2 — dane i katalogi
 

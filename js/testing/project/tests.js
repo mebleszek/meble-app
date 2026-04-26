@@ -392,6 +392,20 @@
           fixture.remove();
         }
       }),
+      H.makeTest('Projekt', 'Project autosave jest jawnie ładowany jako runtime boundary', 'Pilnuje naprawy po audycie zależności: wydzielony project-autosave.js nie może być martwym plikiem, bo app.js deleguje do FC.projectAutosave.', ()=>{
+        const loadedApi = FC.projectAutosave && typeof FC.projectAutosave === 'object';
+        const assets = host.__DEV_ASSETS__ || {};
+        const indexHtml = String(assets['index.html'] || '');
+        const devTestsHtml = String(assets['dev_tests.html'] || '');
+        const indexHasScript = indexHtml.indexOf('js/app/investor/project-autosave.js') >= 0;
+        const devHasScript = devTestsHtml.indexOf('js/app/investor/project-autosave.js') >= 0;
+        H.assert(loadedApi || (indexHasScript && devHasScript), 'Brak project-autosave.js w runtime/developer entrypoints', { loadedApi, indexHasScript, devHasScript });
+        if(loadedApi){
+          H.assert(typeof FC.projectAutosave.scheduleProjectAutosave === 'function', 'Brak FC.projectAutosave.scheduleProjectAutosave');
+          H.assert(typeof FC.projectAutosave.installProjectAutosave === 'function', 'Brak FC.projectAutosave.installProjectAutosave');
+        }
+      }),
+
       H.makeTest('Projekt', 'Bootstrap UI fallback nie dokleja widoku pomieszczeń do ekranu startowego', 'Pilnuje regresji po splitach startu: jeśli router widoków nie jest dostępny albo rzuci wyjątek, awaryjny fallback nie może pokazać starego roomsView pod ekranem Start.', ()=>{
         H.assert(FC.appUiBootstrap && typeof FC.appUiBootstrap.initUI === 'function', 'Brak FC.appUiBootstrap.initUI');
         const fixture = document.createElement('div');

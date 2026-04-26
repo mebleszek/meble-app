@@ -54,6 +54,7 @@ Etap 1 porządkuje wejścia, routing i podstawowe byty danych bez przepinania ca
 ## Testy developerskie
 
 - `dev_tests.html` — główna, użytkowa strona testów w przeglądarce.
+- `js/testing/rozrys/tests.js` — cienki runner testów ROZRYS. Szczegółowe suite'y są w `js/testing/rozrys/suites/*`; nie scalać ich ponownie w jeden duży plik.
 - `tools/app-dev-smoke.js` — cienki runner techniczny Node dla APP; szczegóły środowiska smoke są w `tools/app-dev-smoke-lib/`.
 - `tools/local-storage-source-audit.js` — źródłowy audyt bezpośrednich użyć `localStorage` / `sessionStorage`.
 - `OPTIMIZATION_PLAN.md` — plan wspólnych mechanik, duplikacji i kolejności porządkowania.
@@ -124,7 +125,7 @@ Szczegóły utrzymywać i aktualizować w `DEV.md`.
 - `js/app/investor/project-bootstrap.js` — boot-time normalization helpers for project data; keep app.js lighter without changing UI.
 
 
-- `js/app.js` ma też lekki, globalny debounce autosave projektu (`installProjectAutosave` / `scheduleProjectAutosave`) jako bezpiecznik na wypadek, gdy pojedynczy handler zmiany nie zapisze stanu od razu.
+- `js/app.js` deleguje lekki, globalny debounce autosave projektu (`installProjectAutosave` / `scheduleProjectAutosave`) do `js/app/investor/project-autosave.js` jako bezpiecznik na wypadek, gdy pojedynczy handler zmiany nie zapisze stanu od razu.
 
 - Refresh behavior: normal page refresh no longer forces a return to Home; manual safe reset is available via `?safe=1` (and legacy `?reset=1`).
 
@@ -155,7 +156,7 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 
 - Step 33: trimmed app.js wrappers for dom-guard, project-bootstrap and calc/settings by delegating to preloaded modules with minimal local fallbacks.
 
-- `js/app/investor/project-autosave.js` — globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
+- `js/app/investor/project-autosave.js` — aktywny runtime boundary autosave ładowany jawnie w `index.html` i `dev_tests.html`; globalny debounce autosave projektu i instalacja lekkiego bezpiecznika autosave dla zmian w obszarze aplikacji.
 
 
 ## Update

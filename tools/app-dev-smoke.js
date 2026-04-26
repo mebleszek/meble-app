@@ -16,6 +16,10 @@ function createSandbox(){
     document: makeMiniDocument(),
     structuredClone: global.structuredClone || ((x)=> JSON.parse(JSON.stringify(x))),
     crypto: require('crypto').webcrypto,
+    __DEV_ASSETS__: {
+      'index.html': fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'),
+      'dev_tests.html': fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8'),
+    },
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
