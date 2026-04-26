@@ -1,3 +1,9 @@
+### 2026-04-26 — app shell storage boundary stage 1
+- `js/app/bootstrap/reload-restore.js` now owns session-scoped reload/scroll restore.
+- `js/app.js` no longer directly references `localStorage` or `sessionStorage`; it only delegates reload/restore through the app shell boundary.
+- `js/app/shared/storage.js` exposes small session helpers used by the reload boundary.
+- APP smoke test coverage now includes the reload/restore contract.
+
 ### 2026-04-24 — data safety foundation
 - Added a system-wide backup module for all app data (`fc_*` localStorage keys), not just investors.
 - Start screen now has a gear settings entry for `Dane programu`: create backup, save safe state, export/import JSON, restore saved backup, pin/delete backups, copy diagnostics.
@@ -137,7 +143,7 @@ Step 24: `app.js` further trimmed by reducing duplicated `material-common` and `
 
 - `project-bootstrap.js` ładowany tylko raz w `index.html`; usunięty duplikat include.
 
-- js/app.js korzysta już z preładowanych modułów constants/utils/storage/ui-state jako źródeł prawdy; w app.js zostały tylko lokalne fallbacki awaryjne.
+- js/app.js korzysta już z preładowanych modułów constants/utils/storage/ui-state jako źródeł prawdy; bezpośrednie `localStorage` / `sessionStorage` zostały przeniesione poza `app.js`.
 
 
 - `js/app/shared/public-api.js` — publiczne bezpieczne API FC/App (boot/init, openRoom, safe akcje modali i zakładek).
@@ -318,3 +324,12 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - Startowy trybik `⚙` otwiera teraz menu ustawień, a `Backup i dane` jest osobnym, głębszym panelem.
 - Panel backupów używa akordeonów dla danych użytkownika i danych technicznych oraz ma czytelniejsze nazwy akcji backupu.
 
+
+
+## Dokumenty techniczne
+
+- `DEV.md` — aktywne zasady rozwoju i workflow paczek.
+- `CLOUD_MIGRATION.md` — zasady danych, storage i przyszłej migracji do chmury.
+- `OPTIMIZATION_PLAN.md` — plan optymalizacji i scalania wspólnych mechanik.
+- `DEPENDENCY_MAP.md` — mapa zależności, wpływu drugiego poziomu i kolejności bezpiecznych refaktorów.
+- `tools/dependency-source-audit.js` — narzędzie generujące raporty `tools/reports/dependency-source-audit.md/json`.

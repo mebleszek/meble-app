@@ -80,6 +80,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/investor/project-bootstrap.js',
   'js/app/bootstrap/app-state-bootstrap.js',
   'js/app/bootstrap/app-ui-bootstrap.js',
+  'js/app/bootstrap/reload-restore.js',
   'js/app/quote/quote-offer-store.js',
   'js/app/quote/quote-snapshot-store.js',
   'js/app/quote/quote-scope-entry.js',

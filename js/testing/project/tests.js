@@ -749,6 +749,29 @@
           try{ if(typeof uiState !== 'undefined') uiState = prevUiState; }catch(_){ }
         }
       }),
+      H.makeTest('Projekt', 'Reload restore jest osobnym modułem sesji i czyści snapshot po użyciu', 'Pilnuje, czy reload/restore nie wraca do app.js i działa przez FC.reloadRestore oraz session helper.', ()=>{
+        H.assert(FC.reloadRestore && typeof FC.reloadRestore.applySnapshot === 'function', 'Brak FC.reloadRestore.applySnapshot', FC.reloadRestore);
+        H.assert(typeof FC.reloadRestore.restoreScroll === 'function', 'Brak FC.reloadRestore.restoreScroll', FC.reloadRestore);
+        H.assert(FC.storage && FC.storage.session && typeof FC.storage.session.setJSON === 'function', 'Brak FC.storage.session.setJSON', FC.storage);
+        const key = FC.reloadRestore.key || 'fc_reload_restore_v1';
+        const prevRaw = sessionStorage.getItem(key);
+        const prevUiState = FC.uiState;
+        try{
+          FC.uiState = { get(){ return { entry:'app', activeTab:'wywiad', roomType:'kuchnia' }; } };
+          if(typeof window !== 'undefined') window.scrollY = 123;
+          FC.reloadRestore.persist();
+          const persisted = JSON.parse(sessionStorage.getItem(key) || 'null');
+          H.assert(persisted && persisted.uiState && persisted.uiState.activeTab === 'wywiad', 'Reload restore nie zapisał snapshotu UI', persisted);
+          const applied = FC.reloadRestore.applySnapshot();
+          H.assert(applied && applied.uiState && applied.uiState.roomType === 'kuchnia', 'Reload restore nie zwrócił snapshotu po apply', applied);
+          H.assert(sessionStorage.getItem(key) == null, 'Reload restore nie wyczyścił snapshotu po apply', sessionStorage.getItem(key));
+          FC.reloadRestore.restoreScroll();
+        } finally {
+          FC.uiState = prevUiState;
+          if(prevRaw == null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, prevRaw);
+        }
+      }),
+
       H.makeTest('Projekt', 'Kolejność przycisków zakładek zgadza się z nowym układem', 'Pilnuje, czy paski zakładek mają zamienione MATERIAŁ z RYSUNEK oraz dolny rząd zaczyna się od INWESTOR.', ()=>{
         if(typeof document === 'undefined') return;
         const order = Array.from(document.querySelectorAll('#topTabs .tab-btn')).map((btn)=> String(btn && btn.dataset && btn.dataset.tab || ''));

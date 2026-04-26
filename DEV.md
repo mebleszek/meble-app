@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_cloud_migration_plan_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_app_shell_storage_boundary_stage1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -14,13 +14,14 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 2. Przed zmianami przeczytać aktualny `DEV.md`.
 3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`.
 4. Przy większych porządkach, splitach albo szukaniu duplikacji między działami przeczytać też `OPTIMIZATION_PLAN.md`.
-5. Przed wydaniem uruchomić przynajmniej:
+5. Przed refaktorem większego pliku albo modułu z zależnościami sprawdzić `DEPENDENCY_MAP.md` i w razie potrzeby uruchomić `node tools/dependency-source-audit.js`.
+6. Przed wydaniem uruchomić przynajmniej:
    - `node --check` dla nowych/zmienionych JS,
    - `node tools/check-index-load-groups.js`,
    - `node tools/app-dev-smoke.js`,
    - `node tools/rozrys-dev-smoke.js`, jeśli zmiana może dotknąć ROZRYS albo wspólnych danych.
-6. Przed wydaniem sprawdzić linie i odpowiedzialności nowych/mocno zmienionych plików.
-7. W finalnej odpowiedzi wypisać, co weszło, czego nie ruszano i co użytkownik ma sprawdzić w programie.
+7. Przed wydaniem sprawdzić linie i odpowiedzialności nowych/mocno zmienionych plików.
+8. W finalnej odpowiedzi wypisać, co weszło, czego nie ruszano i co użytkownik ma sprawdzić w programie.
 
 ## Limity plików i odpowiedzialności
 
@@ -49,13 +50,15 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Load order i testy
 
-- Po każdym dodaniu/splitcie modułu aktualizować równolegle:
+- Po każdym dodaniu/splitcie modułu ładowanego w aplikacji aktualizować równolegle:
   - `index.html`,
   - `dev_tests.html`,
   - `tools/index-load-groups.js`,
   - `tools/app-dev-smoke.js`.
+- Przy zmianach kolejności ładowania albo zależności między modułami sprawdzić `DEPENDENCY_MAP.md` oraz raport `tools/reports/dependency-source-audit.md`.
 - `dev_tests.html` jest jedynym ręcznym wejściem do testów. Nowe działy testów podpinać jako osobną sekcję, nie tworzyć drugiej strony testowej.
 - `tools/app-dev-smoke.js` jest cienkim runnerem. Lista plików, mock storage i mini-DOM są w `tools/app-dev-smoke-lib/`; nie sklejać tego ponownie w jeden duży plik.
+- Reload/restore po odświeżeniu jest osobnym modułem `js/app/bootstrap/reload-restore.js`; `app.js` ma tylko cienkie delegatory i nie powinien wracać do bezpośredniego `sessionStorage`.
 - Testy mają tworzyć dane tylko z markerami `__test:true` i `__testRunId`, przez `FC.testDataManager` albo równoważny helper.
 - Cleanup testów ma sprzątać tylko oznaczone dane testowe i nie dotykać prawdziwych danych użytkownika.
 - Przycisk `Usuń dane testowe` zostaje awaryjny; normalnie testy sprzątają po sobie automatycznie.
@@ -130,4 +133,4 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 2. Przy zmianach danych trzymać `CLOUD_MIGRATION.md` jako obowiązkową checklistę i aktualizować go tylko o istotne decyzje migracyjne.
 3. Kolejny etap materiałów: `magazyn.js`, `material-part-options.js` i wspólny model formatek/oklein dla `Materiał + ROZRYS`.
 4. Osobny etap RYSUNEK: najpierw usunięcie systemowych dialogów i plan splitu, potem dopiero cięcie monolitu.
-5. Osobny etap cloud-readiness: ograniczanie bezpośrednich użyć `localStorage` według audytu `tools/local-storage-source-audit.js` i projekt pierwszych repozytoriów/adapterów lokalnych.
+5. Osobny etap cloud-readiness: po wyjęciu reload/restore z `app.js` kolejne bezpieczne kroki to `js/boot.js` jako wyjątek boot-level oraz domeny `investor-project`, `material/*`, `rozrys/*` według audytu `tools/local-storage-source-audit.js`.

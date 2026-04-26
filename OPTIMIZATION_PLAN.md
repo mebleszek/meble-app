@@ -1,6 +1,6 @@
 # OPTIMIZATION_PLAN — plan wspólnych mechanik i porządkowania
 
-Ten plik trzyma plan optymalizacji, scalania duplikacji i kolejności porządkowania. `DEV.md` zostaje krótką mapą zasad pracy, a `CLOUD_MIGRATION.md` trzyma tylko decyzje dotyczące danych, storage i przyszłej chmury.
+Ten plik trzyma plan optymalizacji, scalania duplikacji i kolejności porządkowania. `DEV.md` zostaje krótką mapą zasad pracy, `CLOUD_MIGRATION.md` trzyma decyzje dotyczące danych, storage i przyszłej chmury, a `DEPENDENCY_MAP.md` trzyma mapę zależności oraz wpływu zmian między plikami.
 
 ## Cel
 
@@ -8,7 +8,7 @@ Porządkować aplikację etapami bez robienia jednego wielkiego modułu `shared`
 
 ## Zasady scalania
 
-1. Najpierw kontrakt/test, potem refaktor.
+1. Najpierw mapa zależności, potem kontrakt/test, potem refaktor.
 2. Łączyć mechaniki naprawdę wspólne, nie tylko podobnie wyglądające.
 3. Nie przenosić logiki na siłę, jeśli działy mają podobny UI, ale inną logikę biznesową.
 4. Nie tworzyć dużego `shared`-worka. Moduły wspólne mają być małe i nazwane odpowiedzialnością.
@@ -56,6 +56,8 @@ Porządkować aplikację etapami bez robienia jednego wielkiego modułu `shared`
 2. Utrzymywać źródłowy audyt storage przez `tools/local-storage-source-audit.js`.
 3. Przy każdej większej paczce sprawdzać, czy nowy kod nie dokłada bezpośredniego, rozproszonego `localStorage`.
 4. Porządkować raporty/testy tylko w obrębie istniejącego wejścia `dev_tests.html`.
+5. Reload/restore wyjęty z `app.js` do `js/app/bootstrap/reload-restore.js`; kolejne podobne kroki mają wyciągać poboczne mechaniki app shell bez zmiany UI.
+6. Przed wyborem kolejnego splitu uruchomić/odświeżyć `node tools/dependency-source-audit.js` i sprawdzić `DEPENDENCY_MAP.md`, żeby ocenić wpływ drugiego poziomu.
 
 ### Etap 2 — dane i katalogi
 
@@ -91,10 +93,10 @@ node tools/local-storage-source-audit.js
 Bieżący wynik dla katalogu `js`:
 
 - pliki z użyciem storage: 25,
-- referencje storage razem: 217,
-- największa część to test tooling: 146 referencji,
-- właściwa aplikacja poza testami: 71 referencji,
-- kontrolowane granice storage: `js/app/shared/storage.js`, `data-storage-*`, `data-backup-*`, store domenowe i `investor/session.js`,
-- obszary do dalszego wygaszania bezpośrednich zapisów: `js/app.js`, `js/boot.js`, `js/app/investor/investor-project.js`, `js/app/material/*`, `js/app/rozrys/*`.
+- referencje storage razem: 229,
+- największa część to test tooling: 150 referencji,
+- `js/app.js` został zdjęty z listy bezpośrednich referencji storage,
+- kontrolowane granice storage: `js/app/shared/storage.js`, `js/app/bootstrap/reload-restore.js`, `data-storage-*`, `data-backup-*`, store domenowe i `investor/session.js`,
+- obszary do dalszego wygaszania bezpośrednich zapisów: `js/boot.js`, `js/app/investor/investor-project.js`, `js/app/material/*`, `js/app/rozrys/*`.
 
 Wniosek: nie trzeba robić ukrytej migracji w tej paczce, ale każdy następny etap danych powinien przesuwać zapis/odczyt do store/repository/adaptera zamiast dopisywać kolejne bezpośrednie użycia `localStorage`.

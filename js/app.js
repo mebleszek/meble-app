@@ -50,10 +50,11 @@ const FC = (function(){
     }
   };
 
+  const __fallbackStorageMemory = Object.create(null);
   const storage = (window.FC && window.FC.storage) || {
     getJSON(key, fallback){
       try{
-        const raw = localStorage.getItem(key);
+        const raw = Object.prototype.hasOwnProperty.call(__fallbackStorageMemory, key) ? __fallbackStorageMemory[key] : null;
         if (!raw) return utils.clone(fallback);
         return JSON.parse(raw);
       }catch(e){
@@ -61,13 +62,13 @@ const FC = (function(){
       }
     },
     setJSON(key, value){
-      try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+      try{ __fallbackStorageMemory[key] = JSON.stringify(value); }catch(e){}
     },
     getRaw(key){
-      try{ return localStorage.getItem(key); }catch(e){ return null; }
+      try{ return Object.prototype.hasOwnProperty.call(__fallbackStorageMemory, key) ? __fallbackStorageMemory[key] : null; }catch(e){ return null; }
     },
     setRaw(key, raw){
-      try{ localStorage.setItem(key, raw); }catch(e){}
+      try{ __fallbackStorageMemory[key] = String(raw); }catch(e){}
     }
   };
 
@@ -186,78 +187,15 @@ uiState = Object.assign({}, __uiDefaults, uiState || {});
 if (!uiState.expanded || typeof uiState.expanded !== 'object') uiState.expanded = {};
 FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
-const RELOAD_RESTORE_KEY = 'fc_reload_restore_v1';
-let __pendingReloadRestore = null;
-
-function readReloadRestore(){
-  try{
-    const raw = sessionStorage.getItem(RELOAD_RESTORE_KEY);
-    if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
-  }catch(_){ return null; }
-}
-
-function clearReloadRestore(){
-  try{ sessionStorage.removeItem(RELOAD_RESTORE_KEY); }catch(_){ }
-}
-
-function persistReloadRestore(){
-  try{
-    const snapshotState = (window.FC && window.FC.uiState && typeof window.FC.uiState.get === 'function')
-      ? window.FC.uiState.get()
-      : (typeof uiState !== 'undefined' ? uiState : null);
-    if(!(snapshotState && typeof snapshotState === 'object')) return;
-    const payload = {
-      savedAt: Date.now(),
-      uiState: snapshotState,
-      scrollY: (()=> {
-        try{ return typeof window.scrollY === 'number' ? Math.max(0, Math.round(window.scrollY)) : 0; }catch(_){ return 0; }
-      })(),
-    };
-    sessionStorage.setItem(RELOAD_RESTORE_KEY, JSON.stringify(payload));
-  }catch(_){ }
-}
-
 function applyReloadRestoreSnapshot(){
-  const snapshot = readReloadRestore();
-  if(!(snapshot && snapshot.uiState && typeof snapshot.uiState === 'object')) return null;
-  __pendingReloadRestore = snapshot;
-  clearReloadRestore();
-  return snapshot;
+  const mod = window.FC && window.FC.reloadRestore;
+  return mod && typeof mod.applySnapshot === 'function' ? mod.applySnapshot() : null;
 }
 
 function restoreReloadScroll(){
-  const snapshot = __pendingReloadRestore && typeof __pendingReloadRestore === 'object' ? __pendingReloadRestore : null;
-  __pendingReloadRestore = null;
-  if(!snapshot) return;
-  const targetY = Math.max(0, Math.round(Number(snapshot.scrollY) || 0));
-  const apply = ()=> {
-    try{ window.scrollTo(0, targetY); }catch(_){ }
-  };
-  [0, 16, 48, 120, 240, 420].forEach((delay)=> {
-    try{
-      if(delay === 0) requestAnimationFrame(()=> requestAnimationFrame(apply));
-      else setTimeout(apply, delay);
-    }catch(_){
-      try{ setTimeout(apply, delay); }catch(__){ }
-    }
-  });
+  const mod = window.FC && window.FC.reloadRestore;
+  if(mod && typeof mod.restoreScroll === 'function') return mod.restoreScroll();
 }
-
-try{
-  window.FC = window.FC || {};
-  window.FC.reloadRestore = Object.assign(window.FC.reloadRestore || {}, {
-    read: readReloadRestore,
-    clear: clearReloadRestore,
-    persist: persistReloadRestore,
-  });
-}catch(_){ }
-
-try{
-  window.addEventListener('pagehide', persistReloadRestore, { capture:true });
-  window.addEventListener('beforeunload', persistReloadRestore, { capture:true });
-}catch(_){ }
 
 /* ===== Runtime validation (self-healing persisted state) ===== */
 try{

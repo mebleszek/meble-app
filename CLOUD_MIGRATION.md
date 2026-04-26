@@ -140,14 +140,16 @@ Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm
 
 Dodano narzędzie `tools/local-storage-source-audit.js`, które skanuje źródła `js` pod kątem bezpośrednich referencji do `localStorage` i `sessionStorage`.
 
-Aktualny wynik:
+Aktualny wynik po etapie `app shell storage boundary stage 1`:
 
 - 25 plików z referencjami do storage,
-- 217 referencji storage razem,
-- 146 referencji w testach i narzędziach testowych,
-- 71 referencji w kodzie aplikacji poza testami,
-- kontrolowane granice: `js/app/shared/storage.js`, `js/app/shared/data-storage-*`, `js/app/shared/data-backup-*`, store domenowe i `js/app/investor/session.js`,
-- obszary do dalszego wygaszania bezpośrednich zapisów: `js/app.js`, `js/boot.js`, `js/app/investor/investor-project.js`, `js/app/material/*`, `js/app/rozrys/*`.
+- 229 referencji storage razem,
+- 150 referencji w testach i narzędziach testowych,
+- `js/app.js` nie ma już bezpośredniego `localStorage` ani `sessionStorage`; reload/restore jest w `js/app/bootstrap/reload-restore.js`,
+- kontrolowane granice: `js/app/shared/storage.js`, `js/app/bootstrap/reload-restore.js`, `js/app/shared/data-storage-*`, `js/app/shared/data-backup-*`, store domenowe i `js/app/investor/session.js`,
+- obszary do dalszego wygaszania bezpośrednich zapisów: `js/boot.js` jako boot-level wyjątek, `js/app/investor/investor-project.js`, `js/app/material/*`, `js/app/rozrys/*`.
+
+Decyzja po stage 1: `fc_reload_restore_v1` zostaje technicznym, sesyjnym stanem UI i nie jest danymi użytkownika. Może być obsługiwany przez session boundary, nie przez repozytorium projektów.
 
 Decyzja: nie robić ukrytej migracji danych w paczkach porządkowych. Przy następnych zmianach danych lokalnie przesuwać zapisy/odczyty do store/repository/adaptera, jeśli zmiana jest mała i nie zmienia UI ani zachowania biznesowego. Większe przepięcia projektów, inwestorów i cenników robić jako osobne etapy z testami kontraktowymi.
 
