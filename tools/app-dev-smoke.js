@@ -6,8 +6,7 @@ const FILES = [
   'js/app/shared/utils.js',
   'js/app/shared/constants.js',
   'js/app/shared/storage.js',
-  'js/app/shared/data-storage-classifier.js',
-  'js/app/shared/data-storage-keys.js',
+  'js/app/shared/data-storage-classifier.js', 'js/app/shared/data-storage-keys.js', 'js/app/shared/data-storage-audit.js', 'js/app/shared/data-backup-sanitizer.js',
   'js/app/shared/data-backup-hash.js',
   'js/app/shared/data-backup-snapshot-normalizer.js',
   'js/app/shared/data-backup-snapshot-apply.js',
@@ -144,8 +143,7 @@ const FILES = [
   'js/app/cabinet/cabinet-modal.js',
   'js/app/cabinet/cabinet-actions.js',
   'js/testing/shared/harness.js',
-  'js/testing/test-data-manager.js',
-  'js/testing/test-data-safety.js',
+  'js/testing/test-data-manager.js', 'js/testing/test-data-safety.js', 'js/testing/data-safety/tests.js',
   'js/testing/project/tests.js',
   'js/testing/investor/tests.js',
   'js/testing/wycena/fixtures.js',
@@ -377,10 +375,12 @@ function mergeReports(reports){
   const smokeDocument = sandbox.document;
   sandbox.document = smokeDocument;
   const projectReport = await sandbox.FC.projectDevTests.runAll();
+  const dataReport = await sandbox.FC.dataSafetyDevTests.runAll();
   const rysunekReport = await sandbox.FC.rysunekDevTests.runAll();
   sandbox.document = undefined;
   const reports = [
     projectReport,
+    dataReport,
     rysunekReport,
     await sandbox.FC.investorDevTests.runAll(),
     await sandbox.FC.materialDevTests.runAll(),
@@ -392,6 +392,7 @@ function mergeReports(reports){
   const text = sandbox.FC.testHarness.makeClipboardReport(final);
   console.log(text);
   if(final.failed > 0) process.exit(1);
+  process.exit(0);
 })().catch((error)=>{
   console.error(error && error.stack ? error.stack : String(error));
   process.exit(2);

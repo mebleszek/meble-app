@@ -83,7 +83,10 @@
     const stats = readStatsFromSnapshot(snapshot);
     try{
       if(FC.dataStorageClassifier && typeof FC.dataStorageClassifier.buildDiagnosticsReport === 'function'){
-        return FC.dataStorageClassifier.buildDiagnosticsReport(snapshot, stats);
+        const report = FC.dataStorageClassifier.buildDiagnosticsReport(snapshot, stats);
+        return FC.dataStorageAudit && typeof FC.dataStorageAudit.appendDiagnosticsReport === 'function'
+          ? FC.dataStorageAudit.appendDiagnosticsReport(report, snapshot)
+          : report;
       }
     }catch(_){ }
     const lines = [];

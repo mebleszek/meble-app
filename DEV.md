@@ -61,6 +61,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
   - przypięte / `safe-state` są chronione zawsze,
   - automatyczne czyszczenie rusza tylko nadmiar starszy niż 7 dni i nie rusza chronionych.
 - Backup nie powinien obejmować technicznych stanów sesji/cache: `fc_edit_session_v1`, `fc_reload_restore_v1`, `fc_rozrys_plan_cache_v2`.
+- Snapshot backupu nie obejmuje roboczych kopii awaryjnych projektu/inwestorów ani cache ROZRYS: `fc_project_backup_*`, `fc_project_inv_*_backup*`, `fc_investors_backup_*`, `fc_rozrys_plan_cache_v1/v2`.
+- Przy zapisie backup store stare backupy są sanitizowane z tych technicznych kluczy bez zmiany retencji 10/3/przypięte. Audyt pamięci jest w raporcie danych oraz w `dev_tests.html` jako `Analiza pamięci`.
 
 ## Mapa aktywnych ryzyk architektonicznych
 

@@ -24,6 +24,7 @@
       { key:'project', name:'PROJEKT', inApp:true, run: FC.projectDevTests && typeof FC.projectDevTests.runAll === 'function' ? ()=> FC.projectDevTests.runAll() : null },
       { key:'investor', name:'INWESTOR', inApp:true, run: FC.investorDevTests && typeof FC.investorDevTests.runAll === 'function' ? ()=> FC.investorDevTests.runAll() : null },
       { key:'material', name:'MATERIAŁY', inApp:true, run: FC.materialDevTests && typeof FC.materialDevTests.runAll === 'function' ? ()=> FC.materialDevTests.runAll() : null },
+      { key:'data', name:'DANE', inApp:true, run: FC.dataSafetyDevTests && typeof FC.dataSafetyDevTests.runAll === 'function' ? ()=> FC.dataSafetyDevTests.runAll() : null },
       { key:'rysunek', name:'RYSUNEK', inApp:true, run: FC.rysunekDevTests && typeof FC.rysunekDevTests.runAll === 'function' ? ()=> FC.rysunekDevTests.runAll() : null },
       { key:'wycena', name:'WYCENA', inApp:true, run: FC.wycenaDevTests && typeof FC.wycenaDevTests.runAll === 'function' ? ()=> FC.wycenaDevTests.runAll() : null },
       { key:'cabinet', name:'SZAFKI', inApp:true, run: FC.cabinetDevTests && typeof FC.cabinetDevTests.runAll === 'function' ? ()=> FC.cabinetDevTests.runAll() : null },
@@ -167,6 +168,7 @@
     const copyBtn = ensureButton('copyReport');
     const copyErrorsBtn = ensureButton('copyErrorsOnly');
     const cleanupBtn = ensureButton('cleanupTestData');
+    const auditBtn = ensureButton('auditStorage');
     const results = ensureButton('results');
     let lastOverall = null;
     let lastSuites = [];
@@ -184,6 +186,7 @@
       copyBtn.disabled = isRunning || !lastOverall;
       copyErrorsBtn.disabled = isRunning || !lastOverall;
       cleanupBtn.disabled = isRunning;
+      auditBtn.disabled = isRunning;
     }
 
     async function collectSuites(mode){
@@ -296,12 +299,38 @@
       await copyText(buildErrorsOnlyClipboardText(lastSuites, lastOverall), copyErrorsBtn, 'Błędy skopiowane');
     }
 
+    async function runStorageAudit(){
+      try{
+        if(!(FC.dataStorageAudit && typeof FC.dataStorageAudit.auditCurrent === 'function')) throw new Error('Brak FC.dataStorageAudit.auditCurrent');
+        const report = FC.dataStorageAudit.buildReport(FC.dataStorageAudit.auditCurrent());
+        lastSuites = [];
+        lastOverall = { failed:0, total:0, passed:0, durationMs:0, clipboardText:report };
+        results.innerHTML = `
+          <div class="overall ok">
+            <div class="overall-title">Analiza pamięci gotowa</div>
+            <div class="overall-sub">Raport pokazuje największe klucze, backup store, cache i osierocone sloty projektów. Użyj przycisku Kopiuj raport.</div>
+          </div>
+          <section class="suite ok"><div class="rows"><div class="row ok"><div class="row-details">${detailsToText(report)}</div></div></div></section>
+        `;
+        copyBtn.disabled = false;
+        copyErrorsBtn.disabled = true;
+      }catch(error){
+        results.innerHTML = `
+          <div class="overall bad">
+            <div class="overall-title">Błąd analizy pamięci</div>
+            <div class="overall-sub">${error && error.message ? error.message : String(error)}</div>
+          </div>
+        `;
+      }
+    }
+
     runButtons.forEach((btn)=>{
       btn.addEventListener('click', ()=> run(String(btn.dataset.runMode || ''), btn));
     });
     copyBtn.addEventListener('click', copyReport);
     copyErrorsBtn.addEventListener('click', copyErrorsOnly);
     cleanupBtn.addEventListener('click', ()=> cleanupTestData(false));
+    auditBtn.addEventListener('click', runStorageAudit);
 
     const hash = String((host.location && host.location.hash) || '').toLowerCase();
     const hashModeMap = {
@@ -311,6 +340,8 @@
       '#project':'project',
       '#investor':'investor',
       '#material':'material',
+      '#data':'data',
+      '#rysunek':'rysunek',
       '#wycena':'wycena',
       '#cabinet':'cabinet',
       '#service':'service',

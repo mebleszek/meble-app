@@ -7,12 +7,16 @@
   const policy = FC.dataBackupPolicy || {};
   const storage = FC.dataBackupStorage || {};
   const records = FC.dataBackupRecords || {};
+  const sanitizer = FC.dataBackupSanitizer || {};
   const STORE_KEY = storage.STORE_KEY || (snapApi && snapApi.BACKUP_STORE_KEY) || 'fc_data_backups_v1';
   const sortNewest = policy.sortNewest || ((rows)=> Array.isArray(rows) ? rows.slice() : []);
   const pruneBackups = policy.pruneBackups || ((rows)=> sortNewest(rows));
 
   function readStore(){ return storage.readStore ? storage.readStore() : []; }
-  function writeStore(list){ return storage.writeStore ? storage.writeStore(list) : null; }
+  function writeStore(list){
+    const rows = sanitizer.sanitizeBackups ? sanitizer.sanitizeBackups(list) : list;
+    return storage.writeStore ? storage.writeStore(rows) : null;
+  }
 
   function saveSnapshotBackup(snapshot, hash, options){
     const opts = Object.assign({ dedupe:true, dedupeAny:false }, options || {});

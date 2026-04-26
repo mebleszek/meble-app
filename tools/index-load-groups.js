@@ -15,6 +15,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/shared/storage.js",
       "js/app/shared/data-storage-classifier.js",
       "js/app/shared/data-storage-keys.js",
+      "js/app/shared/data-storage-audit.js",
+      "js/app/shared/data-backup-sanitizer.js",
       "js/app/shared/data-backup-hash.js",
       "js/app/shared/data-backup-snapshot-normalizer.js",
       "js/app/shared/data-backup-snapshot-apply.js",

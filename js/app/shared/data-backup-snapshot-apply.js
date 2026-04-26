@@ -25,7 +25,10 @@
         else localStorage.setItem(key, String(raw));
       }catch(_){ }
     });
-    if(opts.clearVolatile !== false && typeof keysApi.cleanupVolatileKeys === 'function') keysApi.cleanupVolatileKeys();
+    if(opts.clearVolatile !== false){
+      if(typeof keysApi.cleanupAfterRestore === 'function') keysApi.cleanupAfterRestore();
+      else if(typeof keysApi.cleanupVolatileKeys === 'function') keysApi.cleanupVolatileKeys();
+    }
     return { restoredKeys: incoming.length };
   }
 

@@ -67,6 +67,38 @@
     return makeAccordion(title, nodes, { open, sub:ctx.sub || '', infoMessage:ctx.infoMessage || '' });
   }
 
+  function mapAuditRows(rows){
+    return (Array.isArray(rows) ? rows : []).map((row)=> ({
+      key:row.key,
+      label:row.key,
+      size:Number(row.size) || 0,
+      recordCount:1,
+      testRecords:0,
+      description:'',
+    }));
+  }
+
+  function buildAuditOverview(ctx, audit){
+    if(!(ctx && audit)) return null;
+    const h = ctx.h;
+    const makeAccordion = ctx.makeAccordion;
+    const makeStat = ctx.makeStat;
+    const stats = h('div', { class:'data-settings-stats' }, [
+      makeStat('Magazyn backupów', formatBytes(audit.backupStore && audit.backupStore.size)),
+      makeStat('Snapshot backupu', formatBytes(audit.snapshotIncluded && audit.snapshotIncluded.bytes)),
+      makeStat('Wykluczone', formatBytes(audit.snapshotExcluded && audit.snapshotExcluded.bytes)),
+      makeStat('Osierocone sloty', audit.orphanProjectSlots && audit.orphanProjectSlots.keys || 0),
+      makeStat('Cache ROZRYS', formatBytes(audit.cacheKeys && audit.cacheKeys.bytes)),
+    ]);
+    const orphanRows = mapAuditRows((audit.orphanProjectSlots && audit.orphanProjectSlots.rows || []).slice().sort((a,b)=> (b.size || 0) - (a.size || 0)));
+    const largestRows = mapAuditRows(audit.largestKeys || []);
+    return makeAccordion('Audyt pamięci i backupu', [
+      stats,
+      makeAccordion('Największe klucze', [keyList(h, largestRows, 'Brak kluczy do pokazania.')], { open:false, sub:String(largestRows.length || 0), infoMessage:'Największe klucze fc_* obecne w pamięci tej przeglądarki, razem z magazynem backupów.' }),
+      makeAccordion('Osierocone sloty projektów', [keyList(h, orphanRows, 'Nie wykryto osieroconych slotów projektów.')], { open:false, sub:String(orphanRows.length || 0), infoMessage:'Osierocony slot projektu to stary zapis fc_project_inv_* bez pasującego inwestora/projektu centralnego. Na razie to tylko diagnostyka, bez automatycznego usuwania.' }),
+    ], { open:false, sub:String(audit.orphanProjectSlots && audit.orphanProjectSlots.keys || 0), infoMessage:'Audyt pokazuje, co realnie obciąża pamięć i backup: backup store, cache, techniczne kopie oraz osierocone sloty projektów.' });
+  }
+
   function buildOverview(options){
     const ctx = options && typeof options === 'object' ? options : {};
     const h = ctx.h;
@@ -131,6 +163,12 @@
       infoMessage:'Dane testowe to rekordy oznaczone przez runner testów markerem __test albo starym meta.testData. Normalna praca programu nie powinna ich tworzyć.',
       keysInfo:'Ta lista pokazuje tylko klucze, w których wykryto oznaczone rekordy testowe.',
     }));
+    try{
+      if(FC.dataStorageAudit && typeof FC.dataStorageAudit.auditSnapshot === 'function'){
+        const auditNode = buildAuditOverview({ h, makeAccordion, makeStat }, FC.dataStorageAudit.auditSnapshot(snapshot));
+        if(auditNode) card.appendChild(auditNode);
+      }
+    }catch(_){ }
     return card;
   }
 

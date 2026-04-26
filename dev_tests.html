@@ -74,6 +74,7 @@
         <button id="runProjectTests" data-run-mode="project" data-label="Tylko PROJEKT" type="button">Tylko PROJEKT</button>
         <button id="runInvestorTests" data-run-mode="investor" data-label="Tylko INWESTOR" type="button">Tylko INWESTOR</button>
         <button id="runMaterialTests" data-run-mode="material" data-label="Tylko MATERIAŁY" type="button">Tylko MATERIAŁY</button>
+        <button id="runDataTests" data-run-mode="data" data-label="Tylko DANE" type="button">Tylko DANE</button>
         <button id="runRysunekTests" data-run-mode="rysunek" data-label="Tylko RYSUNEK" type="button">Tylko RYSUNEK</button>
         <button id="runWycenaTests" data-run-mode="wycena" data-label="Tylko WYCENA" type="button">Tylko WYCENA</button>
         <button id="runCabinetTests" data-run-mode="cabinet" data-label="Tylko SZAFKI" type="button">Tylko SZAFKI</button>
@@ -81,9 +82,10 @@
         <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
         <button id="copyErrorsOnly" data-label="Kopiuj tylko błędy" type="button" disabled>Kopiuj tylko błędy</button>
         <button id="cleanupTestData" data-label="Usuń dane testowe" type="button">Usuń dane testowe</button>
+        <button id="auditStorage" data-label="Analiza pamięci" type="button">Analiza pamięci</button>
         <a id="openUiPatterns" href="dev_ui_patterns.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;appearance:none;border:1px solid var(--btn-border);background:var(--btn);color:#162033;padding:12px 18px;border-radius:14px;font:800 16px/1.15 inherit;text-decoration:none">Wzorce UI</a>
       </div>
-      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, RYSUNEK, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
+      <div class="hint"><strong>Jak używać:</strong> najczęściej klikasz <b>Uruchom wszystkie testy</b>. Jeśli chcesz, możesz odpalić tylko jeden dział: ROZRYS, PROJEKT, INWESTOR, MATERIAŁY, DANE, RYSUNEK, WYCENA, SZAFKI albo USŁUGI — nadal z tej jednej strony.</div>
       <div id="results"></div>
       <div id="devTestsAppFixture" aria-hidden="true" style="display:none">
         <div id="homeView"></div>
@@ -121,16 +123,18 @@
   <script src="js/app/shared/constants.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/shared/storage.js?v=20260422_registry_perf_v1"></script>
   <script src="js/app/shared/data-storage-classifier.js?v=20260425_data_safety_split_v1"></script>
-  <script src="js/app/shared/data-storage-keys.js?v=20260425_data_safety_split_v1"></script>
+  <script src="js/app/shared/data-storage-keys.js?v=20260426_storage_audit_v1"></script>
+  <script src="js/app/shared/data-storage-audit.js?v=20260426_storage_audit_v1"></script>
+  <script src="js/app/shared/data-backup-sanitizer.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-backup-hash.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-snapshot-normalizer.js?v=20260425_data_safety_split_v1"></script>
-  <script src="js/app/shared/data-backup-snapshot-apply.js?v=20260425_data_safety_split_v1"></script>
+  <script src="js/app/shared/data-backup-snapshot-apply.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-backup-export.js?v=20260425_data_safety_split_v1"></script>
-  <script src="js/app/shared/data-backup-snapshot.js?v=20260425_data_safety_split_v1"></script>
+  <script src="js/app/shared/data-backup-snapshot.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-backup-policy.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-storage.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-records.js?v=20260425_data_safety_split_v1"></script>
-  <script src="js/app/shared/data-backup-store.js?v=20260425_data_safety_split_v1"></script>
+  <script src="js/app/shared/data-backup-store.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/schema.js?v=20260408_stage3_arch_v1"></script>
   <script src="js/app/project/project-model.js?v=20260425_test_isolation_stage2_v1"></script>
   <script src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
@@ -184,7 +188,7 @@
   <script src="js/app/ui/app-icons.js?v=20260425_settings_tests_icons_v1"></script>
   <script src="js/app/ui/wywiad-room-settings.js?v=20260425_wywiad_dev_tests_load_fix_v1"></script>
   <script src="js/app/ui/data-settings-dom.js?v=20260425_settings_tests_icons_v1"></script>
-  <script src="js/app/ui/data-settings-report-view.js?v=20260425_data_safety_split_v1"></script>
+  <script src="js/app/ui/data-settings-report-view.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/ui/data-settings-menu-view.js?v=20260425_settings_tests_icons_v1"></script>
   <script src="js/app/ui/data-settings-backup-actions.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/ui/data-settings-backup-list.js?v=20260425_data_safety_split_v1"></script>
@@ -272,6 +276,7 @@
   <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/test-data-manager.js?v=20260425_test_isolation_stage2_v1"></script>
   <script src="js/testing/test-data-safety.js?v=20260425_test_isolation_stage2_v1"></script>
+  <script src="js/testing/data-safety/tests.js?v=20260426_storage_audit_v1"></script>
   <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/rozrys/tests.js?v=20260421_rozrys_entrypoint_mix_fix_v1"></script>
   <script src="js/testing/project/tests.js?v=20260425_data_safety_stage2_v1"></script>
@@ -289,7 +294,7 @@
   <script src="js/testing/wycena/tests.js?v=20260416_wycena_test_split_v1"></script>
   <script src="js/testing/cabinet/tests.js?v=20260425_aventos_warning_fixture_v1"></script>
   <script src="js/testing/service/tests.js?v=20260414_service_cutting_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260424_data_safety_foundation_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260426_storage_audit_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};
