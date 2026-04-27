@@ -29,7 +29,7 @@
     opts = opts || {};
     try{
       if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
-        return FC.confirmBox.ask({
+        const result = FC.confirmBox.ask({
           title:String(opts.title || 'Potwierdzenie'),
           message:String(opts.message || 'Czy kontynuować?'),
           confirmText:String(opts.confirmText || 'Zatwierdź'),
@@ -38,7 +38,8 @@
           cancelTone:String(opts.cancelTone || 'neutral'),
           dismissOnOverlay: opts.dismissOnOverlay,
           dismissOnEsc: opts.dismissOnEsc
-        }).then(Boolean).catch(()=> false);
+        });
+        return Promise.resolve(result).then(Boolean).catch(()=> false);
       }
     }catch(_){ }
     return Promise.resolve(false);

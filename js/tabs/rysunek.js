@@ -41,6 +41,11 @@
     return Promise.resolve(null);
   }
 
+  function saveRysunekProject(){
+    if(FC.layoutState && typeof FC.layoutState.saveProject === 'function') return FC.layoutState.saveProject();
+    return saveProject();
+  }
+
   list.innerHTML = '';
 
   const outer = document.createElement('div');
@@ -116,7 +121,7 @@
     st.rangeStart = null;
     st.hRange = null;
     st.vRange = null;
-    saveProject();
+    saveRysunekProject();
     renderCabinets();
   };
   // zoom controls

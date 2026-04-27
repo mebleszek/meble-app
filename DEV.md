@@ -169,3 +169,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `js/tabs/rysunek.js` nie używa już systemowych `alert`, `confirm`, `prompt`; test RYSUNKU pilnuje, żeby nie wróciły.
 - Nie zmieniano głównego UI ani logiki ROZRYS/WYCENA. Następny etap RYSUNKU to split renderu, inspektora, wykończeń i drag/drop po dodatkowych kontraktach.
 - Raport paczki: `tools/reports/rysunek-dialogs-contracts-v1.md`.
+
+## 2026-04-27 — RYSUNEK rebuild fix v1
+
+- Naprawiono regresję przycisku `Odbuduj z listy szafek` po przejściu z systemowego `confirm()` na własny adapter dialogów.
+- `js/app/rysunek/rysunek-dialogs.js` musi normalizować wynik `FC.confirmBox.ask()` przez `Promise.resolve(...)`, bo testy i adaptery mogą zwracać zarówno Promise, jak i synchroniczne `true/false`.
+- `js/testing/rysunek/tests.js` zawiera kontrakt kliknięcia odbudowy dla synchronicznego i asynchronicznego `confirmBox.ask()`; nie usuwać tego testu przy następnym splicie RYSUNKU.
+- Raport paczki: `tools/reports/rysunek-rebuild-fix-v1.md`.

@@ -129,3 +129,8 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Nowy adapter: `js/app/rysunek/rysunek-dialogs.js`.
 - `js/tabs/rysunek.js` nadal jest największym monolitem RYSUNKU, ale nie ma już `alert/confirm/prompt`.
 - Kolejny bezpieczny etap: split RYSUNKU na state/render-svg/inspector/finishes/drag, zaczynając od testów kontraktowych dla każdej odpowiedzialności.
+
+## 2026-04-27 — RYSUNEK rebuild fix v1
+
+- Przed właściwym splitem RYSUNKU utrzymać test regresji `Odbuduj z listy szafek działa po własnym confirmBox`.
+- Przy kolejnych wycięciach z `js/tabs/rysunek.js` najpierw zachować ścieżkę: klik → potwierdzenie → reset `seg.rows` → zapis → `renderCabinets()`.
