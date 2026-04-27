@@ -169,3 +169,11 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Render zakładki WYWIAD siedzi w `js/tabs/wywiad.js`; nie przenosić go z powrotem do `app.js`.
 - Przy zmianach renderu szafek sprawdzać ścieżkę: `renderCabinets()` globalny delegator → `FC.cabinetsRender.renderCabinets()` → router zakładek → `FC.tabsWywiad.renderWywiadTab()`.
 - Pełny raport: `tools/reports/app-shell-wywiad-split-v1.md`.
+
+## 2026-04-27 — Wycena contracts audit v1
+
+- Dodano kontrakty architektury Wyceny w `js/testing/wycena/suites/architecture-contract.js`.
+- Kontrakty pilnują publicznych fasad `FC.wycenaCore`, `FC.quoteSnapshotStore`, `FC.projectStatusSync` i `FC.wycenaTabDebug`, exact-scope snapshotów oraz walidacji nieistniejącego pokoju.
+- Dodano statyczny audyt Wyceny `tools/wycena-architecture-audit.js`; raport: `tools/reports/wycena-contracts-audit-v1.md`.
+- Najbliższy bezpieczny split Wyceny: zacząć od `js/tabs/wycena.js` jako warstwy render/preview/delegatory. `quote-snapshot-store.js` i `project-status-sync.js` ciąć dopiero po porównaniu old/new fixture, bo są krytyczne dla danych i statusów.
+- W tej paczce nie zmieniać runtime Wyceny, UI, danych ani storage; to etap zabezpieczenia przed refaktorem.

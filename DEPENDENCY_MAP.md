@@ -244,3 +244,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Nowy właściciel renderu zakładki WYWIAD: `js/tabs/wywiad.js` (`FC.tabsWywiad.renderWywiadTab`, `FC.tabsWywiad.renderSingleCabinetCard`).
 - Zachowany kontrakt globalny: `renderCabinets()`, `renderWywiadTab()` i `renderSingleCabinetCard()` nadal istnieją w `app.js` jako delegatory.
 - `index.html` ma teraz 190 skryptów; `verifyIndex()` potwierdza zgodność z `tools/index-load-groups.js`.
+
+## Wycena contracts audit v1 — 2026-04-27
+
+- Nowa suite: `js/testing/wycena/suites/architecture-contract.js`, ładowana po `status-contract.js` i przed pozostałymi suite'ami Wyceny.
+- Nowe narzędzie: `tools/wycena-architecture-audit.js`; raport: `tools/reports/wycena-contracts-audit-v1.md`.
+- Chronione fasady przed splitem: `FC.wycenaCore`, `FC.quoteSnapshotStore`, `FC.projectStatusSync`, `FC.wycenaTabDebug`.
+- Najbardziej zależnościowo ryzykowne pliki Wyceny pozostają bez zmian runtime: `js/tabs/wycena.js`, `js/app/quote/quote-snapshot-store.js`, `js/app/wycena/wycena-core.js`, `js/app/project/project-status-sync.js`.

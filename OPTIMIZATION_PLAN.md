@@ -133,3 +133,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - `js/app.js` spadł z ok. 790 do 590 linii; nadal jest plikiem podwyższonego ryzyka, ale przestał zawierać właściwy renderer listy szafek.
 - Pełny raport: `tools/reports/app-shell-wywiad-split-v1.md`.
 - Następny logiczny kierunek optymalizacji: WYCENA, etap kontraktowy/splitowy bez zmiany UI i bez zmiany zachowania.
+
+## Wycena contracts audit v1 — 2026-04-27
+
+- Dodano suite `js/testing/wycena/suites/architecture-contract.js` jako zabezpieczenie przed pierwszym splitem Wyceny.
+- Statyczny audyt potwierdza największe ryzyka: `js/tabs/wycena.js`, `quote-snapshot-store.js`, `wycena-core.js`, `project-status-sync.js` — wszystkie 600+ linii i mieszają kilka odpowiedzialności.
+- Rekomendowany kolejny krok: split `js/tabs/wycena.js` bez zmiany UI — wydzielić preview/render historii i cienkie delegatory statusu, zostawiając publiczne debug/API bez zmian.
+- Store snapshotów i status sync zostawić na później; najpierw przygotować fixture porównujące old/new dla exact-scope, selected/rejected i cofania statusów.
