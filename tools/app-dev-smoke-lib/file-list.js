@@ -150,6 +150,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/testing/wycena/suites/core-offer-basics.js',
   'js/testing/wycena/suites/core-offer-workflow.js',
   'js/testing/wycena/suites/central-status-sync.js',
+  'js/testing/wycena/suites/status-contract.js',
   'js/testing/wycena/suites/scope-entry.js',
   'js/testing/wycena/suites/investor-integration.js',
   'js/testing/wycena/suites/cross-systems.js',

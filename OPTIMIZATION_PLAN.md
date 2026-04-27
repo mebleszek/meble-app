@@ -105,3 +105,7 @@ Wniosek: nie trzeba robić ukrytej migracji w tej paczce, ale każdy następny e
 ## 2026-04-26 — audit next v1
 - Po naprawie Wyceny najbezpieczniejszy kierunek to małe paczki stabilizujące testy/status sync, nie duży refaktor runtime.
 - Bezpośredni smoke ROZRYS dostał jawne pokrycie domyślnego obrównania 1 cm / 10 mm.
+
+## Wycena status contract v1
+
+Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote/quote-snapshot-store.js` albo `js/app/project/project-status-sync.js` uruchamiać i utrzymywać kontrakty z `js/testing/wycena/suites/status-contract.js`. Ten etap nie jest refaktorem runtime; to zabezpieczenie ścieżek przed kolejnym cięciem.

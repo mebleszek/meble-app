@@ -223,3 +223,9 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 
 ## 2026-04-26 — ROZRYS smoke dependency note
 - `tools/rozrys-dev-smoke.js` ładuje `js/app/rozrys/rozrys-stock.js` przed suite’ami ROZRYS, bo bezpośredni test opcji domyślnych korzysta z `FC.rozrysStock.getDefaultRozrysOptionValues`.
+
+## Wycena status contract v1
+
+- `dev_tests.html` i `tools/app-dev-smoke-lib/file-list.js` ładują `js/testing/wycena/suites/status-contract.js` po `central-status-sync.js`.
+- Kontrakt dotyczy zależności: `quoteSnapshotStore` → `projectStatusSync` → `investorPersistence/projectStore/project.save` oraz debug-wejść z `wycena.js`.
+- Runtime load order aplikacji bez zmian.
