@@ -14,6 +14,7 @@ const TARGETS = [
   'js/app/wycena/wycena-tab-editor.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/wycena/wycena-tab-status-bridge.js',
+  'js/app/wycena/wycena-tab-preview.js',
   'js/app/quote/quote-offer-store.js',
   'js/app/wycena/wycena-tab-history.js',
   'js/app/wycena/wycena-tab-helpers.js',
@@ -86,8 +87,8 @@ function makeReport(rows){
   lines.push('## Wnioski do następnych paczek');
   lines.push('');
   lines.push('1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.');
-  lines.push('2. Pierwszy realny split powinien iść od \`js/tabs/wycena.js\`, bo miesza render, historię, status bridge i obsługę preview.');
-  lines.push('3. Drugi kandydat to \`js/app/wycena/wycena-core.js\`: oddzielić collect/validate/commercial/service catalog bez zmiany wyniku ofert.');
+  lines.push('2. Pierwszy split \`js/tabs/wycena.js\` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.');
+  lines.push('3. Następni kandydaci: dalsze odchudzanie \`js/tabs/wycena.js\` albo osobny etap \`js/app/wycena/wycena-core.js\`; store snapshotów i status sync zostawić pod dodatkowe fixture old/new.');
   lines.push('4. \`quote-snapshot-store.js\` i \`project-status-sync.js\` są krytyczne dla danych/statusów — ciąć dopiero po dodatkowych testach old/new fixture.');
   lines.push('5. W badanym zakresie nie wykryto bezpośrednich \`localStorage/sessionStorage\` ani systemowych \`alert/confirm/prompt\`; obecne granice danych idą przez store/helpery.');
   lines.push('');

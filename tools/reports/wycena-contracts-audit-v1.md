@@ -1,10 +1,10 @@
-# WYCENA architecture audit v1 — 2026-04-27
+# WYCENA architecture audit v1 — 2026-04-28
 
 Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI, danych ani storage.
 
 ## Wynik skrócony
 
-1. `js/tabs/wycena.js` — 814 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
+1. `js/tabs/wycena.js` — 710 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
 2. `js/app/quote/quote-snapshot-store.js` — 659 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
 3. `js/app/wycena/wycena-core.js` — 653 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
 4. `js/app/project/project-status-sync.js` — 644 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
@@ -17,17 +17,18 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 11. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
 12. `js/app/quote/quote-offer-store.js` — 238 linii.
 13. `js/app/wycena/wycena-tab-history.js` — 203 linii; ostrzeżenia: mixed responsibilities heuristic.
-14. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
-15. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
+14. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
+15. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
+16. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
 
 ## Szczegóły odpowiedzialności — heurystyka
 
 ### js/tabs/wycena.js
 
-- Linie: 814
+- Linie: 710
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
-- Sygnały odpowiedzialności: snapshot:184, status:81, render:78, scope:34, modal-ui:12, pdf-export:6, quote-collect:2
+- Sygnały odpowiedzialności: snapshot:172, status:80, render:34, scope:20, modal-ui:12, pdf-export:6, quote-collect:2
 
 ### js/app/quote/quote-snapshot-store.js
 
@@ -113,6 +114,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:57, render:23, status:17, scope:14, pdf-export:5, storage-boundary:1, modal-ui:1
 
+### js/app/wycena/wycena-tab-preview.js
+
+- Linie: 162
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: render:53, snapshot:18, scope:14, status:1
+
 ### js/app/wycena/wycena-tab-helpers.js
 
 - Linie: 150
@@ -130,7 +138,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 ## Wnioski do następnych paczek
 
 1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.
-2. Pierwszy realny split powinien iść od `js/tabs/wycena.js`, bo miesza render, historię, status bridge i obsługę preview.
-3. Drugi kandydat to `js/app/wycena/wycena-core.js`: oddzielić collect/validate/commercial/service catalog bez zmiany wyniku ofert.
+2. Pierwszy split `js/tabs/wycena.js` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.
+3. Następni kandydaci: dalsze odchudzanie `js/tabs/wycena.js` albo osobny etap `js/app/wycena/wycena-core.js`; store snapshotów i status sync zostawić pod dodatkowe fixture old/new.
 4. `quote-snapshot-store.js` i `project-status-sync.js` są krytyczne dla danych/statusów — ciąć dopiero po dodatkowych testach old/new fixture.
 5. W badanym zakresie nie wykryto bezpośrednich `localStorage/sessionStorage` ani systemowych `alert/confirm/prompt`; obecne granice danych idą przez store/helpery.

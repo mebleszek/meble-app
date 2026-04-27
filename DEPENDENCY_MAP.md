@@ -251,3 +251,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Nowe narzędzie: `tools/wycena-architecture-audit.js`; raport: `tools/reports/wycena-contracts-audit-v1.md`.
 - Chronione fasady przed splitem: `FC.wycenaCore`, `FC.quoteSnapshotStore`, `FC.projectStatusSync`, `FC.wycenaTabDebug`.
 - Najbardziej zależnościowo ryzykowne pliki Wyceny pozostają bez zmian runtime: `js/tabs/wycena.js`, `js/app/quote/quote-snapshot-store.js`, `js/app/wycena/wycena-core.js`, `js/app/project/project-status-sync.js`.
+
+## Wycena preview split v1 — 2026-04-28
+
+- Load order Wyceny zawiera teraz `js/app/wycena/wycena-tab-preview.js` przed `js/tabs/wycena.js`.
+- `FC.wycenaTabPreview.renderPreview(...)` jest wywoływane z `js/tabs/wycena.js` i dostaje jawne zależności: helpery renderu, snapshoty, status bridge, PDF/akceptację oraz detekcję ofert wstępnych.
+- Moduł preview nie jest granicą danych ani statusów; to tylko warstwa DOM/render. Nie wolno przenosić do niego zapisu snapshotów, synchronizacji statusów ani scope ofert.
+- `tools/app-dev-smoke-lib/file-list.js` i `tools/index-load-groups.js` muszą utrzymywać ten sam load order co `index.html` i `dev_tests.html`.

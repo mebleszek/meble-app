@@ -177,3 +177,11 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Dodano statyczny audyt Wyceny `tools/wycena-architecture-audit.js`; raport: `tools/reports/wycena-contracts-audit-v1.md`.
 - Najbliższy bezpieczny split Wyceny: zacząć od `js/tabs/wycena.js` jako warstwy render/preview/delegatory. `quote-snapshot-store.js` i `project-status-sync.js` ciąć dopiero po porównaniu old/new fixture, bo są krytyczne dla danych i statusów.
 - W tej paczce nie zmieniać runtime Wyceny, UI, danych ani storage; to etap zabezpieczenia przed refaktorem.
+
+## 2026-04-28 — Wycena preview split v1
+
+- `js/app/wycena/wycena-tab-preview.js` jest właścicielem renderu podglądu aktywnej/historycznej oferty w zakładce WYCENA.
+- `js/tabs/wycena.js` ma delegować preview przez `FC.wycenaTabPreview.renderPreview(...)`; nie dokładać nowych wierszy podglądu ani sekcji historii z powrotem do `tabs/wycena.js`.
+- Moduł preview nie zapisuje danych, nie zmienia statusów i nie rozstrzyga scope ofert. Statusy, PDF, akceptacja i historia muszą dalej iść przez istniejące helpery przekazywane jako zależności.
+- `tools/app-dev-smoke.js` kończy się w Node jako szybki sanity smoke publicznych API głównych działów; pełniejsze testy/regresje zostają w `dev_tests.html`.
+- Raport paczki: `tools/reports/wycena-preview-split-v1.md`.

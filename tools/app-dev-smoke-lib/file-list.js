@@ -120,6 +120,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/wycena/wycena-tab-scroll.js',
   'js/app/wycena/wycena-tab-history.js',
   'js/app/wycena/wycena-tab-status-bridge.js',
+  'js/app/wycena/wycena-tab-preview.js',
   'js/tabs/wycena.js',
   'js/app/optimizer/cut-optimizer.js',
   'js/app/rozrys/rozrys-engine.js',

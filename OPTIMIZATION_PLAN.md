@@ -140,3 +140,11 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Statyczny audyt potwierdza największe ryzyka: `js/tabs/wycena.js`, `quote-snapshot-store.js`, `wycena-core.js`, `project-status-sync.js` — wszystkie 600+ linii i mieszają kilka odpowiedzialności.
 - Rekomendowany kolejny krok: split `js/tabs/wycena.js` bez zmiany UI — wydzielić preview/render historii i cienkie delegatory statusu, zostawiając publiczne debug/API bez zmian.
 - Store snapshotów i status sync zostawić na później; najpierw przygotować fixture porównujące old/new dla exact-scope, selected/rejected i cofania statusów.
+
+## Wycena preview split v1 — 2026-04-28
+
+- Rozpoczęto właściwy split `js/tabs/wycena.js` bez zmiany UI i bez zmiany działania: podgląd oferty przeniesiono do `js/app/wycena/wycena-tab-preview.js`.
+- `js/tabs/wycena.js` spadł z ok. 813 do ok. 710 linii, ale nadal jest plikiem podwyższonego ryzyka i miesza render, statusy, snapshoty oraz delegatory akcji.
+- `tools/app-dev-smoke.js` został ustabilizowany dla Node: uruchamia szybkie sanity smoke publicznych API, a ciężkie testy modalowe/regresyjne zostają w `dev_tests.html`.
+- Następny krok Wyceny: dalej wycinać małe odpowiedzialności z `tabs/wycena.js`; nie zaczynać jeszcze od `quote-snapshot-store.js` ani `project-status-sync.js` bez fixture old/new.
+- Pełny raport: `tools/reports/wycena-preview-split-v1.md`.
