@@ -23,75 +23,6 @@
     };
   }
   const st = uiState.drawing;
-  const rysunekDialogs = FC.rysunekDialogs || {};
-
-  function showRysunekInfo(message, title){
-    if(rysunekDialogs && typeof rysunekDialogs.info === 'function'){
-      rysunekDialogs.info({ title: title || 'Rysunek', message:String(message || ''), okOnly:true });
-    }
-  }
-
-  function askRysunekConfirm(methodName){
-    if(rysunekDialogs && typeof rysunekDialogs[methodName] === 'function') return rysunekDialogs[methodName]();
-    return Promise.resolve(false);
-  }
-
-  function askRysunekNumber(title, label, defaultValue){
-    if(rysunekDialogs && typeof rysunekDialogs.askNumber === 'function') return rysunekDialogs.askNumber({ title, label, defaultValue });
-    return Promise.resolve(null);
-  }
-
-  function saveRysunekProject(){
-    if(FC.layoutState && typeof FC.layoutState.saveProject === 'function') return FC.layoutState.saveProject();
-    return saveProject();
-  }
-
-  function getFreshDrawingSegment(targetRoom){
-    const nextRoom = targetRoom || room;
-    if(!projectData || !projectData[nextRoom]) return null;
-    ensureLayout(nextRoom);
-    const nextPd = projectData[nextRoom];
-    const nextSeg = getActiveSegment(nextRoom);
-    if(!nextPd || !nextSeg) return null;
-    if(!nextSeg.rows) nextSeg.rows = {};
-    if(!Array.isArray(nextSeg.rows.base)) nextSeg.rows.base = [];
-    if(!Array.isArray(nextSeg.rows.module)) nextSeg.rows.module = [];
-    if(!Array.isArray(nextSeg.rows.wall)) nextSeg.rows.wall = [];
-    return { pd:nextPd, seg:nextSeg };
-  }
-
-  function resetDrawingUiSelection(){
-    st.selected = null;
-    st.rangeStart = null;
-    st.hRange = null;
-    st.vRange = null;
-  }
-
-  function rebuildLayoutFromCurrentCabinetList(targetRoom){
-    const ctx = getFreshDrawingSegment(targetRoom);
-    if(!ctx) return false;
-    const targetSeg = ctx.seg;
-    targetSeg.rows.base = [];
-    targetSeg.rows.module = [];
-    targetSeg.rows.wall = [];
-    (ctx.pd.cabinets || []).forEach(c=>{
-      const row = (c.type === 'wisząca') ? 'wall' : (c.type === 'moduł' ? 'module' : 'base');
-      targetSeg.rows[row].push({ kind:'cabinet', id:c.id });
-    });
-    resetDrawingUiSelection();
-    return true;
-  }
-
-  function commitRysunekRebuild(){
-    const changed = rebuildLayoutFromCurrentCabinetList(room);
-    if(!changed) return;
-    try{ saveRysunekProject(); }catch(err){
-      try{ console.error('[RYSUNEK] Nie udało się zapisać odbudowanego układu', err); }catch(_){}
-    }
-    try{ renderCabinets(); }catch(err){
-      try{ console.error('[RYSUNEK] Nie udało się odświeżyć po odbudowie układu', err); }catch(_){}
-    }
-  }
 
   list.innerHTML = '';
 
@@ -155,9 +86,21 @@
   list.appendChild(outer);
 
   // toolbar actions
-  toolbar.querySelector('#drawRebuild').onclick = async ()=>{
-    if(!(await askRysunekConfirm('confirmRebuildLayout'))) return;
-    commitRysunekRebuild();
+  toolbar.querySelector('#drawRebuild').onclick = ()=>{
+    if(!confirm('Odbudować układ segmentu z aktualnej listy szafek? (Uwaga: usuwa PRZERWY w układzie, NIE usuwa wykończeń)')) return;
+    seg.rows.base = [];
+    seg.rows.module = [];
+    seg.rows.wall = [];
+    (pd.cabinets||[]).forEach(c=>{
+      const row = (c.type === 'wisząca') ? 'wall' : (c.type === 'moduł' ? 'module' : 'base');
+      seg.rows[row].push({ kind:'cabinet', id:c.id });
+    });
+    st.selected = null;
+    st.rangeStart = null;
+    st.hRange = null;
+    st.vRange = null;
+    saveProject();
+    renderCabinets();
   };
   // zoom controls
   const zoomSlider = toolbar.querySelector('#zoomSlider');
@@ -954,7 +897,7 @@ function commitReorder(row, fromIndex, dxPx){
     bStart.className='btn';
     bStart.textContent='Ustaw START';
     bStart.onclick = ()=>{
-      if(el.kind==='gap'){ showRysunekInfo('START nie może być przerwą. Wybierz szafkę.'); return; }
+      if(el.kind==='gap'){ alert('START nie może być przerwą. Wybierz szafkę.'); return; }
       st.rangeStart = { row, index: sel.index };
       st.hRange = null;
       st.vRange = null;
@@ -966,7 +909,7 @@ function commitReorder(row, fromIndex, dxPx){
     bEnd.className='btn-primary';
     bEnd.textContent='Ustaw KONIEC';
     bEnd.onclick = ()=>{
-      if(el.kind==='gap'){ showRysunekInfo('KONIEC nie może być przerwą. Wybierz szafkę.'); return; }
+      if(el.kind==='gap'){ alert('KONIEC nie może być przerwą. Wybierz szafkę.'); return; }
       if(!st.rangeStart){
         st.rangeStart = { row, index: sel.index };
         st.hRange = null;
@@ -991,7 +934,7 @@ function commitReorder(row, fromIndex, dxPx){
           let hasGap = false;
           for(let i=i0;i<=i1;i++){ if(rowEls[i] && rowEls[i].kind==='gap'){ hasGap=true; break; } }
           if(hasGap){
-            showRysunekInfo('Zakres zawiera przerwę. Blendy/cokół można dodać tylko na ciągłych szafkach.');
+            alert('Zakres zawiera przerwę. Blendy/cokół można dodać tylko na ciągłych szafkach.');
             st.rangeStart = { row, index: sel.index };
             st.hRange = null; st.vRange = null;
             saveProject(); renderCabinets();
@@ -1036,7 +979,7 @@ function commitReorder(row, fromIndex, dxPx){
               if(hasGapV) break;
             }
             if(hasGapV){
-              showRysunekInfo('Zakres pionowy przechodzi przez przerwę. Blendy można dodać tylko na ciągłych szafkach.');
+              alert('Zakres pionowy przechodzi przez przerwę. Blendy można dodać tylko na ciągłych szafkach.');
               st.rangeStart = { row, index: sel.index };
               st.hRange = null; st.vRange = null;
               saveProject(); renderCabinets();
@@ -1127,8 +1070,8 @@ if(st.vRange && st.vRange.x1cm > st.vRange.x0cm){
   const btnL = document.createElement('button');
   btnL.className='btn-primary';
   btnL.textContent='Dodaj blendę pion pełna (lewa)';
-  btnL.onclick = async ()=>{
-    const w = await askRysunekNumber('Szerokość blendy', 'Szerokość blendy (cm):', 5);
+  btnL.onclick = ()=>{
+    const w = parseFloat(prompt('Szerokość blendy (cm):','5')||'0');
     if(!(w>0)) return;
     // wysokość pionu: suma rzędów + dodatki (blenda/cokół)
     const rows = (Array.isArray(vr.rows) && vr.rows.length) ? vr.rows : ['wall','module','base'];
@@ -1150,8 +1093,8 @@ if(st.vRange && st.vRange.x1cm > st.vRange.x0cm){
   const btnR = document.createElement('button');
   btnR.className='btn-primary';
   btnR.textContent='Dodaj blendę pion pełna (prawa)';
-  btnR.onclick = async ()=>{
-    const w = await askRysunekNumber('Szerokość blendy', 'Szerokość blendy (cm):', 5);
+  btnR.onclick = ()=>{
+    const w = parseFloat(prompt('Szerokość blendy (cm):','5')||'0');
     if(!(w>0)) return;
     // wysokość pionu: suma rzędów + dodatki (blenda/cokół)
     const rows = (Array.isArray(vr.rows) && vr.rows.length) ? vr.rows : ['wall','module','base'];
@@ -1178,8 +1121,8 @@ if(st.vRange && st.vRange.x1cm > st.vRange.x0cm){
     const btnPL = document.createElement('button');
   btnPL.className='btn';
   btnPL.textContent='Dodaj panel pełny (lewy)';
-  btnPL.onclick = async ()=>{
-    const w = await askRysunekNumber('Grubość panela', 'Grubość panela (cm):', 1.8);
+  btnPL.onclick = ()=>{
+    const w = parseFloat(prompt('Grubość panela (cm):','1.8')||'0');
     if(!(w>0)) return;
     // wysokość pionu: suma rzędów + dodatki (blenda/cokół)
     const rows = (Array.isArray(vr.rows) && vr.rows.length) ? vr.rows : ['wall','module','base'];
@@ -1201,8 +1144,8 @@ if(st.vRange && st.vRange.x1cm > st.vRange.x0cm){
   const btnPR = document.createElement('button');
   btnPR.className='btn';
   btnPR.textContent='Dodaj panel pełny (prawy)';
-  btnPR.onclick = async ()=>{
-    const w = await askRysunekNumber('Grubość panela', 'Grubość panela (cm):', 1.8);
+  btnPR.onclick = ()=>{
+    const w = parseFloat(prompt('Grubość panela (cm):','1.8')||'0');
     if(!(w>0)) return;
     // wysokość pionu: suma rzędów + dodatki (blenda/cokół)
     const rows = (Array.isArray(vr.rows) && vr.rows.length) ? vr.rows : ['wall','module','base'];
@@ -1296,46 +1239,46 @@ addFinish(room, {
     actions.style.flexDirection='column';
     actions.style.gap='8px';
 
-    function askWidth(def){ return askRysunekNumber('Szerokość', 'Szerokość (cm):', def); }
+    function askWidth(def){ return parseFloat(prompt('Szerokość (cm):', String(def)) || '0'); }
 
     if(el.kind==='cabinet'){
       const btnPL = document.createElement('button');
       btnPL.className='btn';
       btnPL.textContent='Dodaj panel lewy';
-      btnPL.onclick = async ()=>{
-        const w = await askWidth(1.8); if(!(w>0)) return;
+      btnPL.onclick = ()=>{
+        const w = askWidth(1.8); if(!(w>0)) return;
         addFinish(room, { type:'panel', segmentId:seg.id, row, index:sel.index, cabinetId: el.id, side:'L', width:w });
         renderCabinets();
       };
       const btnPR = document.createElement('button');
       btnPR.className='btn';
       btnPR.textContent='Dodaj panel prawy';
-      btnPR.onclick = async ()=>{
-        const w = await askWidth(1.8); if(!(w>0)) return;
+      btnPR.onclick = ()=>{
+        const w = askWidth(1.8); if(!(w>0)) return;
         addFinish(room, { type:'panel', segmentId:seg.id, row, index:sel.index, cabinetId: el.id, side:'R', width:w });
         renderCabinets();
       };
       const btnBL = document.createElement('button');
       btnBL.className='btn';
       btnBL.textContent='Dodaj blendę pion lewa';
-      btnBL.onclick = async ()=>{
-        const w = await askWidth(5); if(!(w>0)) return;
+      btnBL.onclick = ()=>{
+        const w = askWidth(5); if(!(w>0)) return;
         addFinish(room, { type:'blenda_pion', segmentId:seg.id, row, index:sel.index, cabinetId: el.id, side:'L', width:w });
         renderCabinets();
       };
       const btnBR = document.createElement('button');
       btnBR.className='btn';
       btnBR.textContent='Dodaj blendę pion prawa';
-      btnBR.onclick = async ()=>{
-        const w = await askWidth(5); if(!(w>0)) return;
+      btnBR.onclick = ()=>{
+        const w = askWidth(5); if(!(w>0)) return;
         addFinish(room, { type:'blenda_pion', segmentId:seg.id, row, index:sel.index, cabinetId: el.id, side:'R', width:w });
         renderCabinets();
       };
       const btnGapA = document.createElement('button');
       btnGapA.className='btn';
       btnGapA.textContent='Wstaw przerwę po prawej';
-      btnGapA.onclick = async ()=>{
-        const w = await askWidth(5); if(!(w>0)) return;
+      btnGapA.onclick = ()=>{
+        const w = askWidth(5); if(!(w>0)) return;
         insertGapAfter(room, seg, row, sel.index, w);
         renderCabinets();
       };
@@ -1350,8 +1293,8 @@ addFinish(room, {
       const btnEdit = document.createElement('button');
       btnEdit.className='btn';
       btnEdit.textContent='Zmień szerokość przerwy';
-      btnEdit.onclick = async ()=>{
-        const w = await askWidth(Number(el.width)||5);
+      btnEdit.onclick = ()=>{
+        const w = askWidth(Number(el.width)||5);
         if(!(w>0)) return;
         el.width = w;
         saveProject();
@@ -1360,8 +1303,8 @@ addFinish(room, {
       const btnDel = document.createElement('button');
       btnDel.className='btn-danger';
       btnDel.textContent='Usuń przerwę';
-      btnDel.onclick = async ()=>{
-        if(!(await askRysunekConfirm('confirmDeleteGap'))) return;
+      btnDel.onclick = ()=>{
+        if(!confirm('Usunąć przerwę?')) return;
         (seg.rows[row]||[]).splice(sel.index,1);
         st.selected = null;
         saveProject();

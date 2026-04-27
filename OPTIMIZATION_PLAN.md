@@ -68,7 +68,7 @@ Porządkować aplikację etapami bez robienia jednego wielkiego modułu `shared`
 
 ### Etap 3 — większe moduły
 
-1. RYSUNEK: systemowe dialogi zostały usunięte i zabezpieczone testem; następnym krokiem jest kontraktowy split monolitu po odpowiedzialnościach.
+1. RYSUNEK: najpierw usunąć systemowe dialogi i wzmocnić testy, dopiero potem ciąć monolit.
 2. ROZRYS/RYSUNEK: rozważać wspólne helpery geometryczne dopiero po rozdzieleniu renderu, interakcji i domeny.
 3. Wspólne UI: konsolidować tylko sprawdzone mechaniki modali/accordionów/list, bez zmiany zatwierdzonych styli.
 
@@ -123,14 +123,13 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Pełny raport: `tools/reports/rozrys-speedmax-split-v1.md`.
 - Następny bezpieczny etap: realne usprawnienia algorytmu tylko przypadek po przypadku, zaczynając od testu kontraktowego i porównania wyniku old/new dla konkretnego układu formatek.
 
-## RYSUNEK dialogs/contracts v1 — 2026-04-27
+## App shell / WYWIAD split v1 — 2026-04-27
 
-- Etap usunięcia systemowych dialogów RYSUNKU wykonany bez zmiany głównego UI.
-- Nowy adapter: `js/app/rysunek/rysunek-dialogs.js`.
-- `js/tabs/rysunek.js` nadal jest największym monolitem RYSUNKU, ale nie ma już `alert/confirm/prompt`.
-- Kolejny bezpieczny etap: split RYSUNKU na state/render-svg/inspector/finishes/drag, zaczynając od testów kontraktowych dla każdej odpowiedzialności.
-
-## 2026-04-27 — RYSUNEK rebuild fix v1
-
-- Przed właściwym splitem RYSUNKU utrzymać test regresji `Odbuduj z listy szafek działa po własnym confirmBox`.
-- Przy kolejnych wycięciach z `js/tabs/rysunek.js` najpierw zachować ścieżkę: klik → potwierdzenie → reset `seg.rows` → zapis → `renderCabinets()`.
+- RYSUNEK został tymczasowo odłożony i nie był ruszany w tej paczce.
+- Start z ostatniej stabilnej bazy sprzed zmian RYSUNKU: `site_rozrys_speedmax_split_v1_download.zip`.
+- `renderCabinets()` przeniesiono z `js/app.js` do `js/app/ui/cabinets-render.js`.
+- Render listy zakładki WYWIAD (`renderWywiadTab`, `renderSingleCabinetCard`) przeniesiono do `js/tabs/wywiad.js`.
+- `js/app.js` zachowuje stare globalne delegatory, żeby nie zmienić kontraktu wywołań.
+- `js/app.js` spadł z ok. 790 do 590 linii; nadal jest plikiem podwyższonego ryzyka, ale przestał zawierać właściwy renderer listy szafek.
+- Pełny raport: `tools/reports/app-shell-wywiad-split-v1.md`.
+- Następny logiczny kierunek optymalizacji: WYCENA, etap kontraktowy/splitowy bez zmiany UI i bez zmiany zachowania.

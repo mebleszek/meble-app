@@ -85,7 +85,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 
-- `js/tabs/rysunek.js` — bardzo duży aktywny renderer RYSUNKU. Miesza render SVG, drag/drop, inspektor, listę wykończeń i edycję elementów. Systemowe dialogi zostały usunięte w etapie `rysunek dialogs/contracts v1`; następny krok to split po odpowiedzialnościach, nie dokładanie funkcji.
+- `js/tabs/rysunek.js` — bardzo duży aktywny renderer RYSUNKU. Miesza render SVG, drag/drop, inspektor, listę wykończeń, edycję elementów i stare systemowe dialogi. Najpierw wzmacniać testy i planować split, potem ciąć.
 - `js/app.js` — nadal gruby klej aplikacji. Nowe funkcje kierować do modułów domenowych, nie do `app.js`.
 - `js/app/rozrys/rozrys.js` — duży, ale lepiej zabezpieczony testami. Nie dopisywać tam logiki, jeśli pasuje do istniejących modułów ROZRYS.
 - `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js` — kontynuować delegowanie do modułów `wycena-tab-*` i store/quote, nie przywracać inline workflow.
@@ -122,10 +122,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 
 ## RYSUNEK — aktualny stan bezpieczeństwa
 
-- `js/testing/rysunek/tests.js` chroni publiczne API, rejestrację zakładki, minimalny render stage/inspektora/listy wykończeń oraz zakaz powrotu systemowych `alert/confirm/prompt` w `js/tabs/rysunek.js`.
-- `js/app/rysunek/rysunek-dialogs.js` jest adapterem własnych modali dla RYSUNKU: informacje przez `FC.infoBox`, potwierdzenia przez `FC.confirmBox`, wartości liczbowe przez `FC.panelBox`. Nie dodawać fallbacków do systemowych dialogów.
-- `dev_tests.html` i `tools/app-dev-smoke.js` ładują teraz `layout-state.js`, `rysunek-dialogs.js`, `tabs/rysunek.js` i testy RYSUNKU.
+- `js/testing/rysunek/tests.js` dodaje podstawową ochronę: publiczne API, rejestracja zakładki, minimalny render stage/inspektora/listy wykończeń oraz jawne wykrycie długu systemowych dialogów.
+- `dev_tests.html` i `tools/app-dev-smoke.js` ładują teraz `layout-state.js`, `tabs/rysunek.js` i testy RYSUNKU.
 - Testy ROZRYS są rozbite na `js/testing/rozrys/tests.js` jako cienki runner oraz suite'y w `js/testing/rozrys/suites/*`; nowe testy ROZRYS dodawać do właściwej suite, nie odbudowywać jednego wielkiego pliku.
+- W `RYSUNKU` nadal są systemowe `alert/confirm/prompt`. To jawny dług techniczny do usunięcia w osobnym etapie przez własne modale aplikacji.
 - Wykryte pozostałe aktywne fallbacki/dialogi systemowe poza RYSUNKIEM: `js/app/ui/actions-register.js`, `js/app/material/magazyn.js`, `js/app/ui/data-settings-dom.js`, `js/app/shared/room-registry-modals-manage-remove.js`. Nie rozwiązywać ich przy okazji innych refaktorów bez testów i własnego modala.
 - Nie przebudowywać RYSUNKU bez testów kontraktowych dla kolejnych wycinanych odpowiedzialności.
 
@@ -134,7 +134,7 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 1. Przy większych porządkach i szukaniu wspólnych mechanik trzymać `OPTIMIZATION_PLAN.md` jako mapę kolejności i kandydatów do wspólnych modułów.
 2. Przy zmianach danych trzymać `CLOUD_MIGRATION.md` jako obowiązkową checklistę i aktualizować go tylko o istotne decyzje migracyjne.
 3. Kolejny etap materiałów: `magazyn.js`, `material-part-options.js` i wspólny model formatek/oklein dla `Materiał + ROZRYS`.
-4. Osobny etap RYSUNEK: systemowe dialogi są usunięte; teraz przygotować kontraktowy split monolitu po odpowiedzialnościach.
+4. Osobny etap RYSUNEK: najpierw usunięcie systemowych dialogów i plan splitu, potem dopiero cięcie monolitu.
 5. Osobny etap cloud-readiness: po wyjęciu reload/restore z `app.js` kolejne bezpieczne kroki to `js/boot.js` jako wyjątek boot-level oraz domeny `investor-project`, `material/*`, `rozrys/*` według audytu `tools/local-storage-source-audit.js`.
 
 ## WYCENA — poprawka akceptacji z podglądu 2026-04-26
@@ -162,24 +162,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Przy następnych poprawkach algorytmu zaczynać od testu/przykładu wejściowego, potem zmieniać tylko właściwy moduł odpowiedzialności, nie fasadę.
 - Raporty paczek: `tools/reports/rozrys-optimizer-contracts-v1.md`, `tools/reports/rozrys-speedmax-split-v1.md`.
 
+## App shell / WYWIAD split v1 — 2026-04-27
 
-## 2026-04-27 — RYSUNEK dialogs/contracts v1
-
-- Dodano `js/app/rysunek/rysunek-dialogs.js` jako adapter własnych modali dla RYSUNKU.
-- `js/tabs/rysunek.js` nie używa już systemowych `alert`, `confirm`, `prompt`; test RYSUNKU pilnuje, żeby nie wróciły.
-- Nie zmieniano głównego UI ani logiki ROZRYS/WYCENA. Następny etap RYSUNKU to split renderu, inspektora, wykończeń i drag/drop po dodatkowych kontraktach.
-- Raport paczki: `tools/reports/rysunek-dialogs-contracts-v1.md`.
-
-## 2026-04-27 — RYSUNEK rebuild fix v1
-
-- Naprawiono regresję przycisku `Odbuduj z listy szafek` po przejściu z systemowego `confirm()` na własny adapter dialogów.
-- `js/app/rysunek/rysunek-dialogs.js` musi normalizować wynik `FC.confirmBox.ask()` przez `Promise.resolve(...)`, bo testy i adaptery mogą zwracać zarówno Promise, jak i synchroniczne `true/false`.
-- `js/testing/rysunek/tests.js` zawiera kontrakt kliknięcia odbudowy dla synchronicznego i asynchronicznego `confirmBox.ask()`; nie usuwać tego testu przy następnym splicie RYSUNKU.
-- Raport paczki: `tools/reports/rysunek-rebuild-fix-v1.md`.
-
-## 2026-04-27 — RYSUNEK rebuild fresh v1
-
-- Druga poprawka `Odbuduj z listy szafek`: handler nie może odbudowywać na `pd/seg` złapanych przy renderze. Po potwierdzeniu ma pobierać świeży `projectData[room]` i aktywny segment, bo zapis/normalizacja/store mogą podmienić obiekt projektu między renderem a kliknięciem.
-- Test RYSUNKU `Odbuduj z listy szafek używa świeżego projektu po potwierdzeniu` chroni ten przypadek. Nie usuwać go przy splicie `js/tabs/rysunek.js`.
-- Render po odbudowie ma być odseparowany od ewentualnego wyjątku zapisu, żeby użytkownik nie dostawał martwego kliknięcia bez widocznej reakcji.
-- Raport paczki: `tools/reports/rysunek-rebuild-fresh-v1.md`.
+- RYSUNEK jest odłożony do osobnego wątku; nie budować kolejnych paczek na zmianach `site_rysunek_*`, dopóki ten temat nie zostanie świadomie wznowiony.
+- Aktualny porządek app shell: `js/app.js` ma zostać cienkim klejem, a render listy/pomieszczenia siedzi w `js/app/ui/cabinets-render.js`.
+- Render zakładki WYWIAD siedzi w `js/tabs/wywiad.js`; nie przenosić go z powrotem do `app.js`.
+- Przy zmianach renderu szafek sprawdzać ścieżkę: `renderCabinets()` globalny delegator → `FC.cabinetsRender.renderCabinets()` → router zakładek → `FC.tabsWywiad.renderWywiadTab()`.
+- Pełny raport: `tools/reports/app-shell-wywiad-split-v1.md`.

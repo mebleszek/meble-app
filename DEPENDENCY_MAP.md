@@ -83,7 +83,7 @@ Poniższe pliki nie są bezpośrednio w `index.html`/`dev_tests.html`, ale nie w
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 8 | 1483 | 0 | 0 | 0 | 2 |
 | BOOT/APP SHELL | 5 | 1473 | 4 | 0 | 1 | 1 |
-| RYSUNEK | 1 | 1475 | 0 | 0 | 1 | 0 |
+| RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | KATALOG/USŁUGI | 9 | 1349 | 0 | 0 | 0 | 1 |
 | DANE/STORAGE | 15 | 1313 | 36 | 0 | 0 | 0 |
 | PROJEKT | 5 | 1302 | 0 | 0 | 1 | 3 |
@@ -138,11 +138,10 @@ Wniosek: dalsze cięcie ROZRYS tylko po ścieżkach. Dobry kierunek to nie wielk
 
 ### RYSUNEK
 
-- `js/tabs/rysunek.js` — 1475 linii, 0 systemowych dialogów po etapie `rysunek dialogs/contracts v1`, kategoria: nie ruszać bez osobnego planu.
-- Ma mało formalnych zależności `FC.*`, ale miesza render SVG, interakcje, inspektor, listy i akcje edycji.
-- `js/app/rysunek/rysunek-dialogs.js` jest małym adapterem dialogów i nie powinien przyjmować logiki renderu ani domeny.
+- `js/tabs/rysunek.js` — 1459 linii, 11 systemowych dialogów, kategoria: nie ruszać bez osobnego planu.
+- Ma mało formalnych zależności `FC.*`, ale miesza render SVG, interakcje, inspektor, listy i stare dialogi.
 
-Wniosek: następny krok to kontraktowy split RYSUNKU po odpowiedzialnościach, a nie dokładanie funkcji do `tabs/rysunek.js`.
+Wniosek: zanim ciąć, najpierw usunąć albo zabezpieczyć systemowe dialogi przez własne modale i dołożyć testy kontraktowe render/interakcje.
 
 ### Materiał
 
@@ -237,3 +236,11 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Aktywny load order optymalizatora MAX: `cut-optimizer.js` → `speed-max-core.js` → `speed-max-bands.js` → `speed-max-sheet-plan.js` → `speed-max-half-sheet.js` → `speed-max.js`.
 - Ten sam load order musi być utrzymany w `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/rozrys-dev-smoke.js` i `panel-pro-worker.js`.
 - Po audycie źródłowym OPTIMIZER ma 12 plików i 1589 linii; największy nowy plik `speed-max-bands.js` ma 380 linii i wymaga ostrożności przy dalszym dokładaniu logiki.
+
+## App shell / WYWIAD split v1 — 2026-04-27
+
+- `js/app.js` po splicie ma 590 linii i pozostaje plikiem o podwyższonym wpływie, ale nie zawiera już właściwego renderu kontenera zakładek ani renderu kart WYWIAD.
+- Nowy właściciel renderu kontenera: `js/app/ui/cabinets-render.js` (`FC.cabinetsRender.renderCabinets`).
+- Nowy właściciel renderu zakładki WYWIAD: `js/tabs/wywiad.js` (`FC.tabsWywiad.renderWywiadTab`, `FC.tabsWywiad.renderSingleCabinetCard`).
+- Zachowany kontrakt globalny: `renderCabinets()`, `renderWywiadTab()` i `renderSingleCabinetCard()` nadal istnieją w `app.js` jako delegatory.
+- `index.html` ma teraz 190 skryptów; `verifyIndex()` potwierdza zgodność z `tools/index-load-groups.js`.

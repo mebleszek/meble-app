@@ -24,43 +24,14 @@
     writeGlobal(name, previous);
   }
 
-  function syncDrawingGlobalBindings(){
-    try{
-      const g = host.window || host;
-      g.__rysunekTestProjectData = host.projectData;
-      g.__rysunekTestUiState = host.uiState;
-      g.__rysunekTestStorageKeys = host.STORAGE_KEYS;
-      Function('projectData = window.__rysunekTestProjectData; uiState = window.__rysunekTestUiState; STORAGE_KEYS = window.__rysunekTestStorageKeys;')();
-    }catch(_){ }
-  }
-
   function withDrawingGlobals(run){
     const prevProjectData = readGlobal('projectData');
     const prevUiState = readGlobal('uiState');
     const prevStorageKeys = readGlobal('STORAGE_KEYS');
     const prevRenderCabinets = readGlobal('renderCabinets');
-    const prevSaveProject = readGlobal('saveProject');
     const prevProject = FC.project;
     const prevStorage = FC.storage;
-    const prevLayoutStateSave = FC.layoutState && FC.layoutState.saveProject;
     const savedUiRaw = host.localStorage && host.localStorage.getItem ? host.localStorage.getItem('fc_ui_v1') : null;
-
-    function cleanup(){
-      deleteGlobal('projectData', prevProjectData);
-      deleteGlobal('uiState', prevUiState);
-      deleteGlobal('STORAGE_KEYS', prevStorageKeys);
-      deleteGlobal('renderCabinets', prevRenderCabinets);
-      deleteGlobal('saveProject', prevSaveProject);
-      syncDrawingGlobalBindings();
-      if(FC.layoutState) FC.layoutState.saveProject = prevLayoutStateSave;
-      FC.project = prevProject;
-      FC.storage = prevStorage;
-      if(host.localStorage && host.localStorage.setItem){
-        if(savedUiRaw == null) host.localStorage.removeItem('fc_ui_v1');
-        else host.localStorage.setItem('fc_ui_v1', savedUiRaw);
-      }
-    }
-
     try{
       FC.project = FC.project || {};
       FC.project.save = (project)=> project;
@@ -85,19 +56,18 @@
       writeGlobal('uiState', { drawing:{ zoom:6 } });
       writeGlobal('STORAGE_KEYS', (FC.constants && FC.constants.STORAGE_KEYS) || { ui:'fc_ui_v1' });
       writeGlobal('renderCabinets', function(){});
-      writeGlobal('saveProject', function(){ return projectData; });
-      FC.layoutState = FC.layoutState || {};
-      FC.layoutState.saveProject = function(){ return projectData; };
-      syncDrawingGlobalBindings();
-      const out = run(projectData);
-      if(out && typeof out.then === 'function'){
-        return out.then((value)=>{ cleanup(); return value; }, (error)=>{ cleanup(); throw error; });
+      return run(projectData);
+    } finally {
+      deleteGlobal('projectData', prevProjectData);
+      deleteGlobal('uiState', prevUiState);
+      deleteGlobal('STORAGE_KEYS', prevStorageKeys);
+      deleteGlobal('renderCabinets', prevRenderCabinets);
+      FC.project = prevProject;
+      FC.storage = prevStorage;
+      if(host.localStorage && host.localStorage.setItem){
+        if(savedUiRaw == null) host.localStorage.removeItem('fc_ui_v1');
+        else host.localStorage.setItem('fc_ui_v1', savedUiRaw);
       }
-      cleanup();
-      return out;
-    }catch(error){
-      cleanup();
-      throw error;
     }
   }
 
@@ -134,110 +104,10 @@
         });
       }),
 
-      H.makeTest('Rysunek', 'Rysunek używa własnego adaptera dialogów aplikacji', 'Pilnuje etapu usuwania systemowych okienek: RYSUNEK ma korzystać z małego adaptera do confirmBox/infoBox/panelBox zamiast z alert/confirm/prompt.', ()=>{
-        H.assert(FC.rysunekDialogs && typeof FC.rysunekDialogs.info === 'function', 'Brak FC.rysunekDialogs.info');
-        H.assert(typeof FC.rysunekDialogs.askConfirm === 'function', 'Brak FC.rysunekDialogs.askConfirm');
-        H.assert(typeof FC.rysunekDialogs.askNumber === 'function', 'Brak FC.rysunekDialogs.askNumber');
-        H.assert(typeof FC.rysunekDialogs.confirmRebuildLayout === 'function', 'Brak FC.rysunekDialogs.confirmRebuildLayout');
-        H.assert(typeof FC.rysunekDialogs.confirmDeleteGap === 'function', 'Brak FC.rysunekDialogs.confirmDeleteGap');
-      }),
-
-      H.makeTest('Rysunek', 'Odbuduj z listy szafek działa po własnym confirmBox', 'Pilnuje regresji z paczki dialogów: klik w odbudowę nie może kończyć się cichym anulowaniem, gdy adapter potwierdzenia dostanie synchroniczne true albo Promise true.', async ()=>{
-        H.assert(host.document && typeof host.document.createElement === 'function', 'Brak dokumentu testowego dla Rysunku');
-        const prevConfirmBox = FC.confirmBox;
-        const prevRenderCabinets = readGlobal('renderCabinets');
-        try{
-          await withDrawingGlobals(async (projectData)=>{
-            let renderCalls = 0;
-            writeGlobal('renderCabinets', function(){ renderCalls += 1; });
-            FC.confirmBox = { ask:()=> true };
-            const list = host.document.createElement('div');
-            FC.tabsRysunek.renderDrawingTab(list, 'kuchnia');
-            const seg = projectData.kuchnia.layout.segments[0];
-            seg.rows.base.push({ kind:'gap', id:'gap_test', width:12, label:'PRZERWA' });
-            const btn = list.querySelector('#drawRebuild');
-            H.assert(btn && typeof btn.onclick === 'function', 'Brak działającego przycisku odbudowy');
-            const out = btn.onclick();
-            if(out && typeof out.then === 'function') await out;
-            H.assert(renderCalls === 1, 'Odbudowa nie odświeżyła renderCabinets po synchronicznym confirmBox.ask', { renderCalls });
-            H.assert(seg.rows.base.length === 1 && seg.rows.base[0].id === 'rys_base_1', 'Odbudowa nie odtworzyła dolnych szafek albo nie usunęła przerwy', seg.rows.base);
-            H.assert(seg.rows.wall.length === 1 && seg.rows.wall[0].id === 'rys_wall_1', 'Odbudowa nie odtworzyła górnych szafek', seg.rows.wall);
-          });
-
-          await withDrawingGlobals(async (projectData)=>{
-            let renderCalls = 0;
-            writeGlobal('renderCabinets', function(){ renderCalls += 1; });
-            FC.confirmBox = { ask:()=> Promise.resolve(true) };
-            const list = host.document.createElement('div');
-            FC.tabsRysunek.renderDrawingTab(list, 'kuchnia');
-            const seg = projectData.kuchnia.layout.segments[0];
-            seg.rows.base.push({ kind:'gap', id:'gap_test_2', width:12, label:'PRZERWA' });
-            const out = list.querySelector('#drawRebuild').onclick();
-            if(out && typeof out.then === 'function') await out;
-            H.assert(renderCalls === 1, 'Odbudowa nie odświeżyła renderCabinets po asynchronicznym confirmBox.ask', { renderCalls });
-            H.assert(seg.rows.base.length === 1 && seg.rows.base[0].id === 'rys_base_1', 'Odbudowa nie działa z Promise true', seg.rows.base);
-          });
-        } finally {
-          FC.confirmBox = prevConfirmBox;
-          writeGlobal('renderCabinets', prevRenderCabinets);
-        }
-      }),
-
-      H.makeTest('Rysunek', 'Odbuduj z listy szafek używa świeżego projektu po potwierdzeniu', 'Pilnuje realnej regresji: klik w odbudowę nie może pracować na starym segmencie złapanym przy renderze, jeśli projectData zostało w międzyczasie podmienione przez zapis/normalizację.', async ()=>{
-        H.assert(host.document && typeof host.document.createElement === 'function', 'Brak dokumentu testowego dla Rysunku');
-        const prevConfirmBox = FC.confirmBox;
-        const prevRenderCabinets = readGlobal('renderCabinets');
-        try{
-          await withDrawingGlobals(async (projectData)=>{
-            FC.confirmBox = { ask:()=> true };
-            let renderCalls = 0;
-            let saveCalls = 0;
-            writeGlobal('renderCabinets', function(){ renderCalls += 1; });
-            const list = host.document.createElement('div');
-            FC.tabsRysunek.renderDrawingTab(list, 'kuchnia');
-            const freshProject = JSON.parse(JSON.stringify(projectData));
-            freshProject.kuchnia.cabinets = [
-              { id:'fresh_base_1', type:'stojąca', width:80, height:72, depth:56, name:'Nowa dolna' },
-              { id:'fresh_module_1', type:'moduł', width:40, height:60, depth:56, name:'Nowy moduł' },
-              { id:'fresh_wall_1', type:'wisząca', width:70, height:70, depth:32, name:'Nowa górna' }
-            ];
-            freshProject.kuchnia.layout.segments[0].rows.base = [{ kind:'gap', id:'stale_gap', width:12, label:'PRZERWA' }];
-            freshProject.kuchnia.layout.segments[0].rows.module = [];
-            freshProject.kuchnia.layout.segments[0].rows.wall = [];
-            writeGlobal('projectData', freshProject);
-            syncDrawingGlobalBindings();
-            FC.layoutState = FC.layoutState || {};
-            FC.layoutState.saveProject = function(){
-              saveCalls += 1;
-              const normalized = JSON.parse(JSON.stringify(readGlobal('projectData')));
-              writeGlobal('projectData', normalized);
-              syncDrawingGlobalBindings();
-              return normalized;
-            };
-
-            const btn = list.querySelector('#drawRebuild');
-            H.assert(btn && typeof btn.onclick === 'function', 'Brak działającego przycisku odbudowy');
-            const out = btn.onclick();
-            if(out && typeof out.then === 'function') await out;
-            const current = readGlobal('projectData');
-            const rows = current.kuchnia.layout.segments[0].rows;
-            H.assert(saveCalls === 1, 'Odbudowa nie zapisała świeżego projektu', { saveCalls });
-            H.assert(renderCalls === 1, 'Odbudowa nie odświeżyła widoku po świeżym projekcie', { renderCalls });
-            H.assert(rows.base.length === 1 && rows.base[0].id === 'fresh_base_1', 'Odbudowa użyła starego segmentu albo nie usunęła przerwy ze świeżego projektu', rows.base);
-            H.assert(rows.module.length === 1 && rows.module[0].id === 'fresh_module_1', 'Odbudowa nie odtworzyła modułów ze świeżego projektu', rows.module);
-            H.assert(rows.wall.length === 1 && rows.wall[0].id === 'fresh_wall_1', 'Odbudowa nie odtworzyła górnych szafek ze świeżego projektu', rows.wall);
-          });
-        } finally {
-          FC.confirmBox = prevConfirmBox;
-          writeGlobal('renderCabinets', prevRenderCabinets);
-        }
-      }),
-
-      H.makeTest('Rysunek', 'Rysunek nie zawiera systemowych alert/confirm/prompt', 'Pilnuje, żeby po usunięciu długu technicznego stare systemowe okienka nie wróciły do monolitu RYSUNKU podczas kolejnych zmian.', ()=>{
+      H.makeTest('Rysunek', 'Dług techniczny systemowych dialogów Rysunku jest jawnie wykryty', 'Pilnuje listy do usunięcia przed przebudową Rysunku: alert/confirm/prompt mają nie wracać po cichu do innych miejsc i są świadomym długiem tego modułu.', ()=>{
         const counts = countSystemDialogCalls();
-        H.assert(counts.alert === 0, 'RYSUNEK nie może używać alert()', counts);
-        H.assert(counts.confirm === 0, 'RYSUNEK nie może używać confirm()', counts);
-        H.assert(counts.prompt === 0, 'RYSUNEK nie może używać prompt()', counts);
+        H.assert(counts.alert >= 1 || counts.confirm >= 1 || counts.prompt >= 1, 'Nie wykryto systemowych dialogów w Rysunku — jeśli zostały usunięte, zaktualizuj ten test i DEV.md', counts);
+        H.assert(counts.prompt >= 1, 'Brak wykrytych promptów Rysunku; po ich usunięciu trzeba zmienić test na zakaz prompt()', counts);
       }),
     ]);
   }

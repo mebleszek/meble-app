@@ -146,6 +146,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/rozrys/rozrys-lazy-loader.js",
       "js/app/rozrys/rozrys-shell.js",
       "js/app.js",
+      "js/app/ui/cabinets-render.js",
       "js/app/shared/public-api.js"
     ]
   },
@@ -177,7 +178,6 @@ const INDEX_LOAD_GROUPS = [
     "label": "Classic tabs / quote / wycena",
     "scripts": [
       "js/tabs/wywiad.js",
-      "js/app/rysunek/rysunek-dialogs.js",
       "js/tabs/rysunek.js",
       "js/tabs/material.js",
       "js/tabs/czynnosci.js",
