@@ -46,6 +46,53 @@
     return saveProject();
   }
 
+  function getFreshDrawingSegment(targetRoom){
+    const nextRoom = targetRoom || room;
+    if(!projectData || !projectData[nextRoom]) return null;
+    ensureLayout(nextRoom);
+    const nextPd = projectData[nextRoom];
+    const nextSeg = getActiveSegment(nextRoom);
+    if(!nextPd || !nextSeg) return null;
+    if(!nextSeg.rows) nextSeg.rows = {};
+    if(!Array.isArray(nextSeg.rows.base)) nextSeg.rows.base = [];
+    if(!Array.isArray(nextSeg.rows.module)) nextSeg.rows.module = [];
+    if(!Array.isArray(nextSeg.rows.wall)) nextSeg.rows.wall = [];
+    return { pd:nextPd, seg:nextSeg };
+  }
+
+  function resetDrawingUiSelection(){
+    st.selected = null;
+    st.rangeStart = null;
+    st.hRange = null;
+    st.vRange = null;
+  }
+
+  function rebuildLayoutFromCurrentCabinetList(targetRoom){
+    const ctx = getFreshDrawingSegment(targetRoom);
+    if(!ctx) return false;
+    const targetSeg = ctx.seg;
+    targetSeg.rows.base = [];
+    targetSeg.rows.module = [];
+    targetSeg.rows.wall = [];
+    (ctx.pd.cabinets || []).forEach(c=>{
+      const row = (c.type === 'wisząca') ? 'wall' : (c.type === 'moduł' ? 'module' : 'base');
+      targetSeg.rows[row].push({ kind:'cabinet', id:c.id });
+    });
+    resetDrawingUiSelection();
+    return true;
+  }
+
+  function commitRysunekRebuild(){
+    const changed = rebuildLayoutFromCurrentCabinetList(room);
+    if(!changed) return;
+    try{ saveRysunekProject(); }catch(err){
+      try{ console.error('[RYSUNEK] Nie udało się zapisać odbudowanego układu', err); }catch(_){}
+    }
+    try{ renderCabinets(); }catch(err){
+      try{ console.error('[RYSUNEK] Nie udało się odświeżyć po odbudowie układu', err); }catch(_){}
+    }
+  }
+
   list.innerHTML = '';
 
   const outer = document.createElement('div');
@@ -110,19 +157,7 @@
   // toolbar actions
   toolbar.querySelector('#drawRebuild').onclick = async ()=>{
     if(!(await askRysunekConfirm('confirmRebuildLayout'))) return;
-    seg.rows.base = [];
-    seg.rows.module = [];
-    seg.rows.wall = [];
-    (pd.cabinets||[]).forEach(c=>{
-      const row = (c.type === 'wisząca') ? 'wall' : (c.type === 'moduł' ? 'module' : 'base');
-      seg.rows[row].push({ kind:'cabinet', id:c.id });
-    });
-    st.selected = null;
-    st.rangeStart = null;
-    st.hRange = null;
-    st.vRange = null;
-    saveRysunekProject();
-    renderCabinets();
+    commitRysunekRebuild();
   };
   // zoom controls
   const zoomSlider = toolbar.querySelector('#zoomSlider');

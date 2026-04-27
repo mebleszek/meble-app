@@ -183,6 +183,56 @@
         }
       }),
 
+      H.makeTest('Rysunek', 'Odbuduj z listy szafek używa świeżego projektu po potwierdzeniu', 'Pilnuje realnej regresji: klik w odbudowę nie może pracować na starym segmencie złapanym przy renderze, jeśli projectData zostało w międzyczasie podmienione przez zapis/normalizację.', async ()=>{
+        H.assert(host.document && typeof host.document.createElement === 'function', 'Brak dokumentu testowego dla Rysunku');
+        const prevConfirmBox = FC.confirmBox;
+        const prevRenderCabinets = readGlobal('renderCabinets');
+        try{
+          await withDrawingGlobals(async (projectData)=>{
+            FC.confirmBox = { ask:()=> true };
+            let renderCalls = 0;
+            let saveCalls = 0;
+            writeGlobal('renderCabinets', function(){ renderCalls += 1; });
+            const list = host.document.createElement('div');
+            FC.tabsRysunek.renderDrawingTab(list, 'kuchnia');
+            const freshProject = JSON.parse(JSON.stringify(projectData));
+            freshProject.kuchnia.cabinets = [
+              { id:'fresh_base_1', type:'stojąca', width:80, height:72, depth:56, name:'Nowa dolna' },
+              { id:'fresh_module_1', type:'moduł', width:40, height:60, depth:56, name:'Nowy moduł' },
+              { id:'fresh_wall_1', type:'wisząca', width:70, height:70, depth:32, name:'Nowa górna' }
+            ];
+            freshProject.kuchnia.layout.segments[0].rows.base = [{ kind:'gap', id:'stale_gap', width:12, label:'PRZERWA' }];
+            freshProject.kuchnia.layout.segments[0].rows.module = [];
+            freshProject.kuchnia.layout.segments[0].rows.wall = [];
+            writeGlobal('projectData', freshProject);
+            syncDrawingGlobalBindings();
+            FC.layoutState = FC.layoutState || {};
+            FC.layoutState.saveProject = function(){
+              saveCalls += 1;
+              const normalized = JSON.parse(JSON.stringify(readGlobal('projectData')));
+              writeGlobal('projectData', normalized);
+              syncDrawingGlobalBindings();
+              return normalized;
+            };
+
+            const btn = list.querySelector('#drawRebuild');
+            H.assert(btn && typeof btn.onclick === 'function', 'Brak działającego przycisku odbudowy');
+            const out = btn.onclick();
+            if(out && typeof out.then === 'function') await out;
+            const current = readGlobal('projectData');
+            const rows = current.kuchnia.layout.segments[0].rows;
+            H.assert(saveCalls === 1, 'Odbudowa nie zapisała świeżego projektu', { saveCalls });
+            H.assert(renderCalls === 1, 'Odbudowa nie odświeżyła widoku po świeżym projekcie', { renderCalls });
+            H.assert(rows.base.length === 1 && rows.base[0].id === 'fresh_base_1', 'Odbudowa użyła starego segmentu albo nie usunęła przerwy ze świeżego projektu', rows.base);
+            H.assert(rows.module.length === 1 && rows.module[0].id === 'fresh_module_1', 'Odbudowa nie odtworzyła modułów ze świeżego projektu', rows.module);
+            H.assert(rows.wall.length === 1 && rows.wall[0].id === 'fresh_wall_1', 'Odbudowa nie odtworzyła górnych szafek ze świeżego projektu', rows.wall);
+          });
+        } finally {
+          FC.confirmBox = prevConfirmBox;
+          writeGlobal('renderCabinets', prevRenderCabinets);
+        }
+      }),
+
       H.makeTest('Rysunek', 'Rysunek nie zawiera systemowych alert/confirm/prompt', 'Pilnuje, żeby po usunięciu długu technicznego stare systemowe okienka nie wróciły do monolitu RYSUNKU podczas kolejnych zmian.', ()=>{
         const counts = countSystemDialogCalls();
         H.assert(counts.alert === 0, 'RYSUNEK nie może używać alert()', counts);

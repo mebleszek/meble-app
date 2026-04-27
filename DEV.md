@@ -176,3 +176,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `js/app/rysunek/rysunek-dialogs.js` musi normalizować wynik `FC.confirmBox.ask()` przez `Promise.resolve(...)`, bo testy i adaptery mogą zwracać zarówno Promise, jak i synchroniczne `true/false`.
 - `js/testing/rysunek/tests.js` zawiera kontrakt kliknięcia odbudowy dla synchronicznego i asynchronicznego `confirmBox.ask()`; nie usuwać tego testu przy następnym splicie RYSUNKU.
 - Raport paczki: `tools/reports/rysunek-rebuild-fix-v1.md`.
+
+## 2026-04-27 — RYSUNEK rebuild fresh v1
+
+- Druga poprawka `Odbuduj z listy szafek`: handler nie może odbudowywać na `pd/seg` złapanych przy renderze. Po potwierdzeniu ma pobierać świeży `projectData[room]` i aktywny segment, bo zapis/normalizacja/store mogą podmienić obiekt projektu między renderem a kliknięciem.
+- Test RYSUNKU `Odbuduj z listy szafek używa świeżego projektu po potwierdzeniu` chroni ten przypadek. Nie usuwać go przy splicie `js/tabs/rysunek.js`.
+- Render po odbudowie ma być odseparowany od ewentualnego wyjątku zapisu, żeby użytkownik nie dostawał martwego kliknięcia bez widocznej reakcji.
+- Raport paczki: `tools/reports/rysunek-rebuild-fresh-v1.md`.
