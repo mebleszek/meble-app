@@ -2,7 +2,7 @@
    Kierunek startu i szybkość liczenia są rozdzielone na osobne moduły. */
 self.window = self;
 
-const SOLVER_VER = '20260328_arch_dirs_tests_v1';
+const SOLVER_VER = '20260427_speedmax_split_v1';
 try{
   importScripts(
     'cut-optimizer.js?v=' + SOLVER_VER,
@@ -11,6 +11,10 @@ try{
     'start-optimax.js?v=' + SOLVER_VER,
     'speed-turbo.js?v=' + SOLVER_VER,
     'speed-dokladnie.js?v=' + SOLVER_VER,
+    'speed-max-core.js?v=' + SOLVER_VER,
+    'speed-max-bands.js?v=' + SOLVER_VER,
+    'speed-max-sheet-plan.js?v=' + SOLVER_VER,
+    'speed-max-half-sheet.js?v=' + SOLVER_VER,
     'speed-max.js?v=' + SOLVER_VER
   );
 }catch(e){
@@ -22,6 +26,10 @@ try{
       '/js/app/optimizer/start-optimax.js?v=' + SOLVER_VER,
       '/js/app/optimizer/speed-turbo.js?v=' + SOLVER_VER,
       '/js/app/optimizer/speed-dokladnie.js?v=' + SOLVER_VER,
+      '/js/app/optimizer/speed-max-core.js?v=' + SOLVER_VER,
+      '/js/app/optimizer/speed-max-bands.js?v=' + SOLVER_VER,
+      '/js/app/optimizer/speed-max-sheet-plan.js?v=' + SOLVER_VER,
+      '/js/app/optimizer/speed-max-half-sheet.js?v=' + SOLVER_VER,
       '/js/app/optimizer/speed-max.js?v=' + SOLVER_VER
     );
   }catch(_){ }

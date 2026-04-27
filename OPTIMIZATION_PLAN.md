@@ -109,3 +109,16 @@ Wniosek: nie trzeba robić ukrytej migracji w tej paczce, ale każdy następny e
 ## Wycena status contract v1
 
 Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote/quote-snapshot-store.js` albo `js/app/project/project-status-sync.js` uruchamiać i utrzymywać kontrakty z `js/testing/wycena/suites/status-contract.js`. Ten etap nie jest refaktorem runtime; to zabezpieczenie ścieżek przed kolejnym cięciem.
+
+## ROZRYS optimizer contracts v1 — 2026-04-27
+
+- Dodano suite kontraktową `js/testing/rozrys/suites/optimizer-contracts.js` jako zabezpieczenie przed splitem `js/app/optimizer/speed-max.js`.
+- Testy pilnują progów 95/90, limitu top 5 seedów oraz obecnego mapowania `start-along` → `across`, `start-across` → `along`.
+
+## ROZRYS speed-max split v1 — 2026-04-27
+
+- Wykonano techniczny split `speed-max.js` bez zmiany UI i bez celowej zmiany algorytmu.
+- Nowy układ: `speed-max-core.js`, `speed-max-bands.js`, `speed-max-sheet-plan.js`, `speed-max-half-sheet.js`, a `speed-max.js` zostaje cienką fasadą `FC.rozkrojSpeeds.max`.
+- Przy następnych zmianach optymalizacji nie dokładać logiki do fasady `speed-max.js`; zmiany kierować do właściwego modułu odpowiedzialności.
+- Pełny raport: `tools/reports/rozrys-speedmax-split-v1.md`.
+- Następny bezpieczny etap: realne usprawnienia algorytmu tylko przypadek po przypadku, zaczynając od testu kontraktowego i porównania wyniku old/new dla konkretnego układu formatek.

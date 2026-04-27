@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-04-26T18:19:54.729Z",
+  "generatedAt": "2026-04-27T07:02:29.619Z",
   "summary": {
-    "jsFiles": 240,
-    "indexScripts": 185,
-    "devTestScripts": 192,
-    "fcSymbols": 173,
-    "fcSymbolsAll": 196,
-    "edges": 1023,
+    "jsFiles": 246,
+    "indexScripts": 189,
+    "devTestScripts": 199,
+    "fcSymbols": 177,
+    "fcSymbolsAll": 200,
+    "edges": 1077,
     "highRisk": 15,
-    "mediumRisk": 36
+    "mediumRisk": 37
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -52,16 +52,16 @@
       "medium": 1
     },
     "OPTIMIZER": {
-      "files": 8,
-      "lines": 1483,
+      "files": 12,
+      "lines": 1589,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 2
+      "medium": 1
     },
     "PROJEKT": {
       "files": 5,
-      "lines": 1302,
+      "lines": 1305,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 1,
@@ -69,7 +69,7 @@
     },
     "WYCENA": {
       "files": 13,
-      "lines": 4821,
+      "lines": 4826,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 3,
@@ -140,12 +140,12 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 32,
-      "lines": 8628,
-      "storageRefs": 179,
+      "files": 34,
+      "lines": 8970,
+      "storageRefs": 189,
       "dialogRefs": 1,
       "high": 6,
-      "medium": 13
+      "medium": 15
     }
   },
   "topLines": [
@@ -167,11 +167,11 @@
     ],
     [
       "js/testing/project/tests.js",
-      827
+      835
     ],
     [
       "js/tabs/wycena.js",
-      809
+      814
     ],
     [
       "js/testing/cabinet/tests.js",
@@ -180,10 +180,6 @@
     [
       "js/app.js",
       791
-    ],
-    [
-      "js/app/optimizer/speed-max.js",
-      786
     ],
     [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
@@ -227,7 +223,11 @@
     ],
     [
       "js/testing/rozrys/tests.js",
-      458
+      459
+    ],
+    [
+      "js/app/wycena/wycena-tab-selection.js",
+      452
     ]
   ],
   "topIncoming": [
@@ -241,7 +241,7 @@
     ],
     [
       "js/app/investor/investors-store.js",
-      24
+      25
     ],
     [
       "js/app/shared/room-registry.js",
@@ -252,16 +252,16 @@
       22
     ],
     [
+      "js/app/quote/quote-snapshot-store.js",
+      22
+    ],
+    [
       "js/app/project/project-bridge.js",
       21
     ],
     [
-      "js/app/quote/quote-snapshot-store.js",
-      21
-    ],
-    [
       "js/app/project/project-store.js",
-      20
+      21
     ],
     [
       "js/app/ui/info-box.js",
@@ -273,11 +273,15 @@
     ],
     [
       "js/app/ui/confirm-box.js",
-      17
+      18
     ],
     [
       "js/testing/shared/harness.js",
-      17
+      18
+    ],
+    [
+      "js/app/optimizer/cut-optimizer.js",
+      16
     ],
     [
       "js/app/ui/panel-box.js",
@@ -296,108 +300,104 @@
       14
     ],
     [
-      "js/app/optimizer/cut-optimizer.js",
-      12
+      "js/testing/rozrys/suites/helpers-bridges.js",
+      13
     ],
     [
       "js/app/investor/investor-persistence.js",
-      11
-    ],
-    [
-      "js/testing/rozrys/suites/helpers-bridges.js",
-      11
+      12
     ],
     [
       "js/testing/rozrys/suites/project-stock.js",
-      11
+      12
     ]
   ],
   "topSecond": [
     [
       "js/app/shared/storage.js",
-      85
+      86
     ],
     [
       "js/app/shared/utils.js",
-      80
+      81
     ],
     [
       "js/app/shared/constants.js",
-      72
+      73
     ],
     [
       "js/app/shared/room-registry.js",
-      68
+      70
     ],
     [
       "js/app/investor/investors-store.js",
-      57
-    ],
-    [
-      "js/app/shared/ui-state.js",
-      54
+      58
     ],
     [
       "js/app/project/project-store.js",
-      53
+      55
+    ],
+    [
+      "js/app/shared/ui-state.js",
+      55
     ],
     [
       "js/app/investor/session.js",
-      49
+      50
     ],
     [
       "js/app/ui/info-box.js",
-      48
+      50
     ],
     [
       "js/app/ui/views.js",
+      49
+    ],
+    [
+      "js/app/ui/confirm-box.js",
       48
     ],
     [
       "js/app/project/project-bridge.js",
-      45
+      47
     ],
     [
       "js/app.js",
-      43
+      45
     ],
     [
       "js/app/catalog/catalog-store.js",
-      43
-    ],
-    [
-      "js/app/ui/confirm-box.js",
-      41
+      44
     ],
     [
       "js/app/investor/investor-persistence.js",
-      38
+      39
     ],
     [
       "js/app/bootstrap/reload-restore.js",
-      37
-    ],
-    [
-      "js/app/shared/schema.js",
-      37
+      38
     ],
     [
       "js/app/rozrys/rozrys.js",
-      36
+      38
     ],
     [
-      "js/app/project/project-model.js",
-      35
+      "js/app/shared/schema.js",
+      38
     ],
     [
       "js/app/rozrys/rozrys-shell.js",
-      35
+      37
+    ],
+    [
+      "js/app/cabinet/cabinet-cutlist.js",
+      36
     ]
   ],
   "topStorage": [
     [
       "js/testing/project/tests.js",
-      102
+      112
     ],
     [
       "js/testing/investor/tests.js",
@@ -480,19 +480,19 @@
     {
       "file": "js/testing/project/tests.js",
       "risk": "wysokie",
-      "score": 14,
+      "score": 15,
       "area": "TESTY",
       "category": "test",
-      "lines": 827,
-      "incoming": 9,
+      "lines": 835,
+      "incoming": 10,
       "outgoing": 29,
-      "secondLevel": 20,
-      "storageRefs": 102,
+      "secondLevel": 22,
+      "storageRefs": 112,
       "dialogRefs": 0,
       "reasons": [
         "600+ linii",
         "dużo publicznych symboli FC",
-        "kilka zależnych plików",
+        "dużo zależnych plików",
         "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą",
         "łączy DOM/eventy i storage"
@@ -507,7 +507,7 @@
       "lines": 653,
       "incoming": 14,
       "outgoing": 16,
-      "secondLevel": 33,
+      "secondLevel": 35,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -523,9 +523,9 @@
       "area": "INWESTOR",
       "category": "store/storage",
       "lines": 610,
-      "incoming": 24,
+      "incoming": 25,
       "outgoing": 2,
-      "secondLevel": 57,
+      "secondLevel": 58,
       "storageRefs": 10,
       "dialogRefs": 0,
       "reasons": [
@@ -543,7 +543,7 @@
       "lines": 842,
       "incoming": 7,
       "outgoing": 19,
-      "secondLevel": 36,
+      "secondLevel": 38,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -558,10 +558,10 @@
       "score": 9,
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 809,
+      "lines": 814,
       "incoming": 5,
       "outgoing": 16,
-      "secondLevel": 14,
+      "secondLevel": 16,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -579,7 +579,7 @@
       "lines": 791,
       "incoming": 22,
       "outgoing": 21,
-      "secondLevel": 43,
+      "secondLevel": 45,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -589,15 +589,33 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-sync.js",
+      "risk": "wysokie",
+      "score": 9,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 644,
+      "incoming": 10,
+      "outgoing": 11,
+      "secondLevel": 23,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/tests.js",
       "risk": "wysokie",
       "score": 9,
       "area": "TESTY",
       "category": "test",
-      "lines": 458,
+      "lines": 459,
       "incoming": 6,
-      "outgoing": 18,
-      "secondLevel": 19,
+      "outgoing": 19,
+      "secondLevel": 21,
       "storageRefs": 1,
       "dialogRefs": 0,
       "reasons": [
@@ -634,7 +652,7 @@
       "lines": 806,
       "incoming": 6,
       "outgoing": 13,
-      "secondLevel": 20,
+      "secondLevel": 22,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -650,32 +668,14 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 659,
-      "incoming": 21,
+      "incoming": 22,
       "outgoing": 5,
-      "secondLevel": 31,
+      "secondLevel": 33,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "600+ linii",
         "dużo zależnych plików"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-sync.js",
-      "risk": "wysokie",
-      "score": 8,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 644,
-      "incoming": 9,
-      "outgoing": 11,
-      "secondLevel": 22,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -685,9 +685,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 643,
-      "incoming": 7,
-      "outgoing": 22,
-      "secondLevel": 11,
+      "incoming": 8,
+      "outgoing": 23,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -705,7 +705,7 @@
       "lines": 592,
       "incoming": 7,
       "outgoing": 18,
-      "secondLevel": 26,
+      "secondLevel": 27,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -721,9 +721,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 390,
-      "incoming": 11,
-      "outgoing": 26,
-      "secondLevel": 20,
+      "incoming": 13,
+      "outgoing": 28,
+      "secondLevel": 22,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -751,23 +751,6 @@
       ]
     },
     {
-      "file": "js/app/optimizer/speed-max.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "OPTIMIZER",
-      "category": "shared/domain/helper",
-      "lines": 786,
-      "incoming": 5,
-      "outgoing": 3,
-      "secondLevel": 12,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "kilka zależnych plików"
-      ]
-    },
-    {
       "file": "js/app/ui/actions-register.js",
       "risk": "średnie",
       "score": 6,
@@ -792,9 +775,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 369,
-      "incoming": 6,
-      "outgoing": 13,
-      "secondLevel": 15,
+      "incoming": 7,
+      "outgoing": 14,
+      "secondLevel": 16,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -811,9 +794,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 342,
-      "incoming": 11,
-      "outgoing": 18,
-      "secondLevel": 21,
+      "incoming": 12,
+      "outgoing": 19,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -828,16 +811,34 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 295,
-      "incoming": 6,
-      "outgoing": 12,
-      "secondLevel": 15,
+      "lines": 305,
+      "incoming": 7,
+      "outgoing": 14,
+      "secondLevel": 16,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
         "kilka publicznych symboli FC",
         "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/core-offer-basics.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 252,
+      "incoming": 12,
+      "outgoing": 23,
+      "secondLevel": 22,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
     },
@@ -850,7 +851,7 @@
       "lines": 117,
       "incoming": 6,
       "outgoing": 9,
-      "secondLevel": 20,
+      "secondLevel": 22,
       "storageRefs": 10,
       "dialogRefs": 1,
       "reasons": [
@@ -886,7 +887,7 @@
       "lines": 489,
       "incoming": 4,
       "outgoing": 10,
-      "secondLevel": 19,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -903,7 +904,7 @@
       "lines": 452,
       "incoming": 2,
       "outgoing": 8,
-      "secondLevel": 9,
+      "secondLevel": 10,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -918,9 +919,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 361,
-      "incoming": 7,
-      "outgoing": 16,
-      "secondLevel": 11,
+      "incoming": 8,
+      "outgoing": 17,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -938,7 +939,7 @@
       "lines": 317,
       "incoming": 10,
       "outgoing": 1,
-      "secondLevel": 33,
+      "secondLevel": 34,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -955,7 +956,7 @@
       "lines": 296,
       "incoming": 6,
       "outgoing": 8,
-      "secondLevel": 18,
+      "secondLevel": 19,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -971,9 +972,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 273,
-      "incoming": 7,
-      "outgoing": 15,
-      "secondLevel": 11,
+      "incoming": 8,
+      "outgoing": 16,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -989,9 +990,9 @@
       "area": "ROZRYS",
       "category": "ui/render/events",
       "lines": 270,
-      "incoming": 5,
+      "incoming": 6,
       "outgoing": 7,
-      "secondLevel": 28,
+      "secondLevel": 29,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1009,7 +1010,7 @@
       "lines": 257,
       "incoming": 8,
       "outgoing": 8,
-      "secondLevel": 28,
+      "secondLevel": 29,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1027,7 +1028,7 @@
       "lines": 250,
       "incoming": 14,
       "outgoing": 10,
-      "secondLevel": 48,
+      "secondLevel": 49,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1045,29 +1046,12 @@
       "lines": 238,
       "incoming": 10,
       "outgoing": 8,
-      "secondLevel": 28,
+      "secondLevel": 29,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "dużo zależnych plików",
         "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/wycena/suites/core-offer-basics.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 221,
-      "incoming": 10,
-      "outgoing": 20,
-      "secondLevel": 19,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
       ]
     },
     {
@@ -1111,7 +1095,7 @@
       "lines": 493,
       "incoming": 4,
       "outgoing": 3,
-      "secondLevel": 9,
+      "secondLevel": 10,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1127,7 +1111,7 @@
       "lines": 293,
       "incoming": 10,
       "outgoing": 6,
-      "secondLevel": 43,
+      "secondLevel": 44,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1144,7 +1128,7 @@
       "lines": 288,
       "incoming": 7,
       "outgoing": 11,
-      "secondLevel": 16,
+      "secondLevel": 17,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1160,9 +1144,9 @@
       "area": "OPTIMIZER",
       "category": "shared/domain/helper",
       "lines": 283,
-      "incoming": 12,
+      "incoming": 16,
       "outgoing": 0,
-      "secondLevel": 32,
+      "secondLevel": 35,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1179,7 +1163,7 @@
       "lines": 259,
       "incoming": 9,
       "outgoing": 1,
-      "secondLevel": 49,
+      "secondLevel": 50,
       "storageRefs": 12,
       "dialogRefs": 0,
       "reasons": [
@@ -1196,7 +1180,7 @@
       "lines": 251,
       "incoming": 3,
       "outgoing": 4,
-      "secondLevel": 7,
+      "secondLevel": 8,
       "storageRefs": 1,
       "dialogRefs": 3,
       "reasons": [
@@ -1212,9 +1196,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 247,
-      "incoming": 7,
-      "outgoing": 15,
-      "secondLevel": 11,
+      "incoming": 8,
+      "outgoing": 16,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1229,9 +1213,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 236,
-      "incoming": 6,
-      "outgoing": 14,
-      "secondLevel": 15,
+      "incoming": 7,
+      "outgoing": 15,
+      "secondLevel": 16,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1265,7 +1249,7 @@
       "lines": 223,
       "incoming": 5,
       "outgoing": 5,
-      "secondLevel": 11,
+      "secondLevel": 12,
       "storageRefs": 8,
       "dialogRefs": 0,
       "reasons": [
@@ -1280,13 +1264,30 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 20,
+      "incoming": 21,
       "outgoing": 5,
-      "secondLevel": 53,
+      "secondLevel": 55,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/testing/rozrys/suites/validation-cache-render.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 197,
+      "incoming": 7,
+      "outgoing": 12,
+      "secondLevel": 16,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
       ]
     },
     {
@@ -1296,9 +1297,26 @@
       "area": "TESTY",
       "category": "test",
       "lines": 161,
-      "incoming": 7,
-      "outgoing": 12,
-      "secondLevel": 11,
+      "incoming": 8,
+      "outgoing": 13,
+      "secondLevel": 13,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/status-contract.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 155,
+      "incoming": 8,
+      "outgoing": 15,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1313,9 +1331,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 147,
-      "incoming": 7,
-      "outgoing": 21,
-      "secondLevel": 11,
+      "incoming": 8,
+      "outgoing": 22,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1330,9 +1348,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 101,
-      "incoming": 11,
+      "incoming": 12,
       "outgoing": 3,
-      "secondLevel": 38,
+      "secondLevel": 39,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1346,9 +1364,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 88,
-      "incoming": 8,
-      "outgoing": 16,
-      "secondLevel": 11,
+      "incoming": 9,
+      "outgoing": 17,
+      "secondLevel": 13,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1365,7 +1383,7 @@
       "lines": 61,
       "incoming": 21,
       "outgoing": 5,
-      "secondLevel": 45,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1482,6 +1500,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -1496,7 +1515,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1547,7 +1567,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1619,7 +1640,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1692,7 +1714,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 3,
       "dialogRefs": 0,
@@ -1818,6 +1841,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -1833,6 +1857,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -2400,7 +2425,8 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -2580,7 +2606,8 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -2911,7 +2938,8 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -2956,7 +2984,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3170,7 +3199,8 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3221,7 +3251,8 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/shared/constants.js",
@@ -3284,6 +3315,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 10,
@@ -3349,7 +3381,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3433,7 +3466,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 12,
       "dialogRefs": 0,
@@ -3478,7 +3512,8 @@
         "js/app/ui/tab-navigation.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/investor/tests.js",
-        "js/testing/rozrys/suites/helpers-bridges.js"
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/state-ui-runtime.js"
       ],
       "storageRefs": 1,
       "dialogRefs": 3,
@@ -3628,6 +3663,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -3635,6 +3671,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -3683,6 +3720,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -3776,6 +3814,7 @@
       "secondLevelFiles": [
         "js/app/ui/actions-register.js",
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -3785,7 +3824,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3938,6 +3978,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/ui/actions-register.js",
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -3947,7 +3988,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3970,6 +4012,9 @@
       "incomingFiles": [
         "js/app/optimizer/panel-pro-worker.js",
         "js/app/optimizer/speed-dokladnie.js",
+        "js/app/optimizer/speed-max-bands.js",
+        "js/app/optimizer/speed-max-half-sheet.js",
+        "js/app/optimizer/speed-max-sheet-plan.js",
         "js/app/optimizer/speed-max.js",
         "js/app/optimizer/speed-turbo.js",
         "js/app/rozrys/rozrys-engine.js",
@@ -3978,6 +4023,7 @@
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
       ],
@@ -3985,6 +4031,8 @@
       "secondLevelFiles": [
         "js/app/optimizer/panel-pro-worker.js",
         "js/app/optimizer/speed-dokladnie.js",
+        "js/app/optimizer/speed-max-half-sheet.js",
+        "js/app/optimizer/speed-max-sheet-plan.js",
         "js/app/optimizer/speed-max.js",
         "js/app/optimizer/speed-turbo.js",
         "js/app/rozrys/rozrys-engine.js",
@@ -4003,6 +4051,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -4030,7 +4079,7 @@
     "js/app/optimizer/panel-pro-worker.js": {
       "area": "OPTIMIZER",
       "category": "shared/domain/helper",
-      "lines": 128,
+      "lines": 136,
       "defines": [],
       "uses": [
         "cutOptimizer",
@@ -4091,6 +4140,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
@@ -4105,16 +4155,158 @@
         "kilka zależnych plików"
       ]
     },
+    "js/app/optimizer/speed-max-bands.js": {
+      "area": "OPTIMIZER",
+      "category": "shared/domain/helper",
+      "lines": 381,
+      "defines": [
+        "speedMaxBands"
+      ],
+      "uses": [
+        "cutOptimizer",
+        "speedMaxCore",
+        "speedMaxBands"
+      ],
+      "incomingFiles": [
+        "js/app/optimizer/speed-max-sheet-plan.js"
+      ],
+      "outgoingFiles": [
+        "js/app/optimizer/cut-optimizer.js",
+        "js/app/optimizer/speed-max-core.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/optimizer/speed-max-half-sheet.js",
+        "js/app/optimizer/speed-max.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii"
+      ]
+    },
+    "js/app/optimizer/speed-max-core.js": {
+      "area": "OPTIMIZER",
+      "category": "shared/domain/helper",
+      "lines": 51,
+      "defines": [
+        "speedMaxCore"
+      ],
+      "uses": [
+        "speedMaxCore"
+      ],
+      "incomingFiles": [
+        "js/app/optimizer/speed-max-bands.js",
+        "js/app/optimizer/speed-max-sheet-plan.js",
+        "js/app/optimizer/speed-max.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [
+        "js/app/optimizer/panel-pro-worker.js",
+        "js/app/optimizer/speed-dokladnie.js",
+        "js/app/optimizer/speed-max-half-sheet.js",
+        "js/app/optimizer/speed-max-sheet-plan.js",
+        "js/app/optimizer/speed-max.js",
+        "js/app/optimizer/speed-turbo.js",
+        "js/app/rozrys/rozrys-engine.js",
+        "js/app/rozrys/rozrys-runner.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/optimizer/speed-max-half-sheet.js": {
+      "area": "OPTIMIZER",
+      "category": "shared/domain/helper",
+      "lines": 115,
+      "defines": [
+        "speedMaxHalfSheet"
+      ],
+      "uses": [
+        "cutOptimizer",
+        "speedMaxSheetPlan",
+        "speedMaxHalfSheet"
+      ],
+      "incomingFiles": [
+        "js/app/optimizer/speed-max.js"
+      ],
+      "outgoingFiles": [
+        "js/app/optimizer/cut-optimizer.js",
+        "js/app/optimizer/speed-max-sheet-plan.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/optimizer/panel-pro-worker.js",
+        "js/app/optimizer/speed-dokladnie.js",
+        "js/app/optimizer/speed-turbo.js",
+        "js/app/rozrys/rozrys-engine.js",
+        "js/app/rozrys/rozrys-runner.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/optimizer/speed-max-sheet-plan.js": {
+      "area": "OPTIMIZER",
+      "category": "shared/domain/helper",
+      "lines": 231,
+      "defines": [
+        "speedMaxSheetPlan"
+      ],
+      "uses": [
+        "cutOptimizer",
+        "speedMaxCore",
+        "speedMaxBands",
+        "speedMaxSheetPlan"
+      ],
+      "incomingFiles": [
+        "js/app/optimizer/speed-max-half-sheet.js",
+        "js/app/optimizer/speed-max.js"
+      ],
+      "outgoingFiles": [
+        "js/app/optimizer/cut-optimizer.js",
+        "js/app/optimizer/speed-max-bands.js",
+        "js/app/optimizer/speed-max-core.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/optimizer/panel-pro-worker.js",
+        "js/app/optimizer/speed-dokladnie.js",
+        "js/app/optimizer/speed-max.js",
+        "js/app/optimizer/speed-turbo.js",
+        "js/app/rozrys/rozrys-engine.js",
+        "js/app/rozrys/rozrys-runner.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/optimizer/speed-max.js": {
       "area": "OPTIMIZER",
       "category": "shared/domain/helper",
-      "lines": 786,
+      "lines": 106,
       "defines": [
         "rozkrojSpeeds"
       ],
       "uses": [
         "rozkrojSpeeds",
-        "cutOptimizer"
+        "cutOptimizer",
+        "speedMaxCore",
+        "speedMaxSheetPlan",
+        "speedMaxHalfSheet"
       ],
       "incomingFiles": [
         "js/app/optimizer/panel-pro-worker.js",
@@ -4126,6 +4318,9 @@
       "outgoingFiles": [
         "js/app/optimizer/cut-optimizer.js",
         "js/app/optimizer/speed-dokladnie.js",
+        "js/app/optimizer/speed-max-core.js",
+        "js/app/optimizer/speed-max-half-sheet.js",
+        "js/app/optimizer/speed-max-sheet-plan.js",
         "js/app/optimizer/speed-turbo.js"
       ],
       "secondLevelFiles": [
@@ -4138,6 +4333,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
@@ -4146,10 +4342,9 @@
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": true,
-      "loadedInDevTests": false,
-      "risk": "średnie",
+      "loadedInDevTests": true,
+      "risk": "niskie",
       "reasons": [
-        "600+ linii",
         "kilka zależnych plików"
       ]
     },
@@ -4186,6 +4381,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
@@ -4231,6 +4427,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
@@ -4276,6 +4473,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
@@ -4321,6 +4519,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
@@ -4410,6 +4609,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -4424,7 +4624,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4439,7 +4640,7 @@
     "js/app/project/project-model.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 104,
+      "lines": 107,
       "defines": [
         "projectModel"
       ],
@@ -4491,7 +4692,8 @@
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4555,7 +4757,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4598,7 +4801,8 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app.js",
@@ -4635,7 +4839,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4645,7 +4850,7 @@
       "risk": "wysokie",
       "reasons": [
         "600+ linii",
-        "kilka zależnych plików",
+        "dużo zależnych plików",
         "kilka zależności wychodzących"
       ]
     },
@@ -4684,7 +4889,8 @@
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -4733,6 +4939,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -4746,6 +4953,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -4826,6 +5034,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -4877,7 +5086,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4946,7 +5156,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4995,7 +5206,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/quote/quote-snapshot.js",
@@ -5025,6 +5237,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -5035,6 +5248,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5114,7 +5328,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5145,6 +5360,7 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5192,6 +5408,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5250,7 +5467,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5284,6 +5502,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5324,6 +5543,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5331,6 +5551,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -5359,6 +5580,7 @@
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js"
       ],
@@ -5387,6 +5609,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5434,6 +5657,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5441,6 +5665,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "storageRefs": 0,
@@ -5532,7 +5757,8 @@
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5630,6 +5856,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5637,6 +5864,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "storageRefs": 0,
@@ -5671,6 +5899,7 @@
       ],
       "secondLevelFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5714,6 +5943,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5721,6 +5951,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -5757,6 +5988,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5764,6 +5996,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -5798,6 +6031,7 @@
         "js/app/rozrys/rozrys.js",
         "js/tabs/wycena.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5836,6 +6070,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -5843,6 +6078,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "storageRefs": 0,
@@ -5929,6 +6165,7 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6001,6 +6238,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6008,6 +6246,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "storageRefs": 0,
@@ -6072,6 +6311,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -6119,6 +6359,7 @@
       "secondLevelFiles": [
         "js/app/service/cutting/service-order-detail.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6157,6 +6398,7 @@
       ],
       "secondLevelFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6202,6 +6444,7 @@
       ],
       "secondLevelFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6242,6 +6485,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6280,6 +6524,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6345,6 +6590,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6393,6 +6639,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-core.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6433,6 +6680,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6441,6 +6689,7 @@
         "js/testing/rozrys/tests.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "storageRefs": 0,
@@ -6500,6 +6749,7 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6569,6 +6819,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6583,6 +6834,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6626,6 +6878,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6674,6 +6927,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6681,6 +6935,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "storageRefs": 0,
@@ -6705,7 +6960,8 @@
       ],
       "incomingFiles": [
         "js/app/wycena/wycena-core.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/state-ui-runtime.js"
       ],
       "outgoingFiles": [
         "js/app/material/magazyn.js",
@@ -6723,6 +6979,12 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
+        "js/testing/rozrys/suites/output-bootstrap.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/suites/scope-runtime-controllers.js",
+        "js/testing/rozrys/suites/validation-cache-render.js",
+        "js/testing/rozrys/tests.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
@@ -6763,6 +7025,7 @@
       "secondLevelFiles": [
         "js/app/service/cutting/service-order-detail.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6810,6 +7073,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6817,6 +7081,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -6860,6 +7125,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6867,6 +7133,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -6901,6 +7168,7 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -6998,6 +7266,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -7012,6 +7281,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -7208,7 +7478,8 @@
         "js/testing/test-data-safety.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -7405,7 +7676,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -7748,7 +8020,8 @@
         "js/testing/test-data-safety.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 1,
       "dialogRefs": 0,
@@ -7832,7 +8105,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -8725,6 +8999,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -8739,7 +9014,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -8806,7 +9082,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -8868,6 +9145,7 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -9024,7 +9302,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 17,
       "dialogRefs": 0,
@@ -9122,7 +9401,8 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -9259,7 +9539,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -9462,7 +9743,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -9584,7 +9866,8 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/data-settings-dom.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/rozrys/suites/helpers-bridges.js"
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/wycena/suites/core-offer-basics.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
@@ -9619,6 +9902,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -9627,8 +9911,14 @@
         "js/testing/rozrys/tests.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
-        "js/testing/wycena/suites/scope-entry.js"
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -9932,6 +10222,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -9946,7 +10237,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -10082,6 +10374,7 @@
         "js/tabs/wycena.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -10279,6 +10572,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -10289,7 +10583,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -10426,7 +10721,8 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -10483,7 +10779,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -10599,6 +10896,7 @@
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -10612,7 +10910,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -10800,7 +11099,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -11113,7 +11413,7 @@
     "js/tabs/wycena.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 809,
+      "lines": 814,
       "defines": [
         "wycenaTabDebug"
       ],
@@ -11167,6 +11467,7 @@
         "js/app/project/project-status-manual-guard.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -11176,7 +11477,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -11270,6 +11572,7 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -11284,7 +11587,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -11608,7 +11912,7 @@
     "js/testing/project/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 827,
+      "lines": 835,
       "defines": [
         "project",
         "projectAutosave",
@@ -11658,7 +11962,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app.js",
@@ -11697,6 +12002,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -11711,9 +12017,10 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
-      "storageRefs": 102,
+      "storageRefs": 112,
       "dialogRefs": 0,
       "domRefs": 21,
       "loadedInIndex": false,
@@ -11722,7 +12029,7 @@
       "reasons": [
         "600+ linii",
         "dużo publicznych symboli FC",
-        "kilka zależnych plików",
+        "dużo zależnych plików",
         "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą",
         "łączy DOM/eventy i storage"
@@ -11806,6 +12113,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -11813,6 +12121,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
       "outgoingFiles": [
@@ -11837,17 +12146,20 @@
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
         "js/app/wycena/wycena-core.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
-        "js/testing/rozrys/suites/validation-cache-render.js"
+        "js/testing/rozrys/suites/validation-cache-render.js",
+        "js/testing/wycena/suites/core-offer-basics.js"
       ],
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -11863,6 +12175,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -11876,6 +12189,66 @@
         "dużo publicznych symboli FC",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/rozrys/suites/optimizer-contracts.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 137,
+      "defines": [
+        "rozrysDevTestSuites"
+      ],
+      "uses": [
+        "rozrysDevTestSuites",
+        "cutOptimizer",
+        "rozrysEngine"
+      ],
+      "incomingFiles": [
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/output-bootstrap.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/suites/scope-runtime-controllers.js",
+        "js/testing/rozrys/suites/state-ui-runtime.js",
+        "js/testing/rozrys/suites/validation-cache-render.js",
+        "js/testing/rozrys/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/optimizer/cut-optimizer.js",
+        "js/app/rozrys/rozrys-engine.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/output-bootstrap.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/suites/scope-runtime-controllers.js",
+        "js/testing/rozrys/suites/state-ui-runtime.js",
+        "js/testing/rozrys/suites/validation-cache-render.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/cabinet/tests.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/output-bootstrap.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/suites/scope-runtime-controllers.js",
+        "js/testing/rozrys/suites/state-ui-runtime.js",
+        "js/testing/rozrys/suites/validation-cache-render.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/scope-entry.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "kilka zależnych plików",
+        "kilka zależności wychodzących"
       ]
     },
     "js/testing/rozrys/suites/output-bootstrap.js": {
@@ -11901,6 +12274,7 @@
       ],
       "incomingFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -11918,6 +12292,7 @@
         "js/app/rozrys/rozrys-runtime-bundle.js",
         "js/app/rozrys/rozrys-scope.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -11930,6 +12305,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -11973,6 +12349,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -11994,6 +12371,7 @@
         "js/testing/cabinet/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -12009,6 +12387,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -12023,6 +12402,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12063,6 +12443,7 @@
       ],
       "incomingFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -12079,6 +12460,7 @@
         "js/app/rozrys/rozrys-scope.js",
         "js/app/rozrys/rozrys-selection-ui.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -12091,6 +12473,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
@@ -12117,7 +12500,7 @@
     "js/testing/rozrys/suites/state-ui-runtime.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 295,
+      "lines": 305,
       "defines": [
         "rozrysDevTestSuites",
         "panelBox",
@@ -12126,6 +12509,7 @@
       ],
       "uses": [
         "rozrysDevTestSuites",
+        "rozrysStock",
         "rozrysState",
         "rozrysSelectionUi",
         "rozrysPickers",
@@ -12136,6 +12520,7 @@
       ],
       "incomingFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12147,10 +12532,12 @@
         "js/app/rozrys/rozrys-runtime-utils.js",
         "js/app/rozrys/rozrys-selection-ui.js",
         "js/app/rozrys/rozrys-state.js",
+        "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys-summary.js",
         "js/app/rozrys/rozrys-validation.js",
         "js/app/ui/panel-box.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12163,6 +12550,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12204,6 +12592,7 @@
       ],
       "incomingFiles": [
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12218,6 +12607,7 @@
         "js/app/rozrys/rozrys-render.js",
         "js/app/rozrys/rozrys-validation.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12230,6 +12620,7 @@
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12245,16 +12636,16 @@
       "domRefs": 0,
       "loadedInIndex": false,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
         "kilka zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/testing/rozrys/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 458,
+      "lines": 459,
       "defines": [
         "roomRegistry",
         "uiState",
@@ -12295,6 +12686,7 @@
         "js/testing/project/tests.js",
         "js/testing/rozrys/fixtures.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12308,6 +12700,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12321,7 +12714,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 1,
       "dialogRefs": 0,
@@ -12380,6 +12774,7 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12393,7 +12788,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 10,
       "dialogRefs": 1,
@@ -12503,6 +12899,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [],
@@ -12512,6 +12909,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -12522,7 +12920,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -12574,7 +12973,8 @@
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js"
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 8,
       "dialogRefs": 0,
@@ -12654,6 +13054,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -12672,11 +13073,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -12685,7 +13088,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -12724,7 +13128,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app.js",
@@ -12748,10 +13153,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -12761,6 +13168,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12778,10 +13186,11 @@
     "js/testing/wycena/suites/core-offer-basics.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 221,
+      "lines": 252,
       "defines": [
         "registerWycenaTests",
-        "roomRegistry"
+        "roomRegistry",
+        "confirmBox"
       ],
       "uses": [
         "testHarness",
@@ -12794,10 +13203,12 @@
         "roomRegistry",
         "quoteSnapshotStore",
         "tabsRouter",
-        "wycenaTabDebug"
+        "wycenaTabDebug",
+        "confirmBox"
       ],
       "incomingFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -12806,7 +13217,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/material/price-modal-context.js",
@@ -12816,9 +13228,11 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry.js",
+        "js/app/ui/confirm-box.js",
         "js/app/ui/tabs-router.js",
         "js/app/wycena/wycena-core.js",
         "js/tabs/wycena.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/shared/harness.js",
@@ -12828,14 +13242,17 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
+        "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
@@ -12849,6 +13266,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12858,6 +13276,7 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
+        "250+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -12887,7 +13306,8 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -12904,10 +13324,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -12917,6 +13339,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12957,7 +13380,8 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app.js",
@@ -12980,10 +13404,12 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -12993,6 +13419,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -13030,7 +13457,8 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investor-persistence.js",
@@ -13047,10 +13475,12 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -13060,6 +13490,7 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -13098,7 +13529,8 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/quote/quote-offer-store.js",
@@ -13116,10 +13548,12 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -13129,6 +13563,7 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -13165,7 +13600,8 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/scope-entry.js"
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -13179,10 +13615,12 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/scope-entry.js"
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -13192,6 +13630,76 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/wycena/suites/status-contract.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 155,
+      "defines": [
+        "registerWycenaTests"
+      ],
+      "uses": [
+        "testHarness",
+        "registerWycenaTests",
+        "quoteSnapshotStore",
+        "projectStatusSync",
+        "investors",
+        "projectStore",
+        "investorPersistence"
+      ],
+      "incomingFiles": [
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-anti-regression.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-status-sync.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/testing/project/tests.js",
+        "js/testing/shared/harness.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-anti-regression.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,

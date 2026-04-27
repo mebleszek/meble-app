@@ -409,6 +409,7 @@
       .concat(collectSuiteTests('scopeRuntimeControllers', ctx))
       .concat(collectSuiteTests('outputBootstrap', ctx))
       .concat(collectSuiteTests('projectStock', ctx))
+      .concat(collectSuiteTests('optimizerContracts', ctx))
       .concat(collectSuiteTests('validationCacheRender', ctx));
     const startedAt = Date.now();
     const results = tests.map((test)=>{

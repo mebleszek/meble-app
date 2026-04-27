@@ -207,6 +207,10 @@ const INDEX_LOAD_GROUPS = [
       "js/app/optimizer/start-optimax.js",
       "js/app/optimizer/speed-turbo.js",
       "js/app/optimizer/speed-dokladnie.js",
+      "js/app/optimizer/speed-max-core.js",
+      "js/app/optimizer/speed-max-bands.js",
+      "js/app/optimizer/speed-max-sheet-plan.js",
+      "js/app/optimizer/speed-max-half-sheet.js",
       "js/app/optimizer/speed-max.js",
       "js/app/material/magazyn.js"
     ]

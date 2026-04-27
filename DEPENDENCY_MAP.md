@@ -229,3 +229,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - `dev_tests.html` i `tools/app-dev-smoke-lib/file-list.js` ładują `js/testing/wycena/suites/status-contract.js` po `central-status-sync.js`.
 - Kontrakt dotyczy zależności: `quoteSnapshotStore` → `projectStatusSync` → `investorPersistence/projectStore/project.save` oraz debug-wejść z `wycena.js`.
 - Runtime load order aplikacji bez zmian.
+
+## ROZRYS speed-max split v1
+
+- `js/app/optimizer/speed-max.js` nie jest już monolitem algorytmu; po splicie ma pozostać cienką fasadą `FC.rozkrojSpeeds.max`.
+- Aktywny load order optymalizatora MAX: `cut-optimizer.js` → `speed-max-core.js` → `speed-max-bands.js` → `speed-max-sheet-plan.js` → `speed-max-half-sheet.js` → `speed-max.js`.
+- Ten sam load order musi być utrzymany w `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/rozrys-dev-smoke.js` i `panel-pro-worker.js`.
+- Po audycie źródłowym OPTIMIZER ma 12 plików i 1589 linii; największy nowy plik `speed-max-bands.js` ma 380 linii i wymaga ostrożności przy dalszym dokładaniu logiki.
