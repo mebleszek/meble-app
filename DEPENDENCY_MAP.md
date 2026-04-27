@@ -83,7 +83,7 @@ Poniższe pliki nie są bezpośrednio w `index.html`/`dev_tests.html`, ale nie w
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 8 | 1483 | 0 | 0 | 0 | 2 |
 | BOOT/APP SHELL | 5 | 1473 | 4 | 0 | 1 | 1 |
-| RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
+| RYSUNEK | 1 | 1475 | 0 | 0 | 1 | 0 |
 | KATALOG/USŁUGI | 9 | 1349 | 0 | 0 | 0 | 1 |
 | DANE/STORAGE | 15 | 1313 | 36 | 0 | 0 | 0 |
 | PROJEKT | 5 | 1302 | 0 | 0 | 1 | 3 |
@@ -138,10 +138,11 @@ Wniosek: dalsze cięcie ROZRYS tylko po ścieżkach. Dobry kierunek to nie wielk
 
 ### RYSUNEK
 
-- `js/tabs/rysunek.js` — 1459 linii, 11 systemowych dialogów, kategoria: nie ruszać bez osobnego planu.
-- Ma mało formalnych zależności `FC.*`, ale miesza render SVG, interakcje, inspektor, listy i stare dialogi.
+- `js/tabs/rysunek.js` — 1475 linii, 0 systemowych dialogów po etapie `rysunek dialogs/contracts v1`, kategoria: nie ruszać bez osobnego planu.
+- Ma mało formalnych zależności `FC.*`, ale miesza render SVG, interakcje, inspektor, listy i akcje edycji.
+- `js/app/rysunek/rysunek-dialogs.js` jest małym adapterem dialogów i nie powinien przyjmować logiki renderu ani domeny.
 
-Wniosek: zanim ciąć, najpierw usunąć albo zabezpieczyć systemowe dialogi przez własne modale i dołożyć testy kontraktowe render/interakcje.
+Wniosek: następny krok to kontraktowy split RYSUNKU po odpowiedzialnościach, a nie dokładanie funkcji do `tabs/rysunek.js`.
 
 ### Materiał
 

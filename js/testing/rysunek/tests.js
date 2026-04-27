@@ -104,10 +104,19 @@
         });
       }),
 
-      H.makeTest('Rysunek', 'Dług techniczny systemowych dialogów Rysunku jest jawnie wykryty', 'Pilnuje listy do usunięcia przed przebudową Rysunku: alert/confirm/prompt mają nie wracać po cichu do innych miejsc i są świadomym długiem tego modułu.', ()=>{
+      H.makeTest('Rysunek', 'Rysunek używa własnego adaptera dialogów aplikacji', 'Pilnuje etapu usuwania systemowych okienek: RYSUNEK ma korzystać z małego adaptera do confirmBox/infoBox/panelBox zamiast z alert/confirm/prompt.', ()=>{
+        H.assert(FC.rysunekDialogs && typeof FC.rysunekDialogs.info === 'function', 'Brak FC.rysunekDialogs.info');
+        H.assert(typeof FC.rysunekDialogs.askConfirm === 'function', 'Brak FC.rysunekDialogs.askConfirm');
+        H.assert(typeof FC.rysunekDialogs.askNumber === 'function', 'Brak FC.rysunekDialogs.askNumber');
+        H.assert(typeof FC.rysunekDialogs.confirmRebuildLayout === 'function', 'Brak FC.rysunekDialogs.confirmRebuildLayout');
+        H.assert(typeof FC.rysunekDialogs.confirmDeleteGap === 'function', 'Brak FC.rysunekDialogs.confirmDeleteGap');
+      }),
+
+      H.makeTest('Rysunek', 'Rysunek nie zawiera systemowych alert/confirm/prompt', 'Pilnuje, żeby po usunięciu długu technicznego stare systemowe okienka nie wróciły do monolitu RYSUNKU podczas kolejnych zmian.', ()=>{
         const counts = countSystemDialogCalls();
-        H.assert(counts.alert >= 1 || counts.confirm >= 1 || counts.prompt >= 1, 'Nie wykryto systemowych dialogów w Rysunku — jeśli zostały usunięte, zaktualizuj ten test i DEV.md', counts);
-        H.assert(counts.prompt >= 1, 'Brak wykrytych promptów Rysunku; po ich usunięciu trzeba zmienić test na zakaz prompt()', counts);
+        H.assert(counts.alert === 0, 'RYSUNEK nie może używać alert()', counts);
+        H.assert(counts.confirm === 0, 'RYSUNEK nie może używać confirm()', counts);
+        H.assert(counts.prompt === 0, 'RYSUNEK nie może używać prompt()', counts);
       }),
     ]);
   }

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-04-27T07:02:29.619Z",
+  "generatedAt": "2026-04-27T09:02:41.654Z",
   "summary": {
-    "jsFiles": 246,
-    "indexScripts": 189,
-    "devTestScripts": 199,
-    "fcSymbols": 177,
-    "fcSymbolsAll": 200,
-    "edges": 1077,
+    "jsFiles": 247,
+    "indexScripts": 190,
+    "devTestScripts": 200,
+    "fcSymbols": 178,
+    "fcSymbolsAll": 201,
+    "edges": 1082,
     "highRisk": 15,
     "mediumRisk": 37
   },
@@ -83,6 +83,14 @@
       "high": 1,
       "medium": 3
     },
+    "INNE": {
+      "files": 1,
+      "lines": 145,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "high": 0,
+      "medium": 0
+    },
     "SHARED": {
       "files": 10,
       "lines": 822,
@@ -133,17 +141,17 @@
     },
     "RYSUNEK": {
       "files": 1,
-      "lines": 1459,
+      "lines": 1476,
       "storageRefs": 0,
-      "dialogRefs": 11,
+      "dialogRefs": 0,
       "high": 1,
       "medium": 0
     },
     "TESTY": {
       "files": 34,
-      "lines": 8970,
+      "lines": 8979,
       "storageRefs": 189,
-      "dialogRefs": 1,
+      "dialogRefs": 3,
       "high": 6,
       "medium": 15
     }
@@ -151,7 +159,7 @@
   "topLines": [
     [
       "js/tabs/rysunek.js",
-      1459
+      1476
     ],
     [
       "js/testing/investor/tests.js",
@@ -265,14 +273,14 @@
     ],
     [
       "js/app/ui/info-box.js",
-      20
-    ],
-    [
-      "js/app/shared/constants.js",
-      18
+      21
     ],
     [
       "js/app/ui/confirm-box.js",
+      19
+    ],
+    [
+      "js/app/shared/constants.js",
       18
     ],
     [
@@ -285,7 +293,7 @@
     ],
     [
       "js/app/ui/panel-box.js",
-      15
+      16
     ],
     [
       "js/app/shared/ui-state.js",
@@ -342,20 +350,20 @@
       55
     ],
     [
+      "js/app/ui/info-box.js",
+      52
+    ],
+    [
       "js/app/investor/session.js",
       50
     ],
     [
-      "js/app/ui/info-box.js",
+      "js/app/ui/confirm-box.js",
       50
     ],
     [
       "js/app/ui/views.js",
       49
-    ],
-    [
-      "js/app/ui/confirm-box.js",
-      48
     ],
     [
       "js/app/project/project-bridge.js",
@@ -734,23 +742,6 @@
       ]
     },
     {
-      "file": "js/tabs/rysunek.js",
-      "risk": "nie ruszać bez osobnego planu",
-      "score": 6,
-      "area": "RYSUNEK",
-      "category": "ui/render/events",
-      "lines": 1459,
-      "incoming": 2,
-      "outgoing": 2,
-      "secondLevel": 23,
-      "storageRefs": 0,
-      "dialogRefs": 11,
-      "reasons": [
-        "600+ linii",
-        "systemowe dialogi"
-      ]
-    },
-    {
       "file": "js/app/ui/actions-register.js",
       "risk": "średnie",
       "score": 6,
@@ -848,17 +839,33 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 117,
+      "lines": 126,
       "incoming": 6,
-      "outgoing": 9,
+      "outgoing": 10,
       "secondLevel": 22,
       "storageRefs": 10,
-      "dialogRefs": 1,
+      "dialogRefs": 3,
       "reasons": [
         "kilka zależnych plików",
         "kilka zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą",
         "systemowe dialogi"
+      ]
+    },
+    {
+      "file": "js/tabs/rysunek.js",
+      "risk": "nie ruszać bez osobnego planu",
+      "score": 5,
+      "area": "RYSUNEK",
+      "category": "ui/render/events",
+      "lines": 1476,
+      "incoming": 2,
+      "outgoing": 3,
+      "secondLevel": 23,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii"
       ]
     },
     {
@@ -7296,6 +7303,46 @@
         "dużo zależności wychodzących"
       ]
     },
+    "js/app/rysunek/rysunek-dialogs.js": {
+      "area": "INNE",
+      "category": "ui/render/events",
+      "lines": 145,
+      "defines": [
+        "rysunekDialogs"
+      ],
+      "uses": [
+        "infoBox",
+        "confirmBox",
+        "panelBox",
+        "rysunekDialogs"
+      ],
+      "incomingFiles": [
+        "js/tabs/rysunek.js",
+        "js/testing/rysunek/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/ui/confirm-box.js",
+        "js/app/ui/info-box.js",
+        "js/app/ui/panel-box.js"
+      ],
+      "secondLevelFiles": [
+        "js/app.js",
+        "js/testing/cabinet/tests.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rysunek/tests.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/cross-systems.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 3,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/service/cutting/service-cutting-common.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
@@ -9858,6 +9905,7 @@
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-context.js",
         "js/app/rozrys/rozrys-ui-tools.js",
+        "js/app/rysunek/rysunek-dialogs.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-impact.js",
@@ -9897,6 +9945,7 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/tabs/rysunek.js",
         "js/tabs/wycena.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
@@ -9909,6 +9958,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -10177,6 +10227,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/rozrys/rozrys-ui-tools.js",
+        "js/app/rysunek/rysunek-dialogs.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-modals-add-edit.js",
@@ -10217,6 +10268,7 @@
         "js/app/wycena/wycena-tab-history.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/tabs/rysunek.js",
         "js/tabs/wycena.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/tests.js",
@@ -10229,6 +10281,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -10349,6 +10402,7 @@
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-summary.js",
         "js/app/rozrys/rozrys-ui-tools.js",
+        "js/app/rysunek/rysunek-dialogs.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-modals-add-edit.js",
@@ -10371,6 +10425,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-selection.js",
+        "js/tabs/rysunek.js",
         "js/tabs/wycena.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -10381,6 +10436,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/suites/scope-entry.js"
       ],
@@ -11356,12 +11412,13 @@
     "js/tabs/rysunek.js": {
       "area": "RYSUNEK",
       "category": "ui/render/events",
-      "lines": 1459,
+      "lines": 1476,
       "defines": [
         "tabsRysunek"
       ],
       "uses": [
         "tabsRysunek",
+        "rysunekDialogs",
         "storage",
         "tabsRouter",
         "tabs"
@@ -11371,6 +11428,7 @@
         "js/testing/rysunek/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/rysunek/rysunek-dialogs.js",
         "js/app/shared/storage.js",
         "js/app/ui/tabs-router.js"
       ],
@@ -11400,14 +11458,13 @@
         "js/testing/wycena/suites/cross-systems.js"
       ],
       "storageRefs": 0,
-      "dialogRefs": 11,
+      "dialogRefs": 0,
       "domRefs": 34,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "nie ruszać bez osobnego planu",
       "reasons": [
-        "600+ linii",
-        "systemowe dialogi"
+        "600+ linii"
       ]
     },
     "js/tabs/wycena.js": {
@@ -12733,7 +12790,7 @@
     "js/testing/rysunek/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 117,
+      "lines": 126,
       "defines": [
         "project",
         "storage",
@@ -12746,6 +12803,7 @@
         "constants",
         "tabsRysunek",
         "tabsRouter",
+        "rysunekDialogs",
         "rysunekDevTests"
       ],
       "incomingFiles": [
@@ -12759,6 +12817,7 @@
       "outgoingFiles": [
         "js/app.js",
         "js/app/project/project-bridge.js",
+        "js/app/rysunek/rysunek-dialogs.js",
         "js/app/shared/constants.js",
         "js/app/shared/storage.js",
         "js/app/ui/tabs-router.js",
@@ -12792,7 +12851,7 @@
         "js/testing/wycena/suites/status-contract.js"
       ],
       "storageRefs": 10,
-      "dialogRefs": 1,
+      "dialogRefs": 3,
       "domRefs": 11,
       "loadedInIndex": false,
       "loadedInDevTests": true,

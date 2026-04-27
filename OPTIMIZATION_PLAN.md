@@ -68,7 +68,7 @@ Porządkować aplikację etapami bez robienia jednego wielkiego modułu `shared`
 
 ### Etap 3 — większe moduły
 
-1. RYSUNEK: najpierw usunąć systemowe dialogi i wzmocnić testy, dopiero potem ciąć monolit.
+1. RYSUNEK: systemowe dialogi zostały usunięte i zabezpieczone testem; następnym krokiem jest kontraktowy split monolitu po odpowiedzialnościach.
 2. ROZRYS/RYSUNEK: rozważać wspólne helpery geometryczne dopiero po rozdzieleniu renderu, interakcji i domeny.
 3. Wspólne UI: konsolidować tylko sprawdzone mechaniki modali/accordionów/list, bez zmiany zatwierdzonych styli.
 
@@ -122,3 +122,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Przy następnych zmianach optymalizacji nie dokładać logiki do fasady `speed-max.js`; zmiany kierować do właściwego modułu odpowiedzialności.
 - Pełny raport: `tools/reports/rozrys-speedmax-split-v1.md`.
 - Następny bezpieczny etap: realne usprawnienia algorytmu tylko przypadek po przypadku, zaczynając od testu kontraktowego i porównania wyniku old/new dla konkretnego układu formatek.
+
+## RYSUNEK dialogs/contracts v1 — 2026-04-27
+
+- Etap usunięcia systemowych dialogów RYSUNKU wykonany bez zmiany głównego UI.
+- Nowy adapter: `js/app/rysunek/rysunek-dialogs.js`.
+- `js/tabs/rysunek.js` nadal jest największym monolitem RYSUNKU, ale nie ma już `alert/confirm/prompt`.
+- Kolejny bezpieczny etap: split RYSUNKU na state/render-svg/inspector/finishes/drag, zaczynając od testów kontraktowych dla każdej odpowiedzialności.
