@@ -104,7 +104,7 @@
 
   function isNodeStableSmokeTest(test){
     const group = String(test && test.group || '');
-    return group === 'Wycena ↔ Kontrakt architektury';
+    return group === 'Wycena ↔ Kontrakt architektury' || group === 'Wycena ↔ Snapshot scope split';
   }
 
   function runAll(){

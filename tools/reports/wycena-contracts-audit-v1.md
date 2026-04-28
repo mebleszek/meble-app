@@ -1,34 +1,28 @@
-# WYCENA architecture audit v1 — 2026-04-27
+# WYCENA architecture audit v1 — 2026-04-28
 
 Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI, danych ani storage.
 
 ## Wynik skrócony
 
-1. `js/app/quote/quote-snapshot-store.js` — 659 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
-2. `js/app/wycena/wycena-core.js` — 653 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
-3. `js/app/project/project-status-sync.js` — 644 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
-4. `js/tabs/wycena.js` — 590 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-5. `js/app/quote/quote-scope-entry.js` — 489 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-6. `js/app/wycena/wycena-tab-selection.js` — 452 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-7. `js/app/project/project-status-manual-guard.js` — 296 linii; ostrzeżenia: 250+ lines.
-8. `js/app/quote/quote-pdf.js` — 278 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-9. `js/app/wycena/wycena-tab-editor.js` — 262 linii; ostrzeżenia: 250+ lines.
-10. `js/app/quote/quote-snapshot.js` — 257 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-11. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
-12. `js/app/quote/quote-offer-store.js` — 238 linii.
-13. `js/app/wycena/wycena-tab-history.js` — 203 linii; ostrzeżenia: mixed responsibilities heuristic.
-14. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
-15. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
-16. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
+1. `js/app/wycena/wycena-core.js` — 653 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
+2. `js/app/project/project-status-sync.js` — 644 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic.
+3. `js/tabs/wycena.js` — 590 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
+4. `js/app/quote/quote-scope-entry.js` — 489 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
+5. `js/app/wycena/wycena-tab-selection.js` — 452 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
+6. `js/app/quote/quote-snapshot-store.js` — 439 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
+7. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
+8. `js/app/project/project-status-manual-guard.js` — 296 linii; ostrzeżenia: 250+ lines.
+9. `js/app/quote/quote-pdf.js` — 278 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+10. `js/app/wycena/wycena-tab-editor.js` — 262 linii; ostrzeżenia: 250+ lines.
+11. `js/app/quote/quote-snapshot.js` — 257 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+12. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
+13. `js/app/quote/quote-offer-store.js` — 238 linii.
+14. `js/app/wycena/wycena-tab-history.js` — 203 linii; ostrzeżenia: mixed responsibilities heuristic.
+15. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
+16. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
+17. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
 
 ## Szczegóły odpowiedzialności — heurystyka
-
-### js/app/quote/quote-snapshot-store.js
-
-- Linie: 659
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: snapshot:131, scope:77, status:51, storage-boundary:20
 
 ### js/app/wycena/wycena-core.js
 
@@ -64,6 +58,20 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:102, snapshot:36, render:35, modal-ui:15
+
+### js/app/quote/quote-snapshot-store.js
+
+- Linie: 439
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: snapshot:70, status:51, scope:26, storage-boundary:20
+
+### js/app/quote/quote-snapshot-scope.js
+
+- Linie: 304
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: snapshot:83, scope:53
 
 ### js/app/project/project-status-manual-guard.js
 

@@ -155,3 +155,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - `tabs/wycena.js` spadł z ok. 710 do ok. 590 linii, bez zmiany UI, runtime, storage i statusów.
 - Kolejny krok nie powinien być kolejnym losowym cięciem zakładki; większe ryzyka są teraz w `quote-snapshot-store.js`, `wycena-core.js` i `project-status-sync.js`.
 - Przed ruszeniem tych plików wymagane są fixture porównawcze old/new dla historii ofert, exact-scope, akceptacji, odrzucania i synchronizacji statusów.
+
+## 2026-04-28 — Wycena snapshot scope split v1
+
+- Wycena: wykonano pierwszy split krytycznego `quote-snapshot-store.js` bez zmiany zachowania.
+- Nowy moduł `js/app/quote/quote-snapshot-scope.js` przejął pure helpery scope; store spadł do ok. 438 linii.
+- Testy: `js/testing/wycena/suites/snapshot-scope-contract.js` pilnuje API, delegacji store → scope, kanonicznego zakresu i exact/overlap.
+- Następne bezpieczne kroki w Wycena: albo `wycena-core.js` collect/selection split, albo kolejny etap snapshot-store selection/rejected — tylko po dedykowanych kontraktach.

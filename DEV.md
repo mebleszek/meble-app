@@ -197,3 +197,11 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `wycena-tab-status-actions.js` nie może zawierać nowej logiki biznesowej statusów; ma delegować do `wycena-tab-status-bridge` / `project-status-sync`.
 - Przed cięciem `wycena-core.js`, `quote-snapshot-store.js` albo `project-status-sync.js` przygotować fixture old/new dla exact-scope, selected/rejected i cofania statusów.
 - Raport paczki: `tools/reports/wycena-shell-split-v1.md`.
+
+## 2026-04-28 — Wycena snapshot scope split v1
+
+- `js/app/quote/quote-snapshot-scope.js` jest właścicielem czystych helperów zakresu ofert: normalizacja pokojów, etykiety, materialScope, nazwy wersji, exact-scope i overlap.
+- `js/app/quote/quote-snapshot-store.js` ma delegować helpery scope do `FC.quoteSnapshotScope`; nie przenosić tej logiki z powrotem do store.
+- `quote-snapshot-store.js` po splicie ma ok. 438 linii i pozostaje plikiem średniego ryzyka; dalsze cięcie tylko po kontrakcie selection/rejected/status.
+- Kontrakty splitu są w `js/testing/wycena/suites/snapshot-scope-contract.js`; `WYCENA node smoke` ma pilnować także grupy `Wycena ↔ Snapshot scope split`.
+- Raport paczki: `tools/reports/wycena-snapshot-scope-split-v1.md`.

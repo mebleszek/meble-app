@@ -42,6 +42,18 @@
         'collectClientPdfDetails',
         'createQuoteValidationError',
       ]);
+      assertFunctions(H, FC.quoteSnapshotScope, 'FC.quoteSnapshotScope', [
+        'normalizeMaterialScope',
+        'buildCanonicalScope',
+        'getCanonicalDefaultVersionName',
+        'normalizeRoomIds',
+        'getScopeRoomLabels',
+        'getSnapshotRoomIds',
+        'filterRowsByRoomScope',
+        'sameRoomScope',
+        'snapshotScopeOverlaps',
+        'isRejectedSnapshot',
+      ]);
       assertFunctions(H, FC.quoteSnapshotStore, 'FC.quoteSnapshotStore', [
         'readAll',
         'writeAll',

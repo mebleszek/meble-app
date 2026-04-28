@@ -174,3 +174,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Etap był audytowo-testowy: bez zmian runtime, modelu danych, storage i backupów.
 - Kontrakty Wyceny utrwalają granice istotne pod chmurę: snapshot oferty, exact-scope pokojów, status projektu/pokoju i fasady `quoteSnapshotStore` / `projectStatusSync` muszą pozostać spójne przy przyszłych splitach.
 - Przyszły split `quote-snapshot-store.js` albo `project-status-sync.js` wymaga porównania old/new na danych fixture przed wydaniem, bo te moduły są bezpośrednio związane z docelowym modelem `quotes` i statusem projektu w Firestore.
+
+## Wycena snapshot scope split v1 — 2026-04-28
+
+- Wydzielono czyste helpery scope snapshotów do `js/app/quote/quote-snapshot-scope.js` bez dodawania storage i bez zmiany modelu danych.
+- To poprawia cloud-readiness historii ofert: zakres pokoi, etykiety, materialScope, exact-scope i overlap są teraz oddzielone od trwałego store, więc późniejszy adapter Firestore może użyć tej samej logiki bez mieszania z localStorage.
+- `quote-snapshot-store.js` nadal pozostaje lokalnym repozytorium snapshotów i nie powinien dostać nowej logiki statusów ani UI. Kolejny etap danych Wyceny powinien osobno zabezpieczyć selection/rejected/accepted flow.

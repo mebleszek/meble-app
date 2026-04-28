@@ -266,3 +266,9 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - `wycena-tab-status-actions.js` zależy od `wycena-tab-status-bridge.js`; nie powinien bezpośrednio zastępować `project-status-sync.js` ani `quote-snapshot-store.js`.
 - `wycena-tab-shell.js` używa `FC.wycenaCore` tylko do akcji generowania wyceny i `FC.quotePdf` tylko do przycisku PDF; resztę dostaje przez jawne zależności z fasady.
 - Audyt po paczce: największe ryzyka Wyceny to nadal `quote-snapshot-store.js`, `wycena-core.js` i `project-status-sync.js`; `tabs/wycena.js` spadł do ok. 590 linii.
+
+## 2026-04-28 — Wycena snapshot scope split v1
+
+- Dodano `js/app/quote/quote-snapshot-scope.js` ładowany bezpośrednio przed `quote-snapshot-store.js` w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- Zależność krytyczna: `quote-snapshot-store.js` wymaga `FC.quoteSnapshotScope` przed startem i celowo rzuca błąd, jeśli helper scope nie jest dostępny.
+- Publiczne helpery scope są dalej eksportowane przez `FC.quoteSnapshotStore` jako delegaty, aby nie złamać istniejących zależności Wyceny, statusów i PDF.
