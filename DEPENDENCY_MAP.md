@@ -279,3 +279,20 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Krytyczna kolejność: `quote-snapshot-scope.js` → `quote-snapshot-selection.js` → `quote-snapshot-store.js`.
 - `quote-snapshot-store.js` wymaga `FC.quoteSnapshotSelection.createApi` podczas inicjalizacji i celowo rzuca błąd, jeśli moduł selection nie jest załadowany.
 - Store zachowuje publiczne metody selection/status jako delegaty, więc zależności Wyceny, status sync i PDF nie powinny zmieniać punktów wejścia.
+
+
+## 2026-04-28 — Wycena core selection split v1
+
+- Nowa zależność runtime: `js/app/wycena/wycena-core.js` wymaga `FC.wycenaCoreSelection` z `js/app/wycena/wycena-core-selection.js`.
+- Load order: `wycena-core-selection.js` → `wycena-core.js`; utrzymywać identycznie w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- `FC.wycenaCore` zachowuje publiczne metody selection/validation przez delegaty; nie przepinać konsumentów bez osobnego kontraktu.
+- Test kontraktowy: `js/testing/wycena/suites/core-selection-contract.js`.
+
+## 2026-04-28 — Project status scope split v1
+
+- Dodano `js/app/project/project-status-scope.js` ładowany bezpośrednio przed `js/app/project/project-status-sync.js`.
+- Krytyczna kolejność: `project-status-scope.js` → `project-status-sync.js`.
+- `project-status-sync.js` używa `FC.projectStatusScope` dla rang statusów, normalizacji, map statusów pokojów, exact-scope i rekomendowanej mapy statusów.
+- Publiczne metody `FC.projectStatusSync` pozostają bez zmian; nowe `FC.projectStatusScope` jest kontraktowane przez `js/testing/wycena/suites/project-status-scope-contract.js`.
+- Przy dalszym splitcie statusów najpierw dodać kontrakt konkretnej ścieżki: `commitAcceptedSnapshot`, `applyProjectStatusChange`, `reconcileProjectStatuses` albo mirror save.
+

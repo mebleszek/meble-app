@@ -214,3 +214,21 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Testy: `js/testing/wycena/suites/snapshot-selection-contract.js` pilnuje publicznego API selection, zachowania same-scope selected/rejected oraz `convertPreliminaryToFinal`.
 - Ważny kontrakt biznesowy: wybór nowej oferty dla tego samego exact-scope odznacza poprzednią selekcję, ale nie oznacza jej automatycznie jako `rejected`.
 - Następne bezpieczne kroki Wyceny: `wycena-core.js` collect/validation split albo `project-status-sync.js`, ale tylko po dedykowanych kontraktach dla wybranego obszaru.
+
+## 2026-04-28 — Wycena core selection split v1
+
+- `js/app/wycena/wycena-core-selection.js` przejmuje wybór pomieszczeń, material scope i walidację Wyceny.
+- Krytyczna kolejność ładowania: `wycena-core-selection.js` przed `wycena-core.js`; utrzymywać ją w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- `FC.wycenaCore` nadal eksportuje stare publiczne metody jako delegaty, więc zakładka, PDF i testy nie powinny zmieniać punktów wejścia.
+- Kontrakty: `js/testing/wycena/suites/core-selection-contract.js`; pilnują normalizacji wyboru, walidacji nieistniejącego pokoju i blokady pustej oferty.
+- Raport: `tools/reports/wycena-core-selection-split-v1.md`.
+
+## 2026-04-28 — Project status scope split v1
+
+- Wycena/statusy: wydzielono z `js/app/project/project-status-sync.js` helpery scope/rangi/status-map do `js/app/project/project-status-scope.js`.
+- `project-status-sync.js` spadł do ok. 389 linii i dalej odpowiada za zapis mirrorów, rekonsyliację i commit akceptowanych ofert.
+- Krytyczna kolejność ładowania: `project-status-scope.js` przed `project-status-sync.js` w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- Kontrakty: `js/testing/wycena/suites/project-status-scope-contract.js`; pilnują publicznego API scope, delegacji status sync oraz rekonsyliacji bez zmiany wyniku biznesowego.
+- Dalszy split statusów robić dopiero po kontraktach dla jednej ścieżki: commit accepted snapshot, manual status change albo mirror save.
+- Raport: `tools/reports/project-status-scope-split-v1.md`.
+

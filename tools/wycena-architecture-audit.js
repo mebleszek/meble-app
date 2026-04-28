@@ -5,9 +5,11 @@ const ROOT = process.cwd();
 const TARGETS = [
   'js/tabs/wycena.js',
   'js/app/wycena/wycena-core.js',
+  'js/app/wycena/wycena-core-selection.js',
   'js/app/quote/quote-snapshot-selection.js',
   'js/app/quote/quote-snapshot-scope.js',
   'js/app/quote/quote-snapshot-store.js',
+  'js/app/project/project-status-scope.js',
   'js/app/project/project-status-sync.js',
   'js/app/quote/quote-scope-entry.js',
   'js/app/wycena/wycena-tab-selection.js',
@@ -90,8 +92,8 @@ function makeReport(rows){
   lines.push('');
   lines.push('1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.');
   lines.push('2. Pierwszy split \`js/tabs/wycena.js\` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.');
-  lines.push('3. Następni kandydaci: dalsze odchudzanie \`js/tabs/wycena.js\` albo osobny etap \`js/app/wycena/wycena-core.js\`; store snapshotów i status sync zostawić pod dodatkowe fixture old/new.');
-  lines.push('4. \`quote-snapshot-store.js\` i \`project-status-sync.js\` są krytyczne dla danych/statusów — ciąć dopiero po dodatkowych testach old/new fixture.');
+  lines.push('3. Następni kandydaci: dalsze odchudzanie \`js/tabs/wycena.js\`, \`wycena-core.js\` collect split albo kolejny status split po dedykowanych kontraktach commit/reconcile.');
+  lines.push('4. \`project-status-sync.js\` ma już wydzielony \`project-status-scope.js\`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki, nie od zapisu mirrorów.');
   lines.push('5. W badanym zakresie nie wykryto bezpośrednich \`localStorage/sessionStorage\` ani systemowych \`alert/confirm/prompt\`; obecne granice danych idą przez store/helpery.');
   lines.push('');
   return lines.join('\n');

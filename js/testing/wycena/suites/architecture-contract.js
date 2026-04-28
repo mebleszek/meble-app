@@ -42,6 +42,16 @@
         'collectClientPdfDetails',
         'createQuoteValidationError',
       ]);
+      assertFunctions(H, FC.wycenaCoreSelection, 'FC.wycenaCoreSelection', [
+        'getActiveRooms',
+        'normalizeMaterialScope',
+        'normalizeQuoteSelection',
+        'decodeSelectedRooms',
+        'decodeMaterialScope',
+        'validateQuoteSelection',
+        'validateQuoteContent',
+        'createQuoteValidationError',
+      ]);
       assertFunctions(H, FC.quoteSnapshotScope, 'FC.quoteSnapshotScope', [
         'normalizeMaterialScope',
         'buildCanonicalScope',
@@ -74,6 +84,31 @@
         'sameRoomScope',
         'snapshotScopeOverlaps',
         'getRecommendedStatusMapForProject',
+      ]);
+      assertFunctions(H, FC.projectStatusScope, 'FC.projectStatusScope', [
+        'normalizeStatus',
+        'statusRank',
+        'isFinalStatus',
+        'normalizeRoomIds',
+        'getSnapshotRoomIds',
+        'getCurrentProjectId',
+        'getCurrentInvestorId',
+        'getTargetRoomIdsFromSnapshot',
+        'collectRoomStatuses',
+        'getAggregateStatus',
+        'getRoomStatusMap',
+        'getKnownProjectRoomIds',
+        'resolveAggregateScopeRoomIds',
+        'resolveAggregateFallbackStatus',
+        'normalizeSnapshot',
+        'getSelectedInvestor',
+        'getProjectRecordById',
+        'getProjectRecordByInvestorId',
+        'loadCurrentProject',
+        'getMergedRoomDefs',
+        'resolveScopedMasterStatus',
+        'buildRecommendedRoomStatusMap',
+        'computeRecommendedRoomStatusMap',
       ]);
       assertFunctions(H, FC.projectStatusSync, 'FC.projectStatusSync', [
         'normalizeStatus',

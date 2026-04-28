@@ -187,3 +187,17 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - `quote-snapshot-selection.js` dostaje `readAll/writeAll/getById/listForProject` przez dependency injection ze store, co utrzymuje granicę przyszłego repozytorium/adaptera.
 - To jest korzystne pod chmurę: logika wyboru/akceptacji oferty jest oddzielona od konkretnej implementacji lokalnego storage.
 - Nie zmieniono polityki rejected/selected ani modelu snapshotu, więc nie jest wymagana migracja danych.
+
+## 2026-04-28 — Wycena core selection split v1
+
+- Split selection/validation Wyceny nie dodaje nowego storage, nie zmienia modelu snapshotów i nie wymaga migracji danych.
+- `wycena-core-selection.js` oddziela wybór pomieszczeń i material scope od collect/build snapshot, co ułatwia przyszłe mapowanie Wyceny na repozytorium/adapter chmurowy.
+- Publiczne wejścia `FC.wycenaCore` pozostają bez zmian, więc późniejszy adapter Firestore może być wprowadzany etapowo bez zmiany UI.
+
+## 2026-04-28 — Project status scope split v1
+
+- Split status scope nie dodaje storage, nie zmienia modelu danych i nie wymaga migracji.
+- `project-status-scope.js` oddziela wyliczanie zakresów/statusów od zapisu mirrorów w `project-status-sync.js`, co poprawia przyszłą mapowalność statusów pokoi/projektów do Firestore.
+- Granica zapisu pozostaje w `project-status-sync.js` przez istniejące store/fasady; nie wprowadzono nowych bezpośrednich zapisów do `localStorage`.
+- Dalsze prace przy statusach muszą zachować spójność: status pokoju, status projektu, zaakceptowana oferta i snapshot historii ofert.
+

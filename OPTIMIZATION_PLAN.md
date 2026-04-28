@@ -169,3 +169,18 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Store snapshotów został ograniczony do storage, normalizacji i list/filter API; selection/status flow działa przez moduł z dependency injection.
 - Nie zmieniono semantyki ofert: same exact-scope nie jest automatycznie archiwizowany jako `rejected` przy przełączeniu wyboru.
 - Po tym etapie `quote-snapshot-store.js` nie jest już pierwszym kandydatem do dalszego cięcia; większe ryzyko pozostaje w `wycena-core.js`, `project-status-sync.js`, `tabs/wycena.js`, `quote-scope-entry.js` i `wycena-tab-selection.js`.
+
+## 2026-04-28 — Wycena core selection split v1
+
+- Wydzielono z `wycena-core.js` wybór/walidację do `js/app/wycena/wycena-core-selection.js` bez zmiany działania.
+- `wycena-core.js` spadł do ok. 539 linii, ale nadal zawiera collect/rozrys/material/accessory/AGD logic i pozostaje plikiem ostrzegawczym 400+.
+- Następne cięcie `wycena-core.js` robić tylko po kontraktach dla jednej konkretnej odpowiedzialności: material lines, accessory/AGD lines albo quote-rate/commercial draft.
+- `project-status-sync.js` jest po audycie największym plikiem Wyceny i wymaga osobnego planu oraz kontraktów statusowych przed refaktorem.
+
+## 2026-04-28 — Project status scope split v1
+
+- Wydzielono `js/app/project/project-status-scope.js` jako mały moduł helperów status/scope używany przez `project-status-sync.js`.
+- Nie zmieniono logiki biznesowej statusów, mirrorów, selected/rejected ani historii ofert.
+- `project-status-sync.js` nie jest już 600+; pozostaje w progu ostrzegawczym ok. 389 linii, ale nadal miesza commit/reconcile/mirror save i wymaga ostrożnego dalszego cięcia.
+- Następny bezpieczny krok Wyceny: albo dalszy mały split `wycena-core.js` po kontraktach collect, albo status sync commit/reconcile split z dedykowanym fixture.
+

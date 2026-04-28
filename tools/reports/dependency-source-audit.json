@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-04-28T15:22:30.241Z",
+  "generatedAt": "2026-04-28T20:08:53.168Z",
   "summary": {
-    "jsFiles": 256,
-    "indexScripts": 196,
-    "devTestScripts": 210,
-    "fcSymbols": 184,
-    "fcSymbolsAll": 207,
-    "edges": 1187,
-    "highRisk": 14,
-    "mediumRisk": 41
+    "jsFiles": 260,
+    "indexScripts": 198,
+    "devTestScripts": 214,
+    "fcSymbols": 186,
+    "fcSymbolsAll": 209,
+    "edges": 1260,
+    "highRisk": 13,
+    "mediumRisk": 44
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -60,16 +60,16 @@
       "medium": 1
     },
     "PROJEKT": {
-      "files": 5,
-      "lines": 1305,
+      "files": 6,
+      "lines": 1371,
       "storageRefs": 0,
       "dialogRefs": 0,
-      "high": 1,
-      "medium": 3
+      "high": 0,
+      "medium": 4
     },
     "WYCENA": {
-      "files": 19,
-      "lines": 5321,
+      "files": 20,
+      "lines": 5357,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 2,
@@ -140,12 +140,12 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 37,
-      "lines": 9462,
+      "files": 39,
+      "lines": 9707,
       "storageRefs": 189,
       "dialogRefs": 1,
       "high": 6,
-      "medium": 18
+      "medium": 20
     }
   },
   "topLines": [
@@ -178,16 +178,8 @@
       693
     ],
     [
-      "js/app/wycena/wycena-core.js",
-      653
-    ],
-    [
       "js/app/cabinet/cabinet-modal.js",
       650
-    ],
-    [
-      "js/app/project/project-status-sync.js",
-      644
     ],
     [
       "js/testing/wycena/suites/central-status-sync.js",
@@ -210,6 +202,10 @@
       590
     ],
     [
+      "js/app/wycena/wycena-core.js",
+      540
+    ],
+    [
       "js/app/rozrys/rozrys-render.js",
       493
     ],
@@ -228,6 +224,10 @@
     [
       "js/app/ui/actions-register.js",
       449
+    ],
+    [
+      "js/app/cabinet/cabinet-modal-standing-specials.js",
+      434
     ]
   ],
   "topIncoming": [
@@ -241,35 +241,35 @@
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      28
+      30
     ],
     [
       "js/app/investor/investors-store.js",
-      26
+      27
     ],
     [
       "js/app/shared/room-registry.js",
-      25
+      27
     ],
     [
       "js/app.js",
-      22
+      23
     ],
     [
       "js/app/project/project-store.js",
+      23
+    ],
+    [
+      "js/testing/shared/harness.js",
+      23
+    ],
+    [
+      "js/app/project/project-bridge.js",
       22
     ],
     [
       "js/app/ui/info-box.js",
       22
-    ],
-    [
-      "js/app/project/project-bridge.js",
-      21
-    ],
-    [
-      "js/testing/shared/harness.js",
-      21
     ],
     [
       "js/app/ui/confirm-box.js",
@@ -280,20 +280,24 @@
       18
     ],
     [
-      "js/app/optimizer/cut-optimizer.js",
-      16
+      "js/testing/wycena/suites/core-offer-basics.js",
+      18
     ],
     [
       "js/app/wycena/wycena-core.js",
-      16
+      17
     ],
     [
-      "js/testing/wycena/suites/core-offer-basics.js",
+      "js/app/optimizer/cut-optimizer.js",
       16
     ],
     [
       "js/app/ui/panel-box.js",
       15
+    ],
+    [
+      "js/app/investor/investor-persistence.js",
+      14
     ],
     [
       "js/app/shared/ui-state.js",
@@ -306,56 +310,52 @@
     [
       "js/testing/rozrys/suites/helpers-bridges.js",
       14
-    ],
-    [
-      "js/app/investor/investor-persistence.js",
-      13
     ]
   ],
   "topSecond": [
     [
       "js/app/shared/storage.js",
-      94
+      97
     ],
     [
       "js/app/shared/utils.js",
-      91
+      95
     ],
     [
       "js/app/shared/constants.js",
-      80
+      82
     ],
     [
       "js/app/shared/room-registry.js",
-      64
+      68
     ],
     [
       "js/app/project/project-store.js",
-      60
+      64
     ],
     [
       "js/app/ui/info-box.js",
-      55
+      57
     ],
     [
       "js/app/ui/confirm-box.js",
-      54
+      56
+    ],
+    [
+      "js/app/investor/investors-store.js",
+      55
+    ],
+    [
+      "js/app/project/project-bridge.js",
+      55
+    ],
+    [
+      "js/app.js",
+      53
     ],
     [
       "js/app/investor/session.js",
       53
-    ],
-    [
-      "js/app/project/project-bridge.js",
-      52
-    ],
-    [
-      "js/app/investor/investors-store.js",
-      51
-    ],
-    [
-      "js/app.js",
-      50
     ],
     [
       "js/app/shared/ui-state.js",
@@ -363,35 +363,35 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      45
+      46
     ],
     [
       "js/app/investor/investor-persistence.js",
-      44
+      46
     ],
     [
       "js/app/rozrys/rozrys.js",
-      42
+      44
+    ],
+    [
+      "js/app/quote/quote-snapshot-store.js",
+      43
     ],
     [
       "js/app/rozrys/rozrys-shell.js",
+      43
+    ],
+    [
+      "js/app/wycena/wycena-core.js",
+      43
+    ],
+    [
+      "js/app/cabinet/cabinet-cutlist.js",
       41
     ],
     [
       "js/app/ui/views.js",
-      40
-    ],
-    [
-      "js/app/wycena/wycena-core.js",
-      40
-    ],
-    [
-      "js/app/bootstrap/reload-restore.js",
-      39
-    ],
-    [
-      "js/app/cabinet/cabinet-cutlist.js",
-      39
+      41
     ]
   ],
   "topStorage": [
@@ -486,7 +486,7 @@
       "lines": 835,
       "incoming": 11,
       "outgoing": 29,
-      "secondLevel": 26,
+      "secondLevel": 28,
       "storageRefs": 112,
       "dialogRefs": 0,
       "reasons": [
@@ -499,33 +499,15 @@
       ]
     },
     {
-      "file": "js/app/wycena/wycena-core.js",
-      "risk": "wysokie",
-      "score": 10,
-      "area": "WYCENA",
-      "category": "domain/controller",
-      "lines": 653,
-      "incoming": 16,
-      "outgoing": 16,
-      "secondLevel": 40,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/app/investor/investors-store.js",
       "risk": "wysokie",
       "score": 10,
       "area": "INWESTOR",
       "category": "store/storage",
       "lines": 610,
-      "incoming": 26,
+      "incoming": 27,
       "outgoing": 2,
-      "secondLevel": 51,
+      "secondLevel": 55,
       "storageRefs": 10,
       "dialogRefs": 0,
       "reasons": [
@@ -543,7 +525,7 @@
       "lines": 842,
       "incoming": 8,
       "outgoing": 19,
-      "secondLevel": 42,
+      "secondLevel": 44,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -553,37 +535,37 @@
       ]
     },
     {
-      "file": "js/app/project/project-status-sync.js",
-      "risk": "wysokie",
-      "score": 9,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 644,
-      "incoming": 12,
-      "outgoing": 11,
-      "secondLevel": 28,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/testing/wycena/suites/central-status-sync.js",
       "risk": "wysokie",
       "score": 9,
       "area": "TESTY",
       "category": "test",
       "lines": 643,
-      "incoming": 11,
-      "outgoing": 26,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 28,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "600+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/wycena/wycena-core.js",
+      "risk": "wysokie",
+      "score": 9,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 540,
+      "incoming": 17,
+      "outgoing": 16,
+      "secondLevel": 43,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -597,7 +579,7 @@
       "lines": 459,
       "incoming": 7,
       "outgoing": 19,
-      "secondLevel": 25,
+      "secondLevel": 27,
       "storageRefs": 1,
       "dialogRefs": 0,
       "reasons": [
@@ -634,7 +616,7 @@
       "lines": 806,
       "incoming": 6,
       "outgoing": 13,
-      "secondLevel": 26,
+      "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -652,7 +634,7 @@
       "lines": 592,
       "incoming": 7,
       "outgoing": 18,
-      "secondLevel": 30,
+      "secondLevel": 31,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -668,9 +650,9 @@
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
       "lines": 591,
-      "incoming": 22,
+      "incoming": 23,
       "outgoing": 15,
-      "secondLevel": 50,
+      "secondLevel": 53,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -688,7 +670,7 @@
       "lines": 590,
       "incoming": 6,
       "outgoing": 16,
-      "secondLevel": 20,
+      "secondLevel": 22,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -706,7 +688,7 @@
       "lines": 390,
       "incoming": 14,
       "outgoing": 28,
-      "secondLevel": 25,
+      "secondLevel": 27,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -725,7 +707,7 @@
       "lines": 489,
       "incoming": 5,
       "outgoing": 10,
-      "secondLevel": 24,
+      "secondLevel": 26,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -743,7 +725,7 @@
       "lines": 1459,
       "incoming": 2,
       "outgoing": 2,
-      "secondLevel": 23,
+      "secondLevel": 24,
       "storageRefs": 0,
       "dialogRefs": 11,
       "reasons": [
@@ -767,6 +749,24 @@
         "400+ linii",
         "dużo zależności wychodzących",
         "systemowe dialogi"
+      ]
+    },
+    {
+      "file": "js/app/project/project-status-sync.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 398,
+      "incoming": 13,
+      "outgoing": 10,
+      "secondLevel": 31,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
       ]
     },
     {
@@ -795,9 +795,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 361,
-      "incoming": 11,
-      "outgoing": 20,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 22,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -815,7 +815,7 @@
       "lines": 342,
       "incoming": 13,
       "outgoing": 19,
-      "secondLevel": 26,
+      "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -850,9 +850,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 273,
-      "incoming": 11,
-      "outgoing": 19,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 21,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -862,15 +862,33 @@
       ]
     },
     {
+      "file": "js/app/quote/quote-snapshot.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 257,
+      "incoming": 10,
+      "outgoing": 8,
+      "secondLevel": 39,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/wycena/suites/core-offer-basics.js",
       "risk": "średnie",
       "score": 6,
       "area": "TESTY",
       "category": "test",
       "lines": 252,
-      "incoming": 16,
-      "outgoing": 26,
-      "secondLevel": 25,
+      "incoming": 18,
+      "outgoing": 28,
+      "secondLevel": 27,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -888,7 +906,7 @@
       "lines": 117,
       "incoming": 6,
       "outgoing": 9,
-      "secondLevel": 26,
+      "secondLevel": 28,
       "storageRefs": 10,
       "dialogRefs": 1,
       "reasons": [
@@ -924,7 +942,7 @@
       "lines": 452,
       "incoming": 2,
       "outgoing": 8,
-      "secondLevel": 13,
+      "secondLevel": 15,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -939,9 +957,9 @@
       "area": "ROZRYS",
       "category": "domain/controller",
       "lines": 317,
-      "incoming": 10,
+      "incoming": 11,
       "outgoing": 1,
-      "secondLevel": 38,
+      "secondLevel": 40,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -956,9 +974,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 28,
+      "incoming": 30,
       "outgoing": 6,
-      "secondLevel": 39,
+      "secondLevel": 43,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -975,7 +993,7 @@
       "lines": 296,
       "incoming": 6,
       "outgoing": 8,
-      "secondLevel": 23,
+      "secondLevel": 26,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -993,25 +1011,7 @@
       "lines": 270,
       "incoming": 6,
       "outgoing": 7,
-      "secondLevel": 31,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/quote/quote-snapshot.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "WYCENA",
-      "category": "domain/controller",
-      "lines": 257,
-      "incoming": 9,
-      "outgoing": 8,
-      "secondLevel": 37,
+      "secondLevel": 32,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1029,7 +1029,7 @@
       "lines": 250,
       "incoming": 14,
       "outgoing": 10,
-      "secondLevel": 40,
+      "secondLevel": 41,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1045,9 +1045,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 247,
-      "incoming": 11,
-      "outgoing": 19,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 21,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1064,7 +1064,7 @@
       "lines": 238,
       "incoming": 11,
       "outgoing": 8,
-      "secondLevel": 33,
+      "secondLevel": 35,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1078,10 +1078,10 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 185,
-      "incoming": 11,
-      "outgoing": 20,
-      "secondLevel": 16,
+      "lines": 220,
+      "incoming": 13,
+      "outgoing": 24,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1096,9 +1096,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 161,
-      "incoming": 11,
-      "outgoing": 16,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 18,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1113,9 +1113,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 155,
-      "incoming": 11,
-      "outgoing": 18,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 20,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1130,9 +1130,26 @@
       "area": "TESTY",
       "category": "test",
       "lines": 147,
-      "incoming": 11,
-      "outgoing": 25,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 27,
+      "secondLevel": 18,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/project-status-scope-contract.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 128,
+      "incoming": 13,
+      "outgoing": 17,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1147,9 +1164,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 121,
-      "incoming": 11,
-      "outgoing": 14,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 16,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1164,9 +1181,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 94,
-      "incoming": 11,
-      "outgoing": 14,
-      "secondLevel": 16,
+      "incoming": 13,
+      "outgoing": 16,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1181,9 +1198,26 @@
       "area": "TESTY",
       "category": "test",
       "lines": 88,
-      "incoming": 12,
-      "outgoing": 20,
-      "secondLevel": 17,
+      "incoming": 14,
+      "outgoing": 22,
+      "secondLevel": 19,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/core-selection-contract.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 82,
+      "incoming": 13,
+      "outgoing": 16,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1248,7 +1282,7 @@
       "lines": 293,
       "incoming": 10,
       "outgoing": 6,
-      "secondLevel": 45,
+      "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1384,9 +1418,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 22,
+      "incoming": 23,
       "outgoing": 5,
-      "secondLevel": 60,
+      "secondLevel": 64,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1417,9 +1451,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 101,
-      "incoming": 13,
+      "incoming": 14,
       "outgoing": 3,
-      "secondLevel": 44,
+      "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1433,9 +1467,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 61,
-      "incoming": 21,
+      "incoming": 22,
       "outgoing": 5,
-      "secondLevel": 52,
+      "secondLevel": 55,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1477,6 +1511,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -1519,6 +1554,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-definitions.js",
@@ -1553,8 +1589,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -1736,6 +1774,7 @@
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/core-failsafe.js",
         "js/app/shared/room-registry-foundation.js",
@@ -1901,8 +1940,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -2550,7 +2591,7 @@
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -2559,6 +2600,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -2570,6 +2612,7 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -2633,6 +2676,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -2987,6 +3031,7 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
@@ -3040,8 +3085,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -3263,6 +3310,7 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
@@ -3297,6 +3345,7 @@
         "js/app/investor/investor-project.js",
         "js/app/investor/investor-rooms.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -3333,6 +3382,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -3347,6 +3397,7 @@
         "js/app/shared/room-registry-project-sync.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -3368,8 +3419,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -3617,6 +3670,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-registry-foundation.js",
@@ -3795,6 +3849,7 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -3888,8 +3943,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -4056,8 +4113,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -4631,6 +4690,7 @@
         "js/app/investor/investor-project.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -4663,6 +4723,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-definitions.js",
@@ -4698,8 +4759,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -4748,6 +4811,7 @@
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -4824,6 +4888,7 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
@@ -4836,8 +4901,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -4857,12 +4924,12 @@
         "kilka zależności wychodzących"
       ]
     },
-    "js/app/project/project-status-sync.js": {
+    "js/app/project/project-status-scope.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 644,
+      "lines": 312,
       "defines": [
-        "projectStatusSync"
+        "projectStatusScope"
       ],
       "uses": [
         "roomScopeResolver",
@@ -4873,8 +4940,74 @@
         "quoteSnapshot",
         "investorPersistence",
         "project",
+        "projectStatusScope"
+      ],
+      "incomingFiles": [
+        "js/app/project/project-status-sync.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app.js",
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-bridge.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/quote/quote-snapshot.js",
+        "js/app/shared/room-registry.js",
+        "js/app/shared/room-scope-resolver.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/shared/room-registry-impact.js",
+        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/testing/investor/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
+    "js/app/project/project-status-sync.js": {
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 398,
+      "defines": [
+        "projectStatusSync"
+      ],
+      "uses": [
+        "projectStatusScope",
+        "roomRegistry",
+        "investorPersistence",
+        "investors",
+        "projectStore",
+        "project",
         "views",
         "investorUI",
+        "quoteSnapshotStore",
         "projectStatusSync"
       ],
       "incomingFiles": [
@@ -4887,6 +5020,7 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
@@ -4897,11 +5031,10 @@
         "js/app/investor/investor-ui.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-snapshot-store.js",
-        "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry.js",
-        "js/app/shared/room-scope-resolver.js",
         "js/app/ui/views.js"
       ],
       "secondLevelFiles": [
@@ -4910,6 +5043,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-project-sync.js",
         "js/app/ui/actions-register.js",
@@ -4925,8 +5059,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -4939,9 +5075,9 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "wysokie",
+      "risk": "średnie",
       "reasons": [
-        "600+ linii",
+        "250+ linii",
         "dużo zależnych plików",
         "kilka zależności wychodzących"
       ]
@@ -4966,6 +5102,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5006,6 +5143,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -5023,6 +5161,7 @@
         "js/app/ui/settings-ui.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -5045,8 +5184,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5131,8 +5272,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5186,8 +5329,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5261,8 +5406,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5306,6 +5453,7 @@
       ],
       "secondLevelFiles": [
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5325,8 +5473,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5361,6 +5511,7 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5380,8 +5531,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5415,6 +5568,7 @@
       ],
       "incomingFiles": [
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5436,6 +5590,7 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5456,6 +5611,7 @@
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -5464,6 +5620,7 @@
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
@@ -5483,8 +5640,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5522,11 +5681,12 @@
         "quoteSnapshot"
       ],
       "incomingFiles": [
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/tabs/wycena.js",
@@ -5543,10 +5703,10 @@
         "js/app/wycena/wycena-core.js"
       ],
       "secondLevelFiles": [
-        "js/app/investor/investor-persistence.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5572,8 +5732,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -5589,7 +5751,7 @@
       "risk": "średnie",
       "reasons": [
         "250+ linii",
-        "kilka zależnych plików",
+        "dużo zależnych plików",
         "kilka zależności wychodzących"
       ]
     },
@@ -5670,6 +5832,7 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -5877,6 +6040,7 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -5951,6 +6115,7 @@
       "secondLevelFiles": [
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js"
       ],
       "storageRefs": 2,
@@ -5993,6 +6158,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-registry-foundation.js",
@@ -6366,6 +6532,7 @@
       "incomingFiles": [
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js"
       ],
       "outgoingFiles": [
@@ -6393,6 +6560,7 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -6829,6 +6997,7 @@
         "js/app/rozrys/rozrys-shell.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -6842,7 +7011,7 @@
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -6854,6 +7023,7 @@
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/ui/sections.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -6874,6 +7044,7 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -7111,8 +7282,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -7273,6 +7446,7 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -7570,8 +7744,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -7921,6 +8097,7 @@
         "js/app/material/price-modal-context.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -7975,6 +8152,7 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -8622,6 +8800,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -8753,6 +8932,7 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -8767,6 +8947,7 @@
         "js/app/ui/cabinets-render.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-status-actions.js",
@@ -9044,6 +9225,7 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -9056,6 +9238,7 @@
         "js/app/ui/cabinets-render.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-status-actions.js",
@@ -9142,6 +9325,7 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -9154,6 +9338,7 @@
         "js/app/ui/cabinets-render.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-status-actions.js",
@@ -9226,6 +9411,7 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -9238,6 +9424,7 @@
         "js/app/ui/cabinets-render.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-status-actions.js",
@@ -9267,6 +9454,7 @@
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -9286,6 +9474,7 @@
         "js/app/ui/sections.js",
         "js/app/ui/tab-navigation.js",
         "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -9311,8 +9500,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -9345,9 +9536,9 @@
       ],
       "incomingFiles": [
         "js/app/project/project-status-manual-guard.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-scope.js",
         "js/app/shared/room-registry-impact.js",
-        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/testing/project/tests.js"
       ],
       "outgoingFiles": [
@@ -9359,33 +9550,22 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
-        "js/app/material/material-registry.js",
-        "js/app/material/price-modal-persistence.js",
-        "js/app/project/project-status-manual-guard.js",
-        "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
-        "js/app/quote/quote-snapshot.js",
+        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
-        "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
-        "js/app/wycena/wycena-tab-selection.js",
-        "js/app/wycena/wycena-tab-shell.js",
-        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/app/wycena/wycena-core.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
-        "js/testing/material/tests.js",
-        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
-        "js/testing/wycena/suites/core-offer-basics.js",
-        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
@@ -9431,6 +9611,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/shared/room-registry-core.js",
@@ -9554,6 +9735,7 @@
         "js/app/material/price-modal.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -9612,8 +9794,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -9789,6 +9973,7 @@
         "js/app/project/project-bridge.js",
         "js/app/project/project-model.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -9822,6 +10007,7 @@
         "js/app/ui/tab-navigation.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-editor.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -9852,8 +10038,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -9905,6 +10093,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/ui/actions-register.js",
@@ -10045,6 +10234,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -10105,6 +10295,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -10277,8 +10468,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -10604,8 +10797,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -10917,8 +11112,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -11051,6 +11248,7 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
@@ -11148,30 +11346,92 @@
         "250+ linii"
       ]
     },
+    "js/app/wycena/wycena-core-selection.js": {
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 149,
+      "defines": [
+        "wycenaCoreSelection"
+      ],
+      "uses": [
+        "roomScopeResolver",
+        "roomRegistry",
+        "quoteSnapshot",
+        "rozrysPrefs",
+        "rozrysScope",
+        "wycenaCoreSelection"
+      ],
+      "incomingFiles": [
+        "js/app/wycena/wycena-core.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/core-selection-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/quote/quote-snapshot.js",
+        "js/app/rozrys/rozrys-prefs.js",
+        "js/app/rozrys/rozrys-scope.js",
+        "js/app/shared/room-registry.js",
+        "js/app/shared/room-scope-resolver.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/material/material-registry.js",
+        "js/app/material/price-modal-persistence.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-tab-selection.js",
+        "js/app/wycena/wycena-tab-shell.js",
+        "js/testing/material/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/wycena/wycena-core.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 653,
+      "lines": 540,
       "defines": [
         "materialHasGrain",
         "wycenaCore"
       ],
       "uses": [
-        "roomScopeResolver",
         "utils",
         "storage",
-        "roomRegistry",
-        "quoteSnapshot",
-        "rozrysPrefs",
-        "rozrysScope",
+        "wycenaCoreSelection",
         "rozrys",
+        "rozrysScope",
         "catalogSelectors",
+        "roomRegistry",
         "cabinetCutlist",
+        "rozrysPrefs",
         "materialHasGrain",
         "rozrysStock",
         "rozrysCache",
         "rozrysEngine",
         "quoteOfferStore",
+        "quoteSnapshot",
         "wycenaCore"
       ],
       "incomingFiles": [
@@ -11188,6 +11448,7 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/tests.js"
@@ -11206,9 +11467,9 @@
         "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-registry.js",
-        "js/app/shared/room-scope-resolver.js",
         "js/app/shared/storage.js",
-        "js/app/shared/utils.js"
+        "js/app/shared/utils.js",
+        "js/app/wycena/wycena-core-selection.js"
       ],
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
@@ -11216,11 +11477,12 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/price-modal-options.js",
         "js/app/project/project-status-manual-guard.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -11243,8 +11505,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -11259,7 +11523,7 @@
       "loadedInDevTests": true,
       "risk": "wysokie",
       "reasons": [
-        "600+ linii",
+        "400+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -11289,8 +11553,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -11514,8 +11780,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -11562,8 +11830,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -11607,8 +11877,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -11840,6 +12112,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -11895,6 +12168,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -11989,8 +12263,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -12105,8 +12381,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -12540,8 +12818,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -12703,8 +12983,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -12936,8 +13218,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13256,8 +13540,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13334,8 +13620,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13448,8 +13736,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13473,8 +13763,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13611,8 +13903,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13634,8 +13928,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13652,8 +13948,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13675,7 +13973,7 @@
     "js/testing/wycena/suites/architecture-contract.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 185,
+      "lines": 220,
       "defines": [
         "registerWycenaTests"
       ],
@@ -13683,8 +13981,10 @@
         "testHarness",
         "registerWycenaTests",
         "wycenaCore",
+        "wycenaCoreSelection",
         "quoteSnapshotScope",
         "quoteSnapshotStore",
+        "projectStatusScope",
         "projectStatusSync",
         "wycenaTabDebug",
         "wycenaTabDom",
@@ -13696,8 +13996,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13705,9 +14007,11 @@
         "js/testing/wycena/suites/status-contract.js"
       ],
       "outgoingFiles": [
+        "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
+        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-dom.js",
         "js/app/wycena/wycena-tab-shell.js",
@@ -13718,8 +14022,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13735,8 +14041,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13779,8 +14087,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13807,8 +14117,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13824,8 +14136,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13877,8 +14191,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13906,8 +14222,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13932,8 +14250,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13976,8 +14296,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -13997,8 +14319,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14014,8 +14338,10 @@
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14031,6 +14357,83 @@
       "risk": "średnie",
       "reasons": [
         "250+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/wycena/suites/core-selection-contract.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 82,
+      "defines": [
+        "registerWycenaTests"
+      ],
+      "uses": [
+        "testHarness",
+        "registerWycenaTests",
+        "wycenaCoreSelection",
+        "wycenaCore"
+      ],
+      "incomingFiles": [
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/wycena/wycena-core-selection.js",
+        "js/app/wycena/wycena-core.js",
+        "js/testing/shared/harness.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
         "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -14060,7 +14463,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14087,7 +14492,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14104,7 +14511,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14146,7 +14555,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14167,7 +14578,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14184,7 +14597,89 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/wycena/suites/project-status-scope-contract.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 128,
+      "defines": [
+        "registerWycenaTests",
+        "projectStatusScope"
+      ],
+      "uses": [
+        "testHarness",
+        "registerWycenaTests",
+        "projectStatusScope",
+        "projectStatusSync",
+        "quoteSnapshotStore"
+      ],
+      "incomingFiles": [
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-sync.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/testing/shared/harness.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14227,8 +14722,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14249,8 +14746,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14266,8 +14765,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14305,8 +14806,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14321,8 +14824,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14338,8 +14843,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14377,8 +14884,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14393,8 +14902,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14410,8 +14921,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
@@ -14450,8 +14963,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14468,8 +14983,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14485,8 +15002,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14526,8 +15045,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14546,8 +15067,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
@@ -14563,8 +15086,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",

@@ -111,7 +111,7 @@ function runMaterialNodeSmoke(sandbox){
 function runWycenaNodeSmoke(sandbox){
   const FC = sandbox && sandbox.FC || {};
   return makeSingleGroupReport('WYCENA node smoke testy', 'Wycena ↔ Node smoke', [
-    { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
+    { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Moduły renderu Wyceny są wydzielone', explain:'Pilnuje splitu tabs/wycena.js → dom/status-actions/preview/shell.', check:()=> !!(FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderPreview === 'function') && !!(FC.wycenaTabShell && typeof FC.wycenaTabShell.render === 'function') && !!(FC.wycenaTabStatusActions && typeof FC.wycenaTabStatusActions.acceptSnapshot === 'function') },
     { name:'Podstawowe fasady historii i statusów istnieją', explain:'Chroni wejścia używane przez render zakładki WYCENA po splicie.', check:()=> typeof FC.quoteSnapshotStore.listForProject === 'function' && typeof FC.projectStatusSync.resolveCurrentProjectStatus === 'function' },
   ]);
