@@ -272,3 +272,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Dodano `js/app/quote/quote-snapshot-scope.js` ładowany bezpośrednio przed `quote-snapshot-store.js` w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
 - Zależność krytyczna: `quote-snapshot-store.js` wymaga `FC.quoteSnapshotScope` przed startem i celowo rzuca błąd, jeśli helper scope nie jest dostępny.
 - Publiczne helpery scope są dalej eksportowane przez `FC.quoteSnapshotStore` jako delegaty, aby nie złamać istniejących zależności Wyceny, statusów i PDF.
+
+## 2026-04-28 — Wycena snapshot selection split v1
+
+- Dodano `js/app/quote/quote-snapshot-selection.js` ładowany między `quote-snapshot-scope.js` i `quote-snapshot-store.js` w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` oraz `tools/app-dev-smoke-lib/file-list.js`.
+- Krytyczna kolejność: `quote-snapshot-scope.js` → `quote-snapshot-selection.js` → `quote-snapshot-store.js`.
+- `quote-snapshot-store.js` wymaga `FC.quoteSnapshotSelection.createApi` podczas inicjalizacji i celowo rzuca błąd, jeśli moduł selection nie jest załadowany.
+- Store zachowuje publiczne metody selection/status jako delegaty, więc zależności Wyceny, status sync i PDF nie powinny zmieniać punktów wejścia.

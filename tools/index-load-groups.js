@@ -183,6 +183,7 @@ const INDEX_LOAD_GROUPS = [
       "js/tabs/czynnosci.js",
       "js/app/quote/quote-offer-store.js",
       "js/app/quote/quote-snapshot-scope.js",
+      "js/app/quote/quote-snapshot-selection.js",
       "js/app/quote/quote-snapshot-store.js",
       "js/app/quote/quote-scope-entry.js",
       "js/app/project/project-status-sync.js",

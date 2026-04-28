@@ -162,3 +162,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Nowy moduł `js/app/quote/quote-snapshot-scope.js` przejął pure helpery scope; store spadł do ok. 438 linii.
 - Testy: `js/testing/wycena/suites/snapshot-scope-contract.js` pilnuje API, delegacji store → scope, kanonicznego zakresu i exact/overlap.
 - Następne bezpieczne kroki w Wycena: albo `wycena-core.js` collect/selection split, albo kolejny etap snapshot-store selection/rejected — tylko po dedykowanych kontraktach.
+
+## 2026-04-28 — Wycena snapshot selection split v1
+
+- Wydzielono `js/app/quote/quote-snapshot-selection.js` z `quote-snapshot-store.js`.
+- Store snapshotów został ograniczony do storage, normalizacji i list/filter API; selection/status flow działa przez moduł z dependency injection.
+- Nie zmieniono semantyki ofert: same exact-scope nie jest automatycznie archiwizowany jako `rejected` przy przełączeniu wyboru.
+- Po tym etapie `quote-snapshot-store.js` nie jest już pierwszym kandydatem do dalszego cięcia; większe ryzyko pozostaje w `wycena-core.js`, `project-status-sync.js`, `tabs/wycena.js`, `quote-scope-entry.js` i `wycena-tab-selection.js`.

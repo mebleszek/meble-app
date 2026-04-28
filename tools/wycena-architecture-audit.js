@@ -5,6 +5,7 @@ const ROOT = process.cwd();
 const TARGETS = [
   'js/tabs/wycena.js',
   'js/app/wycena/wycena-core.js',
+  'js/app/quote/quote-snapshot-selection.js',
   'js/app/quote/quote-snapshot-scope.js',
   'js/app/quote/quote-snapshot-store.js',
   'js/app/project/project-status-sync.js',

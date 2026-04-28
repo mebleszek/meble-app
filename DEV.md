@@ -205,3 +205,12 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `quote-snapshot-store.js` po splicie ma ok. 438 linii i pozostaje plikiem średniego ryzyka; dalsze cięcie tylko po kontrakcie selection/rejected/status.
 - Kontrakty splitu są w `js/testing/wycena/suites/snapshot-scope-contract.js`; `WYCENA node smoke` ma pilnować także grupy `Wycena ↔ Snapshot scope split`.
 - Raport paczki: `tools/reports/wycena-snapshot-scope-split-v1.md`.
+
+## 2026-04-28 — Wycena snapshot selection split v1
+
+- Wycena: wykonano kolejny split krytycznego `quote-snapshot-store.js` bez zmiany UI, storage i działania biznesowego.
+- Nowy moduł `js/app/quote/quote-snapshot-selection.js` przejął selection/status flow snapshotów przez fabrykę `FC.quoteSnapshotSelection.createApi(...)` z jawnie wstrzykniętymi zależnościami store.
+- `quote-snapshot-store.js` spadł do ok. 314 linii i zostaje właścicielem storage/normalizacji/list/filter API, nie pełnego przepływu accepted/recommended status.
+- Testy: `js/testing/wycena/suites/snapshot-selection-contract.js` pilnuje publicznego API selection, zachowania same-scope selected/rejected oraz `convertPreliminaryToFinal`.
+- Ważny kontrakt biznesowy: wybór nowej oferty dla tego samego exact-scope odznacza poprzednią selekcję, ale nie oznacza jej automatycznie jako `rejected`.
+- Następne bezpieczne kroki Wyceny: `wycena-core.js` collect/validation split albo `project-status-sync.js`, ale tylko po dedykowanych kontraktach dla wybranego obszaru.

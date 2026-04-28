@@ -180,3 +180,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Wydzielono czyste helpery scope snapshotów do `js/app/quote/quote-snapshot-scope.js` bez dodawania storage i bez zmiany modelu danych.
 - To poprawia cloud-readiness historii ofert: zakres pokoi, etykiety, materialScope, exact-scope i overlap są teraz oddzielone od trwałego store, więc późniejszy adapter Firestore może użyć tej samej logiki bez mieszania z localStorage.
 - `quote-snapshot-store.js` nadal pozostaje lokalnym repozytorium snapshotów i nie powinien dostać nowej logiki statusów ani UI. Kolejny etap danych Wyceny powinien osobno zabezpieczyć selection/rejected/accepted flow.
+
+## 2026-04-28 — Wycena snapshot selection split v1
+
+- Split selection snapshotów nie dodaje nowego storage ani nowego formatu danych.
+- `quote-snapshot-selection.js` dostaje `readAll/writeAll/getById/listForProject` przez dependency injection ze store, co utrzymuje granicę przyszłego repozytorium/adaptera.
+- To jest korzystne pod chmurę: logika wyboru/akceptacji oferty jest oddzielona od konkretnej implementacji lokalnego storage.
+- Nie zmieniono polityki rejected/selected ani modelu snapshotu, więc nie jest wymagana migracja danych.
