@@ -190,12 +190,15 @@ const INDEX_LOAD_GROUPS = [
       "js/app/quote/quote-pdf.js",
       "js/app/wycena/wycena-core.js",
       "js/app/wycena/wycena-tab-helpers.js",
+      "js/app/wycena/wycena-tab-dom.js",
       "js/app/wycena/wycena-tab-selection.js",
       "js/app/wycena/wycena-tab-editor.js",
       "js/app/wycena/wycena-tab-scroll.js",
       "js/app/wycena/wycena-tab-history.js",
       "js/app/wycena/wycena-tab-status-bridge.js",
+      "js/app/wycena/wycena-tab-status-actions.js",
       "js/app/wycena/wycena-tab-preview.js",
+      "js/app/wycena/wycena-tab-shell.js",
       "js/tabs/wycena.js"
     ]
   },

@@ -87,6 +87,26 @@
         'canAcceptSnapshot',
         'showSnapshotPreview',
       ]);
+      assertFunctions(H, FC.wycenaTabDom, 'FC.wycenaTabDom', [
+        'h',
+        'labelWithInfo',
+      ]);
+      assertFunctions(H, FC.wycenaTabStatusActions, 'FC.wycenaTabStatusActions', [
+        'currentProjectStatus',
+        'askConfirm',
+        'getTargetRoomIdsFromSnapshot',
+        'isArchivedPreliminary',
+        'canAcceptSnapshot',
+        'commitAcceptedSnapshotWithSync',
+        'acceptSnapshot',
+        'setProjectStatusFromSnapshot',
+        'syncGeneratedQuoteStatus',
+      ]);
+      assertFunctions(H, FC.wycenaTabShell, 'FC.wycenaTabShell', [
+        'render',
+        'generateQuote',
+        'renderTopbar',
+      ]);
     }),
 
     H.makeTest('Wycena ↔ Kontrakt architektury', 'Snapshot store rozróżnia exact-scope i overlap zakresów pokojów', 'Pilnuje, żeby przyszły split snapshot-store nie skleił niezależnych pokoi ani nie pomylił oferty wspólnej A+B z ofertą tylko dla A.', ()=> withInvestorProjectFixture({

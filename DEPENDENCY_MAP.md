@@ -258,3 +258,11 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - `FC.wycenaTabPreview.renderPreview(...)` jest wywoływane z `js/tabs/wycena.js` i dostaje jawne zależności: helpery renderu, snapshoty, status bridge, PDF/akceptację oraz detekcję ofert wstępnych.
 - Moduł preview nie jest granicą danych ani statusów; to tylko warstwa DOM/render. Nie wolno przenosić do niego zapisu snapshotów, synchronizacji statusów ani scope ofert.
 - `tools/app-dev-smoke-lib/file-list.js` i `tools/index-load-groups.js` muszą utrzymywać ten sam load order co `index.html` i `dev_tests.html`.
+
+## Wycena shell split v1 — 2026-04-28
+
+- Load order Wyceny rozszerzony o `wycena-tab-dom.js`, `wycena-tab-status-actions.js` i `wycena-tab-shell.js` przed `js/tabs/wycena.js`.
+- Zależności runtime: `tabs/wycena.js` pozostaje fasadą stanu i przekazuje jawne zależności do `wycena-tab-shell`, `wycena-tab-preview`, `wycena-tab-history`, `wycena-tab-selection`, `wycena-tab-editor` oraz `wycena-tab-status-actions`.
+- `wycena-tab-status-actions.js` zależy od `wycena-tab-status-bridge.js`; nie powinien bezpośrednio zastępować `project-status-sync.js` ani `quote-snapshot-store.js`.
+- `wycena-tab-shell.js` używa `FC.wycenaCore` tylko do akcji generowania wyceny i `FC.quotePdf` tylko do przycisku PDF; resztę dostaje przez jawne zależności z fasady.
+- Audyt po paczce: największe ryzyka Wyceny to nadal `quote-snapshot-store.js`, `wycena-core.js` i `project-status-sync.js`; `tabs/wycena.js` spadł do ok. 590 linii.

@@ -148,3 +148,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - `tools/app-dev-smoke.js` został ustabilizowany dla Node: uruchamia szybkie sanity smoke publicznych API, a ciężkie testy modalowe/regresyjne zostają w `dev_tests.html`.
 - Następny krok Wyceny: dalej wycinać małe odpowiedzialności z `tabs/wycena.js`; nie zaczynać jeszcze od `quote-snapshot-store.js` ani `project-status-sync.js` bez fixture old/new.
 - Pełny raport: `tools/reports/wycena-preview-split-v1.md`.
+
+## Wycena shell split v1 — 2026-04-28
+
+- Kontynuowano split `js/tabs/wycena.js`: wyjęto helpery DOM, adapter statusowych akcji i shell renderu/topbara do osobnych modułów.
+- `tabs/wycena.js` spadł z ok. 710 do ok. 590 linii, bez zmiany UI, runtime, storage i statusów.
+- Kolejny krok nie powinien być kolejnym losowym cięciem zakładki; większe ryzyka są teraz w `quote-snapshot-store.js`, `wycena-core.js` i `project-status-sync.js`.
+- Przed ruszeniem tych plików wymagane są fixture porównawcze old/new dla historii ofert, exact-scope, akceptacji, odrzucania i synchronizacji statusów.

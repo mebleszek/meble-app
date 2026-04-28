@@ -11,6 +11,9 @@
   const wycenaTabHistory = FC.wycenaTabHistory || {};
   const wycenaTabStatusBridge = FC.wycenaTabStatusBridge || {};
   const wycenaTabPreview = FC.wycenaTabPreview || {};
+  const wycenaTabShell = FC.wycenaTabShell || {};
+  const wycenaTabStatusActions = FC.wycenaTabStatusActions || {};
+  const wycenaTabDom = FC.wycenaTabDom || {};
   const money = wycenaTabHelpers.money;
   const num = wycenaTabHelpers.num;
   const buildRowMeta = wycenaTabHelpers.buildRowMeta;
@@ -29,19 +32,7 @@
   const getMaterialScopeLabel = wycenaTabHelpers.getMaterialScopeLabel;
   const snapshotById = wycenaTabHelpers.snapshotById;
 
-  function h(tag, attrs, children){
-    const el = document.createElement(tag);
-    if(attrs){
-      Object.keys(attrs).forEach((k)=>{
-        if(k === 'class') el.className = attrs[k];
-        else if(k === 'text') el.textContent = attrs[k];
-        else if(k === 'html') el.innerHTML = attrs[k];
-        else el.setAttribute(k, attrs[k]);
-      });
-    }
-    (children || []).forEach((ch)=> el.appendChild(ch));
-    return el;
-  }
+  const h = wycenaTabDom.h;
 
   function getCurrentProjectId(){
     try{ return FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
@@ -108,6 +99,22 @@
     if(Object.prototype.hasOwnProperty.call(next, 'pendingScrollRestore')) pendingScrollRestore = next.pendingScrollRestore || null;
   }
 
+
+  function getTabShellState(){
+    return Object.assign({}, getHistoryPreviewState(), getQuoteScrollState(), {
+      isBusy,
+      offerEditorOpen,
+    });
+  }
+
+  function patchTabShellState(patch){
+    const next = patch && typeof patch === 'object' ? patch : {};
+    patchHistoryPreviewState(next);
+    patchQuoteScrollState(next);
+    if(Object.prototype.hasOwnProperty.call(next, 'isBusy')) isBusy = !!next.isBusy;
+    if(Object.prototype.hasOwnProperty.call(next, 'offerEditorOpen')) offerEditorOpen = !!next.offerEditorOpen;
+  }
+
   function resolveDisplayedQuote(){
     if(wycenaTabHistory && typeof wycenaTabHistory.resolveDisplayedQuote === 'function'){
       try{
@@ -130,150 +137,100 @@
   }
 
   function getAllActiveRoomIds(){
-    try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? normalizeRoomIds(FC.roomRegistry.getActiveRoomIds()) : []; }catch(_){ return []; }
+    return wycenaTabStatusActions.getAllActiveRoomIds(getStatusActionDeps());
   }
 
   function getTargetRoomIdsFromSnapshot(snapshot){
-    const scoped = getSnapshotRoomIds(snapshot);
-    if(scoped.length) return scoped;
-    const active = getAllActiveRoomIds();
-    return active.length === 1 ? active : [];
+    return wycenaTabStatusActions.getTargetRoomIdsFromSnapshot(snapshot, getStatusActionDeps());
   }
 
   function getComparableHistoryForSnapshot(snapshot, history){
-    const list = Array.isArray(history) ? history : getSnapshotHistory();
-    const targetRooms = getSnapshotRoomIds(snapshot);
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.sameRoomScope === 'function'){
-        return list.filter((row)=> FC.quoteSnapshotStore.sameRoomScope(getSnapshotRoomIds(row), targetRooms));
-      }
-    }catch(_){ }
-    return list.filter((row)=> {
-      const rowRooms = getSnapshotRoomIds(row);
-      if(rowRooms.length !== targetRooms.length) return false;
-      return rowRooms.every((roomId, idx)=> roomId === targetRooms[idx]);
-    });
+    return wycenaTabStatusActions.getComparableHistoryForSnapshot(snapshot, history, getStatusActionDeps());
   }
 
   function isArchivedPreliminary(snapshot, history, projectStatus){
-    if(!isPreliminarySnapshot(snapshot) || isRejectedSnapshot(snapshot)) return false;
-    const list = getComparableHistoryForSnapshot(snapshot, history);
-    const currentStatus = normalizeStatusKey(currentProjectStatus(snapshot));
-    if(statusRank(currentStatus) < statusRank('wycena')) return false;
-    if(list.some((row)=> !isPreliminarySnapshot(row) && !isRejectedSnapshot(row) && isSelectedSnapshot(row))) return true;
-    const generatedAt = Number(snapshot && snapshot.generatedAt || 0);
-    return list.some((row)=> !isPreliminarySnapshot(row) && !isRejectedSnapshot(row) && Number(row && row.generatedAt || 0) > generatedAt);
+    return wycenaTabStatusActions.isArchivedPreliminary(snapshot, history, projectStatus, getStatusActionDeps());
+  }
+
+  function getStatusActionDeps(){
+    return {
+      normalizeSnapshot,
+      normalizeStatusKey,
+      getCurrentProjectId,
+      getCurrentInvestorId,
+      getTargetRoomIdsFromSnapshot,
+      normalizeRoomIds,
+      getSnapshotRoomIds,
+      getSnapshotId,
+      isSelectedSnapshot,
+      isRejectedSnapshot,
+      isPreliminarySnapshot,
+      getSnapshotHistory,
+      getProjectStatusForHistory,
+      isArchivedPreliminary,
+      rememberQuoteScroll,
+      clearRememberedQuoteScroll,
+      render,
+      setHistoryPreviewState:patchHistoryPreviewState,
+      canAcceptSnapshot,
+      commitAcceptedSnapshotWithSync,
+      statusRank,
+      currentProjectStatus,
+      setProjectStatusFromSnapshot,
+    };
   }
 
   function currentProjectStatus(snapshot){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.currentProjectStatus === 'function'){
-      try{
-        return wycenaTabStatusBridge.currentProjectStatus(snapshot, {
-          normalizeSnapshot,
-          normalizeStatusKey,
-          getCurrentProjectId,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.currentProjectStatus === 'function'){
+      return wycenaTabStatusActions.currentProjectStatus(snapshot, getStatusActionDeps());
     }
     return normalizeStatusKey('');
   }
 
   async function askConfirm(cfg){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.askConfirm === 'function'){
-      try{ return !!(await wycenaTabStatusBridge.askConfirm(cfg)); }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.askConfirm === 'function'){
+      return !!(await wycenaTabStatusActions.askConfirm(cfg, getStatusActionDeps()));
     }
     return true;
   }
 
   function canAcceptSnapshot(snapshot, history){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.canAcceptSnapshot === 'function'){
-      try{
-        return !!wycenaTabStatusBridge.canAcceptSnapshot(snapshot, history, {
-          normalizeSnapshot,
-          getSnapshotId,
-          isSelectedSnapshot,
-          isRejectedSnapshot,
-          getSnapshotHistory,
-          getProjectStatusForHistory,
-          isArchivedPreliminary,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.canAcceptSnapshot === 'function'){
+      return !!wycenaTabStatusActions.canAcceptSnapshot(snapshot, history, getStatusActionDeps());
     }
     return false;
   }
 
   function commitAcceptedSnapshotWithSync(snapshot, status, options){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.commitAcceptedSnapshotWithSync === 'function'){
-      try{
-        return wycenaTabStatusBridge.commitAcceptedSnapshotWithSync(snapshot, status, options, {
-          normalizeSnapshot,
-          normalizeStatusKey,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.commitAcceptedSnapshotWithSync === 'function'){
+      return wycenaTabStatusActions.commitAcceptedSnapshotWithSync(snapshot, status, options, getStatusActionDeps());
     }
     return null;
   }
 
   function reconcileAfterSnapshotRemoval(snapshot, options){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.reconcileAfterSnapshotRemoval === 'function'){
-      try{
-        return wycenaTabStatusBridge.reconcileAfterSnapshotRemoval(snapshot, options, {
-          normalizeSnapshot,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.reconcileAfterSnapshotRemoval === 'function'){
+      return wycenaTabStatusActions.reconcileAfterSnapshotRemoval(snapshot, options, getStatusActionDeps());
     }
     return null;
   }
 
   function promotePreliminarySnapshotToFinal(snapshot, options){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.promotePreliminarySnapshotToFinal === 'function'){
-      try{
-        return wycenaTabStatusBridge.promotePreliminarySnapshotToFinal(snapshot, options, {
-          normalizeSnapshot,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.promotePreliminarySnapshotToFinal === 'function'){
+      return wycenaTabStatusActions.promotePreliminarySnapshotToFinal(snapshot, options, getStatusActionDeps());
     }
     return null;
   }
 
   async function acceptSnapshot(snapshot, ctx, options){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.acceptSnapshot === 'function'){
-      try{
-        return !!(await wycenaTabStatusBridge.acceptSnapshot(snapshot, ctx, options, {
-          normalizeSnapshot,
-          normalizeStatusKey,
-          getSnapshotId,
-          getSnapshotHistory,
-          isSelectedSnapshot,
-          isRejectedSnapshot,
-          isPreliminarySnapshot,
-          rememberQuoteScroll,
-          clearRememberedQuoteScroll,
-          render,
-          setHistoryPreviewState:patchHistoryPreviewState,
-          getProjectStatusForHistory,
-          isArchivedPreliminary,
-          canAcceptSnapshot,
-          commitAcceptedSnapshotWithSync,
-        }));
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.acceptSnapshot === 'function'){
+      return !!(await wycenaTabStatusActions.acceptSnapshot(snapshot, ctx, options, getStatusActionDeps()));
     }
     return false;
   }
 
   function labelWithInfo(title, infoTitle, infoMessage){
-    const row = h('div', { class:'label-help' });
-    row.appendChild(h('span', { class:'label-help__text', text:title }));
-    if(infoMessage){
-      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':`Pokaż informację: ${title}` });
-      btn.addEventListener('click', ()=>{
-        try{
-          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:infoTitle || title, message:infoMessage });
-        }catch(_){ }
-      });
-      row.appendChild(btn);
-    }
-    return row;
+    return wycenaTabDom.labelWithInfo(title, infoTitle, infoMessage);
   }
 
   function defaultVersionName(preliminary, options){
@@ -430,30 +387,14 @@
   // Jedyny niski fallback kompatybilności, który jeszcze zostaje w Wycena.
   // Wyższe flow akceptacji/usuwania/konwersji nie mogą już wracać do własnych bocznych zapisów.
   function setProjectStatusFromSnapshot(snapshot, status, options){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.setProjectStatusFromSnapshot === 'function'){
-      try{
-        return wycenaTabStatusBridge.setProjectStatusFromSnapshot(snapshot, status, options, {
-          normalizeSnapshot,
-          normalizeStatusKey,
-          getCurrentProjectId,
-          getCurrentInvestorId,
-          getTargetRoomIdsFromSnapshot,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.setProjectStatusFromSnapshot === 'function'){
+      return wycenaTabStatusActions.setProjectStatusFromSnapshot(snapshot, status, options, getStatusActionDeps());
     }
   }
 
   function syncGeneratedQuoteStatus(snapshot){
-    if(wycenaTabStatusBridge && typeof wycenaTabStatusBridge.syncGeneratedQuoteStatus === 'function'){
-      try{
-        return wycenaTabStatusBridge.syncGeneratedQuoteStatus(snapshot, {
-          normalizeSnapshot,
-          isPreliminarySnapshot,
-          statusRank,
-          currentProjectStatus,
-          setProjectStatusFromSnapshot,
-        });
-      }catch(_){ }
+    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.syncGeneratedQuoteStatus === 'function'){
+      return wycenaTabStatusActions.syncGeneratedQuoteStatus(snapshot, getStatusActionDeps());
     }
   }
 
@@ -589,91 +530,30 @@
   let offerEditorOpen = false;
 
   function render(ctx){
-    const list = ctx && ctx.listEl;
-    if(!list) return;
-    list.innerHTML = '';
-    const card = h('div', { class:'build-card quote-root', id:'quoteActivePreview' });
-    const head = h('div', { class:'quote-topbar' });
-    head.appendChild(h('h3', { text:'Wycena', style:'margin:0' }));
-    const actions = h('div', { class:'quote-topbar__actions' });
-    const runBtn = h('button', { class:'btn-success', type:'button', text: isBusy ? 'Liczę…' : 'Wyceń' });
-    if(isBusy) runBtn.disabled = true;
-    runBtn.addEventListener('click', async ()=>{
-      if(isBusy) return;
-      isBusy = true;
-      render(ctx);
+    if(wycenaTabShell && typeof wycenaTabShell.render === 'function'){
       try{
-        const selection = normalizeDraftSelection(getOfferDraft());
-        const naming = await ensureVersionNameBeforeGenerate(selection);
-        if(naming && naming.cancelled) return;
-        if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') lastQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
-        else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') lastQuote = await FC.wycenaCore.collectQuoteData({ selection });
-        if(lastQuote && !lastQuote.error) syncGeneratedQuoteStatus(lastQuote);
-      }catch(err){
-        try{ console.error('[wycena] collect failed', err); }catch(_){ }
-        if(err && err.quoteValidation){
-          try{
-            if(FC.infoBox && typeof FC.infoBox.open === 'function'){
-              FC.infoBox.open({
-                title:String(err.title || 'Nie można utworzyć wyceny'),
-                message:String(err.message || 'Nie udało się utworzyć wyceny.'),
-                okOnly:true,
-                dismissOnOverlay:false,
-                dismissOnEsc:false,
-              });
-            }
-          }catch(_){ }
-        } else {
-          lastQuote = { error: String(err && err.message || err || 'Błąd wyceny'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
-        }
-      }finally{
-        isBusy = false;
-        render(ctx);
-      }
-    });
-    actions.appendChild(runBtn);
-
-    const liveStatus = getProjectStatusForHistory(getSnapshotHistory());
-    if(lastKnownProjectStatus && liveStatus !== lastKnownProjectStatus){
-      previewSnapshotId = '';
-      lastQuote = null;
-    }
-    lastKnownProjectStatus = liveStatus;
-
-    const currentQuote = resolveDisplayedQuote();
-    const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
-    if(!currentQuote || currentQuote.error) pdfBtn.disabled = true;
-    pdfBtn.addEventListener('click', ()=>{
-      try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(currentQuote); }catch(_){ }
-    });
-    actions.appendChild(pdfBtn);
-    head.appendChild(actions);
-    card.appendChild(head);
-
-    renderPreliminaryToggle(card, ctx);
-    renderQuoteSelectionSection(card, ctx);
-    renderOfferEditor(card, ctx);
-
-    renderQuotePreview(card, currentQuote, ctx);
-    renderHistory(card, ctx, currentQuote);
-    list.appendChild(card);
-    if(shouldScrollToPreview){
-      shouldScrollToPreview = false;
-      clearRememberedQuoteScroll();
-      try{
-        requestAnimationFrame(()=>{
-          try{
-            const target = document.getElementById('quotePreviewStart') || document.getElementById('quoteActivePreview');
-            if(target){
-              const absoluteTop = getScrollY() + target.getBoundingClientRect().top;
-              const targetTop = Math.max(0, Math.round(absoluteTop - 96));
-              window.scrollTo({ top:targetTop, behavior:'smooth' });
-            }
-          }catch(_){ }
+        return wycenaTabShell.render(ctx, {
+          h,
+          getState:getTabShellState,
+          setState:patchTabShellState,
+          render,
+          getOfferDraft,
+          normalizeDraftSelection,
+          ensureVersionNameBeforeGenerate,
+          syncGeneratedQuoteStatus,
+          getProjectStatusForHistory,
+          getSnapshotHistory,
+          resolveDisplayedQuote,
+          renderPreliminaryToggle,
+          renderQuoteSelectionSection,
+          renderOfferEditor,
+          renderQuotePreview,
+          renderHistory,
+          clearRememberedQuoteScroll,
+          restoreRememberedQuoteScroll,
+          getScrollY,
         });
       }catch(_){ }
-    } else if(shouldRestoreScroll){
-      restoreRememberedQuoteScroll();
     }
   }
 

@@ -185,3 +185,15 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Moduł preview nie zapisuje danych, nie zmienia statusów i nie rozstrzyga scope ofert. Statusy, PDF, akceptacja i historia muszą dalej iść przez istniejące helpery przekazywane jako zależności.
 - `tools/app-dev-smoke.js` kończy się w Node jako szybki sanity smoke publicznych API głównych działów; pełniejsze testy/regresje zostają w `dev_tests.html`.
 - Raport paczki: `tools/reports/wycena-preview-split-v1.md`.
+
+## 2026-04-28 — Wycena shell split v1
+
+- `js/tabs/wycena.js` został zmniejszony do ok. 590 linii; nadal jest plikiem podwyższonego ryzyka, ale zszedł poniżej progu 600+.
+- Nowe moduły Wyceny:
+  - `js/app/wycena/wycena-tab-dom.js` — małe helpery DOM zakładki,
+  - `js/app/wycena/wycena-tab-status-actions.js` — cienki adapter do `wycena-tab-status-bridge`,
+  - `js/app/wycena/wycena-tab-shell.js` — shell renderu zakładki, topbar `Wyceń/PDF`, busy-state i scroll.
+- Nie przenosić renderu shell/preview ani statusowych delegatorów z powrotem do `tabs/wycena.js`.
+- `wycena-tab-status-actions.js` nie może zawierać nowej logiki biznesowej statusów; ma delegować do `wycena-tab-status-bridge` / `project-status-sync`.
+- Przed cięciem `wycena-core.js`, `quote-snapshot-store.js` albo `project-status-sync.js` przygotować fixture old/new dla exact-scope, selected/rejected i cofania statusów.
+- Raport paczki: `tools/reports/wycena-shell-split-v1.md`.
