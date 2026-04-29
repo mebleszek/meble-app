@@ -201,3 +201,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Granica zapisu pozostaje w `project-status-sync.js` przez istniejące store/fasady; nie wprowadzono nowych bezpośrednich zapisów do `localStorage`.
 - Dalsze prace przy statusach muszą zachować spójność: status pokoju, status projektu, zaakceptowana oferta i snapshot historii ofert.
 
+
+## 2026-04-28 — Project status mirrors split v1
+
+- Split mirrorów statusu nie dodaje storage, nie zmienia modelu danych i nie wymaga migracji.
+- `project-status-mirrors.js` wyznacza jaśniejszą granicę przyszłego adaptera chmurowego dla zapisu statusów pokoi/projektu: dziś nadal deleguje do istniejących fasad `investorPersistence`, `investors`, `projectStore` i `project.save`.
+- Decyzje biznesowe statusu pozostają poza modułem mirrorów, dzięki czemu późniejszy Firestore adapter będzie mógł podmienić warstwę zapisu bez zmiany kalkulacji statusów.

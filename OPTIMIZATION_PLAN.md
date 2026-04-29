@@ -184,3 +184,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - `project-status-sync.js` nie jest już 600+; pozostaje w progu ostrzegawczym ok. 389 linii, ale nadal miesza commit/reconcile/mirror save i wymaga ostrożnego dalszego cięcia.
 - Następny bezpieczny krok Wyceny: albo dalszy mały split `wycena-core.js` po kontraktach collect, albo status sync commit/reconcile split z dedykowanym fixture.
 
+
+## 2026-04-28 — Project status mirrors split v1
+
+- WYCENA/status: wydzielono `js/app/project/project-status-mirrors.js` z `project-status-sync.js`.
+- `project-status-mirrors.js` odpowiada tylko za techniczny zapis mirrorów statusu i refresh widoków; nie ma decydować o statusie biznesowym oferty/projektu.
+- `project-status-sync.js` ma ok. 317 linii i pozostaje orkiestratorem krytycznych ścieżek: apply/reconcile/commit/promote. Dalsze cięcie tylko po kontraktach dla jednej konkretnej ścieżki.
+- Najbliższe kandydaty WYCENY po tym etapie: `wycena-core.js` collect split albo `quote-scope-entry.js` / `wycena-tab-selection.js`, bo mają ponad 400 linii i mieszają scope/render/modal.

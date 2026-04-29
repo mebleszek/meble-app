@@ -187,6 +187,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/quote/quote-snapshot-store.js",
       "js/app/quote/quote-scope-entry.js",
       "js/app/project/project-status-scope.js",
+      "js/app/project/project-status-mirrors.js",
       "js/app/project/project-status-sync.js",
       "js/app/project/project-status-manual-guard.js",
       "js/app/quote/quote-snapshot.js",

@@ -10,6 +10,7 @@ const TARGETS = [
   'js/app/quote/quote-snapshot-scope.js',
   'js/app/quote/quote-snapshot-store.js',
   'js/app/project/project-status-scope.js',
+  'js/app/project/project-status-mirrors.js',
   'js/app/project/project-status-sync.js',
   'js/app/quote/quote-scope-entry.js',
   'js/app/wycena/wycena-tab-selection.js',

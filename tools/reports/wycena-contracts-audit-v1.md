@@ -8,7 +8,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 2. `js/app/wycena/wycena-core.js` — 540 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
 3. `js/app/quote/quote-scope-entry.js` — 489 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
 4. `js/app/wycena/wycena-tab-selection.js` — 452 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-5. `js/app/project/project-status-sync.js` — 398 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+5. `js/app/project/project-status-sync.js` — 318 linii; ostrzeżenia: 250+ lines.
 6. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 7. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
 8. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
@@ -24,6 +24,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 18. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
 19. `js/app/wycena/wycena-core-selection.js` — 149 linii.
 20. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
+21. `js/app/project/project-status-mirrors.js` — 105 linii.
 
 ## Szczegóły odpowiedzialności — heurystyka
 
@@ -57,10 +58,10 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/project/project-status-sync.js
 
-- Linie: 398
+- Linie: 318
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
-- Sygnały odpowiedzialności: status:188, snapshot:82, scope:22, render:2, storage-boundary:1
+- Sygnały odpowiedzialności: status:145, snapshot:82, scope:22
 
 ### js/app/quote/quote-snapshot-store.js
 
@@ -166,6 +167,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:13
+
+### js/app/project/project-status-mirrors.js
+
+- Linie: 105
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: status:54, render:2, storage-boundary:1
 
 ## Wnioski do następnych paczek
 

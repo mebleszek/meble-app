@@ -296,3 +296,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Publiczne metody `FC.projectStatusSync` pozostają bez zmian; nowe `FC.projectStatusScope` jest kontraktowane przez `js/testing/wycena/suites/project-status-scope-contract.js`.
 - Przy dalszym splitcie statusów najpierw dodać kontrakt konkretnej ścieżki: `commitAcceptedSnapshot`, `applyProjectStatusChange`, `reconcileProjectStatuses` albo mirror save.
 
+
+## 2026-04-28 — Project status mirrors split v1
+
+- Dodano `js/app/project/project-status-mirrors.js` ładowany między `project-status-scope.js` i `project-status-sync.js`.
+- Krytyczna kolejność: `project-status-scope.js` → `project-status-mirrors.js` → `project-status-sync.js`.
+- `project-status-sync.js` deleguje `saveInvestorRooms`, `updateLoadedProject`, `syncStatusMirrors` i `refreshStatusViews` do `FC.projectStatusMirrors`, zachowując publiczne wejścia przez `FC.projectStatusSync`.
+- Test kontraktowy: `js/testing/wycena/suites/project-status-mirrors-contract.js`; pilnuje publicznego API, delegacji i realnej ścieżki `applyProjectStatusChange` zapisującej status pokoju inwestora.

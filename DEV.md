@@ -232,3 +232,11 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Dalszy split statusów robić dopiero po kontraktach dla jednej ścieżki: commit accepted snapshot, manual status change albo mirror save.
 - Raport: `tools/reports/project-status-scope-split-v1.md`.
 
+
+## 2026-04-28 — Project status mirrors split v1
+
+- `js/app/project/project-status-mirrors.js` jest właścicielem technicznego zapisu mirrorów statusu: pokoje inwestora, `projectStore.status`, `project.save(...).meta.projectStatus`, `meta.roomDefs` i odświeżenie widoków statusu.
+- `project-status-sync.js` spadł do ok. 317 linii i ma zostać silnikiem orkiestracji statusów: `applyProjectStatusChange`, `reconcileProjectStatuses`, `commitAcceptedSnapshot`, promocja wstępnej oferty.
+- Nie przenosić zapisu mirrorów z powrotem do `project-status-sync.js`; zmiany zapisu statusów robić w `project-status-mirrors.js`, a zmiany decyzji biznesowej statusu w `project-status-sync.js` / `project-status-scope.js`.
+- Kontrakty splitu: `js/testing/wycena/suites/project-status-mirrors-contract.js`; `WYCENA node smoke` obejmuje teraz również grupę `Wycena ↔ Project status mirrors split`.
+- Raport paczki: `tools/reports/project-status-mirrors-split-v1.md`.
