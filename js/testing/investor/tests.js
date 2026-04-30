@@ -30,6 +30,10 @@
       assert(FC.investorNavigationGuard && typeof FC.investorNavigationGuard.apply === 'function', 'Brak investorNavigationGuard.apply');
       assert(FC.investorFieldRender && typeof FC.investorFieldRender.buildPairRow === 'function', 'Brak investorFieldRender.buildPairRow');
       assert(FC.investorActions && typeof FC.investorActions.buildActionBarHtml === 'function', 'Brak investorActions.buildActionBarHtml');
+      assert(FC.investorsModel && typeof FC.investorsModel.normalizeInvestor === 'function', 'Brak investorsModel.normalizeInvestor');
+      assert(FC.investorsLocalRepository && typeof FC.investorsLocalRepository.readStoredAll === 'function', 'Brak investorsLocalRepository.readStoredAll');
+      assert(FC.investorsRecovery && typeof FC.investorsRecovery.recoverMissingInvestors === 'function', 'Brak investorsRecovery.recoverMissingInvestors');
+      assert(FC.investors && FC.investors.normalizeInvestor === FC.investorsModel.normalizeInvestor, 'FC.investors nie deleguje normalizacji do investorsModel');
     }),
     makeTest('Inwestor', 'Rejestr pomieszczeń ma wspólny modal zarządzania', 'Pilnuje, czy sekcja pomieszczeń inwestora ma jedno wspólne wejście do zarządzania nazwami i usuwaniem zamiast akcji porozrzucanych po kartach.', ()=>{
       assert(FC.roomRegistry && typeof FC.roomRegistry.openManageRoomsModal === 'function', 'Brak roomRegistry.openManageRoomsModal');

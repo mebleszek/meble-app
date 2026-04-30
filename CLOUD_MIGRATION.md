@@ -202,8 +202,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dalsze prace przy statusach muszą zachować spójność: status pokoju, status projektu, zaakceptowana oferta i snapshot historii ofert.
 
 
-## 2026-04-28 — Project status mirrors split v1
+## 2026-04-30 — Investor store boundary v1
 
-- Split mirrorów statusu nie dodaje storage, nie zmienia modelu danych i nie wymaga migracji.
-- `project-status-mirrors.js` wyznacza jaśniejszą granicę przyszłego adaptera chmurowego dla zapisu statusów pokoi/projektu: dziś nadal deleguje do istniejących fasad `investorPersistence`, `investors`, `projectStore` i `project.save`.
-- Decyzje biznesowe statusu pozostają poza modułem mirrorów, dzięki czemu późniejszy Firestore adapter będzie mógł podmienić warstwę zapisu bez zmiany kalkulacji statusów.
+- `FC.investors` pozostaje publiczną fasadą, ale model/normalizacja, lokalne storage i recovery zostały rozdzielone do osobnych modułów.
+- `js/app/investor/investors-local-repository.js` jest teraz jawną lokalną granicą dla `fc_investors_v1`, `fc_current_investor_v1`, `fc_investor_removed_ids_v1` oraz odczytów źródeł recovery.
+- `js/app/investor/investors-recovery.js` nie powinien zapisywać danych użytkownika; ma tylko budować listę kandydatów recovery i filtrować testowe źródła.
+- Nie zmieniono formatu danych, więc etap nie wymaga migracji. Przy przyszłym adapterze Firestore można wymieniać repository bez zmiany publicznej fasady `FC.investors`.
+- Nadal nie rozwiązuje to długu `js/app/investor/investor-project.js`, który ma własne bezpośrednie użycia `localStorage` i powinien być kolejnym kandydatem danych inwestora/projektu.

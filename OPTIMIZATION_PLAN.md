@@ -185,9 +185,9 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Następny bezpieczny krok Wyceny: albo dalszy mały split `wycena-core.js` po kontraktach collect, albo status sync commit/reconcile split z dedykowanym fixture.
 
 
-## 2026-04-28 — Project status mirrors split v1
+## 2026-04-30 — Investor store boundary v1
 
-- WYCENA/status: wydzielono `js/app/project/project-status-mirrors.js` z `project-status-sync.js`.
-- `project-status-mirrors.js` odpowiada tylko za techniczny zapis mirrorów statusu i refresh widoków; nie ma decydować o statusie biznesowym oferty/projektu.
-- `project-status-sync.js` ma ok. 317 linii i pozostaje orkiestratorem krytycznych ścieżek: apply/reconcile/commit/promote. Dalsze cięcie tylko po kontraktach dla jednej konkretnej ścieżki.
-- Najbliższe kandydaty WYCENY po tym etapie: `wycena-core.js` collect split albo `quote-scope-entry.js` / `wycena-tab-selection.js`, bo mają ponad 400 linii i mieszają scope/render/modal.
+- Wykonano etap „Inwestor/store/chmura”: `investors-store.js` nie jest już monolitem 600+ linii mieszającym model, storage, recovery i CRUD.
+- Nowy podział odpowiedzialności: `investors-model.js`, `investors-local-repository.js`, `investors-recovery.js`, `investors-store.js`.
+- Priorytet dalszej optymalizacji pozostaje zgodny z zasadą 2+ odpowiedzialności: nie ciąć plików tylko dla liczby linii, ale nie dopisywać nowych funkcji do plików mieszających warstwy.
+- Następny sensowny kandydat w obszarze inwestor/projekt: `investor-project.js`, bo nadal łączy bezpośredni storage, projekt per inwestor i częściową logikę save/load.

@@ -93,7 +93,7 @@ function runRysunekNodeSmoke(sandbox){
 function runInvestorNodeSmoke(sandbox){
   const FC = sandbox && sandbox.FC || {};
   return makeSingleGroupReport('INWESTOR node smoke testy', 'Inwestor ↔ Node smoke', [
-    { name:'Investors store jest dostępny', check:()=> !!(FC.investors && typeof FC.investors.readAll === 'function' && typeof FC.investors.writeAll === 'function') },
+    { name:'Investors store ma rozdzielone warstwy', check:()=> !!(FC.investors && typeof FC.investors.readAll === 'function' && typeof FC.investors.writeAll === 'function' && FC.investorsModel && typeof FC.investorsModel.normalizeInvestor === 'function' && FC.investorsLocalRepository && typeof FC.investorsLocalRepository.readStoredAll === 'function' && FC.investorsRecovery && typeof FC.investorsRecovery.recoverMissingInvestors === 'function') },
     { name:'Persistence inwestora jest dostępne', check:()=> !!(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function') },
     { name:'Room registry jest dostępne', check:()=> !!(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') },
   ]);

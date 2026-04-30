@@ -89,7 +89,7 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `js/app.js` — nadal gruby klej aplikacji. Nowe funkcje kierować do modułów domenowych, nie do `app.js`.
 - `js/app/rozrys/rozrys.js` — duży, ale lepiej zabezpieczony testami. Nie dopisywać tam logiki, jeśli pasuje do istniejących modułów ROZRYS.
 - `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js` — kontynuować delegowanie do modułów `wycena-tab-*` i store/quote, nie przywracać inline workflow.
-- `js/app/quote/quote-snapshot-store.js`, `js/app/investor/investors-store.js`, `js/app/project/project-status-sync.js` — krytyczne store/statusy. Przy większej zmianie najpierw zaplanować split i testy kontraktowe.
+- `js/app/quote/quote-snapshot-store.js`, `js/app/investor/investors-local-repository.js`, `js/app/investor/investors-recovery.js`, `js/app/project/project-status-sync.js` — krytyczne store/statusy/recovery. Przy większej zmianie najpierw zaplanować split i testy kontraktowe.
 - `js/app/material/price-modal.js` — po `Materiał cleanup etap 2` jest cienką fasadą. Nie dopisywać tam ciężkiej logiki; kierować zmiany do modułów `price-modal-context/options/filters/item-form/list/persistence`.
 
 
@@ -233,10 +233,12 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Raport: `tools/reports/project-status-scope-split-v1.md`.
 
 
-## 2026-04-28 — Project status mirrors split v1
+## 2026-04-30 — Investor store boundary v1
 
-- `js/app/project/project-status-mirrors.js` jest właścicielem technicznego zapisu mirrorów statusu: pokoje inwestora, `projectStore.status`, `project.save(...).meta.projectStatus`, `meta.roomDefs` i odświeżenie widoków statusu.
-- `project-status-sync.js` spadł do ok. 317 linii i ma zostać silnikiem orkiestracji statusów: `applyProjectStatusChange`, `reconcileProjectStatuses`, `commitAcceptedSnapshot`, promocja wstępnej oferty.
-- Nie przenosić zapisu mirrorów z powrotem do `project-status-sync.js`; zmiany zapisu statusów robić w `project-status-mirrors.js`, a zmiany decyzji biznesowej statusu w `project-status-sync.js` / `project-status-scope.js`.
-- Kontrakty splitu: `js/testing/wycena/suites/project-status-mirrors-contract.js`; `WYCENA node smoke` obejmuje teraz również grupę `Wycena ↔ Project status mirrors split`.
-- Raport paczki: `tools/reports/project-status-mirrors-split-v1.md`.
+- RYSUNEK nie był ruszany; zostaje odłożony na koniec do osobnej decyzji koncepcyjnej.
+- `js/app/investor/investors-store.js` został rozdzielony według odpowiedzialności: model/normalizacja, lokalny repository/storage, recovery oraz cienka publiczna fasada `FC.investors`.
+- Nowe moduły i kolejność ładowania: `investors-model.js` → `investors-local-repository.js` → `investors-recovery.js` → `investors-store.js`. Utrzymywać tę kolejność w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- Nie przenosić normalizacji, bezpośredniego storage ani recovery z powrotem do `investors-store.js`; store ma zostać fasadą CRUD/search/current/sync.
+- Bezpośrednie `localStorage` inwestorów jest teraz świadomie zamknięte w `investors-local-repository.js`. Kolejne prace cloud-ready przy inwestorach powinny iść przez tę granicę, nie przez nowe rozproszone odczyty/zapisy.
+- Testy: app smoke pilnuje obecności warstw store, a suite inwestora ma kontrakt rozdzielonych modułów.
+- Raport: `tools/reports/investor-store-boundary-v1.md`.
