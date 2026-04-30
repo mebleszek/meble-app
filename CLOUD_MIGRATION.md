@@ -209,3 +209,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - `js/app/investor/investors-recovery.js` nie powinien zapisywać danych użytkownika; ma tylko budować listę kandydatów recovery i filtrować testowe źródła.
 - Nie zmieniono formatu danych, więc etap nie wymaga migracji. Przy przyszłym adapterze Firestore można wymieniać repository bez zmiany publicznej fasady `FC.investors`.
 - Nadal nie rozwiązuje to długu `js/app/investor/investor-project.js`, który ma własne bezpośrednie użycia `localStorage` i powinien być kolejnym kandydatem danych inwestora/projektu.
+
+## 2026-04-30 — Investor project boundary v1
+
+- `investor-project.js` nie zapisuje już samodzielnie per-inwestorowych slotów i nie miesza storage z patchowaniem API. Lokalna granica `fc_project_inv_*_v1` została wydzielona do `js/app/investor/investor-project-repository.js`.
+- Nie zmieniono formatu danych: nadal istnieją `fc_project_v1`, `fc_projects_v1` i legacy sloty `fc_project_inv_*_v1`, ale nowe odwołania w obszarze inwestor/projekt powinny przechodzić przez repository/runtime zamiast rozproszonego `localStorage`.
+- To jest etap przygotowawczy pod przyszły adapter chmurowy: `investor-project-runtime.js` obsługuje aktywny projekt i zachowuje dotychczasowe publiczne wejścia, a repository jest miejscem późniejszej wymiany lokalnych slotów na Firestore/remote sync.
+- Nadal nie robiono ukrytej migracji ani automatycznego czyszczenia backupów/slotów; polityka backupów pozostaje bez zmian.

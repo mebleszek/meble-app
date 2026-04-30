@@ -191,3 +191,10 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Nowy podział odpowiedzialności: `investors-model.js`, `investors-local-repository.js`, `investors-recovery.js`, `investors-store.js`.
 - Priorytet dalszej optymalizacji pozostaje zgodny z zasadą 2+ odpowiedzialności: nie ciąć plików tylko dla liczby linii, ale nie dopisywać nowych funkcji do plików mieszających warstwy.
 - Następny sensowny kandydat w obszarze inwestor/projekt: `investor-project.js`, bo nadal łączy bezpośredni storage, projekt per inwestor i częściową logikę save/load.
+
+## 2026-04-30 — Investor project boundary v1
+
+- Wykonano kolejny etap po `Investor store boundary`: rozdzielono `investor-project.js` według odpowiedzialności bez zmiany UI i bez ruszania RYSUNKU.
+- Nowe moduły: `investor-project-repository.js`, `investor-project-runtime.js`, `investor-project-patches.js`; stary `investor-project.js` został cienkim inicjatorem.
+- Bezpośrednie odwołania do `localStorage` w tym obszarze zostały zamknięte w repository; audyt storage spadł z 237 do 234 referencji.
+- Następny sensowny kandydat: `investor-ui.js` tylko jeśli ruszamy inwestora/UI, albo powrót do WYCENA/statusy. Nie ruszać RYSUNKU do czasu osobnej decyzji.

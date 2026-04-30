@@ -242,3 +242,14 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Bezpośrednie `localStorage` inwestorów jest teraz świadomie zamknięte w `investors-local-repository.js`. Kolejne prace cloud-ready przy inwestorach powinny iść przez tę granicę, nie przez nowe rozproszone odczyty/zapisy.
 - Testy: app smoke pilnuje obecności warstw store, a suite inwestora ma kontrakt rozdzielonych modułów.
 - Raport: `tools/reports/investor-store-boundary-v1.md`.
+
+## 2026-04-30 — Investor project boundary v1
+
+- RYSUNEK nie był ruszany; pozostaje zamrożony do osobnej decyzji koncepcyjnej.
+- Rozdzielono `js/app/investor/investor-project.js`, który mieszał legacy sloty `fc_project_inv_*`, centralny `projectStore`, aktywny `projectData`, patchowanie `FC.investors` i mirror zapisu projektu.
+- Nowy podział odpowiedzialności: `investor-project-repository.js` = lokalna granica slotów i most do `projectStore`; `investor-project-runtime.js` = normalizacja, save/load aktywnego projektu i refresh; `investor-project-patches.js` = patche publicznych API; `investor-project.js` = cienki init/orchestrator.
+- Krytyczna kolejność ładowania: `investor-project-repository.js` → `investor-project-runtime.js` → `investor-project-patches.js` → `investor-project.js`. Utrzymywać ją w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- Nie przenosić bezpośredniego storage, patchowania API ani refreshu UI z powrotem do jednego pliku. Jeśli trzeba zmieniać projekt inwestora, najpierw ustalić, czy zmiana dotyczy repository, runtime czy patch layer.
+- `localStorage` dla `fc_project_inv_*` ma pozostać zamknięty w `investor-project-repository.js`; pozostałe moduły mają korzystać z tej granicy albo z `FC.projectStore`/`FC.project`.
+- App smoke pilnuje obecności warstw `investorProjectRepository/runtime/patches` oraz roundtripu legacy slotu projektu.
+- Raport: `tools/reports/investor-project-boundary-v1.md`.
