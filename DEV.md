@@ -259,3 +259,8 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Statusy projektu rozdzielono po odpowiedzialnościach: `project-status-mirrors.js` zapisuje lustra/statusy w danych, `project-status-sync.js` zostaje silnikiem rekonsyliacji, a `project-status-snapshot-flow.js` obsługuje workflow zaakceptowanych snapshotów ofertowych.
 - Przy kolejnych zmianach statusów nie dokładać zapisu danych ani workflow snapshotów z powrotem do `project-status-sync.js`; publiczne API `FC.projectStatusSync` ma pozostać kompatybilną fasadą.
 - RYSUNEK nadal jest odłożony na koniec i nie był ruszany w tej paczce.
+
+## Notatka po project-status-test-cache-fix-v2
+
+- Przy poprawkach testów ładowanych przez `dev_tests.html` podbijać cache-busting nie tylko zmienionych testów, ale też powiązanych modułów runtime, jeśli wynik testu może pochodzić ze starego cache przeglądarki/GitHub Pages.
+- Jeśli użytkownik zgłasza błędy testów po paczce naprawczej, najpierw odróżnić: realny błąd runtime, błąd testu, brak rozpakowania ZIP-a w Actions oraz cache starego `dev_tests.html`/skryptów.

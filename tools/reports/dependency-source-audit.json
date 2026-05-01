@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T09:35:46.079Z",
+  "generatedAt": "2026-05-01T13:59:40.493Z",
   "summary": {
     "jsFiles": 268,
     "indexScripts": 206,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 39,
-      "lines": 9711,
+      "lines": 9719,
       "storageRefs": 189,
       "dialogRefs": 1,
       "high": 6,
@@ -183,7 +183,7 @@
     ],
     [
       "js/testing/wycena/suites/central-status-sync.js",
-      643
+      649
     ],
     [
       "js/app/investor/investor-ui.js",
@@ -522,7 +522,7 @@
       "score": 9,
       "area": "TESTY",
       "category": "test",
-      "lines": 643,
+      "lines": 649,
       "incoming": 13,
       "outgoing": 29,
       "secondLevel": 18,
@@ -1128,7 +1128,7 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 147,
+      "lines": 149,
       "incoming": 13,
       "outgoing": 27,
       "secondLevel": 18,
@@ -14560,7 +14560,7 @@
     "js/testing/wycena/suites/central-status-sync.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 643,
+      "lines": 649,
       "defines": [
         "registerWycenaTests"
       ],
@@ -14937,7 +14937,7 @@
     "js/testing/wycena/suites/cross-systems.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 147,
+      "lines": 149,
       "defines": [
         "registerWycenaTests"
       ],

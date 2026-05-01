@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 39 | 9711 | 189 | 1 | 6 | 20 |
+| TESTY | 39 | 9719 | 189 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 20 | 5357 | 0 | 0 | 2 | 5 |
@@ -49,7 +49,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/cabinet/tests.js | 806 | TESTY | wysokie |
 | js/app/cabinet/cabinet-modal-set-wizard.js | 693 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-modal.js | 650 | SZAFKI | średnie |
-| js/testing/wycena/suites/central-status-sync.js | 643 | TESTY | wysokie |
+| js/testing/wycena/suites/central-status-sync.js | 649 | TESTY | wysokie |
 | js/app/investor/investor-ui.js | 592 | INWESTOR | wysokie |
 | js/app.js | 591 | BOOT/APP SHELL | wysokie |
 | js/tabs/wycena.js | 590 | WYCENA | wysokie |
@@ -143,7 +143,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | js/testing/project/tests.js | wysokie | 15 | 835 | 11 | 28 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
 | js/app/rozrys/rozrys.js | wysokie | 9 | 842 | 8 | 44 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
-| js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 643 | 13 | 18 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 13 | 18 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/wycena/wycena-core.js | wysokie | 9 | 540 | 17 | 43 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/tests.js | wysokie | 9 | 459 | 7 | 27 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/investor/tests.js | wysokie | 8 | 907 | 1 | 1 | 600+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
