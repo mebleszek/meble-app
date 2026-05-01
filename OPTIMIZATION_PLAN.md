@@ -252,3 +252,7 @@ Po tym etapie można wrócić do optymalizacji Wyceny/Inwestora, nadal zostawiaj
 - `dev_tests.html` pokazuje postęp `x/y`, aktualną sekcję i aktualny test bez zmiany runtime aplikacji oraz bez nowych zapisów do storage.
 - Dalsza optymalizacja testów powinna iść w kierunku dzielenia dużych plików suite przy okazji zmian w danym obszarze, nie jako osobna kosmetyczna paczka.
 
+
+## 2026-05-01 — dev tests progress live v2
+
+Domknięto użyteczność narzędzia testowego: licznik `x/y` ma być widoczny w trakcie przebiegu testów, nie dopiero jako wynik końcowy. Zmiana dotyczy tylko test harness/dev_tests i nie rusza runtime aplikacji.

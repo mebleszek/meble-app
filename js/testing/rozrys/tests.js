@@ -372,7 +372,7 @@
     return out;
   }
 
-  function runAll(){
+  async function runAll(){
     const Fx = FC.rozrysDevFixtures;
     assert(Fx, 'Brak FC.rozrysDevFixtures');
     assert(FC.rozrysState, 'Brak FC.rozrysState');
@@ -413,14 +413,20 @@
       .concat(collectSuiteTests('validationCacheRender', ctx));
     const startedAt = Date.now();
     const emitProgress = FC.testHarness && typeof FC.testHarness.emitProgress === 'function' ? FC.testHarness.emitProgress : null;
+    const yieldToBrowser = FC.testHarness && typeof FC.testHarness.yieldToBrowser === 'function' ? FC.testHarness.yieldToBrowser : function(){ return Promise.resolve(); };
     if(emitProgress) emitProgress({ type:'suite-start', label:'ROZRYS smoke testy', total:tests.length });
-    const results = tests.map((test, index)=>{
+    await yieldToBrowser();
+    const results = [];
+    for(let index = 0; index < tests.length; index += 1){
+      const test = tests[index];
       if(emitProgress) emitProgress({ type:'test-start', label:'ROZRYS smoke testy', index:index + 1, total:tests.length, test });
+      await yieldToBrowser();
       try{
         test.fn();
         const row = { group:test.group, name:test.name, explain:test.explain, ok:true };
+        results.push(row);
         if(emitProgress) emitProgress({ type:'test-done', label:'ROZRYS smoke testy', index:index + 1, total:tests.length, row });
-        return row;
+        await yieldToBrowser();
       }catch(error){
         const row = {
           group:test.group,
@@ -430,11 +436,13 @@
           message:error && error.message ? error.message : String(error),
           details:error && error.details ? error.details : null,
         };
+        results.push(row);
         if(emitProgress) emitProgress({ type:'test-done', label:'ROZRYS smoke testy', index:index + 1, total:tests.length, row });
-        return row;
+        await yieldToBrowser();
       }
-    });
+    }
     if(emitProgress) emitProgress({ type:'suite-done', label:'ROZRYS smoke testy', total:tests.length });
+    await yieldToBrowser();
     const passed = results.filter((row)=> row.ok).length;
     const groupsMap = new Map();
     results.forEach((row)=>{

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T20:16:16.961Z",
+  "generatedAt": "2026-05-01T21:07:20.472Z",
   "summary": {
     "jsFiles": 275,
     "indexScripts": 212,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 40,
-      "lines": 10250,
+      "lines": 10271,
       "storageRefs": 229,
       "dialogRefs": 1,
       "high": 6,
@@ -207,7 +207,7 @@
     ],
     [
       "js/testing/rozrys/tests.js",
-      467
+      475
     ],
     [
       "js/app/wycena/wycena-tab-selection.js",
@@ -540,7 +540,7 @@
       "score": 9,
       "area": "TESTY",
       "category": "test",
-      "lines": 467,
+      "lines": 475,
       "incoming": 7,
       "outgoing": 20,
       "secondLevel": 27,
@@ -14318,7 +14318,7 @@
     "js/testing/rozrys/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 467,
+      "lines": 475,
       "defines": [
         "roomRegistry",
         "uiState",
@@ -14563,7 +14563,7 @@
     "js/testing/shared/harness.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 91,
+      "lines": 104,
       "defines": [
         "testHarness"
       ],

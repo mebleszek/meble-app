@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 40 | 10250 | 229 | 1 | 6 | 20 |
+| TESTY | 40 | 10271 | 229 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 26 | 5461 | 0 | 0 | 1 | 7 |
@@ -55,7 +55,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/tabs/wycena.js | 590 | WYCENA | wysokie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/app/quote/quote-scope-entry.js | 489 | WYCENA | średnie |
-| js/testing/rozrys/tests.js | 467 | TESTY | wysokie |
+| js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
 | js/app/wycena/wycena-tab-selection.js | 452 | WYCENA | średnie |
 | js/app/ui/actions-register.js | 449 | UI | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 434 | SZAFKI | niskie |
@@ -144,7 +144,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/project/tests.js | wysokie | 15 | 835 | 11 | 28 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
 | js/app/rozrys/rozrys.js | wysokie | 9 | 842 | 8 | 38 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 13 | 18 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
-| js/testing/rozrys/tests.js | wysokie | 9 | 467 | 7 | 27 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
+| js/testing/rozrys/tests.js | wysokie | 9 | 475 | 7 | 27 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/investor/tests.js | wysokie | 8 | 912 | 1 | 1 | 600+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/cabinet/tests.js | wysokie | 8 | 806 | 6 | 28 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/app/investor/investor-ui.js | wysokie | 8 | 592 | 7 | 21 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących |

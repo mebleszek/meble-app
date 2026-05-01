@@ -293,3 +293,9 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Cleanup testów ma usuwać cały łańcuch testowego inwestora: `fc_investors_v1`, `fc_projects_v1`, `fc_project_inv_*_v1`, snapshoty Wyceny, drafty ofert oraz wskaźniki current.
 - Runtime filter inwestorów ma ignorować znane legacy fixture’y testowe (`Jan Test`, `Room patch`, itp.), jeśli kiedyś pojawią się w appce po recovery.
 - Pełny raport: `tools/reports/test-cleanup-boundary-v1.md`.
+
+## 2026-05-01 — dev tests progress live v2
+
+- Licznik postępu w `dev_tests.html` musi oddawać sterowanie przeglądarce między testami; samo ustawianie DOM nie wystarcza, bo synchroniczne testy blokują paint do końca przebiegu.
+- Wspólny `FC.testHarness.runSuite()` emituje progress i wykonuje `yieldToBrowser()` między krokami.
+- Ręczne runnery testów, które nie używają `runSuite` (np. ROZRYS), muszą korzystać z tego samego helpera, żeby nie wrócił licznik widoczny dopiero na końcu.
