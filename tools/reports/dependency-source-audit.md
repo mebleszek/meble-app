@@ -19,10 +19,10 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 40 | 10312 | 229 | 1 | 6 | 20 |
+| TESTY | 40 | 10320 | 229 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
-| WYCENA | 30 | 5651 | 0 | 0 | 1 | 6 |
+| WYCENA | 30 | 5675 | 0 | 0 | 1 | 6 |
 | INWESTOR | 23 | 3253 | 24 | 0 | 1 | 3 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | MATERIAŁ | 14 | 1970 | 8 | 3 | 0 | 1 |
@@ -159,9 +159,10 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/rozrys/suites/project-stock.js | średnie | 6 | 342 | 13 | 28 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/architecture-contract.js | średnie | 6 | 311 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/state-ui-runtime.js | średnie | 6 | 305 | 7 | 17 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
-| js/testing/wycena/suites/core-offer-workflow.js | średnie | 6 | 273 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/core-offer-workflow.js | średnie | 6 | 277 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/quote/quote-snapshot.js | średnie | 6 | 257 | 10 | 45 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/core-offer-basics.js | średnie | 6 | 252 | 18 | 27 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/investor-integration.js | średnie | 6 | 251 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rysunek/tests.js | średnie | 6 | 117 | 6 | 28 | kilka zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą; systemowe dialogi |
 | js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 693 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/app/wycena/wycena-tab-selection.js | średnie | 5 | 452 | 2 | 15 | 400+ linii; kilka zależności wychodzących |
@@ -173,7 +174,6 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/rozrys/rozrys-engine.js | średnie | 5 | 270 | 6 | 23 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/investor/session.js | średnie | 5 | 259 | 10 | 56 | 250+ linii; dużo zależnych plików |
 | js/app/ui/views.js | średnie | 5 | 250 | 14 | 37 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
-| js/testing/wycena/suites/investor-integration.js | średnie | 5 | 247 | 13 | 18 | dużo zależnych plików; dużo zależności wychodzących |
 | js/app/quote/quote-offer-store.js | średnie | 5 | 238 | 12 | 32 | dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/status-anti-regression.js | średnie | 5 | 161 | 13 | 18 | dużo zależnych plików; dużo zależności wychodzących |
 

@@ -100,7 +100,7 @@
         H.assert(roomB && String(roomB.projectStatus || '') === 'nowy', 'Status pokoju B nie wrócił do nowego po skasowaniu scope A+B', investor);
       })),
 
-    H.makeTest('Wycena', 'Status projektu synchronizuje zaakceptowaną ofertę w obie strony', 'Pilnuje, czy zaakceptowanie wyceny wstępnej daje etap pomiaru, a ręczna zmiana statusu projektu czyści lub przywraca właściwy stan ofert.', ()=>{
+    H.makeTest('Wycena', 'Status projektu zachowuje zaakceptowaną wstępną ofertę po pomiarze', 'Pilnuje, czy zaakceptowanie wyceny wstępnej daje etap pomiaru, a przejście Pomiar → Wycena oznacza oczekiwanie na wycenę końcową bez odrzucania wstępnej oferty.', ()=>{
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         H.assert(typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function', 'Brak FC.quoteSnapshotStore.syncSelectionForProjectStatus');
         const prev = FC.quoteSnapshotStore.readAll();
@@ -111,9 +111,13 @@
           const acceptedPrelim = FC.quoteSnapshotStore.markSelectedForProject('proj_flow', prelim.id, { status:'pomiar' });
           H.assert(acceptedPrelim && acceptedPrelim.meta && acceptedPrelim.meta.selectedByClient === true && acceptedPrelim.meta.acceptedStage === 'pomiar', 'Akceptacja wyceny wstępnej nie ustawiła etapu pomiaru', acceptedPrelim);
           FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'wycena');
-          H.assert(FC.quoteSnapshotStore.getSelectedForProject('proj_flow') == null, 'Przejście projektu na etap wyceny nie wyczyściło zaakceptowanej wyceny wstępnej', FC.quoteSnapshotStore.listForProject('proj_flow'));
+          const keptPrelim = FC.quoteSnapshotStore.getSelectedForProject('proj_flow');
+          H.assert(keptPrelim && String(keptPrelim.id || '') === String(prelim.id || '') && FC.quoteSnapshotStore.isRejectedSnapshot(keptPrelim) === false, 'Przejście Pomiar → Wycena nie powinno odrzucać ani odpiąć zaakceptowanej wyceny wstępnej', { keptPrelim, all:FC.quoteSnapshotStore.listForProject('proj_flow') });
+          H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject('proj_flow', 'wycena') === 'wycena', 'Zaakceptowana wstępna oferta po pomiarze nie może rekomendować powrotu z Wycena na Pomiar', FC.quoteSnapshotStore.listForProject('proj_flow'));
           const syncedFinal = FC.quoteSnapshotStore.syncSelectionForProjectStatus('proj_flow', 'zaakceptowany');
           H.assert(syncedFinal && String(syncedFinal.id || '') === String(finalQuote.id || '') , 'Status zaakceptowany nie wskazał właściwej wyceny po pomiarze', { syncedFinal, all:FC.quoteSnapshotStore.listForProject('proj_flow') });
+          const prelimAfterFinal = FC.quoteSnapshotStore.getById(prelim.id);
+          H.assert(prelimAfterFinal && prelimAfterFinal.meta && prelimAfterFinal.meta.selectedByClient !== true && Number(prelimAfterFinal.meta.rejectedAt || 0) === 0, 'Akceptacja wyceny końcowej nie powinna oznaczać wstępnej oferty jako odrzuconej', prelimAfterFinal);
           H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject('proj_flow', 'zaakceptowany') === 'zaakceptowany', 'Rekomendowany status po zaakceptowanej finalnej ofercie jest błędny', FC.quoteSnapshotStore.listForProject('proj_flow'));
           FC.quoteSnapshotStore.remove(finalQuote.id);
           H.assert(FC.quoteSnapshotStore.getRecommendedStatusForProject('proj_flow', 'zaakceptowany') === 'wstepna_wycena', 'Po usunięciu zwykłej oferty status nie wrócił do wstępnej wyceny', FC.quoteSnapshotStore.listForProject('proj_flow'));

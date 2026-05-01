@@ -259,3 +259,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Split `quote-scope-entry.js` nie dodaje storage i nie zmienia modelu danych snapshotów/ofert.
 - Zakres wejścia do Wyceny (`roomIds`, exact-scope, nazwy wersji) został odseparowany od modali i flow tworzenia snapshotu, co ułatwia późniejsze mapowanie ofert na dokumenty chmurowe.
 - `quote-scope-entry-flow.js` nadal używa istniejących fasad `quoteOfferStore`, `quoteSnapshotStore`, `wycenaCore`, `projectStore` i `projectStatusSync`; nie wolno w tym flow dodawać bezpośrednich zapisów do `localStorage`.
+
+## 2026-05-01 — Status po pomiarze jako oczekiwanie na wycenę końcową
+
+- Dla przyszłej chmury i harmonogramu status `wycena` po etapie `pomiar` należy traktować jako procesowy stan „czeka na wycenę końcową po pomiarze”, a nie jako zmianę decyzji klienta wobec wstępnej oferty.
+- Zaakceptowana wycena wstępna pozostaje dokumentem historycznym/punktem odniesienia; nie jest automatycznie oznaczana jako odrzucona przy przejściu do końcowej wyceny.
+- Przy późniejszym modelu Firestore rozdzielać dokument/status oferty (`selectedByClient`, `rejectedAt`, `acceptedStage`) od procesu projektu/pokoju (`pomiar`, `wycena`, `zaakceptowany`).

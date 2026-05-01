@@ -270,3 +270,9 @@ Po tym etapie `quote-scope-entry.js` nie jest już priorytetowym długiem. Nast�
 2. `js/app/wycena/wycena-tab-selection.js` — ok. 452 linie, miesza wybór zakresu, render modalowy i workflow nazw/snapshotów.
 3. `js/app/investor/investor-ui.js` — duży obszar UI inwestora, ruszać tylko po przejściu event/render/data flow.
 4. `js/app.js` — nadal gruby shell, ale odchudzać wyłącznie małymi delegatorami bez przenoszenia logiki domenowej na ślepo.
+
+## 2026-05-01 — Preliminary measure final-wait v1
+
+- Zatrzymano dalszą optymalizację na rzecz poprawki semantyki statusów Wycena/Inwestor.
+- Poprawka utrwala zasadę procesową: `Pomiar → Wycena` to oczekiwanie na wycenę końcową po pomiarze, nie odrzucenie zaakceptowanej wyceny wstępnej.
+- Po tej poprawce można wrócić do optymalizacji `tabs/wycena.js` albo `wycena-tab-selection.js`; RYSUNEK nadal zostaje na koniec.

@@ -308,3 +308,11 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Publiczne API `FC.quoteScopeEntry` pozostaje fasadą kompatybilną dla zakładki WYCENA i testów; nie przenosić modal UI ani create/open snapshot flow z powrotem do tej fasady.
 - Przy dalszych zmianach ofert/scope kierować kod do właściwej warstwy: scope/nazwy do `quote-scope-entry-scope.js`, modale do `quote-scope-entry-modal.js`, orkiestrację snapshotu/statusu do `quote-scope-entry-flow.js`.
 - Raport: `tools/reports/quote-scope-entry-boundary-v1.md`.
+
+## 2026-05-01 — Preliminary measure final-wait v1
+
+- Status `Pomiar → Wycena` oznacza po pomiarze etap oczekiwania na wycenę końcową, a nie odrzucenie zaakceptowanej wyceny wstępnej.
+- `quote-snapshot-selection.js` nie może przy statusie `wycena` automatycznie odpinać/odrzucać zaakceptowanej wyceny wstępnej, jeśli nie ma zaakceptowanej oferty końcowej w tym scope.
+- Rekonsyliacja statusu ma zachować `wycena` jako świadomy etap po pomiarze; nie cofać automatycznie na `pomiar` tylko dlatego, że zaakceptowana wstępna oferta nadal jest w historii.
+- Testy regresyjne: `core-offer-workflow.js` i `investor-integration.js` pilnują, że zaakceptowana wstępna oferta pozostaje zaakceptowana i nieodrzucona po ręcznej zmianie `Pomiar → Wycena`.
+- Raport: `tools/reports/preliminary-measure-final-wait-v1.md`.

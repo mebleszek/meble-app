@@ -93,12 +93,33 @@
       return updateSelectionForProject(pid, (rows)=> rows.find((row)=> String(row && row.id || '') === sid) || null, explicit, explicit || 'zaakceptowany', options);
     }
 
+    function getActiveSelectedRowsForScope(projectId, options){
+      const pid = String(projectId || '');
+      if(!pid) return [];
+      const projectRows = listForProject(pid);
+      return filterRowsByRoomScope(projectRows, options && options.roomIds, options)
+        .filter((row)=> !!(row && row.meta && row.meta.selectedByClient) && !isRejectedSnapshot(row));
+    }
+
+    function shouldPreserveAcceptedPreliminaryForFinalQuoteStage(projectId, options){
+      const selectedRows = getActiveSelectedRowsForScope(projectId, options);
+      const hasSelectedFinal = selectedRows.some((row)=> !isPreliminarySnapshot(row));
+      if(hasSelectedFinal) return false;
+      return selectedRows.some((row)=> isPreliminarySnapshot(row));
+    }
+
     function syncSelectionForProjectStatus(projectId, status, options){
       const pid = String(projectId || '');
       const normalizedStatus = normalizeStatus(status);
       if(!pid) return null;
       if(normalizedStatus === 'pomiar'){
         return updateSelectionForProject(pid, (rows)=> pickCandidate(rows, (row)=> isPreliminarySnapshot(row)), 'pomiar', 'pomiar', options);
+      }
+      if(normalizedStatus === 'wycena'){
+        if(shouldPreserveAcceptedPreliminaryForFinalQuoteStage(pid, options)){
+          return getActiveSelectedRowsForScope(pid, options).find((row)=> isPreliminarySnapshot(row)) || null;
+        }
+        return updateSelectionForProject(pid, ()=> null, 'wycena', '', options);
       }
       if(FINAL_STATUSES.has(normalizedStatus)){
         return updateSelectionForProject(pid, (rows)=> pickCandidate(rows, (row)=> !isPreliminarySnapshot(row)), normalizedStatus, 'zaakceptowany', options);
@@ -115,7 +136,10 @@
       const activeRows = rows.filter((row)=> !isRejectedSnapshot(row));
       const selected = activeRows.find((row)=> !!(row && row.meta && row.meta.selectedByClient)) || null;
       if(selected){
-        if(isPreliminarySnapshot(selected)) return 'pomiar';
+        if(isPreliminarySnapshot(selected)){
+          if(normalizedCurrent === 'wycena') return 'wycena';
+          return 'pomiar';
+        }
         if(FINAL_STATUSES.has(normalizedCurrent)) return normalizedCurrent;
         return 'zaakceptowany';
       }

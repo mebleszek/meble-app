@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T22:07:23.927Z",
+  "generatedAt": "2026-05-01T23:06:09.407Z",
   "summary": {
     "jsFiles": 279,
     "indexScripts": 216,
@@ -69,7 +69,7 @@
     },
     "WYCENA": {
       "files": 30,
-      "lines": 5651,
+      "lines": 5675,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 1,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 40,
-      "lines": 10312,
+      "lines": 10320,
       "storageRefs": 229,
       "dialogRefs": 1,
       "high": 6,
@@ -813,7 +813,7 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 273,
+      "lines": 277,
       "incoming": 13,
       "outgoing": 22,
       "secondLevel": 18,
@@ -853,6 +853,24 @@
       "incoming": 18,
       "outgoing": 28,
       "secondLevel": 27,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/investor-integration.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 251,
+      "incoming": 13,
+      "outgoing": 22,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1053,23 +1071,6 @@
         "250+ linii",
         "dużo zależnych plików",
         "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/wycena/suites/investor-integration.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 247,
-      "incoming": 13,
-      "outgoing": 22,
-      "secondLevel": 18,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
       ]
     },
     {
@@ -6174,7 +6175,7 @@
     "js/app/quote/quote-snapshot-selection.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 209,
+      "lines": 233,
       "defines": [
         "quoteSnapshotSelection"
       ],
@@ -15401,7 +15402,7 @@
     "js/testing/wycena/suites/core-offer-workflow.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 273,
+      "lines": 277,
       "defines": [
         "registerWycenaTests"
       ],
@@ -15661,7 +15662,7 @@
     "js/testing/wycena/suites/investor-integration.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 247,
+      "lines": 251,
       "defines": [
         "registerWycenaTests"
       ],
@@ -15741,6 +15742,7 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
+        "250+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]

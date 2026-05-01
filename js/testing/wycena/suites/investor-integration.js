@@ -30,7 +30,7 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana statusu inwestora przełącza wskazaną ofertę i status projektu', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor korzysta z tej samej logiki co Wycena i nie rozjeżdża store projektu oraz historii ofert.', ()=>{
+    H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana Pomiar → Wycena zachowuje zaakceptowaną wstępną ofertę', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor oznacza oczekiwanie na wycenę końcową po pomiarze, a nie odrzucenie jedynej zaakceptowanej wyceny wstępnej.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
@@ -45,13 +45,17 @@
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'wycena');
           selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
           record = FC.projectStore.getByInvestorId(investorId);
-          H.assert(selected == null, 'Status wycena nie wyczyścił wskazanej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
-          H.assert(record && String(record.status || '') === 'wycena', 'Status wycena nie zapisał się do projectStore', record);
+          const prelimAfterWycena = FC.quoteSnapshotStore.getById(prelim.id);
+          H.assert(selected && String(selected.id || '') === String(prelim.id || ''), 'Status Wycena po Pomiarze nie może odpiąć zaakceptowanej wyceny wstępnej', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(prelimAfterWycena && FC.quoteSnapshotStore.isRejectedSnapshot(prelimAfterWycena) === false, 'Status Wycena po Pomiarze nie może oznaczyć wstępnej oferty jako odrzuconej', prelimAfterWycena);
+          H.assert(record && String(record.status || '') === 'wycena', 'Status wycena nie zapisał się do projectStore jako etap oczekiwania na wycenę końcową', record);
           FC.quoteSnapshotStore.markSelectedForProject(projectId, finalQuote.id, { status:'zaakceptowany', roomIds:['room_kuchnia_gora'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'zaakceptowany');
           selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
           record = FC.projectStore.getByInvestorId(investorId);
           H.assert(selected && String(selected.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał finalnej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          const prelimAfterFinal = FC.quoteSnapshotStore.getById(prelim.id);
+          H.assert(prelimAfterFinal && FC.quoteSnapshotStore.isRejectedSnapshot(prelimAfterFinal) === false, 'Akceptacja finalnej oferty nie powinna historycznie odrzucać wstępnej oferty', prelimAfterFinal);
           H.assert(record && String(record.status || '') === 'zaakceptowany', 'Status zaakceptowany nie zapisał się do projectStore', record);
         });
       }),
