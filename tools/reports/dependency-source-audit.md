@@ -19,19 +19,19 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 39 | 9798 | 199 | 1 | 6 | 20 |
+| TESTY | 39 | 9840 | 215 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 20 | 5357 | 0 | 0 | 2 | 5 |
 | INWESTOR | 23 | 3244 | 24 | 0 | 1 | 3 |
-| UI | 27 | 3013 | 0 | 6 | 0 | 2 |
+| UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | MATERIAŁ | 14 | 1970 | 8 | 3 | 0 | 1 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | PROJEKT | 8 | 1444 | 0 | 0 | 0 | 6 |
 | KATALOG/USŁUGI | 9 | 1349 | 0 | 0 | 0 | 1 |
-| DANE/STORAGE | 15 | 1313 | 36 | 0 | 0 | 0 |
+| DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
 | BOOT/APP SHELL | 5 | 1273 | 4 | 0 | 1 | 1 |
 | SHARED | 10 | 822 | 0 | 0 | 0 | 0 |
 | ZAKŁADKI | 2 | 218 | 0 | 0 | 0 | 0 |
@@ -117,7 +117,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Referencje | Obszar | Ryzyko |
 | --- | --- | --- | --- |
 | js/testing/project/tests.js | 112 | TESTY | wysokie |
-| js/testing/data-safety/tests.js | 21 | TESTY | niskie |
+| js/testing/data-safety/tests.js | 37 | TESTY | niskie |
 | js/testing/investor/tests.js | 20 | TESTY | wysokie |
 | js/testing/material/tests.js | 19 | TESTY | niskie |
 | js/app/shared/storage.js | 17 | DANE/STORAGE | niskie |

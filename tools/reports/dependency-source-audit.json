@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T14:52:44.945Z",
+  "generatedAt": "2026-05-01T16:50:58.715Z",
   "summary": {
     "jsFiles": 268,
     "indexScripts": 206,
@@ -93,7 +93,7 @@
     },
     "DANE/STORAGE": {
       "files": 15,
-      "lines": 1313,
+      "lines": 1325,
       "storageRefs": 36,
       "dialogRefs": 0,
       "high": 0,
@@ -109,7 +109,7 @@
     },
     "UI": {
       "files": 27,
-      "lines": 3013,
+      "lines": 3037,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -141,8 +141,8 @@
     },
     "TESTY": {
       "files": 39,
-      "lines": 9798,
-      "storageRefs": 199,
+      "lines": 9840,
+      "storageRefs": 215,
       "dialogRefs": 1,
       "high": 6,
       "medium": 20
@@ -401,7 +401,7 @@
     ],
     [
       "js/testing/data-safety/tests.js",
-      21
+      37
     ],
     [
       "js/testing/investor/tests.js",
@@ -8754,7 +8754,7 @@
     "js/app/shared/data-backup-policy.js": {
       "area": "DANE/STORAGE",
       "category": "store/storage",
-      "lines": 86,
+      "lines": 97,
       "defines": [
         "dataBackupPolicy"
       ],
@@ -9018,7 +9018,7 @@
     "js/app/shared/data-backup-store.js": {
       "area": "DANE/STORAGE",
       "category": "store/storage",
-      "lines": 167,
+      "lines": 168,
       "defines": [
         "dataBackupStore"
       ],
@@ -11040,7 +11040,7 @@
     "js/app/ui/data-settings-backup-view.js": {
       "area": "UI",
       "category": "store/storage",
-      "lines": 53,
+      "lines": 77,
       "defines": [
         "dataSettingsBackupView"
       ],
@@ -11063,7 +11063,7 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 2,
+      "domRefs": 4,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -12894,7 +12894,7 @@
     "js/testing/data-safety/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 167,
+      "lines": 209,
       "defines": [
         "dataSafetyDevTests"
       ],
@@ -12921,7 +12921,7 @@
       "secondLevelFiles": [
         "js/testing/dev-tests-page.js"
       ],
-      "storageRefs": 21,
+      "storageRefs": 37,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,

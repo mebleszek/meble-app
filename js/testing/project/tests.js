@@ -124,7 +124,7 @@
       }),
 
 
-      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia 10 najnowszych backupów w każdej grupie, usuwa tylko starszy nadmiar i nie miesza backupów testowych z programowymi.', ()=>{
+      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia dotychczasową retencję programu, a backupy testowe tnie do maksymalnie 10 najnowszych sztuk.', ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.pruneNow === 'function', 'Brak FC.dataBackupStore.pruneNow');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const prevBackupsRaw = localStorage.getItem(backupKey);
@@ -144,7 +144,7 @@
         try{
           const seed = [];
           for(let i=0;i<13;i += 1) seed.push(fakeBackup('app_' + i, 'manual', i, i === 12));
-          for(let i=0;i<13;i += 1) seed.push(fakeBackup('test_' + i, 'before-tests', i, i === 12));
+          for(let i=0;i<13;i += 1) seed.push(fakeBackup('test_' + i, 'before-tests', i, false));
           localStorage.setItem(backupKey, JSON.stringify(seed));
           const pruned = FC.dataBackupStore.pruneNow();
           const ids = new Set(pruned.map((item)=> item.id));
@@ -153,10 +153,10 @@
             H.assert(ids.has('test_' + i), 'Sprzątanie usunęło jeden z 10 najnowszych backupów testowych', pruned);
           }
           H.assert(!ids.has('app_10') && !ids.has('app_11'), 'Sprzątanie nie usunęło starego nadmiaru programu poza ostatnią dziesiątką', pruned);
-          H.assert(!ids.has('test_10') && !ids.has('test_11'), 'Sprzątanie nie usunęło starego nadmiaru testów poza ostatnią dziesiątką', pruned);
-          H.assert(ids.has('app_12') && ids.has('test_12'), 'Sprzątanie usunęło przypięty stary backup', pruned);
+          H.assert(!ids.has('test_10') && !ids.has('test_11') && !ids.has('test_12'), 'Sprzątanie testów powinno usunąć najstarsze backupy ponad limit 10', pruned);
+          H.assert(ids.has('app_12'), 'Sprzątanie usunęło przypięty stary backup programu', pruned);
           const groups = FC.dataBackupStore.listBackupGroups();
-          H.assert(groups.app.length === 11 && groups.test.length === 11, 'Grupy backupów nie są liczone osobno po retencji', groups);
+          H.assert(groups.app.length === 11 && groups.test.length === 10, 'Grupy backupów nie trzymają osobnej retencji programu i testów', groups);
         } finally {
           if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
         }

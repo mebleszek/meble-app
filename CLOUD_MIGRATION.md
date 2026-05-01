@@ -228,3 +228,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Testy Wyceny nie mogą zostawiać trwałych `fc_project_inv_*_v1`, bo legacy sloty projektu są danymi użytkownika/kompatybilności, a nie śmietnikiem testowym.
 - Fixture testów przywraca teraz dokładny zestaw legacy slotów sprzed testu, co ogranicza sztuczne osierocone dane i ułatwia późniejsze rozdzielenie lokalnych slotów od docelowego repozytorium chmurowego.
 - Nie zmieniono modelu danych ani nie dodano migracji; poprawka dotyczy izolacji testów i ręcznego sprzątania osieroconych slotów.
+
+
+## 2026-05-01 — Retencja backupów testowych
+
+- Automatyczne backupy testowe `before-tests` są danymi technicznymi/testowymi, nie docelowym archiwum użytkownika.
+- Ustalono twardy lokalny limit: maksymalnie 10 najnowszych backupów testowych; najstarsze testowe kopie są automatycznie usuwane przy zapisie kolejnych.
+- Ręczne backupy programu pozostają na wcześniejszej, bezpieczniejszej polityce retencji i nie są ograniczane tym limitem.

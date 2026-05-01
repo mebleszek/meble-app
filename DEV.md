@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_investor_project_boundary_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_orphan_fixture_cleanup_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -70,10 +70,10 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - UI backupu jest podzielone na DOM/helpery, menu ustawień, akcje, listę, widok backupu i shell modala.
 - Nie dokładać nowych funkcji do `data-settings-modal.js` ani `data-backup-store.js`, jeśli należą do istniejących warstw szczegółowych.
 - Backupy programu i testowe mają osobne accordiony oraz osobną retencję:
-  - zostaje 10 najnowszych w każdej grupie,
+  - ręczne/programowe backupy zostają na dotychczasowej polityce: minimum 10 najnowszych, retencja 7 dni, przypięte / `safe-state` chronione,
+  - backupy testowe `before-tests` mają twardy limit maksymalnie 10 najnowszych sztuk; przy tworzeniu kolejnego backupu testowego najstarsze testowe kopie są usuwane automatycznie,
   - 3 najnowsze w każdej grupie są chronione przed ręcznym usunięciem,
-  - przypięte / `safe-state` są chronione zawsze,
-  - automatyczne czyszczenie rusza tylko nadmiar starszy niż 7 dni i nie rusza chronionych.
+  - ręczna polityka backupów programu nie może być zmieniana przy okazji sprzątania testów.
 - Backup nie powinien obejmować technicznych stanów sesji/cache: `fc_edit_session_v1`, `fc_reload_restore_v1`, `fc_rozrys_plan_cache_v2`.
 - Snapshot backupu nie obejmuje roboczych kopii awaryjnych projektu/inwestorów ani cache ROZRYS: `fc_project_backup_*`, `fc_project_inv_*_backup*`, `fc_investors_backup_*`, `fc_rozrys_plan_cache_v1/v2`.
 - Przy zapisie backup store stare backupy są sanitizowane z tych technicznych kluczy bez zmiany retencji 10/3/przypięte. Raport/audyt pamięci jest przeniesiony do `dev_tests.html` → `Narzędzia pamięci`; zwykły panel `Backup i dane` zostaje do backupu, importu, eksportu i list backupów.
@@ -270,3 +270,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Naprawiono izolację testowego fixture Wyceny: `withInvestorProjectFixture` snapshotuje i przywraca legacy sloty `fc_project_inv_*_v1`, żeby testy nie zostawiały osieroconych projektów po przebiegu.
 - Dodano kontrakt Wyceny, że fixture nie zmienia zestawu legacy slotów, oraz kontrakt danych, że czyszczenie sierot usuwa tylko osierocone sloty i zostawia slot aktywnego inwestora.
 - To jest poprawka test/data-safety, bez zmian UI, runtime aplikacji, formatu danych i backupów.
+
+
+## 2026-05-01 — Test backup retention / UI state
+
+- Test `Data safety` dla czyszczenia osieroconych slotów ma być odporny na realne dane użytkownika: nie zakłada dokładnie jednej sieroty w localStorage.
+- Backupy testowe `before-tests` mają maksymalnie 10 najnowszych kopii; ręczne backupy programu pozostają na dotychczasowej retencji.
+- Lista backupów w panelu ustawień ma zachowywać stan otwarcia accordiona oraz scroll po usunięciu backupu.

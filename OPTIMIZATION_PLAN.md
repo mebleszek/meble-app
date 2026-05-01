@@ -210,3 +210,13 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Zakres naprawczy przed dalszą optymalizacją: testy Wyceny po splicie investor-project mogły zostawiać legacy sloty `fc_project_inv_*_v1` jako osierocone projekty.
 - Naprawa została wykonana w fixture testowym, nie przez zmianę runtime aplikacji. Dzięki temu dalsza optymalizacja może kontynuować zasadę: najpierw zabezpieczenie przepływu danych, potem split plików mieszających odpowiedzialności.
 - Przed kolejnymi zmianami w Wycena/Inwestor trzeba pilnować, żeby fixture’y przywracały pełne granice danych, nie tylko główne store’y.
+
+
+## 2026-05-01 — Data safety test/backup retention fix
+
+Zakres utrzymaniowy, bez RYSUNKU i bez zmiany UI wizualnego:
+
+- poprawiono za ciasny test czyszczenia osieroconych slotów projektu,
+- dodano twardy limit 10 najnowszych backupów testowych `before-tests`,
+- zachowano dotychczasową retencję ręcznych backupów programu,
+- poprawiono zachowanie listy backupów po usunięciu: accordion i scroll mają zostać w miejscu.

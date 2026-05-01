@@ -142,6 +142,7 @@
     STORE_KEY,
     RETENTION_DAYS:policy.RETENTION_DAYS || 7,
     MIN_KEEP:policy.MIN_KEEP || 10,
+    TEST_MAX_KEEP:policy.TEST_MAX_KEEP || 10,
     AUTO_PROTECT_LATEST:policy.AUTO_PROTECT_LATEST || 3,
     createBackup,
     ensureCurrentStateBackup,

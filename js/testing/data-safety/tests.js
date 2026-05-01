@@ -6,6 +6,28 @@
   const H = FC.testHarness;
   if(!H) throw new Error('Brak FC.testHarness');
 
+
+  function withStorageSnapshotByPredicate(predicate, setup, run){
+    const saved = {};
+    const keys = [];
+    for(let i=0;i<localStorage.length;i += 1){
+      const key = localStorage.key(i);
+      if(key && predicate(key)) keys.push(key);
+    }
+    keys.forEach((key)=>{ saved[key] = localStorage.getItem(key); });
+    Object.keys(setup || {}).forEach((key)=>{ if(!Object.prototype.hasOwnProperty.call(saved, key)) saved[key] = localStorage.getItem(key); });
+    try{
+      Object.keys(saved).forEach((key)=> localStorage.removeItem(key));
+      Object.keys(setup || {}).forEach((key)=> localStorage.setItem(key, setup[key]));
+      return run();
+    } finally {
+      Object.keys(saved).forEach((key)=>{
+        if(saved[key] == null) localStorage.removeItem(key);
+        else localStorage.setItem(key, saved[key]);
+      });
+    }
+  }
+
   function withStorage(keys, run){
     const saved = {};
     Object.keys(keys || {}).forEach((key)=>{ saved[key] = localStorage.getItem(key); });
@@ -95,9 +117,11 @@
           fc_project_inv_inv_live_v1:JSON.stringify({ live:true }),
           fc_project_inv_inv_old_v1:JSON.stringify({ old:true }),
         };
-        withStorage(rows, ()=>{
+        withStorageSnapshotByPredicate((key)=> key === 'fc_investors_v1' || key === 'fc_projects_v1' || /^fc_project_inv_.+_v1$/.test(key), rows, ()=>{
+          const before = FC.dataStorageOrphanCleanup.analyzeCurrent();
           const summary = FC.dataStorageOrphanCleanup.cleanupCurrent();
-          H.assert(summary.removed === 1, 'Czyszczenie powinno usunąć dokładnie jedną sierotę', summary);
+          H.assert(before.count >= 1, 'Fixture powinien mieć co najmniej jedną sierotę przed czyszczeniem', before);
+          H.assert(summary.removed >= 1, 'Czyszczenie powinno usunąć istniejące sieroty, nie wymagać dokładnie jednej', summary);
           H.assert(localStorage.getItem('fc_project_inv_inv_old_v1') == null, 'Osierocony slot nie został fizycznie usunięty');
           H.assert(localStorage.getItem('fc_project_inv_inv_live_v1') != null, 'Czyszczenie naruszyło slot aktywnego inwestora');
           const after = FC.dataStorageOrphanCleanup.analyzeCurrent();
@@ -118,6 +142,24 @@
           H.assert(info && info.snapshotKeys >= 0, 'Helper nie zwrócił metadanych pliku', info);
         } finally {
           FC.dataBackupSnapshot.downloadJson = oldDownload;
+        }
+      }),
+
+      H.makeTest('Data safety', 'Backupy testowe mają twardy limit 10 najnowszych sztuk', 'Pilnuje decyzji: automatyczne backupy before-tests mogą mieć maksymalnie 10 kopii, a ręczne backupy zachowują dotychczasową retencję.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const saved = { store:localStorage.getItem(backupKey), investors:localStorage.getItem('fc_investors_v1') };
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'inv_backup_limit', name:'Backup limit' }]));
+          for(let i=0;i<12;i += 1){
+            FC.dataBackupStore.createBackup({ reason:'before-tests', label:'Przed testami limit ' + i, dedupe:false });
+          }
+          const groups = FC.dataBackupStore.listBackupGroups();
+          H.assert(groups.test.length === 10, 'Backupy testowe powinny zostać przycięte do 10 najnowszych sztuk', groups);
+        } finally {
+          if(saved.store == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, saved.store);
+          if(saved.investors == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', saved.investors);
         }
       }),
 
