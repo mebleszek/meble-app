@@ -278,12 +278,15 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_accept_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup accept fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup accept fallback' }, totals:{ grand:141 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292500 });
+            markSelectedCalls = 0;
+            upsertCalls = 0;
+            saveCalls = 0;
             const result = withMutedExpectedWarnings('Brak FC.projectStatusSync.commitAcceptedSnapshot', ()=> FC.wycenaTabDebug.commitAcceptedSnapshotWithSync(snapshot, 'pomiar'));
             H.assert(result === null, 'Po sprzątaniu ETAPU 4 akceptacja bez helpera powinna się zatrzymać zamiast uruchomić stary fallback', result);
+            H.assert(markSelectedCalls === 0, 'Wróciło stare lokalne markSelectedForProject w Wycena', { markSelectedCalls, upsertCalls, saveCalls });
+            H.assert(upsertCalls === 0, 'Wrócił stary lokalny zapis projectStore przy akceptacji', { markSelectedCalls, upsertCalls, saveCalls });
+            H.assert(saveCalls === 0, 'Wrócił stary lokalny zapis session projektu przy akceptacji', { markSelectedCalls, upsertCalls, saveCalls });
           });
-          H.assert(markSelectedCalls === 0, 'Wróciło stare lokalne markSelectedForProject w Wycena', { markSelectedCalls, upsertCalls, saveCalls });
-          H.assert(upsertCalls === 0, 'Wrócił stary lokalny zapis projectStore przy akceptacji', { markSelectedCalls, upsertCalls, saveCalls });
-          H.assert(saveCalls === 0, 'Wrócił stary lokalny zapis session projektu przy akceptacji', { markSelectedCalls, upsertCalls, saveCalls });
         } finally {
           FC.projectStatusSync.commitAcceptedSnapshot = prevCommit;
           if(prevMarkSelected) FC.quoteSnapshotStore.markSelectedForProject = prevMarkSelected;
@@ -330,12 +333,15 @@
         try{
           withInvestorProjectFixture({}, ({ investorId, projectId })=>{
             const snapshot = FC.quoteSnapshotStore.save({ id:'snap_cleanup_convert_fallback', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt cleanup convert fallback' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Cleanup convert fallback' }, totals:{ grand:161 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820292700, meta:{ selectedByClient:true, acceptedAt:1712820292700, acceptedStage:'pomiar', preliminary:true } });
+            convertCalls = 0;
+            upsertCalls = 0;
+            saveCalls = 0;
             const result = withMutedExpectedWarnings('Brak FC.projectStatusSync.promotePreliminarySnapshotToFinal', ()=> FC.wycenaTabDebug.promotePreliminarySnapshotToFinal(snapshot));
             H.assert(result === null, 'Po sprzątaniu ETAPU 4 brak helpera konwersji powinien zatrzymać flow zamiast uruchomić stary fallback', result);
+            H.assert(convertCalls === 0, 'Wróciło stare lokalne convertPreliminaryToFinal w Wycena', { convertCalls, upsertCalls, saveCalls });
+            H.assert(upsertCalls === 0, 'Wrócił stary lokalny zapis projectStore przy konwersji', { convertCalls, upsertCalls, saveCalls });
+            H.assert(saveCalls === 0, 'Wrócił stary lokalny zapis session projektu przy konwersji', { convertCalls, upsertCalls, saveCalls });
           });
-          H.assert(convertCalls === 0, 'Wróciło stare lokalne convertPreliminaryToFinal w Wycena', { convertCalls, upsertCalls, saveCalls });
-          H.assert(upsertCalls === 0, 'Wrócił stary lokalny zapis projectStore przy konwersji', { convertCalls, upsertCalls, saveCalls });
-          H.assert(saveCalls === 0, 'Wrócił stary lokalny zapis session projektu przy konwersji', { convertCalls, upsertCalls, saveCalls });
         } finally {
           FC.projectStatusSync.promotePreliminarySnapshotToFinal = prevPromote;
           if(prevConvert) FC.quoteSnapshotStore.convertPreliminaryToFinal = prevConvert;

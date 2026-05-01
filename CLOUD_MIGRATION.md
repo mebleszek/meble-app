@@ -216,3 +216,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Nie zmieniono formatu danych: nadal istnieją `fc_project_v1`, `fc_projects_v1` i legacy sloty `fc_project_inv_*_v1`, ale nowe odwołania w obszarze inwestor/projekt powinny przechodzić przez repository/runtime zamiast rozproszonego `localStorage`.
 - To jest etap przygotowawczy pod przyszły adapter chmurowy: `investor-project-runtime.js` obsługuje aktywny projekt i zachowuje dotychczasowe publiczne wejścia, a repository jest miejscem późniejszej wymiany lokalnych slotów na Firestore/remote sync.
 - Nadal nie robiono ukrytej migracji ani automatycznego czyszczenia backupów/slotów; polityka backupów pozostaje bez zmian.
+
+## Decyzja — status boundary v1 (`site_project_status_boundary_v1.zip`)
+
+- Synchronizacja statusu projektu/pomieszczeń została rozdzielona bez zmiany formatu danych i bez nowego `localStorage`.
+- Zapis luster statusów idzie przez istniejące granice `FC.investorPersistence`, `FC.investors`, `FC.projectStore` i `FC.project.save`; `project-status-sync.js` nie powinien bezpośrednio zapisywać storage.
+- Workflow zaakceptowanych ofert/snapshotów jest osobnym modułem `project-status-snapshot-flow.js`, co ułatwia późniejsze mapowanie statusów i historii ofert na dokumenty Firestore.

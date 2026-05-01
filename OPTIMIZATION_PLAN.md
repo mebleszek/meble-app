@@ -198,3 +198,9 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - Nowe moduły: `investor-project-repository.js`, `investor-project-runtime.js`, `investor-project-patches.js`; stary `investor-project.js` został cienkim inicjatorem.
 - Bezpośrednie odwołania do `localStorage` w tym obszarze zostały zamknięte w repository; audyt storage spadł z 237 do 234 referencji.
 - Następny sensowny kandydat: `investor-ui.js` tylko jeśli ruszamy inwestora/UI, albo powrót do WYCENA/statusy. Nie ruszać RYSUNKU do czasu osobnej decyzji.
+
+## Wykonane — project status boundary v1
+
+- `js/app/project/project-status-sync.js` został rozdzielony na trzy odpowiedzialności: mirrors/persistence refresh, core reconcile/apply engine oraz snapshot acceptance/removal/promotion flow.
+- Kolejne porządki w statusach robić tylko po konkretnej ścieżce biznesowej i z kontraktem testowym; nie wrzucać workflow snapshotów ani zapisu luster z powrotem do silnika statusów.
+- Następni kandydaci poza RYSUNKIEM: `wycena-core.js` collect split, `tabs/wycena.js` dalszy shell split albo `investor-ui.js` po osobnym przejściu ścieżek render/event.

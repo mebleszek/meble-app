@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-04-30T08:54:54.701Z",
+  "generatedAt": "2026-04-30T09:35:46.079Z",
   "summary": {
-    "jsFiles": 266,
-    "indexScripts": 204,
-    "devTestScripts": 221,
-    "fcSymbols": 193,
-    "fcSymbolsAll": 216,
-    "edges": 1280,
+    "jsFiles": 268,
+    "indexScripts": 206,
+    "devTestScripts": 223,
+    "fcSymbols": 195,
+    "fcSymbolsAll": 218,
+    "edges": 1299,
     "highRisk": 12,
-    "mediumRisk": 44
+    "mediumRisk": 46
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -60,12 +60,12 @@
       "medium": 1
     },
     "PROJEKT": {
-      "files": 6,
-      "lines": 1371,
+      "files": 8,
+      "lines": 1444,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 4
+      "medium": 6
     },
     "WYCENA": {
       "files": 20,
@@ -226,8 +226,8 @@
       434
     ],
     [
-      "js/app/project/project-status-sync.js",
-      398
+      "js/testing/rozrys/suites/helpers-bridges.js",
+      390
     ]
   ],
   "topIncoming": [
@@ -241,7 +241,7 @@
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      30
+      31
     ],
     [
       "js/app/investor/investors-store.js",
@@ -300,42 +300,42 @@
       14
     ],
     [
+      "js/app/project/project-status-snapshot-flow.js",
+      14
+    ],
+    [
+      "js/app/project/project-status-sync.js",
+      14
+    ],
+    [
       "js/app/shared/ui-state.js",
-      14
-    ],
-    [
-      "js/app/ui/views.js",
-      14
-    ],
-    [
-      "js/testing/rozrys/suites/helpers-bridges.js",
       14
     ]
   ],
   "topSecond": [
     [
       "js/app/shared/storage.js",
-      98
+      100
     ],
     [
       "js/app/shared/utils.js",
-      98
+      100
     ],
     [
       "js/app/shared/constants.js",
-      83
+      85
     ],
     [
       "js/app/shared/room-registry.js",
-      68
+      69
     ],
     [
       "js/app/project/project-store.js",
-      65
+      67
     ],
     [
       "js/app/investor/investors-store.js",
-      58
+      60
     ],
     [
       "js/app/project/project-bridge.js",
@@ -370,19 +370,15 @@
       46
     ],
     [
+      "js/app/quote/quote-snapshot-store.js",
+      45
+    ],
+    [
       "js/app/rozrys/rozrys.js",
       44
     ],
     [
-      "js/app/quote/quote-snapshot-store.js",
-      43
-    ],
-    [
       "js/app/rozrys/rozrys-shell.js",
-      43
-    ],
-    [
-      "js/app/ui/views.js",
       43
     ],
     [
@@ -391,6 +387,10 @@
     ],
     [
       "js/app/bootstrap/reload-restore.js",
+      41
+    ],
+    [
+      "js/app/cabinet/cabinet-cutlist.js",
       41
     ]
   ],
@@ -524,7 +524,7 @@
       "category": "test",
       "lines": 643,
       "incoming": 13,
-      "outgoing": 28,
+      "outgoing": 29,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -579,7 +579,7 @@
       "category": "test",
       "lines": 907,
       "incoming": 1,
-      "outgoing": 35,
+      "outgoing": 36,
       "secondLevel": 1,
       "storageRefs": 20,
       "dialogRefs": 0,
@@ -616,7 +616,7 @@
       "lines": 592,
       "incoming": 7,
       "outgoing": 18,
-      "secondLevel": 31,
+      "secondLevel": 21,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -734,24 +734,6 @@
       ]
     },
     {
-      "file": "js/app/project/project-status-sync.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 398,
-      "incoming": 13,
-      "outgoing": 10,
-      "secondLevel": 31,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/testing/rozrys/suites/scope-runtime-controllers.js",
       "risk": "średnie",
       "score": 6,
@@ -833,7 +815,7 @@
       "category": "test",
       "lines": 273,
       "incoming": 13,
-      "outgoing": 21,
+      "outgoing": 22,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -852,7 +834,7 @@
       "lines": 257,
       "incoming": 10,
       "outgoing": 8,
-      "secondLevel": 39,
+      "secondLevel": 41,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -956,14 +938,32 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 30,
+      "incoming": 31,
       "outgoing": 6,
-      "secondLevel": 43,
+      "secondLevel": 45,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
         "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/app/project/project-status-scope.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 312,
+      "incoming": 5,
+      "outgoing": 9,
+      "secondLevel": 22,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "kilka zależnych plików",
+        "kilka zależności wychodzących"
       ]
     },
     {
@@ -974,7 +974,7 @@
       "category": "domain/controller",
       "lines": 296,
       "incoming": 6,
-      "outgoing": 8,
+      "outgoing": 9,
       "secondLevel": 26,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1028,7 +1028,7 @@
       "lines": 250,
       "incoming": 14,
       "outgoing": 10,
-      "secondLevel": 43,
+      "secondLevel": 37,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1045,7 +1045,7 @@
       "category": "test",
       "lines": 247,
       "incoming": 13,
-      "outgoing": 21,
+      "outgoing": 22,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1079,7 +1079,7 @@
       "category": "test",
       "lines": 220,
       "incoming": 13,
-      "outgoing": 24,
+      "outgoing": 25,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1096,7 +1096,7 @@
       "category": "test",
       "lines": 161,
       "incoming": 13,
-      "outgoing": 18,
+      "outgoing": 19,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1113,7 +1113,7 @@
       "category": "test",
       "lines": 155,
       "incoming": 13,
-      "outgoing": 20,
+      "outgoing": 21,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1147,7 +1147,7 @@
       "category": "test",
       "lines": 128,
       "incoming": 13,
-      "outgoing": 17,
+      "outgoing": 18,
       "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1360,6 +1360,22 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-sync.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 234,
+      "incoming": 14,
+      "outgoing": 4,
+      "secondLevel": 34,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/testing/test-data-manager.js",
       "risk": "średnie",
       "score": 4,
@@ -1385,7 +1401,7 @@
       "lines": 197,
       "incoming": 23,
       "outgoing": 5,
-      "secondLevel": 65,
+      "secondLevel": 67,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1418,7 +1434,23 @@
       "lines": 149,
       "incoming": 28,
       "outgoing": 3,
-      "secondLevel": 58,
+      "secondLevel": 60,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/app/project/project-status-snapshot-flow.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 130,
+      "incoming": 14,
+      "outgoing": 3,
+      "secondLevel": 34,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1433,7 +1465,7 @@
       "category": "domain/controller",
       "lines": 101,
       "incoming": 14,
-      "outgoing": 3,
+      "outgoing": 4,
       "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1493,8 +1525,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -1531,14 +1563,14 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
-        "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-project.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
-        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-definitions.js",
@@ -1759,8 +1791,8 @@
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/core-failsafe.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -2662,8 +2694,8 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
@@ -2738,7 +2770,7 @@
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -2779,7 +2811,7 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -2815,7 +2847,7 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
@@ -2852,7 +2884,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -2884,7 +2916,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -2951,7 +2983,7 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -3017,8 +3049,8 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -3032,6 +3064,7 @@
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js"
       ],
       "secondLevelFiles": [
@@ -3044,10 +3077,10 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
-        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/core-failsafe.js",
-        "js/app/shared/room-registry-impact.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
@@ -3260,7 +3293,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -3301,7 +3334,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -3346,7 +3379,7 @@
       "incomingFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -3376,15 +3409,13 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
-        "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
-        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/core-failsafe.js",
-        "js/app/shared/room-registry-impact.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
@@ -3395,15 +3426,7 @@
         "js/core/modals.js",
         "js/tabs/wycena.js",
         "js/testing/investor/tests.js",
-        "js/testing/project/tests.js",
-        "js/testing/wycena/suites/architecture-contract.js",
-        "js/testing/wycena/suites/central-status-sync.js",
-        "js/testing/wycena/suites/core-offer-workflow.js",
-        "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/project-status-scope-contract.js",
-        "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js",
-        "js/testing/wycena/tests.js"
+        "js/testing/project/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3445,8 +3468,8 @@
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -3510,8 +3533,8 @@
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -3572,8 +3595,8 @@
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-rooms.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -3626,8 +3649,8 @@
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-rooms.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
@@ -3667,7 +3690,9 @@
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -3835,7 +3860,7 @@
         "js/app/material/material-tab-data.js",
         "js/app/material/price-modal-context.js",
         "js/app/project/project-bridge.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -3958,8 +3983,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -4979,8 +5004,8 @@
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -5007,14 +5032,14 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
-        "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-project.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
-        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-definitions.js",
@@ -5104,8 +5129,8 @@
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot.js",
@@ -5169,6 +5194,7 @@
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -5181,8 +5207,8 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -5217,6 +5243,64 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/app/project/project-status-mirrors.js": {
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 107,
+      "defines": [
+        "projectStatusMirrors"
+      ],
+      "uses": [
+        "projectStatusScope",
+        "roomRegistry",
+        "investorPersistence",
+        "investors",
+        "projectStore",
+        "project",
+        "views",
+        "investorUI",
+        "projectStatusMirrors"
+      ],
+      "incomingFiles": [
+        "js/app/project/project-status-sync.js"
+      ],
+      "outgoingFiles": [
+        "js/app.js",
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investor-ui.js",
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-bridge.js",
+        "js/app/project/project-status-scope.js",
+        "js/app/project/project-store.js",
+        "js/app/shared/room-registry.js",
+        "js/app/ui/views.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/shared/room-registry-impact.js",
+        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/testing/investor/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
+    },
     "js/app/project/project-status-scope.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
@@ -5236,6 +5320,8 @@
         "projectStatusScope"
       ],
       "incomingFiles": [
+        "js/app/project/project-status-mirrors.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/project-status-scope-contract.js"
@@ -5254,6 +5340,8 @@
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/investor/tests.js",
@@ -5278,34 +5366,31 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
         "250+ linii",
+        "kilka zależnych plików",
         "kilka zależności wychodzących"
       ]
     },
-    "js/app/project/project-status-sync.js": {
+    "js/app/project/project-status-snapshot-flow.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 398,
+      "lines": 130,
       "defines": [
+        "projectStatusSnapshotFlow",
         "projectStatusSync"
       ],
       "uses": [
         "projectStatusScope",
-        "roomRegistry",
-        "investorPersistence",
-        "investors",
-        "projectStore",
-        "project",
-        "views",
-        "investorUI",
+        "projectStatusSync",
         "quoteSnapshotStore",
-        "projectStatusSync"
+        "projectStatusSnapshotFlow"
       ],
       "incomingFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/investor/tests.js",
@@ -5319,16 +5404,9 @@
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
-        "js/app.js",
-        "js/app/investor/investor-persistence.js",
-        "js/app/investor/investor-ui.js",
-        "js/app/investor/investors-store.js",
-        "js/app/project/project-bridge.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-store.js",
-        "js/app/quote/quote-snapshot-store.js",
-        "js/app/shared/room-registry.js",
-        "js/app/ui/views.js"
+        "js/app/project/project-status-sync.js",
+        "js/app/quote/quote-snapshot-store.js"
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
@@ -5336,8 +5414,11 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/shared/room-registry-core.js",
+        "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
@@ -5370,9 +5451,88 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależnych plików"
+      ]
+    },
+    "js/app/project/project-status-sync.js": {
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 234,
+      "defines": [
+        "projectStatusSync"
+      ],
+      "uses": [
+        "projectStatusScope",
+        "projectStatusMirrors",
+        "quoteSnapshotStore",
+        "projectStatusSync"
+      ],
+      "incomingFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/shared/room-registry-impact.js",
+        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/testing/investor/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/project/project-status-mirrors.js",
+        "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/quote/quote-snapshot-store.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investor-rooms.js",
+        "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
+        "js/app/project/project-status-scope.js",
+        "js/app/shared/room-registry-core.js",
+        "js/app/shared/room-registry-impact.js",
+        "js/app/shared/room-registry-project-sync.js",
+        "js/app/ui/actions-register.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-tab-status-actions.js",
+        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/tabs/wycena.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "dużo zależnych plików"
       ]
     },
     "js/app/project/project-store.js": {
@@ -5395,8 +5555,8 @@
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot.js",
@@ -5437,7 +5597,9 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -5688,7 +5850,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -5748,6 +5910,7 @@
       "secondLevelFiles": [
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5806,6 +5969,7 @@
       "secondLevelFiles": [
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5863,6 +6027,7 @@
       "incomingFiles": [
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -5905,7 +6070,9 @@
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -6000,7 +6167,9 @@
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry.js",
@@ -6453,8 +6622,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
@@ -8297,7 +8466,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/shared/core-failsafe.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
@@ -8395,7 +8564,9 @@
         "js/app/material/price-modal-context.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -9097,8 +9268,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -9229,8 +9400,8 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -9386,6 +9557,7 @@
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -9414,7 +9586,7 @@
       "risk": "niskie",
       "reasons": [
         "250+ linii",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/app/shared/room-registry-modals-add-edit.js": {
@@ -9522,8 +9694,8 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -9622,8 +9794,8 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -9708,8 +9880,8 @@
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -9742,7 +9914,6 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/investor/investor-actions.js",
-        "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-ui.js",
@@ -9751,7 +9922,9 @@
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -9847,6 +10020,8 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-mirrors.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-project-sync.js",
@@ -9909,8 +10084,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-definitions.js",
@@ -10036,7 +10211,9 @@
         "js/app/material/price-modal.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
@@ -10164,7 +10341,7 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/rozrys/rozrys-shell.js",
         "js/app/rozrys/rozrys.js",
@@ -10276,7 +10453,9 @@
         "js/app/project/project-bridge.js",
         "js/app/project/project-model.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -10397,8 +10576,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/app-view.js",
@@ -10539,8 +10718,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -10601,8 +10780,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -10737,7 +10916,7 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys.js",
@@ -11066,7 +11245,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
         "js/app/project/project-status-manual-guard.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys.js",
@@ -11498,7 +11677,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
@@ -11523,18 +11702,16 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/investor/investor-actions.js",
-        "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-tab-data.js",
-        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/core-failsafe.js",
-        "js/app/shared/room-registry-impact.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/sections.js",
@@ -11553,13 +11730,9 @@
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
-        "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
-        "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/project-status-scope-contract.js",
-        "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
@@ -11600,7 +11773,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
-        "js/app/project/project-status-sync.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/shared/core-failsafe.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
@@ -12233,6 +12406,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -12423,8 +12597,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -12480,8 +12654,8 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
-        "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
@@ -12944,6 +13118,7 @@
         "js/app/investor/investors-model.js",
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
@@ -14326,6 +14501,7 @@
       ],
       "outgoingFiles": [
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -14420,6 +14596,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -14626,6 +14803,7 @@
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-pdf.js",
@@ -14886,6 +15064,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -14968,6 +15147,7 @@
       ],
       "outgoingFiles": [
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/testing/shared/harness.js",
@@ -15293,6 +15473,7 @@
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
         "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/testing/shared/harness.js",
@@ -15375,6 +15556,7 @@
       "outgoingFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -15456,6 +15638,7 @@
       "outgoingFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",

@@ -19,10 +19,12 @@
         FC.project.save = function(){ saveCalls += 1; return prevSave.apply(this, arguments); };
         try{
           withInvestorProjectFixture({}, ({ investorId })=>{
+            upsertCalls = 0;
+            saveCalls = 0;
             FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_kuchnia_gora', 'pomiar');
+            H.assert(upsertCalls === 0, 'Guard nie powinien sam zapisywać projectStore', { upsertCalls, saveCalls });
+            H.assert(saveCalls === 0, 'Guard nie powinien sam zapisywać projektu do session store', { upsertCalls, saveCalls });
           });
-          H.assert(upsertCalls === 0, 'Guard nie powinien sam zapisywać projectStore', { upsertCalls, saveCalls });
-          H.assert(saveCalls === 0, 'Guard nie powinien sam zapisywać projektu do session store', { upsertCalls, saveCalls });
         } finally {
           FC.projectStore.upsert = prevUpsert;
           FC.project.save = prevSave;

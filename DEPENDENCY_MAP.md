@@ -29,7 +29,7 @@ Raport jest heurystyką opartą głównie o symbole `FC.*`, load order i proste 
 
 ### `index.html`
 
-Aplikacja produkcyjna ładuje obecnie 184 skrypty. Kolejność można czytać jako warstwy:
+Aplikacja produkcyjna ładuje obecnie 206 skryptów. Kolejność można czytać jako warstwy:
 
 1. `boot`, core i guardy: `js/boot.js`, `js/core/*`, `js/app/shared/core-failsafe.js`, `dom-guard`.
 2. Shared/dane: constants, utils, migrate, schema, storage, data-storage, backup.
@@ -42,7 +42,7 @@ Aplikacja produkcyjna ładuje obecnie 184 skrypty. Kolejność można czytać ja
 
 ### `dev_tests.html`
 
-Testy ręczne ładują obecnie 192 skrypty. Układ jest podobny, ale uproszczony i dołożony o test harness oraz moduły testowe. To jedyne ręczne wejście do testów. W tej paczce dołożono jawne ładowanie `project-autosave.js` oraz rozbite suite testów ROZRYS.
+Testy ręczne ładują obecnie 223 skrypty. Układ jest podobny, ale uproszczony i dołożony o test harness oraz moduły testowe. To jedyne ręczne wejście do testów. W tej paczce dołożono jawne ładowanie `project-autosave.js` oraz rozbite suite testów ROZRYS.
 
 ### Lazy/special load
 
@@ -296,3 +296,7 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - Publiczne metody `FC.projectStatusSync` pozostają bez zmian; nowe `FC.projectStatusScope` jest kontraktowane przez `js/testing/wycena/suites/project-status-scope-contract.js`.
 - Przy dalszym splitcie statusów najpierw dodać kontrakt konkretnej ścieżki: `commitAcceptedSnapshot`, `applyProjectStatusChange`, `reconcileProjectStatuses` albo mirror save.
 
+## Aktualizacja — project status boundary v1
+
+- W warstwie `tabs-quote-wycena` po `project-status-scope.js` ładowane są kolejno: `project-status-mirrors.js`, `project-status-sync.js`, `project-status-snapshot-flow.js`, a następnie `project-status-manual-guard.js`.
+- `FC.projectStatusSync` pozostaje publiczną fasadą, ale zapis luster statusów i workflow snapshotów mają własne moduły.
