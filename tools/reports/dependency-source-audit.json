@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-01T19:51:15.530Z",
+  "generatedAt": "2026-05-01T20:16:16.961Z",
   "summary": {
-    "jsFiles": 274,
+    "jsFiles": 275,
     "indexScripts": 212,
-    "devTestScripts": 229,
+    "devTestScripts": 230,
     "fcSymbols": 201,
-    "fcSymbolsAll": 224,
-    "edges": 1329,
+    "fcSymbolsAll": 225,
+    "edges": 1332,
     "highRisk": 11,
     "mediumRisk": 48
   },
@@ -140,8 +140,8 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 39,
-      "lines": 10085,
+      "files": 40,
+      "lines": 10250,
       "storageRefs": 229,
       "dialogRefs": 1,
       "high": 6,
@@ -207,7 +207,7 @@
     ],
     [
       "js/testing/rozrys/tests.js",
-      459
+      467
     ],
     [
       "js/app/wycena/wycena-tab-selection.js",
@@ -252,6 +252,10 @@
       27
     ],
     [
+      "js/testing/shared/harness.js",
+      25
+    ],
+    [
       "js/app.js",
       24
     ],
@@ -261,10 +265,6 @@
     ],
     [
       "js/app/project/project-store.js",
-      23
-    ],
-    [
-      "js/testing/shared/harness.js",
       23
     ],
     [
@@ -540,9 +540,9 @@
       "score": 9,
       "area": "TESTY",
       "category": "test",
-      "lines": 459,
+      "lines": 467,
       "incoming": 7,
-      "outgoing": 19,
+      "outgoing": 20,
       "secondLevel": 27,
       "storageRefs": 1,
       "dialogRefs": 0,
@@ -13258,23 +13258,27 @@
     "js/testing/dev-tests-page.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 260,
+      "lines": 273,
       "defines": [
         "devTestsPage"
       ],
       "uses": [
         "devTestsRegistry",
         "devTestsReportView",
+        "devTestsProgress",
         "testDataManager",
+        "testHarness",
         "testDataSafety",
         "devTestsStorageTools",
         "devTestsPage"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
+        "js/testing/dev-tests-progress.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/dev-tests-report-view.js",
         "js/testing/dev-tests-storage-tools.js",
+        "js/testing/shared/harness.js",
         "js/testing/test-data-manager.js",
         "js/testing/test-data-safety.js"
       ],
@@ -13286,8 +13290,32 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "250+ linii",
+        "kilka zależności wychodzących"
       ]
+    },
+    "js/testing/dev-tests-progress.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 125,
+      "defines": [
+        "devTestsProgress"
+      ],
+      "uses": [
+        "devTestsProgress"
+      ],
+      "incomingFiles": [
+        "js/testing/dev-tests-page.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 2,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
     },
     "js/testing/dev-tests-registry.js": {
       "area": "TESTY",
@@ -14290,7 +14318,7 @@
     "js/testing/rozrys/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 459,
+      "lines": 467,
       "defines": [
         "roomRegistry",
         "uiState",
@@ -14308,6 +14336,7 @@
         "rozrysEngine",
         "cutOptimizer",
         "rozrysPrintLayout",
+        "testHarness",
         "rozrysDevTests"
       ],
       "incomingFiles": [
@@ -14338,6 +14367,7 @@
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
+        "js/testing/shared/harness.js",
         "js/testing/wycena/suites/core-offer-basics.js"
       ],
       "secondLevelFiles": [
@@ -14533,7 +14563,7 @@
     "js/testing/shared/harness.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 72,
+      "lines": 91,
       "defines": [
         "testHarness"
       ],
@@ -14543,10 +14573,12 @@
       "incomingFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/data-safety/tests.js",
+        "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
         "js/testing/shared/browser-page.js",

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_wycena_core_platform_split_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_test_cleanup_boundary_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -105,7 +105,8 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
   - `dev-tests-registry.js` — rejestr i zbieranie raportów testów,
   - `dev-tests-report-view.js` — render raportów i tekst do schowka,
   - `dev-tests-storage-tools.js` — narzędzia pamięci,
-  - `dev-tests-page.js` — cienki kontroler ekranu i przełączania sekcji.
+  - `dev-tests-page.js` — cienki kontroler ekranu, przełączania sekcji i spinania progresu,
+  - `dev-tests-progress.js` — licznik postępu testów `x/y` oraz aktualnie wykonywany test/sekcja.
 
 ## MATERIAŁ — aktualny stan po cleanup etap 2
 

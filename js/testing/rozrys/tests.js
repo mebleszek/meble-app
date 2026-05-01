@@ -412,12 +412,17 @@
       .concat(collectSuiteTests('optimizerContracts', ctx))
       .concat(collectSuiteTests('validationCacheRender', ctx));
     const startedAt = Date.now();
-    const results = tests.map((test)=>{
+    const emitProgress = FC.testHarness && typeof FC.testHarness.emitProgress === 'function' ? FC.testHarness.emitProgress : null;
+    if(emitProgress) emitProgress({ type:'suite-start', label:'ROZRYS smoke testy', total:tests.length });
+    const results = tests.map((test, index)=>{
+      if(emitProgress) emitProgress({ type:'test-start', label:'ROZRYS smoke testy', index:index + 1, total:tests.length, test });
       try{
         test.fn();
-        return { group:test.group, name:test.name, explain:test.explain, ok:true };
+        const row = { group:test.group, name:test.name, explain:test.explain, ok:true };
+        if(emitProgress) emitProgress({ type:'test-done', label:'ROZRYS smoke testy', index:index + 1, total:tests.length, row });
+        return row;
       }catch(error){
-        return {
+        const row = {
           group:test.group,
           name:test.name,
           explain:test.explain,
@@ -425,8 +430,11 @@
           message:error && error.message ? error.message : String(error),
           details:error && error.details ? error.details : null,
         };
+        if(emitProgress) emitProgress({ type:'test-done', label:'ROZRYS smoke testy', index:index + 1, total:tests.length, row });
+        return row;
       }
     });
+    if(emitProgress) emitProgress({ type:'suite-done', label:'ROZRYS smoke testy', total:tests.length });
     const passed = results.filter((row)=> row.ok).length;
     const groupsMap = new Map();
     results.forEach((row)=>{

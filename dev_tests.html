@@ -68,6 +68,12 @@
     .dev-tests-section{ margin-top:16px; padding:16px; border:1px solid var(--border); border-radius:18px; background:#fbfcff; }
     .section-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
     .report-toolbar{ margin-top:16px; }
+    .test-progress{ margin-top:16px; padding:14px 16px; border-radius:16px; border:1px solid var(--info-border); background:var(--info); }
+    .test-progress__head{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:18px; }
+    .test-progress__head span{ font-weight:900; white-space:nowrap; }
+    .test-progress__bar{ margin-top:10px; height:10px; border-radius:999px; background:#fff; border:1px solid var(--border); overflow:hidden; }
+    .test-progress__bar span{ display:block; height:100%; border-radius:999px; background:var(--ok-border); transition:width .18s ease; }
+    .test-progress__meta{ margin-top:8px; color:var(--muted); font-weight:700; line-height:1.35; }
     @media (max-width:820px){ .dev-tests-home{ grid-template-columns:1fr; } .section-head{ flex-direction:column; } }
   </style>
 </head>
@@ -128,6 +134,8 @@
           <button id="runServiceTests" data-run-mode="service" data-label="Tylko USŁUGI" type="button">Tylko USŁUGI</button>
         </div>
       </section>
+
+      <div id="testProgress" class="test-progress" hidden></div>
 
       <div id="reportToolbar" class="toolbar report-toolbar" hidden>
         <button id="copyReport" data-label="Kopiuj raport" class="button-good" type="button" disabled>Kopiuj raport</button>
@@ -358,7 +366,7 @@
 <script src="js/app/rozrys/rozrys.js?v=20260420_rozrys_render_compose_split_v1"></script>
   <script src="js/app/rozrys/rozrys-pickers.js?v=20260331_boot_fix_v1"></script>
   <script src="js/app/rozrys/rozrys-selection-ui.js?v=20260329_material_scope_chip_sync_v1"></script>
-  <script src="js/testing/shared/harness.js?v=20260416_async_harness_v1"></script>
+  <script src="js/testing/shared/harness.js?v=20260501_dev_test_progress_v1"></script>
   <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/test-data-manager.js?v=20260501_test_cleanup_boundary_v1"></script>
   <script src="js/testing/test-data-safety.js?v=20260426_orphan_guard_v1"></script>
@@ -372,7 +380,7 @@
   
   <script src="js/testing/rozrys/suites/validation-cache-render.js?v=20260426_rozrys_tests_split_v1"></script>
   <script src="js/testing/rozrys/suites/optimizer-contracts.js?v=20260427_speedmax_split_v1"></script>
-  <script src="js/testing/rozrys/tests.js?v=20260427_speedmax_split_v1"></script>
+  <script src="js/testing/rozrys/tests.js?v=20260501_dev_test_progress_v1"></script>
   <script src="js/testing/project/tests.js?v=20260501_test_backup_retention_ui_v1"></script>
   <script src="js/testing/investor/tests.js?v=20260501_test_cleanup_boundary_v1"></script>
   <script src="js/testing/material/tests.js?v=20260424_material_cleanup_v1"></script>
@@ -397,7 +405,8 @@
   <script src="js/testing/dev-tests-registry.js?v=20260426_test_hub_v1"></script>
   <script src="js/testing/dev-tests-report-view.js?v=20260426_test_hub_v1"></script>
   <script src="js/testing/dev-tests-storage-tools.js?v=20260426_test_hub_v1"></script>
-  <script src="js/testing/dev-tests-page.js?v=20260426_test_hub_v1"></script>
+  <script src="js/testing/dev-tests-progress.js?v=20260501_dev_test_progress_v1"></script>
+  <script src="js/testing/dev-tests-page.js?v=20260501_dev_test_progress_v1"></script>
   <script>
     (function(){
       window.FC = window.FC || {};

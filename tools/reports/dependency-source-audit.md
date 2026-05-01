@@ -6,12 +6,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Metryka | Wartość |
 | --- | --- |
-| Pliki JS | 274 |
+| Pliki JS | 275 |
 | Skrypty w index.html | 212 |
-| Skrypty w dev_tests.html | 229 |
-| Krawędzie zależności po symbolach FC | 1329 |
+| Skrypty w dev_tests.html | 230 |
+| Krawędzie zależności po symbolach FC | 1332 |
 | Symbole FC z właścicielem produkcyjnym | 201 |
-| Symbole FC z właścicielem razem | 224 |
+| Symbole FC z właścicielem razem | 225 |
 | Pliki z ryzykiem wysokim / nie ruszać | 11 |
 | Pliki z ryzykiem średnim | 48 |
 
@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 39 | 10085 | 229 | 1 | 6 | 20 |
+| TESTY | 40 | 10250 | 229 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 26 | 5461 | 0 | 0 | 1 | 7 |
@@ -55,7 +55,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/tabs/wycena.js | 590 | WYCENA | wysokie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/app/quote/quote-scope-entry.js | 489 | WYCENA | średnie |
-| js/testing/rozrys/tests.js | 459 | TESTY | wysokie |
+| js/testing/rozrys/tests.js | 467 | TESTY | wysokie |
 | js/app/wycena/wycena-tab-selection.js | 452 | WYCENA | średnie |
 | js/app/ui/actions-register.js | 449 | UI | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 434 | SZAFKI | niskie |
@@ -71,10 +71,10 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/quote/quote-snapshot-store.js | 31 | WYCENA | średnie |
 | js/app/investor/investors-store.js | 28 | INWESTOR | średnie |
 | js/app/shared/room-registry.js | 27 | POMIESZCZENIA | niskie |
+| js/testing/shared/harness.js | 25 | TESTY | niskie |
 | js/app.js | 24 | BOOT/APP SHELL | wysokie |
 | js/app/project/project-bridge.js | 23 | PROJEKT | średnie |
 | js/app/project/project-store.js | 23 | PROJEKT | średnie |
-| js/testing/shared/harness.js | 23 | TESTY | niskie |
 | js/app/ui/info-box.js | 22 | UI | niskie |
 | js/app/ui/confirm-box.js | 19 | UI | niskie |
 | js/app/shared/constants.js | 18 | SHARED | niskie |
@@ -144,7 +144,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/project/tests.js | wysokie | 15 | 835 | 11 | 28 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
 | js/app/rozrys/rozrys.js | wysokie | 9 | 842 | 8 | 38 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 13 | 18 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
-| js/testing/rozrys/tests.js | wysokie | 9 | 459 | 7 | 27 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
+| js/testing/rozrys/tests.js | wysokie | 9 | 467 | 7 | 27 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/investor/tests.js | wysokie | 8 | 912 | 1 | 1 | 600+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/cabinet/tests.js | wysokie | 8 | 806 | 6 | 28 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/app/investor/investor-ui.js | wysokie | 8 | 592 | 7 | 21 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących |
@@ -238,6 +238,15 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Bezpośrednio zależne pliki (27): js/app/investor/investor-room-actions.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope.js<br>js/app/quote/quote-offer-store.js<br>js/app/quote/quote-scope-entry.js<br>js/app/quote/quote-snapshot-scope.js +19
 - Pośrednio zależne pliki (69): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-project-runtime.js<br>js/app/investor/investor-room-actions.js<br>js/app/investor/investor-ui.js<br>js/app/material/material-edge-store.js<br>js/app/material/material-part-options.js +61
 
+### js/testing/shared/harness.js
+
+- Obszar: TESTY
+- Kategoria: test
+- Ryzyko: niskie (dużo zależnych plików)
+- Definiuje FC: testHarness
+- Bezpośrednio zależne pliki (25): js/testing/cabinet/tests.js<br>js/testing/data-safety/tests.js<br>js/testing/dev-tests-page.js<br>js/testing/dev-tests-registry.js<br>js/testing/investor/tests.js<br>js/testing/material/tests.js<br>js/testing/project/tests.js<br>js/testing/rozrys/tests.js +17
+- Pośrednio zależne pliki (24): js/testing/cabinet/tests.js<br>js/testing/dev-tests-page.js<br>js/testing/dev-tests-registry.js<br>js/testing/investor/tests.js<br>js/testing/project/tests.js<br>js/testing/rozrys/suites/helpers-bridges.js<br>js/testing/rozrys/suites/project-stock.js<br>js/testing/rozrys/tests.js +16
+
 ### js/app.js
 
 - Obszar: BOOT/APP SHELL
@@ -264,15 +273,6 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Definiuje FC: projectStore
 - Bezpośrednio zależne pliki (23): js/app/investor/investor-project-repository.js<br>js/app/investor/investor-ui.js<br>js/app/project/project-bridge.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope.js<br>js/app/quote/quote-offer-store.js<br>js/app/quote/quote-scope-entry.js +15
 - Pośrednio zależne pliki (69): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal-set-wizard.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-patches.js +61
-
-### js/testing/shared/harness.js
-
-- Obszar: TESTY
-- Kategoria: test
-- Ryzyko: niskie (dużo zależnych plików)
-- Definiuje FC: testHarness
-- Bezpośrednio zależne pliki (23): js/testing/cabinet/tests.js<br>js/testing/data-safety/tests.js<br>js/testing/dev-tests-registry.js<br>js/testing/investor/tests.js<br>js/testing/material/tests.js<br>js/testing/project/tests.js<br>js/testing/rysunek/tests.js<br>js/testing/service/tests.js +15
-- Pośrednio zależne pliki (24): js/testing/cabinet/tests.js<br>js/testing/dev-tests-page.js<br>js/testing/dev-tests-registry.js<br>js/testing/investor/tests.js<br>js/testing/project/tests.js<br>js/testing/rozrys/suites/helpers-bridges.js<br>js/testing/rozrys/suites/project-stock.js<br>js/testing/rozrys/tests.js +16
 
 ### js/app/ui/info-box.js
 

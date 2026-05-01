@@ -168,7 +168,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/investor/investor-project.js',
   'js/app/cabinet/cabinet-actions.js',
   'js/testing/shared/harness.js',
-  'js/testing/test-data-manager.js', 'js/testing/test-data-safety.js', 'js/testing/data-safety/tests.js', 'js/testing/dev-tests-storage-tools.js',
+  'js/testing/test-data-manager.js', 'js/testing/test-data-safety.js', 'js/testing/data-safety/tests.js', 'js/testing/dev-tests-storage-tools.js', 'js/testing/dev-tests-progress.js',
   'js/testing/project/tests.js',
   'js/testing/investor/tests.js',
   'js/testing/wycena/fixtures.js',

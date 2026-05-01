@@ -244,3 +244,11 @@ Zakres utrzymaniowy przed dalszą optymalizacją:
 - dodano kontrakt data-safety pilnujący całego łańcucha: inwestor → projekt → slot → snapshot → draft.
 
 Po tym etapie można wrócić do optymalizacji Wyceny/Inwestora, nadal zostawiając RYSUNEK na koniec.
+
+## Dev tests progress v1 — 2026-05-01
+
+- Dodano osobny moduł `js/testing/dev-tests-progress.js`, żeby licznik postępu testów nie trafiał do cięższego kontrolera strony.
+- `testHarness` emituje zdarzenia `suite-start/test-start/test-done/suite-done`; runner ROZRYS, który ma własny mechanizm, emituje zgodny kontrakt ręcznie.
+- `dev_tests.html` pokazuje postęp `x/y`, aktualną sekcję i aktualny test bez zmiany runtime aplikacji oraz bez nowych zapisów do storage.
+- Dalsza optymalizacja testów powinna iść w kierunku dzielenia dużych plików suite przy okazji zmian w danym obszarze, nie jako osobna kosmetyczna paczka.
+
