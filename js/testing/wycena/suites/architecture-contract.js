@@ -120,6 +120,47 @@
         'snapshotScopeOverlaps',
         'getRecommendedStatusMapForProject',
       ]);
+      assertFunctions(H, FC.quoteScopeEntryUtils, 'FC.quoteScopeEntryUtils', [
+        'clone',
+        'h',
+        'getCurrentProjectId',
+        'getCurrentInvestorId',
+        'normalizeRoomIds',
+        'normalizeType',
+      ]);
+      assertFunctions(H, FC.quoteScopeEntryScope, 'FC.quoteScopeEntryScope', [
+        'normalizeRoomIds',
+        'normalizeType',
+        'getScopeRoomIds',
+        'getScopeSummary',
+        'listExactScopeSnapshots',
+        'findExactScopeSnapshot',
+        'isVersionNameTaken',
+        'buildSuggestedVersionName',
+        'describeScopeMatch',
+      ]);
+      assertFunctions(H, FC.quoteScopeEntryModal, 'FC.quoteScopeEntryModal', [
+        'openExistingOrCreateModal',
+        'openNameModal',
+      ]);
+      assertFunctions(H, FC.quoteScopeEntryFlow, 'FC.quoteScopeEntryFlow', [
+        'openExistingSnapshot',
+        'createNewSnapshot',
+        'ensureScopedQuoteEntry',
+        'promptNewVersionName',
+      ]);
+      assertFunctions(H, FC.quoteScopeEntry, 'FC.quoteScopeEntry', [
+        'getScopeRoomIds',
+        'getScopeSummary',
+        'listExactScopeSnapshots',
+        'findExactScopeSnapshot',
+        'isVersionNameTaken',
+        'buildSuggestedVersionName',
+        'describeScopeMatch',
+        'ensureScopedQuoteEntry',
+        'openExistingSnapshot',
+        'promptNewVersionName',
+      ]);
       assertFunctions(H, FC.projectStatusScope, 'FC.projectStatusScope', [
         'normalizeStatus',
         'statusRank',

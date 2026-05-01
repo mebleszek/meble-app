@@ -252,3 +252,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Sprzątanie danych testowych zostało domknięte jako osobny testowy boundary, bez zmiany produkcyjnego modelu danych.
 - Testowe rekordy inwestorów/projektów mają stabilne markery i mogą później mapować się do osobnej przestrzeni technicznej w chmurze zamiast mieszać się z realnymi dokumentami użytkownika.
 - Cleanup testów usuwa powiązania po `investorId` i `projectId`, co odpowiada przyszłemu podejściu repozytoryjnemu/adapterowemu: usunięcie technicznego rekordu testowego musi usuwać też jego podrzędne dokumenty techniczne.
+
+
+## 2026-05-01 — Quote scope entry boundary v1
+
+- Split `quote-scope-entry.js` nie dodaje storage i nie zmienia modelu danych snapshotów/ofert.
+- Zakres wejścia do Wyceny (`roomIds`, exact-scope, nazwy wersji) został odseparowany od modali i flow tworzenia snapshotu, co ułatwia późniejsze mapowanie ofert na dokumenty chmurowe.
+- `quote-scope-entry-flow.js` nadal używa istniejących fasad `quoteOfferStore`, `quoteSnapshotStore`, `wycenaCore`, `projectStore` i `projectStatusSync`; nie wolno w tym flow dodawać bezpośrednich zapisów do `localStorage`.

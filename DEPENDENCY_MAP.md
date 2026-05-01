@@ -300,3 +300,14 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 
 - W warstwie `tabs-quote-wycena` po `project-status-scope.js` ładowane są kolejno: `project-status-mirrors.js`, `project-status-sync.js`, `project-status-snapshot-flow.js`, a następnie `project-status-manual-guard.js`.
 - `FC.projectStatusSync` pozostaje publiczną fasadą, ale zapis luster statusów i workflow snapshotów mają własne moduły.
+
+## 2026-05-01 — Quote scope entry boundary v1
+
+- Warstwa `tabs-quote-wycena` ładuje teraz kolejno: `quote-scope-entry-utils.js`, `quote-scope-entry-scope.js`, `quote-scope-entry-modal.js`, `quote-scope-entry-flow.js`, `quote-scope-entry.js`.
+- `FC.quoteScopeEntry` pozostaje publiczną fasadą, ale logika odpowiedzialności jest przeniesiona do warstw:
+  - `FC.quoteScopeEntryScope` — exact-scope, roomIds, nazwy wersji, dopasowanie snapshotów,
+  - `FC.quoteScopeEntryModal` — modale i blokada body,
+  - `FC.quoteScopeEntryFlow` — draft/snapshot/status/preview i przejście do Wyceny,
+  - `FC.quoteScopeEntryUtils` — helpery i bieżące ID.
+- Przy dalszych zmianach w wejściu Wyceny utrzymywać tę kolejność w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- Raport źródłowy po paczce: `tools/reports/dependency-source-audit.md` oraz `tools/reports/quote-scope-entry-boundary-v1.md`.

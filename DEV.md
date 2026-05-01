@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_test_cleanup_boundary_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_dev_tests_progress_live_v2.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -299,3 +299,12 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Licznik postępu w `dev_tests.html` musi oddawać sterowanie przeglądarce między testami; samo ustawianie DOM nie wystarcza, bo synchroniczne testy blokują paint do końca przebiegu.
 - Wspólny `FC.testHarness.runSuite()` emituje progress i wykonuje `yieldToBrowser()` między krokami.
 - Ręczne runnery testów, które nie używają `runSuite` (np. ROZRYS), muszą korzystać z tego samego helpera, żeby nie wrócił licznik widoczny dopiero na końcu.
+
+
+## 2026-05-01 — Quote scope entry boundary v1
+
+- Rozdzielono `js/app/quote/quote-scope-entry.js`, który mieszał scope, modal UI, nazewnictwo wersji, flow snapshotu i przejście do Wyceny.
+- Nowy load order: `quote-scope-entry-utils.js` → `quote-scope-entry-scope.js` → `quote-scope-entry-modal.js` → `quote-scope-entry-flow.js` → `quote-scope-entry.js`.
+- Publiczne API `FC.quoteScopeEntry` pozostaje fasadą kompatybilną dla zakładki WYCENA i testów; nie przenosić modal UI ani create/open snapshot flow z powrotem do tej fasady.
+- Przy dalszych zmianach ofert/scope kierować kod do właściwej warstwy: scope/nazwy do `quote-scope-entry-scope.js`, modale do `quote-scope-entry-modal.js`, orkiestrację snapshotu/statusu do `quote-scope-entry-flow.js`.
+- Raport: `tools/reports/quote-scope-entry-boundary-v1.md`.

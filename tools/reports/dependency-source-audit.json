@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-01T21:07:20.472Z",
+  "generatedAt": "2026-05-01T22:07:23.927Z",
   "summary": {
-    "jsFiles": 275,
-    "indexScripts": 212,
-    "devTestScripts": 230,
-    "fcSymbols": 201,
-    "fcSymbolsAll": 225,
-    "edges": 1332,
+    "jsFiles": 279,
+    "indexScripts": 216,
+    "devTestScripts": 234,
+    "fcSymbols": 205,
+    "fcSymbolsAll": 229,
+    "edges": 1352,
     "highRisk": 11,
-    "mediumRisk": 48
+    "mediumRisk": 47
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -68,12 +68,12 @@
       "medium": 6
     },
     "WYCENA": {
-      "files": 26,
-      "lines": 5461,
+      "files": 30,
+      "lines": 5651,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 1,
-      "medium": 7
+      "medium": 6
     },
     "ROZRYS": {
       "files": 42,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 40,
-      "lines": 10271,
+      "lines": 10312,
       "storageRefs": 229,
       "dialogRefs": 1,
       "high": 6,
@@ -202,10 +202,6 @@
       493
     ],
     [
-      "js/app/quote/quote-scope-entry.js",
-      489
-    ],
-    [
       "js/testing/rozrys/tests.js",
       475
     ],
@@ -228,6 +224,10 @@
     [
       "js/testing/rozrys/suites/helpers-bridges.js",
       390
+    ],
+    [
+      "js/app/cabinet/cabinet-choice-launchers.js",
+      388
     ]
   ],
   "topIncoming": [
@@ -241,11 +241,11 @@
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      31
+      32
     ],
     [
       "js/app/investor/investors-store.js",
-      28
+      30
     ],
     [
       "js/app/shared/room-registry.js",
@@ -260,16 +260,16 @@
       24
     ],
     [
+      "js/app/project/project-store.js",
+      24
+    ],
+    [
       "js/app/project/project-bridge.js",
       23
     ],
     [
-      "js/app/project/project-store.js",
-      23
-    ],
-    [
       "js/app/ui/info-box.js",
-      22
+      23
     ],
     [
       "js/app/ui/confirm-box.js",
@@ -315,27 +315,27 @@
   "topSecond": [
     [
       "js/app/shared/utils.js",
-      100
+      104
     ],
     [
       "js/app/shared/storage.js",
-      99
+      101
     ],
     [
       "js/app/shared/constants.js",
-      85
+      87
     ],
     [
       "js/app/project/project-store.js",
-      69
+      73
     ],
     [
       "js/app/shared/room-registry.js",
-      69
+      72
     ],
     [
       "js/app/investor/investors-store.js",
-      62
+      66
     ],
     [
       "js/app/project/project-bridge.js",
@@ -362,6 +362,10 @@
       48
     ],
     [
+      "js/app/quote/quote-snapshot-store.js",
+      47
+    ],
+    [
       "js/app/shared/ui-state.js",
       47
     ],
@@ -370,28 +374,24 @@
       46
     ],
     [
-      "js/app/quote/quote-snapshot-store.js",
-      45
-    ],
-    [
       "js/app/quote/quote-snapshot.js",
-      43
+      45
     ],
     [
       "js/app/bootstrap/reload-restore.js",
       41
     ],
     [
-      "js/app/shared/schema.js",
+      "js/app/project/project-model.js",
       41
     ],
     [
-      "js/app/project/project-model.js",
-      40
+      "js/app/rozrys/rozrys-scope.js",
+      41
     ],
     [
-      "js/app/rozrys/rozrys-scope.js",
-      40
+      "js/app/shared/schema.js",
+      41
     ]
   ],
   "topStorage": [
@@ -634,7 +634,7 @@
       "lines": 590,
       "incoming": 6,
       "outgoing": 16,
-      "secondLevel": 22,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -660,24 +660,6 @@
         "dużo publicznych symboli FC",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/quote/quote-scope-entry.js",
-      "risk": "średnie",
-      "score": 7,
-      "area": "WYCENA",
-      "category": "ui/render/events",
-      "lines": 489,
-      "incoming": 5,
-      "outgoing": 10,
-      "secondLevel": 26,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -789,6 +771,24 @@
       ]
     },
     {
+      "file": "js/testing/wycena/suites/architecture-contract.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 311,
+      "incoming": 13,
+      "outgoing": 36,
+      "secondLevel": 18,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/suites/state-ui-runtime.js",
       "risk": "średnie",
       "score": 6,
@@ -826,24 +826,6 @@
       ]
     },
     {
-      "file": "js/testing/wycena/suites/architecture-contract.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 270,
-      "incoming": 13,
-      "outgoing": 31,
-      "secondLevel": 18,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/app/quote/quote-snapshot.js",
       "risk": "średnie",
       "score": 6,
@@ -852,7 +834,7 @@
       "lines": 257,
       "incoming": 10,
       "outgoing": 8,
-      "secondLevel": 43,
+      "secondLevel": 45,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -959,7 +941,7 @@
       "lines": 317,
       "incoming": 13,
       "outgoing": 1,
-      "secondLevel": 40,
+      "secondLevel": 41,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -974,9 +956,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 31,
+      "incoming": 32,
       "outgoing": 6,
-      "secondLevel": 45,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1097,9 +1079,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 238,
-      "incoming": 11,
+      "incoming": 12,
       "outgoing": 8,
-      "secondLevel": 31,
+      "secondLevel": 32,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1201,7 +1183,7 @@
       "lines": 96,
       "incoming": 14,
       "outgoing": 7,
-      "secondLevel": 35,
+      "secondLevel": 34,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1401,9 +1383,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 23,
+      "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 69,
+      "secondLevel": 73,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1434,9 +1416,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 149,
-      "incoming": 28,
+      "incoming": 30,
       "outgoing": 3,
-      "secondLevel": 62,
+      "secondLevel": 66,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -2852,7 +2834,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -3476,7 +3458,9 @@
         "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
@@ -3542,7 +3526,9 @@
         "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
@@ -3608,7 +3594,9 @@
         "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
@@ -3662,7 +3650,9 @@
         "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
@@ -3705,6 +3695,10 @@
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -5135,7 +5129,8 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
@@ -5561,7 +5556,8 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -5606,6 +5602,10 @@
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -5686,7 +5686,8 @@
       ],
       "incomingFiles": [
         "js/app/project/project-status-manual-guard.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -5711,13 +5712,14 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-manual-guard.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-project-sync.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
-        "js/app/wycena/wycena-tab-selection.js",
         "js/tabs/wycena.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -5806,12 +5808,181 @@
         "250+ linii"
       ]
     },
-    "js/app/quote/quote-scope-entry.js": {
+    "js/app/quote/quote-scope-entry-flow.js": {
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 186,
+      "defines": [
+        "quoteScopeEntryFlow"
+      ],
+      "uses": [
+        "quoteScopeEntryUtils",
+        "quoteScopeEntryScope",
+        "quoteScopeEntryModal",
+        "quoteOfferStore",
+        "tabNavigation",
+        "infoBox",
+        "wycenaTabDebug",
+        "investors",
+        "projectStore",
+        "wycenaCore",
+        "quoteScopeEntryFlow"
+      ],
+      "incomingFiles": [
+        "js/app/quote/quote-scope-entry.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-offer-store.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
+        "js/app/ui/info-box.js",
+        "js/app/ui/tab-navigation.js",
+        "js/app/wycena/wycena-core.js",
+        "js/tabs/wycena.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/wycena/wycena-tab-selection.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
+    },
+    "js/app/quote/quote-scope-entry-modal.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 489,
+      "lines": 196,
       "defines": [
-        "quoteScopeEntry"
+        "quoteScopeEntryModal"
+      ],
+      "uses": [
+        "quoteScopeEntryUtils",
+        "quoteScopeEntryScope",
+        "infoBox",
+        "quoteScopeEntryModal"
+      ],
+      "incomingFiles": [
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
+        "js/app/ui/info-box.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/quote/quote-scope-entry.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 17,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/quote/quote-scope-entry-scope.js": {
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 169,
+      "defines": [
+        "quoteScopeEntryScope"
+      ],
+      "uses": [
+        "quoteScopeEntryUtils",
+        "roomRegistry",
+        "investors",
+        "quoteSnapshotStore",
+        "quoteScopeEntryScope"
+      ],
+      "incomingFiles": [
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/quote/quote-scope-entry-utils.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/shared/room-registry.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry.js",
+        "js/app/wycena/wycena-tab-selection.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/quote/quote-scope-entry-utils.js": {
+      "area": "WYCENA",
+      "category": "ui/render/events",
+      "lines": 79,
+      "defines": [
+        "quoteScopeEntryUtils"
       ],
       "uses": [
         "utils",
@@ -5819,31 +5990,80 @@
         "investors",
         "quoteSnapshotStore",
         "quoteOfferStore",
-        "roomRegistry",
-        "tabNavigation",
-        "infoBox",
-        "wycenaTabDebug",
-        "wycenaCore",
-        "quoteScopeEntry"
+        "quoteScopeEntryUtils"
       ],
       "incomingFiles": [
-        "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-manual-guard.js",
-        "js/app/wycena/wycena-tab-selection.js",
-        "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/tests.js"
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-snapshot-store.js",
-        "js/app/shared/room-registry.js",
-        "js/app/shared/utils.js",
-        "js/app/ui/info-box.js",
-        "js/app/ui/tab-navigation.js",
-        "js/app/wycena/wycena-core.js",
-        "js/tabs/wycena.js"
+        "js/app/shared/utils.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry.js",
+        "js/app/wycena/wycena-tab-selection.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 1,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "kilka zależnych plików"
+      ]
+    },
+    "js/app/quote/quote-scope-entry.js": {
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 49,
+      "defines": [
+        "quoteScopeEntry"
+      ],
+      "uses": [
+        "quoteScopeEntryScope",
+        "quoteScopeEntryFlow",
+        "quoteScopeEntryUtils",
+        "quoteScopeEntry"
+      ],
+      "incomingFiles": [
+        "js/app/investor/investor-ui.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/wycena/wycena-tab-selection.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js"
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
@@ -5875,14 +6095,12 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 18,
+      "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "średnie",
+      "risk": "niskie",
       "reasons": [
-        "400+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
+        "kilka zależnych plików"
       ]
     },
     "js/app/quote/quote-snapshot-scope.js": {
@@ -5914,7 +6132,8 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
@@ -5973,7 +6192,8 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
@@ -6031,7 +6251,8 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
@@ -6077,6 +6298,9 @@
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/shared/room-registry-core.js",
@@ -6086,7 +6310,6 @@
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
-        "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -6172,7 +6395,9 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
@@ -7457,7 +7682,8 @@
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
@@ -8528,7 +8754,9 @@
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys-shell.js",
         "js/app/rozrys/rozrys-stock-modal.js",
@@ -9362,7 +9590,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys-lists.js",
@@ -9656,7 +9884,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys-lists.js",
@@ -9756,7 +9984,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys-lists.js",
@@ -9842,7 +10070,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-scope.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys-lists.js",
@@ -9885,6 +10113,9 @@
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -10178,7 +10409,9 @@
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys-shell.js",
         "js/app/rozrys/rozrys-stock-modal.js",
@@ -10372,7 +10605,7 @@
         "js/app/project/project-model.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
@@ -10419,6 +10652,10 @@
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -11180,7 +11417,8 @@
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
         "js/app/rozrys/rozrys-ui-tools.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -11205,8 +11443,9 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
-        "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry.js",
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys.js",
@@ -11221,7 +11460,6 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-history.js",
-        "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/wycena.js",
@@ -11413,7 +11651,7 @@
       "secondLevelFiles": [
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project.js",
-        "js/app/quote/quote-scope-entry.js"
+        "js/app/quote/quote-scope-entry-flow.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -11498,7 +11736,7 @@
         "sections"
       ],
       "incomingFiles": [
-        "js/app/quote/quote-scope-entry.js"
+        "js/app/quote/quote-scope-entry-flow.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investor-editor-state.js",
@@ -11507,11 +11745,8 @@
         "js/app/ui/views.js"
       ],
       "secondLevelFiles": [
-        "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-manual-guard.js",
-        "js/app/wycena/wycena-tab-selection.js",
-        "js/testing/wycena/suites/scope-entry.js",
-        "js/testing/wycena/tests.js"
+        "js/app/quote/quote-scope-entry.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -11546,7 +11781,7 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -11670,7 +11905,7 @@
         "js/app/material/material-tab-data.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-sync.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/core-failsafe.js",
         "js/app/ui/actions-register.js",
@@ -11821,7 +12056,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -11886,7 +12121,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-shell.js",
@@ -11961,7 +12196,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-shell.js",
@@ -12031,7 +12266,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -12095,7 +12330,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
@@ -12162,7 +12397,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -12264,7 +12499,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-shell.js",
@@ -12289,16 +12524,15 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
-        "js/app/wycena/wycena-tab-selection.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/wycena.js",
         "js/testing/dev-tests-registry.js",
@@ -12352,7 +12586,7 @@
         "js/app/ui/info-box.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -12394,7 +12628,7 @@
         "js/app/catalog/catalog-selectors.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -12433,7 +12667,7 @@
         "js/app/rozrys/rozrys-scope.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -12468,7 +12702,7 @@
         "js/app/quote/quote-snapshot-store.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -12501,7 +12735,7 @@
         "js/app/quote/quote-snapshot-store.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -12531,7 +12765,7 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -12579,7 +12813,7 @@
         "js/app/wycena/wycena-core.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -12629,7 +12863,7 @@
         "js/app/wycena/wycena-core.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -12676,7 +12910,7 @@
         "js/app/wycena/wycena-tab-status-bridge.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -12737,7 +12971,7 @@
         "js/app/ui/views.js"
       ],
       "secondLevelFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/tabs/wycena.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -13033,7 +13267,7 @@
         "tabs"
       ],
       "incomingFiles": [
-        "js/app/quote/quote-scope-entry.js",
+        "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -13059,9 +13293,7 @@
         "js/app/wycena/wycena-tab-status-bridge.js"
       ],
       "secondLevelFiles": [
-        "js/app/investor/investor-ui.js",
-        "js/app/project/project-status-manual-guard.js",
-        "js/app/wycena/wycena-tab-selection.js",
+        "js/app/quote/quote-scope-entry.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -14840,7 +15072,7 @@
     "js/testing/wycena/suites/architecture-contract.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 270,
+      "lines": 311,
       "defines": [
         "registerWycenaTests"
       ],
@@ -14857,6 +15089,11 @@
         "wycenaCoreLines",
         "quoteSnapshotScope",
         "quoteSnapshotStore",
+        "quoteScopeEntryUtils",
+        "quoteScopeEntryScope",
+        "quoteScopeEntryModal",
+        "quoteScopeEntryFlow",
+        "quoteScopeEntry",
         "projectStatusScope",
         "projectStatusSync",
         "wycenaTabDebug",
@@ -14884,6 +15121,11 @@
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-scope-entry-modal.js",
+        "js/app/quote/quote-scope-entry-scope.js",
+        "js/app/quote/quote-scope-entry-utils.js",
+        "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/wycena/wycena-core-catalog.js",

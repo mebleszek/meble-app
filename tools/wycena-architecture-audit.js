@@ -19,6 +19,10 @@ const TARGETS = [
   'js/app/project/project-status-mirrors.js',
   'js/app/project/project-status-sync.js',
   'js/app/project/project-status-snapshot-flow.js',
+  'js/app/quote/quote-scope-entry-utils.js',
+  'js/app/quote/quote-scope-entry-scope.js',
+  'js/app/quote/quote-scope-entry-modal.js',
+  'js/app/quote/quote-scope-entry-flow.js',
   'js/app/quote/quote-scope-entry.js',
   'js/app/wycena/wycena-tab-selection.js',
   'js/app/project/project-status-manual-guard.js',
@@ -101,7 +105,7 @@ function makeReport(rows){
   lines.push('1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.');
   lines.push('2. Pierwszy split \`js/tabs/wycena.js\` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.');
   lines.push('3. `wycena-core.js` jest po platform split i nie jest już kandydatem do dalszego cięcia w tym etapie; nowe funkcje kierować do właściwych warstw core, nie do orchestratorka.');
-  lines.push('4. Następni kandydaci: dalsze odchudzanie `js/tabs/wycena.js`, `js/app/quote/quote-scope-entry.js` albo `js/app/wycena/wycena-tab-selection.js` — tylko po dedykowanych kontraktach konkretnej ścieżki.');
+  lines.push('4. `js/app/quote/quote-scope-entry.js` jest po boundary split; następni kandydaci: dalsze odchudzanie `js/tabs/wycena.js` albo `js/app/wycena/wycena-tab-selection.js` — tylko po dedykowanych kontraktach konkretnej ścieżki.');
   lines.push('5. `project-status-sync.js` ma już wydzielone `project-status-scope.js`, `project-status-mirrors.js` i `project-status-snapshot-flow.js`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki.');
   lines.push('6. W badanym zakresie nie wykryto bezpośrednich `localStorage/sessionStorage` ani systemowych `alert/confirm/prompt`; obecne granice danych idą przez store/helpery.');
   lines.push('');

@@ -230,9 +230,8 @@ Wykonane:
 
 Po tym etapie `wycena-core.js` nie jest już priorytetowym długiem. Następni kandydaci poza RYSUNKIEM:
 1. `js/tabs/wycena.js` — nadal 590 linii i miesza zakładkę, snapshoty, statusy i delegatory; ciąć tylko małymi ścieżkami po testach.
-2. `js/app/quote/quote-scope-entry.js` — 489 linii, miesza scope/modal/snapshot flow; dobry kandydat przy dalszym rozwoju ofert.
-3. `js/app/wycena/wycena-tab-selection.js` — 452 linie, miesza wybór/scope/render; ruszać przy zmianach wyboru zakresu.
-4. `js/app/investor/investor-ui.js` i `js/app.js` — kandydaci poza Wycena, ale bez RYSUNKU.
+2. `js/app/wycena/wycena-tab-selection.js` — 452 linie, miesza wybór/scope/render; ruszać przy zmianach wyboru zakresu.
+3. `js/app/investor/investor-ui.js` i `js/app.js` — kandydaci poza Wycena, ale bez RYSUNKU.
 
 ## 2026-05-01 — Test cleanup boundary v1
 
@@ -256,3 +255,18 @@ Po tym etapie można wrócić do optymalizacji Wyceny/Inwestora, nadal zostawiaj
 ## 2026-05-01 — dev tests progress live v2
 
 Domknięto użyteczność narzędzia testowego: licznik `x/y` ma być widoczny w trakcie przebiegu testów, nie dopiero jako wynik końcowy. Zmiana dotyczy tylko test harness/dev_tests i nie rusza runtime aplikacji.
+
+
+## 2026-05-01 — Quote scope entry boundary v1
+
+Wykonane:
+- rozdzielono `quote-scope-entry.js` na warstwy `utils`, `scope`, `modal`, `flow` i cienką fasadę publiczną,
+- zachowano publiczne API `FC.quoteScopeEntry`,
+- nie zmieniono UI, danych, storage ani logiki biznesowej Wyceny,
+- dodano kontrakty smoke/architektury dla nowych warstw.
+
+Po tym etapie `quote-scope-entry.js` nie jest już priorytetowym długiem. Następni sensowni kandydaci poza RYSUNKIEM:
+1. `js/tabs/wycena.js` — nadal ok. 590 linii i miesza zakładkę, snapshoty, statusy oraz delegatory.
+2. `js/app/wycena/wycena-tab-selection.js` — ok. 452 linie, miesza wybór zakresu, render modalowy i workflow nazw/snapshotów.
+3. `js/app/investor/investor-ui.js` — duży obszar UI inwestora, ruszać tylko po przejściu event/render/data flow.
+4. `js/app.js` — nadal gruby shell, ale odchudzać wyłącznie małymi delegatorami bez przenoszenia logiki domenowej na ślepo.
