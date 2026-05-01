@@ -235,3 +235,14 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Automatyczne backupy testowe `before-tests` są danymi technicznymi/testowymi, nie docelowym archiwum użytkownika.
 - Ustalono twardy lokalny limit: maksymalnie 10 najnowszych backupów testowych; najstarsze testowe kopie są automatycznie usuwane przy zapisie kolejnych.
 - Ręczne backupy programu pozostają na wcześniejszej, bezpieczniejszej polityce retencji i nie są ograniczane tym limitem.
+
+## 2026-05-01 — Wycena core platform split v1
+
+- `wycena-core.js` został odchudzony do orchestratorka bez bezpośredniego storage i bez UI.
+- Logika Wyceny została rozdzielona na warstwy przydatne do przyszłej chmury:
+  - `wycena-core-catalog.js` — katalog/usługi/ceny jako przyszła granica adaptera katalogu,
+  - `wycena-core-source.js` — odczyt aktywnego projektu, pokojów i agregacji jako granica źródeł danych,
+  - `wycena-core-material-plan.js` — most Wycena ↔ ROZRYS dla liczenia arkuszy,
+  - `wycena-core-offer.js` — draft handlowy i stawki oferty,
+  - `wycena-core-lines.js` — budowa linii oferty bez zapisu danych.
+- Nie dodano nowych bezpośrednich użyć `localStorage`/`sessionStorage` w Wycena core. Dalsze zmiany cennika/ofert powinny iść przez repozytoria/adapters, żeby łatwo mapować dane do Firestore.

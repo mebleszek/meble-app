@@ -52,6 +52,41 @@
         'validateQuoteContent',
         'createQuoteValidationError',
       ]);
+      assertFunctions(H, FC.wycenaCoreUtils, 'FC.wycenaCoreUtils', [
+        'normalizeText',
+        'slug',
+        'clone',
+      ]);
+      assertFunctions(H, FC.wycenaCoreCatalog, 'FC.wycenaCoreCatalog', [
+        'ensureServiceCatalog',
+        'ensureServiceCatalogInRuntime',
+        'materialPriceLookup',
+        'accessoryPriceLookup',
+        'servicePriceLookup',
+      ]);
+      assertFunctions(H, FC.wycenaCoreSource, 'FC.wycenaCoreSource', [
+        'roomLabel',
+        'project',
+        'selectedCabinets',
+        'getSelectedAggregate',
+        'getScopedMaterials',
+      ]);
+      assertFunctions(H, FC.wycenaCoreMaterialPlan, 'FC.wycenaCoreMaterialPlan', [
+        'isPartRotationAllowed',
+        'computePlanForMaterial',
+        'collectMaterialLines',
+      ]);
+      assertFunctions(H, FC.wycenaCoreOffer, 'FC.wycenaCoreOffer', [
+        'getOfferDraft',
+        'collectCommercialDraft',
+        'collectQuoteRateLines',
+      ]);
+      assertFunctions(H, FC.wycenaCoreLines, 'FC.wycenaCoreLines', [
+        'collectAccessories',
+        'collectBuiltInAppliances',
+        'collectElementLines',
+        'collectClientPdfDetails',
+      ]);
       assertFunctions(H, FC.quoteSnapshotScope, 'FC.quoteSnapshotScope', [
         'normalizeMaterialScope',
         'buildCanonicalScope',

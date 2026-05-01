@@ -5,6 +5,12 @@ const ROOT = process.cwd();
 const TARGETS = [
   'js/tabs/wycena.js',
   'js/app/wycena/wycena-core.js',
+  'js/app/wycena/wycena-core-utils.js',
+  'js/app/wycena/wycena-core-catalog.js',
+  'js/app/wycena/wycena-core-source.js',
+  'js/app/wycena/wycena-core-material-plan.js',
+  'js/app/wycena/wycena-core-offer.js',
+  'js/app/wycena/wycena-core-lines.js',
   'js/app/wycena/wycena-core-selection.js',
   'js/app/quote/quote-snapshot-selection.js',
   'js/app/quote/quote-snapshot-scope.js',
@@ -94,9 +100,10 @@ function makeReport(rows){
   lines.push('');
   lines.push('1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.');
   lines.push('2. Pierwszy split \`js/tabs/wycena.js\` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.');
-  lines.push('3. Następni kandydaci: dalsze odchudzanie \`js/tabs/wycena.js\`, \`wycena-core.js\` collect split albo kolejny status split po dedykowanych kontraktach commit/reconcile.');
-  lines.push('4. `project-status-sync.js` ma już wydzielone `project-status-scope.js`, `project-status-mirrors.js` i `project-status-snapshot-flow.js`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki.');
-  lines.push('5. W badanym zakresie nie wykryto bezpośrednich \`localStorage/sessionStorage\` ani systemowych \`alert/confirm/prompt\`; obecne granice danych idą przez store/helpery.');
+  lines.push('3. `wycena-core.js` jest po platform split i nie jest już kandydatem do dalszego cięcia w tym etapie; nowe funkcje kierować do właściwych warstw core, nie do orchestratorka.');
+  lines.push('4. Następni kandydaci: dalsze odchudzanie `js/tabs/wycena.js`, `js/app/quote/quote-scope-entry.js` albo `js/app/wycena/wycena-tab-selection.js` — tylko po dedykowanych kontraktach konkretnej ścieżki.');
+  lines.push('5. `project-status-sync.js` ma już wydzielone `project-status-scope.js`, `project-status-mirrors.js` i `project-status-snapshot-flow.js`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki.');
+  lines.push('6. W badanym zakresie nie wykryto bezpośrednich `localStorage/sessionStorage` ani systemowych `alert/confirm/prompt`; obecne granice danych idą przez store/helpery.');
   lines.push('');
   return lines.join('\n');
 }

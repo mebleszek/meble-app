@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_orphan_fixture_cleanup_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_test_backup_retention_ui_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -277,3 +277,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Test `Data safety` dla czyszczenia osieroconych slotów ma być odporny na realne dane użytkownika: nie zakłada dokładnie jednej sieroty w localStorage.
 - Backupy testowe `before-tests` mają maksymalnie 10 najnowszych kopii; ręczne backupy programu pozostają na dotychczasowej retencji.
 - Lista backupów w panelu ustawień ma zachowywać stan otwarcia accordiona oraz scroll po usunięciu backupu.
+
+## 2026-05-01 — Wycena core platform split v1
+
+- Wykonano split `js/app/wycena/wycena-core.js` pod cloud/platform-readiness bez zmiany UI, storage ani logiki biznesowej.
+- Nowy układ warstw: `wycena-core-utils.js`, `wycena-core-catalog.js`, `wycena-core-source.js`, `wycena-core-material-plan.js`, `wycena-core-offer.js`, `wycena-core-lines.js`, a `wycena-core.js` jest cienkim orchestratorem i fasadą starego API `FC.wycenaCore`.
+- Przy dalszym rozwoju Wyceny nie dokładać nowych funkcji do orchestratorka. Nowe rzeczy kierować do właściwej warstwy: katalog/źródła danych/ROZRYS plan/oferta/linie.
+- Ten split jest przygotowaniem pod chmurę i platformę wielofunkcyjną: Wycena pobiera dane przez jawne adaptery/fasady i nie tworzy nowego rozproszonego storage.

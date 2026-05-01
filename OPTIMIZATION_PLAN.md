@@ -220,3 +220,16 @@ Zakres utrzymaniowy, bez RYSUNKU i bez zmiany UI wizualnego:
 - dodano twardy limit 10 najnowszych backupów testowych `before-tests`,
 - zachowano dotychczasową retencję ręcznych backupów programu,
 - poprawiono zachowanie listy backupów po usunięciu: accordion i scroll mają zostać w miejscu.
+
+## 2026-05-01 — Wycena core platform split v1
+
+Wykonane:
+- rozdzielono `wycena-core.js` po odpowiedzialnościach: utils, catalog, source, material-plan, offer, lines, orchestrator,
+- zachowano publiczne API `FC.wycenaCore`,
+- dodano kontrakty smoke/architektury dla nowych warstw.
+
+Po tym etapie `wycena-core.js` nie jest już priorytetowym długiem. Następni kandydaci poza RYSUNKIEM:
+1. `js/tabs/wycena.js` — nadal 590 linii i miesza zakładkę, snapshoty, statusy i delegatory; ciąć tylko małymi ścieżkami po testach.
+2. `js/app/quote/quote-scope-entry.js` — 489 linii, miesza scope/modal/snapshot flow; dobry kandydat przy dalszym rozwoju ofert.
+3. `js/app/wycena/wycena-tab-selection.js` — 452 linie, miesza wybór/scope/render; ruszać przy zmianach wyboru zakresu.
+4. `js/app/investor/investor-ui.js` i `js/app.js` — kandydaci poza Wycena, ale bez RYSUNKU.

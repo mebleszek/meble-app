@@ -5,27 +5,33 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 ## Wynik skrócony
 
 1. `js/tabs/wycena.js` — 590 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-2. `js/app/wycena/wycena-core.js` — 540 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-3. `js/app/quote/quote-scope-entry.js` — 489 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-4. `js/app/wycena/wycena-tab-selection.js` — 452 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
-5. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-6. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
-7. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
-8. `js/app/project/project-status-manual-guard.js` — 296 linii; ostrzeżenia: 250+ lines.
-9. `js/app/quote/quote-pdf.js` — 278 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-10. `js/app/wycena/wycena-tab-editor.js` — 262 linii; ostrzeżenia: 250+ lines.
-11. `js/app/quote/quote-snapshot.js` — 257 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-12. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
-13. `js/app/quote/quote-offer-store.js` — 238 linii.
-14. `js/app/project/project-status-sync.js` — 234 linii.
-15. `js/app/quote/quote-snapshot-selection.js` — 209 linii; ostrzeżenia: mixed responsibilities heuristic.
-16. `js/app/wycena/wycena-tab-history.js` — 203 linii; ostrzeżenia: mixed responsibilities heuristic.
-17. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
-18. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
-19. `js/app/wycena/wycena-core-selection.js` — 149 linii.
-20. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
-21. `js/app/project/project-status-snapshot-flow.js` — 130 linii.
-22. `js/app/project/project-status-mirrors.js` — 107 linii.
+2. `js/app/quote/quote-scope-entry.js` — 489 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
+3. `js/app/wycena/wycena-tab-selection.js` — 452 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic.
+4. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+5. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
+6. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
+7. `js/app/project/project-status-manual-guard.js` — 296 linii; ostrzeżenia: 250+ lines.
+8. `js/app/quote/quote-pdf.js` — 278 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+9. `js/app/wycena/wycena-tab-editor.js` — 262 linii; ostrzeżenia: 250+ lines.
+10. `js/app/quote/quote-snapshot.js` — 257 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+11. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
+12. `js/app/quote/quote-offer-store.js` — 238 linii.
+13. `js/app/project/project-status-sync.js` — 234 linii.
+14. `js/app/quote/quote-snapshot-selection.js` — 209 linii; ostrzeżenia: mixed responsibilities heuristic.
+15. `js/app/wycena/wycena-tab-history.js` — 203 linii; ostrzeżenia: mixed responsibilities heuristic.
+16. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
+17. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
+18. `js/app/wycena/wycena-core-selection.js` — 149 linii.
+19. `js/app/wycena/wycena-core-material-plan.js` — 137 linii.
+20. `js/app/wycena/wycena-core-lines.js` — 136 linii.
+21. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
+22. `js/app/project/project-status-snapshot-flow.js` — 130 linii.
+23. `js/app/wycena/wycena-core-catalog.js` — 117 linii.
+24. `js/app/project/project-status-mirrors.js` — 107 linii.
+25. `js/app/wycena/wycena-core.js` — 96 linii.
+26. `js/app/wycena/wycena-core-offer.js` — 76 linii.
+27. `js/app/wycena/wycena-core-source.js` — 59 linii.
+28. `js/app/wycena/wycena-core-utils.js` — 23 linii.
 
 ## Szczegóły odpowiedzialności — heurystyka
 
@@ -35,13 +41,6 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:139, status:87, render:20, scope:16, modal-ui:6, pdf-export:1
-
-### js/app/wycena/wycena-core.js
-
-- Linie: 540
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: scope:24, snapshot:15, quote-collect:15, storage-boundary:1
 
 ### js/app/quote/quote-scope-entry.js
 
@@ -162,6 +161,20 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:29, snapshot:3
 
+### js/app/wycena/wycena-core-material-plan.js
+
+- Linie: 137
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: scope:3, quote-collect:2
+
+### js/app/wycena/wycena-core-lines.js
+
+- Linie: 136
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: scope:8, quote-collect:4
+
 ### js/app/wycena/wycena-tab-scroll.js
 
 - Linie: 132
@@ -176,6 +189,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: status:60, snapshot:60, scope:14
 
+### js/app/wycena/wycena-core-catalog.js
+
+- Linie: 117
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: storage-boundary:1
+
 ### js/app/project/project-status-mirrors.js
 
 - Linie: 107
@@ -183,10 +203,39 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: status:54, render:2, storage-boundary:1
 
+### js/app/wycena/wycena-core.js
+
+- Linie: 96
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: snapshot:15, quote-collect:11, scope:6
+
+### js/app/wycena/wycena-core-offer.js
+
+- Linie: 76
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: quote-collect:4
+
+### js/app/wycena/wycena-core-source.js
+
+- Linie: 59
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: scope:7
+
+### js/app/wycena/wycena-core-utils.js
+
+- Linie: 23
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: brak
+
 ## Wnioski do następnych paczek
 
 1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.
 2. Pierwszy split `js/tabs/wycena.js` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.
-3. Następni kandydaci: dalsze odchudzanie `js/tabs/wycena.js`, `wycena-core.js` collect split albo kolejny status split po dedykowanych kontraktach commit/reconcile.
-4. `project-status-sync.js` ma już wydzielone `project-status-scope.js`, `project-status-mirrors.js` i `project-status-snapshot-flow.js`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki.
-5. W badanym zakresie nie wykryto bezpośrednich `localStorage/sessionStorage` ani systemowych `alert/confirm/prompt`; obecne granice danych idą przez store/helpery.
+3. `wycena-core.js` jest po platform split i nie jest już kandydatem do dalszego cięcia w tym etapie; nowe funkcje kierować do właściwych warstw core, nie do orchestratorka.
+4. Następni kandydaci: dalsze odchudzanie `js/tabs/wycena.js`, `js/app/quote/quote-scope-entry.js` albo `js/app/wycena/wycena-tab-selection.js` — tylko po dedykowanych kontraktach konkretnej ścieżki.
+5. `project-status-sync.js` ma już wydzielone `project-status-scope.js`, `project-status-mirrors.js` i `project-status-snapshot-flow.js`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki.
+6. W badanym zakresie nie wykryto bezpośrednich `localStorage/sessionStorage` ani systemowych `alert/confirm/prompt`; obecne granice danych idą przez store/helpery.
