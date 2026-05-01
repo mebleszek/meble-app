@@ -156,6 +156,21 @@
       ]);
     }),
 
+    H.makeTest('Wycena ↔ Fixture testów', 'Fixture Wyceny nie zostawia legacy slotów projektu po sobie', 'Pilnuje, żeby testy Wyceny nie tworzyły po każdym uruchomieniu nowych osieroconych fc_project_inv_*.', ()=> {
+      const tools = FC.wycenaTestFixtures || {};
+      H.assert(typeof tools.snapshotLegacyProjectSlots === 'function', 'Brak snapshotLegacyProjectSlots w fixture Wyceny');
+      const before = tools.snapshotLegacyProjectSlots();
+      withInvestorProjectFixture({
+        investorId:'inv_wycena_fixture_orphan_guard',
+        projectId:'proj_wycena_fixture_orphan_guard',
+      }, ()=> {});
+      const after = tools.snapshotLegacyProjectSlots();
+      const beforeKeys = Object.keys(before).sort();
+      const afterKeys = Object.keys(after).sort();
+      H.assert(JSON.stringify(afterKeys) === JSON.stringify(beforeKeys), 'Fixture zostawił po sobie nowy lub usunięty legacy slot projektu', { beforeKeys, afterKeys });
+      beforeKeys.forEach((key)=> H.assert(after[key] === before[key], 'Fixture zmienił istniejący legacy slot projektu', { key, before:before[key], after:after[key] }));
+    }),
+
     H.makeTest('Wycena ↔ Kontrakt architektury', 'Snapshot store rozróżnia exact-scope i overlap zakresów pokojów', 'Pilnuje, żeby przyszły split snapshot-store nie skleił niezależnych pokoi ani nie pomylił oferty wspólnej A+B z ofertą tylko dla A.', ()=> withInvestorProjectFixture({
       investorId:'inv_wycena_arch_scope',
       projectId:'proj_wycena_arch_scope',

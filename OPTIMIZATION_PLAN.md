@@ -204,3 +204,9 @@ Przed splitem `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js`, `js/app/quote
 - `js/app/project/project-status-sync.js` został rozdzielony na trzy odpowiedzialności: mirrors/persistence refresh, core reconcile/apply engine oraz snapshot acceptance/removal/promotion flow.
 - Kolejne porządki w statusach robić tylko po konkretnej ścieżce biznesowej i z kontraktem testowym; nie wrzucać workflow snapshotów ani zapisu luster z powrotem do silnika statusów.
 - Następni kandydaci poza RYSUNKIEM: `wycena-core.js` collect split, `tabs/wycena.js` dalszy shell split albo `investor-ui.js` po osobnym przejściu ścieżek render/event.
+
+## 2026-05-01 — Orphan fixture cleanup v1
+
+- Zakres naprawczy przed dalszą optymalizacją: testy Wyceny po splicie investor-project mogły zostawiać legacy sloty `fc_project_inv_*_v1` jako osierocone projekty.
+- Naprawa została wykonana w fixture testowym, nie przez zmianę runtime aplikacji. Dzięki temu dalsza optymalizacja może kontynuować zasadę: najpierw zabezpieczenie przepływu danych, potem split plików mieszających odpowiedzialności.
+- Przed kolejnymi zmianami w Wycena/Inwestor trzeba pilnować, żeby fixture’y przywracały pełne granice danych, nie tylko główne store’y.

@@ -87,6 +87,24 @@
         H.assert(plan.rows[0].key === 'fc_project_inv_inv_old_v1', 'Plan wskazał zły slot do czyszczenia', plan);
       }),
 
+      H.makeTest('Data safety', 'Czyszczenie osieroconych projektów usuwa tylko osierocone sloty', 'Pilnuje przycisku przed testami: wyczyszczenie sierot ma fizycznie usunąć fc_project_inv_* bez inwestora i zostawić slot aktywnego inwestora.', ()=>{
+        H.assert(FC.dataStorageOrphanCleanup && typeof FC.dataStorageOrphanCleanup.cleanupCurrent === 'function', 'Brak FC.dataStorageOrphanCleanup.cleanupCurrent');
+        const rows = {
+          fc_investors_v1:JSON.stringify([{ id:'inv_live' }]),
+          fc_projects_v1:JSON.stringify([{ id:'p1', investorId:'inv_live' }]),
+          fc_project_inv_inv_live_v1:JSON.stringify({ live:true }),
+          fc_project_inv_inv_old_v1:JSON.stringify({ old:true }),
+        };
+        withStorage(rows, ()=>{
+          const summary = FC.dataStorageOrphanCleanup.cleanupCurrent();
+          H.assert(summary.removed === 1, 'Czyszczenie powinno usunąć dokładnie jedną sierotę', summary);
+          H.assert(localStorage.getItem('fc_project_inv_inv_old_v1') == null, 'Osierocony slot nie został fizycznie usunięty');
+          H.assert(localStorage.getItem('fc_project_inv_inv_live_v1') != null, 'Czyszczenie naruszyło slot aktywnego inwestora');
+          const after = FC.dataStorageOrphanCleanup.analyzeCurrent();
+          H.assert(after.count === 0, 'Po czyszczeniu nie powinno być sierot w fixture', after);
+        });
+      }),
+
       H.makeTest('Data safety', 'Awaryjny backup testów potrafi pobrać snapshot do pliku', 'Pilnuje bezpiecznika testów: gdy localStorage nie przyjmie backupu before-tests, program ma dostępny eksport plikowy zamiast startu bez zabezpieczenia.', ()=>{
         H.assert(FC.testDataSafety && typeof FC.testDataSafety.buildManualBackup === 'function', 'Brak FC.testDataSafety.buildManualBackup');
         H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.downloadJson === 'function', 'Brak downloadJson');

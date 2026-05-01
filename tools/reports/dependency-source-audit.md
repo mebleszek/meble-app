@@ -9,7 +9,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Pliki JS | 268 |
 | Skrypty w index.html | 206 |
 | Skrypty w dev_tests.html | 223 |
-| Krawędzie zależności po symbolach FC | 1299 |
+| Krawędzie zależności po symbolach FC | 1300 |
 | Symbole FC z właścicielem produkcyjnym | 195 |
 | Symbole FC z właścicielem razem | 218 |
 | Pliki z ryzykiem wysokim / nie ruszać | 12 |
@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 39 | 9719 | 189 | 1 | 6 | 20 |
+| TESTY | 39 | 9798 | 199 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 20 | 5357 | 0 | 0 | 2 | 5 |
@@ -117,14 +117,15 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Referencje | Obszar | Ryzyko |
 | --- | --- | --- | --- |
 | js/testing/project/tests.js | 112 | TESTY | wysokie |
+| js/testing/data-safety/tests.js | 21 | TESTY | niskie |
 | js/testing/investor/tests.js | 20 | TESTY | wysokie |
-| js/testing/data-safety/tests.js | 19 | TESTY | niskie |
 | js/testing/material/tests.js | 19 | TESTY | niskie |
 | js/app/shared/storage.js | 17 | DANE/STORAGE | niskie |
 | js/app/investor/session.js | 12 | INWESTOR | średnie |
 | js/testing/rysunek/tests.js | 10 | TESTY | średnie |
 | js/app/investor/investors-local-repository.js | 9 | INWESTOR | niskie |
 | js/testing/test-data-manager.js | 8 | TESTY | średnie |
+| js/testing/wycena/fixtures.js | 8 | TESTY | średnie |
 | js/app/shared/data-storage-keys.js | 7 | DANE/STORAGE | niskie |
 | js/app/material/material-part-options.js | 4 | MATERIAŁ | niskie |
 | js/app/shared/data-storage-audit.js | 4 | DANE/STORAGE | niskie |
@@ -135,7 +136,6 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/shared/data-backup-storage.js | 3 | DANE/STORAGE | niskie |
 | js/app/rozrys/rozrys-cache.js | 2 | ROZRYS | niskie |
 | js/app/rozrys/rozrys-grain.js | 2 | ROZRYS | niskie |
-| js/app/rozrys/rozrys-prefs.js | 2 | ROZRYS | niskie |
 
 ## Pliki ryzykowne
 
@@ -153,6 +153,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/tabs/wycena.js | wysokie | 8 | 590 | 6 | 22 | 400+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/helpers-bridges.js | wysokie | 8 | 390 | 14 | 27 | 250+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/quote/quote-scope-entry.js | średnie | 7 | 489 | 5 | 26 | 400+ linii; kilka zależnych plików; kilka zależności wychodzących |
+| js/testing/wycena/fixtures.js | średnie | 7 | 134 | 14 | 19 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/tabs/rysunek.js | nie ruszać bez osobnego planu | 6 | 1459 | 2 | 25 | 600+ linii; systemowe dialogi |
 | js/app/ui/actions-register.js | średnie | 6 | 449 | 0 | 0 | 400+ linii; dużo zależności wychodzących; systemowe dialogi |
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 17 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
@@ -174,8 +175,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/ui/views.js | średnie | 5 | 250 | 14 | 37 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/investor-integration.js | średnie | 5 | 247 | 13 | 18 | dużo zależnych plików; dużo zależności wychodzących |
 | js/app/quote/quote-offer-store.js | średnie | 5 | 238 | 11 | 35 | dużo zależnych plików; kilka zależności wychodzących |
-| js/testing/wycena/suites/architecture-contract.js | średnie | 5 | 220 | 13 | 18 | dużo zależnych plików; dużo zależności wychodzących |
-| js/testing/wycena/suites/status-anti-regression.js | średnie | 5 | 161 | 13 | 18 | dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/architecture-contract.js | średnie | 5 | 235 | 13 | 18 | dużo zależnych plików; dużo zależności wychodzących |
 
 ## Potencjalnie nieładowane przez index/dev_tests
 

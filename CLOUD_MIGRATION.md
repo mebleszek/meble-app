@@ -222,3 +222,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Synchronizacja statusu projektu/pomieszczeń została rozdzielona bez zmiany formatu danych i bez nowego `localStorage`.
 - Zapis luster statusów idzie przez istniejące granice `FC.investorPersistence`, `FC.investors`, `FC.projectStore` i `FC.project.save`; `project-status-sync.js` nie powinien bezpośrednio zapisywać storage.
 - Workflow zaakceptowanych ofert/snapshotów jest osobnym modułem `project-status-snapshot-flow.js`, co ułatwia późniejsze mapowanie statusów i historii ofert na dokumenty Firestore.
+
+## 2026-05-01 — Orphan fixture cleanup v1
+
+- Testy Wyceny nie mogą zostawiać trwałych `fc_project_inv_*_v1`, bo legacy sloty projektu są danymi użytkownika/kompatybilności, a nie śmietnikiem testowym.
+- Fixture testów przywraca teraz dokładny zestaw legacy slotów sprzed testu, co ogranicza sztuczne osierocone dane i ułatwia późniejsze rozdzielenie lokalnych slotów od docelowego repozytorium chmurowego.
+- Nie zmieniono modelu danych ani nie dodano migracji; poprawka dotyczy izolacji testów i ręcznego sprzątania osieroconych slotów.

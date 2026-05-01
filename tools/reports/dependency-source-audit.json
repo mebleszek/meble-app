@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-01T13:59:40.493Z",
+  "generatedAt": "2026-05-01T14:52:44.945Z",
   "summary": {
     "jsFiles": 268,
     "indexScripts": 206,
     "devTestScripts": 223,
     "fcSymbols": 195,
     "fcSymbolsAll": 218,
-    "edges": 1299,
+    "edges": 1300,
     "highRisk": 12,
     "mediumRisk": 46
   },
@@ -141,8 +141,8 @@
     },
     "TESTY": {
       "files": 39,
-      "lines": 9719,
-      "storageRefs": 189,
+      "lines": 9798,
+      "storageRefs": 199,
       "dialogRefs": 1,
       "high": 6,
       "medium": 20
@@ -400,12 +400,12 @@
       112
     ],
     [
-      "js/testing/investor/tests.js",
-      20
+      "js/testing/data-safety/tests.js",
+      21
     ],
     [
-      "js/testing/data-safety/tests.js",
-      19
+      "js/testing/investor/tests.js",
+      20
     ],
     [
       "js/testing/material/tests.js",
@@ -429,6 +429,10 @@
     ],
     [
       "js/testing/test-data-manager.js",
+      8
+    ],
+    [
+      "js/testing/wycena/fixtures.js",
       8
     ],
     [
@@ -469,10 +473,6 @@
     ],
     [
       "js/app/rozrys/rozrys-grain.js",
-      2
-    ],
-    [
-      "js/app/rozrys/rozrys-prefs.js",
       2
     ]
   ],
@@ -696,6 +696,24 @@
         "400+ linii",
         "kilka zależnych plików",
         "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/fixtures.js",
+      "risk": "średnie",
+      "score": 7,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 134,
+      "incoming": 14,
+      "outgoing": 22,
+      "secondLevel": 19,
+      "storageRefs": 8,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -1077,7 +1095,7 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 220,
+      "lines": 235,
       "incoming": 13,
       "outgoing": 25,
       "secondLevel": 18,
@@ -1183,23 +1201,6 @@
       "incoming": 13,
       "outgoing": 16,
       "secondLevel": 18,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/wycena/fixtures.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 88,
-      "incoming": 14,
-      "outgoing": 22,
-      "secondLevel": 19,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -12893,7 +12894,7 @@
     "js/testing/data-safety/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 149,
+      "lines": 167,
       "defines": [
         "dataSafetyDevTests"
       ],
@@ -12920,7 +12921,7 @@
       "secondLevelFiles": [
         "js/testing/dev-tests-page.js"
       ],
-      "storageRefs": 19,
+      "storageRefs": 21,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,
@@ -14374,7 +14375,7 @@
     "js/testing/wycena/fixtures.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 88,
+      "lines": 134,
       "defines": [
         "wycenaTestFixtures",
         "wycenaTestRegistry",
@@ -14452,7 +14453,7 @@
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
-      "storageRefs": 0,
+      "storageRefs": 8,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,
@@ -14460,13 +14461,14 @@
       "risk": "średnie",
       "reasons": [
         "dużo zależnych plików",
-        "dużo zależności wychodzących"
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     "js/testing/wycena/suites/architecture-contract.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 220,
+      "lines": 235,
       "defines": [
         "registerWycenaTests"
       ],
@@ -14482,7 +14484,8 @@
         "wycenaTabDebug",
         "wycenaTabDom",
         "wycenaTabStatusActions",
-        "wycenaTabShell"
+        "wycenaTabShell",
+        "wycenaTestFixtures"
       ],
       "incomingFiles": [
         "js/testing/wycena/fixtures.js",

@@ -8,8 +8,52 @@
     try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; }
   }
 
+  function isLegacyProjectSlotKey(key){
+    const k = String(key || '');
+    return /^fc_project_inv_.+_v1$/.test(k) && !/^fc_project_inv_.+_backup(?:_meta)?_v1$/.test(k);
+  }
+
+  function readLegacyProjectSlots(){
+    const out = {};
+    try{
+      for(let i = 0; i < localStorage.length; i++){
+        const key = localStorage.key(i);
+        if(!isLegacyProjectSlotKey(key)) continue;
+        out[key] = localStorage.getItem(key);
+      }
+    }catch(_){ }
+    return out;
+  }
+
+  function restoreLegacyProjectSlots(snapshot){
+    const saved = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const currentKeys = [];
+    try{
+      for(let i = 0; i < localStorage.length; i++){
+        const key = localStorage.key(i);
+        if(isLegacyProjectSlotKey(key)) currentKeys.push(key);
+      }
+    }catch(_){ }
+    currentKeys.forEach((key)=>{
+      if(!Object.prototype.hasOwnProperty.call(saved, key)){
+        try{ localStorage.removeItem(key); }catch(_){ }
+      }
+    });
+    Object.keys(saved).forEach((key)=>{
+      try{
+        if(saved[key] == null) localStorage.removeItem(key);
+        else localStorage.setItem(key, saved[key]);
+      }catch(_){ }
+    });
+  }
+
+  function snapshotLegacyProjectSlots(){
+    return readLegacyProjectSlots();
+  }
+
   function withInvestorProjectFixture(options, run){
     const cfg = options && typeof options === 'object' ? options : {};
+    const prevLegacyProjectSlots = readLegacyProjectSlots();
     const prevInvestors = FC.investors && typeof FC.investors.readAll === 'function' ? FC.investors.readAll() : [];
     const prevCurrentInvestorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? FC.investors.getCurrentId() : '';
     const prevProjects = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];
@@ -50,6 +94,7 @@
       FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
       FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
       FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
+      restoreLegacyProjectSlots(prevLegacyProjectSlots);
     };
     try{
       FC.investors && FC.investors.writeAll && FC.investors.writeAll([investor]);
@@ -75,6 +120,7 @@
 
   FC.wycenaTestFixtures = Object.assign({}, FC.wycenaTestFixtures || {}, {
     clone,
+    snapshotLegacyProjectSlots,
     withInvestorProjectFixture,
   });
 
