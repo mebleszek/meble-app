@@ -246,3 +246,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
   - `wycena-core-offer.js` — draft handlowy i stawki oferty,
   - `wycena-core-lines.js` — budowa linii oferty bez zapisu danych.
 - Nie dodano nowych bezpośrednich użyć `localStorage`/`sessionStorage` w Wycena core. Dalsze zmiany cennika/ofert powinny iść przez repozytoria/adapters, żeby łatwo mapować dane do Firestore.
+
+## 2026-05-01 — Test cleanup boundary v1
+
+- Sprzątanie danych testowych zostało domknięte jako osobny testowy boundary, bez zmiany produkcyjnego modelu danych.
+- Testowe rekordy inwestorów/projektów mają stabilne markery i mogą później mapować się do osobnej przestrzeni technicznej w chmurze zamiast mieszać się z realnymi dokumentami użytkownika.
+- Cleanup testów usuwa powiązania po `investorId` i `projectId`, co odpowiada przyszłemu podejściu repozytoryjnemu/adapterowemu: usunięcie technicznego rekordu testowego musi usuwać też jego podrzędne dokumenty techniczne.

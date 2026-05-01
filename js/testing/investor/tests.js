@@ -5,6 +5,11 @@
   if(!harness) return;
   const { makeTest, runSuite, assert } = harness;
 
+  function seedInvestor(initial, options){
+    if(FC.testDataManager && typeof FC.testDataManager.seedInvestor === 'function') return FC.testDataManager.seedInvestor(initial, options);
+    return FC.investors && typeof FC.investors.create === 'function' ? FC.investors.create(initial) : null;
+  }
+
   function sampleInvestor(){
     return {
       id:'inv_test',
@@ -309,7 +314,7 @@
         FC.investors.writeAll([]);
         FC.projectStore.writeAll([]);
         FC.quoteSnapshotStore.writeAll([]);
-        const investor = FC.investors.create({
+        const investor = seedInvestor({
           id:'inv_room_warning',
           kind:'person',
           name:'Room warning',
@@ -360,7 +365,7 @@
         FC.investors.writeAll([]);
         FC.projectStore.writeAll([]);
         FC.quoteOfferStore.writeAll([]);
-        const investor = FC.investors.create({
+        const investor = seedInvestor({
           id:'inv_empty_rooms',
           kind:'person',
           name:'Puste pokoje',
@@ -423,7 +428,7 @@
         FC.investors.writeAll([]);
         FC.projectStore.writeAll([]);
         FC.quoteSnapshotStore.writeAll([]);
-        const investor = FC.investors.create({ id:'inv_registry_contract', kind:'person', name:'Registry Contract', rooms:[{ id:'room_base', baseType:'kuchnia', name:'Kuchnia baza', label:'Kuchnia baza', projectStatus:'nowy' }] });
+        const investor = seedInvestor({ id:'inv_registry_contract', kind:'person', name:'Registry Contract', rooms:[{ id:'room_base', baseType:'kuchnia', name:'Kuchnia baza', label:'Kuchnia baza', projectStatus:'nowy' }] });
         FC.investors.setCurrentId(investor.id);
         const projectData = {
           schemaVersion:2,
@@ -525,7 +530,7 @@
         FC.investors.writeAll([]);
         FC.projectStore.writeAll([]);
         FC.quoteSnapshotStore.writeAll([]);
-        const investor = FC.investors.create({
+        const investor = seedInvestor({
           id:'inv_sync_status',
           kind:'person',
           name:'Sync test',
@@ -596,7 +601,7 @@
         FC.investors.writeAll([]);
         FC.projectStore.writeAll([]);
         FC.quoteSnapshotStore.writeAll([]);
-        const investor = FC.investors.create({
+        const investor = seedInvestor({
           id:'inv_late_flow',
           kind:'person',
           name:'Late flow',
@@ -654,7 +659,7 @@
       const prevCurrentInvestorId = FC.investors.getCurrentId();
       try{
         FC.investors.writeAll([]);
-        const investor = FC.investors.create({
+        const investor = seedInvestor({
           id:'inv_room_patch',
           kind:'person',
           name:'Room patch',

@@ -81,8 +81,14 @@
       room_kuchnia_gora: { cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
       room_salon: { cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
     });
-    const investor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
-    const projectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
+    const rawInvestor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
+    const investor = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
+      ? FC.testDataManager.markRecord('wycena-fixture-investor', rawInvestor)
+      : rawInvestor;
+    const rawProjectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
+    const projectRecord = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
+      ? FC.testDataManager.markRecord('wycena-fixture-project', rawProjectRecord)
+      : rawProjectRecord;
     const cleanup = ()=>{
       if(FC.cabinetCutlist && prevCutList) FC.cabinetCutlist.getCabinetCutList = prevCutList;
       if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;

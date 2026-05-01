@@ -233,3 +233,14 @@ Po tym etapie `wycena-core.js` nie jest już priorytetowym długiem. Następni k
 2. `js/app/quote/quote-scope-entry.js` — 489 linii, miesza scope/modal/snapshot flow; dobry kandydat przy dalszym rozwoju ofert.
 3. `js/app/wycena/wycena-tab-selection.js` — 452 linie, miesza wybór/scope/render; ruszać przy zmianach wyboru zakresu.
 4. `js/app/investor/investor-ui.js` i `js/app.js` — kandydaci poza Wycena, ale bez RYSUNKU.
+
+## 2026-05-01 — Test cleanup boundary v1
+
+Zakres utrzymaniowy przed dalszą optymalizacją:
+
+- domknięto sprzątanie danych testowych, żeby kolejne paczki refaktoru nie zostawiały `Jan Test`, `Room patch` ani legacy slotów `fc_project_inv_*_v1`,
+- testy inwestora dostały kontrolowaną ścieżkę seedowania testowych inwestorów,
+- Wycena fixture oznacza inwestora/projekt markerami testowymi,
+- dodano kontrakt data-safety pilnujący całego łańcucha: inwestor → projekt → slot → snapshot → draft.
+
+Po tym etapie można wrócić do optymalizacji Wyceny/Inwestora, nadal zostawiając RYSUNEK na koniec.

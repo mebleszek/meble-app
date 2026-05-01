@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_test_backup_retention_ui_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_wycena_core_platform_split_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -284,3 +284,11 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Nowy układ warstw: `wycena-core-utils.js`, `wycena-core-catalog.js`, `wycena-core-source.js`, `wycena-core-material-plan.js`, `wycena-core-offer.js`, `wycena-core-lines.js`, a `wycena-core.js` jest cienkim orchestratorem i fasadą starego API `FC.wycenaCore`.
 - Przy dalszym rozwoju Wyceny nie dokładać nowych funkcji do orchestratorka. Nowe rzeczy kierować do właściwej warstwy: katalog/źródła danych/ROZRYS plan/oferta/linie.
 - Ten split jest przygotowaniem pod chmurę i platformę wielofunkcyjną: Wycena pobiera dane przez jawne adaptery/fasady i nie tworzy nowego rozproszonego storage.
+
+## 2026-05-01 — Test cleanup boundary v1
+
+- Testowe dane inwestorów mają być tworzone przez `FC.testDataManager.seedInvestor()` albo inny helper, który zawsze nadaje markery `__test`, `__testRunId` i `meta.testData`.
+- Nie tworzyć nowych fixture’ów inwestorów przez bezpośrednie `FC.investors.create()` w testach, jeśli wynik może trafić do storage. Gdy test potrzebuje konkretnego ID, użyć `seedInvestor()`, bo zachowuje przekazany `id`.
+- Cleanup testów ma usuwać cały łańcuch testowego inwestora: `fc_investors_v1`, `fc_projects_v1`, `fc_project_inv_*_v1`, snapshoty Wyceny, drafty ofert oraz wskaźniki current.
+- Runtime filter inwestorów ma ignorować znane legacy fixture’y testowe (`Jan Test`, `Room patch`, itp.), jeśli kiedyś pojawią się w appce po recovery.
+- Pełny raport: `tools/reports/test-cleanup-boundary-v1.md`.

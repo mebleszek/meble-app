@@ -24,18 +24,27 @@
     return false;
   }
 
+  function normalizeTestText(text){
+    return String(text == null ? '' : text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  }
+
   function isKnownLeakedTestInvestor(inv){
     const src = inv && typeof inv === 'object' ? inv : {};
     const id = String(src.id || '').trim();
-    if(id === 'inv_new_only') return true;
-    if(id === 'inv_missing_old') return true;
+    const normalizedId = normalizeTestText(id);
+    if(id === 'inv_new_only' || id === 'inv_missing_old') return true;
     if(id === 'inv_snapshot_only' || id === 'inv_snapshot_only_test' || id === 'inv_write_test_only') return true;
-    const name = String(src.name || src.companyName || '').trim().toLowerCase();
-    const email = String(src.email || '').trim().toLowerCase();
-    const city = String(src.city || '').trim().toLowerCase();
+    if(/^inv_(room|registry|late|sync|status|wycena|hist|pdf|cross|cleanup|empty|snapshot|test)/.test(normalizedId)) return true;
+    const name = normalizeTestText(src.name || src.companyName || src.title || '');
+    const source = normalizeTestText(src.meta && src.meta.source || src.source || '');
+    const email = normalizeTestText(src.email || '');
+    const city = normalizeTestText(src.city || '');
     const phone = String(src.phone || '').trim();
-    if(!id || name !== 'jan test') return false;
-    return phone === '111' || email === 'jan@test.pl' || city === 'łódź' || city === 'lodz';
+    const knownNames = new Set(['jan test','room patch','room warning','puste pokoje','registry contract','late flow','sync test','test isolation','test cleanup','projektowy test','snapshot only','stary inwestor']);
+    if(source.startsWith('test-') || source.indexOf('fixture') >= 0 || source === 'investor-recovery-fixture') return true;
+    if(knownNames.has(name)) return true;
+    if(name !== 'jan test') return false;
+    return !phone || phone === '111' || email === 'jan@test.pl' || city === 'lodz';
   }
 
   function isDevTestInvestorRecord(inv){

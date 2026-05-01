@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-01T18:08:18.514Z",
+  "generatedAt": "2026-05-01T19:51:15.530Z",
   "summary": {
     "jsFiles": 274,
     "indexScripts": 212,
     "devTestScripts": 229,
     "fcSymbols": 201,
     "fcSymbolsAll": 224,
-    "edges": 1326,
+    "edges": 1329,
     "highRisk": 11,
     "mediumRisk": 48
   },
@@ -37,7 +37,7 @@
     },
     "INWESTOR": {
       "files": 23,
-      "lines": 3244,
+      "lines": 3253,
       "storageRefs": 24,
       "dialogRefs": 0,
       "high": 1,
@@ -141,8 +141,8 @@
     },
     "TESTY": {
       "files": 39,
-      "lines": 9875,
-      "storageRefs": 215,
+      "lines": 10085,
+      "storageRefs": 229,
       "dialogRefs": 1,
       "high": 6,
       "medium": 20
@@ -155,7 +155,7 @@
     ],
     [
       "js/testing/investor/tests.js",
-      907
+      912
     ],
     [
       "js/app/rozrys/rozrys.js",
@@ -222,12 +222,12 @@
       434
     ],
     [
-      "js/testing/rozrys/suites/helpers-bridges.js",
-      390
+      "js/testing/test-data-manager.js",
+      393
     ],
     [
-      "js/app/cabinet/cabinet-choice-launchers.js",
-      388
+      "js/testing/rozrys/suites/helpers-bridges.js",
+      390
     ]
   ],
   "topIncoming": [
@@ -314,11 +314,11 @@
   ],
   "topSecond": [
     [
-      "js/app/shared/storage.js",
-      99
+      "js/app/shared/utils.js",
+      100
     ],
     [
-      "js/app/shared/utils.js",
+      "js/app/shared/storage.js",
       99
     ],
     [
@@ -326,16 +326,16 @@
       85
     ],
     [
+      "js/app/project/project-store.js",
+      69
+    ],
+    [
       "js/app/shared/room-registry.js",
       69
     ],
     [
-      "js/app/project/project-store.js",
-      68
-    ],
-    [
       "js/app/investor/investors-store.js",
-      61
+      62
     ],
     [
       "js/app/project/project-bridge.js",
@@ -401,7 +401,7 @@
     ],
     [
       "js/testing/data-safety/tests.js",
-      37
+      44
     ],
     [
       "js/testing/investor/tests.js",
@@ -416,6 +416,10 @@
       17
     ],
     [
+      "js/testing/test-data-manager.js",
+      15
+    ],
+    [
       "js/app/investor/session.js",
       12
     ],
@@ -426,10 +430,6 @@
     [
       "js/app/investor/investors-local-repository.js",
       9
-    ],
-    [
-      "js/testing/test-data-manager.js",
-      8
     ],
     [
       "js/testing/wycena/fixtures.js",
@@ -559,7 +559,7 @@
       "score": 8,
       "area": "TESTY",
       "category": "test",
-      "lines": 907,
+      "lines": 912,
       "incoming": 1,
       "outgoing": 36,
       "secondLevel": 1,
@@ -686,9 +686,9 @@
       "score": 7,
       "area": "TESTY",
       "category": "test",
-      "lines": 134,
+      "lines": 140,
       "incoming": 14,
-      "outgoing": 22,
+      "outgoing": 23,
       "secondLevel": 19,
       "storageRefs": 8,
       "dialogRefs": 0,
@@ -930,6 +930,24 @@
       "reasons": [
         "400+ linii",
         "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/test-data-manager.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 393,
+      "incoming": 7,
+      "outgoing": 6,
+      "secondLevel": 22,
+      "storageRefs": 15,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "kilka zależnych plików",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -1377,23 +1395,6 @@
       ]
     },
     {
-      "file": "js/testing/test-data-manager.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 223,
-      "incoming": 5,
-      "outgoing": 5,
-      "secondLevel": 13,
-      "storageRefs": 8,
-      "dialogRefs": 0,
-      "reasons": [
-        "kilka zależnych plików",
-        "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
       "file": "js/app/project/project-store.js",
       "risk": "średnie",
       "score": 4,
@@ -1402,7 +1403,7 @@
       "lines": 197,
       "incoming": 23,
       "outgoing": 5,
-      "secondLevel": 68,
+      "secondLevel": 69,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1435,7 +1436,7 @@
       "lines": 149,
       "incoming": 28,
       "outgoing": 3,
-      "secondLevel": 61,
+      "secondLevel": 62,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -3522,7 +3523,8 @@
         "js/app/investor/investors-local-repository.js",
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/tests.js",
+        "js/testing/test-data-manager.js"
       ],
       "outgoingFiles": [
         "js/app/shared/constants.js"
@@ -3548,10 +3550,14 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/tabs/wycena.js",
+        "js/testing/data-safety/tests.js",
+        "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/test-data-manager.js",
+        "js/testing/test-data-safety.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
@@ -3574,7 +3580,7 @@
     "js/app/investor/investors-recovery.js": {
       "area": "INWESTOR",
       "category": "domain/controller",
-      "lines": 278,
+      "lines": 287,
       "defines": [
         "investorsRecovery"
       ],
@@ -3718,6 +3724,7 @@
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/wycena.js",
         "js/testing/cabinet/tests.js",
+        "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -5622,6 +5629,7 @@
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/wycena.js",
         "js/testing/cabinet/tests.js",
+        "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -8349,6 +8357,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
         "js/testing/cabinet/tests.js",
+        "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -8359,6 +8368,7 @@
         "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
         "js/testing/test-data-safety.js",
+        "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
@@ -9097,7 +9107,8 @@
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js",
-        "js/testing/test-data-safety.js"
+        "js/testing/test-data-safety.js",
+        "js/testing/wycena/fixtures.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -10455,6 +10466,7 @@
         "js/tabs/wycena.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
+        "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -13203,7 +13215,7 @@
     "js/testing/data-safety/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 209,
+      "lines": 238,
       "defines": [
         "dataSafetyDevTests"
       ],
@@ -13212,6 +13224,7 @@
         "dataBackupSnapshot",
         "dataStorageAudit",
         "dataStorageOrphanCleanup",
+        "testDataManager",
         "testDataSafety",
         "dataBackupStore",
         "dataSafetyDevTests"
@@ -13225,18 +13238,20 @@
         "js/app/shared/data-storage-audit.js",
         "js/app/shared/data-storage-orphan-cleanup.js",
         "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js",
         "js/testing/test-data-safety.js"
       ],
       "secondLevelFiles": [
         "js/testing/dev-tests-page.js"
       ],
-      "storageRefs": 37,
+      "storageRefs": 44,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
+        "kilka zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
       ]
     },
@@ -13376,12 +13391,14 @@
     "js/testing/investor/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 907,
+      "lines": 912,
       "defines": [
         "investorDevTests"
       ],
       "uses": [
         "testHarness",
+        "testDataManager",
+        "investors",
         "investorPersistence",
         "investorNavigationGuard",
         "investorFieldRender",
@@ -13389,7 +13406,6 @@
         "investorsModel",
         "investorsLocalRepository",
         "investorsRecovery",
-        "investors",
         "roomRegistry",
         "investorRoomActions",
         "roomRegistryFoundation",
@@ -13403,7 +13419,6 @@
         "roomRegistryModals",
         "roomRegistryRender",
         "investorEditorState",
-        "testDataManager",
         "projectStore",
         "quoteSnapshotStore",
         "quoteOfferStore",
@@ -14590,7 +14605,7 @@
     "js/testing/test-data-manager.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 223,
+      "lines": 393,
       "defines": [
         "testDataManager"
       ],
@@ -14598,18 +14613,22 @@
         "utils",
         "dataStorageClassifier",
         "investors",
+        "investorsModel",
         "serviceOrderStore",
         "projectStore",
         "testDataManager"
       ],
       "incomingFiles": [
+        "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js",
-        "js/testing/test-data-safety.js"
+        "js/testing/test-data-safety.js",
+        "js/testing/wycena/fixtures.js"
       ],
       "outgoingFiles": [
+        "js/app/investor/investors-model.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-store.js",
         "js/app/service/service-order-store.js",
@@ -14625,19 +14644,29 @@
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
-      "storageRefs": 8,
+      "storageRefs": 15,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
+        "250+ linii",
         "kilka zależnych plików",
         "bezpośredni storage poza oczywistą granicą"
       ]
@@ -14684,7 +14713,7 @@
     "js/testing/wycena/fixtures.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 134,
+      "lines": 140,
       "defines": [
         "wycenaTestFixtures",
         "wycenaTestRegistry",
@@ -14697,6 +14726,7 @@
         "quoteOfferStore",
         "rozrys",
         "cabinetCutlist",
+        "testDataManager",
         "wycenaTestFixtures",
         "wycenaTestRegistry",
         "registerWycenaTests"
@@ -14727,6 +14757,7 @@
         "js/app/rozrys/rozrys.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/test-data-manager.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
