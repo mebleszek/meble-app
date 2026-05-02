@@ -444,3 +444,12 @@ Następne sensowne kierunki poza RYSUNKIEM:
 1. Audyt `actions-register.js` lub wybranych modułów szafek — tylko jeśli da się rozdzielić jedną odpowiedzialność bez zmiany UI.
 2. Ostrożny powrót do WYCENY/statusów tylko przy konkretnej ścieżce biznesowej i z pełnym testem regresji.
 3. `app.js` etap 3 tylko, jeśli analiza pokaże konkretny bezpieczny fragment, nie dla sztucznego zejścia poniżej 250 linii.
+
+
+## 2026-05-03 — Optimization checkpoint v1
+
+- Po dwóch splitach `app.js` dalsze cięcie shellu runtime nie jest już najbezpieczniejszym ruchem bez konkretnego celu funkcjonalnego.
+- Wykonano bezpieczny split narzędzi testowych Inwestora: `js/testing/investor/tests.js` → helpery + suity tematyczne + cienki agregator.
+- To zmniejsza dług narzędziowy bez ruszania UI/runtime aplikacji i ułatwia przyszłe dopisywanie testów Inwestora bez tworzenia kolejnego monolitu.
+- Przy okazji ujawniono i naprawiono problem izolacji fixture: recovery testy Inwestora muszą czyścić/przywracać `fc_edit_session_v1`, bo inaczej test snapshot-only miesza się z poprzednim testem pustej listy pomieszczeń.
+- Następny refaktor powinien być powiązany z planowaną funkcją: szafki/fronty (`cabinet-fronts.js`/modal stack), Inwestor (`investor-ui.js` bindingi) albo Materiały (`tabs/material.js`). Nie ciąć RYSUNKU.

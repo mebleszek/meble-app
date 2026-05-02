@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_app_legacy_bridges_v1.zip`.
-- Baza startowa tej paczki: `site_app_core_namespace_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_optimization_checkpoint_v1.zip`.
+- Baza startowa tej paczki: `site_app_legacy_bridges_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -446,3 +446,12 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Utrzymywać kolejność ładowania: `investor-rooms.js` → `investor-ui-render.js` → `investor-ui-status-flow.js` → `investor-ui.js` w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
 - App smoke ma kontrakt `Investor UI ma wydzielony render i status flow`; nie usuwać go przy dalszych splitach Inwestora.
 - Raport: `tools/reports/investor-ui-split-v1.md`.
+
+
+## 2026-05-03 — Optimization checkpoint v1
+
+- Wykonano checkpoint optymalizacji po splitach `app.js` i `investor-ui.js`; nie cięto dalej runtime shellu, bo kolejne granice w `app.js` dotykają startu/walidacji/runtime i byłyby zbyt ryzykowne bez konkretnej potrzeby funkcjonalnej.
+- Rozdzielono monolit testów Inwestora: `js/testing/investor/tests.js` jest teraz cienkim agregatorem, a właściwe testy są w `js/testing/investor/suites/*` z helperami w `js/testing/investor/helpers.js`.
+- Testy recovery Inwestora czyszczą i przywracają `fc_edit_session_v1` lokalnie w fixture, żeby nie mieszać snapshotów sesji edycji z testami odzysku z projektów/snapshotów ofert.
+- Nie zmieniono UI, runtime danych, statusów/ofert, RYSUNKU ani polityki backupów.
+- Raport checkpointu: `tools/reports/optimization-checkpoint-v1.md`.

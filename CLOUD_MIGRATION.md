@@ -349,3 +349,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Wydzielenie `js/app/bootstrap/app-legacy-bridges.js` nie dodało żadnego nowego storage ani nie zmieniło formatu danych.
 - `app.js` pozostaje bez bezpośredniego `localStorage/sessionStorage`; globalne delegatory cabinet/material/price są teraz oddzielone od shellu runtime.
 - Dla przyszłej chmury ważne: nie dopisywać do `app-legacy-bridges.js` zapisu danych ani adapterów. Ten moduł ma być wyłącznie warstwą zgodności wywołań.
+
+
+## 2026-05-03 — Optimization checkpoint v1 / test storage isolation
+
+- Nie dodano nowego storage ani nie zmieniono formatu danych runtime.
+- Zmieniono tylko izolację testów: suita recovery Inwestora lokalnie czyści i przywraca techniczny klucz `fc_edit_session_v1`, żeby testy odzysku inwestorów z `projectStore`/snapshotów ofert nie odzyskiwały danych z sesji edycji zostawionej przez wcześniejszy test.
+- Dla przyszłej chmury wniosek pozostaje taki sam: snapshot sesji edycji jest technicznym stanem tymczasowym i nie może być traktowany jak trwałe źródło domenowe na równi z inwestorem/projektem/ofertą.

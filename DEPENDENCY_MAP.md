@@ -331,3 +331,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - `app-dev-smoke` ma kontrakt obecności `FC.appLegacyBridges.installed`.
 - Ręcznie sprawdzono runtime load w uproszczonym sandboxie przez warstwy `startup-foundation`, `business-domains`, `ui-shell`, `app-runtime` po dodaniu nowego bridge.
 - Ten plik ma pozostać cienkim mostem zgodności. Nie przenosić do niego logiki domenowej, UI ani storage.
+
+
+## 2026-05-03 — Investor dev tests split v1
+
+- `dev_tests.html` i `tools/app-dev-smoke-lib/file-list.js` ładują testy Inwestora w kolejności: `helpers.js`, suity `architecture`, `registry-core`, `registry-manage`, `model-actions`, `status-flow`, `recovery-sources`, `recovery-isolation`, `misc`, a na końcu aggregator `tests.js`.
+- `FC.investorDevTestSuites` jest wypełniane przez suity, a `FC.investorDevTests.runAll()` w `tests.js` zbiera je w jeden raport `INWESTOR smoke testy`.
+- `app-dev-smoke` pilnuje obecności wydzielonych suit i zachowania rejestracji testów Inwestora.

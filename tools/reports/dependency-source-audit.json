@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-02T21:57:21.239Z",
+  "generatedAt": "2026-05-02T22:16:09.795Z",
   "summary": {
-    "jsFiles": 299,
+    "jsFiles": 308,
     "indexScripts": 234,
-    "devTestScripts": 255,
+    "devTestScripts": 264,
     "fcSymbols": 223,
-    "fcSymbolsAll": 247,
-    "edges": 1543,
-    "highRisk": 8,
-    "mediumRisk": 52
+    "fcSymbolsAll": 249,
+    "edges": 1663,
+    "highRisk": 7,
+    "mediumRisk": 60
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -140,22 +140,18 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 42,
-      "lines": 10772,
-      "storageRefs": 234,
+      "files": 51,
+      "lines": 11120,
+      "storageRefs": 242,
       "dialogRefs": 1,
-      "high": 6,
-      "medium": 22
+      "high": 5,
+      "medium": 30
     }
   },
   "topLines": [
     [
       "js/tabs/rysunek.js",
       1459
-    ],
-    [
-      "js/testing/investor/tests.js",
-      912
     ],
     [
       "js/app/rozrys/rozrys.js",
@@ -228,6 +224,10 @@
     [
       "js/tabs/material.js",
       380
+    ],
+    [
+      "js/testing/rozrys/suites/scope-runtime-controllers.js",
+      369
     ]
   ],
   "topIncoming": [
@@ -236,16 +236,20 @@
       66
     ],
     [
+      "js/app/investor/investors-store.js",
+      41
+    ],
+    [
       "js/app/quote/quote-snapshot-store.js",
-      38
+      41
     ],
     [
       "js/app/shared/storage.js",
       35
     ],
     [
-      "js/app/investor/investors-store.js",
-      33
+      "js/testing/shared/harness.js",
+      35
     ],
     [
       "js/app/shared/utils.js",
@@ -253,18 +257,14 @@
     ],
     [
       "js/app/shared/room-registry.js",
-      28
+      31
     ],
     [
-      "js/testing/shared/harness.js",
+      "js/app/project/project-store.js",
       27
     ],
     [
       "js/app/project/project-bridge.js",
-      24
-    ],
-    [
-      "js/app/project/project-store.js",
       24
     ],
     [
@@ -273,19 +273,19 @@
     ],
     [
       "js/testing/wycena/suites/core-offer-basics.js",
-      20
+      23
     ],
     [
       "js/app/ui/confirm-box.js",
       19
     ],
     [
-      "js/app/shared/constants.js",
+      "js/app/investor/investor-persistence.js",
       18
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      17
+      "js/app/shared/constants.js",
+      18
     ],
     [
       "js/app/project/project-status-snapshot-flow.js",
@@ -300,98 +300,98 @@
       16
     ],
     [
+      "js/testing/rozrys/suites/project-stock.js",
+      16
+    ],
+    [
       "js/testing/wycena/fixtures.js",
       16
     ],
     [
       "js/app/ui/panel-box.js",
       15
-    ],
-    [
-      "js/app/ui/views.js",
-      15
     ]
   ],
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      150
+      158
     ],
     [
       "js/app/shared/storage.js",
-      133
+      137
     ],
     [
       "js/app/shared/utils.js",
-      120
+      128
     ],
     [
       "js/app/project/project-bridge.js",
-      99
+      102
     ],
     [
       "js/app/shared/constants.js",
-      95
+      99
     ],
     [
       "js/app/shared/room-registry.js",
-      83
+      91
     ],
     [
       "js/app/shared/schema.js",
-      81
+      84
     ],
     [
       "js/app/project/project-store.js",
-      74
+      83
     ],
     [
       "js/app/investor/investors-store.js",
-      73
-    ],
-    [
-      "js/app/investor/session.js",
-      60
-    ],
-    [
-      "js/app/ui/info-box.js",
-      59
+      82
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      58
+      66
     ],
     [
-      "js/app/ui/confirm-box.js",
-      56
+      "js/app/investor/session.js",
+      61
+    ],
+    [
+      "js/app/ui/info-box.js",
+      61
     ],
     [
       "js/app/investor/investor-persistence.js",
-      52
+      60
+    ],
+    [
+      "js/app/ui/confirm-box.js",
+      60
     ],
     [
       "js/app/quote/quote-snapshot.js",
-      52
+      57
     ],
     [
       "js/app/shared/ui-state.js",
-      51
+      54
     ],
     [
-      "js/app/rozrys/rozrys-scope.js",
-      46
+      "js/app/investor/investors-model.js",
+      49
+    ],
+    [
+      "js/app/project/project-status-sync.js",
+      47
     ],
     [
       "js/app/rozrys/rozrys.js",
-      44
+      47
     ],
     [
-      "js/app/rozrys/rozrys-shell.js",
-      43
-    ],
-    [
-      "js/app/project/project-model.js",
-      42
+      "js/app/project/project-status-snapshot-flow.js",
+      46
     ]
   ],
   "topStorage": [
@@ -404,16 +404,16 @@
       44
     ],
     [
-      "js/testing/investor/tests.js",
-      20
-    ],
-    [
       "js/testing/material/tests.js",
       19
     ],
     [
       "js/app/shared/storage.js",
       17
+    ],
+    [
+      "js/testing/investor/suites/recovery-isolation.js",
+      16
     ],
     [
       "js/testing/test-data-manager.js",
@@ -425,6 +425,10 @@
     ],
     [
       "js/app/investor/session.js",
+      12
+    ],
+    [
+      "js/testing/investor/suites/recovery-sources.js",
       12
     ],
     [
@@ -470,10 +474,6 @@
     [
       "js/app/rozrys/rozrys-cache.js",
       2
-    ],
-    [
-      "js/app/rozrys/rozrys-grain.js",
-      2
     ]
   ],
   "risks": [
@@ -484,9 +484,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 835,
-      "incoming": 13,
+      "incoming": 14,
       "outgoing": 30,
-      "secondLevel": 30,
+      "secondLevel": 38,
       "storageRefs": 112,
       "dialogRefs": 0,
       "reasons": [
@@ -499,6 +499,25 @@
       ]
     },
     {
+      "file": "js/testing/rozrys/tests.js",
+      "risk": "wysokie",
+      "score": 10,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 475,
+      "incoming": 10,
+      "outgoing": 20,
+      "secondLevel": 37,
+      "storageRefs": 1,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys.js",
       "risk": "wysokie",
       "score": 9,
@@ -507,7 +526,7 @@
       "lines": 842,
       "incoming": 9,
       "outgoing": 19,
-      "secondLevel": 44,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -525,50 +544,13 @@
       "lines": 649,
       "incoming": 15,
       "outgoing": 31,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "600+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/rozrys/tests.js",
-      "risk": "wysokie",
-      "score": 9,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 475,
-      "incoming": 7,
-      "outgoing": 20,
-      "secondLevel": 29,
-      "storageRefs": 1,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "kilka zależnych plików",
-        "dużo zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
-      "file": "js/testing/investor/tests.js",
-      "risk": "wysokie",
-      "score": 8,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 912,
-      "incoming": 1,
-      "outgoing": 36,
-      "secondLevel": 1,
-      "storageRefs": 20,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "dużo zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -580,7 +562,7 @@
       "lines": 806,
       "incoming": 6,
       "outgoing": 13,
-      "secondLevel": 30,
+      "secondLevel": 33,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -598,7 +580,7 @@
       "lines": 390,
       "incoming": 14,
       "outgoing": 28,
-      "secondLevel": 29,
+      "secondLevel": 36,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -606,6 +588,25 @@
         "dużo publicznych symboli FC",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/test-data-manager.js",
+      "risk": "średnie",
+      "score": 7,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 393,
+      "incoming": 15,
+      "outgoing": 7,
+      "secondLevel": 32,
+      "storageRefs": 15,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -617,7 +618,7 @@
       "lines": 154,
       "incoming": 16,
       "outgoing": 26,
-      "secondLevel": 21,
+      "secondLevel": 24,
       "storageRefs": 13,
       "dialogRefs": 0,
       "reasons": [
@@ -662,25 +663,6 @@
       ]
     },
     {
-      "file": "js/testing/test-data-manager.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 393,
-      "incoming": 7,
-      "outgoing": 7,
-      "secondLevel": 24,
-      "storageRefs": 15,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
       "file": "js/testing/rozrys/suites/scope-runtime-controllers.js",
       "risk": "średnie",
       "score": 6,
@@ -689,7 +671,7 @@
       "lines": 369,
       "incoming": 7,
       "outgoing": 14,
-      "secondLevel": 17,
+      "secondLevel": 21,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -708,7 +690,7 @@
       "lines": 363,
       "incoming": 7,
       "outgoing": 14,
-      "secondLevel": 22,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -726,7 +708,7 @@
       "lines": 361,
       "incoming": 15,
       "outgoing": 24,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -744,7 +726,7 @@
       "lines": 356,
       "incoming": 15,
       "outgoing": 26,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -760,9 +742,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 342,
-      "incoming": 13,
+      "incoming": 16,
       "outgoing": 19,
-      "secondLevel": 30,
+      "secondLevel": 38,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -780,7 +762,7 @@
       "lines": 321,
       "incoming": 15,
       "outgoing": 40,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -796,9 +778,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 38,
+      "incoming": 41,
       "outgoing": 7,
-      "secondLevel": 58,
+      "secondLevel": 66,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -816,7 +798,7 @@
       "lines": 305,
       "incoming": 7,
       "outgoing": 14,
-      "secondLevel": 17,
+      "secondLevel": 21,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -835,7 +817,7 @@
       "lines": 277,
       "incoming": 15,
       "outgoing": 24,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -853,7 +835,7 @@
       "lines": 257,
       "incoming": 10,
       "outgoing": 9,
-      "secondLevel": 52,
+      "secondLevel": 57,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -869,15 +851,51 @@
       "area": "TESTY",
       "category": "test",
       "lines": 252,
-      "incoming": 20,
+      "incoming": 23,
       "outgoing": 30,
-      "secondLevel": 29,
+      "secondLevel": 37,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/investor/suites/recovery-sources.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 168,
+      "incoming": 8,
+      "outgoing": 13,
+      "secondLevel": 9,
+      "storageRefs": 12,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
+      "file": "js/testing/investor/suites/recovery-isolation.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 162,
+      "incoming": 8,
+      "outgoing": 13,
+      "secondLevel": 9,
+      "storageRefs": 16,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -889,7 +907,7 @@
       "lines": 117,
       "incoming": 6,
       "outgoing": 9,
-      "secondLevel": 30,
+      "secondLevel": 33,
       "storageRefs": 10,
       "dialogRefs": 1,
       "reasons": [
@@ -925,7 +943,7 @@
       "lines": 395,
       "incoming": 8,
       "outgoing": 10,
-      "secondLevel": 30,
+      "secondLevel": 31,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -943,7 +961,7 @@
       "lines": 348,
       "incoming": 6,
       "outgoing": 11,
-      "secondLevel": 22,
+      "secondLevel": 25,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -996,7 +1014,7 @@
       "lines": 309,
       "incoming": 17,
       "outgoing": 4,
-      "secondLevel": 39,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1013,7 +1031,7 @@
       "lines": 293,
       "incoming": 10,
       "outgoing": 7,
-      "secondLevel": 34,
+      "secondLevel": 35,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1031,7 +1049,7 @@
       "lines": 288,
       "incoming": 7,
       "outgoing": 12,
-      "secondLevel": 20,
+      "secondLevel": 21,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1049,7 +1067,7 @@
       "lines": 270,
       "incoming": 17,
       "outgoing": 5,
-      "secondLevel": 38,
+      "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1066,7 +1084,7 @@
       "lines": 270,
       "incoming": 6,
       "outgoing": 7,
-      "secondLevel": 23,
+      "secondLevel": 27,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1084,7 +1102,7 @@
       "lines": 259,
       "incoming": 10,
       "outgoing": 1,
-      "secondLevel": 60,
+      "secondLevel": 61,
       "storageRefs": 12,
       "dialogRefs": 0,
       "reasons": [
@@ -1101,7 +1119,7 @@
       "lines": 250,
       "incoming": 15,
       "outgoing": 11,
-      "secondLevel": 38,
+      "secondLevel": 39,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1119,7 +1137,7 @@
       "lines": 238,
       "incoming": 12,
       "outgoing": 9,
-      "secondLevel": 36,
+      "secondLevel": 44,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1136,7 +1154,7 @@
       "lines": 223,
       "incoming": 15,
       "outgoing": 23,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1153,7 +1171,7 @@
       "lines": 161,
       "incoming": 15,
       "outgoing": 21,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1170,7 +1188,7 @@
       "lines": 155,
       "incoming": 15,
       "outgoing": 23,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1187,7 +1205,7 @@
       "lines": 149,
       "incoming": 15,
       "outgoing": 29,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1204,7 +1222,7 @@
       "lines": 128,
       "incoming": 15,
       "outgoing": 20,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1221,7 +1239,7 @@
       "lines": 121,
       "incoming": 15,
       "outgoing": 18,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1238,7 +1256,7 @@
       "lines": 96,
       "incoming": 14,
       "outgoing": 7,
-      "secondLevel": 40,
+      "secondLevel": 43,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1255,7 +1273,7 @@
       "lines": 94,
       "incoming": 15,
       "outgoing": 18,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1272,7 +1290,7 @@
       "lines": 93,
       "incoming": 15,
       "outgoing": 22,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1289,7 +1307,7 @@
       "lines": 82,
       "incoming": 15,
       "outgoing": 18,
-      "secondLevel": 20,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1370,7 +1388,7 @@
       "lines": 283,
       "incoming": 16,
       "outgoing": 0,
-      "secondLevel": 38,
+      "secondLevel": 42,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1397,6 +1415,23 @@
       ]
     },
     {
+      "file": "js/testing/investor/suites/registry-core.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 249,
+      "incoming": 8,
+      "outgoing": 19,
+      "secondLevel": 9,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/suites/output-bootstrap.js",
       "risk": "średnie",
       "score": 4,
@@ -1405,7 +1440,41 @@
       "lines": 236,
       "incoming": 7,
       "outgoing": 15,
-      "secondLevel": 17,
+      "secondLevel": 21,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/investor/suites/registry-manage.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 216,
+      "incoming": 8,
+      "outgoing": 18,
+      "secondLevel": 9,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/investor/suites/status-flow.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 199,
+      "incoming": 8,
+      "outgoing": 21,
+      "secondLevel": 9,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1420,9 +1489,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 24,
+      "incoming": 27,
       "outgoing": 6,
-      "secondLevel": 74,
+      "secondLevel": 83,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1438,7 +1507,7 @@
       "lines": 197,
       "incoming": 7,
       "outgoing": 12,
-      "secondLevel": 17,
+      "secondLevel": 21,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1455,7 +1524,7 @@
       "lines": 172,
       "incoming": 66,
       "outgoing": 4,
-      "secondLevel": 150,
+      "secondLevel": 158,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1470,9 +1539,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 149,
-      "incoming": 33,
+      "incoming": 41,
       "outgoing": 3,
-      "secondLevel": 73,
+      "secondLevel": 82,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1486,9 +1555,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 137,
-      "incoming": 17,
+      "incoming": 18,
       "outgoing": 4,
-      "secondLevel": 52,
+      "secondLevel": 60,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1513,6 +1582,40 @@
       ]
     },
     {
+      "file": "js/testing/investor/suites/architecture.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 95,
+      "incoming": 8,
+      "outgoing": 34,
+      "secondLevel": 9,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/investor/suites/model-actions.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 75,
+      "incoming": 8,
+      "outgoing": 13,
+      "secondLevel": 9,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/app/project/project-bridge.js",
       "risk": "średnie",
       "score": 4,
@@ -1521,11 +1624,28 @@
       "lines": 61,
       "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 99,
+      "secondLevel": 102,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/testing/investor/suites/misc.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 47,
+      "incoming": 8,
+      "outgoing": 14,
+      "secondLevel": 9,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
       ]
     }
   ],
@@ -1576,7 +1696,8 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -1810,7 +1931,15 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -1909,7 +2038,8 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -1986,7 +2116,8 @@
         "js/core/modals.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -2055,7 +2186,8 @@
         "js/core/modals.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -2182,7 +2314,11 @@
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -2774,7 +2910,8 @@
         "js/app/ui/actions-register.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -2947,7 +3084,8 @@
         "js/app/wycena/wycena-tab-editor.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -2994,7 +3132,8 @@
       "incomingFiles": [
         "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investor-editor-state.js",
@@ -3013,7 +3152,15 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js"
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3080,7 +3227,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/tab-navigation.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/registry-core.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
@@ -3094,7 +3241,13 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -3119,12 +3272,19 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-ui-render.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/investor/investor-ui.js",
-        "js/testing/dev-tests-registry.js"
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3183,7 +3343,8 @@
       "secondLevelFiles": [
         "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3206,7 +3367,7 @@
       "incomingFiles": [
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
@@ -3219,7 +3380,14 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -3244,7 +3412,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-actions.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/model-actions.js"
       ],
       "outgoingFiles": [
         "js/app/rozrys/rozrys-print.js",
@@ -3253,7 +3421,14 @@
       "secondLevelFiles": [
         "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -3287,7 +3462,8 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/investor-integration.js",
@@ -3333,6 +3509,14 @@
         "js/core/modals.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -3525,7 +3709,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-ui.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/investor/session.js",
@@ -3540,7 +3724,14 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js"
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3745,7 +3936,8 @@
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/core/actions.js",
         "js/core/modals.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js",
         "js/testing/project/tests.js"
       ],
       "storageRefs": 0,
@@ -3775,7 +3967,7 @@
       "incomingFiles": [
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -3805,7 +3997,15 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-tab-data.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-manager.js",
@@ -3845,7 +4045,7 @@
         "js/app/investor/investors-local-repository.js",
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
         "js/testing/test-data-manager.js"
       ],
       "outgoingFiles": [
@@ -3878,7 +4078,15 @@
         "js/app/wycena/wycena-tab-data.js",
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js",
@@ -3919,7 +4127,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investors-store.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-local-repository.js",
@@ -3947,7 +4155,15 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-tab-data.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-manager.js",
@@ -4006,7 +4222,15 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-tab-data.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-manager.js",
         "js/testing/wycena/fixtures.js",
@@ -4073,6 +4297,15 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -4154,7 +4387,8 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -4247,7 +4481,8 @@
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -4305,7 +4540,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/tab-navigation.js",
         "js/app/wycena/wycena-core-material-plan.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/state-ui-runtime.js"
       ],
@@ -4440,7 +4675,7 @@
         "js/app/wycena/wycena-room-availability.js",
         "js/tabs/material.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -4491,7 +4726,7 @@
         "js/app/wycena/wycena-core.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -4588,7 +4823,10 @@
       ],
       "secondLevelFiles": [
         "js/app/ui/actions-register.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -4761,7 +4999,10 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/ui/actions-register.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -4841,7 +5082,11 @@
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -5446,7 +5691,10 @@
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -5538,7 +5786,10 @@
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rysunek/tests.js",
@@ -5664,7 +5915,8 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
@@ -5735,7 +5987,7 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
@@ -5847,7 +6099,7 @@
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -5901,7 +6153,7 @@
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
@@ -5940,6 +6192,14 @@
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -5991,7 +6251,7 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
@@ -6030,6 +6290,14 @@
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/wycena/fixtures.js",
@@ -6090,7 +6358,10 @@
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-manager.js",
         "js/testing/wycena/fixtures.js",
@@ -6160,6 +6431,15 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -6222,7 +6502,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-selection-version.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/registry-manage.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/scope-entry.js",
@@ -6255,6 +6535,14 @@
         "js/app/wycena/wycena-tab-selection-model.js",
         "js/tabs/wycena.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -6693,7 +6981,10 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -6759,7 +7050,10 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -6824,7 +7118,10 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -6888,6 +7185,14 @@
         "js/app/wycena/wycena-tab-status-controller.js",
         "js/tabs/wycena.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -6996,7 +7301,12 @@
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/wycena.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -7085,7 +7395,11 @@
         "js/app/wycena/wycena-core.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -7142,7 +7456,8 @@
         "js/app/rozrys/rozrys.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -7231,7 +7546,7 @@
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -7290,7 +7605,11 @@
         "js/app/wycena/wycena-core.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -7340,7 +7659,7 @@
       ],
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -7422,7 +7741,8 @@
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -7529,7 +7849,7 @@
       "secondLevelFiles": [
         "js/app/rozrys/rozrys.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -7618,7 +7938,7 @@
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -7666,7 +7986,7 @@
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -7747,7 +8067,7 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -7841,7 +8161,10 @@
         "js/app/rozrys/rozrys-output-controller.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -7884,7 +8207,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/wycena/wycena-tab-history.js",
         "js/app/wycena/wycena-tab-shell.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/model-actions.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/cross-systems.js"
@@ -7915,7 +8238,7 @@
       "secondLevelFiles": [
         "js/app/rozrys/rozrys.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -8288,7 +8611,7 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-selection.js",
         "js/tabs/wycena.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/registry-manage.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -8385,7 +8708,7 @@
       "secondLevelFiles": [
         "js/app/service/cutting/service-order-detail.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -8454,7 +8777,11 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -8526,7 +8853,10 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -8577,7 +8907,7 @@
       "incomingFiles": [
         "js/app/rozrys/rozrys-panel-workspace.js",
         "js/app/rozrys/rozrys.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/tests.js"
@@ -8592,6 +8922,14 @@
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -8643,7 +8981,7 @@
       "secondLevelFiles": [
         "js/app/rozrys/rozrys.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -8680,7 +9018,7 @@
       ],
       "incomingFiles": [
         "js/app/wycena/wycena-core-material-plan.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/rozrys/suites/state-ui-runtime.js"
       ],
       "outgoingFiles": [
@@ -8690,7 +9028,14 @@
       "secondLevelFiles": [
         "js/app/material/material-registry.js",
         "js/app/wycena/wycena-core.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -8783,7 +9128,7 @@
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -8837,7 +9182,7 @@
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -8880,7 +9225,10 @@
       "secondLevelFiles": [
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -8980,7 +9328,10 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -9195,7 +9546,15 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -9408,7 +9767,11 @@
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -9766,7 +10129,8 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -9856,7 +10220,8 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -9956,7 +10321,15 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-storage-tools.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js",
         "js/testing/test-data-safety.js",
@@ -10179,7 +10552,7 @@
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/shared/room-registry-definitions.js",
@@ -10213,7 +10586,14 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -10246,7 +10626,8 @@
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/tests.js"
       ],
@@ -10261,6 +10642,14 @@
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -10310,7 +10699,7 @@
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/shared/room-registry-project-sync.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -10328,7 +10717,14 @@
         "js/app/shared/room-registry-project-sync.js",
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/tests.js"
@@ -10367,7 +10763,7 @@
       "incomingFiles": [
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-project-sync.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -10390,7 +10786,14 @@
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -10420,7 +10823,7 @@
       ],
       "incomingFiles": [
         "js/app/shared/room-registry-modals.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/shared/room-registry-core.js",
@@ -10430,7 +10833,14 @@
       ],
       "secondLevelFiles": [
         "js/app/shared/room-registry.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -10459,7 +10869,7 @@
       ],
       "incomingFiles": [
         "js/app/shared/room-registry-modals.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/shared/room-registry-core.js",
@@ -10471,7 +10881,14 @@
       ],
       "secondLevelFiles": [
         "js/app/shared/room-registry.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -10499,7 +10916,7 @@
       ],
       "incomingFiles": [
         "js/app/shared/room-registry.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/shared/room-registry-modals-add-edit.js",
@@ -10528,7 +10945,14 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -10561,7 +10985,8 @@
       ],
       "incomingFiles": [
         "js/app/shared/room-registry-core.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -10575,7 +11000,14 @@
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -10601,7 +11033,7 @@
       ],
       "incomingFiles": [
         "js/app/shared/room-registry.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js"
       ],
       "outgoingFiles": [
         "js/app/shared/room-registry-core.js"
@@ -10629,7 +11061,14 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -10659,7 +11098,8 @@
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/shared/room-registry-project-sync.js",
-        "js/testing/investor/tests.js"
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
@@ -10669,7 +11109,14 @@
         "js/app/shared/room-registry-modals.js",
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
-        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
       "storageRefs": 0,
@@ -10678,7 +11125,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależnych plików"
+      ]
     },
     "js/app/shared/room-registry.js": {
       "area": "POMIESZCZENIA",
@@ -10716,7 +11165,10 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -10785,6 +11237,14 @@
         "js/app/wycena/wycena-tab-status-controller.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -10864,7 +11324,8 @@
         "js/app/wycena/wycena-core.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -10980,7 +11441,10 @@
         "js/tabs/rysunek.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -11172,7 +11636,11 @@
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -11278,7 +11746,10 @@
         "js/core/modals.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -11448,7 +11919,15 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -11633,7 +12112,8 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -11820,7 +12300,11 @@
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -12152,7 +12636,9 @@
         "js/tabs/wycena.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -12291,7 +12777,7 @@
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-selection-pickers.js",
         "js/app/wycena/wycena-tab-selection.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -12473,7 +12959,10 @@
         "js/app/quote/quote-scope-entry-flow.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -12611,7 +13100,8 @@
         "js/tabs/material.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -12675,7 +13165,8 @@
         "js/core/modals.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -12904,7 +13395,7 @@
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -13252,7 +13743,10 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -14400,7 +14894,10 @@
       ],
       "secondLevelFiles": [
         "js/app/quote/quote-scope-entry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -14514,7 +15011,10 @@
       "secondLevelFiles": [
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -14759,15 +15259,63 @@
       "risk": "niskie",
       "reasons": []
     },
-    "js/testing/investor/tests.js": {
+    "js/testing/investor/helpers.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 912,
+      "lines": 31,
       "defines": [
-        "investorDevTests"
+        "investorDevTestHelpers"
+      ],
+      "uses": [
+        "testDataManager",
+        "investors",
+        "investorDevTestHelpers"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/testing/test-data-manager.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "kilka zależnych plików"
+      ]
+    },
+    "js/testing/investor/suites/architecture.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 95,
+      "defines": [
+        "investorDevTestSuites"
       ],
       "uses": [
         "testHarness",
+        "investorDevTestHelpers",
         "testDataManager",
         "investors",
         "investorPersistence",
@@ -14789,38 +15337,28 @@
         "roomRegistryModalsManageRemove",
         "roomRegistryModals",
         "roomRegistryRender",
-        "investorEditorState",
-        "projectStore",
-        "quoteSnapshotStore",
-        "quoteOfferStore",
-        "investorPdf",
-        "projectStatusSync",
-        "rozrysStock",
-        "rozrysState",
-        "investorDevTests"
+        "investorDevTestSuites"
       ],
       "incomingFiles": [
-        "js/testing/dev-tests-registry.js"
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investor-actions.js",
-        "js/app/investor/investor-editor-state.js",
         "js/app/investor/investor-field-render.js",
         "js/app/investor/investor-navigation-guard.js",
-        "js/app/investor/investor-pdf.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investors-local-repository.js",
         "js/app/investor/investors-model.js",
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
-        "js/app/project/project-status-snapshot-flow.js",
-        "js/app/project/project-status-sync.js",
-        "js/app/project/project-store.js",
-        "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-snapshot-store.js",
-        "js/app/rozrys/rozrys-state.js",
-        "js/app/rozrys/rozrys-stock.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-definitions.js",
         "js/app/shared/room-registry-foundation.js",
@@ -14832,8 +15370,15 @@
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry-utils.js",
         "js/app/shared/room-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
-        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/shared/harness.js",
@@ -14841,18 +15386,535 @@
         "js/testing/wycena/suites/core-offer-basics.js"
       ],
       "secondLevelFiles": [
-        "js/testing/dev-tests-page.js"
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
       ],
-      "storageRefs": 20,
+      "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,
       "loadedInDevTests": true,
-      "risk": "wysokie",
+      "risk": "średnie",
       "reasons": [
-        "600+ linii",
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/investor/suites/misc.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 47,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "rozrysStock",
+        "rozrysState",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/rozrys/rozrys-state.js",
+        "js/app/rozrys/rozrys-stock.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/investor/suites/model-actions.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 75,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "investorActions",
+        "investorPdf",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-pdf.js",
+        "js/app/investor/investors-store.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/investor/suites/recovery-isolation.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 162,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "projectStore",
+        "quoteSnapshotStore",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 16,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
         "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    "js/testing/investor/suites/recovery-sources.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 168,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "projectStore",
+        "quoteSnapshotStore",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 12,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    "js/testing/investor/suites/registry-core.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 249,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "roomRegistryUtils",
+        "roomRegistryDefinitions",
+        "investorEditorState",
+        "roomRegistry",
+        "roomRegistryProjectSync",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-editor-state.js",
+        "js/app/investor/investors-store.js",
+        "js/app/shared/room-registry-definitions.js",
+        "js/app/shared/room-registry-project-sync.js",
+        "js/app/shared/room-registry-utils.js",
+        "js/app/shared/room-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js",
+        "js/testing/wycena/suites/core-offer-basics.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/investor/suites/registry-manage.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 216,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "roomRegistry",
+        "projectStore",
+        "quoteSnapshotStore",
+        "quoteOfferStore",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-offer-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/shared/room-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js",
+        "js/testing/wycena/suites/core-offer-basics.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/investor/suites/status-flow.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 199,
+      "defines": [
+        "investorDevTestSuites"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestHelpers",
+        "testDataManager",
+        "investors",
+        "investorPersistence",
+        "projectStore",
+        "quoteSnapshotStore",
+        "projectStatusSync",
+        "roomRegistry",
+        "investorDevTestSuites"
+      ],
+      "incomingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/project/project-status-sync.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/shared/room-registry.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/shared/harness.js",
+        "js/testing/test-data-manager.js",
+        "js/testing/wycena/suites/core-offer-basics.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/investor/tests.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 18,
+      "defines": [
+        "investorDevTests"
+      ],
+      "uses": [
+        "testHarness",
+        "investorDevTestSuites",
+        "investorDevTests"
+      ],
+      "incomingFiles": [
+        "js/testing/dev-tests-registry.js"
+      ],
+      "outgoingFiles": [
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/shared/harness.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-page.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "kilka zależności wychodzących"
       ]
     },
     "js/testing/material/tests.js": {
@@ -14947,7 +16009,8 @@
       "incomingFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -14995,6 +16058,14 @@
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -15054,7 +16125,10 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -15115,7 +16189,7 @@
       ],
       "incomingFiles": [
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/misc.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -15162,6 +16236,13 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -15237,7 +16318,11 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -15314,7 +16399,11 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -15361,7 +16450,10 @@
       ],
       "incomingFiles": [
         "js/testing/cabinet/tests.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -15398,6 +16490,14 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -15491,7 +16591,11 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -15569,7 +16673,11 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -15640,7 +16748,11 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -15693,7 +16805,10 @@
       ],
       "incomingFiles": [
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -15726,6 +16841,14 @@
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -15761,7 +16884,7 @@
       "risk": "wysokie",
       "reasons": [
         "400+ linii",
-        "kilka zależnych plików",
+        "dużo zależnych plików",
         "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
       ]
@@ -15807,7 +16930,10 @@
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -15931,6 +17057,14 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -15960,6 +17094,14 @@
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -16013,7 +17155,15 @@
       "incomingFiles": [
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/helpers.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js",
         "js/testing/test-data-safety.js",
@@ -16033,6 +17183,14 @@
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16062,7 +17220,7 @@
       "risk": "średnie",
       "reasons": [
         "250+ linii",
-        "kilka zależnych plików",
+        "dużo zależnych plików",
         "kilka zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
       ]
@@ -16176,7 +17334,10 @@
       ],
       "secondLevelFiles": [
         "js/testing/dev-tests-registry.js",
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16304,7 +17465,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16407,7 +17571,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16464,7 +17631,10 @@
         "confirmBox"
       ],
       "incomingFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16520,6 +17690,14 @@
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
+        "js/testing/investor/suites/recovery-isolation.js",
+        "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -16622,7 +17800,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16706,7 +17887,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16806,7 +17990,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16903,7 +18090,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -16991,7 +18181,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17080,7 +18273,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17174,7 +18370,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17258,7 +18457,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17342,7 +18544,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17430,7 +18635,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17521,7 +18729,10 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -17612,7 +18823,10 @@
         "js/testing/wycena/suites/status-contract.js"
       ],
       "secondLevelFiles": [
-        "js/testing/investor/tests.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/registry-core.js",
+        "js/testing/investor/suites/registry-manage.js",
+        "js/testing/investor/suites/status-flow.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",

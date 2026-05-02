@@ -101,6 +101,7 @@ function runInvestorNodeSmoke(sandbox){
     { name:'Persistence inwestora jest dostępne', check:()=> !!(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function') },
     { name:'Room registry jest dostępne', check:()=> !!(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') },
     { name:'Investor UI ma wydzielony render i status flow', check:()=> !!(FC.investorUiRender && typeof FC.investorUiRender.buildDetail === 'function' && typeof FC.investorUiRender.buildList === 'function' && FC.investorUiStatus && typeof FC.investorUiStatus.mountProjectStatusChoices === 'function' && FC.investorUI && typeof FC.investorUI.render === 'function') },
+    { name:'Testy Inwestora mają wydzielone suity', check:()=> !!(FC.investorDevTests && typeof FC.investorDevTests.runAll === 'function' && FC.investorDevTests._debug && typeof FC.investorDevTests._debug.collectTests === 'function' && Array.isArray(FC.investorDevTestSuites) && FC.investorDevTestSuites.length >= 8 && FC.investorDevTests._debug.collectTests().length >= 26) },
   ]);
 }
 
