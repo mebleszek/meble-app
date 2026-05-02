@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-02T19:07:16.753Z",
+  "generatedAt": "2026-05-02T20:41:41.014Z",
   "summary": {
-    "jsFiles": 295,
-    "indexScripts": 230,
-    "devTestScripts": 250,
-    "fcSymbols": 219,
-    "fcSymbolsAll": 243,
-    "edges": 1464,
-    "highRisk": 10,
-    "mediumRisk": 50
+    "jsFiles": 297,
+    "indexScripts": 232,
+    "devTestScripts": 253,
+    "fcSymbols": 221,
+    "fcSymbolsAll": 245,
+    "edges": 1470,
+    "highRisk": 9,
+    "mediumRisk": 51
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -36,12 +36,12 @@
       "medium": 1
     },
     "INWESTOR": {
-      "files": 23,
-      "lines": 3315,
+      "files": 25,
+      "lines": 3446,
       "storageRefs": 24,
       "dialogRefs": 0,
-      "high": 1,
-      "medium": 3
+      "high": 0,
+      "medium": 4
     },
     "MATERIAŁ": {
       "files": 14,
@@ -190,10 +190,6 @@
       591
     ],
     [
-      "js/app/investor/investor-ui.js",
-      589
-    ],
-    [
       "js/app/rozrys/rozrys-render.js",
       493
     ],
@@ -228,6 +224,10 @@
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
       388
+    ],
+    [
+      "js/app/optimizer/speed-max-bands.js",
+      381
     ]
   ],
   "topIncoming": [
@@ -308,7 +308,7 @@
       15
     ],
     [
-      "js/testing/wycena/suites/architecture-contract.js",
+      "js/app/ui/views.js",
       15
     ]
   ],
@@ -319,31 +319,31 @@
     ],
     [
       "js/app/shared/storage.js",
-      107
+      108
     ],
     [
       "js/app/shared/constants.js",
-      93
+      94
     ],
     [
       "js/app/shared/room-registry.js",
-      81
+      83
+    ],
+    [
+      "js/app/investor/investors-store.js",
+      73
     ],
     [
       "js/app/project/project-store.js",
       73
     ],
     [
-      "js/app/investor/investors-store.js",
-      71
+      "js/app/investor/session.js",
+      59
     ],
     [
       "js/app/ui/info-box.js",
-      60
-    ],
-    [
-      "js/app/investor/session.js",
-      58
+      59
     ],
     [
       "js/app/project/project-bridge.js",
@@ -354,27 +354,27 @@
       58
     ],
     [
-      "js/app/ui/confirm-box.js",
-      57
-    ],
-    [
       "js/app.js",
       56
+    ],
+    [
+      "js/app/ui/confirm-box.js",
+      56
+    ],
+    [
+      "js/app/investor/investor-persistence.js",
+      52
     ],
     [
       "js/app/quote/quote-snapshot.js",
       52
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      50
-    ],
-    [
-      "js/app/investor/investor-persistence.js",
-      50
-    ],
-    [
       "js/app/shared/ui-state.js",
+      51
+    ],
+    [
+      "js/app/catalog/catalog-store.js",
       50
     ],
     [
@@ -382,12 +382,12 @@
       46
     ],
     [
-      "js/app/rozrys/rozrys.js",
+      "js/app/bootstrap/reload-restore.js",
       44
     ],
     [
-      "js/app/bootstrap/reload-restore.js",
-      43
+      "js/app/rozrys/rozrys.js",
+      44
     ],
     [
       "js/app/rozrys/rozrys-shell.js",
@@ -608,24 +608,6 @@
       ]
     },
     {
-      "file": "js/app/investor/investor-ui.js",
-      "risk": "wysokie",
-      "score": 8,
-      "area": "INWESTOR",
-      "category": "ui/render/events",
-      "lines": 589,
-      "incoming": 7,
-      "outgoing": 17,
-      "secondLevel": 20,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "kilka zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/testing/rozrys/suites/helpers-bridges.js",
       "risk": "wysokie",
       "score": 8,
@@ -712,6 +694,24 @@
       "reasons": [
         "250+ linii",
         "kilka publicznych symboli FC",
+        "kilka zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/investor/investor-ui.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "INWESTOR",
+      "category": "ui/render/events",
+      "lines": 363,
+      "incoming": 7,
+      "outgoing": 13,
+      "secondLevel": 22,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
         "kilka zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -906,7 +906,7 @@
       "lines": 395,
       "incoming": 8,
       "outgoing": 10,
-      "secondLevel": 29,
+      "secondLevel": 30,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1012,7 +1012,7 @@
       "lines": 309,
       "incoming": 17,
       "outgoing": 4,
-      "secondLevel": 38,
+      "secondLevel": 39,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1029,7 +1029,7 @@
       "lines": 270,
       "incoming": 17,
       "outgoing": 5,
-      "secondLevel": 37,
+      "secondLevel": 38,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1064,7 +1064,7 @@
       "lines": 259,
       "incoming": 10,
       "outgoing": 1,
-      "secondLevel": 58,
+      "secondLevel": 59,
       "storageRefs": 12,
       "dialogRefs": 0,
       "reasons": [
@@ -1079,7 +1079,7 @@
       "area": "UI",
       "category": "ui/render/events",
       "lines": 250,
-      "incoming": 14,
+      "incoming": 15,
       "outgoing": 10,
       "secondLevel": 38,
       "storageRefs": 0,
@@ -1470,7 +1470,7 @@
       "lines": 149,
       "incoming": 33,
       "outgoing": 3,
-      "secondLevel": 71,
+      "secondLevel": 73,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1486,7 +1486,7 @@
       "lines": 137,
       "incoming": 17,
       "outgoing": 4,
-      "secondLevel": 50,
+      "secondLevel": 52,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1827,6 +1827,7 @@
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
@@ -2793,6 +2794,7 @@
         "investorActions"
       ],
       "incomingFiles": [
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/testing/investor/tests.js"
       ],
@@ -2807,6 +2809,7 @@
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
@@ -2847,6 +2850,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
@@ -2874,6 +2878,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/tab-navigation.js",
@@ -2883,6 +2888,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -2914,18 +2920,12 @@
         "investorFieldRender"
       ],
       "incomingFiles": [
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-render.js",
         "js/testing/investor/tests.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
-        "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-mirrors.js",
-        "js/app/ui/actions-register.js",
-        "js/app/ui/sections.js",
-        "js/app/ui/views.js",
-        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/app/investor/investor-ui.js",
         "js/testing/dev-tests-registry.js"
       ],
       "storageRefs": 0,
@@ -2947,17 +2947,11 @@
         "investorLinks"
       ],
       "incomingFiles": [
-        "js/app/investor/investor-ui.js"
+        "js/app/investor/investor-ui-render.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
-        "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-mirrors.js",
-        "js/app/ui/actions-register.js",
-        "js/app/ui/sections.js",
-        "js/app/ui/views.js",
-        "js/app/wycena/wycena-tab-status-bridge.js"
+        "js/app/investor/investor-ui.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -2989,6 +2983,7 @@
         "js/app/ui/panel-box.js"
       ],
       "secondLevelFiles": [
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/testing/investor/tests.js"
       ],
@@ -3019,6 +3014,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
@@ -3057,6 +3053,7 @@
         "js/app/ui/info-box.js"
       ],
       "secondLevelFiles": [
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js"
@@ -3114,6 +3111,8 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-render.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
@@ -3367,6 +3366,7 @@
         "investorRooms"
       ],
       "incomingFiles": [
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js"
       ],
       "outgoingFiles": [
@@ -3378,6 +3378,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
@@ -3392,10 +3393,94 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/investor/investor-ui-render.js": {
+      "area": "INWESTOR",
+      "category": "domain/controller",
+      "lines": 220,
+      "defines": [
+        "investorUiRender"
+      ],
+      "uses": [
+        "investorEditorState",
+        "investorRooms",
+        "investorLinks",
+        "investorFieldRender",
+        "investorActions",
+        "investorUiRender"
+      ],
+      "incomingFiles": [
+        "js/app/investor/investor-ui.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-editor-state.js",
+        "js/app/investor/investor-field-render.js",
+        "js/app/investor/investor-links.js",
+        "js/app/investor/investor-rooms.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/investor/investor-actions.js",
+        "js/app/project/project-status-mirrors.js",
+        "js/app/ui/actions-register.js",
+        "js/app/ui/sections.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-tab-status-bridge.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/investor/investor-ui-status-flow.js": {
+      "area": "INWESTOR",
+      "category": "domain/controller",
+      "lines": 137,
+      "defines": [
+        "investorUiStatus"
+      ],
+      "uses": [
+        "views",
+        "infoBox",
+        "confirmBox",
+        "projectStatusManualGuard",
+        "projectStatusScopeDecision",
+        "investorUiStatus"
+      ],
+      "incomingFiles": [
+        "js/app/investor/investor-ui.js"
+      ],
+      "outgoingFiles": [
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope-decision.js",
+        "js/app/ui/confirm-box.js",
+        "js/app/ui/info-box.js",
+        "js/app/ui/views.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/investor/investor-actions.js",
+        "js/app/project/project-status-mirrors.js",
+        "js/app/ui/actions-register.js",
+        "js/app/ui/sections.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-tab-status-bridge.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/investor/investor-ui.js": {
       "area": "INWESTOR",
       "category": "ui/render/events",
-      "lines": 589,
+      "lines": 363,
       "defines": [
         "investorUI"
       ],
@@ -3403,20 +3488,16 @@
         "investorEditorState",
         "investorChoice",
         "investorRooms",
-        "investorLinks",
         "investorPersistence",
         "investorNavigationGuard",
-        "investorFieldRender",
         "investorActions",
+        "investorUiRender",
+        "investorUiStatus",
         "uiState",
         "storage",
-        "projectStatusManualGuard",
-        "confirmBox",
-        "infoBox",
-        "views",
-        "projectStatusScopeDecision",
         "investorRoomActions",
         "roomRegistry",
+        "views",
         "investorUI"
       ],
       "incomingFiles": [
@@ -3432,19 +3513,15 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-choice.js",
         "js/app/investor/investor-editor-state.js",
-        "js/app/investor/investor-field-render.js",
-        "js/app/investor/investor-links.js",
         "js/app/investor/investor-navigation-guard.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/project/project-status-manual-guard.js",
-        "js/app/project/project-status-scope-decision.js",
+        "js/app/investor/investor-ui-render.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/shared/room-registry.js",
         "js/app/shared/storage.js",
         "js/app/shared/ui-state.js",
-        "js/app/ui/confirm-box.js",
-        "js/app/ui/info-box.js",
         "js/app/ui/views.js"
       ],
       "secondLevelFiles": [
@@ -3453,6 +3530,8 @@
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-render.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
         "js/app/project/project-status-mirrors.js",
@@ -3471,12 +3550,12 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 20,
+      "domRefs": 18,
       "loadedInIndex": true,
-      "loadedInDevTests": false,
-      "risk": "wysokie",
+      "loadedInDevTests": true,
+      "risk": "średnie",
       "reasons": [
-        "400+ linii",
+        "250+ linii",
         "kilka zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -3753,6 +3832,8 @@
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-project.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/investor/investor-ui-render.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-schedule-status.js",
@@ -3931,6 +4012,7 @@
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-project.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/investor/investors-local-repository.js",
         "js/app/material/magazyn.js",
@@ -5320,7 +5402,7 @@
       "incomingFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/project/project-status-scope-decision.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
@@ -5342,12 +5424,13 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui-render.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/ui/actions-register.js",
-        "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/investor/tests.js",
@@ -5456,7 +5539,7 @@
         "projectStatusScopeDecision"
       ],
       "incomingFiles": [
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
@@ -5464,13 +5547,7 @@
         "js/app/rozrys/rozrys-choice.js"
       ],
       "secondLevelFiles": [
-        "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/investor/investor-actions.js",
-        "js/app/project/project-status-mirrors.js",
-        "js/app/ui/actions-register.js",
-        "js/app/ui/sections.js",
-        "js/app/ui/views.js",
-        "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/app/investor/investor-ui.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -5617,6 +5694,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
@@ -5705,6 +5783,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
@@ -5808,7 +5887,7 @@
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-status-manual-guard.js",
@@ -5929,7 +6008,7 @@
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-scope-entry-modal.js",
@@ -6301,7 +6380,7 @@
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/wycena/wycena-tab-selection-model.js",
         "js/app/wycena/wycena-tab-selection-version.js",
@@ -6538,7 +6617,7 @@
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
@@ -6818,6 +6897,7 @@
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/price-modal-options.js",
         "js/app/rozrys/rozrys.js",
@@ -8954,6 +9034,7 @@
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
@@ -9044,6 +9125,7 @@
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/investor/investors-local-repository.js",
         "js/app/investor/investors-recovery.js",
@@ -10447,6 +10529,8 @@
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/investor/investor-ui-render.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
@@ -10560,7 +10644,7 @@
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/project/project-status-snapshot-flow.js",
@@ -10741,6 +10825,7 @@
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
@@ -10886,6 +10971,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
@@ -11457,7 +11543,7 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-modal.js",
         "js/app/investor/investor-modals.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/material/magazyn.js",
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-context.js",
@@ -11478,6 +11564,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
@@ -11485,7 +11572,6 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
-        "js/app/project/project-status-mirrors.js",
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys.js",
@@ -11502,7 +11588,6 @@
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-actions.js",
-        "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/tests.js",
@@ -11785,7 +11870,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-modals.js",
         "js/app/investor/investor-pdf.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
         "js/app/quote/quote-pdf.js",
@@ -11808,6 +11893,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/investor/investor-actions.js",
+        "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
@@ -11815,7 +11901,6 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
-        "js/app/project/project-status-mirrors.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-scope-entry.js",
         "js/app/rozrys/rozrys-stock-modal.js",
@@ -11834,7 +11919,6 @@
         "js/app/wycena/wycena-tab-history.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
         "js/app/wycena/wycena-tab-shell.js",
-        "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/wycena.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -12246,6 +12330,7 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
@@ -12343,6 +12428,7 @@
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
@@ -12916,7 +13002,7 @@
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
-        "js/app/investor/investor-ui.js",
+        "js/app/investor/investor-ui-status-flow.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",

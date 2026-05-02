@@ -98,6 +98,7 @@ function runInvestorNodeSmoke(sandbox){
     { name:'Investor project repository robi roundtrip legacy slotu', check:()=> { const repo = FC.investorProjectRepository; if(!(repo && typeof repo.writeLegacySlotProject === 'function' && typeof repo.readLegacySlotProject === 'function' && typeof repo.removeLegacySlot === 'function')) return false; const id = 'smoke_inv_project_slot'; const project = { schemaVersion:77, meta:{ smoke:true }, kuchnia:{ cabinets:[{ id:'cab_smoke' }], fronts:[], sets:[], settings:{} } }; repo.writeLegacySlotProject(id, project); const loaded = repo.readLegacySlotProject(id); repo.removeLegacySlot(id); return !!(loaded && loaded.meta && loaded.meta.smoke === true && loaded.kuchnia && Array.isArray(loaded.kuchnia.cabinets) && loaded.kuchnia.cabinets.length === 1 && !repo.readLegacySlotRaw(id)); } },
     { name:'Persistence inwestora jest dostępne', check:()=> !!(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function') },
     { name:'Room registry jest dostępne', check:()=> !!(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') },
+    { name:'Investor UI ma wydzielony render i status flow', check:()=> !!(FC.investorUiRender && typeof FC.investorUiRender.buildDetail === 'function' && typeof FC.investorUiRender.buildList === 'function' && FC.investorUiStatus && typeof FC.investorUiStatus.mountProjectStatusChoices === 'function' && FC.investorUI && typeof FC.investorUI.render === 'function') },
   ]);
 }
 

@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_manual_status_restore_v1.zip`.
-- Baza startowa tej paczki: `site_prelim_replace_final_status_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_investor_ui_split_v1.zip`.
+- Baza startowa tej paczki: `site_manual_status_restore_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -418,3 +418,14 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Po zwolnieniu pokoju ze starego zaakceptowanego zakresu `reconcileProjectStatuses()` używa ręcznego fallbacku tylko wtedy, gdy historia ofert nie daje aktywnego statusu dla tego pokoju. Brak aktywnej oferty nie oznacza już resetu do `Nowy`.
 - Dalsze etapy po zaakceptowanej końcowej ofercie (`Umowa`, `Produkcja`, `Montaż`, `Zakończone`) pozostają prowadzone pojedynczo per pomieszczenie; nie dodano modala grupowego dla tych etapów.
 - Testy regresyjne dla tej zasady są w `js/testing/wycena/suites/status-reconciliation-regression.js`: rozpięcie wspólnej końcowej i wspólnej wstępnej ma przywracać ręczny status pokoju spoza nowego zakresu.
+
+
+## 2026-05-02 — Investor UI split v1
+
+- Rozdzielono `js/app/investor/investor-ui.js` bez zmiany UI, storage, RYSUNKU ani semantyki statusów/ofert.
+- Nowy `js/app/investor/investor-ui-render.js` trzyma HTML listy/karty inwestora, opcje typów/źródeł i opcje statusów projektu używane przez render.
+- Nowy `js/app/investor/investor-ui-status-flow.js` trzyma przepływ zmiany statusu pokoju z Inwestora: walidację guardem, modal generowania oferty, decyzję scope i zapis przez `investorPersistence`.
+- `js/app/investor/investor-ui.js` zostaje shellem/binderem ekranu: wybór list/detail, transient investor, wiązanie pól i delegacja do nowych modułów. Nie dokładać tam ponownie renderu HTML ani logiki status/scope.
+- Utrzymywać kolejność ładowania: `investor-rooms.js` → `investor-ui-render.js` → `investor-ui-status-flow.js` → `investor-ui.js` w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- App smoke ma kontrakt `Investor UI ma wydzielony render i status flow`; nie usuwać go przy dalszych splitach Inwestora.
+- Raport: `tools/reports/investor-ui-split-v1.md`.
