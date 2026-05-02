@@ -33,11 +33,12 @@
       roomLabel:null,
       askConfirm:null,
       refreshSelectionState:null,
+      isRoomDisabled:null,
+      roomDisabledReason:null,
       doc:null,
     }, deps || {});
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const currentRooms = typeof cfg.getSelectedRooms === 'function' ? cfg.getSelectedRooms() : [];
-    const draft = new Set(Array.isArray(currentRooms) ? currentRooms : []);
     const body = h('div', { class:'rozrys-picker-modal' }, null, cfg.doc);
     const list = h('div', { class:'rozrys-picker-list' }, null, cfg.doc);
     const checkboxes = [];
@@ -46,21 +47,43 @@
       : (rooms)=> Array.isArray(rooms) ? rooms.slice() : [];
     const getRooms = typeof cfg.getRooms === 'function' ? cfg.getRooms : ()=> [];
     const roomLabel = typeof cfg.roomLabel === 'function' ? cfg.roomLabel : (room)=> String(room || '');
-    const initialSignature = JSON.stringify(normalizeRoomSelection(currentRooms));
-    const nextRooms = ()=> normalizeRoomSelection(Array.from(draft));
+    const isRoomDisabled = typeof cfg.isRoomDisabled === 'function' ? cfg.isRoomDisabled : (()=> false);
+    const roomDisabledReason = typeof cfg.roomDisabledReason === 'function' ? cfg.roomDisabledReason : (()=> '');
+    const allRooms = getRooms();
+    const selectableRooms = allRooms.filter((room)=> !isRoomDisabled(room));
+    const draft = new Set(normalizeRoomSelection(currentRooms).filter((room)=> selectableRooms.includes(room)));
+    const initialSignature = JSON.stringify(normalizeRoomSelection(currentRooms).filter((room)=> selectableRooms.includes(room)));
+    const nextRooms = ()=> normalizeRoomSelection(Array.from(draft)).filter((room)=> selectableRooms.includes(room));
     const hasSelection = ()=> nextRooms().length > 0;
     const isDirty = ()=> JSON.stringify(nextRooms()) !== initialSignature;
 
-    getRooms().forEach((room)=>{
-      const cardNode = h('label', { class:'rozrys-scope-chip rozrys-scope-chip--room-match rozrys-scope-chip--room-option' }, null, cfg.doc);
+    allRooms.forEach((room)=>{
+      const disabledRoom = !!isRoomDisabled(room);
+      const cardNode = h('label', { class:'rozrys-scope-chip rozrys-scope-chip--room-match rozrys-scope-chip--room-option' + (disabledRoom ? ' is-disabled' : '') }, null, cfg.doc);
       const top = h('div', { class:'rozrys-room-chip__top' }, null, cfg.doc);
       const cb = h('input', { type:'checkbox' }, null, cfg.doc);
+      const titleWrap = h('div', { class:'rozrys-room-chip__text' }, null, cfg.doc);
       const titleNode = h('div', { class:'rozrys-room-chip__label', text:roomLabel(room) }, null, cfg.doc);
-      const syncCardState = ()=> cardNode.classList.toggle('is-checked', !!cb.checked);
-      cb.checked = draft.has(room);
+      titleWrap.appendChild(titleNode);
+      if(disabledRoom){
+        cb.disabled = true;
+        cb.checked = false;
+        const reason = String(roomDisabledReason(room) || 'Niedostępne').trim();
+        titleWrap.appendChild(h('div', { class:'rozrys-room-chip__note', text:reason }, null, cfg.doc));
+        draft.delete(room);
+      }
+      const syncCardState = ()=> cardNode.classList.toggle('is-checked', !disabledRoom && !!cb.checked);
+      cb.checked = !disabledRoom && draft.has(room);
       syncCardState();
-      checkboxes.push({ room, cb, syncCardState });
+      checkboxes.push({ room, cb, syncCardState, disabledRoom });
       cb.addEventListener('change', ()=>{
+        if(disabledRoom){
+          cb.checked = false;
+          draft.delete(room);
+          syncCardState();
+          updateFooterState();
+          return;
+        }
         if(cb.checked) draft.add(room);
         else draft.delete(room);
         syncCardState();
@@ -69,7 +92,7 @@
         releaseChipFocus(cardNode);
       });
       top.appendChild(cb);
-      top.appendChild(titleNode);
+      top.appendChild(titleWrap);
       cardNode.appendChild(top);
       list.appendChild(cardNode);
     });
@@ -97,11 +120,12 @@
       renderFooterActions();
     }
 
+    allBtn.disabled = selectableRooms.length === 0;
     allBtn.addEventListener('click', ()=>{
       draft.clear();
-      getRooms().forEach((room)=> draft.add(room));
-      checkboxes.forEach(({ room, cb, syncCardState })=>{
-        cb.checked = draft.has(room);
+      selectableRooms.forEach((room)=> draft.add(room));
+      checkboxes.forEach(({ room, cb, syncCardState, disabledRoom })=>{
+        cb.checked = !disabledRoom && draft.has(room);
         if(typeof syncCardState === 'function') syncCardState();
       });
       updateFooterState();

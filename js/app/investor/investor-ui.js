@@ -7,7 +7,6 @@
 
   const PROJECT_STATUS_OPTIONS = [
     { value: 'nowy', label: 'Nowy' },
-    { value: 'wstepna_wycena', label: 'Wstępna wycena' },
     { value: 'pomiar', label: 'Pomiar' },
     { value: 'wycena', label: 'Wycena' },
     { value: 'zaakceptowany', label: 'Zaakceptowany' },
@@ -433,30 +432,28 @@
                   }
                 }
               }catch(_){ }
-              if(String(value || '') === 'wstepna_wycena' && FC.quoteScopeEntry && typeof FC.quoteScopeEntry.ensureScopedQuoteEntry === 'function'){
-                try{
-                  const scopeEntry = await FC.quoteScopeEntry.ensureScopedQuoteEntry({
-                    investorId,
-                    projectId: (function(){ try{ return FC.projectStore && typeof FC.projectStore.getByInvestorId === 'function' ? String((FC.projectStore.getByInvestorId(investorId) || {}).id || '') : ''; }catch(_){ return ''; } })(),
-                    fallbackRoomId: roomId,
-                    preliminary:true,
-                    status:'wstepna_wycena',
-                    openTab:true,
-                  });
-                  if(scopeEntry && scopeEntry.cancelled){
-                    render();
-                    return;
+              let targetRoomIds = [String(roomId || '')].filter(Boolean);
+              try{
+                if(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.buildManualStatusScopeChoices === 'function'){
+                  const decision = FC.projectStatusManualGuard.buildManualStatusScopeChoices(investorId, roomId, value);
+                  let picked = decision && decision.autoChoice ? decision.autoChoice : null;
+                  if(decision && decision.needsDecision){
+                    picked = FC.projectStatusScopeDecision && typeof FC.projectStatusScopeDecision.pickManualStatusScope === 'function'
+                      ? await FC.projectStatusScopeDecision.pickManualStatusScope(decision)
+                      : (Array.isArray(decision.choices) ? decision.choices[0] : null);
+                    if(!picked){
+                      render();
+                      return;
+                    }
                   }
-                  try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-                  render();
-                  return;
-                }catch(err){
-                  try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się otworzyć wyceny wstępnej', message:String(err && err.message || err || 'Błąd wejścia do wyceny wstępnej.') }); }catch(_){ }
-                  render();
-                  return;
+                  if(picked && Array.isArray(picked.roomIds) && picked.roomIds.length) targetRoomIds = picked.roomIds.slice();
                 }
+              }catch(_){ }
+              if(targetRoomIds.length > 1 && persistenceApi && typeof persistenceApi.setInvestorProjectStatusScope === 'function'){
+                persistenceApi.setInvestorProjectStatusScope(investorId, targetRoomIds, value, { skipGuard:true, syncSelection:true });
+              }else{
+                persistenceApi.setInvestorProjectStatus(investorId, targetRoomIds[0] || roomId, value, { skipGuard:true });
               }
-              persistenceApi.setInvestorProjectStatus(investorId, roomId, value, { skipGuard:true });
               try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
               render();
             }

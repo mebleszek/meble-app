@@ -199,6 +199,16 @@
         'promotePreliminarySnapshotToFinal',
         'syncStatusMirrors',
       ]);
+      assertFunctions(H, FC.projectStatusScopeDecision, 'FC.projectStatusScopeDecision', [
+        'normalizeDecision',
+        'pickManualStatusScope',
+      ]);
+      assertFunctions(H, FC.wycenaRoomAvailability, 'FC.wycenaRoomAvailability', [
+        'hasCabinets',
+        'getQuoteBlockReason',
+        'isQuoteableRoom',
+        'filterQuoteableRoomIds',
+      ]);
       assertFunctions(H, FC.wycenaTabDebug, 'FC.wycenaTabDebug', [
         'currentProjectStatus',
         'setProjectStatusFromSnapshot',

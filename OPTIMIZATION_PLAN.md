@@ -315,3 +315,22 @@ Wykonane:
 
 Po tej poprawce można wrócić do optymalizacji poza RYSUNKIEM. Najbliższe sensowne kierunki pozostają: `investor-ui.js`, wybrane ścieżki historii/statusów Wyceny albo `app.js` jako shell — tylko jeśli jest konkretny powód, nie dla sztucznego cięcia.
 
+
+
+## 2026-05-02 — Status / quote scope v1
+
+Zakres był naprawą logiki biznesowej, nie kolejnym etapem sztucznego refaktoru.
+
+Wykonane:
+- dodano mały moduł `project-status-scope-decision.js` dla decyzji zakresu statusu w aplikacyjnym modalu,
+- dodano mały moduł `wycena-room-availability.js` dla dostępności pomieszczeń w kalkulacji Wyceny,
+- statusy `Pomiar/Wycena` mogą być ustawione bez wyceny wstępnej,
+- manualny status respektuje scope zaakceptowanej wyceny wstępnej; przy konflikcie kilku zakresów pokazuje wybór,
+- wybór pomieszczeń w WYCENIE pokazuje pokoje bez szafek jako zablokowane z opisem `Brak szafek`.
+
+Decyzja architektoniczna:
+- `project-status-manual-guard.js` pozostał spójnym guardem ok. 384 linii. Split w tej paczce byłby bardziej ryzykowny niż poprawka, bo dotyka ścieżek status/scope/oferty.
+- `investor-ui.js` i `rozrys-pickers.js` pozostają plikami ostrzegawczymi; nie dokładać tam nowych odpowiedzialności. Następny refaktor robić tylko po konkretnej ścieżce: status modal inwestora albo shared picker UI.
+- RYSUNEK nie był ruszany.
+
+Następny sensowny kierunek po tej poprawce: obserwować statusy Wycena/Inwestor w realnym użyciu; dopiero potem ewentualnie ciąć `investor-ui.js` albo status guard według kontraktów, bez zmiany wyglądu.

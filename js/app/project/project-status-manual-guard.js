@@ -187,42 +187,18 @@
     };
 
     if(nextStatus === 'pomiar'){
-      if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
-      if(basis.hasPreliminary){
-        return buildResult(base, {
-          ok:false,
-          blocked:true,
-          title:'Wycena wstępna nie jest zaakceptowana',
-          message:`Dla pomieszczenia „${basis.roomLabel}” istnieje wycena wstępna, ale nie została zaakceptowana. Najpierw zaakceptuj ją w dziale Wycena, a dopiero potem ustaw status „Pomiar”.`,
-        });
-      }
       return buildResult(base, {
-        ok:false,
-        blocked:true,
-        requiresGeneration:true,
-        generationKind:'preliminary',
-        title:'Brak wyceny wstępnej',
-        message:`Dla pomieszczenia „${basis.roomLabel}” nie ma wyceny wstępnej. Nie można ustawić statusu „Pomiar”. Czy wygenerować teraz wycenę wstępną tylko dla tego pomieszczenia?`,
+        ok:true,
+        blocked:false,
+        note: basis.hasAcceptedPreliminary ? 'accepted_preliminary_scope' : (basis.hasPreliminary ? 'preliminary_exists_not_required' : 'manual_without_preliminary'),
       });
     }
 
     if(nextStatus === 'wycena'){
-      if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
-      if(basis.hasPreliminary){
-        return buildResult(base, {
-          ok:false,
-          blocked:true,
-          title:'Wycena wstępna nie jest zaakceptowana',
-          message:`Dla pomieszczenia „${basis.roomLabel}” istnieje wycena wstępna, ale nie została zaakceptowana. Nie można ręcznie przejść do statusu „Wycena”, dopóki nie ma zaakceptowanej wyceny wstępnej dla tego pomieszczenia.`,
-        });
-      }
       return buildResult(base, {
-        ok:false,
-        blocked:true,
-        requiresGeneration:true,
-        generationKind:'preliminary',
-        title:'Brak wyceny wstępnej',
-        message:`Dla pomieszczenia „${basis.roomLabel}” nie ma wyceny wstępnej. Nie można ustawić statusu „Wycena”. Czy wygenerować teraz wycenę wstępną tylko dla tego pomieszczenia?`,
+        ok:true,
+        blocked:false,
+        note: basis.hasAcceptedPreliminary ? 'accepted_preliminary_scope' : (basis.hasPreliminary ? 'preliminary_exists_not_required' : 'manual_without_preliminary'),
       });
     }
 
@@ -272,6 +248,92 @@
     };
   }
 
+
+  function getScopeLabel(roomIds){
+    const ids = normalizeRoomIds(roomIds);
+    try{
+      if(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.getScopeSummary === 'function'){
+        const summary = FC.quoteScopeEntry.getScopeSummary(ids) || {};
+        return String(summary.scopeLabel || '').trim() || ids.join(', ');
+      }
+    }catch(_){ }
+    return ids.map((roomId)=> {
+      try{ return FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function' ? FC.roomRegistry.getRoomLabel(roomId) : roomId; }
+      catch(_){ return roomId; }
+    }).filter(Boolean).join(', ');
+  }
+
+  function getSnapshotVersionName(row){
+    return String(row && row.meta && row.meta.versionName || row && row.commercial && row.commercial.versionName || '').trim();
+  }
+
+  function buildAcceptedPreliminaryScopeChoices(basis){
+    const accepted = (Array.isArray(basis && basis.preliminaryRows) ? basis.preliminaryRows : [])
+      .filter((row)=> !!(row && row.meta && row.meta.selectedByClient));
+    const seen = new Set();
+    const choices = [];
+    accepted.forEach((row, index)=> {
+      const roomIds = getSnapshotRoomIds(row);
+      if(!roomIds.length || !roomIds.includes(String(basis.roomId || ''))) return;
+      const key = roomIds.slice().sort().join('|');
+      if(seen.has(key)) return;
+      seen.add(key);
+      const scopeLabel = getScopeLabel(roomIds);
+      const versionName = getSnapshotVersionName(row);
+      const exactSingle = roomIds.length === 1 && String(roomIds[0] || '') === String(basis.roomId || '');
+      choices.push({
+        id:`accepted-preliminary-${choices.length + 1}`,
+        source:'accepted-preliminary',
+        snapshotId:String(row && row.id || ''),
+        roomIds,
+        scopeLabel,
+        label: exactSingle ? `Tylko ${scopeLabel}` : scopeLabel,
+        description: versionName ? `Zaakceptowana wycena wstępna: ${versionName}` : 'Zaakceptowana wycena wstępna',
+        isExactSingle: exactSingle,
+        isMultiRoom: roomIds.length > 1,
+        order:index,
+      });
+    });
+    choices.sort((a, b)=> {
+      if(a.isExactSingle !== b.isExactSingle) return a.isExactSingle ? -1 : 1;
+      return (a.roomIds.length - b.roomIds.length) || (a.order - b.order);
+    });
+    return choices;
+  }
+
+  function buildManualStatusScopeChoices(investorId, roomId, targetStatus){
+    const basis = analyzeRoomQuoteState(investorId, roomId);
+    const nextStatus = normalizeStatus(targetStatus);
+    const base = {
+      investorId:String(investorId || ''),
+      roomId:String(roomId || ''),
+      targetStatus:nextStatus,
+      targetLabel:STATUS_LABELS[nextStatus] || nextStatus,
+      basis,
+      choices:[],
+      needsDecision:false,
+      autoChoice:null,
+      defaultChoiceId:'',
+    };
+    if(nextStatus !== 'pomiar' && nextStatus !== 'wycena'){
+      const autoChoice = { id:'single-room', source:'manual-single', roomIds:[String(roomId || '')].filter(Boolean), scopeLabel:basis.roomLabel, label:`Tylko ${basis.roomLabel}`, description:'' };
+      return Object.assign(base, { choices:[autoChoice], autoChoice });
+    }
+    const acceptedChoices = buildAcceptedPreliminaryScopeChoices(basis);
+    if(!acceptedChoices.length){
+      const autoChoice = { id:'single-room', source:'manual-without-preliminary', roomIds:[String(roomId || '')].filter(Boolean), scopeLabel:basis.roomLabel, label:`Tylko ${basis.roomLabel}`, description:'Ręczna zmiana statusu bez wyceny wstępnej.' };
+      return Object.assign(base, { choices:[autoChoice], autoChoice, defaultChoiceId:autoChoice.id });
+    }
+    if(acceptedChoices.length === 1){
+      return Object.assign(base, { choices:acceptedChoices, autoChoice:acceptedChoices[0], defaultChoiceId:acceptedChoices[0].id });
+    }
+    return Object.assign(base, {
+      choices:acceptedChoices,
+      needsDecision:true,
+      defaultChoiceId:acceptedChoices[0].id,
+    });
+  }
+
   async function generateScopedQuoteForRoom(investorId, roomId, kind, options){
     const opts = options && typeof options === 'object' ? options : {};
     const basis = analyzeRoomQuoteState(investorId, roomId);
@@ -315,6 +377,8 @@
     evaluateManualStatusChangeFromBasis,
     validateManualStatusChange,
     buildManualStatusChoiceStates,
+    buildAcceptedPreliminaryScopeChoices,
+    buildManualStatusScopeChoices,
     generateScopedQuoteForRoom,
   };
 })();

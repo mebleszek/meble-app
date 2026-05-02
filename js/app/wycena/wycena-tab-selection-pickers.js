@@ -16,6 +16,21 @@
     ? model.getRoomLabel
     : ((roomId)=> String(roomId || ''));
 
+  function isRoomDisabledForQuote(roomId){
+    try{ return !!(FC.wycenaRoomAvailability && typeof FC.wycenaRoomAvailability.isQuoteableRoom === 'function' && !FC.wycenaRoomAvailability.isQuoteableRoom(roomId)); }
+    catch(_){ return false; }
+  }
+
+  function roomDisabledReason(roomId){
+    try{ return FC.wycenaRoomAvailability && typeof FC.wycenaRoomAvailability.getQuoteBlockReason === 'function' ? FC.wycenaRoomAvailability.getQuoteBlockReason(roomId) : ''; }
+    catch(_){ return ''; }
+  }
+
+  function filterQuoteableRoomIds(roomIds){
+    try{ return FC.wycenaRoomAvailability && typeof FC.wycenaRoomAvailability.filterQuoteableRoomIds === 'function' ? FC.wycenaRoomAvailability.filterQuoteableRoomIds(roomIds) : (Array.isArray(roomIds) ? roomIds : []); }
+    catch(_){ return Array.isArray(roomIds) ? roomIds : []; }
+  }
+
   function openQuoteRoomsPicker(ctx, deps){
     const getOfferDraft = deps && typeof deps.getOfferDraft === 'function' ? deps.getOfferDraft : ()=> ({});
     const patchOfferDraft = deps && typeof deps.patchOfferDraft === 'function' ? deps.patchOfferDraft : ()=>{};
@@ -27,7 +42,7 @@
       FC.rozrysPickers.openRoomsPicker({
         getSelectedRooms: ()=> selection.selectedRooms,
         setSelectedRooms: (rooms)=>{
-          const nextRooms = Array.isArray(rooms) ? rooms.slice() : [];
+          const nextRooms = filterQuoteableRoomIds(Array.isArray(rooms) ? rooms.slice() : []);
           const draft = getOfferDraft();
           const commercial = draft && draft.commercial || {};
           const nextVersionName = resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps);
@@ -40,10 +55,14 @@
         },
         getRooms: getActiveRoomIds,
         normalizeRoomSelection: (rooms)=>{
-          try{ return FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function' ? FC.rozrysScope.normalizeRoomSelection(rooms, { getRooms:getActiveRoomIds }) : (Array.isArray(rooms) ? rooms : []); }
-          catch(_){ return Array.isArray(rooms) ? rooms : []; }
+          let normalized = [];
+          try{ normalized = FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function' ? FC.rozrysScope.normalizeRoomSelection(rooms, { getRooms:getActiveRoomIds }) : (Array.isArray(rooms) ? rooms : []); }
+          catch(_){ normalized = Array.isArray(rooms) ? rooms : []; }
+          return filterQuoteableRoomIds(normalized);
         },
         roomLabel: (roomId)=> getRoomLabel(roomId),
+        isRoomDisabled: isRoomDisabledForQuote,
+        roomDisabledReason,
         askConfirm,
         refreshSelectionState: ()=> render(ctx),
       });

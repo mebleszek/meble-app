@@ -4,8 +4,8 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ## Wynik skrócony
 
-1. `js/tabs/wycena.js` — 348 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-2. `js/app/project/project-status-manual-guard.js` — 321 linii; ostrzeżenia: 250+ lines.
+1. `js/app/project/project-status-manual-guard.js` — 385 linii; ostrzeżenia: 250+ lines.
+2. `js/tabs/wycena.js` — 348 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 3. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 4. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
 5. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
@@ -20,10 +20,10 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 14. `js/app/quote/quote-scope-entry-modal.js` — 196 linii; ostrzeżenia: mixed responsibilities heuristic.
 15. `js/app/wycena/wycena-tab-selection-version.js` — 194 linii.
 16. `js/app/quote/quote-scope-entry-flow.js` — 186 linii; ostrzeżenia: mixed responsibilities heuristic.
-17. `js/app/quote/quote-scope-entry-scope.js` — 169 linii.
-18. `js/app/wycena/wycena-tab-selection-bridge.js` — 163 linii; ostrzeżenia: mixed responsibilities heuristic.
-19. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
-20. `js/app/wycena/wycena-tab-selection-pickers.js` — 158 linii.
+17. `js/app/wycena/wycena-tab-selection-pickers.js` — 177 linii.
+18. `js/app/quote/quote-scope-entry-scope.js` — 169 linii.
+19. `js/app/wycena/wycena-tab-selection-bridge.js` — 163 linii; ostrzeżenia: mixed responsibilities heuristic.
+20. `js/app/wycena/wycena-tab-preview.js` — 162 linii; ostrzeżenia: mixed responsibilities heuristic.
 21. `js/app/wycena/wycena-tab-helpers.js` — 150 linii.
 22. `js/app/wycena/wycena-core-selection.js` — 149 linii.
 23. `js/app/wycena/wycena-core-material-plan.js` — 137 linii.
@@ -31,24 +31,33 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 25. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
 26. `js/app/project/project-status-snapshot-flow.js` — 130 linii.
 27. `js/app/wycena/wycena-tab-render-bridge.js` — 121 linii; ostrzeżenia: mixed responsibilities heuristic.
-28. `js/app/wycena/wycena-core-catalog.js` — 117 linii.
-29. `js/app/project/project-status-mirrors.js` — 107 linii.
-30. `js/app/wycena/wycena-tab-selection-scope.js` — 106 linii.
+28. `js/app/wycena/wycena-tab-selection-scope.js` — 120 linii.
+29. `js/app/wycena/wycena-core-catalog.js` — 117 linii.
+30. `js/app/project/project-status-mirrors.js` — 107 linii.
 31. `js/app/wycena/wycena-tab-editor-bridge.js` — 103 linii.
 32. `js/app/wycena/wycena-core.js` — 96 linii.
 33. `js/app/wycena/wycena-tab-state.js` — 82 linii.
 34. `js/app/wycena/wycena-tab-status-controller.js` — 80 linii.
 35. `js/app/quote/quote-scope-entry-utils.js` — 79 linii.
 36. `js/app/wycena/wycena-core-offer.js` — 76 linii.
-37. `js/app/wycena/wycena-tab-selection-render.js` — 63 linii.
-38. `js/app/wycena/wycena-tab-data.js` — 62 linii.
-39. `js/app/wycena/wycena-core-source.js` — 59 linii.
-40. `js/app/quote/quote-scope-entry.js` — 49 linii.
-41. `js/app/wycena/wycena-core-utils.js` — 23 linii.
-42. `js/app/wycena/wycena-tab-selection.js` — 11 linii.
-43. `js/app/wycena/wycena-tab-selection-model.js` — 10 linii.
+37. `js/app/wycena/wycena-room-availability.js` — 70 linii.
+38. `js/app/wycena/wycena-tab-selection-render.js` — 63 linii.
+39. `js/app/wycena/wycena-tab-data.js` — 62 linii.
+40. `js/app/wycena/wycena-core-source.js` — 59 linii.
+41. `js/app/quote/quote-scope-entry.js` — 49 linii.
+42. `js/app/project/project-status-scope-decision.js` — 44 linii.
+43. `js/app/wycena/wycena-core-utils.js` — 23 linii.
+44. `js/app/wycena/wycena-tab-selection.js` — 11 linii.
+45. `js/app/wycena/wycena-tab-selection-model.js` — 10 linii.
 
 ## Szczegóły odpowiedzialności — heurystyka
+
+### js/app/project/project-status-manual-guard.js
+
+- Linie: 385
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: status:70, scope:41, snapshot:40
 
 ### js/tabs/wycena.js
 
@@ -56,13 +65,6 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:111, status:34, render:21, modal-ui:4
-
-### js/app/project/project-status-manual-guard.js
-
-- Linie: 321
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: status:57, snapshot:36, scope:17
 
 ### js/app/quote/quote-snapshot-store.js
 
@@ -162,6 +164,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:63, snapshot:43, status:7, modal-ui:3
 
+### js/app/wycena/wycena-tab-selection-pickers.js
+
+- Linie: 177
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: render:15, modal-ui:15, scope:13
+
 ### js/app/quote/quote-scope-entry-scope.js
 
 - Linie: 169
@@ -182,13 +191,6 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: render:53, snapshot:18, scope:14, status:1
-
-### js/app/wycena/wycena-tab-selection-pickers.js
-
-- Linie: 158
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: render:15, modal-ui:15, scope:7
 
 ### js/app/wycena/wycena-tab-helpers.js
 
@@ -239,6 +241,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:44, render:20, status:8, modal-ui:2
 
+### js/app/wycena/wycena-tab-selection-scope.js
+
+- Linie: 120
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: scope:34, snapshot:3
+
 ### js/app/wycena/wycena-core-catalog.js
 
 - Linie: 117
@@ -252,13 +261,6 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: status:54, render:2, storage-boundary:1
-
-### js/app/wycena/wycena-tab-selection-scope.js
-
-- Linie: 106
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: scope:29, snapshot:3
 
 ### js/app/wycena/wycena-tab-editor-bridge.js
 
@@ -302,6 +304,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: quote-collect:4
 
+### js/app/wycena/wycena-room-availability.js
+
+- Linie: 70
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: scope:8, snapshot:3
+
 ### js/app/wycena/wycena-tab-selection-render.js
 
 - Linie: 63
@@ -329,6 +338,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:13, snapshot:6
+
+### js/app/project/project-status-scope-decision.js
+
+- Linie: 44
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: status:8, scope:3
 
 ### js/app/wycena/wycena-core-utils.js
 

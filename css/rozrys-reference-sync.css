@@ -530,3 +530,19 @@
     border-radius:18px;
   }
 }
+
+/* WYCENA room picker: rooms without cabinets stay visible but cannot be selected. */
+.rozrys-scope-chip--room-option.is-disabled,
+.rozrys-scope-chip--room-option.is-disabled:hover,
+.rozrys-scope-chip--room-option.is-disabled:active,
+.rozrys-scope-chip--room-option.is-disabled:focus-within{
+  cursor:not-allowed;
+  background:linear-gradient(180deg,#f1f5f9 0%, #e9eef5 100%);
+  border-color:#d7dee8;
+  box-shadow:0 2px 10px rgba(15,23,42,.04);
+  opacity:.78;
+}
+.rozrys-scope-chip--room-option.is-disabled input{cursor:not-allowed;filter:grayscale(1);opacity:.55;}
+.rozrys-scope-chip--room-option.is-disabled .rozrys-room-chip__label{color:#64748b;}
+.rozrys-room-chip__text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.rozrys-room-chip__note{font-size:13px;line-height:1.2;color:#94a3b8;font-weight:800;}

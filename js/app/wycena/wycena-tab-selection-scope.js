@@ -12,14 +12,27 @@
       : [];
   }
 
-  function normalizeDraftSelection(draft){
+  function filterQuoteableRoomIds(roomIds){
     try{
-      if(FC.wycenaCore && typeof FC.wycenaCore.normalizeQuoteSelection === 'function') return FC.wycenaCore.normalizeQuoteSelection(draft && draft.selection);
+      if(FC.wycenaRoomAvailability && typeof FC.wycenaRoomAvailability.filterQuoteableRoomIds === 'function'){
+        return FC.wycenaRoomAvailability.filterQuoteableRoomIds(roomIds);
+      }
     }catch(_){ }
-    return {
-      selectedRooms:[],
-      materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true },
-    };
+    return normalizeRoomIds(roomIds);
+  }
+
+  function normalizeDraftSelection(draft){
+    let selection = null;
+    try{
+      if(FC.wycenaCore && typeof FC.wycenaCore.normalizeQuoteSelection === 'function') selection = FC.wycenaCore.normalizeQuoteSelection(draft && draft.selection);
+    }catch(_){ selection = null; }
+    if(!selection){
+      selection = {
+        selectedRooms:[],
+        materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true },
+      };
+    }
+    return Object.assign({}, selection, { selectedRooms: filterQuoteableRoomIds(selection.selectedRooms) });
   }
 
   function buildSelectionScopeSummary(selection){
@@ -97,6 +110,7 @@
     buildSelectionScopeSummary,
     getRoomLabel,
     getActiveRoomIds,
+    filterQuoteableRoomIds,
     getRoomLabelsFromSelection,
     getRoomsPickerMeta,
     getScopePickerMeta,

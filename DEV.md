@@ -4,7 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_wycena_tab_boundary_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_status_quote_scope_v1.zip`.
+- Baza startowa tej paczki: `site_multi_room_status_guard_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -344,3 +345,18 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Runtime bez nowego storage i bez zmiany UI; zmiana dotyczy wyłącznie interpretacji istniejących snapshotów scope.
 - `project-status-manual-guard.js` jest powyżej progu ostrożności, ale w tej paczce został celowo zostawiony jako jeden guard statusowy — split tylko dla kilku linii poprawki byłby sztuczny. Jeśli będzie dalej rosnąć lub zacznie mieszać więcej flow generowania/statusów, wtedy ciąć po odpowiedzialnościach.
 
+
+
+## 2026-05-02 — Status / quote scope v1
+
+Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyceny:
+
+- `Wstępna wycena` nie jest już ręcznym statusem wybieranym z poziomu `Inwestora`; powstaje przez realną ofertę w dziale `WYCENA`.
+- Ręczne przejście na `Pomiar` albo `Wycena` jest dozwolone także bez wyceny wstępnej, bo w realnym procesie pomiar/wycena końcowa mogą dotyczyć pomieszczeń dodanych na miejscu.
+- Jeśli zaakceptowana wycena wstępna obejmuje kilka pomieszczeń, manualna zmiana na `Pomiar/Wycena` ma respektować scope tej zaakceptowanej oferty. Przy wielu możliwych zakresach decyzja idzie przez aplikacyjny modal, nie przez systemowy dialog.
+- `WYCENA` filtruje pomieszczenia bez szafek z kalkulacji: w pickerze są widoczne, wyszarzone i opisane jako `Brak szafek`, ale nie można ich zaznaczyć do oferty.
+- Nowe moduły: `js/app/project/project-status-scope-decision.js` i `js/app/wycena/wycena-room-availability.js`.
+- `project-status-manual-guard.js` ma ok. 384 linie i zostaje tymczasowo jako spójny guard procesowy; nie ciąć go przy okazji bez osobnego kontraktu dla decyzji status/scope.
+- `rozrys-pickers.js` jest powyżej 400 linii, ale zmiana ogranicza się do opcjonalnego stanu disabled dla pickerów; dalszy split wspólnego pickera robić tylko, jeśli ruszamy szerzej mechanikę wyboru, żeby nie ryzykować regresji ROZRYS.
+- Testowy fixture Wyceny czyści cache `roomRegistry` i tymczasowo odcina `fc_edit_session_v1`, żeby testy pustych/zmienianych zakresów nie odzyskiwały pokojów z poprzedniego kontekstu.
+- Raport paczki: `tools/reports/status-quote-scope-v1.md`.

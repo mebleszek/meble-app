@@ -286,3 +286,13 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dla przyszłej chmury ważna zasada: status pokoju może być oparty na ofercie/snapshotcie obejmującym więcej niż jeden pokój, jeśli ten pokój należy do scope zaakceptowanej oferty.
 - Nie mieszać tego z duplikowaniem ofert per pokój. Wspólna oferta powinna pozostać jednym dokumentem z wieloma `roomIds`, a guard statusu ma rozpoznawać przynależność pokoju do tego scope.
 
+
+
+## 2026-05-02 — Status / quote scope v1
+
+- Zmiana nie dodaje nowych pól storage ani migracji danych; wykorzystuje istniejące statusy pomieszczeń/projektu oraz `scope.selectedRooms` snapshotów Wyceny.
+- Dla przyszłej chmury utrwalono rozdział: oferta/snapshot jest dokumentem z zakresem `roomIds`, a status procesu pokoju/projektu może istnieć także bez wyceny wstępnej.
+- `Pomiar` i `Wycena` bez wyceny wstępnej są legalnym stanem procesowym, który późniejszy harmonogram może filtrować jako: trzeba umówić pomiar albo trzeba przygotować wycenę końcową po pomiarze.
+- Przy kilku zaakceptowanych zakresach obejmujących pokój decyzja statusu jest jawna i runtime'owa; nie duplikować dokumentów ofert per pokój tylko po to, żeby rozstrzygać status.
+- `wycena-room-availability.js` rozdziela kalkulację oferty od procesu: pomieszczenie bez szafek może mieć status `Pomiar/Wycena`, ale nie wchodzi do kalkulacji Wyceny, dopóki nie ma elementów do policzenia.
+- Nie dodano bezpośrednich zapisów do `localStorage`/`sessionStorage`; zmiany idą przez istniejące fasady statusu, persistence i selection.
