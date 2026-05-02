@@ -150,7 +150,9 @@ const INDEX_LOAD_GROUPS = [
       "js/app/rozrys/rozrys-lazy-manifest.js",
       "js/app/rozrys/rozrys-lazy-loader.js",
       "js/app/rozrys/rozrys-shell.js",
+      "js/app/bootstrap/app-core-namespace.js",
       "js/app.js",
+      "js/app/bootstrap/app-legacy-bridges.js",
       "js/app/ui/cabinets-render.js",
       "js/app/shared/public-api.js"
     ]

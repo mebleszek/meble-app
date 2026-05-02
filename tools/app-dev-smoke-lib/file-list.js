@@ -16,6 +16,8 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/project/project-model.js',
   'js/app/project/project-store.js',
   'js/app/project/project-bridge.js',
+  'js/app/bootstrap/app-core-namespace.js',
+  'js/app/bootstrap/app-legacy-bridges.js',
   'js/app/shared/validate.js',
   'js/app/material/material-common.js',
   'js/app/material/material-registry.js',

@@ -69,6 +69,8 @@ function runProjectNodeSmoke(sandbox){
     { name:'Project store jest dostępny', check:()=> !!(FC.projectStore && typeof FC.projectStore.readAll === 'function' && typeof FC.projectStore.writeAll === 'function') },
     { name:'Model projektu jest dostępny', check:()=> !!(FC.projectModel && typeof FC.projectModel.normalizeProjectData === 'function') },
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
+    { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
+    { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
   ]);
 }
 

@@ -400,3 +400,47 @@ Następne sensowne kierunki poza RYSUNKIEM:
 1. `app.js` jako shell — tylko jeśli da się wydzielić cienki delegator bez zmiany zachowania.
 2. Wybrane ścieżki statusów/Wyceny — tylko z istniejącymi kontraktami biznesowymi.
 3. Kolejny etap Inwestora — dopiero przy konkretnej potrzebie, nie jako sztuczne cięcie.
+
+
+## 2026-05-02 — App core namespace split v1
+
+Wykonane bez zmiany UI, RYSUNKU, statusów/ofert i backupów:
+
+- `js/app.js` spadł z ok. 590 do ok. 464 linii.
+- Wydzielono stary bootstrap/fallback namespace `FC`, fallback storage i fallback project do `js/app/bootstrap/app-core-namespace.js`.
+- Nowy moduł nie tworzy nowego storage i nie zmienia formatu danych; korzysta z istniejących `constants/storage/schema/project-bridge`, a fallback trzyma tylko jako awaryjną kompatybilność.
+- Dodano kontrakt smoke: `App core namespace jest wydzielony z app.js`.
+
+Decyzja architektoniczna:
+
+- `app.js` nadal jest powyżej progu ostrożności, ale po tym etapie jest bardziej właściwym shellem runtime niż miejscem bootstrapu danych.
+- Nie ciąć go dalej tylko dla liczby linii. Kolejne wyjęcia robić tylko, jeśli widać konkretną odpowiedzialność: runtime validation/state, global legacy bridges albo render/delegatory.
+- `app-core-namespace.js` ma pozostać małym bootstrap boundary. Nie dokładać tam logiki domenowej, UI, statusów ani backupów.
+
+Następne sensowne kierunki poza RYSUNKIEM:
+
+1. `app.js` — ewentualnie mały split runtime validation/state, tylko jeśli test runtime load pozostaje stabilny.
+2. `project-status-manual-guard.js` — tylko po stabilizacji i z konkretną ścieżką statusową.
+3. `actions-register.js` albo wybrane moduły szafek — po osobnym audycie odpowiedzialności, bez zmiany UI.
+
+
+## 2026-05-02 — App legacy bridges split v1
+
+Wykonane bez zmiany UI, RYSUNKU, statusów/ofert i backupów:
+
+- `js/app.js` spadł z ok. 464 do ok. 354 linii.
+- Wydzielono globalne delegatory cabinet/front, cabinet modal/actions, price modal i material/front hardware do `js/app/bootstrap/app-legacy-bridges.js`.
+- `app-legacy-bridges.js` zachowuje stare globalne nazwy funkcji dla klasycznych skryptów, ale deleguje do istniejących modułów `FC.*` i nie wprowadza nowej logiki domenowej.
+- Dodano kontrakt smoke: `App legacy bridges są wydzielone z app.js`.
+
+Decyzja architektoniczna:
+
+- `app.js` zostaje shellem runtime i nadal nie powinien przyjmować nowych funkcji domenowych.
+- Nie ciąć dalej app shell tylko dla liczby linii; następne cięcia robić dopiero po znalezieniu kolejnej wyraźnej odpowiedzialności, np. runtime validation/state albo kolejny mały, testowalny boundary.
+- `app-legacy-bridges.js` ma pozostać cienkim mostem zgodności. Nie dopisywać tam implementacji biznesowej, renderu UI ani storage.
+
+Następne sensowne kierunki poza RYSUNKIEM:
+
+1. Audyt `actions-register.js` lub wybranych modułów szafek — tylko jeśli da się rozdzielić jedną odpowiedzialność bez zmiany UI.
+2. Ostrożny powrót do WYCENY/statusów tylko przy konkretnej ścieżce biznesowej i z pełnym testem regresji.
+3. `app.js` etap 3 tylko, jeśli analiza pokaże konkretny bezpieczny fragment, nie dla sztucznego zejścia poniżej 250 linii.

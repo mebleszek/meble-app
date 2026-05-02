@@ -334,3 +334,18 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - To nie jest nowy klucz storage i nie tworzy osobnego magazynu danych; pole jest częścią rekordu pokoju inwestora, więc później może mapować się do dokumentu `rooms/{roomId}` albo do eventu statusowego w Firestore.
 - Chmurowy model powinien rozróżniać: status wynikający z zaakceptowanej oferty (`quotes` ze scope) oraz ostatni ręczny status procesu (`lastManualProjectStatus` / event manual status). Rekonsyliacja ma być zakresowa, a nie globalna po inwestorze.
 - Gdy pokój wypada ze wspólnej zaakceptowanej oferty, brak aktywnej oferty dla tego pokoju oznacza powrót do ostatniego ręcznego statusu, nie automatyczny reset do `Nowy`.
+
+
+## 2026-05-02 — App core namespace split v1
+
+- Zmiana nie dodaje nowego klucza storage, migracji ani formatu danych.
+- Fallback storage/project został przeniesiony z `app.js` do `js/app/bootstrap/app-core-namespace.js`, ale produkcyjnie nadal korzysta z istniejących granic `FC.storage`, `FC.schema` i `FC.project` / `project-bridge`.
+- To poprawia cloud-readiness app shell: bootstrapping namespace jest oddzielony od runtime shellu, a przyszła wymiana lokalnego `FC.project` na adapter zdalny nie będzie wymagała dopisywania logiki do `app.js`.
+- Nie zmieniono polityki backupów ani nie ruszono retencji/oczyszczania.
+
+
+## 2026-05-02 — App legacy bridges split v1
+
+- Wydzielenie `js/app/bootstrap/app-legacy-bridges.js` nie dodało żadnego nowego storage ani nie zmieniło formatu danych.
+- `app.js` pozostaje bez bezpośredniego `localStorage/sessionStorage`; globalne delegatory cabinet/material/price są teraz oddzielone od shellu runtime.
+- Dla przyszłej chmury ważne: nie dopisywać do `app-legacy-bridges.js` zapisu danych ani adapterów. Ten moduł ma być wyłącznie warstwą zgodności wywołań.

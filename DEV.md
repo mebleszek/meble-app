@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_investor_ui_split_v1.zip`.
-- Baza startowa tej paczki: `site_manual_status_restore_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_app_legacy_bridges_v1.zip`.
+- Baza startowa tej paczki: `site_app_core_namespace_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -76,6 +76,23 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Cleanup testów ma sprzątać tylko oznaczone dane testowe i nie dotykać prawdziwych danych użytkownika.
 - Przycisk `Usuń dane testowe` zostaje awaryjny; normalnie testy sprzątają po sobie automatycznie.
 
+## App core namespace split v1 — 2026-05-02
+
+- `js/app.js` został odchudzony z ok. 590 do ok. 464 linii przez wydzielenie bootstrapu `FC`/storage/project fallback do `js/app/bootstrap/app-core-namespace.js`.
+- Nowy moduł jest cienkim boundary startowym: korzysta z istniejących `constants`, `storage`, `schema`, `project-bridge`, a fallbacki trzyma tylko jako awaryjną kompatybilność.
+- Nie zmieniono UI, RYSUNKU, statusów, backupów ani formatu danych.
+- Load order: `app-core-namespace.js` musi być ładowany przed `js/app.js` w `index.html`; kontrakt pilnuje `check-index-load-groups` i `app-dev-smoke`.
+- Dalsze odchudzanie `app.js` robić tylko przez konkretne ścieżki shellu/runtime. Nie przenosić domeny do app shell ani nie tworzyć nowego monolitu bootstrapowego.
+
+
+## App legacy bridges split v1 — 2026-05-02
+
+- `js/app.js` został odchudzony z ok. 464 do ok. 354 linii przez wydzielenie globalnych delegatorów cabinet/material/price do `js/app/bootstrap/app-legacy-bridges.js`.
+- Nowy moduł zachowuje stare nazwy funkcji w globalnym kontrakcie klasycznych skryptów, ale sam nie zawiera logiki domenowej; deleguje do właściwych modułów `FC.*`.
+- Load order: `app-legacy-bridges.js` musi być ładowany po `js/app.js` i przed modułami/wywołaniami, które korzystają z legacy funkcji. `dev_tests.html`, `index.html`, `tools/index-load-groups.js` i `app-dev-smoke` mają kontrakt obecności `FC.appLegacyBridges`.
+- Nie zmieniono UI, RYSUNKU, statusów/ofert, backupów ani formatu danych. Nie dodano nowego storage.
+- Dalsze cięcie `app.js` robić tylko po wskazaniu kolejnej jasnej odpowiedzialności. Nie rozbijać runtime startu ani render shellu na siłę.
+
 ## Backup / data safety
 
 - Backup/data-safety jest podzielony na małe moduły: storage keys, hash, normalizer snapshotu, apply/restore, export, policy, storage, records oraz cienki store/fasada.
@@ -98,7 +115,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 
 - `js/tabs/rysunek.js` — bardzo duży aktywny renderer RYSUNKU. Miesza render SVG, drag/drop, inspektor, listę wykończeń, edycję elementów i stare systemowe dialogi. Najpierw wzmacniać testy i planować split, potem ciąć.
-- `js/app.js` — nadal gruby klej aplikacji. Nowe funkcje kierować do modułów domenowych, nie do `app.js`.
+- `js/app.js` — nadal plik ostrzegawczy app shell, ale bootstrap core namespace jest w `js/app/bootstrap/app-core-namespace.js`, a globalne delegatory cabinet/material/price są w `js/app/bootstrap/app-legacy-bridges.js`. Nowe funkcje kierować do modułów domenowych, nie do `app.js`; nie dublować fallbacków storage/project ani legacy bridge w shellu.
 - `js/app/rozrys/rozrys.js` — duży, ale lepiej zabezpieczony testami. Nie dopisywać tam logiki, jeśli pasuje do istniejących modułów ROZRYS.
 - `js/tabs/wycena.js` — nadal główny kandydat Wyceny do małych splitów; miesza zakładkę, snapshoty, statusy i delegatory. Ciąć tylko ścieżka po ścieżce po testach.
 - `js/app/wycena/wycena-tab-selection.js` — po splicie selection v1 jest tylko fasadą; logika wyboru zakresu jest w modułach `wycena-tab-selection-scope/version/model/pickers/render`. Nie dokładać nowych funkcji do fasady.
