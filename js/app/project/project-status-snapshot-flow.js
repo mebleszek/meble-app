@@ -37,6 +37,13 @@
     return left.some((roomId)=> right.includes(roomId));
   }
 
+  function isPreliminarySnapshot(snapshot){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isPreliminarySnapshot === 'function') return !!FC.quoteSnapshotStore.isPreliminarySnapshot(snapshot);
+    }catch(_){ }
+    return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
+  }
+
   function collectReleasedRoomIds(beforeSelectedRows, selectedSnapshot, targetRoomIds){
     const selectedId = String(selectedSnapshot && selectedSnapshot.id || '');
     const targetIds = normalizeRoomIds(targetRoomIds);
@@ -50,6 +57,24 @@
       });
     });
     return Array.from(released);
+  }
+
+  function collectPreliminaryDowngradeRoomIds(beforeSelectedRows, selectedSnapshot, targetRoomIds, status){
+    if(!isPreliminarySnapshot(selectedSnapshot) || normalizeStatus(status) !== 'pomiar') return [];
+    const selectedId = String(selectedSnapshot && selectedSnapshot.id || '');
+    const targetIds = normalizeRoomIds(targetRoomIds);
+    const forced = new Set();
+    (Array.isArray(beforeSelectedRows) ? beforeSelectedRows : []).forEach((row)=> {
+      if(selectedId && String(row && row.id || '') === selectedId) return;
+      if(!row || !(row.meta && row.meta.selectedByClient)) return;
+      if(isPreliminarySnapshot(row)) return;
+      const rowIds = getTargetRoomIdsFromSnapshot(row);
+      if(!roomScopesOverlap(rowIds, targetIds)) return;
+      rowIds.forEach((roomId)=> {
+        if(roomId && targetIds.includes(roomId)) forced.add(roomId);
+      });
+    });
+    return Array.from(forced);
   }
 
   function setStatusFromSnapshot(snapshot, status, options){
@@ -91,12 +116,14 @@
       }
     }catch(_){ }
     const releasedRoomIds = collectReleasedRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds);
+    const forceStatusRoomIds = collectPreliminaryDowngradeRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds, nextStatus);
     const statusResult = setStatusFromSnapshot(selectedSnapshot, nextStatus, Object.assign({}, opts, {
       investorId,
       roomIds:targetRoomIds,
       syncSelection: selectionCommitted ? false : !!opts.syncSelection,
       preserveCurrentWhenNoQuoteRows:true,
       preserveForwardProgress:true,
+      forceStatusRoomIds,
     }));
     let releaseStatusResult = null;
     if(releasedRoomIds.length){
@@ -115,6 +142,7 @@
       statusResult,
       releaseStatusResult,
       releasedRoomIds,
+      forceStatusRoomIds,
       masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || nextStatus) || nextStatus,
       mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || nextStatus) || nextStatus,
       roomIds:targetRoomIds,

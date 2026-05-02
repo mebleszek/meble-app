@@ -97,6 +97,38 @@
       });
     }),
 
+    H.makeTest('Wycena ↔ Statusy zakresowe', 'Wstępna A+S zastępująca zaakceptowaną końcową A cofa tylko źródłowe Zaakceptowany do Pomiar', 'Regresja ze screena: wcześniejsza końcowa oferta A może zostać odrzucona przez nową wstępną A+S, ale A nie może zostać wizualnie na Zaakceptowany. P spoza zakresu zachowuje ręczne Wycena.', ()=>{
+      withInvestorProjectFixture({ investorId:'inv_status_scope_4b', projectId:'proj_status_scope_4b', rooms:ROOMS_ASP, projectData:projectDataForRooms(ROOMS_ASP) }, ({ investorId, projectId })=>{
+        FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_p', 'wycena');
+        const finalA = saveFinalSnapshot(projectId, investorId, 'snap_status_scope_4b_final_a', ['room_a'], 'Oferta A');
+        FC.projectStatusSync.commitAcceptedSnapshot(finalA, 'zaakceptowany', { roomIds:['room_a'], refreshUi:false });
+        let statuses = statusMap(investorId);
+        H.assert(statuses.room_a === 'zaakceptowany', 'Setup nie ustawił A na Zaakceptowany po końcowej ofercie A', statuses);
+
+        const sharedPrelimAS = savePreliminarySnapshot(projectId, investorId, 'snap_status_scope_4b_pre_as', ['room_a','room_s'], 'Wstępna A+S');
+        const result = FC.projectStatusSync.commitAcceptedSnapshot(sharedPrelimAS, 'pomiar', { roomIds:['room_a','room_s'], refreshUi:false });
+        statuses = statusMap(investorId);
+        H.assert(statuses.room_a === 'pomiar', 'A nie może zostać na Zaakceptowany po zastąpieniu końcowej A przez wstępną A+S', { statuses, result });
+        H.assert(statuses.room_s === 'pomiar', 'S z zakresu zaakceptowanej wstępnej A+S powinno przejść na Pomiar', { statuses, result });
+        H.assert(statuses.room_p === 'wycena', 'P spoza zakresu A+S powinno zachować ręczne Wycena', { statuses, result });
+      });
+    }),
+
+    H.makeTest('Wycena ↔ Statusy zakresowe', 'Wstępna A+S nie cofa ręcznego Wycena pokoju z zakresu bez poprzedniej zaakceptowanej końcowej', 'Doprecyzowanie przypadku 10: jeżeli S było ręcznie na Wycena i nie wynikało z odrzuconej końcowej oferty, akceptacja wstępnej A+S nie powinna cofać S do Pomiar.', ()=>{
+      withInvestorProjectFixture({ investorId:'inv_status_scope_4c', projectId:'proj_status_scope_4c', rooms:ROOMS_ASP, projectData:projectDataForRooms(ROOMS_ASP) }, ({ investorId, projectId })=>{
+        FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_s', 'wycena');
+        FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_p', 'wycena');
+        const finalA = saveFinalSnapshot(projectId, investorId, 'snap_status_scope_4c_final_a', ['room_a'], 'Oferta A');
+        FC.projectStatusSync.commitAcceptedSnapshot(finalA, 'zaakceptowany', { roomIds:['room_a'], refreshUi:false });
+        const sharedPrelimAS = savePreliminarySnapshot(projectId, investorId, 'snap_status_scope_4c_pre_as', ['room_a','room_s'], 'Wstępna A+S');
+        FC.projectStatusSync.commitAcceptedSnapshot(sharedPrelimAS, 'pomiar', { roomIds:['room_a','room_s'], refreshUi:false });
+        const statuses = statusMap(investorId);
+        H.assert(statuses.room_a === 'pomiar', 'A ma zejść z Zaakceptowany do Pomiar, bo poprzednia końcowa A została zastąpiona', statuses);
+        H.assert(statuses.room_s === 'wycena', 'S ręcznie ustawione na Wycena nie powinno być cofnięte do Pomiar, jeśli nie miało odrzuconej końcowej oferty', statuses);
+        H.assert(statuses.room_p === 'wycena', 'P spoza zakresu nadal ma zachować Wycena', statuses);
+      });
+    }),
+
     H.makeTest('Wycena ↔ Statusy zakresowe', 'Jedna wspólna zaakceptowana oferta daje modal: tylko pokój albo cały zakres', 'Przypadek 5: po zaakceptowanej wspólnej ofercie A+S zmiana A na Wycena nie może iść w ciemno; guard musi zwrócić decyzję Tylko A albo A+S.', ()=>{
       withInvestorProjectFixture({ investorId:'inv_status_scope_5', projectId:'proj_status_scope_5', rooms:ROOMS_ASP, projectData:projectDataForRooms(ROOMS_ASP) }, ({ investorId, projectId })=>{
         const sharedAS = savePreliminarySnapshot(projectId, investorId, 'snap_status_scope_5_as', ['room_a','room_s'], 'Wstępna A+S');

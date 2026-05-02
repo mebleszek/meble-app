@@ -106,10 +106,16 @@
       preserveCurrentWhenNoQuoteRows: !!options.preserveCurrentWhenNoQuoteRows,
     });
     const preserveForwardProgress = !!options.preserveForwardProgress;
+    const forceStatusSet = new Set(normalizeRoomIds(options.forceStatusRoomIds));
+    const acceptedRank = statusRank('zaakceptowany');
     targetRoomIds.forEach((roomId)=> {
       const key = String(roomId || '');
       if(!key) return;
       const current = normalizeStatus(currentStatusMap && currentStatusMap[key] || '');
+      if(forceStatusSet.has(key) && (!current || statusRank(current) <= acceptedRank)){
+        roomStatusMap[key] = nextStatus;
+        return;
+      }
       if(preserveForwardProgress && current && statusRank(current) > statusRank(nextStatus)){
         roomStatusMap[key] = current;
         return;

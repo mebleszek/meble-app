@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-02T17:08:36.647Z",
+  "generatedAt": "2026-05-02T17:44:03.939Z",
   "summary": {
     "jsFiles": 295,
     "indexScripts": 230,
@@ -61,7 +61,7 @@
     },
     "PROJEKT": {
       "files": 10,
-      "lines": 1865,
+      "lines": 1899,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 42,
-      "lines": 10691,
+      "lines": 10723,
       "storageRefs": 234,
       "dialogRefs": 1,
       "high": 6,
@@ -1039,6 +1039,23 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-sync.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 254,
+      "incoming": 17,
+      "outgoing": 4,
+      "secondLevel": 37,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/app/ui/views.js",
       "risk": "średnie",
       "score": 5,
@@ -1071,6 +1088,23 @@
       "reasons": [
         "dużo zależnych plików",
         "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/status-reconciliation-regression.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 174,
+      "incoming": 15,
+      "outgoing": 23,
+      "secondLevel": 20,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
       ]
     },
     {
@@ -1116,23 +1150,6 @@
       "lines": 149,
       "incoming": 15,
       "outgoing": 29,
-      "secondLevel": 20,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/wycena/suites/status-reconciliation-regression.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 142,
-      "incoming": 15,
-      "outgoing": 23,
       "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1378,22 +1395,6 @@
       ]
     },
     {
-      "file": "js/app/project/project-status-sync.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 248,
-      "incoming": 17,
-      "outgoing": 4,
-      "secondLevel": 37,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików"
-      ]
-    },
-    {
       "file": "js/testing/rozrys/suites/output-bootstrap.js",
       "risk": "średnie",
       "score": 4,
@@ -1408,6 +1409,22 @@
       "reasons": [
         "kilka zależnych plików",
         "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/project/project-status-snapshot-flow.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 210,
+      "incoming": 17,
+      "outgoing": 3,
+      "secondLevel": 37,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików"
       ]
     },
     {
@@ -1441,22 +1458,6 @@
       "reasons": [
         "kilka zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-snapshot-flow.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 182,
-      "incoming": 17,
-      "outgoing": 3,
-      "secondLevel": 37,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików"
       ]
     },
     {
@@ -5562,7 +5563,7 @@
     "js/app/project/project-status-snapshot-flow.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 182,
+      "lines": 210,
       "defines": [
         "projectStatusSnapshotFlow",
         "projectStatusSync"
@@ -5649,7 +5650,7 @@
     "js/app/project/project-status-sync.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 248,
+      "lines": 254,
       "defines": [
         "projectStatusSync"
       ],
@@ -5730,6 +5731,7 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
+        "250+ linii",
         "dużo zależnych plików"
       ]
     },
@@ -17253,7 +17255,7 @@
     "js/testing/wycena/suites/status-reconciliation-regression.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 142,
+      "lines": 174,
       "defines": [
         "registerWycenaTests"
       ],

@@ -318,3 +318,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Status pokoju i historia ofert pozostają osobnymi warstwami danych: oferta ma `scope`, a status pokoju może wynikać z oferty albo z ręcznej decyzji procesowej.
 - Rekonsyliacja po akceptacji oferty jest zakresowa: zapis statusu dotyka tylko pokoi z zakresu oferty oraz świadomie zwolnionych pokoi po zmianie zaakceptowanego zakresu. Nie wolno globalnie wyliczać `Nowy` dla wszystkich pokoi inwestora tylko dlatego, że nie mają snapshotu.
 - To jest ważne pod przyszłą chmurę/harmonogram: zadania `Pomiar` i `Wycena` mogą istnieć bez wyceny wstępnej, a późniejszy kalendarz ma czytać statusy procesowe przez boundary, nie przez ponowną interpretację historii ofert w UI.
+
+
+## 2026-05-02 — Status źródłowy oferty przy zastępowaniu zakresów
+
+- Nie zmieniono formatu danych ani storage; poprawka działa na istniejących snapshotach i statusach pokoi.
+- Dla przyszłej chmury ważna jest zasada źródła statusu: status pokoju wynikający z zaakceptowanej końcowej oferty może zostać cofnięty, jeśli ta konkretna końcowa oferta zostanie zastąpiona/odrzucona przez zaakceptowaną wycenę wstępną obejmującą ten zakres.
+- Ręczny status pokoju pozostaje osobnym źródłem procesu i nie może być nadpisywany globalną rekonsyliacją ofert spoza swojego zakresu.
+- Ten podział źródeł będzie istotny przy modelowaniu Firestore: `quotes`/snapshoty ofert i statusy procesowe pokoi muszą być synchronizowane zakresowo, nie globalnie po inwestorze.

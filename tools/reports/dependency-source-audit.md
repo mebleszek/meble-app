@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 42 | 10691 | 234 | 1 | 6 | 22 |
+| TESTY | 42 | 10723 | 234 | 1 | 6 | 22 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 42 | 6238 | 0 | 0 | 0 | 6 |
@@ -27,7 +27,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | MATERIAŁ | 14 | 1970 | 8 | 3 | 0 | 1 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
-| PROJEKT | 10 | 1865 | 0 | 0 | 0 | 6 |
+| PROJEKT | 10 | 1899 | 0 | 0 | 0 | 6 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | KATALOG/USŁUGI | 9 | 1349 | 0 | 0 | 0 | 1 |
@@ -172,10 +172,10 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/project/project-status-scope.js | średnie | 5 | 313 | 5 | 25 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-engine.js | średnie | 5 | 270 | 6 | 23 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/investor/session.js | średnie | 5 | 259 | 10 | 58 | 250+ linii; dużo zależnych plików |
+| js/app/project/project-status-sync.js | średnie | 5 | 254 | 17 | 37 | 250+ linii; dużo zależnych plików |
 | js/app/ui/views.js | średnie | 5 | 250 | 14 | 38 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/app/quote/quote-offer-store.js | średnie | 5 | 238 | 12 | 36 | dużo zależnych plików; kilka zależności wychodzących |
-| js/testing/wycena/suites/status-anti-regression.js | średnie | 5 | 161 | 15 | 20 | dużo zależnych plików; dużo zależności wychodzących |
-| js/testing/wycena/suites/status-contract.js | średnie | 5 | 155 | 15 | 20 | dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/status-reconciliation-regression.js | średnie | 5 | 174 | 15 | 20 | dużo zależnych plików; dużo zależności wychodzących |
 
 ## Potencjalnie nieładowane przez index/dev_tests
 
@@ -323,7 +323,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 - Obszar: PROJEKT
 - Kategoria: domain/controller
-- Ryzyko: średnie (dużo zależnych plików)
+- Ryzyko: średnie (250+ linii; dużo zależnych plików)
 - Definiuje FC: projectStatusSync
 - Bezpośrednio zależne pliki (17): js/app/investor/investor-persistence.js<br>js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-snapshot-flow.js<br>js/app/shared/room-registry-impact.js<br>js/app/wycena/wycena-tab-status-bridge.js<br>js/testing/investor/tests.js<br>js/testing/wycena/suites/architecture-contract.js +9
 - Pośrednio zależne pliki (37): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui.js<br>js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js +29

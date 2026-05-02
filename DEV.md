@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_status_reconcile_v1.zip`.
-- Baza startowa tej paczki: `site_manual_status_preserve_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_prelim_replace_final_status_v1.zip`.
+- Baza startowa tej paczki: `site_status_reconcile_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -398,3 +398,13 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Przy zaakceptowanej wspólnej wycenie wstępnej zmiana statusu jednego pokoju na `Pomiar/Wycena` ma pokazać modal decyzyjny: tylko kliknięty pokój albo cały zaakceptowany zakres. Gdy istnieje oferta solo i wspólna dla tego samego pokoju, również wymagana jest decyzja zakresu.
 - Testy regresyjne dla tych kombinacji są w `js/testing/wycena/suites/status-reconciliation-regression.js`; nie usuwać ich przy dalszych porządkach statusów.
 - Pełny raport paczki: `tools/reports/status-reconcile-v1.md`.
+
+
+## 2026-05-02 — Status reconcile fix: wstępna zastępuje końcową
+
+- Krytyczna reguła statusów ofert: zaakceptowana wycena wstępna ustawia swój zakres na `Pomiar`, a zaakceptowana końcowa oferta ustawia swój zakres na `Zaakceptowany`. Nie rozpoznawać statusu wyłącznie po `selectedByClient`.
+- Jeżeli nowa zaakceptowana wycena wstępna zastępuje/odrzuca wcześniejszą zaakceptowaną końcową ofertę w tym samym pokrywającym się zakresie, pokoje z tej wcześniejszej końcowej oferty nie mogą zostać wizualnie na `Zaakceptowany`; dla statusu wynikającego z odrzuconej końcowej oferty wracają do `Pomiar`.
+- Nadal obowiązuje ochrona ręcznego postępu: pokój ręcznie ustawiony na `Wycena` bez wcześniejszej odrzuconej końcowej oferty nie jest cofany do `Pomiar` tylko dlatego, że znalazł się w zakresie zaakceptowanej wyceny wstępnej.
+- Pokoje spoza zakresu akceptowanej oferty zachowują swoje ręczne statusy (`Pomiar`, `Wycena` itd.); brak oferty dla pokoju nigdy nie jest powodem do resetu na `Nowy`.
+- Testy regresyjne dla tej decyzji są w `js/testing/wycena/suites/status-reconciliation-regression.js`; przed zmianami w `project-status-snapshot-flow.js` albo `project-status-sync.js` uruchamiać pełne `FC.wycenaDevTests.runAll()` oraz standardowe audyty.
+- Raport paczki: `tools/reports/prelim-replace-final-status-v1.md`.
