@@ -302,3 +302,19 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Nie zmieniono formatu danych ani kluczy storage.
 - Doprecyzowano semantykę statusów pokoi: ręczna zmiana statusu jednego pokoju jest operacją scoped i nie może przepisywać statusów innych pokoi fallbackiem z braku ofert.
 - To wspiera przyszłą chmurę, bo rozdziela dwa typy zdarzeń: ręczne ustawienie statusu pokoju oraz rekonsyliację wynikającą ze zmiany/usunięcia zaakceptowanej oferty. Te zdarzenia powinny w przyszłości być osobnymi zapisami/komendami w repozytorium.
+
+
+## 2026-05-02 — Schedule status prep v1
+
+- Nie dodano nowych kluczy storage ani migracji.
+- Przyszły harmonogram ma być zasilany z read-only API `FC.projectScheduleStatus`, które składa dane z istniejących rekordów inwestora, projektu i snapshotów Wyceny.
+- Semantyka pod chmurę: status pokoju jest stanem procesu, a oferta/snapshot jest dokumentem handlowym ze scope `roomIds`; nie duplikować wspólnych ofert per pokój.
+- `Pomiar` i `Wycena` bez wyceny wstępnej są legalnymi stanami procesowymi i powinny być zapisywane jako osobne komendy/statusy pokoju, nie jako sztuczne snapshoty.
+- Pomieszczenie bez szafek może istnieć w kolejce `finalQuote`, ale kalkulacja Wyceny musi nadal sprawdzać dostępność przez `wycena-room-availability`.
+
+
+## Statusy scoped pod harmonogram — 2026-05-02
+
+- Status pokoju i historia ofert pozostają osobnymi warstwami danych: oferta ma `scope`, a status pokoju może wynikać z oferty albo z ręcznej decyzji procesowej.
+- Rekonsyliacja po akceptacji oferty jest zakresowa: zapis statusu dotyka tylko pokoi z zakresu oferty oraz świadomie zwolnionych pokoi po zmianie zaakceptowanego zakresu. Nie wolno globalnie wyliczać `Nowy` dla wszystkich pokoi inwestora tylko dlatego, że nie mają snapshotu.
+- To jest ważne pod przyszłą chmurę/harmonogram: zadania `Pomiar` i `Wycena` mogą istnieć bez wyceny wstępnej, a późniejszy kalendarz ma czytać statusy procesowe przez boundary, nie przez ponowną interpretację historii ofert w UI.

@@ -345,3 +345,22 @@ Wykonane:
 - nie cięto dalej `project-status-manual-guard.js` ani `investor-ui.js`, bo problem był w rekomendacji fallbacków statusu, nie w strukturze UI.
 
 Następny sensowny krok nadal: obserwować realne statusy Wycena/Inwestor; dopiero potem ciąć status guard albo `investor-ui.js` po konkretnej ścieżce.
+
+
+## 2026-05-02 — Schedule status prep v1
+
+Zakres nie był refaktorem optymalizacyjnym, tylko przygotowaniem statusów pod przyszły harmonogram.
+
+Wykonane:
+- dodano osobny read-only moduł `project-schedule-status.js`, zamiast dokładać interpretację harmonogramu do `project-status-sync.js`, `investor-ui.js` albo zakładki Wyceny,
+- utrzymano rozdział: status procesu pokoju vs dokument oferty/snapshot,
+- dodano kontrakty Wycena/Harmonogram dla `Pomiar`, `Wycena`, braku wyceny wstępnej i wspólnej zaakceptowanej wyceny wstępnej.
+
+Po tym etapie przy właściwym harmonogramie nie zaczynać od UI. Najpierw użyć boundary `FC.projectScheduleStatus`, a dopiero potem budować widok/kalendarz.
+
+
+## 2026-05-02 — status reconcile v1
+
+- Etap był naprawą biznesową statusów, nie refaktorem optymalizacyjnym.
+- `project-status-snapshot-flow.js` dostał małą logikę rozpoznania pokoi zwolnionych po zmianie zaakceptowanego zakresu oferty; nie przenosić jej z powrotem do UI Wyceny.
+- `project-status-manual-guard.js` jest blisko progu ostrzegawczego i miesza analizę ofert z budową decyzji zakresu, ale w tej paczce zostaje bez dużego splitu, bo priorytetem była stabilizacja regresji. Następny split statusów robić tylko po istniejących testach `status-reconciliation-regression.js`.

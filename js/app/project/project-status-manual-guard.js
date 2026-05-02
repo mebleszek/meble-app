@@ -320,17 +320,27 @@
       return Object.assign(base, { choices:[autoChoice], autoChoice });
     }
     const acceptedChoices = buildAcceptedPreliminaryScopeChoices(basis);
+    const singleRoomChoice = {
+      id:'single-room',
+      source: acceptedChoices.length ? 'manual-single-room-split' : 'manual-without-preliminary',
+      roomIds:[String(roomId || '')].filter(Boolean),
+      scopeLabel:basis.roomLabel,
+      label:`Tylko ${basis.roomLabel}`,
+      description: acceptedChoices.length ? 'Ręczna zmiana tylko tego pomieszczenia.' : 'Ręczna zmiana statusu bez wyceny wstępnej.',
+    };
     if(!acceptedChoices.length){
-      const autoChoice = { id:'single-room', source:'manual-without-preliminary', roomIds:[String(roomId || '')].filter(Boolean), scopeLabel:basis.roomLabel, label:`Tylko ${basis.roomLabel}`, description:'Ręczna zmiana statusu bez wyceny wstępnej.' };
-      return Object.assign(base, { choices:[autoChoice], autoChoice, defaultChoiceId:autoChoice.id });
+      return Object.assign(base, { choices:[singleRoomChoice], autoChoice:singleRoomChoice, defaultChoiceId:singleRoomChoice.id });
     }
-    if(acceptedChoices.length === 1){
+    const hasExactSingle = acceptedChoices.some((choice)=> !!choice.isExactSingle);
+    const hasMultiRoom = acceptedChoices.some((choice)=> !!choice.isMultiRoom);
+    if(acceptedChoices.length === 1 && hasExactSingle && !hasMultiRoom){
       return Object.assign(base, { choices:acceptedChoices, autoChoice:acceptedChoices[0], defaultChoiceId:acceptedChoices[0].id });
     }
+    const choices = hasExactSingle ? acceptedChoices.slice() : [singleRoomChoice].concat(acceptedChoices);
     return Object.assign(base, {
-      choices:acceptedChoices,
+      choices,
       needsDecision:true,
-      defaultChoiceId:acceptedChoices[0].id,
+      defaultChoiceId:choices[0] && choices[0].id || '',
     });
   }
 

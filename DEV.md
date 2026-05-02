@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_manual_status_preserve_v1.zip`.
-- Baza startowa tej paczki: `site_multi_room_status_guard_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_status_reconcile_v1.zip`.
+- Baza startowa tej paczki: `site_manual_status_preserve_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -48,6 +48,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+
+## Plan docelowy — harmonogram i statusy procesowe
+
+- Harmonogram ma filtrować zadania po statusach procesowych, a nie po samym istnieniu wyceny wstępnej.
+- `Pomiar` oznacza: trzeba umówić albo wykonać pomiar. Może wynikać z zaakceptowanej wyceny wstępnej albo z ręcznej decyzji bez wyceny wstępnej.
+- `Wycena` po pomiarze oznacza: trzeba przygotować wycenę końcową. Ten stan jest legalny także dla pomieszczenia bez wyceny wstępnej, np. gdy pokój doszedł przy okazji pomiaru.
+- Pomieszczenie bez szafek może mieć status `Pomiar/Wycena` i trafić do przyszłego harmonogramu, ale w kalkulacji WYCENY pozostaje zablokowane jako `Brak szafek`, dopóki nie ma elementów do policzenia.
+- Zaakceptowana wspólna wycena wstępna pozostaje jednym dokumentem z zakresem wielu pokoi; harmonogram ma widzieć pokoje z tego zakresu bez duplikowania oferty per pokój.
+- Moduł `js/app/project/project-schedule-status.js` jest read-only boundary pod przyszły harmonogram. Nie zapisuje danych i nie wprowadza nowego storage; zwraca kolejki `measurement` oraz `finalQuote`.
+- Przy budowie właściwego kalendarza/harmonogramu najpierw użyć `FC.projectScheduleStatus.buildAllBuckets()` / `buildInvestorBuckets()`, zamiast ponownie interpretować statusy w UI.
 
 ## Load order i testy
 
@@ -367,3 +378,23 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Fallback `nowy` z historii ofert nie może nadpisywać nietkniętego pokoju tylko dlatego, że pokój nie ma własnej wyceny.
 - To dotyczy manualnego przepływu w `Inwestorze`; rekonsyliacja po usunięciu albo zmianie zaakceptowanego zakresu oferty nadal może cofać pokoje zdjęte z zakresu, bo to wynika z historii ofert.
 - Kontrakt regresyjny jest w `js/testing/wycena/suites/investor-integration.js`: A z zaakceptowaną wstępną ofertą zostaje `Pomiar`, a ręczne ustawianie S/P na `Wycena` nie resetuje innych pokoi.
+
+
+## 2026-05-02 — Schedule status prep v1
+
+- Dodano read-only boundary `js/app/project/project-schedule-status.js` pod przyszły harmonogram.
+- `Pomiar` trafia do kolejki `measurement`, a `Wycena` do kolejki `finalQuote`; oba stany mogą istnieć bez wyceny wstępnej.
+- Harmonogram ma później filtrować statusy procesowe, nie samą historię ofert.
+- Pomieszczenia bez szafek mogą czekać na wycenę końcową, ale boundary zwraca `quoteBlockedReason: Brak szafek`, żeby przyszły widok nie udawał, że da się je już policzyć.
+- Nie dodano UI kalendarza, nowego storage ani migracji danych.
+- Raport: `tools/reports/schedule-status-prep-v1.md`.
+
+
+## 2026-05-02 — status reconcile v1
+
+- Naprawiono rekonsyliację statusów po akceptacji oferty: akcja na ofercie może zmieniać tylko pokoje z zakresu tej oferty, a pokoje spoza zakresu zachowują ręczne statusy `Pomiar/Wycena`.
+- Brak wyceny/snapshotu dla pokoju nie oznacza resetu do `Nowy`; reset/rekomendacja może dotyczyć tylko pokoju świadomie wypiętego z poprzednio zaakceptowanego zakresu oferty.
+- Akceptacja wyceny wstępnej nie cofa pokoju, który jest już dalej w procesie, np. `Wycena` nie wraca do `Pomiar`; akceptacja końcowej nie cofa `Umowa/Produkcja/Montaż` do `Zaakceptowany`.
+- Przy zaakceptowanej wspólnej wycenie wstępnej zmiana statusu jednego pokoju na `Pomiar/Wycena` ma pokazać modal decyzyjny: tylko kliknięty pokój albo cały zaakceptowany zakres. Gdy istnieje oferta solo i wspólna dla tego samego pokoju, również wymagana jest decyzja zakresu.
+- Testy regresyjne dla tych kombinacji są w `js/testing/wycena/suites/status-reconciliation-regression.js`; nie usuwać ich przy dalszych porządkach statusów.
+- Pełny raport paczki: `tools/reports/status-reconcile-v1.md`.

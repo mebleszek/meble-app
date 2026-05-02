@@ -105,9 +105,16 @@
       preserveCurrentForUntouched:true,
       preserveCurrentWhenNoQuoteRows: !!options.preserveCurrentWhenNoQuoteRows,
     });
+    const preserveForwardProgress = !!options.preserveForwardProgress;
     targetRoomIds.forEach((roomId)=> {
       const key = String(roomId || '');
-      if(key) roomStatusMap[key] = nextStatus;
+      if(!key) return;
+      const current = normalizeStatus(currentStatusMap && currentStatusMap[key] || '');
+      if(preserveForwardProgress && current && statusRank(current) > statusRank(nextStatus)){
+        roomStatusMap[key] = current;
+        return;
+      }
+      roomStatusMap[key] = nextStatus;
     });
 
     const nextInvestor = saveInvestorRooms(investor, roomStatusMap) || investor;

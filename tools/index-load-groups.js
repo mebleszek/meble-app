@@ -202,6 +202,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/project/project-status-snapshot-flow.js",
       "js/app/project/project-status-manual-guard.js",
       "js/app/project/project-status-scope-decision.js",
+      "js/app/project/project-schedule-status.js",
       "js/app/quote/quote-snapshot.js",
       "js/app/quote/quote-pdf.js",
       "js/app/wycena/wycena-room-availability.js",

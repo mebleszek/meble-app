@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-02T15:03:56.429Z",
+  "generatedAt": "2026-05-02T17:08:36.647Z",
   "summary": {
-    "jsFiles": 292,
-    "indexScripts": 229,
-    "devTestScripts": 247,
-    "fcSymbols": 218,
-    "fcSymbolsAll": 242,
-    "edges": 1383,
+    "jsFiles": 295,
+    "indexScripts": 230,
+    "devTestScripts": 250,
+    "fcSymbols": 219,
+    "fcSymbolsAll": 243,
+    "edges": 1462,
     "highRisk": 10,
-    "mediumRisk": 48
+    "mediumRisk": 50
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -60,8 +60,8 @@
       "medium": 1
     },
     "PROJEKT": {
-      "files": 9,
-      "lines": 1585,
+      "files": 10,
+      "lines": 1865,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -140,12 +140,12 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 40,
-      "lines": 10454,
+      "files": 42,
+      "lines": 10691,
       "storageRefs": 234,
       "dialogRefs": 1,
       "high": 6,
-      "medium": 20
+      "medium": 22
     }
   },
   "topLines": [
@@ -214,6 +214,10 @@
       406
     ],
     [
+      "js/app/project/project-status-manual-guard.js",
+      395
+    ],
+    [
       "js/testing/test-data-manager.js",
       393
     ],
@@ -224,16 +228,12 @@
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
       388
-    ],
-    [
-      "js/app/project/project-status-manual-guard.js",
-      385
     ]
   ],
   "topIncoming": [
     [
       "js/app/quote/quote-snapshot-store.js",
-      35
+      38
     ],
     [
       "js/app/shared/storage.js",
@@ -245,7 +245,7 @@
     ],
     [
       "js/app/investor/investors-store.js",
-      30
+      32
     ],
     [
       "js/app/shared/room-registry.js",
@@ -253,10 +253,14 @@
     ],
     [
       "js/testing/shared/harness.js",
-      25
+      27
     ],
     [
       "js/app.js",
+      24
+    ],
+    [
+      "js/app/project/project-store.js",
       24
     ],
     [
@@ -264,12 +268,12 @@
       23
     ],
     [
-      "js/app/project/project-store.js",
+      "js/app/ui/info-box.js",
       23
     ],
     [
-      "js/app/ui/info-box.js",
-      23
+      "js/testing/wycena/suites/core-offer-basics.js",
+      20
     ],
     [
       "js/app/ui/confirm-box.js",
@@ -280,11 +284,23 @@
       18
     ],
     [
-      "js/testing/wycena/suites/core-offer-basics.js",
-      18
+      "js/app/project/project-status-snapshot-flow.js",
+      17
+    ],
+    [
+      "js/app/project/project-status-sync.js",
+      17
+    ],
+    [
+      "js/app/investor/investor-persistence.js",
+      16
     ],
     [
       "js/app/optimizer/cut-optimizer.js",
+      16
+    ],
+    [
+      "js/testing/wycena/fixtures.js",
       16
     ],
     [
@@ -292,106 +308,90 @@
       15
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      14
-    ],
-    [
-      "js/app/project/project-status-snapshot-flow.js",
-      14
-    ],
-    [
-      "js/app/project/project-status-sync.js",
-      14
-    ],
-    [
-      "js/app/rozrys/rozrys-scope.js",
-      14
-    ],
-    [
-      "js/app/shared/ui-state.js",
-      14
+      "js/testing/wycena/suites/architecture-contract.js",
+      15
     ]
   ],
   "topSecond": [
     [
       "js/app/shared/utils.js",
-      107
+      110
     ],
     [
       "js/app/shared/storage.js",
-      104
+      107
     ],
     [
       "js/app/shared/constants.js",
-      90
+      93
     ],
     [
       "js/app/shared/room-registry.js",
-      79
+      81
     ],
     [
       "js/app/project/project-store.js",
-      71
+      73
     ],
     [
       "js/app/investor/investors-store.js",
-      68
+      71
     ],
     [
       "js/app/ui/info-box.js",
-      58
+      60
     ],
     [
       "js/app/investor/session.js",
-      56
+      58
     ],
     [
       "js/app/project/project-bridge.js",
-      56
+      58
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      55
+      58
     ],
     [
       "js/app/ui/confirm-box.js",
-      55
+      57
     ],
     [
       "js/app.js",
-      54
+      56
     ],
     [
       "js/app/quote/quote-snapshot.js",
-      49
+      52
     ],
     [
       "js/app/catalog/catalog-store.js",
-      48
+      50
     ],
     [
       "js/app/shared/ui-state.js",
-      48
+      50
+    ],
+    [
+      "js/app/investor/investor-persistence.js",
+      47
     ],
     [
       "js/app/rozrys/rozrys-scope.js",
       46
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      45
+      "js/app/rozrys/rozrys.js",
+      44
     ],
     [
       "js/app/bootstrap/reload-restore.js",
-      41
+      43
     ],
     [
-      "js/app/rozrys/rozrys.js",
-      41
-    ],
-    [
-      "js/app/shared/schema.js",
-      41
+      "js/app/rozrys/rozrys-shell.js",
+      43
     ]
   ],
   "topStorage": [
@@ -484,9 +484,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 835,
-      "incoming": 11,
+      "incoming": 13,
       "outgoing": 29,
-      "secondLevel": 28,
+      "secondLevel": 30,
       "storageRefs": 112,
       "dialogRefs": 0,
       "reasons": [
@@ -507,7 +507,7 @@
       "lines": 842,
       "incoming": 9,
       "outgoing": 19,
-      "secondLevel": 41,
+      "secondLevel": 44,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -523,9 +523,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 649,
-      "incoming": 13,
-      "outgoing": 29,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 31,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -543,7 +543,7 @@
       "lines": 475,
       "incoming": 7,
       "outgoing": 20,
-      "secondLevel": 27,
+      "secondLevel": 29,
       "storageRefs": 1,
       "dialogRefs": 0,
       "reasons": [
@@ -580,7 +580,7 @@
       "lines": 806,
       "incoming": 6,
       "outgoing": 13,
-      "secondLevel": 28,
+      "secondLevel": 30,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -598,7 +598,7 @@
       "lines": 591,
       "incoming": 24,
       "outgoing": 15,
-      "secondLevel": 54,
+      "secondLevel": 56,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -634,7 +634,7 @@
       "lines": 390,
       "incoming": 14,
       "outgoing": 28,
-      "secondLevel": 27,
+      "secondLevel": 29,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -651,9 +651,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 154,
-      "incoming": 14,
-      "outgoing": 24,
-      "secondLevel": 19,
+      "incoming": 16,
+      "outgoing": 26,
+      "secondLevel": 21,
       "storageRefs": 13,
       "dialogRefs": 0,
       "reasons": [
@@ -723,9 +723,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 361,
-      "incoming": 13,
-      "outgoing": 22,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 24,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -740,10 +740,10 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 354,
-      "incoming": 13,
-      "outgoing": 24,
-      "secondLevel": 18,
+      "lines": 356,
+      "incoming": 15,
+      "outgoing": 26,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -761,7 +761,7 @@
       "lines": 342,
       "incoming": 13,
       "outgoing": 19,
-      "secondLevel": 28,
+      "secondLevel": 30,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -777,9 +777,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 321,
-      "incoming": 13,
-      "outgoing": 38,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 40,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -814,9 +814,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 277,
-      "incoming": 13,
-      "outgoing": 22,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 24,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -834,7 +834,7 @@
       "lines": 257,
       "incoming": 10,
       "outgoing": 8,
-      "secondLevel": 49,
+      "secondLevel": 52,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -850,9 +850,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 252,
-      "incoming": 18,
-      "outgoing": 28,
-      "secondLevel": 27,
+      "incoming": 20,
+      "outgoing": 30,
+      "secondLevel": 29,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -870,7 +870,7 @@
       "lines": 117,
       "incoming": 6,
       "outgoing": 9,
-      "secondLevel": 28,
+      "secondLevel": 30,
       "storageRefs": 10,
       "dialogRefs": 1,
       "reasons": [
@@ -898,6 +898,24 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-manual-guard.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 395,
+      "incoming": 8,
+      "outgoing": 10,
+      "secondLevel": 28,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "kilka zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/test-data-manager.js",
       "risk": "średnie",
       "score": 5,
@@ -906,31 +924,13 @@
       "lines": 393,
       "incoming": 7,
       "outgoing": 6,
-      "secondLevel": 22,
+      "secondLevel": 24,
       "storageRefs": 15,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
         "kilka zależnych plików",
         "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-manual-guard.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 385,
-      "incoming": 7,
-      "outgoing": 10,
-      "secondLevel": 26,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -942,7 +942,7 @@
       "lines": 348,
       "incoming": 6,
       "outgoing": 11,
-      "secondLevel": 20,
+      "secondLevel": 22,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -975,9 +975,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 35,
+      "incoming": 38,
       "outgoing": 6,
-      "secondLevel": 55,
+      "secondLevel": 58,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -994,7 +994,7 @@
       "lines": 313,
       "incoming": 5,
       "outgoing": 9,
-      "secondLevel": 22,
+      "secondLevel": 25,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1030,7 +1030,7 @@
       "lines": 259,
       "incoming": 10,
       "outgoing": 1,
-      "secondLevel": 56,
+      "secondLevel": 58,
       "storageRefs": 12,
       "dialogRefs": 0,
       "reasons": [
@@ -1047,7 +1047,7 @@
       "lines": 250,
       "incoming": 14,
       "outgoing": 10,
-      "secondLevel": 36,
+      "secondLevel": 38,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1065,7 +1065,7 @@
       "lines": 238,
       "incoming": 12,
       "outgoing": 8,
-      "secondLevel": 34,
+      "secondLevel": 36,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1080,9 +1080,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 161,
-      "incoming": 13,
-      "outgoing": 19,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 21,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1097,9 +1097,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 155,
-      "incoming": 13,
-      "outgoing": 21,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 23,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1114,9 +1114,26 @@
       "area": "TESTY",
       "category": "test",
       "lines": 149,
-      "incoming": 13,
-      "outgoing": 27,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 29,
+      "secondLevel": 20,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/status-reconciliation-regression.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 142,
+      "incoming": 15,
+      "outgoing": 23,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1131,9 +1148,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 128,
-      "incoming": 13,
-      "outgoing": 18,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 20,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1148,9 +1165,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 121,
-      "incoming": 13,
-      "outgoing": 16,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 18,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1167,7 +1184,7 @@
       "lines": 96,
       "incoming": 14,
       "outgoing": 7,
-      "secondLevel": 38,
+      "secondLevel": 40,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1182,9 +1199,26 @@
       "area": "TESTY",
       "category": "test",
       "lines": 94,
-      "incoming": 13,
-      "outgoing": 16,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 18,
+      "secondLevel": 20,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/wycena/suites/schedule-status-contract.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 93,
+      "incoming": 15,
+      "outgoing": 22,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1199,9 +1233,9 @@
       "area": "TESTY",
       "category": "test",
       "lines": 82,
-      "incoming": 13,
-      "outgoing": 16,
-      "secondLevel": 18,
+      "incoming": 15,
+      "outgoing": 18,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1282,7 +1316,7 @@
       "lines": 293,
       "incoming": 10,
       "outgoing": 6,
-      "secondLevel": 48,
+      "secondLevel": 50,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1299,7 +1333,7 @@
       "lines": 288,
       "incoming": 7,
       "outgoing": 11,
-      "secondLevel": 18,
+      "secondLevel": 20,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1349,10 +1383,10 @@
       "score": 4,
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 241,
-      "incoming": 14,
+      "lines": 248,
+      "incoming": 17,
       "outgoing": 4,
-      "secondLevel": 34,
+      "secondLevel": 37,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1383,9 +1417,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 23,
+      "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 71,
+      "secondLevel": 73,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1410,15 +1444,31 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-snapshot-flow.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 182,
+      "incoming": 17,
+      "outgoing": 3,
+      "secondLevel": 37,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/app/investor/investors-store.js",
       "risk": "średnie",
       "score": 4,
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 149,
-      "incoming": 30,
+      "incoming": 32,
       "outgoing": 3,
-      "secondLevel": 68,
+      "secondLevel": 71,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1432,9 +1482,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 137,
-      "incoming": 14,
+      "incoming": 16,
       "outgoing": 4,
-      "secondLevel": 45,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1450,28 +1500,12 @@
       "lines": 137,
       "incoming": 5,
       "outgoing": 10,
-      "secondLevel": 35,
+      "secondLevel": 37,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "kilka zależnych plików",
         "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-snapshot-flow.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 130,
-      "incoming": 14,
-      "outgoing": 3,
-      "secondLevel": 34,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików"
       ]
     },
     {
@@ -1483,7 +1517,7 @@
       "lines": 61,
       "incoming": 23,
       "outgoing": 5,
-      "secondLevel": 56,
+      "secondLevel": 58,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1609,11 +1643,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -1666,7 +1702,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -1740,7 +1778,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -1817,7 +1857,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 3,
@@ -1955,11 +1997,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -2528,7 +2572,9 @@
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -2711,7 +2757,9 @@
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -3045,7 +3093,9 @@
         "js/testing/project/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -3094,11 +3144,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -3450,6 +3502,7 @@
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investors-store.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -3476,6 +3529,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 9,
@@ -3518,6 +3572,7 @@
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investors-recovery.js",
         "js/app/investor/investors-store.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -3548,6 +3603,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -3586,6 +3642,7 @@
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -3612,6 +3669,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -3642,6 +3700,7 @@
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-rooms.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -3667,6 +3726,7 @@
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -3685,6 +3745,7 @@
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
@@ -3737,11 +3798,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -3806,7 +3869,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -3898,7 +3963,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 12,
@@ -4256,11 +4323,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -4426,11 +4495,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5076,11 +5147,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5124,6 +5197,7 @@
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -5163,10 +5237,61 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/project/project-schedule-status.js": {
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 211,
+      "defines": [
+        "projectScheduleStatus"
+      ],
+      "uses": [
+        "projectStatusSync",
+        "investors",
+        "projectStore",
+        "quoteSnapshotStore",
+        "wycenaRoomAvailability",
+        "projectScheduleStatus"
+      ],
+      "incomingFiles": [
+        "js/testing/wycena/suites/schedule-status-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/project/project-status-sync.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/wycena/wycena-room-availability.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/project/project-status-manual-guard.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 385,
+      "lines": 395,
       "defines": [
         "projectStatusManualGuard"
       ],
@@ -5189,7 +5314,8 @@
         "js/app/project/project-status-scope-decision.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -5224,11 +5350,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5277,6 +5405,7 @@
       ],
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/shared/room-registry-impact.js",
@@ -5287,8 +5416,10 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5337,11 +5468,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5389,6 +5522,7 @@
       ],
       "secondLevelFiles": [
         "js/app/investor/investor-persistence.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
@@ -5404,11 +5538,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5426,7 +5562,7 @@
     "js/app/project/project-status-snapshot-flow.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 130,
+      "lines": 182,
       "defines": [
         "projectStatusSnapshotFlow",
         "projectStatusSync"
@@ -5439,6 +5575,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-persistence.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-impact.js",
@@ -5449,8 +5586,10 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -5464,6 +5603,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
@@ -5487,11 +5627,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5507,7 +5649,7 @@
     "js/app/project/project-status-sync.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 241,
+      "lines": 248,
       "defines": [
         "projectStatusSync"
       ],
@@ -5519,6 +5661,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-persistence.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/shared/room-registry-impact.js",
@@ -5529,8 +5672,10 @@
         "js/testing/wycena/suites/core-offer-workflow.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -5545,6 +5690,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
@@ -5568,11 +5714,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5603,6 +5751,7 @@
       "incomingFiles": [
         "js/app/investor/investor-project-repository.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -5698,11 +5847,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5786,11 +5937,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5844,11 +5997,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5909,11 +6064,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -5959,11 +6116,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -6014,11 +6173,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6074,11 +6235,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6134,11 +6297,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -6174,6 +6339,7 @@
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-snapshot-flow.js",
@@ -6204,11 +6370,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6237,6 +6405,7 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-snapshot-flow.js",
@@ -6267,11 +6436,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6299,6 +6470,7 @@
         "quoteSnapshotStore"
       ],
       "incomingFiles": [
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-snapshot-flow.js",
@@ -6328,11 +6500,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -6347,6 +6521,7 @@
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
@@ -6393,11 +6568,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6453,6 +6630,7 @@
       ],
       "secondLevelFiles": [
         "js/app/material/price-modal-persistence.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -6495,11 +6673,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6635,7 +6815,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -6929,7 +7111,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -8008,6 +8192,7 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/investor/investor-project-runtime.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
@@ -8040,11 +8225,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -8458,6 +8645,7 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/investor/investor-project-runtime.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/rozrys/rozrys-shell.js",
         "js/app/ui/actions-register.js",
@@ -8491,11 +8679,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -8695,7 +8885,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -8844,6 +9036,7 @@
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-context.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -8906,11 +9099,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -9255,7 +9450,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 1,
@@ -9341,7 +9538,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -9765,11 +9964,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -10294,11 +10495,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -10362,8 +10565,10 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -10533,6 +10738,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
         "js/app/project/project-bridge.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -10603,11 +10809,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 17,
@@ -10699,7 +10907,9 @@
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -10779,6 +10989,7 @@
         "js/app/material/price-modal-context.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-model.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
@@ -10860,11 +11071,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -11073,7 +11286,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -11292,11 +11507,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -11623,11 +11840,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -11936,11 +12155,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12065,7 +12286,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12124,7 +12347,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12208,11 +12433,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12270,11 +12497,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12357,11 +12586,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12416,11 +12647,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12484,11 +12717,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12549,11 +12784,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12598,11 +12835,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -12689,11 +12928,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -12720,6 +12961,7 @@
         "wycenaRoomAvailability"
       ],
       "incomingFiles": [
+        "js/app/project/project-schedule-status.js",
         "js/app/wycena/wycena-tab-selection-pickers.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/testing/wycena/suites/architecture-contract.js",
@@ -12743,11 +12985,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -12755,7 +12999,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależnych plików"
+      ]
     },
     "js/app/wycena/wycena-tab-data.js": {
       "area": "WYCENA",
@@ -12827,11 +13073,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -13250,11 +13498,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -13333,10 +13583,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -13378,11 +13630,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -13454,11 +13708,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -13858,11 +14114,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -13976,11 +14234,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -14394,7 +14654,9 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -14451,11 +14713,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 112,
@@ -14616,11 +14880,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -14851,11 +15117,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -15175,11 +15443,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 1,
@@ -15255,11 +15525,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 10,
@@ -15373,11 +15645,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [],
@@ -15400,11 +15674,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -15467,11 +15743,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 15,
@@ -15556,11 +15834,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -15583,11 +15863,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/dev-tests-registry.js",
@@ -15603,11 +15885,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 13,
@@ -15666,11 +15950,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/project/project-status-scope-decision.js",
@@ -15706,11 +15992,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -15725,11 +16013,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -15772,11 +16062,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app.js",
@@ -15803,11 +16095,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -15822,11 +16116,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -15877,11 +16173,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
@@ -15908,11 +16206,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
@@ -15936,11 +16236,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -15982,11 +16284,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -16006,11 +16310,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16025,11 +16331,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16066,11 +16374,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/wycena/wycena-core-selection.js",
@@ -16084,11 +16394,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16103,11 +16415,13 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16149,11 +16463,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app.js",
@@ -16178,11 +16494,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16197,11 +16515,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16218,7 +16538,7 @@
     "js/testing/wycena/suites/investor-integration.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 354,
+      "lines": 356,
       "defines": [
         "registerWycenaTests"
       ],
@@ -16243,11 +16563,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investor-persistence.js",
@@ -16269,11 +16591,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16288,11 +16612,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16331,11 +16657,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/project/project-status-scope.js",
@@ -16351,11 +16679,13 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16370,11 +16700,102 @@
         "js/testing/wycena/suites/core-selection-contract.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/wycena/suites/schedule-status-contract.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 93,
+      "defines": [
+        "registerWycenaTests"
+      ],
+      "uses": [
+        "testHarness",
+        "registerWycenaTests",
+        "projectScheduleStatus",
+        "projectStatusSync",
+        "quoteSnapshotStore",
+        "investorPersistence"
+      ],
+      "incomingFiles": [
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/project/project-schedule-status.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/project/project-status-sync.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/testing/project/tests.js",
+        "js/testing/shared/harness.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16416,10 +16837,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/quote/quote-offer-store.js",
@@ -16440,10 +16863,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16459,10 +16884,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16500,10 +16927,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/quote/quote-snapshot-scope.js",
@@ -16518,10 +16947,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16537,10 +16968,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16578,10 +17011,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/quote/quote-snapshot-selection.js",
@@ -16596,10 +17031,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16615,10 +17052,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16657,10 +17096,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investors-store.js",
@@ -16678,10 +17119,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
-        "js/testing/wycena/suites/status-contract.js"
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16697,10 +17140,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -16740,10 +17185,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "outgoingFiles": [
         "js/app/investor/investor-persistence.js",
@@ -16763,10 +17210,12 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
-        "js/testing/wycena/suites/status-anti-regression.js"
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js"
       ],
       "secondLevelFiles": [
         "js/testing/investor/tests.js",
@@ -16782,10 +17231,103 @@
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
         "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
         "js/testing/wycena/suites/scope-entry.js",
         "js/testing/wycena/suites/snapshot-scope-contract.js",
         "js/testing/wycena/suites/snapshot-selection-contract.js",
         "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "średnie",
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    "js/testing/wycena/suites/status-reconciliation-regression.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 142,
+      "defines": [
+        "registerWycenaTests"
+      ],
+      "uses": [
+        "testHarness",
+        "registerWycenaTests",
+        "investors",
+        "quoteSnapshotStore",
+        "investorPersistence",
+        "projectStatusSync",
+        "projectStatusManualGuard"
+      ],
+      "incomingFiles": [
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-snapshot-flow.js",
+        "js/app/project/project-status-sync.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/testing/project/tests.js",
+        "js/testing/shared/harness.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/investor/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/project-status-scope-contract.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/suites/snapshot-scope-contract.js",
+        "js/testing/wycena/suites/snapshot-selection-contract.js",
+        "js/testing/wycena/suites/status-anti-regression.js",
+        "js/testing/wycena/suites/status-contract.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,

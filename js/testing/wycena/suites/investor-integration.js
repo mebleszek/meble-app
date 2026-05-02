@@ -72,8 +72,10 @@
           H.assert(validationAcceptedPomiar && validationAcceptedPomiar.ok === true && validationAcceptedPomiar.blocked === false, 'Zaakceptowana wspólna wycena wstępna nie odblokowała Pomiar dla objętego pokoju', validationAcceptedPomiar);
           H.assert(validationAcceptedWycena && validationAcceptedWycena.ok === true && validationAcceptedWycena.blocked === false, 'Zaakceptowana wspólna wycena wstępna nie odblokowała Wyceny końcowej dla objętego pokoju', validationAcceptedWycena);
           const scopeDecision = FC.projectStatusManualGuard.buildManualStatusScopeChoices(investorId, 'room_salon', 'wycena');
-          H.assert(scopeDecision && scopeDecision.autoChoice && scopeDecision.autoChoice.roomIds && scopeDecision.autoChoice.roomIds.length === 2, 'Zaakceptowana wspólna wycena wstępna powinna automatycznie wskazać wspólny zakres statusu', scopeDecision);
-          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_salon', 'wycena');
+          H.assert(scopeDecision && scopeDecision.needsDecision === true, 'Zaakceptowana wspólna wycena wstępna powinna otworzyć decyzję zakresu zamiast iść automatem', scopeDecision);
+          const sharedChoice = (scopeDecision.choices || []).find((choice)=> Array.isArray(choice.roomIds) && choice.roomIds.length === 2);
+          H.assert(sharedChoice, 'Decyzja zakresu powinna pozwolić wybrać wspólny zakres statusu', scopeDecision);
+          FC.investorPersistence.setInvestorProjectStatusScope(investorId, sharedChoice.roomIds, 'wycena', { skipGuard:true, syncSelection:true });
           const investorAfter = FC.investors.getById(investorId);
           const byId = Object.fromEntries((investorAfter.rooms || []).map((room)=> [room.id, room]));
           H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wycena', 'Pokój kliknięty nie przeszedł na Wycena', investorAfter.rooms);
