@@ -146,6 +146,7 @@
       if(activeRows.some((row)=> !isPreliminarySnapshot(row))) return normalizedCurrent === 'odrzucone' ? 'odrzucone' : 'wycena';
       if(activeRows.some((row)=> isPreliminarySnapshot(row))) return 'wstepna_wycena';
       if(normalizedCurrent === 'odrzucone') return 'odrzucone';
+      if(options && options.preserveCurrentWhenNoQuoteRows && normalizedCurrent) return normalizedCurrent;
       return normalizedFallback || 'nowy';
     }
 

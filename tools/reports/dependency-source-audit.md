@@ -19,16 +19,16 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 40 | 10394 | 234 | 1 | 6 | 20 |
+| TESTY | 40 | 10454 | 234 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
-| WYCENA | 42 | 6237 | 0 | 0 | 0 | 6 |
-| INWESTOR | 23 | 3312 | 24 | 0 | 1 | 3 |
+| WYCENA | 42 | 6238 | 0 | 0 | 0 | 6 |
+| INWESTOR | 23 | 3313 | 24 | 0 | 1 | 3 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | MATERIAŁ | 14 | 1970 | 8 | 3 | 0 | 1 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
-| PROJEKT | 9 | 1577 | 0 | 0 | 0 | 6 |
+| PROJEKT | 9 | 1585 | 0 | 0 | 0 | 6 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | KATALOG/USŁUGI | 9 | 1349 | 0 | 0 | 0 | 1 |
 | DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
@@ -155,10 +155,10 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/ui/actions-register.js | średnie | 6 | 449 | 0 | 0 | 400+ linii; dużo zależności wychodzących; systemowe dialogi |
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 17 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/scope-entry.js | średnie | 6 | 361 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/investor-integration.js | średnie | 6 | 354 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/project-stock.js | średnie | 6 | 342 | 13 | 28 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/architecture-contract.js | średnie | 6 | 321 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/state-ui-runtime.js | średnie | 6 | 305 | 7 | 17 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
-| js/testing/wycena/suites/investor-integration.js | średnie | 6 | 294 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/core-offer-workflow.js | średnie | 6 | 277 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/quote/quote-snapshot.js | średnie | 6 | 257 | 10 | 49 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/core-offer-basics.js | średnie | 6 | 252 | 18 | 27 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
@@ -169,7 +169,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/tabs/wycena.js | średnie | 5 | 348 | 6 | 20 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 46 | 250+ linii; dużo zależnych plików |
 | js/app/quote/quote-snapshot-store.js | średnie | 5 | 315 | 35 | 55 | 250+ linii; dużo zależnych plików |
-| js/app/project/project-status-scope.js | średnie | 5 | 312 | 5 | 22 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
+| js/app/project/project-status-scope.js | średnie | 5 | 313 | 5 | 22 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-engine.js | średnie | 5 | 270 | 6 | 23 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/investor/session.js | średnie | 5 | 259 | 10 | 56 | 250+ linii; dużo zależnych plików |
 | js/app/ui/views.js | średnie | 5 | 250 | 14 | 36 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |

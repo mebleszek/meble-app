@@ -81,6 +81,66 @@
         });
       }),
 
+    H.makeTest('Wycena ↔ Inwestor', 'Ręczne statusy pokoi bez wstępnej wyceny nie resetują innych pokoi', 'Pilnuje realnej ścieżki z Inwestora: A ma zaakceptowaną wycenę wstępną i status Pomiar, a ręczne ustawianie S/P na Wycena nie może cofać drugiego pokoju do Nowy ani ruszać A.', ()=>{
+        H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
+        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.commitAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.commitAcceptedSnapshot');
+        const rooms = [
+          { id:'room_a', baseType:'kuchnia', name:'A', label:'A', projectStatus:'nowy' },
+          { id:'room_s', baseType:'pokoj', name:'S', label:'S', projectStatus:'nowy' },
+          { id:'room_p', baseType:'pokoj', name:'P', label:'P', projectStatus:'nowy' },
+        ];
+        withInvestorProjectFixture({
+          rooms,
+          projectData:{
+            schemaVersion:2,
+            meta:{
+              roomDefs:{
+                room_a:{ id:'room_a', baseType:'kuchnia', name:'A', label:'A' },
+                room_s:{ id:'room_s', baseType:'pokoj', name:'S', label:'S' },
+                room_p:{ id:'room_p', baseType:'pokoj', name:'P', label:'P' },
+              },
+              roomOrder:['room_a','room_s','room_p'],
+            },
+            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
+            room_s:{ cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
+            room_p:{ cabinets:[], fronts:[], sets:[], settings:{} },
+          }
+        }, ({ investorId, projectId })=>{
+          const prelimA = FC.quoteSnapshotStore.save({
+            id:'snap_room_a_prelim_only',
+            investor:{ id:investorId },
+            project:{ id:projectId, investorId, title:'Projekt ręcznych statusów' },
+            scope:{ selectedRooms:['room_a'], roomLabels:['A'] },
+            commercial:{ preliminary:true, versionName:'Wstępna A' },
+            meta:{ preliminary:true, versionName:'Wstępna A' },
+            totals:{ grand:140 },
+            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+            generatedAt:1712820471600,
+          });
+          FC.projectStatusSync.commitAcceptedSnapshot(prelimA, 'pomiar', { roomIds:['room_a'], refreshUi:false });
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_s', 'wycena');
+          let investor = FC.investors.getById(investorId);
+          let byId = Object.fromEntries((investor && investor.rooms || []).map((room)=> [String(room.id || ''), room]));
+          H.assert(String(byId.room_a && byId.room_a.projectStatus || '') === 'pomiar', 'Ręczna Wycena pokoju S nie może ruszyć zaakceptowanego A w Pomiarze', investor && investor.rooms);
+          H.assert(String(byId.room_s && byId.room_s.projectStatus || '') === 'wycena', 'Pokój S nie dostał ręcznego statusu Wycena', investor && investor.rooms);
+          H.assert(String(byId.room_p && byId.room_p.projectStatus || '') === 'nowy', 'Pierwsza ręczna zmiana S nie powinna zmieniać pokoju P', investor && investor.rooms);
+
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_p', 'wycena');
+          investor = FC.investors.getById(investorId);
+          byId = Object.fromEntries((investor && investor.rooms || []).map((room)=> [String(room.id || ''), room]));
+          H.assert(String(byId.room_a && byId.room_a.projectStatus || '') === 'pomiar', 'Ręczna Wycena pokoju P nie może ruszyć zaakceptowanego A w Pomiarze', investor && investor.rooms);
+          H.assert(String(byId.room_s && byId.room_s.projectStatus || '') === 'wycena', 'Ręczna zmiana P nie może cofnąć pokoju S do Nowy', investor && investor.rooms);
+          H.assert(String(byId.room_p && byId.room_p.projectStatus || '') === 'wycena', 'Pokój P nie dostał ręcznego statusu Wycena', investor && investor.rooms);
+
+          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_a', 'wycena');
+          investor = FC.investors.getById(investorId);
+          byId = Object.fromEntries((investor && investor.rooms || []).map((room)=> [String(room.id || ''), room]));
+          H.assert(String(byId.room_a && byId.room_a.projectStatus || '') === 'wycena', 'Pokój A z zaakceptowaną wstępną ofertą powinien przejść Pomiar → Wycena', investor && investor.rooms);
+          H.assert(String(byId.room_s && byId.room_s.projectStatus || '') === 'wycena', 'Zmiana A nie może cofnąć ręcznie ustawionego pokoju S', investor && investor.rooms);
+          H.assert(String(byId.room_p && byId.room_p.projectStatus || '') === 'wycena', 'Zmiana A nie może cofnąć ręcznie ustawionego pokoju P', investor && investor.rooms);
+        });
+      }),
+
     H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na zaakceptowany jest blokowana bez zaakceptowanej wyceny końcowej solo', 'Pilnuje, czy Inwestor nie ustawi pokoju jako zaakceptowany bez osobnej zaakceptowanej oferty końcowej dla tego pomieszczenia.', ()=>{
         H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{

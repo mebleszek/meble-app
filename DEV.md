@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_status_quote_scope_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_manual_status_preserve_v1.zip`.
 - Baza startowa tej paczki: `site_multi_room_status_guard_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -360,3 +360,10 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - `rozrys-pickers.js` jest powyżej 400 linii, ale zmiana ogranicza się do opcjonalnego stanu disabled dla pickerów; dalszy split wspólnego pickera robić tylko, jeśli ruszamy szerzej mechanikę wyboru, żeby nie ryzykować regresji ROZRYS.
 - Testowy fixture Wyceny czyści cache `roomRegistry` i tymczasowo odcina `fc_edit_session_v1`, żeby testy pustych/zmienianych zakresów nie odzyskiwały pokojów z poprzedniego kontekstu.
 - Raport paczki: `tools/reports/status-quote-scope-v1.md`.
+
+## 2026-05-02 — Manual status preserve v1
+
+- Ręczne statusy `Pomiar/Wycena` ustawiane z `Inwestora` muszą zachowywać istniejące ręczne statusy pozostałych pomieszczeń, gdy dla tych pozostałych pokoi nie ma żadnej oferty/snapshotu.
+- Fallback `nowy` z historii ofert nie może nadpisywać nietkniętego pokoju tylko dlatego, że pokój nie ma własnej wyceny.
+- To dotyczy manualnego przepływu w `Inwestorze`; rekonsyliacja po usunięciu albo zmianie zaakceptowanego zakresu oferty nadal może cofać pokoje zdjęte z zakresu, bo to wynika z historii ofert.
+- Kontrakt regresyjny jest w `js/testing/wycena/suites/investor-integration.js`: A z zaakceptowaną wstępną ofertą zostaje `Pomiar`, a ręczne ustawianie S/P na `Wycena` nie resetuje innych pokoi.

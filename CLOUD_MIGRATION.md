@@ -296,3 +296,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Przy kilku zaakceptowanych zakresach obejmujących pokój decyzja statusu jest jawna i runtime'owa; nie duplikować dokumentów ofert per pokój tylko po to, żeby rozstrzygać status.
 - `wycena-room-availability.js` rozdziela kalkulację oferty od procesu: pomieszczenie bez szafek może mieć status `Pomiar/Wycena`, ale nie wchodzi do kalkulacji Wyceny, dopóki nie ma elementów do policzenia.
 - Nie dodano bezpośrednich zapisów do `localStorage`/`sessionStorage`; zmiany idą przez istniejące fasady statusu, persistence i selection.
+
+## 2026-05-02 — Manual status preserve v1
+
+- Nie zmieniono formatu danych ani kluczy storage.
+- Doprecyzowano semantykę statusów pokoi: ręczna zmiana statusu jednego pokoju jest operacją scoped i nie może przepisywać statusów innych pokoi fallbackiem z braku ofert.
+- To wspiera przyszłą chmurę, bo rozdziela dwa typy zdarzeń: ręczne ustawienie statusu pokoju oraz rekonsyliację wynikającą ze zmiany/usunięcia zaakceptowanej oferty. Te zdarzenia powinny w przyszłości być osobnymi zapisami/komendami w repozytorium.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-02T11:59:25.051Z",
+  "generatedAt": "2026-05-02T15:03:56.429Z",
   "summary": {
     "jsFiles": 292,
     "indexScripts": 229,
@@ -37,7 +37,7 @@
     },
     "INWESTOR": {
       "files": 23,
-      "lines": 3312,
+      "lines": 3313,
       "storageRefs": 24,
       "dialogRefs": 0,
       "high": 1,
@@ -61,7 +61,7 @@
     },
     "PROJEKT": {
       "files": 9,
-      "lines": 1577,
+      "lines": 1585,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -69,7 +69,7 @@
     },
     "WYCENA": {
       "files": 42,
-      "lines": 6237,
+      "lines": 6238,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 40,
-      "lines": 10394,
+      "lines": 10454,
       "storageRefs": 234,
       "dialogRefs": 1,
       "high": 6,
@@ -735,6 +735,24 @@
       ]
     },
     {
+      "file": "js/testing/wycena/suites/investor-integration.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 354,
+      "incoming": 13,
+      "outgoing": 24,
+      "secondLevel": 18,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/suites/project-stock.js",
       "risk": "średnie",
       "score": 6,
@@ -786,24 +804,6 @@
         "250+ linii",
         "kilka publicznych symboli FC",
         "kilka zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/wycena/suites/investor-integration.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 294,
-      "incoming": 13,
-      "outgoing": 24,
-      "secondLevel": 18,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
     },
@@ -991,7 +991,7 @@
       "score": 5,
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 312,
+      "lines": 313,
       "incoming": 5,
       "outgoing": 9,
       "secondLevel": 22,
@@ -1344,6 +1344,22 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-sync.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 241,
+      "incoming": 14,
+      "outgoing": 4,
+      "secondLevel": 34,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/suites/output-bootstrap.js",
       "risk": "średnie",
       "score": 4,
@@ -1358,22 +1374,6 @@
       "reasons": [
         "kilka zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-sync.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 234,
-      "incoming": 14,
-      "outgoing": 4,
-      "secondLevel": 34,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików"
       ]
     },
     {
@@ -1426,6 +1426,22 @@
       ]
     },
     {
+      "file": "js/app/investor/investor-persistence.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "INWESTOR",
+      "category": "domain/controller",
+      "lines": 137,
+      "incoming": 14,
+      "outgoing": 4,
+      "secondLevel": 45,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/app/wycena/wycena-core-material-plan.js",
       "risk": "średnie",
       "score": 4,
@@ -1440,22 +1456,6 @@
       "reasons": [
         "kilka zależnych plików",
         "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/investor/investor-persistence.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "INWESTOR",
-      "category": "domain/controller",
-      "lines": 136,
-      "incoming": 14,
-      "outgoing": 4,
-      "secondLevel": 45,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików"
       ]
     },
     {
@@ -3022,7 +3022,7 @@
     "js/app/investor/investor-persistence.js": {
       "area": "INWESTOR",
       "category": "domain/controller",
-      "lines": 136,
+      "lines": 137,
       "defines": [
         "investorPersistence"
       ],
@@ -5354,7 +5354,7 @@
     "js/app/project/project-status-scope.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 312,
+      "lines": 313,
       "defines": [
         "projectStatusScope"
       ],
@@ -5507,7 +5507,7 @@
     "js/app/project/project-status-sync.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 234,
+      "lines": 241,
       "defines": [
         "projectStatusSync"
       ],
@@ -6224,7 +6224,7 @@
     "js/app/quote/quote-snapshot-selection.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 233,
+      "lines": 234,
       "defines": [
         "quoteSnapshotSelection"
       ],
@@ -16218,7 +16218,7 @@
     "js/testing/wycena/suites/investor-integration.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 294,
+      "lines": 354,
       "defines": [
         "registerWycenaTests"
       ],
@@ -16230,9 +16230,9 @@
         "investorPersistence",
         "projectStore",
         "investors",
+        "projectStatusSync",
         "wycenaRoomAvailability",
-        "wycenaTabSelectionScope",
-        "projectStatusSync"
+        "wycenaTabSelectionScope"
       ],
       "incomingFiles": [
         "js/testing/wycena/fixtures.js",

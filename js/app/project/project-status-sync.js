@@ -98,7 +98,13 @@
       investorRooms: investor && investor.rooms,
       roomDefs: mergedRoomDefs,
     });
-    const roomStatusMap = buildRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, targetRoomIds, nextStatus);
+    const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, {
+      fallbackStatus:nextStatus,
+      suggestionFallbackStatus:'nowy',
+      touchedRoomIds:targetRoomIds,
+      preserveCurrentForUntouched:true,
+      preserveCurrentWhenNoQuoteRows: !!options.preserveCurrentWhenNoQuoteRows,
+    });
     targetRoomIds.forEach((roomId)=> {
       const key = String(roomId || '');
       if(key) roomStatusMap[key] = nextStatus;
@@ -188,6 +194,7 @@
       roomIds:[roomId],
       status,
       syncSelection: options && Object.prototype.hasOwnProperty.call(options, 'syncSelection') ? !!options.syncSelection : true,
+      preserveCurrentWhenNoQuoteRows: options && Object.prototype.hasOwnProperty.call(options, 'preserveCurrentWhenNoQuoteRows') ? !!options.preserveCurrentWhenNoQuoteRows : true,
     }));
   }
 

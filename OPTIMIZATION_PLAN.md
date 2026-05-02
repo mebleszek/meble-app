@@ -334,3 +334,14 @@ Decyzja architektoniczna:
 - RYSUNEK nie był ruszany.
 
 Następny sensowny kierunek po tej poprawce: obserwować statusy Wycena/Inwestor w realnym użyciu; dopiero potem ewentualnie ciąć `investor-ui.js` albo status guard według kontraktów, bez zmiany wyglądu.
+
+## 2026-05-02 — Manual status preserve v1
+
+Zakres był naprawą regresji statusów, nie refaktorem optymalizacyjnym.
+
+Wykonane:
+- doprecyzowano ścieżkę manualnego statusu w `Inwestorze`,
+- dodano test regresyjny dla niezależnych pokoi bez wyceny wstępnej,
+- nie cięto dalej `project-status-manual-guard.js` ani `investor-ui.js`, bo problem był w rekomendacji fallbacków statusu, nie w strukturze UI.
+
+Następny sensowny krok nadal: obserwować realne statusy Wycena/Inwestor; dopiero potem ciąć status guard albo `investor-ui.js` po konkretnej ścieżce.

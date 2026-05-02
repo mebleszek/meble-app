@@ -98,6 +98,7 @@
           status:nextStatus,
           syncSelection: Object.prototype.hasOwnProperty.call(opts, 'syncSelection') ? !!opts.syncSelection : true,
           refreshUi: opts.refreshUi,
+          preserveCurrentWhenNoQuoteRows: Object.prototype.hasOwnProperty.call(opts, 'preserveCurrentWhenNoQuoteRows') ? !!opts.preserveCurrentWhenNoQuoteRows : true,
         });
         const investor = result && result.investor ? result.investor : getInvestorById(investorId);
         return opts.returnDetails ? { applied:true, blocked:false, investor, result:result || null } : investor;

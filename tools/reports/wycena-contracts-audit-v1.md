@@ -7,15 +7,15 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 1. `js/app/project/project-status-manual-guard.js` — 385 linii; ostrzeżenia: 250+ lines.
 2. `js/tabs/wycena.js` — 348 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 3. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-4. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
+4. `js/app/project/project-status-scope.js` — 313 linii; ostrzeżenia: 250+ lines.
 5. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
 6. `js/app/quote/quote-pdf.js` — 278 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 7. `js/app/wycena/wycena-tab-editor.js` — 262 linii; ostrzeżenia: 250+ lines.
 8. `js/app/quote/quote-snapshot.js` — 257 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-9. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
-10. `js/app/quote/quote-offer-store.js` — 238 linii.
-11. `js/app/project/project-status-sync.js` — 234 linii.
-12. `js/app/quote/quote-snapshot-selection.js` — 233 linii; ostrzeżenia: mixed responsibilities heuristic.
+9. `js/app/project/project-status-sync.js` — 241 linii.
+10. `js/app/wycena/wycena-tab-status-bridge.js` — 239 linii; ostrzeżenia: mixed responsibilities heuristic.
+11. `js/app/quote/quote-offer-store.js` — 238 linii.
+12. `js/app/quote/quote-snapshot-selection.js` — 234 linii; ostrzeżenia: mixed responsibilities heuristic.
 13. `js/app/wycena/wycena-tab-history.js` — 203 linii; ostrzeżenia: mixed responsibilities heuristic.
 14. `js/app/quote/quote-scope-entry-modal.js` — 196 linii; ostrzeżenia: mixed responsibilities heuristic.
 15. `js/app/wycena/wycena-tab-selection-version.js` — 194 linii.
@@ -75,7 +75,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/project/project-status-scope.js
 
-- Linie: 312
+- Linie: 313
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: status:95, snapshot:30, scope:22
@@ -108,6 +108,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:52, snapshot:16, quote-collect:2, storage-boundary:1
 
+### js/app/project/project-status-sync.js
+
+- Linie: 241
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: status:115, snapshot:36, scope:11
+
 ### js/app/wycena/wycena-tab-status-bridge.js
 
 - Linie: 239
@@ -122,16 +129,9 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:30, storage-boundary:10, snapshot:3
 
-### js/app/project/project-status-sync.js
-
-- Linie: 234
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: status:113, snapshot:36, scope:11
-
 ### js/app/quote/quote-snapshot-selection.js
 
-- Linie: 233
+- Linie: 234
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: status:50, snapshot:29, scope:11, storage-boundary:8
