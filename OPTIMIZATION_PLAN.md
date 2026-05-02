@@ -288,3 +288,18 @@ Po tym etapie `wycena-tab-selection.js` nie jest już długiem 400+ linii. Nast�
 1. `js/tabs/wycena.js` — nadal ok. 590 linii i miesza orkiestrację zakładki, snapshoty, statusy i delegatory.
 2. `js/app/investor/investor-ui.js` — tylko po przejściu render/event/data flow.
 3. `js/app.js` — odchudzać wyłącznie przez małe delegatory, bez przenoszenia logiki domenowej na ślepo.
+
+
+## 2026-05-02 — Wycena tab boundary v1
+
+Wykonane bez zmiany UI i bez ruszania RYSUNKU:
+
+- `js/tabs/wycena.js` spadł z ok. 589 do ok. 347 linii.
+- Wycięto z niego sześć odpowiedzialności: data adapter, runtime state, selection bridge, editor bridge, status controller i render bridge.
+- Po tym etapie `tabs/wycena.js` nadal jest ważnym plikiem orkiestrującym, ale nie jest już kandydatem do kolejnego cięcia wyłącznie z powodu rozmiaru.
+
+Następne sensowne kierunki po tym etapie:
+
+1. `js/app/wycena/wycena-tab-status-bridge.js` / `wycena-tab-history.js` tylko jeśli ruszamy konkretną ścieżkę historii/statusów.
+2. `quote-snapshot-store.js`, `quote-snapshot-scope.js` albo `project-status-scope.js` tylko po dedykowanym kontrakcie biznesowym.
+3. Poza WYCENĄ: `investor-ui.js` albo `app.js`, ale bez sztucznego refaktoru i bez RYSUNKU.

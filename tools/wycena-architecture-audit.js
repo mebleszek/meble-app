@@ -39,6 +39,12 @@ const TARGETS = [
   'js/app/quote/quote-offer-store.js',
   'js/app/wycena/wycena-tab-history.js',
   'js/app/wycena/wycena-tab-helpers.js',
+  'js/app/wycena/wycena-tab-data.js',
+  'js/app/wycena/wycena-tab-state.js',
+  'js/app/wycena/wycena-tab-selection-bridge.js',
+  'js/app/wycena/wycena-tab-editor-bridge.js',
+  'js/app/wycena/wycena-tab-status-controller.js',
+  'js/app/wycena/wycena-tab-render-bridge.js',
   'js/app/wycena/wycena-tab-scroll.js',
 ];
 
@@ -107,11 +113,11 @@ function makeReport(rows){
   });
   lines.push('## Wnioski do następnych paczek');
   lines.push('');
-  lines.push('1. Nie ciąć jeszcze Wyceny na podstawie samej liczby linii — najpierw utrzymać kontrakty status/scope/snapshot.');
-  lines.push('2. Pierwszy split \`js/tabs/wycena.js\` został rozpoczęty od preview; kolejne kroki powinny dalej odcinać małe odpowiedzialności, nie store/statusy.');
+  lines.push('1. `js/tabs/wycena.js` po boundary split jest poniżej 400 linii i nie powinien być kolejnym kandydatem tylko z powodu rozmiaru.');
+  lines.push('2. Dalsze cięcie zakładki robić wyłącznie przy konkretnej ścieżce: historia, statusy, selection, editor albo render — bez mieszania odpowiedzialności z powrotem w shellu.');
   lines.push('3. `wycena-core.js` jest po platform split i nie jest już kandydatem do dalszego cięcia w tym etapie; nowe funkcje kierować do właściwych warstw core, nie do orchestratorka.');
-  lines.push('4. `wycena-tab-selection.js` ma już warstwy scope/version/model/pickers/render/fasada; dalsze cięcie tego obszaru robić tylko przy realnej zmianie ścieżki wyboru zakresu.');
-  lines.push('5. `project-status-sync.js` ma już wydzielone `project-status-scope.js`, `project-status-mirrors.js` i `project-status-snapshot-flow.js`; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki.');
+  lines.push('4. `wycena-tab-selection.js` ma warstwy scope/version/model/pickers/render/fasada, a `tabs/wycena.js` korzysta z `wycena-tab-selection-bridge.js`; nie scalać ich ponownie.');
+  lines.push('5. Statusy projektu mają wydzielone lustra, workflow snapshotów i controller zakładki; dalsze cięcie statusów zaczynać od kontraktów konkretnej ścieżki biznesowej.');
   lines.push('6. W badanym zakresie nie wykryto bezpośrednich `localStorage/sessionStorage` ani systemowych `alert/confirm/prompt`; obecne granice danych idą przez store/helpery.');
   lines.push('');
   return lines.join('\n');

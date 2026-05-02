@@ -1,124 +1,81 @@
 // js/tabs/wycena.js
-// Zakładka WYCENA — handlowa wersja oferty, PDF klienta i historia wersji.
+// Zakładka WYCENA — cienki rejestr zakładki, spinający moduły danych, statusów, selection i renderu.
 
 (function(){
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const wycenaTabHelpers = FC.wycenaTabHelpers || {};
-  const wycenaTabScroll = FC.wycenaTabScroll || {};
-  const wycenaTabHistory = FC.wycenaTabHistory || {};
-  const wycenaTabStatusBridge = FC.wycenaTabStatusBridge || {};
-  const wycenaTabPreview = FC.wycenaTabPreview || {};
-  const wycenaTabShell = FC.wycenaTabShell || {};
-  const wycenaTabStatusActions = FC.wycenaTabStatusActions || {};
-  const wycenaTabDom = FC.wycenaTabDom || {};
-  const money = wycenaTabHelpers.money;
-  const num = wycenaTabHelpers.num;
-  const buildRowMeta = wycenaTabHelpers.buildRowMeta;
-  const formatDateTime = wycenaTabHelpers.formatDateTime;
-  const getSnapshotId = wycenaTabHelpers.getSnapshotId;
-  const normalizeStatusKey = wycenaTabHelpers.normalizeStatusKey;
-  const statusRank = wycenaTabHelpers.statusRank;
-  const isFinalStatus = wycenaTabHelpers.isFinalStatus;
-  const isSelectedSnapshot = wycenaTabHelpers.isSelectedSnapshot;
-  const isRejectedSnapshot = wycenaTabHelpers.isRejectedSnapshot;
-  const getRejectedReason = wycenaTabHelpers.getRejectedReason;
-  const isPreliminarySnapshot = wycenaTabHelpers.isPreliminarySnapshot;
-  const normalizeRoomIds = wycenaTabHelpers.normalizeRoomIds;
-  const getSnapshotRoomIds = wycenaTabHelpers.getSnapshotRoomIds;
-  const getMaterialScopeMode = wycenaTabHelpers.getMaterialScopeMode;
-  const getMaterialScopeLabel = wycenaTabHelpers.getMaterialScopeLabel;
-  const snapshotById = wycenaTabHelpers.snapshotById;
+  const helpers = FC.wycenaTabHelpers || {};
+  const scroll = FC.wycenaTabScroll || {};
+  const history = FC.wycenaTabHistory || {};
+  const dom = FC.wycenaTabDom || {};
+  const data = FC.wycenaTabData || {};
+  const selectionBridge = FC.wycenaTabSelectionBridge || {};
+  const editorBridge = FC.wycenaTabEditorBridge || {};
+  const renderBridge = FC.wycenaTabRenderBridge || {};
+  const state = FC.wycenaTabState && typeof FC.wycenaTabState.createState === 'function'
+    ? FC.wycenaTabState.createState()
+    : null;
+  const statusController = FC.wycenaTabStatusController && typeof FC.wycenaTabStatusController.createController === 'function'
+    ? FC.wycenaTabStatusController.createController(getStatusActionDeps)
+    : null;
 
-  const h = wycenaTabDom.h;
+  const money = helpers.money;
+  const num = helpers.num;
+  const buildRowMeta = helpers.buildRowMeta;
+  const formatDateTime = helpers.formatDateTime;
+  const getSnapshotId = helpers.getSnapshotId;
+  const normalizeStatusKey = helpers.normalizeStatusKey;
+  const statusRank = helpers.statusRank;
+  const isFinalStatus = helpers.isFinalStatus;
+  const isSelectedSnapshot = helpers.isSelectedSnapshot;
+  const isRejectedSnapshot = helpers.isRejectedSnapshot;
+  const getRejectedReason = helpers.getRejectedReason;
+  const isPreliminarySnapshot = helpers.isPreliminarySnapshot;
+  const normalizeRoomIds = helpers.normalizeRoomIds;
+  const getSnapshotRoomIds = helpers.getSnapshotRoomIds;
+  const getMaterialScopeLabel = helpers.getMaterialScopeLabel;
+  const snapshotById = helpers.snapshotById;
+  const h = dom.h;
 
   function getCurrentProjectId(){
-    try{ return FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? FC.projectStore.getCurrentProjectId() : ''; }catch(_){ return ''; }
+    return typeof data.getCurrentProjectId === 'function' ? data.getCurrentProjectId() : '';
   }
 
   function getCurrentInvestorId(){
-    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }catch(_){ return ''; }
+    return typeof data.getCurrentInvestorId === 'function' ? data.getCurrentInvestorId() : '';
   }
 
   function getSnapshotHistory(){
-    try{
-      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
-      const projectId = String(getCurrentProjectId() || '');
-      if(projectId) return FC.quoteSnapshotStore.listForProject(projectId);
-      const investorId = String(getCurrentInvestorId() || '');
-      if(investorId && typeof FC.quoteSnapshotStore.listForInvestor === 'function') return FC.quoteSnapshotStore.listForInvestor(investorId);
-    }catch(_){ }
-    return [];
+    return typeof data.getSnapshotHistory === 'function' ? data.getSnapshotHistory({ getCurrentProjectId, getCurrentInvestorId }) : [];
   }
 
   function normalizeSnapshot(source){
-    const snap = source && typeof source === 'object' ? source : null;
-    if(!snap) return null;
-    if(snap.lines && snap.totals) return snap;
-    try{
-      if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function') return FC.quoteSnapshot.buildSnapshot(snap);
-    }catch(_){ }
-    return snap;
+    return typeof data.normalizeSnapshot === 'function' ? data.normalizeSnapshot(source) : (source || null);
   }
 
   function getOfferDraft(){
-    try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function') return FC.quoteOfferStore.getCurrentDraft();
-    }catch(_){ }
-    return { rateSelections:[], commercial:{} };
+    return typeof data.getOfferDraft === 'function' ? data.getOfferDraft() : { rateSelections:[], commercial:{} };
   }
 
   function patchOfferDraft(patch){
-    try{
-      if(FC.quoteOfferStore && typeof FC.quoteOfferStore.patchCurrentDraft === 'function') return FC.quoteOfferStore.patchCurrentDraft(patch);
-    }catch(_){ }
-    return null;
+    return typeof data.patchOfferDraft === 'function' ? data.patchOfferDraft(patch) : null;
   }
 
-  function getHistoryPreviewState(){
-    return { lastQuote, previewSnapshotId, shouldScrollToPreview, lastKnownProjectStatus };
-  }
-
-  function patchHistoryPreviewState(patch){
-    const next = patch && typeof patch === 'object' ? patch : {};
-    if(Object.prototype.hasOwnProperty.call(next, 'lastQuote')) lastQuote = next.lastQuote || null;
-    if(Object.prototype.hasOwnProperty.call(next, 'previewSnapshotId')) previewSnapshotId = String(next.previewSnapshotId || '');
-    if(Object.prototype.hasOwnProperty.call(next, 'shouldScrollToPreview')) shouldScrollToPreview = !!next.shouldScrollToPreview;
-    if(Object.prototype.hasOwnProperty.call(next, 'lastKnownProjectStatus')) lastKnownProjectStatus = String(next.lastKnownProjectStatus || '');
-  }
-
-  function getQuoteScrollState(){
-    return { shouldRestoreScroll, pendingScrollRestore };
-  }
-
-  function patchQuoteScrollState(patch){
-    const next = patch && typeof patch === 'object' ? patch : {};
-    if(Object.prototype.hasOwnProperty.call(next, 'shouldRestoreScroll')) shouldRestoreScroll = !!next.shouldRestoreScroll;
-    if(Object.prototype.hasOwnProperty.call(next, 'pendingScrollRestore')) pendingScrollRestore = next.pendingScrollRestore || null;
-  }
-
-
-  function getTabShellState(){
-    return Object.assign({}, getHistoryPreviewState(), getQuoteScrollState(), {
-      isBusy,
-      offerEditorOpen,
-    });
-  }
-
-  function patchTabShellState(patch){
-    const next = patch && typeof patch === 'object' ? patch : {};
-    patchHistoryPreviewState(next);
-    patchQuoteScrollState(next);
-    if(Object.prototype.hasOwnProperty.call(next, 'isBusy')) isBusy = !!next.isBusy;
-    if(Object.prototype.hasOwnProperty.call(next, 'offerEditorOpen')) offerEditorOpen = !!next.offerEditorOpen;
-  }
+  function getHistoryPreviewState(){ return state.getHistoryPreviewState(); }
+  function patchHistoryPreviewState(patch){ return state.patchHistoryPreviewState(patch); }
+  function getQuoteScrollState(){ return state.getQuoteScrollState(); }
+  function patchQuoteScrollState(patch){ return state.patchQuoteScrollState(patch); }
+  function getTabShellState(){ return state.getTabShellState(); }
+  function patchTabShellState(patch){ return state.patchTabShellState(patch); }
+  function getOfferEditorOpen(){ return state.getOfferEditorOpen(); }
+  function setOfferEditorOpen(next){ return state.setOfferEditorOpen(next); }
 
   function resolveDisplayedQuote(){
-    if(wycenaTabHistory && typeof wycenaTabHistory.resolveDisplayedQuote === 'function'){
+    if(history && typeof history.resolveDisplayedQuote === 'function'){
       try{
-        return wycenaTabHistory.resolveDisplayedQuote({
+        return history.resolveDisplayedQuote({
           getSnapshotHistory,
           getState:getHistoryPreviewState,
           setState:patchHistoryPreviewState,
@@ -134,22 +91,6 @@
       }catch(_){ }
     }
     return null;
-  }
-
-  function getAllActiveRoomIds(){
-    return wycenaTabStatusActions.getAllActiveRoomIds(getStatusActionDeps());
-  }
-
-  function getTargetRoomIdsFromSnapshot(snapshot){
-    return wycenaTabStatusActions.getTargetRoomIdsFromSnapshot(snapshot, getStatusActionDeps());
-  }
-
-  function getComparableHistoryForSnapshot(snapshot, history){
-    return wycenaTabStatusActions.getComparableHistoryForSnapshot(snapshot, history, getStatusActionDeps());
-  }
-
-  function isArchivedPreliminary(snapshot, history, projectStatus){
-    return wycenaTabStatusActions.isArchivedPreliminary(snapshot, history, projectStatus, getStatusActionDeps());
   }
 
   function getStatusActionDeps(){
@@ -180,180 +121,99 @@
     };
   }
 
-  function currentProjectStatus(snapshot){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.currentProjectStatus === 'function'){
-      return wycenaTabStatusActions.currentProjectStatus(snapshot, getStatusActionDeps());
-    }
-    return normalizeStatusKey('');
+  function getAllActiveRoomIds(){ return statusController ? statusController.getAllActiveRoomIds() : []; }
+  function getTargetRoomIdsFromSnapshot(snapshot){ return statusController ? statusController.getTargetRoomIdsFromSnapshot(snapshot) : []; }
+  function getComparableHistoryForSnapshot(snapshot, list){ return statusController ? statusController.getComparableHistoryForSnapshot(snapshot, list) : []; }
+  function isArchivedPreliminary(snapshot, list, projectStatus){ return statusController ? statusController.isArchivedPreliminary(snapshot, list, projectStatus) : false; }
+  function currentProjectStatus(snapshot){ return statusController ? statusController.currentProjectStatus(snapshot) : normalizeStatusKey(''); }
+  async function askConfirm(cfg){ return statusController ? !!(await statusController.askConfirm(cfg)) : true; }
+  function canAcceptSnapshot(snapshot, list){ return statusController ? statusController.canAcceptSnapshot(snapshot, list) : false; }
+  function commitAcceptedSnapshotWithSync(snapshot, status, options){ return statusController ? statusController.commitAcceptedSnapshotWithSync(snapshot, status, options) : null; }
+  function reconcileAfterSnapshotRemoval(snapshot, options){ return statusController ? statusController.reconcileAfterSnapshotRemoval(snapshot, options) : null; }
+  function promotePreliminarySnapshotToFinal(snapshot, options){ return statusController ? statusController.promotePreliminarySnapshotToFinal(snapshot, options) : null; }
+  async function acceptSnapshot(snapshot, ctx, options){ return statusController ? !!(await statusController.acceptSnapshot(snapshot, ctx, options)) : false; }
+  function setProjectStatusFromSnapshot(snapshot, status, options){ return statusController ? statusController.setProjectStatusFromSnapshot(snapshot, status, options) : undefined; }
+  function syncGeneratedQuoteStatus(snapshot){ return statusController ? statusController.syncGeneratedQuoteStatus(snapshot) : undefined; }
+
+  function labelWithInfo(title, infoTitle, infoMessage){ return dom.labelWithInfo(title, infoTitle, infoMessage); }
+
+  function getSelectionDeps(extra){
+    return Object.assign({
+      h,
+      labelWithInfo,
+      getOfferDraft,
+      patchOfferDraft,
+      render,
+      askConfirm,
+      getCurrentProjectId,
+      normalizeSnapshot,
+      isPreliminarySnapshot,
+      normalizeRoomIds,
+      getMaterialScopeLabel,
+    }, extra || {});
   }
 
-  async function askConfirm(cfg){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.askConfirm === 'function'){
-      return !!(await wycenaTabStatusActions.askConfirm(cfg, getStatusActionDeps()));
-    }
-    return true;
-  }
-
-  function canAcceptSnapshot(snapshot, history){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.canAcceptSnapshot === 'function'){
-      return !!wycenaTabStatusActions.canAcceptSnapshot(snapshot, history, getStatusActionDeps());
-    }
-    return false;
-  }
-
-  function commitAcceptedSnapshotWithSync(snapshot, status, options){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.commitAcceptedSnapshotWithSync === 'function'){
-      return wycenaTabStatusActions.commitAcceptedSnapshotWithSync(snapshot, status, options, getStatusActionDeps());
-    }
-    return null;
-  }
-
-  function reconcileAfterSnapshotRemoval(snapshot, options){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.reconcileAfterSnapshotRemoval === 'function'){
-      return wycenaTabStatusActions.reconcileAfterSnapshotRemoval(snapshot, options, getStatusActionDeps());
-    }
-    return null;
-  }
-
-  function promotePreliminarySnapshotToFinal(snapshot, options){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.promotePreliminarySnapshotToFinal === 'function'){
-      return wycenaTabStatusActions.promotePreliminarySnapshotToFinal(snapshot, options, getStatusActionDeps());
-    }
-    return null;
-  }
-
-  async function acceptSnapshot(snapshot, ctx, options){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.acceptSnapshot === 'function'){
-      return !!(await wycenaTabStatusActions.acceptSnapshot(snapshot, ctx, options, getStatusActionDeps()));
-    }
-    return false;
-  }
-
-  function labelWithInfo(title, infoTitle, infoMessage){
-    return wycenaTabDom.labelWithInfo(title, infoTitle, infoMessage);
-  }
-
-  function defaultVersionName(preliminary, options){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.defaultVersionName === 'function'){
-      try{ return FC.wycenaTabSelection.defaultVersionName(preliminary, options); }catch(_){ }
-    }
-    return preliminary ? 'Wstępna oferta' : 'Oferta';
-  }
-
-  function buildSelectionScopeSummary(selection){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.buildSelectionScopeSummary === 'function'){
-      try{ return FC.wycenaTabSelection.buildSelectionScopeSummary(selection); }catch(_){ }
-    }
-    const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
-    return { roomIds:selectedRooms, roomLabels:selectedRooms.slice(), scopeLabel:selectedRooms.join(', ') || 'wybrany zakres', isMultiRoom:selectedRooms.length > 1 };
-  }
-
-  function shouldPromptForVersionNameOnGenerate(selection, draft){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.shouldPromptForVersionNameOnGenerate === 'function'){
-      try{ return !!FC.wycenaTabSelection.shouldPromptForVersionNameOnGenerate(selection, draft, { getCurrentProjectId }); }catch(_){ }
-    }
-    return false;
-  }
-
-  async function ensureVersionNameBeforeGenerate(selection){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.ensureVersionNameBeforeGenerate === 'function'){
-      try{ return await FC.wycenaTabSelection.ensureVersionNameBeforeGenerate(selection, { getOfferDraft, patchOfferDraft, getCurrentProjectId }); }catch(_){ }
-    }
-    return { cancelled:false, versionName:defaultVersionName(false, { selection }) };
-  }
-
-  function getVersionName(snapshot){
-    const snap = normalizeSnapshot(snapshot) || {};
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getEffectiveVersionName === 'function'){
-        const effective = String(FC.quoteSnapshotStore.getEffectiveVersionName(snap) || '').trim();
-        if(effective) return effective;
-      }
-    }catch(_){ }
-    return String(snap && snap.commercial && snap.commercial.versionName || snap && snap.meta && snap.meta.versionName || '').trim()
-      || defaultVersionName(isPreliminarySnapshot(snap), snap && snap.scope ? { scope:snap.scope } : {});
-  }
-
-  function normalizeDraftSelection(draft){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.normalizeDraftSelection === 'function'){
-      try{ return FC.wycenaTabSelection.normalizeDraftSelection(draft); }catch(_){ }
-    }
-    return { selectedRooms:[], materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true } };
-  }
-
-  function getRoomLabelsFromSelection(selection){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.getRoomLabelsFromSelection === 'function'){
-      try{ return FC.wycenaTabSelection.getRoomLabelsFromSelection(selection); }catch(_){ }
-    }
-    return [];
-  }
-
-  function getRoomsPickerMeta(selection){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.getRoomsPickerMeta === 'function'){
-      try{ return FC.wycenaTabSelection.getRoomsPickerMeta(selection); }catch(_){ }
-    }
-    return { title:'Brak pomieszczeń', subtitle:'' };
-  }
-
-  function getScopePickerMeta(selection){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.getScopePickerMeta === 'function'){
-      try{ return FC.wycenaTabSelection.getScopePickerMeta(selection, { getMaterialScopeLabel }); }catch(_){ }
-    }
-    return { title:'Zakres wyceny', subtitle:getMaterialScopeLabel(selection), detail:'Wybór jak w ROZRYS' };
-  }
-
-  function buildSelectionSummary(selection){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.buildSelectionSummary === 'function'){
-      try{ return FC.wycenaTabSelection.buildSelectionSummary(selection, { getMaterialScopeLabel }); }catch(_){ }
-    }
-    return { roomLabels:[], roomsMeta:{ title:'Brak pomieszczeń', subtitle:'' }, scopeMeta:getScopePickerMeta(selection), roomsText:'Brak pomieszczeń', scopeText:getMaterialScopeLabel(selection) };
+  function defaultVersionName(preliminary, options){ return selectionBridge.defaultVersionName(preliminary, options); }
+  function buildSelectionScopeSummary(selection){ return selectionBridge.buildSelectionScopeSummary(selection, getSelectionDeps()); }
+  function shouldPromptForVersionNameOnGenerate(selection, draft){ return selectionBridge.shouldPromptForVersionNameOnGenerate(selection, draft, getSelectionDeps()); }
+  async function ensureVersionNameBeforeGenerate(selection){ return selectionBridge.ensureVersionNameBeforeGenerate(selection, getSelectionDeps()); }
+  function getVersionName(snapshot){ return selectionBridge.getVersionName(snapshot, getSelectionDeps()); }
+  function normalizeDraftSelection(draft){ return selectionBridge.normalizeDraftSelection(draft); }
+  function getRoomLabelsFromSelection(selection){ return selectionBridge.getRoomLabelsFromSelection(selection); }
+  function getRoomsPickerMeta(selection){ return selectionBridge.getRoomsPickerMeta(selection); }
+  function getScopePickerMeta(selection){ return selectionBridge.getScopePickerMeta(selection, getSelectionDeps()); }
+  function buildSelectionSummary(selection){ return selectionBridge.buildSelectionSummary(selection, getSelectionDeps()); }
+  function openQuoteRoomsPicker(ctx){ return selectionBridge.openQuoteRoomsPicker(ctx, getSelectionDeps()); }
+  function openQuoteScopePicker(ctx){ return selectionBridge.openQuoteScopePicker(ctx, getSelectionDeps()); }
+  function renderQuoteSelectionSection(card, ctx){
+    return selectionBridge.renderQuoteSelectionSection(card, ctx, getSelectionDeps({ openQuoteRoomsPicker, openQuoteScopePicker }));
   }
 
   function getQuoteHistoryItemDomId(snapshotId){
-    if(wycenaTabScroll && typeof wycenaTabScroll.getQuoteHistoryItemDomId === 'function'){
-      try{ return wycenaTabScroll.getQuoteHistoryItemDomId(snapshotId); }catch(_){ }
+    if(scroll && typeof scroll.getQuoteHistoryItemDomId === 'function'){
+      try{ return scroll.getQuoteHistoryItemDomId(snapshotId); }catch(_){ }
     }
     const key = String(snapshotId || '').trim();
     return key ? `quoteHistoryItem-${key}` : '';
   }
 
   function getQuoteHistoryNeighborDomId(snapshotId){
-    if(wycenaTabScroll && typeof wycenaTabScroll.getQuoteHistoryNeighborDomId === 'function'){
-      try{ return wycenaTabScroll.getQuoteHistoryNeighborDomId(snapshotId); }catch(_){ }
+    if(scroll && typeof scroll.getQuoteHistoryNeighborDomId === 'function'){
+      try{ return scroll.getQuoteHistoryNeighborDomId(snapshotId); }catch(_){ }
     }
     return 'quoteHistorySection';
   }
 
   function getScrollY(){
-    if(wycenaTabScroll && typeof wycenaTabScroll.getScrollY === 'function'){
-      try{ return wycenaTabScroll.getScrollY(); }catch(_){ }
+    if(scroll && typeof scroll.getScrollY === 'function'){
+      try{ return scroll.getScrollY(); }catch(_){ }
     }
     return 0;
   }
 
   function rememberQuoteScroll(anchorId, fallbackAnchorId){
-    if(wycenaTabScroll && typeof wycenaTabScroll.rememberQuoteScroll === 'function'){
-      try{ return wycenaTabScroll.rememberQuoteScroll(anchorId, fallbackAnchorId, { getState:getQuoteScrollState, setState:patchQuoteScrollState }); }catch(_){ }
+    if(scroll && typeof scroll.rememberQuoteScroll === 'function'){
+      try{ return scroll.rememberQuoteScroll(anchorId, fallbackAnchorId, { getState:getQuoteScrollState, setState:patchQuoteScrollState }); }catch(_){ }
     }
   }
 
   function clearRememberedQuoteScroll(){
-    if(wycenaTabScroll && typeof wycenaTabScroll.clearRememberedQuoteScroll === 'function'){
-      try{ return wycenaTabScroll.clearRememberedQuoteScroll({ setState:patchQuoteScrollState }); }catch(_){ }
+    if(scroll && typeof scroll.clearRememberedQuoteScroll === 'function'){
+      try{ return scroll.clearRememberedQuoteScroll({ setState:patchQuoteScrollState }); }catch(_){ }
     }
     patchQuoteScrollState({ pendingScrollRestore:null, shouldRestoreScroll:false });
   }
 
   function restoreRememberedQuoteScroll(){
-    if(wycenaTabScroll && typeof wycenaTabScroll.restoreRememberedQuoteScroll === 'function'){
-      try{ return wycenaTabScroll.restoreRememberedQuoteScroll({ getState:getQuoteScrollState, setState:patchQuoteScrollState }); }catch(_){ }
+    if(scroll && typeof scroll.restoreRememberedQuoteScroll === 'function'){
+      try{ return scroll.restoreRememberedQuoteScroll({ getState:getQuoteScrollState, setState:patchQuoteScrollState }); }catch(_){ }
     }
   }
 
-  function getProjectStatusForHistory(history){
-    if(wycenaTabHistory && typeof wycenaTabHistory.getProjectStatusForHistory === 'function'){
+  function getProjectStatusForHistory(list){
+    if(history && typeof history.getProjectStatusForHistory === 'function'){
       try{
-        return wycenaTabHistory.getProjectStatusForHistory(history, {
+        return history.getProjectStatusForHistory(list, {
           getSnapshotHistory,
           currentProjectStatus,
           isSelectedSnapshot,
@@ -361,213 +221,105 @@
         });
       }catch(_){ }
     }
-    const list = Array.isArray(history) ? history : getSnapshotHistory();
-    return currentProjectStatus(list.find((row)=> isSelectedSnapshot(row)) || list[0] || lastQuote || null);
+    const historyList = Array.isArray(list) ? list : getSnapshotHistory();
+    const previewState = getHistoryPreviewState();
+    return currentProjectStatus(historyList.find((row)=> isSelectedSnapshot(row)) || historyList[0] || previewState.lastQuote || null);
   }
 
-  function openQuoteRoomsPicker(ctx){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.openQuoteRoomsPicker === 'function'){
-      try{ return FC.wycenaTabSelection.openQuoteRoomsPicker(ctx, { getOfferDraft, patchOfferDraft, render, askConfirm }); }catch(_){ }
-    }
+  function getEditorDeps(extra){
+    return Object.assign({
+      h,
+      money,
+      num,
+      getOfferDraft,
+      patchOfferDraft,
+      normalizeDraftSelection,
+      defaultVersionName,
+      buildSelectionSummary,
+      render,
+      getIsOpen:getOfferEditorOpen,
+      setIsOpen:setOfferEditorOpen,
+    }, extra || {});
   }
 
-  function openQuoteScopePicker(ctx){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.openQuoteScopePicker === 'function'){
-      try{ return FC.wycenaTabSelection.openQuoteScopePicker(ctx, { getOfferDraft, patchOfferDraft, render, askConfirm, h }); }catch(_){ }
-    }
+  function buildOfferSummary(draft){ return editorBridge.buildOfferSummary(draft, getEditorDeps()); }
+  function buildSelectionMap(draft){ return editorBridge.buildSelectionMap(draft, getEditorDeps()); }
+  function saveRateSelectionRows(selections){ return editorBridge.saveRateSelectionRows(selections, getEditorDeps()); }
+  function buildField(labelText, inputNode, full){ return editorBridge.buildField(labelText, inputNode, full, getEditorDeps()); }
+  function makeRateSelectionRows(catalog, selectionMap){ return editorBridge.makeRateSelectionRows(catalog, selectionMap, getEditorDeps()); }
+  function renderPreliminaryToggle(card, ctx){ return editorBridge.renderPreliminaryToggle(card, ctx, getEditorDeps()); }
+  function renderOfferEditor(card, ctx){
+    return editorBridge.renderOfferEditor(card, ctx, getEditorDeps({
+      buildOfferSummary,
+      buildSelectionMap,
+      saveRateSelectionRows,
+      buildField,
+      makeRateSelectionRows,
+    }));
   }
 
-  function renderQuoteSelectionSection(card, ctx){
-    if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.renderQuoteSelectionSection === 'function'){
-      try{ return FC.wycenaTabSelection.renderQuoteSelectionSection(card, ctx, { h, labelWithInfo, openQuoteRoomsPicker, openQuoteScopePicker, getOfferDraft, getMaterialScopeLabel }); }catch(_){ }
-    }
-  }
-
-
-  // Jedyny niski fallback kompatybilności, który jeszcze zostaje w Wycena.
-  // Wyższe flow akceptacji/usuwania/konwersji nie mogą już wracać do własnych bocznych zapisów.
-  function setProjectStatusFromSnapshot(snapshot, status, options){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.setProjectStatusFromSnapshot === 'function'){
-      return wycenaTabStatusActions.setProjectStatusFromSnapshot(snapshot, status, options, getStatusActionDeps());
-    }
-  }
-
-  function syncGeneratedQuoteStatus(snapshot){
-    if(wycenaTabStatusActions && typeof wycenaTabStatusActions.syncGeneratedQuoteStatus === 'function'){
-      return wycenaTabStatusActions.syncGeneratedQuoteStatus(snapshot, getStatusActionDeps());
-    }
-  }
-
-  function buildOfferSummary(draft){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.buildOfferSummary === 'function'){
-      try{ return FC.wycenaTabEditor.buildOfferSummary(draft, { money, num, normalizeDraftSelection, buildSelectionSummary }); }catch(_){ }
-    }
-    return 'Brak dodatkowych ustawień oferty';
-  }
-
-  function buildSelectionMap(draft){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.buildSelectionMap === 'function'){
-      try{ return FC.wycenaTabEditor.buildSelectionMap(draft, { num }); }catch(_){ }
-    }
-    return Object.create(null);
-  }
-
-  function saveRateSelectionRows(selections){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.saveRateSelectionRows === 'function'){
-      try{ return FC.wycenaTabEditor.saveRateSelectionRows(selections, { patchOfferDraft, num }); }catch(_){ }
-    }
-    return null;
+  function getRenderDeps(extra){
+    return Object.assign({
+      h,
+      money,
+      buildRowMeta,
+      formatDateTime,
+      getSnapshotId,
+      getSnapshotHistory,
+      getMaterialScopeLabel,
+      isPreliminarySnapshot,
+      isSelectedSnapshot,
+      isRejectedSnapshot,
+      getRejectedReason,
+      normalizeSnapshot,
+      canAcceptSnapshot,
+      acceptSnapshot,
+      getVersionName,
+      isArchivedPreliminary,
+      getProjectStatusForHistory,
+      currentProjectStatus,
+      askConfirm,
+      rememberQuoteScroll,
+      clearRememberedQuoteScroll,
+      getQuoteHistoryItemDomId,
+      getQuoteHistoryNeighborDomId,
+      reconcileAfterSnapshotRemoval,
+      promotePreliminarySnapshotToFinal,
+      render,
+      getHistoryPreviewState,
+      patchHistoryPreviewState,
+      getTabShellState,
+      patchTabShellState,
+      getOfferDraft,
+      normalizeDraftSelection,
+      ensureVersionNameBeforeGenerate,
+      syncGeneratedQuoteStatus,
+      resolveDisplayedQuote,
+      renderPreliminaryToggle,
+      renderQuoteSelectionSection,
+      renderOfferEditor,
+      renderQuotePreview,
+      renderHistory,
+      restoreRememberedQuoteScroll,
+      getScrollY,
+      snapshotById,
+    }, extra || {});
   }
 
   function renderQuotePreview(card, currentQuote, ctx){
-    if(wycenaTabPreview && typeof wycenaTabPreview.renderPreview === 'function'){
-      try{
-        return wycenaTabPreview.renderPreview(card, currentQuote, ctx, {
-          h,
-          money,
-          buildRowMeta,
-          formatDateTime,
-          getSnapshotId,
-          getSnapshotHistory,
-          getMaterialScopeLabel,
-          isPreliminarySnapshot,
-          isSelectedSnapshot,
-          canAcceptSnapshot,
-          acceptSnapshot,
-          getVersionName,
-        });
-      }catch(_){ }
-    }
-  }
-
-  function buildField(labelText, inputNode, full){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.buildField === 'function'){
-      try{ return FC.wycenaTabEditor.buildField(labelText, inputNode, full, { h }); }catch(_){ }
-    }
-    return null;
-  }
-
-  function makeRateSelectionRows(catalog, selectionMap){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.makeRateSelectionRows === 'function'){
-      try{ return FC.wycenaTabEditor.makeRateSelectionRows(catalog, selectionMap, { num }); }catch(_){ }
-    }
-    return [];
-  }
-
-  function renderPreliminaryToggle(card, ctx){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.renderPreliminaryToggle === 'function'){
-      try{ return FC.wycenaTabEditor.renderPreliminaryToggle(card, ctx, { h, getOfferDraft, patchOfferDraft, normalizeDraftSelection, defaultVersionName, render }); }catch(_){ }
-    }
-  }
-
-  function renderOfferEditor(card, ctx){
-    if(FC.wycenaTabEditor && typeof FC.wycenaTabEditor.renderOfferEditor === 'function'){
-      try{
-        return FC.wycenaTabEditor.renderOfferEditor(card, ctx, {
-          h,
-          getOfferDraft,
-          patchOfferDraft,
-          normalizeDraftSelection,
-          defaultVersionName,
-          buildOfferSummary,
-          buildSelectionMap,
-          saveRateSelectionRows,
-          buildField,
-          makeRateSelectionRows,
-          money,
-          num,
-          render,
-          getIsOpen: ()=> offerEditorOpen,
-          setIsOpen: (next)=>{ offerEditorOpen = !!next; },
-        });
-      }catch(_){ }
-    }
+    return renderBridge.renderQuotePreview(card, currentQuote, ctx, getRenderDeps());
   }
 
   function renderHistory(card, ctx, currentQuote){
-    if(wycenaTabHistory && typeof wycenaTabHistory.renderHistory === 'function'){
-      try{
-        return wycenaTabHistory.renderHistory(card, ctx, currentQuote, {
-          h,
-          money,
-          formatDateTime,
-          getVersionName,
-          getMaterialScopeLabel,
-          getSnapshotHistory,
-          normalizeSnapshot,
-          getSnapshotId,
-          isSelectedSnapshot,
-          isRejectedSnapshot,
-          isPreliminarySnapshot,
-          isArchivedPreliminary,
-          getRejectedReason,
-          getProjectStatusForHistory,
-          canAcceptSnapshot,
-          acceptSnapshot,
-          currentProjectStatus,
-          askConfirm,
-          rememberQuoteScroll,
-          clearRememberedQuoteScroll,
-          getQuoteHistoryItemDomId,
-          getQuoteHistoryNeighborDomId,
-          reconcileAfterSnapshotRemoval,
-          promotePreliminarySnapshotToFinal,
-          render,
-          getState:getHistoryPreviewState,
-          setState:patchHistoryPreviewState,
-        });
-      }catch(_){ }
-    }
+    return renderBridge.renderHistory(card, ctx, currentQuote, getRenderDeps());
   }
 
-  let lastQuote = null;
-  let previewSnapshotId = '';
-  let lastKnownProjectStatus = '';
-  let isBusy = false;
-  let shouldScrollToPreview = false;
-  let shouldRestoreScroll = false;
-  let pendingScrollRestore = null;
-  let offerEditorOpen = false;
-
   function render(ctx){
-    if(wycenaTabShell && typeof wycenaTabShell.render === 'function'){
-      try{
-        return wycenaTabShell.render(ctx, {
-          h,
-          getState:getTabShellState,
-          setState:patchTabShellState,
-          render,
-          getOfferDraft,
-          normalizeDraftSelection,
-          ensureVersionNameBeforeGenerate,
-          syncGeneratedQuoteStatus,
-          getProjectStatusForHistory,
-          getSnapshotHistory,
-          resolveDisplayedQuote,
-          renderPreliminaryToggle,
-          renderQuoteSelectionSection,
-          renderOfferEditor,
-          renderQuotePreview,
-          renderHistory,
-          clearRememberedQuoteScroll,
-          restoreRememberedQuoteScroll,
-          getScrollY,
-        });
-      }catch(_){ }
-    }
+    return renderBridge.renderShell(ctx, getRenderDeps());
   }
 
   function showSnapshotPreview(snapshotId){
-    if(wycenaTabHistory && typeof wycenaTabHistory.showSnapshotPreview === 'function'){
-      try{
-        return !!wycenaTabHistory.showSnapshotPreview(snapshotId, {
-          snapshotById,
-          getSnapshotHistory,
-          setState:patchHistoryPreviewState,
-        });
-      }catch(_){ }
-    }
-    return false;
+    return renderBridge.showSnapshotPreview(snapshotId, getRenderDeps());
   }
 
   FC.wycenaTabDebug = Object.assign({}, FC.wycenaTabDebug || {}, {
@@ -578,11 +330,17 @@
     promotePreliminarySnapshotToFinal,
     acceptSnapshot,
     getTargetRoomIdsFromSnapshot,
+    getAllActiveRoomIds,
+    getComparableHistoryForSnapshot,
     isArchivedPreliminary,
     isRejectedSnapshot,
     canAcceptSnapshot,
     showSnapshotPreview,
     shouldPromptForVersionNameOnGenerate,
+    buildSelectionScopeSummary,
+    getRoomLabelsFromSelection,
+    getRoomsPickerMeta,
+    getScopePickerMeta,
   });
 
   (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_prelim_final_wait_status_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_wycena_selection_split_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -324,3 +324,14 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Nowy układ: `wycena-tab-selection-scope.js`, `wycena-tab-selection-version.js`, `wycena-tab-selection-model.js`, `wycena-tab-selection-pickers.js`, `wycena-tab-selection-render.js`, a `wycena-tab-selection.js` zostaje cienką fasadą publicznego API.
 - Przy dalszych zmianach zakresu Wyceny kierować logikę do właściwej warstwy: scope/summary, version/nazwy snapshotów, pickery albo render. Nie sklejać ich ponownie w jednym pliku.
 - RYSUNEK nie był ruszany; `js/tabs/wycena.js` pozostaje następnym kandydatem, ale tylko dla małych, konkretnych ścieżek.
+
+
+## 2026-05-02 — Wycena tab boundary v1
+
+- Kontynuowano optymalizację `js/tabs/wycena.js` bez zmiany UI, storage, statusów i polityki backupów.
+- `tabs/wycena.js` jest teraz cienkim rejestrem zakładki i spadł z ok. 589 do ok. 347 linii.
+- Nowe warstwy: `wycena-tab-data.js`, `wycena-tab-state.js`, `wycena-tab-selection-bridge.js`, `wycena-tab-editor-bridge.js`, `wycena-tab-status-controller.js`, `wycena-tab-render-bridge.js`.
+- Nie dokładać danych, runtime state, adapterów selection/editor/status/render z powrotem do `tabs/wycena.js`; kolejne zmiany kierować do właściwej warstwy.
+- Krytyczna kolejność ładowania: nowe moduły boundary po `wycena-tab-dom.js`, przed modułami selection/editor/history/status/render oraz przed `js/tabs/wycena.js`; utrzymywać ją w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
+- App smoke ma kontrakt `Zakładka Wyceny ma rozdzielone boundary warstwy`; nie usuwać go przy dalszych splitach Wyceny.
+- Raport: `tools/reports/wycena-tab-boundary-v1.md`.

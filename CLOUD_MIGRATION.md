@@ -271,3 +271,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Split wyboru zakresu Wyceny nie dodaje storage, nie zmienia modelu danych i nie wymaga migracji.
 - `wycena-tab-selection-scope.js` trzyma normalizację zakresu pomieszczeń i summary, a `wycena-tab-selection-version.js` trzyma nazwy wersji/snapshotów. Dzięki temu przyszły adapter chmurowy może mapować scope i historię ofert bez zależności od renderu/pickerów.
 - `wycena-tab-selection-pickers.js` i `wycena-tab-selection-render.js` są warstwami UI bez zapisów danych; zmiany w nich nie powinny dodawać bezpośredniego `localStorage` ani zmieniać semantyki snapshotów.
+
+
+## 2026-05-02 — Wycena tab boundary v1
+
+- Split `tabs/wycena.js` nie dodał żadnych nowych zapisów ani odczytów `localStorage`/`sessionStorage`.
+- Dostęp zakładki WYCENA do bieżącego projektu, inwestora, historii snapshotów i draftu oferty jest zamknięty w `js/app/wycena/wycena-tab-data.js`.
+- Ten adapter jest przygotowany jako przyszły punkt wymiany źródła danych na repository/chmurę; pozostałe warstwy zakładki nie powinny znać szczegółów storage.
+- Stan UI zakładki (`previewSnapshotId`, przywracanie scrolla, otwarcie edytora) jest w `wycena-tab-state.js` i nie jest traktowany jako dane użytkownika do synchronizacji.
