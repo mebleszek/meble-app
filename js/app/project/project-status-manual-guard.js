@@ -73,20 +73,42 @@
     return String(room && (room.label || room.name || room.id) || roomId || '').trim() || 'to pomieszczenie';
   }
 
-  function getExactScopedRows(projectId, roomIds, options){
+  function getSnapshotRoomIds(row){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSnapshotRoomIds === 'function'){
+        return normalizeRoomIds(FC.quoteSnapshotStore.getSnapshotRoomIds(row));
+      }
+    }catch(_){ }
+    return normalizeRoomIds(row && row.scope && row.scope.selectedRooms);
+  }
+
+  function getScopedRowsForRoom(projectId, roomIds, options){
     const pid = String(projectId || '');
     const ids = normalizeRoomIds(roomIds);
     const opts = options && typeof options === 'object' ? options : {};
+    const matchMode = String(opts.matchMode || 'exact').trim().toLowerCase();
     if(!pid || !ids.length) return [];
+    if(matchMode === 'exact'){
+      try{
+        if(roomScopeResolver && typeof roomScopeResolver.filterExactScopedRows === 'function'){
+          return roomScopeResolver.filterExactScopedRows(pid, ids, { allowProjectWideExact: !!opts.allowProjectWideExact });
+        }
+      }catch(_){ }
+      try{
+        if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function' && typeof FC.quoteSnapshotStore.filterRowsByRoomScope === 'function')) return [];
+        const rows = FC.quoteSnapshotStore.listForProject(pid);
+        return FC.quoteSnapshotStore.filterRowsByRoomScope(rows, ids, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact }) || [];
+      }catch(_){ return []; }
+    }
+
     try{
-      if(roomScopeResolver && typeof roomScopeResolver.filterExactScopedRows === 'function'){
-        return roomScopeResolver.filterExactScopedRows(pid, ids, { allowProjectWideExact: !!opts.allowProjectWideExact });
-      }
-    }catch(_){ }
-    try{
-      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function' && typeof FC.quoteSnapshotStore.filterRowsByRoomScope === 'function')) return [];
-      const rows = FC.quoteSnapshotStore.listForProject(pid);
-      return FC.quoteSnapshotStore.filterRowsByRoomScope(rows, ids, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact }) || [];
+      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
+      const rows = FC.quoteSnapshotStore.listForProject(pid) || [];
+      return rows.filter((row)=> {
+        const snapshotRooms = getSnapshotRoomIds(row);
+        if(!snapshotRooms.length) return !!(opts.allowProjectWideExact && ids.length === 1);
+        return ids.every((roomId)=> snapshotRooms.includes(roomId));
+      });
     }catch(_){ return []; }
   }
 
@@ -110,7 +132,10 @@
     const currentStatus = normalizeStatus(getRoom(investor, resolvedRoomId) && getRoom(investor, resolvedRoomId).projectStatus || '');
     const roomLabel = getRoomLabel(investor, resolvedRoomId);
     const investorRoomCount = investor && Array.isArray(investor.rooms) ? investor.rooms.length : 0;
-    const quoteRows = splitQuoteRows(getExactScopedRows(project && project.id, [resolvedRoomId], { allowProjectWideExact: investorRoomCount === 1 }));
+    const quoteRows = splitQuoteRows(getScopedRowsForRoom(project && project.id, [resolvedRoomId], {
+      matchMode:'includes',
+      allowProjectWideExact: investorRoomCount === 1,
+    }));
     return {
       investorId:String(investorId || ''),
       projectId:String(project && project.id || ''),

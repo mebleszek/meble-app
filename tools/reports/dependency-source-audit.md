@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 40 | 10320 | 229 | 1 | 6 | 20 |
+| TESTY | 40 | 10319 | 229 | 1 | 6 | 20 |
 | ROZRYS | 42 | 8836 | 6 | 0 | 1 | 3 |
 | SZAFKI | 27 | 6388 | 0 | 0 | 0 | 3 |
 | WYCENA | 41 | 6134 | 0 | 0 | 0 | 6 |
@@ -28,8 +28,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | MATERIAŁ | 14 | 1970 | 8 | 3 | 0 | 1 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
+| PROJEKT | 8 | 1469 | 0 | 0 | 0 | 6 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
-| PROJEKT | 8 | 1444 | 0 | 0 | 0 | 6 |
 | KATALOG/USŁUGI | 9 | 1349 | 0 | 0 | 0 | 1 |
 | DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
 | BOOT/APP SHELL | 5 | 1273 | 4 | 0 | 1 | 1 |
@@ -161,15 +161,15 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/wycena/suites/core-offer-workflow.js | średnie | 6 | 277 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/quote/quote-snapshot.js | średnie | 6 | 257 | 10 | 48 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/core-offer-basics.js | średnie | 6 | 252 | 18 | 27 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
-| js/testing/wycena/suites/investor-integration.js | średnie | 6 | 251 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/testing/wycena/suites/investor-integration.js | średnie | 6 | 250 | 13 | 18 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rysunek/tests.js | średnie | 6 | 117 | 6 | 28 | kilka zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą; systemowe dialogi |
 | js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 693 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/testing/test-data-manager.js | średnie | 5 | 393 | 7 | 22 | 250+ linii; kilka zależnych plików; bezpośredni storage poza oczywistą granicą |
 | js/tabs/wycena.js | średnie | 5 | 348 | 6 | 20 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
+| js/app/project/project-status-manual-guard.js | średnie | 5 | 321 | 6 | 26 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 44 | 250+ linii; dużo zależnych plików |
 | js/app/quote/quote-snapshot-store.js | średnie | 5 | 315 | 34 | 52 | 250+ linii; dużo zależnych plików |
 | js/app/project/project-status-scope.js | średnie | 5 | 312 | 5 | 22 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
-| js/app/project/project-status-manual-guard.js | średnie | 5 | 296 | 6 | 26 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-engine.js | średnie | 5 | 270 | 6 | 23 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/investor/session.js | średnie | 5 | 259 | 10 | 56 | 250+ linii; dużo zależnych plików |
 | js/app/ui/views.js | średnie | 5 | 250 | 14 | 36 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_wycena_selection_split_v1.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_wycena_tab_boundary_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -335,3 +335,12 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Krytyczna kolejność ładowania: nowe moduły boundary po `wycena-tab-dom.js`, przed modułami selection/editor/history/status/render oraz przed `js/tabs/wycena.js`; utrzymywać ją w `index.html`, `dev_tests.html`, `tools/index-load-groups.js` i `tools/app-dev-smoke-lib/file-list.js`.
 - App smoke ma kontrakt `Zakładka Wyceny ma rozdzielone boundary warstwy`; nie usuwać go przy dalszych splitach Wyceny.
 - Raport: `tools/reports/wycena-tab-boundary-v1.md`.
+
+## 2026-05-02 — Multi-room preliminary status guard v1
+
+- Poprawiono guard ręcznej zmiany statusu w Inwestorze: pokój objęty wspólną zaakceptowaną wyceną wstępną ma być traktowany tak samo jak pokój z zaakceptowaną wyceną solo dla przejść `Pomiar` i `Wycena`.
+- Nie wracać do wymogu wyłącznie exact-scope/solo przy `projectStatusManualGuard`; dla wyboru statusu pojedynczego pokoju trzeba brać pod uwagę również snapshoty, których scope zawiera ten pokój.
+- Niezaakceptowana wspólna wycena wstępna dalej blokuje `Pomiar`/`Wycena`, ale jako „wycena niezaakceptowana”, a nie jako „brak wyceny”.
+- Runtime bez nowego storage i bez zmiany UI; zmiana dotyczy wyłącznie interpretacji istniejących snapshotów scope.
+- `project-status-manual-guard.js` jest powyżej progu ostrożności, ale w tej paczce został celowo zostawiony jako jeden guard statusowy — split tylko dla kilku linii poprawki byłby sztuczny. Jeśli będzie dalej rosnąć lub zacznie mieszać więcej flow generowania/statusów, wtedy ciąć po odpowiedzialnościach.
+

@@ -5,10 +5,10 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 ## Wynik skrócony
 
 1. `js/tabs/wycena.js` — 348 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-2. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-3. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
-4. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
-5. `js/app/project/project-status-manual-guard.js` — 296 linii; ostrzeżenia: 250+ lines.
+2. `js/app/project/project-status-manual-guard.js` — 321 linii; ostrzeżenia: 250+ lines.
+3. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+4. `js/app/project/project-status-scope.js` — 312 linii; ostrzeżenia: 250+ lines.
+5. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
 6. `js/app/quote/quote-pdf.js` — 278 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 7. `js/app/wycena/wycena-tab-editor.js` — 262 linii; ostrzeżenia: 250+ lines.
 8. `js/app/quote/quote-snapshot.js` — 257 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
@@ -57,6 +57,13 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:111, status:34, render:21, modal-ui:4
 
+### js/app/project/project-status-manual-guard.js
+
+- Linie: 321
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: status:57, snapshot:36, scope:17
+
 ### js/app/quote/quote-snapshot-store.js
 
 - Linie: 315
@@ -77,13 +84,6 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:83, scope:53
-
-### js/app/project/project-status-manual-guard.js
-
-- Linie: 296
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: status:57, snapshot:23, scope:14
 
 ### js/app/quote/quote-pdf.js
 

@@ -303,3 +303,15 @@ Następne sensowne kierunki po tym etapie:
 1. `js/app/wycena/wycena-tab-status-bridge.js` / `wycena-tab-history.js` tylko jeśli ruszamy konkretną ścieżkę historii/statusów.
 2. `quote-snapshot-store.js`, `quote-snapshot-scope.js` albo `project-status-scope.js` tylko po dedykowanym kontrakcie biznesowym.
 3. Poza WYCENĄ: `investor-ui.js` albo `app.js`, ale bez sztucznego refaktoru i bez RYSUNKU.
+
+## 2026-05-02 — Multi-room status guard fix v1
+
+Zakres naprawczy zamiast kolejnej optymalizacji: użytkownik wykrył rozjazd statusu `Pomiar` między wyceną pojedynczego pokoju i wyceną obejmującą kilka pomieszczeń.
+
+Wykonane:
+- poprawiono `project-status-manual-guard.js`, żeby manualny status pokoju uznawał zaakceptowaną wycenę wstępną, której scope zawiera ten pokój,
+- zaktualizowano kontrakt Wycena/Inwestor dla wspólnej wyceny wstępnej,
+- nie zmieniono UI, RYSUNKU, backupów ani storage.
+
+Po tej poprawce można wrócić do optymalizacji poza RYSUNKIEM. Najbliższe sensowne kierunki pozostają: `investor-ui.js`, wybrane ścieżki historii/statusów Wyceny albo `app.js` jako shell — tylko jeśli jest konkretny powód, nie dla sztucznego cięcia.
+

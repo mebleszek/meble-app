@@ -60,18 +60,17 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar jest blokowana bez zaakceptowanej wyceny wstępnej solo', 'Pilnuje, czy Inwestor nie podniesie pokoju na Pomiar tylko dlatego, że istnieje niezaakceptowana albo wspólna wycena zamiast zaakceptowanej podstawy solo.', ()=>{
+    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar uznaje zaakceptowaną wycenę wstępną obejmującą pokój', 'Pilnuje, czy status Pomiar/Wycena działa tak samo dla pokoju objętego wspólną zaakceptowaną wyceną wstępną jak dla pojedynczego pokoju.', ()=>{
         H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          FC.quoteSnapshotStore.save({ id:'snap_shared_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:220 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820468000 });
-          const validationMissing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
-          H.assert(validationMissing && validationMissing.blocked === true && validationMissing.requiresGeneration === true && String(validationMissing.generationKind || '') === 'preliminary', 'Brak wyceny solo nie zablokował wejścia na Pomiar z propozycją wygenerowania wstępnej wyceny', validationMissing);
-          const soloPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:118 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820469000 });
-          const validationUnaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
-          H.assert(validationUnaccepted && validationUnaccepted.blocked === true && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała ręcznego wejścia na Pomiar', { validationUnaccepted, soloPre });
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
-          const validationAccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
-          H.assert(validationAccepted && validationAccepted.ok === true && validationAccepted.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała ręcznego wejścia na Pomiar', validationAccepted);
+          const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:220 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820468000 });
+          const validationUnacceptedShared = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationUnacceptedShared && validationUnacceptedShared.blocked === true && validationUnacceptedShared.requiresGeneration === false, 'Niezaakceptowana wspólna wycena wstępna powinna blokować Pomiar jako niezaakceptowana, a nie jako brak wyceny', validationUnacceptedShared);
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar', roomIds:['room_kuchnia_gora','room_salon'] });
+          const validationAcceptedPomiar = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          const validationAcceptedWycena = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
+          H.assert(validationAcceptedPomiar && validationAcceptedPomiar.ok === true && validationAcceptedPomiar.blocked === false, 'Zaakceptowana wspólna wycena wstępna nie odblokowała Pomiar dla objętego pokoju', validationAcceptedPomiar);
+          H.assert(validationAcceptedWycena && validationAcceptedWycena.ok === true && validationAcceptedWycena.blocked === false, 'Zaakceptowana wspólna wycena wstępna nie odblokowała Wyceny końcowej dla objętego pokoju', validationAcceptedWycena);
         });
       }),
 

@@ -279,3 +279,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dostęp zakładki WYCENA do bieżącego projektu, inwestora, historii snapshotów i draftu oferty jest zamknięty w `js/app/wycena/wycena-tab-data.js`.
 - Ten adapter jest przygotowany jako przyszły punkt wymiany źródła danych na repository/chmurę; pozostałe warstwy zakładki nie powinny znać szczegółów storage.
 - Stan UI zakładki (`previewSnapshotId`, przywracanie scrolla, otwarcie edytora) jest w `wycena-tab-state.js` i nie jest traktowany jako dane użytkownika do synchronizacji.
+
+## 2026-05-02 — Multi-room quote scope in manual status guard
+
+- Zmiana nie dodaje pól, migracji ani nowych zapisów storage; używa istniejącego `scope.selectedRooms` snapshotów Wyceny.
+- Dla przyszłej chmury ważna zasada: status pokoju może być oparty na ofercie/snapshotcie obejmującym więcej niż jeden pokój, jeśli ten pokój należy do scope zaakceptowanej oferty.
+- Nie mieszać tego z duplikowaniem ofert per pokój. Wspólna oferta powinna pozostać jednym dokumentem z wieloma `roomIds`, a guard statusu ma rozpoznawać przynależność pokoju do tego scope.
+

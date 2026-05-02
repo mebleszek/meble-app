@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-02T00:24:10.040Z",
+  "generatedAt": "2026-05-02T09:50:17.628Z",
   "summary": {
     "jsFiles": 290,
     "indexScripts": 227,
@@ -61,7 +61,7 @@
     },
     "PROJEKT": {
       "files": 8,
-      "lines": 1444,
+      "lines": 1469,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 40,
-      "lines": 10320,
+      "lines": 10319,
       "storageRefs": 229,
       "dialogRefs": 1,
       "high": 6,
@@ -849,7 +849,7 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 251,
+      "lines": 250,
       "incoming": 13,
       "outgoing": 22,
       "secondLevel": 18,
@@ -934,6 +934,24 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-manual-guard.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 321,
+      "incoming": 6,
+      "outgoing": 9,
+      "secondLevel": 26,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "kilka zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys-scope.js",
       "risk": "średnie",
       "score": 5,
@@ -977,24 +995,6 @@
       "incoming": 5,
       "outgoing": 9,
       "secondLevel": 22,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-manual-guard.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 296,
-      "incoming": 6,
-      "outgoing": 9,
-      "secondLevel": 26,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -5149,7 +5149,7 @@
     "js/app/project/project-status-manual-guard.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 296,
+      "lines": 321,
       "defines": [
         "projectStatusManualGuard"
       ],
@@ -16020,7 +16020,7 @@
     "js/testing/wycena/suites/investor-integration.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 251,
+      "lines": 250,
       "defines": [
         "registerWycenaTests"
       ],
