@@ -11,6 +11,9 @@
   const normalizeStatus = (FC.projectStatusSync && FC.projectStatusSync.normalizeStatus)
     || statusScope.normalizeStatus
     || ((value)=> String(value || '').trim().toLowerCase());
+  const statusRank = (FC.projectStatusSync && FC.projectStatusSync.statusRank)
+    || statusScope.statusRank
+    || ((value)=> ({ nowy:0, wstepna_wycena:1, pomiar:2, wycena:3, zaakceptowany:4, umowa:5, produkcja:6, montaz:7, zakonczone:8 }[normalizeStatus(value)] || -1));
   const normalizeRoomIds = (FC.projectStatusSync && FC.projectStatusSync.normalizeRoomIds)
     || statusScope.normalizeRoomIds
     || ((roomIds)=> Array.isArray(roomIds) ? Array.from(new Set(roomIds.map((item)=> String(item || '').trim()).filter(Boolean))) : []);
@@ -57,6 +60,56 @@
       });
     });
     return Array.from(released);
+  }
+
+  function getInvestorById(investorId){
+    const id = String(investorId || '');
+    if(!id) return null;
+    try{ if(FC.investors && typeof FC.investors.getById === 'function') return FC.investors.getById(id) || null; }catch(_){ }
+    try{ if(FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') return FC.investorPersistence.getInvestorById(id) || null; }catch(_){ }
+    return null;
+  }
+
+  function getRoom(investor, roomId){
+    const key = String(roomId || '');
+    const rooms = investor && Array.isArray(investor.rooms) ? investor.rooms : [];
+    return rooms.find((room)=> String(room && room.id || '') === key) || null;
+  }
+
+  function selectedRowBaseline(row){
+    if(!row || !(row.meta && row.meta.selectedByClient)) return '';
+    if(isPreliminarySnapshot(row)) return 'pomiar';
+    return 'zaakceptowany';
+  }
+
+  function findSelectedRowsForRoom(rows, roomId){
+    const key = String(roomId || '');
+    return (Array.isArray(rows) ? rows : []).filter((row)=> getTargetRoomIdsFromSnapshot(row).includes(key));
+  }
+
+  function collectManualBaseStatusMap(beforeSelectedRows, investorId, roomIds){
+    const investor = getInvestorById(investorId);
+    const out = {};
+    normalizeRoomIds(roomIds).forEach((roomId)=> {
+      const key = String(roomId || '');
+      if(!key) return;
+      const room = getRoom(investor, key);
+      const storedManual = normalizeStatus(room && room.lastManualProjectStatus || '');
+      if(storedManual){
+        out[key] = storedManual;
+        return;
+      }
+      const current = normalizeStatus(room && (room.projectStatus || room.status) || '');
+      if(!current || current === 'nowy') return;
+      const selectedRows = findSelectedRowsForRoom(beforeSelectedRows, key);
+      if(!selectedRows.length){
+        out[key] = current;
+        return;
+      }
+      const bestBaselineRank = selectedRows.reduce((best, row)=> Math.max(best, statusRank(selectedRowBaseline(row))), -99);
+      if(statusRank(current) > bestBaselineRank) out[key] = current;
+    });
+    return out;
   }
 
   function collectPreliminaryDowngradeRoomIds(beforeSelectedRows, selectedSnapshot, targetRoomIds, status){
@@ -117,6 +170,8 @@
     }catch(_){ }
     const releasedRoomIds = collectReleasedRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds);
     const forceStatusRoomIds = collectPreliminaryDowngradeRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds, nextStatus);
+    const manualBaseStatusMap = collectManualBaseStatusMap(selectedRowsBefore, investorId, targetRoomIds);
+    const restoreManualStatusMap = collectManualBaseStatusMap(selectedRowsBefore, investorId, releasedRoomIds);
     const statusResult = setStatusFromSnapshot(selectedSnapshot, nextStatus, Object.assign({}, opts, {
       investorId,
       roomIds:targetRoomIds,
@@ -124,6 +179,7 @@
       preserveCurrentWhenNoQuoteRows:true,
       preserveForwardProgress:true,
       forceStatusRoomIds,
+      manualBaseStatusMap,
     }));
     let releaseStatusResult = null;
     if(releasedRoomIds.length){
@@ -133,6 +189,8 @@
         roomIds:releasedRoomIds,
         restrictToRoomIds:true,
         fallbackStatus:'nowy',
+        restoreManualStatusMap,
+        restoreManualForReleasedRooms:true,
         refreshUi:false,
       });
     }
@@ -143,6 +201,8 @@
       releaseStatusResult,
       releasedRoomIds,
       forceStatusRoomIds,
+      manualBaseStatusMap,
+      restoreManualStatusMap,
       masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || nextStatus) || nextStatus,
       mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || nextStatus) || nextStatus,
       roomIds:targetRoomIds,

@@ -33,6 +33,15 @@
     return out;
   }
 
+
+  function roomDetails(investorId){
+    const investor = FC.investors && typeof FC.investors.getById === 'function' ? FC.investors.getById(investorId) : null;
+    const out = {};
+    const rooms = investor && Array.isArray(investor.rooms) ? investor.rooms : [];
+    rooms.forEach((room)=> { out[String(room.id || '')] = room; });
+    return out;
+  }
+
   function savePreliminarySnapshot(projectId, investorId, id, roomIds, versionName){
     return FC.quoteSnapshotStore.save({
       id,
@@ -126,6 +135,46 @@
         H.assert(statuses.room_a === 'pomiar', 'A ma zejść z Zaakceptowany do Pomiar, bo poprzednia końcowa A została zastąpiona', statuses);
         H.assert(statuses.room_s === 'wycena', 'S ręcznie ustawione na Wycena nie powinno być cofnięte do Pomiar, jeśli nie miało odrzuconej końcowej oferty', statuses);
         H.assert(statuses.room_p === 'wycena', 'P spoza zakresu nadal ma zachować Wycena', statuses);
+      });
+    }),
+
+    H.makeTest('Wycena ↔ Statusy zakresowe', 'Rozpięcie wspólnej końcowej przywraca ostatni ręczny status pokoju spoza nowego zakresu', 'Nowa zasada: S było ręcznie na Wycena, potem weszło w końcową A+S, a po akceptacji końcowej tylko A ma wrócić do ręcznego Wycena zamiast Nowy.', ()=>{
+      withInvestorProjectFixture({ investorId:'inv_status_restore_final', projectId:'proj_status_restore_final', rooms:ROOMS_ASP, projectData:projectDataForRooms(ROOMS_ASP) }, ({ investorId, projectId })=>{
+        FC.investorPersistence.updateInvestorRoom(investorId, 'room_s', { projectStatus:'wycena' });
+        let details = roomDetails(investorId);
+        H.assert(!details.room_s.lastManualProjectStatus, 'Setup legacy nie powinien mieć jeszcze lastManualProjectStatus', details.room_s);
+
+        const sharedFinalAS = saveFinalSnapshot(projectId, investorId, 'snap_status_restore_final_as', ['room_a','room_s'], 'Oferta A+S');
+        const sharedResult = FC.projectStatusSync.commitAcceptedSnapshot(sharedFinalAS, 'zaakceptowany', { roomIds:['room_a','room_s'], refreshUi:false });
+        let statuses = statusMap(investorId);
+        details = roomDetails(investorId);
+        H.assert(statuses.room_s === 'zaakceptowany', 'Końcowa A+S powinna tymczasowo przykryć S statusem Zaakceptowany', { statuses, sharedResult, details:details.room_s });
+        H.assert(details.room_s.lastManualProjectStatus === 'wycena', 'Akceptacja wspólnej końcowej powinna zapamiętać bazowy ręczny status S', { statuses, sharedResult, details:details.room_s });
+
+        const finalA = saveFinalSnapshot(projectId, investorId, 'snap_status_restore_final_a', ['room_a'], 'Oferta A');
+        const result = FC.projectStatusSync.commitAcceptedSnapshot(finalA, 'zaakceptowany', { roomIds:['room_a'], refreshUi:false });
+        statuses = statusMap(investorId);
+        H.assert(statuses.room_a === 'zaakceptowany', 'A powinno zostać zaakceptowane z nowej oferty końcowej A', { statuses, result });
+        H.assert(statuses.room_s === 'wycena', 'S po wypadnięciu ze wspólnego zakresu ma wrócić do ostatniego ręcznego Wycena, nie do Nowy', { statuses, result });
+      });
+    }),
+
+    H.makeTest('Wycena ↔ Statusy zakresowe', 'Rozpięcie wspólnej wstępnej przywraca ostatni ręczny Pomiar pokoju spoza nowego zakresu', 'S było ręcznie na Pomiar, potem weszło w wstępną A+S, a po akceptacji wstępnej tylko A ma zostać Pomiar zamiast spadać do Nowy.', ()=>{
+      withInvestorProjectFixture({ investorId:'inv_status_restore_pre', projectId:'proj_status_restore_pre', rooms:ROOMS_ASP, projectData:projectDataForRooms(ROOMS_ASP) }, ({ investorId, projectId })=>{
+        FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_s', 'pomiar');
+        let details = roomDetails(investorId);
+        H.assert(details.room_s.lastManualProjectStatus === 'pomiar', 'Ręczna zmiana S na Pomiar powinna zapisać ostatni ręczny status', details.room_s);
+
+        const sharedPrelimAS = savePreliminarySnapshot(projectId, investorId, 'snap_status_restore_pre_as', ['room_a','room_s'], 'Wstępna A+S');
+        FC.projectStatusSync.commitAcceptedSnapshot(sharedPrelimAS, 'pomiar', { roomIds:['room_a','room_s'], refreshUi:false });
+        let statuses = statusMap(investorId);
+        H.assert(statuses.room_a === 'pomiar' && statuses.room_s === 'pomiar', 'Wstępna A+S powinna ustawić/utrzymać A/S na Pomiar', statuses);
+
+        const prelimA = savePreliminarySnapshot(projectId, investorId, 'snap_status_restore_pre_a', ['room_a'], 'Wstępna A');
+        const result = FC.projectStatusSync.commitAcceptedSnapshot(prelimA, 'pomiar', { roomIds:['room_a'], refreshUi:false });
+        statuses = statusMap(investorId);
+        H.assert(statuses.room_a === 'pomiar', 'A po wstępnej solo powinno mieć Pomiar', { statuses, result });
+        H.assert(statuses.room_s === 'pomiar', 'S po wypadnięciu ze wspólnej wstępnej ma wrócić/zostać na ręcznym Pomiar, nie na Nowy', { statuses, result });
       });
     }),
 

@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_prelim_replace_final_status_v1.zip`.
-- Baza startowa tej paczki: `site_status_reconcile_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_manual_status_restore_v1.zip`.
+- Baza startowa tej paczki: `site_prelim_replace_final_status_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -408,3 +408,13 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Pokoje spoza zakresu akceptowanej oferty zachowują swoje ręczne statusy (`Pomiar`, `Wycena` itd.); brak oferty dla pokoju nigdy nie jest powodem do resetu na `Nowy`.
 - Testy regresyjne dla tej decyzji są w `js/testing/wycena/suites/status-reconciliation-regression.js`; przed zmianami w `project-status-snapshot-flow.js` albo `project-status-sync.js` uruchamiać pełne `FC.wycenaDevTests.runAll()` oraz standardowe audyty.
 - Raport paczki: `tools/reports/prelim-replace-final-status-v1.md`.
+
+
+## 2026-05-02 — Manual status restore v1
+
+- Doprecyzowano zasadę statusów po rozpięciu/zastąpieniu wspólnej zaakceptowanej oferty: pokój, który wypada ze wspólnego zakresu, ma wracać do ostatniego ręcznego statusu (`lastManualProjectStatus`), a nie automatycznie do `Nowy`.
+- Ręczne zmiany statusu w `Inwestorze` zapisują teraz bazę procesu pokoju jako `lastManualProjectStatus`. Oferta/snapshot może tymczasowo przykryć status pokoju, ale nie usuwa ręcznego punktu odniesienia.
+- Przy akceptacji nowej oferty `project-status-snapshot-flow.js` zapamiętuje bazowy ręczny status pokoju przed przykryciem go statusem wynikającym z oferty, także dla istniejących danych legacy bez wcześniejszego `lastManualProjectStatus`, jeśli pokój nie miał aktywnej zaakceptowanej oferty albo był ręcznie przesunięty dalej niż status wynikający z oferty.
+- Po zwolnieniu pokoju ze starego zaakceptowanego zakresu `reconcileProjectStatuses()` używa ręcznego fallbacku tylko wtedy, gdy historia ofert nie daje aktywnego statusu dla tego pokoju. Brak aktywnej oferty nie oznacza już resetu do `Nowy`.
+- Dalsze etapy po zaakceptowanej końcowej ofercie (`Umowa`, `Produkcja`, `Montaż`, `Zakończone`) pozostają prowadzone pojedynczo per pomieszczenie; nie dodano modala grupowego dla tych etapów.
+- Testy regresyjne dla tej zasady są w `js/testing/wycena/suites/status-reconciliation-regression.js`: rozpięcie wspólnej końcowej i wspólnej wstępnej ma przywracać ręczny status pokoju spoza nowego zakresu.

@@ -326,3 +326,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dla przyszłej chmury ważna jest zasada źródła statusu: status pokoju wynikający z zaakceptowanej końcowej oferty może zostać cofnięty, jeśli ta konkretna końcowa oferta zostanie zastąpiona/odrzucona przez zaakceptowaną wycenę wstępną obejmującą ten zakres.
 - Ręczny status pokoju pozostaje osobnym źródłem procesu i nie może być nadpisywany globalną rekonsyliacją ofert spoza swojego zakresu.
 - Ten podział źródeł będzie istotny przy modelowaniu Firestore: `quotes`/snapshoty ofert i statusy procesowe pokoi muszą być synchronizowane zakresowo, nie globalnie po inwestorze.
+
+
+## 2026-05-02 — Manual status restore v1
+
+- Dodano pole domenowe pokoju `lastManualProjectStatus` jako lokalny odpowiednik przyszłego zdarzenia/komendy: ostatnia ręczna decyzja procesowa użytkownika dla pomieszczenia.
+- To nie jest nowy klucz storage i nie tworzy osobnego magazynu danych; pole jest częścią rekordu pokoju inwestora, więc później może mapować się do dokumentu `rooms/{roomId}` albo do eventu statusowego w Firestore.
+- Chmurowy model powinien rozróżniać: status wynikający z zaakceptowanej oferty (`quotes` ze scope) oraz ostatni ręczny status procesu (`lastManualProjectStatus` / event manual status). Rekonsyliacja ma być zakresowa, a nie globalna po inwestorze.
+- Gdy pokój wypada ze wspólnej zaakceptowanej oferty, brak aktywnej oferty dla tego pokoju oznacza powrót do ostatniego ręcznego statusu, nie automatyczny reset do `Nowy`.

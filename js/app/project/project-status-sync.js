@@ -41,6 +41,35 @@
 
 
 
+
+  function getLastManualStatusMap(roomIds, sources){
+    const ids = normalizeRoomIds(roomIds);
+    const src = sources && typeof sources === 'object' ? sources : {};
+    const investorRooms = Array.isArray(src.investorRooms) ? src.investorRooms : [];
+    const roomDefs = src.roomDefs && typeof src.roomDefs === 'object' ? src.roomDefs : {};
+    const out = {};
+    ids.forEach((roomId)=> {
+      const key = String(roomId || '');
+      if(!key) return;
+      const investorRoom = investorRooms.find((room)=> String(room && room.id || '') === key) || null;
+      const value = normalizeStatus(investorRoom && investorRoom.lastManualProjectStatus || roomDefs[key] && roomDefs[key].lastManualProjectStatus || '');
+      if(value) out[key] = value;
+    });
+    return out;
+  }
+
+  function mergeManualStatusMaps(){
+    const out = {};
+    Array.from(arguments).forEach((map)=> {
+      if(!(map && typeof map === 'object')) return;
+      Object.keys(map).forEach((key)=> {
+        const status = normalizeStatus(map[key]);
+        if(key && status) out[key] = status;
+      });
+    });
+    return out;
+  }
+
   function resolveCurrentProjectStatus(snapshot){
     const snap = normalizeSnapshot(snapshot) || {};
     const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
@@ -105,6 +134,18 @@
       preserveCurrentForUntouched:true,
       preserveCurrentWhenNoQuoteRows: !!options.preserveCurrentWhenNoQuoteRows,
     });
+    const existingManualStatusMap = getLastManualStatusMap(knownRoomIds, {
+      investorRooms: investor && investor.rooms,
+      roomDefs: mergedRoomDefs,
+    });
+    const manualStatusMap = mergeManualStatusMaps(existingManualStatusMap, options.manualBaseStatusMap);
+    const recordManualStatus = !snapshot && options.recordManualStatus !== false;
+    if(recordManualStatus){
+      targetRoomIds.forEach((roomId)=> {
+        const key = String(roomId || '');
+        if(key) manualStatusMap[key] = nextStatus;
+      });
+    }
     const preserveForwardProgress = !!options.preserveForwardProgress;
     const forceStatusSet = new Set(normalizeRoomIds(options.forceStatusRoomIds));
     const acceptedRank = statusRank('zaakceptowany');
@@ -123,7 +164,7 @@
       roomStatusMap[key] = nextStatus;
     });
 
-    const nextInvestor = saveInvestorRooms(investor, roomStatusMap) || investor;
+    const nextInvestor = saveInvestorRooms(investor, roomStatusMap, { manualStatusMap }) || investor;
     const masterRoomIds = resolveAggregateScopeRoomIds(targetRoomIds, knownRoomIds);
     const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
       fallbackStatus: nextStatus,
@@ -174,7 +215,20 @@
       roomDefs: mergedRoomDefs,
     });
     const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, { fallbackStatus: options.fallbackStatus || 'nowy' });
-    const nextInvestor = investor ? (saveInvestorRooms(investor, roomStatusMap) || investor) : investor;
+    const existingManualStatusMap = getLastManualStatusMap(knownRoomIds, {
+      investorRooms: investor && investor.rooms,
+      roomDefs: mergedRoomDefs,
+    });
+    const restoreManualStatusMap = mergeManualStatusMaps(existingManualStatusMap, options.restoreManualStatusMap);
+    if(options.restoreManualForReleasedRooms !== false){
+      knownRoomIds.forEach((roomId)=> {
+        const key = String(roomId || '');
+        const currentResolved = normalizeStatus(roomStatusMap[key] || '');
+        const manual = normalizeStatus(restoreManualStatusMap[key] || '');
+        if(key && manual && (!currentResolved || currentResolved === 'nowy')) roomStatusMap[key] = manual;
+      });
+    }
+    const nextInvestor = investor ? (saveInvestorRooms(investor, roomStatusMap, { manualStatusMap: restoreManualStatusMap }) || investor) : investor;
     const masterRoomIds = resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds);
     const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
       fallbackStatus: options.fallbackStatus || 'nowy',
@@ -246,6 +300,7 @@
       getMergedRoomDefs,
       updateLoadedProject,
       saveInvestorRooms,
+      getLastManualStatusMap,
       resolveScopedMasterStatus,
       syncStatusMirrors,
     },

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-02T17:44:03.939Z",
+  "generatedAt": "2026-05-02T19:07:16.753Z",
   "summary": {
     "jsFiles": 295,
     "indexScripts": 230,
     "devTestScripts": 250,
     "fcSymbols": 219,
     "fcSymbolsAll": 243,
-    "edges": 1462,
+    "edges": 1464,
     "highRisk": 10,
     "mediumRisk": 50
   },
@@ -37,7 +37,7 @@
     },
     "INWESTOR": {
       "files": 23,
-      "lines": 3313,
+      "lines": 3315,
       "storageRefs": 24,
       "dialogRefs": 0,
       "high": 1,
@@ -61,7 +61,7 @@
     },
     "PROJEKT": {
       "files": 10,
-      "lines": 1899,
+      "lines": 2019,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -141,7 +141,7 @@
     },
     "TESTY": {
       "files": 42,
-      "lines": 10723,
+      "lines": 10772,
       "storageRefs": 234,
       "dialogRefs": 1,
       "high": 6,
@@ -240,12 +240,12 @@
       34
     ],
     [
-      "js/app/shared/utils.js",
+      "js/app/investor/investors-store.js",
       33
     ],
     [
-      "js/app/investor/investors-store.js",
-      32
+      "js/app/shared/utils.js",
+      33
     ],
     [
       "js/app/shared/room-registry.js",
@@ -284,16 +284,16 @@
       18
     ],
     [
+      "js/app/investor/investor-persistence.js",
+      17
+    ],
+    [
       "js/app/project/project-status-snapshot-flow.js",
       17
     ],
     [
       "js/app/project/project-status-sync.js",
       17
-    ],
-    [
-      "js/app/investor/investor-persistence.js",
-      16
     ],
     [
       "js/app/optimizer/cut-optimizer.js",
@@ -370,12 +370,12 @@
       50
     ],
     [
-      "js/app/shared/ui-state.js",
+      "js/app/investor/investor-persistence.js",
       50
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      47
+      "js/app/shared/ui-state.js",
+      50
     ],
     [
       "js/app/rozrys/rozrys-scope.js",
@@ -906,7 +906,7 @@
       "lines": 395,
       "incoming": 8,
       "outgoing": 10,
-      "secondLevel": 28,
+      "secondLevel": 29,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1004,6 +1004,40 @@
       ]
     },
     {
+      "file": "js/app/project/project-status-sync.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 309,
+      "incoming": 17,
+      "outgoing": 4,
+      "secondLevel": 38,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/app/project/project-status-snapshot-flow.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "PROJEKT",
+      "category": "domain/controller",
+      "lines": 270,
+      "incoming": 17,
+      "outgoing": 5,
+      "secondLevel": 37,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys-engine.js",
       "risk": "średnie",
       "score": 5,
@@ -1032,23 +1066,6 @@
       "outgoing": 1,
       "secondLevel": 58,
       "storageRefs": 12,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików"
-      ]
-    },
-    {
-      "file": "js/app/project/project-status-sync.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 254,
-      "incoming": 17,
-      "outgoing": 4,
-      "secondLevel": 37,
-      "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
@@ -1096,7 +1113,7 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 174,
+      "lines": 223,
       "incoming": 15,
       "outgoing": 23,
       "secondLevel": 20,
@@ -1412,22 +1429,6 @@
       ]
     },
     {
-      "file": "js/app/project/project-status-snapshot-flow.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "PROJEKT",
-      "category": "domain/controller",
-      "lines": 210,
-      "incoming": 17,
-      "outgoing": 3,
-      "secondLevel": 37,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików"
-      ]
-    },
-    {
       "file": "js/app/project/project-store.js",
       "risk": "średnie",
       "score": 4,
@@ -1467,7 +1468,7 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 149,
-      "incoming": 32,
+      "incoming": 33,
       "outgoing": 3,
       "secondLevel": 71,
       "storageRefs": 0,
@@ -1483,9 +1484,9 @@
       "area": "INWESTOR",
       "category": "domain/controller",
       "lines": 137,
-      "incoming": 16,
+      "incoming": 17,
       "outgoing": 4,
-      "secondLevel": 47,
+      "secondLevel": 50,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -3087,6 +3088,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -3115,10 +3117,13 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
+        "js/app/project/project-schedule-status.js",
+        "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/shared/core-failsafe.js",
+        "js/app/shared/room-registry-impact.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
@@ -3507,6 +3512,7 @@
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -3546,7 +3552,7 @@
     "js/app/investor/investors-model.js": {
       "area": "INWESTOR",
       "category": "domain/controller",
-      "lines": 154,
+      "lines": 156,
       "defines": [
         "investorsModel"
       ],
@@ -3577,6 +3583,7 @@
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -3647,6 +3654,7 @@
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -3705,6 +3713,7 @@
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -5336,6 +5345,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
@@ -5375,7 +5385,7 @@
     "js/app/project/project-status-mirrors.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 107,
+      "lines": 112,
       "defines": [
         "projectStatusMirrors"
       ],
@@ -5563,7 +5573,7 @@
     "js/app/project/project-status-snapshot-flow.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 210,
+      "lines": 270,
       "defines": [
         "projectStatusSnapshotFlow",
         "projectStatusSync"
@@ -5572,6 +5582,8 @@
         "projectStatusScope",
         "projectStatusSync",
         "quoteSnapshotStore",
+        "investors",
+        "investorPersistence",
         "projectStatusSnapshotFlow"
       ],
       "incomingFiles": [
@@ -5594,6 +5606,8 @@
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/investor/investor-persistence.js",
+        "js/app/investor/investors-store.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-snapshot-store.js"
@@ -5644,13 +5658,14 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
+        "250+ linii",
         "dużo zależnych plików"
       ]
     },
     "js/app/project/project-status-sync.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 254,
+      "lines": 309,
       "defines": [
         "projectStatusSync"
       ],
@@ -5696,6 +5711,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/project/project-status-scope.js",
+        "js/app/project/project-status-snapshot-flow.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
@@ -17255,7 +17271,7 @@
     "js/testing/wycena/suites/status-reconciliation-regression.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 174,
+      "lines": 223,
       "defines": [
         "registerWycenaTests"
       ],
