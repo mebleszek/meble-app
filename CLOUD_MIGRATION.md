@@ -265,3 +265,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dla przyszłej chmury i harmonogramu status `wycena` po etapie `pomiar` należy traktować jako procesowy stan „czeka na wycenę końcową po pomiarze”, a nie jako zmianę decyzji klienta wobec wstępnej oferty.
 - Zaakceptowana wycena wstępna pozostaje dokumentem historycznym/punktem odniesienia; nie jest automatycznie oznaczana jako odrzucona przy przejściu do końcowej wyceny.
 - Przy późniejszym modelu Firestore rozdzielać dokument/status oferty (`selectedByClient`, `rejectedAt`, `acceptedStage`) od procesu projektu/pokoju (`pomiar`, `wycena`, `zaakceptowany`).
+
+## 2026-05-02 — Wycena selection split v1
+
+- Split wyboru zakresu Wyceny nie dodaje storage, nie zmienia modelu danych i nie wymaga migracji.
+- `wycena-tab-selection-scope.js` trzyma normalizację zakresu pomieszczeń i summary, a `wycena-tab-selection-version.js` trzyma nazwy wersji/snapshotów. Dzięki temu przyszły adapter chmurowy może mapować scope i historię ofert bez zależności od renderu/pickerów.
+- `wycena-tab-selection-pickers.js` i `wycena-tab-selection-render.js` są warstwami UI bez zapisów danych; zmiany w nich nie powinny dodawać bezpośredniego `localStorage` ani zmieniać semantyki snapshotów.

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Ostatnia stabilna baza przed tym etapem: `site_dev_tests_progress_live_v2.zip`.
+- Ostatnia stabilna baza przed tym etapem: `site_prelim_final_wait_status_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -88,7 +88,8 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - `js/tabs/rysunek.js` — bardzo duży aktywny renderer RYSUNKU. Miesza render SVG, drag/drop, inspektor, listę wykończeń, edycję elementów i stare systemowe dialogi. Najpierw wzmacniać testy i planować split, potem ciąć.
 - `js/app.js` — nadal gruby klej aplikacji. Nowe funkcje kierować do modułów domenowych, nie do `app.js`.
 - `js/app/rozrys/rozrys.js` — duży, ale lepiej zabezpieczony testami. Nie dopisywać tam logiki, jeśli pasuje do istniejących modułów ROZRYS.
-- `js/tabs/wycena.js`, `js/app/wycena/wycena-core.js` — kontynuować delegowanie do modułów `wycena-tab-*` i store/quote, nie przywracać inline workflow.
+- `js/tabs/wycena.js` — nadal główny kandydat Wyceny do małych splitów; miesza zakładkę, snapshoty, statusy i delegatory. Ciąć tylko ścieżka po ścieżce po testach.
+- `js/app/wycena/wycena-tab-selection.js` — po splicie selection v1 jest tylko fasadą; logika wyboru zakresu jest w modułach `wycena-tab-selection-scope/version/model/pickers/render`. Nie dokładać nowych funkcji do fasady.
 - `js/app/quote/quote-snapshot-store.js`, `js/app/investor/investors-local-repository.js`, `js/app/investor/investors-recovery.js`, `js/app/project/project-status-sync.js` — krytyczne store/statusy/recovery. Przy większej zmianie najpierw zaplanować split i testy kontraktowe.
 - `js/app/material/price-modal.js` — po `Materiał cleanup etap 2` jest cienką fasadą. Nie dopisywać tam ciężkiej logiki; kierować zmiany do modułów `price-modal-context/options/filters/item-form/list/persistence`.
 
@@ -316,3 +317,10 @@ Największe pliki/obszary, których nie wolno dalej dokarmiać bez planu:
 - Rekonsyliacja statusu ma zachować `wycena` jako świadomy etap po pomiarze; nie cofać automatycznie na `pomiar` tylko dlatego, że zaakceptowana wstępna oferta nadal jest w historii.
 - Testy regresyjne: `core-offer-workflow.js` i `investor-integration.js` pilnują, że zaakceptowana wstępna oferta pozostaje zaakceptowana i nieodrzucona po ręcznej zmianie `Pomiar → Wycena`.
 - Raport: `tools/reports/preliminary-measure-final-wait-v1.md`.
+
+## 2026-05-02 — Wycena selection split v1
+
+- Rozdzielono `js/app/wycena/wycena-tab-selection.js` bez zmiany UI i bez zmiany modelu danych.
+- Nowy układ: `wycena-tab-selection-scope.js`, `wycena-tab-selection-version.js`, `wycena-tab-selection-model.js`, `wycena-tab-selection-pickers.js`, `wycena-tab-selection-render.js`, a `wycena-tab-selection.js` zostaje cienką fasadą publicznego API.
+- Przy dalszych zmianach zakresu Wyceny kierować logikę do właściwej warstwy: scope/summary, version/nazwy snapshotów, pickery albo render. Nie sklejać ich ponownie w jednym pliku.
+- RYSUNEK nie był ruszany; `js/tabs/wycena.js` pozostaje następnym kandydatem, ale tylko dla małych, konkretnych ścieżek.
