@@ -6,12 +6,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Metryka | Wartość |
 | --- | --- |
-| Pliki JS | 315 |
-| Skrypty w index.html | 241 |
-| Skrypty w dev_tests.html | 271 |
-| Krawędzie zależności po symbolach FC | 1690 |
-| Symbole FC z właścicielem produkcyjnym | 230 |
-| Symbole FC z właścicielem razem | 256 |
+| Pliki JS | 316 |
+| Skrypty w index.html | 242 |
+| Skrypty w dev_tests.html | 272 |
+| Krawędzie zależności po symbolach FC | 1699 |
+| Symbole FC z właścicielem produkcyjnym | 232 |
+| Symbole FC z właścicielem razem | 258 |
 | Pliki z ryzykiem wysokim / nie ruszać | 7 |
 | Pliki z ryzykiem średnim | 60 |
 
@@ -21,7 +21,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 51 | 11124 | 242 | 1 | 5 | 30 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
-| WYCENA | 44 | 6753 | 0 | 0 | 0 | 6 |
+| WYCENA | 45 | 6895 | 0 | 0 | 0 | 6 |
 | SZAFKI | 28 | 6558 | 0 | 0 | 0 | 3 |
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
@@ -34,8 +34,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | BOOT/APP SHELL | 7 | 1347 | 4 | 0 | 0 | 2 |
 | DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
 | SHARED | 10 | 822 | 0 | 0 | 0 | 0 |
+| ZAKŁADKI | 3 | 543 | 0 | 0 | 0 | 0 |
 | INNE | 3 | 390 | 0 | 0 | 0 | 0 |
-| ZAKŁADKI | 3 | 348 | 0 | 0 | 0 | 0 |
 | CORE | 2 | 128 | 0 | 0 | 0 | 0 |
 
 ## Największe pliki
@@ -73,7 +73,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/shared/storage.js | 35 | DANE/STORAGE | niskie |
 | js/testing/shared/harness.js | 35 | TESTY | niskie |
 | js/app/shared/utils.js | 34 | SHARED | niskie |
-| js/app/shared/room-registry.js | 31 | POMIESZCZENIA | niskie |
+| js/app/shared/room-registry.js | 32 | POMIESZCZENIA | niskie |
 | js/app/project/project-store.js | 27 | PROJEKT | średnie |
 | js/app/project/project-bridge.js | 24 | PROJEKT | średnie |
 | js/app/ui/info-box.js | 23 | UI | niskie |
@@ -92,26 +92,26 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Plik | Pliki pośrednio zależne | Obszar | Ryzyko |
 | --- | --- | --- | --- |
-| js/app/bootstrap/app-core-namespace.js | 163 | BOOT/APP SHELL | średnie |
-| js/app/shared/storage.js | 140 | DANE/STORAGE | niskie |
-| js/app/shared/utils.js | 135 | SHARED | niskie |
+| js/app/bootstrap/app-core-namespace.js | 164 | BOOT/APP SHELL | średnie |
+| js/app/shared/storage.js | 141 | DANE/STORAGE | niskie |
+| js/app/shared/utils.js | 136 | SHARED | niskie |
 | js/app/project/project-bridge.js | 103 | PROJEKT | średnie |
-| js/app/shared/constants.js | 101 | SHARED | niskie |
-| js/app/shared/room-registry.js | 92 | POMIESZCZENIA | niskie |
+| js/app/shared/constants.js | 102 | SHARED | niskie |
+| js/app/shared/room-registry.js | 93 | POMIESZCZENIA | niskie |
 | js/app/shared/schema.js | 85 | SHARED | niskie |
-| js/app/project/project-store.js | 83 | PROJEKT | średnie |
-| js/app/investor/investors-store.js | 82 | INWESTOR | średnie |
-| js/app/quote/quote-snapshot-store.js | 66 | WYCENA | średnie |
+| js/app/project/project-store.js | 84 | PROJEKT | średnie |
+| js/app/investor/investors-store.js | 83 | INWESTOR | średnie |
+| js/app/quote/quote-snapshot-store.js | 67 | WYCENA | średnie |
+| js/app/ui/info-box.js | 62 | UI | niskie |
 | js/app/investor/session.js | 61 | INWESTOR | średnie |
-| js/app/ui/info-box.js | 61 | UI | niskie |
 | js/app/investor/investor-persistence.js | 60 | INWESTOR | średnie |
 | js/app/ui/confirm-box.js | 60 | UI | niskie |
-| js/app/quote/quote-snapshot.js | 57 | WYCENA | średnie |
+| js/app/quote/quote-snapshot.js | 58 | WYCENA | średnie |
 | js/app/shared/ui-state.js | 54 | SHARED | niskie |
 | js/app/investor/investors-model.js | 49 | INWESTOR | niskie |
+| js/app/rozrys/rozrys-scope.js | 48 | ROZRYS | średnie |
 | js/app/rozrys/rozrys.js | 48 | ROZRYS | wysokie |
 | js/app/project/project-status-sync.js | 47 | PROJEKT | średnie |
-| js/app/rozrys/rozrys-scope.js | 47 | ROZRYS | średnie |
 
 ## Najwięcej bezpośrednich referencji storage
 
@@ -155,12 +155,13 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
 | js/app/investor/investor-ui.js | średnie | 6 | 363 | 7 | 23 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/scope-entry.js | średnie | 6 | 361 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/tabs/wycena.js | średnie | 6 | 359 | 6 | 25 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/investor-integration.js | średnie | 6 | 356 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/project-stock.js | średnie | 6 | 342 | 16 | 38 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/architecture-contract.js | średnie | 6 | 321 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
-| js/app/quote/quote-snapshot-store.js | średnie | 6 | 315 | 41 | 66 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
+| js/app/quote/quote-snapshot-store.js | średnie | 6 | 315 | 41 | 67 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/rozrys/suites/state-ui-runtime.js | średnie | 6 | 305 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
-| js/app/quote/quote-snapshot.js | średnie | 6 | 301 | 10 | 57 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
+| js/app/quote/quote-snapshot.js | średnie | 6 | 301 | 10 | 58 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/core-offer-workflow.js | średnie | 6 | 277 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/core-offer-basics.js | średnie | 6 | 252 | 23 | 37 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/investor/suites/recovery-sources.js | średnie | 6 | 168 | 8 | 9 | kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
@@ -169,9 +170,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 693 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/app/cabinet/cabinet-modal.js | średnie | 5 | 655 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/app/project/project-status-manual-guard.js | średnie | 5 | 395 | 8 | 31 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
-| js/tabs/wycena.js | średnie | 5 | 348 | 6 | 25 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/catalog/catalog-store.js | średnie | 5 | 318 | 12 | 39 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
-| js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 47 | 250+ linii; dużo zależnych plików |
+| js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 48 | 250+ linii; dużo zależnych plików |
 | js/app/project/project-status-scope.js | średnie | 5 | 313 | 5 | 25 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/project/project-status-sync.js | średnie | 5 | 309 | 17 | 47 | 250+ linii; dużo zależnych plików |
 | js/app/bootstrap/app-ui-bootstrap.js | średnie | 5 | 288 | 7 | 21 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |
@@ -201,7 +201,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: średnie (kilka publicznych symboli FC; dużo zależnych plików)
 - Definiuje FC: appCoreNamespace, utils, storage, project
 - Bezpośrednio zależne pliki (67): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js<br>js/app/cabinet/cabinet-modal-module.js +59
-- Pośrednio zależne pliki (163): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js<br>js/app/cabinet/cabinet-modal-labor.js +155
+- Pośrednio zależne pliki (164): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js<br>js/app/cabinet/cabinet-modal-labor.js +156
 
 ### js/app/investor/investors-store.js
 
@@ -210,7 +210,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: średnie (dużo zależnych plików)
 - Definiuje FC: investors
 - Bezpośrednio zależne pliki (41): js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-patches.js<br>js/app/investor/investor-project-repository.js<br>js/app/investor/investor-rooms.js<br>js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope.js +33
-- Pośrednio zależne pliki (82): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-patches.js<br>js/app/investor/investor-project-repository.js<br>js/app/investor/investor-project-runtime.js<br>js/app/investor/investor-project.js<br>js/app/investor/investor-rooms.js +74
+- Pośrednio zależne pliki (83): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-patches.js<br>js/app/investor/investor-project-repository.js<br>js/app/investor/investor-project-runtime.js<br>js/app/investor/investor-project.js<br>js/app/investor/investor-rooms.js +75
 
 ### js/app/quote/quote-snapshot-store.js
 
@@ -219,7 +219,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: średnie (250+ linii; dużo zależnych plików; kilka zależności wychodzących)
 - Definiuje FC: quoteSnapshotStore
 - Bezpośrednio zależne pliki (41): js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-scope.js<br>js/app/project/project-status-snapshot-flow.js<br>js/app/project/project-status-sync.js<br>js/app/quote/quote-pdf.js<br>js/app/quote/quote-scope-entry-scope.js<br>js/app/quote/quote-scope-entry-utils.js +33
-- Pośrednio zależne pliki (66): js/app/investor/investor-persistence.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui-status-flow.js<br>js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope-decision.js<br>js/app/project/project-status-scope.js +58
+- Pośrednio zależne pliki (67): js/app/investor/investor-persistence.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui-status-flow.js<br>js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope-decision.js<br>js/app/project/project-status-scope.js +59
 
 ### js/app/shared/storage.js
 
@@ -228,7 +228,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: storage
 - Bezpośrednio zależne pliki (35): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal-set-wizard.js<br>js/app/catalog/catalog-store.js +27
-- Pośrednio zależne pliki (140): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js +132
+- Pośrednio zależne pliki (141): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js +133
 
 ### js/testing/shared/harness.js
 
@@ -246,7 +246,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: utils
 - Bezpośrednio zależne pliki (34): js/app/bootstrap/app-core-namespace.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js<br>js/app/cabinet/cabinet-modal-module.js<br>js/app/cabinet/cabinet-modal-standing-corner-standard.js<br>js/app/cabinet/cabinet-modal-standing-front-controls.js<br>js/app/cabinet/cabinet-modal.js<br>js/app/catalog/catalog-domain.js +26
-- Pośrednio zależne pliki (135): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js +127
+- Pośrednio zależne pliki (136): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-fronts.js<br>js/app/cabinet/cabinet-modal-hanging.js +128
 
 ### js/app/shared/room-registry.js
 
@@ -254,8 +254,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Kategoria: shared/domain/helper
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: roomRegistry
-- Bezpośrednio zależne pliki (31): js/app/investor/investor-room-actions.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope.js<br>js/app/quote/quote-offer-store.js<br>js/app/quote/quote-scope-entry-scope.js +23
-- Pośrednio zależne pliki (92): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-runtime.js<br>js/app/investor/investor-room-actions.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui-render.js +84
+- Bezpośrednio zależne pliki (32): js/app/investor/investor-room-actions.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope.js<br>js/app/quote/quote-offer-store.js<br>js/app/quote/quote-scope-entry-scope.js +24
+- Pośrednio zależne pliki (93): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-runtime.js<br>js/app/investor/investor-room-actions.js<br>js/app/investor/investor-rooms.js<br>js/app/investor/investor-ui-render.js +85
 
 ### js/app/project/project-store.js
 
@@ -264,7 +264,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: średnie (dużo zależnych plików)
 - Definiuje FC: projectStore
 - Bezpośrednio zależne pliki (27): js/app/investor/investor-project-repository.js<br>js/app/project/project-bridge.js<br>js/app/project/project-schedule-status.js<br>js/app/project/project-status-manual-guard.js<br>js/app/project/project-status-mirrors.js<br>js/app/project/project-status-scope.js<br>js/app/quote/quote-offer-store.js<br>js/app/quote/quote-scope-entry-flow.js +19
-- Pośrednio zależne pliki (83): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal-set-wizard.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-patches.js<br>js/app/investor/investor-project-runtime.js +75
+- Pośrednio zależne pliki (84): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal-set-wizard.js<br>js/app/investor/investor-persistence.js<br>js/app/investor/investor-project-patches.js<br>js/app/investor/investor-project-runtime.js +76
 
 ### js/app/project/project-bridge.js
 
@@ -282,7 +282,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: infoBox
 - Bezpośrednio zależne pliki (23): js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-modals.js<br>js/app/investor/investor-pdf.js<br>js/app/investor/investor-ui-status-flow.js<br>js/app/material/magazyn.js<br>js/app/material/price-modal-context.js +15
-- Pośrednio zależne pliki (61): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-ui-render.js<br>js/app/investor/investor-ui.js<br>js/app/material/price-modal-filters.js<br>js/app/material/price-modal-item-form.js<br>js/app/material/price-modal-list.js<br>js/app/material/price-modal-options.js +53
+- Pośrednio zależne pliki (62): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-ui-render.js<br>js/app/investor/investor-ui.js<br>js/app/material/price-modal-filters.js<br>js/app/material/price-modal-item-form.js<br>js/app/material/price-modal-list.js<br>js/app/material/price-modal-options.js +54
 
 ### js/testing/wycena/suites/core-offer-basics.js
 
@@ -318,7 +318,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: constants
 - Bezpośrednio zależne pliki (18): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/catalog/catalog-store.js<br>js/app/investor/investor-project-repository.js<br>js/app/investor/investors-model.js<br>js/app/investor/session.js<br>js/app/material/magazyn.js<br>js/app/project/project-bridge.js +10
-- Pośrednio zależne pliki (101): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal-labor.js<br>js/app/cabinet/cabinet-modal-set-wizard.js +93
+- Pośrednio zależne pliki (102): js/app.js<br>js/app/bootstrap/app-core-namespace.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/bootstrap/reload-restore.js<br>js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal-labor.js<br>js/app/cabinet/cabinet-modal-set-wizard.js +94
 
 ### js/app/project/project-status-snapshot-flow.js
 

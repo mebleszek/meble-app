@@ -17,13 +17,11 @@
     const buildSelectionSummary = getFn(deps, 'buildSelectionSummary', ()=> ({ scopeText:'Korpusy + fronty' }));
     const data = draft && typeof draft === 'object' ? draft : {};
     const commercial = data.commercial || {};
-    const rates = Array.isArray(data.rateSelections) ? data.rateSelections.filter((row)=> num(row && row.qty, 0) > 0) : [];
     const summary = buildSelectionSummary(normalizeDraftSelection(data));
     const parts = [];
     if(String(commercial.versionName || '').trim()) parts.push(`Wersja: ${String(commercial.versionName).trim()}`);
     if(commercial.preliminary) parts.push('Wstępna wycena');
     parts.push(summary.scopeText);
-    if(rates.length) parts.push(`Stawki: ${rates.length}`);
     if(Number(commercial.discountPercent) > 0) parts.push(`Rabat ${Number(commercial.discountPercent).toFixed(2)}%`);
     else if(Number(commercial.discountAmount) > 0) parts.push(`Rabat ${money(commercial.discountAmount)}`);
     if(String(commercial.offerValidity || '').trim()) parts.push(`Ważność: ${String(commercial.offerValidity).trim()}`);
@@ -116,10 +114,7 @@
     const normalizeDraftSelection = getFn(deps, 'normalizeDraftSelection', ()=> ({ selectedRooms:[], materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true } }));
     const defaultVersionName = getFn(deps, 'defaultVersionName', (preliminary)=> preliminary ? 'Wstępna oferta' : 'Oferta');
     const buildOfferSummaryFn = getFn(deps, 'buildOfferSummary', (draftArg)=> buildOfferSummary(draftArg, deps));
-    const buildSelectionMapFn = getFn(deps, 'buildSelectionMap', (draftArg)=> buildSelectionMap(draftArg, deps));
-    const saveRateSelectionRowsFn = getFn(deps, 'saveRateSelectionRows', (rows)=> saveRateSelectionRows(rows, deps));
     const buildFieldFn = getFn(deps, 'buildField', (label, inputNode, full)=> buildField(label, inputNode, full, deps));
-    const makeRateSelectionRowsFn = getFn(deps, 'makeRateSelectionRows', (catalog, selectionMap)=> makeRateSelectionRows(catalog, selectionMap, deps));
     const money = getFn(deps, 'money', (value)=> `${(Number(value)||0).toFixed(2)} PLN`);
     const num = getFn(deps, 'num', (value, fallback)=> {
       const parsed = Number(value);
@@ -132,11 +127,6 @@
 
     const draft = getOfferDraft();
     const commercial = draft && draft.commercial || {};
-    const rawCatalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
-    const catalog = FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function'
-      ? FC.wycenaLaborPicker.normalizeCatalog(rawCatalog)
-      : (Array.isArray(rawCatalog) ? rawCatalog : []).filter((rate)=> rate && rate.active !== false && String(rate.autoRole || 'none') === 'none');
-    const selectionMap = buildSelectionMapFn(draft);
     const isOpen = !!getIsOpen();
 
     const section = h('section', { class:`quote-offer-accordion rozrys-material-accordion${isOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
@@ -170,54 +160,6 @@
       const versionField = buildFieldFn('Nazwa wersji oferty', versionInput, true);
       if(versionField) body.appendChild(versionField);
 
-      const rateShell = h('div', { class:'quote-rate-editor' });
-      const selectedRows = catalog.filter((rate)=> num(selectionMap[String(rate && rate.id || '')], 0) > 0);
-      if(!catalog.length){
-        rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych czynności robocizny. Dodaj je w cenniku.' }));
-      } else {
-        const selectedWrap = h('div', { class:'quote-rate-editor__selected' });
-        if(!selectedRows.length){
-          selectedWrap.appendChild(h('div', { class:'muted', text:'Brak ręcznie dodanych czynności. Automatyczne czynności szafek są liczone osobno.' }));
-        } else {
-          selectedRows.forEach((rate)=>{
-            const id = String(rate && rate.id || '');
-            const row = h('article', { class:'quote-rate-editor__selected-row' });
-            const info = h('div');
-            info.appendChild(h('div', { class:'quote-rate-editor__selected-title', text:String(rate && rate.name || 'Czynność') }));
-            const desc = FC.laborCatalog && typeof FC.laborCatalog.describeDefinition === 'function' ? FC.laborCatalog.describeDefinition(rate) : '';
-            info.appendChild(h('div', { class:'quote-rate-editor__selected-meta', text:[rate && rate.category, desc].filter(Boolean).join(' • ') || '—' }));
-            row.appendChild(info);
-            row.appendChild(h('div', { class:'quote-rate-editor__selected-qty', text:`×${num(selectionMap[id], 0)}` }));
-            const remove = h('button', { class:'btn btn-danger', type:'button', text:'Usuń' });
-            remove.addEventListener('click', ()=>{
-              const nextMap = Object.assign({}, selectionMap);
-              delete nextMap[id];
-              saveRateSelectionRowsFn(makeRateSelectionRowsFn(catalog, nextMap));
-              render(ctx);
-            });
-            row.appendChild(remove);
-            selectedWrap.appendChild(row);
-          });
-        }
-        rateShell.appendChild(selectedWrap);
-        const actions = h('div', { class:'quote-rate-editor__actions' });
-        const addBtn = h('button', { class:'btn-primary', type:'button', text:'Dodaj czynność' });
-        addBtn.addEventListener('click', ()=>{
-          if(!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function')) return;
-          FC.wycenaLaborPicker.open({
-            catalog,
-            selectionMap,
-            onSave:(rows)=>{
-              saveRateSelectionRowsFn(rows);
-              render(ctx);
-            }
-          });
-        });
-        actions.appendChild(addBtn);
-        rateShell.appendChild(actions);
-      }
-      body.appendChild(h('div', { class:'quote-subsection-title', text:'Czynności ręczne do wyceny', style:'margin-top:14px' }));
-      body.appendChild(rateShell);
 
       const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
       const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });

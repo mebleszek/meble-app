@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_pricing_labor_display_fix_v1.zip`.
-- Baza startowa tej paczki: `site_pricing_labor_rules_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_pricing_labor_manual_accordion_v1.zip`.
+- Baza startowa tej paczki: `site_pricing_labor_unified_picker_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -505,3 +505,17 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Nie wracać do natywnych selectów/systemowych pickerów w tym obszarze; `app-dev-smoke` pilnuje aplikacyjnych launcherów w formularzu robocizny i pickera czynności WYCENY.
 - `js/app/wycena/wycena-tab-editor.js` ma ok. 285 linii po zmianie. To przekracza próg ostrożności 250, ale po wydzieleniu pickera pozostaje jednym edytorem ustawień oferty; dalszy split robić dopiero przy kolejnej pracy w tym konkretnym pliku, najlepiej przez wydzielenie renderu wybranych czynności albo formularza warunków oferty.
 - Raport: `tools/reports/pricing-labor-unified-picker-v1.md`.
+
+## Pricing labor manual accordion v1 — 2026-05-03
+
+- Ręczne czynności dodawane w WYCENIE mają być osobnym akordeonem nad `Ustawienia oferty do nowej wyceny`, nie częścią opcji oferty.
+- Moduł `js/app/wycena/wycena-tab-manual-labor.js` jest właścicielem tego akordeonu; nie dokładać ręcznego pickera robocizny z powrotem do `wycena-tab-editor.js`.
+- `quote-labor-picker` musi jawnie ustawiać `display:flex`, bo bazowa klasa `.modal-back` ma `display:none`.
+- `tools/app-dev-smoke.js` ma kontrakt pilnujący osobnego akordeonu ręcznych czynności.
+
+## Czynności labor workspace v1 — 2026-05-03
+
+- Zakładka `CZYNNOŚCI` jest od teraz miejscem pracy z robocizną: ręczne dodawanie czynności, podgląd czynności szafek i szczegóły kosztów wewnętrznych.
+- Nie dodawać ponownie list/pickerów robocizny do `Ustawienia oferty do nowej wyceny`; WYCENA ma zostać od zakresu/oferty/generowania, a CZYNNOŚCI od robocizny.
+- WYCENA może pokazywać tylko informację/podsumowanie, że szczegóły robocizny są w `CZYNNOŚCI`; szczegółowe rozbicie szafek, AGD i ręcznych czynności należy rozwijać w `js/tabs/czynnosci.js` albo w małych modułach tej zakładki.
+- `js/tabs/czynnosci.js` korzysta z istniejącego draftu oferty `quoteOfferStore.rateSelections`, więc ręcznie dodane czynności dalej wpływają na następną WYCENĘ, ale edycja jest w osobnej zakładce.

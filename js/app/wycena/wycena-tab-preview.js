@@ -180,9 +180,6 @@
     const lines = currentQuote.lines || {};
     const materialLines = Array.isArray(currentQuote.materialLines) ? currentQuote.materialLines : (Array.isArray(lines.materials) ? lines.materials : []);
     const accessoryLines = Array.isArray(currentQuote.accessoryLines) ? currentQuote.accessoryLines : (Array.isArray(lines.accessories) ? lines.accessories : []);
-    const agdLines = Array.isArray(currentQuote.agdLines) ? currentQuote.agdLines : (Array.isArray(lines.agdServices) ? lines.agdServices : []);
-    const quoteRateLines = Array.isArray(currentQuote.quoteRateLines) ? currentQuote.quoteRateLines : (Array.isArray(lines.quoteRates) ? lines.quoteRates : []);
-    const laborLines = Array.isArray(currentQuote.laborLines) ? currentQuote.laborLines : (Array.isArray(lines.labor) ? lines.labor : []);
     const generatedAt = currentQuote.generatedAt || currentQuote.generatedDate || null;
     if(generatedAt){
       card.appendChild(h('div', { id:'quotePreviewStart' }));
@@ -201,9 +198,10 @@
     card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres elementów: ${d.getMaterialScopeLabel(currentQuote)}`, style:'margin-top:6px' }));
     renderSection(card, 'Materiały z ROZRYS', materialLines, 'Brak pozycji materiałowych.', d);
     renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.', d);
-    renderLaborSection(card, laborLines, d);
-    renderSection(card, 'Robocizna / stawki wyceny mebli', quoteRateLines, 'Brak ręcznych pozycji robocizny.', d);
-    renderSection(card, 'Sprzęty do zabudowy / montaż AGD', agdLines, 'Brak wykrytych sprzętów do zabudowy.', d);
+    const laborHint = h('section', { class:'card quote-section quote-section--labor-moved', style:'margin-top:12px;padding:14px;' });
+    laborHint.appendChild(h('h4', { text:'Czynności i robocizna', style:'margin:0 0 8px' }));
+    laborHint.appendChild(h('div', { class:'muted', text:'Szczegółowy podgląd robocizny, montażu AGD i ręcznie dodanych czynności znajduje się w zakładce CZYNNOŚCI.' }));
+    card.appendChild(laborHint);
     renderCommercialSection(card, currentQuote, ctx, d);
   }
 

@@ -491,3 +491,14 @@ Do obserwacji:
 
 - `wycena-tab-editor.js` jest powyżej progu ostrożności 250 linii. Nie ciąć go losowo; jeśli kolejny etap dotknie edytora WYCENY, rozważyć wydzielenie renderu sekcji warunków oferty albo wybranych czynności.
 - `price-modal-item-form.js` pozostaje powyżej progu ostrożności, ale ta paczka tylko ukryła kompatybilnościowe `usage`. Większy split formularza cennika robocizny powinien być osobnym etapem po ręcznej akceptacji działania modelu.
+
+## 2026-05-03 — Pricing labor manual accordion v1
+
+- Ręczne czynności WYCENY wydzielono do `js/app/wycena/wycena-tab-manual-labor.js` zamiast powiększać `wycena-tab-editor.js`.
+- `wycena-tab-editor.js` spadł poniżej progu ostrożności i ponownie odpowiada głównie za opcje oferty.
+- Dalsze zmiany robocizny w WYCENIE kierować do modułów: picker (`wycena-labor-picker.js`), ręczny akordeon (`wycena-tab-manual-labor.js`) albo core labor (`wycena-core-labor.js`), nie do shellu.
+
+## 2026-05-03 — Czynności labor workspace v1
+
+- Robocizna została przeniesiona funkcjonalnie do zakładki `CZYNNOŚCI` bez dalszego rozrostu `wycena-tab-editor.js`.
+- Następny etap, jeśli zakładka `CZYNNOŚCI` będzie rosła: wydzielić z `js/tabs/czynnosci.js` osobne moduły renderu ręcznych czynności i renderu czynności szafek.

@@ -71,6 +71,8 @@
   function patchTabShellState(patch){ return state.patchTabShellState(patch); }
   function getOfferEditorOpen(){ return state.getOfferEditorOpen(); }
   function setOfferEditorOpen(next){ return state.setOfferEditorOpen(next); }
+  function getManualLaborOpen(){ return state.getManualLaborOpen ? state.getManualLaborOpen() : true; }
+  function setManualLaborOpen(next){ return state.setManualLaborOpen ? state.setManualLaborOpen(next) : undefined; }
 
   function resolveDisplayedQuote(){
     if(history && typeof history.resolveDisplayedQuote === 'function'){
@@ -248,6 +250,14 @@
   function buildField(labelText, inputNode, full){ return editorBridge.buildField(labelText, inputNode, full, getEditorDeps()); }
   function makeRateSelectionRows(catalog, selectionMap){ return editorBridge.makeRateSelectionRows(catalog, selectionMap, getEditorDeps()); }
   function renderPreliminaryToggle(card, ctx){ return editorBridge.renderPreliminaryToggle(card, ctx, getEditorDeps()); }
+  function renderManualLaborEditor(card, ctx){
+    if(FC.wycenaTabManualLabor && typeof FC.wycenaTabManualLabor.renderManualLaborEditor === 'function'){
+      return FC.wycenaTabManualLabor.renderManualLaborEditor(card, ctx, Object.assign({}, getEditorDeps(), {
+        getIsOpen:getManualLaborOpen,
+        setIsOpen:setManualLaborOpen,
+      }));
+    }
+  }
   function renderOfferEditor(card, ctx){
     return editorBridge.renderOfferEditor(card, ctx, getEditorDeps({
       buildOfferSummary,
@@ -297,6 +307,7 @@
       resolveDisplayedQuote,
       renderPreliminaryToggle,
       renderQuoteSelectionSection,
+      renderManualLaborEditor,
       renderOfferEditor,
       renderQuotePreview,
       renderHistory,

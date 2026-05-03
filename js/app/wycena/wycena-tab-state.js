@@ -15,6 +15,7 @@
       shouldRestoreScroll:false,
       pendingScrollRestore:null,
       offerEditorOpen:false,
+      manualLaborOpen:true,
     }, initial && typeof initial === 'object' ? initial : {});
 
     function getHistoryPreviewState(){
@@ -51,6 +52,7 @@
       return Object.assign({}, getHistoryPreviewState(), getQuoteScrollState(), {
         isBusy: !!state.isBusy,
         offerEditorOpen: !!state.offerEditorOpen,
+        manualLaborOpen: !!state.manualLaborOpen,
       });
     }
 
@@ -60,10 +62,13 @@
       patchQuoteScrollState(next);
       if(Object.prototype.hasOwnProperty.call(next, 'isBusy')) state.isBusy = !!next.isBusy;
       if(Object.prototype.hasOwnProperty.call(next, 'offerEditorOpen')) state.offerEditorOpen = !!next.offerEditorOpen;
+      if(Object.prototype.hasOwnProperty.call(next, 'manualLaborOpen')) state.manualLaborOpen = !!next.manualLaborOpen;
     }
 
     function getOfferEditorOpen(){ return !!state.offerEditorOpen; }
     function setOfferEditorOpen(next){ state.offerEditorOpen = !!next; }
+    function getManualLaborOpen(){ return !!state.manualLaborOpen; }
+    function setManualLaborOpen(next){ state.manualLaborOpen = !!next; }
 
     return {
       getHistoryPreviewState,
@@ -74,6 +79,8 @@
       patchTabShellState,
       getOfferEditorOpen,
       setOfferEditorOpen,
+      getManualLaborOpen,
+      setManualLaborOpen,
     };
   }
 

@@ -114,7 +114,7 @@
     const copy = make('div');
     copy.appendChild(make('div', 'window-modal-title', 'Dodaj czynności'));
     copy.appendChild(make('div', 'window-modal-subtitle', 'Wybierz z jednej wspólnej puli robocizny. Te pozycje są wewnętrzne dla wyceny.'));
-    const x = make('button', 'window-modal-x', '×');
+    const x = make('button', 'window-close-btn', '×');
     x.type = 'button';
     x.addEventListener('click', close);
     head.appendChild(icon); head.appendChild(copy); head.appendChild(x);

@@ -1,5 +1,5 @@
 /* quote-labor-picker.css — aplikacyjne okno wyboru czynności robocizny w WYCENIE */
-.quote-labor-picker-back{ align-items:flex-start; padding-top:18vh; }
+.quote-labor-picker-back{ display:flex; align-items:flex-start; justify-content:center; padding-top:18vh; z-index:6400; }
 .quote-labor-picker{ width:min(92vw, 720px); max-height:76vh; display:flex; flex-direction:column; overflow:hidden; }
 .quote-labor-picker__body{ padding:14px 18px; overflow:auto; }
 .quote-labor-picker__search{ width:100%; margin-bottom:12px; }
@@ -28,4 +28,15 @@
   .quote-labor-picker__item{ grid-template-columns:1fr; }
   .quote-labor-picker__controls{ justify-content:flex-start; }
   .quote-rate-editor__selected-row{ grid-template-columns:1fr; }
+}
+
+/* Czynności tab — internal labor workspace */
+.czynnosci-root > h3{ margin:0 0 6px; font-size:28px; font-weight:900; color:#111827; }
+.czynnosci-root > .muted{ margin:0 0 10px; }
+.czynnosci-summary-pill{ display:inline-flex; align-items:center; border:1px solid rgba(14,165,233,.22); border-radius:999px; background:#eefaff; color:#075985; font-weight:900; padding:8px 12px; margin:0 0 12px; }
+.czynnosci-cabinet-list{ margin-top:8px; }
+.quote-section--labor-moved{ background:linear-gradient(180deg,#fff,#f8fbff); }
+@media (max-width:700px){
+  .czynnosci-root > h3{ font-size:24px; }
+  .czynnosci-summary-pill{ display:flex; border-radius:16px; line-height:1.25; }
 }

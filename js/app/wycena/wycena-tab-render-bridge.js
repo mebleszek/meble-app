@@ -86,6 +86,7 @@
           resolveDisplayedQuote:getFn(deps, 'resolveDisplayedQuote'),
           renderPreliminaryToggle:getFn(deps, 'renderPreliminaryToggle'),
           renderQuoteSelectionSection:getFn(deps, 'renderQuoteSelectionSection'),
+          renderManualLaborEditor:getFn(deps, 'renderManualLaborEditor'),
           renderOfferEditor:getFn(deps, 'renderOfferEditor'),
           renderQuotePreview:getFn(deps, 'renderQuotePreview'),
           renderHistory:getFn(deps, 'renderHistory'),

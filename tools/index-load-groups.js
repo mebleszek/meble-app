@@ -239,6 +239,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/wycena/wycena-tab-selection-render.js",
       "js/app/wycena/wycena-tab-selection.js",
       "js/app/wycena/wycena-labor-picker.js",
+      "js/app/wycena/wycena-tab-manual-labor.js",
       "js/app/wycena/wycena-tab-editor.js",
       "js/app/wycena/wycena-tab-scroll.js",
       "js/app/wycena/wycena-tab-history.js",

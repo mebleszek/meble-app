@@ -387,3 +387,13 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Wybory użytkownika pozostają danymi projektu/oferty: czynności ręcznie dodane w WYCENIE są zapisywane jako selekcje oferty, a czynności przy szafce jako dane tej szafki. Definicja katalogowa i użycie w projekcie nie mogą być tym samym dokumentem.
 - Montaż AGD wynikający z typu szafki ma jawny override w danych szafki (`applianceMountingMode`): brak wartości oznacza domyślny montaż dla kompatybilności, a `none` oznacza świadome wyłączenie automatycznej pozycji.
 - Snapshot oferty powinien nadal zamrażać przeliczone linie robocizny i stawki; zmiana katalogu robocizny w chmurze nie może przeliczać starych ofert.
+
+## Pricing labor manual accordion v1 — 2026-05-03
+
+- Poprawka nie zmienia modelu danych ani storage: `rateSelections` dalej pozostaje częścią draftu/snapshotu oferty.
+- Zmiana jest UI/render-only dla WYCENY: ręczne czynności są renderowane w osobnym akordeonie, ale dane pozostają w tym samym cloud-ready kontrakcie oferty.
+
+## 2026-05-03 — Czynności labor workspace v1
+
+- Przeniesienie UI robocizny do zakładki `CZYNNOŚCI` nie dodaje nowego storage. Ręczne czynności nadal zapisują się w istniejącym draft boundary `quoteOfferStore.rateSelections`.
+- Podgląd czynności szafek jest wyliczany z aktualnych danych projektu i katalogu robocizny, bez nowego cache. To pozostaje zgodne z przyszłym adapterem chmurowym: źródłami prawdy są projekt/szafki, katalog robocizny i draft oferty.
