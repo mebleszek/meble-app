@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 51 | 11120 | 242 | 1 | 5 | 30 |
+| TESTY | 51 | 11124 | 242 | 1 | 5 | 30 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | WYCENA | 43 | 6534 | 0 | 0 | 0 | 6 |
 | SZAFKI | 28 | 6531 | 0 | 0 | 0 | 3 |

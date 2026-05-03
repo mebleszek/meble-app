@@ -463,3 +463,10 @@ Następne sensowne kierunki poza RYSUNKIEM:
 - `quote-snapshot.js` przekroczył próg ostrożności ok. 300 linii, bo doszła normalizacja `lines.labor`; nie ciąć go przy okazji bez osobnego planu na split normalizerów snapshotu, żeby nie ryzykować historii ofert.
 - Następny sensowny kierunek w tym obszarze: UI wyboru dodatków robocizny bezpośrednio w modalu szafki oraz testy dla ręcznych `laborItems`.
 - UI wyboru dodatków robocizny w modalu szafki został dodany w osobnym module `cabinet-modal-labor.js`; następny kierunek to testy dla edycji tych dodatków w przeglądarce i ewentualne dopracowanie formularza po ręcznym sprawdzeniu.
+
+
+## 2026-05-03 — Pricing labor test fix v1
+
+- To nie był refaktor funkcjonalny, tylko naprawa za ciasnego testu po `pricing_labor_rules_v1`.
+- Nie ciąć runtime cenników przy takich korektach testów; najpierw rozróżniać realną regresję od kontraktu testowego, który przestał pasować do nowego modelu danych.
+- Dalszy rozwój cennika robocizny powinien iść przez małe paczki: edycja formularza reguł, testy `laborItems`, a potem dopiero dokładniejsze podpięcie do WYCENY/PDF wewnętrznego.

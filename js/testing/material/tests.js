@@ -87,7 +87,11 @@
           const migrated = FC.catalogStore.migrateLegacy({ preferStoredSplit:true });
           H.assert(Array.isArray(migrated.sheetMaterials) && migrated.sheetMaterials.length === 1 && String(migrated.sheetMaterials[0].id || '') === 'stored_sheet', 'Migracja preferStoredSplit nie utrzymała zapisanej listy płyt', migrated);
           H.assert(Array.isArray(migrated.accessories) && migrated.accessories.length === 1 && String(migrated.accessories[0].id || '') === 'stored_acc', 'Migracja preferStoredSplit nie utrzymała zapisanej listy akcesoriów', migrated);
-          H.assert(Array.isArray(migrated.quoteRates) && migrated.quoteRates.length === 1 && String(migrated.quoteRates[0].id || '') === 'stored_rate', 'Migracja preferStoredSplit nie utrzymała zapisanych stawek', migrated);
+          const quoteRates = Array.isArray(migrated.quoteRates) ? migrated.quoteRates : [];
+          const quoteRateIds = quoteRates.map((row)=> String((row && row.id) || ''));
+          H.assert(quoteRateIds.includes('stored_rate'), 'Migracja preferStoredSplit nie utrzymała zapisanej stawki', migrated);
+          H.assert(!quoteRateIds.includes('legacy_rate'), 'Migracja preferStoredSplit wskrzesiła legacy stawkę mimo zapisanej listy rozdzielonej', migrated);
+          H.assert(quoteRateIds.includes('labor_rate_workshop'), 'Migracja preferStoredSplit nie dołączyła domyślnych definicji robocizny wymaganych przez nowy cennik', migrated);
         } finally {
           const restore = (key, value)=> value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value);
           restore(keys.materials, prevMaterials);

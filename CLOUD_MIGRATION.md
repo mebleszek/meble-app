@@ -366,3 +366,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - `labor-catalog-definitions.js` zawiera domyślne seed records, a `labor-catalog.js` normalizację/kalkulację. Przy migracji do chmury te definicje powinny być migracją katalogu użytkownika, nie technicznym cache.
 - Dane robocizny przy szafce docelowo mogą trafić do modelu szafki jako referencje do definicji (`laborItems`), ale snapshot oferty musi zapisywać pełne przeliczone szczegóły.
 - W tej paczce `laborItems` są już zapisywane przy szafce jako referencje do definicji robocizny z ilością; przy chmurze traktować to jako dane domenowe szafki, nie cache.
+
+
+## 2026-05-03 — Pricing labor test fix v1
+
+- Zmiana dotyczy tylko testu migracji katalogów po rozszerzeniu `quoteRates` o robociznę.
+- Dla przyszłej chmury utrzymujemy zasadę: zapisane katalogi użytkownika mają pierwszeństwo przed legacy kluczami, ale migracja może dołączyć brakujące systemowe/defaultowe definicje katalogu robocizny jako dane użytkownika do dalszej edycji.
+- Historyczne oferty nadal muszą trzymać snapshot `lines.labor`, a nie odczytywać po czasie aktualnych definicji katalogu.

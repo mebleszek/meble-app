@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T11:15:10.722Z",
+  "generatedAt": "2026-05-03T16:08:53.563Z",
   "summary": {
     "jsFiles": 312,
     "indexScripts": 238,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 51,
-      "lines": 11120,
+      "lines": 11124,
       "storageRefs": 242,
       "dialogRefs": 1,
       "high": 5,
@@ -16140,7 +16140,7 @@
     "js/testing/material/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 106,
+      "lines": 110,
       "defines": [
         "materialDevTests"
       ],

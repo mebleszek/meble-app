@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_optimization_checkpoint_v1.zip`.
-- Baza startowa tej paczki: `site_app_legacy_bridges_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_pricing_labor_test_fix_v1.zip`.
+- Baza startowa tej paczki: `site_pricing_labor_rules_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -469,3 +469,11 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Ręczne stawki oferty filtrują definicje automatyczne/wewnętrzne (`autoRole !== none`, `usage !== manual`, `internalOnly === true`), żeby reguły korpusów/gabarytu nie trafiały jako pozycje klienta.
 - Snapshot oferty ma wersję 6 i zapisuje `lines.labor`; nie usuwać tego pola przy dalszych zmianach WYCENY.
 - Raport: `tools/reports/pricing-labor-rules-v1.md`.
+
+
+## 2026-05-03 — Pricing labor test fix v1
+
+- Naprawiono test materiałów `preferStoredSplit` po dodaniu domyślnych definicji robocizny do `quoteRates`.
+- Zachowanie runtime pozostaje bez zmian: zapisane rozdzielone listy materiałów/akcesoriów/stawek są zachowywane, stare legacy `services` nie są wskrzeszane, a nowe domyślne definicje robocizny mogą zostać dołączone jako migracja katalogu.
+- Test nie może już zakładać, że `quoteRates` ma dokładnie jeden zapisany wpis, bo po `pricing_labor_rules_v1` katalog robocizny wymaga seedów godzinowych i definicji korpusów/dodatków.
+- Zmieniono tylko fixture/test i cache-busting `dev_tests.html`; UI, WYCENA, RYSUNEK, statusy, storage runtime i PDF klienta nie były ruszane.
