@@ -1,17 +1,19 @@
-/* quote-labor-picker.css — aplikacyjne okno wyboru czynności robocizny w WYCENIE */
-.quote-labor-picker-back{ display:flex; align-items:flex-start; justify-content:center; padding-top:18vh; z-index:6400; }
-.quote-labor-picker{ width:min(92vw, 720px); max-height:76vh; display:flex; flex-direction:column; overflow:hidden; }
-.quote-labor-picker__body{ padding:14px 18px; overflow:auto; }
-.quote-labor-picker__search{ width:100%; margin-bottom:12px; }
+/* quote-labor-picker.css — aplikacyjne okno wyboru czynności robocizny w CZYNNOŚCI */
+.quote-labor-picker-back{ display:flex; align-items:flex-start; justify-content:center; padding-top:20dvh; z-index:6400; }
+.quote-labor-picker{ width:min(92vw, 720px); max-height:calc(100dvh - 20dvh - 16px); display:flex; flex-direction:column; overflow:hidden; }
+.quote-labor-picker-panel{ width:min(100%,720px); }
+.quote-labor-picker-form{ gap:0; }
+.quote-labor-picker__body{ padding:0; overflow:auto; }
+.quote-labor-picker__search{ width:100%; margin:0 0 12px; }
 .quote-labor-picker__list{ display:grid; gap:10px; }
-.quote-labor-picker__item{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; border:1px solid rgba(226,232,240,.95); border-radius:18px; padding:12px; background:linear-gradient(180deg,#fff,#f8fbff); box-shadow:0 8px 22px rgba(15,23,42,.06); }
-.quote-labor-picker__title{ font-weight:900; font-size:18px; color:#111827; }
-.quote-labor-picker__meta{ margin-top:4px; color:#64748b; font-weight:800; line-height:1.25; }
+.quote-labor-picker__item{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; border:1px solid #dbe7f3; border-radius:18px; padding:12px; background:linear-gradient(180deg,#fff,#f8fbff); box-shadow:2px 3px 0 rgba(15,23,42,.08), 4px 9px 16px rgba(148,163,184,.10); }
+.quote-labor-picker__title{ font-weight:900; font-size:18px; line-height:1.12; color:#111827; overflow-wrap:anywhere; }
+.quote-labor-picker__meta{ margin-top:4px; color:#64748b; font-weight:800; line-height:1.25; overflow-wrap:anywhere; }
 .quote-labor-picker__controls{ display:flex; align-items:center; gap:8px; }
-.quote-labor-picker__step{ min-width:42px; padding:10px 12px; font-size:22px; line-height:1; }
-.quote-labor-picker__qty{ width:74px; text-align:center; font-weight:900; }
+.quote-labor-picker__step{ min-width:46px; min-height:46px; padding:10px 12px; font-size:22px; line-height:1; }
+.quote-labor-picker__qty{ width:78px; min-height:46px; text-align:center; font-weight:900; }
 .quote-labor-picker__empty{ padding:14px; border-radius:16px; background:#f8fafc; color:#64748b; font-weight:800; }
-.quote-labor-picker__footer{ display:flex; justify-content:flex-end; gap:12px; padding:12px 18px 16px; border-top:1px solid rgba(226,232,240,.95); background:#fff; }
+.quote-labor-picker__footer{ display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap; padding:12px 0 0; background:transparent; }
 .quote-rate-editor__selected{ display:grid; gap:10px; margin-bottom:12px; }
 .quote-rate-editor__selected-row{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; border:1px solid rgba(226,232,240,.95); border-radius:16px; padding:10px 12px; background:#fff; }
 .quote-rate-editor__selected-title{ font-weight:900; color:#111827; }
@@ -23,8 +25,12 @@
 .cabinet-labor-appliance__sub{ margin-top:4px; color:#64748b; font-weight:800; line-height:1.25; }
 .cabinet-labor-appliance__choices{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 .cabinet-labor-appliance__choice{ cursor:pointer; }
+.cabinet-labor-appliance__choice{ min-height:48px; border-radius:16px; padding:10px 13px 10px 10px; }
+.cabinet-labor-appliance__choice input{ flex:0 0 auto; }
+.cabinet-labor-appliance__choice span{ font-size:15px; font-weight:900; line-height:1.12; }
+
 @media (max-width: 640px){
-  .quote-labor-picker-back{ padding-top:12vh; }
+  .quote-labor-picker-back{ padding-top:20dvh; }
   .quote-labor-picker__item{ grid-template-columns:1fr; }
   .quote-labor-picker__controls{ justify-content:flex-start; }
   .quote-rate-editor__selected-row{ grid-template-columns:1fr; }

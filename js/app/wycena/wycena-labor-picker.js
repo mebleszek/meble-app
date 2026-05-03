@@ -36,9 +36,13 @@
   }
 
   function close(){
+    const wasPanel = !!(state && state.panelMode);
+    state = null;
+    if(wasPanel && FC.panelBox && typeof FC.panelBox.close === 'function'){
+      try{ FC.panelBox.close(); return; }catch(_){ }
+    }
     const modal = document.getElementById('quoteLaborPickerModal');
     if(modal) modal.remove();
-    state = null;
   }
 
   function currentRows(){
@@ -104,33 +108,18 @@
       if(id && amount > 0) state.qtyMap[id] = amount;
     });
 
-    const back = make('div', 'modal-back quote-labor-picker-back');
-    back.id = 'quoteLaborPickerModal';
-    back.setAttribute('role', 'dialog');
-    back.setAttribute('aria-modal', 'true');
-    const panel = make('div', 'window-modal quote-labor-picker');
-    const head = make('div', 'window-modal-head');
-    const icon = make('div', 'window-modal-icon', '$');
-    const copy = make('div');
-    copy.appendChild(make('div', 'window-modal-title', 'Dodaj czynności'));
-    copy.appendChild(make('div', 'window-modal-subtitle', 'Wybierz z jednej wspólnej puli robocizny. Te pozycje są wewnętrzne dla wyceny.'));
-    const x = make('button', 'window-close-btn', '×');
-    x.type = 'button';
-    x.addEventListener('click', close);
-    head.appendChild(icon); head.appendChild(copy); head.appendChild(x);
-    panel.appendChild(head);
-
-    const body = make('div', 'quote-labor-picker__body');
+    const form = make('div', 'panel-box-form quote-labor-picker-form');
+    const scroll = make('div', 'panel-box-form__scroll quote-labor-picker__body');
     const search = make('input', 'investor-form-input quote-labor-picker__search');
     search.type = 'search';
     search.placeholder = 'Szukaj czynności...';
-    body.appendChild(search);
+    scroll.appendChild(search);
     const list = make('div', 'quote-labor-picker__list');
-    body.appendChild(list);
+    scroll.appendChild(list);
     search.addEventListener('input', ()=> renderList(list, search.value));
-    panel.appendChild(body);
+    form.appendChild(scroll);
 
-    const footer = make('div', 'quote-labor-picker__footer');
+    const footer = make('div', 'panel-box-form__footer quote-labor-picker__footer');
     const cancel = make('button', 'btn-primary', 'Wróć');
     cancel.type = 'button';
     cancel.addEventListener('click', close);
@@ -141,11 +130,44 @@
       if(state && state.onSave) state.onSave(rows);
       close();
     });
-    footer.appendChild(cancel); footer.appendChild(save);
-    panel.appendChild(footer);
+    footer.appendChild(cancel);
+    footer.appendChild(save);
+    form.appendChild(footer);
+
+    renderList(list, '');
+    if(FC.panelBox && typeof FC.panelBox.open === 'function'){
+      state.panelMode = true;
+      FC.panelBox.open({
+        title:'Dodaj czynności',
+        contentNode:form,
+        width:'720px',
+        boxClass:'panel-box--rozrys quote-labor-picker-panel',
+        dismissOnOverlay:false,
+        dismissOnEsc:true,
+        beforeClose:()=>{ state = null; return true; }
+      });
+      setTimeout(()=>{ try{ search.focus(); }catch(_){ } }, 30);
+      return;
+    }
+
+    const back = make('div', 'modal-back quote-labor-picker-back');
+    back.id = 'quoteLaborPickerModal';
+    back.setAttribute('role', 'dialog');
+    back.setAttribute('aria-modal', 'true');
+    const panel = make('div', 'window-modal quote-labor-picker');
+    const head = make('div', 'window-modal-head');
+    const icon = make('div', 'window-modal-icon', '$');
+    const copy = make('div');
+    copy.appendChild(make('div', 'window-modal-title', 'Dodaj czynności'));
+    copy.appendChild(make('div', 'window-modal-subtitle', 'Wybierz czynności z jednej wspólnej puli robocizny.'));
+    const x = make('button', 'window-close-btn', '×');
+    x.type = 'button';
+    x.addEventListener('click', close);
+    head.appendChild(icon); head.appendChild(copy); head.appendChild(x);
+    panel.appendChild(head);
+    panel.appendChild(form);
     back.appendChild(panel);
     document.body.appendChild(back);
-    renderList(list, '');
     setTimeout(()=>{ try{ search.focus(); }catch(_){ } }, 30);
   }
 

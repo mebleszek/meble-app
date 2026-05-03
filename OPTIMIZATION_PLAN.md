@@ -502,3 +502,9 @@ Do obserwacji:
 
 - Robocizna została przeniesiona funkcjonalnie do zakładki `CZYNNOŚCI` bez dalszego rozrostu `wycena-tab-editor.js`.
 - Następny etap, jeśli zakładka `CZYNNOŚCI` będzie rosła: wydzielić z `js/tabs/czynnosci.js` osobne moduły renderu ręcznych czynności i renderu czynności szafek.
+
+
+## Czynności labor UI adjust v1 — 2026-05-03
+
+- Nie wykonano dużego refaktoru. Zmiany zostały ograniczone do UI robocizny: picker czynności, kolejność sekcji w modalu szafki i chipy montażu AGD.
+- `wycena-labor-picker.js` pozostaje małym modułem pickera, a `cabinet-modal-labor.js` pozostaje modułem sekcji robocizny w modalu szafki. Nie scalać tego z głównym modalem szafki ani z WYCENĄ.

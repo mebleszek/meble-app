@@ -137,6 +137,12 @@ Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm
 
 
 
+## Czynności labor UI adjust v1 — 2026-05-03
+
+- Poprawka jest UI-only: nie dodaje nowego storage, nie zmienia modelu `cabinet.laborItems`, nie zmienia katalogu `quoteRates` ani snapshotów ofert.
+- Zachowany kierunek cloud-ready: zakładka `CZYNNOŚCI` jest workspace robocizny, ale dane nadal idą przez istniejące store/selekcje i draft oferty, bez nowych trwałych kluczy lokalnych.
+
+
 ## Pricing labor display fix v1 — 2026-05-03
 
 - Poprawka nie dodaje nowego storage i nie zmienia formatu danych. Zachowuje istniejące `quoteRates` jako katalog użytkownika oraz `cabinet.laborItems` jako dane przypięte do konkretnej szafki.

@@ -8,8 +8,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- |
 | Pliki JS | 316 |
 | Skrypty w index.html | 242 |
-| Skrypty w dev_tests.html | 272 |
-| Krawędzie zależności po symbolach FC | 1699 |
+| Skrypty w dev_tests.html | 273 |
+| Krawędzie zależności po symbolach FC | 1700 |
 | Symbole FC z właścicielem produkcyjnym | 232 |
 | Symbole FC z właścicielem razem | 258 |
 | Pliki z ryzykiem wysokim / nie ruszać | 7 |
@@ -21,8 +21,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 51 | 11124 | 242 | 1 | 5 | 30 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
-| WYCENA | 45 | 6895 | 0 | 0 | 0 | 6 |
-| SZAFKI | 28 | 6558 | 0 | 0 | 0 | 3 |
+| WYCENA | 45 | 6917 | 0 | 0 | 0 | 6 |
+| SZAFKI | 28 | 6572 | 0 | 0 | 0 | 3 |
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | MATERIAŁ | 14 | 2128 | 8 | 3 | 0 | 1 |
@@ -84,9 +84,9 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/project/project-status-snapshot-flow.js | 17 | PROJEKT | średnie |
 | js/app/project/project-status-sync.js | 17 | PROJEKT | średnie |
 | js/app/optimizer/cut-optimizer.js | 16 | OPTIMIZER | średnie |
+| js/app/ui/panel-box.js | 16 | UI | niskie |
 | js/testing/rozrys/suites/project-stock.js | 16 | TESTY | średnie |
 | js/testing/wycena/fixtures.js | 16 | TESTY | średnie |
-| js/app/ui/panel-box.js | 15 | UI | niskie |
 
 ## Największy wpływ drugiego poziomu
 

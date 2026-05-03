@@ -57,18 +57,32 @@
     box.appendChild(make('div', 'cabinet-labor-appliance__sub', appliance.label + ' — domyślnie doliczany, ale można wyłączyć.'));
     const choices = make('div', 'cabinet-labor-appliance__choices');
     const current = api.getMountingMode(draft);
+    const groupName = 'cabinet-appliance-mounting-' + String(draft.id || draft.tempId || 'draft');
     [
       { value:api.MODE_MOUNT || 'mount', label:'Z montażem' },
       { value:api.MODE_NONE || 'none', label:'Bez montażu' },
     ].forEach((opt)=>{
-      const btn = make('button', `rozrys-scope-chip cabinet-labor-appliance__choice${current === opt.value ? ' is-checked' : ''}`, opt.label);
-      btn.type = 'button';
-      btn.addEventListener('click', (event)=>{
-        try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+      const chip = make('label', `rozrys-scope-chip cabinet-labor-appliance__choice${current === opt.value ? ' is-checked' : ''}`);
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.name = groupName;
+      cb.checked = current === opt.value;
+      const label = make('span', '', opt.label);
+      const apply = ()=>{
         api.setMountingMode(draft, opt.value);
         if(typeof rerender === 'function') rerender();
+      };
+      cb.addEventListener('change', (event)=>{
+        try{ event.stopPropagation(); }catch(_){ }
+        if(!cb.checked){ cb.checked = true; return; }
+        apply();
       });
-      choices.appendChild(btn);
+      chip.addEventListener('click', (event)=>{
+        try{ event.stopPropagation(); }catch(_){ }
+      });
+      chip.appendChild(cb);
+      chip.appendChild(label);
+      choices.appendChild(chip);
     });
     box.appendChild(choices);
     card.appendChild(box);
@@ -145,7 +159,7 @@
     const card = make('div', 'cabinet-labor-card');
     const head = make('div', 'cabinet-labor-card__head');
     head.appendChild(make('div', 'cabinet-labor-card__title', 'Czynności robocizny'));
-    head.appendChild(make('div', 'cabinet-labor-card__sub', 'Dodaj czynności do tej szafki. Ta sama pula czynności jest dostępna też ręcznie w WYCENIE.'));
+    head.appendChild(make('div', 'cabinet-labor-card__sub', 'Dodaj czynności do tej szafki. Ta sama pula czynności jest dostępna też w zakładce CZYNNOŚCI.'));
     card.appendChild(head);
     renderApplianceSection(card, draft, rerender);
     if(!definitions.length){

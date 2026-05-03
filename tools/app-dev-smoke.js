@@ -134,6 +134,7 @@ function runWycenaNodeSmoke(sandbox){
     { name:'WYCENA ma aplikacyjny picker czynności zamiast długiej listy pól ilości', explain:'Chroni ręczne dodawanie robocizny przez osobne okno wyboru.', check:()=> !!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function' && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function') },
     { name:'Zakładka CZYNNOŚCI przejmuje ręczne czynności i podgląd szafek', explain:'Chroni przed powrotem dodawania robocizny do opcji WYCENY.', check:()=> !!(FC.tabsCzynnosci && typeof FC.tabsCzynnosci.render === 'function' && typeof FC.tabsCzynnosci.buildCabinetRows === 'function' && FC.wycenaTabManualLabor && typeof FC.wycenaTabManualLabor.renderManualLaborEditor === 'function') },
     { name:'WYCENA nie renderuje już akordeonu ręcznych czynności', explain:'Czynności mają mieszkać w zakładce CZYNNOŚCI, nie w opcjach WYCENY.', check:()=> { const src = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8'); return !src.includes('renderManualLaborEditor(card, ctx)'); } },
+    { name:'Picker czynności używa standardowego panelBox', explain:'Chroni okno Dodaj czynności przed obcym pływającym układem i przyklejonym paskiem akcji.', check:()=> { const src = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-labor-picker.js'), 'utf8'); const css = fs.readFileSync(path.join(process.cwd(), 'css/quote-labor-picker.css'), 'utf8'); return src.includes('FC.panelBox.open') && src.includes('panel-box-form quote-labor-picker-form') && src.includes('panel-box-form__footer quote-labor-picker__footer') && css.includes('.quote-labor-picker-panel') && !css.includes('padding:12px 18px 16px'); } },
     { name:'Wycena wylicza robociznę szafki z katalogu', explain:'Chroni sekcję Robocizna — szafki przed pustym wynikiem mimo istniejących szafek.', check:()=> {
       const previousProject = sandbox.projectData;
       try{
@@ -165,6 +166,14 @@ function runCabinetNodeSmoke(sandbox){
       const header = api.getHeaderText(cab);
       const node = api.renderCabinetLaborSummary(cab);
       return /Otwór fi 60/.test(header) && /bez montażu/.test(header) && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent) && /bez montażu/.test(node.textContent));
+    } },
+    { name:'Modal szafki ma robociznę po parametrach i materiałach', explain:'Chroni kolejność: najpierw typ, wymiary i materiały szafki, dopiero potem dodatkowe czynności.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      return html.indexOf('id="cmOpeningSystem"') > -1 && html.indexOf('id="cmLaborAddons"') > html.indexOf('id="cmOpeningSystem"') && html.indexOf('id="cmLaborAddons"') > html.indexOf('id="cmBodyColor"');
+    } },
+    { name:'Montaż sprzętu w modalu szafki używa chipów z ptaszkiem', explain:'Chroni wybór Z montażem / Bez montażu przed powrotem do zwykłych przycisków.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-labor.js'), 'utf8');
+      return src.includes("make('label', `rozrys-scope-chip cabinet-labor-appliance__choice") && src.includes("cb.type = 'checkbox'") && src.includes('api.setMountingMode(draft, opt.value)') && !src.includes("make('button', `rozrys-scope-chip cabinet-labor-appliance__choice");
     } },
     { name:'Hardware frontów jest załadowany', explain:'Chroni kalkulatory i katalogi używane przy frontach/podnośnikach.', check:()=> !!(FC.frontHardware && FC.frontHardwareAventosCalc && FC.frontHardwareAventosData && FC.frontHardwareAventosSelector) },
   ]);

@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_pricing_labor_manual_accordion_v1.zip`.
-- Baza startowa tej paczki: `site_pricing_labor_unified_picker_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_czynnosci_labor_ui_adjust_v1.zip`.
+- Baza startowa tej paczki: `site_czynnosci_labor_workspace_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -50,6 +50,15 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
 
+
+
+## Czynności labor UI adjust v1 — 2026-05-03
+
+- Robocizna/czynności są zarządzane w zakładce `CZYNNOŚCI`; `WYCENA` nie może ponownie przejmować ręcznego dodawania czynności.
+- Okno `Dodaj czynności` używa standardowego `FC.panelBox` z `panel-box--rozrys`, a nie własnego pływającego układu ani przyklejonego białego paska akcji.
+- W modalu szafki sekcja `Czynności robocizny` ma być po podstawowych parametrach, wymiarach i materiałach; nie przenosić jej nad wybór materiałów.
+- Wybór `Z montażem` / `Bez montażu` dla AGD ma być wzajemnie wykluczającym się chipem z ptaszkiem w stylu ROZRYS, nie zwykłymi przyciskami.
+- `tools/app-dev-smoke.js` ma kontrakty pilnujące panelBox dla pickera, kolejności sekcji w modalu szafki i chipów montażu sprzętu.
 
 
 ## Pricing labor display fix v1 — 2026-05-03
