@@ -15,7 +15,6 @@
 
 
   const LABOR_CHOICE_FIELDS = [
-    { id:'laborUsage', title:'Wybierz użycie', placeholder:'Użycie' },
     { id:'laborAutoRole', title:'Wybierz automat', placeholder:'Automat' },
     { id:'laborRateType', title:'Wybierz stawkę', placeholder:'Stawka' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
@@ -37,6 +36,15 @@
     }
     try{ selectEl.hidden = true; selectEl.setAttribute('aria-hidden', 'true'); }catch(_){ }
     return mount;
+  }
+
+
+  function hideLaborUsageField(){
+    const el = ctx.byId('laborUsage');
+    if(!el) return;
+    try{ el.value = 'universal'; }catch(_){ }
+    const wrap = el.closest ? el.closest('div') : el.parentElement;
+    if(wrap) wrap.style.display = 'none';
   }
 
   function mountLaborChoiceLaunchers(){
@@ -70,7 +78,7 @@
       category:ctx.firstNonEmptyValue(ctx.buildCategoryOptions(kind, isQuoteRates ? 'Korpusy' : 'Cięcie', { includeAll:false })) || (isQuoteRates ? 'Korpusy' : 'Cięcie'),
       name:'',
       price:'',
-      usage:isQuoteRates ? 'manual' : '',
+      usage:isQuoteRates ? 'universal' : '',
       autoRole:'none',
       rateType:'workshop',
       timeBlockHours:0,
@@ -112,7 +120,7 @@
     const tierText = readString('laborTierText');
     const volumeTierText = readString('laborVolumeTimeTierText');
     return {
-      usage:readString('laborUsage') || 'manual',
+      usage:'universal',
       autoRole:readString('laborAutoRole') || 'none',
       rateType:readString('laborRateType') || 'workshop',
       rateKey:readString('laborAutoRole') === 'hourlyRate' ? (readString('laborRateType') || 'workshop') : '',
@@ -159,7 +167,7 @@
   function wireItemDirtyEvents(){
     [
       'formSymbol','formName','formPrice','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
-      'laborUsage','laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
+      'laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborHeightMinMm','laborHeightMaxMm','laborActive','laborInternalOnly'
     ].forEach((id)=>{
@@ -189,7 +197,7 @@
   function applyLaborFormState(item){
     const labor = FC.laborCatalog || {};
     const def = labor.normalizeDefinition ? labor.normalizeDefinition(item || defaultServiceDraft('quoteRates')) : (item || {});
-    setValue('laborUsage', def.usage || 'manual');
+    setValue('laborUsage', 'universal');
     setValue('laborAutoRole', def.autoRole || 'none');
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
     setValue('laborTimeBlockHours', Number(def.timeBlockHours) || 0);
@@ -247,7 +255,7 @@
       if(categoryWrap) categoryWrap.style.display = '';
       if(nameWrap) nameWrap.style.display = '';
     }
-    if(kind === 'quoteRates') mountLaborChoiceLaunchers();
+    if(kind === 'quoteRates') { hideLaborUsageField(); mountLaborChoiceLaunchers(); }
     wireItemDirtyEvents();
     ctx.runtimeState.itemInitialSignature = currentItemSignature();
     updateItemActionState();

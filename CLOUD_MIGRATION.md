@@ -380,3 +380,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Zmiana dotyczy tylko testu migracji katalogów po rozszerzeniu `quoteRates` o robociznę.
 - Dla przyszłej chmury utrzymujemy zasadę: zapisane katalogi użytkownika mają pierwszeństwo przed legacy kluczami, ale migracja może dołączyć brakujące systemowe/defaultowe definicje katalogu robocizny jako dane użytkownika do dalszej edycji.
 - Historyczne oferty nadal muszą trzymać snapshot `lines.labor`, a nie odczytywać po czasie aktualnych definicji katalogu.
+
+## 2026-05-03 — Pricing labor unified picker v1
+
+- Definicje robocizny są traktowane jako wspólny katalog czynności (`usage: universal`). Dla przyszłej chmury nie modelować osobnych kolekcji `manualRates` i `cabinetRates`; lepszy kierunek to jedna kolekcja definicji robocizny z polami zastosowania, `autoRole`, aktywnością i metadanymi.
+- Wybory użytkownika pozostają danymi projektu/oferty: czynności ręcznie dodane w WYCENIE są zapisywane jako selekcje oferty, a czynności przy szafce jako dane tej szafki. Definicja katalogowa i użycie w projekcie nie mogą być tym samym dokumentem.
+- Montaż AGD wynikający z typu szafki ma jawny override w danych szafki (`applianceMountingMode`): brak wartości oznacza domyślny montaż dla kompatybilności, a `none` oznacza świadome wyłączenie automatycznej pozycji.
+- Snapshot oferty powinien nadal zamrażać przeliczone linie robocizny i stawki; zmiana katalogu robocizny w chmurze nie może przeliczać starych ofert.

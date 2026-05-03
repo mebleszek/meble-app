@@ -112,14 +112,15 @@ function runMaterialNodeSmoke(sandbox){
     { name:'Edge store jest dostępny', check:()=> !!(FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function') },
     { name:'Price modal API jest dostępne', check:()=> !!(FC.priceModal && typeof FC.priceModal.renderPriceModal === 'function') },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
+    { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {
       const rows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
       return Array.isArray(rows) && rows.some((row)=> String(row && row.id || '') === 'labor_body_h072') && rows.some((row)=> String(row && row.id || '') === 'labor_rate_workshop');
     } },
     { name:'Cennik robocizny ma aplikacyjne launchery wyboru zamiast natywnych selectów', explain:'Chroni formularz reguł robocizny przed systemowym pickerem Android/iOS.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
-      const required = ['laborUsage','laborAutoRole','laborRateType','laborTimeBlockHours','laborQuantityMode','laborStartHours','laborStepHours','laborVolumeTimeMode'];
-      return src.includes('mountLaborChoiceLaunchers') && src.includes('ensureLaborChoiceMount') && src.includes('selectEl.hidden = true') && required.every((id)=> src.includes(id));
+      const required = ['laborAutoRole','laborRateType','laborTimeBlockHours','laborQuantityMode','laborStartHours','laborStepHours','laborVolumeTimeMode'];
+      return src.includes('mountLaborChoiceLaunchers') && src.includes('ensureLaborChoiceMount') && src.includes('selectEl.hidden = true') && src.includes('hideLaborUsageField') && required.every((id)=> src.includes(id));
     } },
   ]);
 }
@@ -130,6 +131,7 @@ function runWycenaNodeSmoke(sandbox){
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
     { name:'Wycena ma wewnętrzne rozbicie robocizny po szafkach', explain:'Pilnuje numerów szafek z WYWIADU i szczegółów kosztów robocizny tylko do podglądu wewnętrznego.', check:()=> !!(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectCabinetLabor === 'function' && FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderLaborSection === 'function') },
+    { name:'WYCENA ma aplikacyjny picker czynności zamiast długiej listy pól ilości', explain:'Chroni ręczne dodawanie robocizny przez osobne okno wyboru.', check:()=> !!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function' && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function') },
     { name:'Wycena wylicza robociznę szafki z katalogu', explain:'Chroni sekcję Robocizna — szafki przed pustym wynikiem mimo istniejących szafek.', check:()=> {
       const previousProject = sandbox.projectData;
       try{
@@ -157,10 +159,10 @@ function runCabinetNodeSmoke(sandbox){
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;
       if(!(api && typeof api.getHeaderText === 'function' && typeof api.renderCabinetLaborSummary === 'function')) return false;
-      const cab = { laborItems:[{ rateId:'labor_hole_fi60', qty:2 }] };
+      const cab = { type:'wisząca', subType:'okap', details:{ applianceMountingMode:'none' }, laborItems:[{ rateId:'labor_hole_fi60', qty:2 }] };
       const header = api.getHeaderText(cab);
       const node = api.renderCabinetLaborSummary(cab);
-      return /Otwór fi 60/.test(header) && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent));
+      return /Otwór fi 60/.test(header) && /bez montażu/.test(header) && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent) && /bez montażu/.test(node.textContent));
     } },
     { name:'Hardware frontów jest załadowany', explain:'Chroni kalkulatory i katalogi używane przy frontach/podnośnikach.', check:()=> !!(FC.frontHardware && FC.frontHardwareAventosCalc && FC.frontHardwareAventosData && FC.frontHardwareAventosSelector) },
   ]);

@@ -1,34 +1,14 @@
 // js/app/cabinet/cabinet-modal-labor.js
-// Wybór dodatkowych czynności robocizny przypiętych do konkretnej szafki w WYWIADZIE.
+// Wybór czynności robocizny przypiętych do konkretnej szafki w WYWIADZIE.
 (function(){
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  function clone(value){
-    try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
-    catch(_){ return JSON.parse(JSON.stringify(value || null)); }
-  }
   function text(value){ return String(value == null ? '' : value).trim(); }
   function qty(value){
     const n = Number(String(value == null ? '' : value).replace(',', '.'));
     return Number.isFinite(n) && n > 0 ? n : 1;
-  }
-  function getDefinitions(){
-    try{
-      const rows = FC.catalogStore && typeof FC.catalogStore.getPriceList === 'function' ? FC.catalogStore.getPriceList('quoteRates') : [];
-      const labor = FC.laborCatalog || null;
-      return (Array.isArray(rows) ? rows : []).map((row)=> labor && typeof labor.normalizeDefinition === 'function' ? labor.normalizeDefinition(row) : row).filter((row)=> {
-        if(!row || row.active === false) return false;
-        return String(row.usage || '') === 'cabinet' && String(row.autoRole || 'none') === 'none';
-      });
-    }catch(_){ return []; }
-  }
-  function ensureItems(draft){
-    if(!draft) return [];
-    draft.laborItems = Array.isArray(draft.laborItems) ? draft.laborItems : [];
-    draft.laborItems = draft.laborItems.map((item)=> ({ rateId:text(item && item.rateId), qty:qty(item && item.qty), note:text(item && item.note) })).filter((item)=> !!item.rateId);
-    return draft.laborItems;
   }
   function make(tag, className, textContent){
     const el = document.createElement(tag);
@@ -36,69 +16,101 @@
     if(textContent != null) el.textContent = textContent;
     return el;
   }
+  function normalize(row){
+    try{ return FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(row) : row; }
+    catch(_){ return row; }
+  }
+  function getDefinitions(){
+    try{
+      const rows = FC.catalogStore && typeof FC.catalogStore.getPriceList === 'function' ? FC.catalogStore.getPriceList('quoteRates') : [];
+      return (Array.isArray(rows) ? rows : []).map(normalize).filter((row)=> {
+        if(!row || row.active === false) return false;
+        return String(row.autoRole || 'none') === 'none';
+      }).sort((a,b)=> String(a.category || '').localeCompare(String(b.category || ''), 'pl') || String(a.name || '').localeCompare(String(b.name || ''), 'pl'));
+    }catch(_){ return []; }
+  }
+  function ensureItems(draft){
+    if(!draft) return [];
+    draft.laborItems = Array.isArray(draft.laborItems) ? draft.laborItems : [];
+    draft.laborItems = draft.laborItems.map((item)=> ({ rateId:text(item && rateIdOf(item)), qty:qty(item && item.qty), note:text(item && item.note) })).filter((item)=> !!item.rateId);
+    return draft.laborItems;
+  }
+  function rateIdOf(item){ return item && (item.rateId || item.id); }
   function describe(def){
     try{ return FC.laborCatalog && typeof FC.laborCatalog.describeDefinition === 'function' ? FC.laborCatalog.describeDefinition(def) : ''; }
     catch(_){ return ''; }
   }
-  function renderLaborSection(container, draft, rerender){
-    if(!container || !draft) return null;
-    const definitions = getDefinitions();
-    const items = ensureItems(draft);
-    container.innerHTML = '';
-    const card = make('div', 'cabinet-labor-card');
-    const head = make('div', 'cabinet-labor-card__head');
-    const title = make('div', 'cabinet-labor-card__title', 'Dodatki robocizny');
-    const sub = make('div', 'cabinet-labor-card__sub', 'Wybierz czynności dodatkowe przypięte do tej konkretnej szafki. Koszty są wewnętrzne i widoczne w WYCENIE.');
-    head.appendChild(title);
-    head.appendChild(sub);
-    card.appendChild(head);
+  function mountLaunchers(root){
+    try{
+      const launcherApi = FC.cabinetChoiceLaunchers;
+      if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function') launcherApi.mountDynamicSelectLaunchers(root);
+    }catch(_){ }
+  }
 
-    if(!definitions.length){
-      card.appendChild(make('div', 'cabinet-labor-empty', 'Brak aktywnych usług dla szafki w cenniku robocizny.'));
-      container.appendChild(card);
-      return card;
-    }
+  function renderApplianceSection(card, draft, rerender){
+    const api = FC.laborApplianceRules;
+    if(!(api && typeof api.getApplianceForCabinet === 'function')) return;
+    const appliance = api.getApplianceForCabinet(draft);
+    if(!appliance) return;
+    const box = make('div', 'cabinet-labor-appliance');
+    box.appendChild(make('div', 'cabinet-labor-appliance__title', 'Montaż sprzętu'));
+    box.appendChild(make('div', 'cabinet-labor-appliance__sub', appliance.label + ' — domyślnie doliczany, ale można wyłączyć.'));
+    const choices = make('div', 'cabinet-labor-appliance__choices');
+    const current = api.getMountingMode(draft);
+    [
+      { value:api.MODE_MOUNT || 'mount', label:'Z montażem' },
+      { value:api.MODE_NONE || 'none', label:'Bez montażu' },
+    ].forEach((opt)=>{
+      const btn = make('button', `rozrys-scope-chip cabinet-labor-appliance__choice${current === opt.value ? ' is-checked' : ''}`, opt.label);
+      btn.type = 'button';
+      btn.addEventListener('click', (event)=>{
+        try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+        api.setMountingMode(draft, opt.value);
+        if(typeof rerender === 'function') rerender();
+      });
+      choices.appendChild(btn);
+    });
+    box.appendChild(choices);
+    card.appendChild(box);
+  }
 
+  function renderAddRow(card, draft, definitions, rerender){
     const form = make('div', 'cabinet-labor-add-row');
     const select = make('select', 'cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source');
-    select.setAttribute('data-launcher-label', 'Dodatek robocizny');
-    select.setAttribute('data-choice-title', 'Wybierz dodatek robocizny');
-    select.setAttribute('data-choice-placeholder', 'Dodatek robocizny');
+    select.setAttribute('data-launcher-label', 'Czynność');
+    select.setAttribute('data-choice-title', 'Wybierz czynność robocizny');
+    select.setAttribute('data-choice-placeholder', 'Czynność robocizny');
     definitions.forEach((def)=> {
       const opt = document.createElement('option');
       opt.value = def.id;
-      opt.textContent = def.name || def.id;
+      opt.textContent = `${def.category ? def.category + ' • ' : ''}${def.name || def.id}`;
       select.appendChild(opt);
     });
     const input = make('input', 'cabinet-extra-field__control cabinet-labor-qty');
-    input.type = 'number';
-    input.min = '1';
-    input.step = '1';
-    input.value = '1';
+    input.type = 'number'; input.min = '1'; input.step = '1'; input.value = '1';
     const btn = make('button', 'btn cabinet-labor-add-btn', 'Dodaj');
     btn.type = 'button';
     btn.addEventListener('click', (event)=> {
       try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
       const rateId = text(select.value);
       if(!rateId) return;
-      const amount = qty(input.value);
       const rows = ensureItems(draft);
       const existing = rows.find((item)=> item.rateId === rateId);
-      if(existing) existing.qty = qty(existing.qty) + amount;
-      else rows.push({ rateId, qty:amount, note:'' });
+      if(existing) existing.qty = qty(existing.qty) + qty(input.value);
+      else rows.push({ rateId, qty:qty(input.value), note:'' });
       draft.laborItems = rows;
       if(typeof rerender === 'function') rerender();
-      else renderLaborSection(container, draft, rerender);
     });
-    form.appendChild(select);
-    form.appendChild(input);
-    form.appendChild(btn);
+    form.appendChild(select); form.appendChild(input); form.appendChild(btn);
     card.appendChild(form);
+  }
 
+  function renderSelectedList(card, draft, definitions, rerender){
+    const items = ensureItems(draft);
     const list = make('div', 'cabinet-labor-list');
     const map = new Map(definitions.map((def)=> [String(def.id), def]));
     if(!items.length){
-      list.appendChild(make('div', 'cabinet-labor-empty', 'Brak dodatków robocizny przy tej szafce.'));
+      list.appendChild(make('div', 'cabinet-labor-empty', 'Brak dodatkowych czynności przy tej szafce.'));
     } else {
       items.forEach((item, index)=> {
         const def = map.get(String(item.rateId));
@@ -117,19 +129,34 @@
           draft.laborItems = ensureItems(draft).filter((_, idx)=> idx !== index);
           if(typeof rerender === 'function') rerender();
         });
-        actions.appendChild(q);
-        actions.appendChild(remove);
-        row.appendChild(info);
-        row.appendChild(actions);
+        actions.appendChild(q); actions.appendChild(remove);
+        row.appendChild(info); row.appendChild(actions);
         list.appendChild(row);
       });
     }
     card.appendChild(list);
+  }
+
+  function renderLaborSection(container, draft, rerender){
+    if(!container || !draft) return null;
+    const definitions = getDefinitions();
+    ensureItems(draft);
+    container.innerHTML = '';
+    const card = make('div', 'cabinet-labor-card');
+    const head = make('div', 'cabinet-labor-card__head');
+    head.appendChild(make('div', 'cabinet-labor-card__title', 'Czynności robocizny'));
+    head.appendChild(make('div', 'cabinet-labor-card__sub', 'Dodaj czynności do tej szafki. Ta sama pula czynności jest dostępna też ręcznie w WYCENIE.'));
+    card.appendChild(head);
+    renderApplianceSection(card, draft, rerender);
+    if(!definitions.length){
+      card.appendChild(make('div', 'cabinet-labor-empty', 'Brak aktywnych czynności w cenniku robocizny.'));
+      container.appendChild(card);
+      return card;
+    }
+    renderAddRow(card, draft, definitions, rerender);
+    renderSelectedList(card, draft, definitions, rerender);
     container.appendChild(card);
-    try{
-      const launcherApi = FC.cabinetChoiceLaunchers;
-      if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function') launcherApi.mountDynamicSelectLaunchers(container);
-    }catch(_){ }
+    mountLaunchers(container);
     return card;
   }
 

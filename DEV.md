@@ -494,3 +494,14 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Zachowanie runtime pozostaje bez zmian: zapisane rozdzielone listy materiałów/akcesoriów/stawek są zachowywane, stare legacy `services` nie są wskrzeszane, a nowe domyślne definicje robocizny mogą zostać dołączone jako migracja katalogu.
 - Test nie może już zakładać, że `quoteRates` ma dokładnie jeden zapisany wpis, bo po `pricing_labor_rules_v1` katalog robocizny wymaga seedów godzinowych i definicji korpusów/dodatków.
 - Zmieniono tylko fixture/test i cache-busting `dev_tests.html`; UI, WYCENA, RYSUNEK, statusy, storage runtime i PDF klienta nie były ruszane.
+
+## 2026-05-03 — Pricing labor unified picker v1
+
+- Ujednolicono robociznę/czynności do jednej wspólnej puli definicji. Pole `usage` zostaje tylko kompatybilnościowym fallbackiem danych i nie może już być traktowane jako twardy podział `ręcznie` vs `szafka`.
+- W formularzu pozycji `Stawki wyceny mebli` ukryto wybór `Użycie`; nowe definicje robocizny zapisują się jako `universal`. O tym, gdzie da się ich użyć, decydują kontekst, `autoRole`, aktywność i wybór użytkownika, a nie osobna kategoria ręczne/szafka.
+- W `WYCENA` usunięto długą listę pól ilości dla ręcznych stawek. Ręczne/dodatkowe czynności dodaje się teraz przez aplikacyjne okno `Dodaj czynność`, obsługiwane przez `js/app/wycena/wycena-labor-picker.js`.
+- Szafki AGD/okapowe korzystają z `js/app/pricing/labor-appliance-rules.js`: typ szafki może domyślnie proponować montaż sprzętu, ale w modalu szafki musi istnieć wybór `Z montażem` / `Bez montażu`. `Bez montażu` blokuje automatyczne doliczenie tej pozycji w WYCENIE.
+- `WYWIAD` pokazuje przy szafce zarówno wybrane czynności robocizny, jak i status montażu sprzętu, żeby nie było ukrytych automatycznych dopłat.
+- Nie wracać do natywnych selectów/systemowych pickerów w tym obszarze; `app-dev-smoke` pilnuje aplikacyjnych launcherów w formularzu robocizny i pickera czynności WYCENY.
+- `js/app/wycena/wycena-tab-editor.js` ma ok. 285 linii po zmianie. To przekracza próg ostrożności 250, ale po wydzieleniu pickera pozostaje jednym edytorem ustawień oferty; dalszy split robić dopiero przy kolejnej pracy w tym konkretnym pliku, najlepiej przez wydzielenie renderu wybranych czynności albo formularza warunków oferty.
+- Raport: `tools/reports/pricing-labor-unified-picker-v1.md`.

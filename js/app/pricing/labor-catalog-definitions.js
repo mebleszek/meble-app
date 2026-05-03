@@ -11,7 +11,10 @@
     { key:'specialist', label:'Specjalistyczna' },
   ];
 
+  // usage zostaje w modelu wyłącznie jako kompatybilność wsteczna.
+  // Nowe czynności są traktowane jako jedna wspólna pula: można je dodać ręcznie w WYCENIE albo przypiąć do szafki.
   const USAGE_TYPES = [
+    { key:'universal', label:'Czynność uniwersalna' },
     { key:'manual', label:'Ręcznie w WYCENIE' },
     { key:'cabinet', label:'Szafka — dodatki' },
     { key:'room', label:'Pomieszczenie' },
@@ -33,22 +36,22 @@
   ];
 
   const DEFAULT_HOURLY_RATES = [
-    { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:120, autoRole:'hourlyRate', rateKey:'workshop', usage:'project', active:true },
-    { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:140, autoRole:'hourlyRate', rateKey:'assembly', usage:'project', active:true },
-    { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:60, autoRole:'hourlyRate', rateKey:'helper', usage:'project', active:true },
-    { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:180, autoRole:'hourlyRate', rateKey:'specialist', usage:'project', active:true },
+    { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:120, autoRole:'hourlyRate', rateKey:'workshop', usage:'universal', active:true },
+    { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:140, autoRole:'hourlyRate', rateKey:'assembly', usage:'universal', active:true },
+    { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:60, autoRole:'hourlyRate', rateKey:'helper', usage:'universal', active:true },
+    { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:180, autoRole:'hourlyRate', rateKey:'specialist', usage:'universal', active:true },
   ];
 
   const DEFAULT_LABOR_DEFINITIONS = [
-    { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
-    { id:'labor_body_h150', category:'Korpusy', name:'Skręcenie korpusu do 150 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:1, defaultMultiplier:1.15, heightMinMm:721, heightMaxMm:1500, volumePricePerM3:50, active:true, internalOnly:true },
-    { id:'labor_body_h225', category:'Korpusy', name:'Skręcenie korpusu do 225 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:1, defaultMultiplier:1.6, heightMinMm:1501, heightMaxMm:2250, volumePricePerM3:50, active:true, internalOnly:true },
-    { id:'labor_body_h999', category:'Korpusy', name:'Skręcenie korpusu powyżej 225 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:1, defaultMultiplier:2.2, heightMinMm:2251, heightMaxMm:99999, volumePricePerM3:50, active:true, internalOnly:true },
-    { id:'labor_loose_shelves', category:'Elementy szafki', name:'Półki luźne — pakiet', price:0, usage:'cabinet', autoRole:'cabinetLooseShelves', rateType:'workshop', quantityMode:'tiers', quantityTiers:[{ min:1, max:2, hours:0.25 },{ min:3, max:5, hours:0.5 },{ min:6, max:10, hours:1 }], active:true, internalOnly:true },
-    { id:'labor_hole_fi60', category:'Usługi przy szafce', name:'Otwór fi 60', price:0, usage:'cabinet', autoRole:'none', rateType:'workshop', timeBlockHours:0.25, quantityMode:'linear', active:true, internalOnly:true },
-    { id:'labor_pipe_cutout', category:'Usługi przy szafce', name:'Wcięcie na rury', price:0, usage:'cabinet', autoRole:'none', rateType:'workshop', timeBlockHours:0.5, quantityMode:'linear', active:true, internalOnly:true },
-    { id:'labor_pipe_boxing', category:'Usługi przy szafce', name:'Zabudowa rur', price:0, usage:'cabinet', autoRole:'none', rateType:'workshop', timeBlockHours:1, quantityMode:'linear', active:true, internalOnly:true },
-    { id:'labor_vertical_partition_long', category:'Elementy szafki', name:'Przegroda pionowa długa', price:0, usage:'cabinet', autoRole:'none', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, quantityMode:'linear', active:true, internalOnly:true },
+    { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'universal', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
+    { id:'labor_body_h150', category:'Korpusy', name:'Skręcenie korpusu do 150 cm', price:0, usage:'universal', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:1, defaultMultiplier:1.15, heightMinMm:721, heightMaxMm:1500, volumePricePerM3:50, active:true, internalOnly:true },
+    { id:'labor_body_h225', category:'Korpusy', name:'Skręcenie korpusu do 225 cm', price:0, usage:'universal', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:1, defaultMultiplier:1.6, heightMinMm:1501, heightMaxMm:2250, volumePricePerM3:50, active:true, internalOnly:true },
+    { id:'labor_body_h999', category:'Korpusy', name:'Skręcenie korpusu powyżej 225 cm', price:0, usage:'universal', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:1, defaultMultiplier:2.2, heightMinMm:2251, heightMaxMm:99999, volumePricePerM3:50, active:true, internalOnly:true },
+    { id:'labor_loose_shelves', category:'Elementy szafki', name:'Półki luźne — pakiet', price:0, usage:'universal', autoRole:'cabinetLooseShelves', rateType:'workshop', quantityMode:'tiers', quantityTiers:[{ min:1, max:2, hours:0.25 },{ min:3, max:5, hours:0.5 },{ min:6, max:10, hours:1 }], active:true, internalOnly:true },
+    { id:'labor_hole_fi60', category:'Usługi przy szafce', name:'Otwór fi 60', price:0, usage:'universal', autoRole:'none', rateType:'workshop', timeBlockHours:0.25, quantityMode:'linear', active:true, internalOnly:true },
+    { id:'labor_pipe_cutout', category:'Usługi przy szafce', name:'Wcięcie na rury', price:0, usage:'universal', autoRole:'none', rateType:'workshop', timeBlockHours:0.5, quantityMode:'linear', active:true, internalOnly:true },
+    { id:'labor_pipe_boxing', category:'Usługi przy szafce', name:'Zabudowa rur', price:0, usage:'universal', autoRole:'none', rateType:'workshop', timeBlockHours:1, quantityMode:'linear', active:true, internalOnly:true },
+    { id:'labor_vertical_partition_long', category:'Elementy szafki', name:'Przegroda pionowa długa', price:0, usage:'universal', autoRole:'none', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, quantityMode:'linear', active:true, internalOnly:true },
   ];
 
 

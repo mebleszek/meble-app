@@ -27,7 +27,8 @@
 <link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
-<link href="css/price-item-popup.css?v=20260503_pricing_labor_native_controls_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260503_labor_unified_picker_v1" rel="stylesheet"/>
+<link href="css/quote-labor-picker.css?v=20260503_labor_unified_picker_v1" rel="stylesheet"/>
 </head>
 <body>
 <header>
@@ -267,6 +268,7 @@
 <div>
 <label>Użycie</label>
 <select class="investor-form-input" id="laborUsage">
+<option value="universal">Czynność uniwersalna</option>
 <option value="manual">Ręcznie w WYCENIE</option>
 <option value="cabinet">Szafka — dodatki</option>
 <option value="room">Pomieszczenie</option>
@@ -757,8 +759,9 @@
 <!-- load-group: business-domains | Catalog / service / investor domains -->
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_pricing_labor_rules_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260503_labor_unified_picker_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260503_labor_display_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
@@ -866,7 +869,7 @@
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-labor.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-labor.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-repository.js?v=20260430_investor_project_boundary_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-runtime.js?v=20260430_investor_project_boundary_v1"></script>
@@ -875,7 +878,7 @@
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/ui/tabs-router.js?v=20260331_boot_fix_v1"></script>
 
 <!-- load-group: tabs-quote-wycena | Classic tabs / quote / wycena -->
-<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad-labor-summary.js?v=20260503_labor_display_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad-labor-summary.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad.js?v=20260503_labor_display_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20260424_material_cleanup_v1"></script>
@@ -904,8 +907,8 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260501_wycena_core_platform_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20260501_wycena_core_platform_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20260503_pricing_labor_rules_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20260501_wycena_core_platform_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20260503_labor_unified_picker_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
@@ -922,7 +925,8 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-pickers.js?v=20260502_status_quote_scope_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-render.js?v=20260502_wycena_selection_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection.js?v=20260502_wycena_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-labor-picker.js?v=20260503_labor_unified_picker_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-scroll.js?v=20260416_wycena_tab_scroll_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20260501_status_test_cache_fix_v2"></script>

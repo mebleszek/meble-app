@@ -51,21 +51,42 @@
       });
     });
   }
+  function getApplianceText(cabinet){
+    try{
+      const api = FC.laborApplianceRules;
+      return api && typeof api.describeCabinetMounting === 'function' ? api.describeCabinetMounting(cabinet) : '';
+    }catch(_){ return ''; }
+  }
   function getHeaderText(cabinet){
     const rows = resolveItems(cabinet);
-    if(!rows.length) return '';
-    const names = rows.slice(0, 3).map((row)=> `${row.name}${row.qty > 1 ? ' ×' + row.qty : ''}`);
-    const rest = rows.length > 3 ? ` +${rows.length - 3}` : '';
-    return `Dodatki robocizny: ${names.join(', ')}${rest}`;
+    const applianceText = getApplianceText(cabinet);
+    const parts = [];
+    if(applianceText) parts.push(applianceText);
+    if(rows.length){
+      const names = rows.slice(0, 3).map((row)=> `${row.name}${row.qty > 1 ? ' ×' + row.qty : ''}`);
+      const rest = rows.length > 3 ? ` +${rows.length - 3}` : '';
+      parts.push(`Czynności: ${names.join(', ')}${rest}`);
+    }
+    return parts.join(' • ');
   }
   function renderCabinetLaborSummary(cabinet){
     const rows = resolveItems(cabinet);
-    if(!rows.length) return null;
+    const applianceText = getApplianceText(cabinet);
+    if(!rows.length && !applianceText) return null;
     const block = make('div', 'front-block cabinet-labor-summary');
     const head = make('div', 'head');
-    head.appendChild(make('div', '', 'Dodatki robocizny'));
-    head.appendChild(make('div', 'front-meta', `${rows.length} poz.`));
+    head.appendChild(make('div', '', 'Czynności robocizny'));
+    head.appendChild(make('div', 'front-meta', `${rows.length + (applianceText ? 1 : 0)} poz.`));
     block.appendChild(head);
+    if(applianceText){
+      const appLine = make('div', 'front-row cabinet-labor-summary__row');
+      const left = make('div');
+      left.appendChild(make('div', 'cabinet-labor-summary__name', applianceText));
+      left.appendChild(make('div', 'front-meta', 'Automatycznie z typu szafki, z możliwością wyłączenia w edycji.'));
+      appLine.appendChild(left);
+      appLine.appendChild(make('div', 'cabinet-labor-summary__qty', ''));
+      block.appendChild(appLine);
+    }
     rows.forEach((row)=> {
       const line = make('div', 'front-row cabinet-labor-summary__row');
       const left = make('div');

@@ -1,0 +1,31 @@
+/* quote-labor-picker.css — aplikacyjne okno wyboru czynności robocizny w WYCENIE */
+.quote-labor-picker-back{ align-items:flex-start; padding-top:18vh; }
+.quote-labor-picker{ width:min(92vw, 720px); max-height:76vh; display:flex; flex-direction:column; overflow:hidden; }
+.quote-labor-picker__body{ padding:14px 18px; overflow:auto; }
+.quote-labor-picker__search{ width:100%; margin-bottom:12px; }
+.quote-labor-picker__list{ display:grid; gap:10px; }
+.quote-labor-picker__item{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; border:1px solid rgba(226,232,240,.95); border-radius:18px; padding:12px; background:linear-gradient(180deg,#fff,#f8fbff); box-shadow:0 8px 22px rgba(15,23,42,.06); }
+.quote-labor-picker__title{ font-weight:900; font-size:18px; color:#111827; }
+.quote-labor-picker__meta{ margin-top:4px; color:#64748b; font-weight:800; line-height:1.25; }
+.quote-labor-picker__controls{ display:flex; align-items:center; gap:8px; }
+.quote-labor-picker__step{ min-width:42px; padding:10px 12px; font-size:22px; line-height:1; }
+.quote-labor-picker__qty{ width:74px; text-align:center; font-weight:900; }
+.quote-labor-picker__empty{ padding:14px; border-radius:16px; background:#f8fafc; color:#64748b; font-weight:800; }
+.quote-labor-picker__footer{ display:flex; justify-content:flex-end; gap:12px; padding:12px 18px 16px; border-top:1px solid rgba(226,232,240,.95); background:#fff; }
+.quote-rate-editor__selected{ display:grid; gap:10px; margin-bottom:12px; }
+.quote-rate-editor__selected-row{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; border:1px solid rgba(226,232,240,.95); border-radius:16px; padding:10px 12px; background:#fff; }
+.quote-rate-editor__selected-title{ font-weight:900; color:#111827; }
+.quote-rate-editor__selected-meta{ margin-top:3px; color:#64748b; font-weight:800; font-size:13px; }
+.quote-rate-editor__selected-qty{ font-weight:900; color:#111827; }
+.quote-rate-editor__actions{ display:flex; justify-content:flex-start; margin-top:8px; }
+.cabinet-labor-appliance{ margin:12px 0; padding:12px; border:1px solid rgba(34,197,94,.35); background:linear-gradient(180deg,#f0fdf4,#fff); border-radius:18px; }
+.cabinet-labor-appliance__title{ font-weight:900; font-size:18px; color:#111827; }
+.cabinet-labor-appliance__sub{ margin-top:4px; color:#64748b; font-weight:800; line-height:1.25; }
+.cabinet-labor-appliance__choices{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.cabinet-labor-appliance__choice{ cursor:pointer; }
+@media (max-width: 640px){
+  .quote-labor-picker-back{ padding-top:12vh; }
+  .quote-labor-picker__item{ grid-template-columns:1fr; }
+  .quote-labor-picker__controls{ justify-content:flex-start; }
+  .quote-rate-editor__selected-row{ grid-template-columns:1fr; }
+}

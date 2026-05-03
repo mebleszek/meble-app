@@ -348,3 +348,10 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - `quote-pdf.js` nie zależy od `lines.labor`; nie dodawać ich do PDF bez osobnej decyzji, bo są kosztami wewnętrznymi.
 - `price-modal-item-form.js`, `price-modal-list.js` i `price-modal-persistence.js` zależą od `FC.laborCatalog` tylko dla `quoteRates`; `workshopServices` pozostają prostym cennikiem usług.
 - Load order w `cabinet-wywiad`: `cabinet-choice-launchers.js` → `cabinet-modal-labor.js` → `cabinet-modal.js`; modal szafki używa `FC.cabinetModalLabor` tylko do sekcji dodatków robocizny.
+
+## 2026-05-03 — Pricing labor unified picker v1
+
+- Load order w `business-domains`: `labor-catalog-definitions.js` → `labor-catalog.js` → `labor-appliance-rules.js` → `catalog-store.js`.
+- `labor-appliance-rules.js` dostarcza reguły domyślnego montażu AGD dla typów szafek; zależą od niego `wycena-core-lines.js`, `cabinet-modal-labor.js` i `wywiad-labor-summary.js`.
+- Load order w `tabs-quote-wycena`: `wycena-labor-picker.js` musi ładować się przed `wycena-tab-editor.js`, bo edytor ustawień oferty otwiera picker przez `FC.wycenaLaborPicker`.
+- `price-modal-item-form.js` ukrywa pole `laborUsage`; `usage` w danych pozostaje kompatybilnościowym polem legacy, a nie źródłem twardego filtrowania UI.

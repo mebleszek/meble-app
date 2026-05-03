@@ -43,29 +43,68 @@
     return { rateSelections:[], commercial:{} };
   }
 
+  function buildHourlyRates(catalogRows){
+    try{
+      if(FC.laborCatalog && typeof FC.laborCatalog.buildHourlyRates === 'function') return FC.laborCatalog.buildHourlyRates(catalogRows);
+    }catch(_){ }
+    return {};
+  }
+
+  function calculateManualRateLine(rate, qty, catalogRows){
+    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function'
+      ? FC.laborCatalog.normalizeDefinition(rate)
+      : rate;
+    const hasLaborRule = !!(def && (
+      Number(def.timeBlockHours) > 0 ||
+      String(def.quantityMode || 'none') !== 'none' ||
+      Number(def.volumePricePerM3) > 0 ||
+      String(def.volumeTimeMode || 'none') !== 'none' ||
+      Number(def.fixedPrice) > 0 ||
+      Number(def.defaultMultiplier) !== 1
+    ));
+    if(hasLaborRule && FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function'){
+      const calc = FC.laborCatalog.calculateDefinition(def, {
+        quantity:qty,
+        volumeM3:0,
+        hourlyRates:buildHourlyRates(catalogRows),
+      });
+      return {
+        unitPrice: qty > 0 ? (Number(calc.total) || 0) / qty : 0,
+        total: Number(calc.total) || 0,
+        hours: Number(calc.pricedHours) || 0,
+        note: String(def.category || '').trim(),
+      };
+    }
+    const unitPrice = Math.max(0, Number(rate && rate.price) || 0);
+    return { unitPrice, total:qty * unitPrice, hours:0, note:String(rate && rate.category || '').trim() };
+  }
+
   function collectQuoteRateLines(){
     const draft = getOfferDraft();
     const selections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
-    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    const catalogRows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    const catalog = Array.isArray(catalogRows) ? catalogRows : [];
     return selections.map((row)=>{
-      const rate = (Array.isArray(catalog) ? catalog : []).find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
+      const rate = catalog.find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
       if(!rate) return null;
-      const autoRole = String(rate && rate.autoRole || 'none');
-      const usage = String(rate && rate.usage || 'manual');
-      if(autoRole !== 'none' || usage !== 'manual' || rate.internalOnly === true) return null;
+      const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(rate) : rate;
+      const autoRole = String(def && def.autoRole || 'none');
+      if(autoRole !== 'none' || def.active === false) return null;
       const qty = Math.max(0, Number(row && row.qty) || 0);
       if(!(qty > 0)) return null;
-      const unitPrice = Math.max(0, Number(rate && rate.price) || 0);
+      const priced = calculateManualRateLine(def, qty, catalog);
       return {
-        key: utils.slug(rate && rate.name || rate && rate.id || ''),
+        key: utils.slug(def && def.name || def && def.id || ''),
         type:'quote-rate',
-        category: String(rate && rate.category || ''),
-        name: String(rate && rate.name || 'Stawka wyceny'),
+        category: String(def && def.category || ''),
+        name: String(def && def.name || 'Czynność'),
         qty,
         unit:'x',
-        unitPrice,
-        total: qty * unitPrice,
-        note: String(rate && rate.category || '').trim(),
+        unitPrice:Number(priced.unitPrice) || 0,
+        total:Number(priced.total) || 0,
+        hours:Number(priced.hours) || 0,
+        note:String(priced.note || '').trim(),
+        internalOnly:def && def.internalOnly === true,
       };
     }).filter(Boolean);
   }

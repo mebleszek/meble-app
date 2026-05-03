@@ -133,11 +133,9 @@
     const draft = getOfferDraft();
     const commercial = draft && draft.commercial || {};
     const rawCatalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
-    const catalog = (Array.isArray(rawCatalog) ? rawCatalog : []).filter((rate)=>{
-      const autoRole = String(rate && rate.autoRole || 'none');
-      const usage = String(rate && rate.usage || 'manual');
-      return autoRole === 'none' && usage === 'manual' && rate && rate.internalOnly !== true;
-    });
+    const catalog = FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function'
+      ? FC.wycenaLaborPicker.normalizeCatalog(rawCatalog)
+      : (Array.isArray(rawCatalog) ? rawCatalog : []).filter((rate)=> rate && rate.active !== false && String(rate.autoRole || 'none') === 'none');
     const selectionMap = buildSelectionMapFn(draft);
     const isOpen = !!getIsOpen();
 
@@ -173,31 +171,52 @@
       if(versionField) body.appendChild(versionField);
 
       const rateShell = h('div', { class:'quote-rate-editor' });
+      const selectedRows = catalog.filter((rate)=> num(selectionMap[String(rate && rate.id || '')], 0) > 0);
       if(!catalog.length){
-        rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w cenniku.' }));
+        rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych czynności robocizny. Dodaj je w cenniku.' }));
       } else {
-        catalog.forEach((rate)=>{
-          const item = h('div', { class:'quote-rate-editor__item' });
-          const info = h('div', { class:'quote-rate-editor__info' });
-          info.appendChild(h('div', { class:'quote-rate-editor__title', text:String(rate && rate.name || 'Stawka wyceny') }));
-          const metaParts = [];
-          if(String(rate && rate.category || '').trim()) metaParts.push(String(rate.category).trim());
-          metaParts.push(`Cena: ${money(rate && rate.price)}`);
-          info.appendChild(h('div', { class:'quote-rate-editor__meta', text:metaParts.join(' • ') }));
-          item.appendChild(info);
-          const qtyWrap = h('div', { class:'quote-rate-editor__qty' });
-          qtyWrap.appendChild(h('label', { text:'Ilość' }));
-          const qtyInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'1', value:String(num(selectionMap[String(rate && rate.id || '')], 0) || '') });
-          qtyInput.addEventListener('change', ()=>{
-            const nextMap = Object.assign({}, selectionMap, { [String(rate && rate.id || '')]: Math.max(0, num(qtyInput.value, 0)) });
-            saveRateSelectionRowsFn(makeRateSelectionRowsFn(catalog, nextMap));
+        const selectedWrap = h('div', { class:'quote-rate-editor__selected' });
+        if(!selectedRows.length){
+          selectedWrap.appendChild(h('div', { class:'muted', text:'Brak ręcznie dodanych czynności. Automatyczne czynności szafek są liczone osobno.' }));
+        } else {
+          selectedRows.forEach((rate)=>{
+            const id = String(rate && rate.id || '');
+            const row = h('article', { class:'quote-rate-editor__selected-row' });
+            const info = h('div');
+            info.appendChild(h('div', { class:'quote-rate-editor__selected-title', text:String(rate && rate.name || 'Czynność') }));
+            const desc = FC.laborCatalog && typeof FC.laborCatalog.describeDefinition === 'function' ? FC.laborCatalog.describeDefinition(rate) : '';
+            info.appendChild(h('div', { class:'quote-rate-editor__selected-meta', text:[rate && rate.category, desc].filter(Boolean).join(' • ') || '—' }));
+            row.appendChild(info);
+            row.appendChild(h('div', { class:'quote-rate-editor__selected-qty', text:`×${num(selectionMap[id], 0)}` }));
+            const remove = h('button', { class:'btn btn-danger', type:'button', text:'Usuń' });
+            remove.addEventListener('click', ()=>{
+              const nextMap = Object.assign({}, selectionMap);
+              delete nextMap[id];
+              saveRateSelectionRowsFn(makeRateSelectionRowsFn(catalog, nextMap));
+              render(ctx);
+            });
+            row.appendChild(remove);
+            selectedWrap.appendChild(row);
           });
-          qtyWrap.appendChild(qtyInput);
-          item.appendChild(qtyWrap);
-          rateShell.appendChild(item);
+        }
+        rateShell.appendChild(selectedWrap);
+        const actions = h('div', { class:'quote-rate-editor__actions' });
+        const addBtn = h('button', { class:'btn-primary', type:'button', text:'Dodaj czynność' });
+        addBtn.addEventListener('click', ()=>{
+          if(!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function')) return;
+          FC.wycenaLaborPicker.open({
+            catalog,
+            selectionMap,
+            onSave:(rows)=>{
+              saveRateSelectionRowsFn(rows);
+              render(ctx);
+            }
+          });
         });
+        actions.appendChild(addBtn);
+        rateShell.appendChild(actions);
       }
-      body.appendChild(h('div', { class:'quote-subsection-title', text:'Robocizna / stawki wyceny mebli', style:'margin-top:14px' }));
+      body.appendChild(h('div', { class:'quote-subsection-title', text:'Czynności ręczne do wyceny', style:'margin-top:14px' }));
       body.appendChild(rateShell);
 
       const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });

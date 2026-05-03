@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-03T17:40:31.521Z",
+  "generatedAt": "2026-05-03T19:42:39.099Z",
   "summary": {
-    "jsFiles": 313,
-    "indexScripts": 239,
-    "devTestScripts": 269,
-    "fcSymbols": 228,
-    "fcSymbolsAll": 254,
-    "edges": 1685,
+    "jsFiles": 315,
+    "indexScripts": 241,
+    "devTestScripts": 271,
+    "fcSymbols": 230,
+    "fcSymbolsAll": 256,
+    "edges": 1690,
     "highRisk": 7,
     "mediumRisk": 60
   },
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 28,
-      "lines": 6531,
+      "lines": 6558,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 14,
-      "lines": 2120,
+      "lines": 2128,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -60,8 +60,8 @@
       "medium": 1
     },
     "INNE": {
-      "files": 2,
-      "lines": 313,
+      "files": 3,
+      "lines": 390,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -76,8 +76,8 @@
       "medium": 6
     },
     "WYCENA": {
-      "files": 43,
-      "lines": 6534,
+      "files": 44,
+      "lines": 6753,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -133,7 +133,7 @@
     },
     "ZAKŁADKI": {
       "files": 3,
-      "lines": 327,
+      "lines": 348,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -241,7 +241,7 @@
   "topIncoming": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      68
+      67
     ],
     [
       "js/app/investor/investors-store.js",
@@ -256,12 +256,12 @@
       35
     ],
     [
-      "js/app/shared/utils.js",
+      "js/testing/shared/harness.js",
       35
     ],
     [
-      "js/testing/shared/harness.js",
-      35
+      "js/app/shared/utils.js",
+      34
     ],
     [
       "js/app/shared/room-registry.js",
@@ -323,7 +323,7 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      162
+      163
     ],
     [
       "js/app/shared/storage.js",
@@ -331,11 +331,11 @@
     ],
     [
       "js/app/shared/utils.js",
-      134
+      135
     ],
     [
       "js/app/project/project-bridge.js",
-      104
+      103
     ],
     [
       "js/app/shared/constants.js",
@@ -347,7 +347,7 @@
     ],
     [
       "js/app/shared/schema.js",
-      86
+      85
     ],
     [
       "js/app/project/project-store.js",
@@ -1531,9 +1531,9 @@
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
       "lines": 172,
-      "incoming": 68,
+      "incoming": 67,
       "outgoing": 4,
-      "secondLevel": 162,
+      "secondLevel": 163,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1633,7 +1633,7 @@
       "lines": 61,
       "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 104,
+      "secondLevel": 103,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1755,7 +1755,6 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
-        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal-standing-corner-standard.js",
@@ -1924,6 +1923,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-editor.js",
@@ -2482,31 +2482,30 @@
     "js/app/cabinet/cabinet-modal-labor.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 138,
+      "lines": 165,
       "defines": [
         "cabinetModalLabor"
       ],
       "uses": [
-        "utils",
-        "catalogStore",
         "laborCatalog",
+        "catalogStore",
         "cabinetChoiceLaunchers",
+        "laborApplianceRules",
         "cabinetModalLabor"
       ],
       "incomingFiles": [
         "js/app/cabinet/cabinet-modal.js"
       ],
       "outgoingFiles": [
-        "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-choice-launchers.js",
         "js/app/catalog/catalog-store.js",
-        "js/app/pricing/labor-catalog.js",
-        "js/app/shared/utils.js"
+        "js/app/pricing/labor-appliance-rules.js",
+        "js/app/pricing/labor-catalog.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 4,
+      "domRefs": 5,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -4951,7 +4950,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 288,
+      "lines": 296,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5650,10 +5649,40 @@
         "kilka zależnych plików"
       ]
     },
+    "js/app/pricing/labor-appliance-rules.js": {
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 75,
+      "defines": [
+        "laborApplianceRules"
+      ],
+      "uses": [
+        "laborApplianceRules"
+      ],
+      "incomingFiles": [
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/tabs/wywiad-labor-summary.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [
+        "js/app/cabinet/cabinet-modal.js",
+        "js/app/wycena/wycena-core.js",
+        "js/tabs/wywiad.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/pricing/labor-catalog-definitions.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 64,
+      "lines": 67,
       "defines": [
         "laborCatalogDefinitions"
       ],
@@ -5671,6 +5700,9 @@
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-labor-picker.js",
+        "js/app/wycena/wycena-tab-editor.js",
         "js/tabs/wywiad-labor-summary.js"
       ],
       "storageRefs": 0,
@@ -5684,7 +5716,7 @@
     "js/app/pricing/labor-catalog.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 249,
+      "lines": 248,
       "defines": [
         "laborCatalog"
       ],
@@ -5700,6 +5732,9 @@
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-labor-picker.js",
+        "js/app/wycena/wycena-tab-editor.js",
         "js/tabs/wywiad-labor-summary.js"
       ],
       "outgoingFiles": [
@@ -5717,12 +5752,16 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-tab-editor-bridge.js",
+        "js/app/wycena/wycena-tab-editor.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
-        "js/testing/service/tests.js"
+        "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5731,7 +5770,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "kilka zależnych plików"
+        "dużo zależnych plików"
       ]
     },
     "js/app/project/project-bridge.js": {
@@ -5789,7 +5828,6 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
-        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal-standing-corner-standard.js",
@@ -11555,7 +11593,6 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
-        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal-standing-corner-standard.js",
@@ -11964,7 +12001,6 @@
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
-        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
         "js/app/cabinet/cabinet-modal-standing-corner-standard.js",
         "js/app/cabinet/cabinet-modal-standing-front-controls.js",
@@ -12084,6 +12120,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-editor.js",
@@ -13512,7 +13549,7 @@
     "js/app/wycena/wycena-core-lines.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 136,
+      "lines": 143,
       "defines": [
         "wycenaCoreLines"
       ],
@@ -13524,6 +13561,7 @@
         "wycenaCoreSelection",
         "wycenaCoreLines",
         "cabinetCutlist",
+        "laborApplianceRules",
         "rozrysScope"
       ],
       "incomingFiles": [
@@ -13532,6 +13570,7 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-cutlist.js",
+        "js/app/pricing/labor-appliance-rules.js",
         "js/app/rozrys/rozrys-scope.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-offer.js",
@@ -13668,13 +13707,14 @@
     "js/app/wycena/wycena-core-offer.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 79,
+      "lines": 118,
       "defines": [
         "wycenaCoreOffer"
       ],
       "uses": [
         "wycenaCoreUtils",
         "quoteOfferStore",
+        "laborCatalog",
         "catalogSelectors",
         "wycenaCoreOffer"
       ],
@@ -13685,6 +13725,7 @@
       ],
       "outgoingFiles": [
         "js/app/catalog/catalog-selectors.js",
+        "js/app/pricing/labor-catalog.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/wycena/wycena-core-utils.js"
       ],
@@ -14017,6 +14058,34 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/app/wycena/wycena-labor-picker.js": {
+      "area": "WYCENA",
+      "category": "ui/render/events",
+      "lines": 154,
+      "defines": [
+        "wycenaLaborPicker"
+      ],
+      "uses": [
+        "laborCatalog",
+        "wycenaLaborPicker"
+      ],
+      "incomingFiles": [
+        "js/app/wycena/wycena-tab-editor.js"
+      ],
+      "outgoingFiles": [
+        "js/app/pricing/labor-catalog.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/wycena/wycena-tab-editor-bridge.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 9,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/wycena/wycena-room-availability.js": {
       "area": "WYCENA",
       "category": "domain/controller",
@@ -14194,26 +14263,30 @@
     "js/app/wycena/wycena-tab-editor.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 267,
+      "lines": 286,
       "defines": [
         "wycenaTabEditor"
       ],
       "uses": [
         "catalogSelectors",
+        "wycenaLaborPicker",
+        "laborCatalog",
         "wycenaTabEditor"
       ],
       "incomingFiles": [
         "js/app/wycena/wycena-tab-editor-bridge.js"
       ],
       "outgoingFiles": [
-        "js/app/catalog/catalog-selectors.js"
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/pricing/labor-catalog.js",
+        "js/app/wycena/wycena-labor-picker.js"
       ],
       "secondLevelFiles": [
         "js/tabs/wycena.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 11,
+      "domRefs": 12,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -15172,7 +15245,7 @@
     "js/tabs/wywiad-labor-summary.js": {
       "area": "ZAKŁADKI",
       "category": "tab/controller",
-      "lines": 91,
+      "lines": 112,
       "defines": [
         "wywiadLaborSummary"
       ],
@@ -15180,6 +15253,7 @@
         "catalogSelectors",
         "catalogStore",
         "laborCatalog",
+        "laborApplianceRules",
         "wywiadLaborSummary"
       ],
       "incomingFiles": [
@@ -15188,6 +15262,7 @@
       "outgoingFiles": [
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/pricing/labor-appliance-rules.js",
         "js/app/pricing/labor-catalog.js"
       ],
       "secondLevelFiles": [],

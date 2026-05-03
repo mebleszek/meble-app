@@ -50,6 +50,13 @@
       rows.set(key, prev);
     };
     source.selectedCabinets(selectedRooms).forEach(({ roomLabel:rl, cabinet })=>{
+      const api = FC.laborApplianceRules;
+      if(api && typeof api.isMountingEnabled === 'function' && typeof api.getApplianceForCabinet === 'function'){
+        if(!api.isMountingEnabled(cabinet)) return;
+        const appliance = api.getApplianceForCabinet(cabinet);
+        if(appliance && appliance.serviceName) add(appliance.serviceName, rl);
+        return;
+      }
       const cab = cabinet || {};
       const sub = String(cab.subType || '');
       const details = cab.details || {};

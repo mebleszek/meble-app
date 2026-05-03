@@ -477,3 +477,17 @@ Następne sensowne kierunki poza RYSUNKIEM:
 - To nie był refaktor funkcjonalny, tylko naprawa za ciasnego testu po `pricing_labor_rules_v1`.
 - Nie ciąć runtime cenników przy takich korektach testów; najpierw rozróżniać realną regresję od kontraktu testowego, który przestał pasować do nowego modelu danych.
 - Dalszy rozwój cennika robocizny powinien iść przez małe paczki: edycja formularza reguł, testy `laborItems`, a potem dopiero dokładniejsze podpięcie do WYCENY/PDF wewnętrznego.
+
+## 2026-05-03 — Pricing labor unified picker v1
+
+Wykonane:
+
+- Rozwojowo ujednolicono robociznę do jednej puli definicji zamiast utrwalać mylące rozdzielenie `ręcznie`/`szafka`.
+- Dodano osobny moduł `js/app/wycena/wycena-labor-picker.js`, żeby `WYCENA` nie renderowała monolitycznej listy wszystkich czynności z polami ilości.
+- Dodano `js/app/pricing/labor-appliance-rules.js` jako małą granicę reguł domyślnego montażu AGD z możliwością wyłączenia przy konkretnej szafce.
+- Nie ruszano RYSUNKU, statusów/ofert ani backupów.
+
+Do obserwacji:
+
+- `wycena-tab-editor.js` jest powyżej progu ostrożności 250 linii. Nie ciąć go losowo; jeśli kolejny etap dotknie edytora WYCENY, rozważyć wydzielenie renderu sekcji warunków oferty albo wybranych czynności.
+- `price-modal-item-form.js` pozostaje powyżej progu ostrożności, ale ta paczka tylko ukryła kompatybilnościowe `usage`. Większy split formularza cennika robocizny powinien być osobnym etapem po ręcznej akceptacji działania modelu.

@@ -84,7 +84,7 @@
       category:text(src.category) || 'Inne',
       name:text(src.name),
       price,
-      usage:normalizeMode(src.usage, USAGE_TYPES, 'manual'),
+      usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
       autoRole,
       rateKey:autoRole === 'hourlyRate' ? (rateKey || rateType) : rateKey,
       rateType,
@@ -214,7 +214,6 @@
     if(def.autoRole === 'hourlyRate') return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} PLN/h`;
     const parts = [];
     if(def.autoRole && def.autoRole !== 'none') parts.push(getAutoRoleLabel(def.autoRole));
-    if(def.usage) parts.push(getUsageLabel(def.usage));
     if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
     if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
     if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
