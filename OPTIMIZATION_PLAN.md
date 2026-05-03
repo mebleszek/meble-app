@@ -508,3 +508,8 @@ Do obserwacji:
 
 - Nie wykonano dużego refaktoru. Zmiany zostały ograniczone do UI robocizny: picker czynności, kolejność sekcji w modalu szafki i chipy montażu AGD.
 - `wycena-labor-picker.js` pozostaje małym modułem pickera, a `cabinet-modal-labor.js` pozostaje modułem sekcji robocizny w modalu szafki. Nie scalać tego z głównym modalem szafki ani z WYCENĄ.
+
+## Czynności labor calc help v1 — 2026-05-04
+
+- `price-modal-item-form.js` został odciążony przez nowy moduł `price-modal-field-help.js`, który przejął objaśnienia `?` oraz launchery podstawowych pól formularza. Dzięki temu formularz nie przekroczył progu ostrzegawczego 400+ linii po dodaniu pomocy pól.
+- `czynnosci.js` pozostaje poniżej progu ostrożności i ma jedną odpowiedzialność: workspace czynności/robocizny w zakładce `CZYNNOŚCI`.

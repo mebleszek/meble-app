@@ -46,3 +46,36 @@
   .czynnosci-root > h3{ font-size:24px; }
   .czynnosci-summary-pill{ display:flex; border-radius:16px; line-height:1.25; }
 }
+
+/* 2026-05-04 — czytelny rozpis kalkulacji czynności szafki. */
+.quote-labor-breakdown{
+  display:grid;
+  gap:7px;
+  margin-top:8px;
+  padding:10px 11px;
+  border:1px solid rgba(226,232,240,.95);
+  border-radius:14px;
+  background:linear-gradient(180deg,#fff,#f8fbff);
+}
+.quote-labor-breakdown__row{
+  display:grid;
+  grid-template-columns:minmax(0, .92fr) minmax(0, 1.45fr);
+  gap:10px;
+  align-items:start;
+  font-weight:800;
+  color:#111827;
+  line-height:1.22;
+}
+.quote-labor-breakdown__label{
+  color:#64748b;
+  overflow-wrap:anywhere;
+}
+.quote-labor-breakdown__value{
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+.quote-labor-detail__meta{ display:none; }
+@media (max-width:640px){
+  .quote-labor-breakdown__row{ grid-template-columns:1fr; gap:2px; }
+  .quote-labor-breakdown__value{ text-align:left; }
+}

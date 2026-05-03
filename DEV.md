@@ -528,3 +528,9 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Nie dodawać ponownie list/pickerów robocizny do `Ustawienia oferty do nowej wyceny`; WYCENA ma zostać od zakresu/oferty/generowania, a CZYNNOŚCI od robocizny.
 - WYCENA może pokazywać tylko informację/podsumowanie, że szczegóły robocizny są w `CZYNNOŚCI`; szczegółowe rozbicie szafek, AGD i ręcznych czynności należy rozwijać w `js/tabs/czynnosci.js` albo w małych modułach tej zakładki.
 - `js/tabs/czynnosci.js` korzysta z istniejącego draftu oferty `quoteOfferStore.rateSelections`, więc ręcznie dodane czynności dalej wpływają na następną WYCENĘ, ale edycja jest w osobnej zakładce.
+
+## Czynności labor calc help v1 — 2026-05-04
+
+- Formularz `Stawki wyceny mebli` ma wydzielony moduł `js/app/material/price-modal-field-help.js` dla aplikacyjnych launcherów pól i objaśnień `?`; nie dokładać tej logiki z powrotem do `price-modal-item-form.js`.
+- Pole `Kategoria` w formularzu cennika ma być aplikacyjnym launcherem wyboru, tak jak pozostałe pola wyboru, i musi pozostać widoczne po dodaniu objaśnień `?`.
+- Podgląd czynności szafek w zakładce `CZYNNOŚCI` ma pokazywać czytelny rozpis kalkulacji: czas bazowy/pakiet, stawkę, mnożnik, robociznę czasową, gabaryt, dopłatę gabarytową, kwotę stałą i razem. Nie wracać do zwartego tekstu typu `1.15 h • 120 PLN/h • mnożnik ×1.15`, bo jest mylący.

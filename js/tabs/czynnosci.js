@@ -126,15 +126,50 @@
     });
   }
 
-  function renderDetailMeta(part){
-    const meta = [];
-    if(Number(part && part.hours) > 0) meta.push(`${Number(part.hours).toFixed(2)} h`);
-    if(Number(part && part.hourlyRate) > 0) meta.push(`${Number(part.hourlyRate).toFixed(2)} PLN/h`);
-    if(Number(part && part.volumeM3) > 0 && Number(part && part.volumePrice) > 0) meta.push(`gabaryt ${Number(part.volumeM3).toFixed(3)} m³`);
-    if(Number(part && part.volumeHours) > 0) meta.push(`gabarytoczas ${Number(part.volumeHours).toFixed(2)} h`);
-    if(Number(part && part.multiplier) && Number(part.multiplier) !== 1) meta.push(`mnożnik ×${Number(part.multiplier).toFixed(2)}`);
-    if(part && part.note) meta.push(String(part.note));
-    return meta.join(' • ') || '—';
+  function fmtHours(value){ return `${(Number(value) || 0).toFixed(2)} h`; }
+  function fmtRate(value){ return `${(Number(value) || 0).toFixed(2)} PLN/h`; }
+  function fmtMultiplier(value){ return `×${(Number(value) || 1).toFixed(2)}`; }
+  function fmtM3(value){ return `${(Number(value) || 0).toFixed(3)} m³`; }
+  function breakdownRow(label, value){
+    const row = h('div', { class:'quote-labor-breakdown__row' });
+    row.appendChild(h('span', { class:'quote-labor-breakdown__label', text:label }));
+    row.appendChild(h('span', { class:'quote-labor-breakdown__value', text:value }));
+    return row;
+  }
+
+  function renderDetailBreakdown(part){
+    const box = h('div', { class:'quote-labor-breakdown' });
+    const baseHours = Math.max(0, Number(part && part.baseHours) || 0);
+    const volumeHours = Math.max(0, Number(part && part.volumeHours) || 0);
+    const multiplier = Math.max(0, Number(part && part.multiplier) || 1) || 1;
+    const hourlyRate = Math.max(0, Number(part && part.hourlyRate) || 0);
+    const laborPrice = Math.max(0, Number(part && part.laborPrice) || 0);
+    const fixedPrice = Math.max(0, Number(part && part.fixedPrice) || 0);
+    const volumePrice = Math.max(0, Number(part && part.volumePrice) || 0);
+    const volumeM3 = Math.max(0, Number(part && part.volumeM3) || 0);
+    const quantity = Math.max(0, Number(part && part.quantity) || 0);
+    const unit = String(part && part.unit || '').trim();
+
+    if(quantity > 0 && unit && unit !== 'x') box.appendChild(breakdownRow('Ilość', `${quantity} ${unit}`));
+    if(baseHours > 0) box.appendChild(breakdownRow('Czas bazowy / pakiet', fmtHours(baseHours)));
+    if(volumeHours > 0) box.appendChild(breakdownRow('Gabarytoczas', fmtHours(volumeHours)));
+    if(hourlyRate > 0) box.appendChild(breakdownRow('Stawka', fmtRate(hourlyRate)));
+    if(multiplier !== 1) box.appendChild(breakdownRow('Mnożnik', fmtMultiplier(multiplier)));
+    if(laborPrice > 0){
+      const rawHours = baseHours + volumeHours;
+      const formula = multiplier !== 1
+        ? `${fmtHours(rawHours)} × ${fmtMultiplier(multiplier)} × ${fmtRate(hourlyRate)} = ${money(laborPrice)}`
+        : `${fmtHours(rawHours)} × ${fmtRate(hourlyRate)} = ${money(laborPrice)}`;
+      box.appendChild(breakdownRow('Robocizna czasowa', formula));
+    }
+    if(volumeM3 > 0 && volumePrice > 0){
+      const perM3 = volumeM3 > 0 ? (volumePrice / volumeM3) : 0;
+      box.appendChild(breakdownRow('Dopłata gabarytowa', `${fmtM3(volumeM3)} × ${perM3.toFixed(2)} PLN/m³ = ${money(volumePrice)}`));
+    }
+    if(fixedPrice > 0) box.appendChild(breakdownRow('Kwota stała', money(fixedPrice)));
+    if(part && part.note) box.appendChild(breakdownRow('Opis', String(part.note)));
+    box.appendChild(breakdownRow('Razem', money(part && part.total)));
+    return box;
   }
 
   function renderCabinetRows(container, rows){
@@ -159,7 +194,7 @@
       (Array.isArray(row.details) ? row.details : []).forEach((part)=> {
         const item = h('div', { class:'quote-labor-detail' });
         item.appendChild(h('div', { class:'quote-labor-detail__main', text:part.name || 'Czynność' }));
-        item.appendChild(h('div', { class:'quote-labor-detail__meta', text:renderDetailMeta(part) }));
+        item.appendChild(renderDetailBreakdown(part));
         item.appendChild(h('div', { class:'quote-labor-detail__total', text:money(part.total) }));
         body.appendChild(item);
       });

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-03T21:56:12.298Z",
+  "generatedAt": "2026-05-03T22:57:27.286Z",
   "summary": {
-    "jsFiles": 316,
-    "indexScripts": 242,
+    "jsFiles": 317,
+    "indexScripts": 243,
     "devTestScripts": 273,
     "fcSymbols": 232,
     "fcSymbolsAll": 258,
-    "edges": 1700,
+    "edges": 1703,
     "highRisk": 7,
     "mediumRisk": 60
   },
@@ -44,8 +44,8 @@
       "medium": 4
     },
     "MATERIAŁ": {
-      "files": 14,
-      "lines": 2128,
+      "files": 15,
+      "lines": 2252,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 45,
-      "lines": 6917,
+      "lines": 6918,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -133,7 +133,7 @@
     },
     "ZAKŁADKI": {
       "files": 3,
-      "lines": 543,
+      "lines": 578,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -277,7 +277,7 @@
     ],
     [
       "js/app/ui/info-box.js",
-      23
+      24
     ],
     [
       "js/testing/wycena/suites/core-offer-basics.js",
@@ -304,11 +304,11 @@
       17
     ],
     [
-      "js/app/optimizer/cut-optimizer.js",
-      16
+      "js/app/ui/panel-box.js",
+      17
     ],
     [
-      "js/app/ui/panel-box.js",
+      "js/app/optimizer/cut-optimizer.js",
       16
     ],
     [
@@ -323,11 +323,11 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      164
+      165
     ],
     [
       "js/app/shared/storage.js",
-      141
+      142
     ],
     [
       "js/app/shared/utils.js",
@@ -363,18 +363,18 @@
     ],
     [
       "js/app/ui/info-box.js",
-      62
+      63
     ],
     [
       "js/app/investor/session.js",
       61
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      60
+      "js/app/ui/confirm-box.js",
+      61
     ],
     [
-      "js/app/ui/confirm-box.js",
+      "js/app/investor/investor-persistence.js",
       60
     ],
     [
@@ -383,7 +383,7 @@
     ],
     [
       "js/app/shared/ui-state.js",
-      54
+      55
     ],
     [
       "js/app/investor/investors-model.js",
@@ -1004,7 +1004,7 @@
       "lines": 318,
       "incoming": 12,
       "outgoing": 8,
-      "secondLevel": 39,
+      "secondLevel": 40,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1533,7 +1533,7 @@
       "lines": 172,
       "incoming": 67,
       "outgoing": 4,
-      "secondLevel": 164,
+      "secondLevel": 165,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1857,6 +1857,7 @@
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -2952,6 +2953,7 @@
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -3131,6 +3133,7 @@
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-modal.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -4872,6 +4875,7 @@
         "priceModalContext"
       ],
       "incomingFiles": [
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -4929,6 +4933,31 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/app/material/price-modal-field-help.js": {
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 120,
+      "defines": [],
+      "uses": [
+        "priceModalContext",
+        "infoBox",
+        "panelBox"
+      ],
+      "incomingFiles": [],
+      "outgoingFiles": [
+        "js/app/material/price-modal-context.js",
+        "js/app/ui/info-box.js",
+        "js/app/ui/panel-box.js"
+      ],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 3,
+      "loadedInIndex": true,
+      "loadedInDevTests": false,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/material/price-modal-filters.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
@@ -4953,7 +4982,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 296,
+      "lines": 300,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5071,6 +5100,7 @@
         "js/app/material/price-modal-context.js"
       ],
       "secondLevelFiles": [
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -11787,6 +11817,7 @@
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -11950,6 +11981,7 @@
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -12515,6 +12547,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -12826,6 +12859,7 @@
         "js/app/investor/investor-ui-status-flow.js",
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-scope-entry-modal.js",
@@ -12848,6 +12882,7 @@
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
@@ -12988,6 +13023,7 @@
       "incomingFiles": [
         "js/app/investor/investor-modals.js",
         "js/app/material/material-part-options.js",
+        "js/app/material/price-modal-field-help.js",
         "js/app/rozrys/rozrys-grain-modal.js",
         "js/app/rozrys/rozrys-options-modal.js",
         "js/app/rozrys/rozrys-pickers.js",
@@ -13526,7 +13562,7 @@
     "js/app/wycena/wycena-core-labor.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 182,
+      "lines": 183,
       "defines": [
         "wycenaCoreLabor"
       ],
@@ -15118,7 +15154,7 @@
     "js/tabs/czynnosci.js": {
       "area": "ZAKŁADKI",
       "category": "ui/render/events",
-      "lines": 215,
+      "lines": 250,
       "defines": [
         "tabsCzynnosci"
       ],
@@ -15155,6 +15191,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
+        "250+ linii",
         "kilka zależności wychodzących"
       ]
     },

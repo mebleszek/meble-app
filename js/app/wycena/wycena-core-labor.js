@@ -108,6 +108,7 @@
       multiplier:Number(calc.multiplier) || 1,
       volumeM3:Number(calc.volumeM3) || 0,
       volumePrice:Number(calc.volumePrice) || 0,
+      laborPrice:Number(calc.laborPrice) || 0,
       fixedPrice:Number(calc.fixedPrice) || 0,
       total:Number(calc.total) || 0,
       note:text(opts.note || ''),

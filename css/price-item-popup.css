@@ -108,3 +108,30 @@
   font-size:14px;
   font-weight:800;
 }
+
+/* 2026-05-04 — znaki ? w formularzu cennika bez rozwalania układu pól. */
+#priceItemModal .price-field-help{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  width:100%;
+  margin:0 0 6px;
+}
+#priceItemModal .price-field-help .label-help__text{
+  min-width:0;
+  line-height:1.12;
+}
+#priceItemModal .price-field-help .info-trigger{
+  width:26px;
+  height:26px;
+  min-width:26px;
+}
+#priceItemModal .price-field-help .info-trigger::before{
+  inset:4px;
+}
+#priceItemModal #formCategoryLaunch,
+#priceItemModal #formMaterialTypeLaunch,
+#priceItemModal #formManufacturerLaunch{
+  width:100%;
+}

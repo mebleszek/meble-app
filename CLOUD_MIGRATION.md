@@ -403,3 +403,8 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 
 - Przeniesienie UI robocizny do zakładki `CZYNNOŚCI` nie dodaje nowego storage. Ręczne czynności nadal zapisują się w istniejącym draft boundary `quoteOfferStore.rateSelections`.
 - Podgląd czynności szafek jest wyliczany z aktualnych danych projektu i katalogu robocizny, bez nowego cache. To pozostaje zgodne z przyszłym adapterem chmurowym: źródłami prawdy są projekt/szafki, katalog robocizny i draft oferty.
+
+## Czynności labor calc help v1 — 2026-05-04
+
+- Zmiana dotyczy tylko prezentacji i helperów UI katalogu robocizny oraz podglądu kalkulacji w `CZYNNOŚCI`; nie dodano nowego storage ani nowego klucza danych.
+- Do snapshotów robocizny dodano jawne pole `laborPrice` w szczegółach komponentu, żeby widok mógł pokazać rozbicie ceny bez ponownego zgadywania formuły. To jest część przeliczonego snapshotu robocizny, a nie osobny magazyn danych.
