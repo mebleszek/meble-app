@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T16:08:53.563Z",
+  "generatedAt": "2026-05-03T16:29:54.666Z",
   "summary": {
     "jsFiles": 312,
     "indexScripts": 238,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 14,
-      "lines": 2077,
+      "lines": 2120,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -4943,7 +4943,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 245,
+      "lines": 288,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -4961,7 +4961,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/material/price-modal-list.js": {
       "area": "MATERIAŁ",

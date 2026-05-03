@@ -80,3 +80,31 @@
     overscroll-behavior:contain;
   }
 }
+
+/* 2026-05-03 — cennik robocizny: pola wyboru i przełączniki bez natywnych kontrolek systemowych. */
+#priceItemModal .price-labor-choice-slot{
+  width:100%;
+}
+#priceItemModal .price-labor-choice-launch{
+  width:100%;
+  min-height:48px;
+  justify-content:flex-start;
+}
+#priceItemModal .price-labor-choice-launch .rozrys-choice-launch__value{
+  min-width:0;
+}
+#priceItemModal .price-labor-choice-launch .rozrys-choice-launch__label{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+#priceItemModal .price-labor-toggle-grid{
+  align-items:stretch;
+}
+#priceItemModal .price-labor-toggle{
+  min-height:48px;
+  width:100%;
+  border-radius:14px;
+  justify-content:flex-start;
+  font-size:14px;
+  font-weight:800;
+}

@@ -25,7 +25,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | SZAFKI | 28 | 6531 | 0 | 0 | 0 | 3 |
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
-| MATERIAŁ | 14 | 2077 | 8 | 3 | 0 | 1 |
+| MATERIAŁ | 14 | 2120 | 8 | 3 | 0 | 1 |
 | PROJEKT | 10 | 2019 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |

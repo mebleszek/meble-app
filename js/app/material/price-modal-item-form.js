@@ -13,6 +13,48 @@
   function formHasGrainRow(){ return ctx.byId('formHasGrain') && ctx.byId('formHasGrain').parentElement; }
   function laborFields(){ return ctx.byId('laborFormFields'); }
 
+
+  const LABOR_CHOICE_FIELDS = [
+    { id:'laborUsage', title:'Wybierz użycie', placeholder:'Użycie' },
+    { id:'laborAutoRole', title:'Wybierz automat', placeholder:'Automat' },
+    { id:'laborRateType', title:'Wybierz stawkę', placeholder:'Stawka' },
+    { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
+    { id:'laborQuantityMode', title:'Wybierz tryb ilości', placeholder:'Tryb ilości' },
+    { id:'laborStartHours', title:'Wybierz czas startowy', placeholder:'Start h' },
+    { id:'laborStepHours', title:'Wybierz czas kolejnego kroku', placeholder:'Dodaj h' },
+    { id:'laborVolumeTimeMode', title:'Wybierz gabarytoczas', placeholder:'Gabarytoczas' },
+  ];
+
+  function ensureLaborChoiceMount(selectEl){
+    if(!(selectEl && selectEl.parentNode)) return null;
+    const mountId = String(selectEl.id || '') + 'Launch';
+    let mount = ctx.byId(mountId);
+    if(!mount){
+      mount = document.createElement('div');
+      mount.id = mountId;
+      mount.className = 'price-labor-choice-slot';
+      selectEl.insertAdjacentElement('afterend', mount);
+    }
+    try{ selectEl.hidden = true; selectEl.setAttribute('aria-hidden', 'true'); }catch(_){ }
+    return mount;
+  }
+
+  function mountLaborChoiceLaunchers(){
+    LABOR_CHOICE_FIELDS.forEach((field)=>{
+      const selectEl = ctx.byId(field.id);
+      const mount = ensureLaborChoiceMount(selectEl);
+      if(!(selectEl && mount)) return;
+      ctx.mountChoice({
+        selectEl,
+        mountId:mount.id,
+        title:field.title,
+        buttonClass:'investor-choice-launch price-labor-choice-launch',
+        placeholder:field.placeholder,
+        onChange:()=> updateItemActionState(),
+      });
+    });
+  }
+
   function defaultMaterialDraft(){
     const type = ctx.firstNonEmptyValue(ctx.buildMaterialTypeOptions('laminat')) || 'laminat';
     const manufacturer = ctx.firstNonEmptyValue(ctx.buildManufacturerOptions('materials', type, '', { includeAll:false }));
@@ -205,6 +247,7 @@
       if(categoryWrap) categoryWrap.style.display = '';
       if(nameWrap) nameWrap.style.display = '';
     }
+    if(kind === 'quoteRates') mountLaborChoiceLaunchers();
     wireItemDirtyEvents();
     ctx.runtimeState.itemInitialSignature = currentItemSignature();
     updateItemActionState();
