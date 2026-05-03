@@ -39,6 +39,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/material/price-modal.js',
   'js/app/ui/tabs-router.js',
   'js/app/ui/cabinets-render.js',
+  'js/tabs/wywiad-labor-summary.js',
   'js/tabs/wywiad.js',
   'js/app/ui/layout-state.js',
   'js/tabs/rysunek.js',

@@ -102,6 +102,13 @@ Bieżący wynik dla katalogu `js`:
 
 Wniosek: nie trzeba robić ukrytej migracji w tej paczce, ale każdy następny etap danych powinien przesuwać zapis/odczyt do store/repository/adaptera zamiast dopisywać kolejne bezpośrednie użycia `localStorage`.
 
+
+## 2026-05-03 — Pricing labor display fix v1
+
+- Naprawiono kontrakt store/selector dla katalogów robocizny bez przebudowy UI i bez nowego storage.
+- Dodano mały moduł `js/tabs/wywiad-labor-summary.js`, zamiast rozbudowywać `wywiad.js` o wyszukiwanie i opis robocizny.
+- Dalsze prace przy robociźnie prowadzić przez osobne moduły: katalog/reguły, podgląd WYWIAD, kalkulator WYCENA i snapshot oferty.
+
 ## 2026-04-26 — audit next v1
 - Po naprawie Wyceny najbezpieczniejszy kierunek to małe paczki stabilizujące testy/status sync, nie duży refaktor runtime.
 - Bezpośredni smoke ROZRYS dostał jawne pokrycie domyślnego obrównania 1 cm / 10 mm.

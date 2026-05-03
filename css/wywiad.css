@@ -181,3 +181,8 @@
 .cabinet-labor-remove{min-height:42px;}
 .cabinet-labor-empty{font-size:13px;font-weight:800;color:#64748b;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:10px;}
 @media (max-width:720px){.cabinet-labor-add-row{grid-template-columns:1fr 74px}.cabinet-labor-add-btn{grid-column:1 / -1}.cabinet-labor-item{grid-template-columns:1fr}.cabinet-labor-item__actions{justify-content:flex-start}}
+.cabinet-header__meta--labor{font-weight:900;color:#16a34a;}
+.cabinet-labor-summary{margin-top:12px;}
+.cabinet-labor-summary__row{align-items:center;}
+.cabinet-labor-summary__name{font-weight:900;color:#111827;line-height:1.15;}
+.cabinet-labor-summary__qty{font-weight:900;color:#111827;white-space:nowrap;}

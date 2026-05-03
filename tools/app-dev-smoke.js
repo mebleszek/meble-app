@@ -112,6 +112,10 @@ function runMaterialNodeSmoke(sandbox){
     { name:'Edge store jest dostępny', check:()=> !!(FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function') },
     { name:'Price modal API jest dostępne', check:()=> !!(FC.priceModal && typeof FC.priceModal.renderPriceModal === 'function') },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
+    { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {
+      const rows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+      return Array.isArray(rows) && rows.some((row)=> String(row && row.id || '') === 'labor_body_h072') && rows.some((row)=> String(row && row.id || '') === 'labor_rate_workshop');
+    } },
     { name:'Cennik robocizny ma aplikacyjne launchery wyboru zamiast natywnych selectów', explain:'Chroni formularz reguł robocizny przed systemowym pickerem Android/iOS.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
       const required = ['laborUsage','laborAutoRole','laborRateType','laborTimeBlockHours','laborQuantityMode','laborStartHours','laborStepHours','laborVolumeTimeMode'];
@@ -126,6 +130,14 @@ function runWycenaNodeSmoke(sandbox){
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
     { name:'Wycena ma wewnętrzne rozbicie robocizny po szafkach', explain:'Pilnuje numerów szafek z WYWIADU i szczegółów kosztów robocizny tylko do podglądu wewnętrznego.', check:()=> !!(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectCabinetLabor === 'function' && FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderLaborSection === 'function') },
+    { name:'Wycena wylicza robociznę szafki z katalogu', explain:'Chroni sekcję Robocizna — szafki przed pustym wynikiem mimo istniejących szafek.', check:()=> {
+      const previousProject = sandbox.projectData;
+      try{
+        sandbox.projectData = { schemaVersion:9, kuchnia:{ cabinets:[{ id:'cab_labor_smoke', width:60, height:94.2, depth:36, type:'wisząca', subType:'okap', details:{ shelves:2 }, laborItems:[{ rateId:'labor_hole_fi60', qty:1 }] }], fronts:[], sets:[], settings:{} } };
+        const rows = FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']);
+        return Array.isArray(rows) && rows.length === 1 && Number(rows[0] && rows[0].total || 0) > 0 && Number(rows[0] && rows[0].cabinetNumber || 0) === 1 && Array.isArray(rows[0].details) && rows[0].details.length >= 2;
+      }finally{ sandbox.projectData = previousProject; }
+    } },
     { name:'Moduły renderu Wyceny są wydzielone', explain:'Pilnuje splitu tabs/wycena.js → dom/status-actions/preview/shell/render-bridge.', check:()=> !!(FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderPreview === 'function') && !!(FC.wycenaTabShell && typeof FC.wycenaTabShell.render === 'function') && !!(FC.wycenaTabStatusActions && typeof FC.wycenaTabStatusActions.acceptSnapshot === 'function') && !!(FC.wycenaTabRenderBridge && typeof FC.wycenaTabRenderBridge.renderShell === 'function') },
     { name:'Zakładka Wyceny ma rozdzielone boundary warstwy', explain:'Pilnuje splitu tabs/wycena.js → data/state/selection-bridge/editor-bridge/status-controller/render-bridge.', check:()=> !!(FC.wycenaTabData && typeof FC.wycenaTabData.getSnapshotHistory === 'function' && FC.wycenaTabState && typeof FC.wycenaTabState.createState === 'function' && FC.wycenaTabSelectionBridge && typeof FC.wycenaTabSelectionBridge.ensureVersionNameBeforeGenerate === 'function' && FC.wycenaTabEditorBridge && typeof FC.wycenaTabEditorBridge.renderOfferEditor === 'function' && FC.wycenaTabStatusController && typeof FC.wycenaTabStatusController.createController === 'function' && FC.wycenaTabRenderBridge && typeof FC.wycenaTabRenderBridge.renderHistory === 'function') },
     { name:'Wybór zakresu Wyceny ma rozdzielone warstwy', explain:'Pilnuje splitu wycena-tab-selection.js → scope/version/model/pickers/render/fasada.', check:()=> !!(FC.wycenaTabSelectionScope && typeof FC.wycenaTabSelectionScope.buildSelectionSummary === 'function' && FC.wycenaTabSelectionVersion && typeof FC.wycenaTabSelectionVersion.ensureVersionNameBeforeGenerate === 'function' && FC.wycenaTabSelectionModel && typeof FC.wycenaTabSelectionModel.ensureVersionNameBeforeGenerate === 'function' && FC.wycenaTabSelectionPickers && typeof FC.wycenaTabSelectionPickers.openQuoteScopePicker === 'function' && FC.wycenaTabSelectionRender && typeof FC.wycenaTabSelectionRender.renderQuoteSelectionSection === 'function' && FC.wycenaTabSelection && typeof FC.wycenaTabSelection.renderQuoteSelectionSection === 'function') },
@@ -142,6 +154,14 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Publiczne API szafek jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich testów modalowego DOM w Node.', check:()=> !!(FC.cabinetModal && FC.cabinetActions && FC.cabinetFronts) },
     { name:'Moduły modalowe szafek są załadowane', explain:'Chroni podstawowe wejścia używane przez modal szafki po splitach.', check:()=> !!(FC.cabinetModalDraft && FC.cabinetModalFields && FC.cabinetModalFinalize) },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
+    { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
+      const api = FC.wywiadLaborSummary;
+      if(!(api && typeof api.getHeaderText === 'function' && typeof api.renderCabinetLaborSummary === 'function')) return false;
+      const cab = { laborItems:[{ rateId:'labor_hole_fi60', qty:2 }] };
+      const header = api.getHeaderText(cab);
+      const node = api.renderCabinetLaborSummary(cab);
+      return /Otwór fi 60/.test(header) && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent));
+    } },
     { name:'Hardware frontów jest załadowany', explain:'Chroni kalkulatory i katalogi używane przy frontach/podnośnikach.', check:()=> !!(FC.frontHardware && FC.frontHardwareAventosCalc && FC.frontHardwareAventosData && FC.frontHardwareAventosSelector) },
   ]);
 }

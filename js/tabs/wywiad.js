@@ -79,6 +79,17 @@
       <div class="cabinet-header__meta">Front: ${frontMeta}</div>
       <div class="cabinet-header__meta">${cab.width} × ${cab.height} × ${cab.depth}</div>
     `;
+    try{
+      const laborHeader = window.FC && window.FC.wywiadLaborSummary && typeof window.FC.wywiadLaborSummary.getHeaderText === 'function'
+        ? window.FC.wywiadLaborSummary.getHeaderText(cab)
+        : '';
+      if(laborHeader){
+        const laborMeta = document.createElement('div');
+        laborMeta.className = 'cabinet-header__meta cabinet-header__meta--labor';
+        laborMeta.textContent = laborHeader;
+        copy.appendChild(laborMeta);
+      }
+    }catch(_){ }
 
     const actions = document.createElement('div');
     actions.className = 'cab-actions cabinet-header__actions cabinet-card-shell__actions';
@@ -128,6 +139,13 @@
         <div class="ro-box"><div class="muted xs">Otwieranie</div><div class="ro-val">${cab.openingSystem || ''}</div></div>
       `;
       body.appendChild(ro);
+
+      try{
+        const laborBlock = window.FC && window.FC.wywiadLaborSummary && typeof window.FC.wywiadLaborSummary.renderCabinetLaborSummary === 'function'
+          ? window.FC.wywiadLaborSummary.renderCabinetLaborSummary(cab)
+          : null;
+        if(laborBlock) body.appendChild(laborBlock);
+      }catch(_){ }
 
       const frontsForThis = cab.setId ? getFrontsForSetSafe(room, cab.setId) : getFrontsForCabSafe(room, cab.id);
       if(frontsForThis && frontsForThis.length){

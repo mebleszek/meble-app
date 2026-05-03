@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-03T16:29:54.666Z",
+  "generatedAt": "2026-05-03T17:40:31.521Z",
   "summary": {
-    "jsFiles": 312,
-    "indexScripts": 238,
-    "devTestScripts": 268,
-    "fcSymbols": 227,
-    "fcSymbolsAll": 253,
-    "edges": 1681,
+    "jsFiles": 313,
+    "indexScripts": 239,
+    "devTestScripts": 269,
+    "fcSymbols": 228,
+    "fcSymbolsAll": 254,
+    "edges": 1685,
     "highRisk": 7,
     "mediumRisk": 60
   },
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 9,
-      "lines": 1363,
+      "lines": 1381,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -132,8 +132,8 @@
       "medium": 0
     },
     "ZAKŁADKI": {
-      "files": 2,
-      "lines": 218,
+      "files": 3,
+      "lines": 327,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -323,15 +323,15 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      161
+      162
     ],
     [
       "js/app/shared/storage.js",
-      139
+      140
     ],
     [
       "js/app/shared/utils.js",
-      133
+      134
     ],
     [
       "js/app/project/project-bridge.js",
@@ -339,7 +339,7 @@
     ],
     [
       "js/app/shared/constants.js",
-      100
+      101
     ],
     [
       "js/app/shared/room-registry.js",
@@ -996,6 +996,24 @@
       ]
     },
     {
+      "file": "js/app/catalog/catalog-store.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 318,
+      "incoming": 12,
+      "outgoing": 8,
+      "secondLevel": 39,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys-scope.js",
       "risk": "średnie",
       "score": 5,
@@ -1045,24 +1063,6 @@
       "reasons": [
         "250+ linii",
         "dużo zależnych plików"
-      ]
-    },
-    {
-      "file": "js/app/catalog/catalog-store.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 307,
-      "incoming": 11,
-      "outgoing": 8,
-      "secondLevel": 37,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -1533,7 +1533,7 @@
       "lines": 172,
       "incoming": 68,
       "outgoing": 4,
-      "secondLevel": 161,
+      "secondLevel": 162,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1940,6 +1940,7 @@
         "js/core/modals.js",
         "js/tabs/material.js",
         "js/tabs/rysunek.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/data-safety/tests.js",
@@ -2961,6 +2962,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -3015,6 +3017,7 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -3030,7 +3033,7 @@
     "js/app/catalog/catalog-selectors.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 68,
+      "lines": 75,
       "defines": [
         "catalogSelectors"
       ],
@@ -3045,7 +3048,8 @@
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-offer.js",
-        "js/app/wycena/wycena-tab-editor.js"
+        "js/app/wycena/wycena-tab-editor.js",
+        "js/tabs/wywiad-labor-summary.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -3067,6 +3071,7 @@
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-editor-bridge.js",
         "js/app/wycena/wycena-tab-helpers.js",
+        "js/tabs/wywiad.js",
         "js/testing/service/tests.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js"
@@ -3084,7 +3089,7 @@
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 307,
+      "lines": 318,
       "defines": [
         "catalogStore"
       ],
@@ -3107,6 +3112,7 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -3142,6 +3148,8 @@
         "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-tab-editor.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -5662,7 +5670,8 @@
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-persistence.js",
-        "js/app/wycena/wycena-core-labor.js"
+        "js/app/wycena/wycena-core-labor.js",
+        "js/tabs/wywiad-labor-summary.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5690,7 +5699,8 @@
         "js/app/material/price-modal-item-form.js",
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-persistence.js",
-        "js/app/wycena/wycena-core-labor.js"
+        "js/app/wycena/wycena-core-labor.js",
+        "js/tabs/wywiad-labor-summary.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -5708,6 +5718,8 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/app/wycena/wycena-core.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/tabs/wywiad.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -9697,6 +9709,7 @@
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
@@ -9921,6 +9934,7 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -11794,6 +11808,7 @@
         "js/core/modals.js",
         "js/tabs/material.js",
         "js/tabs/rysunek.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -12082,6 +12097,7 @@
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/material.js",
         "js/tabs/rysunek.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/data-safety/tests.js",
@@ -15153,14 +15169,45 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/tabs/wywiad-labor-summary.js": {
+      "area": "ZAKŁADKI",
+      "category": "tab/controller",
+      "lines": 91,
+      "defines": [
+        "wywiadLaborSummary"
+      ],
+      "uses": [
+        "catalogSelectors",
+        "catalogStore",
+        "laborCatalog",
+        "wywiadLaborSummary"
+      ],
+      "incomingFiles": [
+        "js/tabs/wywiad.js"
+      ],
+      "outgoingFiles": [
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/pricing/labor-catalog.js"
+      ],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/tabs/wywiad.js": {
       "area": "ZAKŁADKI",
       "category": "ui/render/events",
-      "lines": 198,
+      "lines": 216,
       "defines": [
         "tabsWywiad"
       ],
       "uses": [
+        "wywiadLaborSummary",
         "storage",
         "tabsWywiad",
         "tabsRouter",
@@ -15170,7 +15217,8 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/shared/storage.js",
-        "js/app/ui/tabs-router.js"
+        "js/app/ui/tabs-router.js",
+        "js/tabs/wywiad-labor-summary.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,

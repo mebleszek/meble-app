@@ -17,10 +17,17 @@
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
     catch(_){ return JSON.parse(JSON.stringify(value || null)); }
   }
-  function getSheetMaterials(){ return catalogStore() && typeof catalogStore().getSheetMaterials === 'function' ? catalogStore().getSheetMaterials() : []; }
-  function getAccessories(){ return catalogStore() && typeof catalogStore().getAccessories === 'function' ? catalogStore().getAccessories() : []; }
-  function getQuoteRates(){ return catalogStore() && typeof catalogStore().getQuoteRates === 'function' ? catalogStore().getQuoteRates() : []; }
-  function getWorkshopServices(){ return catalogStore() && typeof catalogStore().getWorkshopServices === 'function' ? catalogStore().getWorkshopServices() : []; }
+  function getList(methodName, priceListKey){
+    const store = catalogStore();
+    if(!store) return [];
+    if(typeof store[methodName] === 'function') return store[methodName]();
+    if(typeof store.getPriceList === 'function') return store.getPriceList(priceListKey);
+    return [];
+  }
+  function getSheetMaterials(){ return getList('getSheetMaterials', 'materials'); }
+  function getAccessories(){ return getList('getAccessories', 'accessories'); }
+  function getQuoteRates(){ return getList('getQuoteRates', 'quoteRates'); }
+  function getWorkshopServices(){ return getList('getWorkshopServices', 'workshopServices'); }
 
   function matchByNameOrSymbol(rows, query){
     const key = normalizeKey(query);

@@ -136,6 +136,13 @@ Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm
 - Nie tworzyć kolejnych trwałych kopii projektu tylko po to, żeby „na szybko” coś przywrócić.
 
 
+
+## Pricing labor display fix v1 — 2026-05-03
+
+- Poprawka nie dodaje nowego storage i nie zmienia formatu danych. Zachowuje istniejące `quoteRates` jako katalog użytkownika oraz `cabinet.laborItems` jako dane przypięte do konkretnej szafki.
+- Dla przyszłej chmury ważny kontrakt: katalog robocizny jest czytany przez selektory/repository boundary, a WYCENA zapisuje wynik w snapshotach ofert; UI nie powinien czytać bezpośrednio z localStorage.
+- `catalogStore.getPriceList(kind)` pozostaje bazowym adapterem lokalnym, ale publiczne aliasy `getQuoteRates` itp. są utrzymane dla kompatybilności modułów domenowych.
+
 ## Audyt źródeł storage — 2026-04-26
 
 Dodano narzędzie `tools/local-storage-source-audit.js`, które skanuje źródła `js` pod kątem bezpośrednich referencji do `localStorage` i `sessionStorage`.

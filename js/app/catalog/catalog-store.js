@@ -230,6 +230,13 @@
     return [];
   }
 
+  // Compatibility getters used by catalog selectors and quote calculators.
+  // Keep them as thin aliases so UI modules do not need to know storage keys.
+  function getSheetMaterials(){ return getPriceList('materials'); }
+  function getAccessories(){ return getPriceList('accessories'); }
+  function getQuoteRates(){ return getPriceList('quoteRates'); }
+  function getWorkshopServices(){ return getPriceList('workshopServices'); }
+
   function savePriceList(kind, list){
     const key = String(kind || 'materials');
     if(key === 'materials'){
@@ -297,6 +304,10 @@
     getPriceList,
     savePriceList,
     getPriceConfig,
+    getSheetMaterials,
+    getAccessories,
+    getQuoteRates,
+    getWorkshopServices,
     getServiceOrders,
     saveServiceOrders,
     upsertServiceOrder,

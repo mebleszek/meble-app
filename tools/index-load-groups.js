@@ -190,6 +190,7 @@ const INDEX_LOAD_GROUPS = [
     "id": "tabs-quote-wycena",
     "label": "Classic tabs / quote / wycena",
     "scripts": [
+      "js/tabs/wywiad-labor-summary.js",
       "js/tabs/wywiad.js",
       "js/tabs/rysunek.js",
       "js/tabs/material.js",
