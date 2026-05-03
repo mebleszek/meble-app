@@ -50,6 +50,9 @@
     return selections.map((row)=>{
       const rate = (Array.isArray(catalog) ? catalog : []).find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
       if(!rate) return null;
+      const autoRole = String(rate && rate.autoRole || 'none');
+      const usage = String(rate && rate.usage || 'manual');
+      if(autoRole !== 'none' || usage !== 'manual' || rate.internalOnly === true) return null;
       const qty = Math.max(0, Number(row && row.qty) || 0);
       if(!(qty > 0)) return null;
       const unitPrice = Math.max(0, Number(rate && rate.price) || 0);

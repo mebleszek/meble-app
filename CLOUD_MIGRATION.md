@@ -356,3 +356,13 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Nie dodano nowego storage ani nie zmieniono formatu danych runtime.
 - Zmieniono tylko izolację testów: suita recovery Inwestora lokalnie czyści i przywraca techniczny klucz `fc_edit_session_v1`, żeby testy odzysku inwestorów z `projectStore`/snapshotów ofert nie odzyskiwały danych z sesji edycji zostawionej przez wcześniejszy test.
 - Dla przyszłej chmury wniosek pozostaje taki sam: snapshot sesji edycji jest technicznym stanem tymczasowym i nie może być traktowany jak trwałe źródło domenowe na równi z inwestorem/projektem/ofertą.
+
+
+## 2026-05-03 — Pricing labor rules v1
+
+- Model robocizny/czynności został dodany jako rozszerzony katalog `quoteRates`, ale bez nowych bezpośrednich zapisów `localStorage`. Dane nadal przechodzą przez istniejący store katalogów.
+- Dla przyszłej chmury robocizna powinna być traktowana jako osobny namespace/collection katalogu wycen: stawki godzinowe, definicje robocizny, reguły gabarytu i pakiety ilościowe.
+- Wewnętrzne wyliczenia WYCENY zapisują snapshot `lines.labor`; stara oferta ma zachować przeliczone nazwy, normoczasy, stawki, gabaryty i kwoty z dnia wygenerowania. Nie przeliczać historycznych ofert po zmianie katalogu robocizny.
+- `labor-catalog-definitions.js` zawiera domyślne seed records, a `labor-catalog.js` normalizację/kalkulację. Przy migracji do chmury te definicje powinny być migracją katalogu użytkownika, nie technicznym cache.
+- Dane robocizny przy szafce docelowo mogą trafić do modelu szafki jako referencje do definicji (`laborItems`), ale snapshot oferty musi zapisywać pełne przeliczone szczegóły.
+- W tej paczce `laborItems` są już zapisywane przy szafce jako referencje do definicji robocizny z ilością; przy chmurze traktować to jako dane domenowe szafki, nie cache.

@@ -49,8 +49,49 @@
     };
   }
 
+
+  function normalizeLaborComponent(component){
+    const row = component && typeof component === 'object' ? component : {};
+    return {
+      key:String(row.key || row.id || ''),
+      name:String(row.name || ''),
+      category:String(row.category || ''),
+      quantity:Math.max(0, num(row.quantity, 0)),
+      unit:String(row.unit || ''),
+      rateType:String(row.rateType || ''),
+      hourlyRate:Math.max(0, num(row.hourlyRate, 0)),
+      hours:Math.max(0, num(row.hours, 0)),
+      baseHours:Math.max(0, num(row.baseHours, 0)),
+      volumeHours:Math.max(0, num(row.volumeHours, 0)),
+      multiplier:Math.max(0, num(row.multiplier, 1)),
+      volumeM3:Math.max(0, num(row.volumeM3, 0)),
+      volumePrice:Math.max(0, num(row.volumePrice, 0)),
+      fixedPrice:Math.max(0, num(row.fixedPrice, 0)),
+      total:Math.max(0, num(row.total, 0)),
+      note:String(row.note || '').trim(),
+    };
+  }
+
+  function normalizeLaborLine(line){
+    const base = normalizeLine(line);
+    const row = line && typeof line === 'object' ? line : {};
+    return Object.assign(base, {
+      type:String(row.type || base.type || 'labor-cabinet'),
+      cabinetNumber:Math.max(0, num(row.cabinetNumber, 0)),
+      cabinetId:String(row.cabinetId || '').trim(),
+      roomId:String(row.roomId || '').trim(),
+      dimensions:String(row.dimensions || '').trim(),
+      volumeM3:Math.max(0, num(row.volumeM3, 0)),
+      hours:Math.max(0, num(row.hours, 0)),
+      details:Array.isArray(row.details) ? row.details.map(normalizeLaborComponent) : [],
+    });
+  }
+
   function normalizeLines(rows){
     return Array.isArray(rows) ? rows.map(normalizeLine) : [];
+  }
+  function normalizeLaborLines(rows){
+    return Array.isArray(rows) ? rows.map(normalizeLaborLine) : [];
   }
 
   function normalizeRoomIds(rows){
@@ -151,7 +192,8 @@
     const accessories = Math.max(0, num(base.accessories, lines.accessories.reduce((sum, row)=> sum + row.total, 0)));
     const services = Math.max(0, num(base.services, lines.agdServices.reduce((sum, row)=> sum + row.total, 0)));
     const quoteRates = Math.max(0, num(base.quoteRates, lines.quoteRates.reduce((sum, row)=> sum + row.total, 0)));
-    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates));
+    const labor = Math.max(0, num(base.labor, (Array.isArray(lines.labor) ? lines.labor : []).reduce((sum, row)=> sum + row.total, 0)));
+    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates + labor));
     let discount = Math.max(0, num(base.discount, 0));
     if(!(discount > 0)){
       if(commercial.discountPercent > 0) discount = subtotal * (commercial.discountPercent / 100);
@@ -164,6 +206,7 @@
       accessories,
       services,
       quoteRates,
+      labor,
       subtotal,
       discount,
       grand,
@@ -183,13 +226,14 @@
       accessories: normalizeLines(src.accessoryLines || (src.lines && src.lines.accessories)),
       agdServices: normalizeLines(src.agdLines || (src.lines && src.lines.agdServices)),
       quoteRates: normalizeLines(src.quoteRateLines || (src.lines && src.lines.quoteRates)),
+      labor: normalizeLaborLines(src.laborLines || (src.lines && src.lines.labor)),
     };
     const commercial = normalizeCommercial(src.commercial || {}, { roomIds, roomLabels, scope:{ selectedRooms:roomIds, roomLabels } });
     const totals = computeTotals(src.totals || {}, lines, commercial);
     const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
     const scopeMode = materialScopeMode(materialScope);
     return {
-      version: 5,
+      version: 6,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {

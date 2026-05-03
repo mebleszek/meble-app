@@ -455,3 +455,17 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Testy recovery Inwestora czyszczą i przywracają `fc_edit_session_v1` lokalnie w fixture, żeby nie mieszać snapshotów sesji edycji z testami odzysku z projektów/snapshotów ofert.
 - Nie zmieniono UI, runtime danych, statusów/ofert, RYSUNKU ani polityki backupów.
 - Raport checkpointu: `tools/reports/optimization-checkpoint-v1.md`.
+
+
+## 2026-05-03 — Pricing labor rules v1
+
+- Wprowadzono pierwszy etap modelu robocizny/czynności bez ruszania RYSUNKU, materiałów i okuć.
+- `Stawki wyceny mebli` są teraz miejscem edycji definicji robocizny: stawki godzinowe, skręcanie korpusów, elementy szafki i usługi przy szafce.
+- Nowy model obsługuje opcjonalne składniki: blok czasu `0,25/0,5/1 h`, ilość liniową, progi/pakiety, start + kolejne sztuki, dopłatę gabarytową `PLN/m³`, gabarytoczas, kwotę stałą, mnożnik i zakres wysokości.
+- Nowe moduły katalogu robocizny: `js/app/pricing/labor-catalog-definitions.js` oraz `js/app/pricing/labor-catalog.js`. Trzymać je w tej kolejności ładowania.
+- Nowy moduł `js/app/wycena/wycena-core-labor.js` zbiera wewnętrzne koszty robocizny po szafkach i używa numerów szafek zgodnych z kolejnością z `WYWIADU`.
+- Podgląd `WYCENA` pokazuje sekcję `Robocizna — szafki` z rozwijanymi szczegółami dla każdej szafki. To jest widok wewnętrzny; PDF/klient nie dostał szczegółowego renderu `lines.labor`.
+- W modalu szafki dodano sekcję `Dodatki robocizny`, obsługiwaną przez `js/app/cabinet/cabinet-modal-labor.js`; wybiera aktywne definicje z `usage: cabinet` i `autoRole: none` oraz zapisuje je jako `laborItems` przy konkretnej szafce.
+- Ręczne stawki oferty filtrują definicje automatyczne/wewnętrzne (`autoRole !== none`, `usage !== manual`, `internalOnly === true`), żeby reguły korpusów/gabarytu nie trafiały jako pozycje klienta.
+- Snapshot oferty ma wersję 6 i zapisuje `lines.labor`; nie usuwać tego pola przy dalszych zmianach WYCENY.
+- Raport: `tools/reports/pricing-labor-rules-v1.md`.

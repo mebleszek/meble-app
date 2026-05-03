@@ -164,3 +164,20 @@
   color:#14532d!important;
   box-shadow:0 0 0 1px rgba(134,239,172,.12);
 }
+
+/* pricing_labor_rules_v1 — dodatki robocizny w modalu szafki */
+.cabinet-labor-card{border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:14px;box-shadow:0 10px 24px rgba(15,23,42,.06);}
+.cabinet-labor-card__head{display:grid;gap:4px;margin-bottom:12px;}
+.cabinet-labor-card__title{font-size:16px;font-weight:900;color:#111827;line-height:1.15;}
+.cabinet-labor-card__sub{font-size:12px;font-weight:750;color:#64748b;line-height:1.35;}
+.cabinet-labor-add-row{display:grid;grid-template-columns:minmax(0,1fr) 86px auto;gap:8px;align-items:end;margin-bottom:10px;}
+.cabinet-labor-add-btn{min-height:46px;font-weight:800;}
+.cabinet-labor-list{display:grid;gap:8px;}
+.cabinet-labor-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #edf2f7;border-radius:14px;padding:10px;background:#fbfdff;}
+.cabinet-labor-item__name{font-size:14px;font-weight:900;color:#111827;line-height:1.15;}
+.cabinet-labor-item__meta{font-size:12px;font-weight:750;color:#64748b;line-height:1.35;margin-top:3px;}
+.cabinet-labor-item__actions{display:flex;gap:8px;align-items:center;}
+.cabinet-labor-item__qty{max-width:76px;min-height:42px;}
+.cabinet-labor-remove{min-height:42px;}
+.cabinet-labor-empty{font-size:13px;font-weight:800;color:#64748b;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:10px;}
+@media (max-width:720px){.cabinet-labor-add-row{grid-template-columns:1fr 74px}.cabinet-labor-add-btn{grid-column:1 / -1}.cabinet-labor-item{grid-template-columns:1fr}.cabinet-labor-item__actions{justify-content:flex-start}}

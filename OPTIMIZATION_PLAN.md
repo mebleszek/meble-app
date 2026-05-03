@@ -453,3 +453,13 @@ Następne sensowne kierunki poza RYSUNKIEM:
 - To zmniejsza dług narzędziowy bez ruszania UI/runtime aplikacji i ułatwia przyszłe dopisywanie testów Inwestora bez tworzenia kolejnego monolitu.
 - Przy okazji ujawniono i naprawiono problem izolacji fixture: recovery testy Inwestora muszą czyścić/przywracać `fc_edit_session_v1`, bo inaczej test snapshot-only miesza się z poprzednim testem pustej listy pomieszczeń.
 - Następny refaktor powinien być powiązany z planowaną funkcją: szafki/fronty (`cabinet-fronts.js`/modal stack), Inwestor (`investor-ui.js` bindingi) albo Materiały (`tabs/material.js`). Nie ciąć RYSUNKU.
+
+
+## 2026-05-03 — Pricing labor rules v1
+
+- Po checkpointcie optymalizacji rozpoczęto funkcjonalny rozwój cenników: robocizna/czynności.
+- Dodano nowe granice odpowiedzialności zamiast rozbudowywać istniejące pliki katalogów/WYCENY: `labor-catalog-definitions.js`, `labor-catalog.js`, `wycena-core-labor.js`.
+- `labor-catalog.js` został rozdzielony z definicji domyślnych, żeby nie tworzyć nowego monolitu katalogu robocizny.
+- `quote-snapshot.js` przekroczył próg ostrożności ok. 300 linii, bo doszła normalizacja `lines.labor`; nie ciąć go przy okazji bez osobnego planu na split normalizerów snapshotu, żeby nie ryzykować historii ofert.
+- Następny sensowny kierunek w tym obszarze: UI wyboru dodatków robocizny bezpośrednio w modalu szafki oraz testy dla ręcznych `laborItems`.
+- UI wyboru dodatków robocizny w modalu szafki został dodany w osobnym module `cabinet-modal-labor.js`; następny kierunek to testy dla edycji tych dodatków w przeglądarce i ewentualne dopracowanie formularza po ręcznym sprawdzeniu.

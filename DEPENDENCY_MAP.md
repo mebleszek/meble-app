@@ -338,3 +338,13 @@ Następnego refaktoru nie wybierać na oko. Najpierw użyć tej mapy i raportu, 
 - `dev_tests.html` i `tools/app-dev-smoke-lib/file-list.js` ładują testy Inwestora w kolejności: `helpers.js`, suity `architecture`, `registry-core`, `registry-manage`, `model-actions`, `status-flow`, `recovery-sources`, `recovery-isolation`, `misc`, a na końcu aggregator `tests.js`.
 - `FC.investorDevTestSuites` jest wypełniane przez suity, a `FC.investorDevTests.runAll()` w `tests.js` zbiera je w jeden raport `INWESTOR smoke testy`.
 - `app-dev-smoke` pilnuje obecności wydzielonych suit i zachowania rejestracji testów Inwestora.
+
+
+## 2026-05-03 — Pricing labor rules v1
+
+- Load order w `business-domains`: `labor-catalog-definitions.js` → `labor-catalog.js` → `catalog-store.js`. Katalog store może seedować/normalizować `quoteRates` dopiero po załadowaniu katalogu robocizny.
+- Load order w `tabs-quote-wycena`: `wycena-core-lines.js` → `wycena-core-labor.js` → `wycena-core.js`. Orchestrator WYCENY wymaga `FC.wycenaCoreLabor`.
+- `quote-snapshot.js` normalizuje `lines.labor`, a `wycena-tab-preview.js` renderuje te linie jako wewnętrzne rozwijane szczegóły po numerach szafek.
+- `quote-pdf.js` nie zależy od `lines.labor`; nie dodawać ich do PDF bez osobnej decyzji, bo są kosztami wewnętrznymi.
+- `price-modal-item-form.js`, `price-modal-list.js` i `price-modal-persistence.js` zależą od `FC.laborCatalog` tylko dla `quoteRates`; `workshopServices` pozostają prostym cennikiem usług.
+- Load order w `cabinet-wywiad`: `cabinet-choice-launchers.js` → `cabinet-modal-labor.js` → `cabinet-modal.js`; modal szafki używa `FC.cabinetModalLabor` tylko do sekcji dodatków robocizny.

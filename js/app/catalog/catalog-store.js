@@ -11,6 +11,7 @@
   const domain = FC.catalogDomain || {};
   const migration = FC.catalogMigration || {};
   const serviceOrderStore = FC.serviceOrderStore || null;
+  const laborCatalog = FC.laborCatalog || null;
 
   const DEFAULT_SHEET_MATERIALS = [
     { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:35, hasGrain:false },
@@ -19,9 +20,15 @@
   const DEFAULT_ACCESSORIES = [
     { id:'a1', manufacturer:'blum', symbol:'B1', name:'Zawias Blum', price:18 },
   ];
-  const DEFAULT_QUOTE_RATES = [
-    { id:'s1', category:'Montaż', name:'Montaż Express', price:120 },
-  ];
+  const DEFAULT_QUOTE_RATES = laborCatalog && Array.isArray(laborCatalog.DEFAULT_HOURLY_RATES)
+    ? laborCatalog.DEFAULT_HOURLY_RATES.concat(laborCatalog.DEFAULT_LABOR_DEFINITIONS || [])
+    : [
+        { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:120, autoRole:'hourlyRate', rateKey:'workshop', active:true },
+        { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:140, autoRole:'hourlyRate', rateKey:'assembly', active:true },
+        { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:60, autoRole:'hourlyRate', rateKey:'helper', active:true },
+        { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:180, autoRole:'hourlyRate', rateKey:'specialist', active:true },
+        { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
+      ];
   const DEFAULT_WORKSHOP_SERVICES = [
     { id:'ws1', category:'Cięcie', name:'Przycięcie płyty', price:25 },
   ];
@@ -85,12 +92,16 @@
 
   function normalizeServiceRow(row){
     const src = row && typeof row === 'object' ? row : {};
-    return {
+    const base = Object.assign({}, src, {
       id: normalizeText(src.id) || uid('s'),
       category: normalizeText(src.category) || 'Inne',
       name: normalizeText(src.name),
       price: Number(src.price) || 0,
-    };
+    });
+    try{
+      if(laborCatalog && typeof laborCatalog.normalizeDefinition === 'function') return laborCatalog.normalizeDefinition(base);
+    }catch(_){ }
+    return base;
   }
 
   function normalizeServiceOrderRow(row){
@@ -174,7 +185,10 @@
 
     const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessories = normalizeList(seeds.accessories, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
-    const quoteRates = normalizeList(seeds.quoteRates, normalizeServiceRow, DEFAULT_QUOTE_RATES);
+    const quoteRateSeed = laborCatalog && typeof laborCatalog.ensureDefaultDefinitions === 'function'
+      ? laborCatalog.ensureDefaultDefinitions(seeds.quoteRates)
+      : seeds.quoteRates;
+    const quoteRates = normalizeList(quoteRateSeed, normalizeServiceRow, DEFAULT_QUOTE_RATES);
     const workshopServices = normalizeList(seeds.workshopServices, normalizeServiceRow, DEFAULT_WORKSHOP_SERVICES);
     const serviceOrders = normalizeList(seeds.serviceOrders, normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
 

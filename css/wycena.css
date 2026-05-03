@@ -350,3 +350,27 @@
 }
 #quotePreviewStart,#quoteActivePreview{scroll-margin-top:96px;}
 
+
+/* pricing_labor_rules_v1 — wewnętrzne rozbicie robocizny po szafkach */
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.quote-labor-summary{font-size:13px;line-height:1.35;font-weight:800;color:#475569;margin-bottom:10px;}
+.quote-labor-list{display:flex;flex-direction:column;gap:8px;}
+.quote-labor-cabinet{border:1px solid rgba(226,232,240,.95);border-radius:16px;background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);overflow:hidden;}
+.quote-labor-cabinet__summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;list-style:none;}
+.quote-labor-cabinet__summary::-webkit-details-marker{display:none;}
+.quote-labor-cabinet__title{min-width:0;}
+.quote-labor-cabinet__name{font-weight:900;color:#0f172a;overflow-wrap:anywhere;}
+.quote-labor-cabinet__meta{margin-top:4px;font-size:12px;line-height:1.35;color:#64748b;overflow-wrap:anywhere;}
+.quote-labor-cabinet__amount{font-weight:900;white-space:nowrap;color:#0f172a;}
+.quote-labor-cabinet__body{border-top:1px solid rgba(226,232,240,.9);padding:10px 14px 12px;background:#fff;}
+.quote-labor-detail{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.82);}
+.quote-labor-detail:last-child{border-bottom:none;}
+.quote-labor-detail__main{font-weight:800;color:#0f172a;overflow-wrap:anywhere;}
+.quote-labor-detail__meta{grid-column:1 / 2;font-size:12px;line-height:1.35;color:#64748b;overflow-wrap:anywhere;}
+.quote-labor-detail__total{grid-column:2 / 3;grid-row:1 / span 2;align-self:center;font-weight:900;white-space:nowrap;color:#0f172a;}
+@media (max-width:600px){
+  .grid-4{grid-template-columns:minmax(0,1fr);}
+  .quote-labor-cabinet__summary{align-items:flex-start;}
+  .quote-labor-detail{grid-template-columns:minmax(0,1fr);}
+  .quote-labor-detail__total{grid-column:auto;grid-row:auto;align-self:auto;}
+}

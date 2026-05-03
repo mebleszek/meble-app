@@ -44,7 +44,12 @@
   function saveServiceFromForm(){
     try{ if(ctx.currentListKind() === 'quoteRates' && FC.wycenaCore && typeof FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const data = ctx.getCurrentServiceDraft(); if(!validateServiceForm(data)) return false;
-    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0 }));
+    const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    try{
+      if(ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function'){
+        upsertCurrentList(FC.laborCatalog.normalizeDefinition(payload));
+      }else upsertCurrentList(payload);
+    }catch(_){ upsertCurrentList(payload); }
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   async function saveActivePriceItem(){

@@ -48,6 +48,58 @@
     card.appendChild(wrap);
   }
 
+
+  function renderLaborSection(card, rows, deps){
+    const d = normalizeDeps(deps);
+    const h = d.h;
+    const wrap = h('section', { class:'card quote-section quote-labor-section', style:'margin-top:12px;padding:14px;' });
+    wrap.appendChild(h('h4', { text:'Robocizna — szafki', style:'margin:0 0 10px' }));
+    if(!Array.isArray(rows) || !rows.length){
+      wrap.appendChild(h('div', { class:'muted', text:'Brak wyliczonej robocizny szafek.' }));
+      card.appendChild(wrap);
+      return;
+    }
+    const total = rows.reduce((sum, row)=> sum + (Number(row && row.total) || 0), 0);
+    const hours = rows.reduce((sum, row)=> sum + (Number(row && row.hours) || 0), 0);
+    wrap.appendChild(h('div', { class:'quote-labor-summary', text:`Suma robocizny szafek: ${d.money(total)} • normoczas: ${hours.toFixed(2)} h` }));
+    const list = h('div', { class:'quote-labor-list' });
+    rows.forEach((row)=>{
+      const details = h('details', { class:'quote-labor-cabinet' });
+      const summary = h('summary', { class:'quote-labor-cabinet__summary' });
+      const title = h('div', { class:'quote-labor-cabinet__title' });
+      title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:row.name || `Szafka #${row.cabinetNumber || ''}` }));
+      const meta = [];
+      if(row.dimensions) meta.push(row.dimensions);
+      if(Number(row.volumeM3) > 0) meta.push(`${Number(row.volumeM3).toFixed(3)} m³`);
+      if(row.note) meta.push(row.note);
+      title.appendChild(h('div', { class:'quote-labor-cabinet__meta', text:meta.join(' • ') || '—' }));
+      const amount = h('div', { class:'quote-labor-cabinet__amount', text:d.money(row.total) });
+      summary.appendChild(title);
+      summary.appendChild(amount);
+      details.appendChild(summary);
+      const body = h('div', { class:'quote-labor-cabinet__body' });
+      (Array.isArray(row.details) ? row.details : []).forEach((part)=>{
+        const item = h('div', { class:'quote-labor-detail' });
+        const partMeta = [];
+        if(Number(part.hours) > 0) partMeta.push(`${Number(part.hours).toFixed(2)} h`);
+        if(Number(part.hourlyRate) > 0) partMeta.push(`${Number(part.hourlyRate).toFixed(2)} PLN/h`);
+        if(Number(part.volumeM3) > 0 && Number(part.volumePrice) > 0) partMeta.push(`gabaryt ${Number(part.volumeM3).toFixed(3)} m³`);
+        if(Number(part.volumeHours) > 0) partMeta.push(`gabarytoczas ${Number(part.volumeHours).toFixed(2)} h`);
+        if(Number(part.multiplier) && Number(part.multiplier) !== 1) partMeta.push(`mnożnik ×${Number(part.multiplier).toFixed(2)}`);
+        if(part.note) partMeta.push(part.note);
+        item.appendChild(h('div', { class:'quote-labor-detail__main', text:part.name || 'Czynność' }));
+        item.appendChild(h('div', { class:'quote-labor-detail__meta', text:partMeta.join(' • ') || '—' }));
+        item.appendChild(h('div', { class:'quote-labor-detail__total', text:d.money(part.total) }));
+        body.appendChild(item);
+      });
+      if(!body.childNodes.length) body.appendChild(h('div', { class:'muted', text:'Brak szczegółów dla tej szafki.' }));
+      details.appendChild(body);
+      list.appendChild(details);
+    });
+    wrap.appendChild(list);
+    card.appendChild(wrap);
+  }
+
   function renderCommercialSection(card, snapshot, ctx, deps){
     const d = normalizeDeps(deps);
     const h = d.h;
@@ -80,6 +132,7 @@
     [
       ['Materiały', totals.materials],
       ['Akcesoria', totals.accessories],
+      ['Robocizna szafek', totals.labor],
       ['Robocizna / stawki wyceny', totals.quoteRates],
       ['Montaż AGD', totals.services],
       ['Suma przed rabatem', totals.subtotal],
@@ -129,6 +182,7 @@
     const accessoryLines = Array.isArray(currentQuote.accessoryLines) ? currentQuote.accessoryLines : (Array.isArray(lines.accessories) ? lines.accessories : []);
     const agdLines = Array.isArray(currentQuote.agdLines) ? currentQuote.agdLines : (Array.isArray(lines.agdServices) ? lines.agdServices : []);
     const quoteRateLines = Array.isArray(currentQuote.quoteRateLines) ? currentQuote.quoteRateLines : (Array.isArray(lines.quoteRates) ? lines.quoteRates : []);
+    const laborLines = Array.isArray(currentQuote.laborLines) ? currentQuote.laborLines : (Array.isArray(lines.labor) ? lines.labor : []);
     const generatedAt = currentQuote.generatedAt || currentQuote.generatedDate || null;
     if(generatedAt){
       card.appendChild(h('div', { id:'quotePreviewStart' }));
@@ -147,7 +201,8 @@
     card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres elementów: ${d.getMaterialScopeLabel(currentQuote)}`, style:'margin-top:6px' }));
     renderSection(card, 'Materiały z ROZRYS', materialLines, 'Brak pozycji materiałowych.', d);
     renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.', d);
-    renderSection(card, 'Robocizna / stawki wyceny mebli', quoteRateLines, 'Brak pozycji robocizny.', d);
+    renderLaborSection(card, laborLines, d);
+    renderSection(card, 'Robocizna / stawki wyceny mebli', quoteRateLines, 'Brak ręcznych pozycji robocizny.', d);
     renderSection(card, 'Sprzęty do zabudowy / montaż AGD', agdLines, 'Brak wykrytych sprzętów do zabudowy.', d);
     renderCommercialSection(card, currentQuote, ctx, d);
   }
@@ -156,6 +211,7 @@
     renderPreview,
     renderEmpty,
     renderSection,
+    renderLaborSection,
     renderCommercialSection,
   };
 })();

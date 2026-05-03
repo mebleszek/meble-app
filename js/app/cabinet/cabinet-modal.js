@@ -4,6 +4,7 @@
 function getCabinetModalValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
 function getCabinetModalDraftApi(){ return (window.FC && window.FC.cabinetModalDraft) || {}; }
 function getCabinetModalFieldsApi(){ return (window.FC && window.FC.cabinetModalFields) || {}; }
+function getCabinetModalLaborApi(){ return (window.FC && window.FC.cabinetModalLabor) || {}; }
 function getCabinetModalSetWizardApi(){ return (window.FC && window.FC.cabinetModalSetWizard) || {}; }
 function getCabinetModalStandingApi(){ return (window.FC && window.FC.cabinetModalStanding) || {}; }
 function getCabinetModalHangingApi(){ return (window.FC && window.FC.cabinetModalHanging) || {}; }
@@ -421,6 +422,10 @@ function renderCabinetModal(){
   populateSelect(cmSubType, getSubTypeOptionsForTypeSafe(draft.type), draft.subType);
 
   renderCabinetExtraDetailsInto(document.getElementById('cmExtraDetails'), draft);
+  try{
+    const laborApi = getCabinetModalLaborApi();
+    if(laborApi && typeof laborApi.renderLaborSection === 'function') laborApi.renderLaborSection(document.getElementById('cmLaborAddons'), draft, renderCabinetModal);
+  }catch(_){ }
 
   document.getElementById('cmWidth').value = draft.width;
   document.getElementById('cmHeight').value = draft.height;

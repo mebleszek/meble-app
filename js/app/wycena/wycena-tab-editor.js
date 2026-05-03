@@ -132,7 +132,12 @@
 
     const draft = getOfferDraft();
     const commercial = draft && draft.commercial || {};
-    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    const rawCatalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+    const catalog = (Array.isArray(rawCatalog) ? rawCatalog : []).filter((rate)=>{
+      const autoRole = String(rate && rate.autoRole || 'none');
+      const usage = String(rate && rate.usage || 'manual');
+      return autoRole === 'none' && usage === 'manual' && rate && rate.internalOnly !== true;
+    });
     const selectionMap = buildSelectionMapFn(draft);
     const isOpen = !!getIsOpen();
 

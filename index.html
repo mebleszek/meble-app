@@ -258,8 +258,120 @@
 </div>
 </div>
 <div style="margin-top:10px">
-<label>Cena (PLN)</label>
+<label>Kwota stała / cena prosta (PLN)</label>
 <input class="investor-form-input" id="formServicePrice" step="0.01" type="number"/>
+</div>
+<div id="laborFormFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
+<div class="quote-subsection-title">Reguła robocizny</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Użycie</label>
+<select class="investor-form-input" id="laborUsage">
+<option value="manual">Ręcznie w WYCENIE</option>
+<option value="cabinet">Szafka — dodatki</option>
+<option value="room">Pomieszczenie</option>
+<option value="project">Projekt</option>
+</select>
+</div>
+<div>
+<label>Automat</label>
+<select class="investor-form-input" id="laborAutoRole">
+<option value="none">Brak automatu</option>
+<option value="hourlyRate">Stawka godzinowa</option>
+<option value="cabinetBody">Skręcenie korpusu wg wysokości</option>
+<option value="cabinetLooseShelves">Półki z danych szafki</option>
+</select>
+</div>
+</div>
+<div class="grid-3" style="margin-top:10px">
+<div>
+<label>Stawka</label>
+<select class="investor-form-input" id="laborRateType">
+<option value="workshop">Warsztatowa</option>
+<option value="assembly">Montażowa</option>
+<option value="helper">Pomocnik</option>
+<option value="specialist">Specjalistyczna</option>
+</select>
+</div>
+<div>
+<label>Czas bazowy</label>
+<select class="investor-form-input" id="laborTimeBlockHours">
+<option value="0">Brak</option>
+<option value="0.25">0,25 h</option>
+<option value="0.5">0,5 h</option>
+<option value="1">1 h</option>
+</select>
+</div>
+<div>
+<label>Mnożnik domyślny</label>
+<input class="investor-form-input" id="laborDefaultMultiplier" step="0.01" type="number"/>
+</div>
+</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Tryb ilości</label>
+<select class="investor-form-input" id="laborQuantityMode">
+<option value="none">Bez ilości</option>
+<option value="linear">Liniowo: czas × ilość</option>
+<option value="tiers">Pakiety/progi ilościowe</option>
+<option value="startStep">Start + kolejne sztuki</option>
+</select>
+</div>
+<div>
+<label>Progi ilościowe</label>
+<input class="investor-form-input" id="laborTierText" placeholder="np. 1-2=0.25;3-5=0.5;6-10=1" type="text"/>
+</div>
+</div>
+<div class="grid-4" style="margin-top:10px">
+<div>
+<label>Start h</label>
+<select class="investor-form-input" id="laborStartHours"><option value="0">Brak</option><option value="0.25">0,25 h</option><option value="0.5">0,5 h</option><option value="1">1 h</option></select>
+</div>
+<div>
+<label>Start szt.</label>
+<input class="investor-form-input" id="laborStartQty" min="1" step="1" type="number"/>
+</div>
+<div>
+<label>Co ile szt.</label>
+<input class="investor-form-input" id="laborStepEveryQty" min="1" step="1" type="number"/>
+</div>
+<div>
+<label>Dodaj h</label>
+<select class="investor-form-input" id="laborStepHours"><option value="0">Brak</option><option value="0.25">0,25 h</option><option value="0.5">0,5 h</option><option value="1">1 h</option></select>
+</div>
+</div>
+<div class="grid-3" style="margin-top:10px">
+<div>
+<label>Gabaryt zł/m³</label>
+<input class="investor-form-input" id="laborVolumePricePerM3" step="0.01" type="number"/>
+</div>
+<div>
+<label>Gabarytoczas</label>
+<select class="investor-form-input" id="laborVolumeTimeMode"><option value="none">Wyłączony</option><option value="tiers">Progi objętości</option><option value="perM3">h/m³</option></select>
+</div>
+<div>
+<label>Gabarytoczas h/m³</label>
+<input class="investor-form-input" id="laborVolumeTimePerM3" step="0.01" type="number"/>
+</div>
+</div>
+<div style="margin-top:10px">
+<label>Progi gabarytoczasu</label>
+<input class="investor-form-input" id="laborVolumeTimeTierText" placeholder="np. 0.31-0.60=0.25;0.61-1=0.5" type="text"/>
+</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Wysokość od (mm)</label>
+<input class="investor-form-input" id="laborHeightMinMm" step="1" type="number"/>
+</div>
+<div>
+<label>Wysokość do (mm)</label>
+<input class="investor-form-input" id="laborHeightMaxMm" step="1" type="number"/>
+</div>
+</div>
+<div class="grid-2" style="margin-top:10px">
+<label class="muted-tag xs" style="display:flex;gap:8px;align-items:center;margin:0"><input id="laborActive" type="checkbox"/> Aktywna</label>
+<label class="muted-tag xs" style="display:flex;gap:8px;align-items:center;margin:0"><input id="laborInternalOnly" type="checkbox"/> Szczegóły tylko wewnętrzne</label>
+</div>
 </div>
 </div>
 <div class="price-item-footer" id="priceItemFooter">
@@ -344,6 +456,7 @@
 </div>
 </div>
 <div class="cabinet-extra-details" id="cmExtraDetails" style="margin-top:12px"></div>
+<div class="cabinet-labor-addons" id="cmLaborAddons" style="margin-top:12px"></div>
 <div class="hr"></div>
 <div class="grid-3 cabinet-form-grid cabinet-form-grid--dims" id="cmDims">
 <div><label>Szerokość</label><input id="cmWidth" step="0.1" type="number"/></div>
@@ -642,10 +755,12 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
@@ -679,9 +794,9 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260426_material_price_split_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260426_material_price_split_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260426_material_price_split_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/choice-box.js?v=20260426_orphan_guard_v1"></script>
@@ -751,7 +866,8 @@
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260419_wywiad_standing_split_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-labor.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-repository.js?v=20260430_investor_project_boundary_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-runtime.js?v=20260430_investor_project_boundary_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-patches.js?v=20260430_investor_project_boundary_v1"></script>
@@ -779,7 +895,7 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-manual-guard.js?v=20260502_status_reconcile_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-scope-decision.js?v=20260502_status_quote_scope_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-schedule-status.js?v=20260502_schedule_status_prep_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260417_quote_scope_labels_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-room-availability.js?v=20260502_status_quote_scope_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-selection.js?v=20260428_wycena_core_selection_split_v1"></script>
@@ -787,9 +903,10 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260501_wycena_core_platform_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20260501_wycena_core_platform_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20260501_wycena_core_platform_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260501_wycena_core_platform_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-dom.js?v=20260428_wycena_shell_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-data.js?v=20260502_wycena_tab_boundary_v1"></script>
@@ -804,12 +921,12 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-pickers.js?v=20260502_status_quote_scope_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-render.js?v=20260502_wycena_selection_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection.js?v=20260502_wycena_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260416_wycena_tab_editor_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-scroll.js?v=20260416_wycena_tab_scroll_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20260501_status_test_cache_fix_v2"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-actions.js?v=20260501_status_test_cache_fix_v2"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260428_wycena_preview_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260503_pricing_labor_rules_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20260428_wycena_shell_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260502_wycena_tab_boundary_v1"></script>
 
