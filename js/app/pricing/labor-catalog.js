@@ -78,6 +78,7 @@
     const rateType = normalizeMode(src.rateType || (autoRole === 'hourlyRate' ? rateKey : ''), RATE_TYPES, 'workshop');
     const quantityMode = normalizeMode(src.quantityMode, QUANTITY_MODES, 'none');
     const volumeTimeMode = text(src.volumeTimeMode) === 'perM3' ? 'perM3' : (text(src.volumeTimeMode) === 'tiers' ? 'tiers' : 'none');
+    const volumePricePerM3 = volumeTimeMode === 'none' ? Math.max(0, num(src.volumePricePerM3, 0)) : 0;
     const price = Math.max(0, num(src.price, 0));
     return {
       id:text(src.id) || uid('labor'),
@@ -96,7 +97,7 @@
       startQty:Math.max(1, Math.floor(num(src.startQty, 1))),
       stepEveryQty:Math.max(1, Math.floor(num(src.stepEveryQty, 1))),
       stepHours:clampTimeBlock(src.stepHours),
-      volumePricePerM3:Math.max(0, num(src.volumePricePerM3, 0)),
+      volumePricePerM3,
       volumeTimeMode,
       volumeTimePerM3:Math.max(0, num(src.volumeTimePerM3, 0)),
       volumeTimeTiers:normalizeTiers(src.volumeTimeTiers),
@@ -190,7 +191,7 @@
     const multiplier = Math.max(0, Number(c.multiplier) || Number(def.defaultMultiplier) || 1);
     const pricedHours = (quantityHours + volumeHours) * multiplier;
     const laborPrice = pricedHours * hourlyRate;
-    const volumePrice = volumeM3 * Math.max(0, Number(def.volumePricePerM3) || 0);
+    const volumePrice = volumeHours > 0 ? 0 : (volumeM3 * Math.max(0, Number(def.volumePricePerM3) || 0));
     const fixedPrice = Math.max(0, Number(def.fixedPrice || def.price) || 0);
     const total = laborPrice + volumePrice + fixedPrice;
     return {

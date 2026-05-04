@@ -114,6 +114,24 @@
   function setValue(id, value){ const el = ctx.byId(id); if(el) el.value = value == null ? '' : String(value); }
   function setChecked(id, value){ const el = ctx.byId(id); if(el) el.checked = !!value; }
 
+  function syncLaborGabarytMode(){
+    if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
+    const modeEl = ctx.byId('laborVolumeTimeMode');
+    const priceEl = ctx.byId('laborVolumePricePerM3');
+    if(!(modeEl && priceEl)) return;
+    const activeVolumeTime = String(modeEl.value || 'none') !== 'none';
+    if(activeVolumeTime){
+      if(String(priceEl.value || '') !== '0') priceEl.value = '0';
+      priceEl.disabled = true;
+      priceEl.setAttribute('aria-disabled', 'true');
+      priceEl.title = 'Wyłączone, bo gabaryt jest liczony jako czas. Żeby użyć dopłaty PLN/m³, ustaw Gabarytoczas na Wyłączony.';
+    }else{
+      priceEl.disabled = false;
+      priceEl.removeAttribute('aria-disabled');
+      priceEl.removeAttribute('title');
+    }
+  }
+
   function getCurrentMaterialDraft(){ return { materialType:String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || ''), manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(), symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(), name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value), hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked) }; }
   function getCurrentAccessoryDraft(){ return { manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(), symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(), name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value) }; }
   function getCurrentLaborDraft(base){
@@ -121,6 +139,7 @@
     const labor = FC.laborCatalog || {};
     const tierText = readString('laborTierText');
     const volumeTierText = readString('laborVolumeTimeTierText');
+    const volumeTimeMode = readString('laborVolumeTimeMode') || 'none';
     return {
       usage:'universal',
       autoRole:readString('laborAutoRole') || 'none',
@@ -134,8 +153,8 @@
       startQty:Number(readNumber('laborStartQty')) || 1,
       stepEveryQty:Number(readNumber('laborStepEveryQty')) || 1,
       stepHours:Number(readNumber('laborStepHours')) || 0,
-      volumePricePerM3:Number(readNumber('laborVolumePricePerM3')) || 0,
-      volumeTimeMode:readString('laborVolumeTimeMode') || 'none',
+      volumePricePerM3:volumeTimeMode === 'none' ? (Number(readNumber('laborVolumePricePerM3')) || 0) : 0,
+      volumeTimeMode,
       volumeTimePerM3:Number(readNumber('laborVolumeTimePerM3')) || 0,
       volumeTimeTiers:labor.parseVolumeTierText ? labor.parseVolumeTierText(volumeTierText) : [],
       heightMinMm:Number(readNumber('laborHeightMinMm')) || 0,
@@ -152,6 +171,7 @@
   function isItemDirty(){ return ctx.runtimeState.itemModalOpen && currentItemSignature() !== String(ctx.runtimeState.itemInitialSignature || ''); }
 
   function updateItemActionState(){
+    syncLaborGabarytMode();
     const dirty = isItemDirty();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
     const deleteBtn = ctx.byId('deletePriceItemBtn');
@@ -218,6 +238,7 @@
     setValue('laborHeightMaxMm', Number(def.heightMaxMm) || 0);
     setChecked('laborActive', def.active !== false);
     setChecked('laborInternalOnly', def.internalOnly !== false);
+    syncLaborGabarytMode();
   }
   function applyServiceFormState(item){
     const kind = ctx.currentListKind();

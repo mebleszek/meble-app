@@ -47,35 +47,58 @@
   .czynnosci-summary-pill{ display:flex; border-radius:16px; line-height:1.25; }
 }
 
-/* 2026-05-04 — czytelny rozpis kalkulacji czynności szafki. */
+/* 2026-05-04 — kompaktowy, czytelny rozpis kalkulacji czynności szafki. */
+.czynnosci-root .quote-labor-detail{
+  grid-template-columns:minmax(0,1fr);
+  gap:5px;
+  padding:8px 0;
+}
+.czynnosci-root .quote-labor-detail__main{
+  font-size:16px;
+  line-height:1.14;
+  font-weight:900;
+  text-align:left;
+}
+.czynnosci-root .quote-labor-detail__total{
+  grid-column:auto;
+  grid-row:auto;
+  justify-self:center;
+  font-size:16px;
+  line-height:1.15;
+  margin-top:2px;
+}
 .quote-labor-breakdown{
   display:grid;
-  gap:7px;
-  margin-top:8px;
-  padding:10px 11px;
+  gap:4px;
+  margin-top:7px;
+  padding:8px 9px;
   border:1px solid rgba(226,232,240,.95);
   border-radius:14px;
   background:linear-gradient(180deg,#fff,#f8fbff);
 }
 .quote-labor-breakdown__row{
   display:grid;
-  grid-template-columns:minmax(0, .92fr) minmax(0, 1.45fr);
-  gap:10px;
+  grid-template-columns:minmax(0,.86fr) minmax(0,1.45fr);
+  gap:8px;
   align-items:start;
   font-weight:800;
   color:#111827;
-  line-height:1.22;
+  line-height:1.18;
+  font-size:13px;
 }
 .quote-labor-breakdown__label{
   color:#64748b;
   overflow-wrap:anywhere;
+  font-size:12px;
+  line-height:1.12;
 }
 .quote-labor-breakdown__value{
-  text-align:right;
+  text-align:left;
   overflow-wrap:anywhere;
+  font-size:13px;
+  line-height:1.18;
 }
 .quote-labor-detail__meta{ display:none; }
 @media (max-width:640px){
-  .quote-labor-breakdown__row{ grid-template-columns:1fr; gap:2px; }
-  .quote-labor-breakdown__value{ text-align:left; }
+  .quote-labor-breakdown__row{ grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr); gap:7px; }
 }

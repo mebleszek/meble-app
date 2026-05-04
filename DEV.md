@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_czynnosci_labor_ui_adjust_v1.zip`.
-- Baza startowa tej paczki: `site_czynnosci_labor_workspace_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_czynnosci_labor_gabaryt_compact_v1.zip`.
+- Baza startowa tej paczki: `site_czynnosci_labor_calc_help_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -534,3 +534,10 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Formularz `Stawki wyceny mebli` ma wydzielony moduł `js/app/material/price-modal-field-help.js` dla aplikacyjnych launcherów pól i objaśnień `?`; nie dokładać tej logiki z powrotem do `price-modal-item-form.js`.
 - Pole `Kategoria` w formularzu cennika ma być aplikacyjnym launcherem wyboru, tak jak pozostałe pola wyboru, i musi pozostać widoczne po dodaniu objaśnień `?`.
 - Podgląd czynności szafek w zakładce `CZYNNOŚCI` ma pokazywać czytelny rozpis kalkulacji: czas bazowy/pakiet, stawkę, mnożnik, robociznę czasową, gabaryt, dopłatę gabarytową, kwotę stałą i razem. Nie wracać do zwartego tekstu typu `1.15 h • 120 PLN/h • mnożnik ×1.15`, bo jest mylący.
+
+
+## 2026-05-04 — robocizna: gabaryt i kompaktowa rozpiska
+
+- W regułach robocizny gabaryt nie może być liczony nieświadomie podwójnie: gdy `gabarytoczas` dolicza czas, dopłata `PLN/m³` jest ignorowana/zerowana dla tej reguły.
+- W podglądzie `CZYNNOŚCI` rozpiska składników ma pozostać kompaktowa: ma pokazywać czas bazowy, gabarytoczas, stawkę, mnożnik, robociznę czasową, ewentualną dopłatę gabarytową i razem, ale bez dużej typografii rozciągającej kartę.
+- Formularz cennika robocizny może mieć pola zaawansowane, ale musi prowadzić użytkownika: `Gabaryt zł/m³` i `Gabarytoczas` nie mają działać równolegle bez świadomego trybu zaawansowanego.

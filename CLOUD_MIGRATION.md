@@ -408,3 +408,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 
 - Zmiana dotyczy tylko prezentacji i helperów UI katalogu robocizny oraz podglądu kalkulacji w `CZYNNOŚCI`; nie dodano nowego storage ani nowego klucza danych.
 - Do snapshotów robocizny dodano jawne pole `laborPrice` w szczegółach komponentu, żeby widok mógł pokazać rozbicie ceny bez ponownego zgadywania formuły. To jest część przeliczonego snapshotu robocizny, a nie osobny magazyn danych.
+
+
+## 2026-05-04 — cennik robocizny: reguła gabarytu
+
+- Decyzja danych: w definicji robocizny pola `volumePricePerM3` i `volumeTimeMode` nadal mogą istnieć w modelu, ale runtime nie powinien liczyć ich podwójnie.
+- Jeśli `volumeTimeMode` jest aktywny i faktycznie generuje `volumeHours`, kalkulacja ignoruje `volumePricePerM3`; dzięki temu oferta/snapshot nie zawyża kosztu przez dwa nośniki tego samego gabarytu.
+- To utrzymuje model gotowy pod chmurę: nie trzeba migrować struktury rekordu, zmienia się interpretacja reguły i snapshot nadal zapisuje gotowy wynik kalkulacji.

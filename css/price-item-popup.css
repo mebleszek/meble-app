@@ -135,3 +135,9 @@
 #priceItemModal #formManufacturerLaunch{
   width:100%;
 }
+
+/* 2026-05-04 — gabaryt liczony jako czas wyłącza dopłatę PLN/m³ w formularzu. */
+#priceItemModal input[aria-disabled="true"]{
+  opacity:.68;
+  background:#f1f5f9;
+}

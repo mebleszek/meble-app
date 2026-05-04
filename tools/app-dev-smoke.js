@@ -143,6 +143,24 @@ function runWycenaNodeSmoke(sandbox){
         return Array.isArray(rows) && rows.length === 1 && Number(rows[0] && rows[0].total || 0) > 0 && Number(rows[0] && rows[0].cabinetNumber || 0) === 1 && Array.isArray(rows[0].details) && rows[0].details.length >= 2;
       }finally{ sandbox.projectData = previousProject; }
     } },
+    { name:'Gabaryt nie jest liczony podwójnie przy gabarytoczasie', explain:'Jeśli reguła ma gabarytoczas, dopłata PLN/m³ jest ignorowana, żeby ten sam gabaryt nie podbijał ceny dwa razy.', check:()=> {
+      const calc = FC.laborCatalog.calculateDefinition({
+        id:'smoke_volume_guard',
+        name:'Smoke gabaryt',
+        category:'Korpusy',
+        price:0,
+        autoRole:'none',
+        rateType:'workshop',
+        timeBlockHours:1,
+        defaultMultiplier:1,
+        quantityMode:'none',
+        volumePricePerM3:50,
+        volumeTimeMode:'perM3',
+        volumeTimePerM3:1,
+        active:true
+      }, { quantity:1, volumeM3:0.5, hourlyRates:{ workshop:100 } });
+      return calc && Math.abs(Number(calc.volumeHours || 0) - 0.5) < 0.0001 && Number(calc.volumePrice || 0) === 0 && Math.abs(Number(calc.total || 0) - 150) < 0.0001;
+    } },
     { name:'Moduły renderu Wyceny są wydzielone', explain:'Pilnuje splitu tabs/wycena.js → dom/status-actions/preview/shell/render-bridge.', check:()=> !!(FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderPreview === 'function') && !!(FC.wycenaTabShell && typeof FC.wycenaTabShell.render === 'function') && !!(FC.wycenaTabStatusActions && typeof FC.wycenaTabStatusActions.acceptSnapshot === 'function') && !!(FC.wycenaTabRenderBridge && typeof FC.wycenaTabRenderBridge.renderShell === 'function') },
     { name:'Zakładka Wyceny ma rozdzielone boundary warstwy', explain:'Pilnuje splitu tabs/wycena.js → data/state/selection-bridge/editor-bridge/status-controller/render-bridge.', check:()=> !!(FC.wycenaTabData && typeof FC.wycenaTabData.getSnapshotHistory === 'function' && FC.wycenaTabState && typeof FC.wycenaTabState.createState === 'function' && FC.wycenaTabSelectionBridge && typeof FC.wycenaTabSelectionBridge.ensureVersionNameBeforeGenerate === 'function' && FC.wycenaTabEditorBridge && typeof FC.wycenaTabEditorBridge.renderOfferEditor === 'function' && FC.wycenaTabStatusController && typeof FC.wycenaTabStatusController.createController === 'function' && FC.wycenaTabRenderBridge && typeof FC.wycenaTabRenderBridge.renderHistory === 'function') },
     { name:'Wybór zakresu Wyceny ma rozdzielone warstwy', explain:'Pilnuje splitu wycena-tab-selection.js → scope/version/model/pickers/render/fasada.', check:()=> !!(FC.wycenaTabSelectionScope && typeof FC.wycenaTabSelectionScope.buildSelectionSummary === 'function' && FC.wycenaTabSelectionVersion && typeof FC.wycenaTabSelectionVersion.ensureVersionNameBeforeGenerate === 'function' && FC.wycenaTabSelectionModel && typeof FC.wycenaTabSelectionModel.ensureVersionNameBeforeGenerate === 'function' && FC.wycenaTabSelectionPickers && typeof FC.wycenaTabSelectionPickers.openQuoteScopePicker === 'function' && FC.wycenaTabSelectionRender && typeof FC.wycenaTabSelectionRender.renderQuoteSelectionSection === 'function' && FC.wycenaTabSelection && typeof FC.wycenaTabSelection.renderQuoteSelectionSection === 'function') },

@@ -152,7 +152,14 @@
 
     if(quantity > 0 && unit && unit !== 'x') box.appendChild(breakdownRow('Ilość', `${quantity} ${unit}`));
     if(baseHours > 0) box.appendChild(breakdownRow('Czas bazowy / pakiet', fmtHours(baseHours)));
-    if(volumeHours > 0) box.appendChild(breakdownRow('Gabarytoczas', fmtHours(volumeHours)));
+    if(volumeHours > 0){
+      const mode = String(part && part.volumeTimeMode || 'none');
+      const perM3 = Math.max(0, Number(part && part.volumeTimePerM3) || 0);
+      const value = (mode === 'perM3' && perM3 > 0 && volumeM3 > 0)
+        ? `${fmtM3(volumeM3)} × ${perM3.toFixed(2)} h/m³ = ${fmtHours(volumeHours)}`
+        : `${fmtHours(volumeHours)} z progu objętości`;
+      box.appendChild(breakdownRow('Gabarytoczas', value));
+    }
     if(hourlyRate > 0) box.appendChild(breakdownRow('Stawka', fmtRate(hourlyRate)));
     if(multiplier !== 1) box.appendChild(breakdownRow('Mnożnik', fmtMultiplier(multiplier)));
     if(laborPrice > 0){

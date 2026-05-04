@@ -513,3 +513,10 @@ Do obserwacji:
 
 - `price-modal-item-form.js` został odciążony przez nowy moduł `price-modal-field-help.js`, który przejął objaśnienia `?` oraz launchery podstawowych pól formularza. Dzięki temu formularz nie przekroczył progu ostrzegawczego 400+ linii po dodaniu pomocy pól.
 - `czynnosci.js` pozostaje poniżej progu ostrożności i ma jedną odpowiedzialność: workspace czynności/robocizny w zakładce `CZYNNOŚCI`.
+
+
+## 2026-05-04 — obserwacja modułów robocizny
+
+- `price-modal-item-form.js` przekracza próg ostrożności, ale po wydzieleniu `price-modal-field-help.js` nadal pełni jedną główną odpowiedzialność: stan formularza dodawania/edycji pozycji cennika.
+- Następny sensowny split w tym obszarze, jeśli plik będzie dalej rósł, to wydzielenie logiki odczytu/zapisu draftu robocizny z formularza, nie dalsze mieszanie UI z kalkulacją.
+- `tabs/czynnosci.js` jest blisko progu ostrożności i przy dalszym rozwoju warto rozdzielić render ręcznych czynności od renderu czynności szafek.

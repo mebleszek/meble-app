@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T22:57:27.286Z",
+  "generatedAt": "2026-05-04T05:12:27.350Z",
   "summary": {
     "jsFiles": 317,
     "indexScripts": 243,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 15,
-      "lines": 2252,
+      "lines": 2273,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 3,
-      "lines": 390,
+      "lines": 391,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 45,
-      "lines": 6918,
+      "lines": 6921,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -133,7 +133,7 @@
     },
     "ZAKŁADKI": {
       "files": 3,
-      "lines": 578,
+      "lines": 585,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -4982,7 +4982,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 300,
+      "lines": 321,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5750,7 +5750,7 @@
     "js/app/pricing/labor-catalog.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 248,
+      "lines": 249,
       "defines": [
         "laborCatalog"
       ],
@@ -13562,7 +13562,7 @@
     "js/app/wycena/wycena-core-labor.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 183,
+      "lines": 186,
       "defines": [
         "wycenaCoreLabor"
       ],
@@ -15154,7 +15154,7 @@
     "js/tabs/czynnosci.js": {
       "area": "ZAKŁADKI",
       "category": "ui/render/events",
-      "lines": 250,
+      "lines": 257,
       "defines": [
         "tabsCzynnosci"
       ],
