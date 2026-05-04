@@ -71,6 +71,14 @@ function runProjectNodeSmoke(sandbox){
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
     { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
     { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
+    { name:'Boot czeka dłużej na funkcję startową po świeżym wdrożeniu', explain:'Chroni przed fałszywym błędem boot-clean „Nie znaleziono funkcji startowej” na pierwszym wejściu, zanim wszystkie skrypty zakończą ładowanie.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/boot.js'), 'utf8');
+      return src.includes("boot-clean-1.5")
+        && src.includes('BOOT_MISSING_INIT_TIMEOUT_MS = 15000')
+        && src.includes('loadSeen')
+        && src.includes("window.addEventListener('load'")
+        && !src.includes('tries > 60');
+    } },
   ]);
 }
 

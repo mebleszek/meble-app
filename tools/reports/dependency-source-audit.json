@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-04T19:27:11.626Z",
+  "generatedAt": "2026-05-04T19:51:58.747Z",
   "summary": {
     "jsFiles": 320,
     "indexScripts": 246,
@@ -13,7 +13,7 @@
   "byArea": {
     "BOOT/APP SHELL": {
       "files": 7,
-      "lines": 1347,
+      "lines": 1384,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -15194,7 +15194,7 @@
     "js/boot.js": {
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 183,
+      "lines": 220,
       "defines": [
         "init"
       ],
@@ -15210,7 +15210,7 @@
       "secondLevelFiles": [],
       "storageRefs": 1,
       "dialogRefs": 0,
-      "domRefs": 4,
+      "domRefs": 5,
       "loadedInIndex": true,
       "loadedInDevTests": false,
       "risk": "niskie",

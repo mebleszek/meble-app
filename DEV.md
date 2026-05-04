@@ -550,3 +550,10 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Formularz akcesoriów jest podzielony: `price-modal-hardware-form.js` obsługuje pola okuć, `price-modal-hardware-manufacturers.js` obsługuje panel producentów. Nie dokładać tej logiki do `price-modal-item-form.js`.
 - Ten etap nie podpina okuć do szafek, `MATERIAŁ`, `WYCENA` ani PDF. Następne etapy: seed realnych okuć, standardy okuć w WYWIADZIE, wybór przy szafce, rozbicie w MATERIAŁ i snapshot WYCENY.
 - Producenci usunięci z listy mogą nadal pojawić się w filtrach, jeśli istnieją pozycje katalogu używające tej nazwy — to jest celowe, aby nie osierocić istniejących danych.
+
+
+## Boot start wait fix v1 — 2026-05-04
+
+- `js/boot.js` ma czekać bezpieczniej na funkcję startową po świeżym wdrożeniu/cache-miss. Nie wracać do krótkiego limitu `tries > 60`, bo na mobile może fałszywie pokazać `Nie znaleziono funkcji startowej`, a po odświeżeniu działać.
+- Boot raportuje brak init dopiero po dłuższym limicie czasu i po `window.load`/grace period; cache-busting `boot.js` musi być podbijany przy zmianach startu.
+- `tools/app-dev-smoke.js` ma statyczny kontrakt chroniący `boot-clean-1.5` przed cofnięciem do krótkiego startu.

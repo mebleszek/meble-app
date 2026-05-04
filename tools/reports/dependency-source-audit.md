@@ -31,7 +31,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | KATALOG/USŁUGI | 10 | 1540 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
-| BOOT/APP SHELL | 7 | 1347 | 4 | 0 | 0 | 2 |
+| BOOT/APP SHELL | 7 | 1384 | 4 | 0 | 0 | 2 |
 | DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
 | SHARED | 10 | 823 | 0 | 0 | 0 | 0 |
 | ZAKŁADKI | 3 | 585 | 0 | 0 | 0 | 0 |
