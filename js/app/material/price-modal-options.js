@@ -130,6 +130,34 @@
       ? hw.statusOptions()
       : [{ value:'active', label:'Aktywne' }, { value:'hidden', label:'Ukryte' }, { value:'archived', label:'Archiwalne' }];
   }
+
+
+  function buildHardwareSupplierOptions(selectedValue, opts){
+    const cfg = Object.assign({ includeAll:false }, opts || {});
+    const hw = FC.hardwareCatalog || {};
+    let suppliers = [];
+    try{
+      const store = ctx.catalogStore && ctx.catalogStore();
+      suppliers = store && typeof store.getHardwareSuppliers === 'function' ? store.getHardwareSuppliers() : [];
+    }catch(_){ suppliers = []; }
+    return hw && typeof hw.supplierOptions === 'function'
+      ? hw.supplierOptions(suppliers, selectedValue, cfg.includeAll)
+      : buildOrderedValues([], suppliers.map((row)=> row && (row.name || row.id)), selectedValue, cfg.includeAll ? 'Wszyscy dostawcy' : null);
+  }
+
+  function buildHardwareQuoteBaseOptions(){
+    const hw = FC.hardwareCatalog || {};
+    return hw && typeof hw.quoteBaseOptions === 'function'
+      ? hw.quoteBaseOptions()
+      : [{ value:'catalogGross', label:'Cena katalogowa bez rabatu' }, { value:'purchaseGross', label:'Cena po rabacie' }, { value:'manualGross', label:'Cena ręczna' }];
+  }
+
+  function buildHardwarePricingModeOptions(){
+    const hw = FC.hardwareCatalog || {};
+    return hw && typeof hw.pricingModeOptions === 'function'
+      ? hw.pricingModeOptions()
+      : [{ value:'markup', label:'Narzut %' }, { value:'manualPrice', label:'Cena ręczna' }];
+  }
   function firstNonEmptyValue(options){
     const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== '');
     return item ? String(item.value != null ? item.value : item) : '';
@@ -141,5 +169,5 @@
     return FC.investorChoice.mountChoice({ mount, selectEl:cfg.selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, firstNonEmptyValue, mountChoice });
+  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, firstNonEmptyValue, mountChoice });
 })();

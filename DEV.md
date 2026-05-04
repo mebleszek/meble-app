@@ -557,3 +557,12 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - `js/boot.js` ma czekać bezpieczniej na funkcję startową po świeżym wdrożeniu/cache-miss. Nie wracać do krótkiego limitu `tries > 60`, bo na mobile może fałszywie pokazać `Nie znaleziono funkcji startowej`, a po odświeżeniu działać.
 - Boot raportuje brak init dopiero po dłuższym limicie czasu i po `window.load`/grace period; cache-busting `boot.js` musi być podbijany przy zmianach startu.
 - `tools/app-dev-smoke.js` ma statyczny kontrakt chroniący `boot-clean-1.5` przed cofnięciem do krótkiego startu.
+
+## Hardware supplier pricing v1 — 2026-05-04
+
+- Katalog okuć ma rozdzielać koszt firmy od ceny do wyceny klienta. Model trzyma: cenę katalogową netto/brutto, rabat dostawcy, realny zakup po rabacie, bazę ceny do wyceny, narzut/cenę ręczną oraz marżę informacyjną.
+- Domyślny dostawca, VAT, narzut i baza ceny okuć są ustawieniami katalogu (`hardwareSettings`), a dostawcy są osobnym słownikiem (`hardwareSuppliers`). Nie duplikować tego w projektach ani szafkach.
+- Zmiana dostawcy w okuciu ma podstawiać rabat i VAT dostawcy, ale pojedyncze okucie może mieć własne wartości.
+- Toolbar katalogu `Akcesoria` ma osobne aplikacyjne okna: `Filtry`, `Sortuj`, `Producenci`, `Dostawcy`, `Ustawienia`; nie wracać do długich inline filtrów na ekranie głównym.
+- Przyszłe raporty rentowności mają korzystać z zamrożonej ceny dla klienta oraz realnego kosztu zakupu firmy. Nie pokazywać tych wewnętrznych kosztów klientowi.
+- `catalog-store.js` jest teraz przy progu ostrzeżenia 400+ linii. Nie rozbudowywać go dalej przy kolejnym etapie okuć; następna większa zmiana store powinna wydzielić część hardware settings/suppliers do osobnego modułu/adaptora.

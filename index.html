@@ -27,7 +27,7 @@
 <link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
-<link href="css/price-item-popup.css?v=20260504_hardware_catalog_model_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260504_hardware_supplier_pricing_v1" rel="stylesheet"/>
 <link href="css/quote-labor-picker.css?v=20260504_gabaryt_compact_v1" rel="stylesheet"/>
 </head>
 <body>
@@ -185,7 +185,11 @@
 </div>
 <div class="price-toolbar__actions">
 <button class="btn" id="clearPriceFiltersBtn" type="button">Wyczyść filtry</button>
+<button class="btn" id="openHardwareFiltersBtn" style="display:none" type="button">Filtry</button>
+<button class="btn" id="openHardwareSortBtn" style="display:none" type="button">Sortuj</button>
 <button class="btn" id="manageHardwareManufacturersBtn" style="display:none" type="button">Producenci</button>
+<button class="btn" id="manageHardwareSuppliersBtn" style="display:none" type="button">Dostawcy</button>
+<button class="btn" id="openHardwareSettingsBtn" style="display:none" type="button">Ustawienia</button>
 <button class="btn-primary" id="openPriceItemModalBtn" type="button">Dodaj</button>
 </div>
 </div>
@@ -271,23 +275,80 @@
 <input class="investor-form-input" id="hardwareSeries" type="text"/>
 </div>
 <div>
-<label>Źródło ceny</label>
-<input class="investor-form-input" id="hardwarePriceSource" placeholder="np. Bivert, MAGO, faktura" type="text"/>
+<label>Dostawca / miejsce zakupu</label>
+<select hidden="" id="hardwareSupplierId"></select>
+<div id="hardwareSupplierIdLaunch"></div>
 </div>
 </div>
+<div class="quote-subsection-title" style="margin-top:14px">Cena zakupu firmy</div>
 <div class="grid-3" style="margin-top:10px">
 <div>
-<label>Cena zakupu (PLN)</label>
-<input class="investor-form-input" id="hardwarePurchasePrice" step="0.01" type="number"/>
+<label>VAT %</label>
+<input class="investor-form-input" id="hardwareVatRate" step="0.01" type="number"/>
 </div>
 <div>
-<label>Narzut %</label>
-<input class="investor-form-input" id="hardwareMarkupPercent" step="0.01" type="number"/>
+<label>Źródło ceny</label>
+<input class="investor-form-input" id="hardwarePriceSource" placeholder="np. Bivert, MAGO, faktura" type="text"/>
 </div>
 <div>
 <label>Data ceny</label>
 <input class="investor-form-input" id="hardwarePriceUpdatedAt" placeholder="RRRR-MM-DD" type="text"/>
 </div>
+</div>
+<div class="grid-3" style="margin-top:10px">
+<div>
+<label>Cena katalogowa netto</label>
+<input class="investor-form-input" id="hardwareCatalogPriceNet" step="0.01" type="number"/>
+</div>
+<div>
+<label>Cena katalogowa brutto</label>
+<input class="investor-form-input" id="hardwareCatalogPriceGross" step="0.01" type="number"/>
+</div>
+<div>
+<label>Rabat dostawcy %</label>
+<input class="investor-form-input" id="hardwareSupplierDiscountPercent" step="0.01" type="number"/>
+</div>
+</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Realny zakup netto</label>
+<input class="investor-form-input" id="hardwarePurchasePriceNet" step="0.01" type="number" readonly=""/>
+</div>
+<div>
+<label>Realny zakup brutto</label>
+<input class="investor-form-input" id="hardwarePurchasePriceGross" step="0.01" type="number" readonly=""/>
+</div>
+</div>
+<div class="quote-subsection-title" style="margin-top:14px">Cena do wyceny</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Cena bazowa do wyceny</label>
+<select hidden="" id="hardwareQuoteBase"></select>
+<div id="hardwareQuoteBaseLaunch"></div>
+</div>
+<div>
+<label>Sposób liczenia ceny</label>
+<select hidden="" id="hardwarePricingMode"></select>
+<div id="hardwarePricingModeLaunch"></div>
+</div>
+</div>
+<div class="grid-3" style="margin-top:10px">
+<div>
+<label>Narzut %</label>
+<input class="investor-form-input" id="hardwareMarkupPercent" step="0.01" type="number"/>
+</div>
+<div>
+<label>Cena do wyceny netto</label>
+<input class="investor-form-input" id="hardwareQuotePriceNet" step="0.01" type="number"/>
+</div>
+<div>
+<label>Cena do wyceny brutto</label>
+<input class="investor-form-input" id="hardwareQuotePriceGross" step="0.01" type="number"/>
+</div>
+</div>
+<div class="hardware-price-preview" style="margin-top:10px">
+<div id="hardwareEffectiveMarkupPreview">Narzut wynikowy: —</div>
+<div id="hardwareMarginPreview">Marża względem realnego zakupu: —</div>
 </div>
 <div style="margin-top:10px">
 <label>Notatka</label>
@@ -806,14 +867,14 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260504_gabaryt_compact_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
@@ -845,15 +906,17 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/choice-box.js?v=20260426_orphan_guard_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>

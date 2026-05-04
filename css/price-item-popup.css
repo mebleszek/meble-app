@@ -153,3 +153,35 @@
   .hardware-manufacturer-row{grid-template-columns:1fr;}
   .hardware-manufacturer-row .btn-danger{justify-self:start;}
 }
+
+/* 2026-05-04 — katalog okuć: dostawcy, filtry i ceny netto/brutto. */
+#priceItemModal .hardware-price-preview{
+  border:1px solid rgba(14,165,233,.22);
+  background:rgba(14,165,233,.06);
+  border-radius:14px;
+  padding:10px 12px;
+  color:#0f172a;
+  font-size:13px;
+  font-weight:850;
+  line-height:1.35;
+  display:grid;
+  gap:4px;
+}
+#priceItemModal input[readonly],
+#priceItemModal input[disabled]{
+  background:#f1f5f9;
+  color:#475569;
+  opacity:.78;
+}
+.hardware-supplier-form,.hardware-filter-form,.hardware-sort-form,.hardware-settings-form{display:grid;gap:12px;min-width:0;}
+.hardware-supplier-list{display:grid;gap:10px;max-height:min(52vh,460px);overflow:auto;padding-right:2px;}
+.hardware-supplier-row{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(90px,.6fr) minmax(90px,.6fr) auto auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.45);border-radius:16px;background:#fff;padding:12px;}
+.hardware-supplier-field{display:grid;gap:6px;min-width:0;}
+.hardware-supplier-field label{font-size:12px;font-weight:900;color:#64748b;line-height:1.1;}
+.hardware-supplier-active{min-height:44px;margin:0;align-self:end;}
+.hardware-filter-price-range{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.hardware-sort-form .rozrys-choice-option{width:100%;text-align:left;}
+@media (max-width:720px){
+  .hardware-supplier-row{grid-template-columns:1fr;align-items:stretch;}
+  .hardware-supplier-active{justify-self:start;}
+}

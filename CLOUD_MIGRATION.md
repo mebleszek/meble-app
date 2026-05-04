@@ -422,3 +422,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dodano nowy lokalny klucz katalogowy `hardwareManufacturers` przez `catalogStore`, nie przez bezpośrednie zapisy UI do `localStorage`.
 - Pozycje akcesoriów/okuć trzymają dane handlowe i źródłowe: jednostkę, kategorię, serię, cenę zakupu, narzut, cenę do wyceny, źródło ceny, datę ceny, status i notatkę. Te dane nie są snapshotem oferty — snapshot okuć będzie osobnym późniejszym etapem.
 - Przy późniejszym podpięciu do szafek i WYCENY trzeba zapisywać snapshot ceny, jednostki, źródła i daty ceny w ofercie, żeby zmiana katalogu nie przeliczała historii.
+
+## Hardware supplier pricing v1 — 2026-05-04
+
+- Dodano rozdzielenie katalogu okuć na pozycje (`accessories`), producentów (`hardwareManufacturers`), dostawców (`hardwareSuppliers`) i ustawienia cen (`hardwareSettings`). W chmurze powinno to mapować się na osobne dokumenty/słowniki użytkownika, nie na dane projektu.
+- Cena do wyceny i koszt firmy są różnymi polami domenowymi. Przyszły snapshot oferty powinien zamrażać obie wartości: cenę dla klienta oraz koszt zakupu firmy z dnia wyceny, żeby raport rentowności działał po zmianach katalogu.
+- Rabat dostawcy służy do liczenia realnego kosztu firmy; domyślna baza ceny do wyceny może pozostać `catalogGross`, czyli cena katalogowa bez rabatu + narzut.
+- Przyszłe raporty rentowności projektu powinny używać snapshotów kosztów materiałów/okuć/robocizny oraz później wpisanych realnych godzin montażu, liczby ludzi i kosztów dodatkowych. Nie wyliczać raportów z aktualnych cen katalogowych po czasie.

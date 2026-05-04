@@ -526,3 +526,10 @@ Do obserwacji:
 - Etap katalogu okuć wydzielił model (`hardware-catalog.js`), pola formularza (`price-modal-hardware-form.js`) oraz panel producentów (`price-modal-hardware-manufacturers.js`).
 - Nie wykonywano automatyki okuć ani przebudowy MATERIAŁ/WYCENA, aby nie mieszać modelu katalogowego z logiką wyliczeń.
 - Do obserwacji: `catalog-store.js` pozostaje relatywnie większym store katalogów; dalszy podział robić dopiero przy kolejnym realnym etapie katalogów/okuć, nie jako sztuczny refaktor.
+
+## Hardware supplier pricing v1 — 2026-05-04
+
+- Wykonano etap dostawców i modelu ceny okuć: dostawcy/rabaty, ustawienia domyślne katalogu, cena katalogowa netto/brutto, realny koszt zakupu po rabacie, cena do wyceny i marża informacyjna.
+- Następny etap okuć nie powinien dalej rozbudowywać `catalog-store.js`; przy kolejnym większym kroku warto wydzielić hardware storage/settings boundary, bo store przekroczył próg ostrzeżenia 400 linii.
+- Plan raportów rentowności: nowy dział w przyszłych ustawieniach/raportach ma liczyć przychód z oferty, realne koszty materiałów/okuć, roboczogodziny po montażu, koszty dodatkowe, szacunkowy podatek/bufor i zysk na godzinę. To jest kierunek rozwoju, nie zakres bieżącej paczki.
+- Przed raportami konieczne są snapshoty: cena dla klienta i realny koszt firmy muszą być zapisywane przy wycenie, a nie wyciągane później z aktualnego katalogu.

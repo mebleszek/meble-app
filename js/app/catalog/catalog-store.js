@@ -24,6 +24,12 @@
   const DEFAULT_HARDWARE_MANUFACTURERS = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_MANUFACTURERS)
     ? hardwareCatalog.DEFAULT_MANUFACTURERS.slice()
     : ['Blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
+  const DEFAULT_HARDWARE_SUPPLIERS = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_SUPPLIERS)
+    ? hardwareCatalog.DEFAULT_SUPPLIERS.slice()
+    : [{ id:'bivert', name:'Bivert', defaultDiscountPercent:0, defaultVatRate:23, active:true }];
+  const DEFAULT_HARDWARE_SETTINGS = hardwareCatalog && hardwareCatalog.DEFAULT_SETTINGS
+    ? hardwareCatalog.DEFAULT_SETTINGS
+    : { defaultSupplierId:'bivert', defaultVatRate:23, defaultMarkupPercent:20, defaultQuoteBase:'catalogGross', defaultPricingMode:'markup' };
   const DEFAULT_QUOTE_RATES = laborCatalog && Array.isArray(laborCatalog.DEFAULT_HOURLY_RATES)
     ? laborCatalog.DEFAULT_HOURLY_RATES.concat(laborCatalog.DEFAULT_LABOR_DEFINITIONS || [])
     : [
@@ -68,6 +74,8 @@
     return list;
   }
 
+  let currentHardwareSettings = null;
+
   function normalizeText(value){ return String(value == null ? '' : value).trim(); }
 
   function normalizeMaterialRow(row){
@@ -85,7 +93,7 @@
 
   function normalizeAccessoryRow(row){
     try{
-      if(hardwareCatalog && typeof hardwareCatalog.normalizeAccessory === 'function') return hardwareCatalog.normalizeAccessory(row, uid);
+      if(hardwareCatalog && typeof hardwareCatalog.normalizeAccessory === 'function') return hardwareCatalog.normalizeAccessory(row, uid, currentHardwareSettings || DEFAULT_HARDWARE_SETTINGS);
     }catch(_){ }
     const src = row && typeof row === 'object' ? row : {};
     return {
@@ -121,6 +129,21 @@
     });
     return out;
   }
+
+  function normalizeHardwareSuppliers(list){
+    try{
+      if(hardwareCatalog && typeof hardwareCatalog.normalizeSupplierList === 'function') return hardwareCatalog.normalizeSupplierList(list);
+    }catch(_){ }
+    return Array.isArray(list) ? list : DEFAULT_HARDWARE_SUPPLIERS.slice();
+  }
+
+  function normalizeHardwareSettings(settings){
+    try{
+      if(hardwareCatalog && typeof hardwareCatalog.normalizeSettings === 'function') return hardwareCatalog.normalizeSettings(settings);
+    }catch(_){ }
+    return Object.assign({}, DEFAULT_HARDWARE_SETTINGS, settings || {});
+  }
+
 
   function normalizeServiceRow(row){
     const src = row && typeof row === 'object' ? row : {};
@@ -199,6 +222,8 @@
           storedWorkshopServices: readList('workshopServices', null),
           storedServiceOrders: readList('serviceOrders', null),
           storedHardwareManufacturers: readList('hardwareManufacturers', null),
+          storedHardwareSuppliers: readList('hardwareSuppliers', null),
+          storedHardwareSettings: readList('hardwareSettings', null),
           defaults: {
             sheetMaterials: DEFAULT_SHEET_MATERIALS,
             accessories: DEFAULT_ACCESSORIES,
@@ -206,6 +231,8 @@
             workshopServices: DEFAULT_WORKSHOP_SERVICES,
             serviceOrders: DEFAULT_SERVICE_ORDERS,
             hardwareManufacturers: DEFAULT_HARDWARE_MANUFACTURERS,
+            hardwareSuppliers: DEFAULT_HARDWARE_SUPPLIERS,
+            hardwareSettings: DEFAULT_HARDWARE_SETTINGS,
           },
           splitLegacyMaterials,
         })
@@ -215,8 +242,13 @@
           quoteRates: preferStoredSplit ? readList('quoteRates', DEFAULT_QUOTE_RATES) : legacyServices,
           workshopServices: readList('workshopServices', DEFAULT_WORKSHOP_SERVICES),
           serviceOrders: readList('serviceOrders', DEFAULT_SERVICE_ORDERS),
+          hardwareManufacturers: readList('hardwareManufacturers', DEFAULT_HARDWARE_MANUFACTURERS),
+          hardwareSuppliers: readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS),
+          hardwareSettings: readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS),
         };
 
+    const hardwareSettings = normalizeHardwareSettings(seeds.hardwareSettings || readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS));
+    currentHardwareSettings = hardwareSettings;
     const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessories = normalizeList(seeds.accessories, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
     const quoteRateSeed = laborCatalog && typeof laborCatalog.ensureDefaultDefinitions === 'function'
@@ -228,12 +260,16 @@
     const storedManufacturers = readList('hardwareManufacturers', DEFAULT_HARDWARE_MANUFACTURERS);
     const manufacturerSeed = Array.isArray(seeds.hardwareManufacturers) ? seeds.hardwareManufacturers : storedManufacturers;
     const hardwareManufacturers = normalizeHardwareManufacturers(manufacturerSeed.concat(accessories.map((row)=> row && row.manufacturer)));
+    const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
+    const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
 
     writeList('sheetMaterials', sheetMaterials);
     writeList('accessories', accessories);
     writeList('quoteRates', quoteRates);
     writeList('workshopServices', workshopServices);
     writeList('hardwareManufacturers', hardwareManufacturers);
+    writeList('hardwareSuppliers', hardwareSuppliers);
+    writeList('hardwareSettings', hardwareSettings);
     try{
       if(serviceOrderStore && typeof serviceOrderStore.writeAll === 'function') serviceOrderStore.writeAll(serviceOrders);
       else writeList('serviceOrders', serviceOrders);
@@ -243,12 +279,12 @@
     writeList('materials', sheetMaterials);
     writeList('services', quoteRates);
 
-    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers };
+    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings };
     syncRuntimeGlobals();
-    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers };
+    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings };
   }
 
-  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[] };
+  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS) };
 
   function syncRuntimeGlobals(){
     try{ if(typeof materials !== 'undefined') materials = cache.sheetMaterials.slice(); }catch(_){ }
@@ -280,6 +316,19 @@
     writeList('hardwareManufacturers', cache.hardwareManufacturers);
     return getHardwareManufacturers();
   }
+  function getHardwareSuppliers(){ return (cache.hardwareSuppliers || []).map((row)=> Object.assign({}, row)); }
+  function saveHardwareSuppliers(list){
+    cache.hardwareSuppliers = normalizeHardwareSuppliers(list);
+    writeList('hardwareSuppliers', cache.hardwareSuppliers);
+    return getHardwareSuppliers();
+  }
+  function getHardwareSettings(){ return Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS); }
+  function saveHardwareSettings(settings){
+    cache.hardwareSettings = normalizeHardwareSettings(settings);
+    currentHardwareSettings = cache.hardwareSettings;
+    writeList('hardwareSettings', cache.hardwareSettings);
+    return getHardwareSettings();
+  }
 
   function savePriceList(kind, list){
     const key = String(kind || 'materials');
@@ -289,6 +338,7 @@
       writeList('materials', cache.sheetMaterials);
     }
     else if(key === 'accessories'){
+      currentHardwareSettings = cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS;
       cache.accessories = normalizeList(list, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
       cache.hardwareManufacturers = normalizeHardwareManufacturers((cache.hardwareManufacturers || []).concat(cache.accessories.map((row)=> row && row.manufacturer)));
       writeList('accessories', cache.accessories);
@@ -356,6 +406,10 @@
     getWorkshopServices,
     getHardwareManufacturers,
     saveHardwareManufacturers,
+    getHardwareSuppliers,
+    saveHardwareSuppliers,
+    getHardwareSettings,
+    saveHardwareSettings,
     getServiceOrders,
     saveServiceOrders,
     upsertServiceOrder,

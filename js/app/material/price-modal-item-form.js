@@ -169,6 +169,7 @@
 
   function updateItemActionState(){
     syncLaborGabarytMode();
+    try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
     const dirty = isItemDirty();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
     const deleteBtn = ctx.byId('deletePriceItemBtn');
@@ -192,8 +193,14 @@
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
       const el = ctx.byId(id);
       if(!el) return;
-      el.oninput = updateItemActionState;
-      el.onchange = updateItemActionState;
+      el.oninput = function(event){
+        try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
+        updateItemActionState();
+      };
+      el.onchange = function(event){
+        try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
+        updateItemActionState();
+      };
     });
   }
 
@@ -232,6 +239,7 @@
     setChecked('laborActive', def.active !== false);
     setChecked('laborInternalOnly', def.internalOnly !== false);
     syncLaborGabarytMode();
+    try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
   }
   function applyServiceFormState(item){
     const kind = ctx.currentListKind();
@@ -260,9 +268,11 @@
     const materialTypeWrap = filterMaterialWrapper();
     const manufacturerWrap = filterManufacturerWrapper();
     const grainRow = formHasGrainRow();
+    const priceWrap = formPriceWrapper();
     if(materialTypeWrap) materialTypeWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(manufacturerWrap) manufacturerWrap.style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
     if(grainRow) grainRow.style.display = cfg.formKind === 'material' ? 'flex' : 'none';
+    if(priceWrap) priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : '';
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
     else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || (ctx.priceModalHardwareForm && ctx.priceModalHardwareForm.defaultAccessoryDraft ? ctx.priceModalHardwareForm.defaultAccessoryDraft() : {}));
     else applyServiceFormState(item || defaultServiceDraft(kind));

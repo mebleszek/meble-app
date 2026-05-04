@@ -100,6 +100,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/material/price-modal-options.js",
       "js/app/material/price-modal-filters.js",
       "js/app/material/price-modal-hardware-manufacturers.js",
+      "js/app/material/price-modal-hardware-suppliers.js",
+      "js/app/material/price-modal-hardware-filter-sort.js",
       "js/app/material/price-modal-hardware-form.js",
       "js/app/material/price-modal-field-help.js",
       "js/app/material/price-modal-item-form.js",

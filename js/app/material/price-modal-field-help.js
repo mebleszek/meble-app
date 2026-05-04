@@ -13,6 +13,9 @@
     { id:'hardwareCategory', mountId:'hardwareCategoryLaunch', title:'Wybierz kategorię okucia', placeholder:'Kategoria okucia' },
     { id:'hardwareUnit', mountId:'hardwareUnitLaunch', title:'Wybierz jednostkę', placeholder:'Jednostka' },
     { id:'hardwareStatus', mountId:'hardwareStatusLaunch', title:'Wybierz status', placeholder:'Status' },
+    { id:'hardwareSupplierId', mountId:'hardwareSupplierIdLaunch', title:'Wybierz dostawcę', placeholder:'Dostawca' },
+    { id:'hardwareQuoteBase', mountId:'hardwareQuoteBaseLaunch', title:'Wybierz cenę bazową', placeholder:'Cena bazowa' },
+    { id:'hardwarePricingMode', mountId:'hardwarePricingModeLaunch', title:'Wybierz sposób liczenia ceny', placeholder:'Sposób liczenia' },
   ];
 
 
@@ -27,9 +30,19 @@
     hardwareUnit:{ title:'Jednostka', message:'Jednostka rozliczeniowa okucia: sztuka, komplet, para, metr bieżący albo zestaw.' },
     hardwareStatus:{ title:'Status', message:'Aktywne pozycje są używane normalnie. Ukryte zostają w katalogu, ale nie muszą być proponowane. Archiwalne są do historii i starych wycen.' },
     hardwareSeries:{ title:'System / seria', message:'Seria lub system okucia, np. CLIP top, Aventos, Tandembox, Rejs albo cargo danego producenta.' },
-    hardwarePriceSource:{ title:'Źródło ceny', message:'Skąd pochodzi cena, np. Bivert, MAGO, faktura albo hurtownia. Przyda się przy późniejszej aktualizacji.' },
-    hardwarePurchasePrice:{ title:'Cena zakupu', message:'Cena zakupu okucia. Możesz ją trzymać pomocniczo obok ceny do wyceny.' },
-    hardwareMarkupPercent:{ title:'Narzut %', message:'Narzut pomocniczy. Jeśli cena do wyceny jest pusta, program może wyliczyć ją z ceny zakupu i narzutu.' },
+    hardwareSupplierId:{ title:'Dostawca / miejsce zakupu', message:'Miejsce, z którego zwykle kupujesz tę pozycję. Zmiana dostawcy może podstawić domyślny rabat i VAT z ustawień dostawcy.' },
+    hardwarePriceSource:{ title:'Źródło ceny', message:'Opis źródła ceny, np. Bivert, MAGO, faktura albo hurtownia. Może być zgodny z dostawcą albo doprecyzować konkretną fakturę.' },
+    hardwareVatRate:{ title:'VAT %', message:'Stawka VAT używana do przeliczania netto/brutto w tej pozycji.' },
+    hardwareCatalogPriceNet:{ title:'Cena katalogowa netto', message:'Cena przed rabatem dostawcy. Jeśli wpiszesz netto, program przeliczy brutto.' },
+    hardwareCatalogPriceGross:{ title:'Cena katalogowa brutto', message:'Cena przed rabatem dostawcy. Jeśli wpiszesz brutto, program przeliczy netto.' },
+    hardwareSupplierDiscountPercent:{ title:'Rabat dostawcy %', message:'Rabat, jaki realnie dostajesz u dostawcy. Służy do liczenia kosztu firmy, ale nie musi obniżać ceny do wyceny klienta.' },
+    hardwarePurchasePriceNet:{ title:'Realny zakup netto', message:'Wyliczony koszt zakupu po rabacie. To jest koszt firmy do przyszłych raportów rentowności.' },
+    hardwarePurchasePriceGross:{ title:'Realny zakup brutto', message:'Wyliczony koszt zakupu po rabacie. To jest koszt firmy do przyszłych raportów rentowności.' },
+    hardwareQuoteBase:{ title:'Cena bazowa do wyceny', message:'Określa, od czego liczysz cenę dla klienta: od ceny katalogowej bez rabatu, od realnego zakupu po rabacie albo od ceny ręcznej.' },
+    hardwarePricingMode:{ title:'Sposób liczenia ceny', message:'Tryb Narzut % liczy cenę z ceny bazowej. Tryb Cena ręczna pozwala wpisać cenę do wyceny, a program pokazuje narzut wynikowy.' },
+    hardwareMarkupPercent:{ title:'Narzut %', message:'Narzut do ceny bazowej. Gdy wybierzesz cenę ręczną, pole jest blokowane i narzut jest tylko wynikiem obliczenia.' },
+    hardwareQuotePriceNet:{ title:'Cena do wyceny netto', message:'Cena używana w wycenie. W trybie narzutu jest liczona automatycznie, w trybie ręcznym możesz ją wpisać.' },
+    hardwareQuotePriceGross:{ title:'Cena do wyceny brutto', message:'Cena używana w wycenie i na liście katalogu. W trybie narzutu jest liczona automatycznie, w trybie ręcznym możesz ją wpisać.' },
     hardwarePriceUpdatedAt:{ title:'Data ceny', message:'Data ostatniego sprawdzenia ceny. Wpisuj w formacie RRRR-MM-DD.' },
     hardwareNote:{ title:'Notatka', message:'Notatka wewnętrzna, np. skład kompletu, uwagi zakupowe albo kiedy stosować dane okucie.' },
     formCategory:{ title:'Kategoria', message:'Grupa porządkująca czynności w katalogu. Pomaga utrzymać porządek na liście i szybciej znaleźć właściwą pozycję.' },
@@ -122,7 +135,10 @@
         title:field.title,
         buttonClass:'investor-choice-launch price-labor-choice-launch',
         placeholder:field.placeholder,
-        onChange:()=> changeHandler(),
+        onChange:()=>{
+          try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput({ target:selectEl }); }catch(_){ }
+          changeHandler();
+        },
       });
     });
   }

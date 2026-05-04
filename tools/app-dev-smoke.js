@@ -131,6 +131,19 @@ function runMaterialNodeSmoke(sandbox){
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-manufacturers.js'), 'utf8');
       return html.includes('id="hardwareFormFields"') && html.includes('id="hardwareCategory"') && html.includes('id="hardwareUnit"') && html.includes('id="manageHardwareManufacturersBtn"') && src.includes('Producenci okuć') && src.includes('saveHardwareManufacturers');
     } },
+    { name:'Katalog okuć ma dostawców, ustawienia i model ceny do wyceny', explain:'Pilnuje rozdzielenia kosztu firmy od ceny dla klienta: cena katalogowa, rabat, zakup po rabacie, narzut i cena do wyceny.', check:()=> {
+      const hw = FC.hardwareCatalog;
+      const store = FC.catalogStore;
+      if(!(hw && store && typeof store.getHardwareSuppliers === 'function' && typeof store.getHardwareSettings === 'function')) return false;
+      const row = hw.normalizeAccessory({ name:'Test cena', manufacturer:'Blum', catalogPriceGross:100, supplierDiscountPercent:15, quoteBase:'catalogGross', pricingMode:'markup', markupPercent:20, vatRate:23, hardwareCategory:'Zawiasy' }, ()=> 'hw_price_test', store.getHardwareSettings());
+      return row.id === 'hw_price_test' && Math.abs(Number(row.purchasePriceGross) - 85) < 0.001 && Math.abs(Number(row.price) - 120) < 0.001 && Math.abs(Number(row.marginGross) - 35) < 0.001;
+    } },
+    { name:'Katalog okuć ma aplikacyjne filtry, sortowanie, dostawców i ustawienia', explain:'Chroni toolbar okuć: Filtry, Sortuj, Dostawcy i Ustawienia mają pozostać osobnymi oknami aplikacji.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const filters = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-filter-sort.js'), 'utf8');
+      const suppliers = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-suppliers.js'), 'utf8');
+      return ['openHardwareFiltersBtn','openHardwareSortBtn','manageHardwareSuppliersBtn','openHardwareSettingsBtn'].every((id)=> html.includes(id)) && filters.includes('Filtry okuć') && filters.includes('Sortuj okucia') && suppliers.includes('Dostawcy okuć') && suppliers.includes('Ustawienia cen okuć');
+    } },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
     { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {
