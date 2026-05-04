@@ -141,3 +141,15 @@
   opacity:.68;
   background:#f1f5f9;
 }
+
+/* 2026-05-04 — katalog okuć: producenci i pola modelu okuć. */
+.hardware-manufacturer-form{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.hardware-manufacturer-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;}
+.hardware-manufacturer-list{display:flex;flex-direction:column;gap:10px;max-height:min(48vh,420px);overflow:auto;padding-right:2px;}
+.hardware-manufacturer-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;}
+.hardware-manufacturer-row__name{font-weight:900;overflow-wrap:anywhere;}
+@media (max-width:600px){
+  .hardware-manufacturer-add{grid-template-columns:1fr;}
+  .hardware-manufacturer-row{grid-template-columns:1fr;}
+  .hardware-manufacturer-row .btn-danger{justify-self:start;}
+}

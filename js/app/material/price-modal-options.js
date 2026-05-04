@@ -74,7 +74,15 @@
     const list = listKind === ctx.currentListKind() ? ctx.currentList() : [];
     const source = [];
     if(listKind === 'accessories'){
-      source.push(...((registry.ACCESSORY_MANUFACTURERS || []).slice()));
+      let hasStoreManufacturers = false;
+      try{
+        const store = ctx.catalogStore && ctx.catalogStore();
+        if(store && typeof store.getHardwareManufacturers === 'function'){
+          source.push(...store.getHardwareManufacturers());
+          hasStoreManufacturers = true;
+        }
+      }catch(_){ }
+      if(!hasStoreManufacturers) source.push(...((registry.ACCESSORY_MANUFACTURERS || []).slice()));
       list.forEach((item)=> source.push(item && item.manufacturer));
       return buildOrderedValues([], source, currentSelected, cfg.includeAll ? 'Wszyscy producenci' : null);
     }
@@ -98,6 +106,30 @@
   }
 
   function buildServiceCategoryOptions(selectedValue, opts){ return buildCategoryOptions('quoteRates', selectedValue, opts); }
+
+  function buildHardwareCategoryOptions(selectedValue, opts){
+    const cfg = Object.assign({ includeAll:false }, opts || {});
+    const hw = FC.hardwareCatalog || {};
+    const dynamic = ctx.currentList().map((item)=> item && (item.hardwareCategory || item.category));
+    const options = hw && typeof hw.categoryOptions === 'function'
+      ? hw.categoryOptions(dynamic, selectedValue)
+      : buildOrderedValues(['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], dynamic, selectedValue, null);
+    return cfg.includeAll ? [{ value:'', label:'Wszystkie kategorie' }].concat(options) : options;
+  }
+
+  function buildHardwareUnitOptions(selectedValue){
+    const hw = FC.hardwareCatalog || {};
+    return hw && typeof hw.unitOptions === 'function'
+      ? hw.unitOptions(selectedValue)
+      : buildOrderedValues(['szt.','kpl.','para','mb','zestaw'], [], selectedValue, null);
+  }
+
+  function buildHardwareStatusOptions(){
+    const hw = FC.hardwareCatalog || {};
+    return hw && typeof hw.statusOptions === 'function'
+      ? hw.statusOptions()
+      : [{ value:'active', label:'Aktywne' }, { value:'hidden', label:'Ukryte' }, { value:'archived', label:'Archiwalne' }];
+  }
   function firstNonEmptyValue(options){
     const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== '');
     return item ? String(item.value != null ? item.value : item) : '';
@@ -109,5 +141,5 @@
     return FC.investorChoice.mountChoice({ mount, selectEl:cfg.selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, firstNonEmptyValue, mountChoice });
+  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, firstNonEmptyValue, mountChoice });
 })();

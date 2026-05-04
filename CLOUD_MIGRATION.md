@@ -415,3 +415,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Decyzja danych: w definicji robocizny pola `volumePricePerM3` i `volumeTimeMode` nadal mogą istnieć w modelu, ale runtime nie powinien liczyć ich podwójnie.
 - Jeśli `volumeTimeMode` jest aktywny i faktycznie generuje `volumeHours`, kalkulacja ignoruje `volumePricePerM3`; dzięki temu oferta/snapshot nie zawyża kosztu przez dwa nośniki tego samego gabarytu.
 - To utrzymuje model gotowy pod chmurę: nie trzeba migrować struktury rekordu, zmienia się interpretacja reguły i snapshot nadal zapisuje gotowy wynik kalkulacji.
+
+## Hardware catalog model v1 — 2026-05-04
+
+- Katalog okuć pozostaje danymi katalogowymi użytkownika, oddzielonymi od projektów i ofert. W przyszłej chmurze powinien mapować się do dokumentów katalogowych użytkownika, np. `users/{userId}/catalogs/hardware/items/{itemId}` oraz osobnej listy producentów albo słownika producentów.
+- Dodano nowy lokalny klucz katalogowy `hardwareManufacturers` przez `catalogStore`, nie przez bezpośrednie zapisy UI do `localStorage`.
+- Pozycje akcesoriów/okuć trzymają dane handlowe i źródłowe: jednostkę, kategorię, serię, cenę zakupu, narzut, cenę do wyceny, źródło ceny, datę ceny, status i notatkę. Te dane nie są snapshotem oferty — snapshot okuć będzie osobnym późniejszym etapem.
+- Przy późniejszym podpięciu do szafek i WYCENY trzeba zapisywać snapshot ceny, jednostki, źródła i daty ceny w ofercie, żeby zmiana katalogu nie przeliczała historii.

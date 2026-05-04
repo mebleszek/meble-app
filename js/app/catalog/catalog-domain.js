@@ -21,9 +21,9 @@
     accessories: {
       key:'accessories',
       storageKey:'accessories',
-      title:'Akcesoria',
-      subtitle:'Szukaj, filtruj i zarządzaj akcesoriami.',
-      addLabel:'Dodaj akcesorium',
+      title:'Okucia i akcesoria',
+      subtitle:'Szukaj, filtruj i zarządzaj katalogiem okuć, producentami, jednostkami i cenami do wyceny.',
+      addLabel:'Dodaj okucie',
       icon:'🧷',
       formKind:'accessory',
       mode:'furnitureProjects',

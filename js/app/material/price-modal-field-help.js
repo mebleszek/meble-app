@@ -10,6 +10,9 @@
     { id:'formMaterialType', mountId:'formMaterialTypeLaunch', title:'Wybierz typ materiału', placeholder:'Typ materiału' },
     { id:'formManufacturer', mountId:'formManufacturerLaunch', title:'Wybierz producenta', placeholder:'Producent' },
     { id:'formCategory', mountId:'formCategoryLaunch', title:'Wybierz kategorię', placeholder:'Kategoria' },
+    { id:'hardwareCategory', mountId:'hardwareCategoryLaunch', title:'Wybierz kategorię okucia', placeholder:'Kategoria okucia' },
+    { id:'hardwareUnit', mountId:'hardwareUnitLaunch', title:'Wybierz jednostkę', placeholder:'Jednostka' },
+    { id:'hardwareStatus', mountId:'hardwareStatusLaunch', title:'Wybierz status', placeholder:'Status' },
   ];
 
 
@@ -20,6 +23,15 @@
     formName:{ title:'Nazwa', message:'Pełna nazwa pozycji widoczna w katalogu i przy wyborze w aplikacji.' },
     formHasGrain:{ title:'Ma słoje', message:'Włącz, jeśli materiał ma kierunek słojów. Dzięki temu ROZRYS może pilnować właściwego ułożenia elementów.' },
     formPrice:{ title:'Cena (PLN)', message:'Cena jednostkowa pozycji katalogowej. Dla materiałów i akcesoriów to zwykła cena pozycji, dla czynności może to być stała kwota.' },
+    hardwareCategory:{ title:'Kategoria okucia', message:'Grupa okucia, np. zawiasy, szuflady, podnośniki albo cargo. To porządkuje katalog i późniejsze filtrowanie.' },
+    hardwareUnit:{ title:'Jednostka', message:'Jednostka rozliczeniowa okucia: sztuka, komplet, para, metr bieżący albo zestaw.' },
+    hardwareStatus:{ title:'Status', message:'Aktywne pozycje są używane normalnie. Ukryte zostają w katalogu, ale nie muszą być proponowane. Archiwalne są do historii i starych wycen.' },
+    hardwareSeries:{ title:'System / seria', message:'Seria lub system okucia, np. CLIP top, Aventos, Tandembox, Rejs albo cargo danego producenta.' },
+    hardwarePriceSource:{ title:'Źródło ceny', message:'Skąd pochodzi cena, np. Bivert, MAGO, faktura albo hurtownia. Przyda się przy późniejszej aktualizacji.' },
+    hardwarePurchasePrice:{ title:'Cena zakupu', message:'Cena zakupu okucia. Możesz ją trzymać pomocniczo obok ceny do wyceny.' },
+    hardwareMarkupPercent:{ title:'Narzut %', message:'Narzut pomocniczy. Jeśli cena do wyceny jest pusta, program może wyliczyć ją z ceny zakupu i narzutu.' },
+    hardwarePriceUpdatedAt:{ title:'Data ceny', message:'Data ostatniego sprawdzenia ceny. Wpisuj w formacie RRRR-MM-DD.' },
+    hardwareNote:{ title:'Notatka', message:'Notatka wewnętrzna, np. skład kompletu, uwagi zakupowe albo kiedy stosować dane okucie.' },
     formCategory:{ title:'Kategoria', message:'Grupa porządkująca czynności w katalogu. Pomaga utrzymać porządek na liście i szybciej znaleźć właściwą pozycję.' },
     formServiceName:{ title:'Nazwa', message:'Nazwa czynności, stawki lub usługi. Powinna jasno mówić, czego dotyczy pozycja.' },
     formServicePrice:{ title:'Kwota stała / cena prosta', message:'Stała cena pozycji. Użyj jej, gdy czynność ma po prostu konkretną kwotę i nie ma być liczona z czasu albo innych parametrów.' },

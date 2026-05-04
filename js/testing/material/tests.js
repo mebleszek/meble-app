@@ -70,6 +70,30 @@
           try{ FC.catalogStore.migrateLegacy({ preferStoredSplit:true }); }catch(_){ }
         }
       }),
+      H.makeTest('Materiały', 'Katalog okuć zachowuje pola handlowe i producentów', 'Pilnuje Etapu 1 okuć: producentów, jednostek, źródła ceny, daty i statusu bez spłaszczania do nazwa+cena.', ()=>{
+        H.assert(FC.catalogStore && typeof FC.catalogStore.savePriceList === 'function', 'Brak FC.catalogStore.savePriceList');
+        H.assert(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function', 'Brak FC.hardwareCatalog.normalizeAccessory');
+        const keys = (FC.constants && FC.constants.STORAGE_KEYS) || {};
+        const prevAccessories = localStorage.getItem(keys.accessories);
+        const prevManufacturers = localStorage.getItem(keys.hardwareManufacturers);
+        try{
+          FC.catalogStore.saveHardwareManufacturers(['Blum','GTV','Nowy Test']);
+          const saved = FC.catalogStore.savePriceList('accessories', [{
+            id:'hw_test_acc', manufacturer:'Nowy Test', symbol:'NT-1', name:'Test okucie', price:12.5,
+            hardwareCategory:'Zawiasy', hardwareUnit:'kpl.', series:'Seria X', purchasePrice:10, markupPercent:25,
+            priceSource:'Bivert', priceUpdatedAt:'2026-05-04', status:'active', note:'notatka testowa'
+          }]);
+          const row = saved.find((item)=> String(item.id || '') === 'hw_test_acc');
+          H.assert(row && row.hardwareCategory === 'Zawiasy' && row.hardwareUnit === 'kpl.', 'Katalog okuć zgubił kategorię albo jednostkę', row);
+          H.assert(row.priceSource === 'Bivert' && row.priceUpdatedAt === '2026-05-04' && row.series === 'Seria X', 'Katalog okuć zgubił źródło/datę/serię', row);
+          H.assert(FC.catalogStore.getHardwareManufacturers().includes('Nowy Test'), 'Lista producentów okuć nie zachowała nowego producenta', FC.catalogStore.getHardwareManufacturers());
+        } finally {
+          const restore = (key, value)=> value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value);
+          restore(keys.accessories, prevAccessories);
+          restore(keys.hardwareManufacturers, prevManufacturers);
+          try{ FC.catalogStore.migrateLegacy({ preferStoredSplit:true }); }catch(_){ }
+        }
+      }),
       H.makeTest('Materiały', 'Migracja z preferStoredSplit trzyma zapisane listy rozdzielone mimo starych legacy danych', 'Pilnuje, czy pierwszy odczyt po starcie nie wskrzesi starych materiałów i usług, jeśli nowe rozdzielone listy są już zapisane.', ()=>{
         H.assert(FC.catalogStore && typeof FC.catalogStore.migrateLegacy === 'function', 'Brak FC.catalogStore.migrateLegacy');
         const keys = (FC.constants && FC.constants.STORAGE_KEYS) || {};

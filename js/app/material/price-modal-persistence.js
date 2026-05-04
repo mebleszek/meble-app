@@ -38,7 +38,11 @@
   }
   function saveAccessoryFromForm(){
     const data = ctx.getCurrentAccessoryDraft(); if(!validateAccessoryForm(data)) return false;
-    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0 }));
+    let payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    try{
+      if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function') payload = FC.hardwareCatalog.normalizeAccessory(payload, FC.utils && FC.utils.uid);
+    }catch(_){ }
+    upsertCurrentList(payload);
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   function saveServiceFromForm(){

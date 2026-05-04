@@ -37,10 +37,12 @@
     const materialFilters = ctx.byId('materialFilters');
     const serviceFilters = ctx.byId('serviceFilters');
     const addBtn = ctx.byId('openPriceItemModalBtn');
+    const producerBtn = ctx.byId('manageHardwareManufacturersBtn');
     if(ctx.byId('priceModalTitle')) ctx.byId('priceModalTitle').textContent = cfg.title;
     if(ctx.byId('priceModalSubtitle')) ctx.byId('priceModalSubtitle').textContent = cfg.subtitle;
     if(ctx.byId('priceModalIcon')) ctx.byId('priceModalIcon').textContent = cfg.icon;
     if(addBtn) addBtn.textContent = cfg.addLabel;
+    if(producerBtn) producerBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(materialFilters) materialFilters.style.display = (kind === 'materials' || kind === 'accessories') ? 'grid' : 'none';
     if(serviceFilters) serviceFilters.style.display = (kind === 'quoteRates' || kind === 'workshopServices') ? 'grid' : 'none';
     const materialTypeWrap = ctx.byId('priceFilterMaterialTypeLaunch') && ctx.byId('priceFilterMaterialTypeLaunch').parentElement;

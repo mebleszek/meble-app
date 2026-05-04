@@ -111,6 +111,18 @@ function runMaterialNodeSmoke(sandbox){
     { name:'Material registry jest dostępny', check:()=> !!(FC.materialRegistry && typeof FC.materialRegistry.getManufacturersByKind === 'function') },
     { name:'Edge store jest dostępny', check:()=> !!(FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function') },
     { name:'Price modal API jest dostępne', check:()=> !!(FC.priceModal && typeof FC.priceModal.renderPriceModal === 'function') },
+    { name:'Katalog okuć ma model producentów i pól handlowych', explain:'Pilnuje Etapu 1 okuć: producentów, jednostek, kategorii, źródła ceny i statusu.', check:()=> {
+      const hw = FC.hardwareCatalog;
+      const store = FC.catalogStore;
+      if(!(hw && typeof hw.normalizeAccessory === 'function' && store && typeof store.getHardwareManufacturers === 'function' && typeof store.saveHardwareManufacturers === 'function')) return false;
+      const normalized = hw.normalizeAccessory({ name:'Test zawias', manufacturer:'Blum', price:'8.50', hardwareCategory:'Zawiasy', hardwareUnit:'kpl.', purchasePrice:'6', markupPercent:'20', priceSource:'Bivert', priceUpdatedAt:'2026-05-04', status:'active' }, ()=> 'hw_test');
+      return normalized.id === 'hw_test' && normalized.hardwareCategory === 'Zawiasy' && normalized.hardwareUnit === 'kpl.' && normalized.priceSource === 'Bivert' && normalized.priceUpdatedAt === '2026-05-04';
+    } },
+    { name:'Formularz akcesoriów ma pola okuć i panel producentów', explain:'Chroni UI katalogu okuć przed powrotem do prostego formularza nazwa+cena.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-manufacturers.js'), 'utf8');
+      return html.includes('id="hardwareFormFields"') && html.includes('id="hardwareCategory"') && html.includes('id="hardwareUnit"') && html.includes('id="manageHardwareManufacturersBtn"') && src.includes('Producenci okuć') && src.includes('saveHardwareManufacturers');
+    } },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
     { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {

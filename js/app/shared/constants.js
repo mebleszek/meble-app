@@ -15,6 +15,7 @@
         services: 'fc_services_v1',
         sheetMaterials: 'fc_sheet_materials_v1',
         accessories: 'fc_accessories_v1',
+        hardwareManufacturers: 'fc_hardware_manufacturers_v1',
         quoteRates: 'fc_quote_rates_v1',
         workshopServices: 'fc_workshop_services_v1',
         serviceOrders: 'fc_service_orders_v1',

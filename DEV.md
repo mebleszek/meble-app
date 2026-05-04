@@ -541,3 +541,12 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - W regułach robocizny gabaryt nie może być liczony nieświadomie podwójnie: gdy `gabarytoczas` dolicza czas, dopłata `PLN/m³` jest ignorowana/zerowana dla tej reguły.
 - W podglądzie `CZYNNOŚCI` rozpiska składników ma pozostać kompaktowa: ma pokazywać czas bazowy, gabarytoczas, stawkę, mnożnik, robociznę czasową, ewentualną dopłatę gabarytową i razem, ale bez dużej typografii rozciągającej kartę.
 - Formularz cennika robocizny może mieć pola zaawansowane, ale musi prowadzić użytkownika: `Gabaryt zł/m³` i `Gabarytoczas` nie mają działać równolegle bez świadomego trybu zaawansowanego.
+
+## Hardware catalog model v1 — 2026-05-04
+
+- `Akcesoria` zostały przygotowane jako katalog okuć/akcesoriów, ale bez automatyki szafek w tym etapie.
+- Model okuć jest w `js/app/catalog/hardware-catalog.js`; trzyma producentów, kategorie, jednostki, statusy i normalizację pól handlowych.
+- `catalogStore` zapisuje listę producentów okuć przez istniejące store/repository boundary (`hardwareManufacturers`) oraz normalizuje akcesoria z polami: `hardwareCategory`, `hardwareUnit`, `series`, `purchasePrice`, `markupPercent`, `priceSource`, `priceUpdatedAt`, `status`, `note`.
+- Formularz akcesoriów jest podzielony: `price-modal-hardware-form.js` obsługuje pola okuć, `price-modal-hardware-manufacturers.js` obsługuje panel producentów. Nie dokładać tej logiki do `price-modal-item-form.js`.
+- Ten etap nie podpina okuć do szafek, `MATERIAŁ`, `WYCENA` ani PDF. Następne etapy: seed realnych okuć, standardy okuć w WYWIADZIE, wybór przy szafce, rozbicie w MATERIAŁ i snapshot WYCENY.
+- Producenci usunięci z listy mogą nadal pojawić się w filtrach, jeśli istnieją pozycje katalogu używające tej nazwy — to jest celowe, aby nie osierocić istniejących danych.

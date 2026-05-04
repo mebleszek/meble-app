@@ -12,6 +12,7 @@
   function formServiceNameWrapper(){ return ctx.byId('formServiceName') && ctx.byId('formServiceName').parentElement; }
   function formHasGrainRow(){ return ctx.byId('formHasGrain') && ctx.byId('formHasGrain').parentElement; }
   function laborFields(){ return ctx.byId('laborFormFields'); }
+  function hardwareFields(){ return ctx.byId('hardwareFormFields'); }
 
 
   const LABOR_CHOICE_FIELDS = [
@@ -69,10 +70,6 @@
     const type = ctx.firstNonEmptyValue(ctx.buildMaterialTypeOptions('laminat')) || 'laminat';
     const manufacturer = ctx.firstNonEmptyValue(ctx.buildManufacturerOptions('materials', type, '', { includeAll:false }));
     return { materialType:type, manufacturer, symbol:'', name:'', price:'', hasGrain:false };
-  }
-  function defaultAccessoryDraft(){
-    const manufacturer = ctx.firstNonEmptyValue(ctx.buildManufacturerOptions('accessories', '', '', { includeAll:false }));
-    return { manufacturer, symbol:'', name:'', price:'' };
   }
   function defaultServiceDraft(kind){
     const isQuoteRates = kind === 'quoteRates';
@@ -133,7 +130,7 @@
   }
 
   function getCurrentMaterialDraft(){ return { materialType:String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || ''), manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(), symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(), name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value), hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked) }; }
-  function getCurrentAccessoryDraft(){ return { manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(), symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(), name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value) }; }
+  function getCurrentAccessoryDraft(){ return ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.getCurrentAccessoryDraft === 'function' ? ctx.priceModalHardwareForm.getCurrentAccessoryDraft() : {}; }
   function getCurrentLaborDraft(base){
     if(ctx.currentListKind() !== 'quoteRates') return {};
     const labor = FC.laborCatalog || {};
@@ -192,7 +189,7 @@
       'laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborHeightMinMm','laborHeightMaxMm','laborActive','laborInternalOnly'
-    ].forEach((id)=>{
+    ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
       const el = ctx.byId(id);
       if(!el) return;
       el.oninput = updateItemActionState;
@@ -210,11 +207,7 @@
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = !!(item && item.hasGrain);
   }
   function applyAccessoryFormState(item){
-    ctx.setSelectOptions(ctx.byId('formManufacturer'), ctx.buildManufacturerOptions('accessories', '', item && item.manufacturer), String(item && item.manufacturer || ''), String(item && item.manufacturer || ''));
-    if(ctx.byId('formSymbol')) ctx.byId('formSymbol').value = String(item && item.symbol || '');
-    if(ctx.byId('formName')) ctx.byId('formName').value = String(item && item.name || '');
-    if(ctx.byId('formPrice')) ctx.byId('formPrice').value = item && item.price != null ? item.price : '';
-    if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = false;
+    if(ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.applyAccessoryFormState === 'function') ctx.priceModalHardwareForm.applyAccessoryFormState(item);
   }
   function applyLaborFormState(item){
     const labor = FC.laborCatalog || {};
@@ -260,6 +253,7 @@
     if(ctx.byId('priceItemModalIcon')) ctx.byId('priceItemModalIcon').textContent = cfg.icon;
     if(ctx.byId('priceFormTitle')) ctx.byId('priceFormTitle').textContent = isEdit ? 'Edytuj pozycję' : cfg.addLabel;
     if(ctx.byId('materialFormFields')) ctx.byId('materialFormFields').style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
+    if(hardwareFields()) hardwareFields().style.display = cfg.formKind === 'accessory' ? '' : 'none';
     if(ctx.byId('serviceFormFields')) ctx.byId('serviceFormFields').style.display = cfg.formKind === 'service' ? '' : 'none';
     const laborWrap = laborFields();
     if(laborWrap) laborWrap.style.display = (cfg.formKind === 'service' && kind === 'quoteRates') ? '' : 'none';
@@ -270,7 +264,7 @@
     if(manufacturerWrap) manufacturerWrap.style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
     if(grainRow) grainRow.style.display = cfg.formKind === 'material' ? 'flex' : 'none';
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
-    else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || defaultAccessoryDraft());
+    else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || (ctx.priceModalHardwareForm && ctx.priceModalHardwareForm.defaultAccessoryDraft ? ctx.priceModalHardwareForm.defaultAccessoryDraft() : {}));
     else applyServiceFormState(item || defaultServiceDraft(kind));
     if(cfg.formKind === 'service'){
       const categoryWrap = formCategoryWrapper();

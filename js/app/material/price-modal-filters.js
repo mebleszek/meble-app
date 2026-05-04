@@ -51,6 +51,8 @@
       mountFilterChoices();
       ctx.renderPriceList();
     };
+    const producerBtn = ctx.byId('manageHardwareManufacturersBtn');
+    if(producerBtn) producerBtn.onclick = ()=>{ if(ctx.openHardwareManufacturersModal) ctx.openHardwareManufacturersModal(); };
     const addBtn = ctx.byId('openPriceItemModalBtn');
     if(addBtn) addBtn.onclick = ()=> ctx.openPriceItemModal();
   }

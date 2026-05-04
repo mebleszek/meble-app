@@ -33,6 +33,7 @@
       storedQuoteRates:null,
       storedWorkshopServices:null,
       storedServiceOrders:null,
+      storedHardwareManufacturers:null,
       defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[] },
       splitLegacyMaterials:null,
     }, opts || {});
@@ -48,6 +49,7 @@
       quoteRates: preferStored && Array.isArray(cfg.storedQuoteRates) ? clone(cfg.storedQuoteRates) : clone(cfg.legacyServices || cfg.defaults.quoteRates || []),
       workshopServices: Array.isArray(cfg.storedWorkshopServices) ? clone(cfg.storedWorkshopServices) : clone(cfg.defaults.workshopServices || []),
       serviceOrders: Array.isArray(cfg.storedServiceOrders) ? clone(cfg.storedServiceOrders) : clone(cfg.defaults.serviceOrders || []),
+      hardwareManufacturers: Array.isArray(cfg.storedHardwareManufacturers) ? clone(cfg.storedHardwareManufacturers) : clone(cfg.defaults.hardwareManufacturers || []),
     };
   }
 

@@ -520,3 +520,9 @@ Do obserwacji:
 - `price-modal-item-form.js` przekracza próg ostrożności, ale po wydzieleniu `price-modal-field-help.js` nadal pełni jedną główną odpowiedzialność: stan formularza dodawania/edycji pozycji cennika.
 - Następny sensowny split w tym obszarze, jeśli plik będzie dalej rósł, to wydzielenie logiki odczytu/zapisu draftu robocizny z formularza, nie dalsze mieszanie UI z kalkulacją.
 - `tabs/czynnosci.js` jest blisko progu ostrożności i przy dalszym rozwoju warto rozdzielić render ręcznych czynności od renderu czynności szafek.
+
+## Hardware catalog model v1 — 2026-05-04
+
+- Etap katalogu okuć wydzielił model (`hardware-catalog.js`), pola formularza (`price-modal-hardware-form.js`) oraz panel producentów (`price-modal-hardware-manufacturers.js`).
+- Nie wykonywano automatyki okuć ani przebudowy MATERIAŁ/WYCENA, aby nie mieszać modelu katalogowego z logiką wyliczeń.
+- Do obserwacji: `catalog-store.js` pozostaje relatywnie większym store katalogów; dalszy podział robić dopiero przy kolejnym realnym etapie katalogów/okuć, nie jako sztuczny refaktor.
