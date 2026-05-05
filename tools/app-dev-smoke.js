@@ -144,6 +144,10 @@ function runMaterialNodeSmoke(sandbox){
       const suppliers = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-suppliers.js'), 'utf8');
       return ['openHardwareFiltersBtn','openHardwareSortBtn','manageHardwareSuppliersBtn','openHardwareSettingsBtn'].every((id)=> html.includes(id)) && filters.includes('Filtry okuć') && filters.includes('Sortuj okucia') && suppliers.includes('Dostawcy okuć') && suppliers.includes('Ustawienia cen okuć');
     } },
+    { name:'Formularz okuć ma wrapper ceny prostej bez błędu startu', explain:'Chroni otwarcie Dodaj okucie przed ReferenceError formPriceWrapper po rozbudowie pól cen okuć.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      return src.includes('function formPriceWrapper()') && src.includes("const priceWrap = formPriceWrapper();") && src.includes("priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : ''");
+    } },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
     { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {

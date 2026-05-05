@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-04T21:55:15.727Z",
+  "generatedAt": "2026-05-04T23:22:40.258Z",
   "summary": {
     "jsFiles": 322,
     "indexScripts": 248,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 19,
-      "lines": 3006,
+      "lines": 3007,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -5166,7 +5166,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 325,
+      "lines": 326,
       "defines": [],
       "uses": [
         "priceModalContext",

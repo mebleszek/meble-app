@@ -566,3 +566,9 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Toolbar katalogu `Akcesoria` ma osobne aplikacyjne okna: `Filtry`, `Sortuj`, `Producenci`, `Dostawcy`, `Ustawienia`; nie wracać do długich inline filtrów na ekranie głównym.
 - Przyszłe raporty rentowności mają korzystać z zamrożonej ceny dla klienta oraz realnego kosztu zakupu firmy. Nie pokazywać tych wewnętrznych kosztów klientowi.
 - `catalog-store.js` jest teraz przy progu ostrzeżenia 400+ linii. Nie rozbudowywać go dalej przy kolejnym etapie okuć; następna większa zmiana store powinna wydzielić część hardware settings/suppliers do osobnego modułu/adaptora.
+
+
+## Hardware form price wrapper fix v1 — 2026-05-04
+
+- Po rozbudowie katalogu okuć formularz akcesoriów nadal musi mieć bezpieczny wrapper starego pola `formPrice`, bo widok ukrywa je dla okuć i używa rozbudowanych pól cenowych netto/brutto/rabat/narzut.
+- Smoke test `Formularz okuć ma wrapper ceny prostej bez błędu startu` ma pilnować, żeby otwarcie `Dodaj okucie` nie wróciło do `ReferenceError: formPriceWrapper is not defined`.
