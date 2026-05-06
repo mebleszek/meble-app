@@ -572,3 +572,11 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 
 - Po rozbudowie katalogu okuć formularz akcesoriów nadal musi mieć bezpieczny wrapper starego pola `formPrice`, bo widok ukrywa je dla okuć i używa rozbudowanych pól cenowych netto/brutto/rabat/narzut.
 - Smoke test `Formularz okuć ma wrapper ceny prostej bez błędu startu` ma pilnować, żeby otwarcie `Dodaj okucie` nie wróciło do `ReferenceError: formPriceWrapper is not defined`.
+
+## Hardware kit inputs v1 — 2026-05-05
+
+- Katalog okuć obsługuje zestawy/komplety przez `kitComponents`: składniki są wybierane z istniejących pozycji katalogu, a nie wpisywane jako luźny tekst.
+- Dla zestawu są dwa tryby ceny: `Własna cena zestawu` oraz `Licz zakup ze składników`. Tryb składników liczy koszt firmy z realnych kosztów składników, ale skład może też być tylko informacyjny przy własnej cenie zestawu.
+- Formularz cen okuć nie może nadpisywać aktywnie czyszczonego pola netto/brutto podczas pisania na mobile. Puste pole jest poprawnym stanem przejściowym edycji.
+- `Data ceny` dla nowego okucia ma startować od dzisiejszej daty, ale edycja istniejącej pozycji nie powinna samowolnie zmieniać zapisanej daty.
+- `price-modal-hardware-kit.js` ma zostać osobnym modułem sekcji zestawu. Nie scalać go z formularzem cen ani ze store.

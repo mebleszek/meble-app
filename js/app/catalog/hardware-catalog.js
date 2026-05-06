@@ -146,6 +146,21 @@
       defaultPricingMode:normalizePricingMode(src.defaultPricingMode),
     };
   }
+  function normalizeKitComponents(list){
+    return (Array.isArray(list) ? list : []).map((row)=>{
+      const src = row && typeof row === 'object' ? row : {};
+      return {
+        itemId:text(src.itemId || src.id),
+        nameSnapshot:text(src.nameSnapshot || src.name),
+        manufacturerSnapshot:text(src.manufacturerSnapshot || src.manufacturer),
+        unitSnapshot:text(src.unitSnapshot || src.hardwareUnit || src.unit || 'szt.'),
+        qty:Math.max(0, number(src.qty || src.quantity || 1) || 1),
+        purchasePriceGrossSnapshot:round2(number(src.purchasePriceGrossSnapshot != null ? src.purchasePriceGrossSnapshot : (src.purchasePriceGross != null ? src.purchasePriceGross : src.price))),
+        quotePriceGrossSnapshot:round2(number(src.quotePriceGrossSnapshot != null ? src.quotePriceGrossSnapshot : src.price)),
+      };
+    }).filter((row)=> row.itemId || row.nameSnapshot);
+  }
+
   function normalizeAccessory(row, uidFn, settings){
     const src = row && typeof row === 'object' ? row : {};
     const cfg = normalizeSettings(settings || {});
@@ -160,6 +175,10 @@
     const pricingMode = normalizePricingMode(src.pricingMode || cfg.defaultPricingMode);
     const markupPercent = number(src.markupPercent != null ? src.markupPercent : cfg.defaultMarkupPercent);
     const quotePriceGross = number(src.quotePriceGross != null ? src.quotePriceGross : src.price);
+    const kitPriceMode = text(src.kitPriceMode) === 'components' ? 'components' : 'own';
+    const kitComponents = normalizeKitComponents(src.kitComponents);
+    const kitComponentsTotalGross = round2(number(src.kitComponentsTotalGross));
+    const kitReferenceTotalGross = round2(number(src.kitReferenceTotalGross));
     const baseDraft = {
       quoteBase,
       pricingMode,
@@ -203,6 +222,10 @@
       priceUpdatedAt:text(src.priceUpdatedAt),
       status:normalizeStatus(src.status),
       note:text(src.note),
+      kitPriceMode,
+      kitComponents,
+      kitComponentsTotalGross,
+      kitReferenceTotalGross,
     };
   }
   function statusLabel(value){
@@ -244,6 +267,7 @@
     normalizeSupplierList,
     normalizeSettings,
     normalizeAccessory,
+    normalizeKitComponents,
     normalizeStatus,
     normalizeUnit,
     normalizeCategory,

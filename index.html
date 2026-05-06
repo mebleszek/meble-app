@@ -269,6 +269,22 @@
 <div id="hardwareStatusLaunch"></div>
 </div>
 </div>
+<div id="hardwareKitFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
+<div class="quote-subsection-title">Skład zestawu</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Cena zestawu</label>
+<select hidden="" id="hardwareKitPriceMode"><option value="own">Własna cena zestawu</option><option value="components">Licz zakup ze składników</option></select>
+<div id="hardwareKitPriceModeLaunch"></div>
+</div>
+<div style="display:flex;align-items:flex-end">
+<button class="btn" id="hardwareAddKitComponentBtn" type="button">Dodaj składnik</button>
+</div>
+</div>
+<input id="hardwareKitComponentsJson" type="hidden"/>
+<div id="hardwareKitComponentsList" style="margin-top:10px"></div>
+<div class="hardware-price-preview" id="hardwareKitPreview" style="margin-top:10px">Suma składników: —</div>
+</div>
 <div class="grid-2" style="margin-top:10px">
 <div>
 <label>System / seria</label>
@@ -911,7 +927,8 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-kit.js?v=20260505_hardware_kit_inputs_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260505_hardware_kit_inputs_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260504_hardware_form_price_wrapper_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260504_hardware_supplier_pricing_v1"></script>

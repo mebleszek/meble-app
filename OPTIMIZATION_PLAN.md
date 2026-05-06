@@ -533,3 +533,10 @@ Do obserwacji:
 - Następny etap okuć nie powinien dalej rozbudowywać `catalog-store.js`; przy kolejnym większym kroku warto wydzielić hardware storage/settings boundary, bo store przekroczył próg ostrzeżenia 400 linii.
 - Plan raportów rentowności: nowy dział w przyszłych ustawieniach/raportach ma liczyć przychód z oferty, realne koszty materiałów/okuć, roboczogodziny po montażu, koszty dodatkowe, szacunkowy podatek/bufor i zysk na godzinę. To jest kierunek rozwoju, nie zakres bieżącej paczki.
 - Przed raportami konieczne są snapshoty: cena dla klienta i realny koszt firmy muszą być zapisywane przy wycenie, a nie wyciągane później z aktualnego katalogu.
+
+## 2026-05-05 — Hardware kit inputs v1
+
+- Dodano osobny moduł `js/app/material/price-modal-hardware-kit.js` dla składu zestawów okuć, żeby nie powiększać nadmiernie `price-modal-hardware-form.js`.
+- `price-modal-hardware-kit.js` ma 242 linie i jedną odpowiedzialność: UI oraz tymczasowy stan składu zestawu w modalu okucia.
+- `hardware-catalog.js` przekroczył próg ostrożności, ale nadal odpowiada za model/normalizację okuć. Dalszy większy rozwój okuć powinien rozważyć split normalizacji zestawów albo hardware pricing model.
+- `catalog-store.js` pozostaje powyżej 400 linii zgodnie z wcześniejszą obserwacją. Następny większy etap katalogu nie powinien dokładać tam kolejnej logiki bez wydzielenia hardware storage/settings boundary.

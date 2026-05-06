@@ -16,6 +16,7 @@
     { id:'hardwareSupplierId', mountId:'hardwareSupplierIdLaunch', title:'Wybierz dostawcę', placeholder:'Dostawca' },
     { id:'hardwareQuoteBase', mountId:'hardwareQuoteBaseLaunch', title:'Wybierz cenę bazową', placeholder:'Cena bazowa' },
     { id:'hardwarePricingMode', mountId:'hardwarePricingModeLaunch', title:'Wybierz sposób liczenia ceny', placeholder:'Sposób liczenia' },
+    { id:'hardwareKitPriceMode', mountId:'hardwareKitPriceModeLaunch', title:'Wybierz cenę zestawu', placeholder:'Cena zestawu' },
   ];
 
 
@@ -45,6 +46,8 @@
     hardwareQuotePriceGross:{ title:'Cena do wyceny brutto', message:'Cena używana w wycenie i na liście katalogu. W trybie narzutu jest liczona automatycznie, w trybie ręcznym możesz ją wpisać.' },
     hardwarePriceUpdatedAt:{ title:'Data ceny', message:'Data ostatniego sprawdzenia ceny. Wpisuj w formacie RRRR-MM-DD.' },
     hardwareNote:{ title:'Notatka', message:'Notatka wewnętrzna, np. skład kompletu, uwagi zakupowe albo kiedy stosować dane okucie.' },
+    hardwareKitPriceMode:{ title:'Cena zestawu', message:'Własna cena zestawu oznacza, że skład jest informacyjny, a cenę wpisujesz z dostawcy. Licz zakup ze składników sumuje realny zakup składników i blokuje ręczne wpisywanie ceny katalogowej zestawu.' },
+    hardwareKitComponentsJson:{ title:'Skład zestawu', message:'Lista składników zestawu zbudowana z istniejących pozycji katalogu. Program pokazuje sumę zakupu składników i porównanie z ceną zestawu.' },
     formCategory:{ title:'Kategoria', message:'Grupa porządkująca czynności w katalogu. Pomaga utrzymać porządek na liście i szybciej znaleźć właściwą pozycję.' },
     formServiceName:{ title:'Nazwa', message:'Nazwa czynności, stawki lub usługi. Powinna jasno mówić, czego dotyczy pozycja.' },
     formServicePrice:{ title:'Kwota stała / cena prosta', message:'Stała cena pozycji. Użyj jej, gdy czynność ma po prostu konkretną kwotę i nie ma być liczona z czasu albo innych parametrów.' },

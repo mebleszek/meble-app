@@ -148,6 +148,18 @@ function runMaterialNodeSmoke(sandbox){
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
       return src.includes('function formPriceWrapper()') && src.includes("const priceWrap = formPriceWrapper();") && src.includes("priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : ''");
     } },
+    { name:'Formularz okuć pozwala czyścić pola cenowe i ma domyślną datę ceny', explain:'Chroni mobile inputy netto/brutto przed natychmiastowym odtwarzaniem kasowanej wartości oraz pilnuje dzisiejszej daty dla nowego okucia.', check:()=> {
+      const form = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      const itemForm = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      return form.includes('function rawValue') && form.includes('function todayString') && form.includes('rawValue(sourceId) ===') && form.includes('priceUpdatedAt:todayString()') && !itemForm.includes('syncHardwarePricing(); }catch');
+    } },
+    { name:'Katalog okuć obsługuje skład zestawu z istniejących pozycji', explain:'Pilnuje sekcji Skład zestawu, wyboru własnej ceny albo liczenia zakupu ze składników oraz modelu kitComponents.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const kit = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-kit.js'), 'utf8');
+      const hw = FC.hardwareCatalog;
+      const normalized = hw && typeof hw.normalizeAccessory === 'function' ? hw.normalizeAccessory({ name:'Zestaw test', hardwareUnit:'zestaw', kitPriceMode:'components', kitComponents:[{ itemId:'a', nameSnapshot:'Zawias', qty:2, purchasePriceGrossSnapshot:5 }] }, ()=> 'kit_test') : null;
+      return html.includes('id="hardwareKitFields"') && html.includes('id="hardwareAddKitComponentBtn"') && kit.includes('Dodaj składnik zestawu') && normalized && normalized.kitPriceMode === 'components' && Array.isArray(normalized.kitComponents) && normalized.kitComponents.length === 1;
+    } },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
     { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {

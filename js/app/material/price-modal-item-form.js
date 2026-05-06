@@ -170,7 +170,6 @@
 
   function updateItemActionState(){
     syncLaborGabarytMode();
-    try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
     const dirty = isItemDirty();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
     const deleteBtn = ctx.byId('deletePriceItemBtn');
@@ -240,7 +239,6 @@
     setChecked('laborActive', def.active !== false);
     setChecked('laborInternalOnly', def.internalOnly !== false);
     syncLaborGabarytMode();
-    try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
   }
   function applyServiceFormState(item){
     const kind = ctx.currentListKind();

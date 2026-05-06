@@ -185,3 +185,25 @@
   .hardware-supplier-row{grid-template-columns:1fr;align-items:stretch;}
   .hardware-supplier-active{justify-self:start;}
 }
+
+/* 2026-05-05 — katalog okuć: skład zestawu/kompletu. */
+#priceItemModal .hardware-kit-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(72px,96px) auto;
+  gap:10px;
+  align-items:center;
+  padding:10px 0;
+  border-top:1px solid rgba(226,232,240,.92);
+}
+#priceItemModal .hardware-kit-row:first-child{border-top:0;}
+#priceItemModal .hardware-kit-row__title{font-weight:900;color:#111827;line-height:1.12;}
+#priceItemModal .hardware-kit-row__qty{min-height:44px;text-align:center;}
+#priceItemModal .hardware-kit-row__remove{min-height:44px;}
+#priceItemModal .hardware-kit-empty{padding:10px 0;text-align:center;}
+.hardware-kit-picker{display:grid;gap:10px;max-height:min(62vh,520px);overflow:auto;padding-right:2px;}
+.hardware-kit-picker__option{text-align:left;width:100%;}
+@media (max-width:600px){
+  #priceItemModal .hardware-kit-row{grid-template-columns:1fr;}
+  #priceItemModal .hardware-kit-row__qty{width:100%;}
+  #priceItemModal .hardware-kit-row__remove{width:100%;}
+}

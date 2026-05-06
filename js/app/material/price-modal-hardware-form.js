@@ -15,7 +15,9 @@
   function num(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
   function fmt(value){ const n = Number(value); return Number.isFinite(n) && n !== 0 ? String(Math.round(n * 100) / 100) : ''; }
-  function readString(id){ return String((ctx.byId(id) && ctx.byId(id).value) || '').trim(); }
+  function rawValue(id){ return String((ctx.byId(id) && ctx.byId(id).value) || '').trim(); }
+  function todayString(){ try{ return new Date().toISOString().slice(0, 10); }catch(_){ return ''; } }
+  function readString(id){ return rawValue(id); }
   function readNumber(id){ return normalizePriceValue(ctx.byId(id) && ctx.byId(id).value); }
   function setValue(id, value){ const el = ctx.byId(id); if(el) el.value = value == null ? '' : String(value); }
   function setText(id, value){ const el = ctx.byId(id); if(el) el.textContent = String(value == null ? '' : value); }
@@ -45,7 +47,7 @@
     'hardwareCategory','hardwareUnit','hardwareStatus','hardwareSeries','hardwareSupplierId','hardwarePriceSource',
     'hardwareVatRate','hardwareCatalogPriceNet','hardwareCatalogPriceGross','hardwareSupplierDiscountPercent',
     'hardwarePurchasePriceNet','hardwarePurchasePriceGross','hardwareQuoteBase','hardwarePricingMode',
-    'hardwareMarkupPercent','hardwareQuotePriceNet','hardwareQuotePriceGross','hardwarePriceUpdatedAt','hardwareNote'
+    'hardwareMarkupPercent','hardwareQuotePriceNet','hardwareQuotePriceGross','hardwarePriceUpdatedAt','hardwareNote','hardwareKitPriceMode','hardwareKitComponentsJson'
   ];
 
   function defaultAccessoryDraft(){
@@ -65,7 +67,7 @@
       pricingMode:settings.defaultPricingMode || 'markup',
       markupPercent:settings.defaultMarkupPercent || 20,
       quotePriceNet:'', quotePriceGross:'',
-      priceUpdatedAt:'', status:'active', note:''
+      priceUpdatedAt:todayString(), status:'active', note:'', kitPriceMode:'own', kitComponents:[]
     };
   }
 
@@ -77,16 +79,33 @@
     const pricingMode = readString('hardwarePricingMode') || 'markup';
     const quoteBase = readString('hardwareQuoteBase') || 'catalogGross';
     const sourceId = cfg.sourceId || '';
+    const kit = ctx.priceModalHardwareKit || null;
+    const kitComponentsMode = !!(kit && typeof kit.isComponentsMode === 'function' && kit.isComponentsMode());
+    const kitComponentsTotal = kitComponentsMode && typeof kit.getComponentsTotalGross === 'function' ? round2(kit.getComponentsTotalGross()) : 0;
+    const clearedPair = {
+      hardwareCatalogPriceNet:'hardwareCatalogPriceGross',
+      hardwareCatalogPriceGross:'hardwareCatalogPriceNet',
+      hardwareQuotePriceNet:'hardwareQuotePriceGross',
+      hardwareQuotePriceGross:'hardwareQuotePriceNet',
+    };
+    if(Object.prototype.hasOwnProperty.call(clearedPair, sourceId) && rawValue(sourceId) === ''){
+      setValue(clearedPair[sourceId], '');
+    }
 
     let catalogNet = num(readString('hardwareCatalogPriceNet'));
     let catalogGross = num(readString('hardwareCatalogPriceGross'));
-    if(sourceId === 'hardwareCatalogPriceNet' && catalogNet > 0){ catalogGross = netToGross(catalogNet, vat); setValue('hardwareCatalogPriceGross', fmt(catalogGross)); }
+    if(kitComponentsMode && kitComponentsTotal > 0 && sourceId !== 'hardwareCatalogPriceNet' && sourceId !== 'hardwareCatalogPriceGross'){
+      catalogGross = kitComponentsTotal;
+      catalogNet = grossToNet(catalogGross, vat);
+      setValue('hardwareCatalogPriceGross', fmt(catalogGross));
+      setValue('hardwareCatalogPriceNet', fmt(catalogNet));
+    }else if(sourceId === 'hardwareCatalogPriceNet' && catalogNet > 0){ catalogGross = netToGross(catalogNet, vat); setValue('hardwareCatalogPriceGross', fmt(catalogGross)); }
     else if(sourceId === 'hardwareCatalogPriceGross' && catalogGross > 0){ catalogNet = grossToNet(catalogGross, vat); setValue('hardwareCatalogPriceNet', fmt(catalogNet)); }
-    else if(catalogGross > 0 && catalogNet <= 0){ catalogNet = grossToNet(catalogGross, vat); setValue('hardwareCatalogPriceNet', fmt(catalogNet)); }
-    else if(catalogNet > 0 && catalogGross <= 0){ catalogGross = netToGross(catalogNet, vat); setValue('hardwareCatalogPriceGross', fmt(catalogGross)); }
+    else if(sourceId !== 'hardwareCatalogPriceNet' && sourceId !== 'hardwareCatalogPriceGross' && catalogGross > 0 && catalogNet <= 0){ catalogNet = grossToNet(catalogGross, vat); setValue('hardwareCatalogPriceNet', fmt(catalogNet)); }
+    else if(sourceId !== 'hardwareCatalogPriceNet' && sourceId !== 'hardwareCatalogPriceGross' && catalogNet > 0 && catalogGross <= 0){ catalogGross = netToGross(catalogNet, vat); setValue('hardwareCatalogPriceGross', fmt(catalogGross)); }
 
-    let purchaseGross = round2(catalogGross * (1 - discount / 100));
-    let purchaseNet = round2(catalogNet * (1 - discount / 100));
+    let purchaseGross = kitComponentsMode ? kitComponentsTotal : round2(catalogGross * (1 - discount / 100));
+    let purchaseNet = kitComponentsMode ? grossToNet(purchaseGross, vat) : round2(catalogNet * (1 - discount / 100));
     if(purchaseGross <= 0 && purchaseNet > 0) purchaseGross = netToGross(purchaseNet, vat);
     if(purchaseNet <= 0 && purchaseGross > 0) purchaseNet = grossToNet(purchaseGross, vat);
     setValue('hardwarePurchasePriceGross', fmt(purchaseGross));
@@ -113,7 +132,7 @@
       disableField('hardwareQuotePriceNet', false);
       if(sourceId === 'hardwareQuotePriceNet' && quoteNet > 0){ quoteGross = netToGross(quoteNet, vat); setValue('hardwareQuotePriceGross', fmt(quoteGross)); }
       else if(sourceId === 'hardwareQuotePriceGross' && quoteGross > 0){ quoteNet = grossToNet(quoteGross, vat); setValue('hardwareQuotePriceNet', fmt(quoteNet)); }
-      else if(quoteGross > 0 && quoteNet <= 0){ quoteNet = grossToNet(quoteGross, vat); setValue('hardwareQuotePriceNet', fmt(quoteNet)); }
+      else if(sourceId !== 'hardwareQuotePriceNet' && sourceId !== 'hardwareQuotePriceGross' && quoteGross > 0 && quoteNet <= 0){ quoteNet = grossToNet(quoteGross, vat); setValue('hardwareQuotePriceNet', fmt(quoteNet)); }
       const effective = baseGross > 0 && quoteGross > 0 ? round2(((quoteGross / baseGross) - 1) * 100) : 0;
       setText('hardwareEffectiveMarkupPreview', 'Narzut wynikowy: ' + effective.toFixed(2) + '%');
     }
@@ -161,6 +180,10 @@
       priceUpdatedAt:readString('hardwarePriceUpdatedAt'),
       status:readString('hardwareStatus') || 'active',
       note:readString('hardwareNote'),
+      kitPriceMode:ctx.priceModalHardwareKit && typeof ctx.priceModalHardwareKit.getDraft === 'function' ? ctx.priceModalHardwareKit.getDraft().kitPriceMode : 'own',
+      kitComponents:ctx.priceModalHardwareKit && typeof ctx.priceModalHardwareKit.getDraft === 'function' ? ctx.priceModalHardwareKit.getDraft().kitComponents : [],
+      kitComponentsTotalGross:ctx.priceModalHardwareKit && typeof ctx.priceModalHardwareKit.getDraft === 'function' ? ctx.priceModalHardwareKit.getDraft().kitComponentsTotalGross : 0,
+      kitReferenceTotalGross:ctx.priceModalHardwareKit && typeof ctx.priceModalHardwareKit.getDraft === 'function' ? ctx.priceModalHardwareKit.getDraft().kitReferenceTotalGross : 0,
     };
   }
 
@@ -188,14 +211,16 @@
     setValue('hardwareMarkupPercent', data && data.markupPercent != null ? data.markupPercent : '');
     setValue('hardwareQuotePriceNet', data && data.quotePriceNet != null ? data.quotePriceNet : '');
     setValue('hardwareQuotePriceGross', data && (data.quotePriceGross != null ? data.quotePriceGross : data.price) || '');
-    setValue('hardwarePriceUpdatedAt', data && data.priceUpdatedAt || '');
+    setValue('hardwarePriceUpdatedAt', data && data.priceUpdatedAt || (!item ? todayString() : ''));
     setValue('hardwareNote', data && data.note || '');
+    if(ctx.priceModalHardwareKit && typeof ctx.priceModalHardwareKit.applyAccessoryFormState === 'function') ctx.priceModalHardwareKit.applyAccessoryFormState(data || {});
     syncHardwarePricing({ sourceId:'' });
   }
 
   function handleHardwareFieldInput(event){
     const target = event && event.target;
     const id = target && target.id ? String(target.id) : '';
+    if(ctx.priceModalHardwareKit && typeof ctx.priceModalHardwareKit.syncVisibility === 'function') ctx.priceModalHardwareKit.syncVisibility();
     if(id === 'hardwareSupplierId') applySupplierDefaults();
     else syncHardwarePricing({ sourceId:id });
   }
