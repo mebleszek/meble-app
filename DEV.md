@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_backup_storage_keys_v1.zip`.
 - Baza startowa tej paczki: `site_czynnosci_labor_calc_help_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -39,6 +39,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Każda nowa lub mocno zmieniana funkcja danych musi przejść audyt cloud-readiness podobnie jak audyt linii i odpowiedzialności.
 - Sprawdzać zwłaszcza: bezpośrednie/scattered `localStorage`, mieszanie danych użytkownika z cache/techniką, duplikację rekordów, stabilne ID, granicę store/repository/adapter oraz późniejszą mapowalność do Firestore/synchronizacji.
 - Małe lokalne poprawki cloud-ready robić w tej samej paczce, jeśli nie zmieniają UI ani logiki biznesowej. Większe albo międzydomenowe migracje zgłaszać jako osobny etap.
+- Wszystkie dane użytkownika, katalogów, cenników, inwestorów, projektów i ustawień biznesowych, które mają trafić do globalnego backupu, muszą mieć wersjonowany klucz `fc_*`, np. `fc_hardware_suppliers_v1`. Nie dodawać luźnych kluczy typu `hardwareSuppliers` dla danych backupowanych; jeśli taki klucz już istnieje, zrobić migrację do `fc_*`.
 
 ## UI i interakcje — zasady aktywne
 
@@ -602,3 +603,12 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Import ma tryb `Scal / aktualizuj` oraz świadomy tryb `Zastąp katalog`. Nie dodawać cichego kasowania danych bez osobnego potwierdzenia.
 - Smoke testy `Katalog okuć ma import/eksport JSON i XLSX` oraz `Import okuć obsługuje nowe wiersze bez ID i aktualizacje po ID` pilnują tego kontraktu.
 - Raport: `tools/reports/hardware-import-export-v1.md`.
+
+## Backup storage keys v1 — 2026-05-07
+
+- Globalny backup w Ustawieniach obejmuje dane po kluczach `fc_*`; dlatego każdy nowy storage z danymi użytkownika/katalogu/cennika/projektu/ustawień biznesowych musi dostać wersjonowaną nazwę `fc_*`.
+- Dla katalogu okuć dostawcy i ustawienia są od teraz pod `fc_hardware_suppliers_v1` i `fc_hardware_settings_v1`; stare klucze `hardwareSuppliers` i `hardwareSettings` są tylko legacy źródłem migracji.
+- `js/app/catalog/catalog-storage-policy.js` jest małym boundary migracji kluczy katalogu okuć. Nie dopisywać takich migracji bezpośrednio do UI importu/eksportu ani do modali.
+- `catalogStore` czyta legacy klucze tylko wtedy, gdy nie ma jeszcze nowego `fc_*`, zapisuje pod `fc_*` i usuwa dokładnie stare legacy klucze po udanym zapisie nowego klucza. Nie rozszerzać tego na czyszczenie backupów.
+- Smoke test `Dostawcy i ustawienia okuć używają kluczy fc_* objętych backupem` pilnuje migracji i tego, że globalny backup obejmie dostawców oraz ustawienia okuć.
+- Raport: `tools/reports/backup-storage-keys-v1.md`.

@@ -455,3 +455,17 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Kolumna `id` w XLSX musi pozostać stabilną kotwicą rekordu. Nowe wiersze bez `id` dostają lokalne `hw_user_*`; po przyszłej synchronizacji będą wymagały mapowania lokalnego ID na dokument chmurowy.
 - Import `merge` nie usuwa brakujących rekordów, a tryb `replace` jest osobną świadomą operacją. To ogranicza ryzyko utraty danych przed wdrożeniem prawdziwej synchronizacji/chmury.
 - Snapshot ofert/WYCENY nadal musi w przyszłości zamrażać użyte ceny i koszt firmy; import katalogu nie może przeliczać starych ofert.
+
+## Reguła kluczy lokalnych pod backup i przyszłą chmurę — 2026-05-07
+
+- Każdy lokalny klucz z danymi użytkownika, katalogów, cenników, inwestorów, projektów, ofert albo ustawień biznesowych, który ma wejść do globalnego backupu, musi zaczynać się od `fc_` i mieć wersję, np. `fc_hardware_suppliers_v1`.
+- Luźne klucze bez prefiksu `fc_`, np. `hardwareSuppliers` albo `hardwareSettings`, mogą istnieć tylko jako stare źródła migracji. Nowy kod nie powinien ich używać jako docelowego storage danych biznesowych.
+- Migracja ma działać bez utraty danych: odczytać nowy `fc_*`, jeśli istnieje; jeśli nie istnieje, odczytać legacy; zapisać wynik pod nowym `fc_*`; dopiero po tym usunąć dokładny legacy klucz.
+- Dla chmury ta zasada jest etapem przejściowym: `fc_*` stanowi lokalny adapter/snapshot użytkownika, a później powinien mapować się do dokumentów/kolekcji Firestore bez przepisywania UI.
+
+## Backup storage keys v1 — 2026-05-07
+
+- Dostawcy okuć migrują z `hardwareSuppliers` do `fc_hardware_suppliers_v1`.
+- Ustawienia katalogu okuć migrują z `hardwareSettings` do `fc_hardware_settings_v1`.
+- `catalogStore` nadal jest lokalnym adapterem katalogu; nowy `catalog-storage-policy.js` tylko pilnuje nazw kluczy i migracji legacy → `fc_*`.
+- Globalny backup Ustawień powinien od tej paczki obejmować pozycje okuć (`fc_accessories_v1`), producentów (`fc_hardware_manufacturers_v1`), dostawców (`fc_hardware_suppliers_v1`) i ustawienia (`fc_hardware_settings_v1`).

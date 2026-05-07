@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-05-07T06:21:22.542Z",
+  "generatedAt": "2026-05-07T21:24:08.052Z",
   "summary": {
-    "jsFiles": 328,
-    "indexScripts": 254,
-    "devTestScripts": 285,
-    "fcSymbols": 240,
-    "fcSymbolsAll": 266,
-    "edges": 1739,
+    "jsFiles": 329,
+    "indexScripts": 255,
+    "devTestScripts": 286,
+    "fcSymbols": 241,
+    "fcSymbolsAll": 267,
+    "edges": 1740,
     "highRisk": 7,
     "mediumRisk": 61
   },
   "byArea": {
     "BOOT/APP SHELL": {
       "files": 7,
-      "lines": 1384,
+      "lines": 1387,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -28,9 +28,9 @@
       "medium": 3
     },
     "KATALOG/USŁUGI": {
-      "files": 13,
-      "lines": 2395,
-      "storageRefs": 0,
+      "files": 14,
+      "lines": 2492,
+      "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
       "medium": 1
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1061,
+      "lines": 1063,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -202,12 +202,12 @@
       449
     ],
     [
-      "js/app/cabinet/cabinet-modal-standing-specials.js",
-      434
+      "js/app/catalog/catalog-store.js",
+      440
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      431
+      "js/app/cabinet/cabinet-modal-standing-specials.js",
+      434
     ],
     [
       "js/app/rozrys/rozrys-pickers.js",
@@ -452,6 +452,10 @@
       7
     ],
     [
+      "js/app/catalog/catalog-storage-policy.js",
+      4
+    ],
+    [
       "js/app/material/material-part-options.js",
       4
     ],
@@ -478,10 +482,6 @@
     [
       "js/app/shared/data-backup-storage.js",
       3
-    ],
-    [
-      "js/app/rozrys/rozrys-cache.js",
-      2
     ]
   ],
   "risks": [
@@ -604,9 +604,9 @@
       "score": 7,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 431,
+      "lines": 440,
       "incoming": 13,
-      "outgoing": 10,
+      "outgoing": 11,
       "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1530,7 +1530,7 @@
       "score": 4,
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 172,
+      "lines": 175,
       "incoming": 70,
       "outgoing": 4,
       "secondLevel": 174,
@@ -1750,7 +1750,7 @@
     "js/app/bootstrap/app-core-namespace.js": {
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 172,
+      "lines": 175,
       "defines": [
         "appCoreNamespace",
         "utils",
@@ -3126,10 +3126,47 @@
         "kilka zależnych plików"
       ]
     },
+    "js/app/catalog/catalog-storage-policy.js": {
+      "area": "KATALOG/USŁUGI",
+      "category": "store/storage",
+      "lines": 88,
+      "defines": [
+        "catalogStoragePolicy"
+      ],
+      "uses": [
+        "catalogStoragePolicy"
+      ],
+      "incomingFiles": [
+        "js/app/catalog/catalog-store.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/service-orders.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js"
+      ],
+      "storageRefs": 4,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 431,
+      "lines": 440,
       "defines": [
         "catalogStore"
       ],
@@ -3142,6 +3179,7 @@
         "laborCatalog",
         "hardwareCatalog",
         "hardwareCatalogSeeds",
+        "catalogStoragePolicy",
         "utils",
         "catalogStore"
       ],
@@ -3164,6 +3202,7 @@
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-migration.js",
+        "js/app/catalog/catalog-storage-policy.js",
         "js/app/catalog/hardware-catalog-seeds.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/pricing/labor-catalog.js",
@@ -10303,7 +10342,7 @@
     "js/app/shared/constants.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 35,
+      "lines": 37,
       "defines": [
         "constants"
       ],

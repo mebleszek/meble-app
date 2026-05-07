@@ -195,6 +195,25 @@ function runMaterialNodeSmoke(sandbox){
       const updated = plan.next.accessories.find((row)=> String(row && row.id || '') === String(existing && existing.id || ''));
       return plan.summary.added === 1 && plan.summary.updated === 1 && added && String(added.id || '').startsWith('hw_user_') && updated && String(updated.name || '').endsWith('TEST');
     } },
+    { name:'Dostawcy i ustawienia okuć używają kluczy fc_* objętych backupem', explain:'Chroni globalny backup: dane katalogu okuć nie mogą zostawać pod luźnymi kluczami hardwareSuppliers/hardwareSettings.', check:()=> {
+      if(!(FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.hardwareSuppliers === 'fc_hardware_suppliers_v1' && FC.constants.STORAGE_KEYS.hardwareSettings === 'fc_hardware_settings_v1')) return false;
+      if(!(FC.catalogStoragePolicy && FC.catalogStoragePolicy.BACKUP_KEYS && FC.catalogStoragePolicy.LEGACY_KEYS)) return false;
+      const legacySandbox = createSandbox();
+      legacySandbox.localStorage.setItem('hardwareSuppliers', JSON.stringify([{ id:'legacy_supplier', name:'Legacy Dostawca', defaultDiscountPercent:7, defaultVatRate:23, active:true }]));
+      legacySandbox.localStorage.setItem('hardwareSettings', JSON.stringify({ defaultSupplierId:'legacy_supplier', defaultVatRate:23, defaultMarkupPercent:33, defaultQuoteBase:'purchaseGross', defaultPricingMode:'markup' }));
+      loadSmokeFiles(legacySandbox, APP_DEV_SMOKE_FILES);
+      const legacyFC = legacySandbox.FC || {};
+      const suppliers = legacyFC.catalogStore && legacyFC.catalogStore.getHardwareSuppliers ? legacyFC.catalogStore.getHardwareSuppliers() : [];
+      const settings = legacyFC.catalogStore && legacyFC.catalogStore.getHardwareSettings ? legacyFC.catalogStore.getHardwareSettings() : {};
+      return suppliers.some((row)=> String(row && row.id || '') === 'legacy_supplier')
+        && String(settings && settings.defaultSupplierId || '') === 'legacy_supplier'
+        && legacySandbox.localStorage.getItem('fc_hardware_suppliers_v1')
+        && legacySandbox.localStorage.getItem('fc_hardware_settings_v1')
+        && legacySandbox.localStorage.getItem('hardwareSuppliers') == null
+        && legacySandbox.localStorage.getItem('hardwareSettings') == null
+        && legacyFC.dataStorageKeys && legacyFC.dataStorageKeys.isAppDataKey('fc_hardware_suppliers_v1')
+        && legacyFC.dataStorageKeys.isAppDataKey('fc_hardware_settings_v1');
+    } },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
     { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {

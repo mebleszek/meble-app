@@ -6,12 +6,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Metryka | Wartość |
 | --- | --- |
-| Pliki JS | 328 |
-| Skrypty w index.html | 254 |
-| Skrypty w dev_tests.html | 285 |
-| Krawędzie zależności po symbolach FC | 1739 |
-| Symbole FC z właścicielem produkcyjnym | 240 |
-| Symbole FC z właścicielem razem | 266 |
+| Pliki JS | 329 |
+| Skrypty w index.html | 255 |
+| Skrypty w dev_tests.html | 286 |
+| Krawędzie zależności po symbolach FC | 1740 |
+| Symbole FC z właścicielem produkcyjnym | 241 |
+| Symbole FC z właścicielem razem | 267 |
 | Pliki z ryzykiem wysokim / nie ruszać | 7 |
 | Pliki z ryzykiem średnim | 61 |
 
@@ -26,14 +26,14 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
 | MATERIAŁ | 21 | 3362 | 8 | 3 | 0 | 2 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
-| KATALOG/USŁUGI | 13 | 2395 | 0 | 0 | 0 | 1 |
+| KATALOG/USŁUGI | 14 | 2492 | 4 | 0 | 0 | 1 |
 | PROJEKT | 10 | 2019 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
-| BOOT/APP SHELL | 7 | 1384 | 4 | 0 | 0 | 2 |
+| BOOT/APP SHELL | 7 | 1387 | 4 | 0 | 0 | 2 |
 | DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
-| SHARED | 11 | 1061 | 0 | 0 | 0 | 0 |
+| SHARED | 11 | 1063 | 0 | 0 | 0 | 0 |
 | ZAKŁADKI | 3 | 585 | 0 | 0 | 0 | 0 |
 | INNE | 3 | 391 | 0 | 0 | 0 | 0 |
 | CORE | 2 | 128 | 0 | 0 | 0 | 0 |
@@ -53,8 +53,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
 | js/app/ui/actions-register.js | 449 | UI | średnie |
+| js/app/catalog/catalog-store.js | 440 | KATALOG/USŁUGI | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 434 | SZAFKI | niskie |
-| js/app/catalog/catalog-store.js | 431 | KATALOG/USŁUGI | średnie |
 | js/app/rozrys/rozrys-pickers.js | 406 | ROZRYS | średnie |
 | js/app/project/project-status-manual-guard.js | 395 | PROJEKT | średnie |
 | js/testing/test-data-manager.js | 393 | TESTY | średnie |
@@ -129,6 +129,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/rysunek/tests.js | 10 | TESTY | średnie |
 | js/app/investor/investors-local-repository.js | 9 | INWESTOR | niskie |
 | js/app/shared/data-storage-keys.js | 7 | DANE/STORAGE | niskie |
+| js/app/catalog/catalog-storage-policy.js | 4 | KATALOG/USŁUGI | niskie |
 | js/app/material/material-part-options.js | 4 | MATERIAŁ | niskie |
 | js/app/shared/data-storage-audit.js | 4 | DANE/STORAGE | niskie |
 | js/app/bootstrap/reload-restore.js | 3 | BOOT/APP SHELL | niskie |
@@ -136,7 +137,6 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/material/material-edge-store.js | 3 | MATERIAŁ | niskie |
 | js/app/shared/data-backup-snapshot-apply.js | 3 | DANE/STORAGE | niskie |
 | js/app/shared/data-backup-storage.js | 3 | DANE/STORAGE | niskie |
-| js/app/rozrys/rozrys-cache.js | 2 | ROZRYS | niskie |
 
 ## Pliki ryzykowne
 
@@ -148,7 +148,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 15 | 23 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/cabinet/tests.js | wysokie | 8 | 806 | 6 | 33 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/helpers-bridges.js | wysokie | 8 | 390 | 14 | 36 | 250+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących |
-| js/app/catalog/catalog-store.js | średnie | 7 | 431 | 13 | 46 | 400+ linii; dużo zależnych plików; kilka zależności wychodzących |
+| js/app/catalog/catalog-store.js | średnie | 7 | 440 | 13 | 46 | 400+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/test-data-manager.js | średnie | 7 | 393 | 15 | 32 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/wycena/fixtures.js | średnie | 7 | 154 | 16 | 24 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/tabs/rysunek.js | nie ruszać bez osobnego planu | 6 | 1459 | 2 | 7 | 600+ linii; systemowe dialogi |

@@ -14,6 +14,7 @@
   const laborCatalog = FC.laborCatalog || null;
   const hardwareCatalog = FC.hardwareCatalog || null;
   const hardwareSeeds = FC.hardwareCatalogSeeds || null;
+  const storagePolicy = FC.catalogStoragePolicy || null;
 
   const DEFAULT_SHEET_MATERIALS = [
     { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:35, hasGrain:false },
@@ -65,6 +66,11 @@
   }
 
   function readList(key, fallback){
+    try{
+      if(storagePolicy && typeof storagePolicy.hasManagedKey === 'function' && storagePolicy.hasManagedKey(key)){
+        return storagePolicy.readJSON(storage, KEYS, key, fallback, clone);
+      }
+    }catch(_){ }
     return storage && typeof storage.getJSON === 'function'
       ? storage.getJSON(KEYS[key] || key, fallback)
       : clone(fallback);
@@ -72,6 +78,9 @@
 
   function writeList(key, list){
     try{
+      if(storagePolicy && typeof storagePolicy.hasManagedKey === 'function' && storagePolicy.hasManagedKey(key)){
+        return storagePolicy.writeJSON(storage, KEYS, key, list);
+      }
       if(storage && typeof storage.setJSON === 'function') storage.setJSON(KEYS[key] || key, list);
     }catch(_){ }
     return list;

@@ -555,3 +555,9 @@ Do obserwacji:
 - UI importu/eksportu jest osobnym modułem `price-modal-hardware-import-export.js`, a nie dopiskiem do listy czy formularza pozycji.
 - Wspólny zapis/odczyt prostych arkuszy XLSX trafił do `js/app/shared/xlsx-lite.js`, żeby przyszłe importy innych katalogów mogły użyć tej samej warstwy bez kopiowania parsera.
 - Do obserwacji: jeśli XLSX będzie rozszerzany o style, walidacje komórek albo większe arkusze, rozdzielić `xlsx-lite.js` na writer/reader zamiast rozbudowywać jeden plik ponad próg ostrzeżenia.
+
+## Backup storage keys v1 — 2026-05-07
+
+- Zamiast rozbudowywać `catalog-store.js` o pełną politykę migracji kluczy, dodano małe boundary `js/app/catalog/catalog-storage-policy.js`.
+- `catalog-store.js` przekracza próg ostrzegawczy, ale zmiana w nim jest cienkim podłączeniem do policy. Kolejny większy etap katalogu powinien dalej wydzielać storage/settings, jeśli będzie wymagał rozbudowy store.
+- Reguła `fc_*` dla danych backupowanych jest od teraz architektonicznym wymogiem dla nowych modułów danych.

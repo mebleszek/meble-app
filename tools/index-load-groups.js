@@ -61,6 +61,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/catalog/hardware-catalog-import-export.js",
       "js/app/catalog/catalog-domain.js",
       "js/app/catalog/catalog-migration.js",
+      "js/app/catalog/catalog-storage-policy.js",
       "js/app/pricing/labor-catalog-definitions.js",
       "js/app/pricing/labor-catalog.js",
       "js/app/pricing/labor-appliance-rules.js",
