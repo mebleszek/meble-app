@@ -67,6 +67,8 @@
     if(filterBtn) filterBtn.onclick = ()=>{ if(ctx.openHardwareFiltersModal) ctx.openHardwareFiltersModal(); };
     const sortBtn = ctx.byId('openHardwareSortBtn');
     if(sortBtn) sortBtn.onclick = ()=>{ if(ctx.openHardwareSortModal) ctx.openHardwareSortModal(); };
+    const importExportBtn = ctx.byId('openHardwareImportExportBtn');
+    if(importExportBtn) importExportBtn.onclick = ()=>{ if(ctx.openHardwareImportExportModal) ctx.openHardwareImportExportModal(); };
     const addBtn = ctx.byId('openPriceItemModalBtn');
     if(addBtn) addBtn.onclick = ()=> ctx.openPriceItemModal();
   }

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_catalog_seed_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_v1.zip`.
 - Baza startowa tej paczki: `site_czynnosci_labor_calc_help_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -591,3 +591,14 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Przy polach cenowych netto/brutto formularz musi pozwalać na całkowite wyczyszczenie wartości podczas wpisywania na mobile; nie wolno natychmiast odtwarzać cyfr z pola powiązanego w trakcie kasowania.
 - `Data ceny` dla nowego okucia domyślnie przyjmuje dzisiejszą datę lokalną, ale przy edycji istniejącej pozycji nie może być automatycznie nadpisywana.
 - Skład zestawu nie może pozwalać na bezpośrednie dodanie pozycji samej do siebie; przyszłe głębsze zestawy wymagają dodatkowego zabezpieczenia przed cyklami.
+
+## Hardware import/export v1 — 2026-05-07
+
+- Katalog okuć ma aplikacyjny panel `Import / Eksport` w toolbarze `Akcesoria`.
+- `js/app/shared/xlsx-lite.js` jest minimalnym shared utility do prostego XLSX; nie jest store ani logiką domenową.
+- `js/app/catalog/hardware-catalog-import-export.js` jest boundary katalogu okuć dla JSON/XLSX: buduje snapshot, plan importu, waliduje dane i zapisuje wyłącznie przez `catalogStore`. Nie dopisywać importu bezpośrednio do `price-modal-*` ani do `catalog-store.js`.
+- `js/app/material/price-modal-hardware-import-export.js` odpowiada tylko za panel UI i podgląd importu.
+- Excel/XLSX ma arkusze `Okucia`, `Sklad_zestawow`, `Dostawcy`, `Producenci`, `Ustawienia`. Kolumna `id` jest kotwicą techniczną: istniejące ID aktualizuje pozycję, puste ID tworzy nową pozycję `hw_user_*`, a duplikat producent+symbol+nazwa jest dopasowywany do istniejącej pozycji.
+- Import ma tryb `Scal / aktualizuj` oraz świadomy tryb `Zastąp katalog`. Nie dodawać cichego kasowania danych bez osobnego potwierdzenia.
+- Smoke testy `Katalog okuć ma import/eksport JSON i XLSX` oraz `Import okuć obsługuje nowe wiersze bez ID i aktualizacje po ID` pilnują tego kontraktu.
+- Raport: `tools/reports/hardware-import-export-v1.md`.

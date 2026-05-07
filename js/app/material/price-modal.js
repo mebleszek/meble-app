@@ -42,6 +42,7 @@
     const settingsBtn = ctx.byId('openHardwareSettingsBtn');
     const hardwareFilterBtn = ctx.byId('openHardwareFiltersBtn');
     const hardwareSortBtn = ctx.byId('openHardwareSortBtn');
+    const hardwareImportExportBtn = ctx.byId('openHardwareImportExportBtn');
     if(ctx.byId('priceModalTitle')) ctx.byId('priceModalTitle').textContent = cfg.title;
     if(ctx.byId('priceModalSubtitle')) ctx.byId('priceModalSubtitle').textContent = cfg.subtitle;
     if(ctx.byId('priceModalIcon')) ctx.byId('priceModalIcon').textContent = cfg.icon;
@@ -51,6 +52,7 @@
     if(settingsBtn) settingsBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(hardwareFilterBtn) hardwareFilterBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(hardwareSortBtn) hardwareSortBtn.style.display = kind === 'accessories' ? '' : 'none';
+    if(hardwareImportExportBtn) hardwareImportExportBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(materialFilters) materialFilters.style.display = kind === 'materials' ? 'grid' : 'none';
     if(serviceFilters) serviceFilters.style.display = (kind === 'quoteRates' || kind === 'workshopServices') ? 'grid' : 'none';
     const materialTypeWrap = ctx.byId('priceFilterMaterialTypeLaunch') && ctx.byId('priceFilterMaterialTypeLaunch').parentElement;

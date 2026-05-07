@@ -171,6 +171,30 @@ function runMaterialNodeSmoke(sandbox){
       const required = ['hw_seed_blum_71b3550_173l6100','hw_seed_gtv_fchc_110_soft_euro','hw_seed_peka_snello_150_white','hw_seed_nomet_w2334m_150l_p22','hw_seed_rejs_comfort_box_plus_h69_500'];
       return required.every((id)=> ids.has(id)) && required.every((id)=> { const row = accessories.find((item)=> String(item && item.id || '') === id); return Number(row && row.purchasePriceGross) > 0 && Number(row && row.price) > 0 && String(row && row.priceUpdatedAt || '') === '2026-05-07'; });
     } },
+    { name:'Katalog okuć ma import/eksport JSON i XLSX', explain:'Pilnuje, że etap import/export ma osobny boundary, przycisk w toolbarze oraz nie wymaga dopisywania ręcznego do localStorage poza catalogStore.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const xlsx = FC.xlsxLite;
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-export.js'), 'utf8');
+      if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function')) return false;
+      if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
+      return html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog');
+    } },
+    { name:'Import okuć obsługuje nowe wiersze bez ID i aktualizacje po ID', explain:'Chroni pracę z Excelem: nowe pozycje mogą mieć puste id, a istniejące aktualizują się po id bez duplikowania.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const store = FC.catalogStore;
+      if(!(api && store && typeof store.getAccessories === 'function')) return false;
+      const before = store.getAccessories();
+      const existing = before[0];
+      const plan = api.buildImportPlan({ accessories:[
+        Object.assign({}, existing, { name:String(existing.name || '') + ' TEST', price:77 }),
+        { id:'', manufacturer:'Blum', symbol:'NEW-XLSX', name:'Nowa pozycja z Excela', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', catalogPriceGross:10, price:12, priceUpdatedAt:'2026-05-07' }
+      ], manufacturers:['Blum'], suppliers:[], settings:{} }, { mode:'merge' });
+      if(plan.errors.length) return false;
+      const added = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'NEW-XLSX');
+      const updated = plan.next.accessories.find((row)=> String(row && row.id || '') === String(existing && existing.id || ''));
+      return plan.summary.added === 1 && plan.summary.updated === 1 && added && String(added.id || '').startsWith('hw_user_') && updated && String(updated.name || '').endsWith('TEST');
+    } },
     { name:'Model robocizny cennika jest dostępny', check:()=> !!(FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' && typeof FC.laborCatalog.calculateDefinition === 'function') },
     { name:'Reguły montażu AGD są dostępne', check:()=> !!(FC.laborApplianceRules && typeof FC.laborApplianceRules.isMountingEnabled === 'function' && typeof FC.laborApplianceRules.setMountingMode === 'function') },
     { name:'Selektory katalogów zwracają stawki robocizny z catalogStore', explain:'Chroni WYCENĘ przed pustą robocizną po splicie katalogu na getPriceList.', check:()=> {

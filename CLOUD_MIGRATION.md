@@ -445,3 +445,13 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Jednocześnie pozycja zestawu zapisuje podsumowania `bundleComponentsCatalogGross` i `bundleComponentsPurchaseGross`, aby można było łatwo robić podgląd i późniejszy snapshot kosztu w ofercie.
 - Przy przyszłym snapshotowaniu do WYCENY trzeba zamrażać cenę zestawu i jego skład z daty oferty, bo późniejsza zmiana ceny składnika nie może zmieniać starej oferty.
 - Dane cenowe okuć dalej rozdzielają koszt firmy od ceny do wyceny klienta; to zostaje fundamentem przyszłych raportów rentowności projektu.
+
+
+## Hardware import/export v1 — 2026-05-07
+
+- Import/eksport katalogu okuć jest traktowany jako boundary danych katalogowych użytkownika, nie jako backup technicznego cache.
+- JSON/XLSX obejmuje pozycje okuć, producentów, dostawców i ustawienia cenowe. Te dane powinny w przyszłej chmurze mapować się do katalogu użytkownika, np. `users/{userId}/catalogs/hardware/*`.
+- Import zapisuje przez `catalogStore`, więc późniejsza migracja może podmienić lokalny adapter na chmurowy bez przepisywania UI importu.
+- Kolumna `id` w XLSX musi pozostać stabilną kotwicą rekordu. Nowe wiersze bez `id` dostają lokalne `hw_user_*`; po przyszłej synchronizacji będą wymagały mapowania lokalnego ID na dokument chmurowy.
+- Import `merge` nie usuwa brakujących rekordów, a tryb `replace` jest osobną świadomą operacją. To ogranicza ryzyko utraty danych przed wdrożeniem prawdziwej synchronizacji/chmury.
+- Snapshot ofert/WYCENY nadal musi w przyszłości zamrażać użyte ceny i koszt firmy; import katalogu nie może przeliczać starych ofert.

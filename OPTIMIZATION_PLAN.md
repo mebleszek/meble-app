@@ -547,3 +547,11 @@ Do obserwacji:
 - Katalog okuć dostał skład zestawu/kompletu oraz bezpieczniejsze wpisywanie cen.
 - Nadal nie podpinano okuć do szafek, MATERIAŁÓW ani WYCENY; to pozostaje kolejnymi etapami po stabilizacji katalogu.
 - Przy kolejnym większym etapie okuć warto rozważyć wydzielenie osobnego boundary dla storage/settings okuć, bo `catalog-store.js` jest już w strefie ostrzeżenia rozmiaru.
+
+
+## Hardware import/export v1 — 2026-05-07
+
+- Nie rozbudowano dalej `catalog-store.js`; import/eksport dostał osobne boundary `hardware-catalog-import-export.js`.
+- UI importu/eksportu jest osobnym modułem `price-modal-hardware-import-export.js`, a nie dopiskiem do listy czy formularza pozycji.
+- Wspólny zapis/odczyt prostych arkuszy XLSX trafił do `js/app/shared/xlsx-lite.js`, żeby przyszłe importy innych katalogów mogły użyć tej samej warstwy bez kopiowania parsera.
+- Do obserwacji: jeśli XLSX będzie rozszerzany o style, walidacje komórek albo większe arkusze, rozdzielić `xlsx-lite.js` na writer/reader zamiast rozbudowywać jeden plik ponad próg ostrzeżenia.
