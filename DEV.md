@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_backup_storage_keys_v1.zip`.
-- Baza startowa tej paczki: `site_czynnosci_labor_calc_help_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_excel_template_v1.zip`.
+- Baza startowa tej paczki: `site_backup_storage_keys_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -612,3 +612,14 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - `catalogStore` czyta legacy klucze tylko wtedy, gdy nie ma jeszcze nowego `fc_*`, zapisuje pod `fc_*` i usuwa dokładnie stare legacy klucze po udanym zapisie nowego klucza. Nie rozszerzać tego na czyszczenie backupów.
 - Smoke test `Dostawcy i ustawienia okuć używają kluczy fc_* objętych backupem` pilnuje migracji i tego, że globalny backup obejmie dostawców oraz ustawienia okuć.
 - Raport: `tools/reports/backup-storage-keys-v1.md`.
+
+## Hardware Excel template v1 — 2026-05-07
+
+- Eksport XLSX katalogu okuć jest teraz roboczym szablonem, nie tylko surowym zrzutem danych. Arkusz `Okucia` ma formuły dla pól liczonych: netto/brutto, zakup po rabacie, cena do wyceny i podgląd marży.
+- Pola wybieralne w arkuszu `Okucia` mają walidacje/listy wyboru zgodne z programem: status, producent, kategoria, jednostka, dostawca, źródło ceny, VAT, baza wyceny, sposób liczenia i tryb ceny zestawu.
+- Nowe pozycje w Excelu nadal mogą mieć puste `id`; import nada im `hw_user_*`. Istniejącego `id` nie wolno ręcznie zmieniać, jeśli wiersz ma aktualizować istniejący rekord.
+- Import nie ufa ślepo wynikom formuł z Excela. Przy imporcie aplikacja ponownie normalizuje i przelicza kluczowe pola przez `hardware-catalog.js`, bo LibreOffice/Google Sheets albo ręczne wklejanie mogą usunąć formuły lub wartości cache.
+- `js/app/shared/xlsx-lite.js` obsługuje teraz proste formuły i data validation, ale nadal pozostaje lekkim shared utility. Jeśli kolejny etap będzie wymagał stylowania, wielu typów komórek albo większej obsługi XLSX, rozdzielić reader/writer zamiast robić z niego monolit.
+- Smoke test `Eksport XLSX okuć ma formuły i listy wyboru` pilnuje formuł i walidacji w szablonie.
+- Raport: `tools/reports/hardware-excel-template-v1.md`.
+

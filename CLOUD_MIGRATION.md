@@ -469,3 +469,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Ustawienia katalogu okuć migrują z `hardwareSettings` do `fc_hardware_settings_v1`.
 - `catalogStore` nadal jest lokalnym adapterem katalogu; nowy `catalog-storage-policy.js` tylko pilnuje nazw kluczy i migracji legacy → `fc_*`.
 - Globalny backup Ustawień powinien od tej paczki obejmować pozycje okuć (`fc_accessories_v1`), producentów (`fc_hardware_manufacturers_v1`), dostawców (`fc_hardware_suppliers_v1`) i ustawienia (`fc_hardware_settings_v1`).
+
+## Hardware Excel template v1 — 2026-05-07
+
+- XLSX katalogu okuć jest warstwą wejścia/wyjścia dla danych katalogowych użytkownika, ale źródłem prawdy pozostaje znormalizowany model katalogu po stronie aplikacji.
+- Formuły i listy wyboru w Excelu są udogodnieniem roboczym; import nadal przechodzi przez walidację i normalizację `hardware-catalog.js`, co jest zgodne z przyszłą chmurą i późniejszą synchronizacją.
+- Nowe wiersze bez `id` dostają lokalne `hw_user_*`. Przy wdrożeniu chmury trzeba będzie utrzymać mapowanie lokalnego ID na dokument w katalogu użytkownika, żeby import z Excela nie tworzył duplikatów.
+- Arkusz nie może aktualizować historycznych snapshotów WYCENY. Import zmienia katalog bieżący, a przyszłe oferty muszą zamrażać użyte ceny/koszty osobno.

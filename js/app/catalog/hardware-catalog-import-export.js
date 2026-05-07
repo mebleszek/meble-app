@@ -5,34 +5,44 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const KIND = 'meble-app.hardware-catalog.export';
-  const VERSION = 1;
+  const VERSION = 2;
+  const TEMPLATE_ROWS = 220;
 
   const ACCESSORY_COLUMNS = [
     ['id','id'], ['status','status'], ['producent','manufacturer'], ['symbol','symbol'], ['nazwa','name'], ['kategoria','hardwareCategory'], ['jednostka','hardwareUnit'], ['seria','series'],
     ['dostawca_id','supplierId'], ['zrodlo_ceny','priceSource'], ['data_ceny','priceUpdatedAt'], ['vat_proc','vatRate'],
     ['cena_katalogowa_brutto','catalogPriceGross'], ['cena_katalogowa_netto','catalogPriceNet'], ['rabat_dostawcy_proc','supplierDiscountPercent'],
     ['zakup_brutto','purchasePriceGross'], ['zakup_netto','purchasePriceNet'], ['baza_wyceny','quoteBase'], ['sposob_liczenia','pricingMode'],
-    ['narzut_proc','markupPercent'], ['cena_do_wyceny_brutto','price'], ['cena_do_wyceny_netto','quotePriceNet'], ['tryb_ceny_zestawu','bundleCostMode'], ['notatka','note']
+    ['narzut_proc','markupPercent'], ['cena_do_wyceny_brutto','price'], ['cena_do_wyceny_netto','quotePriceNet'], ['tryb_ceny_zestawu','bundleCostMode'], ['notatka','note'],
+    ['marza_brutto_podglad','marginGrossPreview'], ['marza_proc_podglad','marginPercentPreview']
   ];
   const SUPPLIER_COLUMNS = [['id','id'], ['nazwa','name'], ['rabat_domyslny_proc','defaultDiscountPercent'], ['vat_domyslny_proc','defaultVatRate'], ['aktywny','active']];
   const BUNDLE_COLUMNS = [['zestaw_id','bundleId'], ['zestaw_symbol','bundleSymbol'], ['zestaw_nazwa','bundleName'], ['skladnik_id','itemId'], ['skladnik_symbol','itemSymbol'], ['skladnik_nazwa','itemName'], ['ilosc','qty']];
+  const PRICE_SOURCE_OPTIONS = ['Bivert','MAGO','Faktura','Hurtownia lokalna','Allegro','Ręcznie','Inne'];
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
+  function optionalNumber(value){ return text(value) === '' ? undefined : number(value); }
   function bool(value){ const raw = text(value).toLowerCase(); return !['false','0','nie','no','n',''].includes(raw); }
   function clone(value){ try{ return (FC.utils && FC.utils.clone) ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }catch(_){ return JSON.parse(JSON.stringify(value || null)); } }
   function nowIso(){ try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); } }
   function todayLocal(){
     const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
   function safePart(value){ return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'item'; }
   function signature(row){ return [safePart(row && row.manufacturer), safePart(row && row.symbol), safePart(row && row.name)].join('|'); }
   function makeGeneratedId(row){ return `hw_user_${safePart(row && row.manufacturer)}_${safePart(row && row.symbol || row && row.name)}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`; }
   function store(){ return FC.catalogStore || null; }
+  function hw(){ return FC.hardwareCatalog || {}; }
+  function optionValues(list, fallback){
+    const src = Array.isArray(list) ? list : fallback;
+    return (src || []).map((row)=> text(row && typeof row === 'object' ? row.value : row)).filter(Boolean);
+  }
+  function listFormula(values){ return '"' + (values || []).map((value)=> text(value).replace(/,/g, ' ')).filter(Boolean).join(',') + '"'; }
+  function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
+  function netToGross(value, vat){ return (hw().netToGross || ((v, r)=> round2(number(v) * (1 + number(r) / 100))))(value, vat); }
+
   function normalizeAccessory(row, settings){
     const cfg = settings || (store() && store().getHardwareSettings ? store().getHardwareSettings() : undefined);
     if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function') return FC.hardwareCatalog.normalizeAccessory(row || {}, FC.utils && FC.utils.uid, cfg);
@@ -59,16 +69,12 @@
       settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {},
     };
   }
-  function makeExportPayload(){
-    return { kind:KIND, version:VERSION, exportedAt:nowIso(), data:getSnapshot() };
-  }
+  function makeExportPayload(){ return { kind:KIND, version:VERSION, exportedAt:nowIso(), data:getSnapshot() }; }
   function downloadBlob(filename, blob){
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
+    link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click();
     setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(_){ } try{ link.remove(); }catch(_){ } }, 0);
   }
   function exportJson(){
@@ -77,9 +83,30 @@
     if(FC.dataBackupExport && typeof FC.dataBackupExport.downloadJson === 'function') FC.dataBackupExport.downloadJson(name, payload);
     else downloadBlob(name, new Blob([JSON.stringify(payload, null, 2)], { type:'application/json;charset=utf-8' }));
   }
-  function rowFromColumns(obj, columns){ return columns.map((pair)=> obj && obj[pair[1]] != null ? obj[pair[1]] : ''); }
-  function buildAccessoryRows(accessories){ return [ACCESSORY_COLUMNS.map((pair)=> pair[0])].concat((accessories || []).map((row)=> rowFromColumns(row, ACCESSORY_COLUMNS))); }
-  function buildSupplierRows(suppliers){ return [SUPPLIER_COLUMNS.map((pair)=> pair[0])].concat((suppliers || []).map((row)=> rowFromColumns(row, SUPPLIER_COLUMNS))); }
+  function valueForColumn(obj, key){ return obj && obj[key] != null ? obj[key] : ''; }
+  function formulaCell(formula){ return { formula }; }
+  function calcCells(rowNo){
+    return {
+      catalogPriceNet:formulaCell(`IF(M${rowNo}="","",ROUND(M${rowNo}/(1+L${rowNo}/100),2))`),
+      purchasePriceGross:formulaCell(`IF(M${rowNo}="","",ROUND(M${rowNo}*(1-O${rowNo}/100),2))`),
+      purchasePriceNet:formulaCell(`IF(P${rowNo}="","",ROUND(P${rowNo}/(1+L${rowNo}/100),2))`),
+      price:formulaCell(`IF(S${rowNo}="manualPrice","",IF(R${rowNo}="purchaseGross",ROUND(P${rowNo}*(1+T${rowNo}/100),2),IF(R${rowNo}="manualGross","",ROUND(M${rowNo}*(1+T${rowNo}/100),2))))`),
+      quotePriceNet:formulaCell(`IF(U${rowNo}="","",ROUND(U${rowNo}/(1+L${rowNo}/100),2))`),
+      marginGrossPreview:formulaCell(`IF(OR(U${rowNo}="",P${rowNo}=""),"",ROUND(U${rowNo}-P${rowNo},2))`),
+      marginPercentPreview:formulaCell(`IF(OR(U${rowNo}="",P${rowNo}="",U${rowNo}=0),"",ROUND((U${rowNo}-P${rowNo})/U${rowNo}*100,2))`),
+    };
+  }
+  function accessoryRow(obj, rowNo){
+    const calc = calcCells(rowNo);
+    return ACCESSORY_COLUMNS.map((pair)=> Object.prototype.hasOwnProperty.call(calc, pair[1]) ? calc[pair[1]] : valueForColumn(obj, pair[1]));
+  }
+  function buildAccessoryRows(accessories){
+    const rows = [ACCESSORY_COLUMNS.map((pair)=> pair[0])];
+    const count = Math.max(TEMPLATE_ROWS, (accessories || []).length + 40);
+    for(let i = 0; i < count; i++) rows.push(accessoryRow((accessories || [])[i] || {}, i + 2));
+    return rows;
+  }
+  function buildSupplierRows(suppliers){ return [SUPPLIER_COLUMNS.map((pair)=> pair[0])].concat((suppliers || []).map((row)=> SUPPLIER_COLUMNS.map((pair)=> valueForColumn(row, pair[1])))); }
   function buildManufacturerRows(manufacturers){ return [['nazwa']].concat((manufacturers || []).map((name)=> [name])); }
   function buildSettingsRows(settings){ return [['klucz','wartosc']].concat(Object.keys(settings || {}).map((key)=> [key, settings[key]])); }
   function buildBundleRows(accessories){
@@ -93,88 +120,94 @@
     });
     return rows;
   }
+  function buildDictionaryRows(snap){
+    const rows = [['typ','wartosc']];
+    const add = (type, values)=> (values || []).forEach((value)=> rows.push([type, value]));
+    add('status', optionValues(hw().STATUSES, [{ value:'active' }, { value:'hidden' }, { value:'archived' }]));
+    add('kategoria', optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']));
+    add('jednostka', optionValues(hw().UNITS, ['szt.','kpl.','para','mb','zestaw']));
+    add('vat_proc', ['23','8','0']);
+    add('baza_wyceny', optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]));
+    add('sposob_liczenia', optionValues(hw().PRICING_MODES, [{ value:'markup' }, { value:'manualPrice' }]));
+    add('tryb_ceny_zestawu', optionValues(hw().BUNDLE_COST_MODES, [{ value:'ownPrice' }, { value:'components' }]));
+    add('zrodlo_ceny', Array.from(new Set(PRICE_SOURCE_OPTIONS.concat((snap.accessories || []).map((row)=> text(row && row.priceSource)).filter(Boolean)))));
+    return rows;
+  }
+  function accessoryValidations(snap){
+    const rowEnd = TEMPLATE_ROWS + 1;
+    const statuses = optionValues(hw().STATUSES, [{ value:'active' }, { value:'hidden' }, { value:'archived' }]);
+    const categories = optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
+    const units = optionValues(hw().UNITS, ['szt.','kpl.','para','mb','zestaw']);
+    const bases = optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]);
+    const modes = optionValues(hw().PRICING_MODES, [{ value:'markup' }, { value:'manualPrice' }]);
+    const bundleModes = optionValues(hw().BUNDLE_COST_MODES, [{ value:'ownPrice' }, { value:'components' }]);
+    const sources = Array.from(new Set(PRICE_SOURCE_OPTIONS.concat((snap.accessories || []).map((row)=> text(row && row.priceSource)).filter(Boolean))));
+    return [
+      { sqref:`B2:B${rowEnd}`, formula1:listFormula(statuses) },
+      { sqref:`C2:C${rowEnd}`, formula1:`Producenci!$A$2:$A$500` },
+      { sqref:`F2:F${rowEnd}`, formula1:listFormula(categories) },
+      { sqref:`G2:G${rowEnd}`, formula1:listFormula(units) },
+      { sqref:`I2:I${rowEnd}`, formula1:`Dostawcy!$A$2:$A$500` },
+      { sqref:`J2:J${rowEnd}`, formula1:listFormula(sources) },
+      { sqref:`L2:L${rowEnd}`, formula1:'"23,8,0"' },
+      { sqref:`R2:R${rowEnd}`, formula1:listFormula(bases) },
+      { sqref:`S2:S${rowEnd}`, formula1:listFormula(modes) },
+      { sqref:`W2:W${rowEnd}`, formula1:listFormula(bundleModes) },
+    ];
+  }
   function exportXlsx(){
     if(!(FC.xlsxLite && typeof FC.xlsxLite.makeWorkbookBlob === 'function')) throw new Error('Brak modułu XLSX.');
     const snap = getSnapshot();
     const blob = FC.xlsxLite.makeWorkbookBlob({
-      Okucia:buildAccessoryRows(snap.accessories),
-      Sklad_zestawow:buildBundleRows(snap.accessories),
-      Dostawcy:buildSupplierRows(snap.suppliers),
-      Producenci:buildManufacturerRows(snap.manufacturers),
-      Ustawienia:buildSettingsRows(snap.settings),
+      Okucia:{ rows:buildAccessoryRows(snap.accessories), validations:accessoryValidations(snap), freezeTopRow:true, widths:[18,12,18,18,34,24,12,20,18,18,14,10,18,18,18,16,16,20,18,12,20,20,22,28,18,18] },
+      Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[20,18,34,20,18,34,10] },
+      Dostawcy:{ rows:buildSupplierRows(snap.suppliers), freezeTopRow:true, widths:[20,28,20,18,12] },
+      Producenci:{ rows:buildManufacturerRows(snap.manufacturers), freezeTopRow:true, widths:[24] },
+      Slowniki:{ rows:buildDictionaryRows(snap), freezeTopRow:true, widths:[24,34] },
+      Ustawienia:{ rows:buildSettingsRows(snap.settings), freezeTopRow:true, widths:[28,24] },
     });
     downloadBlob(`hardware_catalog_prices_${todayLocal()}.xlsx`, blob);
   }
   function headerKey(value){ return safePart(value).replace(/_+/g, '_'); }
-  function rowsToObjects(rows){
+  function hasMeaningfulAccessoryData(row){
+    const keys = ['id','producent','manufacturer','symbol','nazwa','name','cena_katalogowa_brutto','cena_katalogowa_netto','cena_do_wyceny_brutto','notatka','note'];
+    return keys.some((key)=> text(row[headerKey(key)]));
+  }
+  function rowsToObjects(rows, options){
     const data = Array.isArray(rows) ? rows : [];
     const headers = (data[0] || []).map(headerKey);
     return data.slice(1).map((row)=>{
       const out = {};
       headers.forEach((h, i)=>{ if(h) out[h] = row[i] == null ? '' : row[i]; });
       return out;
-    }).filter((row)=> Object.keys(row).some((key)=> text(row[key])));
+    }).filter((row)=> options && options.kind === 'accessories' ? hasMeaningfulAccessoryData(row) : Object.keys(row).some((key)=> text(row[key])));
   }
-  function valueFrom(row, names){
-    for(const name of names){ const key = headerKey(name); if(Object.prototype.hasOwnProperty.call(row, key)) return row[key]; }
-    return '';
-  }
+  function valueFrom(row, names){ for(const name of names){ const key = headerKey(name); if(Object.prototype.hasOwnProperty.call(row, key)) return row[key]; } return ''; }
   function parseAccessoryRow(row){
-    return {
-      id:text(valueFrom(row, ['id'])),
-      status:text(valueFrom(row, ['status'])) || 'active',
-      manufacturer:text(valueFrom(row, ['producent','manufacturer'])),
-      symbol:text(valueFrom(row, ['symbol'])),
-      name:text(valueFrom(row, ['nazwa','name'])),
-      hardwareCategory:text(valueFrom(row, ['kategoria','hardwareCategory'])) || 'Inne',
-      hardwareUnit:text(valueFrom(row, ['jednostka','hardwareUnit'])) || 'szt.',
-      series:text(valueFrom(row, ['seria','series'])),
-      supplierId:text(valueFrom(row, ['dostawca_id','supplierId'])),
-      priceSource:text(valueFrom(row, ['zrodlo_ceny','priceSource'])),
-      priceUpdatedAt:text(valueFrom(row, ['data_ceny','priceUpdatedAt'])),
-      vatRate:number(valueFrom(row, ['vat_proc','vatRate'])),
-      catalogPriceGross:number(valueFrom(row, ['cena_katalogowa_brutto','catalogPriceGross'])),
-      catalogPriceNet:number(valueFrom(row, ['cena_katalogowa_netto','catalogPriceNet'])),
-      supplierDiscountPercent:number(valueFrom(row, ['rabat_dostawcy_proc','supplierDiscountPercent'])),
-      purchasePriceGross:number(valueFrom(row, ['zakup_brutto','purchasePriceGross'])),
-      purchasePriceNet:number(valueFrom(row, ['zakup_netto','purchasePriceNet'])),
-      quoteBase:text(valueFrom(row, ['baza_wyceny','quoteBase'])),
-      pricingMode:text(valueFrom(row, ['sposob_liczenia','pricingMode'])),
-      markupPercent:number(valueFrom(row, ['narzut_proc','markupPercent'])),
-      price:number(valueFrom(row, ['cena_do_wyceny_brutto','price','quotePriceGross'])),
-      quotePriceNet:number(valueFrom(row, ['cena_do_wyceny_netto','quotePriceNet'])),
-      bundleCostMode:text(valueFrom(row, ['tryb_ceny_zestawu','bundleCostMode'])),
-      note:text(valueFrom(row, ['notatka','note'])),
+    const vat = optionalNumber(valueFrom(row, ['vat_proc','vatRate']));
+    const parsed = {
+      id:text(valueFrom(row, ['id'])), status:text(valueFrom(row, ['status'])) || 'active', manufacturer:text(valueFrom(row, ['producent','manufacturer'])), symbol:text(valueFrom(row, ['symbol'])), name:text(valueFrom(row, ['nazwa','name'])),
+      hardwareCategory:text(valueFrom(row, ['kategoria','hardwareCategory'])) || 'Inne', hardwareUnit:text(valueFrom(row, ['jednostka','hardwareUnit'])) || 'szt.', series:text(valueFrom(row, ['seria','series'])), supplierId:text(valueFrom(row, ['dostawca_id','supplierId'])),
+      priceSource:text(valueFrom(row, ['zrodlo_ceny','priceSource'])), priceUpdatedAt:text(valueFrom(row, ['data_ceny','priceUpdatedAt'])), vatRate:vat,
+      catalogPriceGross:optionalNumber(valueFrom(row, ['cena_katalogowa_brutto','catalogPriceGross'])), catalogPriceNet:optionalNumber(valueFrom(row, ['cena_katalogowa_netto','catalogPriceNet'])), supplierDiscountPercent:optionalNumber(valueFrom(row, ['rabat_dostawcy_proc','supplierDiscountPercent'])),
+      purchasePriceGross:optionalNumber(valueFrom(row, ['zakup_brutto','purchasePriceGross'])), purchasePriceNet:optionalNumber(valueFrom(row, ['zakup_netto','purchasePriceNet'])), quoteBase:text(valueFrom(row, ['baza_wyceny','quoteBase'])), pricingMode:text(valueFrom(row, ['sposob_liczenia','pricingMode'])),
+      markupPercent:optionalNumber(valueFrom(row, ['narzut_proc','markupPercent'])), price:optionalNumber(valueFrom(row, ['cena_do_wyceny_brutto','price','quotePriceGross'])), quotePriceNet:optionalNumber(valueFrom(row, ['cena_do_wyceny_netto','quotePriceNet'])), bundleCostMode:text(valueFrom(row, ['tryb_ceny_zestawu','bundleCostMode'])), note:text(valueFrom(row, ['notatka','note'])),
     };
+    const vatRate = parsed.vatRate || 23;
+    if(parsed.catalogPriceGross == null && parsed.catalogPriceNet != null) parsed.catalogPriceGross = netToGross(parsed.catalogPriceNet, vatRate);
+    if(parsed.purchasePriceGross == null && parsed.purchasePriceNet != null) parsed.purchasePriceGross = netToGross(parsed.purchasePriceNet, vatRate);
+    if(parsed.price == null && parsed.quotePriceNet != null) parsed.price = netToGross(parsed.quotePriceNet, vatRate);
+    return parsed;
   }
-  function parseSupplierRow(row){
-    return normalizeSupplier({
-      id:text(valueFrom(row, ['id'])),
-      name:text(valueFrom(row, ['nazwa','name'])),
-      defaultDiscountPercent:number(valueFrom(row, ['rabat_domyslny_proc','defaultDiscountPercent'])),
-      defaultVatRate:number(valueFrom(row, ['vat_domyslny_proc','defaultVatRate'])),
-      active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true,
-    });
-  }
+  function parseSupplierRow(row){ return normalizeSupplier({ id:text(valueFrom(row, ['id'])), name:text(valueFrom(row, ['nazwa','name'])), defaultDiscountPercent:number(valueFrom(row, ['rabat_domyslny_proc','defaultDiscountPercent'])), defaultVatRate:number(valueFrom(row, ['vat_domyslny_proc','defaultVatRate'])), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true }); }
   function parseWorkbook(workbook){
     const sheet = (name)=> workbook[name] || workbook[Object.keys(workbook || {}).find((key)=> headerKey(key) === headerKey(name))] || [];
-    const accessories = rowsToObjects(sheet('Okucia')).map(parseAccessoryRow);
+    const accessories = rowsToObjects(sheet('Okucia'), { kind:'accessories' }).map(parseAccessoryRow);
     const suppliers = rowsToObjects(sheet('Dostawcy')).map(parseSupplierRow).filter((row)=> text(row && row.name));
     const manufacturers = rowsToObjects(sheet('Producenci')).map((row)=> text(valueFrom(row, ['nazwa','name','producent']))).filter(Boolean);
     const settings = {};
-    rowsToObjects(sheet('Ustawienia')).forEach((row)=>{
-      const key = text(valueFrom(row, ['klucz','key']));
-      if(key) settings[key] = valueFrom(row, ['wartosc','value']);
-    });
-    const bundleRows = rowsToObjects(sheet('Sklad_zestawow')).map((row)=>({
-      bundleId:text(valueFrom(row, ['zestaw_id','bundleId'])),
-      bundleSymbol:text(valueFrom(row, ['zestaw_symbol','bundleSymbol'])),
-      bundleName:text(valueFrom(row, ['zestaw_nazwa','bundleName'])),
-      itemId:text(valueFrom(row, ['skladnik_id','itemId'])),
-      itemSymbol:text(valueFrom(row, ['skladnik_symbol','itemSymbol'])),
-      itemName:text(valueFrom(row, ['skladnik_nazwa','itemName'])),
-      qty:number(valueFrom(row, ['ilosc','qty'])),
-    })).filter((row)=> row.qty > 0 && (row.bundleId || row.bundleName || row.itemId || row.itemName));
+    rowsToObjects(sheet('Ustawienia')).forEach((row)=>{ const key = text(valueFrom(row, ['klucz','key'])); if(key) settings[key] = valueFrom(row, ['wartosc','value']); });
+    const bundleRows = rowsToObjects(sheet('Sklad_zestawow')).map((row)=>({ bundleId:text(valueFrom(row, ['zestaw_id','bundleId'])), bundleSymbol:text(valueFrom(row, ['zestaw_symbol','bundleSymbol'])), bundleName:text(valueFrom(row, ['zestaw_nazwa','bundleName'])), itemId:text(valueFrom(row, ['skladnik_id','itemId'])), itemSymbol:text(valueFrom(row, ['skladnik_symbol','itemSymbol'])), itemName:text(valueFrom(row, ['skladnik_nazwa','itemName'])), qty:number(valueFrom(row, ['ilosc','qty'])) })).filter((row)=> row.qty > 0 && (row.bundleId || row.bundleName || row.itemId || row.itemName));
     return { accessories, manufacturers, suppliers, settings, bundleRows };
   }
   function parseJson(raw){
@@ -186,32 +219,30 @@
   }
   async function parseFile(file){
     const name = text(file && file.name).toLowerCase();
-    if(name.endsWith('.xlsx')){
-      if(!(FC.xlsxLite && typeof FC.xlsxLite.readWorkbook === 'function')) throw new Error('Brak modułu odczytu XLSX.');
-      return parseWorkbook(await FC.xlsxLite.readWorkbook(file));
-    }
+    if(name.endsWith('.xlsx')){ if(!(FC.xlsxLite && typeof FC.xlsxLite.readWorkbook === 'function')) throw new Error('Brak modułu odczytu XLSX.'); return parseWorkbook(await FC.xlsxLite.readWorkbook(file)); }
     return parseJson(await file.text());
   }
-  function indexExisting(existing){
-    const byId = new Map();
-    const bySig = new Map();
-    (existing || []).forEach((row)=>{ if(text(row && row.id)) byId.set(text(row.id), row); bySig.set(signature(row), row); });
-    return { byId, bySig };
-  }
+  function indexExisting(existing){ const byId = new Map(); const bySig = new Map(); (existing || []).forEach((row)=>{ if(text(row && row.id)) byId.set(text(row.id), row); bySig.set(signature(row), row); }); return { byId, bySig }; }
+  function validateChoice(label, value, allowed, rowIndex, warnings){ if(!text(value) || !allowed.length || allowed.includes(text(value))) return; warnings.push(`Okucia: wiersz ${rowIndex + 2}, pole ${label} ma wartość spoza listy programu: ${value}.`); }
   function normalizeImportedAccessories(importRows, existing, warnings, errors, settings){
     const existingIndex = indexExisting(existing);
     const usedIds = new Set();
     const importedByKey = new Map();
     const normalized = [];
+    const allowed = { status:optionValues(hw().STATUSES, []), unit:optionValues(hw().UNITS, []), category:optionValues(hw().CATEGORIES, []), base:optionValues(hw().QUOTE_BASES, []), mode:optionValues(hw().PRICING_MODES, []), bundleMode:optionValues(hw().BUNDLE_COST_MODES, []) };
     (Array.isArray(importRows) ? importRows : []).forEach((raw, rowIndex)=>{
       const src = Object.assign({}, raw || {});
       if(!text(src.name) || !text(src.manufacturer)){ errors.push(`Okucia: wiersz ${rowIndex + 2} nie ma producenta albo nazwy.`); return; }
+      validateChoice('status', src.status, allowed.status, rowIndex, warnings);
+      validateChoice('jednostka', src.hardwareUnit, allowed.unit, rowIndex, warnings);
+      validateChoice('kategoria', src.hardwareCategory, allowed.category, rowIndex, warnings);
+      validateChoice('baza_wyceny', src.quoteBase, allowed.base, rowIndex, warnings);
+      validateChoice('sposob_liczenia', src.pricingMode, allowed.mode, rowIndex, warnings);
+      validateChoice('tryb_ceny_zestawu', src.bundleCostMode, allowed.bundleMode, rowIndex, warnings);
+      if(!text(src.priceUpdatedAt) && (Number(src.catalogPriceGross) > 0 || Number(src.catalogPriceNet) > 0 || Number(src.price) > 0)) src.priceUpdatedAt = todayLocal();
       let id = text(src.id);
       const sig = signature(src);
-      if(!id && existingIndex.bySig.has(sig)){
-        id = text(existingIndex.bySig.get(sig).id);
-        warnings.push(`Okucia: wiersz ${rowIndex + 2} bez ID dopasowano po producent+symbol+nazwa do istniejącej pozycji.`);
-      }
+      if(!id && existingIndex.bySig.has(sig)){ id = text(existingIndex.bySig.get(sig).id); warnings.push(`Okucia: wiersz ${rowIndex + 2} bez ID dopasowano po producent+symbol+nazwa do istniejącej pozycji.`); }
       if(!id) id = makeGeneratedId(src);
       if(usedIds.has(id)){ errors.push(`Okucia: zdublowane ID w importowanym pliku: ${id}`); return; }
       usedIds.add(id);
@@ -229,10 +260,9 @@
     const resolve = (id, symbol, name)=> {
       if(id && importedIndex.byId.has(id)) return importedIndex.byId.get(id);
       if(id && existingIndex.byId.has(id)) return existingIndex.byId.get(id);
-      const sig = [safePart(''), safePart(symbol), safePart(name)].join('|');
       const foundImported = (imported.rows || []).find((row)=> safePart(row && row.symbol) === safePart(symbol) && safePart(row && row.name) === safePart(name));
       const foundExisting = (existing || []).find((row)=> safePart(row && row.symbol) === safePart(symbol) && safePart(row && row.name) === safePart(name));
-      return foundImported || foundExisting || imported.byKey.get(sig) || null;
+      return foundImported || foundExisting || null;
     };
     const byId = new Map((imported.rows || []).map((row)=> [text(row.id), row]));
     bundleRows.forEach((entry)=>{
@@ -261,13 +291,10 @@
     const updateCount = importedAccessories.rows.filter((row)=> existingById.has(text(row && row.id))).length;
     const addCount = importedAccessories.rows.length - updateCount;
     const removeCount = mode === 'replace' ? existing.filter((row)=> !importedIds.has(text(row && row.id))).length : 0;
-    const nextAccessories = mode === 'replace'
-      ? importedAccessories.rows
-      : existing.map((row)=> importedIds.has(text(row && row.id)) ? importedAccessories.rows.find((item)=> text(item.id) === text(row.id)) : row).concat(importedAccessories.rows.filter((row)=> !existingById.has(text(row.id))));
+    const nextAccessories = mode === 'replace' ? importedAccessories.rows : existing.map((row)=> importedIds.has(text(row && row.id)) ? importedAccessories.rows.find((item)=> text(item.id) === text(row.id)) : row).concat(importedAccessories.rows.filter((row)=> !existingById.has(text(row.id))));
     const suppliers = Array.isArray(data && data.suppliers) && data.suppliers.length ? data.suppliers.map(normalizeSupplier).filter((row)=> text(row && row.name)) : (s.getHardwareSuppliers ? s.getHardwareSuppliers() : []);
     const manufacturers = normalizeManufacturers((Array.isArray(data && data.manufacturers) ? data.manufacturers : []).concat(nextAccessories.map((row)=> row.manufacturer)));
-    const settings = importedSettings;
-    return { mode, errors, warnings, next:{ accessories:nextAccessories, suppliers, manufacturers, settings }, summary:{ imported:importedAccessories.rows.length, added:addCount, updated:updateCount, removed:removeCount, suppliers:suppliers.length, manufacturers:manufacturers.length } };
+    return { mode, errors, warnings, next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings }, summary:{ imported:importedAccessories.rows.length, added:addCount, updated:updateCount, removed:removeCount, suppliers:suppliers.length, manufacturers:manufacturers.length } };
   }
   function applyImportPlan(plan){
     const s = store();
@@ -280,5 +307,5 @@
     return plan.summary || {};
   }
 
-  FC.hardwareCatalogImportExport = { KIND, VERSION, ACCESSORY_COLUMNS, SUPPLIER_COLUMNS, BUNDLE_COLUMNS, getSnapshot, makeExportPayload, exportJson, exportXlsx, parseFile, parseWorkbook, parseJson, buildImportPlan, applyImportPlan, _debug:{ rowsToObjects, parseAccessoryRow, buildAccessoryRows, buildBundleRows } };
+  FC.hardwareCatalogImportExport = { KIND, VERSION, ACCESSORY_COLUMNS, SUPPLIER_COLUMNS, BUNDLE_COLUMNS, getSnapshot, makeExportPayload, exportJson, exportXlsx, parseFile, parseWorkbook, parseJson, buildImportPlan, applyImportPlan, _debug:{ rowsToObjects, parseAccessoryRow, buildAccessoryRows, buildBundleRows, accessoryValidations, buildDictionaryRows } };
 })();

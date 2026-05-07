@@ -10,8 +10,7 @@
     return text(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
   }
   function xmlUnescape(value){
-    return text(value)
-      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+    return text(value).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
   }
   function colName(index){
     let n = Number(index) + 1;
@@ -88,7 +87,7 @@
       const central = new Uint8Array(46 + nameBytes.length);
       writeU32(central, 0, 0x02014b50); writeU16(central, 4, 20); writeU16(central, 6, 20); writeU16(central, 8, 0x0800); writeU16(central, 10, 0);
       writeU16(central, 12, now.time); writeU16(central, 14, now.day); writeU32(central, 16, crc); writeU32(central, 20, data.length); writeU32(central, 24, data.length);
-      writeU16(central, 28, nameBytes.length); writeU16(central, 30, 0); writeU16(central, 32, 0); writeU16(central, 34, 0); writeU16(central, 36, 0); writeU32(central, 38, 0); writeU32(central, 42, offset);
+      writeU16(central, 28, nameBytes.length); writeU16(central, 30, 0); writeU16(central, 32, 0); writeU16(central, 34, 0); writeU32(central, 38, 0); writeU32(central, 42, offset);
       central.set(nameBytes, 46);
       centralParts.push(central);
       offset += local.length + data.length;
@@ -98,20 +97,57 @@
     writeU32(end, 0, 0x06054b50); writeU16(end, 8, files.length); writeU16(end, 10, files.length); writeU32(end, 12, central.length); writeU32(end, 16, offset); writeU16(end, 20, 0);
     return concatBytes(localParts.concat([central, end]));
   }
-  function sheetXml(rows){
-    const xmlRows = (Array.isArray(rows) ? rows : []).map((row, rIndex)=>{
-      const cells = (Array.isArray(row) ? row : []).map((value, cIndex)=>{
-        const ref = colName(cIndex) + String(rIndex + 1);
-        const content = xmlEscape(value == null ? '' : value);
-        return `<c r="${ref}" t="inlineStr"><is><t>${content}</t></is></c>`;
-      }).join('');
+  function normalizeSheet(entry, name){ return Array.isArray(entry) ? { name, rows:entry } : Object.assign({ name, rows:[] }, entry || {}); }
+  function isFormulaCell(value){ return value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'formula'); }
+  function isNumberCell(value){ return value && typeof value === 'object' && value.type === 'number'; }
+  function cellXml(value, rIndex, cIndex){
+    const ref = colName(cIndex) + String(rIndex + 1);
+    if(isFormulaCell(value)){
+      const formula = text(value.formula).replace(/^=/, '');
+      const cached = value.value == null || value.value === '' ? '' : `<v>${xmlEscape(value.value)}</v>`;
+      return `<c r="${ref}"><f>${xmlEscape(formula)}</f>${cached}</c>`;
+    }
+    if(isNumberCell(value)){
+      const raw = Number(value.value);
+      return Number.isFinite(raw) ? `<c r="${ref}"><v>${raw}</v></c>` : `<c r="${ref}"/>`;
+    }
+    const raw = value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value;
+    if(raw == null || raw === '') return `<c r="${ref}" t="inlineStr"><is><t></t></is></c>`;
+    return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(raw)}</t></is></c>`;
+  }
+  function colsXml(widths){
+    const list = Array.isArray(widths) ? widths : [];
+    const cols = list.map((width, idx)=> Number(width) > 0 ? `<col min="${idx + 1}" max="${idx + 1}" width="${Number(width)}" customWidth="1"/>` : '').join('');
+    return cols ? `<cols>${cols}</cols>` : '';
+  }
+  function sheetViewsXml(freezeTopRow){
+    if(!freezeTopRow) return '';
+    return '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  }
+  function validationsXml(validations){
+    const list = (Array.isArray(validations) ? validations : []).filter((item)=> item && item.sqref && item.formula1);
+    if(!list.length) return '';
+    const body = list.map((item)=>{
+      const type = item.type || 'list';
+      const allowBlank = item.allowBlank === false ? '0' : '1';
+      const showError = item.showErrorMessage === false ? '0' : '1';
+      const errorStyle = item.errorStyle || 'stop';
+      const prompt = item.promptTitle ? ` promptTitle="${xmlEscape(item.promptTitle)}"` : '';
+      return `<dataValidation type="${xmlEscape(type)}" allowBlank="${allowBlank}" showErrorMessage="${showError}" errorStyle="${xmlEscape(errorStyle)}" sqref="${xmlEscape(item.sqref)}"${prompt}><formula1>${xmlEscape(item.formula1)}</formula1></dataValidation>`;
+    }).join('');
+    return `<dataValidations count="${list.length}">${body}</dataValidations>`;
+  }
+  function sheetXml(sheet){
+    const rows = Array.isArray(sheet.rows) ? sheet.rows : [];
+    const xmlRows = rows.map((row, rIndex)=>{
+      const cells = (Array.isArray(row) ? row : []).map((value, cIndex)=> cellXml(value, rIndex, cIndex)).join('');
       return `<row r="${rIndex + 1}">${cells}</row>`;
     }).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${xmlRows}</sheetData></worksheet>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${sheetViewsXml(sheet.freezeTopRow)}${colsXml(sheet.widths)}<sheetData>${xmlRows}</sheetData>${validationsXml(sheet.validations)}</worksheet>`;
   }
   function workbookXml(sheets){
     const body = sheets.map((sheet, idx)=> `<sheet name="${xmlEscape(sheet.name)}" sheetId="${idx + 1}" r:id="rId${idx + 1}"/>`).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${body}</sheets></workbook>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${body}</sheets><calcPr calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/></workbook>`;
   }
   function workbookRelsXml(sheets){
     const rels = sheets.map((sheet, idx)=> `<Relationship Id="rId${idx + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${idx + 1}.xml"/>`).join('');
@@ -122,14 +158,14 @@
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${overrides}</Types>`;
   }
   function makeWorkbookBlob(sheetMap){
-    const sheets = Object.keys(sheetMap || {}).map((name)=> ({ name, rows:Array.isArray(sheetMap[name]) ? sheetMap[name] : [] }));
+    const sheets = Object.keys(sheetMap || {}).map((name)=> normalizeSheet(sheetMap[name], name));
     const files = [
       { name:'[Content_Types].xml', data:contentTypesXml(sheets) },
       { name:'_rels/.rels', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
       { name:'xl/workbook.xml', data:workbookXml(sheets) },
       { name:'xl/_rels/workbook.xml.rels', data:workbookRelsXml(sheets) },
     ];
-    sheets.forEach((sheet, idx)=> files.push({ name:`xl/worksheets/sheet${idx + 1}.xml`, data:sheetXml(sheet.rows) }));
+    sheets.forEach((sheet, idx)=> files.push({ name:`xl/worksheets/sheet${idx + 1}.xml`, data:sheetXml(sheet) }));
     return new Blob([zipStore(files)], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
   function findEocd(bytes){
@@ -233,5 +269,5 @@
     return out;
   }
 
-  root.FC.xlsxLite = { makeWorkbookBlob, readWorkbook, _debug:{ zipStore, readZipEntries, parseSheet, parseSharedStrings, colName, colIndex } };
+  root.FC.xlsxLite = { makeWorkbookBlob, readWorkbook, _debug:{ zipStore, readZipEntries, parseSheet, parseSharedStrings, colName, colIndex, validationsXml } };
 })();

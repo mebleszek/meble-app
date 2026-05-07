@@ -561,3 +561,9 @@ Do obserwacji:
 - Zamiast rozbudowywać `catalog-store.js` o pełną politykę migracji kluczy, dodano małe boundary `js/app/catalog/catalog-storage-policy.js`.
 - `catalog-store.js` przekracza próg ostrzegawczy, ale zmiana w nim jest cienkim podłączeniem do policy. Kolejny większy etap katalogu powinien dalej wydzielać storage/settings, jeśli będzie wymagał rozbudowy store.
 - Reguła `fc_*` dla danych backupowanych jest od teraz architektonicznym wymogiem dla nowych modułów danych.
+
+## Hardware Excel template v1 — 2026-05-07
+
+- Rozszerzono istniejący boundary import/export zamiast dopisywać logikę Excela do `catalog-store.js` albo modala formularza.
+- `xlsx-lite.js` przekroczył próg ostrożności, ale nadal ma jedną odpowiedzialność: lekki reader/writer XLSX bez bibliotek zewnętrznych. Następny większy etap XLSX powinien rozdzielić writer/reader/validation XML, jeśli plik będzie dalej rosnąć.
+- `hardware-catalog-import-export.js` pozostał boundary mapowania katalogu ↔ JSON/XLSX. Przy dalszej rozbudowie katalogu uważać, żeby nie zamienił się w drugi store; logika domenowa cen nadal ma należeć do `hardware-catalog.js`.

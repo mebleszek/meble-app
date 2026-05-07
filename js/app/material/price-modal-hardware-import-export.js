@@ -117,7 +117,7 @@
     const api = FC.hardwareCatalogImportExport;
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const body = h('div', { class:'hardware-import-export-panel' });
-    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX służy do wygodnej edycji cen i pozycji w Excelu. Nowe wiersze mogą mieć puste ID — aplikacja nada je przy imporcie.'));
+    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX służy do wygodnej edycji cen i pozycji w Excelu: ma formuły, listy wyboru i puste wiersze na nowe okucia. Nowe wiersze mogą mieć puste ID — aplikacja nada je przy imporcie.'));
     const actions = h('div', { class:'grid-2', style:'gap:10px;margin-bottom:10px' });
     const exportJsonBtn = h('button', { type:'button', class:'btn', text:'Eksport JSON' });
     const importJsonBtn = h('button', { type:'button', class:'btn', text:'Import JSON' });

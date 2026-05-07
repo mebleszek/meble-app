@@ -26,14 +26,14 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
 | MATERIAŁ | 21 | 3362 | 8 | 3 | 0 | 2 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
-| KATALOG/USŁUGI | 14 | 2492 | 4 | 0 | 0 | 1 |
+| KATALOG/USŁUGI | 14 | 2519 | 4 | 0 | 0 | 1 |
 | PROJEKT | 10 | 2019 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | BOOT/APP SHELL | 7 | 1387 | 4 | 0 | 0 | 2 |
 | DANE/STORAGE | 15 | 1325 | 36 | 0 | 0 | 0 |
-| SHARED | 11 | 1063 | 0 | 0 | 0 | 0 |
+| SHARED | 11 | 1099 | 0 | 0 | 0 | 0 |
 | ZAKŁADKI | 3 | 585 | 0 | 0 | 0 | 0 |
 | INNE | 3 | 391 | 0 | 0 | 0 | 0 |
 | CORE | 2 | 128 | 0 | 0 | 0 | 0 |

@@ -178,7 +178,17 @@ function runMaterialNodeSmoke(sandbox){
       const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-export.js'), 'utf8');
       if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
-      return html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog');
+      return Number(api.VERSION) >= 2 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('formuły, listy wyboru') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog');
+    } },
+    { name:'Eksport XLSX okuć ma formuły i listy wyboru', explain:'Chroni Excel jako roboczy szablon cennika: pola liczone mają formuły, a wybieralne pola mają data validation.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const xlsx = FC.xlsxLite;
+      if(!(api && api._debug && typeof api._debug.buildAccessoryRows === 'function' && typeof api._debug.accessoryValidations === 'function')) return false;
+      if(!(xlsx && xlsx._debug && typeof xlsx._debug.validationsXml === 'function')) return false;
+      const rows = api._debug.buildAccessoryRows([{ id:'hw_test_xlsx', status:'active', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', vatRate:23, catalogPriceGross:100, supplierDiscountPercent:10, quoteBase:'catalogGross', pricingMode:'markup', markupPercent:20, bundleCostMode:'ownPrice' }]);
+      const validations = api._debug.accessoryValidations({ accessories:[], manufacturers:['Blum'], suppliers:[] });
+      const validationXml = xlsx._debug.validationsXml(validations);
+      return rows.length >= 200 && rows[1][13] && String(rows[1][13].formula || '').includes('ROUND(M2/(1+L2/100),2)') && rows[1][15] && String(rows[1][15].formula || '').includes('ROUND(M2*(1-O2/100),2)') && rows[1][20] && String(rows[1][20].formula || '').includes('manualPrice') && validationXml.includes('B2:B221') && validationXml.includes('G2:G221') && validationXml.includes('Producenci!$A$2:$A$500');
     } },
     { name:'Import okuć obsługuje nowe wiersze bez ID i aktualizacje po ID', explain:'Chroni pracę z Excelem: nowe pozycje mogą mieć puste id, a istniejące aktualizują się po id bez duplikowania.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T21:24:08.052Z",
+  "generatedAt": "2026-05-07T21:41:37.860Z",
   "summary": {
     "jsFiles": 329,
     "indexScripts": 255,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 14,
-      "lines": 2492,
+      "lines": 2519,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1063,
+      "lines": 1099,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -3274,7 +3274,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 285,
+      "lines": 312,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -12738,7 +12738,7 @@
     "js/app/shared/xlsx-lite.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 238,
+      "lines": 274,
       "defines": [
         "xlsxLite"
       ],
@@ -12758,7 +12758,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/ui/actions-register.js": {
       "area": "UI",
