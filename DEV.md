@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_czynnosci_labor_gabaryt_compact_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_catalog_seed_v1.zip`.
 - Baza startowa tej paczki: `site_czynnosci_labor_calc_help_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -573,10 +573,21 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Po rozbudowie katalogu okuć formularz akcesoriów nadal musi mieć bezpieczny wrapper starego pola `formPrice`, bo widok ukrywa je dla okuć i używa rozbudowanych pól cenowych netto/brutto/rabat/narzut.
 - Smoke test `Formularz okuć ma wrapper ceny prostej bez błędu startu` ma pilnować, żeby otwarcie `Dodaj okucie` nie wróciło do `ReferenceError: formPriceWrapper is not defined`.
 
-## Hardware kit inputs v1 — 2026-05-05
 
-- Katalog okuć obsługuje zestawy/komplety przez `kitComponents`: składniki są wybierane z istniejących pozycji katalogu, a nie wpisywane jako luźny tekst.
-- Dla zestawu są dwa tryby ceny: `Własna cena zestawu` oraz `Licz zakup ze składników`. Tryb składników liczy koszt firmy z realnych kosztów składników, ale skład może też być tylko informacyjny przy własnej cenie zestawu.
-- Formularz cen okuć nie może nadpisywać aktywnie czyszczonego pola netto/brutto podczas pisania na mobile. Puste pole jest poprawnym stanem przejściowym edycji.
-- `Data ceny` dla nowego okucia ma startować od dzisiejszej daty, ale edycja istniejącej pozycji nie powinna samowolnie zmieniać zapisanej daty.
-- `price-modal-hardware-kit.js` ma zostać osobnym modułem sekcji zestawu. Nie scalać go z formularzem cen ani ze store.
+
+## Hardware catalog seed v1 — 2026-05-07
+
+- Realne startowe pozycje katalogu okuć są rozdzielone na `js/app/catalog/hardware-catalog-seed-data.js` (lista danych) i `js/app/catalog/hardware-catalog-seeds.js` (merge), a nie dopisane bezpośrednio do `catalog-store.js`.
+- Seed dodaje konkretne pozycje Blum/GTV/Peka/Nomet/Rejs po stabilnym `id`; jeśli użytkownik ma już pozycję o tym samym `id` albo tej samej kombinacji producent+symbol+nazwa, seed nie duplikuje jej i nie nadpisuje ręcznej edycji.
+- Jedyny automatycznie usuwany wpis to dokładny stary placeholder `a1 / Blum / B1 / Zawias Blum` bez źródła i notatki. Nie rozszerzać tego na kasowanie innych danych użytkownika.
+- Ceny seedów są cenami startowymi z dnia `2026-05-07`; przed realną ofertą użytkownik ma nadal sprawdzić aktualność, wariant, rabat i dostawcę.
+- `catalog-store.js` korzysta z seedów przez boundary `FC.hardwareCatalogSeeds.mergeAccessorySeeds()`. Przy następnych etapach okuć nie rozbudowywać store o kolejne duże listy danych; dane trzymać w osobnych modułach, a store zostawić jako cienkie podłączenie.
+- Smoke test `Katalog okuć ma realne seedy Blum/GTV/Peka/Nomet/Rejs` pilnuje, że seed nie wraca do sztucznego placeholdera i że podstawowe ceny/daty seedów nie są zerowane.
+
+## Hardware bundle inputs v1 — 2026-05-05
+
+- Katalog okuć obsługuje teraz zestawy/komplety jako pozycje z opcjonalnym składem z istniejących pozycji katalogu.
+- Zestaw ma dwa tryby kosztu zakupu: `Własna cena zestawu` oraz `Licz ze składników`. Nie zakładać, że suma elementów zawsze jest ceną zestawu — gotowy komplet u dostawcy może być tańszy niż elementy osobno.
+- Przy polach cenowych netto/brutto formularz musi pozwalać na całkowite wyczyszczenie wartości podczas wpisywania na mobile; nie wolno natychmiast odtwarzać cyfr z pola powiązanego w trakcie kasowania.
+- `Data ceny` dla nowego okucia domyślnie przyjmuje dzisiejszą datę lokalną, ale przy edycji istniejącej pozycji nie może być automatycznie nadpisywana.
+- Skład zestawu nie może pozwalać na bezpośrednie dodanie pozycji samej do siebie; przyszłe głębsze zestawy wymagają dodatkowego zabezpieczenia przed cyklami.

@@ -21,6 +21,10 @@
   };
   const CATEGORIES = ['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Uchwyty / profile','Nóżki / cokoły','Systemy przesuwne','LED / elektryka','AGD / montażowe akcesoria','Drobnica','Inne'];
   const UNITS = ['szt.','kpl.','para','mb','zestaw'];
+  const BUNDLE_COST_MODES = [
+    { value:'ownPrice', label:'Własna cena zestawu' },
+    { value:'components', label:'Licz ze składników' },
+  ];
   const STATUSES = [
     { value:'active', label:'Aktywne' },
     { value:'hidden', label:'Ukryte' },
@@ -76,6 +80,29 @@
   function normalizePricingMode(value){
     const raw = text(value) || DEFAULT_SETTINGS.defaultPricingMode;
     return PRICING_MODES.some((item)=> item.value === raw) ? raw : DEFAULT_SETTINGS.defaultPricingMode;
+  }
+  function normalizeBundleCostMode(value){
+    const raw = text(value) || 'ownPrice';
+    return BUNDLE_COST_MODES.some((item)=> item.value === raw) ? raw : 'ownPrice';
+  }
+  function normalizeBundleItems(list, selfId){
+    const selfKey = text(selfId);
+    const seen = new Set();
+    const out = [];
+    (Array.isArray(list) ? list : []).forEach((row)=>{
+      const src = row && typeof row === 'object' ? row : {};
+      const itemId = text(src.itemId || src.id || src.refId);
+      if(!itemId || itemId === selfKey || seen.has(itemId)) return;
+      seen.add(itemId);
+      const qty = Math.max(0, number(src.qty != null ? src.qty : src.quantity));
+      if(qty <= 0) return;
+      out.push({ itemId, qty });
+    });
+    return out;
+  }
+  function isBundleUnit(value){
+    const raw = text(value).toLowerCase();
+    return raw === 'zestaw' || raw === 'kpl.' || raw === 'komplet' || raw === 'pakiet';
   }
   function netToGross(value, vat){ return round2(number(value) * (1 + number(vat) / 100)); }
   function grossToNet(value, vat){ const div = 1 + number(vat) / 100; return div ? round2(number(value) / div) : round2(number(value)); }
@@ -146,21 +173,6 @@
       defaultPricingMode:normalizePricingMode(src.defaultPricingMode),
     };
   }
-  function normalizeKitComponents(list){
-    return (Array.isArray(list) ? list : []).map((row)=>{
-      const src = row && typeof row === 'object' ? row : {};
-      return {
-        itemId:text(src.itemId || src.id),
-        nameSnapshot:text(src.nameSnapshot || src.name),
-        manufacturerSnapshot:text(src.manufacturerSnapshot || src.manufacturer),
-        unitSnapshot:text(src.unitSnapshot || src.hardwareUnit || src.unit || 'szt.'),
-        qty:Math.max(0, number(src.qty || src.quantity || 1) || 1),
-        purchasePriceGrossSnapshot:round2(number(src.purchasePriceGrossSnapshot != null ? src.purchasePriceGrossSnapshot : (src.purchasePriceGross != null ? src.purchasePriceGross : src.price))),
-        quotePriceGrossSnapshot:round2(number(src.quotePriceGrossSnapshot != null ? src.quotePriceGrossSnapshot : src.price)),
-      };
-    }).filter((row)=> row.itemId || row.nameSnapshot);
-  }
-
   function normalizeAccessory(row, uidFn, settings){
     const src = row && typeof row === 'object' ? row : {};
     const cfg = normalizeSettings(settings || {});
@@ -175,10 +187,6 @@
     const pricingMode = normalizePricingMode(src.pricingMode || cfg.defaultPricingMode);
     const markupPercent = number(src.markupPercent != null ? src.markupPercent : cfg.defaultMarkupPercent);
     const quotePriceGross = number(src.quotePriceGross != null ? src.quotePriceGross : src.price);
-    const kitPriceMode = text(src.kitPriceMode) === 'components' ? 'components' : 'own';
-    const kitComponents = normalizeKitComponents(src.kitComponents);
-    const kitComponentsTotalGross = round2(number(src.kitComponentsTotalGross));
-    const kitReferenceTotalGross = round2(number(src.kitReferenceTotalGross));
     const baseDraft = {
       quoteBase,
       pricingMode,
@@ -222,10 +230,10 @@
       priceUpdatedAt:text(src.priceUpdatedAt),
       status:normalizeStatus(src.status),
       note:text(src.note),
-      kitPriceMode,
-      kitComponents,
-      kitComponentsTotalGross,
-      kitReferenceTotalGross,
+      bundleCostMode:normalizeBundleCostMode(src.bundleCostMode),
+      bundleItems:normalizeBundleItems(src.bundleItems, src.id),
+      bundleComponentsCatalogGross:number(src.bundleComponentsCatalogGross),
+      bundleComponentsPurchaseGross:number(src.bundleComponentsPurchaseGross),
     };
   }
   function statusLabel(value){
@@ -262,17 +270,20 @@
     STATUSES,
     QUOTE_BASES,
     PRICING_MODES,
+    BUNDLE_COST_MODES,
     normalizeManufacturerList,
     normalizeSupplier,
     normalizeSupplierList,
     normalizeSettings,
     normalizeAccessory,
-    normalizeKitComponents,
     normalizeStatus,
     normalizeUnit,
     normalizeCategory,
     normalizeQuoteBase,
     normalizePricingMode,
+    normalizeBundleCostMode,
+    normalizeBundleItems,
+    isBundleUnit,
     resolveQuotePrice,
     statusLabel,
     unitOptions,
@@ -281,6 +292,7 @@
     supplierOptions,
     pricingModeOptions,
     quoteBaseOptions,
+    bundleCostModeOptions(){ return clone(BUNDLE_COST_MODES); },
     netToGross,
     grossToNet,
     calcDiscountedGross,

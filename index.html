@@ -27,7 +27,7 @@
 <link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
-<link href="css/price-item-popup.css?v=20260504_hardware_supplier_pricing_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260505_hardware_bundle_inputs_v1" rel="stylesheet"/>
 <link href="css/quote-labor-picker.css?v=20260504_gabaryt_compact_v1" rel="stylesheet"/>
 </head>
 <body>
@@ -269,22 +269,6 @@
 <div id="hardwareStatusLaunch"></div>
 </div>
 </div>
-<div id="hardwareKitFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
-<div class="quote-subsection-title">Skład zestawu</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Cena zestawu</label>
-<select hidden="" id="hardwareKitPriceMode"><option value="own">Własna cena zestawu</option><option value="components">Licz zakup ze składników</option></select>
-<div id="hardwareKitPriceModeLaunch"></div>
-</div>
-<div style="display:flex;align-items:flex-end">
-<button class="btn" id="hardwareAddKitComponentBtn" type="button">Dodaj składnik</button>
-</div>
-</div>
-<input id="hardwareKitComponentsJson" type="hidden"/>
-<div id="hardwareKitComponentsList" style="margin-top:10px"></div>
-<div class="hardware-price-preview" id="hardwareKitPreview" style="margin-top:10px">Suma składników: —</div>
-</div>
 <div class="grid-2" style="margin-top:10px">
 <div>
 <label>System / seria</label>
@@ -295,6 +279,22 @@
 <select hidden="" id="hardwareSupplierId"></select>
 <div id="hardwareSupplierIdLaunch"></div>
 </div>
+</div>
+<div id="hardwareBundleFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
+<div class="quote-subsection-title">Skład zestawu</div>
+<div class="grid-2" style="margin-top:10px">
+<div>
+<label>Cena zakupu zestawu</label>
+<select hidden="" id="hardwareBundleCostMode"><option value="ownPrice">Własna cena zestawu</option><option value="components">Licz ze składników</option></select>
+<div id="hardwareBundleCostModeLaunch"></div>
+</div>
+<div>
+<label>Suma składników</label>
+<div class="hardware-bundle-total" id="hardwareBundleTotalPreview">Brak składników</div>
+</div>
+</div>
+<div class="hardware-bundle-items" id="hardwareBundleItems" style="margin-top:10px"></div>
+<button class="btn" id="hardwareBundleAddItem" style="margin-top:10px" type="button">Dodaj składnik</button>
 </div>
 <div class="quote-subsection-title" style="margin-top:14px">Cena zakupu firmy</div>
 <div class="grid-3" style="margin-top:10px">
@@ -883,14 +883,16 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260505_hardware_bundle_inputs_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260507_hardware_catalog_seed_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260504_gabaryt_compact_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260507_hardware_catalog_seed_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
@@ -922,16 +924,16 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260505_hardware_bundle_inputs_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-kit.js?v=20260505_hardware_kit_inputs_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260505_hardware_kit_inputs_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-bundle.js?v=20260505_hardware_bundle_inputs_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260505_hardware_bundle_inputs_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260505_hardware_bundle_inputs_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260504_hardware_form_price_wrapper_fix_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260505_hardware_bundle_inputs_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260504_hardware_supplier_pricing_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>

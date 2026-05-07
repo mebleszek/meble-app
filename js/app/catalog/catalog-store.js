@@ -13,14 +13,17 @@
   const serviceOrderStore = FC.serviceOrderStore || null;
   const laborCatalog = FC.laborCatalog || null;
   const hardwareCatalog = FC.hardwareCatalog || null;
+  const hardwareSeeds = FC.hardwareCatalogSeeds || null;
 
   const DEFAULT_SHEET_MATERIALS = [
     { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:35, hasGrain:false },
     { id:'m2', materialType:'akryl', manufacturer:'Rehau', symbol:'A01', name:'Akryl Biały', price:180, hasGrain:false },
   ];
-  const DEFAULT_ACCESSORIES = [
-    { id:'a1', manufacturer:'Blum', symbol:'B1', name:'Zawias Blum', price:18, hardwareCategory:'Zawiasy', hardwareUnit:'szt.', series:'', purchasePrice:0, markupPercent:0, priceSource:'', priceUpdatedAt:'', status:'active', note:'' },
-  ];
+  const DEFAULT_ACCESSORIES = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
+    ? hardwareSeeds.mergeAccessorySeeds([])
+    : [
+        { id:'a1', manufacturer:'Blum', symbol:'B1', name:'Zawias Blum', price:18, hardwareCategory:'Zawiasy', hardwareUnit:'szt.', series:'', purchasePrice:0, markupPercent:0, priceSource:'', priceUpdatedAt:'', status:'active', note:'' },
+      ];
   const DEFAULT_HARDWARE_MANUFACTURERS = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_MANUFACTURERS)
     ? hardwareCatalog.DEFAULT_MANUFACTURERS.slice()
     : ['Blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
@@ -199,7 +202,12 @@
     const rows = normalizeList(list, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS);
     const out = { sheetMaterials:[], accessories:[] };
     rows.forEach((row)=>{
-      if(String(row.materialType || '').trim().toLowerCase() === 'akcesoria') out.accessories.push({ id:row.id, manufacturer:row.manufacturer, symbol:row.symbol, name:row.name, price:row.price });
+      if(String(row.materialType || '').trim().toLowerCase() === 'akcesoria'){
+        const accessory = Object.assign({}, row);
+        delete accessory.materialType;
+        delete accessory.hasGrain;
+        out.accessories.push(accessory);
+      }
       else out.sheetMaterials.push(row);
     });
     return out;
@@ -250,7 +258,10 @@
     const hardwareSettings = normalizeHardwareSettings(seeds.hardwareSettings || readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS));
     currentHardwareSettings = hardwareSettings;
     const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
-    const accessories = normalizeList(seeds.accessories, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
+    const accessorySeedRows = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
+      ? hardwareSeeds.mergeAccessorySeeds(seeds.accessories)
+      : seeds.accessories;
+    const accessories = normalizeList(accessorySeedRows, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
     const quoteRateSeed = laborCatalog && typeof laborCatalog.ensureDefaultDefinitions === 'function'
       ? laborCatalog.ensureDefaultDefinitions(seeds.quoteRates)
       : seeds.quoteRates;

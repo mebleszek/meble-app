@@ -430,9 +430,18 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Rabat dostawcy służy do liczenia realnego kosztu firmy; domyślna baza ceny do wyceny może pozostać `catalogGross`, czyli cena katalogowa bez rabatu + narzut.
 - Przyszłe raporty rentowności projektu powinny używać snapshotów kosztów materiałów/okuć/robocizny oraz później wpisanych realnych godzin montażu, liczby ludzi i kosztów dodatkowych. Nie wyliczać raportów z aktualnych cen katalogowych po czasie.
 
-## Hardware kit inputs v1 — 2026-05-05
 
-- Dla okuć dodano pola `kitPriceMode`, `kitComponents`, `kitComponentsTotalGross` i `kitReferenceTotalGross` jako część rekordu katalogowego akcesorium.
-- `kitComponents` przechowuje stabilne `itemId` składnika oraz snapshot nazwy, producenta, jednostki i cen. To zabezpiecza przyszłe snapshoty ofert oraz raport rentowności, nawet jeśli składnik w katalogu zostanie później zmieniony lub ukryty.
-- Tryb `components` liczy realny koszt zakupu zestawu z elementów, ale docelowy snapshot WYCENY nadal musi zapisać finalną cenę dla klienta i realny koszt firmy w chwili wyceny.
-- Nie dodano nowego bezpośredniego `localStorage`; dane dalej idą przez istniejący katalog/store.
+
+## Hardware catalog seed v1 — 2026-05-07
+
+- Seed realnych okuć jest traktowany jako katalogowy bootstrap użytkownika, nie jako dane projektu i nie jako snapshot oferty.
+- Merge seedów działa po stabilnym `id` oraz podpisie producent+symbol+nazwa, żeby można było później mapować pozycje do dokumentów katalogowych w chmurze bez duplikowania.
+- Ręcznie zmienione pozycje użytkownika nie są nadpisywane przez seed; wyjątek dotyczy tylko dokładnego starego placeholdera `Zawias Blum`, który nie jest realnym rekordem biznesowym.
+- Przy przyszłym snapshotowaniu do WYCENY trzeba zamrażać użyte ceny, źródło i datę ceny z katalogu, bo seedy mogą być później poprawione ręcznie albo zsynchronizowane z chmurą.
+
+## Hardware bundle inputs v1 — 2026-05-05
+
+- Zestawy okuć zapisują `bundleItems` jako referencje do istniejących pozycji katalogowych plus ilości, a nie jako skopiowane pełne rekordy. To jest zgodne z przyszłą chmurą, bo pozwala trzymać katalog jako osobną kolekcję.
+- Jednocześnie pozycja zestawu zapisuje podsumowania `bundleComponentsCatalogGross` i `bundleComponentsPurchaseGross`, aby można było łatwo robić podgląd i późniejszy snapshot kosztu w ofercie.
+- Przy przyszłym snapshotowaniu do WYCENY trzeba zamrażać cenę zestawu i jego skład z daty oferty, bo późniejsza zmiana ceny składnika nie może zmieniać starej oferty.
+- Dane cenowe okuć dalej rozdzielają koszt firmy od ceny do wyceny klienta; to zostaje fundamentem przyszłych raportów rentowności projektu.

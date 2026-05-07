@@ -15,7 +15,10 @@
       const src = row && typeof row === 'object' ? row : {};
       const materialType = String(src.materialType || '').trim().toLowerCase();
       if(materialType === 'akcesoria' || materialType === 'accessories' || materialType === 'akcesorium'){
-        out.accessories.push({ id:src.id, manufacturer:src.manufacturer, symbol:src.symbol, name:src.name, price:src.price });
+        const accessory = Object.assign({}, src);
+        delete accessory.materialType;
+        delete accessory.hasGrain;
+        out.accessories.push(accessory);
       }else{
         out.sheetMaterials.push(src);
       }

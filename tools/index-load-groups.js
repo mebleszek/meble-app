@@ -55,6 +55,8 @@ const INDEX_LOAD_GROUPS = [
     "label": "Catalog / service / investor domains",
     "scripts": [
       "js/app/catalog/hardware-catalog.js",
+      "js/app/catalog/hardware-catalog-seed-data.js",
+      "js/app/catalog/hardware-catalog-seeds.js",
       "js/app/catalog/catalog-domain.js",
       "js/app/catalog/catalog-migration.js",
       "js/app/pricing/labor-catalog-definitions.js",
@@ -102,7 +104,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/material/price-modal-hardware-manufacturers.js",
       "js/app/material/price-modal-hardware-suppliers.js",
       "js/app/material/price-modal-hardware-filter-sort.js",
-      "js/app/material/price-modal-hardware-kit.js",
+      "js/app/material/price-modal-hardware-bundle.js",
       "js/app/material/price-modal-hardware-form.js",
       "js/app/material/price-modal-field-help.js",
       "js/app/material/price-modal-item-form.js",

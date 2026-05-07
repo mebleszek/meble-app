@@ -158,6 +158,13 @@
       ? hw.pricingModeOptions()
       : [{ value:'markup', label:'Narzut %' }, { value:'manualPrice', label:'Cena ręczna' }];
   }
+
+  function buildHardwareBundleCostModeOptions(){
+    const hw = FC.hardwareCatalog || {};
+    return hw && typeof hw.bundleCostModeOptions === 'function'
+      ? hw.bundleCostModeOptions()
+      : [{ value:'ownPrice', label:'Własna cena zestawu' }, { value:'components', label:'Licz ze składników' }];
+  }
   function firstNonEmptyValue(options){
     const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== '');
     return item ? String(item.value != null ? item.value : item) : '';
@@ -169,5 +176,5 @@
     return FC.investorChoice.mountChoice({ mount, selectEl:cfg.selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, firstNonEmptyValue, mountChoice });
+  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, buildHardwareBundleCostModeOptions, firstNonEmptyValue, mountChoice });
 })();

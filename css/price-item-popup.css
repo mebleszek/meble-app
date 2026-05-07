@@ -186,24 +186,35 @@
   .hardware-supplier-active{justify-self:start;}
 }
 
-/* 2026-05-05 — katalog okuć: skład zestawu/kompletu. */
-#priceItemModal .hardware-kit-row{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(72px,96px) auto;
-  gap:10px;
+/* 2026-05-04 — katalog okuć: skład zestawu/kompletu. */
+#priceItemModal .hardware-bundle-total{
+  min-height:48px;
+  border:1px solid rgba(203,213,225,.9);
+  border-radius:14px;
+  padding:10px 12px;
+  background:#f8fafc;
+  color:#0f172a;
+  font-weight:850;
+  line-height:1.25;
+  display:flex;
   align-items:center;
-  padding:10px 0;
-  border-top:1px solid rgba(226,232,240,.92);
 }
-#priceItemModal .hardware-kit-row:first-child{border-top:0;}
-#priceItemModal .hardware-kit-row__title{font-weight:900;color:#111827;line-height:1.12;}
-#priceItemModal .hardware-kit-row__qty{min-height:44px;text-align:center;}
-#priceItemModal .hardware-kit-row__remove{min-height:44px;}
-#priceItemModal .hardware-kit-empty{padding:10px 0;text-align:center;}
-.hardware-kit-picker{display:grid;gap:10px;max-height:min(62vh,520px);overflow:auto;padding-right:2px;}
-.hardware-kit-picker__option{text-align:left;width:100%;}
+#priceItemModal .hardware-bundle-items{display:grid;gap:8px;}
+#priceItemModal .hardware-bundle-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 92px auto;
+  gap:8px;
+  align-items:end;
+  border:1px solid rgba(226,232,240,.95);
+  background:#fff;
+  border-radius:14px;
+  padding:10px;
+}
+#priceItemModal .hardware-bundle-row__name{font-weight:900;line-height:1.15;overflow-wrap:anywhere;}
+#priceItemModal .hardware-bundle-row__meta{font-size:12px;font-weight:800;color:#64748b;line-height:1.25;margin-top:3px;}
+.hardware-bundle-picker-list{display:grid;gap:10px;max-height:min(52vh,460px);overflow:auto;padding-right:2px;}
+.hardware-bundle-picker-item{width:100%;text-align:left;justify-content:flex-start;min-height:58px;}
 @media (max-width:600px){
-  #priceItemModal .hardware-kit-row{grid-template-columns:1fr;}
-  #priceItemModal .hardware-kit-row__qty{width:100%;}
-  #priceItemModal .hardware-kit-row__remove{width:100%;}
+  #priceItemModal .hardware-bundle-row{grid-template-columns:1fr;align-items:stretch;}
+  #priceItemModal .hardware-bundle-row .btn-danger{justify-self:start;}
 }
