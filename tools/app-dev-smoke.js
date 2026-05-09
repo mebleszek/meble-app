@@ -176,9 +176,10 @@ function runMaterialNodeSmoke(sandbox){
       const xlsx = FC.xlsxLite;
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-export.js'), 'utf8');
-      if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function')) return false;
+      const resolver = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
+      if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function' && typeof api.findRequiredGaps === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
-      return Number(api.VERSION) >= 2 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('formuły, listy wyboru') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog');
+      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('puste wiersze są ignorowane') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe');
     } },
     { name:'Eksport XLSX okuć ma formuły i listy wyboru', explain:'Chroni Excel jako roboczy szablon cennika: pola liczone mają formuły, a wybieralne pola mają data validation.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
@@ -188,7 +189,16 @@ function runMaterialNodeSmoke(sandbox){
       const rows = api._debug.buildAccessoryRows([{ id:'hw_test_xlsx', status:'active', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', vatRate:23, catalogPriceGross:100, supplierDiscountPercent:10, quoteBase:'catalogGross', pricingMode:'markup', markupPercent:20, bundleCostMode:'ownPrice' }]);
       const validations = api._debug.accessoryValidations({ accessories:[], manufacturers:['Blum'], suppliers:[] });
       const validationXml = xlsx._debug.validationsXml(validations);
-      return rows.length >= 200 && rows[1][13] && String(rows[1][13].formula || '').includes('ROUND(M2/(1+L2/100),2)') && rows[1][15] && String(rows[1][15].formula || '').includes('ROUND(M2*(1-O2/100),2)') && rows[1][20] && String(rows[1][20].formula || '').includes('manualPrice') && validationXml.includes('B2:B221') && validationXml.includes('G2:G221') && validationXml.includes('Producenci!$A$2:$A$500');
+      const headers = rows[0] || [];
+      return rows.length >= 200
+        && headers[0] === 'nazwa'
+        && headers[headers.length - 1] === 'id'
+        && rows[1][18] && String(rows[1][18].formula || '').includes('ROUND((IF(B2<>')
+        && rows[1][21] && String(rows[1][21].formula || '').includes('manualPrice')
+        && validationXml.includes('D2:D221')
+        && validationXml.includes('E2:E221')
+        && validationXml.includes('F2:F221')
+        && validationXml.includes('Producenci!$A$2:$A$500');
     } },
     { name:'Import okuć obsługuje nowe wiersze bez ID i aktualizacje po ID', explain:'Chroni pracę z Excelem: nowe pozycje mogą mieć puste id, a istniejące aktualizują się po id bez duplikowania.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
@@ -198,12 +208,14 @@ function runMaterialNodeSmoke(sandbox){
       const existing = before[0];
       const plan = api.buildImportPlan({ accessories:[
         Object.assign({}, existing, { name:String(existing.name || '') + ' TEST', price:77 }),
-        { id:'', manufacturer:'Blum', symbol:'NEW-XLSX', name:'Nowa pozycja z Excela', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', catalogPriceGross:10, price:12, priceUpdatedAt:'2026-05-07' }
+        { id:'', manufacturer:'Blum', symbol:'NEW-XLSX', name:'Nowa pozycja z Excela', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', catalogPriceNet:10, priceUpdatedAt:'2026-05-07' }
       ], manufacturers:['Blum'], suppliers:[], settings:{} }, { mode:'merge' });
+      const gaps = api.findRequiredGaps({ accessories:[{ name:'Minimum', catalogPriceGross:10 }] });
+      const emptyRows = api._debug.rowsToObjects([['nazwa','cena_netto','cena_brutto','jednostka','producent','kategoria','status','vat_proc'], ['', '', '', 'szt.', '', '', 'active', '23']], { kind:'accessories' });
       if(plan.errors.length) return false;
       const added = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'NEW-XLSX');
       const updated = plan.next.accessories.find((row)=> String(row && row.id || '') === String(existing && existing.id || ''));
-      return plan.summary.added === 1 && plan.summary.updated === 1 && added && String(added.id || '').startsWith('hw_user_') && updated && String(updated.name || '').endsWith('TEST');
+      return plan.summary.added === 1 && plan.summary.updated === 1 && added && String(added.id || '').startsWith('hw_user_') && Number(added.catalogPriceGross) > 10 && updated && String(updated.name || '').endsWith('TEST') && gaps.length === 1 && gaps[0].gaps.includes('manufacturer') && gaps[0].gaps.includes('hardwareCategory') && gaps[0].gaps.includes('hardwareUnit') && emptyRows.length === 0;
     } },
     { name:'Dostawcy i ustawienia okuć używają kluczy fc_* objętych backupem', explain:'Chroni globalny backup: dane katalogu okuć nie mogą zostawać pod luźnymi kluczami hardwareSuppliers/hardwareSettings.', check:()=> {
       if(!(FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.hardwareSuppliers === 'fc_hardware_suppliers_v1' && FC.constants.STORAGE_KEYS.hardwareSettings === 'fc_hardware_settings_v1')) return false;

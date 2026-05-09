@@ -476,3 +476,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Formuły i listy wyboru w Excelu są udogodnieniem roboczym; import nadal przechodzi przez walidację i normalizację `hardware-catalog.js`, co jest zgodne z przyszłą chmurą i późniejszą synchronizacją.
 - Nowe wiersze bez `id` dostają lokalne `hw_user_*`. Przy wdrożeniu chmury trzeba będzie utrzymać mapowanie lokalnego ID na dokument w katalogu użytkownika, żeby import z Excela nie tworzył duplikatów.
 - Arkusz nie może aktualizować historycznych snapshotów WYCENY. Import zmienia katalog bieżący, a przyszłe oferty muszą zamrażać użyte ceny/koszty osobno.
+
+
+## Hardware Excel import defaults — 2026-05-09
+
+- Import XLSX katalogu okuć nadal zapisuje dane przez `catalogStore`, a nie bezpośrednio bokiem do `localStorage`; dzięki temu pozostaje przygotowany pod późniejsze zastąpienie lokalnego adaptera chmurą.
+- Nowe pozycje z Excela mogą mieć puste `id`; przy imporcie aplikacja nadaje stabilne `hw_user_*`, a kolejne eksporty przenoszą już to ID do końcowej kolumny arkusza.
+- Braki pól obowiązkowych są rozwiązywane przed zbudowaniem planu importu, pozycja po pozycji. Do store trafiają dopiero rekordy kompletne albo świadomie pominięte.
+- Dane domyślne importu, takie jak VAT, dostawca, rabat, narzut, baza ceny, sposób liczenia i data ceny, pochodzą z ustawień katalogu albo kontrolowanych domysłów importu. Nie tworzyć nowych luźnych kluczy storage dla tych ustawień.

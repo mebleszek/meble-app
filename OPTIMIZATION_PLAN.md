@@ -567,3 +567,9 @@ Do obserwacji:
 - Rozszerzono istniejący boundary import/export zamiast dopisywać logikę Excela do `catalog-store.js` albo modala formularza.
 - `xlsx-lite.js` przekroczył próg ostrożności, ale nadal ma jedną odpowiedzialność: lekki reader/writer XLSX bez bibliotek zewnętrznych. Następny większy etap XLSX powinien rozdzielić writer/reader/validation XML, jeśli plik będzie dalej rosnąć.
 - `hardware-catalog-import-export.js` pozostał boundary mapowania katalogu ↔ JSON/XLSX. Przy dalszej rozbudowie katalogu uważać, żeby nie zamienił się w drugi store; logika domenowa cen nadal ma należeć do `hardware-catalog.js`.
+
+
+## 2026-05-09 — Hardware Excel import UX
+
+- Import/export okuć ma działający boundary, ale `js/app/catalog/hardware-catalog-import-export.js` przekracza 400 linii. Nie ciąć go ukrycie w tej samej poprawce użytkowej; następna rozbudowa import/export powinna zacząć się od splitu na template/export, parse/defaults oraz plan/apply.
+- Uzupełnianie braków obowiązkowych jest już w osobnym module UI `price-modal-hardware-import-resolver.js`; nie scalać go z panelem import/export.

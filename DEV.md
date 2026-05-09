@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_excel_template_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_excel_required_modal_v1.zip`.
 - Baza startowa tej paczki: `site_backup_storage_keys_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -52,6 +52,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware Excel required modal v1 — 2026-05-09
+
+- Arkusz `Okucia` ma mieć najważniejsze kolumny robocze na początku: `nazwa`, `cena_netto`, `cena_brutto`, `jednostka`, `producent`, `kategoria`, `symbol`; techniczne `id` ma być na końcu.
+- Import Excela ma ignorować puste wiersze robocze oraz wiersze zawierające tylko domyślne/formułowe wartości bez nazwy, symbolu, producenta lub realnej ceny.
+- Minimalny import nowej pozycji to nazwa + jedna cena netto albo brutto. VAT, dostawca, rabat, narzut, baza wyceny, sposób liczenia i data ceny mają być uzupełniane z ustawień katalogu/importu.
+- `producent`, `kategoria` i `jednostka` są obowiązkowe, ale brak tych pól nie ma tworzyć czerwonej ściany błędów. Import ma otworzyć aplikacyjne uzupełnianie braków pozycja po pozycji.
+- Uzupełnianie braków ma działać bez hurtowego ustawiania: dla każdej brakującej pozycji osobno `Ignoruj`, `Ignoruj wszystko` albo `Zatwierdź` po uzupełnieniu pól.
+- Logika uzupełniania braków UI jest w `js/app/material/price-modal-hardware-import-resolver.js`; nie dokładać jej do głównego modala import/export.
+- `js/app/catalog/hardware-catalog-import-export.js` przekracza 400 linii i jest świadomie zostawiony jako boundary po tej paczce. Przy następnej większej rozbudowie import/export najpierw rozdzielić go na template/export, parse/defaults i plan/apply.
 
 ## Czynności labor UI adjust v1 — 2026-05-03
 

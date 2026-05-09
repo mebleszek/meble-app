@@ -57,7 +57,8 @@
       box.appendChild(warn);
     }
     if(plan && plan.errors && plan.errors.length){
-      const err = h('div', { style:'margin-top:10px;color:#a40000;font-weight:800;white-space:pre-wrap', text:'Błędy:\n' + plan.errors.join('\n') });
+      const shown = plan.errors.slice(0, 10).join('\n') + (plan.errors.length > 10 ? '\n…' : '');
+      const err = h('div', { style:'margin-top:10px;color:#a40000;font-weight:800;white-space:pre-wrap', text:'Błędy:\n' + shown });
       box.appendChild(err);
     }
     return box;
@@ -77,6 +78,9 @@
     let data;
     try{ data = await api.parseFile(file); }
     catch(error){ info('Nie udało się odczytać pliku', String(error && error.message || error || 'Plik nie został odczytany.')); return; }
+    if(FC.priceModalHardwareImportResolver && typeof FC.priceModalHardwareImportResolver.resolveMissingRequired === 'function'){
+      data = await FC.priceModalHardwareImportResolver.resolveMissingRequired(data, mount);
+    }
     let mode = 'merge';
     const renderPlan = ()=>{
       let plan;
@@ -117,7 +121,7 @@
     const api = FC.hardwareCatalogImportExport;
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const body = h('div', { class:'hardware-import-export-panel' });
-    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX służy do wygodnej edycji cen i pozycji w Excelu: ma formuły, listy wyboru i puste wiersze na nowe okucia. Nowe wiersze mogą mieć puste ID — aplikacja nada je przy imporcie.'));
+    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX jest szablonem roboczym: najważniejsze kolumny są na początku, ID jest na końcu, puste wiersze są ignorowane, a braki obowiązkowe aplikacja każe uzupełnić pozycja po pozycji.'));
     const actions = h('div', { class:'grid-2', style:'gap:10px;margin-bottom:10px' });
     const exportJsonBtn = h('button', { type:'button', class:'btn', text:'Eksport JSON' });
     const importJsonBtn = h('button', { type:'button', class:'btn', text:'Import JSON' });
