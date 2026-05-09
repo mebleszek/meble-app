@@ -1,5 +1,5 @@
 // js/app/material/price-modal-hardware-bundle.js
-// Skład zestawów/kompletów w katalogu okuć: wybór składników i suma kosztów.
+// Skład świadomie tworzonych zestawów okuć: wybór składników i suma kosztów.
 (function(){
   'use strict';
   window.FC = window.FC || {};
@@ -16,9 +16,9 @@
   function isBundleUnit(value){
     if(FC.hardwareCatalog && typeof FC.hardwareCatalog.isBundleUnit === 'function') return FC.hardwareCatalog.isBundleUnit(value);
     const raw = String(value || '').trim().toLowerCase();
-    return raw === 'zestaw' || raw === 'kpl.' || raw === 'komplet' || raw === 'pakiet';
+    return raw === 'zestaw';
   }
-  function isVisible(){ return isBundleUnit(readString('hardwareUnit')); }
+  function isVisible(){ return isBundleUnit(readString('hardwareUnit')) || bundleItemsDraft.length > 0; }
   function itemById(id){ const key = String(id || ''); return currentAccessoryList().find((item)=> String(item && item.id || '') === key) || null; }
   function itemLabel(item){ return String((item && item.name) || (item && item.symbol) || 'Pozycja bez nazwy'); }
   function itemMeta(item){ return [item && item.manufacturer, item && item.hardwareCategory, item && item.hardwareUnit, item && item.priceSource].filter(Boolean).join(' • '); }
@@ -81,7 +81,7 @@
       if(!bundleItemsDraft.length){
         const empty = document.createElement('div');
         empty.className = 'muted-tag xs';
-        empty.textContent = 'Brak składników zestawu. Dodaj element z istniejących pozycji katalogu.';
+        empty.textContent = 'Brak składników zestawu. Dodaj element z istniejących pozycji katalogu tylko wtedy, gdy to faktycznie składany zestaw.';
         list.appendChild(empty);
       }
       bundleItemsDraft.forEach((row)=> list.appendChild(buildRow(row)));

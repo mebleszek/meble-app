@@ -28,7 +28,7 @@
     formHasGrain:{ title:'Ma słoje', message:'Włącz, jeśli materiał ma kierunek słojów. Dzięki temu ROZRYS może pilnować właściwego ułożenia elementów.' },
     formPrice:{ title:'Cena (PLN)', message:'Cena jednostkowa pozycji katalogowej. Dla materiałów i akcesoriów to zwykła cena pozycji, dla czynności może to być stała kwota.' },
     hardwareCategory:{ title:'Kategoria okucia', message:'Grupa okucia, np. zawiasy, szuflady, podnośniki albo cargo. To porządkuje katalog i późniejsze filtrowanie.' },
-    hardwareUnit:{ title:'Jednostka', message:'Jednostka rozliczeniowa okucia: sztuka, komplet, para, metr bieżący albo zestaw.' },
+    hardwareUnit:{ title:'Jednostka', message:'Jednostka rozliczeniowa okucia: sztuka, komplet, metr bieżący, m² albo zestaw składany.' },
     hardwareStatus:{ title:'Status', message:'Aktywne pozycje są używane normalnie. Ukryte zostają w katalogu, ale nie muszą być proponowane. Archiwalne są do historii i starych wycen.' },
     hardwareBundleCostMode:{ title:'Cena zakupu zestawu', message:'Własna cena zestawu oznacza, że wpisujesz cenę gotowego kompletu u dostawcy, a skład jest informacyjny. Licz ze składników sumuje realny zakup wybranych pozycji katalogu.' },
     hardwareSeries:{ title:'System / seria', message:'Seria lub system okucia, np. CLIP top, Aventos, Tandembox, Rejs albo cargo danego producenta.' },

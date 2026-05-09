@@ -573,3 +573,9 @@ Do obserwacji:
 
 - Import/export okuć ma działający boundary, ale `js/app/catalog/hardware-catalog-import-export.js` przekracza 400 linii. Nie ciąć go ukrycie w tej samej poprawce użytkowej; następna rozbudowa import/export powinna zacząć się od splitu na template/export, parse/defaults oraz plan/apply.
 - Uzupełnianie braków obowiązkowych jest już w osobnym module UI `price-modal-hardware-import-resolver.js`; nie scalać go z panelem import/export.
+
+
+## Hardware bundle/import UX v1 — 2026-05-09
+
+- Domknięto logikę jednostek okuć: `kpl.` jako komplet, `zestaw` jako pozycja składana, `para` bez osobnego bytu.
+- Do następnej większej pracy nad import/export zostaje jawny dług: split `js/app/catalog/hardware-catalog-import-export.js` na template/export, parse/defaults i plan/apply.

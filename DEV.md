@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_file_snapshot_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_bundle_import_ux_v1.zip`.
 - Baza startowa tej paczki: `site_backup_storage_keys_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -52,6 +52,16 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware bundle/import UX v1 — 2026-05-09
+
+- `kpl.` jest zwykłą jednostką kompletu i nie może automatycznie otwierać składu zestawu.
+- `para` nie jest osobną jednostką okuć; stare/importowane `para` normalizować do `kpl.`.
+- Skład zestawu pokazuje się tylko dla jednostki `zestaw` albo dla istniejącej pozycji, która ma już `bundleItems`.
+- Arkusz `Sklad_zestawow` w XLSX ma mieć czytelne kolumny robocze na początku: `zestaw_nazwa`, `skladnik_nazwa`, `ilosc`, a techniczne `zestaw_id` i `skladnik_id` na końcu.
+- W podglądzie importu tryb importu ma być wyborem 1 z 2 (`Scal / aktualizuj` albo `Zastąp katalog`) i dopiero osobny przycisk `Zatwierdź import` wykonuje zapis.
+- `hardware-catalog-import-export.js` jest nadal powyżej 400 linii; zostawiony świadomie po tej paczce, bo zmiana dotyczyła wrażliwego importu i większy split zwiększałby ryzyko regresji. Przy następnej rozbudowie import/export zacząć od wydzielenia template/export oraz parse/plan/apply.
 
 
 ## Hardware file snapshot fix v1 — 2026-05-09

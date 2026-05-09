@@ -20,7 +20,7 @@
     defaultPricingMode:'markup',
   };
   const CATEGORIES = ['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Uchwyty / profile','Nóżki / cokoły','Systemy przesuwne','LED / elektryka','AGD / montażowe akcesoria','Drobnica','Inne'];
-  const UNITS = ['szt.','kpl.','para','mb','zestaw'];
+  const UNITS = ['szt.','kpl.','mb','m²','zestaw'];
   const BUNDLE_COST_MODES = [
     { value:'ownPrice', label:'Własna cena zestawu' },
     { value:'components', label:'Licz ze składników' },
@@ -70,6 +70,7 @@
   }
   function normalizeUnit(value){
     const raw = text(value) || 'szt.';
+    if(raw.toLowerCase() === 'para') return 'kpl.';
     return UNITS.includes(raw) ? raw : raw;
   }
   function normalizeCategory(value){ return text(value) || 'Inne'; }
@@ -102,7 +103,7 @@
   }
   function isBundleUnit(value){
     const raw = text(value).toLowerCase();
-    return raw === 'zestaw' || raw === 'kpl.' || raw === 'komplet' || raw === 'pakiet';
+    return raw === 'zestaw';
   }
   function netToGross(value, vat){ return round2(number(value) * (1 + number(vat) / 100)); }
   function grossToNet(value, vat){ const div = 1 + number(vat) / 100; return div ? round2(number(value) / div) : round2(number(value)); }

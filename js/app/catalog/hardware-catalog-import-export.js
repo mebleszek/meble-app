@@ -37,7 +37,18 @@
     ['id','id'],
   ];
   const SUPPLIER_COLUMNS = [['id','id'], ['nazwa','name'], ['rabat_domyslny_proc','defaultDiscountPercent'], ['vat_domyslny_proc','defaultVatRate'], ['aktywny','active']];
-  const BUNDLE_COLUMNS = [['zestaw_id','bundleId'], ['zestaw_symbol','bundleSymbol'], ['zestaw_nazwa','bundleName'], ['skladnik_id','itemId'], ['skladnik_symbol','itemSymbol'], ['skladnik_nazwa','itemName'], ['ilosc','qty']];
+  const BUNDLE_COLUMNS = [
+    ['zestaw_nazwa','bundleName'],
+    ['skladnik_nazwa','itemName'],
+    ['ilosc','qty'],
+    ['zestaw_symbol','bundleSymbol'],
+    ['skladnik_symbol','itemSymbol'],
+    ['jednostka_skladnika','itemUnit'],
+    ['producent_skladnika','itemManufacturer'],
+    ['kategoria_skladnika','itemCategory'],
+    ['zestaw_id','bundleId'],
+    ['skladnik_id','itemId'],
+  ];
   const PRICE_SOURCE_OPTIONS = ['Bivert','MAGO','Faktura','Hurtownia lokalna','Allegro','Ręcznie','Import Excel','Inne'];
 
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -175,7 +186,19 @@
     (accessories || []).forEach((bundle)=>{
       (Array.isArray(bundle && bundle.bundleItems) ? bundle.bundleItems : []).forEach((entry)=>{
         const child = byId.get(text(entry && entry.itemId)) || {};
-        rows.push([bundle.id || '', bundle.symbol || '', bundle.name || '', entry.itemId || '', child.symbol || '', child.name || '', entry.qty || '']);
+        const obj = {
+          bundleName:bundle.name || '',
+          itemName:child.name || '',
+          qty:entry.qty || '',
+          bundleSymbol:bundle.symbol || '',
+          itemSymbol:child.symbol || '',
+          itemUnit:child.hardwareUnit || '',
+          itemManufacturer:child.manufacturer || '',
+          itemCategory:child.hardwareCategory || '',
+          bundleId:bundle.id || '',
+          itemId:entry.itemId || '',
+        };
+        rows.push(BUNDLE_COLUMNS.map((pair)=> valueForColumn(obj, pair[1])));
       });
     });
     return rows;
@@ -185,7 +208,7 @@
     const add = (type, values)=> (values || []).forEach((value)=> rows.push([type, value]));
     add('status', optionValues(hw().STATUSES, [{ value:'active' }, { value:'hidden' }, { value:'archived' }]));
     add('kategoria', optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']));
-    add('jednostka', optionValues(hw().UNITS, ['szt.','kpl.','para','mb','zestaw']));
+    add('jednostka', optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']));
     add('vat_proc', ['23','8','0']);
     add('baza_wyceny', optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]));
     add('sposob_liczenia', optionValues(hw().PRICING_MODES, [{ value:'markup' }, { value:'manualPrice' }]));
@@ -197,7 +220,7 @@
     const rowEnd = TEMPLATE_ROWS + 1;
     const statuses = optionValues(hw().STATUSES, [{ value:'active' }, { value:'hidden' }, { value:'archived' }]);
     const categories = optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
-    const units = optionValues(hw().UNITS, ['szt.','kpl.','para','mb','zestaw']);
+    const units = optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
     const bases = optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]);
     const modes = optionValues(hw().PRICING_MODES, [{ value:'markup' }, { value:'manualPrice' }]);
     const bundleModes = optionValues(hw().BUNDLE_COST_MODES, [{ value:'ownPrice' }, { value:'components' }]);
@@ -221,7 +244,7 @@
     const snap = getSnapshot();
     const blob = FC.xlsxLite.makeWorkbookBlob({
       Okucia:{ rows:buildAccessoryRows(snap.accessories, snap), validations:accessoryValidations(snap), freezeTopRow:true, widths:[36,14,14,12,18,24,18,18,18,12,12,16,14,10,20,18,22,18,16,16,20,20,18,18,28,24] },
-      Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[20,18,34,20,18,34,10] },
+      Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[34,34,10,18,18,16,20,24,24,24] },
       Dostawcy:{ rows:buildSupplierRows(snap.suppliers), freezeTopRow:true, widths:[20,28,20,18,12] },
       Producenci:{ rows:buildManufacturerRows(snap.manufacturers), freezeTopRow:true, widths:[24] },
       Slowniki:{ rows:buildDictionaryRows(snap), freezeTopRow:true, widths:[24,34] },
@@ -282,7 +305,18 @@
     const manufacturers = rowsToObjects(sheet('Producenci')).map((row)=> text(valueFrom(row, ['nazwa','name','producent']))).filter(Boolean);
     const settings = {};
     rowsToObjects(sheet('Ustawienia')).forEach((row)=>{ const key = text(valueFrom(row, ['klucz','key'])); if(key) settings[key] = valueFrom(row, ['wartosc','value']); });
-    const bundleRows = rowsToObjects(sheet('Sklad_zestawow')).map((row)=>({ bundleId:text(valueFrom(row, ['zestaw_id','bundleId'])), bundleSymbol:text(valueFrom(row, ['zestaw_symbol','bundleSymbol'])), bundleName:text(valueFrom(row, ['zestaw_nazwa','bundleName'])), itemId:text(valueFrom(row, ['skladnik_id','itemId'])), itemSymbol:text(valueFrom(row, ['skladnik_symbol','itemSymbol'])), itemName:text(valueFrom(row, ['skladnik_nazwa','itemName'])), qty:number(valueFrom(row, ['ilosc','qty'])) })).filter((row)=> row.qty > 0 && (row.bundleId || row.bundleName || row.itemId || row.itemName));
+    const bundleRows = rowsToObjects(sheet('Sklad_zestawow')).map((row)=>({
+      bundleId:text(valueFrom(row, ['zestaw_id','bundleId'])),
+      bundleSymbol:text(valueFrom(row, ['zestaw_symbol','bundleSymbol'])),
+      bundleName:text(valueFrom(row, ['zestaw_nazwa','bundleName'])),
+      itemId:text(valueFrom(row, ['skladnik_id','itemId'])),
+      itemSymbol:text(valueFrom(row, ['skladnik_symbol','itemSymbol'])),
+      itemName:text(valueFrom(row, ['skladnik_nazwa','itemName'])),
+      itemUnit:text(valueFrom(row, ['jednostka_skladnika','itemUnit'])),
+      itemManufacturer:text(valueFrom(row, ['producent_skladnika','itemManufacturer'])),
+      itemCategory:text(valueFrom(row, ['kategoria_skladnika','itemCategory'])),
+      qty:number(valueFrom(row, ['ilosc','qty']))
+    })).filter((row)=> row.qty > 0 && (row.bundleId || row.bundleName || row.itemId || row.itemName));
     return { accessories, manufacturers, suppliers, settings, bundleRows };
   }
   function parseJson(raw){
@@ -319,7 +353,7 @@
     const snap = getSnapshot();
     const manufacturers = normalizeManufacturers((Array.isArray(data && data.manufacturers) ? data.manufacturers : []).concat(snap.manufacturers || []));
     const categories = optionLabels(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
-    const units = optionLabels(hw().UNITS, ['szt.','kpl.','para','mb','zestaw']);
+    const units = optionLabels(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
     return { manufacturers:manufacturers.map((name)=>({ value:name, label:name })), categories, units, settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {}, suppliers:s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : [] };
   }
   function resolveSupplierId(value, suppliers){

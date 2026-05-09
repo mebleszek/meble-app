@@ -121,7 +121,7 @@
     const hw = FC.hardwareCatalog || {};
     return hw && typeof hw.unitOptions === 'function'
       ? hw.unitOptions(selectedValue)
-      : buildOrderedValues(['szt.','kpl.','para','mb','zestaw'], [], selectedValue, null);
+      : buildOrderedValues(['szt.','kpl.','mb','m²','zestaw'], [], selectedValue, null);
   }
 
   function buildHardwareStatusOptions(){

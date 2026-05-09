@@ -63,6 +63,35 @@
     }
     return box;
   }
+
+  function renderModeChoices(mode, onSelect){
+    const box = makeSection('Tryb importu', 'Wybierz jeden tryb, a dopiero potem zatwierdź import.');
+    const grid = h('div', { style:'display:grid;gap:8px;margin-top:10px' });
+    const choice = (value, title, desc)=>{
+      const selected = mode === value;
+      const btn = h('button', {
+        type:'button',
+        class:'rozrys-scope-chip' + (selected ? ' is-checked' : ''),
+        style:'width:100%;justify-content:flex-start;text-align:left;border-radius:18px;padding:10px 12px;align-items:flex-start',
+        'aria-pressed':selected ? 'true' : 'false'
+      });
+      btn.appendChild(h('span', { style:'font-weight:900;min-width:20px', text:selected ? '✓' : '□' }));
+      const content = h('span', { style:'display:grid;gap:3px' });
+      content.appendChild(h('span', { style:'font-weight:900', text:title }));
+      content.appendChild(h('span', { class:'muted-tag xs', text:desc }));
+      btn.appendChild(content);
+      btn.addEventListener('click', ()=> onSelect(value));
+      return btn;
+    };
+    grid.appendChild(choice('merge', 'Scal / aktualizuj', 'Dodaje nowe pozycje i aktualizuje istniejące. Niczego nie usuwa z katalogu.'));
+    grid.appendChild(choice('replace', 'Zastąp katalog', 'Traktuje plik jako pełny katalog. Pozycje, których nie ma w pliku, mogą zostać usunięte.'));
+    box.appendChild(grid);
+    if(mode === 'replace'){
+      box.appendChild(h('div', { style:'margin-top:10px;color:#a40000;font-weight:800', text:'Uwaga: tryb zastąpienia jest do świadomego przywracania pełnego katalogu z pliku.' }));
+    }
+    return box;
+  }
+
   function decodeBuffer(buffer){
     try{ return new TextDecoder('utf-8').decode(buffer); }
     catch(_){
@@ -129,12 +158,9 @@
       catch(error){ info('Błąd przygotowania importu', String(error && error.message || error)); return; }
       mount.innerHTML = '';
       mount.appendChild(renderSummary(plan));
+      mount.appendChild(renderModeChoices(mode, (nextMode)=>{ mode = nextMode === 'replace' ? 'replace' : 'merge'; renderPlan(); }));
       const actions = h('div', { style:'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:10px' });
-      const mergeBtn = h('button', { type:'button', class:mode === 'merge' ? 'btn btn-success' : 'btn', text:'Scal / aktualizuj' });
-      const replaceBtn = h('button', { type:'button', class:mode === 'replace' ? 'btn btn-danger' : 'btn', text:'Zastąp katalog' });
       const applyBtn = h('button', { type:'button', class:'btn-primary', text:mode === 'replace' ? 'Zatwierdź zastąpienie' : 'Zatwierdź import' });
-      mergeBtn.addEventListener('click', ()=>{ mode = 'merge'; renderPlan(); });
-      replaceBtn.addEventListener('click', ()=>{ mode = 'replace'; renderPlan(); });
       applyBtn.disabled = !!(plan.errors && plan.errors.length);
       applyBtn.addEventListener('click', async ()=>{
         const ok = await ask({
@@ -153,7 +179,7 @@
           try{ FC.panelBox.close(); }catch(_){ }
         }catch(error){ info('Błąd importu', String(error && error.message || error || 'Import nie został zapisany.')); }
       });
-      actions.appendChild(mergeBtn); actions.appendChild(replaceBtn); actions.appendChild(applyBtn);
+      actions.appendChild(applyBtn);
       mount.appendChild(actions);
     };
     renderPlan();
@@ -162,7 +188,7 @@
     const api = FC.hardwareCatalogImportExport;
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const body = h('div', { class:'hardware-import-export-panel' });
-    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX jest szablonem roboczym: najważniejsze kolumny są na początku, ID jest na końcu, puste wiersze są ignorowane, a braki obowiązkowe aplikacja każe uzupełnić pozycja po pozycji.'));
+    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX jest szablonem roboczym: najważniejsze kolumny są na początku, ID jest na końcu, skład zestawów ma czytelne kolumny, a plik najlepiej importować jako lokalną kopię z urządzenia.'));
     const actions = h('div', { class:'grid-2', style:'gap:10px;margin-bottom:10px' });
     const exportJsonBtn = h('button', { type:'button', class:'btn', text:'Eksport JSON' });
     const importJsonBtn = h('button', { type:'button', class:'btn', text:'Import JSON' });

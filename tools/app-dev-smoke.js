@@ -148,14 +148,14 @@ function runMaterialNodeSmoke(sandbox){
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
       return src.includes('function formPriceWrapper()') && src.includes("const priceWrap = formPriceWrapper();") && src.includes("priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : ''");
     } },
-    { name:'Katalog okuć obsługuje zestawy ze składnikami', explain:'Pilnuje, że jednostka zestaw/kpl. ma skład z istniejących pozycji oraz dwa tryby ceny zakupu: własna cena zestawu albo suma składników.', check:()=> {
+    { name:'Katalog okuć rozdziela kpl. od składanych zestawów', explain:'Pilnuje, że kpl. jest normalną jednostką kompletu, para jest normalizowana do kpl., a skład pokazuje się tylko dla zestawu albo pozycji mającej bundleItems.', check:()=> {
       const hw = FC.hardwareCatalog;
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       const form = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
       const bundle = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-bundle.js'), 'utf8');
       if(!(hw && typeof hw.normalizeAccessory === 'function' && typeof hw.normalizeBundleItems === 'function' && typeof hw.isBundleUnit === 'function')) return false;
       const row = hw.normalizeAccessory({ id:'set1', name:'Zestaw', manufacturer:'Blum', hardwareUnit:'zestaw', bundleCostMode:'components', bundleItems:[{ itemId:'a', qty:2 }, { itemId:'set1', qty:1 }, { itemId:'a', qty:4 }] }, ()=> 'unused');
-      return hw.isBundleUnit('zestaw') && row.bundleCostMode === 'components' && Array.isArray(row.bundleItems) && row.bundleItems.length === 1 && row.bundleItems[0].qty === 2 && html.includes('id="hardwareBundleFields"') && html.includes('id="hardwareBundleCostMode"') && bundle.includes('openPicker') && bundle.includes('priceModalHardwareBundle') && form.includes('clearPairIfSourceEmpty');
+      return hw.isBundleUnit('zestaw') && !hw.isBundleUnit('kpl.') && hw.normalizeUnit('para') === 'kpl.' && !hw.UNITS.includes('para') && row.bundleCostMode === 'components' && Array.isArray(row.bundleItems) && row.bundleItems.length === 1 && row.bundleItems[0].qty === 2 && html.includes('id="hardwareBundleFields"') && html.includes('id="hardwareBundleCostMode"') && bundle.includes('bundleItemsDraft.length > 0') && bundle.includes('openPicker') && bundle.includes('priceModalHardwareBundle') && form.includes('clearPairIfSourceEmpty');
     } },
     { name:'Katalog okuć ma realne seedy Blum/GTV/Peka/Nomet/Rejs', explain:'Pilnuje, że etap seedów dodaje konkretne pozycje zamiast sztucznego placeholdera Zawias Blum.', check:()=> {
       const seeds = FC.hardwareCatalogSeeds;
@@ -179,7 +179,7 @@ function runMaterialNodeSmoke(sandbox){
       const resolver = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
       if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function' && typeof api.findRequiredGaps === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
-      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('puste wiersze są ignorowane') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('makeFileSnapshot') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe');
+      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('skład zestawów ma czytelne kolumny') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe');
     } },
     { name:'Eksport XLSX okuć ma formuły i listy wyboru', explain:'Chroni Excel jako roboczy szablon cennika: pola liczone mają formuły, a wybieralne pola mają data validation.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
@@ -198,7 +198,18 @@ function runMaterialNodeSmoke(sandbox){
         && validationXml.includes('D2:D221')
         && validationXml.includes('E2:E221')
         && validationXml.includes('F2:F221')
-        && validationXml.includes('Producenci!$A$2:$A$500');
+        && validationXml.includes('Producenci!$A$2:$A$500')
+        && !validationXml.includes('para');
+    } },
+    { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      if(!(api && api._debug && typeof api._debug.buildBundleRows === 'function')) return false;
+      const rows = api._debug.buildBundleRows([
+        { id:'bundle1', name:'Zestaw testowy', symbol:'ZT', bundleItems:[{ itemId:'part1', qty:2 }] },
+        { id:'part1', name:'Składnik testowy', symbol:'ST', hardwareUnit:'szt.', manufacturer:'Blum', hardwareCategory:'Zawiasy' }
+      ]);
+      const headers = rows[0] || [];
+      return headers[0] === 'zestaw_nazwa' && headers[1] === 'skladnik_nazwa' && headers[2] === 'ilosc' && headers[headers.length - 2] === 'zestaw_id' && headers[headers.length - 1] === 'skladnik_id' && rows[1][0] === 'Zestaw testowy' && rows[1][1] === 'Składnik testowy' && rows[1][5] === 'szt.';
     } },
     { name:'Import okuć obsługuje nowe wiersze bez ID i aktualizacje po ID', explain:'Chroni pracę z Excelem: nowe pozycje mogą mieć puste id, a istniejące aktualizują się po id bez duplikowania.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

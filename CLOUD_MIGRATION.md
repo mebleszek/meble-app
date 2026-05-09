@@ -25,6 +25,15 @@ Przed wydaniem paczki, która tworzy albo mocno zmienia zapis/odczyt danych, spr
 
 Małe lokalne poprawki cloud-ready robić od razu, jeśli nie zmieniają UI ani zachowania biznesowego. Większe zmiany między domenami zgłaszać jako osobny etap, nie robić ukrytego refaktoru.
 
+
+
+## Hardware bundle/import UX v1 — 2026-05-09
+
+- Model okuć rozdziela jednostkę od złożoności pozycji: `kpl.` to komplet jako jednostka, a składany zestaw wynika z `bundleItems` / arkusza `Sklad_zestawow`.
+- `para` nie jest docelową jednostką danych; legacy/importowane wartości `para` normalizować do `kpl.`, żeby późniejsza chmura nie miała dwóch znaczeń tego samego kompletu.
+- Import XLSX nadal zapisuje przez `catalogStore` do wersjonowanych kluczy `fc_*`; nie dodano nowych luźnych kluczy localStorage.
+- Tryb importu w UI jest wyborem przed zapisem, a nie osobną akcją zapisującą dane. To ogranicza przypadkowe zastąpienie katalogu przy przyszłej synchronizacji/chmurze.
+
 ## Podział danych docelowo
 
 ### Dane użytkownika — docelowo do chmury

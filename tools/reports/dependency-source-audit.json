@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T21:05:03.073Z",
+  "generatedAt": "2026-05-09T22:04:45.668Z",
   "summary": {
     "jsFiles": 330,
     "indexScripts": 256,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 14,
-      "lines": 2651,
+      "lines": 2686,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 22,
-      "lines": 3576,
+      "lines": 3602,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -194,16 +194,16 @@
       493
     ],
     [
+      "js/app/catalog/hardware-catalog-import-export.js",
+      478
+    ],
+    [
       "js/testing/rozrys/tests.js",
       475
     ],
     [
       "js/app/ui/actions-register.js",
       449
-    ],
-    [
-      "js/app/catalog/hardware-catalog-import-export.js",
-      444
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -3276,7 +3276,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 444,
+      "lines": 478,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3384,7 +3384,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 304,
+      "lines": 305,
       "defines": [
         "hardwareCatalog"
       ],
@@ -5313,7 +5313,7 @@
     "js/app/material/price-modal-hardware-import-export.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 190,
+      "lines": 216,
       "defines": [
         "priceModalHardwareImportExport"
       ],
@@ -5340,7 +5340,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 11,
+      "domRefs": 10,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
