@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_excel_required_modal_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_file_snapshot_fix_v1.zip`.
 - Baza startowa tej paczki: `site_backup_storage_keys_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -52,6 +52,14 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware file snapshot fix v1 — 2026-05-09
+
+- Import plików JSON/XLSX w katalogu okuć ma czytać dane pliku natychmiast po wyborze z inputa i przekazywać dalej snapshot w pamięci, nie żywą referencję `File`.
+- To zabezpiecza Android/Chrome przed błędem utraty uprawnień do wybranego pliku po wyczyszczeniu inputa albo otwarciu kolejnego modala.
+- Dalsze kroki importu, w tym uzupełnianie braków obowiązkowych, muszą pracować na danych już odczytanych z pliku.
+- Nie cofać tej logiki do przekazywania surowego obiektu `File` przez kolejne modale.
 
 
 ## Hardware Excel required modal v1 — 2026-05-09

@@ -63,12 +63,53 @@
     }
     return box;
   }
+  function decodeBuffer(buffer){
+    try{ return new TextDecoder('utf-8').decode(buffer); }
+    catch(_){
+      const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+      let out = '';
+      for(let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
+      try{ return decodeURIComponent(escape(out)); }catch(__){ return out; }
+    }
+  }
+  async function makeFileSnapshot(file){
+    const name = file && file.name ? String(file.name) : '';
+    const type = file && file.type ? String(file.type) : '';
+    const size = file && Number.isFinite(Number(file.size)) ? Number(file.size) : 0;
+    let buffer;
+    try{
+      if(file && typeof file.arrayBuffer === 'function') buffer = await file.arrayBuffer();
+      else if(file && typeof file.text === 'function') buffer = new TextEncoder().encode(await file.text()).buffer;
+    }catch(error){
+      const msg = String(error && error.message || error || '');
+      throw new Error(msg || 'Przeglądarka nie pozwoliła odczytać wybranego pliku. Wybierz plik ponownie bez zamykania okna wyboru.');
+    }
+    if(!(buffer instanceof ArrayBuffer)) throw new Error('Nie udało się pobrać danych wybranego pliku.');
+    return {
+      name, type, size,
+      arrayBuffer: async ()=> buffer.slice(0),
+      text: async ()=> decodeBuffer(buffer.slice(0)),
+      __fcFileSnapshot:true
+    };
+  }
   function fileInput(accept, onFile){
     const input = h('input', { type:'file', accept, style:'display:none' });
     input.addEventListener('change', async ()=>{
       const file = input.files && input.files[0];
+      if(!file){ input.value = ''; return; }
+      let snapshot;
+      try{
+        // Android/Chrome potrafi odebrać uprawnienia do pliku po wyczyszczeniu inputa
+        // albo po otwarciu kolejnego modala. Dlatego czytamy bajty natychmiast
+        // po wyborze i dalszy import pracuje już na snapshocie w pamięci.
+        snapshot = await makeFileSnapshot(file);
+      }catch(error){
+        input.value = '';
+        info('Nie udało się odczytać pliku', String(error && error.message || error || 'Plik nie został odczytany.'));
+        return;
+      }
       input.value = '';
-      if(file) await onFile(file);
+      await onFile(snapshot);
     });
     return input;
   }

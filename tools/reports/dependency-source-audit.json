@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T18:53:22.338Z",
+  "generatedAt": "2026-05-09T21:05:03.073Z",
   "summary": {
     "jsFiles": 330,
     "indexScripts": 256,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 22,
-      "lines": 3535,
+      "lines": 3576,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -5313,7 +5313,7 @@
     "js/app/material/price-modal-hardware-import-export.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 149,
+      "lines": 190,
       "defines": [
         "priceModalHardwareImportExport"
       ],

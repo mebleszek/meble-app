@@ -484,3 +484,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Nowe pozycje z Excela mogą mieć puste `id`; przy imporcie aplikacja nadaje stabilne `hw_user_*`, a kolejne eksporty przenoszą już to ID do końcowej kolumny arkusza.
 - Braki pól obowiązkowych są rozwiązywane przed zbudowaniem planu importu, pozycja po pozycji. Do store trafiają dopiero rekordy kompletne albo świadomie pominięte.
 - Dane domyślne importu, takie jak VAT, dostawca, rabat, narzut, baza ceny, sposób liczenia i data ceny, pochodzą z ustawień katalogu albo kontrolowanych domysłów importu. Nie tworzyć nowych luźnych kluczy storage dla tych ustawień.
+
+## Hardware file snapshot fix v1 — 2026-05-09
+
+- Import katalogu okuć nadal pozostaje lokalnym boundary danych katalogowych, ale odczyt pliku wejściowego musi być wykonywany natychmiast po wyborze pliku.
+- Parser i resolver braków obowiązkowych nie powinny przenosić dalej żywej referencji `File`; mają pracować na snapshocie danych w pamięci, co ułatwia późniejsze przepięcie importu na chmurę lub kolejkę synchronizacji bez zależności od systemowego uchwytu pliku.
+
