@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_bundle_import_ux_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_catalog_ux_v1.zip`.
 - Baza startowa tej paczki: `site_backup_storage_keys_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -52,6 +52,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware catalog UX v1 — 2026-05-10
+
+- Lista `Akcesoria` ma czytelniejsze karty okuć z nazwą, chipem statusu ceny, producentem, kategorią, jednostką, symbolem, dostawcą, zakupem, ceną do wyceny i datą ceny.
+- Status ceny jest liczony jako UX-only: `Brak ceny`, `Do sprawdzenia`, `Stara cena`, `Aktualna cena`. Nie dodawać tego jako nowego trwałego pola bez osobnej decyzji.
+- Szybkie filtry okuć obejmują: `Wszystkie`, `Do sprawdzenia cen`, `Brak ceny`, `Stara cena`, `Zestawy`. Filtry są stanem runtime UI, nie nowym storage.
+- Zestawy na liście pokazują podsumowanie składników: wartość składników, koszt zakupu składników i różnicę względem ceny pozycji. `kpl.` nadal jest zwykłą jednostką, a skład wynika z `bundleItems`.
+- Import XLSX/JSON ma komunikat dla Android/Google Sheets: najpewniej importować lokalną kopię `.xlsx` z urządzenia. Odczyt pliku ma fallback `FileReader` i własny komunikat z nazwą/rozmiarem/typem pliku.
+- UX listy okuć jest w `js/app/material/price-modal-hardware-ux.js`; nie rozbudowywać `price-modal-list.js` o szczegółową logikę kart okuć.
+- `hardware-catalog-import-export.js` nadal przekracza 400 linii. Przy następnej większej pracy z import/export zacząć od splitu na template/export, parse/defaults oraz plan/apply.
 
 
 ## Hardware bundle/import UX v1 — 2026-05-09

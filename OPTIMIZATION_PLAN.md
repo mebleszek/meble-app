@@ -579,3 +579,10 @@ Do obserwacji:
 
 - Domknięto logikę jednostek okuć: `kpl.` jako komplet, `zestaw` jako pozycja składana, `para` bez osobnego bytu.
 - Do następnej większej pracy nad import/export zostaje jawny dług: split `js/app/catalog/hardware-catalog-import-export.js` na template/export, parse/defaults i plan/apply.
+
+
+## 2026-05-10 — Hardware catalog UX v1
+
+- Domknięto pierwszy UX katalogu okuć bez wchodzenia w automatyczne dobieranie okuć do szafek.
+- Nowy moduł `price-modal-hardware-ux.js` przejął status ceny, szybkie filtry i karty listy, żeby `price-modal-list.js` pozostał cienkim rendererem wspólnych katalogów.
+- Dalszy sensowny kierunek po akceptacji: standardy okuć w WYWIADZIE albo dopiero potem wybór okuć przy szafce; import/export ma jawny dług splitu `hardware-catalog-import-export.js` przed kolejną większą rozbudową Excela.

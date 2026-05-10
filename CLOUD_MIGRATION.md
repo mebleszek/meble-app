@@ -27,6 +27,13 @@ Małe lokalne poprawki cloud-ready robić od razu, jeśli nie zmieniają UI ani 
 
 
 
+## Hardware catalog UX v1 — 2026-05-10
+
+- Status ceny w katalogu okuć jest obecnie wyliczany wyłącznie w UI na podstawie istniejących pól: cena, źródło ceny i data ceny. Nie dodano nowego trwałego pola ani nowego klucza storage.
+- Szybkie filtry `Do sprawdzenia cen`/`Brak ceny`/`Stara cena` są runtime UI i nie pogłębiają modelu danych. Jeśli później potrzebny będzie trwały workflow kontroli cen, zrobić to jako osobną zmianę modelu katalogu i przyszłej chmury.
+- Import plików dostał lepszą diagnostykę Android/Google Sheets oraz fallback `FileReader`, ale zapis po imporcie nadal przechodzi przez `catalogStore` i wersjonowane klucze `fc_*`.
+
+
 ## Hardware bundle/import UX v1 — 2026-05-09
 
 - Model okuć rozdziela jednostkę od złożoności pozycji: `kpl.` to komplet jako jednostka, a składany zestaw wynika z `bundleItems` / arkusza `Sklad_zestawow`.

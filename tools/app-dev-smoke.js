@@ -179,7 +179,23 @@ function runMaterialNodeSmoke(sandbox){
       const resolver = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
       if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function' && typeof api.findRequiredGaps === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
-      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('skład zestawów ma czytelne kolumny') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe');
+      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe');
+    } },
+    { name:'Katalog okuć ma UX statusu ceny i szybkich filtrów', explain:'Chroni czytelne karty okuć: status ceny, filtr Do sprawdzenia cen oraz podgląd zestawów/składników.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const uxSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-ux.js'), 'utf8');
+      const listSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-list.js'), 'utf8');
+      const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
+      const ctx = FC.priceModalContext || {};
+      if(!(typeof ctx.hardwarePriceStatus === 'function' && typeof ctx.hardwareItemNeedsPriceCheck === 'function' && typeof ctx.matchesHardwareQuickFilter === 'function' && typeof ctx.renderHardwareAccessoryRow === 'function')) return false;
+      const noPrice = ctx.hardwarePriceStatus({ name:'Brak', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.' });
+      const imported = ctx.hardwarePriceStatus({ name:'Import', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:'2026-05-10' });
+      const stale = ctx.hardwarePriceStatus({ name:'Stare', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Bivert', priceUpdatedAt:'2020-01-01' });
+      return noPrice.code === 'noPrice' && imported.code === 'check' && stale.code === 'stale'
+        && html.includes('price-modal-hardware-ux.js')
+        && uxSrc.includes('Do sprawdzenia cen') && uxSrc.includes('Składniki:') && uxSrc.includes('Zestawy')
+        && listSrc.includes('renderHardwareQuickFilters') && listSrc.includes('renderHardwareAccessoryRow')
+        && css.includes('.hardware-price-row') && css.includes('.hardware-quick-filters');
     } },
     { name:'Eksport XLSX okuć ma formuły i listy wyboru', explain:'Chroni Excel jako roboczy szablon cennika: pola liczone mają formuły, a wybieralne pola mają data validation.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

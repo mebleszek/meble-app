@@ -22,13 +22,20 @@
     const container = ctx.byId('priceListItems');
     if(!container) return;
     const kind = ctx.currentListKind();
+    const oldQuickFilters = document.getElementById('hardwareQuickFilters');
+    if(kind !== 'accessories' && oldQuickFilters) oldQuickFilters.remove();
     const filtered = ctx.filteredPriceList();
     container.innerHTML = '';
+    if(kind === 'accessories' && ctx.renderHardwareQuickFilters) ctx.renderHardwareQuickFilters();
     if(!filtered.length){
       container.innerHTML = '<div class="muted" style="padding:10px">Brak pozycji dla aktualnych filtrów.</div>';
       return;
     }
     filtered.forEach((item)=>{
+      if(kind === 'accessories' && ctx.renderHardwareAccessoryRow){
+        container.appendChild(ctx.renderHardwareAccessoryRow(item || {}, ()=> ctx.openPriceItemModal(item.id)));
+        return;
+      }
       const row = document.createElement('div'); row.className = 'list-item price-modal-list-row';
       const left = document.createElement('div'); left.className = 'price-modal-list-main'; left.style.minWidth = '0';
       left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'}</div><div class="muted-tag xs">${itemMeta(kind, item || {})}</div>`;

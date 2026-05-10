@@ -101,6 +101,25 @@
       try{ return decodeURIComponent(escape(out)); }catch(__){ return out; }
     }
   }
+
+  function readWithFileReader(file){
+    return new Promise((resolve, reject)=>{
+      try{
+        const reader = new FileReader();
+        reader.onerror = ()=> reject(reader.error || new Error('FileReader nie odczytał pliku.'));
+        reader.onload = ()=> resolve(reader.result);
+        reader.readAsArrayBuffer(file);
+      }catch(error){ reject(error); }
+    });
+  }
+  function fileReadHint(error, file){
+    const name = file && file.name ? String(file.name) : 'wybrany plik';
+    const size = file && Number.isFinite(Number(file.size)) ? Number(file.size) : 0;
+    const type = file && file.type ? String(file.type) : 'brak typu';
+    const details = String(error && error.message || error || '');
+    return `Nie udało się odczytać pliku ${name}. Najpewniej plik jest otwarty z Dysku Google/Arkuszy Google albo nie jest lokalną kopią na urządzeniu. Zrób kopię jako .xlsx na urządzeniu, najlepiej w Pobrane/Downloads, i wybierz ją ponownie. Szczegóły: rozmiar ${size} B, typ ${type}${details ? ', błąd: ' + details : ''}.`;
+  }
+
   async function makeFileSnapshot(file){
     const name = file && file.name ? String(file.name) : '';
     const type = file && file.type ? String(file.type) : '';
@@ -110,10 +129,11 @@
       if(file && typeof file.arrayBuffer === 'function') buffer = await file.arrayBuffer();
       else if(file && typeof file.text === 'function') buffer = new TextEncoder().encode(await file.text()).buffer;
     }catch(error){
-      const msg = String(error && error.message || error || '');
-      throw new Error(msg || 'Przeglądarka nie pozwoliła odczytać wybranego pliku. Wybierz plik ponownie bez zamykania okna wyboru.');
+      try{ buffer = await readWithFileReader(file); }
+      catch(readerError){ throw new Error(fileReadHint(readerError || error, file)); }
     }
-    if(!(buffer instanceof ArrayBuffer)) throw new Error('Nie udało się pobrać danych wybranego pliku.');
+    if(!(buffer instanceof ArrayBuffer)) throw new Error(fileReadHint('Nie udało się pobrać danych wybranego pliku.', file));
+    if(size <= 0) throw new Error(fileReadHint('Plik ma rozmiar 0 B albo nie został realnie pobrany lokalnie.', file));
     return {
       name, type, size,
       arrayBuffer: async ()=> buffer.slice(0),
@@ -147,7 +167,7 @@
     if(!(api && typeof api.parseFile === 'function')){ info('Brak modułu importu', 'Moduł importu katalogu okuć nie jest załadowany.'); return; }
     let data;
     try{ data = await api.parseFile(file); }
-    catch(error){ info('Nie udało się odczytać pliku', String(error && error.message || error || 'Plik nie został odczytany.')); return; }
+    catch(error){ info('Nie udało się odczytać pliku', String(error && error.message || error || 'Plik nie został odczytany. Zapisz lokalną kopię .xlsx na urządzeniu i spróbuj ponownie.')); return; }
     if(FC.priceModalHardwareImportResolver && typeof FC.priceModalHardwareImportResolver.resolveMissingRequired === 'function'){
       data = await FC.priceModalHardwareImportResolver.resolveMissingRequired(data, mount);
     }
@@ -188,7 +208,7 @@
     const api = FC.hardwareCatalogImportExport;
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
     const body = h('div', { class:'hardware-import-export-panel' });
-    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX jest szablonem roboczym: najważniejsze kolumny są na początku, ID jest na końcu, skład zestawów ma czytelne kolumny, a plik najlepiej importować jako lokalną kopię z urządzenia.'));
+    body.appendChild(makeSection('Import / Eksport katalogu okuć', 'JSON służy jako pełny backup techniczny. XLSX jest szablonem roboczym: najważniejsze kolumny są na początku, ID jest na końcu, skład zestawów ma czytelne kolumny. Na telefonie najpewniej importuj lokalną kopię .xlsx zapisaną na urządzeniu, np. w Pobrane/Downloads; plik otwarty prosto z Dysku Google/Arkuszy może nie dać się odczytać w Chrome.'));
     const actions = h('div', { class:'grid-2', style:'gap:10px;margin-bottom:10px' });
     const exportJsonBtn = h('button', { type:'button', class:'btn', text:'Eksport JSON' });
     const importJsonBtn = h('button', { type:'button', class:'btn', text:'Import JSON' });

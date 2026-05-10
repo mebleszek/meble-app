@@ -49,6 +49,7 @@
       ctx.runtimeState.filters.hardwareCategory = '';
       ctx.runtimeState.filters.hardwareUnit = '';
       ctx.runtimeState.filters.hardwareStatus = '';
+      ctx.runtimeState.filters.hardwareQuickFilter = '';
       ctx.runtimeState.filters.supplierId = '';
       ctx.runtimeState.filters.priceMin = '';
       ctx.runtimeState.filters.priceMax = '';
@@ -92,6 +93,7 @@
       if(kind === 'accessories'){
         if(ctx.runtimeState.filters.manufacturer && String(item && item.manufacturer || '') !== String(ctx.runtimeState.filters.manufacturer || '')) return false;
         if(ctx.matchesHardwareFilters && !ctx.matchesHardwareFilters(item)) return false;
+        if(ctx.matchesHardwareQuickFilter && !ctx.matchesHardwareQuickFilter(item)) return false;
         return true;
       }
       if(ctx.runtimeState.filters.category && String(item && item.category || '') !== String(ctx.runtimeState.filters.category || '')) return false;

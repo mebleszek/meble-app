@@ -45,6 +45,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/material/price-modal-hardware-filter-sort.js',
   'js/app/material/price-modal-hardware-import-resolver.js',
   'js/app/material/price-modal-hardware-import-export.js',
+  'js/app/material/price-modal-hardware-ux.js',
   'js/app/material/price-modal-hardware-bundle.js',
   'js/app/material/price-modal-hardware-form.js',
   'js/app/material/price-modal-field-help.js',
