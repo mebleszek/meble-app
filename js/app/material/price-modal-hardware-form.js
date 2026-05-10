@@ -42,6 +42,7 @@
   function netToGross(value, vat){ return FC.hardwareCatalog && FC.hardwareCatalog.netToGross ? FC.hardwareCatalog.netToGross(value, vat) : round2(num(value) * (1 + num(vat) / 100)); }
   function grossToNet(value, vat){ return FC.hardwareCatalog && FC.hardwareCatalog.grossToNet ? FC.hardwareCatalog.grossToNet(value, vat) : round2(num(value) / (1 + num(vat) / 100)); }
   function bundleApi(){ return ctx.priceModalHardwareBundle || {}; }
+  function supplierPricesApi(){ return ctx.priceModalHardwareSupplierPrices || {}; }
 
   const FIELD_IDS = [
     'hardwareCategory','hardwareUnit','hardwareStatus','hardwareSeries','hardwareSupplierId','hardwarePriceSource',
@@ -63,7 +64,7 @@
       supplierDiscountPercent:supplier ? supplier.defaultDiscountPercent : 0, purchasePriceNet:'', purchasePriceGross:'',
       quoteBase:settings.defaultQuoteBase || 'catalogGross', pricingMode:settings.defaultPricingMode || 'markup', markupPercent:settings.defaultMarkupPercent || 20,
       quotePriceNet:'', quotePriceGross:'', priceUpdatedAt:todayIso(), status:'active', note:'',
-      bundleCostMode:'ownPrice', bundleItems:[], bundleComponentsCatalogGross:0, bundleComponentsPurchaseGross:0,
+      bundleCostMode:'ownPrice', bundleItems:[], bundleComponentsCatalogGross:0, bundleComponentsPurchaseGross:0, supplierPrices:[],
     };
   }
 
@@ -178,6 +179,7 @@
     const totals = bundle && typeof bundle.getTotals === 'function' ? bundle.getTotals() : { catalogGross:0, purchaseGross:0 };
     const priceGross = num(readString('hardwareQuotePriceGross')) || num(ctx.byId('formPrice') && ctx.byId('formPrice').value);
     const supplier = findSupplier(readString('hardwareSupplierId'));
+    const supplierPrices = supplierPricesApi();
     return {
       manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(),
       symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(),
@@ -185,6 +187,7 @@
       price:priceGross,
       hardwareCategory:readString('hardwareCategory') || 'Inne', hardwareUnit:readString('hardwareUnit') || 'szt.', series:readString('hardwareSeries'),
       supplierId:readString('hardwareSupplierId'), supplierName:supplier ? supplier.name : readString('hardwarePriceSource'), priceSource:readString('hardwarePriceSource') || (supplier ? supplier.name : ''),
+      supplierPrices:(supplierPrices && typeof supplierPrices.getItems === 'function') ? supplierPrices.getItems() : [],
       vatRate:readNumber('hardwareVatRate'), catalogPriceNet:readNumber('hardwareCatalogPriceNet'), catalogPriceGross:readNumber('hardwareCatalogPriceGross'), supplierDiscountPercent:readNumber('hardwareSupplierDiscountPercent'),
       purchasePriceNet:readNumber('hardwarePurchasePriceNet'), purchasePriceGross:readNumber('hardwarePurchasePriceGross'), purchasePrice:readNumber('hardwarePurchasePriceGross'),
       quoteBase:readString('hardwareQuoteBase') || 'catalogGross', pricingMode:readString('hardwarePricingMode') || 'markup', markupPercent:readNumber('hardwareMarkupPercent'),
@@ -199,7 +202,9 @@
   function applyAccessoryFormState(item){
     const data = Object.assign(defaultAccessoryDraft(), item || {});
     const bundle = bundleApi();
+    const supplierPrices = supplierPricesApi();
     if(bundle && typeof bundle.setItems === 'function') bundle.setItems(data.bundleItems || []);
+    if(supplierPrices && typeof supplierPrices.setItems === 'function') supplierPrices.setItems(data);
     ctx.setSelectOptions(ctx.byId('formManufacturer'), ctx.buildManufacturerOptions('accessories', '', data && data.manufacturer), String(data && data.manufacturer || ''), String(data && data.manufacturer || ''));
     if(ctx.byId('formSymbol')) ctx.byId('formSymbol').value = String(data && data.symbol || '');
     if(ctx.byId('formName')) ctx.byId('formName').value = String(data && data.name || '');
@@ -218,6 +223,7 @@
     setValue('hardwarePurchasePriceGross', data && (data.purchasePriceGross != null ? data.purchasePriceGross : data.purchasePrice) || ''); setValue('hardwareMarkupPercent', data && data.markupPercent != null ? data.markupPercent : '');
     setValue('hardwareQuotePriceNet', data && data.quotePriceNet != null ? data.quotePriceNet : ''); setValue('hardwareQuotePriceGross', data && (data.quotePriceGross != null ? data.quotePriceGross : data.price) || '');
     setValue('hardwarePriceUpdatedAt', data && data.priceUpdatedAt || ''); setValue('hardwareNote', data && data.note || '');
+    if(supplierPrices && typeof supplierPrices.applySelectedToLegacyFields === 'function') supplierPrices.applySelectedToLegacyFields();
     if(bundle && typeof bundle.render === 'function') bundle.render();
     syncHardwarePricing({ sourceId:'' });
   }

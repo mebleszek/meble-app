@@ -308,3 +308,52 @@
     text-align:left;
   }
 }
+
+/* Hardware supplier prices — many supplier prices for one hardware item */
+#priceItemModal .hardware-supplier-prices{
+  display:grid;
+  gap:10px;
+  margin-top:10px;
+}
+#priceItemModal .hardware-supplier-price-card{
+  border:1px solid rgba(148,163,184,.35);
+  border-radius:18px;
+  background:rgba(255,255,255,.88);
+  padding:12px;
+  box-shadow:0 8px 18px rgba(15,23,42,.06);
+}
+#priceItemModal .hardware-supplier-price-card__top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+#priceItemModal .hardware-supplier-price-card__name{
+  font-weight:900;
+  color:#0f172a;
+  font-size:16px;
+}
+#priceItemModal .hardware-supplier-price-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+}
+#priceItemModal .hardware-supplier-price-note,
+#priceItemModal .hardware-price-selected-preview{
+  font-size:13px;
+  font-weight:800;
+  color:#64748b;
+  margin-top:8px;
+}
+#priceItemModal .hardware-price-selected-preview{
+  border:1px solid rgba(14,165,233,.20);
+  border-radius:14px;
+  background:rgba(240,249,255,.75);
+  padding:10px 12px;
+  color:#0f172a;
+}
+@media(max-width:720px){
+  #priceItemModal .hardware-supplier-price-grid{ grid-template-columns:1fr; }
+  #priceItemModal .hardware-supplier-price-card__top{ align-items:flex-start; flex-direction:column; }
+}

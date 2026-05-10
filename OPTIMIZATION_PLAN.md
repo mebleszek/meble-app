@@ -586,3 +586,18 @@ Do obserwacji:
 - Domknięto pierwszy UX katalogu okuć bez wchodzenia w automatyczne dobieranie okuć do szafek.
 - Nowy moduł `price-modal-hardware-ux.js` przejął status ceny, szybkie filtry i karty listy, żeby `price-modal-list.js` pozostał cienkim rendererem wspólnych katalogów.
 - Dalszy sensowny kierunek po akceptacji: standardy okuć w WYWIADZIE albo dopiero potem wybór okuć przy szafce; import/export ma jawny dług splitu `hardware-catalog-import-export.js` przed kolejną większą rozbudową Excela.
+
+## 2026-05-10 — Hardware supplier prices / purchase flow plan
+
+- Dodano tylko notatkę planistyczną; bez zmian runtime. Przyszły kierunek okuć: rozdzielić produkt techniczny, wiele cen u dostawców, snapshot oferty i faktyczny zakup.
+- Najpierw nie budować automatu dobierania najtańszej ceny do oferty. Wycena ma używać ustalonej kolejności źródeł i zapisywać snapshot, a sugestie najtańszego/najrozsądniejszego zakupu mają powstać dopiero po akceptacji oferty jako lista zakupów.
+- Kolejność przyszłych paczek: `hardware_supplier_prices`, `hardware_quote_price_rule`, `hardware_quote_snapshot`, `hardware_purchase_list`, `hardware_profit_report`.
+- Architektonicznie przed większym rozszerzaniem import/export rozdzielić `hardware-catalog-import-export.js` na template/export, parse/defaults i plan/apply; przed modelem wielu cen rozważyć osobny boundary danych cen dostawców zamiast rozbudowywać `catalog-store.js`.
+
+## 2026-05-10 — Hardware supplier prices v1
+
+- Model wielu cen dostawców został dodany bez rozbudowy `catalog-store.js` o nowy storage: ceny są częścią rekordu okucia, a store tylko normalizuje je przez `hardware-catalog.js`.
+- XLSX cen dostawców dostał osobny moduł `js/app/catalog/hardware-catalog-supplier-price-xlsx.js`, żeby nie dopisywać całej logiki arkusza do `hardware-catalog-import-export.js`.
+- UI cen dostawców jest w osobnym module `js/app/material/price-modal-hardware-supplier-prices.js`; nie scalać go z dużym formularzem okuć przy kolejnych zmianach.
+- `hardware-catalog-import-export.js` nadal pozostaje powyżej progu ostrzeżenia 400 linii, mimo wydzielenia arkusza cen dostawców do osobnego helpera. Zostawiono go świadomie, bo dalej jest jednym boundary import/export; następna duża rozbudowa importu powinna zacząć się od podziału na template/export oraz parse/plan/apply.
+- Kolejne etapy po stabilizacji: reguła/wybór ceny do wyceny w WYCENIE, snapshot ceny w ofercie, lista zakupów po akceptacji, raport plan vs rzeczywistość. Nie mieszać ich z bieżącym formularzem katalogu.

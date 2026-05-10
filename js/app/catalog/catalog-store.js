@@ -265,7 +265,9 @@
         };
 
     const hardwareSettings = normalizeHardwareSettings(seeds.hardwareSettings || readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS));
-    currentHardwareSettings = hardwareSettings;
+    const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
+    const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
+    currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers });
     const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessorySeedRows = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
       ? hardwareSeeds.mergeAccessorySeeds(seeds.accessories)
@@ -280,8 +282,6 @@
     const storedManufacturers = readList('hardwareManufacturers', DEFAULT_HARDWARE_MANUFACTURERS);
     const manufacturerSeed = Array.isArray(seeds.hardwareManufacturers) ? seeds.hardwareManufacturers : storedManufacturers;
     const hardwareManufacturers = normalizeHardwareManufacturers(manufacturerSeed.concat(accessories.map((row)=> row && row.manufacturer)));
-    const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
-    const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
 
     writeList('sheetMaterials', sheetMaterials);
     writeList('accessories', accessories);
@@ -358,7 +358,7 @@
       writeList('materials', cache.sheetMaterials);
     }
     else if(key === 'accessories'){
-      currentHardwareSettings = cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS;
+      currentHardwareSettings = Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS, { hardwareSuppliers:cache.hardwareSuppliers || [] });
       cache.accessories = normalizeList(list, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
       cache.hardwareManufacturers = normalizeHardwareManufacturers((cache.hardwareManufacturers || []).concat(cache.accessories.map((row)=> row && row.manufacturer)));
       writeList('accessories', cache.accessories);

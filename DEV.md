@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_catalog_ux_v1.zip`.
-- Baza startowa tej paczki: `site_backup_storage_keys_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_prices_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_purchase_plan_notes_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -51,7 +51,32 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
 
+## Hardware price sources / zakup / rentowność — plan przyszły — 2026-05-10
 
+- Plan dotyczy przyszłego rozwoju katalogu okuć, WYCENY i raportów rentowności; ten wpis nie zmienia jeszcze runtime ani modelu danych.
+- Docelowo rozdzielać trzy warstwy: katalog techniczny okucia, wiele znanych cen u dostawców oraz snapshot ceny użytej w konkretnej ofercie.
+- Jedno okucie powinno móc mieć wiele cen: lokalna hurtownia, Bivert, MAGO, faktura, ręczna cena albo inne źródło. Nie wracać do płaskiego mylenia `miejsce zakupu` z `źródło ceny` jako jedyną parą pól.
+- Reguła wyceny dla klienta ma działać według kolejności źródeł, np. lokalna hurtownia jako domyślna, a przy braku ceny fallback do bazy internetowej typu Bivert. Cena użyta w ofercie musi być zamrożona w snapshotcie wyceny.
+- Automat najtańszego zakupu nie powinien po cichu ustalać oferty dla klienta. Po akceptacji oferty ma powstać lista zakupów z sugestią gdzie kupić najtaniej/najrozsądniej, a użytkownik zatwierdza faktyczny zakup.
+- Raport rentowności ma porównywać: koszt okuć przyjęty do oferty, sugerowany koszt zakupu, rzeczywisty koszt zakupu i różnicę zakupową. Przykład: klient dostał ofertę z okuciami za 3000 zł, realny zakup 2400 zł, różnica +600 zł poprawia rentowność projektu.
+- Dalszy rozwój w tej ścieżce powinien iść etapami: wiele cen przy okuciu, reguła wyboru ceny do wyceny, snapshot w WYCENIE, lista zakupów po akceptacji, raport plan vs rzeczywistość.
+- Przed kodowaniem tego obszaru przeczytać `CLOUD_MIGRATION.md` i nie dopisywać nowych danych poza wersjonowanymi kluczami `fc_*`/repozytorium. Przy większej pracy nad import/export najpierw rozdzielić `hardware-catalog-import-export.js` zgodnie z planem.
+
+
+
+
+## Hardware supplier prices v1 — 2026-05-10
+
+- Katalog okuć obsługuje teraz wiele cen dostawców przy jednej pozycji. Dane żyją w `fc_accessories_v1` jako `supplierPrices` przy okuciu; nie dodano nowego luźnego klucza storage.
+- Przy cenie dostawcy trzymać minimum: `supplierId`, cena katalogowa netto/brutto, typ wpisanej ceny, data ceny i `useForQuote`. VAT, rabat dostawcy, zakup po rabacie i podgląd ceny do wyceny liczyć w locie z danych dostawcy oraz ustawień.
+- Dla jednego okucia dokładnie jedna cena dostawcy może mieć `useForQuote=true`. Zaznaczenie innej ceny jako `Do wyceny` musi automatycznie odznaczyć poprzednią.
+- Legacy płaskie pola ceny (`supplierId`, `priceSource`, `catalogPriceNet/Gross`, `purchasePriceNet/Gross`, `price`) pozostają jako pochodny/kompatybilny skrót dla listy, WYCENY i starszych danych. Nie traktować ich jako nowego źródła prawdy.
+- Formularz okuć ma sekcję `Ceny u dostawców`; dawny płaski `Dostawca / miejsce zakupu` i `Źródło ceny` nie powinny być dalej rozwijane jako ręczny model ceny.
+- XLSX ma arkusz `Okucia` jako produkt techniczny bez cen oraz arkusz `Ceny_dostawcow`, gdzie jeden wiersz to aktualna cena danego okucia u danego dostawcy. Nie dodawać dynamicznych kolumn per dostawca ani osobnego arkusza dla każdego dostawcy.
+- W Excelu użytkownik może duplikować wiersz w `Ceny_dostawcow` i zmienić tylko dostawcę oraz cenę; importer dopasowuje po `okucie + dostawca`, nie wymaga ręcznego `id_ceny`.
+- Ten etap nie tworzy jeszcze snapshotów WYCENY, listy zakupów po akceptacji ani raportu plan vs rzeczywisty zakup.
+- Moduły: `hardware-catalog-supplier-price-xlsx.js` obsługuje arkusz cen dostawców, `price-modal-hardware-supplier-prices.js` obsługuje UI cen dostawców.
+- Raport: `tools/reports/hardware-supplier-prices-v1.md`.
 
 
 ## Hardware catalog UX v1 — 2026-05-10

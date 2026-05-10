@@ -10,29 +10,13 @@
 
   const ACCESSORY_COLUMNS = [
     ['nazwa','name'],
-    ['cena_netto','catalogPriceNet'],
-    ['cena_brutto','catalogPriceGross'],
     ['jednostka','hardwareUnit'],
     ['producent','manufacturer'],
     ['kategoria','hardwareCategory'],
     ['symbol','symbol'],
-    ['dostawca_id','supplierId'],
-    ['rabat_dostawcy_proc','supplierDiscountPercent'],
-    ['narzut_proc','markupPercent'],
     ['status','status'],
-    ['zrodlo_ceny','priceSource'],
-    ['data_ceny','priceUpdatedAt'],
-    ['vat_proc','vatRate'],
-    ['baza_wyceny','quoteBase'],
-    ['sposob_liczenia','pricingMode'],
-    ['tryb_ceny_zestawu','bundleCostMode'],
     ['seria','series'],
-    ['zakup_netto','purchasePriceNet'],
-    ['zakup_brutto','purchasePriceGross'],
-    ['cena_do_wyceny_netto','quotePriceNet'],
-    ['cena_do_wyceny_brutto','price'],
-    ['marza_brutto_podglad','marginGrossPreview'],
-    ['marza_proc_podglad','marginPercentPreview'],
+    ['tryb_ceny_zestawu','bundleCostMode'],
     ['notatka','note'],
     ['id','id'],
   ];
@@ -126,50 +110,13 @@
     else downloadBlob(name, new Blob([JSON.stringify(payload, null, 2)], { type:'application/json;charset=utf-8' }));
   }
   function valueForColumn(obj, key){ return obj && obj[key] != null ? obj[key] : ''; }
-  function formulaCell(formula){ return { formula }; }
-  function calcCells(rowNo){
-    const net = `${columnFor('catalogPriceNet')}${rowNo}`;
-    const gross = `${columnFor('catalogPriceGross')}${rowNo}`;
-    const vat = `${columnFor('vatRate')}${rowNo}`;
-    const discount = `${columnFor('supplierDiscountPercent')}${rowNo}`;
-    const markup = `${columnFor('markupPercent')}${rowNo}`;
-    const quoteBase = `${columnFor('quoteBase')}${rowNo}`;
-    const pricingMode = `${columnFor('pricingMode')}${rowNo}`;
-    const purchaseNet = `${columnFor('purchasePriceNet')}${rowNo}`;
-    const purchaseGross = `${columnFor('purchasePriceGross')}${rowNo}`;
-    const quoteGross = `${columnFor('price')}${rowNo}`;
-    const effectiveNet = `IF(${net}<>"",${net},IF(${gross}<>"",ROUND(${gross}/(1+${vat}/100),2),""))`;
-    const effectiveGross = `IF(${gross}<>"",${gross},IF(${net}<>"",ROUND(${net}*(1+${vat}/100),2),""))`;
-    return {
-      purchasePriceNet:formulaCell(`IF(${effectiveNet}="","",ROUND((${effectiveNet})*(1-${discount}/100),2))`),
-      purchasePriceGross:formulaCell(`IF(${effectiveGross}="","",ROUND((${effectiveGross})*(1-${discount}/100),2))`),
-      price:formulaCell(`IF(${pricingMode}="manualPrice","",IF(${quoteBase}="purchaseGross",IF(${purchaseGross}="","",ROUND(${purchaseGross}*(1+${markup}/100),2)),IF(${quoteBase}="manualGross","",IF(${effectiveGross}="","",ROUND((${effectiveGross})*(1+${markup}/100),2)))))`),
-      quotePriceNet:formulaCell(`IF(${quoteGross}="","",ROUND(${quoteGross}/(1+${vat}/100),2))`),
-      marginGrossPreview:formulaCell(`IF(OR(${quoteGross}="",${purchaseGross}=""),"",ROUND(${quoteGross}-${purchaseGross},2))`),
-      marginPercentPreview:formulaCell(`IF(OR(${quoteGross}="",${purchaseGross}="",${quoteGross}=0),"",ROUND((${quoteGross}-${purchaseGross})/${quoteGross}*100,2))`),
-    };
+  function isEmptyExportRow(obj){ return !(obj && (text(obj.id) || text(obj.name) || text(obj.manufacturer) || text(obj.symbol))); }
+  function defaultExportValues(_snap){
+    return { status:'active', hardwareUnit:'szt.', hardwareCategory:'Zawiasy', bundleCostMode:'ownPrice' };
   }
-  function isEmptyExportRow(obj){ return !(obj && (text(obj.id) || text(obj.name) || text(obj.manufacturer) || text(obj.symbol) || number(obj.catalogPriceGross) > 0 || number(obj.catalogPriceNet) > 0)); }
-  function defaultExportValues(snap){
-    const settings = normalizeSettings(snap && snap.settings || {});
-    const suppliers = Array.isArray(snap && snap.suppliers) ? snap.suppliers : [];
-    const supplier = suppliers.find((row)=> text(row && row.id) === text(settings.defaultSupplierId)) || {};
-    return {
-      status:'active',
-      supplierId:settings.defaultSupplierId || '',
-      supplierDiscountPercent:number(supplier.defaultDiscountPercent),
-      markupPercent:settings.defaultMarkupPercent,
-      vatRate:settings.defaultVatRate,
-      quoteBase:settings.defaultQuoteBase,
-      pricingMode:settings.defaultPricingMode,
-      bundleCostMode:'ownPrice',
-      priceSource:'Import Excel',
-    };
-  }
-  function accessoryRow(obj, rowNo, snap){
-    const calc = calcCells(rowNo);
+  function accessoryRow(obj, _rowNo, snap){
     const source = isEmptyExportRow(obj) ? defaultExportValues(snap || {}) : obj || {};
-    return ACCESSORY_COLUMNS.map((pair)=> Object.prototype.hasOwnProperty.call(calc, pair[1]) ? calc[pair[1]] : valueForColumn(source, pair[1]));
+    return ACCESSORY_COLUMNS.map((pair)=> valueForColumn(source, pair[1]));
   }
   function buildAccessoryRows(accessories, snap){
     const rows = [ACCESSORY_COLUMNS.map((pair)=> pair[0])];
@@ -216,26 +163,18 @@
     add('zrodlo_ceny', Array.from(new Set(PRICE_SOURCE_OPTIONS.concat((snap.accessories || []).map((row)=> text(row && row.priceSource)).filter(Boolean)))));
     return rows;
   }
-  function accessoryValidations(snap){
+  function accessoryValidations(_snap){
     const rowEnd = TEMPLATE_ROWS + 1;
     const statuses = optionValues(hw().STATUSES, [{ value:'active' }, { value:'hidden' }, { value:'archived' }]);
     const categories = optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
     const units = optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
-    const bases = optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]);
-    const modes = optionValues(hw().PRICING_MODES, [{ value:'markup' }, { value:'manualPrice' }]);
     const bundleModes = optionValues(hw().BUNDLE_COST_MODES, [{ value:'ownPrice' }, { value:'components' }]);
-    const sources = Array.from(new Set(PRICE_SOURCE_OPTIONS.concat((snap.accessories || []).map((row)=> text(row && row.priceSource)).filter(Boolean))));
     const range = (prop)=> `${columnFor(prop)}2:${columnFor(prop)}${rowEnd}`;
     return [
       { sqref:range('hardwareUnit'), formula1:listFormula(units) },
       { sqref:range('manufacturer'), formula1:`Producenci!$A$2:$A$500` },
       { sqref:range('hardwareCategory'), formula1:listFormula(categories) },
-      { sqref:range('supplierId'), formula1:`Dostawcy!$A$2:$A$500` },
       { sqref:range('status'), formula1:listFormula(statuses) },
-      { sqref:range('priceSource'), formula1:listFormula(sources) },
-      { sqref:range('vatRate'), formula1:'"23,8,0"' },
-      { sqref:range('quoteBase'), formula1:listFormula(bases) },
-      { sqref:range('pricingMode'), formula1:listFormula(modes) },
       { sqref:range('bundleCostMode'), formula1:listFormula(bundleModes) },
     ];
   }
@@ -243,7 +182,8 @@
     if(!(FC.xlsxLite && typeof FC.xlsxLite.makeWorkbookBlob === 'function')) throw new Error('Brak modułu XLSX.');
     const snap = getSnapshot();
     const blob = FC.xlsxLite.makeWorkbookBlob({
-      Okucia:{ rows:buildAccessoryRows(snap.accessories, snap), validations:accessoryValidations(snap), freezeTopRow:true, widths:[36,14,14,12,18,24,18,18,18,12,12,16,14,10,20,18,22,18,16,16,20,20,18,18,28,24] },
+      Okucia:{ rows:buildAccessoryRows(snap.accessories, snap), validations:accessoryValidations(snap), freezeTopRow:true, widths:[36,12,18,24,18,12,18,22,28,24] },
+      Ceny_dostawcow:{ rows:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows ? FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows(snap.accessories, snap.suppliers) : [['okucie_nazwa','okucie_symbol','dostawca','cena_netto','cena_brutto','do_wyceny','data_ceny','okucie_id','dostawca_id']]), validations:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.supplierPriceValidations ? FC.hardwareSupplierPriceXlsx.supplierPriceValidations() : []), freezeTopRow:true, widths:[36,18,28,14,14,12,14,24,20] },
       Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[34,34,10,18,18,16,20,24,24,24] },
       Dostawcy:{ rows:buildSupplierRows(snap.suppliers), freezeTopRow:true, widths:[20,28,20,18,12] },
       Producenci:{ rows:buildManufacturerRows(snap.manufacturers), freezeTopRow:true, widths:[24] },
@@ -305,6 +245,7 @@
     const manufacturers = rowsToObjects(sheet('Producenci')).map((row)=> text(valueFrom(row, ['nazwa','name','producent']))).filter(Boolean);
     const settings = {};
     rowsToObjects(sheet('Ustawienia')).forEach((row)=>{ const key = text(valueFrom(row, ['klucz','key'])); if(key) settings[key] = valueFrom(row, ['wartosc','value']); });
+    const supplierPriceRows = rowsToObjects(sheet('Ceny_dostawcow'));
     const bundleRows = rowsToObjects(sheet('Sklad_zestawow')).map((row)=>({
       bundleId:text(valueFrom(row, ['zestaw_id','bundleId'])),
       bundleSymbol:text(valueFrom(row, ['zestaw_symbol','bundleSymbol'])),
@@ -317,7 +258,7 @@
       itemCategory:text(valueFrom(row, ['kategoria_skladnika','itemCategory'])),
       qty:number(valueFrom(row, ['ilosc','qty']))
     })).filter((row)=> row.qty > 0 && (row.bundleId || row.bundleName || row.itemId || row.itemName));
-    return { accessories, manufacturers, suppliers, settings, bundleRows };
+    return { accessories, manufacturers, suppliers, settings, bundleRows, supplierPriceRows };
   }
   function parseJson(raw){
     const payload = JSON.parse(raw);
@@ -337,7 +278,6 @@
     const gaps = [];
     if(src && src.__skipImport) return gaps;
     if(!text(src && src.name)) gaps.push('name');
-    if(!accessoryHasPrice(src)) gaps.push('price');
     if(!text(src && src.manufacturer)) gaps.push('manufacturer');
     if(!text(src && src.hardwareCategory)) gaps.push('hardwareCategory');
     if(!text(src && src.hardwareUnit)) gaps.push('hardwareUnit');
@@ -453,9 +393,16 @@
     const updateCount = importedAccessories.rows.filter((row)=> existingById.has(text(row && row.id))).length;
     const addCount = importedAccessories.rows.length - updateCount;
     const removeCount = mode === 'replace' ? existing.filter((row)=> !importedIds.has(text(row && row.id))).length : 0;
-    const nextAccessories = mode === 'replace' ? importedAccessories.rows : existing.map((row)=> importedIds.has(text(row && row.id)) ? importedAccessories.rows.find((item)=> text(item.id) === text(row.id)) : row).concat(importedAccessories.rows.filter((row)=> !existingById.has(text(row.id))));
+    let nextAccessories = mode === 'replace' ? importedAccessories.rows : existing.map((row)=> importedIds.has(text(row && row.id)) ? importedAccessories.rows.find((item)=> text(item.id) === text(row.id)) : row).concat(importedAccessories.rows.filter((row)=> !existingById.has(text(row.id))));
+    let supplierPriceSummary = { touchedIds:[], rows:0 };
+    if(FC.hardwareSupplierPriceXlsx && typeof FC.hardwareSupplierPriceXlsx.applySupplierPriceRows === 'function'){
+      supplierPriceSummary = FC.hardwareSupplierPriceXlsx.applySupplierPriceRows(nextAccessories, data && data.supplierPriceRows, suppliers, warnings) || supplierPriceSummary;
+      const settingsForNormalize = Object.assign({}, importedSettings, { hardwareSuppliers:suppliers });
+      nextAccessories = nextAccessories.map((row)=> normalizeAccessory(row, settingsForNormalize));
+    }
+    const touchedExisting = (supplierPriceSummary.touchedIds || []).filter((id)=> existingById.has(text(id)) && !importedIds.has(text(id))).length;
     const manufacturers = normalizeManufacturers((Array.isArray(data && data.manufacturers) ? data.manufacturers : []).concat(nextAccessories.map((row)=> row.manufacturer)));
-    return { mode, errors, warnings, next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings }, summary:{ imported:importedAccessories.rows.length, added:addCount, updated:updateCount, removed:removeCount, suppliers:suppliers.length, manufacturers:manufacturers.length } };
+    return { mode, errors, warnings, next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings }, summary:{ imported:importedAccessories.rows.length, added:addCount, updated:updateCount + touchedExisting, removed:removeCount, suppliers:suppliers.length, manufacturers:manufacturers.length, supplierPrices:supplierPriceSummary.rows || 0 } };
   }
   function applyImportPlan(plan){
     const s = store();

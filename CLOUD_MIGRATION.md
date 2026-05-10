@@ -41,6 +41,18 @@ Małe lokalne poprawki cloud-ready robić od razu, jeśli nie zmieniają UI ani 
 - Import XLSX nadal zapisuje przez `catalogStore` do wersjonowanych kluczy `fc_*`; nie dodano nowych luźnych kluczy localStorage.
 - Tryb importu w UI jest wyborem przed zapisem, a nie osobną akcją zapisującą dane. To ogranicza przypadkowe zastąpienie katalogu przy przyszłej synchronizacji/chmurze.
 
+
+## Hardware price sources, quote snapshot i zakupy — plan przyszły — 2026-05-10
+
+- Docelowy model okuć nie powinien trzymać jednej płaskiej ceny jako jedynej prawdy. Pozycja katalogowa ma być produktem technicznym, a ceny u dostawców osobnymi rekordami powiązanymi z tym produktem.
+- Przykładowe przyszłe kolekcje/namespace'y chmurowe: `hardwareItems`, `hardwareSupplierPrices`, `quoteHardwareSnapshots`, `projectHardwarePurchases`. Lokalny etap przejściowy musi nadal używać wersjonowanych kluczy `fc_*` i istniejącego store/repository boundary.
+- `hardwareSupplierPrices` powinno trzymać m.in. dostawcę/źródło, cenę netto/brutto, VAT, rabat, datę ceny, status aktualności, notatkę i informację czy cena nadaje się do wyceny.
+- WYCENA nie może zależeć od późniejszej aktualnej ceny w katalogu. Przy generowaniu oferty trzeba zapisać snapshot: okucie, ilość, cena użyta do wyceny, źródło ceny, data, narzut/cena dla klienta oraz ewentualny koszt planowany.
+- Domyślna cena do oferty może wynikać z kolejności źródeł, np. lokalna hurtownia → Bivert → MAGO → ręcznie/do sprawdzenia. Ta reguła ma służyć wycenie, nie automatycznemu finalnemu zakupowi.
+- Po akceptacji oferty ma powstawać lista zakupów jako osobny etap procesu: system może sugerować najtańsze lub logistycznie najrozsądniejsze źródło zakupu, ale użytkownik zatwierdza gdzie faktycznie kupuje i za ile.
+- Raport rentowności ma rozdzielać: koszt przyjęty w ofercie, sugerowany koszt zakupu, rzeczywisty koszt zakupu i różnicę zakupową. Ta różnica nie powinna automatycznie zmieniać zaakceptowanej oferty klienta.
+- Przy przyszłej chmurze trzeba zachować historię: zmiana cennika/dostawcy nie może przepisać historycznych ofert, list zakupów ani faktycznych kosztów projektu.
+
 ## Podział danych docelowo
 
 ### Dane użytkownika — docelowo do chmury
@@ -506,3 +518,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Import katalogu okuć nadal pozostaje lokalnym boundary danych katalogowych, ale odczyt pliku wejściowego musi być wykonywany natychmiast po wyborze pliku.
 - Parser i resolver braków obowiązkowych nie powinny przenosić dalej żywej referencji `File`; mają pracować na snapshocie danych w pamięci, co ułatwia późniejsze przepięcie importu na chmurę lub kolejkę synchronizacji bez zależności od systemowego uchwytu pliku.
 
+
+## Hardware supplier prices v1 — 2026-05-10
+
+- Wiele cen dostawców jest teraz częścią rekordu okucia w `fc_accessories_v1` jako `supplierPrices`; to pozostaje w lokalnym adapterze katalogu i nie dodaje nowego niebackupowanego klucza.
+- Cloud-ready model: w Firestore `supplierPrices` może zostać tablicą przy pozycji katalogu albo podkolekcją `supplierPrices` pod `hardware/items/{itemId}`. Klucz logiczny dla bieżącej ceny to `item + supplier`, a nie ręcznie zarządzane `priceId` w Excelu.
+- W katalogu żywym nie utrwalać wartości łatwo wyliczalnych z dostawcy, takich jak VAT/rabat/zakup po rabacie, poza pochodnymi legacy polami kompatybilności. Źródłem prawdy ceny dostawcy jest cena katalogowa netto/brutto, dostawca, data i `useForQuote`.
+- Snapshot WYCENY w przyszłym etapie musi zapisać pełne wartości użyte w ofercie: dostawcę ceny, VAT/rabat z dnia wyceny, zakup po rabacie i cenę do wyceny. Nie wolno później przeliczać starej oferty z aktualnego katalogu.
+- Import XLSX `Ceny_dostawcow` ma być idempotentny po `okucie + dostawca`: duplikowanie wiersza i zmiana dostawcy/ceny tworzy albo aktualizuje cenę tego dostawcy bez wymagania ręcznego `id_ceny`.

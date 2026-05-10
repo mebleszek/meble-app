@@ -197,24 +197,30 @@ function runMaterialNodeSmoke(sandbox){
         && listSrc.includes('renderHardwareQuickFilters') && listSrc.includes('renderHardwareAccessoryRow')
         && css.includes('.hardware-price-row') && css.includes('.hardware-quick-filters');
     } },
-    { name:'Eksport XLSX okuć ma formuły i listy wyboru', explain:'Chroni Excel jako roboczy szablon cennika: pola liczone mają formuły, a wybieralne pola mają data validation.', check:()=> {
+    { name:'Eksport XLSX okuć ma arkusz cen dostawców i listy wyboru', explain:'Chroni model wielu cen: Okucia trzymają produkt techniczny, a Ceny_dostawcow pozwala duplikować wiersze i zmieniać dostawcę/cenę bez ręcznego ID ceny.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
+      const supplierXlsx = FC.hardwareSupplierPriceXlsx;
       const xlsx = FC.xlsxLite;
       if(!(api && api._debug && typeof api._debug.buildAccessoryRows === 'function' && typeof api._debug.accessoryValidations === 'function')) return false;
+      if(!(supplierXlsx && typeof supplierXlsx.buildSupplierPriceRows === 'function' && typeof supplierXlsx.supplierPriceValidations === 'function')) return false;
       if(!(xlsx && xlsx._debug && typeof xlsx._debug.validationsXml === 'function')) return false;
-      const rows = api._debug.buildAccessoryRows([{ id:'hw_test_xlsx', status:'active', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', vatRate:23, catalogPriceGross:100, supplierDiscountPercent:10, quoteBase:'catalogGross', pricingMode:'markup', markupPercent:20, bundleCostMode:'ownPrice' }]);
-      const validations = api._debug.accessoryValidations({ accessories:[], manufacturers:['Blum'], suppliers:[] });
-      const validationXml = xlsx._debug.validationsXml(validations);
+      const rows = api._debug.buildAccessoryRows([{ id:'hw_test_xlsx', status:'active', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', bundleCostMode:'ownPrice' }]);
+      const priceRows = supplierXlsx.buildSupplierPriceRows([{ id:'hw_test_xlsx', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', supplierPrices:[{ supplierId:'bivert', catalogPriceNet:10, catalogPriceGross:12.3, useForQuote:true, priceDate:'2026-05-10' }] }], [{ id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+      const validationXml = xlsx._debug.validationsXml(supplierXlsx.supplierPriceValidations());
       const headers = rows[0] || [];
+      const priceHeaders = priceRows[0] || [];
       return rows.length >= 200
         && headers[0] === 'nazwa'
         && headers[headers.length - 1] === 'id'
-        && rows[1][18] && String(rows[1][18].formula || '').includes('ROUND((IF(B2<>')
-        && rows[1][21] && String(rows[1][21].formula || '').includes('manualPrice')
-        && validationXml.includes('D2:D221')
-        && validationXml.includes('E2:E221')
-        && validationXml.includes('F2:F221')
-        && validationXml.includes('Producenci!$A$2:$A$500')
+        && priceHeaders[0] === 'okucie_nazwa'
+        && priceHeaders[2] === 'dostawca'
+        && priceHeaders[priceHeaders.length - 2] === 'okucie_id'
+        && priceHeaders[priceHeaders.length - 1] === 'dostawca_id'
+        && priceRows[1][0] === 'Test XLSX'
+        && priceRows[1][2] === 'Bivert'
+        && priceRows[1][5] === 'TAK'
+        && validationXml.includes('C2:C261')
+        && validationXml.includes('F2:F261')
         && !validationXml.includes('para');
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {

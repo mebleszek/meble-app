@@ -109,6 +109,74 @@
   function grossToNet(value, vat){ const div = 1 + number(vat) / 100; return div ? round2(number(value) / div) : round2(number(value)); }
   function calcDiscountedGross(catalogGross, discount){ return round2(number(catalogGross) * (1 - number(discount) / 100)); }
   function calcDiscountedNet(catalogNet, discount){ return round2(number(catalogNet) * (1 - number(discount) / 100)); }
+  function supplierPriceHasCatalogPrice(row){
+    return number(row && row.catalogPriceNet) > 0 || number(row && row.catalogPriceGross) > 0;
+  }
+  function supplierFromList(suppliers, supplierId){
+    const key = text(supplierId).toLowerCase();
+    return (Array.isArray(suppliers) ? suppliers : []).find((row)=> text(row && row.id).toLowerCase() === key || text(row && row.name).toLowerCase() === key) || null;
+  }
+  function normalizeSupplierPrice(row, suppliers, fallbackSupplierId){
+    const src = row && typeof row === 'object' ? row : {};
+    const resolved = supplierFromList(suppliers, src.supplierId || src.dostawca_id || src.supplierName || src.dostawca) || null;
+    const supplierId = text(resolved && resolved.id) || text(src.supplierId || src.dostawca_id || src.supplierName || src.dostawca) || text(fallbackSupplierId);
+    if(!supplierId) return null;
+    const rawNet = src.catalogPriceNet != null ? src.catalogPriceNet : (src.cena_netto != null ? src.cena_netto : src.net);
+    const rawGross = src.catalogPriceGross != null ? src.catalogPriceGross : (src.cena_brutto != null ? src.cena_brutto : src.gross);
+    const catalogPriceNet = number(rawNet);
+    const catalogPriceGross = number(rawGross);
+    const entered = text(src.enteredPriceType || src.entered_price_type || src.priceType || src.typ_ceny);
+    return {
+      supplierId,
+      catalogPriceNet,
+      catalogPriceGross,
+      enteredPriceType:entered || (text(rawNet) ? 'net' : (text(rawGross) ? 'gross' : '')),
+      priceDate:text(src.priceDate || src.priceUpdatedAt || src.data_ceny || src.date),
+      useForQuote:src.useForQuote === true || ['tak','true','1','yes','y'].includes(text(src.useForQuote != null ? src.useForQuote : src.do_wyceny).toLowerCase()),
+    };
+  }
+  function normalizeSupplierPrices(list, legacy, suppliers, settings){
+    const cfg = normalizeSettings(settings || {});
+    const source = legacy && typeof legacy === 'object' ? legacy : {};
+    const supplierList = normalizeSupplierList(Array.isArray(suppliers) ? suppliers : []);
+    const rows = [];
+    (Array.isArray(list) ? list : []).forEach((row)=>{
+      const normalized = normalizeSupplierPrice(row, supplierList, source.supplierId || cfg.defaultSupplierId);
+      if(normalized && (supplierPriceHasCatalogPrice(normalized) || normalized.useForQuote)) rows.push(normalized);
+    });
+    if(!rows.length){
+      const legacyNet = source.catalogPriceNet;
+      const legacyGross = source.catalogPriceGross != null ? source.catalogPriceGross : (source.purchaseCatalogGross != null ? source.purchaseCatalogGross : source.catalogPrice);
+      if(number(legacyNet) > 0 || number(legacyGross) > 0){
+        const legacyRow = normalizeSupplierPrice({
+          supplierId:source.supplierId || cfg.defaultSupplierId,
+          catalogPriceNet:legacyNet,
+          catalogPriceGross:legacyGross,
+          priceDate:source.priceUpdatedAt,
+          useForQuote:true,
+          enteredPriceType:text(legacyNet) ? 'net' : 'gross'
+        }, supplierList, cfg.defaultSupplierId);
+        if(legacyRow) rows.push(legacyRow);
+      }
+    }
+    const bySupplier = new Map();
+    rows.forEach((row)=>{
+      const key = text(row && row.supplierId).toLowerCase();
+      if(!key) return;
+      bySupplier.set(key, Object.assign({}, bySupplier.get(key) || {}, row));
+    });
+    const out = Array.from(bySupplier.values());
+    let quoteIndex = -1;
+    out.forEach((row, index)=>{ if(row.useForQuote) quoteIndex = index; });
+    if(quoteIndex < 0 && out.length === 1 && supplierPriceHasCatalogPrice(out[0])) quoteIndex = 0;
+    if(quoteIndex < 0 && text(source.supplierId)) quoteIndex = out.findIndex((row)=> text(row.supplierId) === text(source.supplierId));
+    out.forEach((row, index)=>{ row.useForQuote = index === quoteIndex && quoteIndex >= 0; });
+    return out;
+  }
+  function getQuoteSupplierPrice(list){
+    const rows = Array.isArray(list) ? list : [];
+    return rows.find((row)=> row && row.useForQuote && supplierPriceHasCatalogPrice(row)) || rows.find((row)=> row && row.useForQuote) || rows.find(supplierPriceHasCatalogPrice) || rows[0] || null;
+  }
   function baseGrossFor(src){
     const quoteBase = normalizeQuoteBase(src && src.quoteBase);
     if(quoteBase === 'purchaseGross') return number(src && src.purchasePriceGross);
@@ -177,13 +245,20 @@
   function normalizeAccessory(row, uidFn, settings){
     const src = row && typeof row === 'object' ? row : {};
     const cfg = normalizeSettings(settings || {});
+    const supplierList = normalizeSupplierList(Array.isArray(settings && settings.hardwareSuppliers) ? settings.hardwareSuppliers : (Array.isArray(settings && settings.suppliers) ? settings.suppliers : []));
     const uid = typeof uidFn === 'function' ? uidFn : ((prefix)=> `${prefix}_${Date.now()}`);
-    const vatRate = number(src.vatRate) || cfg.defaultVatRate;
-    const catalogPriceGross = number(src.catalogPriceGross != null ? src.catalogPriceGross : (src.purchaseCatalogGross != null ? src.purchaseCatalogGross : src.catalogPrice));
-    const catalogPriceNet = number(src.catalogPriceNet != null ? src.catalogPriceNet : (catalogPriceGross > 0 ? grossToNet(catalogPriceGross, vatRate) : 0));
-    const discountPercent = number(src.supplierDiscountPercent != null ? src.supplierDiscountPercent : src.discountPercent);
-    const purchaseGross = number(src.purchasePriceGross != null ? src.purchasePriceGross : (src.purchasePrice != null ? src.purchasePrice : calcDiscountedGross(catalogPriceGross, discountPercent)));
-    const purchaseNet = number(src.purchasePriceNet != null ? src.purchasePriceNet : (purchaseGross > 0 ? grossToNet(purchaseGross, vatRate) : calcDiscountedNet(catalogPriceNet, discountPercent)));
+    const supplierPrices = normalizeSupplierPrices(src.supplierPrices, src, supplierList, cfg);
+    const quoteSupplierPrice = getQuoteSupplierPrice(supplierPrices) || {};
+    const supplierId = text(quoteSupplierPrice.supplierId || src.supplierId) || cfg.defaultSupplierId;
+    const supplier = supplierFromList(supplierList, supplierId) || {};
+    const vatRate = number(src.vatRate) || number(supplier.defaultVatRate) || cfg.defaultVatRate;
+    const catalogPriceGross = number(quoteSupplierPrice.catalogPriceGross != null ? quoteSupplierPrice.catalogPriceGross : (src.catalogPriceGross != null ? src.catalogPriceGross : (src.purchaseCatalogGross != null ? src.purchaseCatalogGross : src.catalogPrice)));
+    const catalogPriceNet = number(quoteSupplierPrice.catalogPriceNet != null ? quoteSupplierPrice.catalogPriceNet : (src.catalogPriceNet != null ? src.catalogPriceNet : (catalogPriceGross > 0 ? grossToNet(catalogPriceGross, vatRate) : 0)));
+    const normalizedCatalogGross = catalogPriceGross > 0 ? catalogPriceGross : (catalogPriceNet > 0 ? netToGross(catalogPriceNet, vatRate) : 0);
+    const normalizedCatalogNet = catalogPriceNet > 0 ? catalogPriceNet : (normalizedCatalogGross > 0 ? grossToNet(normalizedCatalogGross, vatRate) : 0);
+    const discountPercent = number(src.supplierDiscountPercent != null ? src.supplierDiscountPercent : (src.discountPercent != null ? src.discountPercent : supplier.defaultDiscountPercent));
+    const purchaseGross = calcDiscountedGross(normalizedCatalogGross, discountPercent);
+    const purchaseNet = calcDiscountedNet(normalizedCatalogNet, discountPercent);
     const quoteBase = normalizeQuoteBase(src.quoteBase || cfg.defaultQuoteBase);
     const pricingMode = normalizePricingMode(src.pricingMode || cfg.defaultPricingMode);
     const markupPercent = number(src.markupPercent != null ? src.markupPercent : cfg.defaultMarkupPercent);
@@ -191,8 +266,8 @@
     const baseDraft = {
       quoteBase,
       pricingMode,
-      catalogPriceGross,
-      catalogPriceNet,
+      catalogPriceGross:normalizedCatalogGross,
+      catalogPriceNet:normalizedCatalogNet,
       purchasePriceGross:purchaseGross,
       purchasePriceNet:purchaseNet,
       manualBaseGross:number(src.manualBaseGross),
@@ -202,7 +277,6 @@
     };
     const price = resolveQuotePrice(baseDraft);
     const quotePriceNet = number(src.quotePriceNet != null ? src.quotePriceNet : (price > 0 ? grossToNet(price, vatRate) : 0));
-    const supplierId = text(src.supplierId) || cfg.defaultSupplierId;
     return {
       id:text(src.id) || uid('a'),
       manufacturer:text(src.manufacturer),
@@ -213,10 +287,11 @@
       hardwareUnit:normalizeUnit(src.hardwareUnit || src.unit || 'szt.'),
       series:text(src.series),
       supplierId,
-      priceSource:text(src.priceSource || src.supplierName || supplierId),
+      priceSource:text(src.priceSource || src.supplierName || (supplier && supplier.name) || supplierId),
+      supplierPrices,
       vatRate,
-      catalogPriceNet,
-      catalogPriceGross,
+      catalogPriceNet:normalizedCatalogNet,
+      catalogPriceGross:normalizedCatalogGross,
       supplierDiscountPercent:discountPercent,
       purchasePriceNet:purchaseNet,
       purchasePriceGross:purchaseGross,
@@ -228,7 +303,7 @@
       quotePriceGross:price,
       marginGross:derivedMargin({ price, purchasePriceGross:purchaseGross }),
       effectiveMarkupPercent:derivedMarkupPercent(Object.assign({}, baseDraft, { price })),
-      priceUpdatedAt:text(src.priceUpdatedAt),
+      priceUpdatedAt:text(quoteSupplierPrice.priceDate || src.priceUpdatedAt),
       status:normalizeStatus(src.status),
       note:text(src.note),
       bundleCostMode:normalizeBundleCostMode(src.bundleCostMode),
@@ -284,6 +359,11 @@
     normalizePricingMode,
     normalizeBundleCostMode,
     normalizeBundleItems,
+    normalizeSupplierPrices,
+    normalizeSupplierPrice,
+    getQuoteSupplierPrice,
+    supplierPriceHasCatalogPrice,
+    supplierFromList,
     isBundleUnit,
     resolveQuotePrice,
     statusLabel,
