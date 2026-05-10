@@ -288,6 +288,15 @@ function runWycenaNodeSmoke(sandbox){
   return makeSingleGroupReport('WYCENA node smoke testy', 'Wycena ↔ Node smoke', [
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
+    { name:'Wycena core ma spójny świeży cache-busting', explain:'Chroni pierwsze odświeżenie po wdrożeniu przed mieszaniem starych i nowych modułów wycena-core*.', check:()=> {
+      const expected = '20260510_wycena_core_cache_fix_v1';
+      const files = ['index.html','dev_tests.html'];
+      const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
+      return files.every((file)=> {
+        const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
+        return scripts.every((script)=> html.includes(`js/app/wycena/${script}?v=${expected}`));
+      });
+    } },
     { name:'Wycena ma wewnętrzne rozbicie robocizny po szafkach', explain:'Pilnuje numerów szafek z WYWIADU i szczegółów kosztów robocizny tylko do podglądu wewnętrznego.', check:()=> !!(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectCabinetLabor === 'function' && FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderLaborSection === 'function') },
     { name:'WYCENA ma aplikacyjny picker czynności zamiast długiej listy pól ilości', explain:'Chroni ręczne dodawanie robocizny przez osobne okno wyboru.', check:()=> !!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function' && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function') },
     { name:'Zakładka CZYNNOŚCI przejmuje ręczne czynności i podgląd szafek', explain:'Chroni przed powrotem dodawania robocizny do opcji WYCENY.', check:()=> !!(FC.tabsCzynnosci && typeof FC.tabsCzynnosci.render === 'function' && typeof FC.tabsCzynnosci.buildCabinetRows === 'function' && FC.wycenaTabManualLabor && typeof FC.wycenaTabManualLabor.renderManualLaborEditor === 'function') },

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_prices_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_wycena_core_cache_fix_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_purchase_plan_notes_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -688,3 +688,12 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Smoke test `Eksport XLSX okuć ma formuły i listy wyboru` pilnuje formuł i walidacji w szablonie.
 - Raport: `tools/reports/hardware-excel-template-v1.md`.
 
+
+
+
+## Wycena core cache fix v1 — 2026-05-10
+
+- Po etapie wielu cen dostawców użytkownik zgłosił jednorazowy błąd pierwszego odświeżenia: `Brak modułów FC.wycenaCore*` przy `wycena-core.js?v=20260503_pricing_labor_rules_v1`, a drugi refresh działał.
+- Przyczyna najbardziej prawdopodobna: mieszanie starych skryptów WYCENY z nowymi po wdrożeniu przez niepodbite/stare query stringi dla całej grupy `wycena-core*`.
+- Naprawa: podbijać cache-busting spójnie dla wszystkich plików `js/app/wycena/wycena-core*.js` w `index.html` oraz `dev_tests.html`, nawet jeśli zmiana funkcjonalna dotyka innego działu, gdy błąd wskazuje na mieszanie wersji po deployu.
+- Nie zmieniano logiki WYCENY; to poprawka ładowania/cache, nie refaktor.
