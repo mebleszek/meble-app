@@ -34,6 +34,12 @@
   const DEFAULT_HARDWARE_SETTINGS = hardwareCatalog && hardwareCatalog.DEFAULT_SETTINGS
     ? hardwareCatalog.DEFAULT_SETTINGS
     : { defaultSupplierId:'bivert', defaultVatRate:23, defaultMarkupPercent:20, defaultQuoteBase:'catalogGross', defaultPricingMode:'markup' };
+  const DEFAULT_HARDWARE_CATEGORIES = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_CATEGORIES)
+    ? hardwareCatalog.DEFAULT_CATEGORIES.slice()
+    : ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'];
+  const DEFAULT_HARDWARE_TYPES = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_TYPES)
+    ? hardwareCatalog.DEFAULT_TYPES.slice()
+    : [];
   const DEFAULT_QUOTE_RATES = laborCatalog && Array.isArray(laborCatalog.DEFAULT_HOURLY_RATES)
     ? laborCatalog.DEFAULT_HOURLY_RATES.concat(laborCatalog.DEFAULT_LABOR_DEFINITIONS || [])
     : [
@@ -156,6 +162,20 @@
     return Object.assign({}, DEFAULT_HARDWARE_SETTINGS, settings || {});
   }
 
+  function normalizeHardwareCategories(list){
+    try{
+      if(hardwareCatalog && typeof hardwareCatalog.normalizeCategoryList === 'function') return hardwareCatalog.normalizeCategoryList(list);
+    }catch(_){ }
+    return Array.from(new Set((Array.isArray(list) ? list : []).concat(DEFAULT_HARDWARE_CATEGORIES).map(normalizeText).filter(Boolean)));
+  }
+
+  function normalizeHardwareTypes(list){
+    try{
+      if(hardwareCatalog && typeof hardwareCatalog.normalizeTypeList === 'function') return hardwareCatalog.normalizeTypeList(list);
+    }catch(_){ }
+    return Array.isArray(list) ? list : DEFAULT_HARDWARE_TYPES.slice();
+  }
+
 
   function normalizeServiceRow(row){
     const src = row && typeof row === 'object' ? row : {};
@@ -241,6 +261,8 @@
           storedHardwareManufacturers: readList('hardwareManufacturers', null),
           storedHardwareSuppliers: readList('hardwareSuppliers', null),
           storedHardwareSettings: readList('hardwareSettings', null),
+          storedHardwareCategories: readList('hardwareCategories', null),
+          storedHardwareTypes: readList('hardwareTypes', null),
           defaults: {
             sheetMaterials: DEFAULT_SHEET_MATERIALS,
             accessories: DEFAULT_ACCESSORIES,
@@ -250,6 +272,8 @@
             hardwareManufacturers: DEFAULT_HARDWARE_MANUFACTURERS,
             hardwareSuppliers: DEFAULT_HARDWARE_SUPPLIERS,
             hardwareSettings: DEFAULT_HARDWARE_SETTINGS,
+            hardwareCategories: DEFAULT_HARDWARE_CATEGORIES,
+            hardwareTypes: DEFAULT_HARDWARE_TYPES,
           },
           splitLegacyMaterials,
         })
@@ -262,12 +286,16 @@
           hardwareManufacturers: readList('hardwareManufacturers', DEFAULT_HARDWARE_MANUFACTURERS),
           hardwareSuppliers: readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS),
           hardwareSettings: readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS),
+          hardwareCategories: readList('hardwareCategories', DEFAULT_HARDWARE_CATEGORIES),
+          hardwareTypes: readList('hardwareTypes', DEFAULT_HARDWARE_TYPES),
         };
 
     const hardwareSettings = normalizeHardwareSettings(seeds.hardwareSettings || readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS));
+    const hardwareCategories = normalizeHardwareCategories(seeds.hardwareCategories || readList('hardwareCategories', DEFAULT_HARDWARE_CATEGORIES));
+    const hardwareTypes = normalizeHardwareTypes(seeds.hardwareTypes || readList('hardwareTypes', DEFAULT_HARDWARE_TYPES));
     const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
     const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
-    currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers });
+    currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers, hardwareCategories, hardwareTypes });
     const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessorySeedRows = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
       ? hardwareSeeds.mergeAccessorySeeds(seeds.accessories)
@@ -290,6 +318,8 @@
     writeList('hardwareManufacturers', hardwareManufacturers);
     writeList('hardwareSuppliers', hardwareSuppliers);
     writeList('hardwareSettings', hardwareSettings);
+    writeList('hardwareCategories', hardwareCategories);
+    writeList('hardwareTypes', hardwareTypes);
     try{
       if(serviceOrderStore && typeof serviceOrderStore.writeAll === 'function') serviceOrderStore.writeAll(serviceOrders);
       else writeList('serviceOrders', serviceOrders);
@@ -299,12 +329,12 @@
     writeList('materials', sheetMaterials);
     writeList('services', quoteRates);
 
-    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings };
+    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes };
     syncRuntimeGlobals();
-    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings };
+    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes };
   }
 
-  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS) };
+  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS), hardwareCategories:DEFAULT_HARDWARE_CATEGORIES.slice(), hardwareTypes:DEFAULT_HARDWARE_TYPES.slice() };
 
   function syncRuntimeGlobals(){
     try{ if(typeof materials !== 'undefined') materials = cache.sheetMaterials.slice(); }catch(_){ }
@@ -345,9 +375,21 @@
   function getHardwareSettings(){ return Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS); }
   function saveHardwareSettings(settings){
     cache.hardwareSettings = normalizeHardwareSettings(settings);
-    currentHardwareSettings = cache.hardwareSettings;
+    currentHardwareSettings = Object.assign({}, cache.hardwareSettings, { hardwareSuppliers:cache.hardwareSuppliers || [], hardwareCategories:cache.hardwareCategories || [], hardwareTypes:cache.hardwareTypes || [] });
     writeList('hardwareSettings', cache.hardwareSettings);
     return getHardwareSettings();
+  }
+  function getHardwareCategories(){ return (cache.hardwareCategories || []).slice(); }
+  function saveHardwareCategories(list){
+    cache.hardwareCategories = normalizeHardwareCategories(list);
+    writeList('hardwareCategories', cache.hardwareCategories);
+    return getHardwareCategories();
+  }
+  function getHardwareTypes(){ return (cache.hardwareTypes || []).map((row)=> Object.assign({}, row, { allowedCategories:Array.isArray(row && row.allowedCategories) ? row.allowedCategories.slice() : [] })); }
+  function saveHardwareTypes(list){
+    cache.hardwareTypes = normalizeHardwareTypes(list);
+    writeList('hardwareTypes', cache.hardwareTypes);
+    return getHardwareTypes();
   }
 
   function savePriceList(kind, list){
@@ -358,7 +400,7 @@
       writeList('materials', cache.sheetMaterials);
     }
     else if(key === 'accessories'){
-      currentHardwareSettings = Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS, { hardwareSuppliers:cache.hardwareSuppliers || [] });
+      currentHardwareSettings = Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS, { hardwareSuppliers:cache.hardwareSuppliers || [], hardwareCategories:cache.hardwareCategories || [], hardwareTypes:cache.hardwareTypes || [] });
       cache.accessories = normalizeList(list, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
       cache.hardwareManufacturers = normalizeHardwareManufacturers((cache.hardwareManufacturers || []).concat(cache.accessories.map((row)=> row && row.manufacturer)));
       writeList('accessories', cache.accessories);
@@ -430,6 +472,10 @@
     saveHardwareSuppliers,
     getHardwareSettings,
     saveHardwareSettings,
+    getHardwareCategories,
+    saveHardwareCategories,
+    getHardwareTypes,
+    saveHardwareTypes,
     getServiceOrders,
     saveServiceOrders,
     upsertServiceOrder,

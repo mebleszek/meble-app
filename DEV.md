@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_wycena_core_cache_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_purchase_plan_notes_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_price_status_types_v1.zip`.
+- Baza startowa tej paczki: `site_wycena_core_cache_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -697,3 +697,12 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Przyczyna najbardziej prawdopodobna: mieszanie starych skryptów WYCENY z nowymi po wdrożeniu przez niepodbite/stare query stringi dla całej grupy `wycena-core*`.
 - Naprawa: podbijać cache-busting spójnie dla wszystkich plików `js/app/wycena/wycena-core*.js` w `index.html` oraz `dev_tests.html`, nawet jeśli zmiana funkcjonalna dotyka innego działu, gdy błąd wskazuje na mieszanie wersji po deployu.
 - Nie zmieniano logiki WYCENY; to poprawka ładowania/cache, nie refaktor.
+
+## Hardware supplier price status/types v1 — 2026-05-11
+
+- Formularz okuć ma teraz model wielu cen dostawców z per-ceną: netto/brutto, data ceny, status ceny i dokładnie jeden wybór `Do wyceny` na okucie. Globalny widoczny `Status` okucia został usunięty z formularza; status ceny należy do konkretnego dostawcy.
+- `System / seria` przeniesiono do górnej części danych okucia, a w miejscu po globalnym statusie dodano `Typ / cecha`, używany później do zamiany producentów po parze `kategoria + typ`.
+- Kategorie okuć oraz typy/cechy są edytowalnymi słownikami w panelu `Słowniki`. Typ/cecha trzyma listę dozwolonych kategorii, a formularz okucia filtruje listę typów po wybranej kategorii.
+- Walidacja formularza blokuje duplikat `producent + kategoria + typ/cecha`, żeby późniejsza hurtowa zamiana producenta była jednoznaczna. Ten sam typ może występować u różnych producentów.
+- XLSX ma teraz arkusze `Kategorie_okuc`, `Typy_cechy` oraz `Ceny_dostawcow` ze statusem ceny. Nie wymagać od użytkownika ręcznego zarządzania ID ceny — bieżąca cena dostawcy dopasowuje się po okuciu i dostawcy.
+- Filtr globalnego statusu okucia został usunięty z okna filtrów okuć. Statusy cen obsługuje UI listy/quick-filtry oparte o cenę oznaczoną `Do wyceny`.

@@ -19,7 +19,26 @@
     defaultQuoteBase:'catalogGross',
     defaultPricingMode:'markup',
   };
-  const CATEGORIES = ['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Uchwyty / profile','Nóżki / cokoły','Systemy przesuwne','LED / elektryka','AGD / montażowe akcesoria','Drobnica','Inne'];
+  const DEFAULT_CATEGORIES = ['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Uchwyty / profile','Nóżki / cokoły','Systemy przesuwne','LED / elektryka','AGD / montażowe akcesoria','Drobnica','Inne'];
+  const CATEGORIES = DEFAULT_CATEGORIES;
+  const DEFAULT_TYPES = [
+    { id:'hinge_110_overlay', name:'110° nakładany', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_110_inset', name:'110° wpuszczany', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_155_zero', name:'155° zerowy uskok', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_170_corner', name:'170° narożny', allowedCategories:['Zawiasy'], active:true },
+    { id:'drawer_m', name:'Szuflada M', allowedCategories:['Szuflady / prowadnice'], active:true },
+    { id:'drawer_k', name:'Szuflada K', allowedCategories:['Szuflady / prowadnice'], active:true },
+    { id:'runner_l500', name:'Prowadnica L500', allowedCategories:['Szuflady / prowadnice'], active:true },
+    { id:'cargo_150', name:'Cargo 150', allowedCategories:['Cargo / organizery'], active:true },
+    { id:'cargo_200', name:'Cargo 200', allowedCategories:['Cargo / organizery'], active:true },
+    { id:'magic_corner', name:'Magic corner', allowedCategories:['Cargo / organizery'], active:true },
+  ];
+  const PRICE_STATUSES = [
+    { value:'current', label:'Aktualna' },
+    { value:'review', label:'Do sprawdzenia' },
+    { value:'old', label:'Stara' },
+    { value:'archived', label:'Archiwalna' },
+  ];
   const UNITS = ['szt.','kpl.','mb','m²','zestaw'];
   const BUNDLE_COST_MODES = [
     { value:'ownPrice', label:'Własna cena zestawu' },
@@ -64,6 +83,54 @@
     return out;
   }
   function normalizeManufacturerList(list){ return uniqueText((Array.isArray(list) ? list : []).concat(DEFAULT_MANUFACTURERS)); }
+  function normalizeCategoryList(list){ return uniqueText((Array.isArray(list) ? list : []).concat(DEFAULT_CATEGORIES)); }
+  function typeIdFromName(name){ return uidFromName(name || 'typ'); }
+  function normalizeTypeDefinition(row){
+    const src = row && typeof row === 'object' ? row : { name:row };
+    const name = text(src.name || src.label || src.value || src.id);
+    const id = text(src.id) || typeIdFromName(name);
+    const allowed = uniqueText(Array.isArray(src.allowedCategories) ? src.allowedCategories : (Array.isArray(src.categories) ? src.categories : (text(src.category) ? [src.category] : [])));
+    return { id, name:name || id, allowedCategories:allowed.length ? allowed : DEFAULT_CATEGORIES.slice(), active:src.active !== false };
+  }
+  function normalizeTypeList(list){
+    const seen = new Set();
+    const out = [];
+    (Array.isArray(list) ? list : []).concat(DEFAULT_TYPES).forEach((row)=>{
+      const item = normalizeTypeDefinition(row);
+      const key = text(item.id).toLowerCase();
+      if(!item.name || seen.has(key)) return;
+      seen.add(key); out.push(item);
+    });
+    return out;
+  }
+  function normalizePriceStatus(value){
+    const raw = text(value) || 'current';
+    if(PRICE_STATUSES.some((item)=> item.value === raw)) return raw;
+    const lower = raw.toLowerCase();
+    if(['aktualna','aktualne','current','active'].includes(lower)) return 'current';
+    if(['do sprawdzenia','sprawdzic','review'].includes(lower)) return 'review';
+    if(['stara','stare','old'].includes(lower)) return 'old';
+    if(['archiwalna','archiwalne','archived'].includes(lower)) return 'archived';
+    return 'current';
+  }
+  function priceStatusOptions(){ return clone(PRICE_STATUSES); }
+  function typeOptions(list, category, selected){
+    const cat = text(category);
+    const opts = [];
+    normalizeTypeList(list || []).forEach((row)=>{
+      const allowed = Array.isArray(row.allowedCategories) ? row.allowedCategories.map(text) : [];
+      if(row.active === false) return;
+      if(cat && allowed.length && !allowed.includes(cat) && text(row.name) !== text(selected)) return;
+      opts.push({ value:row.name, label:row.name });
+    });
+    if(selected && !opts.some((opt)=> text(opt.value) === text(selected))) opts.push({ value:text(selected), label:text(selected) });
+    return opts;
+  }
+  function uniqueTypeConflict(list, candidate, currentId){
+    const c = candidate || {}; const key = [text(c.manufacturer).toLowerCase(), text(c.hardwareCategory).toLowerCase(), text(c.hardwareType).toLowerCase()].join('|');
+    if(!text(c.manufacturer) || !text(c.hardwareCategory) || !text(c.hardwareType)) return null;
+    return (Array.isArray(list) ? list : []).find((row)=> text(row && row.id) !== text(currentId) && [text(row && row.manufacturer).toLowerCase(), text(row && row.hardwareCategory).toLowerCase(), text(row && row.hardwareType).toLowerCase()].join('|') === key) || null;
+  }
   function normalizeStatus(value){
     const raw = text(value) || 'active';
     return STATUSES.some((item)=> item.value === raw) ? raw : 'active';
@@ -132,6 +199,7 @@
       catalogPriceGross,
       enteredPriceType:entered || (text(rawNet) ? 'net' : (text(rawGross) ? 'gross' : '')),
       priceDate:text(src.priceDate || src.priceUpdatedAt || src.data_ceny || src.date),
+      priceStatus:normalizePriceStatus(src.priceStatus || src.status_ceny || src.statusCeny || src.status),
       useForQuote:src.useForQuote === true || ['tak','true','1','yes','y'].includes(text(src.useForQuote != null ? src.useForQuote : src.do_wyceny).toLowerCase()),
     };
   }
@@ -284,6 +352,7 @@
       name:text(src.name),
       price,
       hardwareCategory:normalizeCategory(src.hardwareCategory || src.category || ''),
+      hardwareType:text(src.hardwareType || src.typeFeature || src.typ_cecha || src.typ || ''),
       hardwareUnit:normalizeUnit(src.hardwareUnit || src.unit || 'szt.'),
       series:text(src.series),
       supplierId,
@@ -304,6 +373,7 @@
       marginGross:derivedMargin({ price, purchasePriceGross:purchaseGross }),
       effectiveMarkupPercent:derivedMarkupPercent(Object.assign({}, baseDraft, { price })),
       priceUpdatedAt:text(quoteSupplierPrice.priceDate || src.priceUpdatedAt),
+      priceStatus:normalizePriceStatus(quoteSupplierPrice.priceStatus || src.priceStatus || src.status_ceny),
       status:normalizeStatus(src.status),
       note:text(src.note),
       bundleCostMode:normalizeBundleCostMode(src.bundleCostMode),

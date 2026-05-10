@@ -357,3 +357,53 @@
   #priceItemModal .hardware-supplier-price-grid{ grid-template-columns:1fr; }
   #priceItemModal .hardware-supplier-price-card__top{ align-items:flex-start; flex-direction:column; }
 }
+
+/* 2026-05-10 — katalog okuć: kompaktowe pola, status ceny per dostawca i słowniki typów. */
+#priceItemModal .investor-form-input,
+#priceItemModal .investor-choice-launch,
+#priceItemModal .price-labor-choice-launch{
+  min-height:38px;
+  height:38px;
+  padding-top:7px;
+  padding-bottom:7px;
+}
+#priceItemModal label{
+  line-height:1.12;
+}
+#priceItemModal .hardware-supplier-price-grid{
+  grid-template-columns:minmax(90px,1fr) minmax(90px,1fr) minmax(130px,1fr) minmax(110px,.9fr);
+  gap:8px;
+  align-items:end;
+}
+#priceItemModal .hardware-supplier-price-card{
+  padding:10px;
+  border-radius:16px;
+}
+#priceItemModal .hardware-supplier-price-card__top{
+  margin-bottom:8px;
+}
+#priceItemModal .hardware-price-selected-preview .investor-choice-launch{
+  margin-top:4px;
+}
+#priceItemModal .hardware-price-selected-summary{
+  display:grid;
+  gap:3px;
+  margin-top:8px;
+  font-size:13px;
+  font-weight:850;
+  line-height:1.25;
+}
+.hardware-dictionary-form{display:grid;gap:10px;min-width:0;}
+.hardware-dictionary-list{display:grid;gap:10px;max-height:min(44vh,390px);overflow:auto;padding-right:2px;}
+.hardware-dictionary-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.40);border-radius:16px;background:#fff;padding:10px;}
+.hardware-type-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(200px,1.5fr) auto auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.40);border-radius:16px;background:#fff;padding:10px;}
+.hardware-type-categories{display:flex;flex-wrap:wrap;gap:6px;}
+.hardware-type-category,.hardware-type-active{min-height:38px;margin:0;}
+.hardware-supplier-actions{display:flex;justify-content:flex-end;margin-top:10px;}
+@media(max-width:720px){
+  #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr 1fr;}
+  .hardware-type-row,.hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
+}
+@media(max-width:520px){
+  #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr;}
+}

@@ -39,6 +39,7 @@
     const addBtn = ctx.byId('openPriceItemModalBtn');
     const producerBtn = ctx.byId('manageHardwareManufacturersBtn');
     const supplierBtn = ctx.byId('manageHardwareSuppliersBtn');
+    const dictionaryBtn = ctx.byId('manageHardwareDictionariesBtn');
     const settingsBtn = ctx.byId('openHardwareSettingsBtn');
     const hardwareFilterBtn = ctx.byId('openHardwareFiltersBtn');
     const hardwareSortBtn = ctx.byId('openHardwareSortBtn');
@@ -49,6 +50,7 @@
     if(addBtn) addBtn.textContent = cfg.addLabel;
     if(producerBtn) producerBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(supplierBtn) supplierBtn.style.display = kind === 'accessories' ? '' : 'none';
+    if(dictionaryBtn) dictionaryBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(settingsBtn) settingsBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(hardwareFilterBtn) hardwareFilterBtn.style.display = kind === 'accessories' ? '' : 'none';
     if(hardwareSortBtn) hardwareSortBtn.style.display = kind === 'accessories' ? '' : 'none';

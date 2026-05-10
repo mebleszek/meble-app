@@ -6,11 +6,15 @@
   const BACKUP_KEYS = {
     hardwareSuppliers: 'fc_hardware_suppliers_v1',
     hardwareSettings: 'fc_hardware_settings_v1',
+    hardwareCategories: 'fc_hardware_categories_v1',
+    hardwareTypes: 'fc_hardware_types_v1',
   };
 
   const LEGACY_KEYS = {
     hardwareSuppliers: 'hardwareSuppliers',
     hardwareSettings: 'hardwareSettings',
+    hardwareCategories: 'hardwareCategories',
+    hardwareTypes: 'hardwareTypes',
   };
 
   function cloneFallback(value, cloneFn){

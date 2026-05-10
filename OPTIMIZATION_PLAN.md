@@ -601,3 +601,10 @@ Do obserwacji:
 - UI cen dostawców jest w osobnym module `js/app/material/price-modal-hardware-supplier-prices.js`; nie scalać go z dużym formularzem okuć przy kolejnych zmianach.
 - `hardware-catalog-import-export.js` nadal pozostaje powyżej progu ostrzeżenia 400 linii, mimo wydzielenia arkusza cen dostawców do osobnego helpera. Zostawiono go świadomie, bo dalej jest jednym boundary import/export; następna duża rozbudowa importu powinna zacząć się od podziału na template/export oraz parse/plan/apply.
 - Kolejne etapy po stabilizacji: reguła/wybór ceny do wyceny w WYCENIE, snapshot ceny w ofercie, lista zakupów po akceptacji, raport plan vs rzeczywistość. Nie mieszać ich z bieżącym formularzem katalogu.
+
+## 2026-05-11 — Hardware supplier price status/types v1
+
+- Do modelu okuć dodano słowniki kategorii i typów oraz per-dostawca status ceny bez wchodzenia w WYCENĘ, MATERIAŁY ani automatyczne dobieranie okuć do szafek.
+- Nowy moduł `price-modal-hardware-dictionaries.js` przejął UI słowników, a `hardware-catalog-supplier-price-xlsx.js` utrzymuje arkusz `Ceny_dostawcow`. Nie scalać tych obszarów z głównym formularzem ani store.
+- `catalog-store.js`, `hardware-catalog.js` i `hardware-catalog-import-export.js` pozostają powyżej progów ostrożności/ostrzeżenia, ale zmiana utrzymuje większość nowych odpowiedzialności w osobnych modułach. Następna większa rozbudowa import/export musi zacząć się od podziału `hardware-catalog-import-export.js` na template/export oraz parse/plan/apply.
+- Przed automatyczną zamianą producentów trzeba osobno zaprojektować UI wyboru producenta i zasady obsługi braków/duplikatów; obecna paczka tylko czyści dane katalogowe pod przyszły matching `kategoria + typ`.

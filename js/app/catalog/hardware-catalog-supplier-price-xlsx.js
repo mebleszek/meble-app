@@ -12,6 +12,7 @@
     ['cena_netto','catalogPriceNet'],
     ['cena_brutto','catalogPriceGross'],
     ['do_wyceny','useForQuote'],
+    ['status_ceny','priceStatus'],
     ['data_ceny','priceDate'],
     ['okucie_id','itemId'],
     ['dostawca_id','supplierId'],
@@ -42,6 +43,7 @@
       catalogPriceNet:price && price.catalogPriceNet || '',
       catalogPriceGross:price && price.catalogPriceGross || '',
       useForQuote:price && price.useForQuote ? 'TAK' : 'NIE',
+      priceStatus:price && price.priceStatus || item && item.priceStatus || 'current',
       priceDate:price && price.priceDate || item && item.priceUpdatedAt || '',
       itemId:item && item.id || '',
       supplierId:price && price.supplierId || '',
@@ -51,7 +53,7 @@
     const net = `${colFor('catalogPriceNet')}${rowNo}`;
     const gross = `${colFor('catalogPriceGross')}${rowNo}`;
     return {
-      itemName:'', itemSymbol:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceDate:'', itemId:'', supplierId:'',
+      itemName:'', itemSymbol:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'',
       _formulas:{
         catalogPriceNet:formulaCell(`IF(${gross}<>"",ROUND(${gross}/1.23,2),"")`),
         catalogPriceGross:formulaCell(`IF(${net}<>"",ROUND(${net}*1.23,2),"")`),
@@ -78,6 +80,7 @@
     return [
       { sqref:`${colFor('supplierName')}2:${colFor('supplierName')}${rowEnd}`, formula1:'Dostawcy!$B$2:$B$500' },
       { sqref:`${colFor('useForQuote')}2:${colFor('useForQuote')}${rowEnd}`, formula1:listFormula(['TAK','NIE']) },
+      { sqref:`${colFor('priceStatus')}2:${colFor('priceStatus')}${rowEnd}`, formula1:listFormula(['current','review','old','archived']) },
     ];
   }
   function headerKey(value){ return safePart(value).replace(/_+/g, '_'); }
@@ -93,6 +96,7 @@
       catalogPriceNet:number(valueFrom(row, ['cena_netto','catalogPriceNet'])),
       catalogPriceGross:number(valueFrom(row, ['cena_brutto','catalogPriceGross'])),
       useForQuote:bool(valueFrom(row, ['do_wyceny','useForQuote'])),
+      priceStatus:text(valueFrom(row, ['status_ceny','priceStatus'])) || 'current',
       priceDate:text(valueFrom(row, ['data_ceny','priceDate','priceUpdatedAt'])),
     };
   }
@@ -119,7 +123,7 @@
       if(!supplier){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}.`); return; }
       item.supplierPrices = Array.isArray(item.supplierPrices) ? item.supplierPrices.filter((price)=> text(price && price.supplierId) !== text(supplier.id)) : [];
       if(row.useForQuote) item.supplierPrices.forEach((price)=>{ price.useForQuote = false; });
-      item.supplierPrices.push({ supplierId:supplier.id, catalogPriceNet:row.catalogPriceNet, catalogPriceGross:row.catalogPriceGross, enteredPriceType:row.catalogPriceNet > 0 ? 'net' : 'gross', priceDate:row.priceDate, useForQuote:!!row.useForQuote });
+      item.supplierPrices.push({ supplierId:supplier.id, catalogPriceNet:row.catalogPriceNet, catalogPriceGross:row.catalogPriceGross, enteredPriceType:row.catalogPriceNet > 0 ? 'net' : 'gross', priceDate:row.priceDate, priceStatus:row.priceStatus || 'current', useForQuote:!!row.useForQuote });
       touched.add(text(item.id));
     });
     return { touchedIds:Array.from(touched), rows:rows.length };

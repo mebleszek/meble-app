@@ -27,7 +27,7 @@
 <link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
-<link href="css/price-item-popup.css?v=20260510_hardware_supplier_prices_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260511_hardware_supplier_status_types_v1" rel="stylesheet"/>
 <link href="css/quote-labor-picker.css?v=20260504_gabaryt_compact_v1" rel="stylesheet"/>
 </head>
 <body>
@@ -189,6 +189,7 @@
 <button class="btn" id="openHardwareSortBtn" style="display:none" type="button">Sortuj</button>
 <button class="btn" id="manageHardwareManufacturersBtn" style="display:none" type="button">Producenci</button>
 <button class="btn" id="manageHardwareSuppliersBtn" style="display:none" type="button">Dostawcy</button>
+<button class="btn" id="manageHardwareDictionariesBtn" style="display:none" type="button">Słowniki</button>
 <button class="btn" id="openHardwareSettingsBtn" style="display:none" type="button">Ustawienia</button>
 <button class="btn" id="openHardwareImportExportBtn" style="display:none" type="button">Import / Eksport</button>
 <button class="btn-primary" id="openPriceItemModalBtn" type="button">Dodaj</button>
@@ -238,6 +239,10 @@
 <label>Symbol</label>
 <input class="investor-form-input" id="formSymbol" type="text"/>
 </div>
+<div id="hardwareSeriesTopWrap" style="display:none">
+<label>System / seria</label>
+<input class="investor-form-input" id="hardwareSeries" type="text"/>
+</div>
 </div>
 <div style="margin-top:10px">
 <label>Nazwa</label>
@@ -265,21 +270,15 @@
 <div id="hardwareUnitLaunch"></div>
 </div>
 <div>
-<label>Status</label>
-<select hidden="" id="hardwareStatus"></select>
-<div id="hardwareStatusLaunch"></div>
+<label>Typ / cecha</label>
+<select hidden="" id="hardwareType"></select>
+<div id="hardwareTypeLaunch"></div>
 </div>
-</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>System / seria</label>
-<input class="investor-form-input" id="hardwareSeries" type="text"/>
 </div>
 <div style="display:none">
-<label>Dostawca / miejsce zakupu</label>
+<select hidden="" id="hardwareStatus"><option value="active">Aktywne</option></select>
 <select hidden="" id="hardwareSupplierId"></select>
 <div id="hardwareSupplierIdLaunch"></div>
-</div>
 </div>
 <div id="hardwareBundleFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
 <div class="quote-subsection-title">Skład zestawu</div>
@@ -845,7 +844,7 @@
 <script data-load-group="startup-foundation" defer="" src="js/core/modals.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/core-failsafe.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/dom-guard.js?v=20260328_rozrys_choice_clean_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/shared/constants.js?v=20260507_backup_storage_keys_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/constants.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/utils.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/migrate.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/schema.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -888,19 +887,19 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260510_hardware_supplier_prices_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260507_hardware_catalog_seed_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260510_hardware_supplier_prices_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260510_hardware_supplier_prices_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260507_backup_storage_keys_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260504_gabaryt_compact_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260510_hardware_supplier_prices_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
@@ -932,22 +931,23 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260509_hardware_bundle_import_ux_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-dictionaries.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-resolver.js?v=20260509_hardware_excel_required_modal_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-export.js?v=20260510_hardware_catalog_ux_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260510_hardware_catalog_ux_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-bundle.js?v=20260509_hardware_bundle_import_ux_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260510_hardware_supplier_prices_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260510_hardware_supplier_prices_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260509_hardware_bundle_import_ux_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260504_hardware_form_price_wrapper_fix_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260510_hardware_catalog_ux_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/choice-box.js?v=20260426_orphan_guard_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
@@ -995,7 +995,7 @@
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-manifest.js?v=20260420_rozrys_lazy_tab_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-loader.js?v=20260420_rozrys_background_warmup_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-shell.js?v=20260420_rozrys_lazy_tab_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-core-namespace.js?v=20260507_backup_storage_keys_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-core-namespace.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app.js?v=20260502_app_legacy_bridges_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-legacy-bridges.js?v=20260502_app_legacy_bridges_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/cabinets-render.js?v=20260427_app_shell_wywiad_split_v1"></script>

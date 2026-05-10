@@ -35,6 +35,10 @@
   }
   function hardwarePriceStatus(item){
     if(!hasAnyPrice(item)) return { code:'noPrice', label:'Brak ceny', tone:'danger' };
+    const priceStatus = text(item && item.priceStatus);
+    if(priceStatus === 'review') return { code:'check', label:'Do sprawdzenia', tone:'warning' };
+    if(priceStatus === 'old') return { code:'stale', label:'Stara cena', tone:'warning' };
+    if(priceStatus === 'archived') return { code:'stale', label:'Archiwalna cena', tone:'warning' };
     const source = text(item && item.priceSource).toLowerCase();
     const age = dateAgeDays(item && item.priceUpdatedAt);
     if(age != null && age > PRICE_STALE_DAYS) return { code:'stale', label:'Stara cena', tone:'warning' };
@@ -160,7 +164,7 @@
     if(text(item && item.status) && text(item && item.status) !== 'active') chips.appendChild(chip(statusLabel, 'neutral'));
     left.appendChild(title);
     left.appendChild(chips);
-    left.appendChild(renderMetaLine([text(item && item.manufacturer) || '—', text(item && item.hardwareCategory) || 'Inne', text(item && item.hardwareUnit) || 'szt.', text(item && item.series), text(item && item.symbol) ? 'SYM: ' + text(item.symbol) : '']));
+    left.appendChild(renderMetaLine([text(item && item.manufacturer) || '—', text(item && item.hardwareCategory) || 'Inne', text(item && item.hardwareType), text(item && item.hardwareUnit) || 'szt.', text(item && item.series), text(item && item.symbol) ? 'SYM: ' + text(item.symbol) : '']));
     left.appendChild(renderMetaLine(['Dostawca: ' + supplierName(item), num(item && item.purchasePriceGross) > 0 ? 'zakup: ' + money(item.purchasePriceGross) : '', num(item && item.price) > 0 ? 'do wyceny: ' + money(item.price) : '', text(item && item.priceUpdatedAt) ? 'cena: ' + text(item.priceUpdatedAt) : 'brak daty ceny']));
     const bundleBox = renderBundleSummary(item);
     if(bundleBox) left.appendChild(bundleBox);

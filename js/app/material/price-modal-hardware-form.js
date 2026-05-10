@@ -45,7 +45,7 @@
   function supplierPricesApi(){ return ctx.priceModalHardwareSupplierPrices || {}; }
 
   const FIELD_IDS = [
-    'hardwareCategory','hardwareUnit','hardwareStatus','hardwareSeries','hardwareSupplierId','hardwarePriceSource',
+    'hardwareCategory','hardwareUnit','hardwareType','hardwareStatus','hardwareSeries','hardwareSupplierId','hardwarePriceSource',
     'hardwareVatRate','hardwareCatalogPriceNet','hardwareCatalogPriceGross','hardwareSupplierDiscountPercent',
     'hardwarePurchasePriceNet','hardwarePurchasePriceGross','hardwareQuoteBase','hardwarePricingMode',
     'hardwareMarkupPercent','hardwareQuotePriceNet','hardwareQuotePriceGross','hardwarePriceUpdatedAt','hardwareNote',
@@ -58,7 +58,7 @@
     const manufacturer = ctx.firstNonEmptyValue(ctx.buildManufacturerOptions('accessories', '', '', { includeAll:false }));
     const category = ctx.firstNonEmptyValue(ctx.buildHardwareCategoryOptions ? ctx.buildHardwareCategoryOptions('Zawiasy') : [{ value:'Zawiasy' }]) || 'Zawiasy';
     return {
-      manufacturer, symbol:'', name:'', price:'', hardwareCategory:category, hardwareUnit:'szt.', series:'',
+      manufacturer, symbol:'', name:'', price:'', hardwareCategory:category, hardwareType:'', hardwareUnit:'szt.', series:'',
       supplierId:supplier ? supplier.id : (settings.defaultSupplierId || ''), priceSource:supplier ? supplier.name : '',
       vatRate:settings.defaultVatRate || 23, catalogPriceNet:'', catalogPriceGross:'',
       supplierDiscountPercent:supplier ? supplier.defaultDiscountPercent : 0, purchasePriceNet:'', purchasePriceGross:'',
@@ -185,7 +185,7 @@
       symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(),
       name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(),
       price:priceGross,
-      hardwareCategory:readString('hardwareCategory') || 'Inne', hardwareUnit:readString('hardwareUnit') || 'szt.', series:readString('hardwareSeries'),
+      hardwareCategory:readString('hardwareCategory') || 'Inne', hardwareType:readString('hardwareType'), hardwareUnit:readString('hardwareUnit') || 'szt.', series:readString('hardwareSeries'),
       supplierId:readString('hardwareSupplierId'), supplierName:supplier ? supplier.name : readString('hardwarePriceSource'), priceSource:readString('hardwarePriceSource') || (supplier ? supplier.name : ''),
       supplierPrices:(supplierPrices && typeof supplierPrices.getItems === 'function') ? supplierPrices.getItems() : [],
       vatRate:readNumber('hardwareVatRate'), catalogPriceNet:readNumber('hardwareCatalogPriceNet'), catalogPriceGross:readNumber('hardwareCatalogPriceGross'), supplierDiscountPercent:readNumber('hardwareSupplierDiscountPercent'),
@@ -212,6 +212,7 @@
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = false;
     if(ctx.buildHardwareCategoryOptions) ctx.setSelectOptions(ctx.byId('hardwareCategory'), ctx.buildHardwareCategoryOptions(data && data.hardwareCategory), String(data && data.hardwareCategory || 'Inne'), String(data && data.hardwareCategory || 'Inne'));
     if(ctx.buildHardwareUnitOptions) ctx.setSelectOptions(ctx.byId('hardwareUnit'), ctx.buildHardwareUnitOptions(data && data.hardwareUnit), String(data && data.hardwareUnit || 'szt.'), String(data && data.hardwareUnit || 'szt.'));
+    if(ctx.buildHardwareTypeOptions) ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(data && data.hardwareCategory, data && data.hardwareType), String(data && data.hardwareType || ''), String(data && data.hardwareType || ''));
     if(ctx.buildHardwareStatusOptions) ctx.setSelectOptions(ctx.byId('hardwareStatus'), ctx.buildHardwareStatusOptions(), String(data && data.status || 'active'), 'Aktywne');
     if(ctx.buildHardwareSupplierOptions) ctx.setSelectOptions(ctx.byId('hardwareSupplierId'), ctx.buildHardwareSupplierOptions(data && data.supplierId), String(data && data.supplierId || ''), String(data && data.supplierId || ''));
     if(ctx.buildHardwareQuoteBaseOptions) ctx.setSelectOptions(ctx.byId('hardwareQuoteBase'), ctx.buildHardwareQuoteBaseOptions(), String(data && data.quoteBase || 'catalogGross'), 'Cena katalogowa bez rabatu');
@@ -234,6 +235,11 @@
     if(id === 'hardwareSupplierId') applySupplierDefaults();
     else {
       const bundle = bundleApi();
+      if(id === 'hardwareCategory' && ctx.buildHardwareTypeOptions){
+        const currentType = readString('hardwareType');
+        ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(readString('hardwareCategory'), currentType), currentType, currentType);
+        try{ ctx.mountChoice && ctx.mountChoice({ selectEl:ctx.byId('hardwareType'), mountId:'hardwareTypeLaunch', title:'Wybierz typ / cechę', buttonClass:'investor-choice-launch', placeholder:'Typ / cecha', onChange:()=>{ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){} } }); }catch(_){}
+      }
       if((id === 'hardwareUnit' || id === 'hardwareBundleCostMode') && bundle && typeof bundle.render === 'function') bundle.render();
       syncHardwarePricing({ sourceId:id });
     }

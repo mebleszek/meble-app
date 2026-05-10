@@ -526,3 +526,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - W katalogu żywym nie utrwalać wartości łatwo wyliczalnych z dostawcy, takich jak VAT/rabat/zakup po rabacie, poza pochodnymi legacy polami kompatybilności. Źródłem prawdy ceny dostawcy jest cena katalogowa netto/brutto, dostawca, data i `useForQuote`.
 - Snapshot WYCENY w przyszłym etapie musi zapisać pełne wartości użyte w ofercie: dostawcę ceny, VAT/rabat z dnia wyceny, zakup po rabacie i cenę do wyceny. Nie wolno później przeliczać starej oferty z aktualnego katalogu.
 - Import XLSX `Ceny_dostawcow` ma być idempotentny po `okucie + dostawca`: duplikowanie wiersza i zmiana dostawcy/ceny tworzy albo aktualizuje cenę tego dostawcy bez wymagania ręcznego `id_ceny`.
+
+## Hardware supplier price status/types v1 — 2026-05-11
+
+- Dodano katalogowe słowniki `fc_hardware_categories_v1` i `fc_hardware_types_v1`; oba są danymi użytkownika i muszą być objęte globalnym backupem oraz przyszłą synchronizacją/chmurą.
+- W przyszłym Firestore kategorie i typy/cechy powinny być oddzielnymi dokumentami/słownikami użytkownika, np. `users/{userId}/catalogs/hardware/categories` i `users/{userId}/catalogs/hardware/types`, a nie twardą listą w kodzie.
+- Typ/cecha przechowuje listę dozwolonych kategorii. To mapowanie jest decyzją użytkownika i nie może być zgadywane automatycznie przy imporcie.
+- Dla zamienników producentów klucz logiczny ma pozostać prosty: `manufacturer + category + hardwareType`. W aktywnym katalogu użytkownika taka kombinacja powinna wskazywać maksymalnie jedną pozycję.
+- Status ceny jest częścią konkretnej ceny dostawcy (`supplierPrices[].priceStatus`), nie globalnym statusem okucia. Snapshot oferty w przyszłości nadal musi zamrażać faktycznie użyty status/źródło/cenę z dnia wyceny.

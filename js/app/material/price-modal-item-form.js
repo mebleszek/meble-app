@@ -12,6 +12,7 @@
   function formServiceNameWrapper(){ return ctx.byId('formServiceName') && ctx.byId('formServiceName').parentElement; }
   function formPriceWrapper(){ return ctx.byId('formPrice') && ctx.byId('formPrice').parentElement; }
   function formHasGrainRow(){ return ctx.byId('formHasGrain') && ctx.byId('formHasGrain').parentElement; }
+  function hardwareSeriesTopWrap(){ return ctx.byId('hardwareSeriesTopWrap'); }
   function laborFields(){ return ctx.byId('laborFormFields'); }
   function hardwareFields(){ return ctx.byId('hardwareFormFields'); }
 
@@ -270,10 +271,12 @@
     const manufacturerWrap = filterManufacturerWrapper();
     const grainRow = formHasGrainRow();
     const priceWrap = formPriceWrapper();
+    const seriesWrap = hardwareSeriesTopWrap();
     if(materialTypeWrap) materialTypeWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(manufacturerWrap) manufacturerWrap.style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
     if(grainRow) grainRow.style.display = cfg.formKind === 'material' ? 'flex' : 'none';
     if(priceWrap) priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : '';
+    if(seriesWrap) seriesWrap.style.display = cfg.formKind === 'accessory' ? '' : 'none';
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
     else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || (ctx.priceModalHardwareForm && ctx.priceModalHardwareForm.defaultAccessoryDraft ? ctx.priceModalHardwareForm.defaultAccessoryDraft() : {}));
     else applyServiceFormState(item || defaultServiceDraft(kind));

@@ -111,10 +111,24 @@
     const cfg = Object.assign({ includeAll:false }, opts || {});
     const hw = FC.hardwareCatalog || {};
     const dynamic = ctx.currentList().map((item)=> item && (item.hardwareCategory || item.category));
+    let stored = [];
+    try{ const store = ctx.catalogStore && ctx.catalogStore(); stored = store && store.getHardwareCategories ? store.getHardwareCategories() : []; }catch(_){ stored = []; }
     const options = hw && typeof hw.categoryOptions === 'function'
-      ? hw.categoryOptions(dynamic, selectedValue)
-      : buildOrderedValues(['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], dynamic, selectedValue, null);
+      ? hw.categoryOptions((stored || []).concat(dynamic), selectedValue)
+      : buildOrderedValues(['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], (stored || []).concat(dynamic), selectedValue, null);
     return cfg.includeAll ? [{ value:'', label:'Wszystkie kategorie' }].concat(options) : options;
+  }
+
+
+  function buildHardwareTypeOptions(categoryValue, selectedValue, opts){
+    const cfg = Object.assign({ includeAll:false }, opts || {});
+    let types = [];
+    try{ const store = ctx.catalogStore && ctx.catalogStore(); types = store && store.getHardwareTypes ? store.getHardwareTypes() : []; }catch(_){ types = []; }
+    const hw = FC.hardwareCatalog || {};
+    const options = hw && typeof hw.typeOptions === 'function'
+      ? hw.typeOptions(types, categoryValue, selectedValue)
+      : buildOrderedValues([], types.map((row)=> row && row.name), selectedValue, null);
+    return cfg.includeAll ? [{ value:'', label:'Wszystkie typy' }].concat(options) : options;
   }
 
   function buildHardwareUnitOptions(selectedValue){
@@ -176,5 +190,5 @@
     return FC.investorChoice.mountChoice({ mount, selectEl:cfg.selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, buildHardwareBundleCostModeOptions, firstNonEmptyValue, mountChoice });
+  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareTypeOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, buildHardwareBundleCostModeOptions, firstNonEmptyValue, mountChoice });
 })();

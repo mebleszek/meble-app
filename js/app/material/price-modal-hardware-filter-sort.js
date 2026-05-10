@@ -14,7 +14,7 @@
   }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function filters(){
-    ctx.runtimeState.filters = Object.assign({ manufacturer:'', hardwareCategory:'', hardwareUnit:'', hardwareStatus:'', supplierId:'', priceMin:'', priceMax:'', sortBy:'nameAsc' }, ctx.runtimeState.filters || {});
+    ctx.runtimeState.filters = Object.assign({ manufacturer:'', hardwareCategory:'', hardwareUnit:'', supplierId:'', priceMin:'', priceMax:'', sortBy:'nameAsc' }, ctx.runtimeState.filters || {});
     return ctx.runtimeState.filters;
   }
   function fillSelect(select, options, value){
@@ -39,8 +39,6 @@
     const categoryLaunch = h('div', { id:'hardwareFilterCategoryLaunch' });
     const unit = h('select', { id:'hardwareFilterUnit' });
     const unitLaunch = h('div', { id:'hardwareFilterUnitLaunch' });
-    const status = h('select', { id:'hardwareFilterStatus' });
-    const statusLaunch = h('div', { id:'hardwareFilterStatusLaunch' });
     const supplier = h('select', { id:'hardwareFilterSupplier' });
     const supplierLaunch = h('div', { id:'hardwareFilterSupplierLaunch' });
     const priceMin = h('input', { class:'investor-form-input', type:'number', step:'0.01', value:String(f.priceMin || ''), placeholder:'od' });
@@ -48,7 +46,6 @@
     fillSelect(manufacturer, ctx.buildManufacturerOptions ? ctx.buildManufacturerOptions('accessories', '', f.manufacturer, { includeAll:true }) : [], f.manufacturer);
     fillSelect(category, ctx.buildHardwareCategoryOptions ? ctx.buildHardwareCategoryOptions(f.hardwareCategory, { includeAll:true }) : [], f.hardwareCategory);
     fillSelect(unit, [{ value:'', label:'Wszystkie jednostki' }].concat(ctx.buildHardwareUnitOptions ? ctx.buildHardwareUnitOptions(f.hardwareUnit) : []), f.hardwareUnit);
-    fillSelect(status, [{ value:'', label:'Wszystkie statusy' }].concat(ctx.buildHardwareStatusOptions ? ctx.buildHardwareStatusOptions() : []), f.hardwareStatus);
     fillSelect(supplier, ctx.buildHardwareSupplierOptions ? ctx.buildHardwareSupplierOptions(f.supplierId, { includeAll:true }) : [], f.supplierId);
     body.appendChild(h('div', { class:'grid-2' }, [
       h('div', {}, [h('label', { text:'Producent' }), manufacturer, manufacturerLaunch]),
@@ -56,23 +53,21 @@
     ]));
     body.appendChild(h('div', { class:'grid-2', style:'margin-top:10px' }, [
       h('div', {}, [h('label', { text:'Jednostka' }), unit, unitLaunch]),
-      h('div', {}, [h('label', { text:'Status' }), status, statusLaunch]),
+      h('div', {}, [h('label', { text:'Dostawca' }), supplier, supplierLaunch]),
     ]));
     body.appendChild(h('div', { class:'grid-2', style:'margin-top:10px' }, [
-      h('div', {}, [h('label', { text:'Dostawca' }), supplier, supplierLaunch]),
       h('div', {}, [h('label', { text:'Cena do wyceny brutto' }), h('div', { class:'hardware-filter-price-range' }, [priceMin, priceMax])]),
     ]));
     const footer = h('div', { class:'panel-box-form__footer' });
     const clearBtn = h('button', { class:'btn', type:'button', text:'Wyczyść' });
     const backBtn = h('button', { class:'btn-primary', type:'button', text:'Wróć' });
     const applyBtn = h('button', { class:'btn-success', type:'button', text:'Zastosuj' });
-    clearBtn.addEventListener('click', ()=>{ manufacturer.value = ''; category.value = ''; unit.value = ''; status.value = ''; supplier.value = ''; priceMin.value = ''; priceMax.value = ''; });
+    clearBtn.addEventListener('click', ()=>{ manufacturer.value = ''; category.value = ''; unit.value = ''; supplier.value = ''; priceMin.value = ''; priceMax.value = ''; });
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     applyBtn.addEventListener('click', ()=>{
       f.manufacturer = manufacturer.value || '';
       f.hardwareCategory = category.value || '';
       f.hardwareUnit = unit.value || '';
-      f.hardwareStatus = status.value || '';
       f.supplierId = supplier.value || '';
       f.priceMin = priceMin.value || '';
       f.priceMax = priceMax.value || '';
@@ -84,7 +79,6 @@
     mount(manufacturer, 'hardwareFilterManufacturerLaunch', 'Wybierz producenta', 'Wszyscy producenci');
     mount(category, 'hardwareFilterCategoryLaunch', 'Wybierz kategorię', 'Wszystkie kategorie');
     mount(unit, 'hardwareFilterUnitLaunch', 'Wybierz jednostkę', 'Wszystkie jednostki');
-    mount(status, 'hardwareFilterStatusLaunch', 'Wybierz status', 'Wszystkie statusy');
     mount(supplier, 'hardwareFilterSupplierLaunch', 'Wybierz dostawcę', 'Wszyscy dostawcy');
   }
 
@@ -96,7 +90,6 @@
     { value:'manufacturerAsc', label:'Producent A–Z' },
     { value:'categoryAsc', label:'Kategoria A–Z' },
     { value:'updatedDesc', label:'Data ceny najnowsza' },
-    { value:'statusAsc', label:'Aktywne najpierw' },
   ];
   function openHardwareSortModal(){
     if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
@@ -116,7 +109,6 @@
     const f = filters();
     if(f.hardwareCategory && String(item && item.hardwareCategory || '') !== String(f.hardwareCategory)) return false;
     if(f.hardwareUnit && String(item && item.hardwareUnit || '') !== String(f.hardwareUnit)) return false;
-    if(f.hardwareStatus && String(item && item.status || 'active') !== String(f.hardwareStatus)) return false;
     if(f.supplierId && String(item && item.supplierId || '') !== String(f.supplierId)) return false;
     const price = Number(item && item.price) || 0;
     if(f.priceMin !== '' && price < number(f.priceMin)) return false;
@@ -136,7 +128,6 @@
       if(key === 'manufacturerAsc') return collator.compare(txt(a,'manufacturer'), txt(b,'manufacturer')) || collator.compare(txt(a,'name'), txt(b,'name'));
       if(key === 'categoryAsc') return collator.compare(txt(a,'hardwareCategory'), txt(b,'hardwareCategory')) || collator.compare(txt(a,'name'), txt(b,'name'));
       if(key === 'updatedDesc') return collator.compare(txt(b,'priceUpdatedAt'), txt(a,'priceUpdatedAt')) || collator.compare(txt(a,'name'), txt(b,'name'));
-      if(key === 'statusAsc') return collator.compare(String(a && a.status || 'active'), String(b && b.status || 'active')) || collator.compare(txt(a,'name'), txt(b,'name'));
       return collator.compare(txt(a,'name'), txt(b,'name'));
     });
     return sorted;

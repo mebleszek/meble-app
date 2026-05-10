@@ -39,7 +39,9 @@
       storedHardwareManufacturers:null,
       storedHardwareSuppliers:null,
       storedHardwareSettings:null,
-      defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:{} },
+      storedHardwareCategories:null,
+      storedHardwareTypes:null,
+      defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:{}, hardwareCategories:[], hardwareTypes:[] },
       splitLegacyMaterials:null,
     }, opts || {});
 
@@ -57,6 +59,8 @@
       hardwareManufacturers: Array.isArray(cfg.storedHardwareManufacturers) ? clone(cfg.storedHardwareManufacturers) : clone(cfg.defaults.hardwareManufacturers || []),
       hardwareSuppliers: Array.isArray(cfg.storedHardwareSuppliers) ? clone(cfg.storedHardwareSuppliers) : clone(cfg.defaults.hardwareSuppliers || []),
       hardwareSettings: cfg.storedHardwareSettings && typeof cfg.storedHardwareSettings === 'object' ? clone(cfg.storedHardwareSettings) : clone(cfg.defaults.hardwareSettings || {}),
+      hardwareCategories: Array.isArray(cfg.storedHardwareCategories) ? clone(cfg.storedHardwareCategories) : clone(cfg.defaults.hardwareCategories || []),
+      hardwareTypes: Array.isArray(cfg.storedHardwareTypes) ? clone(cfg.storedHardwareTypes) : clone(cfg.defaults.hardwareTypes || []),
     };
   }
 

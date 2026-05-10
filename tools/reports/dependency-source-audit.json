@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-05-10T20:14:50.499Z",
+  "generatedAt": "2026-05-10T22:50:02.187Z",
   "summary": {
-    "jsFiles": 333,
-    "indexScripts": 259,
-    "devTestScripts": 290,
-    "fcSymbols": 243,
-    "fcSymbolsAll": 269,
-    "edges": 1749,
+    "jsFiles": 334,
+    "indexScripts": 260,
+    "devTestScripts": 291,
+    "fcSymbols": 244,
+    "fcSymbolsAll": 270,
+    "edges": 1754,
     "highRisk": 7,
     "mediumRisk": 63
   },
   "byArea": {
     "BOOT/APP SHELL": {
       "files": 7,
-      "lines": 1387,
+      "lines": 1389,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 2851,
+      "lines": 2995,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -44,8 +44,8 @@
       "medium": 4
     },
     "MATERIAŁ": {
-      "files": 24,
-      "lines": 4006,
+      "files": 25,
+      "lines": 4243,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1099,
+      "lines": 1101,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -194,24 +194,28 @@
       493
     ],
     [
+      "js/app/catalog/catalog-store.js",
+      486
+    ],
+    [
       "js/testing/rozrys/tests.js",
       475
+    ],
+    [
+      "js/app/catalog/hardware-catalog.js",
+      455
     ],
     [
       "js/app/ui/actions-register.js",
       449
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      440
+      "js/app/catalog/hardware-catalog-import-export.js",
+      441
     ],
     [
       "js/app/cabinet/cabinet-modal-standing-specials.js",
       434
-    ],
-    [
-      "js/app/catalog/hardware-catalog-import-export.js",
-      425
     ],
     [
       "js/app/rozrys/rozrys-pickers.js",
@@ -232,16 +236,12 @@
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
       388
-    ],
-    [
-      "js/app/catalog/hardware-catalog.js",
-      385
     ]
   ],
   "topIncoming": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      70
+      71
     ],
     [
       "js/app/investor/investors-store.js",
@@ -253,7 +253,7 @@
     ],
     [
       "js/app/shared/utils.js",
-      37
+      38
     ],
     [
       "js/app/shared/storage.js",
@@ -280,12 +280,12 @@
       24
     ],
     [
-      "js/testing/wycena/suites/core-offer-basics.js",
+      "js/app/ui/panel-box.js",
       23
     ],
     [
-      "js/app/ui/panel-box.js",
-      22
+      "js/testing/wycena/suites/core-offer-basics.js",
+      23
     ],
     [
       "js/app/ui/confirm-box.js",
@@ -296,12 +296,12 @@
       18
     ],
     [
-      "js/app/shared/constants.js",
+      "js/app/material/price-modal-context.js",
       18
     ],
     [
-      "js/app/material/price-modal-context.js",
-      17
+      "js/app/shared/constants.js",
+      18
     ],
     [
       "js/app/project/project-status-snapshot-flow.js",
@@ -323,19 +323,19 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      178
+      179
     ],
     [
       "js/app/shared/storage.js",
-      153
+      154
     ],
     [
       "js/app/shared/utils.js",
-      147
+      148
     ],
     [
       "js/app/project/project-bridge.js",
-      106
+      107
     ],
     [
       "js/app/shared/constants.js",
@@ -347,7 +347,7 @@
     ],
     [
       "js/app/shared/schema.js",
-      88
+      89
     ],
     [
       "js/app/project/project-store.js",
@@ -359,11 +359,11 @@
     ],
     [
       "js/app/ui/info-box.js",
-      71
+      72
     ],
     [
       "js/app/ui/confirm-box.js",
-      69
+      70
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
@@ -371,7 +371,7 @@
     ],
     [
       "js/app/shared/ui-state.js",
-      63
+      64
     ],
     [
       "js/app/investor/session.js",
@@ -387,7 +387,7 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      49
+      50
     ],
     [
       "js/app/investor/investors-model.js",
@@ -604,10 +604,10 @@
       "score": 7,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 440,
+      "lines": 486,
       "incoming": 13,
       "outgoing": 11,
-      "secondLevel": 49,
+      "secondLevel": 50,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -668,6 +668,23 @@
       "reasons": [
         "600+ linii",
         "systemowe dialogi"
+      ]
+    },
+    {
+      "file": "js/app/catalog/hardware-catalog.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 455,
+      "incoming": 12,
+      "outgoing": 2,
+      "secondLevel": 16,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików"
       ]
     },
     {
@@ -1378,7 +1395,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 425,
+      "lines": 441,
       "incoming": 2,
       "outgoing": 7,
       "secondLevel": 1,
@@ -1403,23 +1420,6 @@
       "dialogRefs": 0,
       "reasons": [
         "400+ linii"
-      ]
-    },
-    {
-      "file": "js/app/catalog/hardware-catalog.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 385,
-      "incoming": 11,
-      "outgoing": 2,
-      "secondLevel": 16,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików"
       ]
     },
     {
@@ -1564,10 +1564,10 @@
       "score": 4,
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 175,
-      "incoming": 70,
+      "lines": 177,
+      "incoming": 71,
       "outgoing": 4,
-      "secondLevel": 178,
+      "secondLevel": 179,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1667,7 +1667,7 @@
       "lines": 61,
       "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 106,
+      "secondLevel": 107,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1681,7 +1681,7 @@
       "area": "MATERIAŁ",
       "category": "domain/controller",
       "lines": 56,
-      "incoming": 17,
+      "incoming": 18,
       "outgoing": 8,
       "secondLevel": 26,
       "storageRefs": 0,
@@ -1784,7 +1784,7 @@
     "js/app/bootstrap/app-core-namespace.js": {
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 175,
+      "lines": 177,
       "defines": [
         "appCoreNamespace",
         "utils",
@@ -1827,6 +1827,7 @@
         "js/app/investor/project-bootstrap.js",
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/project/project-bridge.js",
@@ -1918,6 +1919,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -3024,6 +3026,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -3071,7 +3074,7 @@
     "js/app/catalog/catalog-migration.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 67,
+      "lines": 71,
       "defines": [
         "catalogMigration"
       ],
@@ -3169,7 +3172,7 @@
     "js/app/catalog/catalog-storage-policy.js": {
       "area": "KATALOG/USŁUGI",
       "category": "store/storage",
-      "lines": 88,
+      "lines": 92,
       "defines": [
         "catalogStoragePolicy"
       ],
@@ -3206,7 +3209,7 @@
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 440,
+      "lines": 486,
       "defines": [
         "catalogStore"
       ],
@@ -3257,6 +3260,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -3317,7 +3321,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 425,
+      "lines": 441,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3428,7 +3432,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 138,
+      "lines": 142,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -3457,7 +3461,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 385,
+      "lines": 455,
       "defines": [
         "hardwareCatalog"
       ],
@@ -3470,6 +3474,7 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
         "js/app/material/price-modal-hardware-ux.js",
@@ -3507,7 +3512,7 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
-        "250+ linii",
+        "400+ linii",
         "dużo zależnych plików"
       ]
     },
@@ -5205,6 +5210,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -5297,7 +5303,7 @@
     "js/app/material/price-modal-filters.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 107,
+      "lines": 109,
       "defines": [],
       "uses": [
         "priceModalContext"
@@ -5342,10 +5348,41 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/material/price-modal-hardware-dictionaries.js": {
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 133,
+      "defines": [
+        "priceModalHardwareDictionaries"
+      ],
+      "uses": [
+        "priceModalContext",
+        "utils",
+        "hardwareCatalog",
+        "panelBox",
+        "priceModalHardwareDictionaries"
+      ],
+      "incomingFiles": [],
+      "outgoingFiles": [
+        "js/app/bootstrap/app-core-namespace.js",
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/shared/utils.js",
+        "js/app/ui/panel-box.js"
+      ],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 15,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/material/price-modal-hardware-filter-sort.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 147,
+      "lines": 138,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5368,7 +5405,7 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 244,
+      "lines": 250,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5386,7 +5423,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/material/price-modal-hardware-import-export.js": {
       "area": "MATERIAŁ",
@@ -5483,7 +5522,7 @@
     "js/app/material/price-modal-hardware-supplier-prices.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 185,
+      "lines": 260,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5497,11 +5536,13 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 8,
+      "domRefs": 12,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/material/price-modal-hardware-suppliers.js": {
       "area": "MATERIAŁ",
@@ -5532,7 +5573,7 @@
     "js/app/material/price-modal-hardware-ux.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 184,
+      "lines": 188,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5555,7 +5596,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 326,
+      "lines": 329,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5605,7 +5646,7 @@
     "js/app/material/price-modal-options.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 181,
+      "lines": 195,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5632,12 +5673,12 @@
     "js/app/material/price-modal-persistence.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 81,
+      "lines": 88,
       "defines": [],
       "uses": [
         "priceModalContext",
-        "utils",
         "hardwareCatalog",
+        "utils",
         "wycenaCore",
         "laborCatalog"
       ],
@@ -5662,7 +5703,7 @@
     "js/app/material/price-modal.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 89,
+      "lines": 91,
       "defines": [
         "priceModal"
       ],
@@ -5683,6 +5724,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -6474,6 +6516,7 @@
         "js/app/investor/project-bootstrap.js",
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/project/project-model.js",
@@ -10508,7 +10551,7 @@
     "js/app/shared/constants.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 37,
+      "lines": 39,
       "defines": [
         "constants"
       ],
@@ -12262,6 +12305,7 @@
         "js/app/investor/project-bootstrap.js",
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/project/project-bridge.js",
@@ -12428,6 +12472,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -12600,6 +12645,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -12687,6 +12733,7 @@
         "js/app/catalog/hardware-catalog.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/project-bootstrap.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/project/project-model.js",
@@ -12746,6 +12793,7 @@
         "js/app/material/magazyn.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -13217,6 +13265,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -13562,6 +13611,7 @@
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
@@ -13710,6 +13760,7 @@
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-manufacturers.js",

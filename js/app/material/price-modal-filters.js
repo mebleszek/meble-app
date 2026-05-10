@@ -61,7 +61,9 @@
     const producerBtn = ctx.byId('manageHardwareManufacturersBtn');
     if(producerBtn) producerBtn.onclick = ()=>{ if(ctx.openHardwareManufacturersModal) ctx.openHardwareManufacturersModal(); };
     const supplierBtn = ctx.byId('manageHardwareSuppliersBtn');
+    const dictionaryBtn = ctx.byId('manageHardwareDictionariesBtn');
     if(supplierBtn) supplierBtn.onclick = ()=>{ if(ctx.openHardwareSuppliersModal) ctx.openHardwareSuppliersModal(); };
+    if(dictionaryBtn) dictionaryBtn.onclick = ()=>{ if(ctx.openHardwareDictionariesModal) ctx.openHardwareDictionariesModal(); };
     const settingsBtn = ctx.byId('openHardwareSettingsBtn');
     if(settingsBtn) settingsBtn.onclick = ()=>{ if(ctx.openHardwareSettingsModal) ctx.openHardwareSettingsModal(); };
     const filterBtn = ctx.byId('openHardwareFiltersBtn');

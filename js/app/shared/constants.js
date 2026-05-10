@@ -18,6 +18,8 @@
         hardwareManufacturers: 'fc_hardware_manufacturers_v1',
         hardwareSuppliers: 'fc_hardware_suppliers_v1',
         hardwareSettings: 'fc_hardware_settings_v1',
+        hardwareCategories: 'fc_hardware_categories_v1',
+        hardwareTypes: 'fc_hardware_types_v1',
         quoteRates: 'fc_quote_rates_v1',
         workshopServices: 'fc_workshop_services_v1',
         serviceOrders: 'fc_service_orders_v1',
