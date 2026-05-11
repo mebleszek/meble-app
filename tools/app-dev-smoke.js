@@ -190,8 +190,9 @@ function runMaterialNodeSmoke(sandbox){
       if(!(typeof ctx.hardwarePriceStatus === 'function' && typeof ctx.hardwareItemNeedsPriceCheck === 'function' && typeof ctx.matchesHardwareQuickFilter === 'function' && typeof ctx.renderHardwareAccessoryRow === 'function')) return false;
       const noPrice = ctx.hardwarePriceStatus({ name:'Brak', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.' });
       const imported = ctx.hardwarePriceStatus({ name:'Import', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:'2026-05-10' });
+      const importedCurrent = ctx.hardwarePriceStatus({ name:'Import current', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:'2026-05-10', priceStatus:'current' });
       const stale = ctx.hardwarePriceStatus({ name:'Stare', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Bivert', priceUpdatedAt:'2020-01-01' });
-      return noPrice.code === 'noPrice' && imported.code === 'check' && stale.code === 'stale'
+      return noPrice.code === 'noPrice' && imported.code === 'check' && importedCurrent.code === 'current' && stale.code === 'stale'
         && html.includes('price-modal-hardware-ux.js')
         && uxSrc.includes('Do sprawdzenia cen') && uxSrc.includes('Składniki:') && uxSrc.includes('Zestawy')
         && listSrc.includes('renderHardwareQuickFilters') && listSrc.includes('renderHardwareAccessoryRow')
@@ -209,6 +210,8 @@ function runMaterialNodeSmoke(sandbox){
       const validationXml = xlsx._debug.validationsXml(supplierXlsx.supplierPriceValidations());
       const headers = rows[0] || [];
       const priceHeaders = priceRows[0] || [];
+      const emptyTemplateRow = priceRows[priceRows.length - 1] || [];
+      const emptyHasFormula = emptyTemplateRow.some((cell)=> cell && typeof cell === 'object' && Object.prototype.hasOwnProperty.call(cell, 'formula'));
       return rows.length >= 200
         && headers[0] === 'nazwa'
         && headers[headers.length - 1] === 'id'
@@ -219,9 +222,35 @@ function runMaterialNodeSmoke(sandbox){
         && priceRows[1][0] === 'Test XLSX'
         && priceRows[1][2] === 'Bivert'
         && priceRows[1][5] === 'TAK'
+        && emptyHasFormula === false
         && validationXml.includes('C2:C261')
         && validationXml.includes('F2:F261')
         && !validationXml.includes('para');
+    } },
+    { name:'Import XLSX cen dostawców liczy brakujące netto/brutto i zachowuje status', explain:'Chroni scenariusz z telefonu: skopiowany wiersz ceny dostawcy może mieć wpisaną tylko cenę netto albo tylko brutto, a status current nie może zmieniać listy na Do sprawdzenia.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const hw = FC.hardwareCatalog;
+      const store = FC.catalogStore;
+      if(!(api && hw && store && typeof api.buildImportPlan === 'function' && typeof hw.typeOptions === 'function' && typeof hw.uniqueTypeConflict === 'function')) return false;
+      const before = store.getAccessories();
+      const existing = before.find((row)=> String(row && row.id || '')) || before[0];
+      if(!existing) return false;
+      const suppliers = [{ id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }];
+      const plan = api.buildImportPlan({
+        accessories:[Object.assign({}, existing, { id:existing.id, name:existing.name || 'Test', manufacturer:existing.manufacturer || 'Blum', hardwareCategory:existing.hardwareCategory || 'Zawiasy', hardwareUnit:existing.hardwareUnit || 'szt.' })],
+        suppliers,
+        supplierPriceRows:[
+          { __rowIndex:2, okucie_id:existing.id, dostawca:'Bivert', cena_netto:8, cena_brutto:9.84, do_wyceny:'NIE', status_ceny:'current', data_ceny:'2026-05-10' },
+          { __rowIndex:3, okucie_id:existing.id, dostawca:'MAGO', cena_netto:12, cena_brutto:'', do_wyceny:'TAK', status_ceny:'current', data_ceny:'2026-05-10' },
+          { __rowIndex:4, okucie_id:existing.id, dostawca:'MAGO', cena_netto:'#REF!', cena_brutto:'#REF!', do_wyceny:'NIE', status_ceny:'current' }
+        ],
+        settings:{ defaultVatRate:23, defaultSupplierId:'bivert', defaultMarkupPercent:20, defaultQuoteBase:'catalogGross', defaultPricingMode:'markup' },
+      }, { mode:'merge' });
+      if(plan.errors.length) return false;
+      const row = plan.next.accessories.find((item)=> String(item && item.id || '') === String(existing.id));
+      const mago = row && Array.isArray(row.supplierPrices) ? row.supplierPrices.find((price)=> String(price.supplierId) === 'mago') : null;
+      const status = (FC.priceModalContext && typeof FC.priceModalContext.hardwarePriceStatus === 'function') ? FC.priceModalContext.hardwarePriceStatus(row) : null;
+      return !!(mago && Number(mago.catalogPriceNet) === 12 && Number(mago.catalogPriceGross) === 14.76 && mago.useForQuote === true && row.priceStatus === 'current' && row.priceSource === 'MAGO' && status && status.code === 'current' && plan.summary.supplierPrices === 2);
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

@@ -706,3 +706,15 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Walidacja formularza blokuje duplikat `producent + kategoria + typ/cecha`, żeby późniejsza hurtowa zamiana producenta była jednoznaczna. Ten sam typ może występować u różnych producentów.
 - XLSX ma teraz arkusze `Kategorie_okuc`, `Typy_cechy` oraz `Ceny_dostawcow` ze statusem ceny. Nie wymagać od użytkownika ręcznego zarządzania ID ceny — bieżąca cena dostawcy dopasowuje się po okuciu i dostawcy.
 - Filtr globalnego statusu okucia został usunięty z okna filtrów okuć. Statusy cen obsługuje UI listy/quick-filtry oparte o cenę oznaczoną `Do wyceny`.
+
+## Hardware supplier price import fix v1 — 2026-05-11
+
+- Baza robocza: `site_hardware_supplier_price_status_types_v1.zip`; ta paczka naprawia błędy znalezione w kontroli tej wersji, bez cofania do starszych ZIP-ów.
+- `hardware-catalog.js` musi eksportować helpery słowników i statusów ceny (`typeOptions`, `uniqueTypeConflict`, `priceStatusOptions`, normalizatory kategorii/typów/statusu), bo formularz, walidacja duplikatu i Excel nie mogą opierać się na cichych fallbackach.
+- Import `Ceny_dostawcow` ma akceptować jedną stronę ceny: netto albo brutto. Brakująca druga wartość jest liczona z VAT dostawcy, a błędy arkusza typu `#REF!` nie są traktowane jako cena.
+- Eksport `Ceny_dostawcow` nie może generować wzajemnych formuł w pustych wierszach netto/brutto. Puste wiersze szablonu mają być realnie puste, żeby kopiowanie w telefonie/Google Sheets nie tworzyło `#REF!`.
+- Status `current` z arkusza ceny dostawcy oznacza aktualną cenę i nie może masowo zmieniać listy okuć na `Do sprawdzenia`. Jeśli cena `Do wyceny` pochodzi od dostawcy, lista ma pokazywać jego nazwę jako źródło ceny, a nie techniczne `Import Excel`.
+- W formularzu ceny dostawcy nie wolno ustawiać `Do wyceny` na pustym wierszu bez ceny. Taka próba ma być obsłużona aplikacyjnym komunikatem, bez systemowych dialogów.
+- Modal `Słowniki` nie może robić pełnego rerenderu po każdej literze w polach tekstowych, bo na Androidzie chowa to klawiaturę. Podczas pisania aktualizować draft bez przebudowy DOM; pełny render tylko przy zmianach strukturalnych.
+- Smoke test `Import XLSX cen dostawców liczy brakujące netto/brutto i zachowuje status` pilnuje scenariusza z kopiowanym wierszem MAGO/Bivert, pustą drugą ceną, statusem `current` i błędami `#REF!` w arkuszu.
+- Raport: `tools/reports/hardware-supplier-price-import-fix-v1.md`.

@@ -21,12 +21,17 @@
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
+  function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
+  function isSpreadsheetError(value){ const raw = text(value).toUpperCase(); return /^#(REF|VALUE|DIV\/0|NAME\?|N\/A|NUM|NULL)!?$/.test(raw); }
+  function hasNumericInput(value){ return text(value) !== '' && !isSpreadsheetError(value) && number(value) > 0; }
+  function netToGross(value, vat){ const hw = FC.hardwareCatalog || {}; return hw.netToGross ? hw.netToGross(value, vat) : round2(number(value) * (1 + number(vat) / 100)); }
+  function grossToNet(value, vat){ const hw = FC.hardwareCatalog || {}; return hw.grossToNet ? hw.grossToNet(value, vat) : round2(number(value) / (1 + number(vat) / 100)); }
+  function normalizePriceStatus(value){ const hw = FC.hardwareCatalog || {}; return hw.normalizePriceStatus ? hw.normalizePriceStatus(value) : (text(value) || 'current'); }
   function safePart(value){ return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || ''; }
   function bool(value){ return ['tak','true','1','yes','y'].includes(text(value).toLowerCase()); }
   function valueForColumn(obj, key){ return obj && obj[key] != null ? obj[key] : ''; }
   function col(index){ let n = Number(index) + 1; let out = ''; while(n > 0){ const mod = (n - 1) % 26; out = String.fromCharCode(65 + mod) + out; n = Math.floor((n - 1) / 26); } return out; }
   function colFor(prop){ const idx = SUPPLIER_PRICE_COLUMNS.findIndex((pair)=> pair[1] === prop); return col(idx < 0 ? 0 : idx); }
-  function formulaCell(formula){ return { formula }; }
   function supplierById(suppliers, id){ const key = text(id).toLowerCase(); return (suppliers || []).find((row)=> text(row && row.id).toLowerCase() === key || text(row && row.name).toLowerCase() === key) || null; }
   function listFormula(values){ return '"' + (values || []).map((value)=> text(value).replace(/,/g, ' ')).filter(Boolean).join(',') + '"'; }
   function normalizePrices(item, suppliers){
@@ -49,16 +54,8 @@
       supplierId:price && price.supplierId || '',
     };
   }
-  function emptyPriceRow(rowNo){
-    const net = `${colFor('catalogPriceNet')}${rowNo}`;
-    const gross = `${colFor('catalogPriceGross')}${rowNo}`;
-    return {
-      itemName:'', itemSymbol:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'',
-      _formulas:{
-        catalogPriceNet:formulaCell(`IF(${gross}<>"",ROUND(${gross}/1.23,2),"")`),
-        catalogPriceGross:formulaCell(`IF(${net}<>"",ROUND(${net}*1.23,2),"")`),
-      }
-    };
+  function emptyPriceRow(_rowNo){
+    return { itemName:'', itemSymbol:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
   }
   function rowValues(obj){
     return SUPPLIER_PRICE_COLUMNS.map((pair)=> obj._formulas && obj._formulas[pair[1]] ? obj._formulas[pair[1]] : valueForColumn(obj, pair[1]));
@@ -86,6 +83,8 @@
   function headerKey(value){ return safePart(value).replace(/_+/g, '_'); }
   function valueFrom(row, names){ for(const name of names){ const key = headerKey(name); if(Object.prototype.hasOwnProperty.call(row, key)) return row[key]; } return ''; }
   function parseSupplierPriceRow(row){
+    const rawNet = valueFrom(row, ['cena_netto','catalogPriceNet']);
+    const rawGross = valueFrom(row, ['cena_brutto','catalogPriceGross']);
     return {
       __rowIndex:Number(row && row.__rowIndex) || 0,
       itemId:text(valueFrom(row, ['okucie_id','itemId'])),
@@ -93,15 +92,16 @@
       itemSymbol:text(valueFrom(row, ['okucie_symbol','itemSymbol','symbol'])),
       supplierId:text(valueFrom(row, ['dostawca_id','supplierId'])),
       supplierName:text(valueFrom(row, ['dostawca','supplierName','nazwa_dostawcy'])),
-      catalogPriceNet:number(valueFrom(row, ['cena_netto','catalogPriceNet'])),
-      catalogPriceGross:number(valueFrom(row, ['cena_brutto','catalogPriceGross'])),
+      catalogPriceNet:hasNumericInput(rawNet) ? number(rawNet) : 0,
+      catalogPriceGross:hasNumericInput(rawGross) ? number(rawGross) : 0,
+      enteredPriceType:hasNumericInput(rawNet) ? 'net' : (hasNumericInput(rawGross) ? 'gross' : ''),
       useForQuote:bool(valueFrom(row, ['do_wyceny','useForQuote'])),
-      priceStatus:text(valueFrom(row, ['status_ceny','priceStatus'])) || 'current',
+      priceStatus:normalizePriceStatus(valueFrom(row, ['status_ceny','priceStatus'])),
       priceDate:text(valueFrom(row, ['data_ceny','priceDate','priceUpdatedAt'])),
     };
   }
   function hasSupplierPriceData(row){
-    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','dostawca','dostawca_id'])) || number(valueFrom(row, ['cena_netto','cena_brutto'])) > 0);
+    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
   }
   function resolveAccessory(accessories, row){
     const byId = (accessories || []).find((item)=> text(item && item.id) && text(item.id) === text(row.itemId));
@@ -121,13 +121,19 @@
       if(!item){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} nie pasuje do żadnego okucia.`); return; }
       const supplier = resolveSupplier(suppliers || [], row);
       if(!supplier){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}.`); return; }
+      const vat = number(supplier.defaultVatRate) || 23;
+      let catalogPriceNet = number(row.catalogPriceNet);
+      let catalogPriceGross = number(row.catalogPriceGross);
+      if(catalogPriceNet > 0 && catalogPriceGross <= 0) catalogPriceGross = netToGross(catalogPriceNet, vat);
+      if(catalogPriceGross > 0 && catalogPriceNet <= 0) catalogPriceNet = grossToNet(catalogPriceGross, vat);
       item.supplierPrices = Array.isArray(item.supplierPrices) ? item.supplierPrices.filter((price)=> text(price && price.supplierId) !== text(supplier.id)) : [];
       if(row.useForQuote) item.supplierPrices.forEach((price)=>{ price.useForQuote = false; });
-      item.supplierPrices.push({ supplierId:supplier.id, catalogPriceNet:row.catalogPriceNet, catalogPriceGross:row.catalogPriceGross, enteredPriceType:row.catalogPriceNet > 0 ? 'net' : 'gross', priceDate:row.priceDate, priceStatus:row.priceStatus || 'current', useForQuote:!!row.useForQuote });
+      item.supplierPrices.push({ supplierId:supplier.id, catalogPriceNet, catalogPriceGross, enteredPriceType:row.enteredPriceType || (row.catalogPriceNet > 0 ? 'net' : 'gross'), priceDate:row.priceDate, priceStatus:normalizePriceStatus(row.priceStatus), useForQuote:!!row.useForQuote });
       touched.add(text(item.id));
     });
     return { touchedIds:Array.from(touched), rows:rows.length };
   }
+
 
   FC.hardwareSupplierPriceXlsx = {
     SUPPLIER_PRICE_COLUMNS,

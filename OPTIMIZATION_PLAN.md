@@ -608,3 +608,9 @@ Do obserwacji:
 - Nowy moduł `price-modal-hardware-dictionaries.js` przejął UI słowników, a `hardware-catalog-supplier-price-xlsx.js` utrzymuje arkusz `Ceny_dostawcow`. Nie scalać tych obszarów z głównym formularzem ani store.
 - `catalog-store.js`, `hardware-catalog.js` i `hardware-catalog-import-export.js` pozostają powyżej progów ostrożności/ostrzeżenia, ale zmiana utrzymuje większość nowych odpowiedzialności w osobnych modułach. Następna większa rozbudowa import/export musi zacząć się od podziału `hardware-catalog-import-export.js` na template/export oraz parse/plan/apply.
 - Przed automatyczną zamianą producentów trzeba osobno zaprojektować UI wyboru producenta i zasady obsługi braków/duplikatów; obecna paczka tylko czyści dane katalogowe pod przyszły matching `kategoria + typ`.
+
+## 2026-05-11 — Hardware supplier price import fix v1
+
+- Naprawa została utrzymana w istniejących boundary: model domenowy w `hardware-catalog.js`, arkusz cen w `hardware-catalog-supplier-price-xlsx.js`, UI w `price-modal-hardware-supplier-prices.js` i słowniki w `price-modal-hardware-dictionaries.js`.
+- Nie rozbudowano `catalog-store.js` ani nie ruszono WYCENY. To świadomie ogranicza zakres do stabilizacji katalogu okuć po dużej zmianie statusów/typów/cen dostawców.
+- `hardware-catalog-import-export.js` nadal pozostaje powyżej progu ostrzeżenia. Zostaje jawny dług: następna większa rozbudowa import/export powinna zacząć się od splitu na template/export, parse/defaults oraz plan/apply.

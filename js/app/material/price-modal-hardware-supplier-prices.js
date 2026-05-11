@@ -75,7 +75,7 @@
   }
   function normalizeQuoteFlag(){
     let selectedIndex = -1;
-    draftPrices.forEach((row, index)=>{ if(row && row.useForQuote) selectedIndex = index; });
+    draftPrices.forEach((row, index)=>{ if(row && row.useForQuote && hasPrice(row)) selectedIndex = index; });
     if(selectedIndex < 0){
       const priced = draftPrices.filter(hasPrice);
       if(priced.length === 1) selectedIndex = draftPrices.indexOf(priced[0]);
@@ -156,7 +156,15 @@
     Object.assign(row, patch || {});
     if(hasPrice(row) && !text(row.priceDate)) row.priceDate = todayIso();
     if(hasPrice(row) && !text(row.priceStatus)) row.priceStatus = 'current';
-    if((patch && patch.useForQuote) === true){ draftPrices.forEach((item)=>{ if(item) item.useForQuote = text(item.supplierId) === key; }); previewSupplierId = key; }
+    if((patch && patch.useForQuote) === true){
+      if(!hasPrice(row)){
+        row.useForQuote = false;
+        try{ ctx.info && ctx.info('Brak ceny', 'Wpisz cenę netto albo brutto dla tego dostawcy, zanim ustawisz ją jako Do wyceny.'); }catch(_){ }
+      }else{
+        draftPrices.forEach((item)=>{ if(item) item.useForQuote = text(item.supplierId) === key; });
+        previewSupplierId = key;
+      }
+    }
     normalizeQuoteFlag();
     applySelectedToLegacyFields();
     try{ if(ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing({ sourceId:lastSourceId }); }catch(_){ }

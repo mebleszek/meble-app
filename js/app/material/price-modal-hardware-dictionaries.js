@@ -42,6 +42,7 @@
     const row = h('div', { class:'hardware-dictionary-row' });
     const input = h('input', { class:'investor-form-input', value:value || '', placeholder:'np. Zawiasy' });
     input.addEventListener('input', ()=> onChange(index, input.value));
+    input.addEventListener('change', ()=> onChange(index, input.value, false, true));
     const remove = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
     remove.addEventListener('click', ()=> onChange(index, null, true));
     row.appendChild(h('div', { class:'hardware-supplier-field' }, [h('label', { text:'Kategoria / rodzaj okucia' }), input]));
@@ -93,20 +94,23 @@
     const typeList = h('div', { class:'hardware-dictionary-list' });
     function render(){
       catList.innerHTML = '';
-      categories.forEach((cat, index)=> catList.appendChild(categoryRow(cat, index, (i, value, remove)=>{
-        if(remove) categories.splice(i, 1); else categories[i] = value;
-        render();
+      categories.forEach((cat, index)=> catList.appendChild(categoryRow(cat, index, (i, value, remove, refresh)=>{
+        if(remove){ categories.splice(i, 1); render(); return; }
+        categories[i] = value;
+        if(refresh) render();
       })));
       typeList.innerHTML = '';
       types.forEach((row, index)=> typeList.appendChild(typeRow(row, index, categories, (i, value, remove)=>{
-        if(remove) types.splice(i, 1); else types[i] = value;
-        render();
+        if(remove){ types.splice(i, 1); render(); return; }
+        types[i] = value;
       })));
     }
     const addCat = h('button', { type:'button', class:'btn', text:'Dodaj kategorię' });
     addCat.addEventListener('click', ()=>{ categories.push(''); render(); });
     const addType = h('button', { type:'button', class:'btn', text:'Dodaj typ / cechę' });
     addType.addEventListener('click', ()=>{ types.push({ id:uid('hwt'), name:'', allowedCategories:[], active:true }); render(); });
+    const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
+    exit.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     save.addEventListener('click', ()=>{
       const cleanCategories = normalizeCategories(categories);
@@ -122,7 +126,7 @@
     body.appendChild(h('div', { class:'quote-subsection-title', text:'Typy / cechy techniczne', style:'margin-top:14px' }));
     body.appendChild(typeList);
     body.appendChild(addType);
-    body.appendChild(h('div', { class:'hardware-supplier-actions' }, [save]));
+    body.appendChild(h('div', { class:'hardware-supplier-actions' }, [exit, save]));
     render();
     FC.panelBox.open({ title:'Słowniki okuć', contentNode:body, width:'820px', boxClass:'panel-box--rozrys hardware-dictionary-panel', dismissOnOverlay:false, dismissOnEsc:true });
   }

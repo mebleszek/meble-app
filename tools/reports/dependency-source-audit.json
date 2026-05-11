@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T22:50:02.187Z",
+  "generatedAt": "2026-05-11T00:02:46.817Z",
   "summary": {
     "jsFiles": 334,
     "indexScripts": 260,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 2995,
+      "lines": 3020,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 25,
-      "lines": 4243,
+      "lines": 4256,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -203,7 +203,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog.js",
-      455
+      474
     ],
     [
       "js/app/ui/actions-register.js",
@@ -676,7 +676,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 455,
+      "lines": 474,
       "incoming": 12,
       "outgoing": 2,
       "secondLevel": 16,
@@ -3432,7 +3432,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 142,
+      "lines": 148,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -3461,7 +3461,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 455,
+      "lines": 474,
       "defines": [
         "hardwareCatalog"
       ],
@@ -5351,7 +5351,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 133,
+      "lines": 137,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -5373,7 +5373,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 15,
+      "domRefs": 17,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -5522,7 +5522,7 @@
     "js/app/material/price-modal-hardware-supplier-prices.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 260,
+      "lines": 268,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5573,7 +5573,7 @@
     "js/app/material/price-modal-hardware-ux.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 188,
+      "lines": 189,
       "defines": [],
       "uses": [
         "priceModalContext",

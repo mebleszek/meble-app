@@ -183,6 +183,11 @@
     const key = text(supplierId).toLowerCase();
     return (Array.isArray(suppliers) ? suppliers : []).find((row)=> text(row && row.id).toLowerCase() === key || text(row && row.name).toLowerCase() === key) || null;
   }
+  function isSpreadsheetError(value){
+    const raw = text(value).toUpperCase();
+    return /^#(REF|VALUE|DIV\/0|NAME\?|N\/A|NUM|NULL)!?$/.test(raw);
+  }
+  function hasNumericInput(value){ return text(value) !== '' && !isSpreadsheetError(value) && number(value) > 0; }
   function normalizeSupplierPrice(row, suppliers, fallbackSupplierId){
     const src = row && typeof row === 'object' ? row : {};
     const resolved = supplierFromList(suppliers, src.supplierId || src.dostawca_id || src.supplierName || src.dostawca) || null;
@@ -190,14 +195,18 @@
     if(!supplierId) return null;
     const rawNet = src.catalogPriceNet != null ? src.catalogPriceNet : (src.cena_netto != null ? src.cena_netto : src.net);
     const rawGross = src.catalogPriceGross != null ? src.catalogPriceGross : (src.cena_brutto != null ? src.cena_brutto : src.gross);
-    const catalogPriceNet = number(rawNet);
-    const catalogPriceGross = number(rawGross);
+    let catalogPriceNet = hasNumericInput(rawNet) ? number(rawNet) : 0;
+    let catalogPriceGross = hasNumericInput(rawGross) ? number(rawGross) : 0;
+    const vat = number(resolved && resolved.defaultVatRate) || 23;
+    if(catalogPriceNet > 0 && catalogPriceGross <= 0) catalogPriceGross = netToGross(catalogPriceNet, vat);
+    if(catalogPriceGross > 0 && catalogPriceNet <= 0) catalogPriceNet = grossToNet(catalogPriceGross, vat);
     const entered = text(src.enteredPriceType || src.entered_price_type || src.priceType || src.typ_ceny);
+    const enteredFallback = hasNumericInput(rawNet) ? 'net' : (hasNumericInput(rawGross) ? 'gross' : '');
     return {
       supplierId,
       catalogPriceNet,
       catalogPriceGross,
-      enteredPriceType:entered || (text(rawNet) ? 'net' : (text(rawGross) ? 'gross' : '')),
+      enteredPriceType:entered || enteredFallback,
       priceDate:text(src.priceDate || src.priceUpdatedAt || src.data_ceny || src.date),
       priceStatus:normalizePriceStatus(src.priceStatus || src.status_ceny || src.statusCeny || src.status),
       useForQuote:src.useForQuote === true || ['tak','true','1','yes','y'].includes(text(src.useForQuote != null ? src.useForQuote : src.do_wyceny).toLowerCase()),
@@ -210,7 +219,7 @@
     const rows = [];
     (Array.isArray(list) ? list : []).forEach((row)=>{
       const normalized = normalizeSupplierPrice(row, supplierList, source.supplierId || cfg.defaultSupplierId);
-      if(normalized && (supplierPriceHasCatalogPrice(normalized) || normalized.useForQuote)) rows.push(normalized);
+      if(normalized && supplierPriceHasCatalogPrice(normalized)) rows.push(normalized);
     });
     if(!rows.length){
       const legacyNet = source.catalogPriceNet;
@@ -356,7 +365,7 @@
       hardwareUnit:normalizeUnit(src.hardwareUnit || src.unit || 'szt.'),
       series:text(src.series),
       supplierId,
-      priceSource:text(src.priceSource || src.supplierName || (supplier && supplier.name) || supplierId),
+      priceSource:text(text(quoteSupplierPrice.supplierId) ? ((supplier && supplier.name) || quoteSupplierPrice.supplierName || src.priceSource || supplierId) : (src.priceSource || src.supplierName || (supplier && supplier.name) || supplierId)),
       supplierPrices,
       vatRate,
       catalogPriceNet:normalizedCatalogNet,
@@ -411,6 +420,9 @@
     DEFAULT_MANUFACTURERS,
     DEFAULT_SUPPLIERS,
     DEFAULT_SETTINGS,
+    DEFAULT_CATEGORIES,
+    DEFAULT_TYPES,
+    PRICE_STATUSES,
     CATEGORIES,
     UNITS,
     STATUSES,
@@ -418,6 +430,13 @@
     PRICING_MODES,
     BUNDLE_COST_MODES,
     normalizeManufacturerList,
+    normalizeCategoryList,
+    normalizeTypeDefinition,
+    normalizeTypeList,
+    normalizePriceStatus,
+    priceStatusOptions,
+    typeOptions,
+    uniqueTypeConflict,
     normalizeSupplier,
     normalizeSupplierList,
     normalizeSettings,

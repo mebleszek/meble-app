@@ -534,3 +534,10 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Typ/cecha przechowuje listę dozwolonych kategorii. To mapowanie jest decyzją użytkownika i nie może być zgadywane automatycznie przy imporcie.
 - Dla zamienników producentów klucz logiczny ma pozostać prosty: `manufacturer + category + hardwareType`. W aktywnym katalogu użytkownika taka kombinacja powinna wskazywać maksymalnie jedną pozycję.
 - Status ceny jest częścią konkretnej ceny dostawcy (`supplierPrices[].priceStatus`), nie globalnym statusem okucia. Snapshot oferty w przyszłości nadal musi zamrażać faktycznie użyty status/źródło/cenę z dnia wyceny.
+
+## Hardware supplier price import fix v1 — 2026-05-11
+
+- Import cen dostawców pozostaje idempotentny po kluczu logicznym `hardware item + supplier`; nie dodawać ręcznego `id_ceny` jako wymagania dla użytkownika Excela.
+- Dane użytkownika w katalogu mają przechowywać cenę katalogową netto/brutto, dostawcę, datę ceny, status ceny i `useForQuote`. Pochodne wartości mogą być liczone przy normalizacji, a snapshot oferty ma je zamrozić dopiero w WYCENIE.
+- Błędy arkusza (`#REF!`, `#VALUE!`, itd.) są traktowane jako śmieci importu, nie jako dane domenowe. Przy przyszłej chmurze nie wolno synchronizować takich wartości do `hardware/items` ani podkolekcji cen.
+- Status `current` importowany z `Ceny_dostawcow` jest statusem konkretnej ceny dostawcy, a nie globalnym statusem pozycji. Nie używać go do masowego oznaczania okucia jako `Do sprawdzenia`.

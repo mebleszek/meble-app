@@ -39,6 +39,7 @@
     if(priceStatus === 'review') return { code:'check', label:'Do sprawdzenia', tone:'warning' };
     if(priceStatus === 'old') return { code:'stale', label:'Stara cena', tone:'warning' };
     if(priceStatus === 'archived') return { code:'stale', label:'Archiwalna cena', tone:'warning' };
+    if(priceStatus === 'current') return { code:'current', label:'Aktualna cena', tone:'ok' };
     const source = text(item && item.priceSource).toLowerCase();
     const age = dateAgeDays(item && item.priceUpdatedAt);
     if(age != null && age > PRICE_STALE_DAYS) return { code:'stale', label:'Stara cena', tone:'warning' };
