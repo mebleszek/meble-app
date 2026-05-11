@@ -136,7 +136,7 @@
 
 
   function buildHardwareTypeOptions(categoryValue, selectedValue, opts){
-    const cfg = Object.assign({ includeAll:false, manufacturer:'', currentId:'' }, opts || {});
+    const cfg = Object.assign({ includeAll:false, includeEmpty:true, emptyLabel:'Wybierz typ / cechę', manufacturer:'', currentId:'' }, opts || {});
     let types = [];
     try{ const store = ctx.catalogStore && ctx.catalogStore(); types = store && store.getHardwareTypes ? store.getHardwareTypes() : []; }catch(_){ types = []; }
     const hw = FC.hardwareCatalog || {};
@@ -155,7 +155,8 @@
       }
       return item;
     });
-    return cfg.includeAll ? [{ value:'', label:'Wszystkie typy' }].concat(options) : options;
+    if(cfg.includeAll) return [{ value:'', label:'Wszystkie typy' }].concat(options);
+    return cfg.includeEmpty === false ? options : [{ value:'', label:cfg.emptyLabel || 'Wybierz typ / cechę' }].concat(options);
   }
 
   function buildHardwareUnitOptions(selectedValue){

@@ -1,5 +1,5 @@
 // js/app/catalog/hardware-catalog-supplier-price-xlsx.js
-// Arkusz Ceny_dostawcow: jeden wiersz = jedna aktualna cena danego okucia u danego dostawcy.
+// Arkusz XLSX wielu cen dostawców dla jednego okucia: eksport, import i bezpieczne dopasowanie po danych użytkowych.
 (function(){
   'use strict';
   window.FC = window.FC || {};
@@ -8,6 +8,7 @@
   const SUPPLIER_PRICE_COLUMNS = [
     ['okucie_nazwa','itemName'],
     ['okucie_symbol','itemSymbol'],
+    ['producent','itemManufacturer'],
     ['dostawca','supplierName'],
     ['cena_netto','catalogPriceNet'],
     ['cena_brutto','catalogPriceGross'],
@@ -54,6 +55,7 @@
     return {
       itemName:item && item.name || '',
       itemSymbol:item && item.symbol || '',
+      itemManufacturer:item && item.manufacturer || '',
       supplierName:supplier.name || price.supplierId || '',
       catalogPriceNet:price && price.catalogPriceNet || '',
       catalogPriceGross:price && price.catalogPriceGross || '',
@@ -65,7 +67,7 @@
     };
   }
   function emptyPriceRow(_rowNo){
-    return { itemName:'', itemSymbol:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
+    return { itemName:'', itemSymbol:'', itemManufacturer:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
   }
   function rowValues(obj){
     return SUPPLIER_PRICE_COLUMNS.map((pair)=> obj._formulas && obj._formulas[pair[1]] ? obj._formulas[pair[1]] : valueForColumn(obj, pair[1]));
@@ -95,30 +97,59 @@
   function parseSupplierPriceRow(row){
     const rawNet = valueFrom(row, ['cena_netto','catalogPriceNet']);
     const rawGross = valueFrom(row, ['cena_brutto','catalogPriceGross']);
+    const rawUseForQuote = valueFrom(row, ['do_wyceny','useForQuote']);
+    const rawStatus = valueFrom(row, ['status_ceny','priceStatus']);
     return {
       __rowIndex:Number(row && row.__rowIndex) || 0,
       itemId:text(valueFrom(row, ['okucie_id','itemId'])),
       itemName:text(valueFrom(row, ['okucie_nazwa','itemName','nazwa'])),
       itemSymbol:text(valueFrom(row, ['okucie_symbol','itemSymbol','symbol'])),
+      itemManufacturer:text(valueFrom(row, ['producent','manufacturer','itemManufacturer','okucie_producent'])),
       supplierId:text(valueFrom(row, ['dostawca_id','supplierId'])),
       supplierName:text(valueFrom(row, ['dostawca','supplierName','nazwa_dostawcy'])),
       catalogPriceNet:hasNumericInput(rawNet) ? number(rawNet) : 0,
       catalogPriceGross:hasNumericInput(rawGross) ? number(rawGross) : 0,
       enteredPriceType:hasNumericInput(rawNet) ? 'net' : (hasNumericInput(rawGross) ? 'gross' : ''),
-      useForQuote:bool(valueFrom(row, ['do_wyceny','useForQuote'])),
-      priceStatus:normalizePriceStatus(valueFrom(row, ['status_ceny','priceStatus'])),
+      useForQuoteSpecified:text(rawUseForQuote) !== '',
+      useForQuote:bool(rawUseForQuote),
+      priceStatusSpecified:text(rawStatus) !== '',
+      priceStatus:normalizePriceStatus(rawStatus),
       priceDate:text(valueFrom(row, ['data_ceny','priceDate','priceUpdatedAt'])),
     };
   }
   function hasSupplierPriceData(row){
-    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
+    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','producent','manufacturer','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
   }
-  function resolveAccessory(accessories, row){
-    const byId = (accessories || []).find((item)=> text(item && item.id) && text(item.id) === text(row.itemId));
+  function uniqueMatch(matches, warnings, row, label){
+    const clean = (matches || []).filter(Boolean);
+    if(clean.length === 1) return clean[0];
+    if(clean.length > 1 && warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} pasuje do kilku okuć (${label}). Uzupełnij producent+symbol albo okucie_id.`);
+    return null;
+  }
+  function resolveAccessory(accessories, row, warnings){
+    const rows = Array.isArray(accessories) ? accessories : [];
+    const byId = rows.find((item)=> text(item && item.id) && text(item.id) === text(row.itemId));
     if(byId) return byId;
+    const manufacturer = safePart(row.itemManufacturer);
     const sym = safePart(row.itemSymbol);
     const name = safePart(row.itemName);
-    return (accessories || []).find((item)=> (sym && safePart(item && item.symbol) === sym) || (name && safePart(item && item.name) === name)) || null;
+    if(manufacturer && sym){
+      const found = uniqueMatch(rows.filter((item)=> safePart(item && item.manufacturer) === manufacturer && safePart(item && item.symbol) === sym), warnings, row, 'producent+symbol');
+      if(found) return found;
+    }
+    if(sym && name){
+      const found = uniqueMatch(rows.filter((item)=> safePart(item && item.symbol) === sym && safePart(item && item.name) === name), warnings, row, 'symbol+nazwa');
+      if(found) return found;
+    }
+    if(sym){
+      const found = uniqueMatch(rows.filter((item)=> safePart(item && item.symbol) === sym), warnings, row, 'symbol');
+      if(found){
+        if(!manufacturer && warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} dopasowano po samym symbolu. Bezpieczniej uzupełnić kolumnę producent.`);
+        return found;
+      }
+    }
+    if(name) return uniqueMatch(rows.filter((item)=> safePart(item && item.name) === name), warnings, row, 'nazwa');
+    return null;
   }
   function resolveSupplier(suppliers, row, warnings){
     const byName = supplierByName(suppliers || [], row && row.supplierName);
@@ -131,27 +162,65 @@
     }
     return byId || null;
   }
-  function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings){
-    const touched = new Set();
-    const rows = (supplierPriceRows || []).filter(hasSupplierPriceData).map(parseSupplierPriceRow).filter((row)=> row.catalogPriceNet > 0 || row.catalogPriceGross > 0);
-    rows.forEach((row)=>{
-      const item = resolveAccessory(accessories, row);
-      if(!item){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} nie pasuje do żadnego okucia.`); return; }
-      const supplier = resolveSupplier(suppliers || [], row, warnings);
-      if(!supplier){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}.`); return; }
-      const vat = number(supplier.defaultVatRate) || 23;
-      let catalogPriceNet = number(row.catalogPriceNet);
-      let catalogPriceGross = number(row.catalogPriceGross);
-      if(catalogPriceNet > 0 && catalogPriceGross <= 0) catalogPriceGross = netToGross(catalogPriceNet, vat);
-      if(catalogPriceGross > 0 && catalogPriceNet <= 0) catalogPriceNet = grossToNet(catalogPriceGross, vat);
-      item.supplierPrices = Array.isArray(item.supplierPrices) ? item.supplierPrices.filter((price)=> text(price && price.supplierId) !== text(supplier.id)) : [];
-      if(row.useForQuote) item.supplierPrices.forEach((price)=>{ price.useForQuote = false; });
-      item.supplierPrices.push({ supplierId:supplier.id, catalogPriceNet, catalogPriceGross, enteredPriceType:row.enteredPriceType || (row.catalogPriceNet > 0 ? 'net' : 'gross'), priceDate:row.priceDate, priceStatus:normalizePriceStatus(row.priceStatus), useForQuote:!!row.useForQuote });
-      touched.add(text(item.id));
-    });
-    return { touchedIds:Array.from(touched), rows:rows.length };
+  function normalizedNextPrice(row, supplier, existing){
+    const vat = number(supplier && supplier.defaultVatRate) || 23;
+    let catalogPriceNet = number(row.catalogPriceNet);
+    let catalogPriceGross = number(row.catalogPriceGross);
+    if(catalogPriceNet > 0 && catalogPriceGross <= 0) catalogPriceGross = netToGross(catalogPriceNet, vat);
+    if(catalogPriceGross > 0 && catalogPriceNet <= 0) catalogPriceNet = grossToNet(catalogPriceGross, vat);
+    return {
+      supplierId:supplier.id,
+      catalogPriceNet,
+      catalogPriceGross,
+      enteredPriceType:row.enteredPriceType || (row.catalogPriceNet > 0 ? 'net' : 'gross'),
+      priceDate:text(row.priceDate) || text(existing && existing.priceDate),
+      priceStatus:row.priceStatusSpecified ? normalizePriceStatus(row.priceStatus) : normalizePriceStatus((existing && existing.priceStatus) || 'current'),
+      useForQuote:row.useForQuoteSpecified ? !!row.useForQuote : !!(existing && existing.useForQuote),
+    };
   }
-
+  function sameSupplierPrice(a, b){
+    if(!a || !b) return false;
+    return text(a.supplierId) === text(b.supplierId)
+      && round2(number(a.catalogPriceNet)) === round2(number(b.catalogPriceNet))
+      && round2(number(a.catalogPriceGross)) === round2(number(b.catalogPriceGross))
+      && text(a.priceDate) === text(b.priceDate)
+      && normalizePriceStatus(a.priceStatus) === normalizePriceStatus(b.priceStatus)
+      && !!a.useForQuote === !!b.useForQuote;
+  }
+  function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings){
+    const summary = { touchedIds:[], rows:0, added:0, updated:0, unchanged:0, skipped:0 };
+    const touched = new Set();
+    const parsedRows = (supplierPriceRows || [])
+      .filter(hasSupplierPriceData)
+      .map(parseSupplierPriceRow)
+      .filter((row)=> row.catalogPriceNet > 0 || row.catalogPriceGross > 0);
+    summary.rows = parsedRows.length;
+    parsedRows.forEach((row)=>{
+      const item = resolveAccessory(accessories, row, warnings);
+      if(!item){ summary.skipped += 1; if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} nie pasuje do żadnego okucia.`); return; }
+      const supplier = resolveSupplier(suppliers || [], row, warnings);
+      if(!supplier){ summary.skipped += 1; if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}.`); return; }
+      const prices = Array.isArray(item.supplierPrices) ? item.supplierPrices.slice() : [];
+      const existing = prices.find((price)=> text(price && price.supplierId) === text(supplier.id)) || null;
+      const nextPrice = normalizedNextPrice(row, supplier, existing);
+      const changed = !existing || !sameSupplierPrice(existing, nextPrice);
+      if(row.useForQuoteSpecified && row.useForQuote){
+        prices.forEach((price)=>{ if(text(price && price.supplierId) !== text(supplier.id) && price.useForQuote){ price.useForQuote = false; } });
+      }
+      if(changed){
+        item.supplierPrices = prices.filter((price)=> text(price && price.supplierId) !== text(supplier.id));
+        item.supplierPrices.push(nextPrice);
+        if(existing) summary.updated += 1;
+        else summary.added += 1;
+        touched.add(text(item.id));
+      }else{
+        summary.unchanged += 1;
+        item.supplierPrices = prices;
+      }
+    });
+    summary.touchedIds = Array.from(touched);
+    return summary;
+  }
 
   FC.hardwareSupplierPriceXlsx = {
     SUPPLIER_PRICE_COLUMNS,
@@ -160,6 +229,6 @@
     parseSupplierPriceRow,
     hasSupplierPriceData,
     applySupplierPriceRows,
-    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier }
+    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice }
   };
 })();

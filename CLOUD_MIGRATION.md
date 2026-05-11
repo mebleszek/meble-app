@@ -541,3 +541,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Dane użytkownika w katalogu mają przechowywać cenę katalogową netto/brutto, dostawcę, datę ceny, status ceny i `useForQuote`. Pochodne wartości mogą być liczone przy normalizacji, a snapshot oferty ma je zamrozić dopiero w WYCENIE.
 - Błędy arkusza (`#REF!`, `#VALUE!`, itd.) są traktowane jako śmieci importu, nie jako dane domenowe. Przy przyszłej chmurze nie wolno synchronizować takich wartości do `hardware/items` ani podkolekcji cen.
 - Status `current` importowany z `Ceny_dostawcow` jest statusem konkretnej ceny dostawcy, a nie globalnym statusem pozycji. Nie używać go do masowego oznaczania okucia jako `Do sprawdzenia`.
+
+
+## Hardware import bulk/diff/types fix v1 — 2026-05-11
+
+- Zmiana pozostaje w obecnym lokalnym modelu katalogu i nie dodaje nowych trwałych kluczy storage. Import po analizie zapisuje przez `catalogStore` do istniejących danych katalogu okuć.
+- Hurtowy import cen nie wymaga technicznych ID od użytkownika. Dla przyszłej chmury oznacza to jasny kontrakt dopasowania: stabilne ID ma pierwszeństwo, ale użytkowy klucz `producent + symbol + dostawca` jest obsługiwany jako bezpieczny import z cenników hurtowni.
+- Podgląd importu liczy realny diff: oddziela okucia bez zmian od okuć zmienionych oraz ceny dodane/zmienione/bez zmian/pominięte. To ogranicza przypadkowe nadpisy przy przyszłej synchronizacji.
+- Excel pozostaje formularzem wejściowym bez zapętlonych formuł netto/brutto; obliczenie brakującej strony ceny jest częścią importu/modelu, a nie logiką arkusza.

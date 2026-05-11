@@ -622,3 +622,11 @@ Do obserwacji:
 - `hardware-catalog-import-export.js` pozostaje kandydatem do podziału przy najbliższej większej pracy import/export: osobno template/export, parse/defaults oraz plan/apply.
 - Dla słowników okuć docelowo rozważyć przejście z tekstowego `hardwareType` na stabilne `hardwareTypeId`, żeby zmiany nazw nie wymagały migracji tekstu w pozycjach.
 
+
+
+## 2026-05-11 — Hardware import bulk/diff/types fix v1
+
+- Domknięto użytkowy kierunek importu cenników hurtowni: `Ceny_dostawcow` można uzupełniać bez ręcznego ID, a program dopasowuje po `producent + symbol + dostawca`.
+- Dodano rzeczywisty diff w podglądzie importu, więc import/export okuć ma więcej logiki planowania niż prosty mapper arkusza.
+- Dług techniczny został świadomie nazwany: `hardware-catalog-import-export.js` ma ok. 500 linii i przy następnej większej rozbudowie należy go rozdzielić na trzy granice: XLSX template/export, parse/defaults oraz import plan/apply.
+- Nie robić ukrytego dużego splitu razem z kolejną naprawą użytkową; najpierw dodać kontrakty dla obecnego diffu importu i dopiero wtedy ciąć plik.

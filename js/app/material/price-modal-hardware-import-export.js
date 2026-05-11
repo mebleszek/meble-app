@@ -43,8 +43,18 @@
     const box = makeSection('Podgląd importu', 'Import zapisze dane przez catalogStore do lokalnego katalogu. Później ten sam boundary można przepiąć na chmurę.');
     const grid = h('div', { class:'grid-2', style:'margin-top:10px;gap:8px' });
     [
-      ['Pozycji w pliku', s.imported || 0], ['Nowe', s.added || 0], ['Aktualizowane', s.updated || 0], ['Usuwane przy zastąpieniu', s.removed || 0],
-      ['Dostawcy po imporcie', s.suppliers || 0], ['Producenci po imporcie', s.manufacturers || 0]
+      ['Okucia w pliku', s.accessoryRows != null ? s.accessoryRows : (s.imported || 0)],
+      ['Nowe okucia', s.added || 0],
+      ['Okucia zmienione', s.updated || 0],
+      ['Okucia bez zmian', s.unchanged || 0],
+      ['Ceny w pliku', s.supplierPrices || 0],
+      ['Nowe ceny', s.supplierPricesAdded || 0],
+      ['Ceny zmienione', s.supplierPricesUpdated || 0],
+      ['Ceny bez zmian', s.supplierPricesUnchanged || 0],
+      ['Ceny pominięte', s.supplierPricesSkipped || 0],
+      ['Usuwane przy zastąpieniu', s.removed || 0],
+      ['Dostawcy po imporcie', s.suppliers || 0],
+      ['Producenci po imporcie', s.manufacturers || 0]
     ].forEach((row)=>{
       const tile = h('div', { class:'list-item', style:'display:block;padding:10px' });
       tile.appendChild(h('div', { class:'muted-tag xs', text:row[0] }));
@@ -194,7 +204,7 @@
         if(!ok) return;
         try{
           const summary = api.applyImportPlan(plan);
-          info('Import zakończony', `Dodano: ${summary.added || 0}, zaktualizowano: ${summary.updated || 0}, usunięto: ${summary.removed || 0}.`);
+          info('Import zakończony', `Nowe okucia: ${summary.added || 0}, okucia zmienione: ${summary.updated || 0}, nowe ceny: ${summary.supplierPricesAdded || 0}, ceny zmienione: ${summary.supplierPricesUpdated || 0}, ceny bez zmian: ${summary.supplierPricesUnchanged || 0}, usunięto: ${summary.removed || 0}.`);
           refreshPriceModal();
           try{ FC.panelBox.close(); }catch(_){ }
         }catch(error){ info('Błąd importu', String(error && error.message || error || 'Import nie został zapisany.')); }

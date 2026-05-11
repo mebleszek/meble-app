@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_import_dictionary_ux_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_supplier_price_import_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_bulk_diff_types_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_supplier_import_dictionary_ux_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -732,3 +732,15 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Modal `Słowniki` nie może robić pełnego rerenderu po każdej literze w polach tekstowych, bo na Androidzie chowa to klawiaturę. Podczas pisania aktualizować draft bez przebudowy DOM; pełny render tylko przy zmianach strukturalnych.
 - Smoke test `Import XLSX cen dostawców liczy brakujące netto/brutto i zachowuje status` pilnuje scenariusza z kopiowanym wierszem MAGO/Bivert, pustą drugą ceną, statusem `current` i błędami `#REF!` w arkuszu.
 - Raport: `tools/reports/hardware-supplier-price-import-fix-v1.md`.
+
+
+## Hardware import bulk/diff/types fix v1 — 2026-05-11
+
+- Baza tej paczki: `site_hardware_supplier_import_dictionary_ux_fix_v1.zip`.
+- Naprawiono fałszywe podstawianie pierwszego typu/cechy w formularzu okucia: puste `typ_cecha` zostaje puste i pokazuje launcher `Wybierz typ / cechę`, a domyślne typy ze słownika są tylko opcjami, nie wybraną wartością.
+- Arkusz `Ceny_dostawcow` dostał kolumnę `producent`, żeby hurtowo wklejane cenniki można było dopasowywać po `producent + symbol` bez ręcznego pilnowania `okucie_id`, `id_ceny` ani `dostawca_id`. ID nadal może być w eksporcie jako techniczna ścieżka szybka, ale nie jest wymagane dla użytkownika.
+- Import cen dostawców rozróżnia teraz nowe, zmienione, bez zmian i pominięte ceny; podgląd importu nie liczy już wszystkich dopasowanych okuć jako `Aktualizowane`.
+- Import cen nadal nie używa dwukierunkowych formuł Excel netto/brutto. Użytkownik może wpisać tylko netto albo tylko brutto, program liczy brakującą stronę podczas importu, a kolejny eksport pokazuje obie wartości.
+- Dopasowanie ceny dostawcy działa kolejno: `okucie_id`, potem unikalne `producent + symbol`, potem ostrożne fallbacki `symbol+nazwa`, `symbol` albo `nazwa` z ostrzeżeniami przy ryzyku pomyłki.
+- Nie dodano nowych kluczy storage. Dane nadal zapisuje istniejący `catalogStore` i wersjonowane klucze `fc_*`.
+- `hardware-catalog-import-export.js` wzrósł do ok. 500 linii i pozostaje jawnie oznaczonym długiem. Następna większa praca nad importem/eksportem powinna zacząć się od splitu: template/export, parse/defaults oraz plan/apply.

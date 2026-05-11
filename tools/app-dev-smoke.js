@@ -216,15 +216,17 @@ function runMaterialNodeSmoke(sandbox){
         && headers[0] === 'nazwa'
         && headers[headers.length - 1] === 'id'
         && priceHeaders[0] === 'okucie_nazwa'
-        && priceHeaders[2] === 'dostawca'
+        && priceHeaders[2] === 'producent'
+        && priceHeaders[3] === 'dostawca'
         && priceHeaders[priceHeaders.length - 2] === 'okucie_id'
         && priceHeaders[priceHeaders.length - 1] === 'dostawca_id'
         && priceRows[1][0] === 'Test XLSX'
-        && priceRows[1][2] === 'Bivert'
-        && priceRows[1][5] === 'TAK'
+        && priceRows[1][2] === 'Blum'
+        && priceRows[1][3] === 'Bivert'
+        && priceRows[1][6] === 'TAK'
         && emptyHasFormula === false
-        && validationXml.includes('C2:C261')
-        && validationXml.includes('F2:F261')
+        && validationXml.includes('D2:D261')
+        && validationXml.includes('G2:G261')
         && !validationXml.includes('para');
     } },
     { name:'Import XLSX cen dostawców liczy brakujące netto/brutto i zachowuje status', explain:'Chroni scenariusz z telefonu: skopiowany wiersz ceny dostawcy może mieć wpisaną tylko cenę netto albo tylko brutto, a status current nie może zmieniać listy na Do sprawdzenia.', check:()=> {
@@ -252,7 +254,30 @@ function runMaterialNodeSmoke(sandbox){
       const mago = row && Array.isArray(row.supplierPrices) ? row.supplierPrices.find((price)=> String(price.supplierId) === 'mago') : null;
       const local = row && Array.isArray(row.supplierPrices) ? row.supplierPrices.find((price)=> String(price.supplierId) === 'local') : null;
       const status = (FC.priceModalContext && typeof FC.priceModalContext.hardwarePriceStatus === 'function') ? FC.priceModalContext.hardwarePriceStatus(row) : null;
-      return !!(mago && Number(mago.catalogPriceNet) === 12 && Number(mago.catalogPriceGross) === 14.76 && mago.useForQuote === true && local && Number(local.catalogPriceNet) === 9 && Number(local.catalogPriceGross) === 11.07 && local.useForQuote === false && row.priceStatus === 'current' && row.priceSource === 'MAGO' && status && status.code === 'current' && plan.summary.supplierPrices === 3 && plan.warnings.some((msg)=> String(msg || '').includes('dostawca_id wskazuje')));
+      return !!(mago && Number(mago.catalogPriceNet) === 12 && Number(mago.catalogPriceGross) === 14.76 && mago.useForQuote === true && local && Number(local.catalogPriceNet) === 9 && Number(local.catalogPriceGross) === 11.07 && local.useForQuote === false && row.priceStatus === 'current' && row.priceSource === 'MAGO' && status && status.code === 'current' && plan.summary.supplierPrices === 3 && plan.summary.supplierPricesSkipped === 0 && plan.warnings.some((msg)=> String(msg || '').includes('dostawca_id wskazuje')));
+    } },
+    { name:'Hurtowy import cen dopasowuje po producent+symbol bez ręcznego ID', explain:'Chroni wklejanie cennika z hurtowni: użytkownik nie musi kopiować okucie_id ani id_ceny, jeśli ma producenta, symbol i dostawcę.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const store = FC.catalogStore;
+      if(!(api && store && typeof store.savePriceList === 'function' && typeof store.getAccessories === 'function')) return false;
+      const previousAccessories = store.getAccessories();
+      const previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        store.savePriceList('accessories', [{ id:'bulk_hw_1', manufacturer:'Blum', symbol:'BULK-1', name:'Test hurtowy', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[] }]);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+        const plan = api.buildImportPlan({
+          accessories:[],
+          suppliers:[],
+          supplierPriceRows:[{ __rowIndex:2, producent:'Blum', okucie_symbol:'BULK-1', dostawca:'MAGO', cena_brutto:12.3, status_ceny:'current', data_ceny:'2026-05-11' }],
+          settings:{}
+        }, { mode:'merge' });
+        const item = plan.next.accessories.find((row)=> String(row && row.id || '') === 'bulk_hw_1');
+        const price = item && Array.isArray(item.supplierPrices) ? item.supplierPrices.find((row)=> String(row && row.supplierId || '') === 'mago') : null;
+        return plan.errors.length === 0 && plan.summary.accessoryRows === 0 && plan.summary.updated === 0 && plan.summary.supplierPrices === 1 && plan.summary.supplierPricesAdded === 1 && price && Number(price.catalogPriceGross) === 12.3 && Number(price.catalogPriceNet) === 10;
+      }finally{
+        store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
     } },
     { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
       const store = FC.catalogStore;
@@ -267,10 +292,11 @@ function runMaterialNodeSmoke(sandbox){
           { id:'smoke_hw_b', manufacturer:'Blum', name:'Edytowany zawias', hardwareCategory:'Zawiasy', hardwareType:'', hardwareUnit:'szt.', price:12, status:'active' }
         ]);
         const options = ctx.buildHardwareTypeOptions('Zawiasy', '', { manufacturer:'Blum', currentId:'smoke_hw_b' });
+        const empty = options[0];
         const used = options.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
         const selfOptions = ctx.buildHardwareTypeOptions('Zawiasy', '110st chujowy', { manufacturer:'Blum', currentId:'smoke_hw_a' });
         const self = selfOptions.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
-        return dictionariesSrc.includes('applyDictionaryRenames') && used && used.disabled === true && String(used.description || '').includes('Zajęte przez') && self && self.disabled !== true;
+        return dictionariesSrc.includes('applyDictionaryRenames') && empty && String(empty.value || '') === '' && used && used.disabled === true && String(used.description || '').includes('Zajęte przez') && self && self.disabled !== true;
       }finally{
         store.savePriceList('accessories', previous);
       }

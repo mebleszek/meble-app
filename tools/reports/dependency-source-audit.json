@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T00:50:46.259Z",
+  "generatedAt": "2026-05-11T01:34:38.626Z",
   "summary": {
     "jsFiles": 334,
     "indexScripts": 260,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3069,
+      "lines": 3201,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 25,
-      "lines": 4369,
+      "lines": 4380,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -190,6 +190,10 @@
       649
     ],
     [
+      "js/app/catalog/hardware-catalog-import-export.js",
+      504
+    ],
+    [
       "js/app/catalog/catalog-store.js",
       497
     ],
@@ -208,10 +212,6 @@
     [
       "js/app/ui/actions-register.js",
       449
-    ],
-    [
-      "js/app/catalog/hardware-catalog-import-export.js",
-      441
     ],
     [
       "js/app/cabinet/cabinet-modal-standing-specials.js",
@@ -1374,6 +1374,23 @@
       ]
     },
     {
+      "file": "js/app/catalog/hardware-catalog-import-export.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 504,
+      "incoming": 2,
+      "outgoing": 7,
+      "secondLevel": 1,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys-render.js",
       "risk": "średnie",
       "score": 4,
@@ -1387,23 +1404,6 @@
       "dialogRefs": 0,
       "reasons": [
         "400+ linii"
-      ]
-    },
-    {
-      "file": "js/app/catalog/hardware-catalog-import-export.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 441,
-      "incoming": 2,
-      "outgoing": 7,
-      "secondLevel": 1,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -3321,7 +3321,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 441,
+      "lines": 504,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3432,7 +3432,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 166,
+      "lines": 235,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -5430,7 +5430,7 @@
     "js/app/material/price-modal-hardware-import-export.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 236,
+      "lines": 246,
       "defines": [
         "priceModalHardwareImportExport"
       ],
@@ -5646,7 +5646,7 @@
     "js/app/material/price-modal-options.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 222,
+      "lines": 223,
       "defines": [],
       "uses": [
         "priceModalContext",

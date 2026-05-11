@@ -5,7 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const KIND = 'meble-app.hardware-catalog.export';
-  const VERSION = 6;
+  const VERSION = 7;
   const TEMPLATE_ROWS = 220;
 
   const ACCESSORY_COLUMNS = [
@@ -187,7 +187,7 @@
     const snap = getSnapshot();
     const blob = FC.xlsxLite.makeWorkbookBlob({
       Okucia:{ rows:buildAccessoryRows(snap.accessories, snap), validations:accessoryValidations(snap), freezeTopRow:true, widths:[36,12,18,24,24,18,18,22,28,24] },
-      Ceny_dostawcow:{ rows:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows ? FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows(snap.accessories, snap.suppliers) : [['okucie_nazwa','okucie_symbol','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]), validations:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.supplierPriceValidations ? FC.hardwareSupplierPriceXlsx.supplierPriceValidations() : []), freezeTopRow:true, widths:[36,18,28,14,14,12,16,14,24,20] },
+      Ceny_dostawcow:{ rows:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows ? FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows(snap.accessories, snap.suppliers) : [['okucie_nazwa','okucie_symbol','producent','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]), validations:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.supplierPriceValidations ? FC.hardwareSupplierPriceXlsx.supplierPriceValidations() : []), freezeTopRow:true, widths:[36,18,18,28,14,14,12,16,14,24,20] },
       Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[34,34,10,18,18,16,20,24,24,24] },
       Dostawcy:{ rows:buildSupplierRows(snap.suppliers), freezeTopRow:true, widths:[20,28,20,18,12] },
       Producenci:{ rows:buildManufacturerRows(snap.manufacturers), freezeTopRow:true, widths:[24] },
@@ -389,6 +389,46 @@
       target.bundleItems.push({ itemId:text(child.id), qty:number(entry.qty) || 1 });
     });
   }
+
+  const ACCESSORY_DIFF_FIELDS = ['name','hardwareUnit','manufacturer','hardwareCategory','hardwareType','symbol','series','bundleCostMode','note'];
+  function canonicalValue(value){
+    if(Array.isArray(value)) return JSON.stringify(value.map((row)=> row && typeof row === 'object' ? Object.keys(row).sort().reduce((out, key)=>{ out[key] = row[key]; return out; }, {}) : row));
+    if(value && typeof value === 'object') return JSON.stringify(value);
+    return text(value);
+  }
+  function sameBundleItems(a, b){
+    const clean = (list)=> (Array.isArray(list) ? list : [])
+      .map((row)=>({ itemId:text(row && row.itemId), qty:number(row && row.qty) || 0 }))
+      .filter((row)=> row.itemId && row.qty > 0)
+      .sort((x, y)=> (x.itemId + ':' + x.qty).localeCompare(y.itemId + ':' + y.qty));
+    return JSON.stringify(clean(a)) === JSON.stringify(clean(b));
+  }
+  function sameImportedAccessory(existing, imported){
+    if(!existing || !imported) return false;
+    return ACCESSORY_DIFF_FIELDS.every((field)=> canonicalValue(existing && existing[field]) === canonicalValue(imported && imported[field]))
+      && sameBundleItems(existing && existing.bundleItems, imported && imported.bundleItems);
+  }
+  function classifyImportedAccessories(importedRows, existingById){
+    const addedIds = new Set();
+    const changedIds = new Set();
+    const unchangedIds = new Set();
+    (importedRows || []).forEach((row)=>{
+      const id = text(row && row.id);
+      const existing = existingById.get(id);
+      if(!existing){ addedIds.add(id); return; }
+      if(sameImportedAccessory(existing, row)) unchangedIds.add(id);
+      else changedIds.add(id);
+    });
+    return { addedIds, changedIds, unchangedIds };
+  }
+  function mergeAccessories(existing, importedRows, classification){
+    const importedById = new Map((importedRows || []).map((row)=> [text(row && row.id), row]));
+    const keepOrReplace = (row)=>{
+      const id = text(row && row.id);
+      return classification.changedIds.has(id) ? (importedById.get(id) || row) : row;
+    };
+    return (existing || []).map(keepOrReplace).concat((importedRows || []).filter((row)=> classification.addedIds.has(text(row && row.id))));
+  }
   function buildImportPlan(data, options){
     const mode = text(options && options.mode) === 'replace' ? 'replace' : 'merge';
     const s = store();
@@ -404,19 +444,42 @@
     applyBundleRows(importedAccessories, data && data.bundleRows, existing);
     const existingById = new Map(existing.map((row)=> [text(row && row.id), row]));
     const importedIds = new Set(importedAccessories.rows.map((row)=> text(row && row.id)));
-    const updateCount = importedAccessories.rows.filter((row)=> existingById.has(text(row && row.id))).length;
-    const addCount = importedAccessories.rows.length - updateCount;
+    const classification = classifyImportedAccessories(importedAccessories.rows, existingById);
+    const addCount = classification.addedIds.size;
+    const accessoryUpdateCount = classification.changedIds.size;
+    const unchangedCount = classification.unchangedIds.size;
     const removeCount = mode === 'replace' ? existing.filter((row)=> !importedIds.has(text(row && row.id))).length : 0;
-    let nextAccessories = mode === 'replace' ? importedAccessories.rows : existing.map((row)=> importedIds.has(text(row && row.id)) ? importedAccessories.rows.find((item)=> text(item.id) === text(row.id)) : row).concat(importedAccessories.rows.filter((row)=> !existingById.has(text(row.id))));
-    let supplierPriceSummary = { touchedIds:[], rows:0 };
+    let nextAccessories = mode === 'replace' ? importedAccessories.rows : mergeAccessories(existing, importedAccessories.rows, classification);
+    let supplierPriceSummary = { touchedIds:[], rows:0, added:0, updated:0, unchanged:0, skipped:0 };
     if(FC.hardwareSupplierPriceXlsx && typeof FC.hardwareSupplierPriceXlsx.applySupplierPriceRows === 'function'){
       supplierPriceSummary = FC.hardwareSupplierPriceXlsx.applySupplierPriceRows(nextAccessories, data && data.supplierPriceRows, suppliers, warnings) || supplierPriceSummary;
       const settingsForNormalize = Object.assign({}, importedSettings, { hardwareSuppliers:suppliers });
       nextAccessories = nextAccessories.map((row)=> normalizeAccessory(row, settingsForNormalize));
     }
-    const touchedExisting = (supplierPriceSummary.touchedIds || []).filter((id)=> existingById.has(text(id)) && !importedIds.has(text(id))).length;
     const manufacturers = normalizeManufacturers((Array.isArray(data && data.manufacturers) ? data.manufacturers : []).concat(nextAccessories.map((row)=> row.manufacturer)));
-    return { mode, errors, warnings, next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings, categories, types }, summary:{ imported:importedAccessories.rows.length, added:addCount, updated:updateCount + touchedExisting, removed:removeCount, suppliers:suppliers.length, manufacturers:manufacturers.length, supplierPrices:supplierPriceSummary.rows || 0 } };
+    const priceChanged = number(supplierPriceSummary.added) + number(supplierPriceSummary.updated);
+    return {
+      mode,
+      errors,
+      warnings,
+      next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings, categories, types },
+      summary:{
+        imported:importedAccessories.rows.length,
+        accessoryRows:importedAccessories.rows.length,
+        added:addCount,
+        updated:accessoryUpdateCount,
+        unchanged:unchangedCount,
+        removed:removeCount,
+        suppliers:suppliers.length,
+        manufacturers:manufacturers.length,
+        supplierPrices:supplierPriceSummary.rows || 0,
+        supplierPricesAdded:supplierPriceSummary.added || 0,
+        supplierPricesUpdated:supplierPriceSummary.updated || 0,
+        supplierPricesUnchanged:supplierPriceSummary.unchanged || 0,
+        supplierPricesSkipped:supplierPriceSummary.skipped || 0,
+        totalChanged:accessoryUpdateCount + addCount + priceChanged,
+      }
+    };
   }
   function applyImportPlan(plan){
     const s = store();
@@ -435,6 +498,6 @@
     KIND, VERSION, ACCESSORY_COLUMNS, SUPPLIER_COLUMNS, BUNDLE_COLUMNS,
     getSnapshot, makeExportPayload, exportJson, exportXlsx, parseFile, parseWorkbook, parseJson,
     buildImportPlan, applyImportPlan, findRequiredGaps, getRequiredChoiceOptions,
-    _debug:{ rowsToObjects, parseAccessoryRow, buildAccessoryRows, buildBundleRows, buildCategoryRows, buildTypeRows, accessoryValidations, buildDictionaryRows, requiredGapsForAccessory, enrichAccessoryDefaults, columnFor }
+    _debug:{ rowsToObjects, parseAccessoryRow, buildAccessoryRows, buildBundleRows, buildCategoryRows, buildTypeRows, accessoryValidations, buildDictionaryRows, requiredGapsForAccessory, enrichAccessoryDefaults, columnFor, sameImportedAccessory, classifyImportedAccessories }
   };
 })();

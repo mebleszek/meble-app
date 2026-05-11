@@ -334,3 +334,10 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - `OPTIMIZATION_PLAN.md` — plan optymalizacji i scalania wspólnych mechanik.
 - `DEPENDENCY_MAP.md` — mapa zależności, wpływu drugiego poziomu i kolejności bezpiecznych refaktorów.
 - `tools/dependency-source-audit.js` — narzędzie generujące raporty `tools/reports/dependency-source-audit.md/json`.
+
+
+## 2026-05-11 — Hardware import bulk/diff/types fix v1
+
+- Import cen dostawców obsługuje hurtowe wklejanie po `producent + symbol + dostawca` bez ręcznego pilnowania ID.
+- Puste `typ_cecha` w okuciu pozostaje puste; słownik typów jest listą opcji, a nie automatycznym wyborem.
+- Podgląd importu rozróżnia okucia/ceny bez zmian od realnie zmienionych rekordów.
