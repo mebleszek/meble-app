@@ -163,15 +163,16 @@
     const hw = FC.hardwareCatalog || {};
     const statusLabel = hw.statusLabel ? hw.statusLabel(item && item.status) : text(item && item.status);
     if(text(item && item.status) && text(item && item.status) !== 'active') chips.appendChild(chip(statusLabel, 'neutral'));
+    const editBtn = h('button', { class:'btn hardware-price-row__edit-btn', type:'button', text:'Edytuj', onclick:()=>{ if(typeof onEdit === 'function') onEdit(); } });
+    const statusActions = h('div', { class:'hardware-price-row__status-actions' }, [chips, editBtn]);
     left.appendChild(title);
-    left.appendChild(chips);
+    left.appendChild(statusActions);
     left.appendChild(renderMetaLine([text(item && item.manufacturer) || '—', text(item && item.hardwareCategory) || 'Inne', text(item && item.hardwareType), text(item && item.hardwareUnit) || 'szt.', text(item && item.series), text(item && item.symbol) ? 'SYM: ' + text(item.symbol) : '']));
     left.appendChild(renderMetaLine(['Dostawca: ' + supplierName(item), num(item && item.purchasePriceGross) > 0 ? 'zakup: ' + money(item.purchasePriceGross) : '', num(item && item.price) > 0 ? 'do wyceny: ' + money(item.price) : '', text(item && item.priceUpdatedAt) ? 'cena: ' + text(item.priceUpdatedAt) : 'brak daty ceny']));
     const bundleBox = renderBundleSummary(item);
     if(bundleBox) left.appendChild(bundleBox);
     const right = h('div', { class:'price-modal-list-actions hardware-price-row__actions' });
     right.appendChild(h('div', { class:'price-modal-list-price', text:(num(item && item.price)).toFixed(2) + ' PLN/' + (text(item && item.hardwareUnit) || 'szt.') }));
-    right.appendChild(h('button', { class:'btn', type:'button', text:'Edytuj', onclick:()=>{ if(typeof onEdit === 'function') onEdit(); } }));
     row.appendChild(left);
     row.appendChild(right);
     return row;

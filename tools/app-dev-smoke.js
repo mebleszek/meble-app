@@ -196,7 +196,7 @@ function runMaterialNodeSmoke(sandbox){
         && html.includes('price-modal-hardware-ux.js')
         && uxSrc.includes('Do sprawdzenia cen') && uxSrc.includes('Składniki:') && uxSrc.includes('Zestawy')
         && listSrc.includes('renderHardwareQuickFilters') && listSrc.includes('renderHardwareAccessoryRow')
-        && css.includes('.hardware-price-row') && css.includes('.hardware-quick-filters');
+        && css.includes('.hardware-price-row') && css.includes('.hardware-quick-filters') && uxSrc.includes('hardware-price-row__status-actions') && css.includes('.hardware-price-row__edit-btn');
     } },
     { name:'Eksport XLSX okuć ma arkusz cen dostawców i listy wyboru', explain:'Chroni model wielu cen: Okucia trzymają produkt techniczny, a Ceny_dostawcow pozwala duplikować wiersze i zmieniać dostawcę/cenę bez ręcznego ID ceny.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
@@ -235,22 +235,45 @@ function runMaterialNodeSmoke(sandbox){
       const before = store.getAccessories();
       const existing = before.find((row)=> String(row && row.id || '')) || before[0];
       if(!existing) return false;
-      const suppliers = [{ id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }];
+      const suppliers = [{ id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'local', name:'Hurtownia lokalna', defaultVatRate:23, defaultDiscountPercent:0, active:true }];
       const plan = api.buildImportPlan({
         accessories:[Object.assign({}, existing, { id:existing.id, name:existing.name || 'Test', manufacturer:existing.manufacturer || 'Blum', hardwareCategory:existing.hardwareCategory || 'Zawiasy', hardwareUnit:existing.hardwareUnit || 'szt.' })],
         suppliers,
         supplierPriceRows:[
           { __rowIndex:2, okucie_id:existing.id, dostawca:'Bivert', cena_netto:8, cena_brutto:9.84, do_wyceny:'NIE', status_ceny:'current', data_ceny:'2026-05-10' },
           { __rowIndex:3, okucie_id:existing.id, dostawca:'MAGO', cena_netto:12, cena_brutto:'', do_wyceny:'TAK', status_ceny:'current', data_ceny:'2026-05-10' },
-          { __rowIndex:4, okucie_id:existing.id, dostawca:'MAGO', cena_netto:'#REF!', cena_brutto:'#REF!', do_wyceny:'NIE', status_ceny:'current' }
+          { __rowIndex:4, okucie_id:existing.id, dostawca:'MAGO', cena_netto:'#REF!', cena_brutto:'#REF!', do_wyceny:'NIE', status_ceny:'current' },
+          { __rowIndex:5, okucie_id:existing.id, dostawca:'Hurtownia lokalna', dostawca_id:'mago', cena_netto:9, cena_brutto:'', do_wyceny:'NIE', status_ceny:'current', data_ceny:'2026-05-10' }
         ],
         settings:{ defaultVatRate:23, defaultSupplierId:'bivert', defaultMarkupPercent:20, defaultQuoteBase:'catalogGross', defaultPricingMode:'markup' },
       }, { mode:'merge' });
       if(plan.errors.length) return false;
       const row = plan.next.accessories.find((item)=> String(item && item.id || '') === String(existing.id));
       const mago = row && Array.isArray(row.supplierPrices) ? row.supplierPrices.find((price)=> String(price.supplierId) === 'mago') : null;
+      const local = row && Array.isArray(row.supplierPrices) ? row.supplierPrices.find((price)=> String(price.supplierId) === 'local') : null;
       const status = (FC.priceModalContext && typeof FC.priceModalContext.hardwarePriceStatus === 'function') ? FC.priceModalContext.hardwarePriceStatus(row) : null;
-      return !!(mago && Number(mago.catalogPriceNet) === 12 && Number(mago.catalogPriceGross) === 14.76 && mago.useForQuote === true && row.priceStatus === 'current' && row.priceSource === 'MAGO' && status && status.code === 'current' && plan.summary.supplierPrices === 2);
+      return !!(mago && Number(mago.catalogPriceNet) === 12 && Number(mago.catalogPriceGross) === 14.76 && mago.useForQuote === true && local && Number(local.catalogPriceNet) === 9 && Number(local.catalogPriceGross) === 11.07 && local.useForQuote === false && row.priceStatus === 'current' && row.priceSource === 'MAGO' && status && status.code === 'current' && plan.summary.supplierPrices === 3 && plan.warnings.some((msg)=> String(msg || '').includes('dostawca_id wskazuje')));
+    } },
+    { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
+      const store = FC.catalogStore;
+      const ctx = FC.priceModalContext || {};
+      const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
+      if(!(store && ctx && typeof store.getAccessories === 'function' && typeof store.savePriceList === 'function' && typeof ctx.buildHardwareTypeOptions === 'function')) return false;
+      const previous = store.getAccessories();
+      try{
+        store.saveHardwareTypes && store.saveHardwareTypes([{ id:'smoke_type_110', name:'110st chujowy', allowedCategories:['Zawiasy'], active:true }]);
+        store.savePriceList('accessories', [
+          { id:'smoke_hw_a', manufacturer:'Blum', name:'Zajęty zawias', hardwareCategory:'Zawiasy', hardwareType:'110st chujowy', hardwareUnit:'szt.', price:10, status:'active' },
+          { id:'smoke_hw_b', manufacturer:'Blum', name:'Edytowany zawias', hardwareCategory:'Zawiasy', hardwareType:'', hardwareUnit:'szt.', price:12, status:'active' }
+        ]);
+        const options = ctx.buildHardwareTypeOptions('Zawiasy', '', { manufacturer:'Blum', currentId:'smoke_hw_b' });
+        const used = options.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
+        const selfOptions = ctx.buildHardwareTypeOptions('Zawiasy', '110st chujowy', { manufacturer:'Blum', currentId:'smoke_hw_a' });
+        const self = selfOptions.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
+        return dictionariesSrc.includes('applyDictionaryRenames') && used && used.disabled === true && String(used.description || '').includes('Zajęte przez') && self && self.disabled !== true;
+      }finally{
+        store.savePriceList('accessories', previous);
+      }
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

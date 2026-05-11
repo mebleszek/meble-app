@@ -6,6 +6,8 @@
   const FC = window.FC;
   const ctx = FC.priceModalContext || {};
 
+  function text(value){ return String(value == null ? '' : value).trim(); }
+
   function ensureOption(selectEl, value, label){
     if(!selectEl) return null;
     const key = String(value == null ? '' : value);
@@ -24,12 +26,20 @@
     selectEl.innerHTML = '';
     (Array.isArray(options) ? options : []).forEach((entry)=>{
       const item = entry && typeof entry === 'object' ? entry : { value:entry, label:entry };
-      ensureOption(selectEl, item.value, item.label);
+      const opt = ensureOption(selectEl, item.value, item.label);
+      if(opt){
+        opt.disabled = !!item.disabled;
+        if(item.description) opt.setAttribute('data-description', item.description);
+        else opt.removeAttribute('data-description');
+      }
     });
-    if(prev && !Array.from(selectEl.options || []).some((opt)=> String(opt.value || '') === prev)) ensureOption(selectEl, prev, fallbackLabel || prev);
+    if(prev && !Array.from(selectEl.options || []).some((opt)=> String(opt.value || '') === prev)){
+      const opt = ensureOption(selectEl, prev, fallbackLabel || prev);
+      if(opt){ opt.disabled = false; opt.removeAttribute('data-description'); }
+    }
     selectEl.value = prev;
     if(String(selectEl.value || '') !== prev){
-      const first = Array.from(selectEl.options || []).find((opt)=> String(opt.value || '') !== '') || (selectEl.options && selectEl.options[0]) || null;
+      const first = Array.from(selectEl.options || []).find((opt)=> String(opt.value || '') !== '' && !opt.disabled) || (selectEl.options && selectEl.options[0]) || null;
       selectEl.value = first ? String(first.value || '') : '';
     }
   }
@@ -107,6 +117,11 @@
 
   function buildServiceCategoryOptions(selectedValue, opts){ return buildCategoryOptions('quoteRates', selectedValue, opts); }
 
+  function currentHardwareItems(){
+    try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories') return ctx.currentList(); }catch(_){ }
+    try{ const store = ctx.catalogStore && ctx.catalogStore(); return store && store.getAccessories ? store.getAccessories() : []; }catch(_){ return []; }
+  }
+
   function buildHardwareCategoryOptions(selectedValue, opts){
     const cfg = Object.assign({ includeAll:false }, opts || {});
     const hw = FC.hardwareCatalog || {};
@@ -121,13 +136,25 @@
 
 
   function buildHardwareTypeOptions(categoryValue, selectedValue, opts){
-    const cfg = Object.assign({ includeAll:false }, opts || {});
+    const cfg = Object.assign({ includeAll:false, manufacturer:'', currentId:'' }, opts || {});
     let types = [];
     try{ const store = ctx.catalogStore && ctx.catalogStore(); types = store && store.getHardwareTypes ? store.getHardwareTypes() : []; }catch(_){ types = []; }
     const hw = FC.hardwareCatalog || {};
-    const options = hw && typeof hw.typeOptions === 'function'
+    const baseOptions = hw && typeof hw.typeOptions === 'function'
       ? hw.typeOptions(types, categoryValue, selectedValue)
       : buildOrderedValues([], types.map((row)=> row && row.name), selectedValue, null);
+    const options = (baseOptions || []).map((entry)=>{
+      const item = entry && typeof entry === 'object' ? Object.assign({}, entry) : { value:entry, label:entry };
+      const value = text(item.value);
+      if(value && text(cfg.manufacturer) && hw && typeof hw.uniqueTypeConflict === 'function'){
+        const conflict = hw.uniqueTypeConflict(currentHardwareItems(), { manufacturer:cfg.manufacturer, hardwareCategory:categoryValue, hardwareType:value }, cfg.currentId);
+        if(conflict){
+          item.disabled = true;
+          item.description = 'Zajęte przez: ' + (text(conflict.name) || text(conflict.symbol) || 'inną pozycję');
+        }
+      }
+      return item;
+    });
     return cfg.includeAll ? [{ value:'', label:'Wszystkie typy' }].concat(options) : options;
   }
 

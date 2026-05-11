@@ -614,3 +614,11 @@ Do obserwacji:
 - Naprawa została utrzymana w istniejących boundary: model domenowy w `hardware-catalog.js`, arkusz cen w `hardware-catalog-supplier-price-xlsx.js`, UI w `price-modal-hardware-supplier-prices.js` i słowniki w `price-modal-hardware-dictionaries.js`.
 - Nie rozbudowano `catalog-store.js` ani nie ruszono WYCENY. To świadomie ogranicza zakres do stabilizacji katalogu okuć po dużej zmianie statusów/typów/cen dostawców.
 - `hardware-catalog-import-export.js` nadal pozostaje powyżej progu ostrzeżenia. Zostaje jawny dług: następna większa rozbudowa import/export powinna zacząć się od splitu na template/export, parse/defaults oraz plan/apply.
+
+
+## 2026-05-11 — hardware supplier import/dictionary UX fix v1
+
+- Naprawa została wykonana punktowo bez dużego splitu import/export, bo dotyczyła realnego błędu importu z kopiowanym wierszem Excel i stanu słowników.
+- `hardware-catalog-import-export.js` pozostaje kandydatem do podziału przy najbliższej większej pracy import/export: osobno template/export, parse/defaults oraz plan/apply.
+- Dla słowników okuć docelowo rozważyć przejście z tekstowego `hardwareType` na stabilne `hardwareTypeId`, żeby zmiany nazw nie wymagały migracji tekstu w pozycjach.
+

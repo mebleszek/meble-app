@@ -366,28 +366,39 @@
     writeList('hardwareManufacturers', cache.hardwareManufacturers);
     return getHardwareManufacturers();
   }
+  function refreshHardwareRuntimeSettings(){
+    currentHardwareSettings = Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS, {
+      hardwareSuppliers:cache.hardwareSuppliers || [],
+      hardwareCategories:cache.hardwareCategories || [],
+      hardwareTypes:cache.hardwareTypes || [],
+    });
+    return currentHardwareSettings;
+  }
   function getHardwareSuppliers(){ return (cache.hardwareSuppliers || []).map((row)=> Object.assign({}, row)); }
   function saveHardwareSuppliers(list){
     cache.hardwareSuppliers = normalizeHardwareSuppliers(list);
+    refreshHardwareRuntimeSettings();
     writeList('hardwareSuppliers', cache.hardwareSuppliers);
     return getHardwareSuppliers();
   }
   function getHardwareSettings(){ return Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS); }
   function saveHardwareSettings(settings){
     cache.hardwareSettings = normalizeHardwareSettings(settings);
-    currentHardwareSettings = Object.assign({}, cache.hardwareSettings, { hardwareSuppliers:cache.hardwareSuppliers || [], hardwareCategories:cache.hardwareCategories || [], hardwareTypes:cache.hardwareTypes || [] });
+    refreshHardwareRuntimeSettings();
     writeList('hardwareSettings', cache.hardwareSettings);
     return getHardwareSettings();
   }
   function getHardwareCategories(){ return (cache.hardwareCategories || []).slice(); }
   function saveHardwareCategories(list){
     cache.hardwareCategories = normalizeHardwareCategories(list);
+    refreshHardwareRuntimeSettings();
     writeList('hardwareCategories', cache.hardwareCategories);
     return getHardwareCategories();
   }
   function getHardwareTypes(){ return (cache.hardwareTypes || []).map((row)=> Object.assign({}, row, { allowedCategories:Array.isArray(row && row.allowedCategories) ? row.allowedCategories.slice() : [] })); }
   function saveHardwareTypes(list){
     cache.hardwareTypes = normalizeHardwareTypes(list);
+    refreshHardwareRuntimeSettings();
     writeList('hardwareTypes', cache.hardwareTypes);
     return getHardwareTypes();
   }
@@ -400,7 +411,7 @@
       writeList('materials', cache.sheetMaterials);
     }
     else if(key === 'accessories'){
-      currentHardwareSettings = Object.assign({}, cache.hardwareSettings || DEFAULT_HARDWARE_SETTINGS, { hardwareSuppliers:cache.hardwareSuppliers || [], hardwareCategories:cache.hardwareCategories || [], hardwareTypes:cache.hardwareTypes || [] });
+      refreshHardwareRuntimeSettings();
       cache.accessories = normalizeList(list, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
       cache.hardwareManufacturers = normalizeHardwareManufacturers((cache.hardwareManufacturers || []).concat(cache.accessories.map((row)=> row && row.manufacturer)));
       writeList('accessories', cache.accessories);

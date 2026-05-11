@@ -66,6 +66,7 @@
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
+  function safePart(value){ return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || ''; }
   function uidFromName(name){
     const raw = text(name).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     return raw || ('supplier_' + Date.now());
@@ -183,6 +184,22 @@
     const key = text(supplierId).toLowerCase();
     return (Array.isArray(suppliers) ? suppliers : []).find((row)=> text(row && row.id).toLowerCase() === key || text(row && row.name).toLowerCase() === key) || null;
   }
+  function supplierFromName(suppliers, supplierName){
+    const raw = text(supplierName);
+    const key = raw.toLowerCase();
+    const safe = safePart(raw);
+    if(!key) return null;
+    return (Array.isArray(suppliers) ? suppliers : []).find((row)=>{
+      const name = text(row && row.name);
+      return name.toLowerCase() === key || (safe && safePart(name) === safe);
+    }) || null;
+  }
+  function resolveSupplierForPrice(suppliers, src){
+    const source = src && typeof src === 'object' ? src : {};
+    const byName = supplierFromName(suppliers, source.supplierName || source.dostawca || source.nazwa_dostawcy);
+    const byId = supplierFromList(suppliers, source.supplierId || source.dostawca_id);
+    return byName || byId || null;
+  }
   function isSpreadsheetError(value){
     const raw = text(value).toUpperCase();
     return /^#(REF|VALUE|DIV\/0|NAME\?|N\/A|NUM|NULL)!?$/.test(raw);
@@ -190,8 +207,9 @@
   function hasNumericInput(value){ return text(value) !== '' && !isSpreadsheetError(value) && number(value) > 0; }
   function normalizeSupplierPrice(row, suppliers, fallbackSupplierId){
     const src = row && typeof row === 'object' ? row : {};
-    const resolved = supplierFromList(suppliers, src.supplierId || src.dostawca_id || src.supplierName || src.dostawca) || null;
-    const supplierId = text(resolved && resolved.id) || text(src.supplierId || src.dostawca_id || src.supplierName || src.dostawca) || text(fallbackSupplierId);
+    const resolved = resolveSupplierForPrice(suppliers, src) || null;
+    const rawSupplier = text(src.supplierName || src.dostawca || src.nazwa_dostawcy || src.supplierId || src.dostawca_id) || text(fallbackSupplierId);
+    const supplierId = text(resolved && resolved.id) || rawSupplier;
     if(!supplierId) return null;
     const rawNet = src.catalogPriceNet != null ? src.catalogPriceNet : (src.cena_netto != null ? src.cena_netto : src.net);
     const rawGross = src.catalogPriceGross != null ? src.catalogPriceGross : (src.cena_brutto != null ? src.cena_brutto : src.gross);
@@ -453,6 +471,8 @@
     getQuoteSupplierPrice,
     supplierPriceHasCatalogPrice,
     supplierFromList,
+    supplierFromName,
+    resolveSupplierForPrice,
     isBundleUnit,
     resolveQuotePrice,
     statusLabel,

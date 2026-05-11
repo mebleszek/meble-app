@@ -5,7 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const KIND = 'meble-app.hardware-catalog.export';
-  const VERSION = 5;
+  const VERSION = 6;
   const TEMPLATE_ROWS = 220;
 
   const ACCESSORY_COLUMNS = [

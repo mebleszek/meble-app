@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_price_status_types_v1.zip`.
-- Baza startowa tej paczki: `site_wycena_core_cache_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_import_dictionary_ux_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_supplier_price_import_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -63,6 +63,20 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Przed kodowaniem tego obszaru przeczytać `CLOUD_MIGRATION.md` i nie dopisywać nowych danych poza wersjonowanymi kluczami `fc_*`/repozytorium. Przy większej pracy nad import/export najpierw rozdzielić `hardware-catalog-import-export.js` zgodnie z planem.
 
 
+
+
+
+## Hardware supplier import + dictionary UX fix v1 — 2026-05-11
+
+- Baza tej paczki: `site_hardware_supplier_price_import_fix_v1.zip`.
+- Naprawiono import `Ceny_dostawcow` pod typowy scenariusz pracy w Excelu/Google Sheets: użytkownik może skopiować wiersz ceny, zmienić widoczną kolumnę `dostawca` i cenę, nawet jeśli techniczne `dostawca_id` zostało stare. Widoczna nazwa dostawcy ma pierwszeństwo, a konflikt jest raportowany ostrzeżeniem zamiast pomijania ceny.
+- Import cen dostawców nadal liczy brakujące netto/brutto z VAT dostawcy i ignoruje błędy arkusza typu `#REF!` jako śmieci techniczne, nie jako cenę.
+- Słowniki kategorii i typów/cech zapisują stan z poprawnym `dirty flow`: bez zmian pokazują `Wyjdź`, a po zmianach `Anuluj` + `Zapisz`. Zapis słownika odświeża formularz okuć.
+- Zmiana nazwy typu/cechy w słowniku migruje istniejące okucia trzymające starą nazwę tekstową, żeby edytowana pozycja od razu widziała nową nazwę w `Typ / cecha`.
+- Wybór `Typ / cecha` blokuje już na etapie pickera typy zajęte przez tego samego producenta w tej samej kategorii. Blokada zapisu pozostaje jako druga linia obrony.
+- Lista okuć ma kompaktowy przycisk `Edytuj` w jednej linii z chipem statusu ceny, zgodnie z resztą aplikacji.
+- Nie dodano nowych kluczy storage. Dane nadal żyją w `fc_accessories_v1`, `fc_hardware_categories_v1`, `fc_hardware_types_v1`, `fc_hardware_suppliers_v1` i `fc_hardware_settings_v1`.
+- `hardware-catalog-import-export.js` nadal jest powyżej 400 linii; w tej paczce wykonano naprawę punktową bez dużego splitu, żeby nie zwiększać ryzyka regresji importu.
 
 
 ## Hardware supplier prices v1 — 2026-05-10

@@ -33,6 +33,16 @@
   function col(index){ let n = Number(index) + 1; let out = ''; while(n > 0){ const mod = (n - 1) % 26; out = String.fromCharCode(65 + mod) + out; n = Math.floor((n - 1) / 26); } return out; }
   function colFor(prop){ const idx = SUPPLIER_PRICE_COLUMNS.findIndex((pair)=> pair[1] === prop); return col(idx < 0 ? 0 : idx); }
   function supplierById(suppliers, id){ const key = text(id).toLowerCase(); return (suppliers || []).find((row)=> text(row && row.id).toLowerCase() === key || text(row && row.name).toLowerCase() === key) || null; }
+  function supplierByName(suppliers, name){
+    const raw = text(name);
+    const key = raw.toLowerCase();
+    const safe = safePart(raw);
+    if(!key) return null;
+    return (suppliers || []).find((row)=>{
+      const rowName = text(row && row.name);
+      return rowName.toLowerCase() === key || (safe && safePart(rowName) === safe);
+    }) || null;
+  }
   function listFormula(values){ return '"' + (values || []).map((value)=> text(value).replace(/,/g, ' ')).filter(Boolean).join(',') + '"'; }
   function normalizePrices(item, suppliers){
     const hw = FC.hardwareCatalog || {};
@@ -110,8 +120,16 @@
     const name = safePart(row.itemName);
     return (accessories || []).find((item)=> (sym && safePart(item && item.symbol) === sym) || (name && safePart(item && item.name) === name)) || null;
   }
-  function resolveSupplier(suppliers, row){
-    return supplierById(suppliers || [], row.supplierId || row.supplierName) || null;
+  function resolveSupplier(suppliers, row, warnings){
+    const byName = supplierByName(suppliers || [], row && row.supplierName);
+    const byId = supplierById(suppliers || [], row && row.supplierId);
+    if(byName){
+      if(byId && text(byId.id) !== text(byName.id) && warnings){
+        warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma dostawcę "${row.supplierName}", ale techniczne dostawca_id wskazuje "${byId.name || byId.id}". Użyto nazwy z kolumny dostawca.`);
+      }
+      return byName;
+    }
+    return byId || null;
   }
   function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings){
     const touched = new Set();
@@ -119,7 +137,7 @@
     rows.forEach((row)=>{
       const item = resolveAccessory(accessories, row);
       if(!item){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} nie pasuje do żadnego okucia.`); return; }
-      const supplier = resolveSupplier(suppliers || [], row);
+      const supplier = resolveSupplier(suppliers || [], row, warnings);
       if(!supplier){ if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}.`); return; }
       const vat = number(supplier.defaultVatRate) || 23;
       let catalogPriceNet = number(row.catalogPriceNet);
@@ -142,6 +160,6 @@
     parseSupplierPriceRow,
     hasSupplierPriceData,
     applySupplierPriceRows,
-    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices }
+    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier }
   };
 })();

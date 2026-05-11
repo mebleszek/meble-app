@@ -52,6 +52,18 @@
     'hardwareBundleCostMode'
   ];
 
+  function currentEditingId(){
+    try{ const state = ctx.appUiState && ctx.appUiState(); return String(state && state.editingId || ''); }catch(_){ return ''; }
+  }
+
+  function refreshHardwareTypeOptions(selectedValue){
+    if(!(ctx.buildHardwareTypeOptions && ctx.setSelectOptions)) return;
+    const currentType = selectedValue != null ? String(selectedValue || '') : readString('hardwareType');
+    const category = readString('hardwareCategory') || 'Inne';
+    const manufacturer = readString('formManufacturer');
+    ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(category, currentType, { manufacturer, currentId:currentEditingId() }), currentType, currentType);
+  }
+
   function defaultAccessoryDraft(){
     const settings = getSettings();
     const supplier = findSupplier(settings.defaultSupplierId) || getSuppliers()[0] || null;
@@ -212,7 +224,7 @@
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = false;
     if(ctx.buildHardwareCategoryOptions) ctx.setSelectOptions(ctx.byId('hardwareCategory'), ctx.buildHardwareCategoryOptions(data && data.hardwareCategory), String(data && data.hardwareCategory || 'Inne'), String(data && data.hardwareCategory || 'Inne'));
     if(ctx.buildHardwareUnitOptions) ctx.setSelectOptions(ctx.byId('hardwareUnit'), ctx.buildHardwareUnitOptions(data && data.hardwareUnit), String(data && data.hardwareUnit || 'szt.'), String(data && data.hardwareUnit || 'szt.'));
-    if(ctx.buildHardwareTypeOptions) ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(data && data.hardwareCategory, data && data.hardwareType), String(data && data.hardwareType || ''), String(data && data.hardwareType || ''));
+    if(ctx.buildHardwareTypeOptions) ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(data && data.hardwareCategory, data && data.hardwareType, { manufacturer:data && data.manufacturer, currentId:data && data.id || currentEditingId() }), String(data && data.hardwareType || ''), String(data && data.hardwareType || ''));
     if(ctx.buildHardwareStatusOptions) ctx.setSelectOptions(ctx.byId('hardwareStatus'), ctx.buildHardwareStatusOptions(), String(data && data.status || 'active'), 'Aktywne');
     if(ctx.buildHardwareSupplierOptions) ctx.setSelectOptions(ctx.byId('hardwareSupplierId'), ctx.buildHardwareSupplierOptions(data && data.supplierId), String(data && data.supplierId || ''), String(data && data.supplierId || ''));
     if(ctx.buildHardwareQuoteBaseOptions) ctx.setSelectOptions(ctx.byId('hardwareQuoteBase'), ctx.buildHardwareQuoteBaseOptions(), String(data && data.quoteBase || 'catalogGross'), 'Cena katalogowa bez rabatu');
@@ -235,9 +247,9 @@
     if(id === 'hardwareSupplierId') applySupplierDefaults();
     else {
       const bundle = bundleApi();
-      if(id === 'hardwareCategory' && ctx.buildHardwareTypeOptions){
+      if((id === 'hardwareCategory' || id === 'formManufacturer') && ctx.buildHardwareTypeOptions){
         const currentType = readString('hardwareType');
-        ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(readString('hardwareCategory'), currentType), currentType, currentType);
+        refreshHardwareTypeOptions(currentType);
         try{ ctx.mountChoice && ctx.mountChoice({ selectEl:ctx.byId('hardwareType'), mountId:'hardwareTypeLaunch', title:'Wybierz typ / cechę', buttonClass:'investor-choice-launch', placeholder:'Typ / cecha', onChange:()=>{ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){} } }); }catch(_){}
       }
       if((id === 'hardwareUnit' || id === 'hardwareBundleCostMode') && bundle && typeof bundle.render === 'function') bundle.render();
