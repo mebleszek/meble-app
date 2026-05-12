@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-12T20:32:14.294Z",
+  "generatedAt": "2026-05-12T21:06:33.996Z",
   "summary": {
     "jsFiles": 334,
     "indexScripts": 260,
     "devTestScripts": 291,
     "fcSymbols": 244,
     "fcSymbolsAll": 270,
-    "edges": 1754,
+    "edges": 1756,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3299,
+      "lines": 3338,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 25,
-      "lines": 4381,
+      "lines": 4525,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -191,7 +191,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog-import-export.js",
-      523
+      524
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -327,7 +327,7 @@
     ],
     [
       "js/app/shared/storage.js",
-      154
+      155
     ],
     [
       "js/app/shared/utils.js",
@@ -339,7 +339,7 @@
     ],
     [
       "js/app/shared/constants.js",
-      103
+      104
     ],
     [
       "js/app/shared/room-registry.js",
@@ -605,7 +605,7 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 497,
-      "incoming": 13,
+      "incoming": 14,
       "outgoing": 11,
       "secondLevel": 50,
       "storageRefs": 0,
@@ -1379,7 +1379,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 523,
+      "lines": 524,
       "incoming": 2,
       "outgoing": 7,
       "secondLevel": 1,
@@ -3030,6 +3030,7 @@
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
         "js/app/material/price-modal-hardware-suppliers.js",
@@ -3096,6 +3097,7 @@
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -3190,6 +3192,7 @@
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -3233,6 +3236,7 @@
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -3321,7 +3325,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 523,
+      "lines": 524,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3413,6 +3417,7 @@
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -3432,7 +3437,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 314,
+      "lines": 352,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -3441,7 +3446,8 @@
         "hardwareSupplierPriceXlsx"
       ],
       "incomingFiles": [
-        "js/app/catalog/hardware-catalog-import-export.js"
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js"
       ],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog.js"
@@ -5470,12 +5476,14 @@
     "js/app/material/price-modal-hardware-import-resolver.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 169,
+      "lines": 313,
       "defines": [
         "priceModalHardwareImportResolver"
       ],
       "uses": [
         "rozrysChoice",
+        "catalogStore",
+        "hardwareSupplierPriceXlsx",
         "hardwareCatalogImportExport",
         "priceModalHardwareImportResolver"
       ],
@@ -5483,17 +5491,21 @@
         "js/app/material/price-modal-hardware-import-export.js"
       ],
       "outgoingFiles": [
+        "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/rozrys/rozrys-choice.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 11,
+      "domRefs": 19,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/material/price-modal-hardware-manufacturers.js": {
       "area": "MATERIAŁ",
@@ -6416,6 +6428,7 @@
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -10422,6 +10435,7 @@
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -10607,6 +10621,7 @@
         "js/app/material/material-edge-store.js",
         "js/app/material/material-part-options.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
@@ -12478,6 +12493,7 @@
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
         "js/app/material/price-modal-hardware-suppliers.js",

@@ -192,7 +192,7 @@
     const snap = getSnapshot();
     const blob = FC.xlsxLite.makeWorkbookBlob({
       Okucia:{ rows:buildAccessoryRows(snap.accessories, snap), validations:accessoryValidations(snap), freezeTopRow:true, widths:[36,12,18,24,24,18,18,22,28,24] },
-      Ceny_dostawcow:{ rows:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows ? FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows(snap.accessories, snap.suppliers) : [['okucie_nazwa','okucie_symbol','producent','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]), validations:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.supplierPriceValidations ? FC.hardwareSupplierPriceXlsx.supplierPriceValidations() : []), freezeTopRow:true, widths:[36,18,18,28,14,14,12,16,14,24,20] },
+      Ceny_dostawcow:{ rows:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows ? FC.hardwareSupplierPriceXlsx.buildSupplierPriceRows(snap.accessories, snap.suppliers) : [['okucie_nazwa','okucie_symbol','producent','kategoria','jednostka','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]), validations:(FC.hardwareSupplierPriceXlsx && FC.hardwareSupplierPriceXlsx.supplierPriceValidations ? FC.hardwareSupplierPriceXlsx.supplierPriceValidations() : []), freezeTopRow:true, widths:[36,18,18,24,12,28,14,14,12,16,14,24,20] },
       Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[34,34,10,18,18,16,20,24,24,24] },
       Dostawcy:{ rows:buildSupplierRows(snap.suppliers), freezeTopRow:true, widths:[20,28,20,18,12] },
       Producenci:{ rows:buildManufacturerRows(snap.manufacturers), freezeTopRow:true, widths:[24] },
@@ -308,7 +308,8 @@
     const s = store();
     const snap = getSnapshot();
     const manufacturers = normalizeManufacturers((Array.isArray(data && data.manufacturers) ? data.manufacturers : []).concat(snap.manufacturers || []));
-    const categories = optionLabels((s && s.getHardwareCategories ? s.getHardwareCategories() : hw().CATEGORIES), ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
+    const storedCategories = s && s.getHardwareCategories ? s.getHardwareCategories() : [];
+    const categories = optionLabels((Array.isArray(data && data.categories) ? data.categories : []).concat(storedCategories.length ? storedCategories : optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'])), ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
     const units = optionLabels(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
     return { manufacturers:manufacturers.map((name)=>({ value:name, label:name })), categories, units, settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {}, suppliers:s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : [] };
   }

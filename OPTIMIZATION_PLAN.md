@@ -637,3 +637,9 @@ Do obserwacji:
 - `hardware-catalog-import-export.js` pozostaje plikiem powyżej progu 400 linii i powinien zostać rozdzielony w osobnym, nietwórczym refaktorze import/export.
 - Następny sensowny split: logika planu importu okuć, logika importu cen dostawców i raportowanie diffu jako osobne moduły/fasady z testami kontraktowymi.
 - Nie wykonywać tego splitu razem z kolejnymi zmianami UX katalogu, żeby nie mieszać ryzyka.
+
+## Hardware import resolver — notatka po 2026-05-12
+
+- `hardware-catalog-import-export.js` pozostaje plikiem ostrzegawczym 400+ linii. Ten etap świadomie nie robił dużego splitu, bo naprawiał krytyczną logikę importu nowych okuć z cen dostawców.
+- Najbliższy bezpieczny refaktor w tym obszarze: wydzielić plan importu cen dostawców i resolver braków do osobnych modułów domenowych, z testami dla `producent + symbol + dostawca`, braków kategorii/jednostki oraz dodawania kategorii.
+

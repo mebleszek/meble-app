@@ -1,3 +1,9 @@
+### 2026-05-12 — hardware import create item resolver v1
+- Import `Ceny_dostawcow` nie tworzy już nowych okuć z automatyczną kategorią `Inne` i jednostką `szt.`.
+- Nowe okucie z arkusza cen wymaga wyboru kategorii i jednostki w aplikacyjnym resolverze braków albo podania ich w Excelu.
+- Resolver importu ma przycisk `Dodaj kategorię`, który zapisuje nową kategorię w słowniku i udostępnia ją w kolejnych wyborach.
+- Arkusz `Ceny_dostawcow` ma teraz kolumny `kategoria` i `jednostka`; dopasowanie cen nadal idzie po `producent + symbol + dostawca`, nie po numerze wiersza Excela.
+
 ### 2026-04-26 — app shell storage boundary stage 1
 - `js/app/bootstrap/reload-restore.js` now owns session-scoped reload/scroll restore.
 - `js/app.js` no longer directly references `localStorage` or `sessionStorage`; it only delegates reload/restore through the app shell boundary.

@@ -558,3 +558,12 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Import nie tworzy nowych producentów ani dostawców z nazw wpisanych w cenach dostawców. Producent i dostawca muszą być rozpoznane z istniejących słowników, co zmniejsza ryzyko rozjazdu danych przy przyszłej synchronizacji chmurowej.
 - Klucz użytkowy dla hurtowego importu ceny pozostaje jawny i przenośny do chmury: `producent + symbol + dostawca`. Techniczne `okucie_id` i `dostawca_id` pozostają pomocnicze, nie wymagane w ręcznej pracy z cennikiem.
 - Brakująca data ceny jest uzupełniana przy imporcie po stronie aplikacji, a nie formułami arkusza; snapshot przyszłej WYCENY nadal musi zamrażać wartości osobno.
+
+## Hardware import create item resolver v1 — 2026-05-12
+
+- Zmiana dotyczy importu danych katalogu okuć i nie dodaje nowych kluczy storage.
+- Nowe kategorie dodawane z modala resolvera importu są zapisywane przez istniejący `catalogStore.saveHardwareCategories()` i nadal trafiają do `fc_hardware_categories_v1`.
+- Nowe okucia utworzone z `Ceny_dostawcow` nadal trafiają do istniejącej listy `fc_accessories_v1`; dane cen dostawców pozostają w `supplierPrices` przy okuciu.
+- Import nie używa numeru wiersza Excela jako klucza danych. Powiązanie pozostaje po danych użytkowych `producent + symbol + dostawca`, z technicznym `okucie_id` jako opcjonalną szybką ścieżką.
+- Zablokowano automatyczne domyślne wartości `Inne`/`szt.` dla nowych okuć z arkusza cen, żeby nie tworzyć brudnych rekordów przed przyszłą synchronizacją/chmurą.
+

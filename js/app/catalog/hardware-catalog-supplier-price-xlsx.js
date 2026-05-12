@@ -9,6 +9,8 @@
     ['okucie_nazwa','itemName'],
     ['okucie_symbol','itemSymbol'],
     ['producent','itemManufacturer'],
+    ['kategoria','itemCategory'],
+    ['jednostka','itemUnit'],
     ['dostawca','supplierName'],
     ['cena_netto','catalogPriceNet'],
     ['cena_brutto','catalogPriceGross'],
@@ -57,6 +59,8 @@
       itemName:item && item.name || '',
       itemSymbol:item && item.symbol || '',
       itemManufacturer:item && item.manufacturer || '',
+      itemCategory:item && item.hardwareCategory || '',
+      itemUnit:item && item.hardwareUnit || '',
       supplierName:supplier.name || price.supplierId || '',
       catalogPriceNet:price && price.catalogPriceNet || '',
       catalogPriceGross:price && price.catalogPriceGross || '',
@@ -68,7 +72,7 @@
     };
   }
   function emptyPriceRow(_rowNo){
-    return { itemName:'', itemSymbol:'', itemManufacturer:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
+    return { itemName:'', itemSymbol:'', itemManufacturer:'', itemCategory:'', itemUnit:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
   }
   function rowValues(obj){
     return SUPPLIER_PRICE_COLUMNS.map((pair)=> obj._formulas && obj._formulas[pair[1]] ? obj._formulas[pair[1]] : valueForColumn(obj, pair[1]));
@@ -87,8 +91,12 @@
   }
   function supplierPriceValidations(){
     const rowEnd = TEMPLATE_PRICE_ROWS + 1;
+    const hw = FC.hardwareCatalog || {};
+    const units = (Array.isArray(hw.UNITS) ? hw.UNITS : ['szt.','kpl.','mb','m²','zestaw']).map((row)=> text(row && typeof row === 'object' ? row.value : row)).filter(Boolean);
     return [
       { sqref:`${colFor('itemManufacturer')}2:${colFor('itemManufacturer')}${rowEnd}`, formula1:'Producenci!$A$2:$A$500' },
+      { sqref:`${colFor('itemCategory')}2:${colFor('itemCategory')}${rowEnd}`, formula1:'Kategorie_okuc!$A$2:$A$500' },
+      { sqref:`${colFor('itemUnit')}2:${colFor('itemUnit')}${rowEnd}`, formula1:listFormula(units) },
       { sqref:`${colFor('supplierName')}2:${colFor('supplierName')}${rowEnd}`, formula1:'Dostawcy!$B$2:$B$500' },
       { sqref:`${colFor('useForQuote')}2:${colFor('useForQuote')}${rowEnd}`, formula1:listFormula(['TAK','NIE']) },
       { sqref:`${colFor('priceStatus')}2:${colFor('priceStatus')}${rowEnd}`, formula1:listFormula(['current','review','old','archived']) },
@@ -209,8 +217,8 @@
       manufacturer:manufacturerName,
       symbol:text(row.itemSymbol),
       name:text(row.itemName),
-      hardwareCategory:text(row.itemCategory) || 'Inne',
-      hardwareUnit:text(row.itemUnit) || 'szt.',
+      hardwareCategory:text(row.itemCategory),
+      hardwareUnit:text(row.itemUnit),
       hardwareType:'',
       bundleCostMode:'ownPrice',
     };
@@ -229,6 +237,7 @@
     const target = Array.isArray(targetAccessories) ? targetAccessories : [];
     const all = (Array.isArray(existingAccessories) ? existingAccessories.slice() : []).concat(target);
     const parsedRows = (supplierPriceRows || [])
+      .filter((row)=> !(row && row.__skipImport))
       .filter(hasSupplierPriceData)
       .map(parseSupplierPriceRow)
       .filter((row)=> row.catalogPriceNet > 0 || row.catalogPriceGross > 0);
@@ -256,6 +265,11 @@
         if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}. Nie utworzono nowego okucia.`);
         return;
       }
+      if(!text(row.itemCategory) || !text(row.itemUnit)){
+        summary.skipped += 1;
+        if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} wymaga wyboru kategorii i jednostki przed utworzeniem nowego okucia.`);
+        return;
+      }
       const created = createAccessoryFromPriceRow(row, manufacturerName, settings, suppliers || []);
       target.push(created);
       all.push(created);
@@ -265,10 +279,33 @@
     return summary;
   }
 
+  function supplierPriceCreateRequiredGaps(supplierPriceRows, accessories, suppliers, manufacturers){
+    const targetRows = Array.isArray(accessories) ? accessories : [];
+    const parsedRows = (supplierPriceRows || [])
+      .filter((row)=> !(row && row.__skipImport))
+      .filter(hasSupplierPriceData)
+      .map((raw)=>({ raw, parsed:parseSupplierPriceRow(raw) }))
+      .filter((entry)=> entry.parsed.catalogPriceNet > 0 || entry.parsed.catalogPriceGross > 0);
+    const out = [];
+    parsedRows.forEach((entry)=>{
+      const row = entry.parsed;
+      if(exactManufacturerSymbolMatches(targetRows, row).length) return;
+      if(!(text(row.itemManufacturer) && text(row.itemSymbol) && text(row.itemName))) return;
+      if(!manufacturerByName(manufacturers || [], row.itemManufacturer)) return;
+      if(!resolveSupplier(suppliers || [], row, null)) return;
+      const gaps = [];
+      if(!text(row.itemCategory)) gaps.push('itemCategory');
+      if(!text(row.itemUnit)) gaps.push('itemUnit');
+      if(gaps.length) out.push({ row:entry.raw, parsed:row, rowIndex:row.__rowIndex || entry.raw.__rowIndex || 0, gaps });
+    });
+    return out;
+  }
+
   function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings){
     const summary = { touchedIds:[], rows:0, added:0, updated:0, unchanged:0, skipped:0 };
     const touched = new Set();
     const parsedRows = (supplierPriceRows || [])
+      .filter((row)=> !(row && row.__skipImport))
       .filter(hasSupplierPriceData)
       .map(parseSupplierPriceRow)
       .filter((row)=> row.catalogPriceNet > 0 || row.catalogPriceGross > 0);
@@ -308,6 +345,7 @@
     hasSupplierPriceData,
     applySupplierPriceRows,
     createAccessoriesFromSupplierPriceRows,
-    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, exactManufacturerSymbolMatches, createAccessoriesFromSupplierPriceRows }
+    supplierPriceCreateRequiredGaps,
+    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, exactManufacturerSymbolMatches, createAccessoriesFromSupplierPriceRows, supplierPriceCreateRequiredGaps }
   };
 })();

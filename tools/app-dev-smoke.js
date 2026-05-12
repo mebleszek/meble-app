@@ -206,7 +206,7 @@ function runMaterialNodeSmoke(sandbox){
       if(!(supplierXlsx && typeof supplierXlsx.buildSupplierPriceRows === 'function' && typeof supplierXlsx.supplierPriceValidations === 'function')) return false;
       if(!(xlsx && xlsx._debug && typeof xlsx._debug.validationsXml === 'function')) return false;
       const rows = api._debug.buildAccessoryRows([{ id:'hw_test_xlsx', status:'active', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', bundleCostMode:'ownPrice' }]);
-      const priceRows = supplierXlsx.buildSupplierPriceRows([{ id:'hw_test_xlsx', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', supplierPrices:[{ supplierId:'bivert', catalogPriceNet:10, catalogPriceGross:12.3, useForQuote:true, priceDate:'2026-05-10' }] }], [{ id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+      const priceRows = supplierXlsx.buildSupplierPriceRows([{ id:'hw_test_xlsx', manufacturer:'Blum', symbol:'XLSX', name:'Test XLSX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', supplierPrices:[{ supplierId:'bivert', catalogPriceNet:10, catalogPriceGross:12.3, useForQuote:true, priceDate:'2026-05-10' }] }], [{ id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
       const validationXml = xlsx._debug.validationsXml(supplierXlsx.supplierPriceValidations());
       const headers = rows[0] || [];
       const priceHeaders = priceRows[0] || [];
@@ -217,17 +217,23 @@ function runMaterialNodeSmoke(sandbox){
         && headers[headers.length - 1] === 'id'
         && priceHeaders[0] === 'okucie_nazwa'
         && priceHeaders[2] === 'producent'
-        && priceHeaders[3] === 'dostawca'
+        && priceHeaders[3] === 'kategoria'
+        && priceHeaders[4] === 'jednostka'
+        && priceHeaders[5] === 'dostawca'
         && priceHeaders[priceHeaders.length - 2] === 'okucie_id'
         && priceHeaders[priceHeaders.length - 1] === 'dostawca_id'
         && priceRows[1][0] === 'Test XLSX'
         && priceRows[1][2] === 'Blum'
-        && priceRows[1][3] === 'Bivert'
-        && priceRows[1][6] === 'TAK'
+        && priceRows[1][3] === 'Zawiasy'
+        && priceRows[1][4] === 'szt.'
+        && priceRows[1][5] === 'Bivert'
+        && priceRows[1][8] === 'TAK'
         && emptyHasFormula === false
         && validationXml.includes('C2:C261')
         && validationXml.includes('D2:D261')
-        && validationXml.includes('G2:G261')
+        && validationXml.includes('E2:E261')
+        && validationXml.includes('F2:F261')
+        && validationXml.includes('I2:I261')
         && !validationXml.includes('para');
     } },
     { name:'Import XLSX cen dostawców liczy brakujące netto/brutto i zachowuje status', explain:'Chroni scenariusz z telefonu: skopiowany wiersz ceny dostawcy może mieć wpisaną tylko cenę netto albo tylko brutto, a status current nie może zmieniać listy na Do sprawdzenia.', check:()=> {
@@ -293,10 +299,14 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
         const plan = api.buildImportPlan({
           accessories:[], suppliers:[], settings:{},
-          supplierPriceRows:[{ __rowIndex:12, producent:'blum', okucie_symbol:'NEW-FROM-PRICE', okucie_nazwa:'Nowe okucie z ceny', dostawca:'MAGO', cena_netto:10, status_ceny:'current' }]
+          supplierPriceRows:[{ __rowIndex:12, producent:'blum', okucie_symbol:'NEW-FROM-PRICE', okucie_nazwa:'Nowe okucie z ceny', kategoria:'Zawiasy', jednostka:'kpl.', dostawca:'MAGO', cena_netto:10, status_ceny:'current' }]
         }, { mode:'merge' });
         const created = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'NEW-FROM-PRICE');
         const price = created && Array.isArray(created.supplierPrices) ? created.supplierPrices.find((row)=> String(row && row.supplierId || '') === 'mago') : null;
+        const missingPlan = api.buildImportPlan({
+          accessories:[], suppliers:[], settings:{},
+          supplierPriceRows:[{ __rowIndex:14, producent:'Blum', okucie_symbol:'NO-CAT', okucie_nazwa:'Brak kategorii', dostawca:'MAGO', cena_netto:7 }]
+        }, { mode:'merge' });
         const badPlan = api.buildImportPlan({
           accessories:[], suppliers:[], settings:{},
           supplierPriceRows:[{ __rowIndex:13, producent:'Bluum', okucie_symbol:'BAD-PROD', okucie_nazwa:'Nie twórz producenta', dostawca:'MAGO', cena_netto:5 }]
@@ -305,9 +315,12 @@ function runMaterialNodeSmoke(sandbox){
           && plan.summary.added === 1
           && plan.summary.supplierPriceCreatedAccessories === 1
           && created && String(created.manufacturer || '') === 'Blum'
-          && String(created.hardwareCategory || '') === 'Inne'
-          && String(created.hardwareUnit || '') === 'szt.'
+          && String(created.hardwareCategory || '') === 'Zawiasy'
+          && String(created.hardwareUnit || '') === 'kpl.'
           && price && Number(price.catalogPriceNet) === 10 && Number(price.catalogPriceGross) === 12.3 && String(price.priceDate || '').length === 10
+          && missingPlan.summary.added === 0
+          && missingPlan.summary.supplierPriceCreatedAccessories === 0
+          && missingPlan.warnings.some((msg)=> String(msg || '').includes('wymaga wyboru kategorii'))
           && badPlan.summary.added === 0
           && badPlan.summary.supplierPriceCreatedAccessories === 0
           && badPlan.warnings.some((msg)=> String(msg || '').includes('producenta spoza słownika'));

@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_price_create_item_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_create_item_resolver_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -66,6 +66,20 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware import create item resolver v1 — 2026-05-12
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_create_item_resolver_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_supplier_price_create_item_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Import z arkusza `Ceny_dostawcow` nie ustawia już automatycznie `kategoria = Inne` ani `jednostka = szt.` przy tworzeniu nowego okucia.
+- Nowe okucie z arkusza cen może powstać dopiero po podaniu istniejącego producenta, symbolu, nazwy, istniejącego dostawcy, ceny oraz kategorii i jednostki.
+- Jeżeli kategoria albo jednostka są puste, import zatrzymuje wiersz w resolverze braków i pokazuje aplikacyjny modal uzupełniania; użytkownik wybiera kategorię i jednostkę z istniejących opcji.
+- W resolverze kategorii dodano przycisk `Dodaj kategorię`; mały modal aplikacyjny zapisuje nową kategorię do słownika i udostępnia ją od razu w kolejnych wyborach oraz w późniejszym eksporcie/importcie.
+- Arkusz `Ceny_dostawcow` dostał jawne kolumny `kategoria` i `jednostka`, ale pozostają one pomocnicze: jeśli są puste przy nowym okuciu, uzupełnia je użytkownik w modalu, a nie automat.
+- Kilka cen jednego okucia dalej działa jako kilka wierszy po `producent + symbol + dostawca`; nie wraca wiązanie po numerze wiersza Excela.
+- Nie dodano nowego klucza storage. Kategorie nadal są zapisywane przez `catalogStore.saveHardwareCategories()` pod wersjonowanym kluczem `fc_hardware_categories_v1`.
+- Raport: `tools/reports/hardware-import-create-item-resolver-v1.md`.
 
 
 ## Hardware supplier price create item v1 — 2026-05-12
