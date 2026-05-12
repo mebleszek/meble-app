@@ -23,6 +23,10 @@
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
+  function todayLocal(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
   function isSpreadsheetError(value){ const raw = text(value).toUpperCase(); return /^#(REF|VALUE|DIV\/0|NAME\?|N\/A|NUM|NULL)!?$/.test(raw); }
   function hasNumericInput(value){ return text(value) !== '' && !isSpreadsheetError(value) && number(value) > 0; }
   function netToGross(value, vat){ const hw = FC.hardwareCatalog || {}; return hw.netToGross ? hw.netToGross(value, vat) : round2(number(value) * (1 + number(vat) / 100)); }
@@ -61,7 +65,7 @@
       catalogPriceGross:price && price.catalogPriceGross || '',
       useForQuote:price && price.useForQuote ? 'TAK' : 'NIE',
       priceStatus:price && price.priceStatus || item && item.priceStatus || 'current',
-      priceDate:price && price.priceDate || item && item.priceUpdatedAt || '',
+      priceDate:price && price.priceDate || item && item.priceUpdatedAt || ((price && (number(price.catalogPriceNet) > 0 || number(price.catalogPriceGross) > 0)) ? todayLocal() : ''),
       itemId:item && item.id || '',
       supplierId:price && price.supplierId || '',
     };
@@ -126,8 +130,23 @@
     if(clean.length > 1 && warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} pasuje do kilku okuć (${label}). Uzupełnij producent+symbol albo okucie_id.`);
     return null;
   }
+  function rowMatchedAccessory(rows, row, warnings){
+    const rowIndex = Number(row && row.__rowIndex) || 0;
+    if(!rowIndex) return null;
+    const cleanRowHasItem = !!(text(row && row.itemId) || text(row && row.itemSymbol) || text(row && row.itemName) || text(row && row.itemManufacturer));
+    if(cleanRowHasItem) return null;
+    const matches = (rows || []).filter((item)=> Number(item && item.__xlsxRowIndex) === rowIndex);
+    if(matches.length === 1){
+      if(warnings) warnings.push(`Ceny dostawców: wiersz ${rowIndex} dopasowano do okucia z arkusza Okucia po tym samym numerze wiersza.`);
+      return matches[0];
+    }
+    if(matches.length > 1 && warnings) warnings.push(`Ceny dostawców: wiersz ${rowIndex} ma kilka możliwych okuć po numerze wiersza. Uzupełnij producent+symbol albo okucie_id.`);
+    return null;
+  }
   function resolveAccessory(accessories, row, warnings){
     const rows = Array.isArray(accessories) ? accessories : [];
+    const byRow = rowMatchedAccessory(rows, row, warnings);
+    if(byRow) return byRow;
     const byId = rows.find((item)=> text(item && item.id) && text(item.id) === text(row.itemId));
     if(byId) return byId;
     const manufacturer = safePart(row.itemManufacturer);
@@ -173,7 +192,7 @@
       catalogPriceNet,
       catalogPriceGross,
       enteredPriceType:row.enteredPriceType || (row.catalogPriceNet > 0 ? 'net' : 'gross'),
-      priceDate:text(row.priceDate) || text(existing && existing.priceDate),
+      priceDate:text(row.priceDate) || text(existing && existing.priceDate) || ((catalogPriceNet > 0 || catalogPriceGross > 0) ? todayLocal() : ''),
       priceStatus:row.priceStatusSpecified ? normalizePriceStatus(row.priceStatus) : normalizePriceStatus((existing && existing.priceStatus) || 'current'),
       useForQuote:row.useForQuoteSpecified ? !!row.useForQuote : !!(existing && existing.useForQuote),
     };
@@ -229,6 +248,6 @@
     parseSupplierPriceRow,
     hasSupplierPriceData,
     applySupplierPriceRows,
-    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice }
+    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, todayLocal }
   };
 })();

@@ -630,3 +630,8 @@ Do obserwacji:
 - Dodano rzeczywisty diff w podglądzie importu, więc import/export okuć ma więcej logiki planowania niż prosty mapper arkusza.
 - Dług techniczny został świadomie nazwany: `hardware-catalog-import-export.js` ma ok. 500 linii i przy następnej większej rozbudowie należy go rozdzielić na trzy granice: XLSX template/export, parse/defaults oraz import plan/apply.
 - Nie robić ukrytego dużego splitu razem z kolejną naprawą użytkową; najpierw dodać kontrakty dla obecnego diffu importu i dopiero wtedy ciąć plik.
+
+## 2026-05-12 — Hardware Excel row/date autofill v1
+
+- Dodano kolejną małą warstwę logiki importu XLSX bez dużego splitu, bo użytkowy problem dotyczył realnego workflow z telefonu: nowa pozycja w `Okucia` i cena w `Ceny_dostawcow` na tym samym numerze wiersza.
+- Dług techniczny pozostaje aktualny: `hardware-catalog-import-export.js` powinien przy następnej większej rozbudowie zostać rozdzielony na template/export, parse/defaults oraz import plan/apply. Obecna zmiana dopisuje tylko minimalny kontrakt i test, żeby nie mieszać refaktoru z poprawką workflow.

@@ -341,3 +341,9 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - Import cen dostawców obsługuje hurtowe wklejanie po `producent + symbol + dostawca` bez ręcznego pilnowania ID.
 - Puste `typ_cecha` w okuciu pozostaje puste; słownik typów jest listą opcji, a nie automatycznym wyborem.
 - Podgląd importu rozróżnia okucia/ceny bez zmian od realnie zmienionych rekordów.
+
+## 2026-05-12 — Hardware Excel row/date autofill v1
+
+- `Ceny_dostawcow` można przy imporcie powiązać z nowym okuciem po tym samym numerze wiersza co `Okucia`, jeżeli w arkuszu ceny nie wpisano danych okucia ani ID.
+- Przy cenie wpisanej bez `data_ceny` program uzupełnia datę podczas importu, a kolejny eksport pokazuje już pełniejsze dane ceny.
+- Arkusz nadal nie używa zapętlonych formuł netto/brutto: użytkownik może wpisać jedną cenę, a program liczy drugą stronę przy imporcie.

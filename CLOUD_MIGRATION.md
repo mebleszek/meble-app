@@ -549,3 +549,9 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Hurtowy import cen nie wymaga technicznych ID od użytkownika. Dla przyszłej chmury oznacza to jasny kontrakt dopasowania: stabilne ID ma pierwszeństwo, ale użytkowy klucz `producent + symbol + dostawca` jest obsługiwany jako bezpieczny import z cenników hurtowni.
 - Podgląd importu liczy realny diff: oddziela okucia bez zmian od okuć zmienionych oraz ceny dodane/zmienione/bez zmian/pominięte. To ogranicza przypadkowe nadpisy przy przyszłej synchronizacji.
 - Excel pozostaje formularzem wejściowym bez zapętlonych formuł netto/brutto; obliczenie brakującej strony ceny jest częścią importu/modelu, a nie logiką arkusza.
+
+## Hardware Excel row/date autofill v1 — 2026-05-12
+
+- Zmiana nie dodaje nowych kluczy storage. Import nadal zapisuje przez istniejący `catalogStore` do katalogu okuć i używa dotychczasowego modelu `supplierPrices` w rekordzie okucia.
+- Dopasowanie ceny po tym samym numerze wiersza XLSX jest wyłącznie pomocniczym mechanizmem importu pliku, nie trwałym identyfikatorem danych. Do chmury ma trafić wynik znormalizowany: okucie ze stabilnym `id` i cena dostawcy z `supplierId`.
+- Pusta `data_ceny` przy importowanej cenie jest normalizowana do lokalnej daty importu. W przyszłym backendzie odpowiada to domyślnemu `priceDate`/`updatedAt` ustalanemu po stronie boundary importu, nie po stronie arkusza.

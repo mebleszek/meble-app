@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_bulk_diff_types_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_supplier_import_dictionary_ux_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_excel_row_date_autofill_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -744,3 +744,14 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Dopasowanie ceny dostawcy działa kolejno: `okucie_id`, potem unikalne `producent + symbol`, potem ostrożne fallbacki `symbol+nazwa`, `symbol` albo `nazwa` z ostrzeżeniami przy ryzyku pomyłki.
 - Nie dodano nowych kluczy storage. Dane nadal zapisuje istniejący `catalogStore` i wersjonowane klucze `fc_*`.
 - `hardware-catalog-import-export.js` wzrósł do ok. 500 linii i pozostaje jawnie oznaczonym długiem. Następna większa praca nad importem/eksportem powinna zacząć się od splitu: template/export, parse/defaults oraz plan/apply.
+
+## Hardware Excel row/date autofill v1 — 2026-05-12
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_excel_row_date_autofill_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
+- `Ceny_dostawcow` może teraz przy imporcie dopasować cenę do pozycji z arkusza `Okucia` po tym samym numerze wiersza, ale tylko wtedy, gdy w wierszu ceny nie podano własnego `okucie_id`, symbolu, nazwy ani producenta.
+- Typowy workflow dla nowej pozycji z telefonu: wpisać produkt w `Okucia`, a na tym samym numerze wiersza w `Ceny_dostawcow` podać dostawcę i jedną cenę. Program sam połączy cenę z pozycją, policzy brakujące netto/brutto i przy następnym eksporcie wypełni nazwę, symbol oraz producenta w arkuszu cen.
+- Import cen dostawców domyślnie uzupełnia pustą `data_ceny` dzisiejszą datą lokalną, jeśli cena jest poprawnie podana. Eksport pokazuje datę także dla istniejących cen bez daty, aby arkusz roboczy nie zostawiał pustej daty przy realnej cenie.
+- Nie przywracano zapętlonych formuł netto/brutto w Excelu. Arkusz pozostaje formularzem wejściowym, a obliczenie brakującej strony ceny jest odpowiedzialnością programu.
+- Nie dodano nowych kluczy storage i nie ruszano WYCENY/MATERIAŁÓW/WYWIADU/RYSUNKU.
+- Raport: `tools/reports/hardware-excel-row-date-autofill-v1.md`.

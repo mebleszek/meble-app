@@ -5,7 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const KIND = 'meble-app.hardware-catalog.export';
-  const VERSION = 7;
+  const VERSION = 8;
   const TEMPLATE_ROWS = 220;
 
   const ACCESSORY_COLUMNS = [
@@ -359,7 +359,7 @@
       if(!id) id = makeGeneratedId(src);
       if(usedIds.has(id)){ errors.push(`Okucia: zdublowane ID w importowanym pliku: ${id}`); return; }
       usedIds.add(id);
-      const normalizedRow = normalizeAccessory(Object.assign({}, src, { id }), settings);
+      const normalizedRow = Object.assign(normalizeAccessory(Object.assign({}, src, { id }), settings), { __xlsxRowIndex:Number(raw && raw.__rowIndex) || 0 });
       normalized.push(normalizedRow);
       importedByKey.set(text(normalizedRow.id), normalizedRow);
       importedByKey.set(signature(normalizedRow), normalizedRow);
@@ -425,7 +425,10 @@
     const importedById = new Map((importedRows || []).map((row)=> [text(row && row.id), row]));
     const keepOrReplace = (row)=>{
       const id = text(row && row.id);
-      return classification.changedIds.has(id) ? (importedById.get(id) || row) : row;
+      const imported = importedById.get(id);
+      if(classification.changedIds.has(id)) return imported || row;
+      if(classification.unchangedIds.has(id) && imported && Number(imported.__xlsxRowIndex) > 0) return Object.assign({}, row, { __xlsxRowIndex:Number(imported.__xlsxRowIndex) });
+      return row;
     };
     return (existing || []).map(keepOrReplace).concat((importedRows || []).filter((row)=> classification.addedIds.has(text(row && row.id))));
   }

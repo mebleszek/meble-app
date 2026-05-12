@@ -279,6 +279,64 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
       }
     } },
+    { name:'Import ceny może użyć tego samego numeru wiersza co Okucia i uzupełnia datę', explain:'Chroni telefoniczny workflow w Excelu: nową pozycję wpisuje się w Okucia, a w Ceny_dostawcow na tym samym wierszu wystarczy podać dostawcę i jedną cenę.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const store = FC.catalogStore;
+      const supplierXlsx = FC.hardwareSupplierPriceXlsx;
+      if(!(api && store && supplierXlsx && typeof api.buildImportPlan === 'function' && typeof supplierXlsx.buildSupplierPriceRows === 'function')) return false;
+      const previousAccessories = store.getAccessories();
+      const previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        store.savePriceList('accessories', []);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'invoice', name:'Faktura / zakup ręczny', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+        const plan = api.buildImportPlan({
+          accessories:[{ __rowIndex:20, name:'masakrator', manufacturer:'Blum', symbol:'mas', hardwareCategory:'Zawiasy', hardwareUnit:'szt.' }],
+          suppliers:[],
+          supplierPriceRows:[{ __rowIndex:20, dostawca:'Faktura / zakup ręczny', cena_netto:30, status_ceny:'current' }],
+          settings:{}
+        }, { mode:'merge' });
+        const item = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'mas');
+        const price = item && Array.isArray(item.supplierPrices) ? item.supplierPrices.find((row)=> String(row && row.supplierId || '') === 'invoice') : null;
+        const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(String(price && price.priceDate || ''));
+        const exportRows = supplierXlsx.buildSupplierPriceRows([Object.assign({}, item, { priceUpdatedAt:'', supplierPrices:[Object.assign({}, price, { priceDate:'' })] })], store.getHardwareSuppliers ? store.getHardwareSuppliers() : []);
+        return plan.errors.length === 0
+          && plan.summary.added === 1
+          && plan.summary.supplierPricesAdded === 1
+          && price && Number(price.catalogPriceNet) === 30 && Number(price.catalogPriceGross) === 36.9
+          && dateOk
+          && plan.warnings.some((msg)=> String(msg || '').includes('tym samym numerze wiersza'))
+          && exportRows[1][0] === 'masakrator'
+          && exportRows[1][1] === 'mas'
+          && exportRows[1][2] === 'Blum'
+          && /^\d{4}-\d{2}-\d{2}$/.test(String(exportRows[1][8] || ''));
+      }finally{
+        store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
+    } },
+    { name:'Import ceny po numerze wiersza działa także dla istniejącego okucia bez zmian', explain:'Chroni dopisywanie nowej ceny do istniejącej pozycji: Okucia może być bez zmian, a Ceny_dostawcow na tym samym wierszu wskazuje tylko dostawcę i cenę.', check:()=> {
+      const api = FC.hardwareCatalogImportExport;
+      const store = FC.catalogStore;
+      if(!(api && store && typeof store.savePriceList === 'function')) return false;
+      const previousAccessories = store.getAccessories();
+      const previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        store.savePriceList('accessories', [{ id:'row_existing_hw', name:'Istniejące okucie', manufacturer:'Blum', symbol:'ROW-EX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[] }]);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+        const plan = api.buildImportPlan({
+          accessories:[{ __rowIndex:8, id:'row_existing_hw', name:'Istniejące okucie', manufacturer:'Blum', symbol:'ROW-EX', hardwareCategory:'Zawiasy', hardwareUnit:'szt.' }],
+          suppliers:[],
+          supplierPriceRows:[{ __rowIndex:8, dostawca:'MAGO', cena_netto:40, status_ceny:'current' }],
+          settings:{}
+        }, { mode:'merge' });
+        const item = plan.next.accessories.find((row)=> String(row && row.id || '') === 'row_existing_hw');
+        const price = item && Array.isArray(item.supplierPrices) ? item.supplierPrices.find((row)=> String(row && row.supplierId || '') === 'mago') : null;
+        return plan.errors.length === 0 && plan.summary.updated === 0 && plan.summary.supplierPricesAdded === 1 && price && Number(price.catalogPriceNet) === 40 && Number(price.catalogPriceGross) === 49.2;
+      }finally{
+        store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
+    } },
     { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
       const store = FC.catalogStore;
       const ctx = FC.priceModalContext || {};
