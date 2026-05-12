@@ -354,3 +354,9 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - Import XLSX okuć pozwala utworzyć nowe okucie z arkusza `Ceny_dostawcow`, gdy wiersz ma istniejącego producenta, symbol, nazwę, istniejącego dostawcę i cenę.
 - Nie wymaga ręcznego `okucie_id`; nie tworzy producentów z literówek.
 - Brakująca `data_ceny` dla nowej lub zmienionej ceny jest uzupełniana przy imporcie i widoczna po kolejnym eksporcie.
+
+
+## Hardware import resolver supplier gap v1 — 2026-05-12
+
+- Poprawiono import nowych okuć z arkusza `Ceny_dostawcow`: brakujący dostawca, kategoria i jednostka trafiają do aplikacyjnego uzupełnienia zamiast cichego pominięcia wiersza.
+- Usunięto fałszywe ostrzeżenia o duplikatach `producent + symbol`, gdy plik importu pochodził z eksportu tego samego katalogu.

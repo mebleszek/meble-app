@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_create_item_resolver_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_resolver_supplier_gap_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -66,6 +66,18 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware import resolver supplier gap v1 — 2026-05-12
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_resolver_supplier_gap_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_import_create_item_resolver_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Przy tworzeniu nowego okucia z arkusza `Ceny_dostawcow` resolver braków obejmuje teraz także brakującego/nieznanego dostawcę, a nie tylko kategorię i jednostkę.
+- Wiersz z `okucie_nazwa`, `okucie_symbol`, istniejącym producentem i ceną, ale bez dostawcy/kategorii/jednostki nie jest już po cichu pomijany; ma trafić do modala uzupełniania.
+- `Ceny_dostawcow` nadal nie wiąże danych po numerze wiersza Excela. Kilka cen jednego okucia nadal działa jako wiele wierszy po `producent + symbol + dostawca`.
+- Usunięto fałszywe ostrzeżenia `pasuje do kilku okuć` wynikające z tego, że to samo okucie było jednocześnie w aktualnym katalogu i w arkuszu `Okucia` z eksportu.
+- Nie dodano nowego storage ani nowych kluczy localStorage; zmiana pozostaje w granicy import/export i resolvera UI.
+- Raport: `tools/reports/hardware-import-resolver-supplier-gap-v1.md`.
 
 
 ## Hardware import create item resolver v1 — 2026-05-12

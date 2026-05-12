@@ -643,3 +643,9 @@ Do obserwacji:
 - `hardware-catalog-import-export.js` pozostaje plikiem ostrzegawczym 400+ linii. Ten etap świadomie nie robił dużego splitu, bo naprawiał krytyczną logikę importu nowych okuć z cen dostawców.
 - Najbliższy bezpieczny refaktor w tym obszarze: wydzielić plan importu cen dostawców i resolver braków do osobnych modułów domenowych, z testami dla `producent + symbol + dostawca`, braków kategorii/jednostki oraz dodawania kategorii.
 
+
+
+## Hardware import resolver supplier gap v1 — 2026-05-12
+
+- Punktowa poprawka importu nie robi dużego splitu, ale potwierdza dług: logikę planu importu cen dostawców, resolver braków i raportowanie ostrzeżeń warto wydzielić do mniejszych modułów przy osobnym refaktorze.
+- Przed takim refaktorem zachować testy dla: brakującego dostawcy/kategorii/jednostki, fałszywych duplikatów z eksportu oraz tworzenia nowego okucia z `Ceny_dostawcow`.

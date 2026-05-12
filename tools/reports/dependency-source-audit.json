@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T21:06:33.996Z",
+  "generatedAt": "2026-05-12T21:22:07.711Z",
   "summary": {
     "jsFiles": 334,
     "indexScripts": 260,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3338,
+      "lines": 3349,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 25,
-      "lines": 4525,
+      "lines": 4544,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -3437,7 +3437,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 352,
+      "lines": 363,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -5476,7 +5476,7 @@
     "js/app/material/price-modal-hardware-import-resolver.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 313,
+      "lines": 332,
       "defines": [
         "priceModalHardwareImportResolver"
       ],

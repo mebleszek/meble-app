@@ -567,3 +567,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Import nie używa numeru wiersza Excela jako klucza danych. Powiązanie pozostaje po danych użytkowych `producent + symbol + dostawca`, z technicznym `okucie_id` jako opcjonalną szybką ścieżką.
 - Zablokowano automatyczne domyślne wartości `Inne`/`szt.` dla nowych okuć z arkusza cen, żeby nie tworzyć brudnych rekordów przed przyszłą synchronizacją/chmurą.
 
+
+
+## Hardware import resolver supplier gap v1 — 2026-05-12
+
+- Zmiana dotyczy istniejącego boundary import/export katalogu okuć i nie dodaje nowego storage.
+- Uzupełnianie braków przy imporcie nowych okuć z arkusza `Ceny_dostawcow` obejmuje teraz dostawcę, kategorię i jednostkę jako świadome wybory użytkownika. To ogranicza śmiecenie danych domyślnymi wartościami i jest bezpieczniejsze pod przyszłą synchronizację.
+- Dopasowanie wielu cen pozostaje oparte na danych użytkowych `producent + symbol + dostawca`, a techniczne `okucie_id`/`dostawca_id` są pomocnicze.
+- Nie powstał nowy klucz `localStorage`; słowniki i katalog dalej przechodzą przez `catalogStore` oraz istniejące klucze `fc_*`.

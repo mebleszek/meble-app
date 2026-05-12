@@ -330,6 +330,43 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(previousManufacturers);
       }
     } },
+    { name:'Resolver nowego okucia z arkusza cen wymaga dostawcy kategorii i jednostki', explain:'Chroni import XLSX: wiersz z nazwą, symbolem, producentem i ceną, ale bez dostawcy/kategorii/jednostki ma trafić do uzupełnienia, a nie zostać po cichu pominięty.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, xlsx = FC.hardwareSupplierPriceXlsx, store = FC.catalogStore;
+      if(!(api && xlsx && store && typeof store.savePriceList === 'function')) return false;
+      const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [], previousManufacturers = store.getHardwareManufacturers ? store.getHardwareManufacturers() : [];
+      try{
+        const invoice = { id:'invoice', name:'Faktura / zakup ręczny', defaultVatRate:23, defaultDiscountPercent:0, active:true };
+        store.savePriceList('accessories', []);
+        if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(['Peka']);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([invoice]);
+        const row = { __rowIndex:21, okucie_nazwa:'gitara', okucie_symbol:'git', producent:'Peka', cena_netto:30 };
+        const gaps = xlsx.supplierPriceCreateRequiredGaps([row], [], [invoice], ['Peka']);
+        if(!(gaps.length === 1 && ['supplierName','itemCategory','itemUnit'].every((key)=> gaps[0].gaps.includes(key)))) return false;
+        const plan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{}, supplierPriceRows:[Object.assign({}, row, { dostawca:'Faktura / zakup ręczny', kategoria:'Zawiasy', jednostka:'szt.' })] }, { mode:'merge' });
+        const created = plan.next.accessories.find((item)=> String(item && item.symbol || '') === 'git');
+        const price = created && Array.isArray(created.supplierPrices) ? created.supplierPrices.find((priceRow)=> String(priceRow && priceRow.supplierId || '') === 'invoice') : null;
+        return plan.errors.length === 0 && plan.summary.supplierPriceCreatedAccessories === 1 && plan.summary.supplierPricesAdded === 1 && created && String(created.name || '') === 'gitara' && String(created.manufacturer || '') === 'Peka' && String(created.hardwareCategory || '') === 'Zawiasy' && String(created.hardwareUnit || '') === 'szt.' && price && Number(price.catalogPriceNet) === 30 && Number(price.catalogPriceGross) === 36.9;
+      }finally{
+        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+        if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(previousManufacturers);
+      }
+    } },
+    { name:'Import cen nie zgłasza fałszywych duplikatów dla tego samego okucia z eksportu', explain:'Chroni podgląd importu: gdy to samo okucie jest w katalogu i w arkuszu Okucia, Ceny_dostawcow nie powinny straszyć duplikatem producent+symbol.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, store = FC.catalogStore;
+      if(!(api && store && typeof store.savePriceList === 'function')) return false;
+      const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        const existing = { id:'dup_same_1', manufacturer:'Blum', symbol:'DUP-SAME', name:'To samo okucie', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[{ supplierId:'mago', catalogPriceNet:10, catalogPriceGross:12.3, priceDate:'2026-05-12', priceStatus:'current', useForQuote:true }] };
+        store.savePriceList('accessories', [existing]);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+        const plan = api.buildImportPlan({ accessories:[existing], suppliers:[], settings:{}, supplierPriceRows:[{ __rowIndex:2, okucie_nazwa:'To samo okucie', okucie_symbol:'DUP-SAME', producent:'Blum', kategoria:'Zawiasy', jednostka:'szt.', dostawca:'MAGO', cena_netto:10, cena_brutto:12.3, data_ceny:'2026-05-12' }] }, { mode:'merge' });
+        return plan.errors.length === 0 && !plan.warnings.some((msg)=> String(msg || '').includes('pasuje do kilku różnych okuć'));
+      }finally{
+        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
+    } },
     { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
       const store = FC.catalogStore;
       const ctx = FC.priceModalContext || {};

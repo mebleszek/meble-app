@@ -28,6 +28,7 @@
     if(field === 'manufacturer') return 'Producent';
     if(field === 'hardwareCategory' || field === 'itemCategory') return 'Kategoria';
     if(field === 'hardwareUnit' || field === 'itemUnit') return 'Jednostka';
+    if(field === 'supplierName' || field === 'supplierId') return 'Dostawca';
     return field;
   }
   function summaryEntries(entry){
@@ -80,6 +81,19 @@
     if(optionExists(options, label)) return options || [];
     (options || []).push({ value:label, label });
     return options;
+  }
+  function supplierOptions(options){
+    return (Array.isArray(options && options.suppliers) ? options.suppliers : [])
+      .map((row)=>{
+        if(row && typeof row === 'object') return { value:text(row.name || row.label || row.id), label:text(row.name || row.label || row.id), id:text(row.id) };
+        return { value:text(row), label:text(row), id:'' };
+      })
+      .filter((row)=> text(row.value));
+  }
+  function supplierExists(options, value){
+    const key = norm(value);
+    if(!key) return false;
+    return supplierOptions(options).some((row)=> norm(row.value) === key || norm(row.id) === key);
   }
   function appChoiceButton(label, value, options, onPick){
     const api = FC.rozrysChoice;
@@ -212,12 +226,14 @@
       if(gap === 'hardwareUnit') form.appendChild(choiceField('Jednostka', draft.hardwareUnit, options.units || [], (value)=>{ draft.hardwareUnit = value; onDraftChange(draft); }));
       if(gap === 'itemCategory') form.appendChild(categoryField('Kategoria', draft.itemCategory, options, data, (value)=>{ draft.itemCategory = value; onDraftChange(draft); }));
       if(gap === 'itemUnit') form.appendChild(choiceField('Jednostka', draft.itemUnit, options.units || [], (value)=>{ draft.itemUnit = value; onDraftChange(draft); }));
+      if(gap === 'supplierName') form.appendChild(choiceField('Dostawca', draft.supplierName || draft.supplierId, supplierOptions(options), (value)=>{ draft.supplierName = value; draft.supplierId = ''; onDraftChange(draft); }));
     });
     return { node:form, draft };
   }
-  function missingForDraft(api, entry, draft){
+  function missingForDraft(api, entry, draft, options){
     if(entry && entry.kind === 'supplierPriceCreate'){
       const gaps = [];
+      if(!supplierExists(options, draft && (draft.supplierName || draft.supplierId))) gaps.push('supplierName');
       if(!text(draft && draft.itemCategory)) gaps.push('itemCategory');
       if(!text(draft && draft.itemUnit)) gaps.push('itemUnit');
       return gaps;
@@ -226,6 +242,9 @@
   }
   function applyDraftToEntry(entry, draft){
     if(entry && entry.kind === 'supplierPriceCreate'){
+      entry.row.dostawca = text(draft && (draft.supplierName || draft.supplierId));
+      entry.row.supplierName = text(draft && (draft.supplierName || draft.supplierId));
+      entry.row.dostawca_id = '';
       entry.row.kategoria = text(draft && draft.itemCategory);
       entry.row.jednostka = text(draft && draft.itemUnit);
       entry.row.itemCategory = text(draft && draft.itemCategory);
@@ -276,7 +295,7 @@
         box.appendChild(h('div', { style:'font-weight:900;font-size:18px;margin-bottom:4px', text:`Braki w pozycji ${Math.min(currentIndex + 1, entries.length)} z ${entries.length}` }));
         box.appendChild(h('div', { class:'muted-tag xs', text:`Wiersz Excela: ${entry.rowIndex}. Uzupełnij tylko tę pozycję albo ją pomiń.` }));
         const explain = entry.kind === 'supplierPriceCreate'
-          ? 'Ta cena ma utworzyć nowe okucie. Wybierz kategorię i jednostkę — program nie wpisuje ich automatycznie.'
+          ? 'Ta cena ma utworzyć nowe okucie. Uzupełnij brakujące wybory — program nie wpisuje dostawcy, kategorii ani jednostki automatycznie.'
           : 'Brakuje: ' + entry.gaps.map(fieldLabel).join(', ');
         box.appendChild(h('div', { style:'margin-top:8px;color:#a40000;font-weight:800', text:explain }));
         box.appendChild(renderSummary(entry));
@@ -289,7 +308,7 @@
         ignoreBtn.addEventListener('click', ()=>{ entry.row.__skipImport = true; currentIndex = 0; render(); });
         ignoreAllBtn.addEventListener('click', ()=>{ entries.forEach((item)=>{ if(item && item.row) item.row.__skipImport = true; }); resolve(data); });
         applyBtn.addEventListener('click', ()=>{
-          const missing = missingForDraft(api, entry, draft);
+          const missing = missingForDraft(api, entry, draft, options);
           if(missing.length){
             if(errorNode) errorNode.remove();
             errorNode = validationMessage('Uzupełnij: ' + missing.map(fieldLabel).join(', '));

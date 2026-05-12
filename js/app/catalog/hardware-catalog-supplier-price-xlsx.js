@@ -232,6 +232,17 @@
     if(!manufacturer || !symbol) return [];
     return (accessories || []).filter((item)=> safePart(item && item.manufacturer) === manufacturer && safePart(item && item.symbol) === symbol);
   }
+  function logicalAccessoryKey(item){
+    return text(item && item.id) || [safePart(item && item.manufacturer), safePart(item && item.symbol), safePart(item && item.name)].join('|');
+  }
+  function uniqueLogicalMatches(matches){
+    const byKey = new Map();
+    (matches || []).filter(Boolean).forEach((item)=>{
+      const key = logicalAccessoryKey(item);
+      if(key && !byKey.has(key)) byKey.set(key, item);
+    });
+    return Array.from(byKey.values());
+  }
   function createAccessoriesFromSupplierPriceRows(targetAccessories, existingAccessories, supplierPriceRows, suppliers, manufacturers, settings, warnings){
     const summary = { created:0, skipped:0 };
     const target = Array.isArray(targetAccessories) ? targetAccessories : [];
@@ -242,9 +253,9 @@
       .map(parseSupplierPriceRow)
       .filter((row)=> row.catalogPriceNet > 0 || row.catalogPriceGross > 0);
     parsedRows.forEach((row)=>{
-      const exactMatches = exactManufacturerSymbolMatches(all, row);
+      const exactMatches = uniqueLogicalMatches(exactManufacturerSymbolMatches(all, row));
       if(exactMatches.length){
-        if(exactMatches.length > 1 && warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} pasuje do kilku okuć po producent+symbol. Nie utworzono duplikatu.`);
+        if(exactMatches.length > 1 && warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} pasuje do kilku różnych okuć po producent+symbol. Nie utworzono duplikatu.`);
         return;
       }
       const hasMinimum = text(row.itemManufacturer) && text(row.itemSymbol) && text(row.itemName);
@@ -289,11 +300,11 @@
     const out = [];
     parsedRows.forEach((entry)=>{
       const row = entry.parsed;
-      if(exactManufacturerSymbolMatches(targetRows, row).length) return;
+      if(uniqueLogicalMatches(exactManufacturerSymbolMatches(targetRows, row)).length) return;
       if(!(text(row.itemManufacturer) && text(row.itemSymbol) && text(row.itemName))) return;
       if(!manufacturerByName(manufacturers || [], row.itemManufacturer)) return;
-      if(!resolveSupplier(suppliers || [], row, null)) return;
       const gaps = [];
+      if(!resolveSupplier(suppliers || [], row, null)) gaps.push('supplierName');
       if(!text(row.itemCategory)) gaps.push('itemCategory');
       if(!text(row.itemUnit)) gaps.push('itemUnit');
       if(gaps.length) out.push({ row:entry.raw, parsed:row, rowIndex:row.__rowIndex || entry.raw.__rowIndex || 0, gaps });
@@ -346,6 +357,6 @@
     applySupplierPriceRows,
     createAccessoriesFromSupplierPriceRows,
     supplierPriceCreateRequiredGaps,
-    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, exactManufacturerSymbolMatches, createAccessoriesFromSupplierPriceRows, supplierPriceCreateRequiredGaps }
+    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, exactManufacturerSymbolMatches, uniqueLogicalMatches, createAccessoriesFromSupplierPriceRows, supplierPriceCreateRequiredGaps }
   };
 })();
