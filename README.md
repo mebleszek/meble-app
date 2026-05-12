@@ -371,3 +371,9 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 
 - Poprawiono import nowych okuć z arkusza `Ceny_dostawcow`: brakujący dostawca, kategoria i jednostka trafiają do aplikacyjnego uzupełnienia zamiast cichego pominięcia wiersza.
 - Usunięto fałszywe ostrzeżenia o duplikatach `producent + symbol`, gdy plik importu pochodził z eksportu tego samego katalogu.
+
+## Hardware price change confirmation v1 — 2026-05-13
+
+- Import XLSX cen dostawców pokazuje teraz świadome potwierdzenia przed dodaniem nowej ceny dostawcy albo aktualizacją istniejącej ceny.
+- Przy aktualizacji widać starą i nową cenę; przy cenie `Do wyceny` pojawia się ostrzeżenie, że zmiana wpłynie na przyszłe wyceny.
+- Dostępne są akcje pojedyncze i hurtowe: dodanie/aktualizacja jednej ceny, dodanie wszystkich nowych cen, aktualizacja wszystkich zmian albo pominięcie podobnych zmian.

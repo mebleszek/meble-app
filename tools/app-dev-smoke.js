@@ -177,9 +177,10 @@ function runMaterialNodeSmoke(sandbox){
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-export.js'), 'utf8');
       const resolver = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
+      const priceConfirm = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-price-confirm.js'), 'utf8');
       if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function' && typeof api.findRequiredGaps === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
-      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe');
+      return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-price-confirm.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && ui.includes('confirmSupplierPriceChanges') && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe') && priceConfirm.includes('Dodać nową cenę') && priceConfirm.includes('Zaktualizować cenę');
     } },
     { name:'Katalog okuć ma UX statusu ceny i szybkich filtrów', explain:'Chroni czytelne karty okuć: status ceny, filtr Do sprawdzenia cen oraz podgląd zestawów/składników.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -394,6 +395,33 @@ function runMaterialNodeSmoke(sandbox){
           && resolverSrc.includes('Ta cena pasuje do istniejącego okucia')
           && resolverSrc.includes('ignoreAllScope')
           && !resolverSrc.includes('Dodaj dostawcę');
+      }finally{
+        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
+    } },
+    { name:'Import cen dostawców pokazuje potwierdzenia nowych i aktualizowanych cen', explain:'Chroni przed cichą zmianą katalogu: plan importu niesie listę zmian cen, z rozróżnieniem dodania i aktualizacji oraz starą/nową ceną.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, store = FC.catalogStore, confirmUi = FC.priceModalHardwarePriceConfirm;
+      if(!(api && store && typeof store.savePriceList === 'function' && confirmUi && typeof confirmUi.confirmSupplierPriceChanges === 'function')) return false;
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-price-confirm.js'), 'utf8');
+      const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        const item = { id:'confirm_price_hw', manufacturer:'Blum', symbol:'CONF-1', name:'Potwierdzane okucie', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[{ supplierId:'mago', catalogPriceNet:10, catalogPriceGross:12.3, priceDate:'2026-05-12', priceStatus:'current', useForQuote:true }] };
+        store.savePriceList('accessories', [item]);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'local', name:'Hurtownia lokalna', defaultVatRate:23, defaultDiscountPercent:0, active:true }]);
+        const plan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{}, supplierPriceRows:[
+          { __rowIndex:41, producent:'Blum', okucie_symbol:'CONF-1', dostawca:'MAGO', cena_netto:11, data_ceny:'2026-05-13' },
+          { __rowIndex:42, producent:'Blum', okucie_symbol:'CONF-1', dostawca:'Hurtownia lokalna', cena_netto:9, data_ceny:'2026-05-13' }
+        ] }, { mode:'merge' });
+        const changes = plan.summary.supplierPriceChanges || [];
+        const updated = changes.find((row)=> row.action === 'updated');
+        const added = changes.find((row)=> row.action === 'added');
+        return plan.summary.supplierPricesUpdated === 1
+          && plan.summary.supplierPricesAdded === 1
+          && changes.length === 2
+          && updated && updated.oldPrice && Number(updated.oldPrice.catalogPriceNet) === 10 && Number(updated.newPrice.catalogPriceNet) === 11 && updated.affectsQuote === true
+          && added && !added.oldPrice && Number(added.newPrice.catalogPriceNet) === 9 && added.rawRow
+          && src.includes('Zostaw starą') && src.includes('Dodaj wszystkie nowe ceny') && src.includes('Zaktualizuj wszystkie aktualizacje') && src.includes('Dodano') && src.includes('Zaktualizowano');
       }finally{
         if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-12T22:25:53.822Z",
+  "generatedAt": "2026-05-12T22:55:11.591Z",
   "summary": {
-    "jsFiles": 334,
-    "indexScripts": 260,
-    "devTestScripts": 291,
-    "fcSymbols": 244,
-    "fcSymbolsAll": 270,
-    "edges": 1756,
+    "jsFiles": 335,
+    "indexScripts": 261,
+    "devTestScripts": 292,
+    "fcSymbols": 245,
+    "fcSymbolsAll": 271,
+    "edges": 1758,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3376,
+      "lines": 3406,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -44,8 +44,8 @@
       "medium": 4
     },
     "MATERIAŁ": {
-      "files": 25,
-      "lines": 4577,
+      "files": 26,
+      "lines": 4730,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -191,7 +191,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog-import-export.js",
-      527
+      528
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -218,6 +218,10 @@
       434
     ],
     [
+      "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
+      416
+    ],
+    [
       "js/app/rozrys/rozrys-pickers.js",
       406
     ],
@@ -232,10 +236,6 @@
     [
       "js/testing/rozrys/suites/helpers-bridges.js",
       390
-    ],
-    [
-      "js/app/cabinet/cabinet-choice-launchers.js",
-      388
     ]
   ],
   "topIncoming": [
@@ -323,7 +323,7 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      179
+      180
     ],
     [
       "js/app/shared/storage.js",
@@ -331,7 +331,7 @@
     ],
     [
       "js/app/shared/utils.js",
-      148
+      149
     ],
     [
       "js/app/project/project-bridge.js",
@@ -387,7 +387,7 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      50
+      51
     ],
     [
       "js/app/investor/investors-model.js",
@@ -607,7 +607,7 @@
       "lines": 497,
       "incoming": 14,
       "outgoing": 11,
-      "secondLevel": 50,
+      "secondLevel": 51,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -679,7 +679,7 @@
       "lines": 494,
       "incoming": 12,
       "outgoing": 2,
-      "secondLevel": 16,
+      "secondLevel": 17,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1379,8 +1379,8 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 527,
-      "incoming": 2,
+      "lines": 528,
+      "incoming": 3,
       "outgoing": 7,
       "secondLevel": 1,
       "storageRefs": 0,
@@ -1567,7 +1567,7 @@
       "lines": 177,
       "incoming": 71,
       "outgoing": 4,
-      "secondLevel": 179,
+      "secondLevel": 180,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1925,6 +1925,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
         "js/app/material/price-modal-hardware-suppliers.js",
         "js/app/material/price-modal-hardware-ux.js",
@@ -3270,6 +3271,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
         "js/app/material/price-modal-hardware-suppliers.js",
         "js/app/material/price-modal-hardware-ux.js",
@@ -3325,7 +3327,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 527,
+      "lines": 528,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3340,7 +3342,8 @@
       ],
       "incomingFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
-        "js/app/material/price-modal-hardware-import-resolver.js"
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -3437,7 +3440,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 387,
+      "lines": 416,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -3454,7 +3457,8 @@
       ],
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
-        "js/app/material/price-modal-hardware-import-resolver.js"
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3463,7 +3467,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "400+ linii"
       ]
     },
     "js/app/catalog/hardware-catalog.js": {
@@ -3504,6 +3508,7 @@
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -5438,7 +5443,7 @@
     "js/app/material/price-modal-hardware-import-export.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 247,
+      "lines": 252,
       "defines": [
         "priceModalHardwareImportExport"
       ],
@@ -5449,6 +5454,7 @@
         "priceModal",
         "hardwareCatalogImportExport",
         "priceModalHardwareImportResolver",
+        "priceModalHardwarePriceConfirm",
         "panelBox",
         "priceModalHardwareImportExport"
       ],
@@ -5457,6 +5463,7 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/material/price-modal.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
@@ -5470,6 +5477,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
+        "250+ linii",
         "kilka zależności wychodzących"
       ]
     },
@@ -5528,6 +5536,32 @@
       "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 7,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/material/price-modal-hardware-price-confirm.js": {
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 148,
+      "defines": [
+        "priceModalHardwarePriceConfirm"
+      ],
+      "uses": [
+        "hardwareCatalogImportExport",
+        "priceModalHardwarePriceConfirm"
+      ],
+      "incomingFiles": [
+        "js/app/material/price-modal-hardware-import-export.js"
+      ],
+      "outgoingFiles": [
+        "js/app/catalog/hardware-catalog-import-export.js"
+      ],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 8,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -10781,6 +10815,7 @@
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/shared/data-backup-records.js",
         "js/app/shared/data-backup-store.js",
         "js/app/ui/data-settings-modal.js",
@@ -12815,6 +12850,7 @@
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
         "js/app/material/price-modal-hardware-ux.js",
         "js/app/material/price-modal-item-form.js",
@@ -12992,7 +13028,8 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
-        "js/app/material/price-modal-hardware-import-resolver.js"
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,

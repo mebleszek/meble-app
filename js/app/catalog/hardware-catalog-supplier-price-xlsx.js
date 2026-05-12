@@ -205,6 +205,33 @@
       && normalizePriceStatus(a.priceStatus) === normalizePriceStatus(b.priceStatus)
       && !!a.useForQuote === !!b.useForQuote;
   }
+  function publicPrice(price){
+    if(!price) return null;
+    return {
+      supplierId:text(price.supplierId),
+      catalogPriceNet:round2(number(price.catalogPriceNet)),
+      catalogPriceGross:round2(number(price.catalogPriceGross)),
+      priceDate:text(price.priceDate),
+      priceStatus:normalizePriceStatus(price.priceStatus),
+      useForQuote:!!price.useForQuote,
+    };
+  }
+  function supplierPriceChangeDetail(raw, row, item, supplier, existing, nextPrice){
+    return {
+      action:existing ? 'updated' : 'added',
+      rowIndex:row.__rowIndex || raw && raw.__rowIndex || 0,
+      itemId:text(item && item.id),
+      itemName:text(item && item.name),
+      itemSymbol:text(item && item.symbol),
+      itemManufacturer:text(item && item.manufacturer),
+      supplierId:text(supplier && supplier.id),
+      supplierName:text(supplier && supplier.name || supplier && supplier.id),
+      oldPrice:publicPrice(existing),
+      newPrice:publicPrice(nextPrice),
+      affectsQuote:!!(existing && existing.useForQuote) || !!(nextPrice && nextPrice.useForQuote),
+      rawRow:raw || null,
+    };
+  }
   function manufacturerByName(manufacturers, value){
     const safe = safePart(value);
     if(!safe) return '';
@@ -334,17 +361,18 @@
   }
 
   function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings){
-    const summary = { touchedIds:[], rows:0, added:0, updated:0, unchanged:0, skipped:0 };
+    const summary = { touchedIds:[], rows:0, added:0, updated:0, unchanged:0, skipped:0, changes:[] };
     const touched = new Set();
     const sourceRows = (supplierPriceRows || [])
       .filter(hasSupplierPriceData)
       .map((raw)=>({ raw, parsed:parseSupplierPriceRow(raw) }))
       .filter((entry)=> entry.parsed.catalogPriceNet > 0 || entry.parsed.catalogPriceGross > 0);
     const ignoredByResolver = sourceRows.filter((entry)=> entry.raw && entry.raw.__skipImport).length;
-    const parsedRows = sourceRows.filter((entry)=> !(entry.raw && entry.raw.__skipImport)).map((entry)=> entry.parsed);
+    const activeRows = sourceRows.filter((entry)=> !(entry.raw && entry.raw.__skipImport));
     summary.rows = sourceRows.length;
     summary.skipped = ignoredByResolver;
-    parsedRows.forEach((row)=>{
+    activeRows.forEach((entry)=>{
+      const row = entry.parsed;
       const item = resolveAccessory(accessories, row, warnings);
       if(!item){ summary.skipped += 1; if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} nie pasuje do żadnego okucia.`); return; }
       const supplier = resolveSupplier(suppliers || [], row, warnings);
@@ -357,6 +385,7 @@
         prices.forEach((price)=>{ if(text(price && price.supplierId) !== text(supplier.id) && price.useForQuote){ price.useForQuote = false; } });
       }
       if(changed){
+        summary.changes.push(supplierPriceChangeDetail(entry.raw, row, item, supplier, existing, nextPrice));
         item.supplierPrices = prices.filter((price)=> text(price && price.supplierId) !== text(supplier.id));
         item.supplierPrices.push(nextPrice);
         if(existing) summary.updated += 1;
@@ -381,6 +410,6 @@
     createAccessoriesFromSupplierPriceRows,
     supplierPriceCreateRequiredGaps,
     supplierPriceMissingSupplierGaps,
-    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, exactManufacturerSymbolMatches, uniqueLogicalMatches, createAccessoriesFromSupplierPriceRows, supplierPriceCreateRequiredGaps, supplierPriceMissingSupplierGaps }
+    _debug:{ colFor, rowValues, emptyPriceRow, normalizePrices, supplierByName, resolveSupplier, resolveAccessory, sameSupplierPrice, supplierPriceChangeDetail, exactManufacturerSymbolMatches, uniqueLogicalMatches, createAccessoriesFromSupplierPriceRows, supplierPriceCreateRequiredGaps, supplierPriceMissingSupplierGaps }
   };
 })();

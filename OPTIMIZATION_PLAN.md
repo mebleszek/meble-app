@@ -656,3 +656,9 @@ Do obserwacji:
 - Punktowa poprawka utrzymała logikę w istniejących modułach: arkusz cen w `hardware-catalog-supplier-price-xlsx.js`, plan importu w `hardware-catalog-import-export.js`, resolver UI w `price-modal-hardware-import-resolver.js`.
 - Dług techniczny pozostaje aktualny: następna większa rozbudowa import/export powinna wydzielić plan importu cen dostawców oraz resolver braków do mniejszych modułów z kontraktami.
 - Nowe kontrakty do zachowania przy przyszłym refaktorze: brakujący dostawca dla istniejącego okucia, wybór dostawcy z listy, brak dodawania dostawcy w resolverze i licznik cen pominiętych po `Ignoruj wszystko`.
+
+## Hardware price change confirmation v1 — 2026-05-13
+
+- Dodano osobny moduł UI `price-modal-hardware-price-confirm.js` zamiast dopisywać potwierdzanie cen do resolvera braków. To utrzymuje rozdział: resolver uzupełnia brakujące dane, confirm zatwierdza realne zmiany cen.
+- `hardware-catalog-supplier-price-xlsx.js` ma teraz ponad 400 linii. Następny refaktor import/export powinien wydzielić co najmniej: parser/normalizację wierszy, dopasowanie item+dostawca, diff/akcje cen i aplikowanie zmian.
+- `hardware-catalog-import-export.js` nadal przekracza próg ostrzeżenia. Nie ciąć go razem z kolejną funkcją użytkową; najpierw zrobić testy kontraktowe dla planu importu i potwierdzeń cen.

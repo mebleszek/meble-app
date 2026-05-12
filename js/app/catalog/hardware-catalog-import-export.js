@@ -500,6 +500,7 @@
         supplierPricesSkipped:supplierPriceSummary.skipped || 0,
         supplierPriceCreatedAccessories:supplierPriceAccessorySummary.created || 0,
         supplierPriceCreateSkipped:supplierPriceAccessorySummary.skipped || 0,
+        supplierPriceChanges:Array.isArray(supplierPriceSummary.changes) ? supplierPriceSummary.changes : [],
         totalChanged:accessoryUpdateCount + addCount + priceChanged,
       }
     };

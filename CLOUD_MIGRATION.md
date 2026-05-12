@@ -591,3 +591,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Brakujący albo nieznany dostawca przy imporcie ceny jest rozwiązywany przed zbudowaniem planu zapisu. Do katalogu nie trafia cena bez jawnie rozpoznanego `supplierId`.
 - Resolver nie tworzy dostawców z modala wyboru ceny. Nowy dostawca musi wejść przez kontrolowany słownik programu albo przez arkusz `Dostawcy`, co ogranicza duplikaty nazw przy przyszłej synchronizacji.
 - `Ignoruj` i `Ignoruj wszystko` oznaczają świadome pominięcie wierszy importu, nie błąd danych. Podgląd importu liczy takie wiersze jako pominięte ceny.
+
+## Hardware price change confirmation v1 — 2026-05-13
+
+- Zmiana nie dodaje żadnego nowego klucza storage. Potwierdzenia nowych/zmienionych cen dostawców są stanem przejściowym importu w pamięci, przed zapisem przez `catalogStore`.
+- Plan importu zawiera jawny diff cen dostawców (`supplierPriceChanges`), co jest zgodne z przyszłą chmurą: klient może pokazać użytkownikowi zmiany przed zapisem/synchronizacją, zamiast wykonywać ciche nadpisania.
+- Pominięcie ceny w potwierdzeniu oznacza `__skipImport` na wierszu roboczym importu, a nie trwały stan domenowy. Do Firestore/synchronizacji nie powinny trafiać flagi techniczne resolvera.
+- Dodanie lub aktualizacja ceny nadal zapisuje dane w istniejącym modelu `supplierPrices` przy okuciu w `fc_accessories_v1`; dostawcy pozostają w `fc_hardware_suppliers_v1`.
+- Potwierdzenie pokazuje szczególnie ceny `Do wyceny`, ale nie zmienia jeszcze snapshotów WYCENY. Przyszły moduł ofert musi nadal zamrażać wartości użyte w ofercie osobno.

@@ -203,6 +203,11 @@
           cancelTone:'neutral'
         });
         if(!ok) return;
+        if(FC.priceModalHardwarePriceConfirm && typeof FC.priceModalHardwarePriceConfirm.confirmSupplierPriceChanges === 'function'){
+          const confirmedPlan = await FC.priceModalHardwarePriceConfirm.confirmSupplierPriceChanges(plan, data, { api, mode, mount, onBack:renderPlan });
+          if(!confirmedPlan) return;
+          plan = confirmedPlan;
+        }
         try{
           const summary = api.applyImportPlan(plan);
           info('Import zakończony', `Nowe okucia: ${summary.added || 0}, z arkusza cen: ${summary.supplierPriceCreatedAccessories || 0}, okucia zmienione: ${summary.updated || 0}, nowe ceny: ${summary.supplierPricesAdded || 0}, ceny zmienione: ${summary.supplierPricesUpdated || 0}, ceny bez zmian: ${summary.supplierPricesUnchanged || 0}, usunięto: ${summary.removed || 0}.`);

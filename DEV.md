@@ -808,3 +808,15 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Dopasowanie ceny dostawcy działa kolejno: `okucie_id`, potem unikalne `producent + symbol`, potem ostrożne fallbacki `symbol+nazwa`, `symbol` albo `nazwa` z ostrzeżeniami przy ryzyku pomyłki.
 - Nie dodano nowych kluczy storage. Dane nadal zapisuje istniejący `catalogStore` i wersjonowane klucze `fc_*`.
 - `hardware-catalog-import-export.js` wzrósł do ok. 500 linii i pozostaje jawnie oznaczonym długiem. Następna większa praca nad importem/eksportem powinna zacząć się od splitu: template/export, parse/defaults oraz plan/apply.
+
+## Hardware price change confirmation v1 — 2026-05-13
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_price_change_confirmation_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_missing_supplier_duplicate_fix_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Import `Ceny_dostawcow` nie zapisuje już nowych ani zmienionych cen dostawców całkiem po cichu. Plan importu niesie listę `supplierPriceChanges` z rozróżnieniem `added` / `updated` oraz starą i nową ceną.
+- Dodano osobny moduł UI `js/app/material/price-modal-hardware-price-confirm.js`, żeby potwierdzanie zmian cen nie rozbudowywało resolvera braków ani głównego panelu import/export.
+- Przy dodaniu ceny użytkownik widzi pytanie o dodanie nowej ceny dla konkretnego dostawcy; przy aktualizacji widzi starą i nową cenę oraz ostrzeżenie, jeśli zmiana dotyczy ceny `Do wyceny`.
+- Dostępne są akcje pojedyncze oraz hurtowe: dodaj/zaktualizuj jedną, dodaj wszystkie nowe ceny, zaktualizuj wszystkie aktualizacje, zostaw/pomiń jedną lub wszystkie podobne.
+- Nie dodano nowego storage ani nowych kluczy localStorage; potwierdzenia działają wyłącznie w pamięci bieżącego importu przed `applyImportPlan()`.
+- `hardware-catalog-supplier-price-xlsx.js` przekroczył próg ostrzeżenia 400 linii, ale pozostaje jednym boundary arkusza cen dostawców. Przy następnej większej rozbudowie rozdzielić diff/akcje cen od parsera arkusza.
+- Raport: `tools/reports/hardware-price-change-confirmation-v1.md`.
