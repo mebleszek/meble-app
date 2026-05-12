@@ -367,6 +367,38 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
       }
     } },
+    { name:'Resolver ceny istniejącego okucia wymaga dostawcy z listy', explain:'Chroni import cenników: cena z producentem i symbolem istniejącego okucia, ale bez dostawcy, trafia do resolvera; po wyborze dostawcy aktualizuje cenę tego dostawcy, a ignorowanie liczy się jako pominięte.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, xlsx = FC.hardwareSupplierPriceXlsx, store = FC.catalogStore;
+      if(!(api && xlsx && typeof xlsx.supplierPriceMissingSupplierGaps === 'function' && store && typeof store.savePriceList === 'function')) return false;
+      const resolverSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
+      const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        const suppliers = [{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }];
+        const existing = { id:'supplier_gap_existing', manufacturer:'Blum', symbol:'SUP-GAP', name:'Istniejące okucie', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[{ supplierId:'mago', catalogPriceNet:10, catalogPriceGross:12.3, priceDate:'2026-05-12', priceStatus:'current', useForQuote:false }] };
+        store.savePriceList('accessories', [existing]);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(suppliers);
+        const row = { __rowIndex:31, producent:'Blum', okucie_symbol:'SUP-GAP', cena_netto:11 };
+        const gaps = xlsx.supplierPriceMissingSupplierGaps([row], [existing], suppliers);
+        const skippedPlan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{}, supplierPriceRows:[Object.assign({}, row, { __skipImport:true })] }, { mode:'merge' });
+        const plan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{}, supplierPriceRows:[Object.assign({}, row, { dostawca:'MAGO' })] }, { mode:'merge' });
+        const updated = plan.next.accessories.find((item)=> String(item && item.id || '') === 'supplier_gap_existing');
+        const price = updated && Array.isArray(updated.supplierPrices) ? updated.supplierPrices.find((priceRow)=> String(priceRow && priceRow.supplierId || '') === 'mago') : null;
+        return gaps.length === 1
+          && gaps[0].gaps.length === 1
+          && gaps[0].gaps[0] === 'supplierName'
+          && skippedPlan.summary.supplierPrices === 1
+          && skippedPlan.summary.supplierPricesSkipped === 1
+          && plan.summary.supplierPricesUpdated === 1
+          && plan.summary.supplierPricesAdded === 0
+          && price && Number(price.catalogPriceNet) === 11 && Number(price.catalogPriceGross) === 13.53
+          && resolverSrc.includes('Ta cena pasuje do istniejącego okucia')
+          && resolverSrc.includes('ignoreAllScope')
+          && !resolverSrc.includes('Dodaj dostawcę');
+      }finally{
+        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
+    } },
     { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
       const store = FC.catalogStore;
       const ctx = FC.priceModalContext || {};

@@ -1,3 +1,9 @@
+### 2026-05-12 — hardware supplier missing resolver v1
+- Import `Ceny_dostawcow` dla istniejącego okucia z pustym albo nierozpoznanym dostawcą otwiera resolver wyboru dostawcy zamiast pomijać cenę.
+- Dostawcę można wybrać tylko z istniejącej listy programu albo z arkusza `Dostawcy` w importowanym XLSX; resolver nie tworzy nowych dostawców.
+- Po wyborze dostawcy import aktualizuje lub dodaje cenę po kluczu `producent + symbol + dostawca`.
+- `Ignoruj wszystko` pomija wszystkie nierozwiązane ceny z brakującym dostawcą w tym imporcie.
+
 ### 2026-05-12 — hardware import create item resolver v1
 - Import `Ceny_dostawcow` nie tworzy już nowych okuć z automatyczną kategorią `Inne` i jednostką `szt.`.
 - Nowe okucie z arkusza cen wymaga wyboru kategorii i jednostki w aplikacyjnym resolverze braków albo podania ich w Excelu.

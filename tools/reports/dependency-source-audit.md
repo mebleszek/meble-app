@@ -23,9 +23,9 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
 | SZAFKI | 28 | 6572 | 0 | 0 | 0 | 3 |
-| MATERIAŁ | 25 | 4544 | 8 | 3 | 0 | 2 |
+| MATERIAŁ | 25 | 4577 | 8 | 3 | 0 | 2 |
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
-| KATALOG/USŁUGI | 15 | 3349 | 4 | 0 | 0 | 3 |
+| KATALOG/USŁUGI | 15 | 3373 | 4 | 0 | 0 | 3 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | PROJEKT | 10 | 2019 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
@@ -50,7 +50,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/cabinet/cabinet-modal-set-wizard.js | 693 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-modal.js | 655 | SZAFKI | średnie |
 | js/testing/wycena/suites/central-status-sync.js | 649 | TESTY | wysokie |
-| js/app/catalog/hardware-catalog-import-export.js | 524 | KATALOG/USŁUGI | średnie |
+| js/app/catalog/hardware-catalog-import-export.js | 527 | KATALOG/USŁUGI | średnie |
 | js/app/catalog/catalog-store.js | 497 | KATALOG/USŁUGI | średnie |
 | js/app/catalog/hardware-catalog.js | 494 | KATALOG/USŁUGI | średnie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |

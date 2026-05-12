@@ -649,3 +649,10 @@ Do obserwacji:
 
 - Punktowa poprawka importu nie robi dużego splitu, ale potwierdza dług: logikę planu importu cen dostawców, resolver braków i raportowanie ostrzeżeń warto wydzielić do mniejszych modułów przy osobnym refaktorze.
 - Przed takim refaktorem zachować testy dla: brakującego dostawcy/kategorii/jednostki, fałszywych duplikatów z eksportu oraz tworzenia nowego okucia z `Ceny_dostawcow`.
+
+
+## Hardware supplier missing resolver v1 — 2026-05-12
+
+- Punktowa poprawka utrzymała logikę w istniejących modułach: arkusz cen w `hardware-catalog-supplier-price-xlsx.js`, plan importu w `hardware-catalog-import-export.js`, resolver UI w `price-modal-hardware-import-resolver.js`.
+- Dług techniczny pozostaje aktualny: następna większa rozbudowa import/export powinna wydzielić plan importu cen dostawców oraz resolver braków do mniejszych modułów z kontraktami.
+- Nowe kontrakty do zachowania przy przyszłym refaktorze: brakujący dostawca dla istniejącego okucia, wybór dostawcy z listy, brak dodawania dostawcy w resolverze i licznik cen pominiętych po `Ignoruj wszystko`.

@@ -31,19 +31,23 @@
     if(field === 'supplierName' || field === 'supplierId') return 'Dostawca';
     return field;
   }
+  function isSupplierPriceEntry(entry){
+    return entry && (entry.kind === 'supplierPriceCreate' || entry.kind === 'supplierPriceSupplier');
+  }
   function summaryEntries(entry){
-    if(entry && entry.kind === 'supplierPriceCreate'){
+    if(isSupplierPriceEntry(entry)){
       const row = entry.parsed || {};
+      const item = entry.item || {};
       return [
         ['Wiersz', row.__rowIndex || entry.rowIndex],
-        ['Nazwa', row.itemName],
-        ['Symbol', row.itemSymbol],
-        ['Producent', row.itemManufacturer],
+        ['Nazwa', row.itemName || item.name],
+        ['Symbol', row.itemSymbol || item.symbol],
+        ['Producent', row.itemManufacturer || item.manufacturer],
         ['Dostawca', row.supplierName || row.supplierId],
         ['Cena netto', row.catalogPriceNet],
         ['Cena brutto', row.catalogPriceGross],
-        ['Kategoria', row.itemCategory],
-        ['Jednostka', row.itemUnit],
+        ['Kategoria', row.itemCategory || item.hardwareCategory],
+        ['Jednostka', row.itemUnit || item.hardwareUnit],
       ].filter((rowEntry)=> text(rowEntry[1]));
     }
     const row = entry && entry.row || {};
@@ -209,7 +213,7 @@
   }
   function buildMissingForm(entry, options, data, onDraftChange){
     const supplierApi = FC.hardwareSupplierPriceXlsx || {};
-    const supplierDraft = entry.kind === 'supplierPriceCreate' && typeof supplierApi.parseSupplierPriceRow === 'function'
+    const supplierDraft = isSupplierPriceEntry(entry) && typeof supplierApi.parseSupplierPriceRow === 'function'
       ? supplierApi.parseSupplierPriceRow(entry.row)
       : null;
     const draft = supplierDraft || Object.assign({}, entry.row || {});
@@ -231,6 +235,11 @@
     return { node:form, draft };
   }
   function missingForDraft(api, entry, draft, options){
+    if(entry && entry.kind === 'supplierPriceSupplier'){
+      const gaps = [];
+      if(!supplierExists(options, draft && (draft.supplierName || draft.supplierId))) gaps.push('supplierName');
+      return gaps;
+    }
     if(entry && entry.kind === 'supplierPriceCreate'){
       const gaps = [];
       if(!supplierExists(options, draft && (draft.supplierName || draft.supplierId))) gaps.push('supplierName');
@@ -241,6 +250,12 @@
     return api && api._debug && typeof api._debug.requiredGapsForAccessory === 'function' ? api._debug.requiredGapsForAccessory(draft) : [];
   }
   function applyDraftToEntry(entry, draft){
+    if(entry && entry.kind === 'supplierPriceSupplier'){
+      entry.row.dostawca = text(draft && (draft.supplierName || draft.supplierId));
+      entry.row.supplierName = text(draft && (draft.supplierName || draft.supplierId));
+      entry.row.dostawca_id = '';
+      return;
+    }
     if(entry && entry.kind === 'supplierPriceCreate'){
       entry.row.dostawca = text(draft && (draft.supplierName || draft.supplierId));
       entry.row.supplierName = text(draft && (draft.supplierName || draft.supplierId));
@@ -259,19 +274,35 @@
     const imported = Array.isArray(data && data.accessories) ? data.accessories.filter((row)=> !(row && row.__skipImport)) : [];
     return existing.concat(imported);
   }
+  function effectiveSuppliers(data, options){
+    return Array.isArray(data && data.suppliers) && data.suppliers.length ? data.suppliers : (options && options.suppliers || []);
+  }
   function findSupplierPriceCreateGaps(data, options){
     const api = FC.hardwareSupplierPriceXlsx;
     if(!(api && typeof api.supplierPriceCreateRequiredGaps === 'function')) return [];
     const manufacturers = (options && options.manufacturers || []).map((row)=> row && row.value || row && row.label || row).filter(Boolean);
-    const suppliers = Array.isArray(data && data.suppliers) && data.suppliers.length ? data.suppliers : (options && options.suppliers || []);
+    const suppliers = effectiveSuppliers(data, options);
     return api.supplierPriceCreateRequiredGaps(data && data.supplierPriceRows, getCombinedAccessories(data), suppliers, manufacturers).map((entry)=> Object.assign({ kind:'supplierPriceCreate' }, entry));
+  }
+  function findSupplierPriceSupplierGaps(data, options){
+    const api = FC.hardwareSupplierPriceXlsx;
+    if(!(api && typeof api.supplierPriceMissingSupplierGaps === 'function')) return [];
+    return api.supplierPriceMissingSupplierGaps(data && data.supplierPriceRows, getCombinedAccessories(data), effectiveSuppliers(data, options)).map((entry)=> Object.assign({ kind:'supplierPriceSupplier' }, entry));
   }
   function allRequiredEntries(api, data, options){
     const accessoryEntries = api && typeof api.findRequiredGaps === 'function'
       ? api.findRequiredGaps(data).map((entry)=> Object.assign({ kind:'accessory' }, entry))
       : [];
-    return accessoryEntries.concat(findSupplierPriceCreateGaps(data, options));
+    return accessoryEntries.concat(findSupplierPriceSupplierGaps(data, options), findSupplierPriceCreateGaps(data, options));
   }
+  function ignoreAllScope(current, entries){
+    const hasSupplierGap = current && Array.isArray(current.gaps) && current.gaps.includes('supplierName');
+    if(hasSupplierGap){
+      return (entries || []).filter((entry)=> isSupplierPriceEntry(entry) && Array.isArray(entry.gaps) && entry.gaps.includes('supplierName'));
+    }
+    return (entries || []).filter((entry)=> entry && entry.kind === current.kind);
+  }
+
   function resolveMissingRequired(data, mount){
     const api = FC.hardwareCatalogImportExport;
     if(!(api && typeof api.findRequiredGaps === 'function')) return Promise.resolve(data);
@@ -286,7 +317,7 @@
         entries = allRequiredEntries(api, data, options);
         if(!entries.length){ resolve(data); return; }
         const entry = entries[Math.min(currentIndex, entries.length - 1)];
-        let draft = entry.kind === 'supplierPriceCreate' && FC.hardwareSupplierPriceXlsx && typeof FC.hardwareSupplierPriceXlsx.parseSupplierPriceRow === 'function'
+        let draft = isSupplierPriceEntry(entry) && FC.hardwareSupplierPriceXlsx && typeof FC.hardwareSupplierPriceXlsx.parseSupplierPriceRow === 'function'
           ? FC.hardwareSupplierPriceXlsx.parseSupplierPriceRow(entry.row)
           : Object.assign({}, entry.row || {});
         let errorNode = null;
@@ -294,9 +325,11 @@
         const box = h('div', { class:'card', style:'padding:12px;margin-bottom:10px' });
         box.appendChild(h('div', { style:'font-weight:900;font-size:18px;margin-bottom:4px', text:`Braki w pozycji ${Math.min(currentIndex + 1, entries.length)} z ${entries.length}` }));
         box.appendChild(h('div', { class:'muted-tag xs', text:`Wiersz Excela: ${entry.rowIndex}. Uzupełnij tylko tę pozycję albo ją pomiń.` }));
-        const explain = entry.kind === 'supplierPriceCreate'
-          ? 'Ta cena ma utworzyć nowe okucie. Uzupełnij brakujące wybory — program nie wpisuje dostawcy, kategorii ani jednostki automatycznie.'
-          : 'Brakuje: ' + entry.gaps.map(fieldLabel).join(', ');
+        const explain = entry.kind === 'supplierPriceSupplier'
+          ? 'Ta cena pasuje do istniejącego okucia, ale nie ma rozpoznanego dostawcy. Wybierz dostawcę z istniejącej listy albo pomiń ten wiersz.'
+          : (entry.kind === 'supplierPriceCreate'
+            ? 'Ta cena ma utworzyć nowe okucie. Uzupełnij brakujące wybory — program nie wpisuje dostawcy, kategorii ani jednostki automatycznie.'
+            : 'Brakuje: ' + entry.gaps.map(fieldLabel).join(', '));
         box.appendChild(h('div', { style:'margin-top:8px;color:#a40000;font-weight:800', text:explain }));
         box.appendChild(renderSummary(entry));
         const form = buildMissingForm(entry, options, data, (nextDraft)=>{ draft = Object.assign({}, draft, nextDraft); if(errorNode){ errorNode.remove(); errorNode = null; } });
@@ -306,7 +339,7 @@
         const ignoreAllBtn = h('button', { type:'button', class:'btn btn-danger', text:'Ignoruj wszystko' });
         const applyBtn = h('button', { type:'button', class:'btn btn-success', text:'Zatwierdź' });
         ignoreBtn.addEventListener('click', ()=>{ entry.row.__skipImport = true; currentIndex = 0; render(); });
-        ignoreAllBtn.addEventListener('click', ()=>{ entries.forEach((item)=>{ if(item && item.row) item.row.__skipImport = true; }); resolve(data); });
+        ignoreAllBtn.addEventListener('click', ()=>{ ignoreAllScope(entry, entries).forEach((item)=>{ if(item && item.row) item.row.__skipImport = true; }); currentIndex = 0; render(); });
         applyBtn.addEventListener('click', ()=>{
           const missing = missingForDraft(api, entry, draft, options);
           if(missing.length){

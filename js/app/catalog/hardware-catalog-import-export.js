@@ -311,7 +311,10 @@
     const storedCategories = s && s.getHardwareCategories ? s.getHardwareCategories() : [];
     const categories = optionLabels((Array.isArray(data && data.categories) ? data.categories : []).concat(storedCategories.length ? storedCategories : optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'])), ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
     const units = optionLabels(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
-    return { manufacturers:manufacturers.map((name)=>({ value:name, label:name })), categories, units, settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {}, suppliers:s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : [] };
+    const importedSuppliers = Array.isArray(data && data.suppliers) && data.suppliers.length ? data.suppliers.map(normalizeSupplier).filter((row)=> text(row && row.name)) : [];
+    const storedSuppliers = s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : [];
+    const suppliers = importedSuppliers.length ? importedSuppliers : storedSuppliers;
+    return { manufacturers:manufacturers.map((name)=>({ value:name, label:name })), categories, units, settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {}, suppliers };
   }
   function resolveSupplierId(value, suppliers){
     const raw = text(value);

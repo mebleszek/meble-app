@@ -575,3 +575,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Uzupełnianie braków przy imporcie nowych okuć z arkusza `Ceny_dostawcow` obejmuje teraz dostawcę, kategorię i jednostkę jako świadome wybory użytkownika. To ogranicza śmiecenie danych domyślnymi wartościami i jest bezpieczniejsze pod przyszłą synchronizację.
 - Dopasowanie wielu cen pozostaje oparte na danych użytkowych `producent + symbol + dostawca`, a techniczne `okucie_id`/`dostawca_id` są pomocnicze.
 - Nie powstał nowy klucz `localStorage`; słowniki i katalog dalej przechodzą przez `catalogStore` oraz istniejące klucze `fc_*`.
+
+
+## Hardware supplier missing resolver v1 — 2026-05-12
+
+- Zmiana nie dodaje nowych kluczy storage. Ceny dostawców nadal są częścią rekordu okucia w `fc_accessories_v1`, a dostawcy pozostają w `fc_hardware_suppliers_v1`.
+- Brakujący albo nieznany dostawca przy imporcie ceny jest rozwiązywany przed zbudowaniem planu zapisu. Do katalogu nie trafia cena bez jawnie rozpoznanego `supplierId`.
+- Resolver nie tworzy dostawców z modala wyboru ceny. Nowy dostawca musi wejść przez kontrolowany słownik programu albo przez arkusz `Dostawcy`, co ogranicza duplikaty nazw przy przyszłej synchronizacji.
+- `Ignoruj` i `Ignoruj wszystko` oznaczają świadome pominięcie wierszy importu, nie błąd danych. Podgląd importu liczy takie wiersze jako pominięte ceny.

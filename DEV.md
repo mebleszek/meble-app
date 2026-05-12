@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_resolver_supplier_gap_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_missing_resolver_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -67,6 +67,18 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware supplier missing resolver v1 — 2026-05-12
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_missing_resolver_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_import_resolver_supplier_gap_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Import `Ceny_dostawcow` dla istniejącego okucia z ceną, producentem i symbolem, ale bez rozpoznanego dostawcy, nie jest już pomijany po cichu. Trafia do resolvera braków jako wybór dostawcy.
+- Resolver pozwala wybrać dostawcę tylko z istniejącej listy dostawców programu albo z listy `Dostawcy` w importowanym XLSX. Nie dodaje nowych dostawców z tego modala.
+- Po wyborze dostawcy import działa idempotentnie po `producent + symbol + dostawca`: aktualizuje istniejącą cenę tego dostawcy albo dodaje nową cenę przy okuciu.
+- `Ignoruj wszystko` w resolverze dla brakującego dostawcy pomija wszystkie nierozwiązane ceny z brakującym/nieznanym dostawcą w tym imporcie, bez ruszania pozostałych typów braków.
+- Nie dodano nowego storage ani nowych kluczy localStorage; zmiana pozostaje w granicy import/export i resolvera UI.
+- Raport: `tools/reports/hardware-supplier-missing-resolver-v1.md`.
 
 ## Hardware import resolver supplier gap v1 — 2026-05-12
 
