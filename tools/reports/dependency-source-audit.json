@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T19:35:44.033Z",
+  "generatedAt": "2026-05-12T20:32:14.294Z",
   "summary": {
     "jsFiles": 334,
     "indexScripts": 260,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3223,
+      "lines": 3299,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 25,
-      "lines": 4380,
+      "lines": 4381,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -191,7 +191,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog-import-export.js",
-      507
+      523
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -1379,7 +1379,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 507,
+      "lines": 523,
       "incoming": 2,
       "outgoing": 7,
       "secondLevel": 1,
@@ -3321,7 +3321,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 507,
+      "lines": 523,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3432,7 +3432,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 254,
+      "lines": 314,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -5432,7 +5432,7 @@
     "js/app/material/price-modal-hardware-import-export.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 246,
+      "lines": 247,
       "defines": [
         "priceModalHardwareImportExport"
       ],

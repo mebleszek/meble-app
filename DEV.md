@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_excel_row_date_autofill_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_price_create_item_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -64,6 +64,21 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+
+
+## Hardware supplier price create item v1 — 2026-05-12
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_price_create_item_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nie była używana jako baza.
+- Arkusz `Ceny_dostawcow` może tworzyć nowe okucie bez ręcznego `okucie_id`, jeśli w wierszu ceny podano istniejącego producenta, `okucie_symbol`, `okucie_nazwa`, istniejącego dostawcę oraz cenę netto albo brutto.
+- Producent w `Ceny_dostawcow` jest dopasowywany do istniejącego słownika case-insensitive (`blum` → `Blum`), ale import nie tworzy nowych producentów z literówek.
+- Nie wraca wiązanie po numerze wiersza. Kilka cen jednego okucia nadal ma być wieloma wierszami powiązanymi po `producent + symbol + dostawca`.
+- Brakująca `data_ceny` przy nowej lub zmienionej cenie jest uzupełniana datą importu, dzięki czemu kolejny eksport XLSX ma pełniejsze dane.
+- `Ceny_dostawcow.producent` dostał walidację z arkusza `Producenci`; dostawca nadal jest wybierany z arkusza `Dostawcy`.
+- Jeśli okucie powstaje tylko z arkusza cen i brak dodatkowych danych, domyślnie dostaje `kategoria = Inne`, `jednostka = szt.`; użytkownik może to później doprecyzować w katalogu albo w arkuszu `Okucia`.
+- Raport: `tools/reports/hardware-supplier-price-create-item-v1.md`.
 
 
 ## Hardware supplier import + dictionary UX fix v1 — 2026-05-11
@@ -744,14 +759,3 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Dopasowanie ceny dostawcy działa kolejno: `okucie_id`, potem unikalne `producent + symbol`, potem ostrożne fallbacki `symbol+nazwa`, `symbol` albo `nazwa` z ostrzeżeniami przy ryzyku pomyłki.
 - Nie dodano nowych kluczy storage. Dane nadal zapisuje istniejący `catalogStore` i wersjonowane klucze `fc_*`.
 - `hardware-catalog-import-export.js` wzrósł do ok. 500 linii i pozostaje jawnie oznaczonym długiem. Następna większa praca nad importem/eksportem powinna zacząć się od splitu: template/export, parse/defaults oraz plan/apply.
-
-## Hardware Excel row/date autofill v1 — 2026-05-12
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_excel_row_date_autofill_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
-- `Ceny_dostawcow` może teraz przy imporcie dopasować cenę do pozycji z arkusza `Okucia` po tym samym numerze wiersza, ale tylko wtedy, gdy w wierszu ceny nie podano własnego `okucie_id`, symbolu, nazwy ani producenta.
-- Typowy workflow dla nowej pozycji z telefonu: wpisać produkt w `Okucia`, a na tym samym numerze wiersza w `Ceny_dostawcow` podać dostawcę i jedną cenę. Program sam połączy cenę z pozycją, policzy brakujące netto/brutto i przy następnym eksporcie wypełni nazwę, symbol oraz producenta w arkuszu cen.
-- Import cen dostawców domyślnie uzupełnia pustą `data_ceny` dzisiejszą datą lokalną, jeśli cena jest poprawnie podana. Eksport pokazuje datę także dla istniejących cen bez daty, aby arkusz roboczy nie zostawiał pustej daty przy realnej cenie.
-- Nie przywracano zapętlonych formuł netto/brutto w Excelu. Arkusz pozostaje formularzem wejściowym, a obliczenie brakującej strony ceny jest odpowiedzialnością programu.
-- Nie dodano nowych kluczy storage i nie ruszano WYCENY/MATERIAŁÓW/WYWIADU/RYSUNKU.
-- Raport: `tools/reports/hardware-excel-row-date-autofill-v1.md`.

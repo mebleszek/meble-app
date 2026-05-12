@@ -550,8 +550,11 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Podgląd importu liczy realny diff: oddziela okucia bez zmian od okuć zmienionych oraz ceny dodane/zmienione/bez zmian/pominięte. To ogranicza przypadkowe nadpisy przy przyszłej synchronizacji.
 - Excel pozostaje formularzem wejściowym bez zapętlonych formuł netto/brutto; obliczenie brakującej strony ceny jest częścią importu/modelu, a nie logiką arkusza.
 
-## Hardware Excel row/date autofill v1 — 2026-05-12
 
-- Zmiana nie dodaje nowych kluczy storage. Import nadal zapisuje przez istniejący `catalogStore` do katalogu okuć i używa dotychczasowego modelu `supplierPrices` w rekordzie okucia.
-- Dopasowanie ceny po tym samym numerze wiersza XLSX jest wyłącznie pomocniczym mechanizmem importu pliku, nie trwałym identyfikatorem danych. Do chmury ma trafić wynik znormalizowany: okucie ze stabilnym `id` i cena dostawcy z `supplierId`.
-- Pusta `data_ceny` przy importowanej cenie jest normalizowana do lokalnej daty importu. W przyszłym backendzie odpowiada to domyślnemu `priceDate`/`updatedAt` ustalanemu po stronie boundary importu, nie po stronie arkusza.
+## Hardware supplier price create item v1 — 2026-05-12
+
+- Zmiana dotyczy lokalnego importu/exportu katalogu okuć i nadal pracuje przez istniejące boundary `catalogStore`; nie dodano nowych kluczy `localStorage`.
+- Nowe okucia utworzone z arkusza `Ceny_dostawcow` trafiają do istniejącej kolekcji katalogu okuć `fc_accessories_v1` razem z `supplierPrices` przy pozycji.
+- Import nie tworzy nowych producentów ani dostawców z nazw wpisanych w cenach dostawców. Producent i dostawca muszą być rozpoznane z istniejących słowników, co zmniejsza ryzyko rozjazdu danych przy przyszłej synchronizacji chmurowej.
+- Klucz użytkowy dla hurtowego importu ceny pozostaje jawny i przenośny do chmury: `producent + symbol + dostawca`. Techniczne `okucie_id` i `dostawca_id` pozostają pomocnicze, nie wymagane w ręcznej pracy z cennikiem.
+- Brakująca data ceny jest uzupełniana przy imporcie po stronie aplikacji, a nie formułami arkusza; snapshot przyszłej WYCENY nadal musi zamrażać wartości osobno.

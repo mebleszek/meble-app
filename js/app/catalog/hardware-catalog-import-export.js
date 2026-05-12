@@ -5,7 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const KIND = 'meble-app.hardware-catalog.export';
-  const VERSION = 8;
+  const VERSION = 7;
   const TEMPLATE_ROWS = 220;
 
   const ACCESSORY_COLUMNS = [
@@ -85,6 +85,11 @@
   function normalizeManufacturers(list){
     if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeManufacturerList === 'function') return FC.hardwareCatalog.normalizeManufacturerList(list || []);
     return Array.from(new Set((list || []).map(text).filter(Boolean)));
+  }
+  function existingManufacturerChoices(existing){
+    const s = store();
+    const current = s && s.getHardwareManufacturers ? s.getHardwareManufacturers() : [];
+    return normalizeManufacturers((current || []).concat((existing || []).map((row)=> row && row.manufacturer)));
   }
   function getSnapshot(){
     const s = store();
@@ -359,7 +364,7 @@
       if(!id) id = makeGeneratedId(src);
       if(usedIds.has(id)){ errors.push(`Okucia: zdublowane ID w importowanym pliku: ${id}`); return; }
       usedIds.add(id);
-      const normalizedRow = Object.assign(normalizeAccessory(Object.assign({}, src, { id }), settings), { __xlsxRowIndex:Number(raw && raw.__rowIndex) || 0 });
+      const normalizedRow = normalizeAccessory(Object.assign({}, src, { id }), settings);
       normalized.push(normalizedRow);
       importedByKey.set(text(normalizedRow.id), normalizedRow);
       importedByKey.set(signature(normalizedRow), normalizedRow);
@@ -425,10 +430,7 @@
     const importedById = new Map((importedRows || []).map((row)=> [text(row && row.id), row]));
     const keepOrReplace = (row)=>{
       const id = text(row && row.id);
-      const imported = importedById.get(id);
-      if(classification.changedIds.has(id)) return imported || row;
-      if(classification.unchangedIds.has(id) && imported && Number(imported.__xlsxRowIndex) > 0) return Object.assign({}, row, { __xlsxRowIndex:Number(imported.__xlsxRowIndex) });
-      return row;
+      return classification.changedIds.has(id) ? (importedById.get(id) || row) : row;
     };
     return (existing || []).map(keepOrReplace).concat((importedRows || []).filter((row)=> classification.addedIds.has(text(row && row.id))));
   }
@@ -444,6 +446,18 @@
     const categories = Array.isArray(data && data.categories) && data.categories.length ? data.categories : (s.getHardwareCategories ? s.getHardwareCategories() : []);
     const types = Array.isArray(data && data.types) && data.types.length ? data.types : (s.getHardwareTypes ? s.getHardwareTypes() : []);
     const importedAccessories = normalizeImportedAccessories(data && data.accessories, existing, warnings, errors, importedSettings, suppliers);
+    let supplierPriceAccessorySummary = { created:0, skipped:0 };
+    if(FC.hardwareSupplierPriceXlsx && typeof FC.hardwareSupplierPriceXlsx.createAccessoriesFromSupplierPriceRows === 'function'){
+      supplierPriceAccessorySummary = FC.hardwareSupplierPriceXlsx.createAccessoriesFromSupplierPriceRows(
+        importedAccessories.rows,
+        existing,
+        data && data.supplierPriceRows,
+        suppliers,
+        existingManufacturerChoices(existing),
+        importedSettings,
+        warnings
+      ) || supplierPriceAccessorySummary;
+    }
     applyBundleRows(importedAccessories, data && data.bundleRows, existing);
     const existingById = new Map(existing.map((row)=> [text(row && row.id), row]));
     const importedIds = new Set(importedAccessories.rows.map((row)=> text(row && row.id)));
@@ -480,6 +494,8 @@
         supplierPricesUpdated:supplierPriceSummary.updated || 0,
         supplierPricesUnchanged:supplierPriceSummary.unchanged || 0,
         supplierPricesSkipped:supplierPriceSummary.skipped || 0,
+        supplierPriceCreatedAccessories:supplierPriceAccessorySummary.created || 0,
+        supplierPriceCreateSkipped:supplierPriceAccessorySummary.skipped || 0,
         totalChanged:accessoryUpdateCount + addCount + priceChanged,
       }
     };
@@ -501,6 +517,6 @@
     KIND, VERSION, ACCESSORY_COLUMNS, SUPPLIER_COLUMNS, BUNDLE_COLUMNS,
     getSnapshot, makeExportPayload, exportJson, exportXlsx, parseFile, parseWorkbook, parseJson,
     buildImportPlan, applyImportPlan, findRequiredGaps, getRequiredChoiceOptions,
-    _debug:{ rowsToObjects, parseAccessoryRow, buildAccessoryRows, buildBundleRows, buildCategoryRows, buildTypeRows, accessoryValidations, buildDictionaryRows, requiredGapsForAccessory, enrichAccessoryDefaults, columnFor, sameImportedAccessory, classifyImportedAccessories }
+    _debug:{ rowsToObjects, parseAccessoryRow, buildAccessoryRows, buildBundleRows, buildCategoryRows, buildTypeRows, accessoryValidations, buildDictionaryRows, requiredGapsForAccessory, enrichAccessoryDefaults, columnFor, sameImportedAccessory, classifyImportedAccessories, existingManufacturerChoices }
   };
 })();

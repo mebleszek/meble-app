@@ -45,6 +45,7 @@
     [
       ['Okucia w pliku', s.accessoryRows != null ? s.accessoryRows : (s.imported || 0)],
       ['Nowe okucia', s.added || 0],
+      ['Nowe z arkusza cen', s.supplierPriceCreatedAccessories || 0],
       ['Okucia zmienione', s.updated || 0],
       ['Okucia bez zmian', s.unchanged || 0],
       ['Ceny w pliku', s.supplierPrices || 0],
@@ -204,7 +205,7 @@
         if(!ok) return;
         try{
           const summary = api.applyImportPlan(plan);
-          info('Import zakończony', `Nowe okucia: ${summary.added || 0}, okucia zmienione: ${summary.updated || 0}, nowe ceny: ${summary.supplierPricesAdded || 0}, ceny zmienione: ${summary.supplierPricesUpdated || 0}, ceny bez zmian: ${summary.supplierPricesUnchanged || 0}, usunięto: ${summary.removed || 0}.`);
+          info('Import zakończony', `Nowe okucia: ${summary.added || 0}, z arkusza cen: ${summary.supplierPriceCreatedAccessories || 0}, okucia zmienione: ${summary.updated || 0}, nowe ceny: ${summary.supplierPricesAdded || 0}, ceny zmienione: ${summary.supplierPricesUpdated || 0}, ceny bez zmian: ${summary.supplierPricesUnchanged || 0}, usunięto: ${summary.removed || 0}.`);
           refreshPriceModal();
           try{ FC.panelBox.close(); }catch(_){ }
         }catch(error){ info('Błąd importu', String(error && error.message || error || 'Import nie został zapisany.')); }

@@ -342,8 +342,9 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - Puste `typ_cecha` w okuciu pozostaje puste; słownik typów jest listą opcji, a nie automatycznym wyborem.
 - Podgląd importu rozróżnia okucia/ceny bez zmian od realnie zmienionych rekordów.
 
-## 2026-05-12 — Hardware Excel row/date autofill v1
 
-- `Ceny_dostawcow` można przy imporcie powiązać z nowym okuciem po tym samym numerze wiersza co `Okucia`, jeżeli w arkuszu ceny nie wpisano danych okucia ani ID.
-- Przy cenie wpisanej bez `data_ceny` program uzupełnia datę podczas importu, a kolejny eksport pokazuje już pełniejsze dane ceny.
-- Arkusz nadal nie używa zapętlonych formuł netto/brutto: użytkownik może wpisać jedną cenę, a program liczy drugą stronę przy imporcie.
+## Hardware supplier price create item v1 — 2026-05-12
+
+- Import XLSX okuć pozwala utworzyć nowe okucie z arkusza `Ceny_dostawcow`, gdy wiersz ma istniejącego producenta, symbol, nazwę, istniejącego dostawcę i cenę.
+- Nie wymaga ręcznego `okucie_id`; nie tworzy producentów z literówek.
+- Brakująca `data_ceny` dla nowej lub zmienionej ceny jest uzupełniana przy imporcie i widoczna po kolejnym eksporcie.

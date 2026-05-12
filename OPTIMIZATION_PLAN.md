@@ -631,7 +631,9 @@ Do obserwacji:
 - Dług techniczny został świadomie nazwany: `hardware-catalog-import-export.js` ma ok. 500 linii i przy następnej większej rozbudowie należy go rozdzielić na trzy granice: XLSX template/export, parse/defaults oraz import plan/apply.
 - Nie robić ukrytego dużego splitu razem z kolejną naprawą użytkową; najpierw dodać kontrakty dla obecnego diffu importu i dopiero wtedy ciąć plik.
 
-## 2026-05-12 — Hardware Excel row/date autofill v1
 
-- Dodano kolejną małą warstwę logiki importu XLSX bez dużego splitu, bo użytkowy problem dotyczył realnego workflow z telefonu: nowa pozycja w `Okucia` i cena w `Ceny_dostawcow` na tym samym numerze wiersza.
-- Dług techniczny pozostaje aktualny: `hardware-catalog-import-export.js` powinien przy następnej większej rozbudowie zostać rozdzielony na template/export, parse/defaults oraz import plan/apply. Obecna zmiana dopisuje tylko minimalny kontrakt i test, żeby nie mieszać refaktoru z poprawką workflow.
+## Hardware import — dopisane po supplier price create item v1 — 2026-05-12
+
+- `hardware-catalog-import-export.js` pozostaje plikiem powyżej progu 400 linii i powinien zostać rozdzielony w osobnym, nietwórczym refaktorze import/export.
+- Następny sensowny split: logika planu importu okuć, logika importu cen dostawców i raportowanie diffu jako osobne moduły/fasady z testami kontraktowymi.
+- Nie wykonywać tego splitu razem z kolejnymi zmianami UX katalogu, żeby nie mieszać ryzyka.
