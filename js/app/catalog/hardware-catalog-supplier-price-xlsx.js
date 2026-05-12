@@ -133,7 +133,10 @@
     return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','producent','manufacturer','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
   }
   function uniqueMatch(matches, warnings, row, label){
-    const clean = (matches || []).filter(Boolean);
+    // Import z XLSX często widzi to samo okucie dwa razy: raz z aktualnego katalogu
+    // i raz z arkusza `Okucia` eksportowanego z programu. To nie jest prawdziwy
+    // duplikat i nie może blokować resolvera brakującego dostawcy w `Ceny_dostawcow`.
+    const clean = uniqueLogicalMatches((matches || []).filter(Boolean));
     if(clean.length === 1) return clean[0];
     if(clean.length > 1 && warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} pasuje do kilku okuć (${label}). Uzupełnij producent+symbol albo okucie_id.`);
     return null;

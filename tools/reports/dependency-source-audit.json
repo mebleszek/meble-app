@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T22:04:39.979Z",
+  "generatedAt": "2026-05-12T22:25:53.822Z",
   "summary": {
     "jsFiles": 334,
     "indexScripts": 260,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3373,
+      "lines": 3376,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -3437,7 +3437,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 384,
+      "lines": 387,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],

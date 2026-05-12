@@ -27,6 +27,14 @@ Małe lokalne poprawki cloud-ready robić od razu, jeśli nie zmieniają UI ani 
 
 
 
+## Hardware missing supplier duplicate fix v1 — 2026-05-13
+
+- Import `Ceny_dostawcow` pozostaje w istniejącym boundary import/export i store katalogu; nie dodano nowych kluczy `localStorage`.
+- Poprawiono dopasowanie ceny do istniejącego okucia po `producent + symbol`, gdy to samo okucie występuje równocześnie w aktualnym katalogu i w arkuszu `Okucia` z eksportu.
+- Brakujący albo nierozpoznany dostawca nie jest zapisywany automatycznie i nie tworzy nowego dostawcy. Wiersz trafia do resolvera wyboru z kontrolowanej listy dostawców albo jest świadomie pomijany.
+- Zmiana jest zgodna z przyszłą chmurą: cena dostawcy pozostaje powiązana z istniejącym okuciem i istniejącym dostawcą, bez tworzenia śmieciowych rekordów z literówek lub błędnych komórek XLSX.
+
+
 ## Hardware catalog UX v1 — 2026-05-10
 
 - Status ceny w katalogu okuć jest obecnie wyliczany wyłącznie w UI na podstawie istniejących pól: cena, źródło ceny i data ceny. Nie dodano nowego trwałego pola ani nowego klucza storage.

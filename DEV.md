@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_supplier_missing_resolver_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_missing_supplier_duplicate_fix_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -67,6 +67,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Hardware missing supplier duplicate fix v1 — 2026-05-13
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_missing_supplier_duplicate_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_supplier_missing_resolver_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Naprawiono przypadek z realnego XLSX, w którym `Ceny_dostawcow` miały cenę dla istniejącego okucia po `producent + symbol`, ale dostawca był pusty albo śmieciowy/nierozpoznany, a to samo okucie występowało też w arkuszu `Okucia`.
+- Resolver brakującego dostawcy nie jest już blokowany przez fałszywy duplikat tego samego okucia z aktualnego katalogu i importowanego arkusza `Okucia`.
+- Wiersze ceny z nierozpoznanym dostawcą nadal nie tworzą dostawców. Trafiają do wyboru dostawcy z istniejącej listy albo można je pominąć/ignorować wszystkie.
+- Nie dodano nowego storage ani nowych kluczy localStorage; zmiana pozostaje w granicy import/export i resolvera UI.
+- Raport: `tools/reports/hardware-missing-supplier-duplicate-fix-v1.md`.
 
 
 ## Hardware supplier missing resolver v1 — 2026-05-12

@@ -399,6 +399,18 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
       }
     } },
+    { name:'Resolver brakującego dostawcy działa mimo tego samego okucia w katalogu i arkuszu', explain:'Chroni realny eksport/import: Ceny_dostawcow z pustym albo śmieciowym dostawcą mają trafić do resolvera, nawet gdy to samo okucie jest równocześnie w aktualnym katalogu i w arkuszu Okucia.', check:()=> {
+      const xlsx = FC.hardwareSupplierPriceXlsx;
+      if(!(xlsx && typeof xlsx.supplierPriceMissingSupplierGaps === 'function')) return false;
+      const existing = { id:'same_export_item_1', manufacturer:'GTV', symbol:'FCHC 110° + euro', name:'Zawias GTV 110° cichy domyk clip-on + eurowkręty', hardwareCategory:'Zawiasy', hardwareUnit:'kpl.' };
+      const importedSame = Object.assign({}, existing);
+      const suppliers = [{ id:'local', name:'Hurtownia lokalna', defaultVatRate:23, defaultDiscountPercent:0, active:true }];
+      const rows = [
+        { __rowIndex:22, okucie_nazwa:'14', okucie_symbol:'FCHC 110° + euro', producent:'GTV', kategoria:'14', jednostka:'14', dostawca:'14', cena_netto:65, cena_brutto:'14', data_ceny:'14', okucie_id:'14', dostawca_id:'14' }
+      ];
+      const gaps = xlsx.supplierPriceMissingSupplierGaps(rows, [existing, importedSame], suppliers);
+      return gaps.length === 1 && gaps[0].rowIndex === 22 && gaps[0].gaps.includes('supplierName') && gaps[0].item && String(gaps[0].item.id || '') === 'same_export_item_1';
+    } },
     { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
       const store = FC.catalogStore;
       const ctx = FC.priceModalContext || {};
