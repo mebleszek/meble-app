@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_missing_supplier_duplicate_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_import_bulk_diff_types_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_accessory_tests_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -67,6 +67,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+## Catalog seed dev tests fix v1 — 2026-05-13
+
+- Aktualna paczka robocza po tym etapie: `site_catalog_seed_dev_tests_fix_v1.zip`.
+- Baza startowa: `site_hardware_global_vat_import_stabilization_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Naprawiono wyłącznie kontrakty testów przeglądarkowych `dev_tests.html`: po wprowadzeniu realnych seedów okuć testy migracji nie mogą wymagać, żeby lista `accessories` miała dokładnie jeden rekord.
+- Test `Katalogi rozdzielają legacy materiały, akcesoria i stawki meblowe` sprawdza teraz, czy legacy akcesorium faktycznie trafiło do `accessories` i nie siedzi dalej w materiałach arkuszowych, zamiast traktować obecność seedów jako błąd.
+- Test `Migracja z preferStoredSplit...` sprawdza obecność zapisanego akcesorium i brak `materialType: akcesoria`, ale dopuszcza realne seedy katalogu okuć.
+- Nie zmieniono runtime aplikacji, importu/exportu, storage ani modelu VAT/rabatów.
+- Raport: `tools/reports/catalog-seed-dev-tests-fix-v1.md`.
 
 
 ## Hardware missing supplier duplicate fix v1 — 2026-05-13
@@ -842,3 +853,15 @@ Zakres paczki `site_hardware_global_vat_import_stabilization_v1.zip`:
 Nie zmieniano RYSUNKU, WYWIADU, MATERIAŁÓW, WYCENY, backupów, snapshotów ofert ani automatycznej zamiany producentów.
 
 Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-supplier-price-xlsx.js` nadal są duże i powinny zostać rozdzielone w osobnej paczce refaktoryzacyjnej, bez mieszania z logiką biznesową importu.
+
+
+## Hardware accessory tests v1 — 2026-05-13
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_accessory_tests_v1.zip`.
+- Baza startowa: `site_catalog_seed_dev_tests_fix_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Dodano osobną suite testów akcesoriów `js/testing/material/accessories-tests.js` i podpięto ją pod `MATERIAŁY` w `dev_tests.html`.
+- Suite zawiera 37 testów w grupach: model ceny, słowniki, store, import/export oraz kontrakty UI okuć.
+- Dodano narzędzie Node `tools/hardware-accessories-dev-smoke.js`, żeby można było uruchomić same testy akcesoriów bez ręcznego klikania w przeglądarce.
+- Testy pilnują m.in.: globalnego VAT-u, rabatów dostawców, jednego `Do wyceny`, braku `#REF!`, pustego `typ/cecha`, blokady duplikatów, importu po `producent + symbol`, resolvera brakującego dostawcy, braku automatycznego tworzenia producentów/dostawców oraz braku mutacji katalogu przy podglądzie importu.
+- Nie zmieniono runtime aplikacji, UI katalogu, importu/eksportu ani modelu danych; to paczka testowa/stabilizująca.
+- Raport: `tools/reports/hardware-accessory-tests-v1.md`.

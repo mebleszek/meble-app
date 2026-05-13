@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-12T23:36:02.287Z",
+  "generatedAt": "2026-05-13T06:21:15.029Z",
   "summary": {
-    "jsFiles": 335,
+    "jsFiles": 336,
     "indexScripts": 261,
-    "devTestScripts": 292,
+    "devTestScripts": 293,
     "fcSymbols": 245,
-    "fcSymbolsAll": 271,
-    "edges": 1758,
+    "fcSymbolsAll": 272,
+    "edges": 1767,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -148,8 +148,8 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 51,
-      "lines": 11148,
+      "files": 52,
+      "lines": 11523,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -171,7 +171,7 @@
     ],
     [
       "js/testing/project/tests.js",
-      835
+      837
     ],
     [
       "js/testing/cabinet/tests.js",
@@ -256,11 +256,11 @@
       38
     ],
     [
-      "js/app/shared/storage.js",
-      35
+      "js/testing/shared/harness.js",
+      36
     ],
     [
-      "js/testing/shared/harness.js",
+      "js/app/shared/storage.js",
       35
     ],
     [
@@ -292,11 +292,11 @@
       20
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      18
+      "js/app/material/price-modal-context.js",
+      19
     ],
     [
-      "js/app/material/price-modal-context.js",
+      "js/app/investor/investor-persistence.js",
       18
     ],
     [
@@ -323,15 +323,15 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      180
+      181
     ],
     [
       "js/app/shared/storage.js",
-      155
+      156
     ],
     [
       "js/app/shared/utils.js",
-      149
+      150
     ],
     [
       "js/app/project/project-bridge.js",
@@ -339,7 +339,7 @@
     ],
     [
       "js/app/shared/constants.js",
-      104
+      105
     ],
     [
       "js/app/shared/room-registry.js",
@@ -359,11 +359,11 @@
     ],
     [
       "js/app/ui/info-box.js",
-      72
+      73
     ],
     [
       "js/app/ui/confirm-box.js",
-      70
+      71
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
@@ -371,7 +371,7 @@
     ],
     [
       "js/app/shared/ui-state.js",
-      64
+      65
     ],
     [
       "js/app/investor/session.js",
@@ -387,7 +387,7 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      51
+      53
     ],
     [
       "js/app/investor/investors-model.js",
@@ -491,7 +491,7 @@
       "score": 15,
       "area": "TESTY",
       "category": "test",
-      "lines": 835,
+      "lines": 837,
       "incoming": 14,
       "outgoing": 30,
       "secondLevel": 38,
@@ -605,9 +605,9 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 497,
-      "incoming": 14,
+      "incoming": 15,
       "outgoing": 11,
-      "secondLevel": 51,
+      "secondLevel": 53,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -677,9 +677,9 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 496,
-      "incoming": 12,
+      "incoming": 13,
       "outgoing": 2,
-      "secondLevel": 17,
+      "secondLevel": 18,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1380,9 +1380,9 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 527,
-      "incoming": 3,
+      "incoming": 4,
       "outgoing": 7,
-      "secondLevel": 1,
+      "secondLevel": 3,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1567,7 +1567,7 @@
       "lines": 177,
       "incoming": 71,
       "outgoing": 4,
-      "secondLevel": 180,
+      "secondLevel": 181,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1681,9 +1681,9 @@
       "area": "MATERIAŁ",
       "category": "domain/controller",
       "lines": 56,
-      "incoming": 18,
+      "incoming": 19,
       "outgoing": 8,
-      "secondLevel": 26,
+      "secondLevel": 27,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -2027,6 +2027,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -3050,6 +3051,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -3103,6 +3105,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -3198,6 +3201,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -3242,6 +3246,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -3298,6 +3303,8 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -3343,7 +3350,8 @@
       "incomingFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
-        "js/app/material/price-modal-hardware-price-confirm.js"
+        "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -3355,7 +3363,9 @@
         "js/app/shared/xlsx-lite.js"
       ],
       "secondLevelFiles": [
-        "js/app/material/price-modal-hardware-import-export.js"
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3425,6 +3435,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -3450,7 +3461,8 @@
       ],
       "incomingFiles": [
         "js/app/catalog/hardware-catalog-import-export.js",
-        "js/app/material/price-modal-hardware-import-resolver.js"
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog.js"
@@ -3458,7 +3470,9 @@
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
-        "js/app/material/price-modal-hardware-price-confirm.js"
+        "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3493,6 +3507,7 @@
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
       "outgoingFiles": [
@@ -3514,6 +3529,7 @@
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js"
@@ -5237,6 +5253,7 @@
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
         "js/app/ui/actions-register.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/wycena/suites/core-offer-basics.js"
       ],
       "outgoingFiles": [
@@ -5256,6 +5273,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -5496,7 +5514,8 @@
         "priceModalHardwareImportResolver"
       ],
       "incomingFiles": [
-        "js/app/material/price-modal-hardware-import-export.js"
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
         "js/app/catalog/catalog-store.js",
@@ -5504,7 +5523,9 @@
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/rozrys/rozrys-choice.js"
       ],
-      "secondLevelFiles": [],
+      "secondLevelFiles": [
+        "js/testing/material/tests.js"
+      ],
       "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 19,
@@ -5553,12 +5574,15 @@
         "priceModalHardwarePriceConfirm"
       ],
       "incomingFiles": [
-        "js/app/material/price-modal-hardware-import-export.js"
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog-import-export.js"
       ],
-      "secondLevelFiles": [],
+      "secondLevelFiles": [
+        "js/testing/material/tests.js"
+      ],
       "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 8,
@@ -5789,6 +5813,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -6473,6 +6498,7 @@
         "js/tabs/wycena.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/service/tests.js",
@@ -8384,6 +8410,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -10489,6 +10516,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -10711,6 +10739,7 @@
         "js/testing/investor/suites/recovery-sources.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -10820,6 +10849,7 @@
         "js/app/shared/data-backup-store.js",
         "js/app/ui/data-settings-modal.js",
         "js/testing/data-safety/tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-safety.js"
       ],
@@ -12616,6 +12646,7 @@
         "js/testing/investor/suites/recovery-sources.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -12735,6 +12766,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
@@ -12939,6 +12971,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -13029,7 +13062,8 @@
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
-        "js/app/material/price-modal-hardware-price-confirm.js"
+        "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -13356,6 +13390,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -13704,6 +13739,7 @@
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/misc.js",
         "js/testing/investor/suites/model-actions.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -17179,10 +17215,55 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/testing/material/accessories-tests.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 364,
+      "defines": [
+        "materialAccessoryTests"
+      ],
+      "uses": [
+        "testHarness",
+        "catalogStore",
+        "hardwareCatalog",
+        "hardwareCatalogImportExport",
+        "hardwareSupplierPriceXlsx",
+        "priceModalContext",
+        "priceModalHardwarePriceConfirm",
+        "priceModalHardwareImportResolver",
+        "materialAccessoryTests"
+      ],
+      "incomingFiles": [
+        "js/testing/material/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/shared/harness.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 2,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
     "js/testing/material/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 134,
+      "lines": 143,
       "defines": [
         "materialDevTests"
       ],
@@ -17195,6 +17276,7 @@
         "catalogStore",
         "constants",
         "hardwareCatalog",
+        "materialAccessoryTests",
         "materialDevTests"
       ],
       "incomingFiles": [
@@ -17209,6 +17291,7 @@
         "js/app/shared/constants.js",
         "js/app/shared/validate.js",
         "js/app/wycena/wycena-core-material-plan.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/shared/harness.js"
       ],
@@ -17229,7 +17312,7 @@
     "js/testing/project/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 835,
+      "lines": 837,
       "defines": [
         "project",
         "projectAutosave",
@@ -18330,6 +18413,7 @@
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/tests.js",
@@ -18367,6 +18451,7 @@
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
+        "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",

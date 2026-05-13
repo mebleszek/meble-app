@@ -673,3 +673,15 @@ W paczce `site_hardware_global_vat_import_stabilization_v1.zip` wykonano stabili
 - dodano test ochronny dla czystości `buildImportPlan()`.
 
 Następny sensowny krok optymalizacyjny: wydzielić import/export okuć na mniejsze moduły, np. plan, match, supplier-price apply, export XLSX i report, ale tylko jako osobną paczkę refaktoryzacyjną po stabilnym teście użytkownika.
+
+## 2026-05-13 — Hardware accessory tests v1
+
+- Dodano dedykowaną suite `js/testing/material/accessories-tests.js` jako zabezpieczenie przed dalszą stabilizacją import/export okuć.
+- Przed kolejnym refaktorem `hardware-catalog-import-export.js` albo `hardware-catalog-supplier-price-xlsx.js` uruchamiać dodatkowo:
+
+```bash
+node tools/hardware-accessories-dev-smoke.js
+```
+
+- Suite ma pilnować kontraktów, które wcześniej wychodziły dopiero w ręcznych testach Excela: globalny VAT, rabaty dostawców, wiele cen, `Do wyceny`, resolver brakującego dostawcy, import po `producent + symbol`, brak nadpisywania nazwy katalogowej i brak mutacji katalogu na etapie podglądu importu.
+- To jest etap testowy/stabilizujący, bez zmiany runtime. Następny bezpieczny etap optymalizacji to dopiero split import/export na mniejsze moduły.

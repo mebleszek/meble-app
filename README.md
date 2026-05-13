@@ -387,3 +387,11 @@ Aktualna paczka stabilizuje import/eksport katalogu okuć:
 - eksport `Dostawcy` w XLSX nie zawiera już kolumny VAT dostawcy;
 - podgląd importu cen nie zmienia katalogu przed zatwierdzeniem;
 - cache-busting zmienionych modułów: `20260513_hardware_global_vat_import_stabilization_v1`.
+
+
+### site_catalog_seed_dev_tests_fix_v1.zip — 2026-05-13
+
+- Poprawiono testy developerskie katalogów po wprowadzeniu realnych seedów okuć.
+- Testy migracji nie traktują już seedów okuć jako błędnego „niewydzielenia akcesoriów”.
+- Runtime aplikacji, import/export XLSX oraz model VAT/rabatów nie były zmieniane.
+
