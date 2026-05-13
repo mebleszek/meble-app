@@ -7,10 +7,10 @@
 
   const DEFAULT_MANUFACTURERS = ['Blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
   const DEFAULT_SUPPLIERS = [
-    { id:'bivert', name:'Bivert', defaultDiscountPercent:0, defaultVatRate:23, active:true },
-    { id:'mago', name:'MAGO', defaultDiscountPercent:0, defaultVatRate:23, active:true },
-    { id:'invoice', name:'Faktura / zakup ręczny', defaultDiscountPercent:0, defaultVatRate:23, active:true },
-    { id:'local', name:'Hurtownia lokalna', defaultDiscountPercent:0, defaultVatRate:23, active:true },
+    { id:'bivert', name:'Bivert', defaultDiscountPercent:0, active:true },
+    { id:'mago', name:'MAGO', defaultDiscountPercent:0, active:true },
+    { id:'invoice', name:'Faktura / zakup ręczny', defaultDiscountPercent:0, active:true },
+    { id:'local', name:'Hurtownia lokalna', defaultDiscountPercent:0, active:true },
   ];
   const DEFAULT_SETTINGS = {
     defaultSupplierId:'bivert',
@@ -205,8 +205,10 @@
     return /^#(REF|VALUE|DIV\/0|NAME\?|N\/A|NUM|NULL)!?$/.test(raw);
   }
   function hasNumericInput(value){ return text(value) !== '' && !isSpreadsheetError(value) && number(value) > 0; }
-  function normalizeSupplierPrice(row, suppliers, fallbackSupplierId){
+  function globalVatRate(settings){ return number(settings && settings.defaultVatRate) || DEFAULT_SETTINGS.defaultVatRate; }
+  function normalizeSupplierPrice(row, suppliers, fallbackSupplierId, settings){
     const src = row && typeof row === 'object' ? row : {};
+    const cfg = normalizeSettings(settings || {});
     const resolved = resolveSupplierForPrice(suppliers, src) || null;
     const rawSupplier = text(src.supplierName || src.dostawca || src.nazwa_dostawcy || src.supplierId || src.dostawca_id) || text(fallbackSupplierId);
     const supplierId = text(resolved && resolved.id) || rawSupplier;
@@ -215,7 +217,7 @@
     const rawGross = src.catalogPriceGross != null ? src.catalogPriceGross : (src.cena_brutto != null ? src.cena_brutto : src.gross);
     let catalogPriceNet = hasNumericInput(rawNet) ? number(rawNet) : 0;
     let catalogPriceGross = hasNumericInput(rawGross) ? number(rawGross) : 0;
-    const vat = number(resolved && resolved.defaultVatRate) || 23;
+    const vat = globalVatRate(cfg);
     if(catalogPriceNet > 0 && catalogPriceGross <= 0) catalogPriceGross = netToGross(catalogPriceNet, vat);
     if(catalogPriceGross > 0 && catalogPriceNet <= 0) catalogPriceNet = grossToNet(catalogPriceGross, vat);
     const entered = text(src.enteredPriceType || src.entered_price_type || src.priceType || src.typ_ceny);
@@ -236,7 +238,7 @@
     const supplierList = normalizeSupplierList(Array.isArray(suppliers) ? suppliers : []);
     const rows = [];
     (Array.isArray(list) ? list : []).forEach((row)=>{
-      const normalized = normalizeSupplierPrice(row, supplierList, source.supplierId || cfg.defaultSupplierId);
+      const normalized = normalizeSupplierPrice(row, supplierList, source.supplierId || cfg.defaultSupplierId, cfg);
       if(normalized && supplierPriceHasCatalogPrice(normalized)) rows.push(normalized);
     });
     if(!rows.length){
@@ -250,7 +252,7 @@
           priceDate:source.priceUpdatedAt,
           useForQuote:true,
           enteredPriceType:text(legacyNet) ? 'net' : 'gross'
-        }, supplierList, cfg.defaultSupplierId);
+        }, supplierList, cfg.defaultSupplierId, cfg);
         if(legacyRow) rows.push(legacyRow);
       }
     }
@@ -311,7 +313,6 @@
       id,
       name:name || id,
       defaultDiscountPercent:number(src.defaultDiscountPercent != null ? src.defaultDiscountPercent : src.discountPercent),
-      defaultVatRate:number(src.defaultVatRate != null ? src.defaultVatRate : src.vatRate) || 23,
       active:src.active !== false,
     };
   }
@@ -346,7 +347,7 @@
     const quoteSupplierPrice = getQuoteSupplierPrice(supplierPrices) || {};
     const supplierId = text(quoteSupplierPrice.supplierId || src.supplierId) || cfg.defaultSupplierId;
     const supplier = supplierFromList(supplierList, supplierId) || {};
-    const vatRate = number(src.vatRate) || number(supplier.defaultVatRate) || cfg.defaultVatRate;
+    const vatRate = globalVatRate(cfg);
     const catalogPriceGross = number(quoteSupplierPrice.catalogPriceGross != null ? quoteSupplierPrice.catalogPriceGross : (src.catalogPriceGross != null ? src.catalogPriceGross : (src.purchaseCatalogGross != null ? src.purchaseCatalogGross : src.catalogPrice)));
     const catalogPriceNet = number(quoteSupplierPrice.catalogPriceNet != null ? quoteSupplierPrice.catalogPriceNet : (src.catalogPriceNet != null ? src.catalogPriceNet : (catalogPriceGross > 0 ? grossToNet(catalogPriceGross, vatRate) : 0)));
     const normalizedCatalogGross = catalogPriceGross > 0 ? catalogPriceGross : (catalogPriceNet > 0 ? netToGross(catalogPriceNet, vatRate) : 0);
@@ -458,6 +459,7 @@
     normalizeSupplier,
     normalizeSupplierList,
     normalizeSettings,
+    globalVatRate,
     normalizeAccessory,
     normalizeStatus,
     normalizeUnit,

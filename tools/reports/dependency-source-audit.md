@@ -23,9 +23,9 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
 | SZAFKI | 28 | 6572 | 0 | 0 | 0 | 3 |
-| MATERIAŁ | 26 | 4730 | 8 | 3 | 0 | 2 |
+| MATERIAŁ | 26 | 4727 | 8 | 3 | 0 | 2 |
 | INWESTOR | 25 | 3446 | 24 | 0 | 0 | 4 |
-| KATALOG/USŁUGI | 15 | 3406 | 4 | 0 | 0 | 3 |
+| KATALOG/USŁUGI | 15 | 3408 | 4 | 0 | 0 | 3 |
 | UI | 27 | 3037 | 0 | 6 | 0 | 2 |
 | PROJEKT | 10 | 2019 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
@@ -50,14 +50,14 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/cabinet/cabinet-modal-set-wizard.js | 693 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-modal.js | 655 | SZAFKI | średnie |
 | js/testing/wycena/suites/central-status-sync.js | 649 | TESTY | wysokie |
-| js/app/catalog/hardware-catalog-import-export.js | 528 | KATALOG/USŁUGI | średnie |
+| js/app/catalog/hardware-catalog-import-export.js | 527 | KATALOG/USŁUGI | średnie |
 | js/app/catalog/catalog-store.js | 497 | KATALOG/USŁUGI | średnie |
-| js/app/catalog/hardware-catalog.js | 494 | KATALOG/USŁUGI | średnie |
+| js/app/catalog/hardware-catalog.js | 496 | KATALOG/USŁUGI | średnie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
 | js/app/ui/actions-register.js | 449 | UI | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 434 | SZAFKI | niskie |
-| js/app/catalog/hardware-catalog-supplier-price-xlsx.js | 416 | KATALOG/USŁUGI | niskie |
+| js/app/catalog/hardware-catalog-supplier-price-xlsx.js | 417 | KATALOG/USŁUGI | niskie |
 | js/app/rozrys/rozrys-pickers.js | 406 | ROZRYS | średnie |
 | js/app/project/project-status-manual-guard.js | 395 | PROJEKT | średnie |
 | js/testing/test-data-manager.js | 393 | TESTY | średnie |
@@ -152,7 +152,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/test-data-manager.js | średnie | 7 | 393 | 15 | 32 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/wycena/fixtures.js | średnie | 7 | 154 | 16 | 24 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/tabs/rysunek.js | nie ruszać bez osobnego planu | 6 | 1459 | 2 | 7 | 600+ linii; systemowe dialogi |
-| js/app/catalog/hardware-catalog.js | średnie | 6 | 494 | 12 | 17 | 400+ linii; dużo zależnych plików |
+| js/app/catalog/hardware-catalog.js | średnie | 6 | 496 | 12 | 17 | 400+ linii; dużo zależnych plików |
 | js/app/ui/actions-register.js | średnie | 6 | 449 | 0 | 0 | 400+ linii; dużo zależności wychodzących; systemowe dialogi |
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
 | js/app/investor/investor-ui.js | średnie | 6 | 363 | 7 | 23 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |

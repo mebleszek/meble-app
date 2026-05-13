@@ -377,3 +377,13 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - Import XLSX cen dostawców pokazuje teraz świadome potwierdzenia przed dodaniem nowej ceny dostawcy albo aktualizacją istniejącej ceny.
 - Przy aktualizacji widać starą i nową cenę; przy cenie `Do wyceny` pojawia się ostrzeżenie, że zmiana wpłynie na przyszłe wyceny.
 - Dostępne są akcje pojedyncze i hurtowe: dodanie/aktualizacja jednej ceny, dodanie wszystkich nowych cen, aktualizacja wszystkich zmian albo pominięcie podobnych zmian.
+
+## Hardware global VAT + import stabilization v1 — 2026-05-13
+
+Aktualna paczka stabilizuje import/eksport katalogu okuć:
+
+- VAT okuć jest globalny w ustawieniach cen okuć;
+- dostawca ma rabat, ale nie ma własnego VAT-u;
+- eksport `Dostawcy` w XLSX nie zawiera już kolumny VAT dostawcy;
+- podgląd importu cen nie zmienia katalogu przed zatwierdzeniem;
+- cache-busting zmienionych modułów: `20260513_hardware_global_vat_import_stabilization_v1`.

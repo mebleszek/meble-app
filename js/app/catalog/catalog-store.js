@@ -30,7 +30,7 @@
     : ['Blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
   const DEFAULT_HARDWARE_SUPPLIERS = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_SUPPLIERS)
     ? hardwareCatalog.DEFAULT_SUPPLIERS.slice()
-    : [{ id:'bivert', name:'Bivert', defaultDiscountPercent:0, defaultVatRate:23, active:true }];
+    : [{ id:'bivert', name:'Bivert', defaultDiscountPercent:0, active:true }];
   const DEFAULT_HARDWARE_SETTINGS = hardwareCatalog && hardwareCatalog.DEFAULT_SETTINGS
     ? hardwareCatalog.DEFAULT_SETTINGS
     : { defaultSupplierId:'bivert', defaultVatRate:23, defaultMarkupPercent:20, defaultQuoteBase:'catalogGross', defaultPricingMode:'markup' };

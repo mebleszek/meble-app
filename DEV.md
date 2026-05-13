@@ -820,3 +820,25 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Nie dodano nowego storage ani nowych kluczy localStorage; potwierdzenia działają wyłącznie w pamięci bieżącego importu przed `applyImportPlan()`.
 - `hardware-catalog-supplier-price-xlsx.js` przekroczył próg ostrzeżenia 400 linii, ale pozostaje jednym boundary arkusza cen dostawców. Przy następnej większej rozbudowie rozdzielić diff/akcje cen od parsera arkusza.
 - Raport: `tools/reports/hardware-price-change-confirmation-v1.md`.
+
+## Hardware global VAT + import stabilization v1 — 2026-05-13
+
+Baza: `site_hardware_price_change_confirmation_v1.zip`.
+
+Zakres paczki `site_hardware_global_vat_import_stabilization_v1.zip`:
+
+- usunięto aktywny VAT z modelu i UI dostawcy okuć;
+- VAT dla katalogu okuć jest teraz brany z globalnych ustawień cen okuć (`defaultVatRate`);
+- rabat pozostaje przy dostawcy (`defaultDiscountPercent`) i nadal obniża koszt zakupu po rabacie;
+- arkusz `Dostawcy` w eksporcie XLSX nie eksportuje już `vat_domyslny_proc`;
+- import dostawców ignoruje legacy VAT dostawcy, żeby stare pliki nie mieszały kalkulacji;
+- przeliczanie brakującej ceny netto/brutto w `Ceny_dostawcow` używa globalnego VAT z ustawień;
+- formularz okucia i panel cen dostawców pokazują VAT jako globalny, a nie zależny od dostawcy;
+- `buildImportPlan()` klonuje bieżące okucia przed planowaniem importu, żeby podgląd importu nie mutował aktualnego katalogu;
+- `applySupplierPriceRows()` pracuje na sklonowanych wpisach cen dostawców, żeby decyzje typu `Zostaw starą`, `Ignoruj` i `Ignoruj wszystko` nie miały wcześniejszych skutków ubocznych;
+- dodano test ochronny: `Podgląd importu cen nie zmienia katalogu przed zatwierdzeniem`;
+- cache-busting zmienionych modułów podbito do `20260513_hardware_global_vat_import_stabilization_v1`.
+
+Nie zmieniano RYSUNKU, WYWIADU, MATERIAŁÓW, WYCENY, backupów, snapshotów ofert ani automatycznej zamiany producentów.
+
+Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-supplier-price-xlsx.js` nadal są duże i powinny zostać rozdzielone w osobnej paczce refaktoryzacyjnej, bez mieszania z logiką biznesową importu.

@@ -302,7 +302,7 @@
 <div class="hardware-price-selected-preview" id="hardwareQuoteSupplierPreview" style="margin-top:8px">Brak ceny zaznaczonej do wyceny</div>
 <div class="grid-3" style="margin-top:10px">
 <div>
-<label>VAT %</label>
+<label>VAT globalny %</label>
 <input class="investor-form-input" id="hardwareVatRate" readonly="" step="0.01" type="number"/>
 </div>
 <div style="display:none">
@@ -887,11 +887,11 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260507_hardware_catalog_seed_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260513_hardware_price_change_confirm_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260513_hardware_price_change_confirm_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260511_hardware_supplier_status_types_v1"></script>
@@ -934,7 +934,7 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260511_hardware_import_bulk_diff_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-dictionaries.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-resolver.js?v=20260512_hardware_supplier_missing_resolver_v1"></script>
@@ -942,9 +942,9 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-export.js?v=20260513_hardware_price_change_confirm_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-bundle.js?v=20260509_hardware_bundle_import_ux_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260511_hardware_supplier_price_import_fix_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260510_hardware_catalog_ux_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260511_hardware_supplier_status_types_v1"></script>

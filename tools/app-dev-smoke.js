@@ -131,18 +131,25 @@ function runMaterialNodeSmoke(sandbox){
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-manufacturers.js'), 'utf8');
       return html.includes('id="hardwareFormFields"') && html.includes('id="hardwareCategory"') && html.includes('id="hardwareUnit"') && html.includes('id="manageHardwareManufacturersBtn"') && src.includes('Producenci okuć') && src.includes('saveHardwareManufacturers');
     } },
-    { name:'Katalog okuć ma dostawców, ustawienia i model ceny do wyceny', explain:'Pilnuje rozdzielenia kosztu firmy od ceny dla klienta: cena katalogowa, rabat, zakup po rabacie, narzut i cena do wyceny.', check:()=> {
+    { name:'Katalog okuć ma dostawców, ustawienia i model ceny do wyceny', explain:'Pilnuje rozdzielenia kosztu firmy od ceny dla klienta: VAT globalny, rabat dostawcy, zakup po rabacie, narzut i cena do wyceny.', check:()=> {
       const hw = FC.hardwareCatalog;
       const store = FC.catalogStore;
       if(!(hw && store && typeof store.getHardwareSuppliers === 'function' && typeof store.getHardwareSettings === 'function')) return false;
-      const row = hw.normalizeAccessory({ name:'Test cena', manufacturer:'Blum', catalogPriceGross:100, supplierDiscountPercent:15, quoteBase:'catalogGross', pricingMode:'markup', markupPercent:20, vatRate:23, hardwareCategory:'Zawiasy' }, ()=> 'hw_price_test', store.getHardwareSettings());
-      return row.id === 'hw_price_test' && Math.abs(Number(row.purchasePriceGross) - 85) < 0.001 && Math.abs(Number(row.price) - 120) < 0.001 && Math.abs(Number(row.marginGross) - 35) < 0.001;
+      const settings = Object.assign({}, store.getHardwareSettings(), { defaultVatRate:23, hardwareSuppliers:[{ id:'mago', name:'MAGO', defaultDiscountPercent:15, defaultVatRate:8, active:true }] });
+      const normalizedSupplier = hw.normalizeSupplier({ id:'mago', name:'MAGO', defaultDiscountPercent:15, defaultVatRate:8, active:true });
+      const row = hw.normalizeAccessory({ name:'Test cena', manufacturer:'Blum', supplierId:'mago', supplierPrices:[{ supplierId:'mago', catalogPriceNet:100, useForQuote:true }], quoteBase:'catalogGross', pricingMode:'markup', markupPercent:20, hardwareCategory:'Zawiasy' }, ()=> 'hw_price_test', settings);
+      return row.id === 'hw_price_test'
+        && normalizedSupplier.defaultVatRate == null
+        && Math.abs(Number(row.catalogPriceGross) - 123) < 0.001
+        && Math.abs(Number(row.purchasePriceGross) - 104.55) < 0.001
+        && Math.abs(Number(row.price) - 147.6) < 0.001
+        && Math.abs(Number(row.marginGross) - 43.05) < 0.001;
     } },
     { name:'Katalog okuć ma aplikacyjne filtry, sortowanie, dostawców i ustawienia', explain:'Chroni toolbar okuć: Filtry, Sortuj, Dostawcy i Ustawienia mają pozostać osobnymi oknami aplikacji.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       const filters = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-filter-sort.js'), 'utf8');
       const suppliers = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-suppliers.js'), 'utf8');
-      return ['openHardwareFiltersBtn','openHardwareSortBtn','manageHardwareSuppliersBtn','openHardwareSettingsBtn'].every((id)=> html.includes(id)) && filters.includes('Filtry okuć') && filters.includes('Sortuj okucia') && suppliers.includes('Dostawcy okuć') && suppliers.includes('Ustawienia cen okuć');
+      return ['openHardwareFiltersBtn','openHardwareSortBtn','manageHardwareSuppliersBtn','openHardwareSettingsBtn'].every((id)=> html.includes(id)) && filters.includes('Filtry okuć') && filters.includes('Sortuj okucia') && suppliers.includes('Dostawcy okuć') && suppliers.includes('Ustawienia cen okuć') && suppliers.includes('Globalny VAT %') && !suppliers.includes("label', { text:'VAT %'");
     } },
     { name:'Formularz okuć ma wrapper ceny prostej bez błędu startu', explain:'Chroni otwarcie Dodaj okucie przed ReferenceError formPriceWrapper po rozbudowie pól cen okuć.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
@@ -211,6 +218,7 @@ function runMaterialNodeSmoke(sandbox){
       const validationXml = xlsx._debug.validationsXml(supplierXlsx.supplierPriceValidations());
       const headers = rows[0] || [];
       const priceHeaders = priceRows[0] || [];
+      const supplierHeaders = (api.SUPPLIER_COLUMNS || []).map((pair)=> pair[0]);
       const emptyTemplateRow = priceRows[priceRows.length - 1] || [];
       const emptyHasFormula = emptyTemplateRow.some((cell)=> cell && typeof cell === 'object' && Object.prototype.hasOwnProperty.call(cell, 'formula'));
       return rows.length >= 200
@@ -229,6 +237,8 @@ function runMaterialNodeSmoke(sandbox){
         && priceRows[1][4] === 'szt.'
         && priceRows[1][5] === 'Bivert'
         && priceRows[1][8] === 'TAK'
+        && supplierHeaders.includes('rabat_domyslny_proc')
+        && !supplierHeaders.includes('vat_domyslny_proc')
         && emptyHasFormula === false
         && validationXml.includes('C2:C261')
         && validationXml.includes('D2:D261')
@@ -422,6 +432,27 @@ function runMaterialNodeSmoke(sandbox){
           && updated && updated.oldPrice && Number(updated.oldPrice.catalogPriceNet) === 10 && Number(updated.newPrice.catalogPriceNet) === 11 && updated.affectsQuote === true
           && added && !added.oldPrice && Number(added.newPrice.catalogPriceNet) === 9 && added.rawRow
           && src.includes('Zostaw starą') && src.includes('Dodaj wszystkie nowe ceny') && src.includes('Zaktualizuj wszystkie aktualizacje') && src.includes('Dodano') && src.includes('Zaktualizowano');
+      }finally{
+        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+      }
+    } },
+    { name:'Podgląd importu cen nie zmienia katalogu przed zatwierdzeniem', explain:'Chroni stabilizację import/export: buildImportPlan ma liczyć plan zmian cen, ale nie może mutować aktualnego catalogStore.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, store = FC.catalogStore;
+      if(!(api && store && typeof store.savePriceList === 'function' && typeof store.getAccessories === 'function')) return false;
+      const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      try{
+        const item = { id:'purity_hw_1', manufacturer:'Blum', symbol:'PURE-1', name:'Test czystości planu', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[{ supplierId:'mago', catalogPriceNet:10, catalogPriceGross:12.3, priceDate:'2026-05-12', priceStatus:'current', useForQuote:true }] };
+        store.savePriceList('accessories', [item]);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultDiscountPercent:0, defaultVatRate:8, active:true }]);
+        const plan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{ defaultVatRate:23 }, supplierPriceRows:[{ __rowIndex:50, producent:'Blum', okucie_symbol:'PURE-1', dostawca:'MAGO', cena_netto:11, data_ceny:'2026-05-13' }] }, { mode:'merge' });
+        const stored = store.getAccessories()[0];
+        const storedPrice = stored && Array.isArray(stored.supplierPrices) ? stored.supplierPrices[0] : null;
+        const planned = plan.next.accessories.find((row)=> String(row && row.id || '') === 'purity_hw_1');
+        const plannedPrice = planned && Array.isArray(planned.supplierPrices) ? planned.supplierPrices[0] : null;
+        return plan.summary.supplierPricesUpdated === 1
+          && storedPrice && Number(storedPrice.catalogPriceNet) === 10 && Number(storedPrice.catalogPriceGross) === 12.3
+          && plannedPrice && Number(plannedPrice.catalogPriceNet) === 11 && Number(plannedPrice.catalogPriceGross) === 13.53;
       }finally{
         if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);

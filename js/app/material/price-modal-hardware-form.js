@@ -182,7 +182,7 @@
     if(!supplier) return;
     setValue('hardwarePriceSource', supplier.name || '');
     setValue('hardwareSupplierDiscountPercent', supplier.defaultDiscountPercent || 0);
-    setValue('hardwareVatRate', supplier.defaultVatRate || 23);
+    setValue('hardwareVatRate', getSettings().defaultVatRate || 23);
     syncHardwarePricing({ sourceId:'hardwareSupplierId' });
   }
 
@@ -230,7 +230,7 @@
     if(ctx.buildHardwareQuoteBaseOptions) ctx.setSelectOptions(ctx.byId('hardwareQuoteBase'), ctx.buildHardwareQuoteBaseOptions(), String(data && data.quoteBase || 'catalogGross'), 'Cena katalogowa bez rabatu');
     if(ctx.buildHardwarePricingModeOptions) ctx.setSelectOptions(ctx.byId('hardwarePricingMode'), ctx.buildHardwarePricingModeOptions(), String(data && data.pricingMode || 'markup'), 'Narzut %');
     if(ctx.buildHardwareBundleCostModeOptions) ctx.setSelectOptions(ctx.byId('hardwareBundleCostMode'), ctx.buildHardwareBundleCostModeOptions(), String(data && data.bundleCostMode || 'ownPrice'), 'Własna cena zestawu');
-    setValue('hardwareSeries', data && data.series || ''); setValue('hardwarePriceSource', data && data.priceSource || ''); setValue('hardwareVatRate', data && data.vatRate != null ? data.vatRate : 23);
+    setValue('hardwareSeries', data && data.series || ''); setValue('hardwarePriceSource', data && data.priceSource || ''); setValue('hardwareVatRate', getSettings().defaultVatRate || 23);
     setValue('hardwareCatalogPriceNet', data && data.catalogPriceNet != null ? data.catalogPriceNet : ''); setValue('hardwareCatalogPriceGross', data && data.catalogPriceGross != null ? data.catalogPriceGross : '');
     setValue('hardwareSupplierDiscountPercent', data && data.supplierDiscountPercent != null ? data.supplierDiscountPercent : ''); setValue('hardwarePurchasePriceNet', data && data.purchasePriceNet != null ? data.purchasePriceNet : '');
     setValue('hardwarePurchasePriceGross', data && (data.purchasePriceGross != null ? data.purchasePriceGross : data.purchasePrice) || ''); setValue('hardwareMarkupPercent', data && data.markupPercent != null ? data.markupPercent : '');

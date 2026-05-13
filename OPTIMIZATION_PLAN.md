@@ -662,3 +662,14 @@ Do obserwacji:
 - Dodano osobny moduł UI `price-modal-hardware-price-confirm.js` zamiast dopisywać potwierdzanie cen do resolvera braków. To utrzymuje rozdział: resolver uzupełnia brakujące dane, confirm zatwierdza realne zmiany cen.
 - `hardware-catalog-supplier-price-xlsx.js` ma teraz ponad 400 linii. Następny refaktor import/export powinien wydzielić co najmniej: parser/normalizację wierszy, dopasowanie item+dostawca, diff/akcje cen i aplikowanie zmian.
 - `hardware-catalog-import-export.js` nadal przekracza próg ostrzeżenia. Nie ciąć go razem z kolejną funkcją użytkową; najpierw zrobić testy kontraktowe dla planu importu i potwierdzeń cen.
+
+## Hardware import/export stabilization — 2026-05-13
+
+W paczce `site_hardware_global_vat_import_stabilization_v1.zip` wykonano stabilizację bez dużego splitu:
+
+- podgląd importu cen dostawców nie mutuje już bieżącego katalogu;
+- VAT dostawcy usunięto z aktywnego modelu i XLSX, a kalkulacje używają globalnego VAT z ustawień;
+- rabat dostawcy pozostaje w modelu dostawcy;
+- dodano test ochronny dla czystości `buildImportPlan()`.
+
+Następny sensowny krok optymalizacyjny: wydzielić import/export okuć na mniejsze moduły, np. plan, match, supplier-price apply, export XLSX i report, ale tylko jako osobną paczkę refaktoryzacyjną po stabilnym teście użytkownika.

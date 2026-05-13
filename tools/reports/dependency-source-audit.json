@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T22:55:11.591Z",
+  "generatedAt": "2026-05-12T23:36:02.287Z",
   "summary": {
     "jsFiles": 335,
     "indexScripts": 261,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 15,
-      "lines": 3406,
+      "lines": 3408,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 26,
-      "lines": 4730,
+      "lines": 4727,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -191,7 +191,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog-import-export.js",
-      528
+      527
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -199,7 +199,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog.js",
-      494
+      496
     ],
     [
       "js/app/rozrys/rozrys-render.js",
@@ -219,7 +219,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
-      416
+      417
     ],
     [
       "js/app/rozrys/rozrys-pickers.js",
@@ -676,7 +676,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 494,
+      "lines": 496,
       "incoming": 12,
       "outgoing": 2,
       "secondLevel": 17,
@@ -1379,7 +1379,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 528,
+      "lines": 527,
       "incoming": 3,
       "outgoing": 7,
       "secondLevel": 1,
@@ -3327,7 +3327,7 @@
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 528,
+      "lines": 527,
       "defines": [
         "hardwareCatalogImportExport"
       ],
@@ -3440,7 +3440,7 @@
     "js/app/catalog/hardware-catalog-supplier-price-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 416,
+      "lines": 417,
       "defines": [
         "hardwareSupplierPriceXlsx"
       ],
@@ -3473,7 +3473,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 494,
+      "lines": 496,
       "defines": [
         "hardwareCatalog"
       ],
@@ -5595,7 +5595,7 @@
     "js/app/material/price-modal-hardware-suppliers.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 149,
+      "lines": 146,
       "defines": [
         "priceModalHardwareSuppliers"
       ],
@@ -5612,7 +5612,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 17,
+      "domRefs": 16,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

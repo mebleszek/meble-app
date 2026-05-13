@@ -48,9 +48,9 @@
     }) || null;
   }
   function listFormula(values){ return '"' + (values || []).map((value)=> text(value).replace(/,/g, ' ')).filter(Boolean).join(',') + '"'; }
-  function normalizePrices(item, suppliers){
+  function normalizePrices(item, suppliers, settings){
     const hw = FC.hardwareCatalog || {};
-    if(hw && typeof hw.normalizeSupplierPrices === 'function') return hw.normalizeSupplierPrices(item && item.supplierPrices, item || {}, suppliers || [], {});
+    if(hw && typeof hw.normalizeSupplierPrices === 'function') return hw.normalizeSupplierPrices(item && item.supplierPrices, item || {}, suppliers || [], settings || {});
     return Array.isArray(item && item.supplierPrices) ? item.supplierPrices : [];
   }
   function priceRow(item, price, suppliers){
@@ -77,10 +77,10 @@
   function rowValues(obj){
     return SUPPLIER_PRICE_COLUMNS.map((pair)=> obj._formulas && obj._formulas[pair[1]] ? obj._formulas[pair[1]] : valueForColumn(obj, pair[1]));
   }
-  function buildSupplierPriceRows(accessories, suppliers){
+  function buildSupplierPriceRows(accessories, suppliers, settings){
     const rows = [SUPPLIER_PRICE_COLUMNS.map((pair)=> pair[0])];
     (accessories || []).forEach((item)=>{
-      normalizePrices(item, suppliers || []).forEach((price)=>{
+      normalizePrices(item, suppliers || [], settings || {}).forEach((price)=>{
         if(!(price && (number(price.catalogPriceNet) > 0 || number(price.catalogPriceGross) > 0))) return;
         rows.push(rowValues(priceRow(item, price, suppliers || [])));
       });
@@ -177,8 +177,9 @@
     }
     return byId || null;
   }
-  function normalizedNextPrice(row, supplier, existing){
-    const vat = number(supplier && supplier.defaultVatRate) || 23;
+  function globalVatRate(settings){ const hw = FC.hardwareCatalog || {}; return hw.globalVatRate ? hw.globalVatRate(settings || {}) : (number(settings && settings.defaultVatRate) || 23); }
+  function normalizedNextPrice(row, supplier, existing, settings){
+    const vat = globalVatRate(settings || {});
     let catalogPriceNet = number(row.catalogPriceNet);
     let catalogPriceGross = number(row.catalogPriceGross);
     if(catalogPriceNet > 0 && catalogPriceGross <= 0) catalogPriceGross = netToGross(catalogPriceNet, vat);
@@ -360,7 +361,7 @@
     return out;
   }
 
-  function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings){
+  function applySupplierPriceRows(accessories, supplierPriceRows, suppliers, warnings, settings){
     const summary = { touchedIds:[], rows:0, added:0, updated:0, unchanged:0, skipped:0, changes:[] };
     const touched = new Set();
     const sourceRows = (supplierPriceRows || [])
@@ -377,9 +378,9 @@
       if(!item){ summary.skipped += 1; if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} nie pasuje do żadnego okucia.`); return; }
       const supplier = resolveSupplier(suppliers || [], row, warnings);
       if(!supplier){ summary.skipped += 1; if(warnings) warnings.push(`Ceny dostawców: wiersz ${row.__rowIndex || '?'} ma nieznanego dostawcę: ${row.supplierName || row.supplierId || '—'}.`); return; }
-      const prices = Array.isArray(item.supplierPrices) ? item.supplierPrices.slice() : [];
+      const prices = (Array.isArray(item.supplierPrices) ? item.supplierPrices : []).map((price)=> Object.assign({}, price));
       const existing = prices.find((price)=> text(price && price.supplierId) === text(supplier.id)) || null;
-      const nextPrice = normalizedNextPrice(row, supplier, existing);
+      const nextPrice = normalizedNextPrice(row, supplier, existing, settings || {});
       const changed = !existing || !sameSupplierPrice(existing, nextPrice);
       if(row.useForQuoteSpecified && row.useForQuote){
         prices.forEach((price)=>{ if(text(price && price.supplierId) !== text(supplier.id) && price.useForQuote){ price.useForQuote = false; } });

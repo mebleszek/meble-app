@@ -599,3 +599,24 @@ Dodane testy statusów utrwalają zasadę cloud-ready: snapshot oferty, status p
 - Pominięcie ceny w potwierdzeniu oznacza `__skipImport` na wierszu roboczym importu, a nie trwały stan domenowy. Do Firestore/synchronizacji nie powinny trafiać flagi techniczne resolvera.
 - Dodanie lub aktualizacja ceny nadal zapisuje dane w istniejącym modelu `supplierPrices` przy okuciu w `fc_accessories_v1`; dostawcy pozostają w `fc_hardware_suppliers_v1`.
 - Potwierdzenie pokazuje szczególnie ceny `Do wyceny`, ale nie zmienia jeszcze snapshotów WYCENY. Przyszły moduł ofert musi nadal zamrażać wartości użyte w ofercie osobno.
+
+## Hardware global VAT + import stabilization v1 — 2026-05-13
+
+Paczka `site_hardware_global_vat_import_stabilization_v1.zip` nie dodaje nowych kluczy storage.
+
+Zmiana modelu danych:
+
+- aktywny VAT dostawcy okuć został usunięty z modelu biznesowego;
+- globalny VAT okuć pozostaje w `fc_hardware_settings_v1.defaultVatRate`;
+- dostawcy w `fc_hardware_suppliers_v1` przechowują nazwę, rabat domyślny i aktywność;
+- legacy pole `defaultVatRate` przy dostawcy jest ignorowane/normalizowane przy odczycie i imporcie;
+- eksport XLSX `Dostawcy` nie zawiera już kolumny `vat_domyslny_proc`;
+- import XLSX nie powinien wykorzystywać VAT-u dostawcy, nawet jeśli stary plik go posiada.
+
+Stabilizacja chmurowa/importowa:
+
+- `buildImportPlan()` ma być operacją bez skutków ubocznych: przygotowuje plan, ale nie mutuje aktualnych rekordów katalogu;
+- zmiany cen dostawców są aplikowane dopiero przez właściwy flow zatwierdzania importu;
+- dodano test antyregresyjny chroniący przed mutacją katalogu na etapie podglądu.
+
+W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/profil firmy, a nie do dokumentów pojedynczych dostawców. Rabat dostawcy pozostaje atrybutem dostawcy.

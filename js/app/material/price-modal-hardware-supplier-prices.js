@@ -21,7 +21,7 @@
   function getSuppliers(){ const s = store(); return s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : []; }
   function getSettings(){ const s = store(); return s && s.getHardwareSettings ? s.getHardwareSettings() : ((FC.hardwareCatalog && FC.hardwareCatalog.DEFAULT_SETTINGS) || {}); }
   function supplierById(id){ const key = text(id); return getSuppliers().find((row)=> text(row && row.id) === key) || null; }
-  function vatFor(id){ const supplier = supplierById(id); return num(supplier && supplier.defaultVatRate) || num(getSettings().defaultVatRate) || 23; }
+  function vatFor(_id){ return num(getSettings().defaultVatRate) || 23; }
   function discountFor(id){ const supplier = supplierById(id); return num(supplier && supplier.defaultDiscountPercent); }
   function netToGross(value, vat){ return FC.hardwareCatalog && FC.hardwareCatalog.netToGross ? FC.hardwareCatalog.netToGross(value, vat) : round2(num(value) * (1 + num(vat) / 100)); }
   function grossToNet(value, vat){ return FC.hardwareCatalog && FC.hardwareCatalog.grossToNet ? FC.hardwareCatalog.grossToNet(value, vat) : round2(num(value) / (1 + num(vat) / 100)); }
@@ -139,7 +139,7 @@
     const purchaseNet = round2(num(row.catalogPriceNet) * (1 - discount / 100));
     summary.appendChild(h('div', { text:`Podgląd: ${supplier.name || supplier.id}${selected && text(selected.supplierId) === text(row.supplierId) ? ' — DO WYCENY' : ''}` }));
     summary.appendChild(h('div', { text:`Katalogowo: ${fmt(row.catalogPriceNet) || '—'} netto / ${fmt(row.catalogPriceGross) || '—'} brutto` }));
-    summary.appendChild(h('div', { text:`VAT ${vat}% • rabat ${discount}% • zakup: ${purchaseNet ? purchaseNet.toFixed(2) : '—'} netto / ${purchaseGross ? purchaseGross.toFixed(2) : '—'} brutto` }));
+    summary.appendChild(h('div', { text:`VAT globalny ${vat}% • rabat ${discount}% • zakup: ${purchaseNet ? purchaseNet.toFixed(2) : '—'} netto / ${purchaseGross ? purchaseGross.toFixed(2) : '—'} brutto` }));
     summary.appendChild(h('div', { text:`Status ceny: ${statusLabel(row.priceStatus)} • Data: ${row.priceDate || '—'}` }));
     if(selectedSupplier && text(selectedSupplier.id) !== text(row.supplierId)) summary.appendChild(h('div', { class:'muted xs', text:`Do wyceny nadal: ${selectedSupplier.name || selectedSupplier.id}` }));
     const setBtn = h('button', { type:'button', class:'btn', text:'Ustaw jako Do wyceny' });
@@ -213,7 +213,7 @@
     applySelectedToLegacyFields();
     mount.innerHTML = '';
     visiblePrices().forEach((row)=>{
-      const supplier = supplierById(row.supplierId) || { id:row.supplierId, name:row.supplierId, defaultDiscountPercent:0, defaultVatRate:getSettings().defaultVatRate || 23 };
+      const supplier = supplierById(row.supplierId) || { id:row.supplierId, name:row.supplierId, defaultDiscountPercent:0 };
       const card = h('div', { class:'hardware-supplier-price-card' });
       const top = h('div', { class:'hardware-supplier-price-card__top' });
       top.appendChild(h('div', { class:'hardware-supplier-price-card__name', text:supplier.name || supplier.id }));
@@ -234,7 +234,7 @@
       grid.appendChild(netBox); grid.appendChild(grossBox); grid.appendChild(makeStatusChoice(row, supplier)); grid.appendChild(dateBox);
       card.appendChild(grid);
       const purchaseGross = round2(num(row.catalogPriceGross) * (1 - discountFor(row.supplierId) / 100));
-      card.appendChild(h('div', { class:'hardware-supplier-price-note', text:`VAT ${vatFor(row.supplierId)}% • rabat ${discountFor(row.supplierId)}% • zakup po rabacie: ${purchaseGross ? purchaseGross.toFixed(2) + ' PLN brutto' : '—'}` }));
+      card.appendChild(h('div', { class:'hardware-supplier-price-note', text:`VAT globalny ${vatFor(row.supplierId)}% • rabat ${discountFor(row.supplierId)}% • zakup po rabacie: ${purchaseGross ? purchaseGross.toFixed(2) + ' PLN brutto' : '—'}` }));
       mount.appendChild(card);
     });
     renderQuotePreview();
