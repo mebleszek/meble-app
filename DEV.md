@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_accessory_tests_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_refactor_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -865,3 +865,16 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Testy pilnują m.in.: globalnego VAT-u, rabatów dostawców, jednego `Do wyceny`, braku `#REF!`, pustego `typ/cecha`, blokady duplikatów, importu po `producent + symbol`, resolvera brakującego dostawcy, braku automatycznego tworzenia producentów/dostawców oraz braku mutacji katalogu przy podglądzie importu.
 - Nie zmieniono runtime aplikacji, UI katalogu, importu/eksportu ani modelu danych; to paczka testowa/stabilizująca.
 - Raport: `tools/reports/hardware-accessory-tests-v1.md`.
+
+
+## Hardware import/export refactor v1 — 2026-05-14
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_refactor_v1.zip`.
+- Baza startowa: `site_hardware_accessory_tests_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Rozdzielono import/export okuć bez zmiany UI i bez celowej zmiany logiki biznesowej.
+- `hardware-catalog-import-export.js` jest teraz cienką fasadą publicznego API `FC.hardwareCatalogImportExport`. Cięższe odpowiedzialności są w `hardware-catalog-export-xlsx.js`, `hardware-catalog-import-parser.js` i `hardware-catalog-import-plan.js`.
+- `hardware-catalog-supplier-price-xlsx.js` jest teraz cienką fasadą publicznego API `FC.hardwareSupplierPriceXlsx`. Eksport arkusza `Ceny_dostawcow` jest w `hardware-supplier-price-export.js`, a parser/matching/diff/apply cen w `hardware-supplier-price-import.js`.
+- Zachowano kontrakty: import po `producent + symbol`, brak ręcznego ID dla użytkownika Excela, resolvery braków, potwierdzanie zmian cen, globalny VAT, rabaty dostawców i brak mutacji katalogu przy samym podglądzie importu.
+- Dodano testy architektoniczne do `tools/app-dev-smoke.js` i `js/testing/material/accessories-tests.js`; dedykowany smoke akcesoriów ma teraz 39 testów.
+- Cache-busting nowych/zmienionych modułów: `20260514_hardware_import_export_refactor_v1`.
+- Raport: `tools/reports/hardware-import-export-refactor-v1.md`.

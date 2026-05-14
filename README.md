@@ -395,3 +395,11 @@ Aktualna paczka stabilizuje import/eksport katalogu okuć:
 - Testy migracji nie traktują już seedów okuć jako błędnego „niewydzielenia akcesoriów”.
 - Runtime aplikacji, import/export XLSX oraz model VAT/rabatów nie były zmieniane.
 
+
+
+## Hardware import/export refactor v1 — 2026-05-14
+
+- Import/export katalogu okuć został rozdzielony na mniejsze moduły bez zmiany UI i bez zmiany sposobu pracy użytkownika z Excelem.
+- Publiczne API zostaje pod fasadami `FC.hardwareCatalogImportExport` i `FC.hardwareSupplierPriceXlsx`, więc istniejące okna importu, resolvery i potwierdzenia cen działają przez te same wejścia.
+- Logika arkusza `Ceny_dostawcow` jest rozdzielona na eksport oraz import/matching/diff, a import katalogu na parser, plan i apply.
+- Dodano testy architektoniczne i rozszerzono smoke akcesoriów do 39 testów.

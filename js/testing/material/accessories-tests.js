@@ -310,6 +310,24 @@
         H.assert(stored && stored.supplierPrices[0].catalogPriceNet === 12, 'applyImportPlan nie zapisał zaakceptowanej ceny', stored);
       })),
 
+      H.makeTest('Akcesoria — architektura', 'Import/export okuć jest rozdzielony na parser, plan i eksport', 'Chroni refaktor: fasada zostaje publicznym API, ale ciężkie odpowiedzialności nie wracają do jednego pliku.', ()=>{
+        const api = requireImport();
+        H.assert(FC.hardwareCatalogExportXlsx && typeof FC.hardwareCatalogExportXlsx.exportXlsx === 'function', 'Brak modułu eksportu XLSX');
+        H.assert(FC.hardwareCatalogImportParser && typeof FC.hardwareCatalogImportParser.parseWorkbook === 'function', 'Brak modułu parsera importu');
+        H.assert(FC.hardwareCatalogImportPlan && typeof FC.hardwareCatalogImportPlan.buildImportPlan === 'function', 'Brak modułu planu importu');
+        H.assert(api.exportXlsx === FC.hardwareCatalogExportXlsx.exportXlsx, 'Fasada nie deleguje eksportu XLSX');
+        H.assert(api.parseWorkbook === FC.hardwareCatalogImportParser.parseWorkbook, 'Fasada nie deleguje parsera XLSX');
+        H.assert(api.buildImportPlan === FC.hardwareCatalogImportPlan.buildImportPlan, 'Fasada nie deleguje planu importu');
+      }),
+      H.makeTest('Akcesoria — architektura', 'Ceny dostawców mają osobny eksport i import pod fasadą XLSX', 'Chroni arkusz Ceny_dostawcow przed powrotem parsera, matchingu i eksportu do jednego pliku.', ()=>{
+        const xlsx = requireSupplierXlsx();
+        H.assert(FC.hardwareSupplierPriceExport && typeof FC.hardwareSupplierPriceExport.buildSupplierPriceRows === 'function', 'Brak modułu eksportu cen dostawców');
+        H.assert(FC.hardwareSupplierPriceImport && typeof FC.hardwareSupplierPriceImport.applySupplierPriceRows === 'function', 'Brak modułu importu cen dostawców');
+        H.assert(xlsx.buildSupplierPriceRows === FC.hardwareSupplierPriceExport.buildSupplierPriceRows, 'Fasada cen nie deleguje eksportu');
+        H.assert(xlsx.applySupplierPriceRows === FC.hardwareSupplierPriceImport.applySupplierPriceRows, 'Fasada cen nie deleguje importu');
+        H.assert(typeof xlsx.supplierPriceMissingSupplierGaps === 'function' && typeof xlsx.supplierPriceCreateRequiredGaps === 'function', 'Fasada cen straciła resolvery braków');
+      }),
+
       H.makeTest('Akcesoria — UI kontrakty', 'Status ceny rozróżnia brak, do sprawdzenia, starą i aktualną cenę', 'Chroni czytelne chipy statusu na liście okuć.', ()=>{
         const ctx = FC.priceModalContext || {};
         H.assert(typeof ctx.hardwarePriceStatus === 'function', 'Brak hardwarePriceStatus');

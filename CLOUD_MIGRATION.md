@@ -620,3 +620,11 @@ Stabilizacja chmurowa/importowa:
 - dodano test antyregresyjny chroniący przed mutacją katalogu na etapie podglądu.
 
 W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/profil firmy, a nie do dokumentów pojedynczych dostawców. Rabat dostawcy pozostaje atrybutem dostawcy.
+
+
+## 2026-05-14 — Hardware import/export refactor v1
+
+- Refaktor nie dodaje nowych kluczy storage i nie zmienia polityki backupów. Dane katalogu okuć nadal przechodzą przez istniejący `catalogStore` i wersjonowane klucze `fc_*`.
+- Import/export został rozdzielony pod przyszłą chmurę na granice: eksport/snapshot, parser pliku, plan importu i finalny apply. To ułatwia późniejsze przeniesienie planu importu do warstwy repository/synchronizacji bez mieszania go z UI.
+- Publiczne fasady `FC.hardwareCatalogImportExport` i `FC.hardwareSupplierPriceXlsx` pozostają kompatybilne z obecnym UI, ale ciężka logika nie jest już skupiona w dwóch plikach 400+ linii.
+- Nadal obowiązuje zasada: `buildImportPlan()` nie zapisuje danych użytkownika, a zapis następuje dopiero w `applyImportPlan()`.

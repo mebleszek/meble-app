@@ -189,6 +189,23 @@ function runMaterialNodeSmoke(sandbox){
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
       return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-price-confirm.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && ui.includes('confirmSupplierPriceChanges') && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe') && priceConfirm.includes('Dodać nową cenę') && priceConfirm.includes('Zaktualizować cenę');
     } },
+    { name:'Import/export okuć jest rozdzielony pod stabilnymi fasadami', explain:'Pilnuje splitu: ciężkie moduły parsera, planu, eksportu i cen dostawców nie znikają z load order.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, price = FC.hardwareSupplierPriceXlsx;
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const files = [
+        'hardware-supplier-price-export.js',
+        'hardware-supplier-price-import.js',
+        'hardware-catalog-export-xlsx.js',
+        'hardware-catalog-import-parser.js',
+        'hardware-catalog-import-plan.js'
+      ];
+      return !!(api && price && FC.hardwareCatalogExportXlsx && FC.hardwareCatalogImportParser && FC.hardwareCatalogImportPlan && FC.hardwareSupplierPriceExport && FC.hardwareSupplierPriceImport)
+        && typeof api.buildImportPlan === 'function'
+        && typeof api.parseWorkbook === 'function'
+        && typeof api.exportXlsx === 'function'
+        && typeof price.applySupplierPriceRows === 'function'
+        && files.every((name)=> html.includes(name));
+    } },
     { name:'Katalog okuć ma UX statusu ceny i szybkich filtrów', explain:'Chroni czytelne karty okuć: status ceny, filtr Do sprawdzenia cen oraz podgląd zestawów/składników.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       const uxSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-ux.js'), 'utf8');

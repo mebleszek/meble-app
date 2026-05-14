@@ -685,3 +685,11 @@ node tools/hardware-accessories-dev-smoke.js
 
 - Suite ma pilnować kontraktów, które wcześniej wychodziły dopiero w ręcznych testach Excela: globalny VAT, rabaty dostawców, wiele cen, `Do wyceny`, resolver brakującego dostawcy, import po `producent + symbol`, brak nadpisywania nazwy katalogowej i brak mutacji katalogu na etapie podglądu importu.
 - To jest etap testowy/stabilizujący, bez zmiany runtime. Następny bezpieczny etap optymalizacji to dopiero split import/export na mniejsze moduły.
+
+
+## 2026-05-14 — Hardware import/export refactor v1
+
+- Wykonano planowany split import/export okuć po paczce testów akcesoriów.
+- Nowy podział: `hardware-catalog-export-xlsx.js`, `hardware-catalog-import-parser.js`, `hardware-catalog-import-plan.js`, `hardware-catalog-import-export.js` jako fasada oraz `hardware-supplier-price-export.js`, `hardware-supplier-price-import.js`, `hardware-catalog-supplier-price-xlsx.js` jako fasada.
+- Pliki ostrzegawcze `hardware-catalog-import-export.js` i `hardware-catalog-supplier-price-xlsx.js` przestały być miejscem ciężkiej logiki. Następne zmiany w tym obszarze kierować do właściwych modułów, a nie do fasad.
+- Najbliższy logiczny następny etap po ręcznym sprawdzeniu: poprawa czytelności raportu importu albo rozbudowa dostawców/preferencji zakupowych, ale tylko po zachowaniu kontraktów z `tools/hardware-accessories-dev-smoke.js`.
