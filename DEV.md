@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_refactor_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_deep_tests_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -878,3 +878,15 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Dodano testy architektoniczne do `tools/app-dev-smoke.js` i `js/testing/material/accessories-tests.js`; dedykowany smoke akcesoriów ma teraz 39 testów.
 - Cache-busting nowych/zmienionych modułów: `20260514_hardware_import_export_refactor_v1`.
 - Raport: `tools/reports/hardware-import-export-refactor-v1.md`.
+
+
+## Hardware import/export deep tests v1 — 2026-05-14
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_deep_tests_v1.zip`.
+- Baza startowa: `site_hardware_import_export_refactor_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Dodano głęboką suite testów import/export okuć `js/testing/material/accessories-import-export-deep-tests.js` i podpięto ją pod `MATERIAŁY` w `dev_tests.html`.
+- Dodano narzędzie Node `tools/hardware-import-export-deep-smoke.js`, żeby można było uruchomić same scenariusze import/export bez klikania w przeglądarce.
+- Testy obejmują m.in.: brak mutacji store przy podglądzie importu, realny zapis dopiero przez `applyImportPlan()`, `Zostaw starą`, `Zaktualizuj`, `__skipImport`, brak fałszywych aktualizacji, różne nazwy przy tym samym `producent + symbol`, resolver brakującego/śmieciowego dostawcy, tworzenie nowego okucia z arkusza cen, blokadę literówek producenta, przenoszenie `Do wyceny`, globalny VAT, rabat dostawcy i brak formuł w pustych wierszach Excela.
+- Nie zmieniono runtime aplikacji, UI, modelu danych ani importu/exportu; to paczka testowa/stabilizująca po refaktorze.
+- Od tej paczki przed kolejnymi zmianami przy import/export okuć uruchamiać dodatkowo `node tools/hardware-import-export-deep-smoke.js`.
+- Raport: `tools/reports/hardware-import-export-deep-tests-v1.md`.

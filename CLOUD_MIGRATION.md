@@ -628,3 +628,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Import/export został rozdzielony pod przyszłą chmurę na granice: eksport/snapshot, parser pliku, plan importu i finalny apply. To ułatwia późniejsze przeniesienie planu importu do warstwy repository/synchronizacji bez mieszania go z UI.
 - Publiczne fasady `FC.hardwareCatalogImportExport` i `FC.hardwareSupplierPriceXlsx` pozostają kompatybilne z obecnym UI, ale ciężka logika nie jest już skupiona w dwóch plikach 400+ linii.
 - Nadal obowiązuje zasada: `buildImportPlan()` nie zapisuje danych użytkownika, a zapis następuje dopiero w `applyImportPlan()`.
+
+
+## 2026-05-14 — Hardware import/export deep tests v1
+
+- Paczka testowa nie dodaje nowych kluczy storage i nie zmienia modelu danych.
+- Dodane testy wzmacniają kontrakt wymagany pod przyszłą chmurę: `buildImportPlan()` przygotowuje plan bez zapisu danych użytkownika, a trwały zapis odbywa się dopiero przez `applyImportPlan()`.
+- Testy pilnują, żeby techniczne flagi importu typu `__skipImport` pozostały stanem roboczym importu, a nie domenowymi danymi do synchronizacji.
+- Testy potwierdzają, że dostawcy nie dostają VAT-u per rekord, globalny VAT pozostaje w ustawieniach, a rabat jest atrybutem dostawcy.

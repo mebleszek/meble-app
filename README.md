@@ -403,3 +403,17 @@ Aktualna paczka stabilizuje import/eksport katalogu okuć:
 - Publiczne API zostaje pod fasadami `FC.hardwareCatalogImportExport` i `FC.hardwareSupplierPriceXlsx`, więc istniejące okna importu, resolvery i potwierdzenia cen działają przez te same wejścia.
 - Logika arkusza `Ceny_dostawcow` jest rozdzielona na eksport oraz import/matching/diff, a import katalogu na parser, plan i apply.
 - Dodano testy architektoniczne i rozszerzono smoke akcesoriów do 39 testów.
+
+
+## Hardware import/export deep tests v1 — 2026-05-14
+
+- Dodano głębokie testy importu/eksportu okuć po refaktorze import/export.
+- Nowy plik testów: `js/testing/material/accessories-import-export-deep-tests.js`.
+- Nowe narzędzie developerskie:
+
+```bash
+node tools/hardware-import-export-deep-smoke.js
+```
+
+- Testy są też podpięte pod `dev_tests.html` → `MATERIAŁY`, więc można je uruchomić w przeglądarce razem z pozostałymi testami materiałów i akcesoriów.
+- Paczka nie zmienia runtime aplikacji ani UI; rozszerza wyłącznie zabezpieczenia regresyjne.

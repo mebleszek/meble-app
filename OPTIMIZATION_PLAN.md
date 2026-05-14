@@ -693,3 +693,17 @@ node tools/hardware-accessories-dev-smoke.js
 - Nowy podział: `hardware-catalog-export-xlsx.js`, `hardware-catalog-import-parser.js`, `hardware-catalog-import-plan.js`, `hardware-catalog-import-export.js` jako fasada oraz `hardware-supplier-price-export.js`, `hardware-supplier-price-import.js`, `hardware-catalog-supplier-price-xlsx.js` jako fasada.
 - Pliki ostrzegawcze `hardware-catalog-import-export.js` i `hardware-catalog-supplier-price-xlsx.js` przestały być miejscem ciężkiej logiki. Następne zmiany w tym obszarze kierować do właściwych modułów, a nie do fasad.
 - Najbliższy logiczny następny etap po ręcznym sprawdzeniu: poprawa czytelności raportu importu albo rozbudowa dostawców/preferencji zakupowych, ale tylko po zachowaniu kontraktów z `tools/hardware-accessories-dev-smoke.js`.
+
+
+## 2026-05-14 — Hardware import/export deep tests v1
+
+- Po refaktorze import/export dodano osobną suite głębokich testów kontraktowych `js/testing/material/accessories-import-export-deep-tests.js`.
+- Przed kolejnymi zmianami w modułach `hardware-catalog-import-plan.js`, `hardware-supplier-price-import.js`, `hardware-catalog-export-xlsx.js` albo UI potwierdzeń importu uruchamiać:
+
+```bash
+node tools/hardware-import-export-deep-smoke.js
+node tools/hardware-accessories-dev-smoke.js
+```
+
+- Suite deep smoke pilnuje szczególnie granicy `buildImportPlan()` versus `applyImportPlan()`, resolverów braków, potwierdzeń ceny, dopasowania `producent + symbol`, globalnego VAT-u i rabatu dostawcy.
+- Ten etap nie jest refaktorem runtime; jest warstwą bezpieczeństwa przed kolejną funkcją użytkową, np. czytelniejszym raportem importu albo rozbudową dostawców/preferencji zakupowych.

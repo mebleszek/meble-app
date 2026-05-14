@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-13T22:18:29.168Z",
+  "generatedAt": "2026-05-14T06:06:59.765Z",
   "summary": {
-    "jsFiles": 341,
+    "jsFiles": 342,
     "indexScripts": 266,
-    "devTestScripts": 298,
+    "devTestScripts": 299,
     "fcSymbols": 250,
-    "fcSymbolsAll": 277,
-    "edges": 1786,
+    "fcSymbolsAll": 278,
+    "edges": 1793,
     "highRisk": 7,
-    "mediumRisk": 62
+    "mediumRisk": 63
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -148,12 +148,12 @@
       "medium": 0
     },
     "TESTY": {
-      "files": 52,
-      "lines": 11541,
+      "files": 53,
+      "lines": 11807,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
-      "medium": 30
+      "medium": 31
     }
   },
   "topLines": [
@@ -257,7 +257,7 @@
     ],
     [
       "js/testing/shared/harness.js",
-      36
+      37
     ],
     [
       "js/app/shared/storage.js",
@@ -304,16 +304,16 @@
       18
     ],
     [
+      "js/app/catalog/catalog-store.js",
+      17
+    ],
+    [
       "js/app/project/project-status-snapshot-flow.js",
       17
     ],
     [
       "js/app/project/project-status-sync.js",
       17
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
-      16
     ],
     [
       "js/app/catalog/hardware-catalog.js",
@@ -323,15 +323,15 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      184
+      185
     ],
     [
       "js/app/shared/storage.js",
-      157
+      158
     ],
     [
       "js/app/shared/utils.js",
-      152
+      153
     ],
     [
       "js/app/project/project-bridge.js",
@@ -339,7 +339,7 @@
     ],
     [
       "js/app/shared/constants.js",
-      106
+      107
     ],
     [
       "js/app/shared/room-registry.js",
@@ -387,15 +387,15 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      54
+      55
+    ],
+    [
+      "js/app/catalog/catalog-domain.js",
+      49
     ],
     [
       "js/app/investor/investors-model.js",
       49
-    ],
-    [
-      "js/app/catalog/catalog-domain.js",
-      48
     ],
     [
       "js/app/rozrys/rozrys-scope.js",
@@ -605,9 +605,9 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 497,
-      "incoming": 16,
+      "incoming": 17,
       "outgoing": 11,
-      "secondLevel": 54,
+      "secondLevel": 55,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -679,7 +679,7 @@
       "lines": 496,
       "incoming": 16,
       "outgoing": 2,
-      "secondLevel": 21,
+      "secondLevel": 22,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1550,7 +1550,7 @@
       "lines": 177,
       "incoming": 71,
       "outgoing": 4,
-      "secondLevel": 184,
+      "secondLevel": 185,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1572,6 +1572,23 @@
       "dialogRefs": 0,
       "reasons": [
         "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/testing/material/tests.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 146,
+      "incoming": 1,
+      "outgoing": 12,
+      "secondLevel": 1,
+      "storageRefs": 23,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -2013,6 +2030,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3038,6 +3056,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3093,6 +3112,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3190,6 +3210,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3236,6 +3257,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3294,6 +3316,7 @@
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3341,6 +3364,7 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
@@ -3355,6 +3379,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3364,7 +3389,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależnych plików"
+      ]
     },
     "js/app/catalog/hardware-catalog-import-export.js": {
       "area": "KATALOG/USŁUGI",
@@ -3383,6 +3410,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
@@ -3392,6 +3420,7 @@
       ],
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3401,7 +3430,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależnych plików"
+      ]
     },
     "js/app/catalog/hardware-catalog-import-parser.js": {
       "area": "KATALOG/USŁUGI",
@@ -3429,6 +3460,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3471,6 +3503,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3540,6 +3573,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3569,6 +3603,7 @@
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
@@ -3580,6 +3615,7 @@
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/material/price-modal-hardware-import-export.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3589,7 +3625,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależnych plików"
+      ]
     },
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
@@ -3642,6 +3680,7 @@
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -3682,6 +3721,7 @@
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3717,6 +3757,7 @@
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -5760,6 +5801,7 @@
       ],
       "incomingFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
@@ -6684,6 +6726,7 @@
         "js/tabs/wycena.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -10703,6 +10746,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -10927,6 +10971,7 @@
         "js/testing/investor/suites/recovery-sources.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -11037,6 +11082,7 @@
         "js/app/shared/data-backup-store.js",
         "js/app/ui/data-settings-modal.js",
         "js/testing/data-safety/tests.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-safety.js"
@@ -12835,6 +12881,7 @@
         "js/testing/investor/suites/recovery-sources.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -13162,6 +13209,7 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
@@ -13255,6 +13303,7 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
       "storageRefs": 0,
@@ -17407,6 +17456,46 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/testing/material/accessories-import-export-deep-tests.js": {
+      "area": "TESTY",
+      "category": "test",
+      "lines": 263,
+      "defines": [
+        "materialImportExportDeepTests"
+      ],
+      "uses": [
+        "testHarness",
+        "catalogStore",
+        "hardwareCatalogImportExport",
+        "hardwareSupplierPriceXlsx",
+        "priceModalHardwarePriceConfirm",
+        "hardwareCatalogExportXlsx",
+        "materialImportExportDeepTests"
+      ],
+      "incomingFiles": [
+        "js/testing/material/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
+        "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/testing/shared/harness.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/dev-tests-registry.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 1,
+      "loadedInIndex": false,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii"
+      ]
+    },
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
@@ -17465,7 +17554,7 @@
     "js/testing/material/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 143,
+      "lines": 146,
       "defines": [
         "materialDevTests"
       ],
@@ -17479,6 +17568,7 @@
         "constants",
         "hardwareCatalog",
         "materialAccessoryTests",
+        "materialImportExportDeepTests",
         "materialDevTests"
       ],
       "incomingFiles": [
@@ -17493,6 +17583,7 @@
         "js/app/shared/constants.js",
         "js/app/shared/validate.js",
         "js/app/wycena/wycena-core-material-plan.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/shared/harness.js"
@@ -17505,9 +17596,9 @@
       "domRefs": 0,
       "loadedInIndex": false,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "kilka zależności wychodzących",
+        "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
       ]
     },
@@ -18615,6 +18706,7 @@
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",

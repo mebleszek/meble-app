@@ -41,6 +41,7 @@ function printReport(report){
     lines.push(`[${group.name}] ${group.passed}/${group.total} OK`);
     (group.results || []).forEach((row)=>{
       lines.push(`- ${row.ok ? 'OK' : 'BŁĄD'}: ${row.name}`);
+      if(row.explain) lines.push(`  Po co: ${row.explain}`);
       if(!row.ok && row.message) lines.push(`  Powód: ${row.message}`);
       if(!row.ok && row.details){
         try{ lines.push(`  Szczegóły: ${JSON.stringify(row.details, null, 2)}`); }
@@ -55,14 +56,14 @@ async function main(){
   const sandbox = createSandbox();
   loadFiles(sandbox, APP_DEV_SMOKE_FILES.concat([
     'js/testing/shared/harness.js',
-    'js/testing/material/accessories-tests.js',
+    'js/testing/material/accessories-import-export-deep-tests.js',
   ]));
   const FC = sandbox.FC || {};
-  if(!(FC.materialAccessoryTests && typeof FC.materialAccessoryTests.collectTests === 'function')){
-    throw new Error('Brak FC.materialAccessoryTests.collectTests');
+  if(!(FC.materialImportExportDeepTests && typeof FC.materialImportExportDeepTests.collectTests === 'function')){
+    throw new Error('Brak FC.materialImportExportDeepTests.collectTests');
   }
-  const tests = FC.materialAccessoryTests.collectTests();
-  const report = await FC.testHarness.runSuite('Akcesoria dev smoke', tests);
+  const tests = FC.materialImportExportDeepTests.collectTests();
+  const report = await FC.testHarness.runSuite('Import/export okuć deep smoke', tests);
   printReport(report);
   if(report.failed) process.exitCode = 1;
 }

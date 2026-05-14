@@ -132,10 +132,13 @@
   }
 
   function runAll(){
-    const extra = FC.materialAccessoryTests && typeof FC.materialAccessoryTests.collectTests === 'function'
+    const accessory = FC.materialAccessoryTests && typeof FC.materialAccessoryTests.collectTests === 'function'
       ? FC.materialAccessoryTests.collectTests()
       : [];
-    return H.runSuite('APP smoke testy', baseTests().concat(extra));
+    const deep = FC.materialImportExportDeepTests && typeof FC.materialImportExportDeepTests.collectTests === 'function'
+      ? FC.materialImportExportDeepTests.collectTests()
+      : [];
+    return H.runSuite('APP smoke testy', baseTests().concat(accessory, deep));
   }
 
   FC.materialDevTests = { runAll, _debug:{ baseTests } };
