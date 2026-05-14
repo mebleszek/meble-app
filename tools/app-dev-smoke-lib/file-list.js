@@ -87,6 +87,8 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/ui/work-mode-hub.js',
   'js/app/service/service-orders.js',
   'js/app/service/cutting/service-cutting-common.js',
+  'js/app/service/cutting/service-pro100-parser.js',
+  'js/app/service/cutting/service-pro100-import-ui.js',
   'js/app/service/cutting/service-cutting-rozrys.js',
   'js/app/service/cutting/service-order-detail.js',
   'js/app/investor/investors-model.js',

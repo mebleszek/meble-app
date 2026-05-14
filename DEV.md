@@ -69,6 +69,18 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+## PRO100 service import v1 — 2026-05-14
+
+- Aktualna paczka robocza po tym etapie: `site_pro100_board_parts_import_v1.zip`.
+- Baza startowa: `site_hardware_import_export_deep_tests_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Dodano import wklejek PRO100 w drobnych usługach stolarskich: `nazwa | długość wzdłuż słoja | oklejanie długości | szerokość | oklejanie szerokości | grubość | ilość | kolor`.
+- Znaki oklejania: `=` oznacza dwie krawędzie, `-`/`–`/`—` jedną krawędź, puste pole brak oklejania.
+- Import PRO100 korzysta z istniejącego modelu zlecenia usługowego i usługowego ROZRYS-u. Formatki są zapisywane w `cutting.parts`; nie dodano nowego storage ani osobnego martwego katalogu.
+- Brakujący kolor/dekor jest dodawany do istniejącego katalogu materiałów przez aplikacyjny modal importu z ptaszkiem `Ma słoje`; ta decyzja steruje później możliwością obrotu w rozrysie.
+- Usługowy ROZRYS grupuje formatki po materiale/grubości, żeby nie mieszać kolorów i grubości w jednym planie.
+- Raport: `tools/reports/pro100-service-import-v1.md`.
+
 ## Catalog seed dev tests fix v1 — 2026-05-13
 
 - Aktualna paczka robocza po tym etapie: `site_catalog_seed_dev_tests_fix_v1.zip`.

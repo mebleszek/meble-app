@@ -707,3 +707,10 @@ node tools/hardware-accessories-dev-smoke.js
 
 - Suite deep smoke pilnuje szczególnie granicy `buildImportPlan()` versus `applyImportPlan()`, resolverów braków, potwierdzeń ceny, dopasowania `producent + symbol`, globalnego VAT-u i rabatu dostawcy.
 - Ten etap nie jest refaktorem runtime; jest warstwą bezpieczeństwa przed kolejną funkcją użytkową, np. czytelniejszym raportem importu albo rozbudową dostawców/preferencji zakupowych.
+
+
+## PRO100 service import — dalszy plan
+
+- Obecny etap dodaje parser i UI importu bez osobnego storage. Następne prace powinny iść przez istniejący model zleceń usługowych.
+- Jeśli import PRO100 zacznie obsługiwać dodatkowe operacje z nazw (`NUT`, `FREZ`, `ROZCIĄĆ`, `FRONT ZAWIASY`), nie dokładać tego do parsera bazowego. Dodać osobny moduł rozpoznawania operacji i osobne testy.
+- `service-order-detail.js` ma ok. 300 linii i jest plikiem ostrożności. Przy następnej większej zmianie UI usług rozdzielić formularz podstawowy, listę formatek i akcje rozrysu.

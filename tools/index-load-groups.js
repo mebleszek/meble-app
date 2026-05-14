@@ -75,6 +75,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/catalog/catalog-store.js",
       "js/app/catalog/catalog-selectors.js",
       "js/app/service/cutting/service-cutting-common.js",
+      "js/app/service/cutting/service-pro100-parser.js",
+      "js/app/service/cutting/service-pro100-import-ui.js",
       "js/app/service/cutting/service-cutting-rozrys.js",
       "js/app/service/cutting/service-order-detail.js",
       "js/app/service/service-orders.js",

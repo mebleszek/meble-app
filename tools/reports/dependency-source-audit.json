@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-14T06:06:59.765Z",
+  "generatedAt": "2026-05-14T15:01:55.963Z",
   "summary": {
-    "jsFiles": 342,
-    "indexScripts": 266,
-    "devTestScripts": 299,
-    "fcSymbols": 250,
-    "fcSymbolsAll": 278,
-    "edges": 1793,
+    "jsFiles": 344,
+    "indexScripts": 268,
+    "devTestScripts": 301,
+    "fcSymbols": 252,
+    "fcSymbolsAll": 280,
+    "edges": 1802,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -28,8 +28,8 @@
       "medium": 3
     },
     "KATALOG/USŁUGI": {
-      "files": 20,
-      "lines": 3342,
+      "files": 22,
+      "lines": 3841,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 11807,
+      "lines": 11877,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -241,7 +241,7 @@
   "topIncoming": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      71
+      73
     ],
     [
       "js/app/investor/investors-store.js",
@@ -253,7 +253,7 @@
     ],
     [
       "js/app/shared/utils.js",
-      38
+      40
     ],
     [
       "js/testing/shared/harness.js",
@@ -296,16 +296,16 @@
       19
     ],
     [
+      "js/app/catalog/catalog-store.js",
+      18
+    ],
+    [
       "js/app/investor/investor-persistence.js",
       18
     ],
     [
       "js/app/shared/constants.js",
       18
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
-      17
     ],
     [
       "js/app/project/project-status-snapshot-flow.js",
@@ -323,23 +323,23 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      185
+      187
     ],
     [
       "js/app/shared/storage.js",
-      158
+      160
     ],
     [
       "js/app/shared/utils.js",
-      153
+      155
     ],
     [
       "js/app/project/project-bridge.js",
-      107
+      109
     ],
     [
       "js/app/shared/constants.js",
-      107
+      108
     ],
     [
       "js/app/shared/room-registry.js",
@@ -347,7 +347,7 @@
     ],
     [
       "js/app/shared/schema.js",
-      89
+      91
     ],
     [
       "js/app/project/project-store.js",
@@ -391,7 +391,7 @@
     ],
     [
       "js/app/catalog/catalog-domain.js",
-      49
+      50
     ],
     [
       "js/app/investor/investors-model.js",
@@ -605,7 +605,7 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 497,
-      "incoming": 17,
+      "incoming": 18,
       "outgoing": 11,
       "secondLevel": 55,
       "storageRefs": 0,
@@ -679,7 +679,7 @@
       "lines": 496,
       "incoming": 16,
       "outgoing": 2,
-      "secondLevel": 22,
+      "secondLevel": 23,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1548,9 +1548,9 @@
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
       "lines": 177,
-      "incoming": 71,
+      "incoming": 73,
       "outgoing": 4,
-      "secondLevel": 185,
+      "secondLevel": 187,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1667,7 +1667,7 @@
       "lines": 61,
       "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 107,
+      "secondLevel": 109,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1841,6 +1841,8 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
@@ -1964,6 +1966,8 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
         "js/app/shared/core-failsafe.js",
@@ -3049,6 +3053,7 @@
         "js/app/material/price-modal.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
         "js/tabs/wywiad-labor-summary.js",
@@ -3110,6 +3115,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -3208,6 +3214,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -3255,6 +3262,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -3571,6 +3579,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -3677,6 +3686,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/dev-tests-registry.js",
@@ -6718,6 +6728,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
@@ -6835,6 +6846,8 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
@@ -10560,7 +10573,7 @@
     "js/app/service/cutting/service-cutting-common.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 109,
+      "lines": 159,
       "defines": [
         "serviceCuttingCommon"
       ],
@@ -10598,7 +10611,7 @@
     "js/app/service/cutting/service-cutting-rozrys.js": {
       "area": "KATALOG/USŁUGI",
       "category": "ui/render/events",
-      "lines": 105,
+      "lines": 154,
       "defines": [
         "serviceCuttingRozrys"
       ],
@@ -10645,7 +10658,7 @@
     "js/app/service/cutting/service-order-detail.js": {
       "area": "KATALOG/USŁUGI",
       "category": "ui/render/events",
-      "lines": 257,
+      "lines": 303,
       "defines": [
         "serviceOrderDetail"
       ],
@@ -10657,6 +10670,7 @@
         "serviceCuttingCommon",
         "panelBox",
         "serviceCuttingRozrys",
+        "servicePro100Import",
         "serviceOrderDetail"
       ],
       "incomingFiles": [
@@ -10667,6 +10681,7 @@
         "js/app/catalog/catalog-store.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-order-store.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
@@ -10690,10 +10705,78 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/app/service/cutting/service-pro100-import-ui.js": {
+      "area": "KATALOG/USŁUGI",
+      "category": "ui/render/events",
+      "lines": 216,
+      "defines": [
+        "servicePro100Import"
+      ],
+      "uses": [
+        "utils",
+        "servicePro100Parser",
+        "catalogStore",
+        "servicePro100Import"
+      ],
+      "incomingFiles": [
+        "js/app/service/cutting/service-order-detail.js",
+        "js/testing/service/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/bootstrap/app-core-namespace.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/service/cutting/service-pro100-parser.js",
+        "js/app/shared/utils.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/service/service-orders.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/service/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 10,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/service/cutting/service-pro100-parser.js": {
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 131,
+      "defines": [
+        "servicePro100Parser"
+      ],
+      "uses": [
+        "utils",
+        "servicePro100Parser"
+      ],
+      "incomingFiles": [
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/testing/service/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/bootstrap/app-core-namespace.js",
+        "js/app/shared/utils.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/service/cutting/service-order-detail.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/service/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/service/service-order-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 169,
+      "lines": 176,
       "defines": [
         "serviceOrderStore"
       ],
@@ -10729,6 +10812,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/views.js",
@@ -10935,6 +11019,7 @@
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
@@ -12635,6 +12720,8 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
@@ -12827,6 +12914,8 @@
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
         "js/app/shared/core-failsafe.js",
@@ -13065,6 +13154,8 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/room-registry-foundation.js",
@@ -13150,6 +13241,8 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
         "js/app/shared/migrate.js",
@@ -18617,7 +18710,7 @@
     "js/testing/service/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 150,
+      "lines": 220,
       "defines": [
         "serviceDevTests"
       ],
@@ -18629,6 +18722,8 @@
         "catalogStore",
         "serviceCuttingCommon",
         "serviceCuttingRozrys",
+        "servicePro100Parser",
+        "servicePro100Import",
         "serviceOrderDetail",
         "serviceDevTests"
       ],
@@ -18640,6 +18735,8 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
         "js/testing/shared/harness.js",

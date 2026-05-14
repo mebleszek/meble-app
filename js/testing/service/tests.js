@@ -139,6 +139,76 @@
         H.assert(payload && payload.ok === true, 'Usługowy rozrys nie wygenerował planu', payload);
         H.assert(payload.plan && Array.isArray(payload.plan.sheets) && payload.plan.sheets.length >= 1, 'Usługowy rozrys nie zwrócił arkuszy', payload && payload.plan);
       }),
+
+      H.makeTest('Usługi', 'Parser PRO100 rozpoznaje stałe kolumny, ilość, kolor i oklejanie', 'Pilnuje, czy wklejka z PRO100 jest czytana bez ręcznego przepisywania formatek: = oznacza dwie krawędzie, - jedną, puste pole brak oklejania.', ()=>{
+        H.assert(FC.servicePro100Parser && typeof FC.servicePro100Parser.parse === 'function', 'Brak FC.servicePro100Parser.parse');
+        const parsed = FC.servicePro100Parser.parse('blenda NUT FREZ ROZCIĄĆ\t1433\t=\t150\t=\t18\t1\tU222_ST15\nwisząca wieniec\t415\t-\t258\t\t18\t6\tU222_ST15');
+        H.assert(parsed && parsed.ok === true, 'Parser PRO100 nie zaakceptował poprawnej wklejki', parsed);
+        H.assert(Array.isArray(parsed.rows) && parsed.rows.length === 2, 'Parser PRO100 nie zwrócił dwóch formatek', parsed);
+        H.assert(Number(parsed.rows[0].edgesAlong) === 2 && Number(parsed.rows[0].edgesAcross) === 2, 'Parser nie rozpoznał = jako dwóch krawędzi', parsed.rows[0]);
+        H.assert(Number(parsed.rows[1].edgesAlong) === 1 && Number(parsed.rows[1].edgesAcross) === 0, 'Parser nie rozpoznał -/puste jako jedna/brak krawędzi', parsed.rows[1]);
+        H.assert(Number(parsed.rows[1].qty) === 6 && String(parsed.rows[1].materialSymbol || '') === 'U222_ST15', 'Parser nie rozpoznał ilości albo koloru', parsed.rows[1]);
+      }),
+      H.makeTest('Usługi', 'Parser PRO100 liczy podsumowanie oklejania i grup po kolorze/grubości', 'Pilnuje, czy import PRO100 od razu daje podgląd metrażu i nie miesza kolorów/grubości w jednym koszyku.', ()=>{
+        const parsed = FC.servicePro100Parser.parse('A\t1000\t=\t500\t-\t18\t2\tU222_ST15\nB\t700\t\t300\t=\t18\t1\tU222_ST15');
+        H.assert(parsed.summary && Number(parsed.summary.totalQty) === 3, 'Podsumowanie PRO100 nie policzyło ilości sztuk', parsed.summary);
+        H.assert(Number(parsed.summary.edgeMeters) === 5.6, 'Podsumowanie PRO100 nie policzyło metrażu oklejania', parsed.summary);
+        H.assert(Array.isArray(parsed.summary.materials) && parsed.summary.materials.length === 1, 'Podsumowanie PRO100 nie pogrupowało po kolorze/grubości', parsed.summary);
+      }),
+      H.makeTest('Usługi', 'Import PRO100 wykrywa brakujące kolory i zapisuje ptaszek Ma słoje w materiale', 'Pilnuje, czy nowy kolor z PRO100 nie jest zgadywany po cichu i czy przy dodaniu materiału zachowuje decyzję o słojach.', ()=>{
+        H.assert(FC.servicePro100Import && typeof FC.servicePro100Import.uniqueMissingMaterials === 'function', 'Brak helperów importu PRO100');
+        const prevMaterials = FC.catalogStore.getSheetMaterials();
+        try{
+          FC.catalogStore.savePriceList('materials', []);
+          const parsed = FC.servicePro100Parser.parse('Front\t720\t=\t396\t-\t18\t2\tU999_ST9');
+          const missing = FC.servicePro100Import.uniqueMissingMaterials(parsed.rows, FC.catalogStore.getSheetMaterials());
+          H.assert(Array.isArray(missing) && missing.length === 1, 'Import PRO100 nie wykrył brakującego koloru', missing);
+          missing[0].hasGrain = true;
+          const map = FC.servicePro100Import.buildResolvedMaterialMap(parsed.rows, missing);
+          const saved = FC.catalogStore.getSheetMaterials();
+          H.assert(Array.isArray(saved) && saved.length === 1, 'Import PRO100 nie dodał materiału do katalogu', saved);
+          H.assert(saved[0].hasGrain === true, 'Dodany materiał nie zachował ptaszka Ma słoje', saved[0]);
+          H.assert(map && map.size === 1, 'Import PRO100 nie zwrócił mapy materiałów dla formatek', map);
+        } finally {
+          FC.catalogStore.savePriceList('materials', prevMaterials);
+        }
+      }),
+      H.makeTest('Usługi', 'Import PRO100 tworzy formatki zgodne ze szkicem usługowego rozrysu', 'Pilnuje, czy wklejone formatki trafiają do tego samego modelu części, którego używa istniejący rozrys usługowy.', ()=>{
+        const parsed = FC.servicePro100Parser.parse('Front\t720\t=\t396\t-\t18\t2\tU222_ST15');
+        const material = { id:'mat_u222', name:'U222_ST15', symbol:'U222_ST15', hasGrain:true };
+        const map = new Map([[parsed.rows[0].materialKey, material]]);
+        const parts = FC.servicePro100Import.rowsToParts(parsed.rows, map);
+        const draft = FC.serviceCuttingCommon.normalizeDraft({ materialMode:'catalog', materialId:'mat_u222', materialName:'U222_ST15', parts });
+        H.assert(Array.isArray(draft.parts) && draft.parts.length === 1, 'Import PRO100 nie utworzył formatki w draft', draft);
+        H.assert(Number(draft.parts[0].along) === 720 && Number(draft.parts[0].across) === 396, 'Draft po imporcie PRO100 ma złe wymiary', draft.parts[0]);
+        H.assert(Number(draft.parts[0].edgesAlong) === 2 && Number(draft.parts[0].edgesAcross) === 1, 'Draft po imporcie PRO100 ma złe oklejanie', draft.parts[0]);
+        H.assert(draft.parts[0].hasGrain === true && String(draft.parts[0].materialSymbol || '') === 'U222_ST15', 'Draft po imporcie PRO100 zgubił materiał/słoje', draft.parts[0]);
+      }),
+      H.makeTest('Usługi', 'Store zleceń zachowuje formatki PRO100 przy zapisie i odczycie', 'Pilnuje, czy zapis zlecenia usługowego nie kasuje materiału, grubości i informacji o słojach z importu PRO100.', ()=>{
+        withOrdersStorage(()=>{
+          const saved = FC.serviceOrderStore.upsert({ id:'so_pro100', title:'Import PRO100', cutting:{ parts:[{ name:'Front', qty:2, along:720, across:396, edgesAlong:2, edgesAcross:1, thickness:18, materialId:'mat_u222', materialName:'U222_ST15', materialSymbol:'U222_ST15', hasGrain:true, source:'pro100' }] } });
+          const row = FC.serviceOrderStore.getById(saved.id);
+          H.assert(row && row.cutting && Array.isArray(row.cutting.parts) && row.cutting.parts.length === 1, 'Store nie zachował części cięcia', row);
+          H.assert(Number(row.cutting.parts[0].thickness) === 18, 'Store zgubił grubość formatki PRO100', row.cutting.parts[0]);
+          H.assert(String(row.cutting.parts[0].materialSymbol || '') === 'U222_ST15' && row.cutting.parts[0].hasGrain === true, 'Store zgubił materiał albo słoje formatki PRO100', row.cutting.parts[0]);
+        });
+      }),
+      H.makeTest('Usługi', 'Usługowy rozrys pozwala obracać formatki bez słojów i pilnuje kierunku przy słojach', 'Pilnuje, czy ptaszek Ma słoje z materiału wpływa na ROZRYS zamiast zawsze blokować obrót.', ()=>{
+        H.assert(FC.serviceCuttingRozrys && typeof FC.serviceCuttingRozrys.generatePlan === 'function', 'Brak serviceCuttingRozrys.generatePlan');
+        const prevMaterials = FC.catalogStore.getSheetMaterials();
+        try{
+          FC.catalogStore.savePriceList('materials', [
+            { id:'mat_plain', materialType:'laminat', manufacturer:'PRO100', symbol:'PLAIN', name:'PLAIN', price:0, hasGrain:false },
+            { id:'mat_grain', materialType:'laminat', manufacturer:'PRO100', symbol:'GRAIN', name:'GRAIN', price:0, hasGrain:true }
+          ]);
+          const plain = FC.serviceCuttingRozrys.generatePlan({ materialMode:'catalog', materialId:'mat_plain', materialName:'PLAIN', parts:[{ name:'A', qty:1, along:700, across:300, edgesAlong:0, edgesAcross:0, materialId:'mat_plain', materialName:'PLAIN' }] });
+          const grain = FC.serviceCuttingRozrys.generatePlan({ materialMode:'catalog', materialId:'mat_grain', materialName:'GRAIN', parts:[{ name:'A', qty:1, along:700, across:300, edgesAlong:0, edgesAcross:0, materialId:'mat_grain', materialName:'GRAIN', hasGrain:true }] });
+          H.assert(plain && plain.ok === true && plain.state && plain.state.grain === false, 'Rozrys usługowy nie wyłączył słojów dla materiału bez słojów', plain);
+          H.assert(grain && grain.ok === true && grain.state && grain.state.grain === true, 'Rozrys usługowy nie włączył słojów dla materiału ze słojami', grain);
+        } finally {
+          FC.catalogStore.savePriceList('materials', prevMaterials);
+        }
+      }),
       H.makeTest('Usługi', 'Lista zleceń ma wejście do szczegółu usługowego cięcia', 'Pilnuje, czy warstwa usług ma osobny moduł wejścia do szczegółu zlecenia, a nie tylko edycję ogólnych danych.', ()=>{
         H.assert(FC.serviceOrderDetail && typeof FC.serviceOrderDetail.open === 'function', 'Brak FC.serviceOrderDetail.open');
       }),

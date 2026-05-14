@@ -636,3 +636,10 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Dodane testy wzmacniają kontrakt wymagany pod przyszłą chmurę: `buildImportPlan()` przygotowuje plan bez zapisu danych użytkownika, a trwały zapis odbywa się dopiero przez `applyImportPlan()`.
 - Testy pilnują, żeby techniczne flagi importu typu `__skipImport` pozostały stanem roboczym importu, a nie domenowymi danymi do synchronizacji.
 - Testy potwierdzają, że dostawcy nie dostają VAT-u per rekord, globalny VAT pozostaje w ustawieniach, a rabat jest atrybutem dostawcy.
+
+## PRO100 / drobne usługi stolarskie — 2026-05-14
+
+- Import PRO100 nie dostał nowego klucza storage; korzysta z istniejących granic `fc_service_orders_v1` oraz katalogu materiałów zarządzanego przez `catalogStore`.
+- Formatki PRO100 są częścią zlecenia usługowego w `cutting.parts`: wymiary, ilość, krawędzie, materiał, grubość, `hasGrain` i źródło `pro100`.
+- Brakujące kolory z importu są dopisywane jako zwykłe materiały katalogowe przez `catalogStore.savePriceList('materials')`, dzięki czemu późniejsza chmura może synchronizować je tak jak resztę cennika materiałów.
+- Nie tworzyć osobnego, lokalnego storage dla wklejek PRO100. Jeśli później powstanie historia importów, musi dostać wersjonowany klucz `fc_*` albo osobny repository/adapter.

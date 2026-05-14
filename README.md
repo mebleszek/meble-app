@@ -417,3 +417,17 @@ node tools/hardware-import-export-deep-smoke.js
 
 - Testy są też podpięte pod `dev_tests.html` → `MATERIAŁY`, więc można je uruchomić w przeglądarce razem z pozostałymi testami materiałów i akcesoriów.
 - Paczka nie zmienia runtime aplikacji ani UI; rozszerza wyłącznie zabezpieczenia regresyjne.
+
+## PRO100 service import v1 — 2026-05-14
+
+- W drobnych usługach stolarskich dodano import wklejki formatek z PRO100.
+- Format: `nazwa | długość wzdłuż słoja | oklejanie długości | szerokość | oklejanie szerokości | grubość | ilość | kolor`.
+- Znaki oklejania: `=` dwie krawędzie, `-` jedna krawędź, puste pole brak oklejania.
+- Import dopisuje formatki do istniejącego zlecenia usługowego albo zastępuje listę formatek.
+- Brakujące kolory/dekory można dodać do katalogu materiałów z ptaszkiem `Ma słoje`; decyzja ta wpływa na usługowy ROZRYS.
+- Usługowy ROZRYS grupuje formatki po materiale/grubości, żeby nie mieszać różnych płyt w jednym planie.
+- Nowe narzędzie testowe:
+
+```bash
+node tools/service-pro100-dev-smoke.js
+```
