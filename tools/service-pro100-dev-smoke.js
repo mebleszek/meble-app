@@ -10,12 +10,18 @@ function createSandbox(){
     console,
     setTimeout, clearTimeout,
     Date, Math, JSON,
+    Blob: global.Blob,
+    TextEncoder: global.TextEncoder,
+    TextDecoder: global.TextDecoder,
     localStorage: makeStorage(),
     sessionStorage: makeStorage(),
     Storage: SmokeStorage,
     document: makeMiniDocument(),
     structuredClone: global.structuredClone || ((x)=> JSON.parse(JSON.stringify(x))),
     crypto: require('crypto').webcrypto,
+    __DEV_ASSETS__: {
+      'service-pro100-import-ui.js': fs.readFileSync(path.join(process.cwd(), 'js/app/service/cutting/service-pro100-import-ui.js'), 'utf8'),
+    },
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;

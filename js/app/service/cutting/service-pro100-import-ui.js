@@ -21,6 +21,7 @@
   function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return null; } }
   function uid(prefix){ try{ return FC.utils && typeof FC.utils.uid === 'function' ? FC.utils.uid() : `${prefix || 'id'}_${Date.now()}_${Math.random().toString(16).slice(2)}`; }catch(_){ return `${prefix || 'id'}_${Date.now()}`; } }
   function parser(){ return FC.servicePro100Parser || null; }
+  function info(title, message){ try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title, message }); }catch(_){ } }
   function catalog(){ return FC.catalogStore || null; }
   function getMaterials(){ try{ return catalog() && catalog().getSheetMaterials ? catalog().getSheetMaterials() : []; }catch(_){ return []; } }
   function saveMaterials(list){ try{ return catalog() && catalog().savePriceList ? catalog().savePriceList('materials', list) : list; }catch(_){ return list; } }
@@ -34,6 +35,33 @@
       return itemSymbol === symbol || itemName === symbol || itemName.includes(symbol);
     }) || null;
   }
+  function firstWorkbookSheet(workbook){
+    const names = Object.keys(workbook || {});
+    return names.length ? (workbook[names[0]] || []) : [];
+  }
+  async function parseFile(file){
+    const name = text(file && file.name).toLowerCase();
+    if(!file) throw new Error('Nie wybrano pliku.');
+    if(name.endsWith('.xlsx')){
+      if(!(FC.xlsxLite && typeof FC.xlsxLite.readWorkbook === 'function')) throw new Error('Brak modułu odczytu XLSX.');
+      const workbook = await FC.xlsxLite.readWorkbook(file);
+      return parser().parseRows(firstWorkbookSheet(workbook));
+    }
+    if(name.endsWith('.csv') || name.endsWith('.txt') || name.endsWith('.tsv') || !name.includes('.')){
+      if(typeof file.text === 'function') return parser().parse(await file.text());
+      const value = await new Promise((resolve, reject)=>{
+        try{
+          const reader = new FileReader();
+          reader.onload = ()=> resolve(String(reader.result || ''));
+          reader.onerror = ()=> reject(reader.error || new Error('Nie udało się odczytać pliku.'));
+          reader.readAsText(file);
+        }catch(error){ reject(error); }
+      });
+      return parser().parse(value);
+    }
+    throw new Error('Obsługiwane są pliki XLSX, CSV, TSV albo TXT.');
+  }
+
   function uniqueMissingMaterials(rows, materials){
     const seen = new Set();
     const out = [];
@@ -137,11 +165,17 @@
     let missingState = [];
     const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock' });
     const scroll = h('div', { class:'panel-box-form__scroll' });
+    const fileInput = h('input', { type:'file', accept:'.xlsx,.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', style:'display:none;' });
+    const fileBar = h('div', { style:'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;' });
+    const fileBtn = h('button', { class:'btn', type:'button', text:'Wczytaj plik XLSX / CSV / TXT' });
+    const fileStatus = h('span', { class:'muted xs', text:'Możesz też wkleić tabelę niżej.' });
+    fileBar.appendChild(fileBtn); fileBar.appendChild(fileStatus); fileBar.appendChild(fileInput);
     const area = h('textarea', { class:'investor-form-input investor-form-textarea', placeholder:'Wklej tabelę z PRO100: nazwa | długość | oklejanie | szerokość | oklejanie | grubość | ilość | kolor', style:'min-height:170px;font-family:monospace;' });
     const modeWrap = h('div', { style:'display:flex;gap:10px;align-items:center;margin:8px 0;flex-wrap:wrap;' });
     const appendCb = h('input', { type:'checkbox' }); appendCb.checked = true;
     modeWrap.appendChild(h('label', { style:'display:flex;align-items:center;gap:8px;font-weight:800;' }, [appendCb, h('span', { text:'Dopisz do obecnych formatek' })]));
     const preview = h('div', { style:'margin-top:10px;' });
+    scroll.appendChild(fileBar);
     scroll.appendChild(area);
     scroll.appendChild(modeWrap);
     scroll.appendChild(preview);
@@ -154,13 +188,33 @@
     applyBtn.disabled = true;
     actions.appendChild(closeBtn); actions.appendChild(analyzeBtn); actions.appendChild(applyBtn); footer.appendChild(actions); body.appendChild(footer);
 
-    function analyze(){
-      parsed = parser().parse(area.value || '');
+    function applyParsed(nextParsed, sourceLabel){
+      parsed = nextParsed || null;
       missingState = parsed && parsed.ok ? uniqueMissingMaterials(parsed.rows, getMaterials()) : [];
       applyBtn.disabled = !(parsed && parsed.ok);
+      if(sourceLabel) fileStatus.textContent = sourceLabel;
       fillPreview(preview, parsed, missingState);
     }
+    function analyze(){
+      applyParsed(parser().parse(area.value || ''), 'Analiza danych wklejonych ręcznie.');
+    }
+    async function analyzeSelectedFile(file){
+      try{
+        fileStatus.textContent = `Wczytuję: ${text(file && file.name) || 'plik'}...`;
+        const nextParsed = await parseFile(file);
+        applyParsed(nextParsed, `Wczytano: ${text(file && file.name) || 'plik'} — ${nextParsed && nextParsed.rows ? nextParsed.rows.length : 0} formatek.`);
+      }catch(error){
+        applyParsed(null, 'Nie udało się wczytać pliku.');
+        info('Import PRO100 — błąd pliku', String(error && error.message || error));
+      }
+    }
     analyzeBtn.addEventListener('click', analyze);
+    fileBtn.addEventListener('click', ()=>{ try{ fileInput.click(); }catch(_){ } });
+    fileInput.addEventListener('change', ()=>{
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if(file) analyzeSelectedFile(file);
+    });
     let overlay = null;
     function closeSelf(){
       try{ if(overlay) overlay.remove(); }catch(_){ }
@@ -208,6 +262,7 @@
 
   FC.servicePro100Import = {
     open,
+    parseFile,
     uniqueMissingMaterials,
     rowsToParts,
     buildResolvedMaterialMap,

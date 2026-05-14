@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-14T15:01:55.963Z",
+  "generatedAt": "2026-05-14T22:00:27.171Z",
   "summary": {
     "jsFiles": 344,
     "indexScripts": 268,
     "devTestScripts": 301,
     "fcSymbols": 252,
     "fcSymbolsAll": 280,
-    "edges": 1802,
+    "edges": 1805,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 22,
-      "lines": 3841,
+      "lines": 3924,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 11877,
+      "lines": 11910,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -273,7 +273,7 @@
     ],
     [
       "js/app/ui/info-box.js",
-      26
+      27
     ],
     [
       "js/app/project/project-bridge.js",
@@ -359,7 +359,7 @@
     ],
     [
       "js/app/ui/info-box.js",
-      73
+      74
     ],
     [
       "js/app/ui/confirm-box.js",
@@ -10708,14 +10708,16 @@
     "js/app/service/cutting/service-pro100-import-ui.js": {
       "area": "KATALOG/USŁUGI",
       "category": "ui/render/events",
-      "lines": 216,
+      "lines": 271,
       "defines": [
         "servicePro100Import"
       ],
       "uses": [
         "utils",
         "servicePro100Parser",
+        "infoBox",
         "catalogStore",
+        "xlsxLite",
         "servicePro100Import"
       ],
       "incomingFiles": [
@@ -10726,7 +10728,9 @@
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/catalog/catalog-store.js",
         "js/app/service/cutting/service-pro100-parser.js",
-        "js/app/shared/utils.js"
+        "js/app/shared/utils.js",
+        "js/app/shared/xlsx-lite.js",
+        "js/app/ui/info-box.js"
       ],
       "secondLevelFiles": [
         "js/app/service/service-orders.js",
@@ -10735,16 +10739,18 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 10,
+      "domRefs": 12,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/service/cutting/service-pro100-parser.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 131,
+      "lines": 159,
       "defines": [
         "servicePro100Parser"
       ],
@@ -13389,15 +13395,20 @@
       ],
       "incomingFiles": [
         "js/app/catalog/hardware-catalog-export-xlsx.js",
-        "js/app/catalog/hardware-catalog-import-parser.js"
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/testing/service/tests.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/testing/dev-tests-registry.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
-        "js/testing/material/accessories-tests.js"
+        "js/testing/material/accessories-tests.js",
+        "js/testing/service/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -14015,6 +14026,7 @@
         "js/app/quote/quote-scope-entry-modal.js",
         "js/app/rozrys/rozrys-ui-tools.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-modals-add-edit.js",
         "js/app/shared/room-registry-modals-manage-remove.js",
@@ -14053,6 +14065,7 @@
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-stock.js",
         "js/app/rozrys/rozrys.js",
+        "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-modals.js",
         "js/app/ui/actions-register.js",
@@ -18710,7 +18723,7 @@
     "js/testing/service/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 220,
+      "lines": 253,
       "defines": [
         "serviceDevTests"
       ],
@@ -18724,6 +18737,7 @@
         "serviceCuttingRozrys",
         "servicePro100Parser",
         "servicePro100Import",
+        "xlsxLite",
         "serviceOrderDetail",
         "serviceDevTests"
       ],
@@ -18739,6 +18753,7 @@
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
+        "js/app/shared/xlsx-lite.js",
         "js/testing/shared/harness.js",
         "js/testing/test-data-manager.js"
       ],
@@ -18752,6 +18767,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
+        "250+ linii",
         "kilka zależności wychodzących"
       ]
     },

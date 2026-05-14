@@ -1,3 +1,8 @@
+### 2026-05-14 — pro100 file import v1
+- Modal `Import PRO100` w drobnych usługach stolarskich obsługuje teraz nie tylko wklejkę, ale też pliki `.xlsx`, `.csv`, `.tsv` i `.txt`.
+- XLSX jest czytany z pierwszego arkusza przez istniejący moduł `xlsxLite`; puste wiersze i nagłówek są pomijane.
+- Wczytany plik idzie przez ten sam parser, podgląd, wykrywanie brakujących kolorów, ptaszek `Ma słoje` i zapis do `cutting.parts` co ręczne wklejenie tabeli.
+
 ### 2026-05-13 — hardware missing supplier duplicate fix v1
 - Import `Ceny_dostawcow` poprawnie otwiera resolver wyboru dostawcy dla ceny istniejącego okucia nawet wtedy, gdy to samo okucie jest równocześnie w aktualnym katalogu i w arkuszu `Okucia`.
 - Śmieciowy albo nierozpoznany dostawca, np. przypadkowe `14`, nie powoduje już cichego pominięcia ceny, jeśli `producent + symbol` wskazują istniejące okucie.

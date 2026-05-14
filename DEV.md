@@ -902,3 +902,15 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Nie zmieniono runtime aplikacji, UI, modelu danych ani importu/exportu; to paczka testowa/stabilizująca po refaktorze.
 - Od tej paczki przed kolejnymi zmianami przy import/export okuć uruchamiać dodatkowo `node tools/hardware-import-export-deep-smoke.js`.
 - Raport: `tools/reports/hardware-import-export-deep-tests-v1.md`.
+
+
+## PRO100 file import v1 — 2026-05-14
+
+- Aktualna paczka robocza po tym etapie: `site_pro100_file_import_v1.zip`.
+- Baza startowa: `site_pro100_board_parts_import_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
+- Modal `Import formatek PRO100` w drobnych usługach stolarskich ma teraz dwie ścieżki: wklejenie tabeli oraz `Wczytaj plik XLSX / CSV / TXT`.
+- Plik XLSX czyta pierwszy arkusz przez istniejący `FC.xlsxLite`, a CSV/TSV/TXT idą przez odczyt tekstowy; oba wejścia korzystają z tego samego parsera i tego samego podglądu co wklejka.
+- Parser PRO100 dostał `parseRows()`/`parseColumns()`, pomija puste wiersze i rozpoznawalny nagłówek, ale nie tworzy osobnego modelu danych ani osobnego storage.
+- Import pliku dalej zapisuje formatki w istniejącym `cutting.parts`, zachowuje wykrywanie brakujących kolorów, ptaszek `Ma słoje`, grupowanie do usługowego ROZRYS-u i dotychczasowe dodawanie/zastępowanie formatek.
+- Dodano testy dla wierszy z pliku, wejścia plikowego oraz realnej ścieżki XLSX → pierwszy arkusz → parser PRO100.
+- Raport: `tools/reports/pro100-file-import-v1.md`.

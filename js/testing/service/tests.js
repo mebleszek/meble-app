@@ -149,6 +149,39 @@
         H.assert(Number(parsed.rows[1].edgesAlong) === 1 && Number(parsed.rows[1].edgesAcross) === 0, 'Parser nie rozpoznał -/puste jako jedna/brak krawędzi', parsed.rows[1]);
         H.assert(Number(parsed.rows[1].qty) === 6 && String(parsed.rows[1].materialSymbol || '') === 'U222_ST15', 'Parser nie rozpoznał ilości albo koloru', parsed.rows[1]);
       }),
+      H.makeTest('Usługi', 'Parser PRO100 czyta wiersze z pliku i pomija nagłówek', 'Pilnuje, czy wczytany XLSX/CSV może iść tą samą ścieżką co wklejka, bez dopisywania osobnej martwej logiki.', ()=>{
+        H.assert(FC.servicePro100Parser && typeof FC.servicePro100Parser.parseRows === 'function', 'Brak FC.servicePro100Parser.parseRows');
+        const parsed = FC.servicePro100Parser.parseRows([
+          ['nazwa formatki', 'długość', 'oklejanie', 'szerokość', 'oklejanie', 'grubość', 'ilość', 'kolor'],
+          ['', '', '', '', '', '', '', ''],
+          ['Front', '720', '=', '396', '-', '18', '2', 'U222_ST15'],
+          ['Bok', '800', '', '500', '=', '18', '1', 'U999_ST9'],
+        ]);
+        H.assert(parsed && parsed.ok === true, 'Parser nie zaakceptował wierszy z pliku', parsed);
+        H.assert(Array.isArray(parsed.rows) && parsed.rows.length === 2, 'Parser nie pominął nagłówka/pustego wiersza z pliku', parsed);
+        H.assert(Number(parsed.rows[0].edgesAlong) === 2 && Number(parsed.rows[0].edgesAcross) === 1, 'Parser wierszy z pliku źle rozpoznał oklejanie', parsed.rows[0]);
+      }),
+      H.makeTest('Usługi', 'Import PRO100 ma wejście do wczytania XLSX/CSV/TXT', 'Pilnuje, czy modal nie ogranicza się już do wklejania tekstu i ma API do wczytania pliku tą samą logiką parsera.', ()=>{
+        H.assert(FC.servicePro100Import && typeof FC.servicePro100Import.parseFile === 'function', 'Brak FC.servicePro100Import.parseFile');
+        const src = String(host.__DEV_ASSETS__ && host.__DEV_ASSETS__['service-pro100-import-ui.js'] || '');
+        if(src){
+          H.assert(src.includes('Wczytaj plik XLSX / CSV / TXT') && src.includes("accept:'.xlsx,.csv,.tsv,.txt") && src.includes('FC.xlsxLite.readWorkbook(file)'), 'UI importu PRO100 nie ma wejścia plikowego XLSX/CSV/TXT', src.slice(0, 300));
+        }
+      }),
+      H.makeTest('Usługi', 'Import PRO100 wczytuje plik XLSX przez wspólny parser', 'Pilnuje realnej ścieżki plik XLSX → pierwszy arkusz → parser PRO100 → podgląd, bez osobnego zachowania względem wklejki.', async ()=>{
+        if(typeof Blob === 'undefined') return;
+        H.assert(FC.xlsxLite && typeof FC.xlsxLite.makeWorkbookBlob === 'function' && typeof FC.xlsxLite.readWorkbook === 'function', 'Brak FC.xlsxLite do testu XLSX');
+        H.assert(FC.servicePro100Import && typeof FC.servicePro100Import.parseFile === 'function', 'Brak parseFile importu PRO100');
+        const blob = FC.xlsxLite.makeWorkbookBlob({ Formatki:{ rows:[
+          ['nazwa formatki', 'długość', 'oklejanie długości', 'szerokość', 'oklejanie szerokości', 'grubość', 'ilość', 'kolor'],
+          ['Front XLSX', '720', '=', '396', '-', '18', '2', 'U222_ST15'],
+        ] } });
+        blob.name = 'formatki_pro100.xlsx';
+        const parsed = await FC.servicePro100Import.parseFile(blob);
+        H.assert(parsed && parsed.ok === true, 'Wczytany XLSX nie przeszedł parsera PRO100', parsed);
+        H.assert(Array.isArray(parsed.rows) && parsed.rows.length === 1, 'XLSX nie zwrócił jednej formatki po pominięciu nagłówka', parsed);
+        H.assert(String(parsed.rows[0].name || '') === 'Front XLSX' && Number(parsed.rows[0].qty) === 2, 'XLSX zgubił nazwę albo ilość formatki', parsed.rows[0]);
+      }),
       H.makeTest('Usługi', 'Parser PRO100 liczy podsumowanie oklejania i grup po kolorze/grubości', 'Pilnuje, czy import PRO100 od razu daje podgląd metrażu i nie miesza kolorów/grubości w jednym koszyku.', ()=>{
         const parsed = FC.servicePro100Parser.parse('A\t1000\t=\t500\t-\t18\t2\tU222_ST15\nB\t700\t\t300\t=\t18\t1\tU222_ST15');
         H.assert(parsed.summary && Number(parsed.summary.totalQty) === 3, 'Podsumowanie PRO100 nie policzyło ilości sztuk', parsed.summary);

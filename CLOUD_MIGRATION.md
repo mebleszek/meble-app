@@ -643,3 +643,10 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Formatki PRO100 są częścią zlecenia usługowego w `cutting.parts`: wymiary, ilość, krawędzie, materiał, grubość, `hasGrain` i źródło `pro100`.
 - Brakujące kolory z importu są dopisywane jako zwykłe materiały katalogowe przez `catalogStore.savePriceList('materials')`, dzięki czemu późniejsza chmura może synchronizować je tak jak resztę cennika materiałów.
 - Nie tworzyć osobnego, lokalnego storage dla wklejek PRO100. Jeśli później powstanie historia importów, musi dostać wersjonowany klucz `fc_*` albo osobny repository/adapter.
+
+
+## PRO100 file import v1 — 2026-05-14
+
+- Wczytanie pliku PRO100 nie dodaje nowego storage ani nowych kluczy `localStorage`; jest tylko alternatywnym źródłem wejściowym dla istniejącego parsera i modelu `cutting.parts`.
+- Brakujące kolory nadal zapisuje istniejący `catalogStore` materiałów arkuszowych, tak jak w imporcie przez wklejkę; rekordy materiałów pozostają mapowalne do przyszłej chmury.
+- Pliki XLSX/CSV/TXT są czytane lokalnie po stronie przeglądarki i nie są utrwalane jako pliki ani cache.

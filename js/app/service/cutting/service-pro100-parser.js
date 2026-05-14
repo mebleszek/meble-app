@@ -43,19 +43,29 @@
   function makeMaterialKey(symbol, thickness){
     return `${text(symbol).toLowerCase()}|${text(thickness).toLowerCase()}`;
   }
-  function parseLine(line, sourceLine){
-    const cols = readColumns(line);
-    if(cols.length < 8){
-      return { ok:false, sourceLine, raw:String(line || ''), warning:'Nie rozpoznano 8 kolumn PRO100.' };
+  function isLikelyHeader(cols){
+    const list = (Array.isArray(cols) ? cols : []).map((col)=> text(col).toLowerCase());
+    if(!list.length) return false;
+    const joined = list.join(' ');
+    const hasName = /nazwa|format/.test(joined);
+    const hasDim = /dług|dlug|szer|wymiar/.test(joined);
+    const hasMaterial = /kolor|dekor|materiał|material/.test(joined);
+    return !!(hasName && (hasDim || hasMaterial));
+  }
+  function parseColumns(cols, sourceLine, raw){
+    const input = Array.isArray(cols) ? cols : [];
+    if(input.length < 8){
+      return { ok:false, sourceLine, raw:String(raw || ''), warning:'Nie rozpoznano 8 kolumn PRO100.' };
     }
-    const name = text(cols[0]);
-    const along = num(cols[1]);
-    const edgesAlong = tokenEdge(cols[2]);
-    const across = num(cols[3]);
-    const edgesAcross = tokenEdge(cols[4]);
-    const thickness = num(cols[5]);
-    const qty = Math.max(1, Math.round(num(cols[6]) || 1));
-    const materialSymbol = text(cols.slice(7).join(' '));
+    if(isLikelyHeader(input)) return { ok:false, skip:true, sourceLine, raw:String(raw || input.join('\t')), warning:'Pominięto nagłówek.' };
+    const name = text(input[0]);
+    const along = num(input[1]);
+    const edgesAlong = tokenEdge(input[2]);
+    const across = num(input[3]);
+    const edgesAcross = tokenEdge(input[4]);
+    const thickness = num(input[5]);
+    const qty = Math.max(1, Math.round(num(input[6]) || 1));
+    const materialSymbol = text(input.slice(7).join(' '));
     const row = {
       id: uid('pro100_part'),
       sourceLine,
@@ -76,8 +86,11 @@
     if(!(across > 0)) missing.push('szerokość');
     if(!(thickness > 0)) missing.push('grubość');
     if(!materialSymbol) missing.push('kolor');
-    if(missing.length) return { ok:false, sourceLine, raw:String(line || ''), warning:`Braki: ${missing.join(', ')}.`, row };
+    if(missing.length) return { ok:false, sourceLine, raw:String(raw || input.join('\t')), warning:`Braki: ${missing.join(', ')}.`, row };
     return { ok:true, row };
+  }
+  function parseLine(line, sourceLine){
+    return parseColumns(readColumns(line), sourceLine, String(line || ''));
   }
   function summarize(rows){
     const parsed = Array.isArray(rows) ? rows : [];
@@ -115,14 +128,29 @@
       if(!String(line || '').trim()) return;
       const result = parseLine(line, index + 1);
       if(result.ok) rows.push(result.row);
-      else warnings.push({ line:index + 1, message:result.warning, raw:result.raw, row:result.row || null });
+      else if(!result.skip) warnings.push({ line:index + 1, message:result.warning, raw:result.raw, row:result.row || null });
+    });
+    return { ok:rows.length > 0, rows, warnings, summary:summarize(rows) };
+  }
+  function parseRows(rowArrays){
+    const rows = [];
+    const warnings = [];
+    (Array.isArray(rowArrays) ? rowArrays : []).forEach((input, index)=>{
+      const cols = Array.isArray(input) ? input : [input];
+      const isEmpty = cols.every((col)=> !text(col));
+      if(isEmpty) return;
+      const result = parseColumns(cols, index + 1, cols.map(text).join('\t'));
+      if(result.ok) rows.push(result.row);
+      else if(!result.skip) warnings.push({ line:index + 1, message:result.warning, raw:result.raw, row:result.row || null });
     });
     return { ok:rows.length > 0, rows, warnings, summary:summarize(rows) };
   }
 
   FC.servicePro100Parser = {
     parse,
+    parseRows,
     parseLine,
+    parseColumns,
     summarize,
     tokenEdge,
     makeMaterialKey,

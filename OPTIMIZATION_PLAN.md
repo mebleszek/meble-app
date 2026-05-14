@@ -714,3 +714,9 @@ node tools/hardware-accessories-dev-smoke.js
 - Obecny etap dodaje parser i UI importu bez osobnego storage. Następne prace powinny iść przez istniejący model zleceń usługowych.
 - Jeśli import PRO100 zacznie obsługiwać dodatkowe operacje z nazw (`NUT`, `FREZ`, `ROZCIĄĆ`, `FRONT ZAWIASY`), nie dokładać tego do parsera bazowego. Dodać osobny moduł rozpoznawania operacji i osobne testy.
 - `service-order-detail.js` ma ok. 300 linii i jest plikiem ostrożności. Przy następnej większej zmianie UI usług rozdzielić formularz podstawowy, listę formatek i akcje rozrysu.
+
+
+## PRO100 file import v1 — 2026-05-14
+
+- Import plikowy PRO100 został dołożony bez duplikowania logiki wklejki: `parseRows()` i `parseColumns()` są wspólnym wejściem dla XLSX/CSV/TXT oraz tekstu wklejanego.
+- Nie powstał osobny importer usługowy ani osobny storage; dalsze porządki w usługach powinny iść w kierunku wspólnego modelu formatek/oklein wskazanego w planie `Materiał + ROZRYS`.
