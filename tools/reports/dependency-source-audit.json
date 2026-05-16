@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T20:16:26.060Z",
+  "generatedAt": "2026-05-16T10:44:04.800Z",
   "summary": {
     "jsFiles": 346,
     "indexScripts": 270,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 28,
-      "lines": 3323,
+      "lines": 3432,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -14678,7 +14678,7 @@
     "js/app/ui/wywiad-room-preferences.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 276,
+      "lines": 329,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -14686,7 +14686,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 14,
+      "domRefs": 15,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -14697,7 +14697,7 @@
     "js/app/ui/wywiad-room-settings.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 258,
+      "lines": 314,
       "defines": [],
       "uses": [
         "roomRegistry",
@@ -14712,7 +14712,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 14,
+      "domRefs": 18,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

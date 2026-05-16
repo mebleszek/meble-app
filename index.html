@@ -15,7 +15,7 @@
 <link href="css/rozrys-main.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/investor-table-sync.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/wycena.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
-<link href="css/wywiad.css?v=20260515_room_preferences_stage1_v1" rel="stylesheet"/>
+<link href="css/wywiad.css?v=20260516_room_accordion_inline_v1" rel="stylesheet"/>
 <link href="css/style.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/investor-layout.css?v=20260424_wywiad_front_hardware_split_v1" rel="stylesheet"/>
 <link href="css/investor-form.css?v=20260405_field_unify_width_sync_v1" rel="stylesheet"/>
@@ -117,29 +117,19 @@
 </div>
 <div class="wywiad-room-shell__summary muted xs">Auto-wysokość góry: <strong id="autoTopHeight">0</strong> cm</div>
 </div>
-<details class="wywiad-room-accordion" id="roomParametersAccordion" open>
+<details class="wywiad-room-accordion" id="roomParametersAccordion">
 <summary class="wywiad-room-accordion__summary">
 <span class="wywiad-room-accordion__title">Parametry pomieszczenia</span>
 <span class="wywiad-room-accordion__chevron" aria-hidden="true">▾</span>
 </summary>
-<div class="wywiad-room-accordion__body">
-<div class="wywiad-room-shell__stats wywiad-room-shell__stats--compact" id="roomSettingsSummary"></div>
-<div class="wywiad-room-shell__actions">
-<button class="btn wywiad-room-shell__open-btn" data-action="open-room-settings" id="openRoomSettingsBtn" type="button">Edytuj parametry</button>
-</div>
-</div>
+<div class="wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomSettingsSummary"></div>
 </details>
-<details class="wywiad-room-accordion" id="roomPreferencesAccordion" open>
+<details class="wywiad-room-accordion" id="roomPreferencesAccordion">
 <summary class="wywiad-room-accordion__summary">
 <span class="wywiad-room-accordion__title">Preferencje standardu</span>
 <span class="wywiad-room-accordion__chevron" aria-hidden="true">▾</span>
 </summary>
-<div class="wywiad-room-accordion__body">
-<div class="wywiad-room-shell__stats wywiad-room-shell__stats--compact" id="roomPreferencesSummary"></div>
-<div class="wywiad-room-shell__actions">
-<button class="btn wywiad-room-shell__open-btn" data-action="open-room-preferences" id="openRoomPreferencesBtn" type="button">Edytuj preferencje</button>
-</div>
-</div>
+<div class="wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomPreferencesSummary"></div>
 </details>
 </div>
 <div class="card wywiad-cabinets-shell" style="margin-top:12px">
@@ -1019,8 +1009,8 @@
 <script data-load-group="app-runtime" defer="" src="js/app/bootstrap/reload-restore.js?v=20260426_reload_restore_boundary_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/investor/project-autosave.js?v=20260426_project_autosave_load_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/settings-ui.js?v=20260423_restore_stable_room_flow_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-settings.js?v=20260418_wywiad_room_params_fix_v3"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-preferences.js?v=20260515_room_preferences_stage1_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-settings.js?v=20260516_room_accordion_inline_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-preferences.js?v=20260516_room_accordion_inline_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-project-source.js?v=20260419_room_rozrys_split_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-manifest.js?v=20260420_rozrys_lazy_tab_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-loader.js?v=20260420_rozrys_background_warmup_v1"></script>
@@ -1028,7 +1018,7 @@
 <script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-core-namespace.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app.js?v=20260502_app_legacy_bridges_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-legacy-bridges.js?v=20260502_app_legacy_bridges_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/ui/cabinets-render.js?v=20260515_room_preferences_stage1_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/cabinets-render.js?v=20260516_room_accordion_inline_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
 
 <!-- load-group: cabinet-wywiad | Wywiad / cabinet modal stack -->

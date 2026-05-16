@@ -445,3 +445,17 @@ node tools/service-pro100-dev-smoke.js
 - `Standard okuć` nie został dodany, zgodnie z decyzją, że później używany ma być najlepszy sensowny wariant danej firmy.
 - Nowa szafka w pustym pomieszczeniu bierze domyślne wartości z preferencji, a kolejna szafka w tym samym pomieszczeniu klonuje ostatnią bez limitu czasowego.
 - Istniejące szafki nie są zmieniane po zapisie preferencji; hurtowe zastosowanie preferencji zostaje osobnym etapem.
+
+## Deploy unzip workflow fix v1 — 2026-05-16
+
+- Poprawiono workflow rozpakowywania paczek `site*.zip` do roota repozytorium.
+- ZIP do wdrożenia wybierany jest z bieżącego commita, a nie po czasie pliku z checkoutu GitHub Actions.
+- Workflow może aktualizować `.github` z pełnej paczki, jeżeli paczka zawiera poprawiony katalog workflowów.
+- Zmiana nie wpływa na działanie aplikacji; dotyczy tylko wdrażania paczek na GitHub Pages.
+
+## Room accordion inline v1 — 2026-05-16
+
+- W WYWIADZIE `Parametry pomieszczenia` i `Preferencje standardu` są teraz domyślnie zwiniętymi akordeonami.
+- Po rozwinięciu parametry i preferencje są dostępne od razu w treści akordeonu, bez dodatkowego przycisku otwierającego modal.
+- Akordeony dostały styl zgodny z ROZRYS: mocniejsza ramka, cień i zielona strzałka rozwijania.
+- Preferencje dalej dotyczą nowych szafek; istniejące szafki nie są zmieniane po cichu.

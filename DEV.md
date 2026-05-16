@@ -930,3 +930,26 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Nie zmieniano PRO100, usług stolarskich, ROZRYS-u, WYCENY, backupów ani import/export okuć poza bezpiecznym odczytem listy producentów do pola preferencji.
 - Cache-busting zmienionych modułów: `20260515_room_preferences_stage1_v1`.
 - Raport: `tools/reports/room-preferences-stage1-v1.md`.
+
+## Deploy unzip workflow fix v1 — 2026-05-16
+
+- Aktualna paczka techniczna po poprawce wdrożenia: `site_000_room_preferences_stage1_deployfix_v2.zip`.
+- Baza startowa: `site_room_preferences_stage1_v1.zip`.
+- Naprawiono workflow `.github/workflows/unzip-site-to-root.yml`, żeby rozpakowywanie `site*.zip` nie zgadywało paczki po czasie pliku (`ls -1t`), tylko najpierw wybierało ZIP zmieniony w bieżącym commicie.
+- Workflow uruchamia się na każdy push do `main` oraz ręcznie przez `workflow_dispatch`; gdy nie ma pliku `site*.zip`, kończy się bez zmian.
+- Przy deployu kopiowane są również dotfiles/dotfolders, więc `.github` z pełnej paczki może aktualizować workflow w kolejnych wdrożeniach.
+- Jeżeli paczka nie zawiera `.github`, istniejący katalog `.github` zostaje zachowany, żeby przypadkowo nie skasować workflowów.
+- Nie zmieniano runtime aplikacji, danych projektu, UI, PRO100, ROZRYS-u, WYCENY ani katalogu okuć; to poprawka mechanizmu wdrożeniowego po paczce preferencji pokoju.
+- Raport: `tools/reports/deploy-unzip-workflow-fix-v1.md`.
+
+## Room accordion inline v1 — 2026-05-16
+
+- Aktualna paczka techniczna po poprawce UI: `site_000_room_accordion_inline_v1.zip`.
+- Baza startowa: `site_000_room_preferences_stage1_deployfix_v2.zip`.
+- W WYWIADZIE akordeony `Parametry pomieszczenia` i `Preferencje standardu` są domyślnie zwinięte.
+- Usunięto dodatkowe przyciski `Edytuj parametry` / `Edytuj preferencje` z akordeonów; zawartość jest edytowana bezpośrednio po rozwinięciu.
+- Parametry pomieszczenia działają inline na istniejącym modelu `room.settings`, a preferencje inline zapisują istniejące `room.preferences` bez nowego storage.
+- Wygląd akordeonów WYWIADU dopasowano do wzorca ROZRYS: mocniejsza ramka, cień, biały nagłówek i zielona strzałka.
+- Nie zmieniano PRO100, usług stolarskich, ROZRYS-u, WYCENY, backupów, import/export okuć ani hurtowej zmiany istniejących szafek.
+- Cache-busting zmienionych plików: `20260516_room_accordion_inline_v1`.
+- Raport: `tools/reports/room-accordion-inline-v1.md`.

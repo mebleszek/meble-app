@@ -72,6 +72,17 @@ function runProjectNodeSmoke(sandbox){
       const out = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Czarny', openingSystemModule:'TIP-ON' } } });
       return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.bodyColor === 'Czarny' && out.kuchnia.preferences.openingSystemModule === 'TIP-ON' && out.szafa && out.szafa.preferences);
     } },
+    { name:'Wywiad ma zwinięte akordeony inline bez przycisków modalnych', explain:'Pilnuje poprawki UX: Parametry i Preferencje są edytowane bezpośrednio w akordeonach, domyślnie zwiniętych.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      return html.includes('id="roomParametersAccordion"')
+        && html.includes('id="roomPreferencesAccordion"')
+        && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomSettingsSummary"')
+        && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomPreferencesSummary"')
+        && !html.includes('id="openRoomSettingsBtn"')
+        && !html.includes('id="openRoomPreferencesBtn"')
+        && !html.includes('roomParametersAccordion" open')
+        && !html.includes('roomPreferencesAccordion" open');
+    } },
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
     { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
     { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
