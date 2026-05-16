@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T14:51:23.875Z",
+  "generatedAt": "2026-05-16T16:10:08.043Z",
   "summary": {
     "jsFiles": 348,
     "indexScripts": 272,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 29,
-      "lines": 3628,
+      "lines": 3630,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -2359,7 +2359,6 @@
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal.js",
-        "js/app/ui/data-settings-defaults-view.js",
         "js/testing/cabinet/tests.js"
       ],
       "outgoingFiles": [
@@ -2367,7 +2366,6 @@
       ],
       "secondLevelFiles": [
         "js/app/cabinet/cabinet-modal.js",
-        "js/app/ui/data-settings-modal.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -2382,8 +2380,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii",
-        "kilka zależnych plików"
+        "250+ linii"
       ]
     },
     "js/app/cabinet/cabinet-cutlist.js": {
@@ -8669,6 +8666,7 @@
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/rozrys/rozrys-ui-tools.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/testing/cabinet/tests.js",
         "js/testing/project/tests.js"
       ],
@@ -8683,7 +8681,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-options.js",
         "js/app/rozrys/rozrys.js",
-        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-modal.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -13965,14 +13963,14 @@
     "js/app/ui/data-settings-defaults-view.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 192,
+      "lines": 194,
       "defines": [
         "dataSettingsDefaultsView"
       ],
       "uses": [
         "dataSettingsDom",
         "catalogStore",
-        "cabinetChoiceLaunchers",
+        "rozrysChoice",
         "programDefaults",
         "dataSettingsDefaultsView"
       ],
@@ -13980,8 +13978,8 @@
         "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
-        "js/app/cabinet/cabinet-choice-launchers.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/rozrys/rozrys-choice.js",
         "js/app/settings/program-defaults-store.js",
         "js/app/ui/data-settings-dom.js"
       ],
@@ -13990,7 +13988,7 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 10,
+      "domRefs": 11,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

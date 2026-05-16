@@ -71,3 +71,59 @@
 .data-settings-default-label{font-weight:900;color:#0f172a;}
 .data-settings-defaults-actions{justify-content:flex-end;}
 @media (max-width:720px){.data-settings-defaults-grid{grid-template-columns:1fr}.data-settings-defaults-actions{justify-content:stretch}.data-settings-defaults-actions .btn,.data-settings-defaults-actions .btn-primary{flex:1 1 auto}}
+
+/* Program defaults UI fix v1: ROZRYS-like accordions and app launchers only. */
+.data-settings-defaults-card .data-settings-accordion{
+  border:1px solid rgba(203,213,225,.95);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:2px 4px 0 rgba(15,23,42,.08), 0 12px 26px rgba(148,163,184,.16);
+  overflow:hidden;
+}
+.data-settings-defaults-card .data-settings-accordion__summary{
+  min-height:58px;
+  padding:14px 18px;
+  background:linear-gradient(180deg,#fff 0%,#f8fbff 100%);
+  border-bottom:1px solid rgba(226,232,240,.95);
+}
+.data-settings-defaults-card .data-settings-accordion__title{
+  font-size:18px;
+  font-weight:950;
+  color:#0f172a;
+}
+.data-settings-defaults-card .data-settings-accordion__actions{
+  grid-template-columns:34px;
+  column-gap:0;
+}
+.data-settings-defaults-card .data-settings-accordion__sub{
+  display:none!important;
+}
+.data-settings-defaults-card .data-settings-accordion__toggle{
+  width:34px;
+  height:34px;
+  border-radius:14px;
+  border:1px solid rgba(203,213,225,.95);
+  background:#fff;
+  color:#16a34a;
+  box-shadow:2px 3px 0 rgba(15,23,42,.10), 0 8px 18px rgba(148,163,184,.16);
+}
+.data-settings-defaults-card .data-settings-accordion__toggle::before{
+  content:'▾';
+  display:inline-block;
+  font-size:16px;
+  line-height:1;
+  transform:rotate(-90deg);
+  transition:transform .16s ease;
+}
+.data-settings-defaults-card .data-settings-accordion[open] .data-settings-accordion__toggle::before{
+  content:'▾';
+  transform:rotate(0deg);
+}
+.data-settings-defaults-card .data-settings-accordion__body{
+  padding:16px 18px 18px;
+  background:#fff;
+}
+.data-settings-default-field{display:grid;gap:7px;min-width:0;}
+.data-settings-default-choice{width:100%;min-height:48px;border-radius:16px;}
+.data-settings-default-choice .rozrys-choice-launch__label{font-size:16px;}
+.data-settings-default-choice .rozrys-choice-launch__arrow{color:#16a34a;}

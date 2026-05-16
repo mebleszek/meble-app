@@ -666,3 +666,9 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Zapis przechodzi przez `FC.storage` w module `js/app/settings/program-defaults-store.js`; fallback bezpośredni do `localStorage` jest tylko awaryjny w granicy store.
 - Dane pozostają oddzielone od `room.preferences`: ustawienia programu są fallbackiem globalnym, a preferencje pomieszczenia/projektu będą rozwijane osobno.
 - Nie zmieniono polityki backupów ani istniejących kluczy projektu.
+
+## Program defaults UI fix v1 — 2026-05-16
+
+- Poprawka jest UI-only i nie dodaje nowych kluczy storage.
+- Model `fc_program_defaults_v1` zostaje bez zmian; nadal jest globalnym ustawieniem użytkownika mapowalnym w przyszłości na dokument ustawień programu.
+- Usunięcie natywnych selectów nie zmienia danych ani kontraktu backupu.

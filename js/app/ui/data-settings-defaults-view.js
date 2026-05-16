@@ -1,5 +1,6 @@
 // js/app/ui/data-settings-defaults-view.js
 // Widok globalnych domyślnych materiałów i okuć w trybiku strony głównej.
+// Wybory są aplikacyjnymi launcherami ROZRYS — bez natywnych selectów/pickerów telefonu.
 
 (function(){
   'use strict';
@@ -10,6 +11,7 @@
   const h = dom.h;
 
   const BACK_MATERIALS = ['HDF 3mm biała','HDF 3mm pod kolor','Płyta 18mm pod kolor','Brak'];
+  const EMPTY_OPTION = '— nie ustawiaj —';
 
   function text(value){ return String(value == null ? '' : value).trim(); }
 
@@ -44,52 +46,70 @@
   }
 
   function optionList(values, emptyLabel){
-    const out = [{ value:'', label:emptyLabel || '— nie ustawiaj —' }];
+    const out = [{ value:'', label:emptyLabel || EMPTY_OPTION }];
     unique(values || []).forEach((value)=> out.push({ value, label:value }));
     return out;
   }
 
-  function makeSelectField(cfg, draft, onChange){
-    const wrap = h('div', { class:'data-settings-default-field cabinet-extra-field cabinet-extra-field--select' });
-    const label = h('label', { class:'data-settings-default-label cabinet-extra-field__label', for:cfg.id, text:cfg.label });
-    const select = h('select', {
-      id:cfg.id,
-      class:'cabinet-extra-field__control cabinet-dynamic-choice-source',
-      'data-launcher-label':cfg.label,
-      'data-choice-title':cfg.title || ('Wybierz: ' + cfg.label),
-      'data-choice-placeholder':cfg.label
-    });
-    const current = text(cfg.get(draft));
-    const options = unique((typeof cfg.options === 'function' ? cfg.options(draft) : (cfg.options || [])).concat(current ? [current] : []));
-    optionList(options, cfg.emptyLabel).forEach((opt)=>{
-      const node = h('option', { value:opt.value, text:opt.label });
-      select.appendChild(node);
-    });
-    select.value = current;
-    select.addEventListener('change', ()=>{
-      cfg.set(draft, select.value);
-      if(typeof cfg.onChange === 'function') cfg.onChange(draft, select.value, select);
+  function getChoiceApi(){
+    const api = FC.rozrysChoice;
+    if(api && typeof api.createChoiceLauncher === 'function' && typeof api.openRozrysChoiceOverlay === 'function' && typeof api.setChoiceLaunchValue === 'function') return api;
+    return null;
+  }
+
+  function selectedLabel(options, value, emptyLabel){
+    const current = text(value);
+    const rows = optionList(options, emptyLabel);
+    const hit = rows.find((row)=> String(row.value) === current);
+    return hit ? hit.label : (current || emptyLabel || EMPTY_OPTION);
+  }
+
+  function makeChoiceButton(label){
+    const api = getChoiceApi();
+    if(api && typeof api.createChoiceLauncher === 'function'){
+      const btn = api.createChoiceLauncher(label, '');
+      btn.classList.add('data-settings-default-choice');
+      return btn;
+    }
+    const btn = h('button', { type:'button', class:'rozrys-choice-launch data-settings-default-choice' });
+    btn.innerHTML = '<span class="rozrys-choice-launch__value"><span class="rozrys-choice-launch__label"></span><span class="rozrys-choice-launch__meta"></span></span><span class="rozrys-choice-launch__arrow">▾</span>';
+    const labelEl = btn.querySelector('.rozrys-choice-launch__label');
+    if(labelEl) labelEl.textContent = String(label || '');
+    return btn;
+  }
+
+  function setChoiceButtonLabel(btn, label){
+    const api = getChoiceApi();
+    if(api && typeof api.setChoiceLaunchValue === 'function') return api.setChoiceLaunchValue(btn, label, '');
+    const labelEl = btn && btn.querySelector && btn.querySelector('.rozrys-choice-launch__label');
+    if(labelEl) labelEl.textContent = String(label || '');
+  }
+
+  async function openChoice(title, options, value){
+    const api = getChoiceApi();
+    if(api && typeof api.openRozrysChoiceOverlay === 'function'){
+      return api.openRozrysChoiceOverlay({ title, value:String(value || ''), options });
+    }
+    return null;
+  }
+
+  function makeChoiceField(cfg, draft, onChange){
+    const wrap = h('div', { class:'data-settings-default-field' });
+    wrap.appendChild(h('div', { class:'data-settings-default-label', text:cfg.label }));
+    const getOptions = ()=> unique((typeof cfg.options === 'function' ? cfg.options(draft) : (cfg.options || [])).concat(text(cfg.get(draft)) ? [text(cfg.get(draft))] : []));
+    const btn = makeChoiceButton(selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION));
+    btn.setAttribute('aria-label', cfg.title || ('Wybierz: ' + cfg.label));
+    btn.addEventListener('click', async ()=>{
+      const options = optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
+      const picked = await openChoice(cfg.title || ('Wybierz: ' + cfg.label), options, cfg.get(draft));
+      if(picked == null || String(picked) === String(cfg.get(draft) || '')) return;
+      cfg.set(draft, picked);
+      if(typeof cfg.onChange === 'function') cfg.onChange(draft, picked, btn);
+      setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION));
       if(typeof onChange === 'function') onChange(draft);
     });
-    wrap.appendChild(label);
-    wrap.appendChild(select);
-    return { wrap, select };
-  }
-
-  function rebuildSelect(select, options, value){
-    if(!select) return;
-    select.innerHTML = '';
-    const current = text(value);
-    optionList(unique((options || []).concat(current ? [current] : [])), '— nie ustawiaj —').forEach((opt)=> select.appendChild(h('option', { value:opt.value, text:opt.label })));
-    select.value = current;
-  }
-
-  function refreshChoices(rootEl){
-    try{
-      if(FC.cabinetChoiceLaunchers && typeof FC.cabinetChoiceLaunchers.refreshCabinetChoices === 'function'){
-        FC.cabinetChoiceLaunchers.refreshCabinetChoices(rootEl || document);
-      }
-    }catch(_){ }
+    wrap.appendChild(btn);
+    return { wrap, refresh(){ setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION)); } };
   }
 
   function render(scroll){
@@ -110,42 +130,41 @@
     card.appendChild(summary);
 
     const materialGrid = h('div', { class:'data-settings-defaults-grid' });
-    const materialFields = [
-      { id:'programDefaultBodyColor', label:'Domyślny korpus', get:(d)=> d.materials.bodyColor, set:(d,v)=>{ d.materials.bodyColor = text(v); }, options:()=> getMaterialNamesByType('laminat') },
-      { id:'programDefaultFrontMaterial', label:'Domyślny materiał frontu', get:(d)=> d.materials.frontMaterial, set:(d,v)=>{ d.materials.frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ if(!getMaterialNamesByType(d.materials.frontMaterial || 'laminat').includes(text(d.materials.frontColor))) d.materials.frontColor = ''; } },
-      { id:'programDefaultFrontColor', label:'Domyślny kolor frontu', get:(d)=> d.materials.frontColor, set:(d,v)=>{ d.materials.frontColor = text(v); }, options:(d)=> getMaterialNamesByType(d.materials.frontMaterial || 'laminat') },
-      { id:'programDefaultBackMaterial', label:'Domyślne plecy', get:(d)=> d.materials.backMaterial, set:(d,v)=>{ d.materials.backMaterial = text(v); }, options:BACK_MATERIALS }
-    ];
-
-    function onMaterialChange(){
-      const frontColor = materialGrid.querySelector('#programDefaultFrontColor');
-      if(frontColor) rebuildSelect(frontColor, getMaterialNamesByType(draft.materials.frontMaterial || 'laminat'), draft.materials.frontColor);
+    const refreshers = [];
+    function refreshAll(){
+      refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } });
       summary.textContent = FC.programDefaults.buildSummary(draft);
-      refreshChoices(card);
     }
 
-    materialFields.forEach((cfg)=> materialGrid.appendChild(makeSelectField(cfg, draft, onMaterialChange).wrap));
+    const materialFields = [
+      { label:'Domyślny korpus', get:(d)=> d.materials.bodyColor, set:(d,v)=>{ d.materials.bodyColor = text(v); }, options:()=> getMaterialNamesByType('laminat') },
+      { label:'Domyślny materiał frontu', get:(d)=> d.materials.frontMaterial, set:(d,v)=>{ d.materials.frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ if(!getMaterialNamesByType(d.materials.frontMaterial || 'laminat').includes(text(d.materials.frontColor))) d.materials.frontColor = ''; } },
+      { label:'Domyślny kolor frontu', get:(d)=> d.materials.frontColor, set:(d,v)=>{ d.materials.frontColor = text(v); }, options:(d)=> getMaterialNamesByType(d.materials.frontMaterial || 'laminat') },
+      { label:'Domyślne plecy', get:(d)=> d.materials.backMaterial, set:(d,v)=>{ d.materials.backMaterial = text(v); }, options:BACK_MATERIALS }
+    ];
+
+    materialFields.forEach((cfg)=>{
+      const field = makeChoiceField(cfg, draft, refreshAll);
+      refreshers.push(field.refresh);
+      materialGrid.appendChild(field.wrap);
+    });
 
     const hardwareGrid = h('div', { class:'data-settings-defaults-grid' });
     const manufacturerOptions = ()=> getHardwareManufacturers();
     [
-      ['programDefaultHingesManufacturer', 'Domyślne zawiasy', 'hingesManufacturer'],
-      ['programDefaultDrawerManufacturer', 'Domyślne szuflady / prowadnice', 'drawerSystemManufacturer'],
-      ['programDefaultLiftManufacturer', 'Domyślne podnośniki', 'liftManufacturer'],
-      ['programDefaultSlidingManufacturer', 'Domyślne systemy przesuwne', 'slidingSystemManufacturer'],
-      ['programDefaultCargoManufacturer', 'Domyślne cargo / organizery', 'cargoManufacturer']
-    ].forEach(([id, label, key])=>{
-      hardwareGrid.appendChild(makeSelectField({
-        id,
-        label,
-        get:(d)=> d.hardware[key],
-        set:(d,v)=>{ d.hardware[key] = text(v); },
-        options:manufacturerOptions
-      }, draft, ()=>{ summary.textContent = FC.programDefaults.buildSummary(draft); refreshChoices(card); }).wrap);
+      ['Domyślne zawiasy', 'hingesManufacturer'],
+      ['Domyślne szuflady / prowadnice', 'drawerSystemManufacturer'],
+      ['Domyślne podnośniki', 'liftManufacturer'],
+      ['Domyślne systemy przesuwne', 'slidingSystemManufacturer'],
+      ['Domyślne cargo / organizery', 'cargoManufacturer']
+    ].forEach(([label, key])=>{
+      const field = makeChoiceField({ label, get:(d)=> d.hardware[key], set:(d,v)=>{ d.hardware[key] = text(v); }, options:manufacturerOptions }, draft, refreshAll);
+      refreshers.push(field.refresh);
+      hardwareGrid.appendChild(field.wrap);
     });
 
-    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Materiały', [materialGrid], { open:true, sub:'4' }) : materialGrid);
-    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Okucia', [hardwareGrid], { open:false, sub:'5' }) : hardwareGrid);
+    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Materiały', [materialGrid], { open:true }) : materialGrid);
+    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Okucia', [hardwareGrid], { open:false }) : hardwareGrid);
 
     const actions = h('div', { class:'data-settings-actions data-settings-defaults-actions' });
     const resetBtn = h('button', { type:'button', class:'btn btn-danger', text:'Wyczyść' });
@@ -153,29 +172,12 @@
     const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     resetBtn.addEventListener('click', ()=>{
       draft = FC.programDefaults.normalizeProgramDefaults(null);
-      [
-        ['programDefaultBodyColor', draft.materials.bodyColor],
-        ['programDefaultFrontMaterial', draft.materials.frontMaterial],
-        ['programDefaultFrontColor', draft.materials.frontColor],
-        ['programDefaultBackMaterial', draft.materials.backMaterial],
-        ['programDefaultHingesManufacturer', draft.hardware.hingesManufacturer],
-        ['programDefaultDrawerManufacturer', draft.hardware.drawerSystemManufacturer],
-        ['programDefaultLiftManufacturer', draft.hardware.liftManufacturer],
-        ['programDefaultSlidingManufacturer', draft.hardware.slidingSystemManufacturer],
-        ['programDefaultCargoManufacturer', draft.hardware.cargoManufacturer]
-      ].forEach(([id, value])=>{
-        const select = card.querySelector('#' + id);
-        if(select) select.value = text(value);
-      });
-      const frontColor = card.querySelector('#programDefaultFrontColor');
-      if(frontColor) rebuildSelect(frontColor, getMaterialNamesByType('laminat'), '');
-      summary.textContent = FC.programDefaults.buildSummary(draft);
-      refreshChoices(card);
+      refreshAll();
     });
     cancelBtn.addEventListener('click', ()=> render(scroll));
     saveBtn.addEventListener('click', ()=>{
       draft = FC.programDefaults.write(draft);
-      summary.textContent = FC.programDefaults.buildSummary(draft);
+      refreshAll();
       if(dom.info) dom.info('Zapisano', 'Domyślne materiały i okucia programu zostały zapisane.');
     });
     actions.appendChild(resetBtn);
@@ -184,7 +186,7 @@
     card.appendChild(actions);
 
     scroll.appendChild(card);
-    refreshChoices(card);
+    refreshAll();
   }
 
   FC.dataSettingsDefaultsView = { render };

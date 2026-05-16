@@ -964,3 +964,14 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - `cabinet-modal-draft.js` stosuje globalne domyślne materiałów przed preferencjami pokoju; preferencje pokoju mają pierwszeństwo, a klonowanie ostatniej szafki dalej zachowuje dotychczasowe dane.
 - Przy kolejnych pracach nie wracać do sekcji `Domyślne` w WYWIADZIE; w pokoju rozwijać strefy dolna/środkowa/górna oraz osobny model źródła frontu `jak dolne / jak środkowe / jak górne / własny`.
 - Raport: `tools/reports/program-defaults-settings-v1.md`.
+
+## Program defaults UI fix v1 — 2026-05-16
+
+- Aktualna paczka robocza po tej poprawce: `site_000_program_defaults_ui_fix_v1.zip`.
+- Baza startowa: `site_000_program_defaults_settings_v1.zip`.
+- Poprawiono wyłącznie UI sekcji `Domyślne materiały i okucia` w trybiku strony głównej.
+- Usunięto natywne selecty/pickery z tego widoku; `data-settings-defaults-view.js` tworzy aplikacyjne launchery wyboru oparte o overlay ROZRYS.
+- Usunięto zbędne liczniki akordeonów `Materiały`/`Okucia`; styl akordeonów w tej sekcji dopasowano do wzorca ROZRYS.
+- Dodano smoke test pilnujący braku natywnych selectów w tym widoku i obecności cache-bustingu `20260516_program_defaults_ui_fix_v1`.
+- Nie zmieniono storage, `fc_program_defaults_v1`, backupów, PRO100, ROZRYS, WYCENY ani preferencji pokoju.
+- Raport: `tools/reports/program-defaults-ui-fix-v1.md`.

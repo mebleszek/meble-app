@@ -119,6 +119,20 @@ function runDataNodeSmoke(sandbox){
         && menu.includes('Domyślne materiały i okucia')
         && classifier.includes('fc_program_defaults_v1');
     } },
+    { name:'Domyślne materiały i okucia nie używają natywnych selectów ani liczników akordeonu', explain:'Pilnuje poprawki UI: w trybiku wybory mają być launcherami aplikacji, bez systemowego pickera i bez zbędnych cyferek przy akordeonach.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-defaults-view.js'), 'utf8');
+      const css = fs.readFileSync(path.join(process.cwd(), 'css/data-settings.css'), 'utf8');
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      return !src.includes("h('select'")
+        && !src.includes('makeSelectField')
+        && !src.includes("sub:'4'")
+        && !src.includes("sub:'5'")
+        && src.includes('makeChoiceField')
+        && src.includes('FC.rozrysChoice')
+        && css.includes('Program defaults UI fix v1')
+        && css.includes("content:'▾'")
+        && html.includes('20260516_program_defaults_ui_fix_v1');
+    } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },
   ]);

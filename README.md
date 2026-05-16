@@ -468,3 +468,11 @@ node tools/service-pro100-dev-smoke.js
 - Okucia obejmują preferowane marki dla: zawiasów, szuflad/prowadnic, podnośników, systemów przesuwnych oraz cargo/organizerów.
 - Nowa pierwsza szafka w pustym pomieszczeniu może korzystać z globalnych domyślnych materiałów, a preferencje konkretnego pomieszczenia z WYWIADU mają nad nimi pierwszeństwo.
 - Nie dodano sekcji `Domyślne` do WYWIADU pokoju; przyszłe preferencje pomieszczenia mają iść strefowo: dolna, środkowa, górna.
+
+## Program defaults UI fix v1 — 2026-05-16
+
+- Poprawiono sekcję `Domyślne materiały i okucia` w trybiku strony głównej.
+- Usunięto natywne/systemowe selecty z tej sekcji; wybory są teraz launcherami aplikacyjnymi w stylu ROZRYS.
+- Usunięto zbędne liczniki `4` i `5` przy akordeonach `Materiały` i `Okucia`.
+- Akordeony tej sekcji dostały wygląd bliższy ROZRYS: ramka, cień, nagłówek i zielony chevron.
+- Nie zmieniono modelu danych ani klucza `fc_program_defaults_v1`.
