@@ -975,3 +975,11 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Dodano smoke test pilnujący braku natywnych selectów w tym widoku i obecności cache-bustingu `20260516_program_defaults_ui_fix_v1`.
 - Nie zmieniono storage, `fc_program_defaults_v1`, backupów, PRO100, ROZRYS, WYCENY ani preferencji pokoju.
 - Raport: `tools/reports/program-defaults-ui-fix-v1.md`.
+
+## Program defaults ROZRYS sync v1 — 2026-05-16
+
+- Poprawiono UI sekcji `Domyślne materiały i okucia` w trybiku strony głównej po audycie względem ROZRYS.
+- Launchery wyboru w tej sekcji nie pokazują już dodatkowej strzałki i nie używają natywnych selectów/pickerów telefonu.
+- Akordeony `Materiały` i `Okucia` mają geometrię chevrona, ramkę i cień zgodne z wzorcem ROZRYS.
+- Zmiana jest UI-only dla tej sekcji: bez zmiany modelu `fc_program_defaults_v1`, backupów, PRO100, WYCENY, ROZRYS i preferencji pokoju.
+- Raport: `tools/reports/program-defaults-rozrys-sync-v1.md`.

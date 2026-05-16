@@ -119,7 +119,7 @@ function runDataNodeSmoke(sandbox){
         && menu.includes('Domyślne materiały i okucia')
         && classifier.includes('fc_program_defaults_v1');
     } },
-    { name:'Domyślne materiały i okucia nie używają natywnych selectów ani liczników akordeonu', explain:'Pilnuje poprawki UI: w trybiku wybory mają być launcherami aplikacji, bez systemowego pickera i bez zbędnych cyferek przy akordeonach.', check:()=> {
+    { name:'Domyślne materiały i okucia trzymają wzorzec ROZRYS bez natywnych selectów i strzałek w launcherach', explain:'Pilnuje poprawki UI: w trybiku wybory mają być launcherami aplikacji, bez systemowego pickera, bez liczników i bez strzałek w przyciskach wyboru; akordeon ma używać geometrii chevrona ROZRYS.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-defaults-view.js'), 'utf8');
       const css = fs.readFileSync(path.join(process.cwd(), 'css/data-settings.css'), 'utf8');
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -129,9 +129,13 @@ function runDataNodeSmoke(sandbox){
         && !src.includes("sub:'5'")
         && src.includes('makeChoiceField')
         && src.includes('FC.rozrysChoice')
-        && css.includes('Program defaults UI fix v1')
-        && css.includes("content:'▾'")
-        && html.includes('20260516_program_defaults_ui_fix_v1');
+        && css.includes('Program defaults ROZRYS sync v1')
+        && css.includes('.data-settings-default-choice .rozrys-choice-launch__arrow')
+        && css.includes('display:none!important')
+        && css.includes('border-right:3px solid #166534')
+        && !css.includes(".data-settings-defaults-card .data-settings-accordion__toggle::before{\n  content:'▾'")
+        && src.includes('rozrys-choice-launch--options-clean')
+        && html.includes('20260516_program_defaults_rozrys_sync_v1');
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },

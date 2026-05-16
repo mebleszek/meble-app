@@ -68,10 +68,10 @@
     const api = getChoiceApi();
     if(api && typeof api.createChoiceLauncher === 'function'){
       const btn = api.createChoiceLauncher(label, '');
-      btn.classList.add('data-settings-default-choice');
+      btn.classList.add('data-settings-default-choice', 'rozrys-choice-launch--options-clean');
       return btn;
     }
-    const btn = h('button', { type:'button', class:'rozrys-choice-launch data-settings-default-choice' });
+    const btn = h('button', { type:'button', class:'rozrys-choice-launch rozrys-choice-launch--options-clean data-settings-default-choice' });
     btn.innerHTML = '<span class="rozrys-choice-launch__value"><span class="rozrys-choice-launch__label"></span><span class="rozrys-choice-launch__meta"></span></span><span class="rozrys-choice-launch__arrow">▾</span>';
     const labelEl = btn.querySelector('.rozrys-choice-launch__label');
     if(labelEl) labelEl.textContent = String(label || '');

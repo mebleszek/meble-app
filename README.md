@@ -476,3 +476,11 @@ node tools/service-pro100-dev-smoke.js
 - Usunięto zbędne liczniki `4` i `5` przy akordeonach `Materiały` i `Okucia`.
 - Akordeony tej sekcji dostały wygląd bliższy ROZRYS: ramka, cień, nagłówek i zielony chevron.
 - Nie zmieniono modelu danych ani klucza `fc_program_defaults_v1`.
+
+## Program defaults ROZRYS sync v1 — 2026-05-16
+
+- Poprawiono UI sekcji `Domyślne materiały i okucia` w trybiku strony głównej po audycie względem ROZRYS.
+- Launchery wyboru w tej sekcji nie pokazują już dodatkowej strzałki i nie używają natywnych selectów/pickerów telefonu.
+- Akordeony `Materiały` i `Okucia` mają geometrię chevrona, ramkę i cień zgodne z wzorcem ROZRYS.
+- Zmiana jest UI-only dla tej sekcji: bez zmiany modelu `fc_program_defaults_v1`, backupów, PRO100, WYCENY, ROZRYS i preferencji pokoju.
+- Raport: `tools/reports/program-defaults-rozrys-sync-v1.md`.
