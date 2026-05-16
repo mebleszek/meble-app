@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-16T10:44:04.800Z",
+  "generatedAt": "2026-05-16T14:51:23.875Z",
   "summary": {
-    "jsFiles": 346,
-    "indexScripts": 270,
-    "devTestScripts": 303,
-    "fcSymbols": 252,
-    "fcSymbolsAll": 280,
-    "edges": 1806,
+    "jsFiles": 348,
+    "indexScripts": 272,
+    "devTestScripts": 305,
+    "fcSymbols": 254,
+    "fcSymbolsAll": 282,
+    "edges": 1816,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 28,
-      "lines": 6573,
+      "lines": 6578,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -60,9 +60,9 @@
       "medium": 1
     },
     "INNE": {
-      "files": 4,
-      "lines": 540,
-      "storageRefs": 0,
+      "files": 5,
+      "lines": 670,
+      "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
       "medium": 0
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1178,
+      "lines": 1179,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -101,7 +101,7 @@
     },
     "DANE/STORAGE": {
       "files": 15,
-      "lines": 1325,
+      "lines": 1326,
       "storageRefs": 36,
       "dialogRefs": 0,
       "high": 0,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 28,
-      "lines": 3432,
+      "files": 29,
+      "lines": 3628,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -241,7 +241,7 @@
   "topIncoming": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      73
+      74
     ],
     [
       "js/app/investor/investors-store.js",
@@ -253,7 +253,7 @@
     ],
     [
       "js/app/shared/utils.js",
-      40
+      41
     ],
     [
       "js/testing/shared/harness.js",
@@ -261,7 +261,7 @@
     ],
     [
       "js/app/shared/storage.js",
-      35
+      36
     ],
     [
       "js/app/shared/room-registry.js",
@@ -292,19 +292,19 @@
       20
     ],
     [
+      "js/app/catalog/catalog-store.js",
+      19
+    ],
+    [
       "js/app/material/price-modal-context.js",
       19
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      18
+      "js/app/shared/constants.js",
+      19
     ],
     [
       "js/app/investor/investor-persistence.js",
-      18
-    ],
-    [
-      "js/app/shared/constants.js",
       18
     ],
     [
@@ -323,27 +323,27 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      187
+      189
     ],
     [
       "js/app/shared/storage.js",
-      160
+      162
     ],
     [
       "js/app/shared/utils.js",
-      155
+      157
     ],
     [
       "js/app/project/project-bridge.js",
-      109
+      110
     ],
     [
       "js/app/shared/constants.js",
-      108
+      109
     ],
     [
       "js/app/shared/schema.js",
-      96
+      97
     ],
     [
       "js/app/shared/room-registry.js",
@@ -359,11 +359,11 @@
     ],
     [
       "js/app/ui/info-box.js",
-      74
+      75
     ],
     [
       "js/app/ui/confirm-box.js",
-      71
+      72
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
@@ -375,7 +375,7 @@
     ],
     [
       "js/app/investor/session.js",
-      61
+      62
     ],
     [
       "js/app/investor/investor-persistence.js",
@@ -387,11 +387,11 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      55
+      56
     ],
     [
       "js/app/catalog/catalog-domain.js",
-      50
+      51
     ],
     [
       "js/app/investor/investors-model.js",
@@ -605,9 +605,9 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 497,
-      "incoming": 18,
+      "incoming": 19,
       "outgoing": 11,
-      "secondLevel": 55,
+      "secondLevel": 56,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -679,7 +679,7 @@
       "lines": 496,
       "incoming": 16,
       "outgoing": 2,
-      "secondLevel": 23,
+      "secondLevel": 24,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1144,7 +1144,7 @@
       "lines": 259,
       "incoming": 10,
       "outgoing": 1,
-      "secondLevel": 61,
+      "secondLevel": 62,
       "storageRefs": 12,
       "dialogRefs": 0,
       "reasons": [
@@ -1548,9 +1548,9 @@
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
       "lines": 177,
-      "incoming": 73,
+      "incoming": 74,
       "outgoing": 4,
-      "secondLevel": 187,
+      "secondLevel": 189,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1667,7 +1667,7 @@
       "lines": 61,
       "incoming": 24,
       "outgoing": 5,
-      "secondLevel": 109,
+      "secondLevel": 110,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1844,6 +1844,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-foundation.js",
@@ -1970,6 +1971,7 @@
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/core-failsafe.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
@@ -1988,6 +1990,7 @@
         "js/app/ui/app-view.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/sections.js",
         "js/app/ui/settings-ui.js",
@@ -2356,6 +2359,7 @@
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/testing/cabinet/tests.js"
       ],
       "outgoingFiles": [
@@ -2363,6 +2367,7 @@
       ],
       "secondLevelFiles": [
         "js/app/cabinet/cabinet-modal.js",
+        "js/app/ui/data-settings-modal.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -2377,7 +2382,8 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "250+ linii",
+        "kilka zależnych plików"
       ]
     },
     "js/app/cabinet/cabinet-cutlist.js": {
@@ -2483,7 +2489,7 @@
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 103,
+      "lines": 108,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3056,6 +3062,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -3117,6 +3124,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3216,6 +3224,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3264,6 +3273,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3313,6 +3323,7 @@
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/app-view.js",
+        "js/app/ui/data-settings-modal.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-labor.js",
@@ -3581,6 +3592,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3688,6 +3700,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -5134,6 +5147,7 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/rozrys/rozrys.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/ui-state.js",
@@ -6731,6 +6745,7 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
@@ -6850,6 +6865,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-core.js",
@@ -8667,6 +8683,7 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-options.js",
         "js/app/rozrys/rozrys.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -10840,6 +10857,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/views.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
@@ -10943,6 +10961,41 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/settings/program-defaults-store.js": {
+      "area": "INNE",
+      "category": "store/storage",
+      "lines": 130,
+      "defines": [
+        "programDefaults"
+      ],
+      "uses": [
+        "constants",
+        "utils",
+        "storage",
+        "programDefaults"
+      ],
+      "incomingFiles": [
+        "js/app/ui/data-settings-defaults-view.js"
+      ],
+      "outgoingFiles": [
+        "js/app/bootstrap/app-core-namespace.js",
+        "js/app/shared/constants.js",
+        "js/app/shared/storage.js",
+        "js/app/shared/utils.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/ui/data-settings-modal.js"
+      ],
+      "storageRefs": 2,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
     "js/app/shared/calc.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
@@ -10969,7 +11022,7 @@
     "js/app/shared/constants.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 39,
+      "lines": 40,
       "defines": [
         "constants"
       ],
@@ -10989,6 +11042,7 @@
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/ui-state.js",
         "js/app/shared/validate.js",
         "js/app/ui/views.js",
@@ -11055,6 +11109,7 @@
         "js/app/ui/app-view.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/sections.js",
         "js/app/ui/settings-ui.js",
@@ -11613,7 +11668,7 @@
     "js/app/shared/data-storage-classifier.js": {
       "area": "DANE/STORAGE",
       "category": "store/storage",
-      "lines": 200,
+      "lines": 201,
       "defines": [
         "dataStorageClassifier"
       ],
@@ -12753,6 +12808,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-core.js",
@@ -12846,6 +12902,7 @@
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/ui-state.js",
@@ -12953,6 +13010,7 @@
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/core-failsafe.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
@@ -12969,6 +13027,7 @@
         "js/app/ui/app-view.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/sections.js",
         "js/app/ui/settings-ui.js",
@@ -13192,6 +13251,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/schema.js",
@@ -13280,6 +13340,7 @@
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/migrate.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-core.js",
@@ -13295,6 +13356,7 @@
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/tab-navigation.js",
@@ -13754,6 +13816,7 @@
         "js/app/ui/data-settings-backup-actions.js",
         "js/app/ui/data-settings-backup-list.js",
         "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js",
         "js/app/ui/sections.js",
@@ -13899,6 +13962,40 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/ui/data-settings-defaults-view.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 192,
+      "defines": [
+        "dataSettingsDefaultsView"
+      ],
+      "uses": [
+        "dataSettingsDom",
+        "catalogStore",
+        "cabinetChoiceLaunchers",
+        "programDefaults",
+        "dataSettingsDefaultsView"
+      ],
+      "incomingFiles": [
+        "js/app/ui/data-settings-modal.js"
+      ],
+      "outgoingFiles": [
+        "js/app/cabinet/cabinet-choice-launchers.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/settings/program-defaults-store.js",
+        "js/app/ui/data-settings-dom.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/ui/actions-register.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 10,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/ui/data-settings-dom.js": {
       "area": "UI",
       "category": "ui/render/events",
@@ -13915,6 +14012,7 @@
         "js/app/ui/data-settings-backup-actions.js",
         "js/app/ui/data-settings-backup-list.js",
         "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js"
       ],
@@ -13941,7 +14039,7 @@
     "js/app/ui/data-settings-menu-view.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 98,
+      "lines": 101,
       "defines": [
         "dataSettingsMenuView"
       ],
@@ -13971,7 +14069,7 @@
     "js/app/ui/data-settings-modal.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 48,
+      "lines": 49,
       "defines": [
         "dataSettingsModal"
       ],
@@ -13981,6 +14079,7 @@
         "dataBackupSnapshot",
         "panelBox",
         "dataSettingsBackupView",
+        "dataSettingsDefaultsView",
         "dataSettingsMenuView",
         "dataSettingsModal"
       ],
@@ -13991,6 +14090,7 @@
         "js/app/shared/data-backup-snapshot.js",
         "js/app/shared/data-backup-store.js",
         "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-dom.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/panel-box.js"
@@ -14002,7 +14102,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/ui/data-settings-report-view.js": {
       "area": "UI",
@@ -14103,6 +14205,7 @@
         "js/app/ui/data-settings-backup-actions.js",
         "js/app/ui/data-settings-backup-list.js",
         "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js",
         "js/app/ui/sections.js",

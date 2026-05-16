@@ -658,3 +658,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Migracja V9→V10 dopisuje pusty obiekt preferencji do istniejących pokoi. Brak preferencji pozostaje bezpiecznym stanem i oznacza użycie dotychczasowych fallbacków przy tworzeniu nowej szafki.
 - Preferencje są traktowane jako domyślne ustawienia dla nowych szafek. Zapis preferencji nie modyfikuje istniejących szafek ani snapshotów wyceny, dzięki czemu przyszła synchronizacja nie będzie wykonywać ukrytych masowych zmian.
 - `hardwareManufacturer` w preferencjach jest na razie tylko preferencją użytkownika. Nie tworzy relacji do pozycji katalogu okuć i nie uruchamia zamiany producentów. Późniejszy silnik zamiany powinien nadal pracować po katalogowym `kategoria + typ/cecha + producent`.
+
+## Program defaults settings v1 — 2026-05-16
+
+- Dodano nowy klucz danych użytkownika `fc_program_defaults_v1` dla globalnych domyślnych materiałów i preferowanych marek okuć.
+- Klucz jest wersjonowany prefiksem `fc_`, więc wchodzi do backupów i później może być mapowany jako osobny dokument ustawień użytkownika, np. `users/{userId}/settings/programDefaults`.
+- Zapis przechodzi przez `FC.storage` w module `js/app/settings/program-defaults-store.js`; fallback bezpośredni do `localStorage` jest tylko awaryjny w granicy store.
+- Dane pozostają oddzielone od `room.preferences`: ustawienia programu są fallbackiem globalnym, a preferencje pomieszczenia/projektu będą rozwijane osobno.
+- Nie zmieniono polityki backupów ani istniejących kluczy projektu.

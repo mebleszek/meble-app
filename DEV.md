@@ -953,3 +953,14 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Nie zmieniano PRO100, usług stolarskich, ROZRYS-u, WYCENY, backupów, import/export okuć ani hurtowej zmiany istniejących szafek.
 - Cache-busting zmienionych plików: `20260516_room_accordion_inline_v1`.
 - Raport: `tools/reports/room-accordion-inline-v1.md`.
+
+## Program defaults settings v1 — 2026-05-16
+
+- Aktualna paczka robocza po tym etapie: `site_000_program_defaults_settings_v1.zip`.
+- Baza startowa: `site_000_room_accordion_inline_v1.zip`.
+- Dodano globalne domyślne programu w trybiku strony głównej, bez dokładania sekcji `Domyślne` w WYWIADZIE pokoju.
+- Nowy store: `js/app/settings/program-defaults-store.js`; klucz `fc_program_defaults_v1`; dane są user-data i wchodzą do snapshotu/backupów przez prefiks `fc_`.
+- Nowy widok UI: `js/app/ui/data-settings-defaults-view.js`; wejście dodane w `data-settings-menu-view.js` i routingu `data-settings-modal.js`.
+- `cabinet-modal-draft.js` stosuje globalne domyślne materiałów przed preferencjami pokoju; preferencje pokoju mają pierwszeństwo, a klonowanie ostatniej szafki dalej zachowuje dotychczasowe dane.
+- Przy kolejnych pracach nie wracać do sekcji `Domyślne` w WYWIADZIE; w pokoju rozwijać strefy dolna/środkowa/górna oraz osobny model źródła frontu `jak dolne / jak środkowe / jak górne / własny`.
+- Raport: `tools/reports/program-defaults-settings-v1.md`.

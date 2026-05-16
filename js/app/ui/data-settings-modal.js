@@ -28,11 +28,12 @@
     body.appendChild(scroll);
     body.appendChild(footer);
 
-    function renderFooter(){ backBtn.style.display = view === 'backup' ? '' : 'none'; }
-    function setView(next){ view = next === 'backup' ? 'backup' : 'menu'; render(); }
+    function renderFooter(){ backBtn.style.display = view === 'menu' ? 'none' : ''; }
+    function setView(next){ view = (next === 'backup' || next === 'defaults') ? next : 'menu'; render(); }
     function render(){
       renderFooter();
       if(view === 'backup') FC.dataSettingsBackupView.render({ scroll, store, snapshot, render });
+      else if(view === 'defaults' && FC.dataSettingsDefaultsView) FC.dataSettingsDefaultsView.render(scroll);
       else FC.dataSettingsMenuView.render(scroll, setView);
     }
 

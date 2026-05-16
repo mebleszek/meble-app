@@ -727,3 +727,9 @@ node tools/hardware-accessories-dev-smoke.js
 - UI preferencji jest osobnym modułem `js/app/ui/wywiad-room-preferences.js`; obecny `wywiad-room-settings.js` zostaje odpowiedzialny tylko za parametry techniczne pomieszczenia.
 - Następny etap hurtowego zastosowania preferencji do istniejących szafek powinien dostać osobne moduły plan/apply oraz modal podglądu liczników. Nie dokładać masowego nadpisywania bezpośrednio do modala preferencji.
 - Przy późniejszym etapie zamiany producentów okuć zacząć od czystego silnika dopasowania katalogowego i testów, bez podmiany tekstów w WYCENIE.
+
+## 2026-05-16 — Program defaults settings v1
+
+- Dodano osobny store `js/app/settings/program-defaults-store.js` i osobny widok `js/app/ui/data-settings-defaults-view.js`, żeby globalne fallbacki programu nie trafiały do WYWIADU ani dużych modułów ustawień.
+- `data-settings-modal.js` pozostaje cienkim routerem widoków: menu / backup / domyślne. Nie rozbudowywać go o logikę formularzy.
+- Następny etap preferencji pomieszczenia powinien rozdzielić strefy dolna/środkowa/górna w osobnym modelu, bez mieszania z globalnym `fc_program_defaults_v1`.

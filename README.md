@@ -459,3 +459,12 @@ node tools/service-pro100-dev-smoke.js
 - Po rozwinięciu parametry i preferencje są dostępne od razu w treści akordeonu, bez dodatkowego przycisku otwierającego modal.
 - Akordeony dostały styl zgodny z ROZRYS: mocniejsza ramka, cień i zielona strzałka rozwijania.
 - Preferencje dalej dotyczą nowych szafek; istniejące szafki nie są zmieniane po cichu.
+
+## Program defaults settings v1 — 2026-05-16
+
+- W trybiku na stronie głównej dodano sekcję `Domyślne materiały i okucia`.
+- Sekcja zapisuje globalne fallbacki programu pod kluczem `fc_program_defaults_v1`, objętym backupem danych.
+- Materiały obejmują: domyślny korpus, materiał frontu, kolor frontu i plecy.
+- Okucia obejmują preferowane marki dla: zawiasów, szuflad/prowadnic, podnośników, systemów przesuwnych oraz cargo/organizerów.
+- Nowa pierwsza szafka w pustym pomieszczeniu może korzystać z globalnych domyślnych materiałów, a preferencje konkretnego pomieszczenia z WYWIADU mają nad nimi pierwszeństwo.
+- Nie dodano sekcji `Domyślne` do WYWIADU pokoju; przyszłe preferencje pomieszczenia mają iść strefowo: dolna, środkowa, górna.

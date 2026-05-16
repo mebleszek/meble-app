@@ -101,6 +101,24 @@ function runDataNodeSmoke(sandbox){
   const FC = sandbox && sandbox.FC || {};
   return makeSingleGroupReport('DATA node smoke testy', 'Dane ↔ Node smoke', [
     { name:'Storage facade jest dostępna', check:()=> !!(FC.storage && typeof FC.storage.getJSON === 'function' && typeof FC.storage.setJSON === 'function') },
+    { name:'Globalne domyślne programu mają store i backupowany klucz', explain:'Pilnuje trybiku strony głównej: domyślne materiały i okucia siedzą w fc_program_defaults_v1, a nie w WYWIADZIE pokoju.', check:()=> {
+      const api = FC.programDefaults;
+      if(!(api && api.STORAGE_KEY === 'fc_program_defaults_v1' && typeof api.write === 'function' && typeof api.read === 'function' && typeof api.applyMaterialsToDraft === 'function')) return false;
+      api.write({ materials:{ bodyColor:'Egger W1100', frontMaterial:'laminat', frontColor:'Egger W1100', backMaterial:'HDF 3mm biała' }, hardware:{ hingesManufacturer:'Blum', drawerSystemManufacturer:'Rejs', liftManufacturer:'Blum' } });
+      const saved = api.read();
+      const draft = {};
+      api.applyMaterialsToDraft(draft, saved);
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const menu = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-menu-view.js'), 'utf8');
+      const classifier = fs.readFileSync(path.join(process.cwd(), 'js/app/shared/data-storage-classifier.js'), 'utf8');
+      return saved.materials.bodyColor === 'Egger W1100'
+        && saved.hardware.drawerSystemManufacturer === 'Rejs'
+        && draft.frontColor === 'Egger W1100'
+        && html.includes('js/app/settings/program-defaults-store.js')
+        && html.includes('js/app/ui/data-settings-defaults-view.js')
+        && menu.includes('Domyślne materiały i okucia')
+        && classifier.includes('fc_program_defaults_v1');
+    } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },
   ]);

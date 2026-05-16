@@ -8,6 +8,7 @@
 
   const INFO = {
     backup:'Kopie danych służą do zabezpieczenia aktualnego stanu programu oraz przenoszenia danych między urządzeniami. Raport pamięci jest w narzędziach testów.',
+    defaults:'Globalne domyślne materiały i marki okuć są fallbackiem programu. Preferencje konkretnego pomieszczenia mają pierwszeństwo.',
     tests:'Testy aplikacji prowadzą do dwóch obszarów: narzędzi pamięci oraz testów regresyjnych dokładanych w trakcie rozwoju programu.',
   };
 
@@ -28,7 +29,7 @@
   function buildIcon(name){
     const wrap = h('span', { class:'data-settings-menu-tile__icon' });
     if(icons && typeof icons.create === 'function') wrap.appendChild(icons.create(name, 'app-ui-icon data-settings-menu-tile__svg'));
-    else wrap.textContent = name === 'backup' ? 'B' : (name === 'tests' ? 'T' : 'U');
+    else wrap.textContent = name === 'backup' ? 'B' : (name === 'tests' ? 'T' : (name === 'settings' ? 'U' : 'D'));
     return wrap;
   }
 
@@ -76,18 +77,20 @@
       onClick:()=> setView('backup'),
     }));
     grid.appendChild(buildTile({
+      icon:'settings',
+      title:'Domyślne materiały i okucia',
+      sub:'Globalny korpus, front, plecy oraz marki okuć używane jako fallback programu.',
+      section:'defaults',
+      infoKey:'defaults',
+      onClick:()=> setView('defaults'),
+    }));
+    grid.appendChild(buildTile({
       icon:'tests',
       title:'Testy aplikacji',
       sub:'Narzędzia pamięci, smoke testy i sprawdzanie regresji.',
       section:'tests',
       infoKey:'tests',
       onClick:()=> { root.location.href = 'dev_tests.html'; },
-    }));
-    grid.appendChild(buildTile({
-      icon:'settings',
-      title:'Kolejne ustawienia',
-      sub:'Tu później mogą dojść dane firmy, wygląd albo domyślne ustawienia wywiadu.',
-      disabled:true,
     }));
     card.appendChild(grid);
     scroll.appendChild(card);

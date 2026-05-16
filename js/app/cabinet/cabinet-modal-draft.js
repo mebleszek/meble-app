@@ -55,6 +55,11 @@
       details: { insideMode: 'polki', innerDrawerCount: '1', innerDrawerType: 'blum', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', drawerCount: '3', subTypeOption: 'polki', fridgeFrontCount: '2' }
     };
     try{
+      if(ns.programDefaults && typeof ns.programDefaults.applyMaterialsToDraft === 'function'){
+        ns.programDefaults.applyMaterialsToDraft(draft);
+      }
+    }catch(_){ }
+    try{
       if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
         ns.roomPreferences.applyPreferencesToDraft(room, draft);
       }

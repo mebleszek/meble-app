@@ -12,6 +12,7 @@
     fc_project_v1:{ category:'user', label:'Aktywny projekt', description:'Bieżący projekt używany przez główny ekran aplikacji.' },
     fc_project_backup_v1:{ category:'user', label:'Awaryjna kopia aktywnego projektu', description:'Starszy mechanizm zabezpieczenia aktywnego projektu.' },
     fc_sheet_materials_v1:{ category:'user', label:'Cennik materiałów płytowych', description:'Materiały, kolory i ceny używane w wycenach oraz ROZRYS.' },
+    fc_program_defaults_v1:{ category:'user', label:'Domyślne materiały i okucia', description:'Globalne fallbacki programu dla materiałów i preferowanych marek okuć.' },
     fc_materials_v1:{ category:'user', label:'Cennik materiałów — legacy', description:'Starszy klucz zgodności dla materiałów.' },
     fc_accessories_v1:{ category:'user', label:'Akcesoria', description:'Pozycje akcesoriów używane w wycenach.' },
     fc_quote_rates_v1:{ category:'user', label:'Cennik usług do wycen', description:'Stawki używane przy ofertach meblowych.' },
