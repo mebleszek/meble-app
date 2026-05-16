@@ -197,20 +197,34 @@
           H.assert(Number(draft.depth) === 51, 'Domyślna głębokość draftu kuchni nie jest zgodna z bezpiecznym ustawieniem startowym', draft);
         });
       }),
-      H.makeTest('Szafki', 'Domyślny draft potrafi sklonować ostatnio dodaną szafkę bez identyfikatorów technicznych', 'Pilnuje szybkiego dodawania serii szafek: po świeżym dodaniu nowy draft może kopiować poprzednią szafkę, ale nie może nieść starych id/setId.', ()=>{
+      H.makeTest('Szafki', 'Domyślny draft klonuje ostatnią szafkę bez limitu czasu i bez identyfikatorów technicznych', 'Pilnuje dodawania szafka za szafką: nowy draft w danym pomieszczeniu kopiuje ostatni rodzaj i ustawienia, ale nie niesie starych id/setId.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
         if(typeof document === 'undefined' || !document || !document.body) return;
         return withCabinetGlobals({
           projectData:{ schemaVersion:9, pokoj:{ cabinets:[{ id:'cab_prev', setId:'set_prev', setNumber:3, width:91, height:210, depth:62, type:'moduł', subType:'uchylne', bodyColor:'Egger W1100 ST9', frontMaterial:'lakier', frontColor:'Biel', openingSystem:'TIP-ON', backMaterial:'Brak', details:{ shelves:2 } }], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:82, legHeight:5, counterThickness:1.8, gapHeight:0, ceilingBlende:0 } } },
-          uiState:{ lastAddedAt: Date.now(), roomType:'pokoj' }
+          uiState:{ lastAddedAt: Date.now() - (1000 * 60 * 60 * 24 * 30), roomType:'pokoj' }
         }, ()=>{
           const draft = FC.cabinetModal.makeDefaultCabinetDraftForRoom('pokoj');
-          H.assert(draft && draft.type === 'moduł' && draft.subType === 'uchylne', 'Świeży draft nie sklonował ostatniej szafki', draft);
+          H.assert(draft && draft.type === 'moduł' && draft.subType === 'uchylne', 'Draft nie sklonował ostatniej szafki mimo braku limitu czasu', draft);
           H.assert(draft.id == null, 'Skopiowany draft nadal niesie stare id', draft);
           H.assert(!('setId' in draft), 'Skopiowany draft nadal niesie setId poprzedniej szafki', draft);
           H.assert(!('setNumber' in draft), 'Skopiowany draft nadal niesie setNumber poprzedniej szafki', draft);
         });
       }),
+      H.makeTest('Szafki', 'Nowa szafka bez poprzednika bierze preferencje standardu pokoju', 'Pilnuje Etapu 1: preferencje pokoju ustawiają domyślny korpus, front, plecy i otwieranie tylko dla nowych szafek.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:10, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ bodyColor:'Czarny korpus', frontMaterial:'akryl', frontColor:'Akryl test', backMaterial:'Brak', openingSystemStanding:'TIP-ON', openingSystemModule:'korytkowy', hardwareManufacturer:'Blum' } } }
+        }, ()=>{
+          const draft = FC.cabinetModal.makeDefaultCabinetDraftForRoom('kuchnia');
+          H.assert(draft.bodyColor === 'Czarny korpus', 'Draft nie przejął korpusu z preferencji', draft);
+          H.assert(draft.frontMaterial === 'akryl' && draft.frontColor === 'Akryl test', 'Draft nie przejął frontu z preferencji', draft);
+          H.assert(draft.backMaterial === 'Brak', 'Draft nie przejął pleców z preferencji', draft);
+          H.assert(draft.openingSystem === 'TIP-ON', 'Draft stojący nie przejął otwierania dla dolnych/stojących', draft);
+        });
+      }),
+
       H.makeTest('Szafki', 'Opcje otwierania dla wiszącej zachowują warianty tylko dla góry', 'Pilnuje, czy select otwierania w Wywiadzie nie gubi wariantów typowych dla szafek wiszących i nie miesza ich z dolnymi.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.populateOpeningOptionsTo === 'function', 'Brak FC.cabinetModal.populateOpeningOptionsTo');
         if(typeof document === 'undefined' || !document || !document.createElement) return;

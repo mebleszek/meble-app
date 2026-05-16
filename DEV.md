@@ -914,3 +914,19 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Import pliku dalej zapisuje formatki w istniejącym `cutting.parts`, zachowuje wykrywanie brakujących kolorów, ptaszek `Ma słoje`, grupowanie do usługowego ROZRYS-u i dotychczasowe dodawanie/zastępowanie formatek.
 - Dodano testy dla wierszy z pliku, wejścia plikowego oraz realnej ścieżki XLSX → pierwszy arkusz → parser PRO100.
 - Raport: `tools/reports/pro100-file-import-v1.md`.
+
+## Room preferences stage1 v1 — 2026-05-15
+
+- Aktualna paczka robocza po tym etapie: `site_room_preferences_stage1_v1.zip`.
+- Baza startowa: `site_pro100_file_import_v1.zip`.
+- WYWIAD dostał dwa akordeony nad listą szafek: `Parametry pomieszczenia` oraz `Preferencje standardu`. Parametry techniczne pokoju zostały odseparowane od preferencji klienta/pomieszczenia.
+- Dodano model `room.preferences` jako część danych konkretnego pomieszczenia. Preferencje nie są globalne dla aplikacji i nie tworzą osobnego klucza `localStorage`.
+- Schemat projektu podbito do `schemaVersion: 10`; normalizacja i migracja V9→V10 dopisują pusty obiekt preferencji dla starszych projektów bez kasowania istniejących danych.
+- Domenę preferencji wydzielono do `js/app/room-preferences/room-preferences-model.js`, a UI modala do `js/app/ui/wywiad-room-preferences.js`, żeby nie rozbudowywać modułów parametrów pokoju ani renderowania szafek.
+- Modal `Preferencje standardu` zapisuje: standard wykończenia, standard blend, korpus, materiał/kolor frontu, plecy, otwieranie dla dolnych/stojących, otwieranie dla górnych/wiszących, otwieranie dla modułu oraz preferowanego producenta okuć.
+- `standard okuć` celowo nie został dodany. Zgodnie z decyzją użytkownika dobór okuć ma później opierać się na najlepszym sensownym okuciu danej firmy, a nie na dodatkowym poziomie standardu.
+- Nowa szafka bez poprzednika w pomieszczeniu pobiera domyślne wartości z `room.preferences`. Jeżeli w danym pomieszczeniu istnieje już szafka, kolejna dodawana szafka klonuje jej rodzaj i ustawienia bez limitu czasowego.
+- Istniejące szafki nie są zmieniane po zapisie preferencji. Hurtowe zastosowanie preferencji do istniejących szafek pozostaje osobnym, późniejszym etapem.
+- Nie zmieniano PRO100, usług stolarskich, ROZRYS-u, WYCENY, backupów ani import/export okuć poza bezpiecznym odczytem listy producentów do pola preferencji.
+- Cache-busting zmienionych modułów: `20260515_room_preferences_stage1_v1`.
+- Raport: `tools/reports/room-preferences-stage1-v1.md`.

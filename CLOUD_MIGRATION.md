@@ -650,3 +650,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Wczytanie pliku PRO100 nie dodaje nowego storage ani nowych kluczy `localStorage`; jest tylko alternatywnym źródłem wejściowym dla istniejącego parsera i modelu `cutting.parts`.
 - Brakujące kolory nadal zapisuje istniejący `catalogStore` materiałów arkuszowych, tak jak w imporcie przez wklejkę; rekordy materiałów pozostają mapowalne do przyszłej chmury.
 - Pliki XLSX/CSV/TXT są czytane lokalnie po stronie przeglądarki i nie są utrwalane jako pliki ani cache.
+
+## Room preferences stage1 v1 — 2026-05-15
+
+- `room.preferences` jest częścią modelu konkretnego pokoju/projektu, a nie osobnym magazynem danych. W przyszłej chmurze powinno mapować się na dokument/podpole pokoju, np. `projects/{projectId}/rooms/{roomId}.preferences`.
+- Zmiana nie dodaje nowych kluczy `localStorage`, nie zmienia polityki backupów i zapisuje się przez istniejący przepływ projektu/inwestora.
+- Migracja V9→V10 dopisuje pusty obiekt preferencji do istniejących pokoi. Brak preferencji pozostaje bezpiecznym stanem i oznacza użycie dotychczasowych fallbacków przy tworzeniu nowej szafki.
+- Preferencje są traktowane jako domyślne ustawienia dla nowych szafek. Zapis preferencji nie modyfikuje istniejących szafek ani snapshotów wyceny, dzięki czemu przyszła synchronizacja nie będzie wykonywać ukrytych masowych zmian.
+- `hardwareManufacturer` w preferencjach jest na razie tylko preferencją użytkownika. Nie tworzy relacji do pozycji katalogu okuć i nie uruchamia zamiany producentów. Późniejszy silnik zamiany powinien nadal pracować po katalogowym `kategoria + typ/cecha + producent`.

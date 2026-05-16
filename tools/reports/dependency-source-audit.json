@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-14T22:00:27.171Z",
+  "generatedAt": "2026-05-15T20:16:26.060Z",
   "summary": {
-    "jsFiles": 344,
-    "indexScripts": 268,
-    "devTestScripts": 301,
+    "jsFiles": 346,
+    "indexScripts": 270,
+    "devTestScripts": 303,
     "fcSymbols": 252,
     "fcSymbolsAll": 280,
-    "edges": 1805,
+    "edges": 1806,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 28,
-      "lines": 6572,
+      "lines": 6573,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -37,7 +37,7 @@
     },
     "INWESTOR": {
       "files": 25,
-      "lines": 3446,
+      "lines": 3448,
       "storageRefs": 24,
       "dialogRefs": 0,
       "high": 0,
@@ -60,8 +60,8 @@
       "medium": 1
     },
     "INNE": {
-      "files": 3,
-      "lines": 391,
+      "files": 4,
+      "lines": 540,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -69,7 +69,7 @@
     },
     "PROJEKT": {
       "files": 10,
-      "lines": 2019,
+      "lines": 2022,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1101,
+      "lines": 1178,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 27,
-      "lines": 3037,
+      "files": 28,
+      "lines": 3323,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 11910,
+      "lines": 11933,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -162,6 +162,10 @@
       1459
     ],
     [
+      "js/testing/project/tests.js",
+      846
+    ],
+    [
       "js/app/rozrys/rozrys.js",
       842
     ],
@@ -170,12 +174,8 @@
       838
     ],
     [
-      "js/testing/project/tests.js",
-      837
-    ],
-    [
       "js/testing/cabinet/tests.js",
-      806
+      820
     ],
     [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
@@ -207,7 +207,7 @@
     ],
     [
       "js/app/ui/actions-register.js",
-      449
+      455
     ],
     [
       "js/app/cabinet/cabinet-modal-standing-specials.js",
@@ -342,12 +342,12 @@
       108
     ],
     [
-      "js/app/shared/room-registry.js",
-      93
+      "js/app/shared/schema.js",
+      96
     ],
     [
-      "js/app/shared/schema.js",
-      91
+      "js/app/shared/room-registry.js",
+      93
     ],
     [
       "js/app/project/project-store.js",
@@ -491,9 +491,9 @@
       "score": 15,
       "area": "TESTY",
       "category": "test",
-      "lines": 837,
+      "lines": 846,
       "incoming": 14,
-      "outgoing": 30,
+      "outgoing": 31,
       "secondLevel": 38,
       "storageRefs": 112,
       "dialogRefs": 0,
@@ -567,7 +567,7 @@
       "score": 8,
       "area": "TESTY",
       "category": "test",
-      "lines": 806,
+      "lines": 820,
       "incoming": 6,
       "outgoing": 13,
       "secondLevel": 33,
@@ -693,7 +693,7 @@
       "score": 6,
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 449,
+      "lines": 455,
       "incoming": 0,
       "outgoing": 23,
       "secondLevel": 0,
@@ -2483,7 +2483,7 @@
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 102,
+      "lines": 103,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -5037,14 +5037,15 @@
     "js/app/investor/project-bootstrap.js": {
       "area": "INWESTOR",
       "category": "domain/controller",
-      "lines": 53,
+      "lines": 55,
       "defines": [
         "projectBootstrap"
       ],
       "uses": [
         "projectBootstrap",
         "utils",
-        "project"
+        "project",
+        "roomPreferences"
       ],
       "incomingFiles": [
         "js/testing/project/tests.js"
@@ -6925,13 +6926,14 @@
     "js/app/project/project-model.js": {
       "area": "PROJEKT",
       "category": "domain/controller",
-      "lines": 107,
+      "lines": 110,
       "defines": [
         "projectModel"
       ],
       "uses": [
         "schema",
         "utils",
+        "roomPreferences",
         "projectModel"
       ],
       "incomingFiles": [
@@ -8530,6 +8532,23 @@
         "dużo zależnych plików",
         "kilka zależności wychodzących"
       ]
+    },
+    "js/app/room-preferences/room-preferences-model.js": {
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 149,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
     },
     "js/app/rozrys/rozrys-accordion.js": {
       "area": "ROZRYS",
@@ -11759,7 +11778,7 @@
     "js/app/shared/migrate.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 215,
+      "lines": 253,
       "defines": [
         "migrations"
       ],
@@ -11781,6 +11800,7 @@
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/project/project-model.js",
         "js/app/shared/room-registry-foundation.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js"
       ],
       "storageRefs": 0,
@@ -11789,7 +11809,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": false,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/shared/public-api.js": {
       "area": "SHARED",
@@ -12661,13 +12683,14 @@
     "js/app/shared/schema.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 174,
+      "lines": 213,
       "defines": [
         "schema"
       ],
       "uses": [
         "utils",
         "schema",
+        "roomPreferences",
         "migrations"
       ],
       "incomingFiles": [
@@ -12676,6 +12699,7 @@
         "js/app/project/project-model.js",
         "js/app/shared/migrate.js",
         "js/app/shared/room-registry-foundation.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/project-stock.js"
       ],
       "outgoingFiles": [
@@ -12755,6 +12779,7 @@
         "js/tabs/rysunek.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
+        "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
@@ -12774,6 +12799,10 @@
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
@@ -13423,7 +13452,7 @@
     "js/app/ui/actions-register.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 449,
+      "lines": 455,
       "defines": [],
       "uses": [
         "actions",
@@ -13439,6 +13468,7 @@
         "project",
         "priceModal",
         "wywiadRoomSettings",
+        "wywiadRoomPreferences",
         "dataSettingsModal",
         "serviceOrders",
         "session",
@@ -13593,7 +13623,7 @@
     "js/app/ui/cabinets-render.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 125,
+      "lines": 129,
       "defines": [
         "cabinetsRender"
       ],
@@ -13606,6 +13636,7 @@
         "storage",
         "views",
         "wywiadRoomSettings",
+        "wywiadRoomPreferences",
         "cabinetsRender"
       ],
       "incomingFiles": [],
@@ -14643,6 +14674,25 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": []
+    },
+    "js/app/ui/wywiad-room-preferences.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 276,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 14,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/ui/wywiad-room-settings.js": {
       "area": "UI",
@@ -16607,7 +16657,7 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 806,
+      "lines": 820,
       "defines": [
         "project",
         "storage",
@@ -17711,7 +17761,7 @@
     "js/testing/project/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 837,
+      "lines": 846,
       "defines": [
         "project",
         "projectAutosave",
@@ -17727,6 +17777,7 @@
         "investors",
         "projectBootstrap",
         "project",
+        "schema",
         "roomScopeResolver",
         "dataBackupStore",
         "dataBackupSnapshot",
@@ -17789,6 +17840,7 @@
         "js/app/shared/data-backup-snapshot.js",
         "js/app/shared/data-backup-store.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/shared/schema.js",
         "js/app/shared/storage.js",
         "js/app/shared/ui-state.js",
         "js/app/ui/app-view.js",

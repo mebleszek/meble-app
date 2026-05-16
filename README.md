@@ -436,3 +436,12 @@ node tools/hardware-import-export-deep-smoke.js
 ```bash
 node tools/service-pro100-dev-smoke.js
 ```
+
+## Room preferences stage1 v1 — 2026-05-15
+
+- W WYWIADZIE nad listą szafek dodano dwa akordeony: `Parametry pomieszczenia` oraz `Preferencje standardu`.
+- Preferencje są zapisane przy konkretnym pomieszczeniu jako `room.preferences`, bez osobnego storage i bez globalnego ustawienia aplikacji.
+- Modal preferencji obejmuje: standard wykończenia, standard blend, korpus, materiał/kolor frontu, plecy, otwieranie dolnych/stojących, górnych/wiszących i modułu oraz preferowanego producenta okuć.
+- `Standard okuć` nie został dodany, zgodnie z decyzją, że później używany ma być najlepszy sensowny wariant danej firmy.
+- Nowa szafka w pustym pomieszczeniu bierze domyślne wartości z preferencji, a kolejna szafka w tym samym pomieszczeniu klonuje ostatnią bez limitu czasowego.
+- Istniejące szafki nie są zmieniane po zapisie preferencji; hurtowe zastosowanie preferencji zostaje osobnym etapem.

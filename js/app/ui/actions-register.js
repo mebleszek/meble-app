@@ -127,6 +127,12 @@
       }catch(_){ }
       return true;
     },
+    'open-room-preferences': ({event}) => {
+      try{
+        if(window.FC && window.FC.wywiadRoomPreferences && typeof window.FC.wywiadRoomPreferences.open === 'function') return !!window.FC.wywiadRoomPreferences.open();
+      }catch(_){ }
+      return true;
+    },
 
     'save-material': ({event}) => {
       const btn = document.getElementById('savePriceBtn');

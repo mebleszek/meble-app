@@ -68,6 +68,10 @@ function runProjectNodeSmoke(sandbox){
   return makeSingleGroupReport('PROJECT node smoke testy', 'Projekt ↔ Node smoke', [
     { name:'Project store jest dostępny', check:()=> !!(FC.projectStore && typeof FC.projectStore.readAll === 'function' && typeof FC.projectStore.writeAll === 'function') },
     { name:'Model projektu jest dostępny', check:()=> !!(FC.projectModel && typeof FC.projectModel.normalizeProjectData === 'function') },
+    { name:'Preferencje pokoju normalizują się w projekcie', explain:'Pilnuje nowego pola room.preferences jako części modelu projektu, bez osobnego storage.', check:()=> {
+      const out = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Czarny', openingSystemModule:'TIP-ON' } } });
+      return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.bodyColor === 'Czarny' && out.kuchnia.preferences.openingSystemModule === 'TIP-ON' && out.szafa && out.szafa.preferences);
+    } },
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
     { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
     { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
@@ -629,6 +633,7 @@ function runCabinetNodeSmoke(sandbox){
   return makeSingleGroupReport('SZAFKI node smoke testy', 'Szafki ↔ Node smoke', [
     { name:'Publiczne API szafek jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich testów modalowego DOM w Node.', check:()=> !!(FC.cabinetModal && FC.cabinetActions && FC.cabinetFronts) },
     { name:'Moduły modalowe szafek są załadowane', explain:'Chroni podstawowe wejścia używane przez modal szafki po splitach.', check:()=> !!(FC.cabinetModalDraft && FC.cabinetModalFields && FC.cabinetModalFinalize) },
+    { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1 preferencji standardu w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function') },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;

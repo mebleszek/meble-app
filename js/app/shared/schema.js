@@ -8,17 +8,51 @@
     const utils = window.FC.utils;
 
     if(!window.FC.schema){
-      const CURRENT_SCHEMA_VERSION = 9;
+      const CURRENT_SCHEMA_VERSION = 10;
 
       const DEFAULT_PROJECT = {
         schemaVersion: CURRENT_SCHEMA_VERSION,
-        kuchnia: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 3.8, gapHeight: 60, ceilingBlende: 10 } },
-        szafa: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 5 } },
-        pokoj: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 5, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 0 } },
-        lazienka: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 220, bottomHeight: 82, legHeight: 15, counterThickness: 2, gapHeight: 0, ceilingBlende: 0 } }
+        kuchnia: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 3.8, gapHeight: 60, ceilingBlende: 10 }, preferences: {} },
+        szafa: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 5 }, preferences: {} },
+        pokoj: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 5, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 0 }, preferences: {} },
+        lazienka: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 220, bottomHeight: 82, legHeight: 15, counterThickness: 2, gapHeight: 0, ceilingBlende: 0 }, preferences: {} }
       };
 
       const ROOMS = ['kuchnia','szafa','pokoj','lazienka'];
+
+      const DEFAULT_ROOM_PREFERENCES = {
+        finishStandard: '',
+        blendStandard: '',
+        bodyColor: '',
+        frontMaterial: '',
+        frontColor: '',
+        backMaterial: '',
+        openingSystemStanding: '',
+        openingSystemHanging: '',
+        openingSystemModule: '',
+        hardwareManufacturer: ''
+      };
+
+      function text(v){ return String(v == null ? '' : v).trim(); }
+
+      function normalizeRoomPreferences(raw){
+        const external = window.FC && window.FC.roomPreferences;
+        if(external && typeof external.normalizeRoomPreferences === 'function') return external.normalizeRoomPreferences(raw);
+        const src = isPlainObject(raw) ? raw : {};
+        const legacyOpening = text(src.openingSystem);
+        return {
+          finishStandard: text(src.finishStandard),
+          blendStandard: text(src.blendStandard),
+          bodyColor: text(src.bodyColor),
+          frontMaterial: text(src.frontMaterial),
+          frontColor: text(src.frontColor),
+          backMaterial: text(src.backMaterial),
+          openingSystemStanding: text(src.openingSystemStanding || src.openingSystemLower || legacyOpening),
+          openingSystemHanging: text(src.openingSystemHanging || legacyOpening),
+          openingSystemModule: text(src.openingSystemModule || legacyOpening),
+          hardwareManufacturer: text(src.hardwareManufacturer)
+        };
+      }
 
       function clone(obj){
         try{ return (utils && utils.clone) ? utils.clone(obj) : JSON.parse(JSON.stringify(obj)); }
@@ -41,6 +75,7 @@
 
         const sRaw = isPlainObject(room.settings) ? room.settings : {};
         const sDef = def.settings;
+        const preferences = normalizeRoomPreferences(room.preferences || def.preferences || DEFAULT_ROOM_PREFERENCES);
 
         const settings = {
           roomHeight: num(sRaw.roomHeight, sDef.roomHeight),
@@ -132,7 +167,8 @@
           cabinets: normCabinets,
           fronts: clone(fronts),
           sets: clone(sets),
-          settings
+          settings,
+          preferences
         };
       }
 
@@ -150,6 +186,7 @@
         if (ver < 7 && typeof mig.migrateV6toV7 === 'function') data = mig.migrateV6toV7(data);
         if (ver < 8 && typeof mig.migrateV7toV8 === 'function') data = mig.migrateV7toV8(data);
         if (ver < 9 && typeof mig.migrateV8toV9 === 'function') data = mig.migrateV8toV9(data);
+        if (ver < 10 && typeof mig.migrateV9toV10 === 'function') data = mig.migrateV9toV10(data);
 
         const out = { schemaVersion: CURRENT_SCHEMA_VERSION };
         for (const r of ROOMS){
@@ -167,6 +204,8 @@
         ROOMS,
         normalizeProject,
         normalizeRoom,
+        normalizeRoomPreferences,
+        DEFAULT_ROOM_PREFERENCES,
       };
     }
   }catch(_){ }

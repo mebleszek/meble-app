@@ -186,3 +186,104 @@
 .cabinet-labor-summary__row{align-items:center;}
 .cabinet-labor-summary__name{font-weight:900;color:#111827;line-height:1.15;}
 .cabinet-labor-summary__qty{font-weight:900;color:#111827;white-space:nowrap;}
+
+/* room_preferences_stage1_v1 — akordeony Parametry / Preferencje standardu w WYWIADZIE */
+.wywiad-room-stack{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:16px 18px;
+}
+.wywiad-room-stack__head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+.wywiad-room-accordion{
+  border:1px solid rgba(219,231,243,.98);
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(15,23,42,.04);
+}
+.wywiad-room-accordion__summary{
+  list-style:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 16px;
+  color:#0f172a;
+  font-weight:900;
+}
+.wywiad-room-accordion__summary::-webkit-details-marker{display:none;}
+.wywiad-room-accordion__title{
+  min-width:0;
+  font-size:16px;
+  line-height:1.2;
+  font-weight:950;
+}
+.wywiad-room-accordion__chevron{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  border-radius:12px;
+  border:1px solid rgba(148,163,184,.38);
+  background:#fff;
+  color:#16a34a;
+  font-size:22px;
+  line-height:1;
+  box-shadow:1px 2px 0 rgba(15,23,42,.08);
+  transition:transform .18s ease;
+}
+.wywiad-room-accordion[open] .wywiad-room-accordion__chevron{transform:rotate(180deg);}
+.wywiad-room-accordion__body{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px 14px;
+  align-items:center;
+  border-top:1px solid rgba(15,23,42,.08);
+  padding:14px 16px 16px;
+  background:#fff;
+}
+.wywiad-room-accordion__body .wywiad-room-shell__actions{
+  grid-column:auto;
+  grid-row:auto;
+}
+.wywiad-room-preferences-box{width:min(780px,calc(100vw - 24px));}
+.wywiad-room-preferences-modal__grid{align-items:start;}
+.wywiad-room-preferences-modal__note{max-width:420px;}
+.wywiad-room-preferences-field{min-width:0;}
+.wywiad-room-preferences-field .cabinet-choice-launch-slot{margin-top:6px;}
+.wywiad-room-preferences-field .cabinet-extra-field__control.cabinet-choice-source--enhanced{
+  position:absolute!important;
+  left:-9999px!important;
+  top:auto!important;
+  width:1px!important;
+  height:1px!important;
+  min-width:1px!important;
+  min-height:1px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  clip-path:inset(100%)!important;
+}
+@media (max-width:640px){
+  .wywiad-room-stack{padding:14px 14px;}
+  .wywiad-room-stack__head{flex-direction:column;align-items:flex-start;}
+  .wywiad-room-accordion__summary{padding:13px 14px;}
+  .wywiad-room-accordion__body{grid-template-columns:1fr;padding:13px 14px 14px;}
+  .wywiad-room-accordion__body .wywiad-room-shell__actions{justify-content:flex-start;width:100%;}
+  .wywiad-room-accordion__body .wywiad-room-shell__open-btn{width:100%;}
+  .wywiad-room-preferences-modal__note{max-width:none;}
+}

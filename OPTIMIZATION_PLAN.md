@@ -720,3 +720,10 @@ node tools/hardware-accessories-dev-smoke.js
 
 - Import plikowy PRO100 został dołożony bez duplikowania logiki wklejki: `parseRows()` i `parseColumns()` są wspólnym wejściem dla XLSX/CSV/TXT oraz tekstu wklejanego.
 - Nie powstał osobny importer usługowy ani osobny storage; dalsze porządki w usługach powinny iść w kierunku wspólnego modelu formatek/oklein wskazanego w planie `Materiał + ROZRYS`.
+
+## 2026-05-15 — Room preferences stage1 v1
+
+- Preferencje pomieszczenia zostały wydzielone jako nowy obszar domenowy `js/app/room-preferences/`, zamiast dopisywania logiki do parametrów pokoju albo dużych modułów WYWIADU.
+- UI preferencji jest osobnym modułem `js/app/ui/wywiad-room-preferences.js`; obecny `wywiad-room-settings.js` zostaje odpowiedzialny tylko za parametry techniczne pomieszczenia.
+- Następny etap hurtowego zastosowania preferencji do istniejących szafek powinien dostać osobne moduły plan/apply oraz modal podglądu liczników. Nie dokładać masowego nadpisywania bezpośrednio do modala preferencji.
+- Przy późniejszym etapie zamiany producentów okuć zacząć od czystego silnika dopasowania katalogowego i testów, bez podmiany tekstów w WYCENIE.

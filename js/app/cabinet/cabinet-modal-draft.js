@@ -26,12 +26,7 @@
   function makeDefaultCabinetDraftForRoom(room){
     const arr = getRoomCabinets(room);
     const last = arr[arr.length - 1];
-    const NOW = Date.now();
-    const RECENT_WINDOW_MS = 90 * 1000;
-    const recentlyAdded = (uiState && Number.isFinite(Number(uiState.lastAddedAt)) && (NOW - Number(uiState.lastAddedAt) <= RECENT_WINDOW_MS));
-    const allowCloneLast = !!last && recentlyAdded;
-
-    if(allowCloneLast){
+    if(last){
       const cloned = cloneSafe(last);
       cloned.id = null;
       delete cloned.setId;
@@ -44,7 +39,7 @@
 
     const isKitchen = room === 'kuchnia';
     const baseLaminat = getBaseLaminat();
-    return {
+    const draft = {
       id: null,
       width: 60,
       height: isKitchen ? projectData.kuchnia.settings.bottomHeight : 200,
@@ -59,6 +54,12 @@
       frontCount: 2,
       details: { insideMode: 'polki', innerDrawerCount: '1', innerDrawerType: 'blum', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', drawerCount: '3', subTypeOption: 'polki', fridgeFrontCount: '2' }
     };
+    try{
+      if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
+        ns.roomPreferences.applyPreferencesToDraft(room, draft);
+      }
+    }catch(_){ }
+    return draft;
   }
 
   function beginAddState(room){

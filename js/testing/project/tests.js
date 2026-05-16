@@ -44,6 +44,15 @@
         H.assert(Array.isArray(out.pokoj.fronts), 'Brak domyślnych fronts w pokoju', out);
       }),
 
+      H.makeTest('Projekt', 'Model pokoju zachowuje preferencje standardu', 'Pilnuje Etapu 1: room.preferences jest częścią danych konkretnego pomieszczenia i nie ginie przy normalizacji projektu.', ()=>{
+        H.assert(FC.schema && typeof FC.schema.normalizeProject === 'function', 'Brak FC.schema.normalizeProject');
+        const out = FC.schema.normalizeProject({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Egger czarny', frontMaterial:'lakier', frontColor:'Biały', openingSystemStanding:'TIP-ON', hardwareManufacturer:'Blum' } } });
+        H.assert(out && Number(out.schemaVersion) >= 10, 'Schema nie podniosła wersji dla preferencji pokoju', out);
+        H.assert(out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.bodyColor === 'Egger czarny', 'Korpus z preferencji pokoju zginął', out.kuchnia && out.kuchnia.preferences);
+        H.assert(out.kuchnia.preferences.openingSystemStanding === 'TIP-ON', 'Otwieranie dolnych/stojących nie zostało zachowane', out.kuchnia.preferences);
+        H.assert(out.szafa && out.szafa.preferences && typeof out.szafa.preferences === 'object', 'Brak domyślnych preferencji w pozostałych pokojach', out.szafa);
+      }),
+
       H.makeTest('Projekt', 'Resolver zakresu pokoi zachowuje zły exact scope zamiast po cichu przełączać na inne pomieszczenie', 'Pilnuje rdzenia pokojów: jeśli użytkownik ma zapisany konkretny pokój, którego już nie ma w aktywnej liście, resolver ma go zachować do walidacji zamiast zamieniać po cichu na inne pomieszczenie.', ()=>{
         H.assert(FC.roomScopeResolver && typeof FC.roomScopeResolver.resolveSelection === 'function', 'Brak FC.roomScopeResolver.resolveSelection');
         const resolved = FC.roomScopeResolver.resolveSelection({ selectedRooms:['room_missing'] }, { getActiveRooms:()=> ['room_kuchnia','room_salon'], useRozrysScope:false });

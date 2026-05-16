@@ -36,6 +36,9 @@
           fronts: Array.isArray(roomSrc.fronts) ? clone(roomSrc.fronts) : (Array.isArray(roomOut.fronts) ? clone(roomOut.fronts) : clone(roomBase.fronts || [])),
           sets: Array.isArray(roomSrc.sets) ? clone(roomSrc.sets) : (Array.isArray(roomOut.sets) ? clone(roomOut.sets) : clone(roomBase.sets || [])),
           settings: Object.assign({}, roomBase.settings || {}, roomOut.settings || {}, roomSrc.settings || {}),
+          preferences: (FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function')
+            ? FC.roomPreferences.normalizeRoomPreferences(Object.assign({}, roomBase.preferences || {}, roomOut.preferences || {}, roomSrc.preferences || {}))
+            : Object.assign({}, roomBase.preferences || {}, roomOut.preferences || {}, roomSrc.preferences || {}),
         });
       }
     });

@@ -199,6 +199,43 @@
         return out;
       }
 
+
+      function migrateV9toV10(data){
+        // v10: preferencje standardu przy konkretnym pomieszczeniu.
+        const out = clone(data || {});
+        const defaults = {
+          finishStandard: '',
+          blendStandard: '',
+          bodyColor: '',
+          frontMaterial: '',
+          frontColor: '',
+          backMaterial: '',
+          openingSystemStanding: '',
+          openingSystemHanging: '',
+          openingSystemModule: '',
+          hardwareManufacturer: ''
+        };
+        for (const r of ROOMS){
+          const room = out[r] = isPlainObject(out[r]) ? out[r] : (out[r] || {});
+          const raw = isPlainObject(room.preferences) ? room.preferences : {};
+          const legacyOpening = String(raw.openingSystem || '').trim();
+          room.preferences = Object.assign({}, defaults, {
+            finishStandard: String(raw.finishStandard || '').trim(),
+            blendStandard: String(raw.blendStandard || '').trim(),
+            bodyColor: String(raw.bodyColor || '').trim(),
+            frontMaterial: String(raw.frontMaterial || '').trim(),
+            frontColor: String(raw.frontColor || '').trim(),
+            backMaterial: String(raw.backMaterial || '').trim(),
+            openingSystemStanding: String(raw.openingSystemStanding || raw.openingSystemLower || legacyOpening || '').trim(),
+            openingSystemHanging: String(raw.openingSystemHanging || legacyOpening || '').trim(),
+            openingSystemModule: String(raw.openingSystemModule || legacyOpening || '').trim(),
+            hardwareManufacturer: String(raw.hardwareManufacturer || '').trim()
+          });
+        }
+        out.schemaVersion = 10;
+        return out;
+      }
+
       window.FC.migrations = {
         migrateV1toV2,
         migrateV2toV3,
@@ -208,6 +245,7 @@
         migrateV6toV7,
         migrateV7toV8,
         migrateV8toV9,
+        migrateV9toV10,
       };
     }
   }catch(_){ }

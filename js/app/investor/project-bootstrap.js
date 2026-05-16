@@ -26,6 +26,8 @@
           if(!pd[r].settings) pd[r].settings = clone(defs[r].settings);
           if(!Array.isArray(pd[r].fronts)) pd[r].fronts = [];
           if(!Array.isArray(pd[r].sets)) pd[r].sets = [];
+          if(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function') pd[r].preferences = FC.roomPreferences.normalizeRoomPreferences(pd[r].preferences || (defs[r] && defs[r].preferences));
+          else if(!pd[r].preferences) pd[r].preferences = clone((defs[r] && defs[r].preferences) || {});
 
           let n = 1;
           pd[r].sets.forEach(s=>{
