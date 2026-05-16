@@ -130,6 +130,12 @@ function makeDefaultCabinetDraftForRoom(room){
   return null;
 }
 
+function makeDefaultCabinetDraftForType(room, typeValue){
+  const api = getCabinetModalDraftApi();
+  if(api && typeof api.makeDefaultCabinetDraftForType === 'function') return api.makeDefaultCabinetDraftForType(room, typeValue);
+  return makeDefaultCabinetDraftForRoom(room);
+}
+
 function openCabinetModalForAdd(){
   const draftApi = getCabinetModalDraftApi();
   if(draftApi && typeof draftApi.beginAddState === 'function') draftApi.beginAddState(uiState.roomType);
@@ -246,9 +252,16 @@ function renderCabinetTypeChoices(){
       if(ch.key !== 'zestaw'){
         const room = uiState.roomType;
     projectData[room].cabinets = projectData[room].cabinets || [];
+        if(cabinetModalState.mode === 'add'){
+          cabinetModalState.draft = makeDefaultCabinetDraftForType(room, ch.key) || cabinetModalState.draft || makeDefaultCabinetDraftForRoom(room);
+        }
         if(!cabinetModalState.draft) cabinetModalState.draft = makeDefaultCabinetDraftForRoom(room);
 
-        applyTypeRulesSafe(room, cabinetModalState.draft, ch.key);
+        if(cabinetModalState.mode !== 'add' || String(cabinetModalState.draft.type || '') !== ch.key){
+          applyTypeRulesSafe(room, cabinetModalState.draft, ch.key);
+        } else {
+          cabinetModalState.draft.type = ch.key;
+        }
         const opts = getSubTypeOptionsForTypeSafe(ch.key).map(o=>o.v);
         if(!opts.includes(cabinetModalState.draft.subType)) cabinetModalState.draft.subType = opts[0];
         applySubTypeRulesSafe(room, cabinetModalState.draft, cabinetModalState.draft.subType);
@@ -612,6 +625,7 @@ function createOrUpdateSetFromWizard(){
 
   ns.cabinetModal = {
     makeDefaultCabinetDraftForRoom,
+    makeDefaultCabinetDraftForType,
     openCabinetModalForAdd,
     lockModalScroll,
     unlockModalScroll,

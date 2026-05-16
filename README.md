@@ -484,3 +484,14 @@ node tools/service-pro100-dev-smoke.js
 - Akordeony `Materiały` i `Okucia` mają geometrię chevrona, ramkę i cień zgodne z wzorcem ROZRYS.
 - Zmiana jest UI-only dla tej sekcji: bez zmiany modelu `fc_program_defaults_v1`, backupów, PRO100, WYCENY, ROZRYS i preferencji pokoju.
 - Raport: `tools/reports/program-defaults-rozrys-sync-v1.md`.
+
+
+## Room zone preferences v1 — 2026-05-16
+
+- Aktualna paczka po tym etapie: `site_000_room_zone_preferences_v1.zip`.
+- Baza startowa: `site_000_program_defaults_rozrys_sync_v1.zip`.
+- Preferencje w WYWIADZIE są strefowe: `lower`/dolna-stojące, `middle`/środkowa-moduły, `upper`/górna-wiszące. Nie dodawać sekcji „Domyślne” w WYWIADZIE.
+- Globalne domyślne materiały i okucia pozostają w trybiku strony głównej pod `fc_program_defaults_v1`; są fallbackiem programu i są objęte backupem.
+- UI preferencji strefowych ma używać aplikacyjnych launcherów ROZRYS; nie używać natywnych selectów/pickerów telefonu.
+- Dodawanie szafki: po wybraniu typu nowy draft kopiuje ostatnią szafkę tego samego typu. Jeżeli poprzednika danego typu brak, bierze strefę pokoju, potem globalne domyślne z trybiku, potem awaryjny fallback.
+- Raport: `tools/reports/room-zone-preferences-v1.md`.

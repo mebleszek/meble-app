@@ -211,17 +211,40 @@
           H.assert(!('setNumber' in draft), 'Skopiowany draft nadal niesie setNumber poprzedniej szafki', draft);
         });
       }),
-      H.makeTest('Szafki', 'Nowa szafka bez poprzednika bierze preferencje standardu pokoju', 'Pilnuje Etapu 1: preferencje pokoju ustawiają domyślny korpus, front, plecy i otwieranie tylko dla nowych szafek.', ()=>{
+      H.makeTest('Szafki', 'Nowa szafka bez poprzednika bierze preferencje strefowe pokoju', 'Pilnuje Etapu 1B: preferencje stref dolna/środkowa/górna ustawiają domyślny korpus, front, plecy i otwieranie tylko dla nowych szafek danego typu.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForType === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForType');
         if(typeof document === 'undefined' || !document || !document.body) return;
         return withCabinetGlobals({
-          projectData:{ schemaVersion:10, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ bodyColor:'Czarny korpus', frontMaterial:'akryl', frontColor:'Akryl test', backMaterial:'Brak', openingSystemStanding:'TIP-ON', openingSystemModule:'korytkowy', hardwareManufacturer:'Blum' } } }
+          projectData:{ schemaVersion:11, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Czarny korpus', frontMaterial:'akryl', frontColor:'Akryl test', backMaterial:'Brak', openingSystem:'TIP-ON' }, middle:{ bodyColor:'Moduł korpus', frontMaterial:'laminat', frontColor:'Moduł front', backMaterial:'HDF 3mm biała', openingSystem:'korytkowy' }, upper:{ bodyColor:'Góra korpus', frontMaterial:'lakier', frontColor:'Góra front', backMaterial:'Brak', openingSystem:'podchwyt' } } } } }
         }, ()=>{
-          const draft = FC.cabinetModal.makeDefaultCabinetDraftForRoom('kuchnia');
-          H.assert(draft.bodyColor === 'Czarny korpus', 'Draft nie przejął korpusu z preferencji', draft);
-          H.assert(draft.frontMaterial === 'akryl' && draft.frontColor === 'Akryl test', 'Draft nie przejął frontu z preferencji', draft);
-          H.assert(draft.backMaterial === 'Brak', 'Draft nie przejął pleców z preferencji', draft);
-          H.assert(draft.openingSystem === 'TIP-ON', 'Draft stojący nie przejął otwierania dla dolnych/stojących', draft);
+          const standing = FC.cabinetModal.makeDefaultCabinetDraftForRoom('kuchnia');
+          H.assert(standing.bodyColor === 'Czarny korpus', 'Draft stojący nie przejął korpusu ze strefy dolnej', standing);
+          H.assert(standing.frontMaterial === 'akryl' && standing.frontColor === 'Akryl test', 'Draft stojący nie przejął frontu ze strefy dolnej', standing);
+          H.assert(standing.backMaterial === 'Brak', 'Draft stojący nie przejął pleców ze strefy dolnej', standing);
+          H.assert(standing.openingSystem === 'TIP-ON', 'Draft stojący nie przejął otwierania ze strefy dolnej', standing);
+          const moduleDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'moduł');
+          H.assert(moduleDraft.bodyColor === 'Moduł korpus' && moduleDraft.openingSystem === 'korytkowy', 'Draft modułu nie przejął preferencji strefy środkowej', moduleDraft);
+          const hangingDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'wisząca');
+          H.assert(hangingDraft.bodyColor === 'Góra korpus' && hangingDraft.openingSystem === 'podchwyt', 'Draft wiszący nie przejął preferencji strefy górnej', hangingDraft);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Draft dla wybranego typu kopiuje ostatnią szafkę tego samego typu', 'Pilnuje decyzji: nowa stojąca kopiuje ostatnią stojącą, moduł ostatni moduł, a wisząca ostatnią wiszącą — bez mieszania stref.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForType === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForType');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:11, kuchnia:{ cabinets:[
+            { id:'cab_stand', width:60, height:86, depth:51, type:'stojąca', subType:'standardowa', bodyColor:'Stojący korpus', frontMaterial:'laminat', frontColor:'Stojący front', openingSystem:'TIP-ON', backMaterial:'Brak', details:{} },
+            { id:'cab_mod', width:70, height:64, depth:51, type:'moduł', subType:'uchylne', bodyColor:'Moduł korpus', frontMaterial:'lakier', frontColor:'Moduł front', openingSystem:'korytkowy', backMaterial:'HDF 3mm biała', details:{ shelves:2 } }
+          ], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Strefa dół' }, middle:{ bodyColor:'Strefa środek' }, upper:{ bodyColor:'Strefa góra' } } } } }
+        }, ()=>{
+          const standing = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'stojąca');
+          H.assert(standing.bodyColor === 'Stojący korpus' && standing.id == null, 'Nowa stojąca nie kopiuje ostatniej stojącej albo niesie id', standing);
+          const moduleDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'moduł');
+          H.assert(moduleDraft.bodyColor === 'Moduł korpus' && moduleDraft.subType === 'uchylne', 'Nowy moduł nie kopiuje ostatniego modułu', moduleDraft);
+          const hanging = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'wisząca');
+          H.assert(hanging.bodyColor === 'Strefa góra', 'Pierwsza wisząca bez poprzednika nie bierze strefy górnej', hanging);
         });
       }),
 

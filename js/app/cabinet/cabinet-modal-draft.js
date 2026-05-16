@@ -23,28 +23,47 @@
     }catch(_){ return ''; }
   }
 
-  function makeDefaultCabinetDraftForRoom(room){
-    const arr = getRoomCabinets(room);
-    const last = arr[arr.length - 1];
-    if(last){
-      const cloned = cloneSafe(last);
-      cloned.id = null;
-      delete cloned.setId;
-      delete cloned.setPreset;
-      delete cloned.setRole;
-      delete cloned.setName;
-      delete cloned.setNumber;
-      return cloned;
-    }
+  function sanitizeClonedCabinet(cab){
+    const cloned = cloneSafe(cab || {});
+    cloned.id = null;
+    delete cloned.setId;
+    delete cloned.setPreset;
+    delete cloned.setRole;
+    delete cloned.setName;
+    delete cloned.setNumber;
+    return cloned;
+  }
 
-    const isKitchen = room === 'kuchnia';
+  function findLastCabinet(room, typeValue){
+    const arr = getRoomCabinets(room);
+    const desired = String(typeValue || '');
+    for(let i = arr.length - 1; i >= 0; i -= 1){
+      const cab = arr[i];
+      if(!cab) continue;
+      if(desired && String(cab.type || '') !== desired) continue;
+      return cab;
+    }
+    return null;
+  }
+
+  function getRoomSettings(room){
+    try{
+      return (projectData && projectData[room] && projectData[room].settings) || {};
+    }catch(_){ return {}; }
+  }
+
+  function getDefaultTypeForRoom(room){ return room === 'kuchnia' ? 'stojąca' : 'moduł'; }
+
+  function buildFreshDraft(room, typeValue){
+    const settings = getRoomSettings(room);
     const baseLaminat = getBaseLaminat();
+    const type = String(typeValue || getDefaultTypeForRoom(room));
     const draft = {
       id: null,
       width: 60,
-      height: isKitchen ? projectData.kuchnia.settings.bottomHeight : 200,
-      depth: isKitchen ? 51 : 60,
-      type: isKitchen ? 'stojąca' : 'moduł',
+      height: room === 'kuchnia' ? settings.bottomHeight : 200,
+      depth: room === 'kuchnia' ? 51 : 60,
+      type,
       subType: 'standardowa',
       bodyColor: baseLaminat,
       frontMaterial: 'laminat',
@@ -54,6 +73,13 @@
       frontCount: 2,
       details: { insideMode: 'polki', innerDrawerCount: '1', innerDrawerType: 'blum', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', drawerCount: '3', subTypeOption: 'polki', fridgeFrontCount: '2' }
     };
+
+    try{
+      if(ns.cabinetFronts && typeof ns.cabinetFronts.applyTypeRules === 'function'){
+        ns.cabinetFronts.applyTypeRules(room, draft, type);
+      }
+    }catch(_){ draft.type = type; }
+
     try{
       if(ns.programDefaults && typeof ns.programDefaults.applyMaterialsToDraft === 'function'){
         ns.programDefaults.applyMaterialsToDraft(draft);
@@ -65,6 +91,21 @@
       }
     }catch(_){ }
     return draft;
+  }
+
+  function makeDefaultCabinetDraftForType(room, typeValue){
+    const type = String(typeValue || getDefaultTypeForRoom(room));
+    if(type && type !== 'zestaw'){
+      const lastSameType = findLastCabinet(room, type);
+      if(lastSameType) return sanitizeClonedCabinet(lastSameType);
+    }
+    return buildFreshDraft(room, type === 'zestaw' ? getDefaultTypeForRoom(room) : type);
+  }
+
+  function makeDefaultCabinetDraftForRoom(room){
+    const last = findLastCabinet(room, '');
+    if(last) return sanitizeClonedCabinet(last);
+    return makeDefaultCabinetDraftForType(room, getDefaultTypeForRoom(room));
   }
 
   function beginAddState(room){
@@ -100,6 +141,7 @@
 
   ns.cabinetModalDraft = {
     makeDefaultCabinetDraftForRoom,
+    makeDefaultCabinetDraftForType,
     beginAddState,
     beginEditState,
     beginSetEditState,

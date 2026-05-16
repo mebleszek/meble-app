@@ -1,20 +1,35 @@
 // js/app/room-preferences/room-preferences-model.js
 // Model preferencji standardu zapisanych przy konkretnym pomieszczeniu.
+// Etap 1B: preferencje są strefowe: dolna/stojące, środkowa/moduły, górna/wiszące.
 
 (function(){
   'use strict';
   const ns = (window.FC = window.FC || {});
 
-  const DEFAULT_ROOM_PREFERENCES = {
-    finishStandard: '',
-    blendStandard: '',
+  const ZONE_KEYS = ['lower','middle','upper'];
+  const ZONE_META = {
+    lower: { key:'lower', label:'Strefa dolna / stojące', shortLabel:'Dolna', type:'stojąca', openingOptionsKey:'standing' },
+    middle: { key:'middle', label:'Strefa środkowa / moduły', shortLabel:'Środkowa', type:'moduł', openingOptionsKey:'module' },
+    upper: { key:'upper', label:'Strefa górna / wiszące', shortLabel:'Górna', type:'wisząca', openingOptionsKey:'hanging' }
+  };
+
+  const DEFAULT_ZONE_PREFERENCES = {
     bodyColor: '',
     frontMaterial: '',
     frontColor: '',
     backMaterial: '',
-    openingSystemStanding: '',
-    openingSystemHanging: '',
-    openingSystemModule: '',
+    openingSystem: ''
+  };
+
+  const DEFAULT_ROOM_PREFERENCES = {
+    finishStandard: '',
+    blendStandard: '',
+    zones: {
+      lower: Object.assign({}, DEFAULT_ZONE_PREFERENCES),
+      middle: Object.assign({}, DEFAULT_ZONE_PREFERENCES),
+      upper: Object.assign({}, DEFAULT_ZONE_PREFERENCES)
+    },
+    // legacy-only: zachowywane przy normalizacji starych projektów, nie jest już pokazywane w UI WYWIADU.
     hardwareManufacturer: ''
   };
 
@@ -30,21 +45,60 @@
   }
 
   function text(value){ return String(value == null ? '' : value).trim(); }
+  function isPlainObject(value){ return !!value && typeof value === 'object' && (value.constructor === Object || Object.getPrototypeOf(value) === null); }
+
+  function normalizeZonePreferences(raw, legacy){
+    const src = isPlainObject(raw) ? raw : {};
+    const legacySrc = isPlainObject(legacy) ? legacy : {};
+    return {
+      bodyColor: text(src.bodyColor || legacySrc.bodyColor),
+      frontMaterial: text(src.frontMaterial || legacySrc.frontMaterial),
+      frontColor: text(src.frontColor || legacySrc.frontColor),
+      backMaterial: text(src.backMaterial || legacySrc.backMaterial),
+      openingSystem: text(src.openingSystem || legacySrc.openingSystem)
+    };
+  }
+
+  function legacyZoneFor(src, zoneKey){
+    const legacyOpening = text(src && src.openingSystem);
+    if(zoneKey === 'upper'){
+      return {
+        bodyColor: src && src.bodyColor,
+        frontMaterial: src && src.frontMaterial,
+        frontColor: src && src.frontColor,
+        backMaterial: src && src.backMaterial,
+        openingSystem: src && (src.openingSystemHanging || legacyOpening)
+      };
+    }
+    if(zoneKey === 'middle'){
+      return {
+        bodyColor: src && src.bodyColor,
+        frontMaterial: src && src.frontMaterial,
+        frontColor: src && src.frontColor,
+        backMaterial: src && src.backMaterial,
+        openingSystem: src && (src.openingSystemModule || legacyOpening)
+      };
+    }
+    return {
+      bodyColor: src && src.bodyColor,
+      frontMaterial: src && src.frontMaterial,
+      frontColor: src && src.frontColor,
+      backMaterial: src && src.backMaterial,
+      openingSystem: src && (src.openingSystemStanding || src.openingSystemLower || legacyOpening)
+    };
+  }
 
   function normalizeRoomPreferences(raw){
-    const src = raw && typeof raw === 'object' ? raw : {};
-    const legacyOpening = text(src.openingSystem);
-    const out = Object.assign({}, DEFAULT_ROOM_PREFERENCES, {
+    const src = isPlainObject(raw) ? raw : {};
+    const rawZones = isPlainObject(src.zones) ? src.zones : {};
+    const out = {
       finishStandard: text(src.finishStandard),
       blendStandard: text(src.blendStandard),
-      bodyColor: text(src.bodyColor),
-      frontMaterial: text(src.frontMaterial),
-      frontColor: text(src.frontColor),
-      backMaterial: text(src.backMaterial),
-      openingSystemStanding: text(src.openingSystemStanding || src.openingSystemLower || legacyOpening),
-      openingSystemHanging: text(src.openingSystemHanging || legacyOpening),
-      openingSystemModule: text(src.openingSystemModule || legacyOpening),
+      zones: {},
       hardwareManufacturer: text(src.hardwareManufacturer)
+    };
+    ZONE_KEYS.forEach((zoneKey)=>{
+      out.zones[zoneKey] = normalizeZonePreferences(rawZones[zoneKey], legacyZoneFor(src, zoneKey));
     });
     return out;
   }
@@ -88,33 +142,63 @@
     return clone(roomData.preferences);
   }
 
-  function openingKeyForType(typeValue){
+  function zoneKeyForCabinetType(typeValue){
     const type = text(typeValue).toLowerCase();
-    if(type === 'wisząca' || type === 'wiszaca') return 'openingSystemHanging';
-    if(type === 'moduł' || type === 'modul') return 'openingSystemModule';
+    if(type === 'wisząca' || type === 'wiszaca') return 'upper';
+    if(type === 'moduł' || type === 'modul') return 'middle';
+    return 'lower';
+  }
+
+  function openingKeyForType(typeValue){
+    const zoneKey = zoneKeyForCabinetType(typeValue);
+    if(zoneKey === 'upper') return 'openingSystemHanging';
+    if(zoneKey === 'middle') return 'openingSystemModule';
     return 'openingSystemStanding';
   }
 
-  function getOpeningSystemForCabinetType(preferences, typeValue){
+  function getZonePreferences(preferences, zoneOrType){
     const prefs = normalizeRoomPreferences(preferences);
-    return text(prefs[openingKeyForType(typeValue)]);
+    const raw = text(zoneOrType);
+    const zoneKey = ZONE_KEYS.includes(raw) ? raw : zoneKeyForCabinetType(raw);
+    return clone((prefs.zones && prefs.zones[zoneKey]) || DEFAULT_ZONE_PREFERENCES);
+  }
+
+  function getOpeningSystemForCabinetType(preferences, typeValue){
+    const zone = getZonePreferences(preferences, typeValue);
+    return text(zone.openingSystem);
   }
 
   function applyPreferencesToDraft(room, draft){
     const target = draft && typeof draft === 'object' ? draft : {};
     const prefs = getRoomPreferences(room);
-    if(prefs.bodyColor) target.bodyColor = prefs.bodyColor;
-    if(prefs.frontMaterial) target.frontMaterial = prefs.frontMaterial;
-    if(prefs.frontColor) target.frontColor = prefs.frontColor;
-    if(prefs.backMaterial) target.backMaterial = prefs.backMaterial;
-    const opening = getOpeningSystemForCabinetType(prefs, target.type);
-    if(opening) target.openingSystem = opening;
+    const zone = getZonePreferences(prefs, target.type);
+    if(zone.bodyColor) target.bodyColor = zone.bodyColor;
+    if(zone.frontMaterial) target.frontMaterial = zone.frontMaterial;
+    if(zone.frontColor) target.frontColor = zone.frontColor;
+    if(zone.backMaterial) target.backMaterial = zone.backMaterial;
+    if(zone.openingSystem) target.openingSystem = zone.openingSystem;
     return target;
+  }
+
+  function hasMeaningfulZone(zone){
+    const normalized = normalizeZonePreferences(zone);
+    return Object.keys(DEFAULT_ZONE_PREFERENCES).some((key)=> !!text(normalized[key]));
   }
 
   function hasMeaningfulPreferences(preferences){
     const prefs = normalizeRoomPreferences(preferences);
-    return Object.keys(DEFAULT_ROOM_PREFERENCES).some((key)=> !!text(prefs[key]));
+    if(text(prefs.finishStandard) || text(prefs.blendStandard) || text(prefs.hardwareManufacturer)) return true;
+    return ZONE_KEYS.some((zoneKey)=> hasMeaningfulZone(prefs.zones && prefs.zones[zoneKey]));
+  }
+
+  function summarizeZone(zoneKey, zone){
+    const z = normalizeZonePreferences(zone);
+    const chunks = [];
+    if(z.bodyColor) chunks.push('korpus: ' + z.bodyColor);
+    if(z.frontMaterial || z.frontColor) chunks.push('front: ' + [z.frontMaterial, z.frontColor].filter(Boolean).join(' / '));
+    if(z.backMaterial) chunks.push('plecy: ' + z.backMaterial);
+    if(z.openingSystem) chunks.push('otwieranie: ' + z.openingSystem);
+    return chunks.length ? (ZONE_META[zoneKey].shortLabel + ': ' + chunks.join(', ')) : '';
   }
 
   function getSummary(preferences){
@@ -122,24 +206,27 @@
     const chunks = [];
     if(prefs.finishStandard) chunks.push('wykończenie: ' + prefs.finishStandard);
     if(prefs.blendStandard) chunks.push('blendy: ' + prefs.blendStandard);
-    if(prefs.bodyColor) chunks.push('korpus: ' + prefs.bodyColor);
-    if(prefs.frontMaterial || prefs.frontColor) chunks.push('front: ' + [prefs.frontMaterial, prefs.frontColor].filter(Boolean).join(' / '));
-    if(prefs.backMaterial) chunks.push('plecy: ' + prefs.backMaterial);
-    if(prefs.openingSystemStanding) chunks.push('dolne/stojące: ' + prefs.openingSystemStanding);
-    if(prefs.openingSystemHanging) chunks.push('górne: ' + prefs.openingSystemHanging);
-    if(prefs.openingSystemModule) chunks.push('moduł: ' + prefs.openingSystemModule);
-    if(prefs.hardwareManufacturer) chunks.push('okucia: ' + prefs.hardwareManufacturer);
-    return chunks.length ? chunks.join(' • ') : 'Brak zapisanych preferencji — nowe szafki użyją dotychczasowych domyślnych wartości.';
+    ZONE_KEYS.forEach((zoneKey)=>{
+      const summary = summarizeZone(zoneKey, prefs.zones && prefs.zones[zoneKey]);
+      if(summary) chunks.push(summary);
+    });
+    return chunks.length ? chunks.join(' • ') : 'Brak preferencji strefowych — nowe szafki użyją globalnych domyślnych z trybiku albo awaryjnych wartości programu.';
   }
 
   ns.roomPreferences = Object.assign({}, ns.roomPreferences || {}, {
+    DEFAULT_ZONE_PREFERENCES: clone(DEFAULT_ZONE_PREFERENCES),
     DEFAULT_ROOM_PREFERENCES: clone(DEFAULT_ROOM_PREFERENCES),
+    ROOM_PREFERENCE_ZONES: clone(ZONE_META),
+    ZONE_KEYS: ZONE_KEYS.slice(),
     OPENING_OPTIONS: clone(OPENING_OPTIONS),
+    normalizeZonePreferences,
     normalizeRoomPreferences,
     ensureProjectRoom,
     getRoomPreferences,
     setRoomPreferences,
+    zoneKeyForCabinetType,
     openingKeyForType,
+    getZonePreferences,
     getOpeningSystemForCabinetType,
     applyPreferencesToDraft,
     hasMeaningfulPreferences,

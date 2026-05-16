@@ -8,7 +8,7 @@
     const utils = window.FC.utils;
 
     if(!window.FC.schema){
-      const CURRENT_SCHEMA_VERSION = 10;
+      const CURRENT_SCHEMA_VERSION = 11;
 
       const DEFAULT_PROJECT = {
         schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -20,36 +20,77 @@
 
       const ROOMS = ['kuchnia','szafa','pokoj','lazienka'];
 
-      const DEFAULT_ROOM_PREFERENCES = {
-        finishStandard: '',
-        blendStandard: '',
+      const DEFAULT_ZONE_PREFERENCES = {
         bodyColor: '',
         frontMaterial: '',
         frontColor: '',
         backMaterial: '',
-        openingSystemStanding: '',
-        openingSystemHanging: '',
-        openingSystemModule: '',
+        openingSystem: ''
+      };
+
+      const DEFAULT_ROOM_PREFERENCES = {
+        finishStandard: '',
+        blendStandard: '',
+        zones: {
+          lower: { ...DEFAULT_ZONE_PREFERENCES },
+          middle: { ...DEFAULT_ZONE_PREFERENCES },
+          upper: { ...DEFAULT_ZONE_PREFERENCES }
+        },
         hardwareManufacturer: ''
       };
 
       function text(v){ return String(v == null ? '' : v).trim(); }
 
+      function normalizeZonePreferences(raw, legacy){
+        const src = isPlainObject(raw) ? raw : {};
+        const legacySrc = isPlainObject(legacy) ? legacy : {};
+        return {
+          bodyColor: text(src.bodyColor || legacySrc.bodyColor),
+          frontMaterial: text(src.frontMaterial || legacySrc.frontMaterial),
+          frontColor: text(src.frontColor || legacySrc.frontColor),
+          backMaterial: text(src.backMaterial || legacySrc.backMaterial),
+          openingSystem: text(src.openingSystem || legacySrc.openingSystem)
+        };
+      }
+
+      function legacyZoneFor(src, zoneKey){
+        const legacyOpening = text(src && src.openingSystem);
+        if(zoneKey === 'upper') return {
+          bodyColor: src && src.bodyColor,
+          frontMaterial: src && src.frontMaterial,
+          frontColor: src && src.frontColor,
+          backMaterial: src && src.backMaterial,
+          openingSystem: src && (src.openingSystemHanging || legacyOpening)
+        };
+        if(zoneKey === 'middle') return {
+          bodyColor: src && src.bodyColor,
+          frontMaterial: src && src.frontMaterial,
+          frontColor: src && src.frontColor,
+          backMaterial: src && src.backMaterial,
+          openingSystem: src && (src.openingSystemModule || legacyOpening)
+        };
+        return {
+          bodyColor: src && src.bodyColor,
+          frontMaterial: src && src.frontMaterial,
+          frontColor: src && src.frontColor,
+          backMaterial: src && src.backMaterial,
+          openingSystem: src && (src.openingSystemStanding || src.openingSystemLower || legacyOpening)
+        };
+      }
+
       function normalizeRoomPreferences(raw){
         const external = window.FC && window.FC.roomPreferences;
         if(external && typeof external.normalizeRoomPreferences === 'function') return external.normalizeRoomPreferences(raw);
         const src = isPlainObject(raw) ? raw : {};
-        const legacyOpening = text(src.openingSystem);
+        const rawZones = isPlainObject(src.zones) ? src.zones : {};
         return {
           finishStandard: text(src.finishStandard),
           blendStandard: text(src.blendStandard),
-          bodyColor: text(src.bodyColor),
-          frontMaterial: text(src.frontMaterial),
-          frontColor: text(src.frontColor),
-          backMaterial: text(src.backMaterial),
-          openingSystemStanding: text(src.openingSystemStanding || src.openingSystemLower || legacyOpening),
-          openingSystemHanging: text(src.openingSystemHanging || legacyOpening),
-          openingSystemModule: text(src.openingSystemModule || legacyOpening),
+          zones: {
+            lower: normalizeZonePreferences(rawZones.lower, legacyZoneFor(src, 'lower')),
+            middle: normalizeZonePreferences(rawZones.middle, legacyZoneFor(src, 'middle')),
+            upper: normalizeZonePreferences(rawZones.upper, legacyZoneFor(src, 'upper'))
+          },
           hardwareManufacturer: text(src.hardwareManufacturer)
         };
       }
@@ -187,6 +228,7 @@
         if (ver < 8 && typeof mig.migrateV7toV8 === 'function') data = mig.migrateV7toV8(data);
         if (ver < 9 && typeof mig.migrateV8toV9 === 'function') data = mig.migrateV8toV9(data);
         if (ver < 10 && typeof mig.migrateV9toV10 === 'function') data = mig.migrateV9toV10(data);
+        if (ver < 11 && typeof mig.migrateV10toV11 === 'function') data = mig.migrateV10toV11(data);
 
         const out = { schemaVersion: CURRENT_SCHEMA_VERSION };
         for (const r of ROOMS){

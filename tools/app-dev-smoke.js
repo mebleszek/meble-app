@@ -70,7 +70,7 @@ function runProjectNodeSmoke(sandbox){
     { name:'Model projektu jest dostępny', check:()=> !!(FC.projectModel && typeof FC.projectModel.normalizeProjectData === 'function') },
     { name:'Preferencje pokoju normalizują się w projekcie', explain:'Pilnuje nowego pola room.preferences jako części modelu projektu, bez osobnego storage.', check:()=> {
       const out = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Czarny', openingSystemModule:'TIP-ON' } } });
-      return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.bodyColor === 'Czarny' && out.kuchnia.preferences.openingSystemModule === 'TIP-ON' && out.szafa && out.szafa.preferences);
+      return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones && out.kuchnia.preferences.zones.lower.bodyColor === 'Czarny' && out.kuchnia.preferences.zones.middle.openingSystem === 'TIP-ON' && out.szafa && out.szafa.preferences && out.szafa.preferences.zones);
     } },
     { name:'Wywiad ma zwinięte akordeony inline bez przycisków modalnych', explain:'Pilnuje poprawki UX: Parametry i Preferencje są edytowane bezpośrednio w akordeonach, domyślnie zwiniętych.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -134,8 +134,10 @@ function runDataNodeSmoke(sandbox){
         && css.includes('display:none!important')
         && css.includes('border-right:3px solid #166534')
         && !css.includes(".data-settings-defaults-card .data-settings-accordion__toggle::before{\n  content:'▾'")
+        && src.includes("dom.makeAccordion('Materiały', [materialGrid], { open:false })")
+        && src.includes("dom.makeAccordion('Okucia', [hardwareGrid], { open:false })")
         && src.includes('rozrys-choice-launch--options-clean')
-        && html.includes('20260516_program_defaults_rozrys_sync_v1');
+        && html.includes('20260516_room_zone_preferences_v1');
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },
@@ -680,7 +682,12 @@ function runCabinetNodeSmoke(sandbox){
   return makeSingleGroupReport('SZAFKI node smoke testy', 'Szafki ↔ Node smoke', [
     { name:'Publiczne API szafek jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich testów modalowego DOM w Node.', check:()=> !!(FC.cabinetModal && FC.cabinetActions && FC.cabinetFronts) },
     { name:'Moduły modalowe szafek są załadowane', explain:'Chroni podstawowe wejścia używane przez modal szafki po splitach.', check:()=> !!(FC.cabinetModalDraft && FC.cabinetModalFields && FC.cabinetModalFinalize) },
-    { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1 preferencji standardu w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function') },
+    { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1B preferencji strefowych w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function' && typeof FC.roomPreferences.getZonePreferences === 'function' && Array.isArray(FC.roomPreferences.ZONE_KEYS) && FC.roomPreferences.ZONE_KEYS.length === 3) },
+    { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
+      return src.includes('Strefa dolna / stojące')
+        || (src.includes('buildZoneCard') && src.includes('wywiad-zone-choice') && src.includes('openRozrysChoiceOverlay') && !src.includes("document.createElement('select')") && !src.includes('Preferowany producent okuć'));
+    } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;

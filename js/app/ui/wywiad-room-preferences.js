@@ -1,5 +1,6 @@
 // js/app/ui/wywiad-room-preferences.js
 // UI preferencji standardu pokoju w WYWIADZIE.
+// Etap 1B: preferencje strefowe bez natywnych pickerów/selectów telefonu.
 
 (function(){
   'use strict';
@@ -8,10 +9,25 @@
   const FINISH_STANDARDS = ['standard ekonomiczny','standard dobry','standard premium'];
   const BLEND_STANDARDS = ['standardowe','dokładne pod wymiar','minimalne / tylko konieczne'];
   const BACK_MATERIALS = ['HDF 3mm biała','HDF 3mm pod kolor','Płyta 18mm pod kolor','Brak'];
+  const EMPTY_OPTION = '— nie ustawiaj —';
 
   function text(value){ return String(value == null ? '' : value).trim(); }
-
   function getApi(){ return ns.roomPreferences || {}; }
+  function h(tag, attrs, children){
+    const el = document.createElement(tag);
+    if(attrs){
+      Object.entries(attrs).forEach(([key,value])=>{
+        if(value == null || value === false) return;
+        if(key === 'class') el.className = value;
+        else if(key === 'text') el.textContent = String(value);
+        else if(key === 'html') el.innerHTML = String(value);
+        else if(value === true) el.setAttribute(key, key);
+        else el.setAttribute(key, String(value));
+      });
+    }
+    (children || []).forEach((child)=>{ if(child) el.appendChild(child); });
+    return el;
+  }
 
   function getSharedUiState(){
     try{ if(typeof uiState !== 'undefined' && uiState && typeof uiState === 'object') return uiState; }catch(_){ }
@@ -51,139 +67,177 @@
     return out;
   }
 
-  function getMaterialTypes(){
-    return unique(getMaterials().map((row)=> row && row.materialType)).concat([]);
-  }
-
+  function getMaterialTypes(){ return unique(getMaterials().map((row)=> row && row.materialType)); }
   function getMaterialNamesByType(typeValue){
     const type = text(typeValue || 'laminat');
     return unique(getMaterials().filter((row)=> row && text(row.materialType) === type).map((row)=> row && row.name));
   }
-
   function getBodyMaterialNames(){ return getMaterialNamesByType('laminat'); }
 
-  function getHardwareManufacturers(){
-    try{
-      if(ns.catalogStore && typeof ns.catalogStore.getHardwareManufacturers === 'function') return unique(ns.catalogStore.getHardwareManufacturers());
-    }catch(_){ }
-    return ['Blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
-  }
-
-  function optionList(values, includeEmpty){
-    const out = includeEmpty === false ? [] : [{ value:'', label:'— bez preferencji —' }];
+  function optionList(values, emptyLabel){
+    const out = [{ value:'', label:emptyLabel || EMPTY_OPTION }];
     unique(values || []).forEach((value)=> out.push({ value, label:value }));
     return out;
   }
 
-  function createField(form, cfg, draft){
-    const wrap = document.createElement('div');
-    wrap.className = 'wywiad-room-preferences-field cabinet-extra-field cabinet-extra-field--select';
-
-    const label = document.createElement('label');
-    label.className = 'wywiad-room-settings-modal__label cabinet-extra-field__label';
-    label.textContent = String(cfg.label || 'Wybierz');
-    label.setAttribute('for', cfg.id);
-
-    const select = document.createElement('select');
-    select.id = cfg.id;
-    select.className = 'cabinet-extra-field__control cabinet-dynamic-choice-source';
-    select.setAttribute('data-launcher-label', cfg.label || 'Wybierz');
-    select.setAttribute('data-choice-title', cfg.title || ('Wybierz: ' + (cfg.label || 'Opcja')));
-    select.setAttribute('data-choice-placeholder', cfg.label || 'Wybierz');
-
-    const options = typeof cfg.options === 'function' ? cfg.options(draft) : (cfg.options || []);
-    optionList(options, cfg.includeEmpty).forEach((opt)=>{
-      const o = document.createElement('option');
-      o.value = opt.value;
-      o.textContent = opt.label;
-      select.appendChild(o);
-    });
-    select.value = text(draft[cfg.key]);
-    select.addEventListener('change', ()=>{
-      draft[cfg.key] = select.value;
-      if(typeof cfg.onChange === 'function') cfg.onChange(draft, select.value, form);
-      refreshDependentFields(form, draft);
-    });
-
-    wrap.appendChild(label);
-    wrap.appendChild(select);
-    form.appendChild(wrap);
-    return select;
+  function getChoiceApi(){
+    const api = ns.rozrysChoice;
+    if(api && typeof api.createChoiceLauncher === 'function' && typeof api.openRozrysChoiceOverlay === 'function' && typeof api.setChoiceLaunchValue === 'function') return api;
+    return null;
   }
 
-  function rebuildSelect(select, options, value){
-    if(!select) return;
-    select.innerHTML = '';
-    optionList(options, true).forEach((opt)=>{
-      const o = document.createElement('option');
-      o.value = opt.value;
-      o.textContent = opt.label;
-      select.appendChild(o);
-    });
-    select.value = text(value);
+  function selectedLabel(options, value, emptyLabel){
+    const current = text(value);
+    const rows = optionList(options, emptyLabel || EMPTY_OPTION);
+    const hit = rows.find((row)=> String(row.value) === current);
+    return hit ? hit.label : (current || emptyLabel || EMPTY_OPTION);
   }
 
-  function refreshDependentFields(form, draft){
-    try{
-      const frontColor = form.querySelector('#roomPref_frontColor, #roomPrefInline_frontColor');
-      if(frontColor){
-        const values = getMaterialNamesByType(draft.frontMaterial || 'laminat');
-        const current = values.includes(text(draft.frontColor)) ? draft.frontColor : '';
-        draft.frontColor = current;
-        rebuildSelect(frontColor, values, current);
-      }
-      if(ns.cabinetChoiceLaunchers && typeof ns.cabinetChoiceLaunchers.refreshCabinetChoices === 'function'){
-        ns.cabinetChoiceLaunchers.refreshCabinetChoices(form);
-      }
-    }catch(_){ }
+  function makeChoiceButton(label){
+    const api = getChoiceApi();
+    if(api){
+      const btn = api.createChoiceLauncher(label, '');
+      btn.classList.add('wywiad-zone-choice', 'rozrys-choice-launch--options-clean');
+      return btn;
+    }
+    return h('button', { type:'button', class:'rozrys-choice-launch rozrys-choice-launch--options-clean wywiad-zone-choice', text:String(label || '') });
+  }
+
+  function setChoiceButtonLabel(btn, label){
+    const api = getChoiceApi();
+    if(api && typeof api.setChoiceLaunchValue === 'function') return api.setChoiceLaunchValue(btn, label, '');
+    btn.textContent = String(label || '');
+  }
+
+  async function openChoice(title, options, value){
+    const api = getChoiceApi();
+    if(api && typeof api.openRozrysChoiceOverlay === 'function') return api.openRozrysChoiceOverlay({ title, value:String(value || ''), options });
+    return null;
+  }
+
+  function makeChoiceField(cfg, rootDraft, onChange){
+    const wrap = h('div', { class:'wywiad-zone-field' });
+    wrap.appendChild(h('div', { class:'wywiad-zone-field__label', text:cfg.label }));
+    const getOptions = ()=> unique((typeof cfg.options === 'function' ? cfg.options(rootDraft) : (cfg.options || [])).concat(text(cfg.get(rootDraft)) ? [text(cfg.get(rootDraft))] : []));
+    const btn = makeChoiceButton(selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION));
+    btn.setAttribute('aria-label', cfg.title || ('Wybierz: ' + cfg.label));
+    btn.addEventListener('click', async ()=>{
+      const options = optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
+      const picked = await openChoice(cfg.title || ('Wybierz: ' + cfg.label), options, cfg.get(rootDraft));
+      if(picked == null || String(picked) === String(cfg.get(rootDraft) || '')) return;
+      cfg.set(rootDraft, picked);
+      if(typeof cfg.onChange === 'function') cfg.onChange(rootDraft, picked, btn);
+      setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION));
+      if(typeof onChange === 'function') onChange(rootDraft);
+    });
+    wrap.appendChild(btn);
+    return { wrap, refresh(){ setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION)); } };
+  }
+
+  function ensureZone(draft, zoneKey){
+    draft.zones = draft.zones && typeof draft.zones === 'object' ? draft.zones : {};
+    const api = getApi();
+    if(!draft.zones[zoneKey]) draft.zones[zoneKey] = api.normalizeZonePreferences ? api.normalizeZonePreferences(null) : { bodyColor:'', frontMaterial:'', frontColor:'', backMaterial:'', openingSystem:'' };
+    return draft.zones[zoneKey];
+  }
+
+  function buildZoneCard(zoneKey, draft, refreshers, refreshAll){
+    const api = getApi();
+    const zonesMeta = api.ROOM_PREFERENCE_ZONES || {};
+    const meta = zonesMeta[zoneKey] || { label:zoneKey };
+    const zone = ensureZone(draft, zoneKey);
+    const card = h('section', { class:'wywiad-zone-card wywiad-zone-card--' + zoneKey });
+    card.appendChild(h('div', { class:'wywiad-zone-card__title', text:meta.label || zoneKey }));
+    const grid = h('div', { class:'wywiad-zone-grid' });
+
+    const openingOptionsKey = meta.openingOptionsKey || (zoneKey === 'upper' ? 'hanging' : (zoneKey === 'middle' ? 'module' : 'standing'));
+    const openingOptions = ()=> ((api.OPENING_OPTIONS || {})[openingOptionsKey] || []);
+    const fields = [
+      { label:'Korpus', title:'Wybierz korpus — ' + (meta.shortLabel || meta.label), get:()=> zone.bodyColor, set:(d,v)=>{ ensureZone(d, zoneKey).bodyColor = text(v); }, options:getBodyMaterialNames },
+      { label:'Materiał frontu', title:'Wybierz materiał frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ const z = ensureZone(d, zoneKey); if(!getMaterialNamesByType(z.frontMaterial || 'laminat').includes(text(z.frontColor))) z.frontColor = ''; } },
+      { label:'Kolor frontu', title:'Wybierz kolor frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontColor, set:(d,v)=>{ ensureZone(d, zoneKey).frontColor = text(v); }, options:()=> getMaterialNamesByType(zone.frontMaterial || 'laminat') },
+      { label:'Plecy', title:'Wybierz plecy — ' + (meta.shortLabel || meta.label), get:()=> zone.backMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).backMaterial = text(v); }, options:BACK_MATERIALS },
+      { label:'Otwieranie', title:'Wybierz otwieranie — ' + (meta.shortLabel || meta.label), get:()=> zone.openingSystem, set:(d,v)=>{ ensureZone(d, zoneKey).openingSystem = text(v); }, options:openingOptions }
+    ];
+    fields.forEach((cfg)=>{
+      const field = makeChoiceField(cfg, draft, refreshAll);
+      refreshers.push(field.refresh);
+      grid.appendChild(field.wrap);
+    });
+    card.appendChild(grid);
+    return card;
+  }
+
+  function buildPreferencesContent(room, draft){
+    const form = h('div', { class:'wywiad-room-inline-form wywiad-room-inline-form--preferences wywiad-room-inline-form--zones' });
+    const api = getApi();
+    const refreshers = [];
+
+    const summary = h('div', { class:'wywiad-room-shell__stats-line wywiad-room-inline-form__summary' });
+    const refreshSummary = ()=>{ summary.innerHTML = '<strong>Preferencje:</strong> ' + escapeHtml(api && typeof api.getSummary === 'function' ? api.getSummary(draft) : 'Brak zapisanych preferencji.'); };
+    form.appendChild(summary);
+
+    const note = h('div', { class:'wywiad-room-inline-form__note muted xs', text:'Strefy pokoju mają pierwszeństwo przed globalnymi domyślnymi z trybiku. Istniejące szafki nie są zmieniane w tym etapie.' });
+    form.appendChild(note);
+
+    const general = h('section', { class:'wywiad-zone-card wywiad-zone-card--general' });
+    general.appendChild(h('div', { class:'wywiad-zone-card__title', text:'Standardy ogólne pomieszczenia' }));
+    const generalGrid = h('div', { class:'wywiad-zone-grid' });
+    [
+      { key:'finishStandard', label:'Standard wykończenia', title:'Wybierz standard wykończenia', options:FINISH_STANDARDS },
+      { key:'blendStandard', label:'Standard blend', title:'Wybierz standard blend', options:BLEND_STANDARDS }
+    ].forEach((cfg)=>{
+      const field = makeChoiceField({
+        label:cfg.label,
+        title:cfg.title,
+        get:(d)=> d[cfg.key],
+        set:(d,v)=>{ d[cfg.key] = text(v); },
+        options:cfg.options
+      }, draft, ()=>{ refreshSummary(); refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } }); });
+      refreshers.push(field.refresh);
+      generalGrid.appendChild(field.wrap);
+    });
+    general.appendChild(generalGrid);
+    form.appendChild(general);
+
+    const refreshAll = ()=>{
+      refreshSummary();
+      refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } });
+    };
+    const zoneKeys = Array.isArray(api.ZONE_KEYS) ? api.ZONE_KEYS : ['lower','middle','upper'];
+    zoneKeys.forEach((zoneKey)=> form.appendChild(buildZoneCard(zoneKey, draft, refreshers, refreshAll)));
+
+    const footer = h('div', { class:'wywiad-room-inline-form__footer' });
+    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz preferencje' });
+    saveBtn.addEventListener('click', ()=>{
+      const nextApi = getApi();
+      if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, draft);
+      renderSummary(room);
+    });
+    footer.appendChild(saveBtn);
+    form.appendChild(footer);
+    refreshAll();
+    return form;
+  }
+
+  function buildInlineForm(room, draft){
+    return buildPreferencesContent(room, draft);
   }
 
   function buildForm(room, draft){
-    const form = document.createElement('div');
-    form.className = 'panel-box-form rozrys-panel-form rozrys-panel-form--stock wywiad-room-settings-modal wywiad-room-preferences-modal investor-card-sync cabinet-choice-sync';
-
-    const scroll = document.createElement('div');
-    scroll.className = 'panel-box-form__scroll wywiad-room-settings-modal__scroll';
+    const form = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock wywiad-room-settings-modal wywiad-room-preferences-modal investor-card-sync' });
+    const scroll = h('div', { class:'panel-box-form__scroll wywiad-room-settings-modal__scroll' });
+    const intro = h('div', { class:'wywiad-room-settings-modal__intro' });
+    intro.appendChild(h('div', { class:'wywiad-room-settings-modal__room', text:getRoomLabel(room) }));
+    intro.appendChild(h('div', { class:'wywiad-room-settings-modal__auto wywiad-room-preferences-modal__note', text:'Preferencje są strefowe: dolna/stojące, środkowa/moduły i górna/wiszące.' }));
+    scroll.appendChild(intro);
+    scroll.appendChild(buildPreferencesContent(room, draft));
     form.appendChild(scroll);
 
-    const intro = document.createElement('div');
-    intro.className = 'wywiad-room-settings-modal__intro';
-    const roomBadge = document.createElement('div');
-    roomBadge.className = 'wywiad-room-settings-modal__room';
-    roomBadge.textContent = getRoomLabel(room);
-    const note = document.createElement('div');
-    note.className = 'wywiad-room-settings-modal__auto wywiad-room-preferences-modal__note';
-    note.textContent = 'Dotyczy nowych szafek. Istniejące szafki nie są zmieniane w tym etapie.';
-    intro.appendChild(roomBadge);
-    intro.appendChild(note);
-    scroll.appendChild(intro);
-
-    const grid = document.createElement('div');
-    grid.className = 'grid-2 wywiad-room-settings-modal__grid wywiad-room-preferences-modal__grid';
-    scroll.appendChild(grid);
-
-    createField(grid, { key:'finishStandard', id:'roomPref_finishStandard', label:'Standard wykończenia', title:'Wybierz standard wykończenia', options:FINISH_STANDARDS }, draft);
-    createField(grid, { key:'blendStandard', id:'roomPref_blendStandard', label:'Standard blend', title:'Wybierz standard blend', options:BLEND_STANDARDS }, draft);
-    createField(grid, { key:'bodyColor', id:'roomPref_bodyColor', label:'Korpus', title:'Wybierz korpus', options:getBodyMaterialNames }, draft);
-    createField(grid, { key:'frontMaterial', id:'roomPref_frontMaterial', label:'Materiał frontu', title:'Wybierz materiał frontu', options:getMaterialTypes, onChange(next){ if(!getMaterialNamesByType(next.frontMaterial).includes(text(next.frontColor))) next.frontColor = ''; } }, draft);
-    createField(grid, { key:'frontColor', id:'roomPref_frontColor', label:'Kolor frontu', title:'Wybierz kolor frontu', options:(next)=> getMaterialNamesByType(next.frontMaterial || 'laminat') }, draft);
-    createField(grid, { key:'backMaterial', id:'roomPref_backMaterial', label:'Plecy', title:'Wybierz plecy', options:BACK_MATERIALS }, draft);
-    createField(grid, { key:'openingSystemStanding', id:'roomPref_openingStanding', label:'Otwieranie — dolne / stojące', title:'Wybierz otwieranie dolnych / stojących', options:()=> (getApi().OPENING_OPTIONS || {}).standing || [] }, draft);
-    createField(grid, { key:'openingSystemHanging', id:'roomPref_openingHanging', label:'Otwieranie — górne / wiszące', title:'Wybierz otwieranie górnych / wiszących', options:()=> (getApi().OPENING_OPTIONS || {}).hanging || [] }, draft);
-    createField(grid, { key:'openingSystemModule', id:'roomPref_openingModule', label:'Otwieranie — moduł', title:'Wybierz otwieranie modułu', options:()=> (getApi().OPENING_OPTIONS || {}).module || [] }, draft);
-    createField(grid, { key:'hardwareManufacturer', id:'roomPref_hardwareManufacturer', label:'Preferowany producent okuć', title:'Wybierz producenta okuć', options:getHardwareManufacturers }, draft);
-
-    const footer = document.createElement('div');
-    footer.className = 'panel-box-form__footer rozrys-picker-footer rozrys-picker-footer--material wywiad-room-settings-modal__footer';
-    const exitBtn = document.createElement('button');
-    exitBtn.type = 'button';
-    exitBtn.className = 'btn';
-    exitBtn.textContent = 'Wyjdź';
+    const footer = h('div', { class:'panel-box-form__footer rozrys-picker-footer rozrys-picker-footer--material wywiad-room-settings-modal__footer' });
+    const exitBtn = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     exitBtn.addEventListener('click', ()=> close());
-    const saveBtn = document.createElement('button');
-    saveBtn.type = 'button';
-    saveBtn.className = 'btn btn-success';
-    saveBtn.textContent = 'Zapisz';
+    const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     saveBtn.addEventListener('click', ()=>{
       const api = getApi();
       if(api && typeof api.setRoomPreferences === 'function') api.setRoomPreferences(room, draft);
@@ -194,70 +248,6 @@
     footer.appendChild(exitBtn);
     footer.appendChild(saveBtn);
     form.appendChild(footer);
-
-    requestAnimationFrame(()=>{
-      try{
-        if(ns.cabinetChoiceLaunchers && typeof ns.cabinetChoiceLaunchers.refreshCabinetChoices === 'function'){
-          ns.cabinetChoiceLaunchers.refreshCabinetChoices(form);
-        }
-      }catch(_){ }
-    });
-
-    return form;
-  }
-
-  function buildInlineForm(room, draft){
-    const form = document.createElement('div');
-    form.className = 'wywiad-room-inline-form wywiad-room-inline-form--preferences cabinet-choice-sync';
-
-    const summary = document.createElement('div');
-    summary.className = 'wywiad-room-shell__stats-line wywiad-room-inline-form__summary';
-    const api = getApi();
-    summary.innerHTML = '<strong>Preferencje:</strong> ' + escapeHtml(api && typeof api.getSummary === 'function' ? api.getSummary(draft) : 'Brak zapisanych preferencji.');
-    form.appendChild(summary);
-
-    const note = document.createElement('div');
-    note.className = 'wywiad-room-inline-form__note muted xs';
-    note.textContent = 'Dotyczy nowych szafek. Istniejące szafki nie są zmieniane w tym etapie.';
-    form.appendChild(note);
-
-    const grid = document.createElement('div');
-    grid.className = 'grid-2 wywiad-room-settings-modal__grid wywiad-room-preferences-modal__grid wywiad-room-inline-form__grid';
-    form.appendChild(grid);
-
-    createField(grid, { key:'finishStandard', id:'roomPrefInline_finishStandard', label:'Standard wykończenia', title:'Wybierz standard wykończenia', options:FINISH_STANDARDS }, draft);
-    createField(grid, { key:'blendStandard', id:'roomPrefInline_blendStandard', label:'Standard blend', title:'Wybierz standard blend', options:BLEND_STANDARDS }, draft);
-    createField(grid, { key:'bodyColor', id:'roomPrefInline_bodyColor', label:'Korpus', title:'Wybierz korpus', options:getBodyMaterialNames }, draft);
-    createField(grid, { key:'frontMaterial', id:'roomPrefInline_frontMaterial', label:'Materiał frontu', title:'Wybierz materiał frontu', options:getMaterialTypes, onChange(next){ if(!getMaterialNamesByType(next.frontMaterial).includes(text(next.frontColor))) next.frontColor = ''; } }, draft);
-    createField(grid, { key:'frontColor', id:'roomPrefInline_frontColor', label:'Kolor frontu', title:'Wybierz kolor frontu', options:(next)=> getMaterialNamesByType(next.frontMaterial || 'laminat') }, draft);
-    createField(grid, { key:'backMaterial', id:'roomPrefInline_backMaterial', label:'Plecy', title:'Wybierz plecy', options:BACK_MATERIALS }, draft);
-    createField(grid, { key:'openingSystemStanding', id:'roomPrefInline_openingStanding', label:'Otwieranie — dolne / stojące', title:'Wybierz otwieranie dolnych / stojących', options:()=> (getApi().OPENING_OPTIONS || {}).standing || [] }, draft);
-    createField(grid, { key:'openingSystemHanging', id:'roomPrefInline_openingHanging', label:'Otwieranie — górne / wiszące', title:'Wybierz otwieranie górnych / wiszących', options:()=> (getApi().OPENING_OPTIONS || {}).hanging || [] }, draft);
-    createField(grid, { key:'openingSystemModule', id:'roomPrefInline_openingModule', label:'Otwieranie — moduł', title:'Wybierz otwieranie modułu', options:()=> (getApi().OPENING_OPTIONS || {}).module || [] }, draft);
-    createField(grid, { key:'hardwareManufacturer', id:'roomPrefInline_hardwareManufacturer', label:'Preferowany producent okuć', title:'Wybierz producenta okuć', options:getHardwareManufacturers }, draft);
-
-    const footer = document.createElement('div');
-    footer.className = 'wywiad-room-inline-form__footer';
-    const saveBtn = document.createElement('button');
-    saveBtn.type = 'button';
-    saveBtn.className = 'btn btn-success wywiad-room-inline-form__save';
-    saveBtn.textContent = 'Zapisz preferencje';
-    saveBtn.addEventListener('click', ()=>{
-      const nextApi = getApi();
-      if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, draft);
-      renderSummary(room);
-    });
-    footer.appendChild(saveBtn);
-    form.appendChild(footer);
-
-    requestAnimationFrame(()=>{
-      try{
-        if(ns.cabinetChoiceLaunchers && typeof ns.cabinetChoiceLaunchers.refreshCabinetChoices === 'function'){
-          ns.cabinetChoiceLaunchers.refreshCabinetChoices(form);
-        }
-      }catch(_){ }
-    });
-
     return form;
   }
 
@@ -284,7 +274,7 @@
   }
 
   function escapeHtml(value){
-    return String(value == null ? '' : value).replace(/[&<>"]/g, (ch)=> ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
+    return String(value == null ? '' : value).replace(/[&<>\"]/g, (ch)=> ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch] || ch));
   }
 
   function open(){
@@ -297,7 +287,7 @@
     ns.panelBox.open({
       title:'Preferencje standardu',
       contentNode: form,
-      width:'760px',
+      width:'860px',
       boxClass:'panel-box--rozrys wywiad-room-settings-box wywiad-room-preferences-box',
       dismissOnOverlay:true,
       dismissOnEsc:true
@@ -319,10 +309,9 @@
   init();
 
   ns.wywiadRoomPreferences = Object.assign({}, ns.wywiadRoomPreferences || {}, {
-    open,
-    close,
     renderSummary,
     buildInlineForm,
-    bindTriggerButtons,
+    open,
+    close
   });
 })();

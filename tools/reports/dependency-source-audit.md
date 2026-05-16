@@ -19,13 +19,13 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 53 | 11933 | 246 | 1 | 5 | 31 |
+| TESTY | 53 | 11958 | 246 | 1 | 5 | 31 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
-| SZAFKI | 28 | 6578 | 0 | 0 | 0 | 3 |
+| SZAFKI | 28 | 6634 | 0 | 0 | 0 | 3 |
 | MATERIAŁ | 26 | 4727 | 8 | 3 | 0 | 2 |
 | KATALOG/USŁUGI | 22 | 3924 | 4 | 0 | 0 | 2 |
-| UI | 29 | 3630 | 0 | 6 | 0 | 2 |
+| UI | 29 | 3619 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3448 | 24 | 0 | 0 | 4 |
 | PROJEKT | 10 | 2022 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
@@ -33,8 +33,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | BOOT/APP SHELL | 7 | 1389 | 4 | 0 | 0 | 2 |
 | DANE/STORAGE | 15 | 1326 | 36 | 0 | 0 | 0 |
-| SHARED | 11 | 1179 | 0 | 0 | 0 | 0 |
-| INNE | 5 | 670 | 2 | 0 | 0 | 0 |
+| SHARED | 11 | 1256 | 0 | 0 | 0 | 0 |
+| INNE | 5 | 757 | 2 | 0 | 0 | 0 |
 | ZAKŁADKI | 3 | 585 | 0 | 0 | 0 | 0 |
 | CORE | 2 | 128 | 0 | 0 | 0 | 0 |
 
@@ -43,12 +43,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Linie | Obszar | Ryzyko |
 | --- | --- | --- | --- |
 | js/tabs/rysunek.js | 1459 | RYSUNEK | nie ruszać bez osobnego planu |
-| js/testing/project/tests.js | 846 | TESTY | wysokie |
+| js/testing/project/tests.js | 848 | TESTY | wysokie |
+| js/testing/cabinet/tests.js | 843 | TESTY | wysokie |
 | js/app/rozrys/rozrys.js | 842 | ROZRYS | wysokie |
 | js/app/cabinet/cabinet-fronts.js | 838 | SZAFKI | średnie |
-| js/testing/cabinet/tests.js | 820 | TESTY | wysokie |
 | js/app/cabinet/cabinet-modal-set-wizard.js | 693 | SZAFKI | średnie |
-| js/app/cabinet/cabinet-modal.js | 655 | SZAFKI | średnie |
+| js/app/cabinet/cabinet-modal.js | 669 | SZAFKI | średnie |
 | js/testing/wycena/suites/central-status-sync.js | 649 | TESTY | wysokie |
 | js/app/catalog/catalog-store.js | 497 | KATALOG/USŁUGI | średnie |
 | js/app/catalog/hardware-catalog.js | 496 | KATALOG/USŁUGI | średnie |
@@ -142,11 +142,11 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Plik | Ryzyko | Score | Linie | Direct impact | 2nd level | Powody |
 | --- | --- | --- | --- | --- | --- | --- |
-| js/testing/project/tests.js | wysokie | 15 | 846 | 14 | 38 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
+| js/testing/project/tests.js | wysokie | 15 | 848 | 14 | 38 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
 | js/testing/rozrys/tests.js | wysokie | 10 | 475 | 10 | 37 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/app/rozrys/rozrys.js | wysokie | 9 | 842 | 9 | 48 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 15 | 23 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
-| js/testing/cabinet/tests.js | wysokie | 8 | 820 | 6 | 33 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
+| js/testing/cabinet/tests.js | wysokie | 8 | 843 | 6 | 33 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/helpers-bridges.js | wysokie | 8 | 390 | 14 | 36 | 250+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/catalog/catalog-store.js | średnie | 7 | 497 | 19 | 56 | 400+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/test-data-manager.js | średnie | 7 | 393 | 15 | 32 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
@@ -170,7 +170,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/investor/suites/recovery-isolation.js | średnie | 6 | 162 | 8 | 9 | kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/rysunek/tests.js | średnie | 6 | 117 | 6 | 33 | kilka zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą; systemowe dialogi |
 | js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 693 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
-| js/app/cabinet/cabinet-modal.js | średnie | 5 | 655 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
+| js/app/cabinet/cabinet-modal.js | średnie | 5 | 669 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/app/project/project-status-manual-guard.js | średnie | 5 | 395 | 8 | 31 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 48 | 250+ linii; dużo zależnych plików |
 | js/app/project/project-status-scope.js | średnie | 5 | 313 | 5 | 25 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |

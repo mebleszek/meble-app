@@ -236,6 +236,40 @@
         return out;
       }
 
+
+      function migrateV10toV11(data){
+        // v11: preferencje pomieszczenia są strefowe, bez sekcji domyślnej w WYWIADZIE.
+        const out = clone(data || {});
+        function clean(v){ return String(v == null ? '' : v).trim(); }
+        function zone(raw, opening){
+          return {
+            bodyColor: clean(raw.bodyColor),
+            frontMaterial: clean(raw.frontMaterial),
+            frontColor: clean(raw.frontColor),
+            backMaterial: clean(raw.backMaterial),
+            openingSystem: clean(opening)
+          };
+        }
+        for (const r of ROOMS){
+          const room = out[r] = isPlainObject(out[r]) ? out[r] : (out[r] || {});
+          const raw = isPlainObject(room.preferences) ? room.preferences : {};
+          const zones = isPlainObject(raw.zones) ? raw.zones : {};
+          const legacyOpening = clean(raw.openingSystem);
+          room.preferences = {
+            finishStandard: clean(raw.finishStandard),
+            blendStandard: clean(raw.blendStandard),
+            zones: {
+              lower: zone(isPlainObject(zones.lower) ? zones.lower : raw, clean((zones.lower && zones.lower.openingSystem) || raw.openingSystemStanding || raw.openingSystemLower || legacyOpening)),
+              middle: zone(isPlainObject(zones.middle) ? zones.middle : raw, clean((zones.middle && zones.middle.openingSystem) || raw.openingSystemModule || legacyOpening)),
+              upper: zone(isPlainObject(zones.upper) ? zones.upper : raw, clean((zones.upper && zones.upper.openingSystem) || raw.openingSystemHanging || legacyOpening))
+            },
+            hardwareManufacturer: clean(raw.hardwareManufacturer)
+          };
+        }
+        out.schemaVersion = 11;
+        return out;
+      }
+
       window.FC.migrations = {
         migrateV1toV2,
         migrateV2toV3,
@@ -246,6 +280,7 @@
         migrateV7toV8,
         migrateV8toV9,
         migrateV9toV10,
+        migrateV10toV11,
       };
     }
   }catch(_){ }

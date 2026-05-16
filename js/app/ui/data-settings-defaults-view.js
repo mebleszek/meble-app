@@ -163,7 +163,7 @@
       hardwareGrid.appendChild(field.wrap);
     });
 
-    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Materiały', [materialGrid], { open:true }) : materialGrid);
+    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Materiały', [materialGrid], { open:false }) : materialGrid);
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Okucia', [hardwareGrid], { open:false }) : hardwareGrid);
 
     const actions = h('div', { class:'data-settings-actions data-settings-defaults-actions' });

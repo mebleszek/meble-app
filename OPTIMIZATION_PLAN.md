@@ -733,3 +733,9 @@ node tools/hardware-accessories-dev-smoke.js
 - Dodano osobny store `js/app/settings/program-defaults-store.js` i osobny widok `js/app/ui/data-settings-defaults-view.js`, żeby globalne fallbacki programu nie trafiały do WYWIADU ani dużych modułów ustawień.
 - `data-settings-modal.js` pozostaje cienkim routerem widoków: menu / backup / domyślne. Nie rozbudowywać go o logikę formularzy.
 - Następny etap preferencji pomieszczenia powinien rozdzielić strefy dolna/środkowa/górna w osobnym modelu, bez mieszania z globalnym `fc_program_defaults_v1`.
+
+
+## Room zone preferences v1 — 2026-05-16
+
+- Preferencje pokoju są rozdzielone w małych modułach: model `room-preferences-model.js`, UI `wywiad-room-preferences.js`, fallback globalny `program-defaults-store.js`.
+- Nie rozbudowywać `app.js` ani dużych plików WYWIADU o logikę stref; kolejne etapy frontów łączonych powinny iść osobnym modułem.

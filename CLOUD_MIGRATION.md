@@ -672,3 +672,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Poprawka jest UI-only i nie dodaje nowych kluczy storage.
 - Model `fc_program_defaults_v1` zostaje bez zmian; nadal jest globalnym ustawieniem użytkownika mapowalnym w przyszłości na dokument ustawień programu.
 - Usunięcie natywnych selectów nie zmienia danych ani kontraktu backupu.
+
+
+## Room zone preferences v1 — 2026-05-16
+
+- `room.preferences` zostaje w danych projektu/pomieszczenia i jest normalizowane przez schema/migrację do wersji 11.
+- Nowy model strefowy używa `preferences.zones.lower|middle|upper`, bez osobnego storage dla preferencji pokoju.
+- Globalne fallbacki materiałów/okuć pozostają pod wersjonowanym kluczem `fc_program_defaults_v1`, więc są objęte istniejącym backupem.
+- Nie dodano nowych luźnych kluczy `localStorage`; nie zmieniano polityki backupów.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T16:27:12.680Z",
+  "generatedAt": "2026-05-16T16:57:39.450Z",
   "summary": {
     "jsFiles": 348,
     "indexScripts": 272,
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 28,
-      "lines": 6578,
+      "lines": 6634,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 5,
-      "lines": 670,
+      "lines": 757,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1179,
+      "lines": 1256,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 29,
-      "lines": 3630,
+      "lines": 3619,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 11933,
+      "lines": 11958,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -163,7 +163,11 @@
     ],
     [
       "js/testing/project/tests.js",
-      846
+      848
+    ],
+    [
+      "js/testing/cabinet/tests.js",
+      843
     ],
     [
       "js/app/rozrys/rozrys.js",
@@ -174,16 +178,12 @@
       838
     ],
     [
-      "js/testing/cabinet/tests.js",
-      820
-    ],
-    [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
       693
     ],
     [
       "js/app/cabinet/cabinet-modal.js",
-      655
+      669
     ],
     [
       "js/testing/wycena/suites/central-status-sync.js",
@@ -491,7 +491,7 @@
       "score": 15,
       "area": "TESTY",
       "category": "test",
-      "lines": 846,
+      "lines": 848,
       "incoming": 14,
       "outgoing": 31,
       "secondLevel": 38,
@@ -567,7 +567,7 @@
       "score": 8,
       "area": "TESTY",
       "category": "test",
-      "lines": 820,
+      "lines": 843,
       "incoming": 6,
       "outgoing": 13,
       "secondLevel": 33,
@@ -1001,7 +1001,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 655,
+      "lines": 669,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -2486,7 +2486,7 @@
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 108,
+      "lines": 150,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -2788,7 +2788,7 @@
     "js/app/cabinet/cabinet-modal.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 655,
+      "lines": 669,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -8549,7 +8549,7 @@
     "js/app/room-preferences/room-preferences-model.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 149,
+      "lines": 236,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -11831,7 +11831,7 @@
     "js/app/shared/migrate.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 253,
+      "lines": 288,
       "defines": [
         "migrations"
       ],
@@ -12736,7 +12736,7 @@
     "js/app/shared/schema.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 213,
+      "lines": 255,
       "defines": [
         "schema"
       ],
@@ -12866,6 +12866,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
+        "250+ linii",
         "kilka zależnych plików"
       ]
     },
@@ -14779,7 +14780,7 @@
     "js/app/ui/wywiad-room-preferences.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 329,
+      "lines": 318,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -16758,7 +16759,7 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 820,
+      "lines": 843,
       "defines": [
         "project",
         "storage",
@@ -17862,7 +17863,7 @@
     "js/testing/project/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 846,
+      "lines": 848,
       "defines": [
         "project",
         "projectAutosave",
