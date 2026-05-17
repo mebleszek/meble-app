@@ -688,3 +688,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - W przyszłej chmurze `set.frontSource` i pola `fridgeFrontSource*` powinny synchronizować się razem z projektem, bez osobnego dokumentu ustawień.
 - Brak źródła materiału jest stanem legacy i powinien być interpretowany jako `custom`, z zachowaniem zapisanych `frontMaterial/frontColor`.
 - `schemaVersion: 12` nie wymaga przebudowy backupów ani zmiany polityki synchronizacji; to rozszerzenie kontraktu danych projektu.
+
+
+## Set materials unify v1 — dane projektu — 2026-05-17
+
+- Zmiana dopisuje dane do istniejącego modelu projektu, a nie do osobnego storage: `room.sets[]` zapisuje `bodyColor`, `backMaterial` i `openingSystem` dla zestawu.
+- Wygenerowane korpusy w `room.cabinets[]` dostają te same wartości, więc przyszła synchronizacja chmurowa nadal traktuje zestaw jako część dokumentu/projektu.
+- Nie dodano nowego klucza `localStorage`; brak migracji między store.
+- Przy przyszłym podziale projektu w chmurze trzeba zachować powiązanie `setId` między `room.sets[]`, `room.cabinets[]` i `room.fronts[]`.

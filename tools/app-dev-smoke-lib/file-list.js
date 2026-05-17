@@ -214,6 +214,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/cabinet/cabinet-modal-draft.js',
   'js/app/cabinet/cabinet-modal-fields.js',
   'js/app/cabinet/cabinet-modal-finalize.js',
+  'js/app/cabinet/cabinet-modal-set-materials.js',
   'js/app/cabinet/cabinet-modal-set-wizard.js',
   'js/app/cabinet/cabinet-modal-standing-corner-standard.js',
   'js/app/cabinet/cabinet-modal-standing-specials.js',

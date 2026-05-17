@@ -1008,3 +1008,13 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Ten etap nie dodaje tabeli frontów wieloczęściowych, nie zmienia WYCENY i nie uruchamia hurtowej zmiany istniejących szafek.
 - Testy ochronne dodano do `js/testing/cabinet/tests.js` i `tools/app-dev-smoke.js`.
 - Raport: `tools/reports/front-material-source-v1.md`.
+
+
+## Set materials unify v1 — 2026-05-17
+
+- Aktualna paczka robocza po tym etapie: `site_000_set_materials_unify_v1.zip`.
+- Baza startowa: `site_000_front_material_source_v1.zip`.
+- Zestaw w WYWIADZIE ma być traktowany jak pozostałe szafki pod względem wyboru: korpus, plecy, otwieranie i fronty.
+- Materiały zestawu są w module `js/app/cabinet/cabinet-modal-set-materials.js`; nie dopisywać tej logiki ponownie bezpośrednio do `cabinet-modal-set-wizard.js`.
+- `room.sets[]` może zapisywać `bodyColor`, `backMaterial`, `openingSystem`, `frontMaterial`, `frontColor`, `frontSource`. Wygenerowane `room.cabinets[]` zestawu mają dostać spójne wartości korpusu, pleców i otwierania z rekordu zestawu.
+- Nie dodano nowego storage ani nowych kluczy localStorage. Raport: `tools/reports/set-materials-unify-v1.md`.

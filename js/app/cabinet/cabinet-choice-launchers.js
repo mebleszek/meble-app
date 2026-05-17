@@ -106,6 +106,30 @@
       shouldMount(){
         return isVisibleById('setFrontBlock') && isVisibleById('setFrontColor');
       }
+    },
+    {
+      id:'setBodyColor',
+      title:'Wybierz korpus zestawu',
+      placeholder:'Wybierz korpus zestawu',
+      shouldMount(){
+        return isVisibleById('setMaterialBlock') && isVisibleById('setBodyColor');
+      }
+    },
+    {
+      id:'setBackMaterial',
+      title:'Wybierz plecy zestawu',
+      placeholder:'Wybierz plecy zestawu',
+      shouldMount(){
+        return isVisibleById('setMaterialBlock') && isVisibleById('setBackMaterial');
+      }
+    },
+    {
+      id:'setOpeningSystem',
+      title:'Wybierz otwieranie zestawu',
+      placeholder:'Wybierz otwieranie zestawu',
+      shouldMount(){
+        return isVisibleById('setMaterialBlock') && isVisibleById('setOpeningSystem');
+      }
     }
   ];
 
@@ -372,7 +396,7 @@
   function refreshCabinetChoices(rootEl){
     const root = rootEl || document;
     const mounted = [];
-    if(root === document || (root.querySelector && root.querySelector('#cmSubType, #cmFrontMaterial, #cmFrontColor, #cmBackMaterial, #cmBodyColor, #cmOpeningSystem, #cmFrontCount, #cmFlapVendor, #cmFlapKind'))){
+    if(root === document || (root.querySelector && root.querySelector('#cmSubType, #cmFrontMaterial, #cmFrontColor, #cmBackMaterial, #cmBodyColor, #cmOpeningSystem, #cmFrontCount, #cmFlapVendor, #cmFlapKind, #setBodyColor, #setBackMaterial, #setOpeningSystem'))){
       mounted.push.apply(mounted, mountSafeFieldLaunchers());
     }
     mounted.push.apply(mounted, mountDynamicSelectLaunchers(root));

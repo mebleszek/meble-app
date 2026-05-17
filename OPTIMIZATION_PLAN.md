@@ -745,3 +745,10 @@ node tools/hardware-accessories-dev-smoke.js
 - Źródło materiału frontów specjalnych wydzielono do `js/app/cabinet/front-material-source.js`; kolejne etapy frontów łączonych/wieloczęściowych powinny rozbudowywać ten moduł zamiast dopisywać logikę bezpośrednio do generatorów.
 - `cabinet-modal-set-wizard.js`, `cabinet-modal-standing-specials.js` i `cabinet-fronts.js` zostały dotknięte, bo zawierają istniejące UI/generowanie frontów. Przy następnym większym etapie frontów rozważyć wydzielenie osobnego modułu UI dla źródeł/kompozycji frontu.
 - Następny logiczny etap: fronty wieloczęściowe/tabela części oraz hurtowa zmiana po źródłach `lower/middle/upper/custom`, ale dopiero po ręcznym zatwierdzeniu obecnego etapu.
+
+
+## Set materials unify v1 — 2026-05-17
+
+- Nowa logika materiałów zestawu została wydzielona do `js/app/cabinet/cabinet-modal-set-materials.js`, zamiast dalej rozbudowywać `cabinet-modal-set-wizard.js`.
+- `cabinet-modal-set-wizard.js` nadal jest dużym plikiem podwyższonego ryzyka; kolejne prace przy zestawach powinny iść przez małe moduły pomocnicze, np. fronty wieloczęściowe, walidacja zestawu, zapis zestawu.
+- Następny większy etap przy zestawach powinien mieć własne testy kontraktowe przed cięciem generatora frontów.

@@ -506,3 +506,11 @@ node tools/service-pro100-dev-smoke.js
 - Nowy moduł domenowy: `js/app/cabinet/front-material-source.js`.
 - Cache-busting zmienionych modułów: `20260516_front_source_v1`.
 - Raport: `tools/reports/front-material-source-v1.md`.
+
+## 2026-05-17 — set materials unify v1
+
+- Kreator zestawów został ujednolicony z pozostałymi szafkami: zestaw ma teraz wybór korpusu, pleców, otwierania i frontów.
+- Wartości korpusu, pleców i otwierania są zapisywane w rekordzie zestawu oraz przepisywane na wygenerowane korpusy zestawu.
+- Fronty zestawu dalej mogą korzystać ze źródła materiału: własny / strefa dolna / strefa środkowa / strefa górna.
+- Dodano moduł `js/app/cabinet/cabinet-modal-set-materials.js` jako małą granicę odpowiedzialności dla materiałów zestawu.
+- Raport: `tools/reports/set-materials-unify-v1.md`.

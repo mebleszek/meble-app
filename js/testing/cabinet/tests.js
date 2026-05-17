@@ -133,8 +133,14 @@
               <div id="setTiles"></div>
               <button id="setWizardCreate" type="button"></button>
               <div id="setParams" style="display:none"></div>
+              <div id="setMaterialBlock" style="display:none">
+                <select id="setBodyColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Korpus zestawu" data-choice-title="Wybierz korpus zestawu" data-choice-placeholder="Korpus zestawu"></select>
+                <select id="setBackMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Plecy zestawu" data-choice-title="Wybierz plecy zestawu" data-choice-placeholder="Plecy zestawu"><option value="HDF 3mm biała">HDF 3mm biała</option><option value="18 mm pod kolor korpusu">18 mm pod kolor</option><option value="Brak">Brak</option></select>
+                <select id="setOpeningSystem" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Otwieranie zestawu" data-choice-title="Wybierz otwieranie zestawu" data-choice-placeholder="Otwieranie zestawu"></select>
+              </div>
               <div id="setFrontBlock" style="display:none">
                 <select id="setFrontCount" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Ilość frontów" data-choice-title="Wybierz ilość frontów zestawu" data-choice-placeholder="Ilość frontów"><option value="1">1</option><option value="2">2</option></select>
+                <select id="setFrontSource" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Źródło materiału" data-choice-title="Wybierz źródło materiału frontów zestawu" data-choice-placeholder="Źródło materiału"><option value="custom">Własny materiał</option><option value="lower">Jak strefa dolna / stojące</option><option value="middle">Jak strefa środkowa / moduły</option><option value="upper">Jak strefa górna / wiszące</option></select>
                 <select id="setFrontMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-choice-placeholder="Materiał frontów"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select>
                 <select id="setFrontColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Kolor frontów" data-choice-title="Wybierz kolor frontów zestawu" data-choice-placeholder="Kolor frontów"></select>
                 <div id="setFrontHint"></div>
@@ -453,7 +459,7 @@
           const frontBlock = document.getElementById('setFrontBlock');
           if(frontBlock) frontBlock.style.display = 'block';
           FC.cabinetModal.renderCabinetModal();
-          ['setFrontCount','setFrontMaterial','setFrontColor'].forEach((id)=>{
+          ['setBodyColor','setBackMaterial','setOpeningSystem','setFrontCount','setFrontSource','setFrontMaterial','setFrontColor'].forEach((id)=>{
             const select = document.getElementById(id);
             const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
             const btn = slot && slot.querySelector('.cabinet-choice-launch');
@@ -485,6 +491,45 @@
           const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="setFrontColor"]');
           const label = slot && slot.querySelector('.rozrys-choice-launch__label');
           H.assert(String(label && label.textContent || '').includes('Kaszmir angielskie'), 'Launcher koloru zestawu nie odświeżył się po zmianie materiału', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zestaw zapisuje korpus, plecy i otwieranie tak jak zwykła szafka', 'Pilnuje ujednolicenia set-wizarda: zestaw ma własny wybór korpusu, pleców, otwierania i frontów, a wygenerowane korpusy dostają te wartości.', ()=>{
+        H.assert(FC.cabinetModalSetWizard && typeof FC.cabinetModalSetWizard.createOrUpdateSetFromWizard === 'function', 'Brak createOrUpdateSetFromWizard');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({
+          materials:[
+            { name:'Egger W1100 ST9', materialType:'laminat' },
+            { name:'Korpus grafit', materialType:'laminat' },
+            { name:'Front dąb', materialType:'laminat' }
+          ]
+        }, ()=>{
+          host.cabinetModalState.chosen = 'zestaw';
+          host.cabinetModalState.setPreset = 'C';
+          FC.cabinetModal.renderCabinetModal();
+          const bodySel = document.getElementById('setBodyColor');
+          const backSel = document.getElementById('setBackMaterial');
+          const openingSel = document.getElementById('setOpeningSystem');
+          const frontMatSel = document.getElementById('setFrontMaterial');
+          const frontColorSel = document.getElementById('setFrontColor');
+          H.assert(bodySel && backSel && openingSel && frontMatSel && frontColorSel, 'Brak pełnego zestawu pól materiałowych set-wizarda');
+          bodySel.value = 'Korpus grafit';
+          backSel.value = 'Brak';
+          openingSel.value = 'TIP-ON';
+          frontMatSel.value = 'laminat';
+          if(typeof frontMatSel.onchange === 'function') frontMatSel.onchange({ target: frontMatSel });
+          frontColorSel.value = 'Front dąb';
+          FC.cabinetModalSetWizard.createOrUpdateSetFromWizard();
+          const room = host.projectData.kuchnia;
+          H.assert(room.sets && room.sets.length === 1, 'Zestaw nie zapisał rekordu set', room.sets);
+          H.assert(room.sets[0].bodyColor === 'Korpus grafit' && room.sets[0].backMaterial === 'Brak' && room.sets[0].openingSystem === 'TIP-ON', 'Rekord set nie zapisał korpusu/pleców/otwierania', room.sets[0]);
+          H.assert(room.cabinets.length === 2, 'Preset C powinien dodać dwa korpusy', room.cabinets);
+          room.cabinets.forEach((cab)=>{
+            H.assert(cab.bodyColor === 'Korpus grafit', 'Korpus zestawu nie przeszedł na wygenerowaną szafkę', cab);
+            H.assert(cab.backMaterial === 'Brak', 'Plecy zestawu nie przeszły na wygenerowaną szafkę', cab);
+            H.assert(cab.openingSystem === 'TIP-ON', 'Otwieranie zestawu nie przeszło na wygenerowaną szafkę', cab);
+          });
+          H.assert(room.fronts && room.fronts.length >= 1 && room.fronts[0].color === 'Front dąb', 'Front zestawu nie zachował koloru frontu', room.fronts);
         });
       }),
 

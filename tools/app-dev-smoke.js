@@ -699,6 +699,18 @@ function runCabinetNodeSmoke(sandbox){
         && setSrc.includes('setFrontSource')
         && html.includes('id="setFrontSource"');
     } },
+    { name:'Zestawy mają ujednolicone materiały, plecy i otwieranie', explain:'Chroni set-wizard przed powrotem do samych frontów: zestaw ma mieć korpus, plecy, otwieranie i fronty jak zwykłe szafki.', check:()=> {
+      const apiOk = !!(FC.cabinetModalSetMaterials && typeof FC.cabinetModalSetMaterials.populateSelectors === 'function' && typeof FC.cabinetModalSetMaterials.getSpec === 'function');
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      return apiOk
+        && html.includes('id="setBodyColor"')
+        && html.includes('id="setBackMaterial"')
+        && html.includes('id="setOpeningSystem"')
+        && wizard.includes('setMaterials.bodyColor')
+        && wizard.includes('setMaterials.backMaterial')
+        && wizard.includes('setMaterials.openingSystem');
+    } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;

@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-16T21:58:30.271Z",
+  "generatedAt": "2026-05-17T11:27:23.694Z",
   "summary": {
-    "jsFiles": 349,
-    "indexScripts": 273,
-    "devTestScripts": 306,
+    "jsFiles": 350,
+    "indexScripts": 274,
+    "devTestScripts": 307,
     "fcSymbols": 254,
     "fcSymbolsAll": 282,
     "edges": 1816,
@@ -20,8 +20,8 @@
       "medium": 2
     },
     "SZAFKI": {
-      "files": 29,
-      "lines": 7063,
+      "files": 30,
+      "lines": 7214,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 11998,
+      "lines": 12043,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -163,7 +163,7 @@
     ],
     [
       "js/testing/cabinet/tests.js",
-      883
+      928
     ],
     [
       "js/app/cabinet/cabinet-fronts.js",
@@ -179,7 +179,7 @@
     ],
     [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
-      784
+      832
     ],
     [
       "js/app/cabinet/cabinet-modal.js",
@@ -214,12 +214,12 @@
       455
     ],
     [
-      "js/app/rozrys/rozrys-pickers.js",
-      406
+      "js/app/cabinet/cabinet-choice-launchers.js",
+      420
     ],
     [
-      "js/app/cabinet/cabinet-choice-launchers.js",
-      396
+      "js/app/rozrys/rozrys-pickers.js",
+      406
     ],
     [
       "js/app/project/project-status-manual-guard.js",
@@ -567,7 +567,7 @@
       "score": 8,
       "area": "TESTY",
       "category": "test",
-      "lines": 883,
+      "lines": 928,
       "incoming": 6,
       "outgoing": 13,
       "secondLevel": 33,
@@ -984,7 +984,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 784,
+      "lines": 832,
       "incoming": 0,
       "outgoing": 8,
       "secondLevel": 0,
@@ -2347,7 +2347,7 @@
     "js/app/cabinet/cabinet-choice-launchers.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 396,
+      "lines": 420,
       "defines": [
         "cabinetChoiceLaunchers"
       ],
@@ -2380,7 +2380,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "400+ linii"
       ]
     },
     "js/app/cabinet/cabinet-cutlist.js": {
@@ -2619,10 +2619,29 @@
         "250+ linii"
       ]
     },
+    "js/app/cabinet/cabinet-modal-set-materials.js": {
+      "area": "SZAFKI",
+      "category": "ui/render/events",
+      "lines": 79,
+      "defines": [],
+      "uses": [
+        "cabinetModalFields"
+      ],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 7,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/cabinet/cabinet-modal-set-wizard.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 784,
+      "lines": 832,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -2631,6 +2650,7 @@
         "cabinetModal",
         "frontMaterialSource",
         "cabinetChoiceLaunchers",
+        "cabinetModalSetMaterials",
         "actions",
         "uiState",
         "project",
@@ -2650,7 +2670,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 73,
+      "domRefs": 81,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -16777,7 +16797,7 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 883,
+      "lines": 928,
       "defines": [
         "project",
         "storage",
@@ -16793,6 +16813,7 @@
         "frontMaterialSource",
         "cabinetChoiceLaunchers",
         "rozrysChoice",
+        "cabinetModalSetWizard",
         "frontHardware",
         "frontHardwareAventosData",
         "frontHardwareAventosCalc",
@@ -16861,7 +16882,7 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 107,
+      "domRefs": 112,
       "loadedInIndex": false,
       "loadedInDevTests": true,
       "risk": "wysokie",
