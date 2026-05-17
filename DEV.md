@@ -1056,3 +1056,15 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Dodano testy w `tools/app-dev-smoke.js` oraz `js/testing/cabinet/tests.js` dla planowania/apply, lodówki z frontem własnym i braku natywnych pickerów w nowym UI.
 - Ten etap nie obejmuje okuć, producentów okuć, WYCENY, PRO100, ROZRYS ani frontów wieloczęściowych.
 - Raport: `tools/reports/bulk-apply-zone-preferences-v1.md`.
+
+## Dev tests errors fix v1 — 2026-05-18
+
+- Aktualna paczka po tym etapie: `site_000_dev_tests_errors_fix_v1.zip`.
+- Baza startowa: `site_000_bulk_apply_zone_preferences_v1.zip`.
+- Naprawiono błędy `dev_tests.html` zgłoszone po Etapie 2A:
+  - testy potwierdzeń importu/exportu okuć używają `Array.from(...)` dla `querySelectorAll`, bo `NodeList` w przeglądarce nie musi mieć `.find()`;
+  - launcher wyboru szafki odpala `change` także przy wyborze tej samej wartości, żeby ukryty select i draft szafki nie rozjeżdżały się po renderze.
+- Dodano smoke kontrakty w `tools/app-dev-smoke.js` dla obu regresji.
+- Zmiana nie dodaje storage, nie zmienia modelu danych i nie rusza PRO100, ROZRYS, WYCENY ani hurtowego apply.
+- Raport: `tools/reports/dev-tests-errors-fix-v1.md`.
+

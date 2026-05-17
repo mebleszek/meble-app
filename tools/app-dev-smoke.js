@@ -242,6 +242,10 @@ function runMaterialNodeSmoke(sandbox){
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
       return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-price-confirm.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && ui.includes('confirmSupplierPriceChanges') && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe') && priceConfirm.includes('Dodać nową cenę') && priceConfirm.includes('Zaktualizować cenę');
     } },
+    { name:'Testy import/export okuć używają Array.from dla NodeList', explain:'Chroni dev_tests.html w przeglądarce: NodeList z querySelectorAll nie ma .find na Android/Chrome, więc test potwierdzeń nie może wysypać się przed kliknięciem.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/testing/material/accessories-import-export-deep-tests.js'), 'utf8');
+      return src.includes("Array.from(rootNode.querySelectorAll('button') || []).find") && !/return\s*\(rootNode\.querySelectorAll\('button'\) \|\| \[\]\)\.find/.test(src);
+    } },
     { name:'Import/export okuć jest rozdzielony pod stabilnymi fasadami', explain:'Pilnuje splitu: ciężkie moduły parsera, planu, eksportu i cen dostawców nie znikają z load order.', check:()=> {
       const api = FC.hardwareCatalogImportExport, price = FC.hardwareSupplierPriceXlsx;
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -763,6 +767,13 @@ function runCabinetNodeSmoke(sandbox){
         && !uiSrc.includes('confirm(')
         && html.includes('room-preferences-bulk-plan.js')
         && html.includes('wywiad-room-preferences-bulk-modal.js');
+    } },
+    { name:'Launchery szafki synchronizują draft także przy wyborze tej samej wartości', explain:'Chroni błąd z dev_tests.html: jeśli select ma już wartość z renderu, kliknięcie launchera nadal musi odpalić onchange i zsynchronizować draft.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-choice-launchers.js'), 'utf8');
+      return src.includes('Nawet wybór tej samej wartości musi zsynchronizować draft')
+        && src.includes('if(picked == null) return;')
+        && !src.includes("String(picked) === String(selectEl.value || '')")
+        && src.includes("selectEl.dispatchEvent(new Event('change', { bubbles:true }))");
     } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {

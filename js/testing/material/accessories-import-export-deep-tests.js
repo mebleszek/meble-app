@@ -79,7 +79,7 @@
   function apply(plan){ return api().applyImportPlan(plan); }
   function priceRow(row){ return Object.assign({ __rowIndex:20, producent:'Blum', okucie_symbol:'D-1', dostawca:'MAGO', cena_netto:11, data_ceny:'2026-05-13' }, row || {}); }
   function buttonByText(rootNode, label){
-    return (rootNode.querySelectorAll('button') || []).find((btn)=> text(btn.textContent) === label) || null;
+    return Array.from(rootNode.querySelectorAll('button') || []).find((btn)=> text(btn.textContent) === label) || null;
   }
   function wait(ms){ return new Promise((resolve)=> setTimeout(resolve, ms)); }
 

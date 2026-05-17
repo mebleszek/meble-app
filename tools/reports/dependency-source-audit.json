@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T19:47:06.584Z",
+  "generatedAt": "2026-05-17T22:17:54.915Z",
   "summary": {
     "jsFiles": 353,
     "indexScripts": 277,
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 30,
-      "lines": 7266,
+      "lines": 7269,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -215,7 +215,7 @@
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
-      420
+      423
     ],
     [
       "js/app/rozrys/rozrys-pickers.js",
@@ -2349,7 +2349,7 @@
     "js/app/cabinet/cabinet-choice-launchers.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 420,
+      "lines": 423,
       "defines": [
         "cabinetChoiceLaunchers"
       ],

@@ -1,3 +1,8 @@
+### 2026-05-18 — dev tests errors fix v1
+- Naprawiono błędy `dev_tests.html` po Etapie 2A: test potwierdzeń importu okuć nie używa już `.find()` bezpośrednio na `NodeList`.
+- Launcher wyboru w modalu szafki synchronizuje draft także wtedy, gdy wybrana wartość jest już ustawiona w ukrytym selectcie.
+- Dodano kontrakty smoke dla obu regresji; bez zmian modelu danych, storage, PRO100, ROZRYS i WYCENY.
+
 ### 2026-05-14 — pro100 file import v1
 - Modal `Import PRO100` w drobnych usługach stolarskich obsługuje teraz nie tylko wklejkę, ale też pliki `.xlsx`, `.csv`, `.tsv` i `.txt`.
 - XLSX jest czytany z pierwszego arkusza przez istniejący moduł `xlsxLite`; puste wiersze i nagłówek są pomijane.

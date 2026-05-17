@@ -310,9 +310,12 @@
         value:String(selectEl.value || ''),
         options:buildOptions(selectEl)
       });
-      if(picked == null || String(picked) === String(selectEl.value || '')) return;
+      if(picked == null) return;
       selectEl.value = String(picked || '');
       api.setChoiceLaunchValue(btn, api.getSelectOptionLabel(selectEl) || String(cfg && cfg.placeholder || ''), '');
+      // Nawet wybór tej samej wartości musi zsynchronizować draft,
+      // bo źródłowy select może być już ustawiony przez render, a model szafki
+      // po przebudowie preferencji/stref może mieć jeszcze starą wartość.
       selectEl.dispatchEvent(new Event('change', { bubbles:true }));
     });
     slot.innerHTML = '';
