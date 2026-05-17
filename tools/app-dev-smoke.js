@@ -683,6 +683,26 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Publiczne API szafek jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich testów modalowego DOM w Node.', check:()=> !!(FC.cabinetModal && FC.cabinetActions && FC.cabinetFronts) },
     { name:'Moduły modalowe szafek są załadowane', explain:'Chroni podstawowe wejścia używane przez modal szafki po splitach.', check:()=> !!(FC.cabinetModalDraft && FC.cabinetModalFields && FC.cabinetModalFinalize) },
     { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1B preferencji strefowych w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function' && typeof FC.roomPreferences.getZonePreferences === 'function' && Array.isArray(FC.roomPreferences.ZONE_KEYS) && FC.roomPreferences.ZONE_KEYS.length === 3) },
+    { name:'Resolver strefowych materiałów jest centralnym kontraktem', explain:'Chroni Etap 1C.2: logika strefa → trybik → fallback ma jedno API zamiast powielonych ścieżek w nowych funkcjach.', check:()=> {
+      const apiOk = !!(FC.roomPreferences
+        && typeof FC.roomPreferences.resolveZoneDefaults === 'function'
+        && typeof FC.roomPreferences.resolveZoneFrontMaterial === 'function'
+        && typeof FC.roomPreferences.applyZoneDefaultsToDraft === 'function');
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-model.js'), 'utf8');
+      return apiOk
+        && src.includes('function resolveZoneDefaults(room, zoneOrType, fallback)')
+        && src.includes('getProgramMaterialDefaults()')
+        && src.includes('applyMaterialFields(resolved, zone)')
+        && src.includes('function resolveZoneFrontMaterial(room, zoneOrType, fallback)');
+    } },
+    { name:'Drafty i zestawy używają centralnego resolvera stref', explain:'Chroni kod przed dublowaniem logiki materiałów między nową szafką, zestawem i źródłami frontu.', check:()=> {
+      const draftSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-draft.js'), 'utf8');
+      const wizardSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      const frontSourceSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/front-material-source.js'), 'utf8');
+      return draftSrc.includes('applyZoneDefaultsToDraft(room, draft, type)')
+        && wizardSrc.includes("resolveZoneDefaults(room, 'lower', fallback)")
+        && frontSourceSrc.includes('resolveZoneFrontMaterial(room, zone, {})');
+    } },
     { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
       return src.includes('Strefa dolna / stojące')
@@ -723,7 +743,7 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Zestaw startuje z materiałów dolnej strefy', explain:'Chroni decyzję UX: korpus, plecy i otwieranie zestawu mają startować jak szafki stojące/dolne, nie z ostatniego losowego typu szafki.', check:()=> {
       const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
       return wizard.includes('function getLowerZoneMaterialDefaults')
-        && wizard.includes("getZonePreferences(prefs, 'lower')")
+        && wizard.includes("resolveZoneDefaults(room, 'lower', fallback)")
         && wizard.includes('function getSetBaseDraft(room)')
         && !/function getSetBaseDraft\(room\)\{\s*const base = makeDefaultCabinetDraftForRoom\(room\)/.test(wizard);
     } },

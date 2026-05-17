@@ -1025,3 +1025,13 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Przy zestawach `getSetBaseDraft(room)` ma bazować na dolnej strefie (`room.preferences.zones.lower`) oraz globalnych domyślnych programu, a nie na ostatniej dowolnej szafce z pokoju. Zestaw konstrukcyjnie ma startować jak dolne/stojące.
 - `cabinet-modal-set-wizard.js` nadal jest duży. Przy następnych pracach przy zestawach unikać dalszego puchnięcia: wydzielać małe moduły pomocnicze, tak jak `cabinet-modal-set-materials.js`.
 - Testy ochronne dodano do `tools/app-dev-smoke.js` dla ukrywania zdublowanych pól lodówki i dla startu zestawu z dolnej strefy.
+
+## Preferences / front source cleanup v1 — 2026-05-17
+
+- Baza startowa: `site_000_fridge_set_material_cleanup_v1.zip`.
+- Aktualna paczka po tym etapie: `site_000_preferences_front_source_cleanup_v1.zip`.
+- Dodano centralny resolver strefowych materiałów w `room-preferences-model.js`: strefa pomieszczenia → globalne domyślne z trybiku → awaryjny fallback.
+- Nowy draft szafki, domyślne zestawu oraz źródła frontu lodówki/zestawu korzystają z tej samej ścieżki rozwiązywania materiałów, żeby nie dublować logiki.
+- Dodano nowe testy w `js/testing/cabinet/tests.js` oraz szybkie kontrakty w `tools/app-dev-smoke.js`.
+- Nie ruszano PRO100, WYCENY, ROZRYS, hurtowej zmiany ani frontów wieloczęściowych.
+- Raport: `tools/reports/preferences-front-source-cleanup-v1.md`.

@@ -758,3 +758,9 @@ node tools/hardware-accessories-dev-smoke.js
 - Zamiast dodawać kolejne wyjątki w UI lodówki, ukryto stare ogólne pola frontu przez małą funkcję widoczności w `cabinet-modal.js`.
 - Zestawy dostały prostszy, przewidywalny fallback: dolna strefa → globalne domyślne → awaryjne wartości. To zmniejsza zależność od ostatniej przypadkowej szafki w pokoju.
 - Następny większy refaktor powinien dotyczyć wydzielenia części logiki `cabinet-modal-set-wizard.js`, ale dopiero po testach frontów wieloczęściowych/zestawów.
+
+## Preferences / front source cleanup v1 — 2026-05-17
+
+- Wykonano mały cleanup fundamentu preferencji/frontSource bez zmiany UI.
+- Centralny resolver w `room-preferences-model.js` ogranicza duplikację między nowym draftem szafki, zestawami i specjalnymi frontami.
+- Duże pliki historyczne (`cabinet-modal-set-wizard.js`, `cabinet-fronts.js`) nie były w tej paczce dzielone. Następny split robić tylko pod konkretną ścieżkę: set wizard, generowanie frontów albo hurtową zmianę.

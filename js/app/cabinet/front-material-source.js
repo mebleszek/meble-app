@@ -72,6 +72,15 @@
   function getZoneMaterial(room, zoneKey){
     const zone = normalizeSourceKey(zoneKey, 'lower');
     try{
+      if(ns.roomPreferences && typeof ns.roomPreferences.resolveZoneFrontMaterial === 'function'){
+        const resolved = ns.roomPreferences.resolveZoneFrontMaterial(room, zone, {});
+        return {
+          material: text(resolved && (resolved.material || resolved.frontMaterial)),
+          color: text(resolved && (resolved.color || resolved.frontColor))
+        };
+      }
+    }catch(_){ }
+    try{
       if(ns.roomPreferences && typeof ns.roomPreferences.getRoomPreferences === 'function' && typeof ns.roomPreferences.getZonePreferences === 'function'){
         const prefs = ns.roomPreferences.getRoomPreferences(room);
         const z = ns.roomPreferences.getZonePreferences(prefs, zone);

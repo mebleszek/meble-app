@@ -81,13 +81,15 @@
     }catch(_){ draft.type = type; }
 
     try{
-      if(ns.programDefaults && typeof ns.programDefaults.applyMaterialsToDraft === 'function'){
-        ns.programDefaults.applyMaterialsToDraft(draft);
-      }
-    }catch(_){ }
-    try{
-      if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
-        ns.roomPreferences.applyPreferencesToDraft(room, draft);
+      if(ns.roomPreferences && typeof ns.roomPreferences.applyZoneDefaultsToDraft === 'function'){
+        ns.roomPreferences.applyZoneDefaultsToDraft(room, draft, type);
+      } else {
+        if(ns.programDefaults && typeof ns.programDefaults.applyMaterialsToDraft === 'function'){
+          ns.programDefaults.applyMaterialsToDraft(draft);
+        }
+        if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
+          ns.roomPreferences.applyPreferencesToDraft(room, draft);
+        }
       }
     }catch(_){ }
     return draft;

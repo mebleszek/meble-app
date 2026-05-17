@@ -180,6 +180,71 @@
     return target;
   }
 
+
+
+  function getProgramMaterialDefaults(){
+    try{
+      if(ns.programDefaults && typeof ns.programDefaults.getMaterialDefaults === 'function'){
+        return ns.programDefaults.getMaterialDefaults() || {};
+      }
+    }catch(_){ }
+    return {};
+  }
+
+  function applyMaterialFields(target, source){
+    const out = target && typeof target === 'object' ? target : {};
+    const src = source && typeof source === 'object' ? source : {};
+    if(text(src.bodyColor)) out.bodyColor = text(src.bodyColor);
+    if(text(src.frontMaterial)) out.frontMaterial = text(src.frontMaterial);
+    if(text(src.frontColor)) out.frontColor = text(src.frontColor);
+    if(text(src.backMaterial)) out.backMaterial = text(src.backMaterial);
+    if(text(src.openingSystem)) out.openingSystem = text(src.openingSystem);
+    return out;
+  }
+
+  function normalizeFallbackDefaults(fallback){
+    const src = fallback && typeof fallback === 'object' ? fallback : {};
+    return {
+      bodyColor: text(src.bodyColor),
+      frontMaterial: text(src.frontMaterial || src.material),
+      frontColor: text(src.frontColor || src.color),
+      backMaterial: text(src.backMaterial),
+      openingSystem: text(src.openingSystem)
+    };
+  }
+
+  function resolveZoneDefaults(room, zoneOrType, fallback){
+    const resolved = normalizeFallbackDefaults(fallback);
+    const globalDefaults = getProgramMaterialDefaults();
+    applyMaterialFields(resolved, {
+      bodyColor: globalDefaults.bodyColor,
+      frontMaterial: globalDefaults.frontMaterial,
+      frontColor: globalDefaults.frontColor,
+      backMaterial: globalDefaults.backMaterial
+    });
+    const prefs = getRoomPreferences(room);
+    const zone = getZonePreferences(prefs, zoneOrType);
+    applyMaterialFields(resolved, zone);
+    return resolved;
+  }
+
+  function applyZoneDefaultsToDraft(room, draft, zoneOrType){
+    const target = draft && typeof draft === 'object' ? draft : {};
+    const resolved = resolveZoneDefaults(room, zoneOrType || target.type, target);
+    applyMaterialFields(target, resolved);
+    return target;
+  }
+
+  function resolveZoneFrontMaterial(room, zoneOrType, fallback){
+    const resolved = resolveZoneDefaults(room, zoneOrType, fallback);
+    return {
+      material: text(resolved.frontMaterial),
+      color: text(resolved.frontColor),
+      frontMaterial: text(resolved.frontMaterial),
+      frontColor: text(resolved.frontColor)
+    };
+  }
+
   function hasMeaningfulZone(zone){
     const normalized = normalizeZonePreferences(zone);
     return Object.keys(DEFAULT_ZONE_PREFERENCES).some((key)=> !!text(normalized[key]));
@@ -228,6 +293,10 @@
     openingKeyForType,
     getZonePreferences,
     getOpeningSystemForCabinetType,
+    getProgramMaterialDefaults,
+    resolveZoneDefaults,
+    resolveZoneFrontMaterial,
+    applyZoneDefaultsToDraft,
     applyPreferencesToDraft,
     hasMeaningfulPreferences,
     getSummary

@@ -522,3 +522,10 @@ node tools/service-pro100-dev-smoke.js
 - Zestawy startują z materiałów dolnej strefy/stojących: korpus, plecy i otwieranie biorą najpierw preferencje `lower`, potem globalne domyślne programu i awaryjne fallbacki.
 - Nie zmieniono modelu storage, PRO100, ROZRYS, WYCENY ani frontów wieloczęściowych.
 - Raport: `tools/reports/fridge-set-material-cleanup-v1.md`.
+
+## 2026-05-17 — preferences_front_source_cleanup_v1
+
+- Uporządkowano fundament preferencji strefowych i źródeł materiału frontu.
+- Nowe szafki, zestawy i fronty specjalne korzystają ze wspólnej kolejności: strefa pokoju → globalne domyślne z trybiku → fallback programu.
+- Dodano nowe testy zabezpieczające tę ścieżkę.
+- Paczka: `site_000_preferences_front_source_cleanup_v1.zip`.

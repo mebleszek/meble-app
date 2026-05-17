@@ -229,7 +229,7 @@
 
   function getLowerZoneMaterialDefaults(room){
     const baseLaminat = firstLaminatName();
-    const out = {
+    const fallback = {
       bodyColor: baseLaminat,
       frontMaterial: 'laminat',
       frontColor: baseLaminat,
@@ -237,26 +237,11 @@
       openingSystem: 'uchwyt klienta'
     };
     try{
-      const defaults = ns.programDefaults && typeof ns.programDefaults.getMaterialDefaults === 'function'
-        ? ns.programDefaults.getMaterialDefaults()
-        : {};
-      if(defaults.bodyColor) out.bodyColor = defaults.bodyColor;
-      if(defaults.frontMaterial) out.frontMaterial = defaults.frontMaterial;
-      if(defaults.frontColor) out.frontColor = defaults.frontColor;
-      if(defaults.backMaterial) out.backMaterial = defaults.backMaterial;
-    }catch(_){ }
-    try{
-      if(ns.roomPreferences && typeof ns.roomPreferences.getRoomPreferences === 'function' && typeof ns.roomPreferences.getZonePreferences === 'function'){
-        const prefs = ns.roomPreferences.getRoomPreferences(room);
-        const lower = ns.roomPreferences.getZonePreferences(prefs, 'lower') || {};
-        if(lower.bodyColor) out.bodyColor = lower.bodyColor;
-        if(lower.frontMaterial) out.frontMaterial = lower.frontMaterial;
-        if(lower.frontColor) out.frontColor = lower.frontColor;
-        if(lower.backMaterial) out.backMaterial = lower.backMaterial;
-        if(lower.openingSystem) out.openingSystem = lower.openingSystem;
+      if(ns.roomPreferences && typeof ns.roomPreferences.resolveZoneDefaults === 'function'){
+        return ns.roomPreferences.resolveZoneDefaults(room, 'lower', fallback);
       }
     }catch(_){ }
-    return out;
+    return fallback;
   }
 
   function getSetBaseDraft(room){

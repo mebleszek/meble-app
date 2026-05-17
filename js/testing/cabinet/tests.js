@@ -64,6 +64,19 @@
     }
   }
 
+
+  function withProgramMaterialDefaults(defaults, run){
+    const previousApi = FC.programDefaults;
+    const api = Object.assign({}, previousApi || {});
+    api.getMaterialDefaults = function(){ return Object.assign({}, defaults || {}); };
+    FC.programDefaults = api;
+    try{ return run(); }
+    finally{
+      if(previousApi === undefined) delete FC.programDefaults;
+      else FC.programDefaults = previousApi;
+    }
+  }
+
   function buildCabinetModalFixture(){
     if(typeof document === 'undefined' || !document || !document.body) return null;
     const wrap = document.createElement('div');
@@ -234,6 +247,36 @@
           const hangingDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'wisząca');
           H.assert(hangingDraft.bodyColor === 'Góra korpus' && hangingDraft.openingSystem === 'podchwyt', 'Draft wiszący nie przejął preferencji strefy górnej', hangingDraft);
         });
+      }),
+
+
+      H.makeTest('Szafki', 'Resolver strefowy ma jedną kolejność: strefa → trybik → fallback', 'Pilnuje Etapu 1C.2: materiały dla nowych szafek, zestawów i źródeł frontu mają korzystać z jednego resolvera zamiast z powielonych ścieżek.', ()=>{
+        H.assert(FC.roomPreferences && typeof FC.roomPreferences.resolveZoneDefaults === 'function', 'Brak FC.roomPreferences.resolveZoneDefaults');
+        return withProgramMaterialDefaults({ bodyColor:'Globalny korpus', frontMaterial:'laminat', frontColor:'Globalny front', backMaterial:'Globalne plecy' }, ()=> withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Dolny korpus', openingSystem:'TIP-ON' }, middle:{ frontColor:'Środkowy front' }, upper:{} } } } }
+        }, ()=>{
+          const lower = FC.roomPreferences.resolveZoneDefaults('kuchnia', 'lower', { bodyColor:'Fallback korpus', frontMaterial:'fallback', frontColor:'Fallback front', backMaterial:'Fallback plecy', openingSystem:'Fallback open' });
+          H.assert(lower.bodyColor === 'Dolny korpus', 'Strefa dolna nie nadpisała globalnego korpusu', lower);
+          H.assert(lower.frontColor === 'Globalny front' && lower.frontMaterial === 'laminat', 'Brakujący front dolnej strefy nie wziął globalnych domyślnych', lower);
+          H.assert(lower.openingSystem === 'TIP-ON', 'Strefa dolna nie nadpisała otwierania', lower);
+          const middle = FC.roomPreferences.resolveZoneDefaults('kuchnia', 'middle', { bodyColor:'Fallback korpus', frontMaterial:'fallback', frontColor:'Fallback front', backMaterial:'Fallback plecy', openingSystem:'Fallback open' });
+          H.assert(middle.bodyColor === 'Globalny korpus', 'Środkowa strefa bez korpusu nie wzięła globalnego korpusu', middle);
+          H.assert(middle.frontColor === 'Środkowy front', 'Środkowa strefa nie nadpisała globalnego frontu', middle);
+          H.assert(middle.openingSystem === 'Fallback open', 'Brak globalnego otwierania powinien zostawić fallback', middle);
+        }));
+      }),
+
+      H.makeTest('Szafki', 'Źródło frontu używa centralnego resolvera stref', 'Pilnuje, żeby lodówki i zestawy rozwiązywały materiał jak dolne/środkowe/górne przez tę samą logikę co nowe szafki.', ()=>{
+        H.assert(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolve === 'function', 'Brak FC.frontMaterialSource.resolve');
+        H.assert(FC.roomPreferences && typeof FC.roomPreferences.resolveZoneFrontMaterial === 'function', 'Brak FC.roomPreferences.resolveZoneFrontMaterial');
+        return withProgramMaterialDefaults({ frontMaterial:'laminat', frontColor:'Globalny front' }, ()=> withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ zones:{ lower:{}, middle:{ frontMaterial:'akryl', frontColor:'Środkowy front' }, upper:{} } } } }
+        }, ()=>{
+          const middle = FC.frontMaterialSource.resolve('kuchnia', { source:'middle' }, { material:'fallback', color:'Fallback front' });
+          H.assert(middle.material === 'akryl' && middle.color === 'Środkowy front', 'Źródło middle nie użyło strefy środkowej', middle);
+          const upper = FC.frontMaterialSource.resolve('kuchnia', { source:'upper' }, { material:'fallback', color:'Fallback front' });
+          H.assert(upper.material === 'laminat' && upper.color === 'Globalny front', 'Pusta strefa upper nie użyła globalnych domyślnych z trybiku', upper);
+        }));
       }),
 
       H.makeTest('Szafki', 'Draft dla wybranego typu kopiuje ostatnią szafkę tego samego typu', 'Pilnuje decyzji: nowa stojąca kopiuje ostatnią stojącą, moduł ostatni moduł, a wisząca ostatnią wiszącą — bez mieszania stref.', ()=>{

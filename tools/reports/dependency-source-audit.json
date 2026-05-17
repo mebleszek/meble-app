@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-17T12:04:18.484Z",
+  "generatedAt": "2026-05-17T18:50:29.651Z",
   "summary": {
     "jsFiles": 350,
     "indexScripts": 274,
     "devTestScripts": 307,
     "fcSymbols": 254,
     "fcSymbolsAll": 282,
-    "edges": 1816,
+    "edges": 1817,
     "highRisk": 7,
     "mediumRisk": 63
   },
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 30,
-      "lines": 7270,
+      "lines": 7266,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 5,
-      "lines": 757,
+      "lines": 826,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12043,
+      "lines": 12086,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -163,11 +163,11 @@
     ],
     [
       "js/testing/cabinet/tests.js",
-      928
+      971
     ],
     [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
-      873
+      858
     ],
     [
       "js/app/cabinet/cabinet-fronts.js",
@@ -507,6 +507,26 @@
       ]
     },
     {
+      "file": "js/testing/cabinet/tests.js",
+      "risk": "wysokie",
+      "score": 10,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 971,
+      "incoming": 6,
+      "outgoing": 14,
+      "secondLevel": 33,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii",
+        "kilka publicznych symboli FC",
+        "kilka zależnych plików",
+        "dużo zależności wychodzących",
+        "dużo DOM i publicznego API"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/tests.js",
       "risk": "wysokie",
       "score": 10,
@@ -558,24 +578,6 @@
       "reasons": [
         "600+ linii",
         "dużo zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/testing/cabinet/tests.js",
-      "risk": "wysokie",
-      "score": 8,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 928,
-      "incoming": 6,
-      "outgoing": 13,
-      "secondLevel": 33,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "kilka zależnych plików",
         "dużo zależności wychodzących"
       ]
     },
@@ -984,7 +986,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 873,
+      "lines": 858,
       "incoming": 0,
       "outgoing": 8,
       "secondLevel": 0,
@@ -2486,7 +2488,7 @@
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 150,
+      "lines": 152,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -2641,7 +2643,7 @@
     "js/app/cabinet/cabinet-modal-set-wizard.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 873,
+      "lines": 858,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -3033,7 +3035,7 @@
     "js/app/cabinet/front-material-source.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 179,
+      "lines": 188,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -8587,7 +8589,7 @@
     "js/app/room-preferences/room-preferences-model.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 236,
+      "lines": 305,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -8599,7 +8601,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/rozrys/rozrys-accordion.js": {
       "area": "ROZRYS",
@@ -11011,7 +11015,8 @@
         "programDefaults"
       ],
       "incomingFiles": [
-        "js/app/ui/data-settings-defaults-view.js"
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/testing/cabinet/tests.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -11020,7 +11025,13 @@
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
-        "js/app/ui/data-settings-modal.js"
+        "js/app/ui/data-settings-modal.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rysunek/tests.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/cross-systems.js"
       ],
       "storageRefs": 2,
       "dialogRefs": 0,
@@ -16797,8 +16808,9 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 928,
+      "lines": 971,
       "defines": [
+        "programDefaults",
         "project",
         "storage",
         "cabinetDevTests"
@@ -16807,10 +16819,12 @@
         "testHarness",
         "materialCommon",
         "utils",
+        "programDefaults",
         "cabinetCutlist",
         "cabinetModal",
-        "cabinetFronts",
+        "roomPreferences",
         "frontMaterialSource",
+        "cabinetFronts",
         "cabinetChoiceLaunchers",
         "rozrysChoice",
         "cabinetModalSetWizard",
@@ -16837,6 +16851,7 @@
         "js/app/material/material-common.js",
         "js/app/project/project-bridge.js",
         "js/app/rozrys/rozrys-choice.js",
+        "js/app/settings/program-defaults-store.js",
         "js/app/shared/storage.js",
         "js/app/shared/utils.js",
         "js/testing/project/tests.js",
@@ -16888,8 +16903,10 @@
       "risk": "wysokie",
       "reasons": [
         "600+ linii",
+        "kilka publicznych symboli FC",
         "kilka zależnych plików",
-        "dużo zależności wychodzących"
+        "dużo zależności wychodzących",
+        "dużo DOM i publicznego API"
       ]
     },
     "js/testing/data-safety/tests.js": {

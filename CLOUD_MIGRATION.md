@@ -696,3 +696,10 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Wygenerowane korpusy w `room.cabinets[]` dostają te same wartości, więc przyszła synchronizacja chmurowa nadal traktuje zestaw jako część dokumentu/projektu.
 - Nie dodano nowego klucza `localStorage`; brak migracji między store.
 - Przy przyszłym podziale projektu w chmurze trzeba zachować powiązanie `setId` między `room.sets[]`, `room.cabinets[]` i `room.fronts[]`.
+
+## Preferences / front source cleanup v1 — 2026-05-17
+
+- Etap nie dodaje nowego storage ani nowego klucza `localStorage`.
+- Uporządkowano logikę odczytu preferencji materiałowych przez centralny resolver domenowy. Dane nadal siedzą w projekcie (`room.preferences`) i globalnym kluczu `fc_program_defaults_v1`.
+- Kolejność fallbacku cloud-ready pozostaje jawna: preferencje strefy w projekcie → globalne ustawienia programu → fallback runtime.
+- Zmiana ułatwia przyszłą synchronizację/chmurę, bo nowe szafki, zestawy i źródła frontów używają jednego kontraktu, a nie kilku rozproszonych ścieżek.
