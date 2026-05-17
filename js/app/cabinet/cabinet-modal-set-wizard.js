@@ -46,6 +46,78 @@
     try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; }
   }
 
+
+
+  function getFrontSourceApi(){ return (window.FC && window.FC.frontMaterialSource) || {}; }
+
+  function getSetFrontSourceOptions(){
+    const api = getFrontSourceApi();
+    if(api && Array.isArray(api.SOURCE_OPTIONS)) return api.SOURCE_OPTIONS;
+    return [
+      { v:'lower', t:'Jak strefa dolna / stojące' },
+      { v:'middle', t:'Jak strefa środkowa / moduły' },
+      { v:'upper', t:'Jak strefa górna / wiszące' },
+      { v:'custom', t:'Własny materiał' }
+    ];
+  }
+
+  function populateSetFrontSourceOptions(){
+    const sel = document.getElementById('setFrontSource');
+    if(!sel) return;
+    const current = sel.value || 'custom';
+    sel.innerHTML = '';
+    getSetFrontSourceOptions().forEach((entry)=>{
+      const opt = document.createElement('option');
+      opt.value = entry.v;
+      opt.textContent = entry.t;
+      if(entry.v === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if(!sel.value) sel.value = current || 'custom';
+  }
+
+  function setMaterialFieldsVisible(visible){
+    ['setFrontMaterial','setFrontColor'].forEach((id)=>{
+      const el = document.getElementById(id);
+      const wrap = el ? el.closest('div') : null;
+      if(wrap) wrap.style.display = visible ? '' : 'none';
+    });
+  }
+
+  function updateSetFrontSourceUI(){
+    const sourceEl = document.getElementById('setFrontSource');
+    const isCustom = !sourceEl || String(sourceEl.value || 'custom') === 'custom';
+    setMaterialFieldsVisible(isCustom);
+    const hint = document.getElementById('setFrontHint');
+    if(hint){
+      hint.textContent = isCustom
+        ? 'Własny materiał frontu zestawu. Wybierz materiał i kolor.'
+        : 'Fronty zestawu pobiorą materiał ze wskazanej strefy pomieszczenia.';
+    }
+  }
+
+  function getSetFrontSourceSpecFromUI(frontMaterial, frontColor){
+    const sourceEl = document.getElementById('setFrontSource');
+    const source = sourceEl ? String(sourceEl.value || 'custom') : 'custom';
+    return { source, material: frontMaterial || '', color: frontColor || '' };
+  }
+
+  function resolveSetFrontMaterial(room, sourceSpec, fallback){
+    const api = getFrontSourceApi();
+    try{
+      if(api && typeof api.resolveSetFront === 'function') return api.resolveSetFront(room, sourceSpec, fallback);
+    }catch(_){ }
+    return { source:'custom', material:(fallback && fallback.material) || 'laminat', color:(fallback && fallback.color) || '', label:'własny' };
+  }
+
+  function serializeSetFrontSource(resolved, sourceSpec){
+    const api = getFrontSourceApi();
+    try{
+      if(api && typeof api.serializeSourceForFront === 'function') return Object.assign({}, api.serializeSourceForFront(resolved), sourceSpec || {});
+    }catch(_){ }
+    return Object.assign({ source:(resolved && resolved.source) || 'custom', label:(resolved && resolved.label) || '' }, sourceSpec || {});
+  }
+
   function uidSafe(){
     try{
       if(ns.utils && typeof ns.utils.uid === 'function') return ns.utils.uid();
@@ -141,6 +213,7 @@
       colSel.dispatchEvent(new Event('change', { bubbles:true }));
     }catch(_){ }
 
+    updateSetFrontSourceUI();
     refreshSetLaunchers();
   }
 
@@ -349,12 +422,18 @@
 
     if(hasPreset){
       const cntSel = document.getElementById('setFrontCount');
+      const sourceSel = document.getElementById('setFrontSource');
       const matSel = document.getElementById('setFrontMaterial');
 
+      populateSetFrontSourceOptions();
       if(cntSel && !cntSel.value) cntSel.value = '2';
+      if(sourceSel && !sourceSel.value) sourceSel.value = 'custom';
       if(matSel && !matSel.value) matSel.value = 'laminat';
       syncSetFrontSelectors({ keepColor:true });
 
+      if(sourceSel){
+        sourceSel.onchange = function(){ updateSetFrontSourceUI(); refreshSetLaunchers(); };
+      }
       if(matSel){
         matSel.onchange = function(){ syncSetFrontSelectors({ selectedColor:'' }); };
       }
@@ -397,7 +476,7 @@
     return true;
   }
 
-  function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber){
+  function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber, frontSource){
     frontCount = Number(frontCount || 1);
 
     if(presetId === 'A'){
@@ -405,10 +484,10 @@
       const w2 = Number(dims && dims.w2 || 0);
       const totalH = Number(dims && dims.hB || 0) + Number(dims && dims.hTop || 0);
       if(frontCount === 1){
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1 + w2, height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1 + w2, height: totalH, note: `Zestaw ${setNumber}: 1 front`, frontMaterialSource: frontSource || null });
       } else {
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1, height: totalH, note: `Zestaw ${setNumber}: front lewy` });
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w2, height: totalH, note: `Zestaw ${setNumber}: front prawy` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1, height: totalH, note: `Zestaw ${setNumber}: front lewy`, frontMaterialSource: frontSource || null });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w2, height: totalH, note: `Zestaw ${setNumber}: front prawy`, frontMaterialSource: frontSource || null });
       }
       return;
     }
@@ -417,11 +496,11 @@
       const w = Number(dims && dims.w || 0);
       const totalH = Number(dims && dims.hB || 0) + Number(dims && dims.hTop || 0);
       if(frontCount === 1){
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front`, frontMaterialSource: frontSource || null });
       } else {
         const half = Math.round((w / 2) * 10) / 10;
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2`, frontMaterialSource: frontSource || null });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2`, frontMaterialSource: frontSource || null });
       }
       return;
     }
@@ -430,11 +509,11 @@
       const w = Number(dims && dims.w || 0);
       const totalH = Number(dims && dims.hB || 0) + Number(dims && dims.hM || 0) + Number(dims && dims.hTop || 0);
       if(frontCount === 1){
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front`, frontMaterialSource: frontSource || null });
       } else {
         const half = Math.round((w / 2) * 10) / 10;
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2`, frontMaterialSource: frontSource || null });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2`, frontMaterialSource: frontSource || null });
       }
     }
   }
@@ -508,15 +587,22 @@
     }
 
     const cntSel = document.getElementById('setFrontCount');
+    const sourceSel = document.getElementById('setFrontSource');
     const matSel = document.getElementById('setFrontMaterial');
     const colSel = document.getElementById('setFrontColor');
 
+    populateSetFrontSourceOptions();
     if(cntSel && set.frontCount) cntSel.value = String(set.frontCount);
+    if(sourceSel){
+      const spec = getFrontSourceApi().normalizeSetSource ? getFrontSourceApi().normalizeSetSource(set, { source:'custom' }) : (set.frontSource || { source:'custom' });
+      sourceSel.value = String((spec && spec.source) || 'custom');
+    }
     if(matSel && set.frontMaterial) matSel.value = set.frontMaterial;
     if(colSel){
       syncSetFrontSelectors({ selectedColor:set.frontColor || '' });
       colSel.value = set.frontColor || colSel.value;
     }
+    updateSetFrontSourceUI();
 
     wireSetParamsLiveUpdate(set.presetId);
   }
@@ -589,8 +675,13 @@
       }
 
       const frontCount = Number(cntEl.value || 1);
-      const frontMaterial = matEl.value || 'laminat';
-      const frontColor = colEl.value || '';
+      const customFrontMaterial = matEl.value || 'laminat';
+      const customFrontColor = colEl.value || '';
+      const frontSourceSpec = getSetFrontSourceSpecFromUI(customFrontMaterial, customFrontColor);
+      const resolvedFront = resolveSetFrontMaterial(room, frontSourceSpec, { source:'custom', material:customFrontMaterial, color:customFrontColor });
+      const frontMaterial = resolvedFront.material || customFrontMaterial || 'laminat';
+      const frontColor = resolvedFront.color || customFrontColor || '';
+      const serializedFrontSource = serializeSetFrontSource(resolvedFront, frontSourceSpec);
 
       const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
       const setId = isEdit ? cabinetModalState.setEditId : uidSafe();
@@ -638,14 +729,14 @@
         const cab2 = finalizeCab(Object.assign({}, cloneSafe(base), { type:'stojąca', subType:'standardowa', width:params.w2, height:params.hB, depth:params.dBottom, setRole:'dolny_prawy', frontCount:2 }));
         const top = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:(params.w1+params.w2), height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
         created.push(cab1, cab2, top);
-        createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1, w2:params.w2, hB:params.hB, hTop:params.hTop}, setId, setNumber);
+        createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1, w2:params.w2, hB:params.hB, hTop:params.hTop}, setId, setNumber, serializedFrontSource);
       }
 
       if(presetId === 'C'){
         const bottom = finalizeCab(Object.assign({}, cloneSafe(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
         const top = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
         created.push(bottom, top);
-        createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hTop:params.hTop}, setId, setNumber);
+        createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hTop:params.hTop}, setId, setNumber, serializedFrontSource);
       }
 
       if(presetId === 'D'){
@@ -653,12 +744,12 @@
         const middle = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hM, depth:params.dModule, setRole:'srodkowy_modul', frontCount:0 }));
         const top = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
         created.push(bottom, middle, top);
-        createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hM:params.hM, hTop:params.hTop}, setId, setNumber);
+        createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hM:params.hM, hTop:params.hTop}, setId, setNumber, serializedFrontSource);
       }
 
       created.forEach(function(cab){ projectData[room].cabinets.push(cab); });
 
-      const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor };
+      const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor, frontSource:serializedFrontSource };
       if(isEdit){
         projectData[room].sets = projectData[room].sets.map(function(set){ return set && set.id === setId ? setRecord : set; });
       } else {

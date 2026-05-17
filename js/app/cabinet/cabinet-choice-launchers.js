@@ -84,6 +84,14 @@
       }
     },
     {
+      id:'setFrontSource',
+      title:'Wybierz źródło materiału frontów zestawu',
+      placeholder:'Wybierz źródło materiału frontów zestawu',
+      shouldMount(){
+        return isVisibleById('setFrontBlock') && isVisibleById('setFrontSource');
+      }
+    },
+    {
       id:'setFrontMaterial',
       title:'Wybierz materiał frontów zestawu',
       placeholder:'Wybierz materiał frontów zestawu',

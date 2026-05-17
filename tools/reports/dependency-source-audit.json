@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-16T16:57:39.450Z",
+  "generatedAt": "2026-05-16T21:58:30.271Z",
   "summary": {
-    "jsFiles": 348,
-    "indexScripts": 272,
-    "devTestScripts": 305,
+    "jsFiles": 349,
+    "indexScripts": 273,
+    "devTestScripts": 306,
     "fcSymbols": 254,
     "fcSymbolsAll": 282,
     "edges": 1816,
@@ -20,8 +20,8 @@
       "medium": 2
     },
     "SZAFKI": {
-      "files": 28,
-      "lines": 6634,
+      "files": 29,
+      "lines": 7063,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 11958,
+      "lines": 11998,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -162,24 +162,24 @@
       1459
     ],
     [
-      "js/testing/project/tests.js",
-      848
+      "js/testing/cabinet/tests.js",
+      883
     ],
     [
-      "js/testing/cabinet/tests.js",
-      843
+      "js/app/cabinet/cabinet-fronts.js",
+      854
+    ],
+    [
+      "js/testing/project/tests.js",
+      848
     ],
     [
       "js/app/rozrys/rozrys.js",
       842
     ],
     [
-      "js/app/cabinet/cabinet-fronts.js",
-      838
-    ],
-    [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
-      693
+      784
     ],
     [
       "js/app/cabinet/cabinet-modal.js",
@@ -188,6 +188,10 @@
     [
       "js/testing/wycena/suites/central-status-sync.js",
       649
+    ],
+    [
+      "js/app/cabinet/cabinet-modal-standing-specials.js",
+      569
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -210,12 +214,12 @@
       455
     ],
     [
-      "js/app/cabinet/cabinet-modal-standing-specials.js",
-      434
-    ],
-    [
       "js/app/rozrys/rozrys-pickers.js",
       406
+    ],
+    [
+      "js/app/cabinet/cabinet-choice-launchers.js",
+      396
     ],
     [
       "js/app/project/project-status-manual-guard.js",
@@ -228,10 +232,6 @@
     [
       "js/testing/rozrys/suites/helpers-bridges.js",
       390
-    ],
-    [
-      "js/app/cabinet/cabinet-choice-launchers.js",
-      388
     ],
     [
       "js/testing/material/accessories-tests.js",
@@ -567,7 +567,7 @@
       "score": 8,
       "area": "TESTY",
       "category": "test",
-      "lines": 843,
+      "lines": 883,
       "incoming": 6,
       "outgoing": 13,
       "secondLevel": 33,
@@ -984,7 +984,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 693,
+      "lines": 784,
       "incoming": 0,
       "outgoing": 8,
       "secondLevel": 0,
@@ -1363,7 +1363,7 @@
       "score": 4,
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 838,
+      "lines": 854,
       "incoming": 0,
       "outgoing": 2,
       "secondLevel": 0,
@@ -2347,7 +2347,7 @@
     "js/app/cabinet/cabinet-choice-launchers.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 388,
+      "lines": 396,
       "defines": [
         "cabinetChoiceLaunchers"
       ],
@@ -2462,7 +2462,7 @@
     "js/app/cabinet/cabinet-fronts.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 838,
+      "lines": 854,
       "defines": [],
       "uses": [
         "utils"
@@ -2622,13 +2622,14 @@
     "js/app/cabinet/cabinet-modal-set-wizard.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 693,
+      "lines": 784,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
         "cabinetModalDraft",
         "cabinetModalFields",
         "cabinetModal",
+        "frontMaterialSource",
         "cabinetChoiceLaunchers",
         "actions",
         "uiState",
@@ -2649,7 +2650,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 65,
+      "domRefs": 73,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -2727,7 +2728,7 @@
     "js/app/cabinet/cabinet-modal-standing-specials.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 434,
+      "lines": 569,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -2735,7 +2736,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 13,
+      "domRefs": 20,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -2996,6 +2997,23 @@
       "area": "SZAFKI",
       "category": "domain/controller",
       "lines": 30,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/cabinet/front-material-source.js": {
+      "area": "SZAFKI",
+      "category": "domain/controller",
+      "lines": 179,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -16759,7 +16777,7 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 843,
+      "lines": 883,
       "defines": [
         "project",
         "storage",
@@ -16771,13 +16789,14 @@
         "utils",
         "cabinetCutlist",
         "cabinetModal",
+        "cabinetFronts",
+        "frontMaterialSource",
         "cabinetChoiceLaunchers",
         "rozrysChoice",
         "frontHardware",
         "frontHardwareAventosData",
         "frontHardwareAventosCalc",
         "frontHardwareAventosSelector",
-        "cabinetFronts",
         "project",
         "storage",
         "cabinetDevTests"

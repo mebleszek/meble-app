@@ -194,6 +194,7 @@ const INDEX_LOAD_GROUPS = [
     "id": "cabinet-wywiad",
     "label": "Wywiad / cabinet modal stack",
     "scripts": [
+      "js/app/cabinet/front-material-source.js",
       "js/app/cabinet/cabinet-fronts.js",
       "js/app/cabinet/cabinet-modal-validation.js",
       "js/app/cabinet/cabinet-modal-draft.js",

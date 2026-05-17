@@ -688,6 +688,17 @@ function runCabinetNodeSmoke(sandbox){
       return src.includes('Strefa dolna / stojące')
         || (src.includes('buildZoneCard') && src.includes('wywiad-zone-choice') && src.includes('openRozrysChoiceOverlay') && !src.includes("document.createElement('select')") && !src.includes('Preferowany producent okuć'));
     } },
+    { name:'Źródło materiału frontów jest dostępne dla lodówek i zestawów', explain:'Chroni Etap 1C: front specjalny może wskazywać dolną/środkową/górną strefę albo własny materiał bez zgadywania po wysokości.', check:()=> {
+      const apiOk = !!(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveFridgeFront === 'function' && typeof FC.frontMaterialSource.resolveSetFront === 'function');
+      const fridgeSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
+      const setSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      return apiOk
+        && fridgeSrc.includes('makeFridgeSourceKey')
+        && fridgeSrc.includes('appendFridgeFrontSourceField')
+        && setSrc.includes('setFrontSource')
+        && html.includes('id="setFrontSource"');
+    } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;

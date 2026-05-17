@@ -495,3 +495,14 @@ node tools/service-pro100-dev-smoke.js
 - UI preferencji strefowych ma używać aplikacyjnych launcherów ROZRYS; nie używać natywnych selectów/pickerów telefonu.
 - Dodawanie szafki: po wybraniu typu nowy draft kopiuje ostatnią szafkę tego samego typu. Jeżeli poprzednika danego typu brak, bierze strefę pokoju, potem globalne domyślne z trybiku, potem awaryjny fallback.
 - Raport: `tools/reports/room-zone-preferences-v1.md`.
+
+## Front material source v1 — 2026-05-16
+
+- Dodano fundament źródła materiału frontów specjalnych: front może być `jak strefa dolna / stojące`, `jak strefa środkowa / moduły`, `jak strefa górna / wiszące` albo `własny materiał`.
+- Zakres etapu obejmuje lodówki w zabudowie oraz fronty zestawów szafek; nie dodano jeszcze tabeli frontów wieloczęściowych.
+- Lodówka z 2 frontami może mieć osobno źródło materiału dla dolnego i górnego frontu. Lodówka z 1 frontem ma jedno źródło materiału frontu.
+- Zestaw szafek ma wybór `Źródło materiału frontów`; fronty zestawu zapisują informację o źródle w `frontMaterialSource`.
+- Stare lodówki i zestawy bez źródła materiału zachowują dotychczasowy materiał jako `własny`, żeby nie zmieniać projektów po cichu.
+- Nowy moduł domenowy: `js/app/cabinet/front-material-source.js`.
+- Cache-busting zmienionych modułów: `20260516_front_source_v1`.
+- Raport: `tools/reports/front-material-source-v1.md`.

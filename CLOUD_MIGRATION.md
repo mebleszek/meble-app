@@ -680,3 +680,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Nowy model strefowy używa `preferences.zones.lower|middle|upper`, bez osobnego storage dla preferencji pokoju.
 - Globalne fallbacki materiałów/okuć pozostają pod wersjonowanym kluczem `fc_program_defaults_v1`, więc są objęte istniejącym backupem.
 - Nie dodano nowych luźnych kluczy `localStorage`; nie zmieniano polityki backupów.
+
+## Front material source v1 — 2026-05-16
+
+- Nie dodano nowych kluczy `localStorage`; etap rozszerza istniejące dane projektu/pomieszczenia, szafek i zestawów.
+- `frontMaterialSource` na wygenerowanych frontach jest metadaną pochodną/snapshotową, a źródło decyzji pozostaje w `cab.details` dla lodówek oraz w `set.frontSource` dla zestawów.
+- W przyszłej chmurze `set.frontSource` i pola `fridgeFrontSource*` powinny synchronizować się razem z projektem, bez osobnego dokumentu ustawień.
+- Brak źródła materiału jest stanem legacy i powinien być interpretowany jako `custom`, z zachowaniem zapisanych `frontMaterial/frontColor`.
+- `schemaVersion: 12` nie wymaga przebudowy backupów ani zmiany polityki synchronizacji; to rozszerzenie kontraktu danych projektu.

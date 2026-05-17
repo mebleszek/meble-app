@@ -994,3 +994,17 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - UI preferencji strefowych ma używać aplikacyjnych launcherów ROZRYS; nie używać natywnych selectów/pickerów telefonu.
 - Dodawanie szafki: po wybraniu typu nowy draft kopiuje ostatnią szafkę tego samego typu. Jeżeli poprzednika danego typu brak, bierze strefę pokoju, potem globalne domyślne z trybiku, potem awaryjny fallback.
 - Raport: `tools/reports/room-zone-preferences-v1.md`.
+
+## Front material source v1 — 2026-05-16
+
+- Aktualna paczka po tym etapie: `site_000_front_material_source_v1.zip`.
+- Baza startowa: `site_000_room_zone_preferences_v1.zip`.
+- Dodano `js/app/cabinet/front-material-source.js` jako mały moduł domenowy rozwiązujący źródło materiału frontu: `lower`, `middle`, `upper`, `custom`.
+- Moduł korzysta z `room.preferences.zones` oraz z globalnych fallbacków `FC.programDefaults`; nie tworzy nowego storage.
+- Lodówki w zabudowie zapisują źródła w `cab.details.fridgeFrontSourceSingle|Lower|Upper` oraz opcjonalne materiały własne w odpowiadających polach `fridgeFrontCustomMaterial*` / `fridgeFrontCustomColor*`.
+- Zestawy zapisują `set.frontSource`; wygenerowane fronty dostają metadane `frontMaterialSource`, żeby późniejsza hurtowa zmiana mogła odróżnić front strefowy od własnego.
+- `schemaVersion` podbito do 12, ale bez destrukcyjnej migracji: brak źródła oznacza zachowanie dotychczasowego materiału jako `custom`.
+- UI wyborów używa istniejących launcherów aplikacji; nie dodawać natywnych pickerów/selectów telefonu.
+- Ten etap nie dodaje tabeli frontów wieloczęściowych, nie zmienia WYCENY i nie uruchamia hurtowej zmiany istniejących szafek.
+- Testy ochronne dodano do `js/testing/cabinet/tests.js` i `tools/app-dev-smoke.js`.
+- Raport: `tools/reports/front-material-source-v1.md`.

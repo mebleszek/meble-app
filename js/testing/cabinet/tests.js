@@ -248,6 +248,46 @@
         });
       }),
 
+
+      H.makeTest('Szafki', 'Fronty lodówki mogą brać materiał ze stref dolna/górna', 'Pilnuje Etapu 1C: dolny i górny front lodówki nie zgadują materiału po wysokości, tylko używają jawnego źródła jak strefa dolna albo górna.', ()=>{
+        H.assert(FC.cabinetFronts && typeof FC.cabinetFronts.generateFrontsForCabinet === 'function', 'Brak FC.cabinetFronts.generateFrontsForCabinet');
+        H.assert(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveFridgeFront === 'function', 'Brak FC.frontMaterialSource.resolveFridgeFront');
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ frontMaterial:'laminat', frontColor:'Dolny front' }, middle:{ frontMaterial:'akryl', frontColor:'Środkowy front' }, upper:{ frontMaterial:'lakier', frontColor:'Górny front' } } } } },
+          materials:[
+            { name:'Dolny front', materialType:'laminat' },
+            { name:'Środkowy front', materialType:'akryl' },
+            { name:'Górny front', materialType:'lakier' },
+            { name:'Legacy front', materialType:'laminat' }
+          ]
+        }, ()=>{
+          const cab = { id:'fridge_1', width:60, height:200, depth:57, type:'stojąca', subType:'lodowkowa', frontMaterial:'laminat', frontColor:'Legacy front', details:{ fridgeOption:'zabudowa', fridgeFrontCount:'2', fridgeFrontSourceLower:'lower', fridgeFrontSourceUpper:'upper' } };
+          projectData.kuchnia.cabinets.push(cab);
+          FC.cabinetFronts.generateFrontsForCabinet('kuchnia', cab);
+          const fronts = projectData.kuchnia.fronts;
+          H.assert(fronts.length === 2, 'Lodówka 2-frontowa nie wygenerowała dwóch frontów', fronts);
+          H.assert(fronts[0].color === 'Dolny front' && fronts[0].material === 'laminat', 'Dolny front lodówki nie wziął materiału ze strefy dolnej', fronts[0]);
+          H.assert(fronts[1].color === 'Górny front' && fronts[1].material === 'lakier', 'Górny front lodówki nie wziął materiału ze strefy górnej', fronts[1]);
+          H.assert(fronts[0].frontMaterialSource && fronts[0].frontMaterialSource.source === 'lower', 'Dolny front nie zachował źródła materiału', fronts[0]);
+          H.assert(fronts[1].frontMaterialSource && fronts[1].frontMaterialSource.source === 'upper', 'Górny front nie zachował źródła materiału', fronts[1]);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Źródło frontów zestawu rozwiązuje materiał ze strefy', 'Pilnuje Etapu 1C: zestaw może mieć fronty jako „jak strefa środkowa” bez przepisywania tekstowego koloru na sztywno w UI.', ()=>{
+        H.assert(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveSetFront === 'function', 'Brak FC.frontMaterialSource.resolveSetFront');
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ frontMaterial:'laminat', frontColor:'Dolny front' }, middle:{ frontMaterial:'akryl', frontColor:'Środek zestawu' }, upper:{ frontMaterial:'lakier', frontColor:'Górny front' } } } } },
+          materials:[
+            { name:'Dolny front', materialType:'laminat' },
+            { name:'Środek zestawu', materialType:'akryl' },
+            { name:'Górny front', materialType:'lakier' }
+          ]
+        }, ()=>{
+          const resolved = FC.frontMaterialSource.resolveSetFront('kuchnia', { frontSource:{ source:'middle' } }, { material:'laminat', color:'Awaryjny' });
+          H.assert(resolved.material === 'akryl' && resolved.color === 'Środek zestawu', 'Źródło zestawu middle nie rozwiązało materiału ze strefy środkowej', resolved);
+        });
+      }),
+
       H.makeTest('Szafki', 'Opcje otwierania dla wiszącej zachowują warianty tylko dla góry', 'Pilnuje, czy select otwierania w Wywiadzie nie gubi wariantów typowych dla szafek wiszących i nie miesza ich z dolnymi.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.populateOpeningOptionsTo === 'function', 'Brak FC.cabinetModal.populateOpeningOptionsTo');
         if(typeof document === 'undefined' || !document || !document.createElement) return;

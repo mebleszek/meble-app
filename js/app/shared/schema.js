@@ -8,7 +8,7 @@
     const utils = window.FC.utils;
 
     if(!window.FC.schema){
-      const CURRENT_SCHEMA_VERSION = 11;
+      const CURRENT_SCHEMA_VERSION = 12;
 
       const DEFAULT_PROJECT = {
         schemaVersion: CURRENT_SCHEMA_VERSION,

@@ -739,3 +739,9 @@ node tools/hardware-accessories-dev-smoke.js
 
 - Preferencje pokoju są rozdzielone w małych modułach: model `room-preferences-model.js`, UI `wywiad-room-preferences.js`, fallback globalny `program-defaults-store.js`.
 - Nie rozbudowywać `app.js` ani dużych plików WYWIADU o logikę stref; kolejne etapy frontów łączonych powinny iść osobnym modułem.
+
+## Front material source v1 — 2026-05-16
+
+- Źródło materiału frontów specjalnych wydzielono do `js/app/cabinet/front-material-source.js`; kolejne etapy frontów łączonych/wieloczęściowych powinny rozbudowywać ten moduł zamiast dopisywać logikę bezpośrednio do generatorów.
+- `cabinet-modal-set-wizard.js`, `cabinet-modal-standing-specials.js` i `cabinet-fronts.js` zostały dotknięte, bo zawierają istniejące UI/generowanie frontów. Przy następnym większym etapie frontów rozważyć wydzielenie osobnego modułu UI dla źródeł/kompozycji frontu.
+- Następny logiczny etap: fronty wieloczęściowe/tabela części oraz hurtowa zmiana po źródłach `lower/middle/upper/custom`, ale dopiero po ręcznym zatwierdzeniu obecnego etapu.
