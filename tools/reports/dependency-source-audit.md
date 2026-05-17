@@ -21,7 +21,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 53 | 12043 | 246 | 1 | 5 | 31 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
-| SZAFKI | 30 | 7214 | 0 | 0 | 0 | 3 |
+| SZAFKI | 30 | 7270 | 0 | 0 | 0 | 3 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
 | MATERIAŁ | 26 | 4727 | 8 | 3 | 0 | 2 |
 | KATALOG/USŁUGI | 22 | 3924 | 4 | 0 | 0 | 2 |
@@ -44,11 +44,11 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- |
 | js/tabs/rysunek.js | 1459 | RYSUNEK | nie ruszać bez osobnego planu |
 | js/testing/cabinet/tests.js | 928 | TESTY | wysokie |
+| js/app/cabinet/cabinet-modal-set-wizard.js | 873 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-fronts.js | 854 | SZAFKI | średnie |
 | js/testing/project/tests.js | 848 | TESTY | wysokie |
 | js/app/rozrys/rozrys.js | 842 | ROZRYS | wysokie |
-| js/app/cabinet/cabinet-modal-set-wizard.js | 832 | SZAFKI | średnie |
-| js/app/cabinet/cabinet-modal.js | 669 | SZAFKI | średnie |
+| js/app/cabinet/cabinet-modal.js | 684 | SZAFKI | średnie |
 | js/testing/wycena/suites/central-status-sync.js | 649 | TESTY | wysokie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 569 | SZAFKI | niskie |
 | js/app/catalog/catalog-store.js | 497 | KATALOG/USŁUGI | średnie |
@@ -169,8 +169,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/investor/suites/recovery-sources.js | średnie | 6 | 168 | 8 | 9 | kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/investor/suites/recovery-isolation.js | średnie | 6 | 162 | 8 | 9 | kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/rysunek/tests.js | średnie | 6 | 117 | 6 | 33 | kilka zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą; systemowe dialogi |
-| js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 832 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
-| js/app/cabinet/cabinet-modal.js | średnie | 5 | 669 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
+| js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 873 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
+| js/app/cabinet/cabinet-modal.js | średnie | 5 | 684 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/app/project/project-status-manual-guard.js | średnie | 5 | 395 | 8 | 31 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 48 | 250+ linii; dużo zależnych plików |
 | js/app/project/project-status-scope.js | średnie | 5 | 313 | 5 | 25 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |

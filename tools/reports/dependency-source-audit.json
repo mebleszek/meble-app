@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T11:27:23.694Z",
+  "generatedAt": "2026-05-17T12:04:18.484Z",
   "summary": {
     "jsFiles": 350,
     "indexScripts": 274,
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 30,
-      "lines": 7214,
+      "lines": 7270,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -166,6 +166,10 @@
       928
     ],
     [
+      "js/app/cabinet/cabinet-modal-set-wizard.js",
+      873
+    ],
+    [
       "js/app/cabinet/cabinet-fronts.js",
       854
     ],
@@ -178,12 +182,8 @@
       842
     ],
     [
-      "js/app/cabinet/cabinet-modal-set-wizard.js",
-      832
-    ],
-    [
       "js/app/cabinet/cabinet-modal.js",
-      669
+      684
     ],
     [
       "js/testing/wycena/suites/central-status-sync.js",
@@ -984,7 +984,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 832,
+      "lines": 873,
       "incoming": 0,
       "outgoing": 8,
       "secondLevel": 0,
@@ -1001,7 +1001,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 669,
+      "lines": 684,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -2641,7 +2641,7 @@
     "js/app/cabinet/cabinet-modal-set-wizard.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 832,
+      "lines": 873,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -2809,7 +2809,7 @@
     "js/app/cabinet/cabinet-modal.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 669,
+      "lines": 684,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -2840,7 +2840,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 67,
+      "domRefs": 68,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",

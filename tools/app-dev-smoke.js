@@ -711,6 +711,22 @@ function runCabinetNodeSmoke(sandbox){
         && wizard.includes('setMaterials.backMaterial')
         && wizard.includes('setMaterials.openingSystem');
     } },
+    { name:'Lodówka nie pokazuje zdublowanych pól frontu', explain:'Chroni UI lodówki: nowe źródła materiału frontu zastępują stare ogólne pola Materiał Frontu / Kolor Frontu, ale korpus/plecy/otwieranie zostają.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const modal = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal.js'), 'utf8');
+      return html.includes('id="cmFrontMaterialWrap"')
+        && html.includes('id="cmFrontColorWrap"')
+        && modal.includes('function isFridgeCabinetDraft')
+        && modal.includes('syncCabinetMaterialVisibility(draft)')
+        && modal.includes("hideGeneralFrontFields ? 'none'");
+    } },
+    { name:'Zestaw startuje z materiałów dolnej strefy', explain:'Chroni decyzję UX: korpus, plecy i otwieranie zestawu mają startować jak szafki stojące/dolne, nie z ostatniego losowego typu szafki.', check:()=> {
+      const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      return wizard.includes('function getLowerZoneMaterialDefaults')
+        && wizard.includes("getZonePreferences(prefs, 'lower')")
+        && wizard.includes('function getSetBaseDraft(room)')
+        && !/function getSetBaseDraft\(room\)\{\s*const base = makeDefaultCabinetDraftForRoom\(room\)/.test(wizard);
+    } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;

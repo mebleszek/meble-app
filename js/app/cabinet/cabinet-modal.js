@@ -44,6 +44,20 @@ function getCabinetModalTypeApi(typeVal, subTypeVal){
   return {};
 }
 
+
+function isFridgeCabinetDraft(draft){
+  const d = draft && typeof draft === 'object' ? draft : {};
+  return String(d.type || '') === 'stojąca' && String(d.subType || '') === 'lodowkowa';
+}
+
+function syncCabinetMaterialVisibility(draft){
+  const hideGeneralFrontFields = isFridgeCabinetDraft(draft);
+  ['cmFrontMaterialWrap','cmFrontColorWrap'].forEach(function(id){
+    const wrap = document.getElementById(id);
+    if(wrap) wrap.style.display = hideGeneralFrontFields ? 'none' : '';
+  });
+}
+
 function callCabinetFrontsHelper(fnName, args, fallback){
   const api = getCabinetModalValidationApi();
   if(api && typeof api.callCabinetFrontsHelper === 'function') return api.callCabinetFrontsHelper(fnName, args, fallback);
@@ -450,6 +464,7 @@ function renderCabinetModal(){
   populateFrontColorsTo(document.getElementById('cmFrontColor'), draft.frontMaterial || 'laminat', draft.frontColor || '');
   populateBodyColorsTo(document.getElementById('cmBodyColor'), draft.bodyColor || '');
   populateOpeningOptionsTo(document.getElementById('cmOpeningSystem'), draft.type, draft.openingSystem || 'uchwyt klienta');
+  syncCabinetMaterialVisibility(draft);
 
   // FRONT COUNT UI
   const fcSel = document.getElementById('cmFrontCount');

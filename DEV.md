@@ -1018,3 +1018,10 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Materiały zestawu są w module `js/app/cabinet/cabinet-modal-set-materials.js`; nie dopisywać tej logiki ponownie bezpośrednio do `cabinet-modal-set-wizard.js`.
 - `room.sets[]` może zapisywać `bodyColor`, `backMaterial`, `openingSystem`, `frontMaterial`, `frontColor`, `frontSource`. Wygenerowane `room.cabinets[]` zestawu mają dostać spójne wartości korpusu, pleców i otwierania z rekordu zestawu.
 - Nie dodano nowego storage ani nowych kluczy localStorage. Raport: `tools/reports/set-materials-unify-v1.md`.
+
+## Fridge/set material cleanup v1 — 2026-05-17
+
+- Lodówka nie może pokazywać jednocześnie nowych pól źródła materiału frontu oraz starych ogólnych pól `cmFrontMaterial` / `cmFrontColor` w głównej siatce materiałów. W UI lodówki ukrywać tylko wrappery `cmFrontMaterialWrap` i `cmFrontColorWrap`; `Korpus`, `Plecy` i `Otwieranie` zostają widoczne.
+- Przy zestawach `getSetBaseDraft(room)` ma bazować na dolnej strefie (`room.preferences.zones.lower`) oraz globalnych domyślnych programu, a nie na ostatniej dowolnej szafce z pokoju. Zestaw konstrukcyjnie ma startować jak dolne/stojące.
+- `cabinet-modal-set-wizard.js` nadal jest duży. Przy następnych pracach przy zestawach unikać dalszego puchnięcia: wydzielać małe moduły pomocnicze, tak jak `cabinet-modal-set-materials.js`.
+- Testy ochronne dodano do `tools/app-dev-smoke.js` dla ukrywania zdublowanych pól lodówki i dla startu zestawu z dolnej strefy.

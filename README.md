@@ -514,3 +514,11 @@ node tools/service-pro100-dev-smoke.js
 - Fronty zestawu dalej mogą korzystać ze źródła materiału: własny / strefa dolna / strefa środkowa / strefa górna.
 - Dodano moduł `js/app/cabinet/cabinet-modal-set-materials.js` jako małą granicę odpowiedzialności dla materiałów zestawu.
 - Raport: `tools/reports/set-materials-unify-v1.md`.
+
+## Fridge/set material cleanup v1 — 2026-05-17
+
+- Poprawiono UI lodówki po Etapie 1C: przy wariancie lodówkowym ogólne pola `Materiał Frontu` i `Kolor Frontu` nie są już pokazywane równolegle z nowymi źródłami materiału frontu.
+- Korpus, plecy i otwieranie lodówki zostają dostępne, bo nie są zastąpione przez źródła frontu.
+- Zestawy startują z materiałów dolnej strefy/stojących: korpus, plecy i otwieranie biorą najpierw preferencje `lower`, potem globalne domyślne programu i awaryjne fallbacki.
+- Nie zmieniono modelu storage, PRO100, ROZRYS, WYCENY ani frontów wieloczęściowych.
+- Raport: `tools/reports/fridge-set-material-cleanup-v1.md`.

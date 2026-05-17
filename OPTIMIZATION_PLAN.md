@@ -752,3 +752,9 @@ node tools/hardware-accessories-dev-smoke.js
 - Nowa logika materiałów zestawu została wydzielona do `js/app/cabinet/cabinet-modal-set-materials.js`, zamiast dalej rozbudowywać `cabinet-modal-set-wizard.js`.
 - `cabinet-modal-set-wizard.js` nadal jest dużym plikiem podwyższonego ryzyka; kolejne prace przy zestawach powinny iść przez małe moduły pomocnicze, np. fronty wieloczęściowe, walidacja zestawu, zapis zestawu.
 - Następny większy etap przy zestawach powinien mieć własne testy kontraktowe przed cięciem generatora frontów.
+
+## Fridge/set material cleanup v1 — 2026-05-17
+
+- Zamiast dodawać kolejne wyjątki w UI lodówki, ukryto stare ogólne pola frontu przez małą funkcję widoczności w `cabinet-modal.js`.
+- Zestawy dostały prostszy, przewidywalny fallback: dolna strefa → globalne domyślne → awaryjne wartości. To zmniejsza zależność od ostatniej przypadkowej szafki w pokoju.
+- Następny większy refaktor powinien dotyczyć wydzielenia części logiki `cabinet-modal-set-wizard.js`, ale dopiero po testach frontów wieloczęściowych/zestawów.

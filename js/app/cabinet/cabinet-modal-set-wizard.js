@@ -217,9 +217,50 @@
     refreshSetLaunchers();
   }
 
+  function text(value){ return String(value == null ? '' : value).trim(); }
+
+  function firstLaminatName(){
+    try{
+      const list = Array.isArray(materials) ? materials : [];
+      const hit = list.find(function(mat){ return mat && String(mat.materialType || '') === 'laminat'; });
+      return text(hit && hit.name);
+    }catch(_){ return ''; }
+  }
+
+  function getLowerZoneMaterialDefaults(room){
+    const baseLaminat = firstLaminatName();
+    const out = {
+      bodyColor: baseLaminat,
+      frontMaterial: 'laminat',
+      frontColor: baseLaminat,
+      backMaterial: 'HDF 3mm biała',
+      openingSystem: 'uchwyt klienta'
+    };
+    try{
+      const defaults = ns.programDefaults && typeof ns.programDefaults.getMaterialDefaults === 'function'
+        ? ns.programDefaults.getMaterialDefaults()
+        : {};
+      if(defaults.bodyColor) out.bodyColor = defaults.bodyColor;
+      if(defaults.frontMaterial) out.frontMaterial = defaults.frontMaterial;
+      if(defaults.frontColor) out.frontColor = defaults.frontColor;
+      if(defaults.backMaterial) out.backMaterial = defaults.backMaterial;
+    }catch(_){ }
+    try{
+      if(ns.roomPreferences && typeof ns.roomPreferences.getRoomPreferences === 'function' && typeof ns.roomPreferences.getZonePreferences === 'function'){
+        const prefs = ns.roomPreferences.getRoomPreferences(room);
+        const lower = ns.roomPreferences.getZonePreferences(prefs, 'lower') || {};
+        if(lower.bodyColor) out.bodyColor = lower.bodyColor;
+        if(lower.frontMaterial) out.frontMaterial = lower.frontMaterial;
+        if(lower.frontColor) out.frontColor = lower.frontColor;
+        if(lower.backMaterial) out.backMaterial = lower.backMaterial;
+        if(lower.openingSystem) out.openingSystem = lower.openingSystem;
+      }
+    }catch(_){ }
+    return out;
+  }
+
   function getSetBaseDraft(room){
-    const base = makeDefaultCabinetDraftForRoom(room) || {};
-    return base && typeof base === 'object' ? base : {};
+    return getLowerZoneMaterialDefaults(room);
   }
 
   function getSetMaterialsApi(){ return (window.FC && window.FC.cabinetModalSetMaterials) || {}; }
