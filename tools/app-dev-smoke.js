@@ -747,6 +747,23 @@ function runCabinetNodeSmoke(sandbox){
         && wizard.includes('function getSetBaseDraft(room)')
         && !/function getSetBaseDraft\(room\)\{\s*const base = makeDefaultCabinetDraftForRoom\(room\)/.test(wizard);
     } },
+    { name:'Etap 2A ma plan i apply preferencji strefowych', explain:'Chroni hurtowe zastosowanie preferencji: najpierw plan zmian/liczniki, potem zatwierdzony apply bez systemowych okien.', check:()=> {
+      const planSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-bulk-plan.js'), 'utf8');
+      const applySrc = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-bulk-apply.js'), 'utf8');
+      const uiSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences-bulk-modal.js'), 'utf8');
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      return !!(FC.roomPreferencesBulkPlan && typeof FC.roomPreferencesBulkPlan.buildPlan === 'function'
+        && FC.roomPreferencesBulkApply && typeof FC.roomPreferencesBulkApply.apply === 'function'
+        && FC.wywiadRoomPreferencesBulk && typeof FC.wywiadRoomPreferencesBulk.open === 'function')
+        && planSrc.includes('function buildPlan(room, selection)')
+        && applySrc.includes('function apply(room, selection)')
+        && uiSrc.includes('Zastosuj preferencje do szafek')
+        && uiSrc.includes('aria-pressed')
+        && !uiSrc.includes("document.createElement('select')")
+        && !uiSrc.includes('confirm(')
+        && html.includes('room-preferences-bulk-plan.js')
+        && html.includes('wywiad-room-preferences-bulk-modal.js');
+    } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;

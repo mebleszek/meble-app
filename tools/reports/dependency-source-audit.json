@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-17T18:50:29.651Z",
+  "generatedAt": "2026-05-17T19:47:06.584Z",
   "summary": {
-    "jsFiles": 350,
-    "indexScripts": 274,
-    "devTestScripts": 307,
+    "jsFiles": 353,
+    "indexScripts": 277,
+    "devTestScripts": 310,
     "fcSymbols": 254,
     "fcSymbolsAll": 282,
     "edges": 1817,
@@ -60,8 +60,8 @@
       "medium": 1
     },
     "INNE": {
-      "files": 5,
-      "lines": 826,
+      "files": 7,
+      "lines": 1249,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 29,
-      "lines": 3619,
+      "files": 30,
+      "lines": 3832,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12086,
+      "lines": 12121,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -163,7 +163,7 @@
     ],
     [
       "js/testing/cabinet/tests.js",
-      971
+      1006
     ],
     [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
@@ -512,7 +512,7 @@
       "score": 10,
       "area": "TESTY",
       "category": "test",
-      "lines": 971,
+      "lines": 1006,
       "incoming": 6,
       "outgoing": 14,
       "secondLevel": 33,
@@ -8586,6 +8586,40 @@
         "kilka zależności wychodzących"
       ]
     },
+    "js/app/room-preferences/room-preferences-bulk-apply.js": {
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 200,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/room-preferences/room-preferences-bulk-plan.js": {
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 223,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/room-preferences/room-preferences-model.js": {
       "area": "INNE",
       "category": "domain/controller",
@@ -14826,10 +14860,10 @@
       "risk": "niskie",
       "reasons": []
     },
-    "js/app/ui/wywiad-room-preferences.js": {
+    "js/app/ui/wywiad-room-preferences-bulk-modal.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 318,
+      "lines": 206,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -14837,7 +14871,24 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 15,
+      "domRefs": 8,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/ui/wywiad-room-preferences.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 325,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 16,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -16808,7 +16859,7 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 971,
+      "lines": 1006,
       "defines": [
         "programDefaults",
         "project",
@@ -16834,6 +16885,8 @@
         "frontHardwareAventosSelector",
         "project",
         "storage",
+        "roomPreferencesBulkPlan",
+        "roomPreferencesBulkApply",
         "cabinetDevTests"
       ],
       "incomingFiles": [

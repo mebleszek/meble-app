@@ -764,3 +764,11 @@ node tools/hardware-accessories-dev-smoke.js
 - Wykonano mały cleanup fundamentu preferencji/frontSource bez zmiany UI.
 - Centralny resolver w `room-preferences-model.js` ogranicza duplikację między nowym draftem szafki, zestawami i specjalnymi frontami.
 - Duże pliki historyczne (`cabinet-modal-set-wizard.js`, `cabinet-fronts.js`) nie były w tej paczce dzielone. Następny split robić tylko pod konkretną ścieżkę: set wizard, generowanie frontów albo hurtową zmianę.
+
+## Bulk apply zone preferences v1 — 2026-05-17
+
+- Hurtowe zastosowanie preferencji wydzielono do modułów plan/apply/UI zamiast rozbudowywać `wywiad-room-preferences.js` albo `app.js`.
+- Granica odpowiedzialności: plan liczy i opisuje skutki, apply wykonuje mutacje, modal tylko steruje wyborem użytkownika i pokazuje liczniki.
+- Ten podział ma zostać utrzymany przy kolejnych etapach, szczególnie przy przyszłej rozbudowie o producentów okuć albo fronty wieloczęściowe.
+- `cabinet-fronts.js` i `cabinet-modal-set-wizard.js` nadal są dużymi plikami historycznymi. Nie ciąć ich szeroko bez osobnego etapu i testów kontraktowych.
+- Następny możliwy etap produktowy: ręczne testy Etapu 2A, potem dopiero rozmowa o okuć/producentach albo frontach wieloczęściowych. Nie mieszać tych tematów w jednej paczce.

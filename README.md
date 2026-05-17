@@ -529,3 +529,17 @@ node tools/service-pro100-dev-smoke.js
 - Nowe szafki, zestawy i fronty specjalne korzystają ze wspólnej kolejności: strefa pokoju → globalne domyślne z trybiku → fallback programu.
 - Dodano nowe testy zabezpieczające tę ścieżkę.
 - Paczka: `site_000_preferences_front_source_cleanup_v1.zip`.
+
+## 2026-05-17 — bulk_apply_zone_preferences_v1
+
+- Aktualna paczka po tym etapie: `site_000_bulk_apply_zone_preferences_v1.zip`.
+- Baza startowa: `site_000_preferences_front_source_cleanup_v1.zip`.
+- Dodano Etap 2A: kontrolowane zastosowanie preferencji strefowych do istniejących szafek w WYWIADZIE.
+- W akordeonie `Preferencje standardu` pojawiła się akcja `Zastosuj do istniejących szafek`, która otwiera modal aplikacyjny z wyborem stref i pól do zmiany.
+- Zakres stref: dolna/stojące, środkowa/moduły, górna/wiszące. Zakres pól: korpus, fronty, plecy, otwieranie.
+- Zmiany są planowane przed zapisem: program pokazuje liczniki dla szafek, frontów zwykłych, frontów specjalnych oraz zestawów. Dopiero zatwierdzenie wykonuje apply.
+- Fronty lodówek i zestawów są aktualizowane według `frontMaterialSource` / `frontSource`: źródła `lower`, `middle`, `upper` reagują na wybraną strefę, a `custom` zostaje nietknięte.
+- Dodano moduły `room-preferences-bulk-plan.js`, `room-preferences-bulk-apply.js` oraz `wywiad-room-preferences-bulk-modal.js`.
+- Dodano testy dla planowania/apply oraz ochronę przed natywnymi pickerami/selectami w nowym modalu.
+- Etap nie rusza okuć, producentów okuć, WYCENY, PRO100, ROZRYS ani frontów wieloczęściowych.
+- Raport: `tools/reports/bulk-apply-zone-preferences-v1.md`.

@@ -703,3 +703,12 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Uporządkowano logikę odczytu preferencji materiałowych przez centralny resolver domenowy. Dane nadal siedzą w projekcie (`room.preferences`) i globalnym kluczu `fc_program_defaults_v1`.
 - Kolejność fallbacku cloud-ready pozostaje jawna: preferencje strefy w projekcie → globalne ustawienia programu → fallback runtime.
 - Zmiana ułatwia przyszłą synchronizację/chmurę, bo nowe szafki, zestawy i źródła frontów używają jednego kontraktu, a nie kilku rozproszonych ścieżek.
+
+## Bulk apply zone preferences v1 — dane projektu — 2026-05-17
+
+- Etap nie dodaje nowego storage ani nowego klucza `localStorage`.
+- Bulk apply modyfikuje istniejący dokument projektu: `room.cabinets[]`, `room.fronts[]` oraz `room.sets[]`.
+- Plan zmian jest stanem UI/runtime i nie wymaga synchronizacji chmurowej jako osobny dokument.
+- Źródłem reguł pozostają `room.preferences.zones`, globalne `fc_program_defaults_v1` oraz metadane frontów specjalnych `frontMaterialSource` / `frontSource`.
+- Przy przyszłej chmurze operacja bulk powinna być transakcją na projekcie albo zapisem całego projektu po zatwierdzeniu użytkownika. Nie wykonywać częściowego zapisu bez potwierdzenia.
+- `custom` na froncie specjalnym jest ręcznym wyjątkiem użytkownika i nie powinien być nadpisywany przez masowe zastosowanie stref.

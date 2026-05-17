@@ -909,6 +909,41 @@
         });
       }),
 
+      H.makeTest('Szafki', 'Bulk apply preferencji planuje i stosuje strefę dolną bez ruszania własnego frontu lodówki', 'Pilnuje Etapu 2A: istniejąca stojąca i dolny front lodówki mogą dostać dolną strefę, a własny górny front lodówki zostaje nietknięty.', ()=>{
+        H.assert(FC.roomPreferencesBulkPlan && typeof FC.roomPreferencesBulkPlan.buildPlan === 'function', 'Brak bulk planera preferencji');
+        H.assert(FC.roomPreferencesBulkApply && typeof FC.roomPreferencesBulkApply.apply === 'function', 'Brak bulk apply preferencji');
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Korpus dolny', frontMaterial:'laminat', frontColor:'Front dolny', backMaterial:'Plecy dolne', openingSystem:'TIP-ON' }, middle:{ frontMaterial:'laminat', frontColor:'Front moduł' }, upper:{ frontMaterial:'laminat', frontColor:'Front górny' } } }, cabinets:[
+            { id:'cab_lower', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, bodyColor:'Stary korpus', frontMaterial:'laminat', frontColor:'Stary front', backMaterial:'Stare plecy', openingSystem:'uchwyt klienta', frontCount:1, details:{} },
+            { id:'cab_fridge', type:'stojąca', subType:'lodowkowa', width:60, height:200, depth:57, bodyColor:'Stary korpus', frontMaterial:'laminat', frontColor:'Własny stary', backMaterial:'Stare plecy', openingSystem:'uchwyt klienta', frontCount:2, details:{ fridgeOption:'zabudowa', fridgeFrontCount:'2', fridgeFrontSourceLower:'lower', fridgeFrontSourceUpper:'custom', fridgeFrontCustomMaterialUpper:'laminat', fridgeFrontCustomColorUpper:'Własny górny' } }
+          ], fronts:[
+            { id:'f1', cabId:'cab_lower', material:'laminat', color:'Stary front', width:60, height:72, note:'1 front' },
+            { id:'f2', cabId:'cab_fridge', material:'laminat', color:'Stary dolny', width:60, height:72, note:'Lodówkowa dolny', frontMaterialSource:{ source:'lower', part:'lower' } },
+            { id:'f3', cabId:'cab_fridge', material:'laminat', color:'Własny górny', width:60, height:118, note:'Lodówkowa górny', frontMaterialSource:{ source:'custom', part:'upper' } }
+          ], sets:[] } }
+        }, ()=>{
+          const prevProject = FC.project;
+          try{
+            FC.project = Object.assign({}, FC.project || {}, { save:(pd)=> pd });
+            const selection = { zones:{ lower:true, middle:false, upper:false }, fields:{ body:true, front:true, back:true, opening:true } };
+            const plan = FC.roomPreferencesBulkPlan.buildPlan('kuchnia', selection);
+            H.assert(plan.ready && plan.hasChanges && plan.total >= 5, 'Plan bulk apply nie wykrył zmian dolnej strefy', plan);
+            const result = FC.roomPreferencesBulkApply.apply('kuchnia', selection);
+            const room = host.projectData.kuchnia;
+            const lower = room.cabinets.find((cab)=>cab.id === 'cab_lower');
+            const fridge = room.cabinets.find((cab)=>cab.id === 'cab_fridge');
+            const fridgeFronts = room.fronts.filter((front)=>front.cabId === 'cab_fridge');
+            H.assert(result.ok, 'Bulk apply nie zwrócił sukcesu', result);
+            H.assert(lower.bodyColor === 'Korpus dolny' && lower.frontColor === 'Front dolny' && lower.backMaterial === 'Plecy dolne' && lower.openingSystem === 'TIP-ON', 'Stojąca nie dostała pełnych danych dolnej strefy', lower);
+            H.assert(fridge.bodyColor === 'Korpus dolny' && fridge.backMaterial === 'Plecy dolne' && fridge.openingSystem === 'TIP-ON', 'Lodówka nie dostała korpusu/pleców/otwierania z dolnej strefy', fridge);
+            H.assert(fridgeFronts.some((front)=>/dolny/.test(front.note || '') && front.color === 'Front dolny'), 'Dolny front lodówki nie dostał koloru dolnej strefy', fridgeFronts);
+            H.assert(fridgeFronts.some((front)=>/górny/.test(front.note || '') && front.color === 'Własny górny'), 'Własny górny front lodówki został niepotrzebnie nadpisany', fridgeFronts);
+          } finally {
+            FC.project = prevProject;
+          }
+        });
+      }),
+
       H.makeTest('Szafki', 'Dynamiczne selecty lodówki renderują launchery bez usuwania selectów źródłowych', 'Pilnuje kolejny krok Wywiadu: dynamiczne selecty lodówki w dodatkowych polach też mają aplikacyjne launchery, a natywne selecty dalej zostają źródłem prawdy.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.renderCabinetExtraDetailsInto === 'function', 'Brak FC.cabinetModal.renderCabinetExtraDetailsInto');
         if(typeof document === 'undefined' || !document || !document.body) return;

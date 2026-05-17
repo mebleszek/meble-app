@@ -207,13 +207,20 @@
     const zoneKeys = Array.isArray(api.ZONE_KEYS) ? api.ZONE_KEYS : ['lower','middle','upper'];
     zoneKeys.forEach((zoneKey)=> form.appendChild(buildZoneCard(zoneKey, draft, refreshers, refreshAll)));
 
-    const footer = h('div', { class:'wywiad-room-inline-form__footer' });
+    const footer = h('div', { class:'wywiad-room-inline-form__footer wywiad-room-inline-form__footer--split' });
+    const bulkBtn = h('button', { type:'button', class:'btn wywiad-room-inline-form__bulk', text:'Zastosuj do istniejących szafek' });
+    bulkBtn.addEventListener('click', ()=>{
+      try{
+        if(ns.wywiadRoomPreferencesBulk && typeof ns.wywiadRoomPreferencesBulk.open === 'function') ns.wywiadRoomPreferencesBulk.open(room);
+      }catch(_){ }
+    });
     const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz preferencje' });
     saveBtn.addEventListener('click', ()=>{
       const nextApi = getApi();
       if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, draft);
       renderSummary(room);
     });
+    footer.appendChild(bulkBtn);
     footer.appendChild(saveBtn);
     form.appendChild(footer);
     refreshAll();

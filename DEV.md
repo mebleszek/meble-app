@@ -1035,3 +1035,24 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Dodano nowe testy w `js/testing/cabinet/tests.js` oraz szybkie kontrakty w `tools/app-dev-smoke.js`.
 - Nie ruszano PRO100, WYCENY, ROZRYS, hurtowej zmiany ani frontów wieloczęściowych.
 - Raport: `tools/reports/preferences-front-source-cleanup-v1.md`.
+
+## Bulk apply zone preferences v1 — 2026-05-17
+
+- Aktualna paczka po tym etapie: `site_000_bulk_apply_zone_preferences_v1.zip`.
+- Baza startowa: `site_000_preferences_front_source_cleanup_v1.zip`.
+- Etap 2A dodaje bezpieczną ścieżkę: plan zmian → podgląd/liczniki → apply preferencji strefowych do istniejących szafek.
+- Nowe moduły domenowe:
+  - `js/app/room-preferences/room-preferences-bulk-plan.js` — buduje plan i liczniki bez mutowania danych.
+  - `js/app/room-preferences/room-preferences-bulk-apply.js` — stosuje zatwierdzony wybór do szafek, frontów i zestawów.
+  - `js/app/ui/wywiad-room-preferences-bulk-modal.js` — modal aplikacyjny w stylu programu; bez natywnych selectów/pickerów.
+- `wywiad-room-preferences.js` ma jedynie wejście do modala bulk; ciężka logika nie jest dopisana do UI preferencji.
+- Zasady apply:
+  - `lower` obejmuje szafki stojące i materiały bazowe zestawu.
+  - `middle` obejmuje moduły.
+  - `upper` obejmuje szafki wiszące.
+  - fronty specjalne lodówek i zestawów reagują na `frontMaterialSource` / `frontSource`; `custom` nie jest zmieniany.
+- Zestawy dla korpusu, pleców i otwierania są traktowane jak dolna strefa, zgodnie z decyzją produktową.
+- Nie dodano nowego storage ani nowych kluczy `localStorage`; zmiany zapisują się w istniejącym projekcie.
+- Dodano testy w `tools/app-dev-smoke.js` oraz `js/testing/cabinet/tests.js` dla planowania/apply, lodówki z frontem własnym i braku natywnych pickerów w nowym UI.
+- Ten etap nie obejmuje okuć, producentów okuć, WYCENY, PRO100, ROZRYS ani frontów wieloczęściowych.
+- Raport: `tools/reports/bulk-apply-zone-preferences-v1.md`.
