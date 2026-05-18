@@ -415,6 +415,38 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(previousManufacturers);
       }
     } },
+    { name:'Katalog okuć przenosi system i parametry szuflad z Excela', explain:'Chroni nowy model pod listy zakupowe: system_okucia, długość, nośność i wzmocnienie muszą przejść przez parser i plan importu.', check:()=> {
+      const api = FC.hardwareCatalogImportExport, store = FC.catalogStore;
+      if(!(api && store && typeof api.parseWorkbook === 'function' && typeof api.buildImportPlan === 'function')) return false;
+      const previousAccessories = store.getAccessories ? store.getAccessories() : [];
+      const previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
+      const previousManufacturers = store.getHardwareManufacturers ? store.getHardwareManufacturers() : [];
+      try{
+        store.savePriceList('accessories', []);
+        if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(['Blum']);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultDiscountPercent:0, active:true }]);
+        const parsed = api.parseWorkbook({ Okucia:[
+          ['nazwa','jednostka','producent','kategoria','system_okucia','typ_cecha','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
+          ['Tandembox M 500','kpl.','Blum','Szuflady / prowadnice','Blum TANDEMBOX','M 500 50kg','TB-500','M',500,50,'TAK','biały','frontowa']
+        ], Producenci:[['nazwa'], ['Blum']], Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']] });
+        const plan = api.buildImportPlan(parsed, { mode:'merge' });
+        const item = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'TB-500');
+        return plan.errors.length === 0 && item && String(item.hardwareSystem || '') === 'Blum TANDEMBOX' && String(item.hardwareType || '') === 'M 500 50kg' && Number(item.drawerLengthMm) === 500 && Number(item.drawerLoadKg) === 50 && item.drawerReinforced === true;
+      }finally{
+        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
+        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
+        if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(previousManufacturers);
+      }
+    } },
+    { name:'Ceny dostawców zachowują prosty początek arkusza i opcjonalne dane techniczne', explain:'Chroni wygodne wklejanie cen: dostawca i cena zostają z przodu, a dane techniczne są dodatkiem pod nowe pozycje.', check:()=> {
+      const xlsx = FC.hardwareSupplierPriceXlsx;
+      if(!(xlsx && Array.isArray(xlsx.SUPPLIER_PRICE_COLUMNS))) return false;
+      const headers = xlsx.SUPPLIER_PRICE_COLUMNS.map((pair)=> pair[0]);
+      return headers.slice(0, 6).join('|') === 'okucie_nazwa|okucie_symbol|producent|kategoria|jednostka|dostawca'
+        && headers.includes('system_okucia') && headers.includes('dlugosc_mm') && headers.includes('nosnosc_kg')
+        && headers[headers.length - 2] === 'okucie_id' && headers[headers.length - 1] === 'dostawca_id';
+    } },
+
     { name:'Resolver nowego okucia z arkusza cen wymaga dostawcy kategorii i jednostki', explain:'Chroni import XLSX: wiersz z nazwą, symbolem, producentem i ceną, ale bez dostawcy/kategorii/jednostki ma trafić do uzupełnienia, a nie zostać po cichu pominięty.', check:()=> {
       const api = FC.hardwareCatalogImportExport, xlsx = FC.hardwareSupplierPriceXlsx, store = FC.catalogStore;
       if(!(api && xlsx && store && typeof store.savePriceList === 'function')) return false;

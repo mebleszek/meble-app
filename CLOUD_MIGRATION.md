@@ -712,3 +712,10 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Źródłem reguł pozostają `room.preferences.zones`, globalne `fc_program_defaults_v1` oraz metadane frontów specjalnych `frontMaterialSource` / `frontSource`.
 - Przy przyszłej chmurze operacja bulk powinna być transakcją na projekcie albo zapisem całego projektu po zatwierdzeniu użytkownika. Nie wykonywać częściowego zapisu bez potwierdzenia.
 - `custom` na froncie specjalnym jest ręcznym wyjątkiem użytkownika i nie powinien być nadpisywany przez masowe zastosowanie stref.
+
+## Hardware technical data + Excel v1 — 2026-05-18
+
+- Nie dodano nowego storage ani nowych kluczy `localStorage`; techniczne dane okuć są częścią istniejących rekordów katalogu okuć przechowywanych przez `catalogStore`.
+- Nowe pola (`hardwareSystem`, `drawerProfile`, `drawerLengthMm`, `drawerLoadKg`, `drawerReinforced`, `hardwareColor`, `hardwareUsage`, `technicalNote`) są mapowalne bezpośrednio na przyszłe pola dokumentu okucia w chmurze.
+- Import/export XLSX/JSON przenosi nowe pola jako część rekordu okucia. Arkusz `Ceny_dostawcow` może używać tych pól przy tworzeniu nowego okucia, ale szybka aktualizacja ceny istniejącej pozycji nie nadpisuje danych technicznych.
+- `series` pozostaje legacy aliasem dla `hardwareSystem`; przy migracji chmurowej docelowym polem jest `hardwareSystem`.

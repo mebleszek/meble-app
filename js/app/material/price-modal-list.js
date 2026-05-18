@@ -10,7 +10,7 @@
     if(kind === 'accessories') {
       const hw = window.FC && window.FC.hardwareCatalog || {};
       const status = hw && typeof hw.statusLabel === 'function' ? hw.statusLabel(item && item.status) : (item.status || 'Aktywne');
-      return [item.manufacturer || '—', item.hardwareCategory || 'Inne', item.hardwareUnit || 'szt.', item.series || '', item.symbol ? 'SYM: ' + item.symbol : '', item.bundleItems && item.bundleItems.length ? ('składników: ' + item.bundleItems.length) : '', item.priceSource ? 'Dostawca: ' + item.priceSource : '', item.purchasePriceGross ? 'zakup: ' + Number(item.purchasePriceGross).toFixed(2) + ' PLN' : '', item.priceUpdatedAt ? 'Cena: ' + item.priceUpdatedAt : '', status].filter(Boolean).join(' • ');
+      return [item.manufacturer || '—', item.hardwareCategory || 'Inne', item.hardwareUnit || 'szt.', item.hardwareSystem || item.series || '', item.symbol ? 'SYM: ' + item.symbol : '', item.bundleItems && item.bundleItems.length ? ('składników: ' + item.bundleItems.length) : '', item.priceSource ? 'Dostawca: ' + item.priceSource : '', item.purchasePriceGross ? 'zakup: ' + Number(item.purchasePriceGross).toFixed(2) + ' PLN' : '', item.priceUpdatedAt ? 'Cena: ' + item.priceUpdatedAt : '', status].filter(Boolean).join(' • ');
     }
     if(kind === 'quoteRates' && window.FC && window.FC.laborCatalog && typeof window.FC.laborCatalog.describeDefinition === 'function'){
       return (item.category || '—') + ' • ' + window.FC.laborCatalog.describeDefinition(item || {});

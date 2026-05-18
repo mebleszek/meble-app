@@ -5,11 +5,12 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const SUPPLIER_PRICE_COLUMNS = (FC.hardwareSupplierPriceExport && FC.hardwareSupplierPriceExport.SUPPLIER_PRICE_COLUMNS) || [
-    ['okucie_nazwa','itemName'], ['okucie_symbol','itemSymbol'], ['producent','itemManufacturer'], ['kategoria','itemCategory'], ['jednostka','itemUnit'], ['dostawca','supplierName'], ['cena_netto','catalogPriceNet'], ['cena_brutto','catalogPriceGross'], ['do_wyceny','useForQuote'], ['status_ceny','priceStatus'], ['data_ceny','priceDate'], ['okucie_id','itemId'], ['dostawca_id','supplierId']
+    ['okucie_nazwa','itemName'], ['okucie_symbol','itemSymbol'], ['producent','itemManufacturer'], ['kategoria','itemCategory'], ['jednostka','itemUnit'], ['dostawca','supplierName'], ['cena_netto','catalogPriceNet'], ['cena_brutto','catalogPriceGross'], ['do_wyceny','useForQuote'], ['status_ceny','priceStatus'], ['data_ceny','priceDate'], ['system_okucia','itemSystem'], ['typ_cecha','itemType'], ['profil_szuflady','drawerProfile'], ['dlugosc_mm','drawerLengthMm'], ['nosnosc_kg','drawerLoadKg'], ['wzmocniona','drawerReinforced'], ['kolor_okucia','hardwareColor'], ['zastosowanie','hardwareUsage'], ['okucie_id','itemId'], ['dostawca_id','supplierId']
   ];
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
+  function optionalNumber(value){ return text(value) === '' ? '' : number(value); }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
   function todayLocal(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
   function isSpreadsheetError(value){ const raw = text(value).toUpperCase(); return /^#(REF|VALUE|DIV\/0|NAME\?|N\/A|NUM|NULL)!?$/.test(raw); }
@@ -44,7 +45,15 @@
       itemSymbol:text(valueFrom(row, ['okucie_symbol','itemSymbol','symbol'])),
       itemManufacturer:text(valueFrom(row, ['producent','manufacturer','itemManufacturer','okucie_producent'])),
       itemCategory:text(valueFrom(row, ['kategoria','hardwareCategory','itemCategory','okucie_kategoria'])),
+      itemSystem:text(valueFrom(row, ['system_okucia','hardwareSystem','itemSystem','seria','series'])),
+      itemType:text(valueFrom(row, ['typ_cecha','hardwareType','itemType','typ'])),
       itemUnit:text(valueFrom(row, ['jednostka','hardwareUnit','itemUnit','okucie_jednostka'])),
+      drawerProfile:text(valueFrom(row, ['profil_szuflady','drawerProfile'])),
+      drawerLengthMm:optionalNumber(valueFrom(row, ['dlugosc_mm','drawerLengthMm','dlugosc_szuflady_mm'])),
+      drawerLoadKg:optionalNumber(valueFrom(row, ['nosnosc_kg','drawerLoadKg'])),
+      drawerReinforced:text(valueFrom(row, ['wzmocniona','drawerReinforced'])) ? bool(valueFrom(row, ['wzmocniona','drawerReinforced'])) : false,
+      hardwareColor:text(valueFrom(row, ['kolor_okucia','hardwareColor'])),
+      hardwareUsage:text(valueFrom(row, ['zastosowanie','hardwareUsage'])),
       supplierId:text(valueFrom(row, ['dostawca_id','supplierId'])),
       supplierName:text(valueFrom(row, ['dostawca','supplierName','nazwa_dostawcy'])),
       catalogPriceNet:hasNumericInput(rawNet) ? number(rawNet) : 0,
@@ -58,7 +67,7 @@
     };
   }
   function hasSupplierPriceData(row){
-    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','producent','manufacturer','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
+    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','producent','manufacturer','system_okucia','typ_cecha','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
   }
   function logicalAccessoryKey(item){ return text(item && item.id) || [safePart(item && item.manufacturer), safePart(item && item.symbol), safePart(item && item.name)].join('|'); }
   function uniqueLogicalMatches(matches){
@@ -141,7 +150,13 @@
   }
   function generatedAccessoryId(row){ return `hw_price_${safePart(row.itemManufacturer)}_${safePart(row.itemSymbol || row.itemName)}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`; }
   function createAccessoryFromPriceRow(row, manufacturerName, settings, suppliers){
-    const raw = { id:generatedAccessoryId(row), status:'active', manufacturer:manufacturerName, symbol:text(row.itemSymbol), name:text(row.itemName), hardwareCategory:text(row.itemCategory), hardwareUnit:text(row.itemUnit), hardwareType:'', bundleCostMode:'ownPrice' };
+    const raw = {
+      id:generatedAccessoryId(row), status:'active', manufacturer:manufacturerName,
+      symbol:text(row.itemSymbol), name:text(row.itemName), hardwareCategory:text(row.itemCategory), hardwareUnit:text(row.itemUnit),
+      hardwareSystem:text(row.itemSystem), series:text(row.itemSystem), hardwareType:text(row.itemType),
+      drawerProfile:text(row.drawerProfile), drawerLengthMm:row.drawerLengthMm, drawerLoadKg:row.drawerLoadKg, drawerReinforced:!!row.drawerReinforced,
+      hardwareColor:text(row.hardwareColor), hardwareUsage:text(row.hardwareUsage), bundleCostMode:'ownPrice'
+    };
     const normalize = FC.hardwareCatalog && FC.hardwareCatalog.normalizeAccessory;
     if(typeof normalize === 'function') return normalize(raw, null, Object.assign({}, settings || {}, { hardwareSuppliers:suppliers || [] }));
     return raw;

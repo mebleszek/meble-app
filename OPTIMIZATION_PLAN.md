@@ -772,3 +772,9 @@ node tools/hardware-accessories-dev-smoke.js
 - Ten podział ma zostać utrzymany przy kolejnych etapach, szczególnie przy przyszłej rozbudowie o producentów okuć albo fronty wieloczęściowe.
 - `cabinet-fronts.js` i `cabinet-modal-set-wizard.js` nadal są dużymi plikami historycznymi. Nie ciąć ich szeroko bez osobnego etapu i testów kontraktowych.
 - Następny możliwy etap produktowy: ręczne testy Etapu 2A, potem dopiero rozmowa o okuć/producentach albo frontach wieloczęściowych. Nie mieszać tych tematów w jednej paczce.
+
+## Hardware technical data + Excel v1 — 2026-05-18
+
+- Obszar katalogu okuć dostał nową warstwę danych technicznych bez osobnego storage.
+- `hardware-catalog.js` pozostaje średnim ryzykiem i przekracza próg ostrożności, ale zmiana była domenowa i lokalna; przy następnym większym etapie okuć rozważyć wydzielenie technicznej normalizacji do osobnego modułu zamiast dalszego rozbudowywania `hardware-catalog.js`.
+- Import/export zachowuje split: parser, plan, eksport katalogu i import/eksport cen dostawców pozostają osobnymi modułami.

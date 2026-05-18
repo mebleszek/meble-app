@@ -1068,3 +1068,13 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Zmiana nie dodaje storage, nie zmienia modelu danych i nie rusza PRO100, ROZRYS, WYCENY ani hurtowego apply.
 - Raport: `tools/reports/dev-tests-errors-fix-v1.md`.
 
+## Hardware technical data + Excel v1 — 2026-05-18
+
+- Aktualna paczka robocza po tym etapie: `site_000_hardware_technical_data_excel_v1.zip`.
+- Baza startowa: `site_000_dev_tests_errors_fix_v1.zip`.
+- Dodano pola techniczne pozycji okucia: `hardwareSystem`, `drawerProfile`, `drawerLengthMm`, `drawerLoadKg`, `drawerReinforced`, `hardwareColor`, `hardwareUsage`, `technicalNote`.
+- `series` zostaje legacy aliasem dla `hardwareSystem`; w UI i Excelu używać nazwy `System okucia` / `system_okucia`, żeby nie dublować pojęć `rodzina_systemu` i `system_seria`.
+- Arkusz `Okucia` jest pełnym miejscem uzupełniania technicznych cech. Arkusz `Ceny_dostawcow` zachowuje szybkie kolumny cen z przodu, a techniczne kolumny ma jako opcjonalne dane dla nowych pozycji.
+- W formularzu okucia dane techniczne są schowane pod aplikacyjnym akordeonem `Dane techniczne`; nie dodawać natywnych selectów/pickerów.
+- Następny etap okuć nie powinien zaczynać od WYCENY. Najpierw można dodać dobór szuflad/prowadnic po głębokości i opcji `wzmocniona`, a dopiero później silnik zamiany systemów.
+- Raport: `tools/reports/hardware-technical-data-excel-v1.md`.

@@ -65,6 +65,8 @@
   }
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
+  function optionalNumber(value){ return text(value) === '' ? '' : number(value); }
+  function bool(value){ const raw = text(value).toLowerCase(); return ['tak','true','1','yes','y'].includes(raw); }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
   function safePart(value){ return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || ''; }
   function uidFromName(name){
@@ -82,6 +84,35 @@
       out.push(raw);
     });
     return out;
+  }
+
+  function firstText(){
+    for(let i = 0; i < arguments.length; i += 1){
+      const raw = text(arguments[i]);
+      if(raw) return raw;
+    }
+    return '';
+  }
+  function normalizeTechnicalData(src){
+    const row = src && typeof src === 'object' ? src : {};
+    const hardwareSystem = firstText(row.hardwareSystem, row.systemOkucia, row.system_okucia, row.system, row.series);
+    const drawerProfile = firstText(row.drawerProfile, row.profilSzuflady, row.profil_szuflady, row.drawerHeight, row.wysokosc_szuflady);
+    const drawerLengthMm = optionalNumber(firstText(row.drawerLengthMm, row.dlugoscSzufladyMm, row.dlugosc_mm, row.lengthMm, row.drawerLength));
+    const drawerLoadKg = optionalNumber(firstText(row.drawerLoadKg, row.nosnoscKg, row.nosnosc_kg, row.loadKg));
+    const reinforcedRaw = firstText(row.drawerReinforced, row.wzmocniona, row.reinforced);
+    const hardwareColor = firstText(row.hardwareColor, row.kolorOkucia, row.kolor_okucia);
+    const hardwareUsage = firstText(row.hardwareUsage, row.zastosowanie, row.usage);
+    const technicalNote = firstText(row.technicalNote, row.uwagiTechniczne, row.uwagi_techniczne);
+    return {
+      hardwareSystem,
+      drawerProfile,
+      drawerLengthMm,
+      drawerLoadKg,
+      drawerReinforced:reinforcedRaw ? bool(reinforcedRaw) : false,
+      hardwareColor,
+      hardwareUsage,
+      technicalNote,
+    };
   }
   function normalizeManufacturerList(list){ return uniqueText((Array.isArray(list) ? list : []).concat(DEFAULT_MANUFACTURERS)); }
   function normalizeCategoryList(list){ return uniqueText((Array.isArray(list) ? list : []).concat(DEFAULT_CATEGORIES)); }
@@ -128,9 +159,11 @@
     return opts;
   }
   function uniqueTypeConflict(list, candidate, currentId){
-    const c = candidate || {}; const key = [text(c.manufacturer).toLowerCase(), text(c.hardwareCategory).toLowerCase(), text(c.hardwareType).toLowerCase()].join('|');
+    const c = candidate || {};
+    const sys = (row)=> text((row && row.hardwareSystem) || (row && row.series)).toLowerCase();
+    const key = [text(c.manufacturer).toLowerCase(), text(c.hardwareCategory).toLowerCase(), sys(c), text(c.hardwareType).toLowerCase()].join('|');
     if(!text(c.manufacturer) || !text(c.hardwareCategory) || !text(c.hardwareType)) return null;
-    return (Array.isArray(list) ? list : []).find((row)=> text(row && row.id) !== text(currentId) && [text(row && row.manufacturer).toLowerCase(), text(row && row.hardwareCategory).toLowerCase(), text(row && row.hardwareType).toLowerCase()].join('|') === key) || null;
+    return (Array.isArray(list) ? list : []).find((row)=> text(row && row.id) !== text(currentId) && [text(row && row.manufacturer).toLowerCase(), text(row && row.hardwareCategory).toLowerCase(), sys(row), text(row && row.hardwareType).toLowerCase()].join('|') === key) || null;
   }
   function normalizeStatus(value){
     const raw = text(value) || 'active';
@@ -382,7 +415,15 @@
       hardwareCategory:normalizeCategory(src.hardwareCategory || src.category || ''),
       hardwareType:text(src.hardwareType || src.typeFeature || src.typ_cecha || src.typ || ''),
       hardwareUnit:normalizeUnit(src.hardwareUnit || src.unit || 'szt.'),
-      series:text(src.series),
+      hardwareSystem:normalizeTechnicalData(src).hardwareSystem,
+      series:normalizeTechnicalData(src).hardwareSystem || text(src.series),
+      drawerProfile:normalizeTechnicalData(src).drawerProfile,
+      drawerLengthMm:normalizeTechnicalData(src).drawerLengthMm,
+      drawerLoadKg:normalizeTechnicalData(src).drawerLoadKg,
+      drawerReinforced:normalizeTechnicalData(src).drawerReinforced,
+      hardwareColor:normalizeTechnicalData(src).hardwareColor,
+      hardwareUsage:normalizeTechnicalData(src).hardwareUsage,
+      technicalNote:normalizeTechnicalData(src).technicalNote,
       supplierId,
       priceSource:text(text(quoteSupplierPrice.supplierId) ? ((supplier && supplier.name) || quoteSupplierPrice.supplierName || src.priceSource || supplierId) : (src.priceSource || src.supplierName || (supplier && supplier.name) || supplierId)),
       supplierPrices,
@@ -448,6 +489,7 @@
     QUOTE_BASES,
     PRICING_MODES,
     BUNDLE_COST_MODES,
+    normalizeTechnicalData,
     normalizeManufacturerList,
     normalizeCategoryList,
     normalizeTypeDefinition,

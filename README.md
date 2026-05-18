@@ -548,3 +548,9 @@ node tools/service-pro100-dev-smoke.js
 - Dodano testy dla planowania/apply oraz ochronę przed natywnymi pickerami/selectami w nowym modalu.
 - Etap nie rusza okuć, producentów okuć, WYCENY, PRO100, ROZRYS ani frontów wieloczęściowych.
 - Raport: `tools/reports/bulk-apply-zone-preferences-v1.md`.
+
+## Hardware technical data + Excel v1
+
+- Katalog okuć obsługuje teraz `System okucia` oraz techniczne dane szuflad/prowadnic: profil, długość, nośność, wzmocnienie, kolor i zastosowanie.
+- Pełne dane techniczne uzupełnia się masowo w arkuszu `Okucia`; arkusz `Ceny_dostawcow` nadal nadaje się do szybkiej aktualizacji cen, a techniczne kolumny są opcjonalne.
+- Szczegóły: `tools/reports/hardware-technical-data-excel-v1.md`.

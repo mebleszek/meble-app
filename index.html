@@ -27,7 +27,7 @@
 <link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
-<link href="css/price-item-popup.css?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260518_hardware_technical_data_v1" rel="stylesheet"/>
 <link href="css/quote-labor-picker.css?v=20260504_gabaryt_compact_v1" rel="stylesheet"/>
 </head>
 <body>
@@ -250,8 +250,8 @@
 <input class="investor-form-input" id="formSymbol" type="text"/>
 </div>
 <div id="hardwareSeriesTopWrap" style="display:none">
-<label>System / seria</label>
-<input class="investor-form-input" id="hardwareSeries" type="text"/>
+<label>System okucia</label>
+<input class="investor-form-input" id="hardwareSeries" placeholder="np. Blum TANDEMBOX" type="text"/>
 </div>
 </div>
 <div style="margin-top:10px">
@@ -283,6 +283,43 @@
 <label>Typ / cecha</label>
 <select hidden="" id="hardwareType"></select>
 <div id="hardwareTypeLaunch"></div>
+</div>
+</div>
+<div class="hardware-tech-accordion" id="hardwareTechnicalAccordion">
+<button aria-expanded="false" class="hardware-tech-accordion__head" id="hardwareTechnicalToggle" type="button">
+<span>Dane techniczne</span><span class="hardware-tech-accordion__chevron" aria-hidden="true"></span>
+</button>
+<div class="hardware-tech-accordion__body" hidden="" id="hardwareTechnicalBody">
+<div class="grid-3">
+<div>
+<label>Profil / wysokość szuflady</label>
+<input class="investor-form-input" id="hardwareDrawerProfile" placeholder="np. M, N, H120" type="text"/>
+</div>
+<div>
+<label>Długość mm</label>
+<input class="investor-form-input" id="hardwareDrawerLengthMm" min="0" step="1" type="number"/>
+</div>
+<div>
+<label>Nośność kg</label>
+<input class="investor-form-input" id="hardwareDrawerLoadKg" min="0" step="1" type="number"/>
+</div>
+<div>
+<label>Kolor okucia</label>
+<input class="investor-form-input" id="hardwareColor" placeholder="np. biały, szary, antracyt" type="text"/>
+</div>
+<div>
+<label>Zastosowanie</label>
+<input class="investor-form-input" id="hardwareUsage" placeholder="np. frontowa, wewnętrzna, zlewowa" type="text"/>
+</div>
+<label class="rozrys-scope-chip price-labor-toggle hardware-tech-toggle">
+<input id="hardwareDrawerReinforced" type="checkbox"/>
+<span>Wzmocniona</span>
+</label>
+</div>
+<div style="margin-top:10px">
+<label>Uwagi techniczne</label>
+<input class="investor-form-input" id="hardwareTechnicalNote" placeholder="np. wymaga dopasowania prowadnika / wariant specjalny" type="text"/>
+</div>
 </div>
 </div>
 <div style="display:none">
@@ -932,15 +969,15 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260514_hardware_import_export_refactor_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260507_hardware_catalog_seed_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-export.js?v=20260514_hardware_import_export_refactor_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-import.js?v=20260514_hardware_import_export_refactor_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-export.js?v=20260518_hardware_technical_data_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-import.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260514_hardware_import_export_refactor_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-export-xlsx.js?v=20260514_hardware_import_export_refactor_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-parser.js?v=20260514_hardware_import_export_refactor_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-plan.js?v=20260514_hardware_import_export_refactor_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-export-xlsx.js?v=20260518_hardware_technical_data_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-parser.js?v=20260518_hardware_technical_data_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-plan.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260514_hardware_import_export_refactor_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260511_hardware_supplier_status_types_v1"></script>
@@ -992,13 +1029,13 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-resolver.js?v=20260512_hardware_supplier_missing_resolver_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-price-confirm.js?v=20260513_hardware_price_change_confirm_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-export.js?v=20260513_hardware_price_change_confirm_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-bundle.js?v=20260509_hardware_bundle_import_ux_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260511_hardware_supplier_status_types_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260510_hardware_catalog_ux_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T22:17:54.915Z",
+  "generatedAt": "2026-05-18T18:44:07.332Z",
   "summary": {
     "jsFiles": 353,
     "indexScripts": 277,
@@ -8,7 +8,7 @@
     "fcSymbolsAll": 282,
     "edges": 1817,
     "highRisk": 7,
-    "mediumRisk": 63
+    "mediumRisk": 64
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 22,
-      "lines": 3924,
+      "lines": 4018,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 26,
-      "lines": 4727,
+      "lines": 4745,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -149,11 +149,11 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12121,
+      "lines": 12190,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
-      "medium": 31
+      "medium": 32
     }
   },
   "topLines": [
@@ -194,12 +194,12 @@
       569
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      497
+      "js/app/catalog/hardware-catalog.js",
+      538
     ],
     [
-      "js/app/catalog/hardware-catalog.js",
-      496
+      "js/app/catalog/catalog-store.js",
+      497
     ],
     [
       "js/app/rozrys/rozrys-render.js",
@@ -212,6 +212,10 @@
     [
       "js/app/ui/actions-register.js",
       455
+    ],
+    [
+      "js/testing/material/accessories-tests.js",
+      451
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
@@ -232,10 +236,6 @@
     [
       "js/testing/rozrys/suites/helpers-bridges.js",
       390
-    ],
-    [
-      "js/testing/material/accessories-tests.js",
-      382
     ]
   ],
   "topIncoming": [
@@ -678,7 +678,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 496,
+      "lines": 538,
       "incoming": 16,
       "outgoing": 2,
       "secondLevel": 24,
@@ -1012,6 +1012,23 @@
       "reasons": [
         "600+ linii",
         "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/testing/material/accessories-tests.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 451,
+      "incoming": 1,
+      "outgoing": 13,
+      "secondLevel": 1,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależności wychodzących"
       ]
     },
     {
@@ -3404,7 +3421,7 @@
     "js/app/catalog/hardware-catalog-export-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 133,
+      "lines": 142,
       "defines": [
         "hardwareCatalogExportXlsx"
       ],
@@ -3493,7 +3510,7 @@
     "js/app/catalog/hardware-catalog-import-parser.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 109,
+      "lines": 117,
       "defines": [
         "hardwareCatalogImportParser"
       ],
@@ -3690,7 +3707,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 496,
+      "lines": 538,
       "defines": [
         "hardwareCatalog"
       ],
@@ -3760,7 +3777,7 @@
     "js/app/catalog/hardware-supplier-price-export.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 95,
+      "lines": 115,
       "defines": [
         "hardwareSupplierPriceExport"
       ],
@@ -3796,7 +3813,7 @@
     "js/app/catalog/hardware-supplier-price-import.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 250,
+      "lines": 265,
       "defines": [
         "hardwareSupplierPriceImport"
       ],
@@ -5723,8 +5740,8 @@
     },
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
-      "category": "domain/controller",
-      "lines": 262,
+      "category": "ui/render/events",
+      "lines": 280,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5738,7 +5755,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 0,
+      "domRefs": 1,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -17867,7 +17884,7 @@
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 382,
+      "lines": 451,
       "defines": [
         "materialAccessoryTests"
       ],
@@ -17913,9 +17930,9 @@
       "domRefs": 2,
       "loadedInIndex": false,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "250+ linii",
+        "400+ linii",
         "dużo zależności wychodzących"
       ]
     },

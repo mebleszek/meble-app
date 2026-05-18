@@ -136,6 +136,27 @@
         H.assert(hw.normalizePriceStatus('dziwne') === 'current', 'Nieznany status nie wraca do current');
       }),
 
+      H.makeTest('Akcesoria — dane techniczne', 'Okucie normalizuje system i parametry szuflady', 'Pilnuje nowych danych pod listy zakupowe bez dokładania klików przy szafce.', ()=>{
+        const hw = requireHardware();
+        const row = hw.normalizeAccessory({
+          id:'tech_1', name:'Tandembox M 500', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareUnit:'kpl.',
+          system_okucia:'Blum TANDEMBOX', typ_cecha:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:'500', nosnosc_kg:'50', wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
+        }, ()=> 'tech_1', { defaultVatRate:23, hardwareSuppliers:suppliers() });
+        H.assert(row.hardwareSystem === 'Blum TANDEMBOX', 'System okucia nie został zapisany', row);
+        H.assert(row.hardwareType === 'M 500 50kg', 'Typ/cecha nie został zapisany', row);
+        H.assert(row.drawerProfile === 'M' && Number(row.drawerLengthMm) === 500 && Number(row.drawerLoadKg) === 50 && row.drawerReinforced === true, 'Parametry szuflady nie przeszły normalizacji', row);
+        H.assert(row.hardwareColor === 'biały' && row.hardwareUsage === 'frontowa', 'Kolor/zastosowanie okucia nie zostały zapisane', row);
+      }),
+      H.makeTest('Akcesoria — dane techniczne', 'Unikalność typu uwzględnia system okucia', 'Chroni sytuację Blum TANDEMBOX M 500 i Blum LEGRABOX M 500 jako różne pozycje katalogowe.', ()=>{
+        const hw = requireHardware();
+        const rows = [
+          { id:'tb', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum TANDEMBOX', hardwareType:'M 500', name:'Tandembox M 500' },
+          { id:'lg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum LEGRABOX', hardwareType:'M 500', name:'Legrabox M 500' },
+        ];
+        H.assert(hw.uniqueTypeConflict(rows, { manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum TANDEMBOX', hardwareType:'M 500' }, 'new').id === 'tb', 'Nie wykryto konfliktu w tym samym systemie');
+        H.assert(!hw.uniqueTypeConflict(rows, { manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum MERIVOBOX', hardwareType:'M 500' }, 'new'), 'Inny system został potraktowany jak konflikt');
+      }),
+
       H.makeTest('Akcesoria — słowniki', 'Kategorie łączą domyślne i własne bez duplikatów', 'Pilnuje, żeby słownik kategorii był edytowalny, ale bez śmieci po wielkości liter.', ()=>{
         const hw = requireHardware();
         const list = hw.normalizeCategoryList(['Zawiasy', 'Nowa kategoria', 'nowa kategoria']);
@@ -231,6 +252,54 @@
         H.assert(headers.slice(0, 6).join('|') === 'okucie_nazwa|okucie_symbol|producent|kategoria|jednostka|dostawca', 'Początek arkusza cen nie jest użytkowy', headers);
         H.assert(headers[headers.length - 2] === 'okucie_id' && headers[headers.length - 1] === 'dostawca_id', 'ID techniczne nie są na końcu', headers);
       }),
+      H.makeTest('Akcesoria — import/export', 'Arkusz Okucia eksportuje techniczne dane szuflad', 'Pilnuje pełnego katalogu pod listy zakupowe bez wypychania tych danych na główną listę programu.', ()=>{
+        const api = requireImport();
+        const headers = api.ACCESSORY_COLUMNS.map((pair)=> pair[0]);
+        ['system_okucia','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'].forEach((name)=>{
+          H.assert(headers.includes(name), 'Brak kolumny technicznej w arkuszu Okucia: ' + name, headers);
+        });
+      }),
+      H.makeTest('Akcesoria — import/export', 'Import arkusza Okucia przenosi system i dane techniczne', 'Chroni masowe uzupełnianie katalogu z Excela przed zgubieniem danych szuflad.', ()=> withSnapshot(()=>{
+        const s = store(), api = requireImport();
+        s.savePriceList('accessories', []);
+        s.saveHardwareManufacturers(['Blum']);
+        s.saveHardwareSuppliers(suppliers());
+        const data = api.parseWorkbook({
+          Okucia:[
+            ['nazwa','jednostka','producent','kategoria','system_okucia','typ_cecha','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
+            ['Tandembox M 500 50kg','kpl.','Blum','Szuflady / prowadnice','Blum TANDEMBOX','M 500 50kg','TB-M500-50','M','500','50','TAK','biały','frontowa']
+          ],
+          Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']],
+          Producenci:[['nazwa'], ['Blum']]
+        });
+        const plan = api.buildImportPlan(data, { mode:'merge' });
+        const row = plan.next.accessories.find((item)=> item.symbol === 'TB-M500-50');
+        H.assert(plan.errors.length === 0 && row, 'Nie utworzono pozycji technicznej z arkusza Okucia', plan);
+        H.assert(row.hardwareSystem === 'Blum TANDEMBOX' && row.hardwareType === 'M 500 50kg', 'System/typ nie przeszły importu', row);
+        H.assert(row.drawerProfile === 'M' && Number(row.drawerLengthMm) === 500 && Number(row.drawerLoadKg) === 50 && row.drawerReinforced === true, 'Dane techniczne szuflady nie przeszły importu', row);
+      })),
+      H.makeTest('Akcesoria — import/export', 'Ceny_dostawcow zostawia szybkie kolumny z przodu, a techniczne przed ID', 'Chroni wygodne hurtowe wklejanie cen: dane techniczne są opcjonalne i nie przesuwają dostawcy/ceny.', ()=>{
+        const xlsx = requireSupplierXlsx();
+        const headers = xlsx.SUPPLIER_PRICE_COLUMNS.map((pair)=> pair[0]);
+        H.assert(headers.slice(0, 6).join('|') === 'okucie_nazwa|okucie_symbol|producent|kategoria|jednostka|dostawca', 'Szybkie kolumny cen nie są na początku', headers);
+        H.assert(headers.includes('system_okucia') && headers.includes('dlugosc_mm') && headers.includes('nosnosc_kg'), 'Arkusz cen nie ma opcjonalnych danych technicznych', headers);
+        H.assert(headers[headers.length - 2] === 'okucie_id' && headers[headers.length - 1] === 'dostawca_id', 'ID techniczne nie są na końcu', headers);
+      }),
+      H.makeTest('Akcesoria — import/export', 'Nowe okucie z arkusza cen zapisuje techniczne dane, jeśli są podane', 'Chroni szybki import cennika: nowa pozycja może od razu dostać system, długość, nośność i wzmocnienie.', ()=> withSnapshot(()=>{
+        const s = store(), api = requireImport();
+        s.savePriceList('accessories', []);
+        s.saveHardwareManufacturers(['Rejs']);
+        s.saveHardwareSuppliers([{ id:'local', name:'Hurtownia lokalna', defaultDiscountPercent:0, active:true }]);
+        const plan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{ defaultVatRate:23 }, supplierPriceRows:[{
+          __rowIndex:24, producent:'Rejs', okucie_symbol:'RCB-M500-50', okucie_nazwa:'Comfort Box M 500 wzmocniona', kategoria:'Szuflady / prowadnice', jednostka:'kpl.', dostawca:'Hurtownia lokalna', cena_brutto:98,
+          system_okucia:'Rejs Comfort Box', typ_cecha:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:500, nosnosc_kg:50, wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
+        }] }, { mode:'merge' });
+        const row = plan.next.accessories.find((item)=> item.symbol === 'RCB-M500-50');
+        H.assert(row && plan.summary.supplierPriceCreatedAccessories === 1, 'Ceny_dostawcow nie utworzył nowego okucia technicznego', plan);
+        H.assert(row.hardwareSystem === 'Rejs Comfort Box' && row.hardwareType === 'M 500 50kg', 'System/typ nie przeszły z arkusza cen', row);
+        H.assert(Number(row.drawerLengthMm) === 500 && Number(row.drawerLoadKg) === 50 && row.drawerReinforced === true, 'Techniczne dane z arkusza cen nie przeszły do katalogu', row);
+      })),
+
       H.makeTest('Akcesoria — import/export', 'Eksport pustych wierszy cen nie generuje formuł netto/brutto', 'Chroni przed powrotem zapętlonych formuł i #REF! po kopiowaniu linii.', ()=>{
         const xlsx = requireSupplierXlsx();
         H.assert(typeof xlsx.buildSupplierPriceRows === 'function', 'Brak buildSupplierPriceRows');

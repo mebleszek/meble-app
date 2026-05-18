@@ -426,3 +426,11 @@
 @media(max-width:520px){
   #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr;}
 }
+
+/* Hardware technical data accordion — app/ROZRYS-like, no native picker/select UI */
+.hardware-tech-accordion{margin-top:14px;border:1px solid rgba(16,185,129,.28);border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(15,23,42,.08);overflow:hidden}
+.hardware-tech-accordion__head{width:100%;border:0;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;font-weight:900;color:#0f172a;text-align:left;cursor:pointer}
+.hardware-tech-accordion__chevron{width:11px;height:11px;border-right:2px solid #10b981;border-bottom:2px solid #10b981;transform:rotate(45deg);transition:transform .16s ease;margin-right:2px;flex:0 0 auto}
+.hardware-tech-accordion__head[aria-expanded="true"] .hardware-tech-accordion__chevron{transform:rotate(225deg);margin-top:6px}
+.hardware-tech-accordion__body{border-top:1px solid rgba(226,232,240,.95);padding:12px 14px 14px;background:linear-gradient(180deg,#fff,#f8fafc)}
+.hardware-tech-toggle{align-self:end;min-height:42px;justify-content:center}

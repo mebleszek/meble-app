@@ -167,7 +167,7 @@
     const statusActions = h('div', { class:'hardware-price-row__status-actions' }, [chips, editBtn]);
     left.appendChild(title);
     left.appendChild(statusActions);
-    left.appendChild(renderMetaLine([text(item && item.manufacturer) || '—', text(item && item.hardwareCategory) || 'Inne', text(item && item.hardwareType), text(item && item.hardwareUnit) || 'szt.', text(item && item.series), text(item && item.symbol) ? 'SYM: ' + text(item.symbol) : '']));
+    left.appendChild(renderMetaLine([text(item && item.manufacturer) || '—', text(item && item.hardwareCategory) || 'Inne', text(item && item.hardwareType), text(item && item.hardwareUnit) || 'szt.', text(item && (item.hardwareSystem || item.series)), text(item && item.symbol) ? 'SYM: ' + text(item.symbol) : '']));
     left.appendChild(renderMetaLine(['Dostawca: ' + supplierName(item), num(item && item.purchasePriceGross) > 0 ? 'zakup: ' + money(item.purchasePriceGross) : '', num(item && item.price) > 0 ? 'do wyceny: ' + money(item.price) : '', text(item && item.priceUpdatedAt) ? 'cena: ' + text(item.priceUpdatedAt) : 'brak daty ceny']));
     const bundleBox = renderBundleSummary(item);
     if(bundleBox) left.appendChild(bundleBox);

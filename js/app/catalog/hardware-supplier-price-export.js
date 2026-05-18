@@ -17,6 +17,14 @@
     ['do_wyceny','useForQuote'],
     ['status_ceny','priceStatus'],
     ['data_ceny','priceDate'],
+    ['system_okucia','itemSystem'],
+    ['typ_cecha','itemType'],
+    ['profil_szuflady','drawerProfile'],
+    ['dlugosc_mm','drawerLengthMm'],
+    ['nosnosc_kg','drawerLoadKg'],
+    ['wzmocniona','drawerReinforced'],
+    ['kolor_okucia','hardwareColor'],
+    ['zastosowanie','hardwareUsage'],
     ['okucie_id','itemId'],
     ['dostawca_id','supplierId'],
   ];
@@ -27,7 +35,11 @@
   function col(index){ let n = Number(index) + 1; let out = ''; while(n > 0){ const mod = (n - 1) % 26; out = String.fromCharCode(65 + mod) + out; n = Math.floor((n - 1) / 26); } return out; }
   function colFor(prop){ const idx = SUPPLIER_PRICE_COLUMNS.findIndex((pair)=> pair[1] === prop); return col(idx < 0 ? 0 : idx); }
   function supplierById(suppliers, id){ const key = text(id).toLowerCase(); return (suppliers || []).find((row)=> text(row && row.id).toLowerCase() === key || text(row && row.name).toLowerCase() === key) || null; }
-  function valueForColumn(obj, key){ return obj && obj[key] != null ? obj[key] : ''; }
+  function valueForColumn(obj, key){
+    if(!obj || obj[key] == null) return '';
+    if(key === 'drawerReinforced') return obj[key] ? 'TAK' : '';
+    return obj[key];
+  }
   function listFormula(values){ return '"' + (values || []).map((value)=> text(value).replace(/,/g, ' ')).filter(Boolean).join(',') + '"'; }
   function normalizePrices(item, suppliers, settings){
     const hw = FC.hardwareCatalog || {};
@@ -41,7 +53,15 @@
       itemSymbol:item && item.symbol || '',
       itemManufacturer:item && item.manufacturer || '',
       itemCategory:item && item.hardwareCategory || '',
+      itemSystem:item && (item.hardwareSystem || item.series) || '',
+      itemType:item && item.hardwareType || '',
       itemUnit:item && item.hardwareUnit || '',
+      drawerProfile:item && item.drawerProfile || '',
+      drawerLengthMm:item && item.drawerLengthMm || '',
+      drawerLoadKg:item && item.drawerLoadKg || '',
+      drawerReinforced:item && item.drawerReinforced ? true : false,
+      hardwareColor:item && item.hardwareColor || '',
+      hardwareUsage:item && item.hardwareUsage || '',
       supplierName:supplier.name || price.supplierId || '',
       catalogPriceNet:price && price.catalogPriceNet || '',
       catalogPriceGross:price && price.catalogPriceGross || '',
@@ -53,7 +73,7 @@
     };
   }
   function emptyPriceRow(_rowNo){
-    return { itemName:'', itemSymbol:'', itemManufacturer:'', itemCategory:'', itemUnit:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
+    return { itemName:'', itemSymbol:'', itemManufacturer:'', itemCategory:'', itemSystem:'', itemType:'', itemUnit:'', drawerProfile:'', drawerLengthMm:'', drawerLoadKg:'', drawerReinforced:'', hardwareColor:'', hardwareUsage:'', supplierName:'', catalogPriceNet:'', catalogPriceGross:'', useForQuote:'NIE', priceStatus:'current', priceDate:'', itemId:'', supplierId:'' };
   }
   function rowValues(obj){
     return SUPPLIER_PRICE_COLUMNS.map((pair)=> obj._formulas && obj._formulas[pair[1]] ? obj._formulas[pair[1]] : valueForColumn(obj, pair[1]));

@@ -4,7 +4,7 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
-  const ACCESSORY_DIFF_FIELDS = ['name','hardwareUnit','manufacturer','hardwareCategory','hardwareType','symbol','series','bundleCostMode','note'];
+  const ACCESSORY_DIFF_FIELDS = ['name','hardwareUnit','manufacturer','hardwareCategory','hardwareSystem','hardwareType','symbol','drawerProfile','drawerLengthMm','drawerLoadKg','drawerReinforced','hardwareColor','hardwareUsage','technicalNote','bundleCostMode','note'];
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
