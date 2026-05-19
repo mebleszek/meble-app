@@ -35,6 +35,157 @@
     const store = getStore();
     return store && typeof store.getHardwareSuppliers === 'function' ? store.getHardwareSuppliers() : [];
   }
+
+  function techApi(){ return FC.hardwareTechnicalParams || {}; }
+  function getTechnicalDefinitions(){
+    const store = getStore();
+    if(store && typeof store.getHardwareTechnicalParams === 'function') return store.getHardwareTechnicalParams();
+    const api = techApi();
+    return Array.isArray(api.DEFAULT_DEFINITIONS) ? api.DEFAULT_DEFINITIONS.slice() : [];
+  }
+  function currentTechnicalFields(category){
+    const api = techApi();
+    const cat = category || readString('hardwareCategory') || 'Inne';
+    return api && typeof api.fieldsForCategory === 'function' ? api.fieldsForCategory(getTechnicalDefinitions(), cat) : [];
+  }
+  function h(tag, attrs, children){
+    const el = document.createElement(tag);
+    Object.keys(attrs || {}).forEach((key)=>{
+      const value = attrs[key];
+      if(key === 'class') el.className = value;
+      else if(key === 'text') el.textContent = value;
+      else if(key === 'html') el.innerHTML = value;
+      else if(key === 'checked') el.checked = !!value;
+      else if(key === 'value') el.value = value == null ? '' : String(value);
+      else if(value !== false && value != null) el.setAttribute(key, String(value));
+    });
+    (Array.isArray(children) ? children : (children ? [children] : [])).forEach((child)=> el.appendChild(child));
+    return el;
+  }
+  function openTechHelp(title, message){
+    try{
+      if(FC.infoBox && typeof FC.infoBox.open === 'function') return FC.infoBox.open({ title:title || 'Informacja', message:message || '' });
+      if(FC.panelBox && typeof FC.panelBox.open === 'function') return FC.panelBox.open({ title:title || 'Informacja', message:message || '', width:'560px', boxClass:'panel-box--rozrys' });
+    }catch(_){ }
+  }
+  function labelWithHelp(label, helpKey){
+    const api = techApi();
+    const msg = api.FIELD_HELP && api.FIELD_HELP[helpKey] || '';
+    const row = h('div', { class:'label-help price-field-help hardware-tech-label-help' }, [h('span', { class:'label-help__text', text:label || '' })]);
+    if(msg){
+      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pokaż informację: ' + (label || '') });
+      btn.addEventListener('click', ()=> openTechHelp(label, msg));
+      row.appendChild(btn);
+    }
+    return row;
+  }
+  function formatTechnicalValue(field, value){
+    const api = techApi();
+    if(api && typeof api.paramValueText === 'function') return api.paramValueText(field, value, { withUnit:true });
+    return '';
+  }
+  function readDynamicTechnicalParams(){
+    const api = techApi();
+    const fields = currentTechnicalFields();
+    const out = {};
+    fields.forEach((field)=>{
+      const key = String(field.key || '');
+      if(!key) return;
+      if(field.fieldType === 'boolean'){
+        const el = document.querySelector('[data-tech-key="' + key + '"][data-tech-type="boolean"]');
+        out[key] = { value:!!(el && el.checked) };
+      }else if(field.fieldType === 'numberRange'){
+        const from = document.querySelector('[data-tech-key="' + key + '"][data-tech-part="from"]');
+        const to = document.querySelector('[data-tech-key="' + key + '"][data-tech-part="to"]');
+        out[key] = { from:from ? from.value : '', to:to ? to.value : '' };
+      }else{
+        const el = document.querySelector('[data-tech-key="' + key + '"][data-tech-type="text"]');
+        out[key] = { value:el ? el.value : '' };
+      }
+    });
+    return api && typeof api.normalizeParamValues === 'function' ? api.normalizeParamValues(out, getTechnicalDefinitions(), readString('hardwareCategory') || 'Inne') : out;
+  }
+  function setHardwareTypeValue(value){
+    const raw = String(value == null ? '' : value).trim();
+    const select = ctx.byId('hardwareType');
+    if(!select) return;
+    let found = false;
+    try{ Array.from(select.options || []).forEach((opt)=>{ if(String(opt.value || '') === raw) found = true; }); }catch(_){ }
+    if(raw && !found){
+      try{ const option = document.createElement('option'); option.value = raw; option.textContent = raw; select.appendChild(option); }catch(_){ }
+    }
+    select.value = raw;
+    try{ if(ctx.mountChoice) ctx.mountChoice({ selectEl:select, mountId:'hardwareTypeLaunch', title:'Wybierz typ / cechę', buttonClass:'investor-choice-launch', placeholder:'Typ / cecha', onChange:()=>{ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){} } }); }catch(_){ }
+  }
+  function syncLegacyHiddenFromParams(params){
+    const data = { hardwareCategory:readString('hardwareCategory') || 'Inne', technicalParams:params || readDynamicTechnicalParams() };
+    const api = techApi();
+    try{ if(api && typeof api.applyLegacyFieldsFromParams === 'function') api.applyLegacyFieldsFromParams(data, getTechnicalDefinitions()); }catch(_){ }
+    setValue('hardwareDrawerProfile', data.drawerProfile || '');
+    setValue('hardwareDrawerLengthMm', data.drawerLengthMm != null ? data.drawerLengthMm : '');
+    setValue('hardwareDrawerLoadKg', data.drawerLoadKg != null ? data.drawerLoadKg : '');
+    const reinf = ctx.byId('hardwareDrawerReinforced'); if(reinf) reinf.checked = !!data.drawerReinforced;
+    setValue('hardwareColor', data.hardwareColor || '');
+    setValue('hardwareUsage', data.hardwareUsage || '');
+    setValue('hardwareTechnicalNote', data.technicalNote || '');
+  }
+  function syncHardwareTypeFromTechnicalParams(){
+    const api = techApi();
+    const category = readString('hardwareCategory') || 'Inne';
+    const params = readDynamicTechnicalParams();
+    syncLegacyHiddenFromParams(params);
+    const generated = api && typeof api.buildTypeLabel === 'function' ? api.buildTypeLabel(getTechnicalDefinitions(), category, params) : '';
+    if(generated) setHardwareTypeValue(generated);
+    try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){ }
+    return generated;
+  }
+  function renderDynamicTechnicalFields(data){
+    const host = ctx.byId('hardwareDynamicTechnicalFields');
+    if(!host) return;
+    const src = data && typeof data === 'object' ? data : {};
+    const category = readString('hardwareCategory') || src.hardwareCategory || 'Inne';
+    const api = techApi();
+    const defs = getTechnicalDefinitions();
+    const fields = currentTechnicalFields(category);
+    const values = api && typeof api.mergeLegacyValues === 'function'
+      ? api.mergeLegacyValues(Object.assign({}, src, { hardwareCategory:category }), defs, category)
+      : (src.technicalParams || {});
+    host.innerHTML = '';
+    if(!fields.length){
+      host.appendChild(h('div', { class:'muted xs', text:'Brak parametrów technicznych dla tej kategorii. Dodaj je w Słownikach okuć.' }));
+      return;
+    }
+    const grid = h('div', { class:'hardware-dynamic-tech-grid' });
+    fields.forEach((field)=>{
+      const value = values[field.key] || {};
+      const wrap = h('div', { class:'hardware-dynamic-tech-field' });
+      wrap.appendChild(labelWithHelp(field.label + (field.unit ? ' (' + field.unit + ')' : ''), field.fieldType === 'numberRange' ? 'valueFrom' : 'name'));
+      if(field.fieldType === 'boolean'){
+        const chip = h('label', { class:'rozrys-scope-chip price-labor-toggle hardware-tech-toggle' }, [
+          h('input', { type:'checkbox', 'data-tech-key':field.key, 'data-tech-type':'boolean', checked:value && value.value }),
+          h('span', { text:field.label })
+        ]);
+        chip.querySelector('input').addEventListener('change', syncHardwareTypeFromTechnicalParams);
+        wrap.appendChild(chip);
+      }else if(field.fieldType === 'numberRange'){
+        const row = h('div', { class:'hardware-tech-range-row' });
+        const from = h('input', { class:'investor-form-input', type:'number', step:'any', placeholder:'od / dokładnie', value:value && value.from != null ? value.from : '', 'data-tech-key':field.key, 'data-tech-part':'from' });
+        const to = h('input', { class:'investor-form-input', type:'number', step:'any', placeholder:'do', value:value && value.to != null ? value.to : '', 'data-tech-key':field.key, 'data-tech-part':'to' });
+        from.addEventListener('input', syncHardwareTypeFromTechnicalParams); to.addEventListener('input', syncHardwareTypeFromTechnicalParams);
+        row.appendChild(from); row.appendChild(to);
+        wrap.appendChild(row);
+      }else{
+        const input = h('input', { class:'investor-form-input', type:'text', placeholder:(field.options || []).slice(0, 3).join(', ') || '', value:value && value.value || '', 'data-tech-key':field.key, 'data-tech-type':'text' });
+        input.addEventListener('input', syncHardwareTypeFromTechnicalParams);
+        wrap.appendChild(input);
+      }
+      const preview = formatTechnicalValue(field, value);
+      if(preview) wrap.appendChild(h('div', { class:'muted xs hardware-tech-preview', text:'Wartość: ' + preview }));
+      grid.appendChild(wrap);
+    });
+    host.appendChild(grid);
+    syncHardwareTypeFromTechnicalParams();
+  }
   function findSupplier(id){
     const key = String(id || '');
     return getSuppliers().find((row)=> String(row && row.id || '') === key) || null;
@@ -61,7 +212,7 @@
     const currentType = selectedValue != null ? String(selectedValue || '') : readString('hardwareType');
     const category = readString('hardwareCategory') || 'Inne';
     const manufacturer = readString('formManufacturer');
-    ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(category, currentType, { manufacturer, currentId:currentEditingId() }), currentType, currentType);
+    ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(category, currentType, { manufacturer, hardwareSystem:ctx.byId('hardwareSeries') && ctx.byId('hardwareSeries').value, currentId:currentEditingId() }), currentType, currentType);
   }
 
   function defaultAccessoryDraft(){
@@ -70,7 +221,7 @@
     const manufacturer = ctx.firstNonEmptyValue(ctx.buildManufacturerOptions('accessories', '', '', { includeAll:false }));
     const category = ctx.firstNonEmptyValue(ctx.buildHardwareCategoryOptions ? ctx.buildHardwareCategoryOptions('Zawiasy') : [{ value:'Zawiasy' }]) || 'Zawiasy';
     return {
-      manufacturer, symbol:'', name:'', price:'', hardwareCategory:category, hardwareType:'', hardwareUnit:'szt.', hardwareSystem:'', series:'', drawerProfile:'', drawerLengthMm:'', drawerLoadKg:'', drawerReinforced:false, hardwareColor:'', hardwareUsage:'', technicalNote:'',
+      manufacturer, symbol:'', name:'', price:'', hardwareCategory:category, hardwareType:'', hardwareUnit:'szt.', hardwareSystem:'', series:'', drawerProfile:'', drawerLengthMm:'', drawerLoadKg:'', drawerReinforced:false, hardwareColor:'', hardwareUsage:'', technicalNote:'', technicalParams:{},
       supplierId:supplier ? supplier.id : (settings.defaultSupplierId || ''), priceSource:supplier ? supplier.name : '',
       vatRate:settings.defaultVatRate || 23, catalogPriceNet:'', catalogPriceGross:'',
       supplierDiscountPercent:supplier ? supplier.defaultDiscountPercent : 0, purchasePriceNet:'', purchasePriceGross:'',
@@ -192,13 +343,15 @@
     const priceGross = num(readString('hardwareQuotePriceGross')) || num(ctx.byId('formPrice') && ctx.byId('formPrice').value);
     const supplier = findSupplier(readString('hardwareSupplierId'));
     const supplierPrices = supplierPricesApi();
+    const dynamicTechnicalParams = readDynamicTechnicalParams();
+    const generatedHardwareType = syncHardwareTypeFromTechnicalParams() || readString('hardwareType');
     return {
       manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(),
       symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(),
       name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(),
       price:priceGross,
-      hardwareCategory:readString('hardwareCategory') || 'Inne', hardwareType:readString('hardwareType'), hardwareUnit:readString('hardwareUnit') || 'szt.', hardwareSystem:readString('hardwareSeries'), series:readString('hardwareSeries'),
-      drawerProfile:readString('hardwareDrawerProfile'), drawerLengthMm:readNumber('hardwareDrawerLengthMm'), drawerLoadKg:readNumber('hardwareDrawerLoadKg'), drawerReinforced:!!(ctx.byId('hardwareDrawerReinforced') && ctx.byId('hardwareDrawerReinforced').checked), hardwareColor:readString('hardwareColor'), hardwareUsage:readString('hardwareUsage'), technicalNote:readString('hardwareTechnicalNote'),
+      hardwareCategory:readString('hardwareCategory') || 'Inne', hardwareType:generatedHardwareType, hardwareUnit:readString('hardwareUnit') || 'szt.', hardwareSystem:readString('hardwareSeries'), series:readString('hardwareSeries'),
+      drawerProfile:readString('hardwareDrawerProfile'), drawerLengthMm:readNumber('hardwareDrawerLengthMm'), drawerLoadKg:readNumber('hardwareDrawerLoadKg'), drawerReinforced:!!(ctx.byId('hardwareDrawerReinforced') && ctx.byId('hardwareDrawerReinforced').checked), hardwareColor:readString('hardwareColor'), hardwareUsage:readString('hardwareUsage'), technicalNote:readString('hardwareTechnicalNote'), technicalParams:dynamicTechnicalParams, hardwareTypeAuto:true,
       supplierId:readString('hardwareSupplierId'), supplierName:supplier ? supplier.name : readString('hardwarePriceSource'), priceSource:readString('hardwarePriceSource') || (supplier ? supplier.name : ''),
       supplierPrices:(supplierPrices && typeof supplierPrices.getItems === 'function') ? supplierPrices.getItems() : [],
       vatRate:readNumber('hardwareVatRate'), catalogPriceNet:readNumber('hardwareCatalogPriceNet'), catalogPriceGross:readNumber('hardwareCatalogPriceGross'), supplierDiscountPercent:readNumber('hardwareSupplierDiscountPercent'),
@@ -226,7 +379,7 @@
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = false;
     if(ctx.buildHardwareCategoryOptions) ctx.setSelectOptions(ctx.byId('hardwareCategory'), ctx.buildHardwareCategoryOptions(data && data.hardwareCategory), String(data && data.hardwareCategory || 'Inne'), String(data && data.hardwareCategory || 'Inne'));
     if(ctx.buildHardwareUnitOptions) ctx.setSelectOptions(ctx.byId('hardwareUnit'), ctx.buildHardwareUnitOptions(data && data.hardwareUnit), String(data && data.hardwareUnit || 'szt.'), String(data && data.hardwareUnit || 'szt.'));
-    if(ctx.buildHardwareTypeOptions) ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(data && data.hardwareCategory, data && data.hardwareType, { manufacturer:data && data.manufacturer, currentId:data && data.id || currentEditingId() }), String(data && data.hardwareType || ''), String(data && data.hardwareType || ''));
+    if(ctx.buildHardwareTypeOptions) ctx.setSelectOptions(ctx.byId('hardwareType'), ctx.buildHardwareTypeOptions(data && data.hardwareCategory, data && data.hardwareType, { manufacturer:data && data.manufacturer, hardwareSystem:data && (data.hardwareSystem || data.series), currentId:data && data.id || currentEditingId() }), String(data && data.hardwareType || ''), String(data && data.hardwareType || ''));
     if(ctx.buildHardwareStatusOptions) ctx.setSelectOptions(ctx.byId('hardwareStatus'), ctx.buildHardwareStatusOptions(), String(data && data.status || 'active'), 'Aktywne');
     if(ctx.buildHardwareSupplierOptions) ctx.setSelectOptions(ctx.byId('hardwareSupplierId'), ctx.buildHardwareSupplierOptions(data && data.supplierId), String(data && data.supplierId || ''), String(data && data.supplierId || ''));
     if(ctx.buildHardwareQuoteBaseOptions) ctx.setSelectOptions(ctx.byId('hardwareQuoteBase'), ctx.buildHardwareQuoteBaseOptions(), String(data && data.quoteBase || 'catalogGross'), 'Cena katalogowa bez rabatu');
@@ -236,6 +389,7 @@
     setValue('hardwareDrawerProfile', data && data.drawerProfile || ''); setValue('hardwareDrawerLengthMm', data && data.drawerLengthMm != null ? data.drawerLengthMm : ''); setValue('hardwareDrawerLoadKg', data && data.drawerLoadKg != null ? data.drawerLoadKg : '');
     if(ctx.byId('hardwareDrawerReinforced')) ctx.byId('hardwareDrawerReinforced').checked = !!(data && data.drawerReinforced);
     setValue('hardwareColor', data && data.hardwareColor || ''); setValue('hardwareUsage', data && data.hardwareUsage || ''); setValue('hardwareTechnicalNote', data && data.technicalNote || '');
+    renderDynamicTechnicalFields(data);
     setValue('hardwareCatalogPriceNet', data && data.catalogPriceNet != null ? data.catalogPriceNet : ''); setValue('hardwareCatalogPriceGross', data && data.catalogPriceGross != null ? data.catalogPriceGross : '');
     setValue('hardwareSupplierDiscountPercent', data && data.supplierDiscountPercent != null ? data.supplierDiscountPercent : ''); setValue('hardwarePurchasePriceNet', data && data.purchasePriceNet != null ? data.purchasePriceNet : '');
     setValue('hardwarePurchasePriceGross', data && (data.purchasePriceGross != null ? data.purchasePriceGross : data.purchasePrice) || ''); setValue('hardwareMarkupPercent', data && data.markupPercent != null ? data.markupPercent : '');
@@ -265,6 +419,7 @@
     if(id === 'hardwareSupplierId') applySupplierDefaults();
     else {
       const bundle = bundleApi();
+      if(id === 'hardwareCategory') renderDynamicTechnicalFields(getCurrentAccessoryDraft());
       if((id === 'hardwareCategory' || id === 'formManufacturer') && ctx.buildHardwareTypeOptions){
         const currentType = readString('hardwareType');
         refreshHardwareTypeOptions(currentType);
@@ -275,5 +430,5 @@
     }
   }
 
-  ctx.priceModalHardwareForm = { FIELD_IDS, defaultAccessoryDraft, getCurrentAccessoryDraft, applyAccessoryFormState, syncHardwarePricing, handleHardwareFieldInput, applySupplierDefaults };
+  ctx.priceModalHardwareForm = { FIELD_IDS, defaultAccessoryDraft, getCurrentAccessoryDraft, applyAccessoryFormState, syncHardwarePricing, handleHardwareFieldInput, applySupplierDefaults, _debug:{ readDynamicTechnicalParams, renderDynamicTechnicalFields, syncHardwareTypeFromTechnicalParams } };
 })();

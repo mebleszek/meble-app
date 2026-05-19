@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-05-18T18:44:07.332Z",
+  "generatedAt": "2026-05-19T23:36:14.257Z",
   "summary": {
-    "jsFiles": 353,
-    "indexScripts": 277,
-    "devTestScripts": 310,
-    "fcSymbols": 254,
-    "fcSymbolsAll": 282,
-    "edges": 1817,
-    "highRisk": 7,
-    "mediumRisk": 64
+    "jsFiles": 354,
+    "indexScripts": 278,
+    "devTestScripts": 311,
+    "fcSymbols": 255,
+    "fcSymbolsAll": 283,
+    "edges": 1829,
+    "highRisk": 8,
+    "mediumRisk": 63
   },
   "byArea": {
     "BOOT/APP SHELL": {
       "files": 7,
-      "lines": 1389,
+      "lines": 1390,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -28,12 +28,12 @@
       "medium": 3
     },
     "KATALOG/USŁUGI": {
-      "files": 22,
-      "lines": 4018,
+      "files": 23,
+      "lines": 4439,
       "storageRefs": 4,
       "dialogRefs": 0,
-      "high": 0,
-      "medium": 2
+      "high": 1,
+      "medium": 1
     },
     "INWESTOR": {
       "files": 25,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 26,
-      "lines": 4745,
+      "lines": 4899,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1256,
+      "lines": 1257,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -101,7 +101,7 @@
     },
     "DANE/STORAGE": {
       "files": 15,
-      "lines": 1326,
+      "lines": 1327,
       "storageRefs": 36,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12190,
+      "lines": 12280,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -195,15 +195,19 @@
     ],
     [
       "js/app/catalog/hardware-catalog.js",
-      538
+      555
     ],
     [
       "js/app/catalog/catalog-store.js",
-      497
+      524
     ],
     [
       "js/app/rozrys/rozrys-render.js",
       493
+    ],
+    [
+      "js/testing/material/accessories-tests.js",
+      491
     ],
     [
       "js/testing/rozrys/tests.js",
@@ -214,8 +218,8 @@
       455
     ],
     [
-      "js/testing/material/accessories-tests.js",
-      451
+      "js/app/material/price-modal-hardware-form.js",
+      435
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
@@ -232,10 +236,6 @@
     [
       "js/testing/test-data-manager.js",
       393
-    ],
-    [
-      "js/testing/rozrys/suites/helpers-bridges.js",
-      390
     ]
   ],
   "topIncoming": [
@@ -268,11 +268,11 @@
       32
     ],
     [
-      "js/app/project/project-store.js",
-      27
+      "js/app/ui/info-box.js",
+      29
     ],
     [
-      "js/app/ui/info-box.js",
+      "js/app/project/project-store.js",
       27
     ],
     [
@@ -281,7 +281,7 @@
     ],
     [
       "js/app/ui/panel-box.js",
-      23
+      24
     ],
     [
       "js/testing/wycena/suites/core-offer-basics.js",
@@ -582,6 +582,24 @@
       ]
     },
     {
+      "file": "js/app/catalog/catalog-store.js",
+      "risk": "wysokie",
+      "score": 8,
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 524,
+      "incoming": 19,
+      "outgoing": 12,
+      "secondLevel": 56,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/suites/helpers-bridges.js",
       "risk": "wysokie",
       "score": 8,
@@ -598,24 +616,6 @@
         "dużo publicznych symboli FC",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/catalog/catalog-store.js",
-      "risk": "średnie",
-      "score": 7,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 497,
-      "incoming": 19,
-      "outgoing": 11,
-      "secondLevel": 56,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -678,9 +678,9 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 538,
+      "lines": 555,
       "incoming": 16,
-      "outgoing": 2,
+      "outgoing": 3,
       "secondLevel": 24,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1020,9 +1020,9 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 451,
+      "lines": 491,
       "incoming": 1,
-      "outgoing": 13,
+      "outgoing": 14,
       "secondLevel": 1,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1566,7 +1566,7 @@
       "score": 4,
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 177,
+      "lines": 178,
       "incoming": 74,
       "outgoing": 4,
       "secondLevel": 189,
@@ -1803,7 +1803,7 @@
     "js/app/bootstrap/app-core-namespace.js": {
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 177,
+      "lines": 178,
       "defines": [
         "appCoreNamespace",
         "utils",
@@ -3150,7 +3150,7 @@
     "js/app/catalog/catalog-migration.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 71,
+      "lines": 73,
       "defines": [
         "catalogMigration"
       ],
@@ -3254,7 +3254,7 @@
     "js/app/catalog/catalog-storage-policy.js": {
       "area": "KATALOG/USŁUGI",
       "category": "store/storage",
-      "lines": 92,
+      "lines": 94,
       "defines": [
         "catalogStoragePolicy"
       ],
@@ -3297,7 +3297,7 @@
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 497,
+      "lines": 524,
       "defines": [
         "catalogStore"
       ],
@@ -3311,6 +3311,7 @@
         "hardwareCatalog",
         "hardwareCatalogSeeds",
         "catalogStoragePolicy",
+        "hardwareTechnicalParams",
         "utils",
         "catalogStore"
       ],
@@ -3342,6 +3343,7 @@
         "js/app/catalog/catalog-storage-policy.js",
         "js/app/catalog/hardware-catalog-seeds.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/service/service-order-store.js",
         "js/app/shared/constants.js",
@@ -3411,23 +3413,24 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "średnie",
+      "risk": "wysokie",
       "reasons": [
         "400+ linii",
         "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/app/catalog/hardware-catalog-export-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 142,
+      "lines": 206,
       "defines": [
         "hardwareCatalogExportXlsx"
       ],
       "uses": [
         "catalogStore",
         "hardwareCatalog",
+        "hardwareTechnicalParams",
         "dataBackupExport",
         "xlsxLite",
         "hardwareSupplierPriceXlsx",
@@ -3444,6 +3447,7 @@
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/shared/data-backup-export.js",
         "js/app/shared/xlsx-lite.js"
       ],
@@ -3510,23 +3514,26 @@
     "js/app/catalog/hardware-catalog-import-parser.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 117,
+      "lines": 159,
       "defines": [
         "hardwareCatalogImportParser"
       ],
       "uses": [
         "hardwareCatalogExportXlsx",
         "hardwareCatalog",
+        "hardwareTechnicalParams",
         "xlsxLite",
         "hardwareCatalogImportParser"
       ],
       "incomingFiles": [
         "js/app/catalog/hardware-catalog-import-export.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/shared/xlsx-lite.js"
       ],
       "secondLevelFiles": [
@@ -3548,7 +3555,7 @@
     "js/app/catalog/hardware-catalog-import-plan.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 237,
+      "lines": 239,
       "defines": [
         "hardwareCatalogImportPlan"
       ],
@@ -3707,11 +3714,12 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 538,
+      "lines": 555,
       "defines": [
         "hardwareCatalog"
       ],
       "uses": [
+        "hardwareTechnicalParams",
         "utils",
         "hardwareCatalog"
       ],
@@ -3735,6 +3743,7 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
@@ -3846,6 +3855,72 @@
       "risk": "niskie",
       "reasons": [
         "250+ linii"
+      ]
+    },
+    "js/app/catalog/hardware-technical-params.js": {
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 265,
+      "defines": [
+        "hardwareTechnicalParams"
+      ],
+      "uses": [
+        "hardwareTechnicalParams"
+      ],
+      "incomingFiles": [
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/catalog/hardware-supplier-price-export.js",
+        "js/app/catalog/hardware-supplier-price-import.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-supplier-prices.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/material/price-modal-list.js",
+        "js/app/material/price-modal-options.js",
+        "js/app/material/price-modal-persistence.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii",
+        "kilka zależnych plików"
       ]
     },
     "js/app/investor/investor-actions.js": {
@@ -5687,14 +5762,16 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 210,
+      "lines": 209,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
       "uses": [
         "priceModalContext",
+        "hardwareTechnicalParams",
         "utils",
         "hardwareCatalog",
+        "infoBox",
         "panelBox",
         "priceModalHardwareDictionaries"
       ],
@@ -5702,18 +5779,22 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-context.js",
         "js/app/shared/utils.js",
+        "js/app/ui/info-box.js",
         "js/app/ui/panel-box.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 18,
+      "domRefs": 26,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/material/price-modal-hardware-filter-sort.js": {
       "area": "MATERIAŁ",
@@ -5741,26 +5822,32 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 280,
+      "lines": 435,
       "defines": [],
       "uses": [
         "priceModalContext",
-        "hardwareCatalog"
+        "hardwareCatalog",
+        "hardwareTechnicalParams",
+        "infoBox",
+        "panelBox"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog.js",
-        "js/app/material/price-modal-context.js"
+        "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/ui/info-box.js",
+        "js/app/ui/panel-box.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 1,
+      "domRefs": 13,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "400+ linii"
       ]
     },
     "js/app/material/price-modal-hardware-import-export.js": {
@@ -11120,7 +11207,7 @@
     "js/app/shared/constants.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 40,
+      "lines": 41,
       "defines": [
         "constants"
       ],
@@ -11766,7 +11853,7 @@
     "js/app/shared/data-storage-classifier.js": {
       "area": "DANE/STORAGE",
       "category": "store/storage",
-      "lines": 201,
+      "lines": 202,
       "defines": [
         "dataStorageClassifier"
       ],
@@ -14252,6 +14339,8 @@
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -14433,6 +14522,7 @@
         "js/app/material/price-modal-hardware-bundle.js",
         "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-filter-sort.js",
+        "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
         "js/app/material/price-modal-hardware-suppliers.js",
@@ -17844,7 +17934,7 @@
     "js/testing/material/accessories-import-export-deep-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 263,
+      "lines": 313,
       "defines": [
         "materialImportExportDeepTests"
       ],
@@ -17854,7 +17944,9 @@
         "hardwareCatalogImportExport",
         "hardwareSupplierPriceXlsx",
         "priceModalHardwarePriceConfirm",
+        "hardwareTechnicalParams",
         "hardwareCatalogExportXlsx",
+        "hardwareCatalogImportParser",
         "materialImportExportDeepTests"
       ],
       "incomingFiles": [
@@ -17864,7 +17956,9 @@
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
         "js/testing/shared/harness.js"
       ],
@@ -17878,13 +17972,14 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "250+ linii",
+        "kilka zależności wychodzących"
       ]
     },
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 451,
+      "lines": 491,
       "defines": [
         "materialAccessoryTests"
       ],
@@ -17894,6 +17989,7 @@
         "hardwareCatalog",
         "hardwareCatalogImportExport",
         "hardwareSupplierPriceXlsx",
+        "hardwareTechnicalParams",
         "hardwareCatalogExportXlsx",
         "hardwareCatalogImportParser",
         "hardwareCatalogImportPlan",
@@ -17917,6 +18013,7 @@
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-price-confirm.js",

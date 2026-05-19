@@ -13,6 +13,7 @@
     fc_project_backup_v1:{ category:'user', label:'Awaryjna kopia aktywnego projektu', description:'Starszy mechanizm zabezpieczenia aktywnego projektu.' },
     fc_sheet_materials_v1:{ category:'user', label:'Cennik materiałów płytowych', description:'Materiały, kolory i ceny używane w wycenach oraz ROZRYS.' },
     fc_program_defaults_v1:{ category:'user', label:'Domyślne materiały i okucia', description:'Globalne fallbacki programu dla materiałów i preferowanych marek okuć.' },
+    fc_hardware_technical_params_v1:{ category:'user', label:'Okucia — parametry techniczne', description:'Dynamiczne definicje parametrów technicznych dla kategorii okuć, używane w katalogu, imporcie/eksporcie i przyszłej zamianie producentów.' },
     fc_materials_v1:{ category:'user', label:'Cennik materiałów — legacy', description:'Starszy klucz zgodności dla materiałów.' },
     fc_accessories_v1:{ category:'user', label:'Akcesoria', description:'Pozycje akcesoriów używane w wycenach.' },
     fc_quote_rates_v1:{ category:'user', label:'Cennik usług do wycen', description:'Stawki używane przy ofertach meblowych.' },

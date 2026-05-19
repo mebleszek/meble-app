@@ -4,7 +4,7 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
-  const ACCESSORY_DIFF_FIELDS = ['name','hardwareUnit','manufacturer','hardwareCategory','hardwareSystem','hardwareType','symbol','drawerProfile','drawerLengthMm','drawerLoadKg','drawerReinforced','hardwareColor','hardwareUsage','technicalNote','bundleCostMode','note'];
+  const ACCESSORY_DIFF_FIELDS = ['name','hardwareUnit','manufacturer','hardwareCategory','hardwareSystem','hardwareType','symbol','drawerProfile','drawerLengthMm','drawerLoadKg','drawerReinforced','hardwareColor','hardwareUsage','technicalNote','technicalParams','bundleCostMode','note'];
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
@@ -92,7 +92,7 @@
     const suppliers = importedSuppliers.length ? importedSuppliers : storedSuppliers;
     return { manufacturers:manufacturers.map((name)=>({ value:name, label:name })), categories, units, settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {}, suppliers };
   }
-  function normalizeImportedAccessories(importRows, existing, warnings, errors, settings, suppliers){
+  function normalizeImportedAccessories(importRows, existing, warnings, errors, settings, suppliers, technicalParams){
     const existingIndex = indexExisting(existing);
     const usedIds = new Set();
     const importedByKey = new Map();
@@ -116,7 +116,7 @@
       if(!id) id = makeGeneratedId(src);
       if(usedIds.has(id)){ errors.push(`Okucia: zdublowane ID w importowanym pliku: ${id}`); return; }
       usedIds.add(id);
-      const normalizedRow = normalizeAccessory(Object.assign({}, src, { id }), settings);
+      const normalizedRow = normalizeAccessory(Object.assign({}, src, { id, hardwareTechnicalParams:technicalParams || [] }), settings);
       normalized.push(normalizedRow);
       importedByKey.set(text(normalizedRow.id), normalizedRow);
       importedByKey.set(signature(normalizedRow), normalizedRow);
@@ -184,7 +184,8 @@
     const suppliers = Array.isArray(data && data.suppliers) && data.suppliers.length ? data.suppliers.map(normalizeSupplier).filter((row)=> text(row && row.name)) : (s.getHardwareSuppliers ? s.getHardwareSuppliers() : []);
     const categories = Array.isArray(data && data.categories) && data.categories.length ? data.categories : (s.getHardwareCategories ? s.getHardwareCategories() : []);
     const types = Array.isArray(data && data.types) && data.types.length ? data.types : (s.getHardwareTypes ? s.getHardwareTypes() : []);
-    const importedAccessories = normalizeImportedAccessories(data && data.accessories, existing, warnings, errors, importedSettings, suppliers);
+    const technicalParams = Array.isArray(data && data.technicalParams) && data.technicalParams.length ? data.technicalParams : (s.getHardwareTechnicalParams ? s.getHardwareTechnicalParams() : []);
+    const importedAccessories = normalizeImportedAccessories(data && data.accessories, existing, warnings, errors, importedSettings, suppliers, technicalParams);
     let supplierPriceAccessorySummary = { created:0, skipped:0 };
     const supplierXlsx = FC.hardwareSupplierPriceXlsx || {};
     if(typeof supplierXlsx.createAccessoriesFromSupplierPriceRows === 'function'){
@@ -209,7 +210,7 @@
     const priceChanged = number(supplierPriceSummary.added) + number(supplierPriceSummary.updated);
     return {
       mode, errors, warnings,
-      next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings, categories, types },
+      next:{ accessories:nextAccessories, suppliers, manufacturers, settings:importedSettings, categories, types, technicalParams },
       summary:{ imported:importedAccessories.rows.length, accessoryRows:importedAccessories.rows.length, added:addCount, updated:accessoryUpdateCount, unchanged:unchangedCount, removed:removeCount, suppliers:suppliers.length, manufacturers:manufacturers.length, supplierPrices:supplierPriceSummary.rows || 0, supplierPricesAdded:supplierPriceSummary.added || 0, supplierPricesUpdated:supplierPriceSummary.updated || 0, supplierPricesUnchanged:supplierPriceSummary.unchanged || 0, supplierPricesSkipped:supplierPriceSummary.skipped || 0, supplierPriceCreatedAccessories:supplierPriceAccessorySummary.created || 0, supplierPriceCreateSkipped:supplierPriceAccessorySummary.skipped || 0, supplierPriceChanges:Array.isArray(supplierPriceSummary.changes) ? supplierPriceSummary.changes : [], totalChanged:accessoryUpdateCount + addCount + priceChanged }
     };
   }
@@ -221,6 +222,7 @@
     if(s.saveHardwareSuppliers) s.saveHardwareSuppliers(plan.next.suppliers || []);
     if(s.saveHardwareCategories) s.saveHardwareCategories(plan.next.categories || []);
     if(s.saveHardwareTypes) s.saveHardwareTypes(plan.next.types || []);
+    if(s.saveHardwareTechnicalParams) s.saveHardwareTechnicalParams(plan.next.technicalParams || []);
     s.savePriceList('accessories', plan.next.accessories || []);
     if(s.saveHardwareManufacturers) s.saveHardwareManufacturers(plan.next.manufacturers || []);
     return plan.summary || {};

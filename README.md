@@ -554,3 +554,16 @@ node tools/service-pro100-dev-smoke.js
 - Katalog okuć obsługuje teraz `System okucia` oraz techniczne dane szuflad/prowadnic: profil, długość, nośność, wzmocnienie, kolor i zastosowanie.
 - Pełne dane techniczne uzupełnia się masowo w arkuszu `Okucia`; arkusz `Ceny_dostawcow` nadal nadaje się do szybkiej aktualizacji cen, a techniczne kolumny są opcjonalne.
 - Szczegóły: `tools/reports/hardware-technical-data-excel-v1.md`.
+
+
+## 2026-05-20 — hardware_dynamic_technical_params_v1
+
+- Dodano dynamiczne parametry techniczne okuć definiowane per kategoria.
+- Dodano moduł `js/app/catalog/hardware-technical-params.js` jako centralny model definicji, wartości, zakresów i porównywania parametrów.
+- Słowniki okuć pozwalają edytować parametry techniczne w akordeonach kategorii; parametry mogą być cechą kluczową i mogą budować automatyczne `Typ / cecha`.
+- Formularz okucia pokazuje w akordeonie `Dane techniczne` tylko pola przypisane do wybranej kategorii.
+- Parametry liczbowe obsługują pola `od` i `do`: samo `od` = wartość dokładna, `od` + `do` = zakres.
+- Dodano opisy pod ikoną `?` dla nazw parametrów, typów pól, jednostek, cechy kluczowej i sposobów porównania.
+- Dodano backupowany klucz `fc_hardware_technical_params_v1` oraz klasyfikację storage.
+- Import/export XLSX dostał `Parametry_techniczne` i arkusze grupowe `Okucia_<kategoria>`, przy zachowaniu szybkiego arkusza `Ceny_dostawcow`.
+- Szczegóły etapu: `tools/reports/hardware-dynamic-technical-params-v1.md`.

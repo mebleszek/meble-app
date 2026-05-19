@@ -25,6 +25,7 @@
       manufacturers:s && s.getHardwareManufacturers ? s.getHardwareManufacturers() : [],
       categories:s && s.getHardwareCategories ? s.getHardwareCategories() : [],
       types:s && s.getHardwareTypes ? s.getHardwareTypes() : [],
+      technicalParams:s && s.getHardwareTechnicalParams ? s.getHardwareTechnicalParams() : [],
     };
   }
   function restore(snap){
@@ -34,6 +35,7 @@
     if(s.saveHardwareSettings) s.saveHardwareSettings(clone(snap.settings || {}));
     if(s.saveHardwareCategories) s.saveHardwareCategories(clone(snap.categories || []));
     if(s.saveHardwareTypes) s.saveHardwareTypes(clone(snap.types || []));
+    if(s.saveHardwareTechnicalParams) s.saveHardwareTechnicalParams(clone(snap.technicalParams || []));
     if(s.savePriceList) s.savePriceList('accessories', clone(snap.accessories || []));
     if(s.saveHardwareManufacturers) s.saveHardwareManufacturers(clone(snap.manufacturers || []));
   }
@@ -70,6 +72,7 @@
     s.saveHardwareManufacturers((cfg && cfg.manufacturers) || ['Blum','Peka','GTV']);
     s.saveHardwareCategories((cfg && cfg.categories) || ['Zawiasy','Szuflady / prowadnice','Cargo / organizery']);
     s.saveHardwareTypes((cfg && cfg.types) || [{ id:'type_110', name:'110° nakładany', allowedCategories:['Zawiasy'], active:true }]);
+    if(s.saveHardwareTechnicalParams) s.saveHardwareTechnicalParams(clone((cfg && cfg.technicalParams) || (FC.hardwareTechnicalParams && FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS) || []));
     return s.savePriceList('accessories', clone(rows || [baseAccessory()]));
   }
   function stored(id){ return (store().getAccessories() || []).find((row)=> text(row && row.id) === text(id)); }
@@ -217,6 +220,53 @@
         H.assert(!empty.some((cell)=> cell && typeof cell === 'object' && Object.prototype.hasOwnProperty.call(cell, 'formula')), 'Pusty wiersz Ceny_dostawcow ma formułę', empty);
         const payload = exporter.makeExportPayload();
         H.assert(payload && payload.data && Array.isArray(payload.data.suppliers) && !Object.prototype.hasOwnProperty.call(payload.data.suppliers[0] || {}, 'defaultVatRate'), 'Snapshot eksportu nadal trzyma VAT u dostawcy', payload.data.suppliers);
+      })),
+
+      H.makeTest('Akcesoria — głęboki import/export', 'Eksport tworzy arkusze grupowe z kolumnami parametrów kategorii', 'Chroni Excela przed jednym puchnącym arkuszem do wszystkich typów okuć.', ()=> withSnapshot(()=>{
+        const s = store();
+        const exporter = FC.hardwareCatalogExportXlsx;
+        H.assert(exporter && exporter._debug && exporter._debug.buildGroupedAccessorySheets, 'Brak eksportu arkuszy grupowych');
+        setup([baseAccessory({
+          id:'xlsx_hinge_1', manufacturer:'Blum', symbol:'HX-1', name:'Zawias grupowy', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
+          technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:110 }, hamulec:{ value:true } }
+        })], {
+          technicalParams:[
+            { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'choice', options:['nakładany'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
+            { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, typePart:true, active:true },
+            { category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, typePart:true, active:true },
+          ]
+        });
+        const snap = { accessories:s.getAccessories(), categories:s.getHardwareCategories(), technicalParams:s.getHardwareTechnicalParams() };
+        const sheets = exporter._debug.buildGroupedAccessorySheets(snap);
+        const sheet = sheets.Okucia_zawiasy || sheets.Okucia_Zawiasy;
+        H.assert(sheet && Array.isArray(sheet.rows), 'Brak arkusza Okucia_zawiasy', Object.keys(sheets));
+        const headers = sheet.rows[0];
+        H.assert(headers.includes('nalozenie') && headers.includes('kat_otwarcia_od') && headers.includes('kat_otwarcia_do') && headers.includes('hamulec'), 'Arkusz kategorii nie ma dynamicznych kolumn', headers);
+        const row = sheet.rows[1];
+        H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_otwarcia_od')]) === 110, 'Wiersz grupowy nie eksportuje wartości parametrów', { headers, row });
+      })),
+      H.makeTest('Akcesoria — głęboki import/export', 'Import arkusza grupowego odtwarza parametry i typ automatyczny', 'Chroni dodawanie nowych artykułów przez arkusze grupowe zamiast ręcznego klikania w programie.', ()=> withSnapshot(()=>{
+        const parser = FC.hardwareCatalogImportParser;
+        H.assert(parser && typeof parser.parseWorkbook === 'function', 'Brak parsera XLSX');
+        const workbook = {
+          Parametry_techniczne:[
+            ['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','cecha_kluczowa','buduje_typ','sposob_porownania','aktywna','kolejnosc','opis'],
+            ['Zawiasy','nalozenie','Nałożenie','choice','','nakładany; wpuszczany','TAK','TAK','equal','TAK','1',''],
+            ['Zawiasy','kat_otwarcia','Kąt otwarcia','numberRange','°','','TAK','TAK','withinRange','TAK','2','']
+          ],
+          Okucia_zawiasy:[
+            ['id','producent','system_okucia','symbol','nazwa','kategoria','jednostka','typ_cecha','nalozenie','kat_otwarcia_od','kat_otwarcia_do'],
+            ['grp_hinge_1','Blum','Blum CLIP top','HX-G1','Zawias grupowy','Zawiasy','szt.','','nakładany',90,110]
+          ],
+          Ceny_dostawcow:[['okucie_nazwa','okucie_symbol','producent','kategoria','jednostka','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]
+        };
+        const parsed = parser.parseWorkbook(workbook);
+        H.assert(parsed.technicalParams.length >= 2, 'Import nie odczytał definicji parametrów', parsed);
+        H.assert(parsed.accessories.length === 1, 'Import arkusza grupowego nie odczytał jednej pozycji', parsed.accessories);
+        const plan = build(parsed);
+        const row = (plan.next.accessories || []).find((item)=> item.id === 'grp_hinge_1');
+        H.assert(row && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.kat_otwarcia, 'Parametry techniczne nie przeszły do planu', row);
+        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°'), 'Typ nie został zbudowany z zakresu i cech', row);
       })),
 
       H.makeTest('Akcesoria — głęboki import/export', 'Potwierdzenie Zostaw starą zwraca plan bez aktualizacji', 'Sprawdza UI-confirm bez klikania ręcznego: pominięcie ma oznaczać brak zapisu.', ()=> withSnapshotAsync(async ()=>{

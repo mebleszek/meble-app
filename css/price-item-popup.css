@@ -434,3 +434,26 @@
 .hardware-tech-accordion__head[aria-expanded="true"] .hardware-tech-accordion__chevron{transform:rotate(225deg);margin-top:6px}
 .hardware-tech-accordion__body{border-top:1px solid rgba(226,232,240,.95);padding:12px 14px 14px;background:linear-gradient(180deg,#fff,#f8fafc)}
 .hardware-tech-toggle{align-self:end;min-height:42px;justify-content:center}
+
+/* Dynamiczne parametry techniczne okuć — 20260519 */
+#priceItemModal .hardware-dynamic-tech-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+#priceItemModal .hardware-dynamic-tech-field{min-width:0}
+#priceItemModal .hardware-tech-range-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#priceItemModal .hardware-tech-preview{margin-top:4px}
+@media(max-width:720px){#priceItemModal .hardware-dynamic-tech-grid{grid-template-columns:1fr}}
+
+/* Słowniki dynamicznych parametrów technicznych — 20260519 */
+#priceModal .hardware-tech-category-accordion,
+#priceItemModal .hardware-tech-category-accordion{border:2px solid rgba(31,41,55,.55);border-radius:18px;margin:10px 0;background:#fff;box-shadow:0 8px 0 rgba(31,41,55,.10),0 12px 24px rgba(15,23,42,.08);overflow:hidden}
+#priceModal .hardware-tech-category-summary,
+#priceItemModal .hardware-tech-category-summary{cursor:pointer;font-weight:900;font-size:18px;padding:14px 16px;list-style:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(226,232,240,.95)}
+#priceModal .hardware-tech-category-summary::-webkit-details-marker,
+#priceItemModal .hardware-tech-category-summary::-webkit-details-marker{display:none}
+#priceModal .hardware-tech-category-summary::after,
+#priceItemModal .hardware-tech-category-summary::after{content:"";width:14px;height:14px;border-right:4px solid #16a34a;border-bottom:4px solid #16a34a;transform:rotate(45deg);margin-right:6px;transition:transform .18s ease}
+#priceModal .hardware-tech-category-accordion[open] .hardware-tech-category-summary::after,
+#priceItemModal .hardware-tech-category-accordion[open] .hardware-tech-category-summary::after{transform:rotate(225deg)}
+#priceModal .hardware-tech-param-row,
+#priceItemModal .hardware-tech-param-row{border:1px solid rgba(226,232,240,.95);border-radius:16px;padding:12px;margin:10px;background:linear-gradient(180deg,#fff,#f8fafc)}
+#priceModal .hardware-cycle-btn,
+#priceItemModal .hardware-cycle-btn{width:100%;min-height:48px;text-align:left;justify-content:flex-start}

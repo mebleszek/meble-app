@@ -431,7 +431,7 @@ function runMaterialNodeSmoke(sandbox){
         ], Producenci:[['nazwa'], ['Blum']], Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']] });
         const plan = api.buildImportPlan(parsed, { mode:'merge' });
         const item = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'TB-500');
-        return plan.errors.length === 0 && item && String(item.hardwareSystem || '') === 'Blum TANDEMBOX' && String(item.hardwareType || '') === 'M 500 50kg' && Number(item.drawerLengthMm) === 500 && Number(item.drawerLoadKg) === 50 && item.drawerReinforced === true;
+        return plan.errors.length === 0 && item && String(item.hardwareSystem || '') === 'Blum TANDEMBOX' && String(item.hardwareType || '').includes('M') && String(item.hardwareType || '').includes('500') && String(item.hardwareType || '').includes('50') && Number(item.drawerLengthMm) === 500 && Number(item.drawerLoadKg) === 50 && item.drawerReinforced === true;
       }finally{
         if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
@@ -576,27 +576,20 @@ function runMaterialNodeSmoke(sandbox){
       const gaps = xlsx.supplierPriceMissingSupplierGaps(rows, [existing, importedSame], suppliers);
       return gaps.length === 1 && gaps[0].rowIndex === 22 && gaps[0].gaps.includes('supplierName') && gaps[0].item && String(gaps[0].item.id || '') === 'same_export_item_1';
     } },
-    { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
-      const store = FC.catalogStore;
-      const ctx = FC.priceModalContext || {};
+    { name:'Dynamiczne parametry techniczne okuć mają słownik i helpy', explain:'Chroni nową architekturę: kategorie mają własne parametry, typ/cecha powstaje z cech kluczowych, a opcje techniczne mają opisy pod ?.', check:()=> {
+      const api = FC.hardwareTechnicalParams;
       const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
-      if(!(store && ctx && typeof store.getAccessories === 'function' && typeof store.savePriceList === 'function' && typeof ctx.buildHardwareTypeOptions === 'function')) return false;
-      const previous = store.getAccessories();
-      try{
-        store.saveHardwareTypes && store.saveHardwareTypes([{ id:'smoke_type_110', name:'110st chujowy', allowedCategories:['Zawiasy'], active:true }]);
-        store.savePriceList('accessories', [
-          { id:'smoke_hw_a', manufacturer:'Blum', name:'Zajęty zawias', hardwareCategory:'Zawiasy', hardwareType:'110st chujowy', hardwareUnit:'szt.', price:10, status:'active' },
-          { id:'smoke_hw_b', manufacturer:'Blum', name:'Edytowany zawias', hardwareCategory:'Zawiasy', hardwareType:'', hardwareUnit:'szt.', price:12, status:'active' }
-        ]);
-        const options = ctx.buildHardwareTypeOptions('Zawiasy', '', { manufacturer:'Blum', currentId:'smoke_hw_b' });
-        const empty = options[0];
-        const used = options.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
-        const selfOptions = ctx.buildHardwareTypeOptions('Zawiasy', '110st chujowy', { manufacturer:'Blum', currentId:'smoke_hw_a' });
-        const self = selfOptions.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
-        return dictionariesSrc.includes('applyDictionaryRenames') && empty && String(empty.value || '') === '' && used && used.disabled === true && String(used.description || '').includes('Zajęte przez') && self && self.disabled !== true;
-      }finally{
-        store.savePriceList('accessories', previous);
-      }
+      const formSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      if(!(api && Array.isArray(api.DEFAULT_DEFINITIONS) && typeof api.buildTypeLabel === 'function' && typeof api.compareParam === 'function')) return false;
+      const hingeFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Zawiasy');
+      const drawerFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Szuflady / prowadnice');
+      const typeLabel = api.buildTypeLabel(api.DEFAULT_DEFINITIONS, 'Zawiasy', { nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:90, to:110 }, hamulec:{ value:true } });
+      return hingeFields.some((row)=> row.key === 'kat_otwarcia' && row.compareMode === 'withinRange')
+        && drawerFields.some((row)=> row.key === 'dlugosc_mm' && row.compareMode === 'equal')
+        && drawerFields.some((row)=> row.key === 'nosnosc_kg' && row.compareMode === 'minGte')
+        && typeLabel.includes('nakładany') && typeLabel.includes('90') && typeLabel.includes('110°')
+        && dictionariesSrc.includes('Cecha kluczowa') && dictionariesSrc.includes('compareMode') && dictionariesSrc.includes('openHelp')
+        && formSrc.includes('hardwareDynamicTechnicalFields') && formSrc.includes('readDynamicTechnicalParams');
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

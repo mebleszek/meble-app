@@ -33,7 +33,26 @@
     if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeSupplier === 'function') return FC.hardwareCatalog.normalizeSupplier(row || {});
     return Object.assign({}, row || {});
   }
-  function parseAccessoryRow(row){
+  function parseAccessoryRow(row, technicalParams){
+    const baseCategory = text(valueFrom(row, ['kategoria','hardwareCategory']));
+    const api = FC.hardwareTechnicalParams || {};
+    const defs = api.normalizeDefinitions ? api.normalizeDefinitions(technicalParams || api.DEFAULT_DEFINITIONS || [], [baseCategory]) : (technicalParams || []);
+    const dynamic = {};
+    (api.fieldsForCategory ? api.fieldsForCategory(defs, baseCategory) : []).forEach((field)=>{
+      const key = api.columnKeyForField ? api.columnKeyForField(field) : field.key;
+      if(field.fieldType === 'numberRange'){
+        const keys = api.rangeColumnKeys ? api.rangeColumnKeys(field) : { from:key + '_od', to:key + '_do' };
+        const from = valueFrom(row, [keys.from, key]);
+        const to = valueFrom(row, [keys.to]);
+        if(text(from) || text(to)) dynamic[field.key] = { from:optionalNumber(from), to:text(to) ? optionalNumber(to) : '' };
+      }else if(field.fieldType === 'boolean'){
+        const val = valueFrom(row, [key]);
+        if(text(val)) dynamic[field.key] = { value:bool(val) };
+      }else{
+        const val = valueFrom(row, [key]);
+        if(text(val)) dynamic[field.key] = { value:text(val) };
+      }
+    });
     return {
       __rowIndex:Number(row && row.__rowIndex) || 0,
       id:text(valueFrom(row, ['id'])),
@@ -53,6 +72,7 @@
       hardwareColor:text(valueFrom(row, ['kolor_okucia','hardwareColor'])),
       hardwareUsage:text(valueFrom(row, ['zastosowanie','hardwareUsage'])),
       technicalNote:text(valueFrom(row, ['uwagi_techniczne','technicalNote'])),
+      technicalParams:dynamic,
       supplierId:text(valueFrom(row, ['dostawca_id','dostawca','supplierId'])),
       priceSource:text(valueFrom(row, ['zrodlo_ceny','priceSource'])),
       priceUpdatedAt:text(valueFrom(row, ['data_ceny','priceUpdatedAt'])),
@@ -73,13 +93,34 @@
   }
   function parseCategoryRow(row){ return text(valueFrom(row, ['nazwa','name','kategoria'])); }
   function parseTypeRow(row){ return { id:text(valueFrom(row, ['id'])), name:text(valueFrom(row, ['nazwa','name','typ_cecha'])), allowedCategories:text(valueFrom(row, ['dozwolone_kategorie','allowedCategories'])).split(/[;,]/).map(text).filter(Boolean), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true }; }
+  function parseTechnicalParamRow(row){ return { id:text(valueFrom(row, ['id'])), category:text(valueFrom(row, ['kategoria','category'])), key:text(valueFrom(row, ['klucz','key'])), label:text(valueFrom(row, ['nazwa','label','name'])), fieldType:text(valueFrom(row, ['typ_pola','fieldType'])), unit:text(valueFrom(row, ['jednostka','unit'])), options:text(valueFrom(row, ['wartosci','options'])).split(/[;|]/).map(text).filter(Boolean), keyFeature:text(valueFrom(row, ['cecha_kluczowa','keyFeature'])) ? bool(valueFrom(row, ['cecha_kluczowa','keyFeature'])) : true, typePart:text(valueFrom(row, ['tworzy_typ','typePart'])) ? bool(valueFrom(row, ['tworzy_typ','typePart'])) : true, compareMode:text(valueFrom(row, ['sposob_porownania','compareMode'])), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true, order:optionalNumber(valueFrom(row, ['kolejnosc','order'])) }; }
   function parseSupplierRow(row){ return normalizeSupplier({ id:text(valueFrom(row, ['id'])), name:text(valueFrom(row, ['nazwa','name'])), defaultDiscountPercent:number(valueFrom(row, ['rabat_domyslny_proc','defaultDiscountPercent'])), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true }); }
+  function accessoryKey(row){
+    const id = text(row && row.id);
+    if(id) return 'id:' + id;
+    return ['sig', text(row && row.manufacturer).toLowerCase(), text(row && row.symbol).toLowerCase(), text(row && row.name).toLowerCase()].join('|');
+  }
+  function dedupeAccessories(rows){
+    const byKey = new Map();
+    (rows || []).forEach((row)=>{
+      const key = accessoryKey(row);
+      if(!key || key === 'sig|||') return;
+      byKey.set(key, Object.assign({}, byKey.get(key) || {}, row));
+    });
+    return Array.from(byKey.values());
+  }
   function parseWorkbook(workbook){
     const sheet = (name)=> workbook[name] || workbook[Object.keys(workbook || {}).find((key)=> headerKey(key) === headerKey(name))] || [];
-    const accessories = rowsToObjects(sheet('Okucia'), { kind:'accessories' }).map(parseAccessoryRow);
+    const categories = rowsToObjects(sheet('Kategorie_okuc')).map(parseCategoryRow).filter(Boolean);
+    const technicalParams = rowsToObjects(sheet('Parametry_techniczne')).map(parseTechnicalParamRow).filter((row)=> text(row && row.category) && text(row && row.key));
+    let accessories = rowsToObjects(sheet('Okucia'), { kind:'accessories' }).map((row)=> parseAccessoryRow(row, technicalParams));
+    Object.keys(workbook || {}).forEach((sheetName)=>{
+      if(headerKey(sheetName).indexOf('okucia_') !== 0 || headerKey(sheetName) === 'okucia') return;
+      rowsToObjects(sheet(sheetName), { kind:'accessories' }).map((row)=> parseAccessoryRow(row, technicalParams)).forEach((row)=> accessories.push(row));
+    });
+    accessories = dedupeAccessories(accessories);
     const suppliers = rowsToObjects(sheet('Dostawcy')).map(parseSupplierRow).filter((row)=> text(row && row.name));
     const manufacturers = rowsToObjects(sheet('Producenci')).map((row)=> text(valueFrom(row, ['nazwa','name','producent']))).filter(Boolean);
-    const categories = rowsToObjects(sheet('Kategorie_okuc')).map(parseCategoryRow).filter(Boolean);
     const types = rowsToObjects(sheet('Typy_cechy')).map(parseTypeRow).filter((row)=> text(row && row.name));
     const settings = {};
     rowsToObjects(sheet('Ustawienia')).forEach((row)=>{ const key = text(valueFrom(row, ['klucz','key'])); if(key) settings[key] = valueFrom(row, ['wartosc','value']); });
@@ -87,7 +128,7 @@
     const bundleRows = rowsToObjects(sheet('Sklad_zestawow')).map((row)=>({
       bundleId:text(valueFrom(row, ['zestaw_id','bundleId'])), bundleSymbol:text(valueFrom(row, ['zestaw_symbol','bundleSymbol'])), bundleName:text(valueFrom(row, ['zestaw_nazwa','bundleName'])), itemId:text(valueFrom(row, ['skladnik_id','itemId'])), itemSymbol:text(valueFrom(row, ['skladnik_symbol','itemSymbol'])), itemName:text(valueFrom(row, ['skladnik_nazwa','itemName'])), itemUnit:text(valueFrom(row, ['jednostka_skladnika','itemUnit'])), itemManufacturer:text(valueFrom(row, ['producent_skladnika','itemManufacturer'])), itemCategory:text(valueFrom(row, ['kategoria_skladnika','itemCategory'])), qty:number(valueFrom(row, ['ilosc','qty']))
     })).filter((row)=> row.qty > 0 && (row.bundleId || row.bundleName || row.itemId || row.itemName));
-    return { accessories, manufacturers, suppliers, settings, categories, types, bundleRows, supplierPriceRows };
+    return { accessories, manufacturers, suppliers, settings, categories, types, technicalParams, bundleRows, supplierPriceRows };
   }
   function parseJson(raw){
     const payload = JSON.parse(raw);
@@ -110,6 +151,7 @@
     parseAccessoryRow,
     parseCategoryRow,
     parseTypeRow,
+    parseTechnicalParamRow,
     parseSupplierRow,
     _debug:{ valueFrom, headerKey, hasMeaningfulAccessoryData, rowsToObjects, parseAccessoryRow, parseWorkbook }
   };

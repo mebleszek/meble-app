@@ -59,6 +59,7 @@ const INDEX_LOAD_GROUPS = [
     "id": "business-domains",
     "label": "Catalog / service / investor domains",
     "scripts": [
+      "js/app/catalog/hardware-technical-params.js",
       "js/app/catalog/hardware-catalog.js",
       "js/app/catalog/hardware-catalog-seed-data.js",
       "js/app/catalog/hardware-catalog-seeds.js",

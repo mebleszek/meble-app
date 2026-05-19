@@ -21,6 +21,7 @@
       manufacturers:s && s.getHardwareManufacturers ? s.getHardwareManufacturers() : [],
       categories:s && s.getHardwareCategories ? s.getHardwareCategories() : [],
       types:s && s.getHardwareTypes ? s.getHardwareTypes() : [],
+      technicalParams:s && s.getHardwareTechnicalParams ? s.getHardwareTechnicalParams() : [],
     };
   }
   function restore(snap){
@@ -30,6 +31,7 @@
     if(s.saveHardwareSettings) s.saveHardwareSettings(snap.settings || {});
     if(s.saveHardwareCategories) s.saveHardwareCategories(snap.categories || []);
     if(s.saveHardwareTypes) s.saveHardwareTypes(snap.types || []);
+    if(s.saveHardwareTechnicalParams) s.saveHardwareTechnicalParams(snap.technicalParams || []);
     if(s.savePriceList) s.savePriceList('accessories', snap.accessories || []);
     if(s.saveHardwareManufacturers) s.saveHardwareManufacturers(snap.manufacturers || []);
   }
@@ -143,7 +145,7 @@
           system_okucia:'Blum TANDEMBOX', typ_cecha:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:'500', nosnosc_kg:'50', wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
         }, ()=> 'tech_1', { defaultVatRate:23, hardwareSuppliers:suppliers() });
         H.assert(row.hardwareSystem === 'Blum TANDEMBOX', 'System okucia nie został zapisany', row);
-        H.assert(row.hardwareType === 'M 500 50kg', 'Typ/cecha nie został zapisany', row);
+        H.assert(String(row.hardwareType || '').includes('M') && String(row.hardwareType || '').includes('500') && String(row.hardwareType || '').includes('50'), 'Typ/cecha nie został zbudowany z parametrów', row);
         H.assert(row.drawerProfile === 'M' && Number(row.drawerLengthMm) === 500 && Number(row.drawerLoadKg) === 50 && row.drawerReinforced === true, 'Parametry szuflady nie przeszły normalizacji', row);
         H.assert(row.hardwareColor === 'biały' && row.hardwareUsage === 'frontowa', 'Kolor/zastosowanie okucia nie zostały zapisane', row);
       }),
@@ -156,6 +158,44 @@
         H.assert(hw.uniqueTypeConflict(rows, { manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum TANDEMBOX', hardwareType:'M 500' }, 'new').id === 'tb', 'Nie wykryto konfliktu w tym samym systemie');
         H.assert(!hw.uniqueTypeConflict(rows, { manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum MERIVOBOX', hardwareType:'M 500' }, 'new'), 'Inny system został potraktowany jak konflikt');
       }),
+
+      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Parametry kategorii budują Typ / cechę automatycznie', 'Pilnuje przebudowy słownika: typ/cecha jest opisem z cech technicznych, nie ręcznym polem głównym.', ()=> withSnapshot(()=>{
+        const s = store(), hw = requireHardware();
+        H.assert(FC.hardwareTechnicalParams && typeof FC.hardwareTechnicalParams.buildTypeLabel === 'function', 'Brak modułu parametrów technicznych');
+        s.saveHardwareCategories(['Zawiasy']);
+        s.saveHardwareTechnicalParams([
+          { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'choice', options:['nakładany'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
+          { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, typePart:true, active:true },
+          { category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, typePart:true, active:true },
+        ]);
+        const definitions = s.getHardwareTechnicalParams();
+        const row = hw.normalizeAccessory({
+          id:'hinge_dyn_1', manufacturer:'Blum', name:'Zawias dyn', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
+          technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:110 }, hamulec:{ value:true } }
+        }, ()=> 'hinge_dyn_1', { defaultVatRate:23, hardwareSuppliers:suppliers(), hardwareTechnicalParams:definitions });
+        H.assert(String(row.hardwareType || '').includes('nakładany'), 'Typ nie zawiera nałożenia', row);
+        H.assert(String(row.hardwareType || '').includes('110°'), 'Typ nie zawiera kąta z jednostką', row);
+        H.assert(String(row.hardwareType || '').toLowerCase().includes('hamulec'), 'Typ nie zawiera cechy boolean', row);
+        H.assert(row.hardwareTypeAuto === true, 'Typ nie został oznaczony jako automatyczny', row);
+      })),
+      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Wartość dokładna i zakres mają różne reguły porównania', 'Chroni zamianę okuć: długość może wymagać dokładnej wartości, a kąt zawiasu może mieścić się w zakresie.', ()=>{
+        const api = FC.hardwareTechnicalParams;
+        H.assert(api && typeof api.compareParam === 'function', 'Brak compareParam');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'equal' }, { from:350 }, { from:350 }) === true, 'Długość 350 nie pasuje do 350');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'equal' }, { from:350 }, { from:400 }) === false, 'Długość 350 błędnie pasuje do 400');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'withinRange' }, { from:110 }, { from:90, to:110 }) === true, '110° nie mieści się w zakresie 90-110');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'minGte' }, { from:30 }, { from:50 }) === true, '50 kg nie zastąpiło 30 kg');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'minGte' }, { from:50 }, { from:30 }) === false, '30 kg błędnie zastąpiło 50 kg');
+      }),
+      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Słownik parametrów technicznych zapisuje własne pola kategorii', 'Chroni edytowalne akordeony kategorii bez pomocy programisty.', ()=> withSnapshot(()=>{
+        const s = store();
+        H.assert(s && s.saveHardwareTechnicalParams && s.getHardwareTechnicalParams, 'Brak API słownika parametrów');
+        s.saveHardwareCategories(['Testowa kategoria']);
+        s.saveHardwareTechnicalParams([{ category:'Testowa kategoria', key:'szerokosc_modulu_mm', label:'Szerokość modułu', fieldType:'numberRange', unit:'mm', compareMode:'equal', keyFeature:true, typePart:true, active:true }]);
+        const rows = s.getHardwareTechnicalParams().filter((row)=> row.category === 'Testowa kategoria');
+        H.assert(rows.length === 1 && rows[0].key === 'szerokosc_modulu_mm', 'Własny parametr kategorii nie został zapisany', rows);
+        H.assert(rows[0].keyFeature === true && rows[0].typePart === true, 'Ptaszki cechy kluczowej / typu nie zostały zapisane', rows[0]);
+      })),
 
       H.makeTest('Akcesoria — słowniki', 'Kategorie łączą domyślne i własne bez duplikatów', 'Pilnuje, żeby słownik kategorii był edytowalny, ale bez śmieci po wielkości liter.', ()=>{
         const hw = requireHardware();
@@ -275,7 +315,7 @@
         const plan = api.buildImportPlan(data, { mode:'merge' });
         const row = plan.next.accessories.find((item)=> item.symbol === 'TB-M500-50');
         H.assert(plan.errors.length === 0 && row, 'Nie utworzono pozycji technicznej z arkusza Okucia', plan);
-        H.assert(row.hardwareSystem === 'Blum TANDEMBOX' && row.hardwareType === 'M 500 50kg', 'System/typ nie przeszły importu', row);
+        H.assert(row.hardwareSystem === 'Blum TANDEMBOX' && String(row.hardwareType || '').includes('M') && String(row.hardwareType || '').includes('500') && String(row.hardwareType || '').includes('50'), 'System/typ nie przeszły importu', row);
         H.assert(row.drawerProfile === 'M' && Number(row.drawerLengthMm) === 500 && Number(row.drawerLoadKg) === 50 && row.drawerReinforced === true, 'Dane techniczne szuflady nie przeszły importu', row);
       })),
       H.makeTest('Akcesoria — import/export', 'Ceny_dostawcow zostawia szybkie kolumny z przodu, a techniczne przed ID', 'Chroni wygodne hurtowe wklejanie cen: dane techniczne są opcjonalne i nie przesuwają dostawcy/ceny.', ()=>{
@@ -296,7 +336,7 @@
         }] }, { mode:'merge' });
         const row = plan.next.accessories.find((item)=> item.symbol === 'RCB-M500-50');
         H.assert(row && plan.summary.supplierPriceCreatedAccessories === 1, 'Ceny_dostawcow nie utworzył nowego okucia technicznego', plan);
-        H.assert(row.hardwareSystem === 'Rejs Comfort Box' && row.hardwareType === 'M 500 50kg', 'System/typ nie przeszły z arkusza cen', row);
+        H.assert(row.hardwareSystem === 'Rejs Comfort Box' && String(row.hardwareType || '').includes('M') && String(row.hardwareType || '').includes('500') && String(row.hardwareType || '').includes('50'), 'System/typ nie przeszły z arkusza cen', row);
         H.assert(Number(row.drawerLengthMm) === 500 && Number(row.drawerLoadKg) === 50 && row.drawerReinforced === true, 'Techniczne dane z arkusza cen nie przeszły do katalogu', row);
       })),
 

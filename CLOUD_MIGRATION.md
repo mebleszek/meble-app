@@ -719,3 +719,12 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Nowe pola (`hardwareSystem`, `drawerProfile`, `drawerLengthMm`, `drawerLoadKg`, `drawerReinforced`, `hardwareColor`, `hardwareUsage`, `technicalNote`) są mapowalne bezpośrednio na przyszłe pola dokumentu okucia w chmurze.
 - Import/export XLSX/JSON przenosi nowe pola jako część rekordu okucia. Arkusz `Ceny_dostawcow` może używać tych pól przy tworzeniu nowego okucia, ale szybka aktualizacja ceny istniejącej pozycji nie nadpisuje danych technicznych.
 - `series` pozostaje legacy aliasem dla `hardwareSystem`; przy migracji chmurowej docelowym polem jest `hardwareSystem`.
+
+
+## 2026-05-20 — hardware_dynamic_technical_params_v1
+
+- Dodano nowy klucz danych użytkownika `fc_hardware_technical_params_v1` dla definicji dynamicznych parametrów technicznych okuć.
+- Klucz jest objęty backupem i klasyfikacją danych użytkownika.
+- Rekordy okuć mogą zawierać nowe pole `technicalParams`, które będzie potrzebne przy przyszłej chmurze, liście zakupowej i zamianie producentów/systemów okuć.
+- Import/export XLSX obsługuje definicje parametrów przez arkusz `Parametry_techniczne` oraz arkusze grupowe `Okucia_<kategoria>`.
+- Szybka aktualizacja cen przez `Ceny_dostawcow` pozostaje niezależna od pełnych danych technicznych, żeby nie blokować pracy z cennikami dostawców.

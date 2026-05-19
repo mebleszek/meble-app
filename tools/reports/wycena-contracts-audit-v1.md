@@ -1,4 +1,4 @@
-# WYCENA architecture audit v1 — 2026-05-18
+# WYCENA architecture audit v1 — 2026-05-19
 
 Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI, danych ani storage.
 
