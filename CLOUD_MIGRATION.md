@@ -122,6 +122,8 @@ Kierunek: w chmurze trzymać dane wejściowe i ewentualnie zapisany wynik tylko 
 
 ### Backupy
 
+Szczegółowy aktualny kontrakt lokalnego backupu jest w `BACKUP.md`. Przy każdej zmianie backupu, storage, eksportu/importu danych i testów bezpieczeństwa danych czytać `BACKUP.md` razem z tym plikiem.
+
 Obecnie: `fc_data_backups_v1` w localStorage, z retencją programu i testów.
 
 Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm backupów chmurowych, ale nie przez wrzucanie całego localStorage jako jednego trwałego dokumentu bez kontroli rozmiaru i zakresu.

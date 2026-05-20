@@ -567,3 +567,8 @@ node tools/service-pro100-dev-smoke.js
 - Dodano backupowany klucz `fc_hardware_technical_params_v1` oraz klasyfikację storage.
 - Import/export XLSX dostał `Parametry_techniczne` i arkusze grupowe `Okucia_<kategoria>`, przy zachowaniu szybkiego arkusza `Ceny_dostawcow`.
 - Szczegóły etapu: `tools/reports/hardware-dynamic-technical-params-v1.md`.
+
+
+## Dokumentacja backupu
+
+Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów znajduje się w `BACKUP.md`.

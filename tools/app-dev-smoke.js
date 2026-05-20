@@ -140,6 +140,19 @@ function runDataNodeSmoke(sandbox){
         && html.includes('20260516_room_zone_preferences_v1');
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
+    { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
+      const backupDoc = fs.readFileSync(path.join(process.cwd(), 'BACKUP.md'), 'utf8');
+      const devDoc = fs.readFileSync(path.join(process.cwd(), 'DEV.md'), 'utf8');
+      const cloudDoc = fs.readFileSync(path.join(process.cwd(), 'CLOUD_MIGRATION.md'), 'utf8');
+      return backupDoc.includes('fc_data_backups_v1')
+        && backupDoc.includes('data-storage-keys.js')
+        && backupDoc.includes('fc_rozrys_plan_cache_v1')
+        && backupDoc.includes('before-tests')
+        && backupDoc.includes('fc_hardware_technical_params_v1')
+        && backupDoc.includes('[object Object]')
+        && devDoc.includes('BACKUP.md')
+        && cloudDoc.includes('BACKUP.md');
+    } },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },
   ]);
 }

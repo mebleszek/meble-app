@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_deep_tests_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_backup_documentation_audit_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -13,7 +13,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 1. Startować z ostatniego ZIP-a zaakceptowanego w rozmowie.
 2. Przed zmianami przeczytać aktualny `DEV.md`.
-3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`.
+3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`. Przy zmianach backupu/storage dodatkowo przeczytać `BACKUP.md`.
 4. Przy większych porządkach, splitach albo szukaniu duplikacji między działami przeczytać też `OPTIMIZATION_PLAN.md`.
 5. Przed refaktorem większego pliku albo modułu z zależnościami sprawdzić `DEPENDENCY_MAP.md` i w razie potrzeby uruchomić `node tools/dependency-source-audit.js`.
 6. Przed wydaniem uruchomić przynajmniej:
@@ -894,7 +894,7 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 
 ## Hardware import/export deep tests v1 — 2026-05-14
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_deep_tests_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_backup_documentation_audit_v1.zip`.
 - Baza startowa: `site_hardware_import_export_refactor_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
 - Dodano głęboką suite testów import/export okuć `js/testing/material/accessories-import-export-deep-tests.js` i podpięto ją pod `MATERIAŁY` w `dev_tests.html`.
 - Dodano narzędzie Node `tools/hardware-import-export-deep-smoke.js`, żeby można było uruchomić same scenariusze import/export bez klikania w przeglądarce.
