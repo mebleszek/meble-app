@@ -76,12 +76,35 @@
   };
 
   function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; } }
-  function text(value){ return String(value == null ? '' : value).trim(); }
-  function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
+  function scalarValue(value, depth){
+    if(value == null) return '';
+    if(depth > 4) return '';
+    if(typeof value === 'string') return value === '[object Object]' ? '' : value;
+    if(typeof value === 'number' || typeof value === 'boolean') return value;
+    if(Array.isArray(value)) return value.map((item)=> text(item)).filter(Boolean).join('; ');
+    if(value && typeof value === 'object'){
+      const keys = ['value','label','name','text','title','id','key'];
+      for(let i = 0; i < keys.length; i += 1){
+        if(Object.prototype.hasOwnProperty.call(value, keys[i])){
+          const resolved = scalarValue(value[keys[i]], (depth || 0) + 1);
+          if(text(resolved)) return resolved;
+        }
+      }
+      return '';
+    }
+    return '';
+  }
+  function text(value){ return String(scalarValue(value, 0)).trim(); }
+  function number(value){ const n = Number(text(value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
   function safeKey(value){
     return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || '';
   }
-  function bool(value){ const raw = text(value).toLowerCase(); return ['tak','true','1','yes','y'].includes(raw); }
+  function bool(value){
+    if(value === true) return true;
+    if(value === false) return false;
+    const raw = text(value).toLowerCase();
+    return ['tak','true','1','yes','y'].includes(raw);
+  }
   function uniqueKey(category, key){ return safeKey(category) + '|' + safeKey(key); }
   function normalizeCompareMode(value){ const raw = text(value) || 'equal'; return DEFAULT_COMPARE_MODES.some((row)=> row.value === raw) ? raw : 'equal'; }
   function normalizeFieldType(value){ const raw = text(value) || 'text'; return DEFAULT_FIELD_TYPES.some((row)=> row.value === raw) ? raw : 'text'; }
@@ -260,5 +283,6 @@
     sheetNameForCategory,
     columnKeyForField,
     rangeColumnKeys,
+    scalarText:text,
   };
 })();

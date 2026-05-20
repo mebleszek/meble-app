@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T06:05:16.563Z",
+  "generatedAt": "2026-05-20T18:40:49.392Z",
   "summary": {
     "jsFiles": 354,
     "indexScripts": 278,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 23,
-      "lines": 4439,
+      "lines": 4482,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12280,
+      "lines": 12323,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -190,24 +190,24 @@
       649
     ],
     [
-      "js/app/cabinet/cabinet-modal-standing-specials.js",
-      569
+      "js/app/catalog/hardware-catalog.js",
+      573
     ],
     [
-      "js/app/catalog/hardware-catalog.js",
-      555
+      "js/app/cabinet/cabinet-modal-standing-specials.js",
+      569
     ],
     [
       "js/app/catalog/catalog-store.js",
       524
     ],
     [
-      "js/app/rozrys/rozrys-render.js",
-      493
+      "js/testing/material/accessories-tests.js",
+      510
     ],
     [
-      "js/testing/material/accessories-tests.js",
-      491
+      "js/app/rozrys/rozrys-render.js",
+      493
     ],
     [
       "js/testing/rozrys/tests.js",
@@ -678,7 +678,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 555,
+      "lines": 573,
       "incoming": 16,
       "outgoing": 3,
       "secondLevel": 24,
@@ -1020,7 +1020,7 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 491,
+      "lines": 510,
       "incoming": 1,
       "outgoing": 14,
       "secondLevel": 1,
@@ -3423,7 +3423,7 @@
     "js/app/catalog/hardware-catalog-export-xlsx.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 206,
+      "lines": 207,
       "defines": [
         "hardwareCatalogExportXlsx"
       ],
@@ -3714,7 +3714,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 555,
+      "lines": 573,
       "defines": [
         "hardwareCatalog"
       ],
@@ -3860,7 +3860,7 @@
     "js/app/catalog/hardware-technical-params.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 265,
+      "lines": 289,
       "defines": [
         "hardwareTechnicalParams"
       ],
@@ -17934,7 +17934,7 @@
     "js/testing/material/accessories-import-export-deep-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 313,
+      "lines": 337,
       "defines": [
         "materialImportExportDeepTests"
       ],
@@ -17979,7 +17979,7 @@
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 491,
+      "lines": 510,
       "defines": [
         "materialAccessoryTests"
       ],

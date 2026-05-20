@@ -85,13 +85,14 @@
     const params = item && item.technicalParams || {};
     const value = params[field.key];
     if(!value) return '';
-    if(field.fieldType === 'boolean') return value.value ? 'TAK' : '';
+    const normalized = api && typeof api.normalizeParamValue === 'function' ? api.normalizeParamValue(field, value) : value;
+    if(field.fieldType === 'boolean') return normalized.value ? 'TAK' : '';
     if(field.fieldType === 'numberRange'){
-      const from = value.from != null ? value.from : '';
-      const to = value.to != null ? value.to : '';
+      const from = normalized.from != null ? normalized.from : '';
+      const to = normalized.to != null ? normalized.to : '';
       return { from, to };
     }
-    return value.value || '';
+    return api && typeof api.scalarText === 'function' ? api.scalarText(normalized.value) : text(normalized.value);
   }
   function groupColumnsForCategory(snap, category){
     const api = FC.hardwareTechnicalParams || {};

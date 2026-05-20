@@ -228,7 +228,7 @@ Pokrywają między innymi:
 - `fc_edge_v1` może rosnąć przez wpisy oklejania dla wielu wygenerowanych elementów; potrzebny później audyt osieroconych wpisów.
 - `fc_project_v1`, `fc_projects_v1` i `fc_project_inv_*_v1` nadal pokazują historyczną duplikację modelu projektu.
 - `fc_materials_v1` i `fc_sheet_materials_v1` oraz `fc_services_v1` i `fc_quote_rates_v1` są częściowo zdublowane dla zgodności.
-- W backupu z 2026-05-20 w `fc_accessories_v1` widoczne są wartości `"[object Object]"` w polach okuć/parametrów technicznych. To jest błąd serializacji danych katalogu okuć, nie oczekiwany element backupu. Wymaga osobnej poprawki w modelu/normalizacji okuć, a nie ręcznej zmiany backupu.
+- W backupu z 2026-05-20 w `fc_accessories_v1` widoczne były wartości `"[object Object]"` w polach okuć/parametrów technicznych. To był błąd serializacji danych katalogu okuć, nie element mechanizmu backupu. Od paczki `site_000_hardware_technical_params_serialization_fix_v1.zip` normalizacja katalogu i eksport arkuszy grupowych mają testy pilnujące, żeby taki zapis nie wracał.
 
 ## Minimalny zestaw testów po zmianie backupu/storage
 

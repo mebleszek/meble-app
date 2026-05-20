@@ -572,3 +572,9 @@ node tools/service-pro100-dev-smoke.js
 ## Dokumentacja backupu
 
 Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów znajduje się w `BACKUP.md`.
+
+## 2026-05-20 — hardware_technical_params_serialization_fix_v1
+
+- Naprawiono zapis dynamicznych parametrów technicznych okuć, żeby wartości z launcherów/list nie trafiały do katalogu i backupu jako `"[object Object]"`.
+- Eksport arkuszy grupowych XLSX czyści wartości parametrów przed zapisem.
+- Dodano testy antyregresyjne dla katalogu okuć, backupu pośredniego i import/export.

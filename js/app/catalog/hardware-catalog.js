@@ -64,8 +64,26 @@
     try{ return (FC.utils && typeof FC.utils.clone === 'function') ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
     catch(_){ return JSON.parse(JSON.stringify(value || null)); }
   }
-  function text(value){ return String(value == null ? '' : value).trim(); }
-  function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
+  function scalarValue(value, depth){
+    if(value == null) return '';
+    if(depth > 4) return '';
+    if(typeof value === 'string') return value === '[object Object]' ? '' : value;
+    if(typeof value === 'number' || typeof value === 'boolean') return value;
+    if(Array.isArray(value)) return value.map((item)=> text(item)).filter(Boolean).join('; ');
+    if(value && typeof value === 'object'){
+      const keys = ['value','label','name','text','title','id','key'];
+      for(let i = 0; i < keys.length; i += 1){
+        if(Object.prototype.hasOwnProperty.call(value, keys[i])){
+          const resolved = scalarValue(value[keys[i]], (depth || 0) + 1);
+          if(text(resolved)) return resolved;
+        }
+      }
+      return '';
+    }
+    return '';
+  }
+  function text(value){ return String(scalarValue(value, 0)).trim(); }
+  function number(value){ const n = Number(text(value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function optionalNumber(value){ return text(value) === '' ? '' : number(value); }
   function bool(value){ const raw = text(value).toLowerCase(); return ['tak','true','1','yes','y'].includes(raw); }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }

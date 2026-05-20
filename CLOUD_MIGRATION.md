@@ -730,3 +730,9 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Rekordy okuć mogą zawierać nowe pole `technicalParams`, które będzie potrzebne przy przyszłej chmurze, liście zakupowej i zamianie producentów/systemów okuć.
 - Import/export XLSX obsługuje definicje parametrów przez arkusz `Parametry_techniczne` oraz arkusze grupowe `Okucia_<kategoria>`.
 - Szybka aktualizacja cen przez `Ceny_dostawcow` pozostaje niezależna od pełnych danych technicznych, żeby nie blokować pracy z cennikami dostawców.
+
+## 2026-05-20 — hardware_technical_params_serialization_fix_v1
+
+- Doprecyzowano normalizację wartości `technicalParams` dla przyszłej chmury: wartości wyborów nie mogą być serializowane jako `"[object Object]"`; powinny być tekstem, liczbą, booleanem albo zakresem `{ from, to }`.
+- Stary tekst `"[object Object]"` jest traktowany jako śmieć i nie powinien być utrwalany dalej przy normalizacji katalogu okuć.
+- Nie dodano nowych kluczy storage ani nie zmieniono zakresu backupu.

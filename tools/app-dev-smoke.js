@@ -604,6 +604,25 @@ function runMaterialNodeSmoke(sandbox){
         && dictionariesSrc.includes('Cecha kluczowa') && dictionariesSrc.includes('compareMode') && dictionariesSrc.includes('openHelp')
         && formSrc.includes('hardwareDynamicTechnicalFields') && formSrc.includes('readDynamicTechnicalParams');
     } },
+    { name:'Parametry techniczne okuć nie zapisują [object Object]', explain:'Chroni backup i katalog: obiekty z launcherów/Exceli muszą zostać znormalizowane do tekstu, liczb albo zakresów.', check:()=> {
+      const hw = FC.hardwareCatalog;
+      if(!(hw && typeof hw.normalizeAccessory === 'function')) return false;
+      const row = hw.normalizeAccessory({
+        id:'smoke_object_object_1', manufacturer:'Blum', name:'Zawias smoke', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
+        technicalParams:{
+          nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } },
+          kat_otwarcia:{ from:{ value:'90' }, to:{ label:'110' } },
+          hamulec:{ value:{ value:true } }
+        }
+      }, ()=> 'smoke_object_object_1', { defaultVatRate:23, hardwareSuppliers:[] });
+      const raw = JSON.stringify(row);
+      return raw.indexOf('[object Object]') === -1
+        && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'nakładany'
+        && Number(row.technicalParams.kat_otwarcia.from) === 90
+        && Number(row.technicalParams.kat_otwarcia.to) === 110
+        && String(row.hardwareType || '').includes('nakładany')
+        && String(row.hardwareType || '').includes('110°');
+    } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
       if(!(api && api._debug && typeof api._debug.buildBundleRows === 'function')) return false;

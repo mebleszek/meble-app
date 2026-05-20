@@ -222,6 +222,30 @@
         H.assert(payload && payload.data && Array.isArray(payload.data.suppliers) && !Object.prototype.hasOwnProperty.call(payload.data.suppliers[0] || {}, 'defaultVatRate'), 'Snapshot eksportu nadal trzyma VAT u dostawcy', payload.data.suppliers);
       })),
 
+      H.makeTest('Akcesoria — głęboki import/export', 'Eksport arkuszy grupowych czyści obiekty wyboru z parametrów', 'Chroni backup i Excel: wartości dynamicznych parametrów nie mogą wyjść jako [object Object].', ()=> withSnapshot(()=>{
+        const s = store();
+        const exporter = FC.hardwareCatalogExportXlsx;
+        H.assert(exporter && exporter._debug && exporter._debug.buildGroupedAccessorySheets, 'Brak eksportu arkuszy grupowych');
+        setup([baseAccessory({
+          id:'xlsx_clean_object_1', manufacturer:'Blum', symbol:'HX-CLEAN', name:'Zawias clean', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
+          technicalParams:{ nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } }, kat_otwarcia:{ from:{ value:'90' }, to:{ label:'110' } }, hamulec:{ value:{ value:true } } }
+        })], {
+          technicalParams:[
+            { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'choice', options:['nakładany'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
+            { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, typePart:true, active:true },
+            { category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, typePart:true, active:true },
+          ]
+        });
+        const snap = { accessories:s.getAccessories(), categories:s.getHardwareCategories(), technicalParams:s.getHardwareTechnicalParams() };
+        const sheets = exporter._debug.buildGroupedAccessorySheets(snap);
+        const raw = JSON.stringify(sheets);
+        H.assert(raw.indexOf('[object Object]') === -1, 'Eksport arkuszy grupowych zawiera [object Object]', raw.slice(0, 300));
+        const sheet = sheets.Okucia_zawiasy || sheets.Okucia_Zawiasy;
+        const headers = sheet.rows[0];
+        const row = sheet.rows[1];
+        H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_otwarcia_od')]) === 90 && Number(row[headers.indexOf('kat_otwarcia_do')]) === 110, 'Eksport nie wyczyścił wartości parametrów', { headers, row });
+      })),
+
       H.makeTest('Akcesoria — głęboki import/export', 'Eksport tworzy arkusze grupowe z kolumnami parametrów kategorii', 'Chroni Excela przed jednym puchnącym arkuszem do wszystkich typów okuć.', ()=> withSnapshot(()=>{
         const s = store();
         const exporter = FC.hardwareCatalogExportXlsx;

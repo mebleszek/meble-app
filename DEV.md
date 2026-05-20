@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_000_backup_documentation_audit_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_hardware_technical_params_serialization_fix_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -894,7 +894,7 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 
 ## Hardware import/export deep tests v1 — 2026-05-14
 
-- Aktualna paczka robocza po tym etapie: `site_000_backup_documentation_audit_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_hardware_technical_params_serialization_fix_v1.zip`.
 - Baza startowa: `site_hardware_import_export_refactor_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
 - Dodano głęboką suite testów import/export okuć `js/testing/material/accessories-import-export-deep-tests.js` i podpięto ją pod `MATERIAŁY` w `dev_tests.html`.
 - Dodano narzędzie Node `tools/hardware-import-export-deep-smoke.js`, żeby można było uruchomić same scenariusze import/export bez klikania w przeglądarce.
@@ -1091,3 +1091,13 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Dodano backupowany klucz `fc_hardware_technical_params_v1` oraz klasyfikację storage.
 - Import/export XLSX dostał `Parametry_techniczne` i arkusze grupowe `Okucia_<kategoria>`, przy zachowaniu szybkiego arkusza `Ceny_dostawcow`.
 - Szczegóły etapu: `tools/reports/hardware-dynamic-technical-params-v1.md`.
+
+## 2026-05-20 — hardware_technical_params_serialization_fix_v1
+
+- Baza startowa: `site_000_backup_documentation_audit_v1.zip`.
+- Naprawiono serializację dynamicznych parametrów technicznych okuć: obiekty z launcherów/list aplikacyjnych są normalizowane do czystych wartości tekstowych, liczbowych albo zakresów.
+- `hardwareType` / `Typ / cecha` nie powinien już zapisywać `"[object Object]"`; jeżeli stary storage miał taki śmieć, normalizacja traktuje go jako pustą wartość zamiast utrwalać go dalej.
+- Eksport arkuszy grupowych XLSX używa znormalizowanych wartości parametrów, żeby nie wypuszczać `"[object Object]"` do Excela.
+- Dodano testy dla normalizacji parametrów, arkuszy grupowych i smoke test pilnujący braku `"[object Object]"` w rekordzie okucia.
+- Nie zmieniono polityki backupu ani retencji; naprawa dotyczy modelu/normalizacji katalogu okuć.
+- Raport: `tools/reports/hardware-technical-params-serialization-fix-v1.md`.

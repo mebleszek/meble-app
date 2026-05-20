@@ -197,6 +197,25 @@
         H.assert(rows[0].keyFeature === true && rows[0].typePart === true, 'Ptaszki cechy kluczowej / typu nie zostały zapisane', rows[0]);
       })),
 
+      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Parametry techniczne nie zapisują [object Object]', 'Chroni backup i przyszłą zamianę okuć: launchery/obiekty wyboru nie mogą trafiać do storage jako tekst [object Object].', ()=>{
+        const hw = requireHardware();
+        const row = hw.normalizeAccessory({
+          id:'obj_object_guard_1', manufacturer:'Blum', name:'Zawias z obiektami', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
+          hardwareType:{ value:{ label:'nie powinno wejść' } },
+          technicalParams:{
+            nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } },
+            kat_otwarcia:{ from:{ value:'90' }, to:{ label:'110' } },
+            hamulec:{ value:{ value:true, label:'TAK' } },
+            prowadnik:{ value:{ label:'standardowy' } }
+          }
+        }, ()=> 'obj_object_guard_1', { defaultVatRate:23, hardwareSuppliers:suppliers() });
+        const raw = JSON.stringify(row);
+        H.assert(raw.indexOf('[object Object]') === -1, 'Znormalizowane okucie nadal zawiera [object Object]', row);
+        H.assert(row.technicalParams.nalozenie.value === 'nakładany', 'Nałożenie nie zostało wyciągnięte z obiektu wyboru', row.technicalParams);
+        H.assert(Number(row.technicalParams.kat_otwarcia.from) === 90 && Number(row.technicalParams.kat_otwarcia.to) === 110, 'Zakres kąta nie został wyciągnięty z obiektów wyboru', row.technicalParams);
+        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°'), 'Automatyczny typ nie powstał z czystych wartości', row.hardwareType);
+      }),
+
       H.makeTest('Akcesoria — słowniki', 'Kategorie łączą domyślne i własne bez duplikatów', 'Pilnuje, żeby słownik kategorii był edytowalny, ale bez śmieci po wielkości liter.', ()=>{
         const hw = requireHardware();
         const list = hw.normalizeCategoryList(['Zawiasy', 'Nowa kategoria', 'nowa kategoria']);
