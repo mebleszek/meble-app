@@ -578,3 +578,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Naprawiono zapis dynamicznych parametrów technicznych okuć, żeby wartości z launcherów/list nie trafiały do katalogu i backupu jako `"[object Object]"`.
 - Eksport arkuszy grupowych XLSX czyści wartości parametrów przed zapisem.
 - Dodano testy antyregresyjne dla katalogu okuć, backupu pośredniego i import/export.
+
+## 2026-05-20 — hardware edit modal perf fix v1
+
+- Poprawiono wydajność otwierania/zamykania formularza edycji okucia po dodaniu dynamicznych danych technicznych.
+- Pasywny odczyt stanu formularza nie remountuje już launchera `Typ / cecha`.
+- Dodano test smoke dla tej regresji.
+

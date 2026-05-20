@@ -9,7 +9,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Pliki JS | 354 |
 | Skrypty w index.html | 278 |
 | Skrypty w dev_tests.html | 311 |
-| Krawędzie zależności po symbolach FC | 1829 |
+| Krawędzie zależności po symbolach FC | 1830 |
 | Symbole FC z właścicielem produkcyjnym | 255 |
 | Symbole FC z właścicielem razem | 283 |
 | Pliki z ryzykiem wysokim / nie ruszać | 8 |
@@ -23,7 +23,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | SZAFKI | 30 | 7269 | 0 | 0 | 0 | 3 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
-| MATERIAŁ | 26 | 4899 | 8 | 3 | 0 | 2 |
+| MATERIAŁ | 26 | 4922 | 8 | 3 | 0 | 2 |
 | KATALOG/USŁUGI | 23 | 4482 | 4 | 0 | 1 | 1 |
 | UI | 30 | 3832 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3448 | 24 | 0 | 0 | 4 |
@@ -56,8 +56,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/material/accessories-tests.js | 510 | TESTY | średnie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
+| js/app/material/price-modal-hardware-form.js | 458 | MATERIAŁ | niskie |
 | js/app/ui/actions-register.js | 455 | UI | średnie |
-| js/app/material/price-modal-hardware-form.js | 435 | MATERIAŁ | niskie |
 | js/app/cabinet/cabinet-choice-launchers.js | 423 | SZAFKI | niskie |
 | js/app/rozrys/rozrys-pickers.js | 406 | ROZRYS | średnie |
 | js/app/project/project-status-manual-guard.js | 395 | PROJEKT | średnie |

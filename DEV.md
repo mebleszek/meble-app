@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_000_hardware_technical_params_serialization_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -49,6 +49,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+## Hardware edit modal perf fix v1 — 2026-05-20
+
+- Baza startowa: `site_000_hardware_technical_params_serialization_fix_v1.zip`.
+- Po dynamicznych parametrach technicznych edycja okucia na telefonie mogła wyglądać jak brak reakcji na pierwszy klik, a otwarcie/zamknięcie modala potrafiło przycinać interfejs. Przyczyną było synchroniczne, wielokrotne przeliczanie formularza podczas sprawdzania dirty state oraz remountowanie launchera `Typ / cecha` przy pasywnym odczycie stanu.
+- `currentItemSignature()` dla akcesoriów używa teraz pasywnego `getCurrentAccessoryDraft({ passive:true })`, bez efektów ubocznych w DOM.
+- Dynamiczne parametry techniczne aktualizują ukryty `hardwareType` i etykietę launchera bez ponownego montowania całego launchera przy każdym przeliczeniu.
+- Odczyt dynamicznych pól jest ograniczony do kontenera `hardwareDynamicTechnicalFields`, zamiast skanować cały dokument.
+- Dodano test smoke pilnujący pasywnego odczytu stanu formularza okuć.
+- Nie zmieniono modelu danych, importu/eksportu, backupu ani polityki storage.
+- Raport: `tools/reports/hardware-edit-modal-perf-fix-v1.md`.
 
 
 ## Hardware price sources / zakup / rentowność — plan przyszły — 2026-05-10
@@ -894,7 +905,7 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 
 ## Hardware import/export deep tests v1 — 2026-05-14
 
-- Aktualna paczka robocza po tym etapie: `site_000_hardware_technical_params_serialization_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
 - Baza startowa: `site_hardware_import_export_refactor_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
 - Dodano głęboką suite testów import/export okuć `js/testing/material/accessories-import-export-deep-tests.js` i podpięto ją pod `MATERIAŁY` w `dev_tests.html`.
 - Dodano narzędzie Node `tools/hardware-import-export-deep-smoke.js`, żeby można było uruchomić same scenariusze import/export bez klikania w przeglądarce.

@@ -623,6 +623,15 @@ function runMaterialNodeSmoke(sandbox){
         && String(row.hardwareType || '').includes('nakładany')
         && String(row.hardwareType || '').includes('110°');
     } },
+    { name:'Modal edycji okuć używa pasywnego odczytu stanu formularza', explain:'Chroni wydajność na telefonie: sprawdzanie brudnego formularza i zamykanie modala nie może remountować launchera Typ/Cecha ani przeliczać UI z efektami ubocznymi.', check:()=> {
+      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const hardwareFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      return itemFormSrc.includes('getCurrentAccessoryDraft({ passive:true })')
+        && hardwareFormSrc.includes('const cfg = Object.assign({ passive:false }')
+        && hardwareFormSrc.includes('syncHardwareTypeFromTechnicalParams({ updateAction:false, remountChoice:false })')
+        && hardwareFormSrc.includes("updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Typ / cecha')")
+        && !hardwareFormSrc.includes('function syncHardwareTypeFromTechnicalParams(){');
+    } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
       if(!(api && api._debug && typeof api._debug.buildBundleRows === 'function')) return false;

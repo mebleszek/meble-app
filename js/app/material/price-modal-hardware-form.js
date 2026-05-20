@@ -84,28 +84,43 @@
     if(api && typeof api.paramValueText === 'function') return api.paramValueText(field, value, { withUnit:true });
     return '';
   }
-  function readDynamicTechnicalParams(){
+  function updateChoiceLauncherLabel(selectEl, mountId, placeholder){
+    try{
+      const mount = mountId ? ctx.byId(mountId) : null;
+      const btn = mount && mount.querySelector ? mount.querySelector('button') : null;
+      const choiceApi = FC && FC.rozrysChoice;
+      if(!(btn && selectEl && choiceApi && typeof choiceApi.setChoiceLaunchValue === 'function' && typeof choiceApi.getSelectOptionLabel === 'function')) return;
+      choiceApi.setChoiceLaunchValue(btn, choiceApi.getSelectOptionLabel(selectEl) || String(placeholder || ''), '');
+    }catch(_){ }
+  }
+  function techInputSelector(key, extra){
+    const safeKey = (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(key || '')) : String(key || '').replace(/"/g, '\"');
+    return '[data-tech-key="' + safeKey + '"]' + String(extra || '');
+  }
+  function readDynamicTechnicalParams(rootNode){
     const api = techApi();
     const fields = currentTechnicalFields();
+    const root = rootNode || ctx.byId('hardwareDynamicTechnicalFields') || document;
     const out = {};
     fields.forEach((field)=>{
       const key = String(field.key || '');
       if(!key) return;
       if(field.fieldType === 'boolean'){
-        const el = document.querySelector('[data-tech-key="' + key + '"][data-tech-type="boolean"]');
+        const el = root.querySelector(techInputSelector(key, '[data-tech-type="boolean"]'));
         out[key] = { value:!!(el && el.checked) };
       }else if(field.fieldType === 'numberRange'){
-        const from = document.querySelector('[data-tech-key="' + key + '"][data-tech-part="from"]');
-        const to = document.querySelector('[data-tech-key="' + key + '"][data-tech-part="to"]');
+        const from = root.querySelector(techInputSelector(key, '[data-tech-part="from"]'));
+        const to = root.querySelector(techInputSelector(key, '[data-tech-part="to"]'));
         out[key] = { from:from ? from.value : '', to:to ? to.value : '' };
       }else{
-        const el = document.querySelector('[data-tech-key="' + key + '"][data-tech-type="text"]');
+        const el = root.querySelector(techInputSelector(key, '[data-tech-type="text"]'));
         out[key] = { value:el ? el.value : '' };
       }
     });
     return api && typeof api.normalizeParamValues === 'function' ? api.normalizeParamValues(out, getTechnicalDefinitions(), readString('hardwareCategory') || 'Inne') : out;
   }
-  function setHardwareTypeValue(value){
+  function setHardwareTypeValue(value, opts){
+    const cfg = Object.assign({ remount:false }, opts || {});
     const raw = String(value == null ? '' : value).trim();
     const select = ctx.byId('hardwareType');
     if(!select) return;
@@ -115,7 +130,11 @@
       try{ const option = document.createElement('option'); option.value = raw; option.textContent = raw; select.appendChild(option); }catch(_){ }
     }
     select.value = raw;
-    try{ if(ctx.mountChoice) ctx.mountChoice({ selectEl:select, mountId:'hardwareTypeLaunch', title:'Wybierz typ / cechę', buttonClass:'investor-choice-launch', placeholder:'Typ / cecha', onChange:()=>{ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){} } }); }catch(_){ }
+    if(cfg.remount){
+      try{ if(ctx.mountChoice) ctx.mountChoice({ selectEl:select, mountId:'hardwareTypeLaunch', title:'Wybierz typ / cechę', buttonClass:'investor-choice-launch', placeholder:'Typ / cecha', onChange:()=>{ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){} } }); }catch(_){ }
+    }else{
+      updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Typ / cecha');
+    }
   }
   function syncLegacyHiddenFromParams(params){
     const data = { hardwareCategory:readString('hardwareCategory') || 'Inne', technicalParams:params || readDynamicTechnicalParams() };
@@ -129,14 +148,15 @@
     setValue('hardwareUsage', data.hardwareUsage || '');
     setValue('hardwareTechnicalNote', data.technicalNote || '');
   }
-  function syncHardwareTypeFromTechnicalParams(){
+  function syncHardwareTypeFromTechnicalParams(opts){
+    const cfg = Object.assign({ updateLegacy:true, updateSelect:true, updateAction:false, remountChoice:false, root:null }, opts || {});
     const api = techApi();
     const category = readString('hardwareCategory') || 'Inne';
-    const params = readDynamicTechnicalParams();
-    syncLegacyHiddenFromParams(params);
+    const params = readDynamicTechnicalParams(cfg.root || null);
+    if(cfg.updateLegacy !== false) syncLegacyHiddenFromParams(params);
     const generated = api && typeof api.buildTypeLabel === 'function' ? api.buildTypeLabel(getTechnicalDefinitions(), category, params) : '';
-    if(generated) setHardwareTypeValue(generated);
-    try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){ }
+    if(generated && cfg.updateSelect !== false) setHardwareTypeValue(generated, { remount:!!cfg.remountChoice });
+    if(cfg.updateAction){ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){ } }
     return generated;
   }
   function renderDynamicTechnicalFields(data){
@@ -165,18 +185,18 @@
           h('input', { type:'checkbox', 'data-tech-key':field.key, 'data-tech-type':'boolean', checked:value && value.value }),
           h('span', { text:field.label })
         ]);
-        chip.querySelector('input').addEventListener('change', syncHardwareTypeFromTechnicalParams);
+        chip.querySelector('input').addEventListener('change', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true }));
         wrap.appendChild(chip);
       }else if(field.fieldType === 'numberRange'){
         const row = h('div', { class:'hardware-tech-range-row' });
         const from = h('input', { class:'investor-form-input', type:'number', step:'any', placeholder:'od / dokładnie', value:value && value.from != null ? value.from : '', 'data-tech-key':field.key, 'data-tech-part':'from' });
         const to = h('input', { class:'investor-form-input', type:'number', step:'any', placeholder:'do', value:value && value.to != null ? value.to : '', 'data-tech-key':field.key, 'data-tech-part':'to' });
-        from.addEventListener('input', syncHardwareTypeFromTechnicalParams); to.addEventListener('input', syncHardwareTypeFromTechnicalParams);
+        from.addEventListener('input', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true })); to.addEventListener('input', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true }));
         row.appendChild(from); row.appendChild(to);
         wrap.appendChild(row);
       }else{
         const input = h('input', { class:'investor-form-input', type:'text', placeholder:(field.options || []).slice(0, 3).join(', ') || '', value:value && value.value || '', 'data-tech-key':field.key, 'data-tech-type':'text' });
-        input.addEventListener('input', syncHardwareTypeFromTechnicalParams);
+        input.addEventListener('input', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true }));
         wrap.appendChild(input);
       }
       const preview = formatTechnicalValue(field, value);
@@ -184,7 +204,7 @@
       grid.appendChild(wrap);
     });
     host.appendChild(grid);
-    syncHardwareTypeFromTechnicalParams();
+    syncHardwareTypeFromTechnicalParams({ root:host, updateAction:false, remountChoice:false });
   }
   function findSupplier(id){
     const key = String(id || '');
@@ -337,14 +357,17 @@
     syncHardwarePricing({ sourceId:'hardwareSupplierId' });
   }
 
-  function getCurrentAccessoryDraft(){
+  function getCurrentAccessoryDraft(opts){
+    const cfg = Object.assign({ passive:false }, opts || {});
     const bundle = bundleApi();
     const totals = bundle && typeof bundle.getTotals === 'function' ? bundle.getTotals() : { catalogGross:0, purchaseGross:0 };
     const priceGross = num(readString('hardwareQuotePriceGross')) || num(ctx.byId('formPrice') && ctx.byId('formPrice').value);
     const supplier = findSupplier(readString('hardwareSupplierId'));
     const supplierPrices = supplierPricesApi();
     const dynamicTechnicalParams = readDynamicTechnicalParams();
-    const generatedHardwareType = syncHardwareTypeFromTechnicalParams() || readString('hardwareType');
+    const generatedHardwareType = cfg.passive
+      ? ((techApi() && typeof techApi().buildTypeLabel === 'function') ? techApi().buildTypeLabel(getTechnicalDefinitions(), readString('hardwareCategory') || 'Inne', dynamicTechnicalParams) : '') || readString('hardwareType')
+      : (syncHardwareTypeFromTechnicalParams({ updateAction:false, remountChoice:false }) || readString('hardwareType'));
     return {
       manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(),
       symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(),
@@ -419,7 +442,7 @@
     if(id === 'hardwareSupplierId') applySupplierDefaults();
     else {
       const bundle = bundleApi();
-      if(id === 'hardwareCategory') renderDynamicTechnicalFields(getCurrentAccessoryDraft());
+      if(id === 'hardwareCategory') renderDynamicTechnicalFields(getCurrentAccessoryDraft({ passive:true }));
       if((id === 'hardwareCategory' || id === 'formManufacturer') && ctx.buildHardwareTypeOptions){
         const currentType = readString('hardwareType');
         refreshHardwareTypeOptions(currentType);

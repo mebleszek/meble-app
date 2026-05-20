@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-20T18:40:49.392Z",
+  "generatedAt": "2026-05-20T21:07:27.330Z",
   "summary": {
     "jsFiles": 354,
     "indexScripts": 278,
     "devTestScripts": 311,
     "fcSymbols": 255,
     "fcSymbolsAll": 283,
-    "edges": 1829,
+    "edges": 1830,
     "highRisk": 8,
     "mediumRisk": 63
   },
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 26,
-      "lines": 4899,
+      "lines": 4922,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -214,12 +214,12 @@
       475
     ],
     [
-      "js/app/ui/actions-register.js",
-      455
+      "js/app/material/price-modal-hardware-form.js",
+      458
     ],
     [
-      "js/app/material/price-modal-hardware-form.js",
-      435
+      "js/app/ui/actions-register.js",
+      455
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
@@ -5822,27 +5822,29 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 435,
+      "lines": 458,
       "defines": [],
       "uses": [
         "priceModalContext",
         "hardwareCatalog",
         "hardwareTechnicalParams",
         "infoBox",
-        "panelBox"
+        "panelBox",
+        "rozrysChoice"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-context.js",
+        "js/app/rozrys/rozrys-choice.js",
         "js/app/ui/info-box.js",
         "js/app/ui/panel-box.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 13,
+      "domRefs": 15,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -8843,6 +8845,7 @@
       "incomingFiles": [
         "js/app/cabinet/cabinet-choice-launchers.js",
         "js/app/investor/investor-choice.js",
+        "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/project/project-status-scope-decision.js",
         "js/app/rozrys/rozrys-ui-tools.js",
