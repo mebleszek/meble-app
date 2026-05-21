@@ -1,3 +1,9 @@
+### 2026-05-21 — hardware compare modes / storage cleanup v1
+- Start z aktualnej bazy `site_000_hardware_edit_modal_perf_fix_v1.zip`.
+- Nie zmieniono UI ani miejsca ustawiania zasad szukania zamienników; dalej są w słownikach parametrów technicznych kategorii okuć.
+- Tryb porównania `Mieści się w zakresie` wymaga teraz pełnego objęcia wymaganej wartości/zakresu przez zamiennik; częściowe przecięcie zakresów należy do trybu `Zakresy się przecinają`.
+- Dodano testy negatywne dla porównywania zakresów i uzupełniono diagnostykę storage/backup dla słowników okuć.
+
 ### 2026-05-18 — dev tests errors fix v1
 - Naprawiono błędy `dev_tests.html` po Etapie 2A: test potwierdzeń importu okuć nie używa już `.find()` bezpośrednio na `NodeList`.
 - Launcher wyboru w modalu szafki synchronizuje draft także wtedy, gdy wybrana wartość jest już ustawiona w ukrytym selectcie.

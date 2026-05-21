@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 53 | 12323 | 246 | 1 | 5 | 32 |
+| TESTY | 53 | 12327 | 246 | 1 | 5 | 32 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | SZAFKI | 30 | 7269 | 0 | 0 | 0 | 3 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
@@ -32,7 +32,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | BOOT/APP SHELL | 7 | 1390 | 4 | 0 | 0 | 2 |
-| DANE/STORAGE | 15 | 1327 | 36 | 0 | 0 | 0 |
+| DANE/STORAGE | 15 | 1332 | 36 | 0 | 0 | 0 |
 | SHARED | 11 | 1257 | 0 | 0 | 0 | 0 |
 | INNE | 7 | 1249 | 2 | 0 | 0 | 0 |
 | ZAKŁADKI | 3 | 585 | 0 | 0 | 0 | 0 |
@@ -53,7 +53,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/catalog/hardware-catalog.js | 573 | KATALOG/USŁUGI | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 569 | SZAFKI | niskie |
 | js/app/catalog/catalog-store.js | 524 | KATALOG/USŁUGI | wysokie |
-| js/testing/material/accessories-tests.js | 510 | TESTY | średnie |
+| js/testing/material/accessories-tests.js | 514 | TESTY | średnie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
 | js/app/material/price-modal-hardware-form.js | 458 | MATERIAŁ | niskie |
@@ -171,7 +171,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/rysunek/tests.js | średnie | 6 | 117 | 6 | 33 | kilka zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą; systemowe dialogi |
 | js/app/cabinet/cabinet-modal-set-wizard.js | średnie | 5 | 858 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
 | js/app/cabinet/cabinet-modal.js | średnie | 5 | 684 | 0 | 0 | 600+ linii; kilka zależności wychodzących |
-| js/testing/material/accessories-tests.js | średnie | 5 | 510 | 1 | 1 | 400+ linii; dużo zależności wychodzących |
+| js/testing/material/accessories-tests.js | średnie | 5 | 514 | 1 | 1 | 400+ linii; dużo zależności wychodzących |
 | js/app/project/project-status-manual-guard.js | średnie | 5 | 395 | 8 | 31 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |
 | js/app/rozrys/rozrys-scope.js | średnie | 5 | 317 | 14 | 48 | 250+ linii; dużo zależnych plików |
 | js/app/project/project-status-scope.js | średnie | 5 | 313 | 5 | 25 | 250+ linii; kilka zależnych plików; kilka zależności wychodzących |

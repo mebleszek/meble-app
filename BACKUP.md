@@ -103,8 +103,10 @@ fc_project_inv_*_v1
 fc_sheet_materials_v1
 fc_materials_v1
 fc_accessories_v1
+fc_hardware_manufacturers_v1
 fc_hardware_suppliers_v1
 fc_hardware_settings_v1
+fc_hardware_categories_v1
 fc_hardware_types_v1
 fc_hardware_technical_params_v1
 fc_program_defaults_v1
@@ -252,3 +254,19 @@ Jeżeli zmiana może dotknąć ROZRYS albo danych formatek:
 ```bash
 node tools/rozrys-dev-smoke.js
 ```
+
+## Hardware compare modes / storage cleanup v1 — 2026-05-21
+
+Ten etap nie zmienia polityki backupów ani mechanizmu snapshot/restore. Uzupełnia tylko dokumentację i klasyfikację diagnostyczną słowników okuć, żeby raport storage jasno pokazywał jako dane użytkownika:
+
+```text
+fc_hardware_manufacturers_v1
+fc_hardware_suppliers_v1
+fc_hardware_settings_v1
+fc_hardware_categories_v1
+fc_hardware_types_v1
+fc_hardware_technical_params_v1
+```
+
+Dynamiczne parametry techniczne i zasady porównania są częścią danych katalogu okuć. Backup obejmuje je przez regułę `fc_*`, o ile klucz nie jest jawnie wykluczony.
+

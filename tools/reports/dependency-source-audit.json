@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T21:07:27.330Z",
+  "generatedAt": "2026-05-20T22:24:46.186Z",
   "summary": {
     "jsFiles": 354,
     "indexScripts": 278,
@@ -101,7 +101,7 @@
     },
     "DANE/STORAGE": {
       "files": 15,
-      "lines": 1327,
+      "lines": 1332,
       "storageRefs": 36,
       "dialogRefs": 0,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12323,
+      "lines": 12327,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -203,7 +203,7 @@
     ],
     [
       "js/testing/material/accessories-tests.js",
-      510
+      514
     ],
     [
       "js/app/rozrys/rozrys-render.js",
@@ -1020,7 +1020,7 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 510,
+      "lines": 514,
       "incoming": 1,
       "outgoing": 14,
       "secondLevel": 1,
@@ -11856,7 +11856,7 @@
     "js/app/shared/data-storage-classifier.js": {
       "area": "DANE/STORAGE",
       "category": "store/storage",
-      "lines": 202,
+      "lines": 207,
       "defines": [
         "dataStorageClassifier"
       ],
@@ -17982,7 +17982,7 @@
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 510,
+      "lines": 514,
       "defines": [
         "materialAccessoryTests"
       ],

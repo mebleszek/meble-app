@@ -69,8 +69,8 @@
     exact:'Dokładna wartość: pole „od” wypełnione, pole „do” puste. Przykład: prowadnica 500 mm.',
     range:'Zakres: wypełnione pola „od” i „do”. Przykład: zawias 90–110° albo pantograf 600–830 mm.',
     equal:'Zamiennik musi mieć identyczną wartość. Dobre dla długości prowadnic albo szerokości korpusu.',
-    withinRange:'Wartość może mieścić się w zakresie. Dobre dla kątów zawiasów albo zakresów szerokości.',
-    rangeOverlap:'Dwa zakresy muszą mieć część wspólną. Dobre dla produktów pracujących w zakresach.',
+    withinRange:'Zamiennik musi obejmować wymaganą wartość albo cały wymagany zakres. Przykład: zawias 90–120° może zastąpić wymaganie 100–110°, ale zakres 100–120° nie zastąpi 90–110°.',
+    rangeOverlap:'Zakres zamiennika i zakres wymagania muszą mieć część wspólną. To luźniejsze dopasowanie niż „mieści się w zakresie”.',
     minGte:'Zamiennik musi mieć minimum taką samą lub większą wartość. Dobre dla nośności: 50 kg może zastąpić 30 kg, ale nie odwrotnie.',
     ignore:'Parametr zapisuje się informacyjnie, ale nie blokuje zamiany producenta.',
   };
@@ -248,7 +248,7 @@
     const bMin = Math.min(bf, Number.isFinite(bt) ? bt : bf), bMax = Math.max(bf, Number.isFinite(bt) ? bt : bf);
     if(field.compareMode === 'minGte') return bMax >= aMax;
     if(field.compareMode === 'rangeOverlap') return aMin <= bMax && bMin <= aMax;
-    if(field.compareMode === 'withinRange') return aMin >= bMin && aMax <= bMax || bMin >= aMin && bMax <= aMax || (aMax >= bMin && aMax <= bMax) || (bMax >= aMin && bMax <= aMax);
+    if(field.compareMode === 'withinRange') return bMin <= aMin && bMax >= aMax;
     return aMin === bMin && aMax === bMax;
   }
   function technicalSignature(definitions, category, values){

@@ -736,3 +736,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Doprecyzowano normalizację wartości `technicalParams` dla przyszłej chmury: wartości wyborów nie mogą być serializowane jako `"[object Object]"`; powinny być tekstem, liczbą, booleanem albo zakresem `{ from, to }`.
 - Stary tekst `"[object Object]"` jest traktowany jako śmieć i nie powinien być utrwalany dalej przy normalizacji katalogu okuć.
 - Nie dodano nowych kluczy storage ani nie zmieniono zakresu backupu.
+
+## Hardware compare modes / storage cleanup v1 — 2026-05-21
+
+- Etap nie dodaje nowych kluczy storage i nie zmienia adapterów danych.
+- Doprecyzowano semantykę porównywania dynamicznych parametrów technicznych okuć: `withinRange` wymaga pełnego objęcia wymaganej wartości/zakresu przez zamiennik, a luźne przecięcie zakresów zostaje w `rangeOverlap`. To jest ważne dla późniejszej zamiany producentów/systemów bez rozluźniania dopasowania.
+- Uzupełniono klasyfikację diagnostyczną kluczy okuć: `fc_hardware_manufacturers_v1`, `fc_hardware_suppliers_v1`, `fc_hardware_settings_v1`, `fc_hardware_categories_v1`, `fc_hardware_types_v1`, `fc_hardware_technical_params_v1`. Wszystkie są danymi użytkownika i powinny być objęte backupem oraz przyszłą synchronizacją chmurową.
+- Nie zmieniono polityki backupów, retencji, restore ani import/export Excel.
+

@@ -184,6 +184,10 @@
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'equal' }, { from:350 }, { from:350 }) === true, 'Długość 350 nie pasuje do 350');
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'equal' }, { from:350 }, { from:400 }) === false, 'Długość 350 błędnie pasuje do 400');
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'withinRange' }, { from:110 }, { from:90, to:110 }) === true, '110° nie mieści się w zakresie 90-110');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'withinRange' }, { from:90, to:110 }, { from:90, to:120 }) === true, 'Zakres 90-110 nie mieści się w szerszym zakresie zamiennika 90-120');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'withinRange' }, { from:90, to:110 }, { from:100, to:120 }) === false, 'Częściowe przecięcie 100-120 błędnie przeszło jako mieści się w zakresie 90-110');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'rangeOverlap' }, { from:90, to:110 }, { from:100, to:120 }) === true, 'Zakresy 90-110 i 100-120 powinny się przecinać');
+        H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'rangeOverlap' }, { from:90, to:110 }, { from:111, to:120 }) === false, 'Rozłączne zakresy 90-110 i 111-120 błędnie uznano za przecinające się');
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'minGte' }, { from:30 }, { from:50 }) === true, '50 kg nie zastąpiło 30 kg');
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'minGte' }, { from:50 }, { from:30 }) === false, '30 kg błędnie zastąpiło 50 kg');
       }),

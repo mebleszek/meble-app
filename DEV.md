@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_compare_modes_storage_cleanup_v1.zip`.
+- Baza startowa tej paczki: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -49,6 +49,16 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+## Hardware compare modes / storage cleanup v1 — 2026-05-21
+
+- Baza startowa: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
+- Nie zmieniono miejsca ustawiania zasad szukania zamienników: nadal definiuje się je w słownikach parametrów technicznych kategorii okuć.
+- Doprecyzowano logikę `compareParam()` dla liczbowych parametrów od-do: `withinRange` oznacza teraz, że zakres/wartość wymagania musi w całości mieścić się w zakresie zamiennika; częściowe przecięcie należy do trybu `rangeOverlap`.
+- Dodano testy negatywne pilnujące, że częściowe przecięcie zakresów nie przechodzi jako „Mieści się w zakresie”, ale przechodzi jako „Zakresy się przecinają”.
+- Doprecyzowano opisy pomocy `?` dla `withinRange` i `rangeOverlap`, bez zmiany UI ani dodawania helper textu obok pól.
+- Uzupełniono klasyfikację storage dla słowników okuć: producenci, dostawcy, ustawienia, kategorie, typy/cechy i parametry techniczne. Nie zmieniono polityki backupów ani zakresu snapshotu.
+- Raport: `tools/reports/hardware-compare-modes-storage-cleanup-v1.md`.
 
 ## Hardware edit modal perf fix v1 — 2026-05-20
 
