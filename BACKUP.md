@@ -270,3 +270,21 @@ fc_hardware_technical_params_v1
 
 Dynamiczne parametry techniczne i zasady porównania są częścią danych katalogu okuć. Backup obejmuje je przez regułę `fc_*`, o ile klucz nie jest jawnie wykluczony.
 
+
+## Hardware replacement engine preview v1 — 2026-05-22
+
+Ten etap nie zmienia polityki backupów, zakresu snapshotu, retencji ani restore.
+
+Dodany silnik `FC.hardwareReplacementEngine` nie tworzy żadnego nowego klucza `localStorage` i nie zapisuje wyników podglądu zamienników. Korzysta wyłącznie z istniejących danych katalogu okuć i definicji parametrów technicznych objętych dotychczasowym backupem, m.in.:
+
+```text
+fc_accessories_v1
+fc_hardware_technical_params_v1
+fc_hardware_manufacturers_v1
+fc_hardware_suppliers_v1
+fc_hardware_settings_v1
+fc_hardware_categories_v1
+fc_hardware_types_v1
+```
+
+Wynik porównania zamiennika jest stanem runtime/testowym i nie powinien trafiać do backupu bez osobnej decyzji produktowej.

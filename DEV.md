@@ -1122,3 +1122,21 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Dodano testy dla normalizacji parametrów, arkuszy grupowych i smoke test pilnujący braku `"[object Object]"` w rekordzie okucia.
 - Nie zmieniono polityki backupu ani retencji; naprawa dotyczy modelu/normalizacji katalogu okuć.
 - Raport: `tools/reports/hardware-technical-params-serialization-fix-v1.md`.
+
+## Hardware replacement engine preview v1 — 2026-05-22
+
+- Aktualna paczka po tym etapie: `site_hardware_replacement_engine_preview_v1.zip`.
+- Baza startowa: `site_hardware_compare_modes_storage_cleanup_v1.zip`.
+- Dodano moduł domenowy `js/app/catalog/hardware-replacement-engine.js` jako techniczny silnik podglądu zamienników okuć.
+- Silnik nie dodaje UI, przycisków ani akcji użytkownika. Nie zapisuje zmian w projekcie, katalogu ani `localStorage`; działa jako czysta warstwa porównania dla testów i przyszłego modala zamiany.
+- Publiczne API `FC.hardwareReplacementEngine` udostępnia:
+  - `compareItems(source, candidate, options)` — sprawdza jednego kandydata i zwraca `compatible`, `score`, `checks`, `reasons`, `failures`, `warnings` oraz informację o cenie do wyceny;
+  - `findCandidates(source, candidates, options)` / `previewCandidates(...)` — ocenia listę kandydatów i sortuje zgodne po wyniku, dostępnej cenie i cenie;
+  - `quotePriceInfo(item)` — odczytuje cenę dostawcy `Do wyceny` bez zmiany danych;
+  - `summarizeResult(result)` — krótki opis wyniku dla przyszłego raportu UI.
+- Dopasowanie bazuje na kategorii, opcjonalnym producencie docelowym, aktywności kandydata, parametrach kluczowych kategorii oraz trybach porównania z `hardware-technical-params.js`.
+- Brak ceny dostawcy `Do wyceny` jest ostrzeżeniem w trybie miękkim albo blokadą przy `requireQuotePrice:true`.
+- Dodano 6 testów w `js/testing/material/accessories-tests.js` dla: braku zapisu do storage, długości prowadnic 350/400, nośności `minGte`, zakresów `withinRange`/`rangeOverlap`, producenta docelowego i braku ceny dostawcy.
+- `tools/index-load-groups.js`, `tools/app-dev-smoke-lib/file-list.js`, `index.html` i `dev_tests.html` ładują nowy moduł po `hardware-technical-params.js`, przed katalogiem okuć.
+- Nie zmieniono PRO100, usług, ROZRYS, RYSUNKU, WYCENY, import/export Excel ani polityki backupów.
+- Raport: `tools/reports/hardware-replacement-engine-preview-v1.md`.

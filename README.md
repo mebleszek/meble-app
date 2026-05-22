@@ -591,3 +591,11 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Pasywny odczyt stanu formularza nie remountuje już launchera `Typ / cecha`.
 - Dodano test smoke dla tej regresji.
 
+
+## 2026-05-22 — hardware replacement engine preview v1
+
+- Dodano techniczny silnik podglądu zamienników okuć: `js/app/catalog/hardware-replacement-engine.js`.
+- Etap nie dodaje przycisku ani ekranu w normalnym UI. Silnik działa w testach i będzie fundamentem pod późniejszy modal zamiany producentów/systemów.
+- Silnik sprawdza kategorię, producenta docelowego, aktywność pozycji, parametry kluczowe, tryby porównania oraz dostępność ceny dostawcy `Do wyceny`.
+- Dodano testy dla prowadnic 350/400, nośności, zakresów, producenta docelowego, braku ceny oraz braku zapisu do storage.
+- Nie zmieniono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.

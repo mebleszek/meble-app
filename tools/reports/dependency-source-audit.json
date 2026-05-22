@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-20T22:24:46.186Z",
+  "generatedAt": "2026-05-22T05:23:08.831Z",
   "summary": {
-    "jsFiles": 354,
-    "indexScripts": 278,
-    "devTestScripts": 311,
-    "fcSymbols": 255,
-    "fcSymbolsAll": 283,
-    "edges": 1830,
+    "jsFiles": 355,
+    "indexScripts": 279,
+    "devTestScripts": 312,
+    "fcSymbols": 256,
+    "fcSymbolsAll": 284,
+    "edges": 1833,
     "highRisk": 8,
     "mediumRisk": 63
   },
@@ -28,8 +28,8 @@
       "medium": 3
     },
     "KATALOG/USŁUGI": {
-      "files": 23,
-      "lines": 4482,
+      "files": 24,
+      "lines": 4704,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12327,
+      "lines": 12398,
       "storageRefs": 246,
       "dialogRefs": 1,
       "high": 5,
@@ -190,6 +190,10 @@
       649
     ],
     [
+      "js/testing/material/accessories-tests.js",
+      585
+    ],
+    [
       "js/app/catalog/hardware-catalog.js",
       573
     ],
@@ -200,10 +204,6 @@
     [
       "js/app/catalog/catalog-store.js",
       524
-    ],
-    [
-      "js/testing/material/accessories-tests.js",
-      514
     ],
     [
       "js/app/rozrys/rozrys-render.js",
@@ -308,22 +308,22 @@
       18
     ],
     [
+      "js/app/catalog/hardware-catalog.js",
+      17
+    ],
+    [
       "js/app/project/project-status-snapshot-flow.js",
       17
     ],
     [
       "js/app/project/project-status-sync.js",
       17
-    ],
-    [
-      "js/app/catalog/hardware-catalog.js",
-      16
     ]
   ],
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      189
+      190
     ],
     [
       "js/app/shared/storage.js",
@@ -331,7 +331,7 @@
     ],
     [
       "js/app/shared/utils.js",
-      157
+      158
     ],
     [
       "js/app/project/project-bridge.js",
@@ -679,7 +679,7 @@
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
       "lines": 573,
-      "incoming": 16,
+      "incoming": 17,
       "outgoing": 3,
       "secondLevel": 24,
       "storageRefs": 0,
@@ -1020,9 +1020,9 @@
       "score": 5,
       "area": "TESTY",
       "category": "test",
-      "lines": 514,
+      "lines": 585,
       "incoming": 1,
-      "outgoing": 14,
+      "outgoing": 15,
       "secondLevel": 1,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1569,7 +1569,7 @@
       "lines": 178,
       "incoming": 74,
       "outgoing": 4,
-      "secondLevel": 189,
+      "secondLevel": 190,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1923,6 +1923,7 @@
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/catalog/hardware-catalog-seeds.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/investor/investor-actions.js",
@@ -3728,6 +3729,7 @@
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/price-modal-hardware-bundle.js",
@@ -3782,6 +3784,36 @@
         "400+ linii",
         "dużo zależnych plików"
       ]
+    },
+    "js/app/catalog/hardware-replacement-engine.js": {
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 222,
+      "defines": [
+        "hardwareReplacementEngine"
+      ],
+      "uses": [
+        "hardwareTechnicalParams",
+        "hardwareCatalog",
+        "hardwareReplacementEngine"
+      ],
+      "incomingFiles": [
+        "js/testing/material/accessories-tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js"
+      ],
+      "secondLevelFiles": [
+        "js/testing/material/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
     },
     "js/app/catalog/hardware-supplier-price-export.js": {
       "area": "KATALOG/USŁUGI",
@@ -3872,6 +3904,7 @@
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-replacement-engine.js",
         "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -3888,6 +3921,7 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/price-modal-context.js",
@@ -13480,6 +13514,7 @@
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/catalog/hardware-catalog-seeds.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/investor/investor-project-patches.js",
@@ -17982,7 +18017,7 @@
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 514,
+      "lines": 585,
       "defines": [
         "materialAccessoryTests"
       ],
@@ -17992,6 +18027,7 @@
         "hardwareCatalog",
         "hardwareCatalogImportExport",
         "hardwareSupplierPriceXlsx",
+        "hardwareReplacementEngine",
         "hardwareTechnicalParams",
         "hardwareCatalogExportXlsx",
         "hardwareCatalogImportParser",
@@ -18014,6 +18050,7 @@
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/catalog/hardware-technical-params.js",

@@ -744,3 +744,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Uzupełniono klasyfikację diagnostyczną kluczy okuć: `fc_hardware_manufacturers_v1`, `fc_hardware_suppliers_v1`, `fc_hardware_settings_v1`, `fc_hardware_categories_v1`, `fc_hardware_types_v1`, `fc_hardware_technical_params_v1`. Wszystkie są danymi użytkownika i powinny być objęte backupem oraz przyszłą synchronizacją chmurową.
 - Nie zmieniono polityki backupów, retencji, restore ani import/export Excel.
 
+
+## Hardware replacement engine preview v1 — 2026-05-22
+
+- Etap nie dodaje nowych kluczy storage, nie zmienia adapterów danych i nie zapisuje wyników podglądu zamienników.
+- `js/app/catalog/hardware-replacement-engine.js` jest czystą warstwą domenową: wejściem są rekord źródłowego okucia, lista kandydatów, definicje parametrów technicznych i opcje porównania; wyjściem jest raport zgodności.
+- Przy przyszłej chmurze silnik może działać po danych pobranych z `users/{userId}/catalogs/hardware/*` bez zmiany kontraktu: nie wymaga osobnego dokumentu ani kolekcji dla wyników podglądu.
+- Wyniki `compareItems()` / `findCandidates()` są stanem runtime/raportem UI. Nie synchronizować ich jako danych użytkownika, chyba że później powstanie świadoma historia decyzji zamiany z osobnym modelem.
+- Brak ceny dostawcy `Do wyceny` jest na razie atrybutem raportu, nie zmianą danych katalogu.

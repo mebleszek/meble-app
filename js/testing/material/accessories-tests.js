@@ -52,6 +52,10 @@
     H.assert(FC.hardwareSupplierPriceXlsx, 'Brak FC.hardwareSupplierPriceXlsx');
     return FC.hardwareSupplierPriceXlsx;
   }
+  function requireReplacement(){
+    H.assert(FC.hardwareReplacementEngine, 'Brak FC.hardwareReplacementEngine');
+    return FC.hardwareReplacementEngine;
+  }
   function suppliers(){
     return [
       { id:'mago', name:'MAGO', defaultDiscountPercent:10, active:true },
@@ -191,6 +195,73 @@
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'minGte' }, { from:30 }, { from:50 }) === true, '50 kg nie zastąpiło 30 kg');
         H.assert(api.compareParam({ fieldType:'numberRange', compareMode:'minGte' }, { from:50 }, { from:30 }) === false, '30 kg błędnie zastąpiło 50 kg');
       }),
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Silnik zamienników jest tylko warstwą podglądu bez zapisu do storage', 'Chroni etap 2: testujemy dopasowanie okuć bez przycisków UI i bez modyfikowania katalogu/projektu.', ()=> withSnapshot(()=>{
+        const engine = requireReplacement();
+        const before = JSON.stringify(snapshot());
+        const result = engine.compareItems({ id:'src_preview', name:'Źródło', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:110 }, hamulec:{ value:true } } }, { id:'cand_preview', name:'Kandydat', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:90, to:120 }, hamulec:{ value:true } } });
+        const after = JSON.stringify(snapshot());
+        H.assert(result && result.compatible === true, 'Poprawny kandydat nie przeszedł podglądu', result);
+        H.assert(before === after, 'Silnik zamienników zmienił storage podczas podglądu', { before, after });
+      })),
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Prowadnica 350 mm nie zamienia się na 400 mm przy porównaniu dokładnym', 'Chroni przyszłą zamianę producentów przed dopasowaniem po samej kategorii lub nazwie.', ()=>{
+        const engine = requireReplacement();
+        const definitions = [
+          { category:'Szuflady / prowadnice', key:'dlugosc_mm', label:'Długość', fieldType:'numberRange', unit:'mm', compareMode:'equal', keyFeature:true, typePart:true, active:true },
+          { category:'Szuflady / prowadnice', key:'nosnosc_kg', label:'Nośność', fieldType:'numberRange', unit:'kg', compareMode:'minGte', keyFeature:true, typePart:true, active:true },
+        ];
+        const source = { id:'drawer_src_350', name:'Blum 350 30kg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:30 } } };
+        const good = { id:'drawer_gtv_350', name:'GTV 350 40kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:40 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:80, useForQuote:true }] };
+        const bad = { id:'drawer_gtv_400', name:'GTV 400 40kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc_mm:{ from:400 }, nosnosc_kg:{ from:40 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:80, useForQuote:true }] };
+        const goodResult = engine.compareItems(source, good, { definitions, targetManufacturer:'GTV' });
+        const badResult = engine.compareItems(source, bad, { definitions, targetManufacturer:'GTV' });
+        H.assert(goodResult.compatible === true, 'Prowadnica 350/40 nie zastąpiła 350/30', goodResult);
+        H.assert(badResult.compatible === false, 'Prowadnica 400 błędnie zastąpiła 350', badResult);
+        H.assert(badResult.failures.some((row)=> row.code === 'param_mismatch' && row.key === 'dlugosc_mm'), 'Brak czytelnego powodu odrzucenia długości', badResult.failures);
+      }),
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Nośność działa jako minimum takie samo lub większe', 'Chroni prowadnice, cargo i pantografy: mocniejsze okucie może zastąpić słabsze, ale nie odwrotnie.', ()=>{
+        const engine = requireReplacement();
+        const definitions = [{ category:'Szuflady / prowadnice', key:'nosnosc_kg', label:'Nośność', fieldType:'numberRange', unit:'kg', compareMode:'minGte', keyFeature:true, active:true }];
+        const source = { id:'load_src', name:'Źródło 40kg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ nosnosc_kg:{ from:40 } } };
+        const stronger = { id:'load_50', name:'Kandydat 50kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ nosnosc_kg:{ from:50 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:90, useForQuote:true }] };
+        const weaker = { id:'load_30', name:'Kandydat 30kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ nosnosc_kg:{ from:30 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:70, useForQuote:true }] };
+        H.assert(engine.compareItems(source, stronger, { definitions }).compatible === true, '50 kg nie zastąpiło 40 kg');
+        H.assert(engine.compareItems(source, weaker, { definitions }).compatible === false, '30 kg błędnie zastąpiło 40 kg');
+      }),
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Mieści się w zakresie nie udaje przecięcia zakresów', 'Chroni poprawkę z poprzedniego etapu w pełnym silniku zamienników.', ()=>{
+        const engine = requireReplacement();
+        const definitions = [{ category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, active:true }];
+        const source = { id:'hinge_src_90_110', name:'Zawias 90-110', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ kat_otwarcia:{ from:90, to:110 } } };
+        const covers = { id:'hinge_90_120', name:'Zawias 90-120', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ kat_otwarcia:{ from:90, to:120 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
+        const overlapsOnly = { id:'hinge_100_120', name:'Zawias 100-120', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ kat_otwarcia:{ from:100, to:120 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
+        H.assert(engine.compareItems(source, covers, { definitions }).compatible === true, 'Szerszy zakres 90-120 nie zastąpił 90-110');
+        H.assert(engine.compareItems(source, overlapsOnly, { definitions }).compatible === false, 'Częściowe przecięcie 100-120 błędnie zastąpiło 90-110');
+        const overlapDefinitions = [{ category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'rangeOverlap', keyFeature:true, active:true }];
+        H.assert(engine.compareItems(source, overlapsOnly, { definitions:overlapDefinitions }).compatible === true, 'Tryb zakresy się przecinają nie zaakceptował przecięcia 100-120 z 90-110');
+      }),
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Wskazany producent ogranicza listę kandydatów', 'Chroni scenariusz Blum → GTV: kandydat z innego producenta nie przechodzi, nawet jeśli technicznie pasuje.', ()=>{
+        const engine = requireReplacement();
+        const definitions = [{ category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, active:true }];
+        const source = { id:'hinge_blum_src', name:'Blum hamulec', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } } };
+        const gtv = { id:'hinge_gtv_ok', name:'GTV hamulec', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:15, useForQuote:true }] };
+        const rejs = { id:'hinge_rejs_ok', name:'Rejs hamulec', manufacturer:'Rejs', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:14, useForQuote:true }] };
+        const results = engine.findCandidates(source, [rejs, gtv], { definitions, targetManufacturer:'GTV' });
+        H.assert(results[0].candidateId === 'hinge_gtv_ok' && results[0].compatible === true, 'GTV nie jest pierwszym poprawnym kandydatem', results);
+        H.assert(results.find((row)=> row.candidateId === 'hinge_rejs_ok').compatible === false, 'Rejs przeszedł mimo targetManufacturer=GTV', results);
+      }),
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Brak ceny dostawcy jest ostrzeżeniem albo blokadą zależnie od opcji', 'Chroni przyszły podgląd: technicznie pasujące okucie bez ceny jest widoczne, ale może zostać zablokowane przy wymaganiu ceny.', ()=>{
+        const engine = requireReplacement();
+        const definitions = [{ category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, active:true }];
+        const source = { id:'price_src', name:'Źródło', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } } };
+        const noPrice = { id:'price_no', name:'Bez ceny', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } } };
+        const withPrice = { id:'price_yes', name:'Z ceną', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:10, useForQuote:true }] };
+        const soft = engine.compareItems(source, noPrice, { definitions });
+        const strict = engine.compareItems(source, noPrice, { definitions, requireQuotePrice:true });
+        const sorted = engine.findCandidates(source, [noPrice, withPrice], { definitions });
+        H.assert(soft.compatible === true && soft.warnings.some((row)=> row.code === 'no_quote_price'), 'Brak ceny nie działa jako ostrzeżenie w trybie miękkim', soft);
+        H.assert(strict.compatible === false && strict.failures.some((row)=> row.code === 'no_quote_price'), 'Brak ceny nie blokuje przy requireQuotePrice', strict);
+        H.assert(sorted[0].candidateId === 'price_yes', 'Kandydat z ceną nie jest sortowany przed kandydatem bez ceny', sorted);
+      }),
+
       H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Słownik parametrów technicznych zapisuje własne pola kategorii', 'Chroni edytowalne akordeony kategorii bez pomocy programisty.', ()=> withSnapshot(()=>{
         const s = store();
         H.assert(s && s.saveHardwareTechnicalParams && s.getHardwareTechnicalParams, 'Brak API słownika parametrów');

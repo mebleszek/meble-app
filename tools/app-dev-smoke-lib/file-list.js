@@ -29,6 +29,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/material/material-edge-store.js',
   'js/app/material/material-tab-data.js',
   'js/app/catalog/hardware-technical-params.js',
+  'js/app/catalog/hardware-replacement-engine.js',
   'js/app/catalog/hardware-catalog.js',
   'js/app/catalog/hardware-catalog-seed-data.js',
   'js/app/catalog/hardware-catalog-seeds.js',
