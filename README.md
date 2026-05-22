@@ -592,6 +592,14 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Dodano test smoke dla tej regresji.
 
 
+
+## 2026-05-22 — data safety test isolation v1
+
+- Poprawiono wyłącznie izolację testu retencji backupów testowych `before-tests`.
+- Zasada pozostaje bez zmian: automatyczne backupy testowe mają twardy limit 10 najnowszych kopii, a gdy zapis w pamięci programu nie jest możliwy, używany jest ręczny eksport backupu na dysk.
+- Test nie tworzy już 12 kopii pełnego realnego storage użytkownika, więc nie powinien fałszywie padać przy dużych danych lokalnych.
+- Nie zmieniono mechanizmu backupu, limitów retencji, silnika zamienników, UI, import/export Excel, PRO100, ROZRYS ani WYCENY.
+
 ## 2026-05-22 — hardware replacement engine preview v1
 
 - Dodano techniczny silnik podglądu zamienników okuć: `js/app/catalog/hardware-replacement-engine.js`.
@@ -599,3 +607,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Silnik sprawdza kategorię, producenta docelowego, aktywność pozycji, parametry kluczowe, tryby porównania oraz dostępność ceny dostawcy `Do wyceny`.
 - Dodano testy dla prowadnic 350/400, nośności, zakresów, producenta docelowego, braku ceny oraz braku zapisu do storage.
 - Nie zmieniono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+## 2026-05-22 — data_safety_backup_limit_policy_test_v2
+
+- Poprawiono wyłącznie przeglądarkowy test retencji backupów testowych `before-tests`.
+- Test nie zapisuje już backupów do realnego `localStorage`; sprawdza limit 10 kopii na małych rekordach w pamięci JS przez politykę retencji.
+- Zasada pozostaje bez zmian: automatyczne backupy testowe mają maksymalnie 10 najnowszych kopii, a gdy zapis w pamięci programu nie jest możliwy, użytkownik ma ręczny eksport backupu na dysk.
+- Nie zmieniono mechanizmu backupu, retencji, `BACKUP.md`, silnika zamienników, UI, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.

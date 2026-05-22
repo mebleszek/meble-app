@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_compare_modes_storage_cleanup_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_data_safety_test_isolation_v1.zip`.
 - Baza startowa tej paczki: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -1123,6 +1123,16 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Nie zmieniono polityki backupu ani retencji; naprawa dotyczy modelu/normalizacji katalogu okuć.
 - Raport: `tools/reports/hardware-technical-params-serialization-fix-v1.md`.
 
+
+## Data safety test isolation v1 — 2026-05-22
+
+- Baza startowa: `site_hardware_replacement_engine_preview_v1.zip`.
+- Naprawiono wyłącznie test przeglądarkowy `Backupy testowe mają twardy limit 10 najnowszych sztuk`, który przy pełnym `localStorage` mógł tworzyć 12 dużych snapshotów realnych danych użytkownika i kończyć się błędem quota.
+- Test izoluje teraz fixture danych aplikacji na czas sprawdzenia retencji: tymczasowo czyści klucze `fc_*` objęte snapshotem, tworzy mały zestaw testowy, sprawdza limit 10 backupów `before-tests`, a potem przywraca wcześniejszy stan.
+- Nie zmieniono mechanizmu backupu, polityki retencji, limitu 10 kopii testowych, fallbacku ręcznego eksportu na dysk ani `BACKUP.md`.
+- Nie zmieniono silnika zamienników, normalnego UI, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/data-safety-test-isolation-v1.md`.
+
 ## Hardware replacement engine preview v1 — 2026-05-22
 
 - Aktualna paczka po tym etapie: `site_hardware_replacement_engine_preview_v1.zip`.
@@ -1140,3 +1150,12 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - `tools/index-load-groups.js`, `tools/app-dev-smoke-lib/file-list.js`, `index.html` i `dev_tests.html` ładują nowy moduł po `hardware-technical-params.js`, przed katalogiem okuć.
 - Nie zmieniono PRO100, usług, ROZRYS, RYSUNKU, WYCENY, import/export Excel ani polityki backupów.
 - Raport: `tools/reports/hardware-replacement-engine-preview-v1.md`.
+
+## Data safety backup limit policy test v2 — 2026-05-22
+
+- Baza startowa: `site_data_safety_test_isolation_v1.zip`.
+- Naprawiono wyłącznie test przeglądarkowy `Backupy testowe mają twardy limit 10 najnowszych sztuk`, który przy realnie ciężkim `localStorage` nadal mógł zgłaszać quota error.
+- Test nie używa już `FC.dataBackupStore.createBackup()` i nie zapisuje backupów do realnego `localStorage`; sprawdza `FC.dataBackupPolicy.pruneBackups()` oraz `groupBackups()` na małych rekordach w pamięci JS.
+- Test nadal pilnuje decyzji produktowej: backupy `before-tests` mają maksymalnie 10 najnowszych kopii, a ręczne backupy programu nie są przycinane przez limit testowy.
+- Nie zmieniono mechanizmu backupu, polityki retencji, fallbacku ręcznego eksportu na dysk, `BACKUP.md`, UI, silnika zamienników, import/export, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/data-safety-backup-limit-policy-test-v2.md`.

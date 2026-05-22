@@ -9,7 +9,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Pliki JS | 355 |
 | Skrypty w index.html | 279 |
 | Skrypty w dev_tests.html | 312 |
-| Krawędzie zależności po symbolach FC | 1833 |
+| Krawędzie zależności po symbolach FC | 1834 |
 | Symbole FC z właścicielem produkcyjnym | 256 |
 | Symbole FC z właścicielem razem | 284 |
 | Pliki z ryzykiem wysokim / nie ruszać | 8 |
@@ -19,7 +19,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 53 | 12398 | 246 | 1 | 5 | 32 |
+| TESTY | 53 | 12401 | 238 | 1 | 5 | 32 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | SZAFKI | 30 | 7269 | 0 | 0 | 0 | 3 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
@@ -118,7 +118,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Referencje | Obszar | Ryzyko |
 | --- | --- | --- | --- |
 | js/testing/project/tests.js | 112 | TESTY | wysokie |
-| js/testing/data-safety/tests.js | 44 | TESTY | niskie |
+| js/testing/data-safety/tests.js | 36 | TESTY | niskie |
 | js/testing/material/tests.js | 23 | TESTY | średnie |
 | js/app/shared/storage.js | 17 | DANE/STORAGE | niskie |
 | js/testing/investor/suites/recovery-isolation.js | 16 | TESTY | średnie |

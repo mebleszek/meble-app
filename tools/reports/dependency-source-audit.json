@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-22T05:23:08.831Z",
+  "generatedAt": "2026-05-22T15:27:18.206Z",
   "summary": {
     "jsFiles": 355,
     "indexScripts": 279,
     "devTestScripts": 312,
     "fcSymbols": 256,
     "fcSymbolsAll": 284,
-    "edges": 1833,
+    "edges": 1834,
     "highRisk": 8,
     "mediumRisk": 63
   },
@@ -149,8 +149,8 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12398,
-      "storageRefs": 246,
+      "lines": 12401,
+      "storageRefs": 238,
       "dialogRefs": 1,
       "high": 5,
       "medium": 32
@@ -409,7 +409,7 @@
     ],
     [
       "js/testing/data-safety/tests.js",
-      44
+      36
     ],
     [
       "js/testing/material/tests.js",
@@ -11525,13 +11525,15 @@
       ],
       "incomingFiles": [
         "js/app/shared/data-backup-records.js",
-        "js/app/shared/data-backup-store.js"
+        "js/app/shared/data-backup-store.js",
+        "js/testing/data-safety/tests.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/shared/data-backup-store.js",
         "js/app/ui/data-settings-modal.js",
         "js/testing/data-safety/tests.js",
+        "js/testing/dev-tests-registry.js",
         "js/testing/project/tests.js",
         "js/testing/test-data-safety.js"
       ],
@@ -17110,7 +17112,7 @@
     "js/testing/data-safety/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 238,
+      "lines": 241,
       "defines": [
         "dataSafetyDevTests"
       ],
@@ -17121,6 +17123,7 @@
         "dataStorageOrphanCleanup",
         "testDataManager",
         "testDataSafety",
+        "dataBackupPolicy",
         "dataBackupStore",
         "dataSafetyDevTests"
       ],
@@ -17128,6 +17131,7 @@
         "js/testing/dev-tests-registry.js"
       ],
       "outgoingFiles": [
+        "js/app/shared/data-backup-policy.js",
         "js/app/shared/data-backup-snapshot.js",
         "js/app/shared/data-backup-store.js",
         "js/app/shared/data-storage-audit.js",
@@ -17139,7 +17143,7 @@
       "secondLevelFiles": [
         "js/testing/dev-tests-page.js"
       ],
-      "storageRefs": 44,
+      "storageRefs": 36,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,
