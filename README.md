@@ -1,3 +1,11 @@
+## site_hardware_dictionary_param_scroll_before_open_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_scroll_target_v1.zip`.
+- Poprawiono kolejność animacji mini-akordeonów parametrów technicznych w `Słowniki okuć`: kliknięty, zwinięty parametr najpierw płynnie doscrollowuje do nagłówka, a dopiero potem poprzedni parametr się zwija i nowy się rozwija.
+- Dzięki temu kliknięcie parametru z dołu listy nie traci wysokości na starcie scrolla i nie robi szarpnięcia.
+- Po zmianie stanu akordeonów pozycja klikniętego nagłówka jest zachowana, więc rozwinięty formularz startuje od góry.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_scroll_target_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_scroll_smooth_v1.zip`.

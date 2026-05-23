@@ -176,7 +176,7 @@
   function afterDictionaryLayout(fn){
     const win = typeof window !== 'undefined' ? window : {};
     const frame = typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : (cb)=> setTimeout(cb, 0);
-    frame(()=> setTimeout(()=> frame(fn), 55));
+    frame(()=> setTimeout(()=> frame(fn), 35));
   }
   function preserveActiveParamPosition(activeNode, mutate){
     const scroller = dictionaryScrollerFor(activeNode);
@@ -195,27 +195,63 @@
       }
     }catch(_){ }
   }
-  function scrollParamAccordionIntoView(node){
-    if(!node) return;
+  function targetScrollTopForParam(scroller, node){
+    if(!scroller || !node || typeof scroller.scrollTop !== 'number' || typeof node.getBoundingClientRect !== 'function' || typeof scroller.getBoundingClientRect !== 'function') return null;
+    const nodeRect = node.getBoundingClientRect();
+    const scrollerRect = scroller.getBoundingClientRect();
+    const topGap = 16;
+    return clampScrollTop(scroller, scroller.scrollTop + (nodeRect.top - scrollerRect.top) - topGap);
+  }
+  function waitForParamScroll(scroller, fallbackMs, done){
+    let finished = false;
+    function finish(){
+      if(finished) return;
+      finished = true;
+      try{ scroller && scroller.removeEventListener && scroller.removeEventListener('scrollend', finish); }catch(_){ }
+      done();
+    }
+    try{ scroller && scroller.addEventListener && scroller.addEventListener('scrollend', finish, { once:true }); }catch(_){ }
+    setTimeout(finish, fallbackMs || 420);
+  }
+  function scrollParamHeaderBeforeToggle(node, afterScroll){
+    if(!node){ afterScroll(); return; }
+    try{
+      const scroller = dictionaryScrollerFor(node);
+      const nextTop = targetScrollTopForParam(scroller, node);
+      if(scroller && typeof scroller.scrollTop === 'number' && Number.isFinite(nextTop)){
+        const distance = Math.abs(nextTop - scroller.scrollTop);
+        if(distance < 4){
+          afterDictionaryLayout(afterScroll);
+          return;
+        }
+        if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
+        else scroller.scrollTop = nextTop;
+        waitForParamScroll(scroller, Math.min(680, Math.max(280, distance * 0.55)), ()=> afterDictionaryLayout(afterScroll));
+        return;
+      }
+      if(typeof node.scrollIntoView === 'function'){
+        node.scrollIntoView({ block:'start', behavior:'smooth' });
+        setTimeout(()=> afterDictionaryLayout(afterScroll), 360);
+        return;
+      }
+    }catch(_){ }
+    afterDictionaryLayout(afterScroll);
+  }
+  function alignParamHeaderAfterToggle(node){
     afterDictionaryLayout(()=>{
       try{
         const scroller = dictionaryScrollerFor(node);
-        if(scroller && typeof scroller.scrollTop === 'number' && typeof node.getBoundingClientRect === 'function' && typeof scroller.getBoundingClientRect === 'function'){
-          const nodeRect = node.getBoundingClientRect();
-          const scrollerRect = scroller.getBoundingClientRect();
-          const topGap = 16;
-          const deltaToTarget = (nodeRect.top - scrollerRect.top) - topGap;
-          const nextTop = clampScrollTop(scroller, scroller.scrollTop + deltaToTarget);
-          // Nie pomijaj ruchu tylko dlatego, że nagłówek jest widoczny na dole ekranu.
-          // Po rozwinięciu parametr ma finalnie dojechać do początku własnego akordeonu.
-          if(Math.abs(nextTop - scroller.scrollTop) < 3) return;
-          if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
-          else scroller.scrollTop = nextTop;
-          return;
+        const nextTop = targetScrollTopForParam(scroller, node);
+        if(!scroller || !Number.isFinite(nextTop)) return;
+        if(Math.abs(nextTop - scroller.scrollTop) > 10){
+          scroller.scrollTop = nextTop;
         }
-        if(typeof node.scrollIntoView === 'function') node.scrollIntoView({ block:'start', behavior:'smooth' });
       }catch(_){ }
     });
+  }
+  function scrollParamAccordionIntoView(node){
+    if(!node) return;
+    scrollParamHeaderBeforeToggle(node, ()=> alignParamHeaderAfterToggle(node));
   }
   function categoryAccordion(cat, params, onChange){
     const box = h('details', { class:'hardware-tech-category-accordion' });
@@ -224,12 +260,11 @@
     const list = h('div', { class:'hardware-tech-param-list' });
     let openParamId = '';
     let closingPeerAccordions = false;
+    let paramOpenSequence = 0;
     function rows(){ return params.filter((row)=> text(row.category) === text(cat)); }
     function closePeerAccordions(activeNode){
-      preserveActiveParamPosition(activeNode, ()=>{
-        Array.from(list.querySelectorAll(':scope > .hardware-tech-param-accordion')).forEach((node)=>{
-          if(node !== activeNode && node.open) node.open = false;
-        });
+      Array.from(list.querySelectorAll(':scope > .hardware-tech-param-accordion')).forEach((node)=>{
+        if(node !== activeNode && node.open) node.open = false;
       });
     }
     function renderRows(){
@@ -242,18 +277,33 @@
           renderRows();
           onChange();
         }, { open:openParamId && openParamId === param.id });
-        node.addEventListener('toggle', ()=>{
-          if(node.open){
+        const paramSummary = node.querySelector(':scope > .hardware-tech-param-summary');
+        if(paramSummary){
+          paramSummary.addEventListener('click', (event)=>{
+            event.preventDefault();
             const nextOpenId = param.id || '';
-            closingPeerAccordions = true;
-            closePeerAccordions(node);
-            closingPeerAccordions = false;
-            openParamId = nextOpenId;
-            scrollParamAccordionIntoView(node);
-          }else if(!closingPeerAccordions && openParamId === (param.id || '')){
-            openParamId = '';
-          }
-        });
+            paramOpenSequence += 1;
+            const sequence = paramOpenSequence;
+            if(node.open){
+              node.open = false;
+              if(openParamId === nextOpenId) openParamId = '';
+              return;
+            }
+            // Najpierw płynnie dojedź do zwiniętego nagłówka. Dopiero potem zwijaj poprzedni
+            // parametr i rozwijaj nowy, żeby zamykanie długiego bloku nie szarpało startu ruchu.
+            scrollParamHeaderBeforeToggle(node, ()=>{
+              if(sequence !== paramOpenSequence) return;
+              closingPeerAccordions = true;
+              preserveActiveParamPosition(node, ()=>{
+                closePeerAccordions(node);
+                node.open = true;
+              });
+              closingPeerAccordions = false;
+              openParamId = nextOpenId;
+              alignParamHeaderAfterToggle(node);
+            });
+          });
+        }
         list.appendChild(node);
       });
     }

@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_target_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_param_single_open_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_before_open_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_param_scroll_target_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -49,6 +49,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+## Hardware dictionary param scroll before open v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_before_open_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_scroll_target_v1.zip`.
+- W akordeonie parametrów technicznych kategorii okuć zmieniono kolejność interakcji: kliknięcie zwiniętego parametru najpierw przewija główne okno słownika do jego nagłówka, a dopiero po zakończeniu/timeout scrolla zwija poprzedni parametr i rozwija kliknięty.
+- Po mutacji akordeonów pozycja aktywnego nagłówka jest korygowana, żeby zamknięcie długiego parametru powyżej nie wyrzucało użytkownika poza początek nowo otwartego formularza.
+- Krótkie lokalne przewinięcia zostały zachowane; zmiana celuje w szarpnięcie przy klikaniu parametrów z dołu listy.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-scroll-before-open-v1.md`.
+
 ## Hardware dictionary param scroll target v1 — 2026-05-23
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_target_v1.zip`.
