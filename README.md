@@ -1,3 +1,11 @@
+## site_hardware_dictionary_param_scroll_focus_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_single_open_v1.zip`.
+- W `Słowniki okuć → Parametry techniczne kategorii` rozwinięcie parametru automatycznie doscrollowuje główne okno słownika tak, żeby nagłówek otwartego parametru zaczynał się od góry widocznego obszaru.
+- Przy otwieraniu parametru z dołu listy formularz nie startuje już ucięty w połowie; użytkownik widzi początek mini-akordeonu i dopiero potem jego pola.
+- Nowo dodany parametr też przewija się do widocznego początku.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_single_open_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_accordions_v1.zip`.

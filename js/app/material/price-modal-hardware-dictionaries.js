@@ -123,7 +123,7 @@
   }
   function parameterRow(field, onChange, onRemove, cfg){
     const item = Object.assign({ id:uid('hwp'), category:'', key:'', label:'', fieldType:'text', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', active:true, order:10 }, field || {});
-    const detailsAttrs = { class:'hardware-tech-param-accordion' };
+    const detailsAttrs = { class:'hardware-tech-param-accordion', 'data-param-id':item.id || '' };
     if(cfg && cfg.open) detailsAttrs.open = true;
     const row = h('details', detailsAttrs);
     const title = h('span', { class:'hardware-tech-param-summary__title', text:item.label || 'Nowy parametr' });
@@ -164,6 +164,27 @@
     row.appendChild(body);
     return row;
   }
+  function scrollParamAccordionIntoView(node){
+    if(!node) return;
+    const win = typeof window !== 'undefined' ? window : {};
+    const defer = typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : (fn)=> setTimeout(fn, 0);
+    defer(()=>{
+      try{
+        const scroller = node.closest ? node.closest('.hardware-dictionary-scroll, .panel-box-form__scroll') : null;
+        if(scroller && typeof scroller.scrollTop === 'number' && typeof node.getBoundingClientRect === 'function' && typeof scroller.getBoundingClientRect === 'function'){
+          const nodeRect = node.getBoundingClientRect();
+          const scrollerRect = scroller.getBoundingClientRect();
+          const targetTop = scroller.scrollTop + (nodeRect.top - scrollerRect.top) - 10;
+          const maxTop = Math.max(0, Number(scroller.scrollHeight || 0) - Number(scroller.clientHeight || 0));
+          const nextTop = maxTop > 0 ? Math.max(0, Math.min(maxTop, targetTop)) : Math.max(0, targetTop);
+          if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
+          else scroller.scrollTop = nextTop;
+          return;
+        }
+        if(typeof node.scrollIntoView === 'function') node.scrollIntoView({ block:'start', behavior:'smooth' });
+      }catch(_){ }
+    });
+  }
   function categoryAccordion(cat, params, onChange){
     const box = h('details', { class:'hardware-tech-category-accordion' });
     const summary = h('summary', { class:'hardware-tech-category-summary' }, [h('span', { text:cat || 'Bez kategorii' })]);
@@ -194,6 +215,7 @@
             closePeerAccordions(node);
             closingPeerAccordions = false;
             openParamId = nextOpenId;
+            scrollParamAccordionIntoView(node);
           }else if(!closingPeerAccordions && openParamId === (param.id || '')){
             openParamId = '';
           }
@@ -207,6 +229,7 @@
       params.push(row);
       openParamId = row.id;
       renderRows();
+      scrollParamAccordionIntoView(list.querySelector('[data-param-id="' + row.id + '"]'));
       onChange();
     });
     renderRows();
