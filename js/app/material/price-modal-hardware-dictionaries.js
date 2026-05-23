@@ -514,7 +514,7 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesBody = h('div', { class:'rozrys-material-accordion__body hardware-dictionary-section-body' });
+    const categoriesBody = h('div', { class:'hardware-dictionary-section-body hardware-dictionary-category-section-body' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
@@ -529,10 +529,10 @@
       });
     }
     function forceCategoriesAccordionContentState(open){
-      // Ten wspólny akordeon zawiera edytowalne kategorie. Na telefonie animowanie
-      // wysokości max-height potrafiło zostawić widoczną tylko górę pierwszej karty
-      // (pusta/ucięta ramka). Dlatego stan listy kategorii ustawiamy bezpiecznie i
-      // bez przycinania treści; animacje zostają przy mini-akordeonach parametrów.
+      // Ten wspólny akordeon zawiera edytowalne kategorie. Nie używa klasy
+      // rozrys-material-accordion__body, bo jej animacja wysokości potrafiła na
+      // telefonie przyciąć zawartość do pustej/uciętej karty. Ten panel ma być
+      // prosty: zwinięty = hidden, rozwinięty = pełna zawartość bez clipowania.
       resetSectionAccordionAnimation(categoriesSection);
       setSectionAccordionVisualState(categoriesSection, open);
       categoriesSection.classList.toggle('hardware-section-static-open', !!open);

@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_body_guard_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_no_clip_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_category_body_guard_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -1368,3 +1368,16 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Test nadal pilnuje decyzji produktowej: backupy `before-tests` mają maksymalnie 10 najnowszych kopii, a ręczne backupy programu nie są przycinane przez limit testowy.
 - Nie zmieniono mechanizmu backupu, polityki retencji, fallbacku ręcznego eksportu na dysk, `BACKUP.md`, UI, silnika zamienników, import/export, PRO100, ROZRYS, RYSUNKU ani WYCENY.
 - Raport: `tools/reports/data-safety-backup-limit-policy-test-v2.md`.
+
+
+## Hardware dictionary category no-clip v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_no_clip_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_body_guard_v1.zip`.
+- Po zgłoszeniu użytkownika przeanalizowano, że wspólny akordeon `Kategorie / rodzaje okuć` nadal wizualnie przycinał zawartość: widoczna była tylko górna część pierwszego wiersza kategorii.
+- Przyczyna: body kategorii nadal miało klasę `rozrys-material-accordion__body`, czyli klasę wykorzystywaną w animowanym wzorcu ROZRYS. Dla edytowalnej listy kategorii ta klasa jest ryzykowna, bo przy przeliczaniu wysokości na telefonie może zostawić ograniczony widok.
+- Rozwiązanie: dla wspólnego akordeonu kategorii używać dedykowanego body `hardware-dictionary-category-section-body`, bez klasy `rozrys-material-accordion__body`; sam nagłówek i chevron nadal wizualnie trzymają wzorzec ROZRYS.
+- W CSS akordeon kategorii i jego body mają wymuszone `overflow: visible`, `max-height: none`, `height: auto`, bez animowania wysokości. Mini-akordeony parametrów technicznych pozostają bez zmian.
+- `tools/app-dev-smoke.js` zaostrzono tak, by sprawdzał dedykowany nieclipowany kontener kategorii oraz brak klasy `rozrys-material-accordion__body` na tym body.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-no-clip-v1.md`.

@@ -1,3 +1,12 @@
+## site_hardware_dictionary_category_no_clip_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_category_body_guard_v1.zip`.
+- Dokładnie przeanalizowano powrót pustego/uciętego akordeonu `Kategorie / rodzaje okuć`: samo czyszczenie `max-height` nie wystarczyło, bo body wspólnego akordeonu nadal dziedziczyło klasę `rozrys-material-accordion__body` używaną do animowania wysokości.
+- Wspólny akordeon kategorii dostał własne body `hardware-dictionary-category-section-body`, bez klasy animowanego body ROZRYS. Dzięki temu po otwarciu pokazuje pełną listę kategorii, a nie tylko uciętą górę pierwszej karty.
+- Zewnętrzny akordeon kategorii ma wymuszone `overflow: visible`, a sama lista kategorii/wiersze/fieldy mają ochronę przed `max-height` i `overflow:hidden`.
+- Test regresji w `tools/app-dev-smoke.js` sprawdza teraz, że body kategorii nie używa klasy `rozrys-material-accordion__body` i że używany jest dedykowany, nieclipowany kontener.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_category_body_guard_v1 — 2026-05-24
 
 - Baza: `site_hardware_dictionary_category_regression_fix_v1.zip`.
