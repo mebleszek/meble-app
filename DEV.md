@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_category_content_single_open_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -50,6 +50,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
+
+## Hardware dictionary category regression fix v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- W `Słowniki okuć → Kategorie / rodzaje okuć` naprawiono regresję pustego body wspólnego akordeonu: render listy kategorii odbywa się przed finalnym nałożeniem stanu widoczności, a po przebudowie zawartości akordeon pilnuje, żeby body nie zostało ukryte ani z zerowym `max-height`.
+- Dla małych ekranów chevron w akordeonie kategorii ma równy odstęp od góry, dołu i prawej strony; ten sam kierunek dopisano w `dev_ui_patterns.html → Accordion ROZRYS + ruch`.
+- `tools/app-dev-smoke.js` ma nowy test regresji, który otwiera modal słowników, sprawdza obecność wierszy kategorii, zamyka i ponownie otwiera akordeon.
+- `tools/app-dev-smoke-lib/mini-document.js` dostał minimalne wsparcie dla `hidden` i selektorów `:scope > ...`, żeby test DOM dla akordeonu sprawdzał realne zachowanie zamiast tylko tekstów w plikach.
+- Nie normalizowano innych akordeonów w aplikacji; bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-regression-fix-v1.md`.
 
 ## Hardware dictionary ROZRYS accordion pattern v1 — 2026-05-23
 

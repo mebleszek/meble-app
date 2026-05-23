@@ -321,11 +321,14 @@
     if(!node) return;
     scrollParamHeaderBeforeToggle(node, ()=> alignParamHeaderAfterToggle(node));
   }
+  function directChildByClass(node, className){ return Array.from(node && node.children || []).find((child)=> child && child.classList && child.classList.contains(className)) || null; }
   function sectionAccordionBody(node){
-    return node && node.querySelector ? node.querySelector(':scope > .hardware-dictionary-section-body') : null;
+    try{ return node && node.querySelector ? (node.querySelector(':scope > .hardware-dictionary-section-body') || directChildByClass(node, 'hardware-dictionary-section-body')) : null; }
+    catch(_){ return directChildByClass(node, 'hardware-dictionary-section-body'); }
   }
   function sectionAccordionSummary(node){
-    return node && node.querySelector ? node.querySelector(':scope > .hardware-dictionary-section-summary') : null;
+    try{ return node && node.querySelector ? (node.querySelector(':scope > .hardware-dictionary-section-summary') || directChildByClass(node, 'hardware-dictionary-section-summary')) : null; }
+    catch(_){ return directChildByClass(node, 'hardware-dictionary-section-summary'); }
   }
   function clearSectionAccordionTimer(node){
     if(!node) return;
@@ -526,23 +529,26 @@
       });
     }
     function updateCategoriesAccordion(animate){
-      if(categoriesOpen){
-        if(animate) animateSectionAccordionOpen(categoriesSection, focusCategoriesAccordion);
-        else setSectionAccordionVisualState(categoriesSection, true);
-      }else{
-        animateSectionAccordionClose(categoriesSection);
-      }
+      if(categoriesOpen) return animate ? animateSectionAccordionOpen(categoriesSection, focusCategoriesAccordion) : setSectionAccordionVisualState(categoriesSection, true);
+      return animate ? animateSectionAccordionClose(categoriesSection) : setSectionAccordionVisualState(categoriesSection, false);
     }
     categoriesSummary.addEventListener('click', ()=>{
       categoriesOpen = !categoriesOpen;
       updateCategoriesAccordion(true);
     });
-    updateCategoriesAccordion(false);
     const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     const cancel = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     function isDirty(){ return signature(categories, params) !== cleanSignature; }
     function updateActions(){ const dirty = isDirty(); exit.style.display = dirty ? 'none' : ''; cancel.style.display = dirty ? '' : 'none'; save.style.display = dirty ? '' : 'none'; }
+    function syncCategoriesAccordionAfterRender(){
+      if(!categoriesOpen) return setSectionAccordionVisualState(categoriesSection, false);
+      setSectionAccordionVisualState(categoriesSection, true);
+      if(categoriesSection.classList.contains('hardware-section-opening')){
+        const sectionBody = sectionAccordionBody(categoriesSection);
+        if(sectionBody) sectionBody.style.maxHeight = Math.max(1, sectionBody.scrollHeight || 1) + 'px';
+      }
+    }
     function render(){
       catList.innerHTML = '';
       categories.forEach((cat, index)=> catList.appendChild(categoryRow(cat, index, (i, value, remove, refresh)=>{
@@ -552,6 +558,7 @@
       })));
       paramList.innerHTML = '';
       normalizeCategories(categories).forEach((cat)=> paramList.appendChild(categoryAccordion(cat, params, updateActions)));
+      syncCategoriesAccordionAfterRender();
       updateActions();
     }
     const addCat = h('button', { type:'button', class:'btn', text:'Dodaj kategorię' });
@@ -582,6 +589,7 @@
     body.appendChild(scroll);
     body.appendChild(h('div', { class:'panel-box-form__footer hardware-supplier-actions hardware-dictionary-actions' }, [exit, cancel, save]));
     render();
+    updateCategoriesAccordion(false);
     FC.panelBox.open({ title:'Słowniki okuć', contentNode:body, width:'900px', boxClass:'panel-box--rozrys hardware-dictionary-panel', dismissOnOverlay:false, dismissOnEsc:true });
   }
 

@@ -1,3 +1,12 @@
+## site_hardware_dictionary_category_regression_fix_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- Naprawiono regresję pustego akordeonu `Słowniki okuć → Kategorie / rodzaje okuć`: stan otwarcia jest nakładany po realnym wyrenderowaniu listy kategorii, a nie na pusty panel przed zbudowaniem treści.
+- Dodano zabezpieczenie przed zostawieniem body akordeonu z `hidden` albo zerowym `max-height` po przebudowie zawartości.
+- W `dev_ui_patterns.html → Accordion ROZRYS + ruch` oraz w mobile dla akordeonu kategorii ustawiono chevron tak, żeby w małych oknach miał równy oddech od góry, dołu i prawej strony.
+- Dodano smoke test regresji: modal słowników musi otworzyć akordeon kategorii z widocznymi wierszami, zamknąć go i ponownie otworzyć bez utraty treści.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_rozrys_accordion_pattern_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_category_content_single_open_v1.zip`.

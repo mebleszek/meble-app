@@ -701,6 +701,35 @@ function runMaterialNodeSmoke(sandbox){
         && uiPatterns.includes('rozrys-material-accordion__chevron')
         && uiPatterns.includes('is-ui-pattern-animating');
     } },
+    { name:'Słownik okuć renderuje treść akordeonu kategorii po otwarciu', explain:'Chroni regresję z telefonu: wspólny akordeon `Kategorie / rodzaje okuć` nie może otwierać się jako pusta ramka; lista kategorii ma zostać w body po zamknięciu i ponownym otwarciu.', check:()=> {
+      let captured = null;
+      const oldPanelBox = FC.panelBox;
+      const oldMatchMedia = sandbox.window.matchMedia;
+      try{
+        sandbox.window.matchMedia = ()=>({ matches:true });
+        FC.panelBox = { open:(opts)=>{ captured = opts; }, close:()=>{} };
+        if(!(FC.priceModalHardwareDictionaries && typeof FC.priceModalHardwareDictionaries.open === 'function')) return false;
+        FC.priceModalHardwareDictionaries.open();
+        const content = captured && captured.contentNode;
+        const section = content && content.querySelector('.hardware-dictionary-categories-accordion');
+        const summary = content && content.querySelector('.hardware-dictionary-section-summary');
+        const body = content && content.querySelector('.hardware-dictionary-section-body');
+        const list = content && content.querySelector('.hardware-dictionary-category-list');
+        const firstInput = list && list.querySelector('input');
+        const initialRows = list && list.querySelectorAll('.hardware-dictionary-row');
+        const initiallyVisible = !!(section && summary && body && list && initialRows.length >= 3 && body.hidden === false && summary.getAttribute('aria-expanded') === 'true' && firstInput && firstInput.value === 'Zawiasy' && body.style.maxHeight !== '0px');
+        if(!initiallyVisible) return false;
+        summary.click();
+        const closed = body.hidden === true && summary.getAttribute('aria-expanded') === 'false' && section.classList.contains('is-open') === false;
+        summary.click();
+        const reopenedRows = list.querySelectorAll('.hardware-dictionary-row');
+        const reopened = body.hidden === false && summary.getAttribute('aria-expanded') === 'true' && section.classList.contains('is-open') === true && reopenedRows.length >= initialRows.length && (list.querySelector('input') || {}).value === 'Zawiasy' && body.style.maxHeight !== '0px';
+        return closed && reopened;
+      }finally{
+        FC.panelBox = oldPanelBox;
+        sandbox.window.matchMedia = oldMatchMedia;
+      }
+    } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
       if(!(api && api._debug && typeof api._debug.buildBundleRows === 'function')) return false;
