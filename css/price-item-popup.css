@@ -515,7 +515,7 @@
 #priceItemModal .hardware-tech-param-summary::-webkit-details-marker{display:none;}
 .hardware-dictionary-panel .hardware-tech-param-summary::after,
 #priceModal .hardware-tech-param-summary::after,
-#priceItemModal .hardware-tech-param-summary::after{content:"";width:12px;height:12px;border-right:3px solid #10b981;border-bottom:3px solid #10b981;transform:rotate(45deg);transition:transform .18s ease;flex:0 0 auto;margin-right:4px;}
+#priceItemModal .hardware-tech-param-summary::after{content:"";width:12px;height:12px;border-right:3px solid #10b981;border-bottom:3px solid #10b981;transform:rotate(45deg);transition:transform .26s ease;flex:0 0 auto;margin-right:4px;}
 .hardware-dictionary-panel .hardware-tech-param-accordion[open] > .hardware-tech-param-summary::after,
 #priceModal .hardware-tech-param-accordion[open] > .hardware-tech-param-summary::after,
 #priceItemModal .hardware-tech-param-accordion[open] > .hardware-tech-param-summary::after{transform:rotate(225deg);margin-top:6px;}
@@ -530,7 +530,7 @@
 #priceItemModal .hardware-tech-param-summary__meta{font-size:12px;font-weight:800;line-height:1.25;color:#64748b;overflow-wrap:anywhere;}
 .hardware-dictionary-panel .hardware-tech-param-accordion > .hardware-tech-param-row,
 #priceModal .hardware-tech-param-accordion > .hardware-tech-param-row,
-#priceItemModal .hardware-tech-param-accordion > .hardware-tech-param-row{margin:0;border:0;border-top:1px solid rgba(226,232,240,.95);border-radius:0;box-shadow:none;background:linear-gradient(180deg,#fff,#f8fafc);transition:max-height .22s ease,opacity .18s ease,transform .18s ease;will-change:max-height,opacity,transform;}
+#priceItemModal .hardware-tech-param-accordion > .hardware-tech-param-row{margin:0;border:0;border-top:1px solid rgba(226,232,240,.95);border-radius:0;box-shadow:none;background:linear-gradient(180deg,#fff,#f8fafc);transition:max-height .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease;will-change:max-height,opacity,transform;}
 .hardware-dictionary-panel .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row,
 #priceModal .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row,
 #priceItemModal .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row{overflow:hidden;}

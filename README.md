@@ -1,3 +1,12 @@
+# README
+
+## site_hardware_dictionary_param_expand_animation_slow_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_expand_animation_v1.zip`.
+- Wydłużono i ustabilizowano animację rozwijania mini-akordeonów parametrów technicznych w słownikach okuć.
+- Start animacji jest pewniejszy dzięki ustawieniu stanu początkowego przed właściwym przejściem wysokości.
+- Zmiana jest tylko UI/UX: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_expand_animation_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_scroll_before_open_v1.zip`.
