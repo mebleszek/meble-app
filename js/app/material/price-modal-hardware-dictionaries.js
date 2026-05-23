@@ -528,9 +528,24 @@
         }catch(_){ }
       });
     }
+    function forceCategoriesAccordionContentState(open){
+      // Ten wspólny akordeon zawiera edytowalne kategorie. Na telefonie animowanie
+      // wysokości max-height potrafiło zostawić widoczną tylko górę pierwszej karty
+      // (pusta/ucięta ramka). Dlatego stan listy kategorii ustawiamy bezpiecznie i
+      // bez przycinania treści; animacje zostają przy mini-akordeonach parametrów.
+      resetSectionAccordionAnimation(categoriesSection);
+      setSectionAccordionVisualState(categoriesSection, open);
+      categoriesSection.classList.toggle('hardware-section-static-open', !!open);
+      if(categoriesBody){
+        categoriesBody.style.maxHeight = '';
+        categoriesBody.style.opacity = '';
+        categoriesBody.style.transform = '';
+        categoriesBody.style.overflow = open ? 'visible' : '';
+      }
+    }
     function updateCategoriesAccordion(animate){
-      if(categoriesOpen) return animate ? animateSectionAccordionOpen(categoriesSection, focusCategoriesAccordion) : setSectionAccordionVisualState(categoriesSection, true);
-      return animate ? animateSectionAccordionClose(categoriesSection) : setSectionAccordionVisualState(categoriesSection, false);
+      forceCategoriesAccordionContentState(categoriesOpen);
+      if(categoriesOpen && animate) focusCategoriesAccordion();
     }
     categoriesSummary.addEventListener('click', ()=>{
       categoriesOpen = !categoriesOpen;

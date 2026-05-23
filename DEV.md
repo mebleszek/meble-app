@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_body_guard_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -50,6 +50,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
+
+
+## Hardware dictionary category body guard v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_body_guard_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Przeanalizowano regresję z telefonu: wspólny akordeon `Kategorie / rodzaje okuć` miał poprawną zawartość w DOM, ale mógł być wizualnie przycięty przez animację `max-height`, więc użytkownik widział pustą/uciętą ramkę zamiast listy kategorii.
+- Dla tego jednego wspólnego akordeonu kategorii ustawiono bezpieczny tryb otwarcia bez przycinania body; `max-height` i `overflow:hidden` nie zostają na otwartym panelu. Mini-akordeony parametrów technicznych nadal mają dotychczasowe animowane rozwijanie.
+- Zaostrzono `tools/app-dev-smoke.js`: test regresji sprawdza wiersze kategorii, input `Zawiasy`, przycisk `Usuń`, przycisk `Dodaj kategorię`, brak ukrycia body i brak stylu przycinającego po ponownym otwarciu.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-body-guard-v1.md`.
 
 ## Hardware dictionary category regression fix v1 — 2026-05-24
 

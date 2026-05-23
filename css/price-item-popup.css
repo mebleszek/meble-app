@@ -585,3 +585,16 @@
   #priceModal .hardware-tech-param-summary,
   #priceItemModal .hardware-tech-param-summary{padding:11px 12px;}
 }
+
+/* Słowniki okuć — fail-safe przeciw pustemu/uciętemu body wspólnego akordeonu kategorii. */
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion.is-open > .hardware-dictionary-section-body,
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion.hardware-section-static-open > .hardware-dictionary-section-body{
+  display:grid;
+  max-height:none!important;
+  overflow:visible!important;
+  opacity:1!important;
+  transform:none!important;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion:not(.is-open) > .hardware-dictionary-section-body[hidden]{
+  display:none!important;
+}

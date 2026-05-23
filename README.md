@@ -1,3 +1,11 @@
+## site_hardware_dictionary_category_body_guard_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Przeanalizowano poprawkę regresji akordeonu kategorii i zawężono przyczynę: wspólny akordeon `Kategorie / rodzaje okuć` nadal mógł zostać wizualnie przycięty przez animację `max-height`, przez co na telefonie widoczna była pusta/ucięta karta pierwszej kategorii.
+- Wspólny akordeon kategorii dostał bezpieczny tryb otwierania bez przycinania treści: po otwarciu body ma `overflow: visible` i nie zostaje z wymuszonym `max-height`. Animacje mini-akordeonów parametrów technicznych zostają bez zmian.
+- Test regresji w `tools/app-dev-smoke.js` został zaostrzony: sprawdza realną zawartość listy kategorii, przycisk `Dodaj kategorię`, przycisk `Usuń`, brak ukrycia body oraz brak stylu przycinającego po zamknięciu i ponownym otwarciu.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_category_regression_fix_v1 — 2026-05-24
 
 - Baza: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
