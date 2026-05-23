@@ -1,3 +1,11 @@
+## site_hardware_dictionary_param_expand_animation_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_scroll_before_open_v1.zip`.
+- W `Słowniki okuć → Parametry techniczne kategorii` treść mini-akordeonu parametru rozwija się i zwija płynnie, zamiast pojawiać się nagle po doscrollowaniu do nagłówka.
+- Zachowano kolejność interakcji: najpierw płynny scroll do nagłówka klikniętego parametru, dopiero potem animowane zwinięcie poprzedniego i rozwinięcie nowego parametru.
+- Zostaje zasada jednego otwartego parametru naraz w kategorii oraz krótkie lokalne przewinięcia.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_scroll_before_open_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_scroll_target_v1.zip`.

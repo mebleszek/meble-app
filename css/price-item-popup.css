@@ -530,7 +530,18 @@
 #priceItemModal .hardware-tech-param-summary__meta{font-size:12px;font-weight:800;line-height:1.25;color:#64748b;overflow-wrap:anywhere;}
 .hardware-dictionary-panel .hardware-tech-param-accordion > .hardware-tech-param-row,
 #priceModal .hardware-tech-param-accordion > .hardware-tech-param-row,
-#priceItemModal .hardware-tech-param-accordion > .hardware-tech-param-row{margin:0;border:0;border-top:1px solid rgba(226,232,240,.95);border-radius:0;box-shadow:none;background:linear-gradient(180deg,#fff,#f8fafc);}
+#priceItemModal .hardware-tech-param-accordion > .hardware-tech-param-row{margin:0;border:0;border-top:1px solid rgba(226,232,240,.95);border-radius:0;box-shadow:none;background:linear-gradient(180deg,#fff,#f8fafc);transition:max-height .22s ease,opacity .18s ease,transform .18s ease;will-change:max-height,opacity,transform;}
+.hardware-dictionary-panel .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row,
+#priceModal .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row,
+#priceItemModal .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row{overflow:hidden;}
+.hardware-dictionary-panel .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row,
+#priceModal .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row,
+#priceItemModal .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row{pointer-events:none;}
+@media(prefers-reduced-motion:reduce){
+  .hardware-dictionary-panel .hardware-tech-param-accordion > .hardware-tech-param-row,
+  #priceModal .hardware-tech-param-accordion > .hardware-tech-param-row,
+  #priceItemModal .hardware-tech-param-accordion > .hardware-tech-param-row{transition:none!important;}
+}
 .hardware-dictionary-panel .hardware-tech-add-param-btn,
 #priceModal .hardware-tech-add-param-btn,
 #priceItemModal .hardware-tech-add-param-btn{margin:8px 10px 12px;width:calc(100% - 20px);}

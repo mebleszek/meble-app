@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T19:14:30.322Z",
+  "generatedAt": "2026-05-23T19:31:48.790Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -8,7 +8,7 @@
     "fcSymbolsAll": 285,
     "edges": 1839,
     "highRisk": 8,
-    "mediumRisk": 64
+    "mediumRisk": 65
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -45,11 +45,11 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5425,
+      "lines": 5561,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
-      "medium": 2
+      "medium": 3
     },
     "OPTIMIZER": {
       "files": 12,
@@ -218,6 +218,10 @@
       475
     ],
     [
+      "js/app/material/price-modal-hardware-dictionaries.js",
+      468
+    ],
+    [
       "js/app/ui/actions-register.js",
       455
     ],
@@ -232,10 +236,6 @@
     [
       "js/app/project/project-status-manual-guard.js",
       395
-    ],
-    [
-      "js/testing/test-data-manager.js",
-      393
     ]
   ],
   "topIncoming": [
@@ -1406,6 +1406,23 @@
       "dialogRefs": 0,
       "reasons": [
         "400+ linii"
+      ]
+    },
+    {
+      "file": "js/app/material/price-modal-hardware-dictionaries.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 468,
+      "incoming": 0,
+      "outgoing": 7,
+      "secondLevel": 0,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "kilka zależności wychodzących"
       ]
     },
     {
@@ -5824,7 +5841,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 332,
+      "lines": 468,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -5850,12 +5867,12 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 29,
+      "domRefs": 37,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "250+ linii",
+        "400+ linii",
         "kilka zależności wychodzących"
       ]
     },
