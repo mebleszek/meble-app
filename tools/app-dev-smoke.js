@@ -657,6 +657,8 @@ function runMaterialNodeSmoke(sandbox){
         && dictionariesSrc.includes("class:'hardware-tech-param-accordion'")
         && dictionariesSrc.includes('hardware-tech-param-summary__meta')
         && dictionariesSrc.includes('paramSummaryParts(item).join')
+        && dictionariesSrc.includes('closePeerAccordions')
+        && dictionariesSrc.includes('closingPeerAccordions')
         && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
         && css.includes('.hardware-dictionary-scroll')
         && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')

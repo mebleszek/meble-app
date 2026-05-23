@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_accordions_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_full_scroll_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_single_open_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_param_accordions_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -54,6 +54,16 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+## Hardware dictionary param single open v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_single_open_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_accordions_v1.zip`.
+- W akordeonie parametrów technicznych kategorii okuć działa teraz zasada: jeden rozwinięty parametr naraz w danej kategorii.
+- Rozwinięcie kolejnego parametru automatycznie zwija poprzedni, dzięki czemu edycja słowników na telefonie nie tworzy kilku długich bloków pól naraz.
+- Nowo dodany parametr nadal rozwija się automatycznie, ale pozostaje jedynym otwartym parametrem w swojej kategorii.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-single-open-v1.md`.
 
 ## Hardware dictionary param accordions v1 — 2026-05-23
 

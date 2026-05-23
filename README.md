@@ -1,3 +1,11 @@
+## site_hardware_dictionary_param_single_open_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_accordions_v1.zip`.
+- W `Słowniki okuć → Parametry techniczne kategorii` wewnątrz jednej kategorii może być rozwinięty tylko jeden parametr naraz.
+- Rozwinięcie kolejnego parametru automatycznie zwija poprzedni, więc na telefonie lista nie robi długiej ściany pól.
+- Nowo dodany parametr nadal otwiera się od razu, ale zamyka inne parametry w tej samej kategorii.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_accordions_v1 — 2026-05-23
 
 - Baza: `site_hardware_param_choice_launcher_fix_v1.zip`.

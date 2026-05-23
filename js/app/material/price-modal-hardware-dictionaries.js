@@ -170,7 +170,13 @@
     box.appendChild(summary);
     const list = h('div', { class:'hardware-tech-param-list' });
     let openParamId = '';
+    let closingPeerAccordions = false;
     function rows(){ return params.filter((row)=> text(row.category) === text(cat)); }
+    function closePeerAccordions(activeNode){
+      Array.from(list.querySelectorAll(':scope > .hardware-tech-param-accordion')).forEach((node)=>{
+        if(node !== activeNode && node.open) node.open = false;
+      });
+    }
     function renderRows(){
       list.innerHTML = '';
       rows().sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0)).forEach((param)=>{
@@ -181,7 +187,17 @@
           renderRows();
           onChange();
         }, { open:openParamId && openParamId === param.id });
-        node.addEventListener('toggle', ()=>{ if(node.open) openParamId = param.id || ''; });
+        node.addEventListener('toggle', ()=>{
+          if(node.open){
+            const nextOpenId = param.id || '';
+            closingPeerAccordions = true;
+            closePeerAccordions(node);
+            closingPeerAccordions = false;
+            openParamId = nextOpenId;
+          }else if(!closingPeerAccordions && openParamId === (param.id || '')){
+            openParamId = '';
+          }
+        });
         list.appendChild(node);
       });
     }
