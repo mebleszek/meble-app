@@ -1,3 +1,16 @@
+### 2026-05-23 — hardware replacement button visibility fix v1
+- Start z aktualnej bazy `site_hardware_replacement_preview_ui_v1.zip`.
+- Poprawiono widoczność przycisku `Zamienniki` w modalu edycji okucia: moduł tworzy/odnajduje przycisk pod `Wyjdź` i buduje źródło porównania także z bieżącego draftu formularza.
+- Podgląd nadal jest tylko listą kandydatów bez zapisu zmian; nie dodano akcji `Zamień`.
+- Nie ruszono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+### 2026-05-23 — hardware replacement preview UI v1
+- Start z aktualnej bazy `site_data_safety_backup_limit_policy_test_v2.zip`.
+- W modalu edycji okucia dodano przycisk `Zamienniki` pod `Wyjdź`.
+- Przycisk pokazuje listę zamienników jako podgląd: pasujące i najbliższe odrzucone kandydaty, z ceną `Do wyceny` oraz powodami dopasowania/odrzucenia.
+- Podgląd korzysta z technicznego silnika zamienników, nie zapisuje zmian do katalogu, projektów ani storage.
+- Nie dodano jeszcze właściwej akcji `Zamień`; nie ruszono import/export, backupów, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
 ### 2026-05-21 — hardware compare modes / storage cleanup v1
 - Start z aktualnej bazy `site_000_hardware_edit_modal_perf_fix_v1.zip`.
 - Nie zmieniono UI ani miejsca ustawiania zasad szukania zamienników; dalej są w słownikach parametrów technicznych kategorii okuć.

@@ -1,0 +1,142 @@
+/* 2026-05-23 — podgląd zamienników okuć w modalu edycji pozycji. */
+#priceItemModal .price-item-footer__exit-stack{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+}
+#priceItemModal .hardware-replacement-toggle{
+  min-width:92px;
+  min-height:42px;
+}
+#priceItemModal .hardware-replacement-preview{
+  flex:1 0 100%;
+  order:3;
+  margin-top:12px;
+  border:1px solid rgba(14,165,233,.24);
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fcff 0%,#ffffff 100%);
+  box-shadow:0 12px 24px rgba(15,23,42,.08);
+  padding:12px;
+  max-height:min(42dvh, 420px);
+  overflow:auto;
+}
+#priceItemModal .hardware-replacement-preview[hidden]{
+  display:none;
+}
+#priceItemModal .hardware-replacement-preview__head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+#priceItemModal .hardware-replacement-preview__title{
+  font-size:16px;
+  line-height:1.2;
+  font-weight:900;
+  color:#0f172a;
+}
+#priceItemModal .hardware-replacement-preview__meta{
+  font-size:12px;
+  line-height:1.25;
+  font-weight:850;
+  color:#64748b;
+}
+#priceItemModal .hardware-replacement-section-title{
+  margin:10px 0 7px;
+  font-size:12px;
+  line-height:1.2;
+  font-weight:900;
+  color:#334155;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+#priceItemModal .hardware-replacement-list{
+  display:grid;
+  gap:8px;
+}
+#priceItemModal .hardware-replacement-card{
+  border:1px solid rgba(203,213,225,.86);
+  border-radius:14px;
+  background:#fff;
+  padding:10px;
+}
+#priceItemModal .hardware-replacement-card__top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#priceItemModal .hardware-replacement-card__title{
+  min-width:0;
+  flex:1 1 auto;
+  font-weight:900;
+  color:#0f172a;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+#priceItemModal .hardware-replacement-card__meta,
+#priceItemModal .hardware-replacement-card__price,
+#priceItemModal .hardware-replacement-card__reasons{
+  margin-top:5px;
+  font-size:12px;
+  line-height:1.28;
+  font-weight:800;
+  color:#64748b;
+  overflow-wrap:anywhere;
+}
+#priceItemModal .hardware-replacement-card__price{
+  color:#0f172a;
+}
+#priceItemModal .hardware-replacement-card__reasons{
+  display:grid;
+  gap:2px;
+}
+#priceItemModal .hardware-replacement-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  border-radius:999px;
+  padding:3px 8px;
+  border:1px solid rgba(148,163,184,.65);
+  font-size:12px;
+  line-height:1.1;
+  font-weight:900;
+  white-space:nowrap;
+}
+#priceItemModal .hardware-replacement-chip--ok{
+  border-color:rgba(34,197,94,.35);
+  background:rgba(34,197,94,.10);
+  color:#166534;
+}
+#priceItemModal .hardware-replacement-chip--warning{
+  border-color:rgba(245,158,11,.40);
+  background:rgba(245,158,11,.12);
+  color:#92400e;
+}
+#priceItemModal .hardware-replacement-chip--danger{
+  border-color:rgba(239,68,68,.38);
+  background:rgba(239,68,68,.10);
+  color:#991b1b;
+}
+#priceItemModal .hardware-replacement-empty{
+  border:1px dashed rgba(148,163,184,.7);
+  border-radius:14px;
+  padding:10px;
+  color:#64748b;
+  font-weight:850;
+  font-size:13px;
+  line-height:1.3;
+  background:rgba(248,250,252,.82);
+}
+@media(max-width:600px){
+  #priceItemModal .price-item-footer__exit-stack{
+    align-items:flex-end;
+  }
+  #priceItemModal .hardware-replacement-preview{
+    max-height:min(46dvh, 420px);
+  }
+}

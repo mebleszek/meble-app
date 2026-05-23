@@ -184,6 +184,10 @@
     if(exitBtn) exitBtn.style.display = dirty ? 'none' : '';
     if(cancelBtn) cancelBtn.style.display = dirty ? '' : 'none';
     if(saveBtn){ saveBtn.style.display = dirty ? '' : 'none'; saveBtn.textContent = isEdit ? 'Zapisz' : ctx.currentConfig().addLabel.replace(/^Dodaj\s+/i, 'Dodaj '); }
+    try{
+      if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.updateActionState === 'function')
+        ctx.priceModalHardwareReplacements.updateActionState({ dirty, isEdit, formKind:ctx.currentConfig().formKind, item:currentEditedItem() });
+    }catch(_){ }
   }
 
   function wireItemDirtyEvents(){
@@ -289,6 +293,7 @@
     if(ctx.mountFormChoiceLaunchers) ctx.mountFormChoiceLaunchers(()=> updateItemActionState());
     if(kind === 'quoteRates') { hideLaborUsageField(); mountLaborChoiceLaunchers(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
+    try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
     wireItemDirtyEvents();
     ctx.runtimeState.itemInitialSignature = currentItemSignature();
     updateItemActionState();

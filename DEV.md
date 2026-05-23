@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_data_safety_test_isolation_v1.zip`.
-- Baza startowa tej paczki: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_replacement_preview_ui_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -49,6 +49,30 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+
+## Hardware replacement button visibility fix v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Baza startowa: `site_hardware_replacement_preview_ui_v1.zip`.
+- Poprawiono realną widoczność przycisku `Zamienniki` w modalu edycji okucia: moduł UI potrafi odnaleźć albo odtworzyć przycisk pod `Wyjdź` i panel podglądu w stopce modala.
+- Źródło porównania jest teraz budowane odporniej: z pozycji katalogu oraz pasywnego draftu formularza, z obsługą aliasu `category` jako `hardwareCategory`.
+- Warunek widoczności nadal ogranicza przycisk do edycji istniejącego okucia bez niezapisanych zmian; przycisk nie pokazuje się w dodawaniu nowej pozycji.
+- Podgląd zamienników nadal nie zapisuje zmian do katalogu, projektu ani storage i nie dodaje właściwej akcji `Zamień`.
+- Nie zmieniono polityki backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-replacement-button-visibility-fix-v1.md`.
+
+## Hardware replacement preview UI v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_replacement_preview_ui_v1.zip`.
+- Baza startowa: `site_data_safety_backup_limit_policy_test_v2.zip`.
+- W modalu edycji okucia dodano przycisk `Zamienniki` pod przyciskiem `Wyjdź`. Przycisk jest widoczny tylko przy edycji istniejącego okucia, gdy formularz nie ma niezapisanych zmian.
+- Dodano moduł UI `js/app/material/price-modal-hardware-replacements.js`, który korzysta z `FC.hardwareReplacementEngine`, ale nie zapisuje zmian do katalogu, projektu ani storage.
+- Lista pokazuje kandydatów z tej samej kategorii i od innych producentów, z podziałem na pasujące oraz najbliższe odrzucone. Wynik zawiera status, podstawowe meta, cenę `Do wyceny` i powody dopasowania/odrzucenia.
+- `price-modal-item-form.js` tylko przekazuje stan modala do modułu zamienników; nie przejął logiki porównywania.
+- Dodano kontrakty smoke i test UI okuć pilnujące, że podgląd zamienników używa silnika, nie robi zapisu i nie używa systemowych dialogów.
+- Nie zmieniono polityki backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU, WYCENY ani właściwej zamiany okuć w projekcie.
+- Raport: `tools/reports/hardware-replacement-preview-ui-v1.md`.
 
 ## Hardware compare modes / storage cleanup v1 — 2026-05-21
 

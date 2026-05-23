@@ -632,6 +632,22 @@ function runMaterialNodeSmoke(sandbox){
         && hardwareFormSrc.includes("updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Typ / cecha')")
         && !hardwareFormSrc.includes('function syncHardwareTypeFromTechnicalParams(){');
     } },
+    { name:'Modal edycji okuć ma podgląd zamienników pod Wyjdź bez zapisu zmian', explain:'Chroni nowy etap: lista zamienników jest tylko podglądem w edycji okucia, ma własny moduł UI i nie dodaje zapisu do storage.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-replacements.js'), 'utf8');
+      return html.includes('id="hardwareReplacementToggleBtn"')
+        && html.includes('id="hardwareReplacementPreview"')
+        && html.includes('price-modal-hardware-replacements.js')
+        && itemFormSrc.includes('priceModalHardwareReplacements.updateActionState')
+        && itemFormSrc.includes('priceModalHardwareReplacements.setSourceItem')
+        && ui.includes('FC.priceModalHardwareReplacements')
+        && ui.includes('previewRows')
+        && ui.includes('Bez zapisu zmian')
+        && !ui.includes('localStorage')
+        && !ui.includes('savePriceList')
+        && !/\b(alert|confirm|prompt)\s*\(/.test(ui);
+    } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
       if(!(api && api._debug && typeof api._debug.buildBundleRows === 'function')) return false;

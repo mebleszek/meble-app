@@ -577,6 +577,24 @@
         const row = ctx.renderHardwareAccessoryRow({ name:'Test UI', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceStatus:'current' }, ()=>{});
         H.assert(row && row.querySelector && row.querySelector('.hardware-price-row__status-actions .hardware-price-row__edit-btn'), 'Brak przycisku Edytuj w linii statusu', row && row.outerHTML);
       }),
+      H.makeTest('Akcesoria — UI kontrakty', 'Podgląd zamienników używa silnika bez zapisu zmian', 'Chroni przycisk Zamienniki pod Wyjdź: lista jest tylko podglądem i filtruje kandydatów technicznie.', ()=>{
+        const api = FC.priceModalHardwareReplacements;
+        H.assert(api && typeof api.previewRows === 'function', 'Brak modułu podglądu zamienników');
+        const defs = [{ category:'Szuflady / prowadnice', key:'dlugosc', label:'Długość', fieldType:'numberRange', compareMode:'equal', keyFeature:true, active:true }];
+        const source = { id:'src', manufacturer:'Blum', name:'Prowadnica Blum 350', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } } };
+        const rows = api.previewRows(source, [
+          { id:'ok', manufacturer:'GTV', name:'Prowadnica GTV 350', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:50, useForQuote:true }] },
+          { id:'bad', manufacturer:'Rejs', name:'Prowadnica Rejs 400', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:400, to:'' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:45, useForQuote:true }] },
+          { id:'same', manufacturer:'Blum', name:'Blum 350 kopia', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } } },
+        ], { definitions:defs, hardwareTechnicalParams:defs, suppliers:suppliers(), defaultVatRate:23 });
+        const byId = new Map(rows.map((row)=> [text(row && row.candidateId), row]));
+        H.assert(byId.has('ok') && byId.get('ok').compatible, 'Kandydat 350 mm nie przeszedł jako zamiennik', rows);
+        H.assert(byId.has('bad') && !byId.get('bad').compatible, 'Kandydat 400 mm błędnie przeszedł jako zamiennik', rows);
+        H.assert(!byId.has('same'), 'Ten sam producent nie powinien być na liście zamienników UI', rows);
+        H.assert(typeof api.buildSourceItem === 'function', 'Brak buildSourceItem dla odpornego źródła zamienników');
+        const sourceFromCategoryAlias = api.buildSourceItem({ id:'alias_src', manufacturer:'Nomet', category:'Cargo / organizery', name:'Cargo test' }, { useDraft:false });
+        H.assert(sourceFromCategoryAlias.hardwareCategory === 'Cargo / organizery', 'buildSourceItem nie używa aliasu category jako hardwareCategory', sourceFromCategoryAlias);
+      }),
     ];
   }
 
