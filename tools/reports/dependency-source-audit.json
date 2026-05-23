@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T21:01:39.953Z",
+  "generatedAt": "2026-05-23T21:24:08.154Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5552,
+      "lines": 5605,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -210,16 +210,16 @@
       524
     ],
     [
+      "js/app/material/price-modal-hardware-dictionaries.js",
+      512
+    ],
+    [
       "js/app/rozrys/rozrys-render.js",
       493
     ],
     [
       "js/testing/rozrys/tests.js",
       475
-    ],
-    [
-      "js/app/material/price-modal-hardware-dictionaries.js",
-      459
     ],
     [
       "js/app/ui/actions-register.js",
@@ -1393,6 +1393,23 @@
       ]
     },
     {
+      "file": "js/app/material/price-modal-hardware-dictionaries.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 512,
+      "incoming": 0,
+      "outgoing": 7,
+      "secondLevel": 0,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys-render.js",
       "risk": "średnie",
       "score": 4,
@@ -1406,23 +1423,6 @@
       "dialogRefs": 0,
       "reasons": [
         "400+ linii"
-      ]
-    },
-    {
-      "file": "js/app/material/price-modal-hardware-dictionaries.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "MATERIAŁ",
-      "category": "ui/render/events",
-      "lines": 459,
-      "incoming": 0,
-      "outgoing": 7,
-      "secondLevel": 0,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -5841,7 +5841,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 459,
+      "lines": 512,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -5867,7 +5867,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 36,
+      "domRefs": 40,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",

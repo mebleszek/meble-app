@@ -1,3 +1,11 @@
+## site_hardware_dictionary_category_content_single_open_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_categories_accordion_v1.zip`.
+- Poprawiono wspólny akordeon `Kategorie / rodzaje okuć`: po rozwinięciu ma pokazywać pełną zawartość listy kategorii, a nie ucięty pusty fragment.
+- Akordeon kategorii/rodzajów okuć działa teraz jako kontrolowany panel aplikacyjny, a nie natywne `details`, co stabilizuje widoczność zawartości na telefonie.
+- W `Parametry techniczne kategorii` otwarcie jednej kategorii technicznej zamyka pozostałe, żeby podczas przechodzenia między kategoriami nie zostawały rozwinięte długie poprzednie sekcje.
+- Zmiana jest tylko UI/UX: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 # README
 
 ## site_hardware_dictionary_categories_accordion_v1 — 2026-05-23

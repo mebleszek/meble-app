@@ -468,14 +468,16 @@
 
 /* Słowniki okuć — wspólny akordeon listy kategorii. */
 .hardware-dictionary-panel .hardware-dictionary-section-accordion{border:1px solid rgba(148,163,184,.42);border-radius:18px;background:#fff;box-shadow:0 8px 0 rgba(31,41,55,.07),0 14px 26px rgba(15,23,42,.07);overflow:hidden;overflow-anchor:none;}
-.hardware-dictionary-panel .hardware-dictionary-section-summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:14px 16px;color:#0f172a;background:#fff;}
-.hardware-dictionary-panel .hardware-dictionary-section-summary::-webkit-details-marker{display:none;}
+.hardware-dictionary-panel .hardware-dictionary-section-summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;width:100%;border:0;padding:14px 16px;color:#0f172a;background:#fff;text-align:left;font:inherit;}
 .hardware-dictionary-panel .hardware-dictionary-section-summary::after{content:"";width:13px;height:13px;border-right:3px solid #10b981;border-bottom:3px solid #10b981;transform:rotate(45deg);transition:transform .22s ease;flex:0 0 auto;margin-right:4px;}
-.hardware-dictionary-panel .hardware-dictionary-section-accordion[open] > .hardware-dictionary-section-summary::after{transform:rotate(225deg);margin-top:6px;}
+.hardware-dictionary-panel .hardware-dictionary-section-accordion.is-open > .hardware-dictionary-section-summary::after{transform:rotate(225deg);margin-top:6px;}
 .hardware-dictionary-panel .hardware-dictionary-section-summary__text{display:grid;gap:3px;min-width:0;}
 .hardware-dictionary-panel .hardware-dictionary-section-summary__title{font-weight:900;font-size:18px;line-height:1.15;overflow-wrap:anywhere;}
 .hardware-dictionary-panel .hardware-dictionary-section-summary__meta{display:block;font-size:12px;font-weight:800;color:#64748b;line-height:1.25;overflow-wrap:anywhere;}
-.hardware-dictionary-panel .hardware-dictionary-section-body{display:grid;gap:10px;border-top:1px solid rgba(226,232,240,.95);padding:10px;background:linear-gradient(180deg,#fff,#f8fafc);}
+.hardware-dictionary-panel .hardware-dictionary-section-body{display:grid;gap:10px;border-top:1px solid rgba(226,232,240,.95);padding:10px;background:linear-gradient(180deg,#fff,#f8fafc);overflow:visible;}
+.hardware-dictionary-panel .hardware-dictionary-section-body[hidden]{display:none!important;}
+.hardware-dictionary-panel .hardware-dictionary-category-list{display:grid;gap:10px;overflow:visible;max-height:none;}
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion{overflow:visible;}
 .hardware-dictionary-panel .hardware-dictionary-section-body > .btn{width:100%;}
 @media(max-width:720px){
   .hardware-dictionary-panel .hardware-dictionary-section-summary{padding:12px 14px;}

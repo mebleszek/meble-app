@@ -320,9 +320,41 @@
     if(!node) return;
     scrollParamHeaderBeforeToggle(node, ()=> alignParamHeaderAfterToggle(node));
   }
+  function closePeerCategoryAccordions(activeBox){
+    try{
+      const list = activeBox && activeBox.parentElement;
+      if(!list) return;
+      Array.from(list.querySelectorAll(':scope > .hardware-tech-category-accordion')).forEach((node)=>{
+        if(node !== activeBox && node.open) node.open = false;
+      });
+    }catch(_){ }
+  }
+  function toggleTechCategoryAccordion(box){
+    if(!box) return;
+    if(box.open){
+      box.open = false;
+      return;
+    }
+    closePeerCategoryAccordions(box);
+    box.open = true;
+    afterDictionaryLayout(()=>{
+      try{
+        const scroller = dictionaryScrollerFor(box);
+        const nextTop = targetScrollTopForParam(scroller, box);
+        if(scroller && Number.isFinite(nextTop) && Math.abs(nextTop - scroller.scrollTop) > 8){
+          if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
+          else scroller.scrollTop = nextTop;
+        }
+      }catch(_){ }
+    });
+  }
   function categoryAccordion(cat, params, onChange){
     const box = h('details', { class:'hardware-tech-category-accordion' });
     const summary = h('summary', { class:'hardware-tech-category-summary' }, [h('span', { text:cat || 'Bez kategorii' })]);
+    summary.addEventListener('click', (event)=>{
+      event.preventDefault();
+      toggleTechCategoryAccordion(box);
+    });
     box.appendChild(summary);
     const list = h('div', { class:'hardware-tech-param-list' });
     let openParamId = '';
@@ -398,14 +430,35 @@
     const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
     const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
     const paramList = h('div', { class:'hardware-dictionary-list hardware-dictionary-param-list' });
-    const categoriesSection = h('details', { class:'hardware-dictionary-section-accordion hardware-dictionary-categories-accordion', open:true });
-    const categoriesSummary = h('summary', { class:'hardware-dictionary-section-summary' }, [
+    const categoriesSection = h('section', { class:'hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open' });
+    const categoriesSummary = h('button', { type:'button', class:'hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
       h('span', { class:'hardware-dictionary-section-summary__text' }, [
         h('span', { class:'hardware-dictionary-section-summary__title', text:'Kategorie / rodzaje okuć' }),
         h('span', { class:'hardware-dictionary-section-summary__meta', text:'Lista kategorii do wyboru przy okuciach' })
       ])
     ]);
     const categoriesBody = h('div', { class:'hardware-dictionary-section-body' });
+    let categoriesOpen = true;
+    function updateCategoriesAccordion(){
+      categoriesSection.classList.toggle('is-open', categoriesOpen);
+      categoriesSummary.setAttribute('aria-expanded', categoriesOpen ? 'true' : 'false');
+      categoriesBody.hidden = !categoriesOpen;
+    }
+    categoriesSummary.addEventListener('click', ()=>{
+      categoriesOpen = !categoriesOpen;
+      updateCategoriesAccordion();
+      afterDictionaryLayout(()=>{
+        try{
+          const scroller = dictionaryScrollerFor(categoriesSection);
+          const nextTop = targetScrollTopForParam(scroller, categoriesSection);
+          if(categoriesOpen && scroller && Number.isFinite(nextTop) && Math.abs(nextTop - scroller.scrollTop) > 8){
+            if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
+            else scroller.scrollTop = nextTop;
+          }
+        }catch(_){ }
+      });
+    });
+    updateCategoriesAccordion();
     const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     const cancel = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
