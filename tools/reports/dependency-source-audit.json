@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T18:30:47.637Z",
+  "generatedAt": "2026-05-23T18:49:04.845Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5391,
+      "lines": 5426,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -5824,7 +5824,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 298,
+      "lines": 333,
       "defines": [
         "priceModalHardwareDictionaries"
       ],

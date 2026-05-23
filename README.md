@@ -1,3 +1,11 @@
+## site_hardware_dictionary_param_scroll_smooth_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_scroll_focus_v1.zip`.
+- W `Słowniki okuć → Parametry techniczne kategorii` złagodzono auto-scroll mini-akordeonów parametrów.
+- Krótkie, lokalne przewinięcia zostają bez zmian, ale przy otwieraniu parametru z samego dołu lista nie powinna już gwałtownie szarpać na starcie.
+- Zamknięcie poprzedniego parametru zachowuje pozycję klikniętego nagłówka, a właściwe doscrollowanie startuje dopiero po ustabilizowaniu wysokości akordeonu.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_scroll_focus_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_single_open_v1.zip`.

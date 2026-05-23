@@ -164,19 +164,52 @@
     row.appendChild(body);
     return row;
   }
+  function dictionaryScrollerFor(node){
+    return node && node.closest ? node.closest('.hardware-dictionary-scroll, .panel-box-form__scroll') : null;
+  }
+  function clampScrollTop(scroller, value){
+    const maxTop = Math.max(0, Number(scroller && scroller.scrollHeight || 0) - Number(scroller && scroller.clientHeight || 0));
+    const top = Number(value);
+    if(!Number.isFinite(top)) return 0;
+    return maxTop > 0 ? Math.max(0, Math.min(maxTop, top)) : Math.max(0, top);
+  }
+  function afterDictionaryLayout(fn){
+    const win = typeof window !== 'undefined' ? window : {};
+    const frame = typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : (cb)=> setTimeout(cb, 0);
+    frame(()=> setTimeout(()=> frame(fn), 55));
+  }
+  function preserveActiveParamPosition(activeNode, mutate){
+    const scroller = dictionaryScrollerFor(activeNode);
+    if(!scroller || typeof scroller.scrollTop !== 'number' || typeof activeNode.getBoundingClientRect !== 'function') {
+      mutate();
+      return;
+    }
+    let beforeTop = 0;
+    try{ beforeTop = activeNode.getBoundingClientRect().top; }catch(_){ beforeTop = 0; }
+    mutate();
+    try{
+      const afterTop = activeNode.getBoundingClientRect().top;
+      const delta = afterTop - beforeTop;
+      if(Number.isFinite(delta) && Math.abs(delta) > 1){
+        scroller.scrollTop = clampScrollTop(scroller, scroller.scrollTop + delta);
+      }
+    }catch(_){ }
+  }
   function scrollParamAccordionIntoView(node){
     if(!node) return;
-    const win = typeof window !== 'undefined' ? window : {};
-    const defer = typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : (fn)=> setTimeout(fn, 0);
-    defer(()=>{
+    afterDictionaryLayout(()=>{
       try{
-        const scroller = node.closest ? node.closest('.hardware-dictionary-scroll, .panel-box-form__scroll') : null;
+        const scroller = dictionaryScrollerFor(node);
         if(scroller && typeof scroller.scrollTop === 'number' && typeof node.getBoundingClientRect === 'function' && typeof scroller.getBoundingClientRect === 'function'){
           const nodeRect = node.getBoundingClientRect();
           const scrollerRect = scroller.getBoundingClientRect();
-          const targetTop = scroller.scrollTop + (nodeRect.top - scrollerRect.top) - 10;
-          const maxTop = Math.max(0, Number(scroller.scrollHeight || 0) - Number(scroller.clientHeight || 0));
-          const nextTop = maxTop > 0 ? Math.max(0, Math.min(maxTop, targetTop)) : Math.max(0, targetTop);
+          const topGap = 16;
+          const visibleTop = scrollerRect.top + topGap;
+          const visibleBottom = scrollerRect.bottom - 32;
+          if(nodeRect.top >= visibleTop && nodeRect.top <= visibleBottom) return;
+          const targetTop = scroller.scrollTop + (nodeRect.top - scrollerRect.top) - topGap;
+          const nextTop = clampScrollTop(scroller, targetTop);
+          if(Math.abs(nextTop - scroller.scrollTop) < 8) return;
           if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
           else scroller.scrollTop = nextTop;
           return;
@@ -194,8 +227,10 @@
     let closingPeerAccordions = false;
     function rows(){ return params.filter((row)=> text(row.category) === text(cat)); }
     function closePeerAccordions(activeNode){
-      Array.from(list.querySelectorAll(':scope > .hardware-tech-param-accordion')).forEach((node)=>{
-        if(node !== activeNode && node.open) node.open = false;
+      preserveActiveParamPosition(activeNode, ()=>{
+        Array.from(list.querySelectorAll(':scope > .hardware-tech-param-accordion')).forEach((node)=>{
+          if(node !== activeNode && node.open) node.open = false;
+        });
       });
     }
     function renderRows(){

@@ -660,6 +660,8 @@ function runMaterialNodeSmoke(sandbox){
         && dictionariesSrc.includes('closePeerAccordions')
         && dictionariesSrc.includes('closingPeerAccordions')
         && dictionariesSrc.includes('scrollParamAccordionIntoView')
+        && dictionariesSrc.includes('preserveActiveParamPosition')
+        && dictionariesSrc.includes('afterDictionaryLayout')
         && dictionariesSrc.includes("node.closest('.hardware-dictionary-scroll, .panel-box-form__scroll')")
         && dictionariesSrc.includes("scroller.scrollTo({ top:nextTop, behavior:'smooth' })")
         && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
