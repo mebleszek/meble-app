@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_full_scroll_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_replacement_preview_ui_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_width_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_full_scroll_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -52,6 +52,15 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+## Hardware dictionary width fix v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_width_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_full_scroll_v1.zip`.
+- Poprawiono responsywną szerokość formularza parametrów technicznych w modalu `Słowniki okuć`: siatki `grid-2` i `grid-3` w panelu słowników używają `minmax(0, 1fr)`, a na mobile przechodzą w jedną kolumnę.
+- Ucięte po prawej stronie pola `Klucz Excel`, `Sposób porównania`, `Dozwolone wartości` i przyciski cykliczne mieszczą się teraz w głównym scrollu modala.
+- Zmiana jest wyłącznie CSS/UI; nie zmieniono danych, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-width-fix-v1.md`.
 
 ## Hardware dictionary full modal scroll v1 — 2026-05-23
 

@@ -1,3 +1,10 @@
+## Hardware dictionary width fix v1 — 2026-05-23
+
+- Start z aktualnej bazy `site_hardware_dictionary_full_scroll_v1.zip`.
+- Poprawiono szerokość układu parametrów technicznych w modalu `Słowniki okuć` na telefonie: pola parametru, `Typ pola`, `Sposób porównania`, `Dozwolone wartości` i chipy nie są już ucinane poziomo.
+- Formularz parametru w słownikach korzysta z pełnej szerokości głównego scrolla modala i na mobile układa wiersze w jedną kolumnę.
+- Zmiana jest wyłącznie CSS/UI; nie zmienia backupu, storage, import/export, zamienników ani modelu katalogu okuć.
+
 ### 2026-05-23 — hardware param dictionary choices v1
 - Start z aktualnej bazy `site_hardware_replacement_button_visibility_fix_v1.zip`.
 ## Hardware dictionary full scroll v1 — 2026-05-23

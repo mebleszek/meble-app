@@ -428,11 +428,41 @@
   .hardware-type-row,.hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
   #priceModal .hardware-tech-param-row .grid-2,
   #priceItemModal .hardware-tech-param-row .grid-2,
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-2,
   #priceModal .hardware-tech-param-row .grid-3,
-  #priceItemModal .hardware-tech-param-row .grid-3{grid-template-columns:1fr;}
+  #priceItemModal .hardware-tech-param-row .grid-3,
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-3{grid-template-columns:minmax(0,1fr);}
 }
 @media(max-width:520px){
   #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr;}
+}
+
+
+/* Słowniki okuć — pełna szerokość parametrów na mobile, bez poziomego obcinania pól. */
+.hardware-dictionary-panel,
+.hardware-dictionary-panel *{box-sizing:border-box;}
+.hardware-dictionary-panel .hardware-dictionary-scroll,
+.hardware-dictionary-panel .hardware-dictionary-list,
+.hardware-dictionary-panel .hardware-tech-param-list,
+.hardware-dictionary-panel .hardware-tech-param-row,
+.hardware-dictionary-panel .hardware-tech-param-row > *,
+.hardware-dictionary-panel .hardware-tech-param-row .grid-2,
+.hardware-dictionary-panel .hardware-tech-param-row .grid-3,
+.hardware-dictionary-panel .hardware-tech-param-row .hardware-supplier-field{min-width:0;max-width:100%;}
+.hardware-dictionary-panel .hardware-tech-param-row .grid-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.hardware-dictionary-panel .hardware-tech-param-row .grid-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+.hardware-dictionary-panel .hardware-tech-param-row .investor-form-input,
+.hardware-dictionary-panel .hardware-tech-param-row .hardware-cycle-btn{width:100%;max-width:100%;min-width:0;}
+.hardware-dictionary-panel .hardware-cycle-btn{white-space:normal;overflow-wrap:anywhere;justify-content:center;text-align:center;}
+@media(max-width:720px){
+  .hardware-dictionary-panel .panel-box__body{padding-left:12px;padding-right:12px;}
+  .hardware-dictionary-panel .hardware-dictionary-scroll{padding-right:0;}
+  .hardware-dictionary-panel .hardware-tech-category-summary{padding-left:12px;padding-right:12px;}
+  .hardware-dictionary-panel .hardware-tech-param-row{margin-left:0;margin-right:0;padding:10px;}
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-2,
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-3{grid-template-columns:minmax(0,1fr);gap:10px;}
+  .hardware-dictionary-panel .hardware-tech-param-row .label-help{min-width:0;}
+  .hardware-dictionary-panel .hardware-tech-param-row .label-help__text{min-width:0;overflow-wrap:anywhere;}
 }
 
 /* Hardware technical data accordion — app/ROZRYS-like, no native picker/select UI */
