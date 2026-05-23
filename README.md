@@ -1,3 +1,11 @@
+## site_hardware_dictionary_rozrys_accordion_pattern_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_category_content_single_open_v1.zip`.
+- W `dev_ui_patterns.html → Wzorce UI` akordeon ROZRYS został uzupełniony o dzisiejsze zachowanie ruchu: stara sekcja zamyka się natychmiast, nowa rozwija się płynnie.
+- W `Słowniki okuć → Kategorie / rodzaje okuć` dodano widoczny chevron po prawej i spięto wygląd wspólnego akordeonu z klasami ROZRYS.
+- Poprawka nie robi globalnej normalizacji całej aplikacji; dotyka tylko wzorca UI i aktualnie poprawianego akordeonu słowników okuć.
+- Zmiana jest tylko UI/UX: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_category_content_single_open_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_categories_accordion_v1.zip`.

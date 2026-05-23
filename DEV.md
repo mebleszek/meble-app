@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_content_single_open_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_param_instant_close_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_category_content_single_open_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -49,6 +49,18 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+
+## Hardware dictionary ROZRYS accordion pattern v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_content_single_open_v1.zip`.
+- W `dev_ui_patterns.html → Wzorce UI` wzorzec akordeonu ROZRYS pokazuje teraz jeden spójny kierunek: wygląd 1:1 z ROZRYSU, chevron po prawej, `aria-expanded`, natychmiastowe zamykanie starej sekcji i płynne rozwijanie nowej.
+- W `Słowniki okuć → Kategorie / rodzaje okuć` wspólny akordeon korzysta z klas ROZRYS i ma widoczny chevron w takim samym stylu jak w ROZRYSIE.
+- Dla wspólnego akordeonu kategorii dodano tę samą zasadę ruchu co w dzisiejszych mini-akordeonach: zamknięcie natychmiast, otwarcie płynne, z obsługą `prefers-reduced-motion`.
+- Nie normalizowano pozostałych akordeonów w całej aplikacji; zmiana jest celowo ograniczona do wzorca UI i poprawianego akordeonu słowników okuć.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-rozrys-accordion-pattern-v1.md`.
 
 ## Hardware dictionary category content / single open v1 — 2026-05-23
 

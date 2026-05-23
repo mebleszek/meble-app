@@ -648,14 +648,19 @@ function runMaterialNodeSmoke(sandbox){
         && !ui.includes('savePriceList')
         && !/\b(alert|confirm|prompt)\s*\(/.test(ui);
     } },
-    { name:'Słowniki okuć przewijają główne okno parametrów', explain:'Chroni UX na telefonie: po rozwinięciu kategorii parametrów technicznych nie może powstać małe wewnętrzne okienko scrolla.', check:()=> {
+    { name:'Słowniki okuć i Wzorce UI trzymają akordeon ROZRYS z ruchem', explain:'Chroni UX na telefonie: wspólny akordeon kategorii ma chevron jak ROZRYS, wzorzec UI pokazuje płynne otwarcie, a parametry nie tworzą małego wewnętrznego scrolla.', check:()=> {
       const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
       const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
+      const uiPatterns = fs.readFileSync(path.join(process.cwd(), 'dev_ui_patterns.html'), 'utf8');
       return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
         && dictionariesSrc.includes('hardware-dictionary-param-list')
         && dictionariesSrc.includes('hardware-dictionary-categories-accordion')
         && dictionariesSrc.includes('hardware-dictionary-section-summary')
-        && dictionariesSrc.includes('categoriesBody.hidden = !categoriesOpen')
+        && dictionariesSrc.includes('hardware-dictionary-section-chevron')
+        && dictionariesSrc.includes('setSectionAccordionVisualState')
+        && dictionariesSrc.includes('animateSectionAccordionOpen')
+        && dictionariesSrc.includes('animateSectionAccordionClose')
+        && dictionariesSrc.includes("class:'rozrys-material-accordion hardware-dictionary-section-accordion")
         && dictionariesSrc.includes('closePeerCategoryAccordions')
         && dictionariesSrc.includes('toggleTechCategoryAccordion')
         && dictionariesSrc.includes("class:'hardware-tech-param-list'")
@@ -678,16 +683,23 @@ function runMaterialNodeSmoke(sandbox){
         && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
         && css.includes('.hardware-dictionary-scroll')
         && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')
-        && css.includes('.hardware-dictionary-section-accordion')
+        && css.includes('.hardware-dictionary-section-accordion.rozrys-material-accordion')
+        && css.includes('.hardware-dictionary-section-chevron')
         && css.includes('.hardware-dictionary-section-body')
         && css.includes('.hardware-dictionary-section-body[hidden]{display:none!important;}')
-        && css.includes('.hardware-dictionary-section-accordion.is-open')
+        && css.includes('.hardware-dictionary-section-accordion.hardware-section-animating')
+        && css.includes('.hardware-dictionary-section-accordion.rozrys-material-accordion.is-open')
         && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
         && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
         && css.includes('.hardware-tech-param-accordion')
         && css.includes('.hardware-tech-param-summary__meta')
         && css.includes('#priceModal .hardware-tech-param-row .grid-3')
-        && css.includes('{grid-template-columns:1fr;}');
+        && css.includes('{grid-template-columns:1fr;}')
+        && uiPatterns.includes('Accordion ROZRYS + ruch')
+        && uiPatterns.includes('data-ui-pattern-accordion-group')
+        && uiPatterns.includes('natychmiastowe zamykanie starej sekcji i płynne rozwijanie nowej')
+        && uiPatterns.includes('rozrys-material-accordion__chevron')
+        && uiPatterns.includes('is-ui-pattern-animating');
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

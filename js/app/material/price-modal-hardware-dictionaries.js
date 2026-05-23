@@ -90,6 +90,7 @@
   }
   const PARAM_EXPAND_MS = 420;
   const PARAM_COLLAPSE_MS = 0;
+  const SECTION_EXPAND_MS = PARAM_EXPAND_MS;
   function prefersReducedMotion(){
     try{ return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
   }
@@ -320,6 +321,78 @@
     if(!node) return;
     scrollParamHeaderBeforeToggle(node, ()=> alignParamHeaderAfterToggle(node));
   }
+  function sectionAccordionBody(node){
+    return node && node.querySelector ? node.querySelector(':scope > .hardware-dictionary-section-body') : null;
+  }
+  function sectionAccordionSummary(node){
+    return node && node.querySelector ? node.querySelector(':scope > .hardware-dictionary-section-summary') : null;
+  }
+  function clearSectionAccordionTimer(node){
+    if(!node) return;
+    if(node._fcSectionAccordionTimer){
+      clearTimeout(node._fcSectionAccordionTimer);
+      node._fcSectionAccordionTimer = null;
+    }
+  }
+  function resetSectionAccordionAnimation(node){
+    if(!node) return;
+    clearSectionAccordionTimer(node);
+    node.classList.remove('hardware-section-animating', 'hardware-section-opening', 'hardware-section-closing');
+    const body = sectionAccordionBody(node);
+    if(body){
+      body.style.maxHeight = '';
+      body.style.opacity = '';
+      body.style.transform = '';
+      body.style.overflow = '';
+    }
+  }
+  function setSectionAccordionVisualState(node, open){
+    if(!node) return;
+    const summary = sectionAccordionSummary(node);
+    const body = sectionAccordionBody(node);
+    node.classList.toggle('is-open', !!open);
+    if(summary) summary.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(body) body.hidden = !open;
+  }
+  function animateSectionAccordionOpen(node, done){
+    if(!node){ if(typeof done === 'function') done(); return; }
+    const body = sectionAccordionBody(node);
+    if(prefersReducedMotion() || !body){
+      resetSectionAccordionAnimation(node);
+      setSectionAccordionVisualState(node, true);
+      if(typeof done === 'function') afterDictionaryLayout(done);
+      return;
+    }
+    resetSectionAccordionAnimation(node);
+    setSectionAccordionVisualState(node, true);
+    node.classList.add('hardware-section-animating', 'hardware-section-opening');
+    body.style.overflow = 'hidden';
+    body.style.maxHeight = '0px';
+    body.style.opacity = '0';
+    body.style.transform = 'translateY(-4px)';
+    try{ void body.offsetHeight; }catch(_){ }
+    const targetHeight = Math.max(1, body.scrollHeight || 1);
+    const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
+    frame(()=> frame(()=>{
+      body.style.maxHeight = targetHeight + 'px';
+      body.style.opacity = '1';
+      body.style.transform = 'translateY(0)';
+    }));
+    node._fcSectionAccordionTimer = setTimeout(()=>{
+      resetSectionAccordionAnimation(node);
+      setSectionAccordionVisualState(node, true);
+      if(typeof done === 'function') done();
+    }, SECTION_EXPAND_MS + 30);
+  }
+  function animateSectionAccordionClose(node, done){
+    if(!node){ if(typeof done === 'function') done(); return; }
+    // Ten wzorzec zachowuje ustalenie z mini-akordeonów parametrów: zamykanie
+    // jest natychmiastowe, a tylko nowe otwarcie ma płynną animację.
+    resetSectionAccordionAnimation(node);
+    setSectionAccordionVisualState(node, false);
+    if(typeof done === 'function') done();
+  }
+
   function closePeerCategoryAccordions(activeBox){
     try{
       const list = activeBox && activeBox.parentElement;
@@ -430,23 +503,17 @@
     const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
     const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
     const paramList = h('div', { class:'hardware-dictionary-list hardware-dictionary-param-list' });
-    const categoriesSection = h('section', { class:'hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open' });
-    const categoriesSummary = h('button', { type:'button', class:'hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
-      h('span', { class:'hardware-dictionary-section-summary__text' }, [
-        h('span', { class:'hardware-dictionary-section-summary__title', text:'Kategorie / rodzaje okuć' }),
-        h('span', { class:'hardware-dictionary-section-summary__meta', text:'Lista kategorii do wyboru przy okuciach' })
-      ])
+    const categoriesSection = h('section', { class:'rozrys-material-accordion hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open' });
+    const categoriesSummary = h('button', { type:'button', class:'rozrys-material-accordion__trigger hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
+      h('span', { class:'rozrys-material-accordion__title hardware-dictionary-section-summary__text' }, [
+        h('span', { class:'rozrys-material-accordion__title-line1 hardware-dictionary-section-summary__title', text:'Kategorie / rodzaje okuć' }),
+        h('span', { class:'rozrys-material-accordion__title-line2 hardware-dictionary-section-summary__meta', text:'Lista kategorii do wyboru przy okuciach' })
+      ]),
+      h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesBody = h('div', { class:'hardware-dictionary-section-body' });
+    const categoriesBody = h('div', { class:'rozrys-material-accordion__body hardware-dictionary-section-body' });
     let categoriesOpen = true;
-    function updateCategoriesAccordion(){
-      categoriesSection.classList.toggle('is-open', categoriesOpen);
-      categoriesSummary.setAttribute('aria-expanded', categoriesOpen ? 'true' : 'false');
-      categoriesBody.hidden = !categoriesOpen;
-    }
-    categoriesSummary.addEventListener('click', ()=>{
-      categoriesOpen = !categoriesOpen;
-      updateCategoriesAccordion();
+    function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
         try{
           const scroller = dictionaryScrollerFor(categoriesSection);
@@ -457,8 +524,20 @@
           }
         }catch(_){ }
       });
+    }
+    function updateCategoriesAccordion(animate){
+      if(categoriesOpen){
+        if(animate) animateSectionAccordionOpen(categoriesSection, focusCategoriesAccordion);
+        else setSectionAccordionVisualState(categoriesSection, true);
+      }else{
+        animateSectionAccordionClose(categoriesSection);
+      }
+    }
+    categoriesSummary.addEventListener('click', ()=>{
+      categoriesOpen = !categoriesOpen;
+      updateCategoriesAccordion(true);
     });
-    updateCategoriesAccordion();
+    updateCategoriesAccordion(false);
     const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     const cancel = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
