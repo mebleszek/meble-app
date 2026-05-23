@@ -1,3 +1,12 @@
+## site_hardware_dictionary_param_accordions_v1 — 2026-05-23
+
+- Baza: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- W `Słowniki okuć → Parametry techniczne kategorii` pojedyncze parametry wewnątrz kategorii są teraz mini-akordeonami z lekkim wcięciem.
+- Nagłówek parametru pokazuje skrót: typ pola, sposób porównania, czy jest cechą kluczową, czy buduje typ oraz liczbę dozwolonych wartości.
+- Pełne pola edycji parametru pokazują się dopiero po rozwinięciu konkretnego parametru, więc testowanie i uzupełnianie słowników na telefonie jest czytelniejsze.
+- Nowo dodany parametr otwiera się od razu.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## Hardware dictionary width fix v1 — 2026-05-23
 
 ## site_hardware_param_choice_launcher_fix_v1 — 2026-05-23

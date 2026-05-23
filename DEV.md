@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_accordions_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_dictionary_full_scroll_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -52,6 +52,19 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 
 
+
+
+
+## Hardware dictionary param accordions v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_accordions_v1.zip`.
+- Baza startowa: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- W modalu `Słowniki okuć`, wewnątrz akordeonu kategorii parametrów technicznych, każdy parametr jest teraz osobnym mini-akordeonem z lekkim wcięciem.
+- Nagłówek parametru pokazuje skrót: typ pola, sposób porównania, status `Cecha kluczowa`, `Buduje typ`, aktywność oraz liczbę dozwolonych wartości.
+- Pełne pola edycji parametru są widoczne dopiero po rozwinięciu konkretnego parametru; nowo dodany parametr otwiera się automatycznie.
+- Przy okazji naprawiono usuwanie parametru w tej liście tak, żeby usuwać realny rekord z kategorii, a nie kopię draftu formularza.
+- Zmiana jest wyłącznie UI/UX słowników okuć: nie zmieniono storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-accordions-v1.md`.
 
 ## Hardware param choice launcher fix v1 — 2026-05-23
 

@@ -654,11 +654,16 @@ function runMaterialNodeSmoke(sandbox){
       return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
         && dictionariesSrc.includes('hardware-dictionary-param-list')
         && dictionariesSrc.includes("class:'hardware-tech-param-list'")
+        && dictionariesSrc.includes("class:'hardware-tech-param-accordion'")
+        && dictionariesSrc.includes('hardware-tech-param-summary__meta')
+        && dictionariesSrc.includes('paramSummaryParts(item).join')
         && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
         && css.includes('.hardware-dictionary-scroll')
         && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')
         && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
         && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
+        && css.includes('.hardware-tech-param-accordion')
+        && css.includes('.hardware-tech-param-summary__meta')
         && css.includes('#priceModal .hardware-tech-param-row .grid-3')
         && css.includes('{grid-template-columns:1fr;}');
     } },

@@ -73,6 +73,21 @@
     render();
     return btn;
   }
+  function optionLabel(options, value, fallback){
+    const row = (Array.isArray(options) ? options : []).find((item)=> item && item.value === value);
+    return text(row && row.label) || text(value) || text(fallback) || '—';
+  }
+  function paramSummaryParts(item){
+    const parts = [];
+    parts.push(optionLabel(tech().DEFAULT_FIELD_TYPES || [], item.fieldType || 'text', 'Tekst / wybór'));
+    parts.push(optionLabel(tech().DEFAULT_COMPARE_MODES || [], item.compareMode || 'equal', 'Dokładnie taka sama wartość'));
+    if(item.keyFeature !== false) parts.push('kluczowa');
+    if(item.typePart !== false) parts.push('buduje typ');
+    if(item.active === false) parts.push('nieaktywna');
+    const optionsCount = Array.isArray(item.options) ? item.options.length : 0;
+    if(optionsCount > 0) parts.push(optionsCount + ' wartości');
+    return parts;
+  }
   function categoryRenameMap(oldCategories, newCategories){
     const map = new Map();
     (Array.isArray(oldCategories) ? oldCategories : []).forEach((oldCat, index)=>{
@@ -106,32 +121,47 @@
     row.appendChild(remove);
     return row;
   }
-  function parameterRow(field, onChange, onRemove){
+  function parameterRow(field, onChange, onRemove, cfg){
     const item = Object.assign({ id:uid('hwp'), category:'', key:'', label:'', fieldType:'text', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', active:true, order:10 }, field || {});
-    const row = h('div', { class:'hardware-tech-param-row' });
+    const detailsAttrs = { class:'hardware-tech-param-accordion' };
+    if(cfg && cfg.open) detailsAttrs.open = true;
+    const row = h('details', detailsAttrs);
+    const title = h('span', { class:'hardware-tech-param-summary__title', text:item.label || 'Nowy parametr' });
+    const meta = h('span', { class:'hardware-tech-param-summary__meta', text:paramSummaryParts(item).join(' • ') });
+    const summary = h('summary', { class:'hardware-tech-param-summary' }, [
+      h('span', { class:'hardware-tech-param-summary__text' }, [title, meta])
+    ]);
+    const body = h('div', { class:'hardware-tech-param-row' });
+    function refreshSummary(){
+      title.textContent = text(item.label) || 'Nowy parametr';
+      meta.textContent = paramSummaryParts(item).join(' • ');
+    }
     const label = h('input', { class:'investor-form-input', value:item.label || '', placeholder:'np. Kąt otwarcia' });
     const key = h('input', { class:'investor-form-input', value:item.key || '', placeholder:'np. kat_otwarcia' });
     const unit = h('input', { class:'investor-form-input', value:item.unit || '', placeholder:'mm / kg / °' });
     const options = h('input', { class:'investor-form-input', value:(item.options || []).join('; '), placeholder:'np. M; N; H albo lewa; prawa; uniwersalna' });
-    const fieldType = cycleButton(tech().DEFAULT_FIELD_TYPES || [], item.fieldType || 'text', (value)=>{ item.fieldType = value; onChange(item); });
-    const compare = cycleButton(tech().DEFAULT_COMPARE_MODES || [], item.compareMode || 'equal', (value)=>{ item.compareMode = value; onChange(item); });
+    const fieldType = cycleButton(tech().DEFAULT_FIELD_TYPES || [], item.fieldType || 'text', (value)=>{ item.fieldType = value; refreshSummary(); onChange(item); });
+    const compare = cycleButton(tech().DEFAULT_COMPARE_MODES || [], item.compareMode || 'equal', (value)=>{ item.compareMode = value; refreshSummary(); onChange(item); });
     const keyFeature = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.keyFeature !== false }), h('span', { text:'Cecha kluczowa' })]);
     const typePart = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.typePart !== false }), h('span', { text:'Buduje typ' })]);
     const active = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.active !== false }), h('span', { text:'Aktywna' })]);
-    label.addEventListener('input', ()=>{ item.label = label.value; if(!key.value.trim()) item.key = safeKey(label.value); onChange(item); });
+    label.addEventListener('input', ()=>{ item.label = label.value; if(!key.value.trim()) item.key = safeKey(label.value); refreshSummary(); onChange(item); });
     key.addEventListener('input', ()=>{ item.key = safeKey(key.value); onChange(item); });
     unit.addEventListener('input', ()=>{ item.unit = unit.value; onChange(item); });
-    options.addEventListener('input', ()=>{ item.options = options.value.split(/[;|]/).map(text).filter(Boolean); onChange(item); });
-    keyFeature.querySelector('input').addEventListener('change', (e)=>{ item.keyFeature = !!e.target.checked; if(item.typePart == null) item.typePart = item.keyFeature; onChange(item); });
-    typePart.querySelector('input').addEventListener('change', (e)=>{ item.typePart = !!e.target.checked; onChange(item); });
-    active.querySelector('input').addEventListener('change', (e)=>{ item.active = !!e.target.checked; onChange(item); });
+    options.addEventListener('input', ()=>{ item.options = options.value.split(/[;|]/).map(text).filter(Boolean); refreshSummary(); onChange(item); });
+    keyFeature.querySelector('input').addEventListener('change', (e)=>{ item.keyFeature = !!e.target.checked; if(item.typePart == null) item.typePart = item.keyFeature; refreshSummary(); onChange(item); });
+    typePart.querySelector('input').addEventListener('change', (e)=>{ item.typePart = !!e.target.checked; refreshSummary(); onChange(item); });
+    active.querySelector('input').addEventListener('change', (e)=>{ item.active = !!e.target.checked; refreshSummary(); onChange(item); });
     const remove = h('button', { type:'button', class:'btn btn-danger', text:'Usuń parametr' });
     remove.addEventListener('click', ()=> onRemove(item));
-    row.appendChild(h('div', { class:'grid-2' }, [h('div', {}, [helpLabel('Nazwa parametru', 'name'), label]), h('div', {}, [helpLabel('Klucz Excel', 'key'), key])]));
-    row.appendChild(h('div', { class:'grid-3', style:'margin-top:8px' }, [h('div', {}, [helpLabel('Typ pola', 'fieldType'), fieldType]), h('div', {}, [helpLabel('Jednostka', 'unit'), unit]), h('div', {}, [helpLabel('Sposób porównania', 'compareMode'), compare])]));
-    row.appendChild(h('div', { style:'margin-top:8px' }, [helpLabel('Dozwolone wartości', 'options'), options]));
-    row.appendChild(h('div', { class:'hardware-type-categories', style:'margin-top:8px' }, [keyFeature, typePart, active]));
-    row.appendChild(remove);
+    body.appendChild(h('div', { class:'grid-2' }, [h('div', {}, [helpLabel('Nazwa parametru', 'name'), label]), h('div', {}, [helpLabel('Klucz Excel', 'key'), key])]));
+    body.appendChild(h('div', { class:'grid-3', style:'margin-top:8px' }, [h('div', {}, [helpLabel('Typ pola', 'fieldType'), fieldType]), h('div', {}, [helpLabel('Jednostka', 'unit'), unit]), h('div', {}, [helpLabel('Sposób porównania', 'compareMode'), compare])]));
+    body.appendChild(h('div', { style:'margin-top:8px' }, [helpLabel('Dozwolone wartości', 'options'), options]));
+    body.appendChild(h('div', { class:'hardware-type-categories', style:'margin-top:8px' }, [keyFeature, typePart, active]));
+    body.appendChild(remove);
+    refreshSummary();
+    row.appendChild(summary);
+    row.appendChild(body);
     return row;
   }
   function categoryAccordion(cat, params, onChange){
@@ -139,13 +169,30 @@
     const summary = h('summary', { class:'hardware-tech-category-summary' }, [h('span', { text:cat || 'Bez kategorii' })]);
     box.appendChild(summary);
     const list = h('div', { class:'hardware-tech-param-list' });
+    let openParamId = '';
     function rows(){ return params.filter((row)=> text(row.category) === text(cat)); }
     function renderRows(){
       list.innerHTML = '';
-      rows().sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0)).forEach((row)=> list.appendChild(parameterRow(row, (updated)=>{ Object.assign(row, updated, { category:cat }); onChange(); }, (removed)=>{ const idx = params.indexOf(removed); if(idx >= 0) params.splice(idx, 1); renderRows(); onChange(); })));
+      rows().sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0)).forEach((param)=>{
+        const node = parameterRow(param, (updated)=>{ Object.assign(param, updated, { category:cat }); onChange(); }, ()=>{
+          const idx = params.indexOf(param);
+          if(idx >= 0) params.splice(idx, 1);
+          if(openParamId === param.id) openParamId = '';
+          renderRows();
+          onChange();
+        }, { open:openParamId && openParamId === param.id });
+        node.addEventListener('toggle', ()=>{ if(node.open) openParamId = param.id || ''; });
+        list.appendChild(node);
+      });
     }
-    const add = h('button', { type:'button', class:'btn', text:'Dodaj parametr' });
-    add.addEventListener('click', ()=>{ params.push({ id:uid('hwp'), category:cat, key:'', label:'', fieldType:'text', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', active:true, order:(rows().length + 1) * 10 }); renderRows(); onChange(); });
+    const add = h('button', { type:'button', class:'btn hardware-tech-add-param-btn', text:'Dodaj parametr' });
+    add.addEventListener('click', ()=>{
+      const row = { id:uid('hwp'), category:cat, key:'', label:'', fieldType:'text', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', active:true, order:(rows().length + 1) * 10 };
+      params.push(row);
+      openParamId = row.id;
+      renderRows();
+      onChange();
+    });
     renderRows();
     box.appendChild(list); box.appendChild(add);
     return box;
