@@ -159,6 +159,40 @@
     if(cfg.updateAction){ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){ } }
     return generated;
   }
+  function allowedTextOptions(field){
+    const api = techApi();
+    if(api && typeof api.choiceOptionsForField === 'function') return api.choiceOptionsForField(field);
+    return Array.isArray(field && field.options) ? field.options.map((entry)=> String(entry == null ? '' : entry).trim()).filter(Boolean) : [];
+  }
+  function createTextChoiceField(field, value, wrap){
+    const options = allowedTextOptions(field);
+    const current = value && value.value != null ? String(value.value || '').trim() : '';
+    const fieldKey = String(field && field.key || '');
+    const select = h('select', { class:'investor-form-input hardware-tech-choice-select', 'data-tech-key':fieldKey, 'data-tech-type':'text' });
+    select.hidden = true;
+    select.appendChild(h('option', { value:'', text:'Wybierz ' + String(field && field.label || 'wartość').toLowerCase() }));
+    options.forEach((option)=> select.appendChild(h('option', { value:option, text:option })));
+    select.value = options.some((option)=> option === current) ? current : '';
+    const mountId = 'hardwareTechChoice_' + fieldKey.replace(/[^a-zA-Z0-9_-]+/g, '_');
+    const mount = h('div', { id:mountId, class:'hardware-tech-choice-launch-slot' });
+    select.addEventListener('change', ()=>{
+      syncHardwareTypeFromTechnicalParams({ updateAction:true });
+      try{
+        const normalized = techApi().normalizeParamValue ? techApi().normalizeParamValue(field, { value:select.value }) : { value:select.value };
+        const previewText = formatTechnicalValue(field, normalized);
+        const preview = wrap && wrap.querySelector ? wrap.querySelector('.hardware-tech-preview') : null;
+        if(preview) preview.textContent = previewText ? 'Wartość: ' + previewText : '';
+      }catch(_){ }
+    });
+    wrap.appendChild(select);
+    wrap.appendChild(mount);
+    try{
+      if(ctx.mountChoice){
+        ctx.mountChoice({ selectEl:select, mountId, title:'Wybierz: ' + String(field && field.label || 'wartość'), buttonClass:'investor-choice-launch price-labor-choice-launch hardware-tech-choice-launch', placeholder:'Wybierz wartość', onChange:()=>{ syncHardwareTypeFromTechnicalParams({ updateAction:true }); } });
+      }
+    }catch(_){ }
+    return select;
+  }
   function renderDynamicTechnicalFields(data){
     const host = ctx.byId('hardwareDynamicTechnicalFields');
     if(!host) return;
@@ -195,9 +229,14 @@
         row.appendChild(from); row.appendChild(to);
         wrap.appendChild(row);
       }else{
-        const input = h('input', { class:'investor-form-input', type:'text', placeholder:(field.options || []).slice(0, 3).join(', ') || '', value:value && value.value || '', 'data-tech-key':field.key, 'data-tech-type':'text' });
-        input.addEventListener('input', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true }));
-        wrap.appendChild(input);
+        const options = allowedTextOptions(field);
+        if(options.length){
+          createTextChoiceField(field, value, wrap);
+        }else{
+          const input = h('input', { class:'investor-form-input', type:'text', placeholder:'', value:value && value.value || '', 'data-tech-key':field.key, 'data-tech-type':'text' });
+          input.addEventListener('input', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true }));
+          wrap.appendChild(input);
+        }
       }
       const preview = formatTechnicalValue(field, value);
       if(preview) wrap.appendChild(h('div', { class:'muted xs hardware-tech-preview', text:'Wartość: ' + preview }));

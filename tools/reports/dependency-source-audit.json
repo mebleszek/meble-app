@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T23:07:08.568Z",
+  "generatedAt": "2026-05-23T09:04:31.665Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 4704,
+      "lines": 4716,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5197,
+      "lines": 5236,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12419,
+      "lines": 12430,
       "storageRefs": 238,
       "dialogRefs": 1,
       "high": 5,
@@ -191,7 +191,7 @@
     ],
     [
       "js/testing/material/accessories-tests.js",
-      603
+      614
     ],
     [
       "js/app/catalog/hardware-catalog.js",
@@ -206,16 +206,16 @@
       524
     ],
     [
+      "js/app/material/price-modal-hardware-form.js",
+      497
+    ],
+    [
       "js/app/rozrys/rozrys-render.js",
       493
     ],
     [
       "js/testing/rozrys/tests.js",
       475
-    ],
-    [
-      "js/app/material/price-modal-hardware-form.js",
-      458
     ],
     [
       "js/app/ui/actions-register.js",
@@ -678,7 +678,7 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 603,
+      "lines": 614,
       "incoming": 1,
       "outgoing": 16,
       "secondLevel": 1,
@@ -1430,7 +1430,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 289,
+      "lines": 301,
       "incoming": 10,
       "outgoing": 0,
       "secondLevel": 34,
@@ -3916,7 +3916,7 @@
     "js/app/catalog/hardware-technical-params.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 289,
+      "lines": 301,
       "defines": [
         "hardwareTechnicalParams"
       ],
@@ -5884,7 +5884,7 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 458,
+      "lines": 497,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5906,7 +5906,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 15,
+      "domRefs": 18,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -18091,7 +18091,7 @@
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 603,
+      "lines": 614,
       "defines": [
         "materialAccessoryTests"
       ],

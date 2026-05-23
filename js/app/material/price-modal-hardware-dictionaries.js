@@ -112,7 +112,7 @@
     const label = h('input', { class:'investor-form-input', value:item.label || '', placeholder:'np. Kąt otwarcia' });
     const key = h('input', { class:'investor-form-input', value:item.key || '', placeholder:'np. kat_otwarcia' });
     const unit = h('input', { class:'investor-form-input', value:item.unit || '', placeholder:'mm / kg / °' });
-    const options = h('input', { class:'investor-form-input', value:(item.options || []).join('; '), placeholder:'wartości podpowiedzi po ;' });
+    const options = h('input', { class:'investor-form-input', value:(item.options || []).join('; '), placeholder:'np. M; N; H albo lewa; prawa; uniwersalna' });
     const fieldType = cycleButton(tech().DEFAULT_FIELD_TYPES || [], item.fieldType || 'text', (value)=>{ item.fieldType = value; onChange(item); });
     const compare = cycleButton(tech().DEFAULT_COMPARE_MODES || [], item.compareMode || 'equal', (value)=>{ item.compareMode = value; onChange(item); });
     const keyFeature = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.keyFeature !== false }), h('span', { text:'Cecha kluczowa' })]);
@@ -129,7 +129,7 @@
     remove.addEventListener('click', ()=> onRemove(item));
     row.appendChild(h('div', { class:'grid-2' }, [h('div', {}, [helpLabel('Nazwa parametru', 'name'), label]), h('div', {}, [helpLabel('Klucz Excel', 'key'), key])]));
     row.appendChild(h('div', { class:'grid-3', style:'margin-top:8px' }, [h('div', {}, [helpLabel('Typ pola', 'fieldType'), fieldType]), h('div', {}, [helpLabel('Jednostka', 'unit'), unit]), h('div', {}, [helpLabel('Sposób porównania', 'compareMode'), compare])]));
-    row.appendChild(h('div', { style:'margin-top:8px' }, [helpLabel('Wartości podpowiedzi', 'options'), options]));
+    row.appendChild(h('div', { style:'margin-top:8px' }, [helpLabel('Dozwolone wartości', 'options'), options]));
     row.appendChild(h('div', { class:'hardware-type-categories', style:'margin-top:8px' }, [keyFeature, typePart, active]));
     row.appendChild(remove);
     return row;

@@ -1,3 +1,10 @@
+### 2026-05-23 — hardware param dictionary choices v1
+- Start z aktualnej bazy `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Tekstowe parametry techniczne okuć z dozwolonymi wartościami w słowniku są teraz wybierane w formularzu okucia przez launcher/listę aplikacyjną, bez natywnego selecta widocznego dla użytkownika.
+- Wartości spoza słownika są czyszczone: stare ręczne wpisy nie są chronione i pole pozostaje puste, dopóki użytkownik nie wybierze wartości ze słownika.
+- W słownikach zmieniono opis pola na `Dozwolone wartości` i dodano instrukcję pod ikoną `?`, jak trzymać spójne wartości do porównywania zamienników.
+- Nie ruszono backupów, polityki retencji, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
 ### 2026-05-23 — hardware replacement button visibility fix v1
 - Start z aktualnej bazy `site_hardware_replacement_preview_ui_v1.zip`.
 - Poprawiono widoczność przycisku `Zamienniki` w modalu edycji okucia: moduł tworzy/odnajduje przycisk pod `Wyjdź` i buduje źródło porównania także z bieżącego draftu formularza.

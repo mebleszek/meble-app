@@ -272,6 +272,17 @@
         H.assert(rows[0].keyFeature === true && rows[0].typePart === true, 'Ptaszki cechy kluczowej / typu nie zostały zapisane', rows[0]);
       })),
 
+      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Tekstowy parametr ze słownika czyści wartość spoza listy', 'Chroni zamienniki: tekstowe parametry oparte o słownik nie mogą porównywać literówek ani starych ręcznych wpisów.', ()=>{
+        const api = FC.hardwareTechnicalParams;
+        H.assert(api && typeof api.normalizeParamValue === 'function', 'Brak normalizeParamValue');
+        const field = { category:'Szuflady / prowadnice', key:'profil_szuflady', label:'Profil / wysokość', fieldType:'text', options:['M','N','H'], legacyField:'drawerProfile' };
+        H.assert(api.normalizeParamValue(field, { value:'M' }).value === 'M', 'Poprawna wartość ze słownika została wyczyszczona');
+        H.assert(api.normalizeParamValue(field, { value:'m' }).value === '', 'Wartość spoza słownika nie została wyczyszczona');
+        H.assert(api.normalizeParamValue(field, { value:'profil M' }).value === '', 'Ręczny opis spoza słownika nie został wyczyszczony');
+        const merged = api.mergeLegacyValues({ hardwareCategory:'Szuflady / prowadnice', drawerProfile:'profil M' }, [field], 'Szuflady / prowadnice');
+        H.assert(!merged.profil_szuflady, 'Stara wartość legacy spoza słownika nie powinna wejść do parametrów', merged);
+      }),
+
       H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Parametry techniczne nie zapisują [object Object]', 'Chroni backup i przyszłą zamianę okuć: launchery/obiekty wyboru nie mogą trafiać do storage jako tekst [object Object].', ()=>{
         const hw = requireHardware();
         const row = hw.normalizeAccessory({

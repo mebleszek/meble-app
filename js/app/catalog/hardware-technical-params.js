@@ -60,7 +60,7 @@
     key:'Stabilny klucz techniczny używany w Excelu i imporcie. Po utworzeniu nie zmieniaj go bez potrzeby, żeby stare pliki nadal pasowały.',
     fieldType:'Typ danych: tekst/wybór, tak-nie albo liczba z obsługą wartości dokładnej i zakresu od-do.',
     unit:'Jednostka parametru, np. mm, kg albo °. Trafia do opisów i Excela.',
-    options:'Opcjonalne wartości podpowiedzi rozdzielone średnikiem, np. nakładany;wpuszczany;bliźniaczy. Pole nadal można edytować.',
+    options:'Dozwolone wartości dla pola typu tekst/wybór. Wpisz krótkie, konsekwentne opcje rozdzielone średnikiem, np. M; N; H albo lewa; prawa; uniwersalna. Jeżeli parametr ma dozwolone wartości, formularz okucia pokaże wybór z listy aplikacyjnej zamiast zwykłego wpisywania tekstu. Nie dubluj tego samego znaczenia różnymi nazwami, np. lewa, lewy, L. Wybierz jedną wersję i trzymaj się jej w całym katalogu. Starsze wartości spoza tej listy nie będą automatycznie dopasowywane — pole w formularzu będzie puste i trzeba będzie wybrać jedną z wartości słownika.',
     keyFeature:'Zaznacz, jeśli parametr ma być ważny przy szukaniu zamiennika. Przykład: długość prowadnicy 500 mm musi pasować do 500 mm.',
     typePart:'Zaznacz, jeśli parametr ma budować automatyczny opis Typ / cecha, np. „110° nakładany” albo „M 500 50 kg”.',
     compareMode:'Określa, jak program będzie porównywał parametr przy zamianie producenta: dokładnie, przez zakres albo przez minimalną wartość.',
@@ -156,6 +156,16 @@
     const cat = text(category);
     return normalizeDefinitions(definitions || DEFAULT_DEFINITIONS).filter((row)=> row.active !== false && text(row.category) === cat).sort((a, b)=> (Number(a.order) || 0) - (Number(b.order) || 0));
   }
+  function choiceOptionsForField(field){
+    return Array.isArray(field && field.options) ? field.options.map(text).filter(Boolean) : [];
+  }
+  function normalizeChoiceValue(field, rawValue){
+    const raw = text(rawValue);
+    if(!raw) return '';
+    const options = choiceOptionsForField(field);
+    if(!options.length) return raw;
+    return options.some((option)=> option === raw) ? raw : '';
+  }
   function normalizeParamValue(field, raw){
     const src = raw && typeof raw === 'object' ? raw : { value:raw };
     if(!field) return { value:text(src.value) };
@@ -167,7 +177,7 @@
       const to = text(toRaw) === '' ? '' : number(toRaw);
       return { from, to };
     }
-    return { value:text(src.value != null ? src.value : src) };
+    return { value:normalizeChoiceValue(field, src.value != null ? src.value : src) };
   }
   function normalizeParamValues(values, definitions, category){
     const src = values && typeof values === 'object' ? values : {};
@@ -271,6 +281,8 @@
     normalizeDefinition,
     normalizeDefinitions,
     fieldsForCategory,
+    choiceOptionsForField,
+    normalizeChoiceValue,
     normalizeParamValue,
     normalizeParamValues,
     paramValueText,

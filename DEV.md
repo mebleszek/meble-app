@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_dictionary_choices_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_replacement_preview_ui_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -50,6 +50,18 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
+
+
+## Hardware param dictionary choices v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_dictionary_choices_v1.zip`.
+- Baza startowa: `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Tekstowe parametry techniczne okuć z dozwolonymi wartościami w słowniku są renderowane w formularzu okucia jako wybór aplikacyjny/launcher, nie jako ręczne pole tekstowe.
+- Normalizacja parametru tekstowego z listą dopuszcza tylko dokładną wartość ze słownika. Wartości spoza listy, w tym stare ręczne wpisy kilku pozycji testowych, są czyszczone i użytkownik musi wybrać poprawną wartość ze słownika.
+- Parametry tekstowe bez listy, parametry liczbowe od-do i boolean zachowały dotychczasowy model wejścia.
+- W słownikach pole `Wartości podpowiedzi` zostało opisane jako `Dozwolone wartości`, a pomoc `?` tłumaczy konsekwentne wpisywanie opcji i wpływ na zamienniki.
+- Nie dodano nowego storage, nie zmieniono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-param-dictionary-choices-v1.md`.
 
 ## Hardware replacement button visibility fix v1 — 2026-05-23
 
