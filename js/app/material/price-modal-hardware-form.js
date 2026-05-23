@@ -164,33 +164,99 @@
     if(api && typeof api.choiceOptionsForField === 'function') return api.choiceOptionsForField(field);
     return Array.isArray(field && field.options) ? field.options.map((entry)=> String(entry == null ? '' : entry).trim()).filter(Boolean) : [];
   }
+  function selectOptionLabel(selectEl, placeholder){
+    try{
+      const choiceApi = FC && FC.rozrysChoice;
+      if(choiceApi && typeof choiceApi.getSelectOptionLabel === 'function'){
+        return choiceApi.getSelectOptionLabel(selectEl) || String(placeholder || '');
+      }
+      const selected = selectEl && selectEl.options ? Array.from(selectEl.options).find((opt)=> opt.selected) : null;
+      return selected ? String(selected.textContent || selected.label || selected.value || '') : String(placeholder || '');
+    }catch(_){
+      return String(placeholder || '');
+    }
+  }
+  function runTechChoiceChange(select, field, wrap, cfg){
+    const options = Object.assign({ updateAction:true }, cfg || {});
+    if(options.updateAction) syncHardwareTypeFromTechnicalParams({ updateAction:true });
+    try{
+      const normalized = techApi().normalizeParamValue ? techApi().normalizeParamValue(field, { value:select.value }) : { value:select.value };
+      const previewText = formatTechnicalValue(field, normalized);
+      const preview = wrap && wrap.querySelector ? wrap.querySelector('.hardware-tech-preview') : null;
+      if(preview) preview.textContent = previewText ? 'Wartość: ' + previewText : '';
+    }catch(_){ }
+  }
+  function mountDirectTechChoice(select, mount, title, placeholder, onChange){
+    const choiceApi = FC && FC.rozrysChoice;
+    if(!(mount && select && choiceApi && typeof choiceApi.createChoiceLauncher === 'function' && typeof choiceApi.openRozrysChoiceOverlay === 'function')) return null;
+    const label = selectOptionLabel(select, placeholder);
+    const btn = choiceApi.createChoiceLauncher(label, '');
+    ['investor-choice-launch','price-labor-choice-launch','hardware-tech-choice-launch'].forEach((cls)=> btn.classList.add(cls));
+    const arrow = btn.querySelector && btn.querySelector('.rozrys-choice-launch__arrow');
+    if(arrow) arrow.remove();
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('data-tech-choice-launcher', '1');
+    btn.addEventListener('click', async ()=>{
+      if(btn.disabled) return;
+      const picked = await choiceApi.openRozrysChoiceOverlay({
+        title:title || 'Wybierz wartość',
+        value:String(select.value || ''),
+        options:Array.from(select.options || []).map((opt)=>({
+          value:String(opt.value || ''),
+          label:String(opt.textContent || opt.label || opt.value || ''),
+          disabled:!!opt.disabled,
+          description:String(opt.getAttribute('data-description') || '').trim()
+        }))
+      });
+      if(picked == null || String(picked) === String(select.value || '')) return;
+      select.value = String(picked || '');
+      if(typeof choiceApi.setChoiceLaunchValue === 'function') choiceApi.setChoiceLaunchValue(btn, selectOptionLabel(select, placeholder), '');
+      if(typeof onChange === 'function') onChange(String(select.value || ''), btn);
+      select.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    mount.innerHTML = '';
+    mount.appendChild(btn);
+    return btn;
+  }
+  function mountTechChoiceLauncher(select, mountId, field, wrap){
+    const title = 'Wybierz: ' + String(field && field.label || 'wartość');
+    const placeholder = 'Wybierz wartość';
+    let btn = null;
+    try{
+      if(ctx.mountChoice){
+        btn = ctx.mountChoice({ selectEl:select, mountId, title, buttonClass:'investor-choice-launch price-labor-choice-launch hardware-tech-choice-launch', placeholder, onChange:()=> runTechChoiceChange(select, field, wrap, { updateAction:true }) });
+        if(btn) btn.setAttribute('data-tech-choice-launcher', '1');
+      }
+    }catch(_){ btn = null; }
+    if(btn) return btn;
+    const mount = mountId ? ctx.byId(mountId) : null;
+    btn = mountDirectTechChoice(select, mount, title, placeholder, ()=> runTechChoiceChange(select, field, wrap, { updateAction:true }));
+    if(btn) return btn;
+    try{
+      setTimeout(()=>{
+        const laterMount = mountId ? ctx.byId(mountId) : null;
+        if(laterMount && !laterMount.querySelector('[data-tech-choice-launcher]')){
+          mountDirectTechChoice(select, laterMount, title, placeholder, ()=> runTechChoiceChange(select, field, wrap, { updateAction:true }));
+        }
+      }, 0);
+    }catch(_){ }
+    return null;
+  }
   function createTextChoiceField(field, value, wrap){
     const options = allowedTextOptions(field);
     const current = value && value.value != null ? String(value.value || '').trim() : '';
     const fieldKey = String(field && field.key || '');
-    const select = h('select', { class:'investor-form-input hardware-tech-choice-select', 'data-tech-key':fieldKey, 'data-tech-type':'text' });
+    const select = h('select', { class:'investor-form-input hardware-tech-choice-select', 'data-tech-key':fieldKey, 'data-tech-type':'text', 'aria-label':String(field && field.label || 'Wartość') });
     select.hidden = true;
     select.appendChild(h('option', { value:'', text:'Wybierz ' + String(field && field.label || 'wartość').toLowerCase() }));
     options.forEach((option)=> select.appendChild(h('option', { value:option, text:option })));
     select.value = options.some((option)=> option === current) ? current : '';
     const mountId = 'hardwareTechChoice_' + fieldKey.replace(/[^a-zA-Z0-9_-]+/g, '_');
     const mount = h('div', { id:mountId, class:'hardware-tech-choice-launch-slot' });
-    select.addEventListener('change', ()=>{
-      syncHardwareTypeFromTechnicalParams({ updateAction:true });
-      try{
-        const normalized = techApi().normalizeParamValue ? techApi().normalizeParamValue(field, { value:select.value }) : { value:select.value };
-        const previewText = formatTechnicalValue(field, normalized);
-        const preview = wrap && wrap.querySelector ? wrap.querySelector('.hardware-tech-preview') : null;
-        if(preview) preview.textContent = previewText ? 'Wartość: ' + previewText : '';
-      }catch(_){ }
-    });
+    select.addEventListener('change', ()=> runTechChoiceChange(select, field, wrap, { updateAction:true }));
     wrap.appendChild(select);
     wrap.appendChild(mount);
-    try{
-      if(ctx.mountChoice){
-        ctx.mountChoice({ selectEl:select, mountId, title:'Wybierz: ' + String(field && field.label || 'wartość'), buttonClass:'investor-choice-launch price-labor-choice-launch hardware-tech-choice-launch', placeholder:'Wybierz wartość', onChange:()=>{ syncHardwareTypeFromTechnicalParams({ updateAction:true }); } });
-      }
-    }catch(_){ }
+    mountTechChoiceLauncher(select, mountId, field, wrap);
     return select;
   }
   function renderDynamicTechnicalFields(data){

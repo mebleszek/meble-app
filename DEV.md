@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_width_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_choice_launcher_fix_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_dictionary_full_scroll_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -51,6 +51,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
 
+
+
+## Hardware param choice launcher fix v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_width_fix_v1.zip`.
+- Poprawiono formularz edycji okucia: tekstowe parametry techniczne z `Dozwolonymi wartościami` renderują widoczny launcher wyboru aplikacyjnego, a nie sam podgląd `Wartość: ...`.
+- Dodano odporny fallback launchera bez natywnego selecta: jeśli standardowe `ctx.mountChoice` nie zamontuje przycisku, formularz korzysta bezpośrednio z `FC.rozrysChoice` i dalej otwiera aplikacyjną listę wyboru.
+- Stare wartości spoza słownika nadal są czyszczone i pole pozostaje puste do wyboru ze słownika.
+- Zmiana jest UI-only: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-param-choice-launcher-fix-v1.md`.
 
 
 ## Hardware dictionary width fix v1 — 2026-05-23

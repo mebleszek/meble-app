@@ -1,5 +1,13 @@
 ## Hardware dictionary width fix v1 — 2026-05-23
 
+## site_hardware_param_choice_launcher_fix_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_width_fix_v1.zip`.
+- Poprawka UI formularza okucia: parametry tekstowe z dozwolonymi wartościami w słowniku pokazują widoczny przycisk wyboru aplikacyjnego.
+- Dodano fallback bez natywnego selecta, żeby nie zostawał sam tekst `Wartość: ...` bez możliwości zmiany.
+- Bez zmian w backupie, storage, import/export Excel i mechanice zamienników.
+
+
 - Start z aktualnej bazy `site_hardware_dictionary_full_scroll_v1.zip`.
 - Poprawiono szerokość układu parametrów technicznych w modalu `Słowniki okuć` na telefonie: pola parametru, `Typ pola`, `Sposób porównania`, `Dozwolone wartości` i chipy nie są już ucinane poziomo.
 - Formularz parametru w słownikach korzysta z pełnej szerokości głównego scrolla modala i na mobile układa wiersze w jedną kolumnę.

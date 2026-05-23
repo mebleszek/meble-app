@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T10:08:42.626Z",
+  "generatedAt": "2026-05-23T10:15:45.206Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5239,
+      "lines": 5305,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -202,12 +202,12 @@
       569
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      524
+      "js/app/material/price-modal-hardware-form.js",
+      563
     ],
     [
-      "js/app/material/price-modal-hardware-form.js",
-      497
+      "js/app/catalog/catalog-store.js",
+      524
     ],
     [
       "js/app/rozrys/rozrys-render.js",
@@ -5884,7 +5884,7 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 497,
+      "lines": 563,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -5906,7 +5906,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 18,
+      "domRefs": 24,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
