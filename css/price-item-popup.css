@@ -412,16 +412,24 @@
   font-weight:850;
   line-height:1.25;
 }
-.hardware-dictionary-form{display:grid;gap:10px;min-width:0;}
-.hardware-dictionary-list{display:grid;gap:10px;max-height:min(44vh,390px);overflow:auto;padding-right:2px;}
+.hardware-dictionary-form{display:flex;flex-direction:column;gap:0;min-width:0;min-height:0;}
+.hardware-dictionary-scroll{display:grid;gap:10px;min-height:0;overflow:auto;padding-right:2px;padding-bottom:12px;-webkit-overflow-scrolling:touch;}
+.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible;padding-right:0;}
+.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible;padding:0;}
+.hardware-dictionary-actions{margin-top:0;}
 .hardware-dictionary-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.40);border-radius:16px;background:#fff;padding:10px;}
 .hardware-type-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(200px,1.5fr) auto auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.40);border-radius:16px;background:#fff;padding:10px;}
 .hardware-type-categories{display:flex;flex-wrap:wrap;gap:6px;}
 .hardware-type-category,.hardware-type-active{min-height:38px;margin:0;}
 .hardware-supplier-actions{display:flex;justify-content:flex-end;margin-top:10px;}
+.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}
 @media(max-width:720px){
   #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr 1fr;}
   .hardware-type-row,.hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
+  #priceModal .hardware-tech-param-row .grid-2,
+  #priceItemModal .hardware-tech-param-row .grid-2,
+  #priceModal .hardware-tech-param-row .grid-3,
+  #priceItemModal .hardware-tech-param-row .grid-3{grid-template-columns:1fr;}
 }
 @media(max-width:520px){
   #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr;}

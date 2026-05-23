@@ -1,5 +1,11 @@
 ### 2026-05-23 — hardware param dictionary choices v1
 - Start z aktualnej bazy `site_hardware_replacement_button_visibility_fix_v1.zip`.
+## Hardware dictionary full scroll v1 — 2026-05-23
+
+- Poprawiono układ modala `Słowniki okuć`: parametry techniczne kategorii nie są już przewijane w małym wewnętrznym okienku. Po rozwinięciu kategorii przewija się główna zawartość modala.
+- Stopka akcji została oparta o standardowy wzorzec stopki panelu, a pola parametru technicznego na telefonie układają się w jedną kolumnę.
+- Zmiana jest wyłącznie UI/UX; nie zmienia backupu, storage, import/export, zamienników ani modelu katalogu okuć.
+
 - Tekstowe parametry techniczne okuć z dozwolonymi wartościami w słowniku są teraz wybierane w formularzu okucia przez launcher/listę aplikacyjną, bez natywnego selecta widocznego dla użytkownika.
 - Wartości spoza słownika są czyszczone: stare ręczne wpisy nie są chronione i pole pozostaje puste, dopóki użytkownik nie wybierze wartości ze słownika.
 - W słownikach zmieniono opis pola na `Dozwolone wartości` i dodano instrukcję pod ikoną `?`, jak trzymać spójne wartości do porównywania zamienników.

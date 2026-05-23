@@ -4,7 +4,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_param_dictionary_choices_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_full_scroll_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_replacement_preview_ui_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
@@ -51,6 +51,17 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
 
+
+
+## Hardware dictionary full modal scroll v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_full_scroll_v1.zip`.
+- Baza startowa: `site_hardware_param_dictionary_choices_v1.zip`.
+- W modalu `Słowniki okuć` usunięto mały wewnętrzny scroll z listy parametrów technicznych kategorii. Kategorie parametrów rozwijają się teraz w głównym scrollu modala przez `panel-box-form__scroll`.
+- Stopka z przyciskami `Wyjdź` / `Anuluj` / `Zapisz` korzysta ze standardowego wzorca `panel-box-form__footer`, a zawartość słowników przewija się nad nią.
+- Na telefonie pola w wierszu parametru technicznego przechodzą na jedną kolumnę, żeby nie wymuszać poziomego przewijania w parametrach.
+- Nie zmieniono modelu danych, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-full-scroll-v1.md`.
 
 ## Hardware param dictionary choices v1 — 2026-05-23
 

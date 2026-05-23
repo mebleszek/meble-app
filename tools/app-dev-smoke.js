@@ -648,6 +648,20 @@ function runMaterialNodeSmoke(sandbox){
         && !ui.includes('savePriceList')
         && !/\b(alert|confirm|prompt)\s*\(/.test(ui);
     } },
+    { name:'Słowniki okuć przewijają główne okno parametrów', explain:'Chroni UX na telefonie: po rozwinięciu kategorii parametrów technicznych nie może powstać małe wewnętrzne okienko scrolla.', check:()=> {
+      const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
+      const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
+      return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
+        && dictionariesSrc.includes('hardware-dictionary-param-list')
+        && dictionariesSrc.includes("class:'hardware-tech-param-list'")
+        && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
+        && css.includes('.hardware-dictionary-scroll')
+        && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')
+        && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
+        && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
+        && css.includes('#priceModal .hardware-tech-param-row .grid-3')
+        && css.includes('{grid-template-columns:1fr;}');
+    } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
       if(!(api && api._debug && typeof api._debug.buildBundleRows === 'function')) return false;

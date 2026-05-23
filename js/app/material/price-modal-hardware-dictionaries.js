@@ -138,7 +138,7 @@
     const box = h('details', { class:'hardware-tech-category-accordion' });
     const summary = h('summary', { class:'hardware-tech-category-summary' }, [h('span', { text:cat || 'Bez kategorii' })]);
     box.appendChild(summary);
-    const list = h('div', { class:'hardware-dictionary-list hardware-tech-param-list' });
+    const list = h('div', { class:'hardware-tech-param-list' });
     function rows(){ return params.filter((row)=> text(row.category) === text(cat)); }
     function renderRows(){
       list.innerHTML = '';
@@ -158,8 +158,9 @@
     const originalTypes = getTypes();
     let cleanSignature = signature(categories, params);
     const body = h('div', { class:'panel-box-form hardware-dictionary-form' });
-    const catList = h('div', { class:'hardware-dictionary-list' });
-    const paramList = h('div', { class:'hardware-dictionary-list' });
+    const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
+    const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
+    const paramList = h('div', { class:'hardware-dictionary-list hardware-dictionary-param-list' });
     const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     const cancel = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
@@ -194,11 +195,13 @@
       try{ if(ctx.renderPriceModal) ctx.renderPriceModal(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
     });
-    body.appendChild(h('div', { class:'quote-subsection-title', text:'Kategorie / rodzaje okuć' }));
-    body.appendChild(catList); body.appendChild(addCat);
-    body.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
-    body.appendChild(paramList);
-    body.appendChild(h('div', { class:'hardware-supplier-actions' }, [exit, cancel, save]));
+    scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Kategorie / rodzaje okuć' }));
+    scroll.appendChild(catList);
+    scroll.appendChild(addCat);
+    scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
+    scroll.appendChild(paramList);
+    body.appendChild(scroll);
+    body.appendChild(h('div', { class:'panel-box-form__footer hardware-supplier-actions hardware-dictionary-actions' }, [exit, cancel, save]));
     render();
     FC.panelBox.open({ title:'Słowniki okuć', contentNode:body, width:'900px', boxClass:'panel-box--rozrys hardware-dictionary-panel', dismissOnOverlay:false, dismissOnEsc:true });
   }
