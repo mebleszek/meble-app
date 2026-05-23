@@ -204,12 +204,11 @@
           const nodeRect = node.getBoundingClientRect();
           const scrollerRect = scroller.getBoundingClientRect();
           const topGap = 16;
-          const visibleTop = scrollerRect.top + topGap;
-          const visibleBottom = scrollerRect.bottom - 32;
-          if(nodeRect.top >= visibleTop && nodeRect.top <= visibleBottom) return;
-          const targetTop = scroller.scrollTop + (nodeRect.top - scrollerRect.top) - topGap;
-          const nextTop = clampScrollTop(scroller, targetTop);
-          if(Math.abs(nextTop - scroller.scrollTop) < 8) return;
+          const deltaToTarget = (nodeRect.top - scrollerRect.top) - topGap;
+          const nextTop = clampScrollTop(scroller, scroller.scrollTop + deltaToTarget);
+          // Nie pomijaj ruchu tylko dlatego, że nagłówek jest widoczny na dole ekranu.
+          // Po rozwinięciu parametr ma finalnie dojechać do początku własnego akordeonu.
+          if(Math.abs(nextTop - scroller.scrollTop) < 3) return;
           if(typeof scroller.scrollTo === 'function') scroller.scrollTo({ top:nextTop, behavior:'smooth' });
           else scroller.scrollTop = nextTop;
           return;

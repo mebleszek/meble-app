@@ -1,3 +1,11 @@
+## site_hardware_dictionary_param_scroll_target_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_scroll_smooth_v1.zip`.
+- Naprawiono regresję auto-scrolla mini-akordeonów parametrów technicznych w `Słowniki okuć`: kliknięcie parametru widocznego na dole ekranu nie jest już błędnie uznawane za wystarczające pozycjonowanie.
+- Po rozwinięciu parametru główne okno słownika doscrollowuje do nagłówka otwartego parametru z małym marginesem od góry.
+- Krótkie lokalne przewinięcia zostają, a ruch jest nadal opóźniony do czasu przeliczenia wysokości akordeonu, żeby ograniczyć szarpnięcie.
+- Zmiana jest UI-only: bez zmian backupu, storage, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_scroll_smooth_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_scroll_focus_v1.zip`.
