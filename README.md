@@ -1,5 +1,13 @@
 # README
 
+## site_hardware_dictionary_param_instant_close_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_expand_animation_slow_v1.zip`.
+- W `Słowniki okuć → Parametry techniczne kategorii` zostawiono płynne rozwijanie nowego mini-akordeonu parametru.
+- Zamykanie poprzedniego parametru jest teraz natychmiastowe, bez animowanego zwijania, żeby lista nie wykonywała dziwnych ruchów na telefonie.
+- Zachowano sekwencję UX: najpierw płynny scroll do nagłówka klikniętego parametru, potem natychmiastowe zamknięcie starego parametru i płynne rozwinięcie nowego.
+- Zmiana jest tylko UI/UX: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_expand_animation_slow_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_expand_animation_v1.zip`.

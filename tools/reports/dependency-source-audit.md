@@ -23,7 +23,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
 | SZAFKI | 30 | 7269 | 0 | 0 | 0 | 3 |
 | WYCENA | 45 | 6921 | 0 | 0 | 0 | 6 |
-| MATERIAŁ | 27 | 5561 | 8 | 3 | 0 | 3 |
+| MATERIAŁ | 27 | 5542 | 8 | 3 | 0 | 3 |
 | KATALOG/USŁUGI | 24 | 4716 | 4 | 0 | 1 | 2 |
 | UI | 30 | 3832 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3448 | 24 | 0 | 0 | 4 |
@@ -57,8 +57,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/catalog/catalog-store.js | 524 | KATALOG/USŁUGI | wysokie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
-| js/app/material/price-modal-hardware-dictionaries.js | 468 | MATERIAŁ | średnie |
 | js/app/ui/actions-register.js | 455 | UI | średnie |
+| js/app/material/price-modal-hardware-dictionaries.js | 449 | MATERIAŁ | średnie |
 | js/app/cabinet/cabinet-choice-launchers.js | 423 | SZAFKI | niskie |
 | js/app/rozrys/rozrys-pickers.js | 406 | ROZRYS | średnie |
 | js/app/project/project-status-manual-guard.js | 395 | PROJEKT | średnie |

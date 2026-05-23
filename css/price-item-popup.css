@@ -536,7 +536,7 @@
 #priceItemModal .hardware-tech-param-accordion.hardware-param-animating > .hardware-tech-param-row{overflow:hidden;}
 .hardware-dictionary-panel .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row,
 #priceModal .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row,
-#priceItemModal .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row{pointer-events:none;}
+#priceItemModal .hardware-tech-param-accordion.hardware-param-closing > .hardware-tech-param-row{pointer-events:none;transition:none!important;}
 @media(prefers-reduced-motion:reduce){
   .hardware-dictionary-panel .hardware-tech-param-accordion > .hardware-tech-param-row,
   #priceModal .hardware-tech-param-accordion > .hardware-tech-param-row,

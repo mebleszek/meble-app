@@ -89,7 +89,7 @@
     return parts;
   }
   const PARAM_EXPAND_MS = 420;
-  const PARAM_COLLAPSE_MS = 260;
+  const PARAM_COLLAPSE_MS = 0;
   function prefersReducedMotion(){
     try{ return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
   }
@@ -147,32 +147,13 @@
   }
   function animateParamClose(node, done){
     if(!node){ if(typeof done === 'function') done(); return; }
-    const body = paramAccordionBody(node);
-    if(prefersReducedMotion() || !body || !node.open){
-      resetParamAccordionAnimation(node);
-      node.open = false;
-      if(typeof done === 'function') done();
-      return;
-    }
+    // Zamykanie mini-akordeonu jest celowo natychmiastowe. UX ma być: najpierw
+    // płynny scroll do nowego nagłówka, potem stary blok znika poza wzrokiem,
+    // a nowy parametr rozwija się płynnie. Animowane zwijanie starego bloku
+    // dawało na mobile dziwne, gumowe ruchy listy.
     resetParamAccordionAnimation(node);
-    node.open = true;
-    node.classList.add('hardware-param-animating', 'hardware-param-closing');
-    body.style.overflow = 'hidden';
-    body.style.maxHeight = Math.max(1, body.scrollHeight || 1) + 'px';
-    body.style.opacity = '1';
-    body.style.transform = 'translateY(0)';
-    try{ void body.offsetHeight; }catch(_){ }
-    const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
-    frame(()=> frame(()=>{
-      body.style.maxHeight = '0px';
-      body.style.opacity = '0';
-      body.style.transform = 'translateY(-4px)';
-    }));
-    node._fcParamAccordionTimer = setTimeout(()=>{
-      node.open = false;
-      resetParamAccordionAnimation(node);
-      if(typeof done === 'function') done();
-    }, PARAM_COLLAPSE_MS + 30);
+    node.open = false;
+    if(typeof done === 'function') done();
   }
   function categoryRenameMap(oldCategories, newCategories){
     const map = new Map();
@@ -386,7 +367,7 @@
               });
               closingPeerAccordions = false;
               openParamId = nextOpenId;
-              setTimeout(()=> alignParamHeaderAfterToggle(node), PARAM_EXPAND_MS + PARAM_COLLAPSE_MS + 80);
+              setTimeout(()=> alignParamHeaderAfterToggle(node), PARAM_EXPAND_MS + 80);
             });
           });
         }
