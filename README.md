@@ -1,5 +1,13 @@
 # README
 
+## site_hardware_dictionary_categories_accordion_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_param_instant_close_v1.zip`.
+- W `Słowniki okuć` cała sekcja `Kategorie / rodzaje okuć` została zamknięta w jeden wspólny akordeon.
+- Po zwinięciu tej sekcji zostaje więcej miejsca na `Parametry techniczne kategorii`, bez robienia osobnych akordeonów dla każdej kategorii.
+- Lista kategorii i przycisk `Dodaj kategorię` zostają w tym samym miejscu, tylko wewnątrz wspólnego rozwijanego panelu.
+- Zmiana jest tylko UI/UX: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_param_instant_close_v1 — 2026-05-23
 
 - Baza: `site_hardware_dictionary_param_expand_animation_slow_v1.zip`.

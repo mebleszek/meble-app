@@ -653,6 +653,8 @@ function runMaterialNodeSmoke(sandbox){
       const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
       return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
         && dictionariesSrc.includes('hardware-dictionary-param-list')
+        && dictionariesSrc.includes('hardware-dictionary-categories-accordion')
+        && dictionariesSrc.includes('hardware-dictionary-section-summary')
         && dictionariesSrc.includes("class:'hardware-tech-param-list'")
         && dictionariesSrc.includes("class:'hardware-tech-param-accordion'")
         && dictionariesSrc.includes('hardware-tech-param-summary__meta')
@@ -673,6 +675,8 @@ function runMaterialNodeSmoke(sandbox){
         && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
         && css.includes('.hardware-dictionary-scroll')
         && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')
+        && css.includes('.hardware-dictionary-section-accordion')
+        && css.includes('.hardware-dictionary-section-body')
         && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
         && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
         && css.includes('.hardware-tech-param-accordion')

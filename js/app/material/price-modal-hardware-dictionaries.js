@@ -398,6 +398,14 @@
     const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
     const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
     const paramList = h('div', { class:'hardware-dictionary-list hardware-dictionary-param-list' });
+    const categoriesSection = h('details', { class:'hardware-dictionary-section-accordion hardware-dictionary-categories-accordion', open:true });
+    const categoriesSummary = h('summary', { class:'hardware-dictionary-section-summary' }, [
+      h('span', { class:'hardware-dictionary-section-summary__text' }, [
+        h('span', { class:'hardware-dictionary-section-summary__title', text:'Kategorie / rodzaje okuć' }),
+        h('span', { class:'hardware-dictionary-section-summary__meta', text:'Lista kategorii do wyboru przy okuciach' })
+      ])
+    ]);
+    const categoriesBody = h('div', { class:'hardware-dictionary-section-body' });
     const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     const cancel = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
@@ -432,9 +440,11 @@
       try{ if(ctx.renderPriceModal) ctx.renderPriceModal(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
     });
-    scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Kategorie / rodzaje okuć' }));
-    scroll.appendChild(catList);
-    scroll.appendChild(addCat);
+    categoriesBody.appendChild(catList);
+    categoriesBody.appendChild(addCat);
+    categoriesSection.appendChild(categoriesSummary);
+    categoriesSection.appendChild(categoriesBody);
+    scroll.appendChild(categoriesSection);
     scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
     scroll.appendChild(paramList);
     body.appendChild(scroll);

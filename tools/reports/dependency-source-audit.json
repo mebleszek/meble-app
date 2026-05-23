@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T20:32:36.915Z",
+  "generatedAt": "2026-05-23T21:01:39.953Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5542,
+      "lines": 5552,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -218,12 +218,12 @@
       475
     ],
     [
-      "js/app/ui/actions-register.js",
-      455
+      "js/app/material/price-modal-hardware-dictionaries.js",
+      459
     ],
     [
-      "js/app/material/price-modal-hardware-dictionaries.js",
-      449
+      "js/app/ui/actions-register.js",
+      455
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
@@ -1414,7 +1414,7 @@
       "score": 4,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 449,
+      "lines": 459,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -5841,7 +5841,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 449,
+      "lines": 459,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
