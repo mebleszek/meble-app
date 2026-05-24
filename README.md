@@ -1,3 +1,12 @@
+## site_hardware_dictionary_category_frame_restore_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_category_no_clip_v1.zip`.
+- Poprawiono regresję wizualną wspólnego akordeonu `Kategorie / rodzaje okuć`: zewnętrzna ramka wraca do jednego, spójnego obrysu ROZRYS z zaokrąglonymi rogami i bez „rozjechanych” narożników.
+- Zawartość listy kategorii jest teraz w dedykowanym body `hardware-dictionary-category-section-body`, bez klasy `hardware-dictionary-section-body` ani `rozrys-material-accordion__body`, żeby nie dziedziczyć animacji wysokości, która na telefonie ucinała karty.
+- Zewnętrzny akordeon ma znowu `overflow:hidden`, więc ramka trzyma kształt; środek ma pełną wysokość i nie ma `max-height`/animacji.
+- Test regresji w `tools/app-dev-smoke.js` pilnuje jednocześnie dwóch rzeczy: pełnej treści kategorii po zamknięciu/otwarciu oraz braku powrotu problematycznego body/overflow.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
+
 ## site_hardware_dictionary_category_no_clip_v1 — 2026-05-24
 
 - Baza: `site_hardware_dictionary_category_body_guard_v1.zip`.

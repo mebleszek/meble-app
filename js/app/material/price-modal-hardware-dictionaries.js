@@ -514,7 +514,7 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesBody = h('div', { class:'hardware-dictionary-section-body hardware-dictionary-category-section-body' });
+    const categoriesBody = h('div', { class:'hardware-dictionary-category-section-body' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
@@ -528,23 +528,23 @@
         }catch(_){ }
       });
     }
-    function forceCategoriesAccordionContentState(open){
-      // Ten wspólny akordeon zawiera edytowalne kategorie. Nie używa klasy
-      // rozrys-material-accordion__body, bo jej animacja wysokości potrafiła na
-      // telefonie przyciąć zawartość do pustej/uciętej karty. Ten panel ma być
-      // prosty: zwinięty = hidden, rozwinięty = pełna zawartość bez clipowania.
+    function setCategoriesAccordionOpen(open){
+      // Ten wspólny akordeon ma tylko ukrywać/pokazywać listę kategorii. Nie
+      // używa animacji wysokości ani rozrys-material-accordion__body, bo na
+      // telefonie te klasy potrafiły przyciąć edytowalną listę do pustej karty.
       resetSectionAccordionAnimation(categoriesSection);
-      setSectionAccordionVisualState(categoriesSection, open);
+      categoriesSection.classList.toggle('is-open', !!open);
       categoriesSection.classList.toggle('hardware-section-static-open', !!open);
-      if(categoriesBody){
-        categoriesBody.style.maxHeight = '';
-        categoriesBody.style.opacity = '';
-        categoriesBody.style.transform = '';
-        categoriesBody.style.overflow = open ? 'visible' : '';
-      }
+      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
+      categoriesBody.hidden = !open;
+      categoriesBody.style.maxHeight = '';
+      categoriesBody.style.height = '';
+      categoriesBody.style.overflow = '';
+      categoriesBody.style.opacity = '';
+      categoriesBody.style.transform = '';
     }
     function updateCategoriesAccordion(animate){
-      forceCategoriesAccordionContentState(categoriesOpen);
+      setCategoriesAccordionOpen(categoriesOpen);
       if(categoriesOpen && animate) focusCategoriesAccordion();
     }
     categoriesSummary.addEventListener('click', ()=>{
@@ -557,12 +557,7 @@
     function isDirty(){ return signature(categories, params) !== cleanSignature; }
     function updateActions(){ const dirty = isDirty(); exit.style.display = dirty ? 'none' : ''; cancel.style.display = dirty ? '' : 'none'; save.style.display = dirty ? '' : 'none'; }
     function syncCategoriesAccordionAfterRender(){
-      if(!categoriesOpen) return setSectionAccordionVisualState(categoriesSection, false);
-      setSectionAccordionVisualState(categoriesSection, true);
-      if(categoriesSection.classList.contains('hardware-section-opening')){
-        const sectionBody = sectionAccordionBody(categoriesSection);
-        if(sectionBody) sectionBody.style.maxHeight = Math.max(1, sectionBody.scrollHeight || 1) + 'px';
-      }
+      setCategoriesAccordionOpen(categoriesOpen);
     }
     function render(){
       catList.innerHTML = '';
