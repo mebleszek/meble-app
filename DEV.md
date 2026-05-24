@@ -1,65 +1,19 @@
 # DEV.md — meble-app
 
-## Hardware dictionary category safe reveal v1 — 2026-05-24
+## Hardware dictionary category px animation v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_safe_reveal_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
-- Przeanalizowano regresje panelu `Kategorie / rodzaje okuć`: warianty animujące wysokość (`details/open`, `max-height`, `scrollHeight`, CSS Grid `0fr → 1fr`, `interpolate-size`) dawały treść w DOM, ale na telefonie potrafiły wizualnie przyciąć body do górnego fragmentu pierwszej karty.
-- Nowa metoda nie animuje wysokości listy kategorii. `hardware-dictionary-categories-card` trzyma ramkę/cień/chevron, `hardware-dictionary-categories-reveal` jest zwykłym body w przepływie dokumentu, a `hardware-dictionary-categories-content` trzyma realne pola kategorii.
-- Otwieranie panelu animuje tylko `opacity/translate` treści. Zamykanie jest natychmiastowe. Priorytet: pełna zawartość i normalna ramka, bez ryzyka pustego akordeonu.
-- Test `app-dev-smoke` pilnuje braku powrotu poprzednich technik/wrapperów oraz realnej treści po zamknięciu i ponownym otwarciu panelu.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS jako funkcji, RYSUNKU, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-safe-reveal-v1.md`.
-
-## Hardware dictionary category interpolate animation v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_grid_animation_v1.zip`.
-- Po analizie wcześniejszych metod (`details/open`, `max-height`, JS `scrollHeight`, CSS Grid `0fr → 1fr`) panel `Kategorie / rodzaje okuć` dostał metodę z `interpolate-size: allow-keywords`: wrapper animuje `height:0` do `height:auto`, a w przeglądarkach bez wsparcia ma pokazać pełną zawartość bez animacji.
-- Zachowane rozdzielenie ról: `hardware-dictionary-categories-card` trzyma ramkę/cień/chevron, `hardware-dictionary-categories-clip` jest warstwą animacji wysokości, `hardware-dictionary-categories-inner` jest tylko pośrednikiem bez clipowania, a `hardware-dictionary-categories-content` trzyma realną listę kategorii.
-- Usunięto zależność od gridowego `grid-template-rows:0fr/1fr`, bo na telefonie zostawiała widoczny tylko górny fragment pierwszej karty. Nie wracają `details/open`, stare klasy body ROZRYS, inline `scrollHeight` ani `max-height` na treści.
-- Test `app-dev-smoke` pilnuje metody `interpolate-size`, braku gridowej animacji i realnej treści po zamknięciu/ponownym otwarciu panelu.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS jako funkcji, RYSUNKU, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-interpolate-animation-v1.md`.
-
-## Hardware dictionary category grid animation v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_grid_animation_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_animation_split_v1.zip`.
-- Po analizie poprzednich regresji panel `Kategorie / rodzaje okuć` dostał inną metodę animacji: CSS Grid `grid-template-rows: 0fr → 1fr`, bez mierzenia `scrollHeight`, bez inline `height/max-height` i bez `hidden/display:none` dla animowanej warstwy.
-- Struktura panelu rozdziela role: `hardware-dictionary-categories-card` trzyma ramkę/cień/chevron, `hardware-dictionary-categories-clip` animuje grid row, `hardware-dictionary-categories-inner` jest bezpiecznym grid itemem z `min-height:0`, a `hardware-dictionary-categories-content` trzyma realną listę kategorii.
-- Nie wracają mechanizmy, które powodowały pustą/uciętą zawartość na telefonie: `details/open`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body`, stare body kategorii, inline `scrollHeight`/`height` oraz `hidden` na wrapperze animacji.
-- Test `app-dev-smoke` pilnuje gridowej metody, osobnego inner wrappera i realnej treści po zamknięciu/ponownym otwarciu panelu.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS jako funkcji, RYSUNKU, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-grid-animation-v1.md`.
-
-## Hardware dictionary category animation split v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_animation_split_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_expand_animation_v1.zip`.
-- Panel `Kategorie / rodzaje okuć` w słownikach okuć ma rozdzielone role: `hardware-dictionary-categories-card` odpowiada za ramkę/cień/chevron, `hardware-dictionary-categories-clip` wyłącznie za animację wysokości, a `hardware-dictionary-categories-content` za realną listę kategorii.
-- Otwieranie panelu kategorii jest płynne, zamykanie natychmiastowe; po animacji wrapper jest czyszczony z wymuszonego `height`, `max-height`, `overflow`, `opacity` i `transform`.
-- Treść listy kategorii nie używa `details/open`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body` ani starego `hardware-dictionary-categories-body`, żeby nie wracała regresja pustego panelu na telefonie.
-- Test `app-dev-smoke` pilnuje struktury karta → wrapper animacji → treść, realnych wierszy kategorii oraz braku powrotu starych klas/clipowania.
-- Usunięto zdublowane wywołanie `FC.panelBox.open` w modalu słowników okuć.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_px_animation_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`; to celowy powrót do ostatniej wersji, w której panel `Kategorie / rodzaje okuć` miał pełną zawartość.
+- Przeanalizowano błędne próby animacji tego panelu: wersje oparte o `details/open`, `max-height`/`scrollHeight` na realnym body, CSS Grid `0fr→1fr`, `interpolate-size` oraz reveal bez wysokości dalej potrafiły pokazać na telefonie tylko górę pierwszej karty.
+- Nowa metoda rozdziela trzy role: `hardware-dictionary-categories-card` trzyma ramkę/cień/rogi, `hardware-dictionary-categories-clip` dostaje na czas otwierania realnie zmierzoną wysokość w px, a `hardware-dictionary-categories-body` trzyma prawdziwe pola kategorii i nigdy nie dostaje `height`, `max-height`, `overflow:hidden` ani `hidden`.
+- Otwieranie wspólnego panelu kategorii jest płynne przez animację wrappera px; po zakończeniu animacji inline style wrappera są czyszczone. Zamykanie pozostaje natychmiastowe.
+- Test `app-dev-smoke` pilnuje wrappera `categories-clip`, mierzenia `categoriesBody.scrollHeight`, braku starych body/klas oraz pełnej treści po zamknięciu i ponownym otwarciu.
 - Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-animation-split-v1.md`.
-
-
-## Hardware dictionary category expand animation v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_expand_animation_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`.
-- Do stabilnego panelu `Kategorie / rodzaje okuć` w słownikach okuć dodano płynne rozwijanie body bez wracania do wcześniejszej regresji pustej zawartości.
-- Panel nadal nie używa `details/open`, `rozrys-material-accordion__body` ani `hardware-dictionary-section-body`; po zakończeniu animacji body wraca do zwykłego stanu bez `max-height` i `overflow:hidden`.
-- Zamykanie panelu kategorii jest natychmiastowe, a animowane jest tylko otwieranie, zgodnie z kierunkiem ustalonym dla mini-akordeonów parametrów.
-- Test `app-dev-smoke` został skorygowany tak, żeby pilnował zarówno animacji `hardware-categories-animating`, jak i pełnej zawartości listy kategorii po zamknięciu/ponownym otwarciu.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-expand-animation-v1.md`.
+- Raport: `tools/reports/hardware-dictionary-category-px-animation-v1.md`.
 
 ## Hardware dictionary category stable panel v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_expand_animation_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_px_animation_v1.zip`.
 - Baza startowa: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
 - Przeanalizowano powielany błąd wspólnego akordeonu `Kategorie / rodzaje okuć`: `details/open`, klasy animowanego body ROZRYS, `hidden`, `max-height` i `overflow` dawały poprawną treść w DOM, ale na telefonie wizualnie ucinały listę do pustej/niepełnej karty.
 - Wspólny panel kategorii został odseparowany od mechaniki animowanych akordeonów: `hardware-dictionary-categories-card` trzyma ramkę/cień jak ROZRYS, a `hardware-dictionary-categories-body` jest zwykłym, nieanimowanym kontenerem bez `max-height` i bez clipowania.
@@ -71,7 +25,7 @@
 
 ## Hardware dictionary categories details body fix v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_animation_split_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
 - Baza startowa: `site_hardware_dictionary_category_frame_restore_v1.zip`.
 - Naprawiono regresję pustego/uciętego akordeonu `Kategorie / rodzaje okuć`: wspólny akordeon kategorii wrócił do stabilnej mechaniki `details/summary`, a jego body ma klasę `hardware-dictionary-categories-body` bez animowanego `max-height`.
 - Zachowano wygląd aplikacyjny/ROZRYS: jedna ramka, cień, chevron i zaokrąglone rogi; treść kategorii pozostaje w normalnym przepływie dokumentu, żeby telefon nie pokazywał tylko uciętej pierwszej karty.
@@ -86,7 +40,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 ## Aktualna baza
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_category_expand_animation_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 

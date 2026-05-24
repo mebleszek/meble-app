@@ -514,9 +514,10 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesReveal = h('div', { class:'hardware-dictionary-categories-reveal', 'aria-hidden':'false' });
-    const categoriesBody = h('div', { class:'hardware-dictionary-categories-content' });
+    const categoriesClip = h('div', { class:'hardware-dictionary-categories-clip' });
+    const categoriesBody = h('div', { class:'hardware-dictionary-categories-body' });
     let categoriesOpen = true;
+    let categoriesAnimationToken = 0;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
         try{
@@ -529,72 +530,79 @@
         }catch(_){ }
       });
     }
-    function clearCategoriesAccordionTimer(){
-      if(categoriesSection._fcCategoriesAccordionTimer){
-        clearTimeout(categoriesSection._fcCategoriesAccordionTimer);
-        categoriesSection._fcCategoriesAccordionTimer = null;
-      }
+    function clearCategoriesClipStyles(){
+      categoriesClip.style.height = '';
+      categoriesClip.style.overflow = '';
+      categoriesClip.style.opacity = '';
+      categoriesClip.style.transform = '';
+      categoriesClip.style.transition = '';
     }
-    function resetCategoriesAccordionAnimation(){
-      clearCategoriesAccordionTimer();
-      categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening', 'hardware-categories-closing');
-      categoriesReveal.style.height = '';
-      categoriesReveal.style.maxHeight = '';
-      categoriesReveal.style.overflow = '';
-      categoriesReveal.style.opacity = '';
-      categoriesReveal.style.transform = '';
-      categoriesBody.style.height = '';
+    function setCategoriesAccordionOpen(open, animate){
+      // Stabilna baza zostaje taka sama jak w działającej wersji: prawdziwe body kategorii
+      // nigdy nie dostaje height/max-height/overflow/hidden. Animowany jest wyłącznie
+      // osobny wrapper `categoriesClip`, któremu wpisujemy realnie zmierzoną wysokość px.
+      categoriesAnimationToken += 1;
+      const token = categoriesAnimationToken;
+      categoriesSection.classList.toggle('is-open', !!open);
+      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
+      categoriesBody.hidden = false;
       categoriesBody.style.maxHeight = '';
+      categoriesBody.style.height = '';
       categoriesBody.style.overflow = '';
       categoriesBody.style.opacity = '';
       categoriesBody.style.transform = '';
-    }
-    function setCategoriesAccordionOpen(open){
-      // Bezpieczna metoda po regresjach: nie animujemy wysokości listy kategorii.
-      // Ramka jest zwykłą kartą, reveal jest pełnowymiarowym body w normalnym
-      // przepływie dokumentu, a animacja dotyczy tylko opacity/translate treści.
-      // Nie wracamy do mechanik animowania wysokości ani do starych wrapperów,
-      // bo te warianty potrafiły zostawić treść wizualnie uciętą na telefonie.
-      resetCategoriesAccordionAnimation();
-      categoriesSection.classList.toggle('is-open', !!open);
-      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesReveal.setAttribute('aria-hidden', open ? 'false' : 'true');
-    }
-    function animateCategoriesAccordionOpen(done){
-      if(prefersReducedMotion()){
-        setCategoriesAccordionOpen(true);
-        if(typeof done === 'function') afterDictionaryLayout(done);
+      if(!open){
+        categoriesSection.classList.remove('is-animating-open');
+        categoriesClip.hidden = true;
+        clearCategoriesClipStyles();
         return;
       }
-      resetCategoriesAccordionAnimation();
-      categoriesSection.classList.add('is-open', 'hardware-categories-animating', 'hardware-categories-opening');
-      categoriesSummary.setAttribute('aria-expanded', 'true');
-      categoriesReveal.setAttribute('aria-hidden', 'false');
-      try{ void categoriesReveal.offsetHeight; }catch(_){ }
-      categoriesSection._fcCategoriesAccordionTimer = setTimeout(()=>{
-        categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening');
-        categoriesSection.classList.add('is-open');
-        categoriesSummary.setAttribute('aria-expanded', 'true');
-        categoriesReveal.setAttribute('aria-hidden', 'false');
-        if(typeof done === 'function') done();
-      }, PARAM_EXPAND_MS + 80);
-    }
-    function animateCategoriesAccordionClose(done){
-      // Zamykanie tej sekcji jest natychmiastowe: nie animujemy powrotu height:auto → 0,
-      // żeby nie robić gumowego zwijania ani nie zostawić clipa w stanie pośrednim.
-      resetCategoriesAccordionAnimation();
-      categoriesSection.classList.add('hardware-categories-closing');
-      categoriesSection.classList.remove('is-open');
-      categoriesSummary.setAttribute('aria-expanded', 'false');
-      categoriesReveal.setAttribute('aria-hidden', 'true');
-      try{ void categoriesReveal.offsetHeight; }catch(_){ }
-      setTimeout(()=> categoriesSection.classList.remove('hardware-categories-closing'), 40);
-      if(typeof done === 'function') done();
+      categoriesClip.hidden = false;
+      if(!animate){
+        categoriesSection.classList.remove('is-animating-open');
+        clearCategoriesClipStyles();
+        return;
+      }
+      const reduceMotion = (()=>{ try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } })();
+      if(reduceMotion){
+        categoriesSection.classList.remove('is-animating-open');
+        clearCategoriesClipStyles();
+        return;
+      }
+      categoriesSection.classList.add('is-animating-open');
+      categoriesClip.style.transition = 'none';
+      categoriesClip.style.overflow = 'hidden';
+      categoriesClip.style.height = '0px';
+      categoriesClip.style.opacity = '0.98';
+      categoriesClip.style.transform = 'translateY(-4px)';
+      const measuredHeight = Math.max(categoriesBody.scrollHeight || 0, categoriesBody.getBoundingClientRect ? categoriesBody.getBoundingClientRect().height : 0);
+      const targetHeight = Math.ceil(measuredHeight || 1);
+      requestAnimationFrame(()=> requestAnimationFrame(()=>{
+        if(token !== categoriesAnimationToken) return;
+        categoriesClip.style.transition = '';
+        categoriesClip.style.height = targetHeight + 'px';
+        categoriesClip.style.opacity = '1';
+        categoriesClip.style.transform = 'translateY(0)';
+      }));
+      const finish = ()=>{
+        if(token !== categoriesAnimationToken || !categoriesOpen) return;
+        categoriesSection.classList.remove('is-animating-open');
+        clearCategoriesClipStyles();
+      };
+      const onEnd = (event)=>{
+        if(event && event.target !== categoriesClip) return;
+        categoriesClip.removeEventListener('transitionend', onEnd);
+        finish();
+      };
+      categoriesClip.addEventListener('transitionend', onEnd);
+      setTimeout(()=>{
+        categoriesClip.removeEventListener('transitionend', onEnd);
+        finish();
+      }, 420);
     }
     function updateCategoriesAccordion(animate){
-      if(!animate){ setCategoriesAccordionOpen(categoriesOpen); return; }
-      if(categoriesOpen) animateCategoriesAccordionOpen(focusCategoriesAccordion);
-      else animateCategoriesAccordionClose();
+      setCategoriesAccordionOpen(categoriesOpen, !!animate);
+      if(categoriesOpen && animate) focusCategoriesAccordion();
     }
     categoriesSummary.addEventListener('click', (event)=>{
       event.preventDefault();
@@ -607,7 +615,7 @@
     function isDirty(){ return signature(categories, params) !== cleanSignature; }
     function updateActions(){ const dirty = isDirty(); exit.style.display = dirty ? 'none' : ''; cancel.style.display = dirty ? '' : 'none'; save.style.display = dirty ? '' : 'none'; }
     function syncCategoriesAccordionAfterRender(){
-      setCategoriesAccordionOpen(categoriesOpen);
+      setCategoriesAccordionOpen(categoriesOpen, false);
     }
     function render(){
       catList.innerHTML = '';
@@ -641,9 +649,9 @@
     });
     categoriesBody.appendChild(catList);
     categoriesBody.appendChild(addCat);
-    categoriesReveal.appendChild(categoriesBody);
+    categoriesClip.appendChild(categoriesBody);
     categoriesSection.appendChild(categoriesSummary);
-    categoriesSection.appendChild(categoriesReveal);
+    categoriesSection.appendChild(categoriesClip);
     scroll.appendChild(categoriesSection);
     scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
     scroll.appendChild(paramList);

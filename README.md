@@ -1,55 +1,23 @@
-# meble-app — aktualna paczka
+Aktualna paczka: `site_hardware_dictionary_category_px_animation_v1.zip`.
 
-## Hardware dictionary category safe reveal v1 — 2026-05-24
+## site_hardware_dictionary_category_px_animation_v1 — 2026-05-24
 
-- Aktualna paczka: `site_hardware_dictionary_category_safe_reveal_v1.zip`.
-- Baza: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
-- Po nieudanych metodach animowania wysokości panelu `Słowniki okuć → Kategorie / rodzaje okuć` zrezygnowano z animacji wysokości tego panelu. Nie wracają: `details/open`, `max-height`, JS `scrollHeight`, CSS Grid `0fr → 1fr` ani `interpolate-size`.
-- Panel ma stabilną kartę `hardware-dictionary-categories-card`, pełnowymiarowe body `hardware-dictionary-categories-reveal` w zwykłym przepływie dokumentu oraz realną treść `hardware-dictionary-categories-content`.
-- Otwieranie animuje tylko wejście treści przez `opacity/translate`, więc lista kategorii nie może zostać wizualnie ucięta do pierwszego pola. Zamykanie pozostaje natychmiastowe.
-- Testy pilnują, żeby nie wróciły poprzednie wrappery/techniki, a lista kategorii po zamknięciu i ponownym otwarciu nadal miała realne wiersze, input `Zawiasy`, `Usuń` i `Dodaj kategorię`.
-- Bez zmian danych, backupu, storage, import/exportu, zamienników, PRO100, usług, ROZRYS jako funkcji, RYSUNKU i WYCENY.
-
-## Hardware dictionary category interpolate animation v1 — 2026-05-24
-
-- Aktualna paczka: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
-- Baza: `site_hardware_dictionary_category_grid_animation_v1.zip`.
-- Po regresji gridowej animacji panelu `Słowniki okuć → Kategorie / rodzaje okuć` zmieniono metodę: zamiast CSS Grid `0fr → 1fr` używany jest wrapper z `height: 0 → auto` i `interpolate-size: allow-keywords`.
-- Realna lista kategorii pozostaje w osobnej warstwie `hardware-dictionary-categories-content` bez `max-height`, bez `overflow:hidden`, bez `details/open` i bez starych klas body ROZRYS.
-- Gdy przeglądarka nie wspiera `interpolate-size`, panel ma otworzyć się natychmiastowo, ale z pełną widoczną zawartością.
-- Testy pilnują, żeby nie wróciła gridowa metoda ani klasy/selektory, które wcześniej powodowały pusty panel na telefonie.
-- Bez zmian danych, backupu, storage, import/exportu, zamienników, PRO100, usług, RYSUNKU i WYCENY.
-
+- Baza: `site_hardware_dictionary_category_stable_panel_v1.zip` — celowy powrót do ostatniej działającej wersji z pełną zawartością panelu kategorii.
+- Panel `Kategorie / rodzaje okuć` dostał animację otwierania opartą o realnie zmierzoną wysokość w pikselach: prawdziwa treść zostaje w `hardware-dictionary-categories-body`, a animacja działa tylko na wrapperze `hardware-dictionary-categories-clip`.
+- Nie użyto ponownie wcześniejszych metod, które powodowały pusty/ucięty panel: `details/open`, `grid 0fr/1fr`, `interpolate-size`, stałego `max-height` ani animowania prawdziwego body.
+- Ramka pozostaje normalna jak ROZRYS, zawartość ma pozostać pełna, a zamykanie panelu jest natychmiastowe.
+- Bez zmian w backupie, storage, imporcie/eksporcie, zamiennikach, PRO100, RYSUNKU i WYCENIE.
 
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
+Aktualna paczka: `site_hardware_dictionary_category_px_animation_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Po gridowej regresji panel `Kategorie / rodzaje okuć` używa `interpolate-size: allow-keywords` do animacji `height:0 → auto`.
-- Prawdziwa lista kategorii jest oddzielona od wrappera animacji i nie dostaje `max-height`, `overflow:hidden`, `details/open` ani starych klas body ROZRYS.
-- Jeśli przeglądarka nie wspiera `interpolate-size`, panel ma otworzyć się natychmiastowo, ale z pełną widoczną treścią.
+- Przywrócono stabilną bazę panelu `Kategorie / rodzaje okuć`, w której zawartość jest pełna, i dodano testową animację otwierania przez wrapper z realnie zmierzoną wysokością w px.
+- Prawdziwa lista kategorii pozostaje bez clipowania: bez `hidden`, `height`, `max-height` i `overflow:hidden`; animowany jest tylko `hardware-dictionary-categories-clip`.
+- Nie wrócono do błędnych metod: `details/open`, CSS Grid `0fr/1fr`, `interpolate-size` ani animowania realnego body.
 - Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
-
-
-## site_hardware_dictionary_category_animation_split_v1 — 2026-05-24
-
-- Baza: `site_hardware_dictionary_category_expand_animation_v1.zip`.
-- Poprawiono panel `Kategorie / rodzaje okuć` zgodnie z rozdzieleniem odpowiedzialności: karta trzyma ramkę/cień, `hardware-dictionary-categories-clip` animuje wysokość, a `hardware-dictionary-categories-content` trzyma prawdziwą listę kategorii bez clipowania.
-- Otwieranie panelu kategorii jest płynne, zamykanie pozostaje natychmiastowe, a po zakończeniu animacji wrapper nie zostaje z wymuszonym `height`, `max-height` ani `overflow:hidden`.
-- Usunięto powielaną przyczynę regresji pustej zawartości: realna treść kategorii nie używa już `details/open`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body` ani starego `hardware-dictionary-categories-body`.
-- Skorygowano `tools/app-dev-smoke.js`, żeby pilnował struktury karta → wrapper animacji → treść oraz braku powrotu starych klas/clipowania.
-- Przy okazji usunięto zdublowane wywołanie `FC.panelBox.open` w modalu słowników okuć.
-- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
-
-## site_hardware_dictionary_category_expand_animation_v1 — 2026-05-24
-
-- Baza: `site_hardware_dictionary_category_stable_panel_v1.zip`.
-- Do stabilnego panelu `Kategorie / rodzaje okuć` dodano płynne rozwijanie treści: otwarte body po animacji wraca do zwykłego stanu bez `max-height`, `overflow:hidden` i clipowania zawartości.
-- Zamykanie tej sekcji jest natychmiastowe, żeby nie wracały gumowe animacje zwijania znane z wcześniejszych testów; płynne pozostaje tylko otwarcie.
-- Test `app-dev-smoke` pilnuje nowej mechaniki: karta kategorii używa `hardware-categories-animating`, nie wraca do starych klas body i nadal renderuje pełne wiersze kategorii po zamknięciu/otwarciu.
-- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
 
 ## site_hardware_dictionary_category_stable_panel_v1 — 2026-05-24
 

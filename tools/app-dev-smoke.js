@@ -655,21 +655,18 @@ function runMaterialNodeSmoke(sandbox){
       return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
         && dictionariesSrc.includes('hardware-dictionary-param-list')
         && dictionariesSrc.includes('hardware-dictionary-categories-card')
+        && dictionariesSrc.includes('hardware-dictionary-categories-clip')
+        && dictionariesSrc.includes('Math.ceil(measuredHeight || 1)')
+        && dictionariesSrc.includes('categoriesBody.scrollHeight')
         && dictionariesSrc.includes('hardware-dictionary-section-summary')
         && dictionariesSrc.includes('hardware-dictionary-section-chevron')
+        && dictionariesSrc.includes('setSectionAccordionVisualState')
+        && dictionariesSrc.includes('animateSectionAccordionOpen')
+        && dictionariesSrc.includes('animateSectionAccordionClose')
         && dictionariesSrc.includes('setCategoriesAccordionOpen')
-        && dictionariesSrc.includes('animateCategoriesAccordionOpen')
-        && dictionariesSrc.includes('animateCategoriesAccordionClose')
         && !dictionariesSrc.includes('hardware-section-static-open')
         && dictionariesSrc.includes("h('div', { class:'hardware-dictionary-categories-card is-open' })")
-        && dictionariesSrc.includes("class:'hardware-dictionary-categories-reveal'")
-        && dictionariesSrc.includes("class:'hardware-dictionary-categories-content'")
-        && dictionariesSrc.includes('categoriesReveal.appendChild(categoriesBody)')
-        && !dictionariesSrc.includes('categoriesBody.scrollHeight')
-        && !dictionariesSrc.includes('categoriesReveal.scrollHeight')
-        && !dictionariesSrc.includes('grid-template-rows 0fr')
-        && !dictionariesSrc.includes('interpolate-size')
-        && !dictionariesSrc.includes("class:'hardware-dictionary-categories-body'")
+        && dictionariesSrc.includes("class:'hardware-dictionary-categories-body'")
         && !dictionariesSrc.includes("class:'hardware-dictionary-category-section-body'")
         && dictionariesSrc.includes("event.preventDefault();")
         && !dictionariesSrc.includes("categoriesSection.open = !!open")
@@ -701,17 +698,14 @@ function runMaterialNodeSmoke(sandbox){
         && css.includes('.hardware-dictionary-section-body[hidden]{display:none!important;}')
         && css.includes('.hardware-dictionary-section-accordion.hardware-section-animating')
         && css.includes('.hardware-dictionary-section-accordion.rozrys-material-accordion.is-open')
-        && css.includes('.hardware-dictionary-categories-reveal')
-        && css.includes('.hardware-dictionary-categories-content')
-        && !css.includes('grid-template-rows:0fr')
-        && !css.includes('grid-template-rows:1fr')
-        && css.includes('@keyframes hardwareDictionaryCategoriesReveal')
-        && css.includes('animation:hardwareDictionaryCategoriesReveal')
+        && css.includes('.hardware-dictionary-categories-body')
+        && css.includes('.hardware-dictionary-categories-clip[hidden]')
+        && css.includes('ramka osobno, animacja px osobno, treść osobno')
         && !css.includes('.hardware-dictionary-categories-accordion:not([open])')
-        && !css.includes('.hardware-dictionary-categories-body')
-        && css.includes('max-height:none')
-        && css.includes('height:auto')
-        && !css.includes('transition:height .44s cubic-bezier')
+        && css.includes('max-height:none!important')
+        && css.includes('height:auto!important')
+        && css.includes('transition:none!important')
+        && css.includes('overflow:visible!important')
         && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
         && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
         && css.includes('.hardware-tech-param-accordion')
@@ -736,37 +730,27 @@ function runMaterialNodeSmoke(sandbox){
         const content = captured && captured.contentNode;
         const section = content && content.querySelector('.hardware-dictionary-categories-card');
         const summary = content && content.querySelector('.hardware-dictionary-section-summary');
-        const reveal = content && content.querySelector('.hardware-dictionary-categories-reveal');
-        const body = content && content.querySelector('.hardware-dictionary-categories-content');
-        const legacyBody = content && (content.querySelector('.hardware-dictionary-category-section-body') || content.querySelector('.hardware-dictionary-categories-body') || content.querySelector('.hardware-dictionary-categories-content.hardware-dictionary-section-body') || content.querySelector('.hardware-dictionary-categories-content.rozrys-material-accordion__body'));
+        const clip = content && content.querySelector('.hardware-dictionary-categories-clip');
+        const body = content && content.querySelector('.hardware-dictionary-categories-body');
+        const legacyBody = content && (content.querySelector('.hardware-dictionary-category-section-body') || content.querySelector('.hardware-dictionary-categories-body.hardware-dictionary-section-body') || content.querySelector('.hardware-dictionary-categories-body.rozrys-material-accordion__body'));
         const list = content && content.querySelector('.hardware-dictionary-category-list');
+        const firstInput = list && list.querySelector('input');
         const initialRows = list && list.querySelectorAll('.hardware-dictionary-row');
         const addButton = body && Array.from(body.querySelectorAll('button')).find((btn)=> /Dodaj kategorię/.test(btn.textContent || ''));
-        const contentNotClipped = ()=> body && reveal
-          && body.classList.contains('hardware-dictionary-categories-content')
-          && reveal.classList.contains('hardware-dictionary-categories-reveal')
-          && !body.classList.contains('hardware-dictionary-section-body')
-          && !body.classList.contains('rozrys-material-accordion__body')
-          && body.style.maxHeight !== '0px'
-          && body.style.maxHeight !== '1px'
-          && body.style.overflow !== 'hidden'
-          && reveal.style.height !== '0px'
-          && reveal.style.maxHeight !== '0px'
-          && reveal.style.gridTemplateRows !== '0fr'
-          && reveal.style.gridTemplateRows !== '1fr';
+        const bodyNotClipped = ()=> body && clip && clip.hidden === false && body.hidden === false && body.classList.contains('hardware-dictionary-categories-body') && !body.classList.contains('hardware-dictionary-section-body') && !body.classList.contains('rozrys-material-accordion__body') && body.style.maxHeight !== '0px' && body.style.maxHeight !== '1px' && body.style.overflow !== 'hidden';
         const hasRealCategoryContent = ()=> {
           const rows = list && list.querySelectorAll('.hardware-dictionary-row');
           const input = list && list.querySelector('input');
           const removeButton = list && Array.from(list.querySelectorAll('button')).find((btn)=> /Usuń/.test(btn.textContent || ''));
           return !!(rows && rows.length >= 3 && input && input.value === 'Zawiasy' && removeButton && addButton);
         };
-        const initiallyVisible = !!(section && summary && reveal && body && !legacyBody && list && contentNotClipped() && hasRealCategoryContent() && summary.getAttribute('aria-expanded') === 'true' && reveal.getAttribute('aria-hidden') === 'false');
+        const initiallyVisible = !!(section && summary && clip && body && !legacyBody && list && bodyNotClipped() && hasRealCategoryContent() && summary.getAttribute('aria-expanded') === 'true');
         if(!initiallyVisible) return false;
         summary.click();
-        const closed = reveal.getAttribute('aria-hidden') === 'true' && summary.getAttribute('aria-expanded') === 'false' && section.classList.contains('is-open') === false;
+        const closed = clip.hidden === true && body.hidden === false && summary.getAttribute('aria-expanded') === 'false' && section.classList.contains('is-open') === false;
         summary.click();
         const reopenedRows = list.querySelectorAll('.hardware-dictionary-row');
-        const reopened = contentNotClipped() && reveal.getAttribute('aria-hidden') === 'false' && summary.getAttribute('aria-expanded') === 'true' && section.classList.contains('is-open') === true && reopenedRows.length >= initialRows.length && hasRealCategoryContent();
+        const reopened = bodyNotClipped() && clip.hidden === false && body.hidden === false && summary.getAttribute('aria-expanded') === 'true' && section.classList.contains('is-open') === true && reopenedRows.length >= initialRows.length && hasRealCategoryContent();
         return closed && reopened;
       }finally{
         FC.panelBox = oldPanelBox;

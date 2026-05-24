@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T09:56:52.760Z",
+  "generatedAt": "2026-05-24T10:44:57.219Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5753,
+      "lines": 5761,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -187,7 +187,7 @@
     ],
     [
       "js/app/material/price-modal-hardware-dictionaries.js",
-      660
+      668
     ],
     [
       "js/testing/wycena/suites/central-status-sync.js",
@@ -1037,7 +1037,7 @@
       "score": 5,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 660,
+      "lines": 668,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -5841,7 +5841,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 660,
+      "lines": 668,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -5867,7 +5867,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 56,
+      "domRefs": 55,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
