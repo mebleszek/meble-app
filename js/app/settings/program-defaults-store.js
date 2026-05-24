@@ -22,7 +22,8 @@
       drawerSystemManufacturer: '',
       liftManufacturer: '',
       slidingSystemManufacturer: '',
-      cargoManufacturer: ''
+      cargoManufacturer: '',
+      accessoriesManufacturer: ''
     }
   };
 
@@ -50,7 +51,8 @@
         drawerSystemManufacturer: text(hardware.drawerSystemManufacturer || hardware.drawersManufacturer || hardware.drawerManufacturer || hardware.defaultDrawerSystemManufacturer),
         liftManufacturer: text(hardware.liftManufacturer || hardware.liftsManufacturer || hardware.defaultLiftManufacturer),
         slidingSystemManufacturer: text(hardware.slidingSystemManufacturer || hardware.slidingManufacturer || hardware.defaultSlidingSystemManufacturer),
-        cargoManufacturer: text(hardware.cargoManufacturer || hardware.organizerManufacturer || hardware.defaultCargoManufacturer)
+        cargoManufacturer: text(hardware.cargoManufacturer || hardware.organizerManufacturer || hardware.defaultCargoManufacturer),
+        accessoriesManufacturer: text(hardware.accessoriesManufacturer || hardware.otherAccessoriesManufacturer || hardware.defaultAccessoriesManufacturer)
       }
     };
   }
@@ -110,6 +112,7 @@
     if(hw.liftManufacturer) parts.push('podnośniki: ' + hw.liftManufacturer);
     if(hw.slidingSystemManufacturer) parts.push('przesuwne: ' + hw.slidingSystemManufacturer);
     if(hw.cargoManufacturer) parts.push('cargo/organizery: ' + hw.cargoManufacturer);
+    if(hw.accessoriesManufacturer) parts.push('pozostałe akcesoria: ' + hw.accessoriesManufacturer);
     return parts.length ? parts.join(' • ') : 'Brak globalnych domyślnych — program użyje starych awaryjnych wartości.';
   }
 

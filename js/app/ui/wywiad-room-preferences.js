@@ -1,5 +1,5 @@
 // js/app/ui/wywiad-room-preferences.js
-// UI preferencji standardu pokoju w WYWIADZIE.
+// UI preferencji materiałów i kolorów pokoju w WYWIADZIE.
 // Etap 1B: preferencje strefowe bez natywnych pickerów/selectów telefonu.
 
 (function(){
@@ -174,7 +174,7 @@
     const refreshers = [];
 
     const summary = h('div', { class:'wywiad-room-shell__stats-line wywiad-room-inline-form__summary' });
-    const refreshSummary = ()=>{ summary.innerHTML = '<strong>Preferencje:</strong> ' + escapeHtml(api && typeof api.getSummary === 'function' ? api.getSummary(draft) : 'Brak zapisanych preferencji.'); };
+    const refreshSummary = ()=>{ summary.innerHTML = '<strong>Materiały i kolory:</strong> ' + escapeHtml(api && typeof api.getSummary === 'function' ? api.getSummary(draft) : 'Brak zapisanych preferencji.'); };
     form.appendChild(summary);
 
     const note = h('div', { class:'wywiad-room-inline-form__note muted xs', text:'Strefy pokoju mają pierwszeństwo przed globalnymi domyślnymi z trybiku. Istniejące szafki nie są zmieniane w tym etapie.' });
@@ -292,7 +292,7 @@
     const draft = api && typeof api.getRoomPreferences === 'function' ? api.getRoomPreferences(room) : {};
     const form = buildForm(room, draft);
     ns.panelBox.open({
-      title:'Preferencje standardu',
+      title:'Preferencje materiałów i kolorów',
       contentNode: form,
       width:'860px',
       boxClass:'panel-box--rozrys wywiad-room-settings-box wywiad-room-preferences-box',

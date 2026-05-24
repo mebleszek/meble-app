@@ -90,8 +90,7 @@
   }
   const PARAM_EXPAND_MS = 420;
   const PARAM_COLLAPSE_MS = 0;
-  // Wspólny panel kategorii jest większy niż mini-parametr, więc potrzebuje wolniejszego otwarcia.
-  const SECTION_EXPAND_MS = 820;
+  const SECTION_EXPAND_MS = PARAM_EXPAND_MS;
   function prefersReducedMotion(){
     try{ return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
   }
@@ -529,78 +528,23 @@
         }catch(_){ }
       });
     }
-    function clearCategoriesAccordionAnimation(){
-      const active = categoriesBody._fcCategoriesAnimation;
-      if(active && typeof active.cancel === 'function') active.cancel();
-      categoriesBody._fcCategoriesAnimation = null;
-      if(categoriesSection._fcCategoriesAccordionTimer){
-        clearTimeout(categoriesSection._fcCategoriesAccordionTimer);
-        categoriesSection._fcCategoriesAccordionTimer = null;
-      }
-    }
-    function clearCategoriesAccordionInlineStyles(){
-      categoriesBody.style.height = '';
+    function setCategoriesAccordionOpen(open){
+      // Wspólny panel kategorii nie używa już details ani animowanego body ROZRYS.
+      // Poprzednie wersje mieszały `open`, `hidden`, `max-height` i overflow, więc
+      // test widział w DOM pełną listę, ale telefon renderował pustą/uciętą ramkę.
+      // Tutaj karta ma stałą ramkę jak ROZRYS, a body jest zwykłym blokiem.
+      categoriesSection.classList.toggle('is-open', !!open);
+      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
+      categoriesBody.hidden = !open;
       categoriesBody.style.maxHeight = '';
+      categoriesBody.style.height = '';
       categoriesBody.style.overflow = '';
       categoriesBody.style.opacity = '';
       categoriesBody.style.transform = '';
-      categoriesBody.style.transition = '';
-    }
-    function setCategoriesAccordionOpen(open){
-      // Stabilna baza: karta trzyma ramkę, body trzyma realną zawartość.
-      // Zamknięcie jest natychmiastowe, a otwarcie może być animowane osobną funkcją.
-      clearCategoriesAccordionAnimation();
-      categoriesSection.classList.toggle('is-open', !!open);
-      categoriesSection.classList.remove('hardware-categories-opening');
-      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesBody.hidden = !open;
-      clearCategoriesAccordionInlineStyles();
-    }
-    function animateCategoriesAccordionOpen(){
-      // Metoda bez animowania `auto`: najpierw pokazujemy body, mierzymy realne px,
-      // potem Web Animations API animuje 0px -> zmierzona wysokość. Po finishu
-      // style są czyszczone, więc otwarty panel wraca do normalnego przepływu.
-      if(prefersReducedMotion() || !(categoriesBody && typeof categoriesBody.animate === 'function')){
-        setCategoriesAccordionOpen(true);
-        focusCategoriesAccordion();
-        return;
-      }
-      clearCategoriesAccordionAnimation();
-      categoriesSection.classList.add('is-open', 'hardware-categories-opening');
-      categoriesSummary.setAttribute('aria-expanded', 'true');
-      categoriesBody.hidden = false;
-      clearCategoriesAccordionInlineStyles();
-      let targetHeight = 0;
-      try{ targetHeight = Math.ceil(categoriesBody.scrollHeight || categoriesBody.getBoundingClientRect().height || 0); }catch(_){ targetHeight = 0; }
-      targetHeight = Math.max(1, targetHeight);
-      categoriesBody.style.overflow = 'hidden';
-      categoriesBody.style.height = targetHeight + 'px';
-      const animation = categoriesBody.animate([
-        { height:'0px', opacity:0, transform:'translateY(-5px)' },
-        { height:targetHeight + 'px', opacity:1, transform:'translateY(0)' }
-      ], { duration:SECTION_EXPAND_MS, easing:'cubic-bezier(.22,.72,.18,1)', fill:'both' });
-      categoriesBody._fcCategoriesAnimation = animation;
-      animation.onfinish = ()=>{
-        if(categoriesBody._fcCategoriesAnimation !== animation) return;
-        categoriesBody._fcCategoriesAnimation = null;
-        categoriesSection.classList.remove('hardware-categories-opening');
-        categoriesSection.classList.add('is-open');
-        categoriesSummary.setAttribute('aria-expanded', 'true');
-        categoriesBody.hidden = false;
-        clearCategoriesAccordionInlineStyles();
-        focusCategoriesAccordion();
-      };
-      animation.oncancel = ()=>{
-        if(categoriesBody._fcCategoriesAnimation === animation) categoriesBody._fcCategoriesAnimation = null;
-      };
     }
     function updateCategoriesAccordion(animate){
-      if(categoriesOpen){
-        if(animate) animateCategoriesAccordionOpen();
-        else setCategoriesAccordionOpen(true);
-      } else {
-        setCategoriesAccordionOpen(false);
-      }
+      setCategoriesAccordionOpen(categoriesOpen);
+      if(categoriesOpen && animate) focusCategoriesAccordion();
     }
     categoriesSummary.addEventListener('click', (event)=>{
       event.preventDefault();

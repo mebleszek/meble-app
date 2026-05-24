@@ -1,6 +1,6 @@
 // js/app/room-preferences/room-preferences-model.js
-// Model preferencji standardu zapisanych przy konkretnym pomieszczeniu.
-// Etap 1B: preferencje są strefowe: dolna/stojące, środkowa/moduły, górna/wiszące.
+// Model preferencji zapisanych przy konkretnym pomieszczeniu.
+// Materiały/kolory są strefowe, a producenci okuć są osobnym wyborem z katalogu producentów.
 
 (function(){
   'use strict';
@@ -21,6 +21,19 @@
     openingSystem: ''
   };
 
+  const HARDWARE_PRODUCER_GROUPS = [
+    { key:'hinges', label:'Zawiasy', shortLabel:'Zawiasy', defaultField:'hingesManufacturer' },
+    { key:'drawers', label:'Szuflady / prowadnice', shortLabel:'Szuflady', defaultField:'drawerSystemManufacturer' },
+    { key:'lifts', label:'Podnośniki', shortLabel:'Podnośniki', defaultField:'liftManufacturer' },
+    { key:'cargo', label:'Cargo', shortLabel:'Cargo', defaultField:'cargoManufacturer' },
+    { key:'accessories', label:'Pozostałe akcesoria', shortLabel:'Akcesoria', defaultField:'accessoriesManufacturer' }
+  ];
+
+  const DEFAULT_HARDWARE_PRODUCER_PREFERENCES = HARDWARE_PRODUCER_GROUPS.reduce((out, group)=>{
+    out[group.key] = '';
+    return out;
+  }, {});
+
   const DEFAULT_ROOM_PREFERENCES = {
     finishStandard: '',
     blendStandard: '',
@@ -29,6 +42,7 @@
       middle: Object.assign({}, DEFAULT_ZONE_PREFERENCES),
       upper: Object.assign({}, DEFAULT_ZONE_PREFERENCES)
     },
+    hardwareProducers: Object.assign({}, DEFAULT_HARDWARE_PRODUCER_PREFERENCES),
     // legacy-only: zachowywane przy normalizacji starych projektów, nie jest już pokazywane w UI WYWIADU.
     hardwareManufacturer: ''
   };
@@ -45,7 +59,7 @@
   }
 
   function text(value){ return String(value == null ? '' : value).trim(); }
-  function isPlainObject(value){ return !!value && typeof value === 'object' && (value.constructor === Object || Object.getPrototypeOf(value) === null); }
+  function isPlainObject(value){ return !!value && typeof value === 'object' && !Array.isArray(value) && Object.prototype.toString.call(value) === '[object Object]'; }
 
   function normalizeZonePreferences(raw, legacy){
     const src = isPlainObject(raw) ? raw : {};
@@ -57,6 +71,19 @@
       backMaterial: text(src.backMaterial || legacySrc.backMaterial),
       openingSystem: text(src.openingSystem || legacySrc.openingSystem)
     };
+  }
+
+  function normalizeHardwareProducerPreferences(raw, legacy){
+    const src = isPlainObject(raw) ? raw : {};
+    const legacySrc = isPlainObject(legacy) ? legacy : {};
+    const legacyAll = text(legacySrc.hardwareManufacturer || legacySrc.manufacturer);
+    const out = {};
+    HARDWARE_PRODUCER_GROUPS.forEach((group)=>{
+      const key = group.key;
+      const defaultField = group.defaultField;
+      out[key] = text(src[key] || src[defaultField] || legacySrc[key] || legacySrc[defaultField] || legacyAll);
+    });
+    return out;
   }
 
   function legacyZoneFor(src, zoneKey){
@@ -95,6 +122,7 @@
       finishStandard: text(src.finishStandard),
       blendStandard: text(src.blendStandard),
       zones: {},
+      hardwareProducers: normalizeHardwareProducerPreferences(src.hardwareProducers || src.hardware, src),
       hardwareManufacturer: text(src.hardwareManufacturer)
     };
     ZONE_KEYS.forEach((zoneKey)=>{
@@ -191,6 +219,15 @@
     return {};
   }
 
+  function getProgramHardwareDefaults(){
+    try{
+      if(ns.programDefaults && typeof ns.programDefaults.getHardwareDefaults === 'function'){
+        return ns.programDefaults.getHardwareDefaults() || {};
+      }
+    }catch(_){ }
+    return {};
+  }
+
   function applyMaterialFields(target, source){
     const out = target && typeof target === 'object' ? target : {};
     const src = source && typeof source === 'object' ? source : {};
@@ -245,14 +282,39 @@
     };
   }
 
+  function getHardwareProducerGroup(groupKey){
+    const key = text(groupKey);
+    return HARDWARE_PRODUCER_GROUPS.find((group)=> group.key === key) || null;
+  }
+
+  function getHardwareProducerPreferences(preferences){
+    return normalizeHardwareProducerPreferences((normalizeRoomPreferences(preferences).hardwareProducers || {}), preferences);
+  }
+
+  function resolveHardwareProducerPreference(room, groupKey, fallback){
+    const group = getHardwareProducerGroup(groupKey);
+    if(!group) return text(fallback);
+    const prefs = getRoomPreferences(room);
+    const roomValue = text(prefs.hardwareProducers && prefs.hardwareProducers[group.key]);
+    if(roomValue) return roomValue;
+    const defaults = getProgramHardwareDefaults();
+    const globalValue = text(defaults[group.defaultField] || defaults[group.key]);
+    return globalValue || text(fallback);
+  }
+
   function hasMeaningfulZone(zone){
     const normalized = normalizeZonePreferences(zone);
     return Object.keys(DEFAULT_ZONE_PREFERENCES).some((key)=> !!text(normalized[key]));
   }
 
+  function hasMeaningfulHardwareProducers(preferences){
+    const prefs = normalizeRoomPreferences(preferences);
+    return HARDWARE_PRODUCER_GROUPS.some((group)=> !!text(prefs.hardwareProducers && prefs.hardwareProducers[group.key]));
+  }
+
   function hasMeaningfulPreferences(preferences){
     const prefs = normalizeRoomPreferences(preferences);
-    if(text(prefs.finishStandard) || text(prefs.blendStandard) || text(prefs.hardwareManufacturer)) return true;
+    if(text(prefs.finishStandard) || text(prefs.blendStandard) || text(prefs.hardwareManufacturer) || hasMeaningfulHardwareProducers(prefs)) return true;
     return ZONE_KEYS.some((zoneKey)=> hasMeaningfulZone(prefs.zones && prefs.zones[zoneKey]));
   }
 
@@ -275,16 +337,29 @@
       const summary = summarizeZone(zoneKey, prefs.zones && prefs.zones[zoneKey]);
       if(summary) chunks.push(summary);
     });
-    return chunks.length ? chunks.join(' • ') : 'Brak preferencji strefowych — nowe szafki użyją globalnych domyślnych z trybiku albo awaryjnych wartości programu.';
+    return chunks.length ? chunks.join(' • ') : 'Brak preferencji materiałów i kolorów — nowe szafki użyją globalnych domyślnych z trybiku albo awaryjnych wartości programu.';
+  }
+
+  function getHardwareProducerSummary(preferences){
+    const prefs = normalizeRoomPreferences(preferences);
+    const chunks = [];
+    HARDWARE_PRODUCER_GROUPS.forEach((group)=>{
+      const value = text(prefs.hardwareProducers && prefs.hardwareProducers[group.key]);
+      if(value) chunks.push(group.shortLabel + ': ' + value);
+    });
+    return chunks.length ? chunks.join(' • ') : 'Brak preferencji producentów okuć — program użyje globalnych domyślnych z trybiku albo dotychczasowych wartości szafki.';
   }
 
   ns.roomPreferences = Object.assign({}, ns.roomPreferences || {}, {
     DEFAULT_ZONE_PREFERENCES: clone(DEFAULT_ZONE_PREFERENCES),
+    DEFAULT_HARDWARE_PRODUCER_PREFERENCES: clone(DEFAULT_HARDWARE_PRODUCER_PREFERENCES),
     DEFAULT_ROOM_PREFERENCES: clone(DEFAULT_ROOM_PREFERENCES),
     ROOM_PREFERENCE_ZONES: clone(ZONE_META),
+    HARDWARE_PRODUCER_GROUPS: clone(HARDWARE_PRODUCER_GROUPS),
     ZONE_KEYS: ZONE_KEYS.slice(),
     OPENING_OPTIONS: clone(OPENING_OPTIONS),
     normalizeZonePreferences,
+    normalizeHardwareProducerPreferences,
     normalizeRoomPreferences,
     ensureProjectRoom,
     getRoomPreferences,
@@ -294,11 +369,17 @@
     getZonePreferences,
     getOpeningSystemForCabinetType,
     getProgramMaterialDefaults,
+    getProgramHardwareDefaults,
+    getHardwareProducerPreferences,
+    getHardwareProducerGroup,
+    resolveHardwareProducerPreference,
     resolveZoneDefaults,
     resolveZoneFrontMaterial,
     applyZoneDefaultsToDraft,
     applyPreferencesToDraft,
+    hasMeaningfulHardwareProducers,
     hasMeaningfulPreferences,
-    getSummary
+    getSummary,
+    getHardwareProducerSummary
   });
 })();

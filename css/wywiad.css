@@ -449,3 +449,21 @@
   .room-bulk-modal__footer{flex-direction:column;}
   .room-bulk-modal__footer .btn{width:100%;}
 }
+
+/* hardware_producer_preferences_v1 — WYWIAD: osobny akordeon producentów okuć */
+.wywiad-room-inline-form--hardware-producers{gap:14px;}
+.wywiad-hardware-card__title-row,
+.wywiad-hardware-field__label-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+}
+.wywiad-hardware-field__label-row{align-items:flex-start;}
+.wywiad-hardware-info{flex:0 0 auto;}
+.wywiad-hardware-grid{align-items:start;}
+.wywiad-hardware-choice .rozrys-choice-launch__label{overflow-wrap:anywhere;word-break:break-word;}
+@media (max-width:640px){
+  .wywiad-hardware-card__title-row{align-items:flex-start;}
+}

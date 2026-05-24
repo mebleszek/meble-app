@@ -183,6 +183,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/investor/project-autosave.js",
       "js/app/ui/settings-ui.js",
       "js/app/ui/wywiad-room-settings.js",
+      "js/app/ui/wywiad-room-hardware-producers.js",
       "js/app/ui/wywiad-room-preferences.js",
       "js/app/ui/wywiad-room-preferences-bulk-modal.js",
       "js/app/rozrys/rozrys-project-source.js",

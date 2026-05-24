@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-24T13:22:46.611Z",
+  "generatedAt": "2026-05-24T16:15:38.456Z",
   "summary": {
-    "jsFiles": 356,
-    "indexScripts": 280,
-    "devTestScripts": 313,
+    "jsFiles": 357,
+    "indexScripts": 281,
+    "devTestScripts": 314,
     "fcSymbols": 257,
     "fcSymbolsAll": 285,
     "edges": 1839,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5758,
+      "lines": 5702,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 7,
-      "lines": 1249,
+      "lines": 1333,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 45,
-      "lines": 6921,
+      "lines": 6956,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1257,
+      "lines": 1268,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 30,
-      "lines": 3832,
+      "files": 31,
+      "lines": 4079,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -186,16 +186,16 @@
       684
     ],
     [
-      "js/app/material/price-modal-hardware-dictionaries.js",
-      665
-    ],
-    [
       "js/testing/wycena/suites/central-status-sync.js",
       649
     ],
     [
       "js/testing/material/accessories-tests.js",
       614
+    ],
+    [
+      "js/app/material/price-modal-hardware-dictionaries.js",
+      609
     ],
     [
       "js/app/catalog/hardware-catalog.js",
@@ -1037,7 +1037,7 @@
       "score": 5,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 665,
+      "lines": 609,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -5841,7 +5841,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 665,
+      "lines": 609,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -5867,7 +5867,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 53,
+      "domRefs": 49,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -8846,7 +8846,7 @@
     "js/app/room-preferences/room-preferences-model.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 305,
+      "lines": 386,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -11262,7 +11262,7 @@
     "js/app/settings/program-defaults-store.js": {
       "area": "INNE",
       "category": "store/storage",
-      "lines": 130,
+      "lines": 133,
       "defines": [
         "programDefaults"
       ],
@@ -13045,7 +13045,7 @@
     "js/app/shared/schema.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 255,
+      "lines": 266,
       "defines": [
         "schema"
       ],
@@ -13997,7 +13997,7 @@
     "js/app/ui/cabinets-render.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 129,
+      "lines": 130,
       "defines": [
         "cabinetsRender"
       ],
@@ -14010,6 +14010,7 @@
         "storage",
         "views",
         "wywiadRoomSettings",
+        "wywiadRoomHardwareProducers",
         "wywiadRoomPreferences",
         "cabinetsRender"
       ],
@@ -15095,6 +15096,23 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/ui/wywiad-room-hardware-producers.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 246,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 8,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/ui/wywiad-room-preferences-bulk-modal.js": {
       "area": "UI",
       "category": "ui/render/events",
@@ -15276,7 +15294,7 @@
     "js/app/wycena/wycena-core-lines.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 143,
+      "lines": 178,
       "defines": [
         "wycenaCoreLines"
       ],
@@ -15287,6 +15305,7 @@
         "wycenaCoreOffer",
         "wycenaCoreSelection",
         "wycenaCoreLines",
+        "roomPreferences",
         "cabinetCutlist",
         "laborApplianceRules",
         "rozrysScope"

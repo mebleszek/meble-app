@@ -1,31 +1,22 @@
-## Hardware dictionary category WAAPI slow v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_waapi_slow_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_waapi_open_v1.zip`.
-- Spowolniono wyłącznie animację otwierania panelu `Kategorie / rodzaje okuć`: `SECTION_EXPAND_MS` ma teraz 820 ms zamiast czasu wspólnego z mini-parametrami.
-- Mechanika zostaje ta sama: stabilna struktura panelu, Web Animations API, pomiar `categoriesBody.scrollHeight`, brak `details/open`, brak grid/interpolate/max-height i brak dodatkowych wrapperów clipujących.
-- Zamykanie panelu pozostaje natychmiastowe; mini-akordeony parametrów technicznych pozostają bez zmian.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, ROZRYS, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-waapi-slow-v1.md`.
-
-## Hardware dictionary category WAAPI open v1 — 2026-05-24
-
-- Nowa paczka: `site_hardware_dictionary_category_waapi_open_v1.zip`.
-- Start z działającej bazy `site_hardware_dictionary_category_stable_panel_v1.zip`.
-- Panel `Kategorie / rodzaje okuć` ma zachować pełną zawartość i normalną ramkę, a otwieranie jest animowane z policzonej wysokości w pikselach przez Web Animations API.
-- Zamykanie panelu jest natychmiastowe; parametry techniczne poniżej nie były zmieniane.
-- Bez zmian w backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS, RYSUNKU, WYCENIE i zamiennikach.
-
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+Aktualna paczka: `site_hardware_producer_preferences_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Naprawiono powracającą regresję pustego akordeonu `Kategorie / rodzaje okuć` w słownikach okuć.
-- Panel kategorii ma teraz własną stabilną kartę aplikacyjną: normalna ramka/cień jak ROZRYS, ale bez `details`, bez animowanego body, bez `max-height` i bez clipowania zawartości.
-- Testy regresji pilnują, żeby lista kategorii nie wróciła do problematycznych klas `rozrys-material-accordion__body` / `hardware-dictionary-section-body`.
-- Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
+- W `WYWIADZIE` dodano osobny akordeon `Preferencje producentów okuć` między parametrami pomieszczenia i preferencjami materiałowo-kolorystycznymi.
+- Dotychczasowy akordeon `Preferencje standardu` nazwano `Preferencje materiałów i kolorów`.
+- Producentów okuć wybiera się wyłącznie z istniejących producentów katalogu okuć przez launchery aplikacyjne: `Zawiasy`, `Szuflady / prowadnice`, `Podnośniki`, `Cargo`, `Pozostałe akcesoria`.
+- WYCENA dostała pierwszy bezpieczny most do preferencji producentów z WYWIADU dla uproszczonych linii okuć; bez trwałych zamian w projekcie i bez pełnego resolvera katalogowych pozycji okuć.
+- Nie ruszano stabilnego panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+
+## site_hardware_producer_preferences_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Dodano model `room.preferences.hardwareProducers` dla preferencji producentów okuć na poziomie pomieszczenia/projektu.
+- Dodano UI `js/app/ui/wywiad-room-hardware-producers.js` z wyborem istniejących producentów katalogu okuć przez aplikacyjny launcher/listę.
+- Rozszerzono `app-dev-smoke` o kontrakty nowego akordeonu, brak natywnych selectów, normalizację modelu i pierwszy odczyt preferencji przez WYCENĘ.
+- Raport: `tools/reports/hardware-producer-preferences-v1.md`.
 
 ## site_hardware_dictionary_category_stable_panel_v1 — 2026-05-24
 

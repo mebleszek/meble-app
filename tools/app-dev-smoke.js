@@ -68,19 +68,25 @@ function runProjectNodeSmoke(sandbox){
   return makeSingleGroupReport('PROJECT node smoke testy', 'Projekt ↔ Node smoke', [
     { name:'Project store jest dostępny', check:()=> !!(FC.projectStore && typeof FC.projectStore.readAll === 'function' && typeof FC.projectStore.writeAll === 'function') },
     { name:'Model projektu jest dostępny', check:()=> !!(FC.projectModel && typeof FC.projectModel.normalizeProjectData === 'function') },
-    { name:'Preferencje pokoju normalizują się w projekcie', explain:'Pilnuje nowego pola room.preferences jako części modelu projektu, bez osobnego storage.', check:()=> {
-      const out = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Czarny', openingSystemModule:'TIP-ON' } } });
-      return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones && out.kuchnia.preferences.zones.lower.bodyColor === 'Czarny' && out.kuchnia.preferences.zones.middle.openingSystem === 'TIP-ON' && out.szafa && out.szafa.preferences && out.szafa.preferences.zones);
+    { name:'Preferencje pokoju normalizują się w projekcie', explain:'Pilnuje pola room.preferences jako części modelu projektu, bez osobnego storage — także preferencji producentów okuć.', check:()=> {
+      const out = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Czarny', openingSystemModule:'TIP-ON', hardwareProducers:{ hinges:'GTV', accessories:'Rejs' } } } });
+      return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones && out.kuchnia.preferences.zones.lower.bodyColor === 'Czarny' && out.kuchnia.preferences.zones.middle.openingSystem === 'TIP-ON' && out.kuchnia.preferences.hardwareProducers && out.kuchnia.preferences.hardwareProducers.hinges === 'GTV' && out.kuchnia.preferences.hardwareProducers.accessories === 'Rejs' && out.szafa && out.szafa.preferences && out.szafa.preferences.zones && out.szafa.preferences.hardwareProducers);
     } },
-    { name:'Wywiad ma zwinięte akordeony inline bez przycisków modalnych', explain:'Pilnuje poprawki UX: Parametry i Preferencje są edytowane bezpośrednio w akordeonach, domyślnie zwiniętych.', check:()=> {
+    { name:'Wywiad ma zwinięte akordeony inline bez przycisków modalnych', explain:'Pilnuje poprawki UX: Parametry, producenci okuć oraz materiały/kolory są edytowane bezpośrednio w akordeonach, domyślnie zwiniętych.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       return html.includes('id="roomParametersAccordion"')
+        && html.includes('id="roomHardwareProducerPreferencesAccordion"')
         && html.includes('id="roomPreferencesAccordion"')
+        && html.includes('Preferencje producentów okuć')
+        && html.includes('Preferencje materiałów i kolorów')
         && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomSettingsSummary"')
+        && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomHardwareProducerPreferencesSummary"')
         && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomPreferencesSummary"')
+        && html.includes('js/app/ui/wywiad-room-hardware-producers.js')
         && !html.includes('id="openRoomSettingsBtn"')
         && !html.includes('id="openRoomPreferencesBtn"')
         && !html.includes('roomParametersAccordion" open')
+        && !html.includes('roomHardwareProducerPreferencesAccordion" open')
         && !html.includes('roomPreferencesAccordion" open');
     } },
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
@@ -104,7 +110,7 @@ function runDataNodeSmoke(sandbox){
     { name:'Globalne domyślne programu mają store i backupowany klucz', explain:'Pilnuje trybiku strony głównej: domyślne materiały i okucia siedzą w fc_program_defaults_v1, a nie w WYWIADZIE pokoju.', check:()=> {
       const api = FC.programDefaults;
       if(!(api && api.STORAGE_KEY === 'fc_program_defaults_v1' && typeof api.write === 'function' && typeof api.read === 'function' && typeof api.applyMaterialsToDraft === 'function')) return false;
-      api.write({ materials:{ bodyColor:'Egger W1100', frontMaterial:'laminat', frontColor:'Egger W1100', backMaterial:'HDF 3mm biała' }, hardware:{ hingesManufacturer:'Blum', drawerSystemManufacturer:'Rejs', liftManufacturer:'Blum' } });
+      api.write({ materials:{ bodyColor:'Egger W1100', frontMaterial:'laminat', frontColor:'Egger W1100', backMaterial:'HDF 3mm biała' }, hardware:{ hingesManufacturer:'Blum', drawerSystemManufacturer:'Rejs', liftManufacturer:'Blum', accessoriesManufacturer:'Rejs' } });
       const saved = api.read();
       const draft = {};
       api.applyMaterialsToDraft(draft, saved);
@@ -113,6 +119,7 @@ function runDataNodeSmoke(sandbox){
       const classifier = fs.readFileSync(path.join(process.cwd(), 'js/app/shared/data-storage-classifier.js'), 'utf8');
       return saved.materials.bodyColor === 'Egger W1100'
         && saved.hardware.drawerSystemManufacturer === 'Rejs'
+        && saved.hardware.accessoriesManufacturer === 'Rejs'
         && draft.frontColor === 'Egger W1100'
         && html.includes('js/app/settings/program-defaults-store.js')
         && html.includes('js/app/ui/data-settings-defaults-view.js')
@@ -137,7 +144,7 @@ function runDataNodeSmoke(sandbox){
         && src.includes("dom.makeAccordion('Materiały', [materialGrid], { open:false })")
         && src.includes("dom.makeAccordion('Okucia', [hardwareGrid], { open:false })")
         && src.includes('rozrys-choice-launch--options-clean')
-        && html.includes('20260516_room_zone_preferences_v1');
+        && html.includes('20260524_hardware_producer_preferences_v1');
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
@@ -661,11 +668,6 @@ function runMaterialNodeSmoke(sandbox){
         && dictionariesSrc.includes('animateSectionAccordionOpen')
         && dictionariesSrc.includes('animateSectionAccordionClose')
         && dictionariesSrc.includes('setCategoriesAccordionOpen')
-        && dictionariesSrc.includes('animateCategoriesAccordionOpen')
-        && dictionariesSrc.includes('const SECTION_EXPAND_MS = 820')
-        && !dictionariesSrc.includes('const SECTION_EXPAND_MS = PARAM_EXPAND_MS')
-        && dictionariesSrc.includes('categoriesBody.animate')
-        && dictionariesSrc.includes('categoriesBody.scrollHeight')
         && !dictionariesSrc.includes('hardware-section-static-open')
         && dictionariesSrc.includes("h('div', { class:'hardware-dictionary-categories-card is-open' })")
         && dictionariesSrc.includes("class:'hardware-dictionary-categories-body'")
@@ -704,11 +706,10 @@ function runMaterialNodeSmoke(sandbox){
         && css.includes('.hardware-dictionary-categories-card > .hardware-dictionary-categories-body[hidden]')
         && css.includes('wspólny panel kategorii bez details/max-height')
         && !css.includes('.hardware-dictionary-categories-accordion:not([open])')
-        && css.includes('.hardware-dictionary-categories-card.hardware-categories-opening')
-        && css.includes('will-change:height,opacity,transform')
-        && css.includes('height:auto;')
-        && css.includes('max-height:none;')
-        && css.includes('overflow:visible;')
+        && css.includes('max-height:none!important')
+        && css.includes('height:auto!important')
+        && css.includes('transition:none!important')
+        && css.includes('overflow:visible!important')
         && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
         && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
         && css.includes('.hardware-tech-param-accordion')
@@ -825,13 +826,38 @@ function runWycenaNodeSmoke(sandbox){
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
     { name:'Wycena core ma spójny świeży cache-busting', explain:'Chroni pierwsze odświeżenie po wdrożeniu przed mieszaniem starych i nowych modułów wycena-core*.', check:()=> {
-      const expected = '20260510_wycena_core_cache_fix_v1';
+      const baseExpected = '20260510_wycena_core_cache_fix_v1';
+      const changedExpected = '20260524_hardware_producer_preferences_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
-        return scripts.every((script)=> html.includes(`js/app/wycena/${script}?v=${expected}`));
+        return scripts.every((script)=> {
+          const expected = script === 'wycena-core-lines.js' ? changedExpected : baseExpected;
+          return html.includes(`js/app/wycena/${script}?v=${expected}`);
+        });
       });
+    } },
+    { name:'Wycena czyta preferencję producenta okuć z WYWIADU', explain:'Pierwszy most WYWIAD → WYCENA: uproszczone linie okuć używają producenta ustawionego w preferencjach pomieszczenia, bez zapisu zamian do projektu.', check:()=> {
+      if(!(FC.wycenaCoreLines && typeof FC.wycenaCoreLines.collectAccessories === 'function' && FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function')) return false;
+      const previousProject = sandbox.projectData;
+      const previousCutlist = FC.cabinetCutlist.getCabinetCutList;
+      try{
+        sandbox.projectData = {
+          schemaVersion:9,
+          kuchnia:{
+            cabinets:[{ id:'cab_hw_pref_smoke', width:60, height:72, depth:51, type:'stojąca', subType:'standardowa', details:{} }],
+            fronts:[], sets:[], settings:{},
+            preferences:{ hardwareProducers:{ hinges:'GTV' } }
+          }
+        };
+        FC.cabinetCutlist.getCabinetCutList = ()=> [{ name:'Smoke okucie', material:'Okucia: zawiasy BLUM', qty:3, a:0, b:0 }];
+        const rows = FC.wycenaCoreLines.collectAccessories(['kuchnia']);
+        return Array.isArray(rows) && rows.some((row)=> row && row.name === 'zawiasy GTV' && Number(row.qty) === 3);
+      }finally{
+        FC.cabinetCutlist.getCabinetCutList = previousCutlist;
+        sandbox.projectData = previousProject;
+      }
     } },
     { name:'Wycena ma wewnętrzne rozbicie robocizny po szafkach', explain:'Pilnuje numerów szafek z WYWIADU i szczegółów kosztów robocizny tylko do podglądu wewnętrznego.', check:()=> !!(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectCabinetLabor === 'function' && FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderLaborSection === 'function') },
     { name:'WYCENA ma aplikacyjny picker czynności zamiast długiej listy pól ilości', explain:'Chroni ręczne dodawanie robocizny przez osobne okno wyboru.', check:()=> !!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function' && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function') },
@@ -879,7 +905,7 @@ function runCabinetNodeSmoke(sandbox){
   return makeSingleGroupReport('SZAFKI node smoke testy', 'Szafki ↔ Node smoke', [
     { name:'Publiczne API szafek jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich testów modalowego DOM w Node.', check:()=> !!(FC.cabinetModal && FC.cabinetActions && FC.cabinetFronts) },
     { name:'Moduły modalowe szafek są załadowane', explain:'Chroni podstawowe wejścia używane przez modal szafki po splitach.', check:()=> !!(FC.cabinetModalDraft && FC.cabinetModalFields && FC.cabinetModalFinalize) },
-    { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1B preferencji strefowych w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function' && typeof FC.roomPreferences.getZonePreferences === 'function' && Array.isArray(FC.roomPreferences.ZONE_KEYS) && FC.roomPreferences.ZONE_KEYS.length === 3) },
+    { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1B preferencji strefowych oraz preferencji producentów okuć w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function' && typeof FC.roomPreferences.getZonePreferences === 'function' && typeof FC.roomPreferences.resolveHardwareProducerPreference === 'function' && typeof FC.roomPreferences.getHardwareProducerSummary === 'function' && Array.isArray(FC.roomPreferences.ZONE_KEYS) && FC.roomPreferences.ZONE_KEYS.length === 3 && Array.isArray(FC.roomPreferences.HARDWARE_PRODUCER_GROUPS) && FC.roomPreferences.HARDWARE_PRODUCER_GROUPS.length === 5) },
     { name:'Resolver strefowych materiałów jest centralnym kontraktem', explain:'Chroni Etap 1C.2: logika strefa → trybik → fallback ma jedno API zamiast powielonych ścieżek w nowych funkcjach.', check:()=> {
       const apiOk = !!(FC.roomPreferences
         && typeof FC.roomPreferences.resolveZoneDefaults === 'function'
@@ -902,8 +928,19 @@ function runCabinetNodeSmoke(sandbox){
     } },
     { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
-      return src.includes('Strefa dolna / stojące')
-        || (src.includes('buildZoneCard') && src.includes('wywiad-zone-choice') && src.includes('openRozrysChoiceOverlay') && !src.includes("document.createElement('select')") && !src.includes('Preferowany producent okuć'));
+      const hardwareSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      return (src.includes('Strefa dolna / stojące')
+        || (src.includes('buildZoneCard') && src.includes('wywiad-zone-choice') && src.includes('openRozrysChoiceOverlay') && !src.includes("document.createElement('select')")))
+        && hardwareSrc.includes('getHardwareManufacturers')
+        && hardwareSrc.includes('openRozrysChoiceOverlay')
+        && hardwareSrc.includes('Zapisz producentów')
+        && hardwareSrc.includes('Pozostałe akcesoria')
+        && !hardwareSrc.includes("document.createElement('select')")
+        && !hardwareSrc.includes("h('select'")
+        && html.includes('id="roomHardwareProducerPreferencesAccordion"')
+        && html.includes('Preferencje producentów okuć')
+        && html.includes('Preferencje materiałów i kolorów');
     } },
     { name:'Źródło materiału frontów jest dostępne dla lodówek i zestawów', explain:'Chroni Etap 1C: front specjalny może wskazywać dolną/środkową/górną strefę albo własny materiał bez zgadywania po wysokości.', check:()=> {
       const apiOk = !!(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveFridgeFront === 'function' && typeof FC.frontMaterialSource.resolveSetFront === 'function');

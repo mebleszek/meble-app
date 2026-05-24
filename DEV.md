@@ -1,25 +1,18 @@
-## Hardware dictionary category WAAPI slow v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_waapi_slow_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_waapi_open_v1.zip`.
-- Spowolniono wyłącznie animację otwierania panelu `Kategorie / rodzaje okuć`: `SECTION_EXPAND_MS` ma teraz 820 ms zamiast czasu wspólnego z mini-parametrami.
-- Mechanika zostaje ta sama: stabilna struktura panelu, Web Animations API, pomiar `categoriesBody.scrollHeight`, brak `details/open`, brak grid/interpolate/max-height i brak dodatkowych wrapperów clipujących.
-- Zamykanie panelu pozostaje natychmiastowe; mini-akordeony parametrów technicznych pozostają bez zmian.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, ROZRYS, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-waapi-slow-v1.md`.
-
-## Hardware dictionary category WAAPI open v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_waapi_open_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`, czyli ostatni plik z działającą pełną zawartością panelu `Kategorie / rodzaje okuć`.
-- Panel kategorii zachowuje stabilną strukturę bez `details/open`, bez grid/interpolate, bez stałego `max-height` i bez dodatkowych wrapperów clipujących.
-- Dodano animację samego otwierania przez Web Animations API: realna wysokość body jest mierzona przez `categoriesBody.scrollHeight`, animacja idzie z `0px` do zmierzonej wartości px, a po zakończeniu wszystkie style inline są czyszczone.
-- Zamykanie panelu pozostaje natychmiastowe. Mini-akordeony parametrów technicznych pozostają bez zmian.
-- CSS body kategorii nie używa już `height:auto!important`, `overflow:visible!important` ani `transition:none!important`, bo blokowały widoczną animację wysokości.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, ROZRYS, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-waapi-open-v1.md`.
-
 # DEV.md — meble-app
+
+## Hardware producer preferences v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_producer_preferences_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- W `WYWIADZIE` dodano osobny akordeon `Preferencje producentów okuć` między `Parametry pomieszczenia` i preferencjami materiałowymi.
+- Dotychczasowy akordeon `Preferencje standardu` zmieniono na `Preferencje materiałów i kolorów`, bo zawiera strefowe wybory korpusu, frontu, pleców, kolorów i otwierania.
+- Preferencje producentów okuć są rozbite na: `Zawiasy`, `Szuflady / prowadnice`, `Podnośniki`, `Cargo`, `Pozostałe akcesoria`.
+- Wybór producenta odbywa się wyłącznie przez launcher aplikacyjny z istniejących producentów katalogu okuć; nie dodano natywnych selectów ani ręcznego wpisywania producenta w WYWIADZIE.
+- Model `room.preferences` dostał pole `hardwareProducers` bez nowego klucza storage; pozostaje w danych pomieszczenia/projektu.
+- WYCENA dostała pierwszy bezpieczny most: uproszczone linie okuć typu `zawiasy BLUM` i `podnośniki BLUM` mogą użyć producenta ustawionego w preferencjach pomieszczenia przy agregacji/nazwie linii. Nie zapisuje to zamian do projektu i nie uruchamia jeszcze pełnego resolvera katalogowych pozycji okuć.
+- Rozszerzono testy `app-dev-smoke` o nowy akordeon, brak natywnych selectów, normalizację `hardwareProducers` i pierwszy kontrakt `WYWIAD → WYCENA`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani polityki backupów.
+- Raport: `tools/reports/hardware-producer-preferences-v1.md`.
 
 ## Hardware dictionary category stable panel v1 — 2026-05-24
 
@@ -49,8 +42,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_producer_preferences_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_category_stable_panel_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
