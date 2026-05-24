@@ -1,5 +1,16 @@
 # DEV.md — meble-app
 
+## Hardware dictionary category grid animation v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_grid_animation_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_animation_split_v1.zip`.
+- Po analizie poprzednich regresji panel `Kategorie / rodzaje okuć` dostał inną metodę animacji: CSS Grid `grid-template-rows: 0fr → 1fr`, bez mierzenia `scrollHeight`, bez inline `height/max-height` i bez `hidden/display:none` dla animowanej warstwy.
+- Struktura panelu rozdziela role: `hardware-dictionary-categories-card` trzyma ramkę/cień/chevron, `hardware-dictionary-categories-clip` animuje grid row, `hardware-dictionary-categories-inner` jest bezpiecznym grid itemem z `min-height:0`, a `hardware-dictionary-categories-content` trzyma realną listę kategorii.
+- Nie wracają mechanizmy, które powodowały pustą/uciętą zawartość na telefonie: `details/open`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body`, stare body kategorii, inline `scrollHeight`/`height` oraz `hidden` na wrapperze animacji.
+- Test `app-dev-smoke` pilnuje gridowej metody, osobnego inner wrappera i realnej treści po zamknięciu/ponownym otwarciu panelu.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS jako funkcji, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-grid-animation-v1.md`.
+
 ## Hardware dictionary category animation split v1 — 2026-05-24
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_animation_split_v1.zip`.

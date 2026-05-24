@@ -607,26 +607,29 @@
   border-bottom-left-radius:0;
   border-bottom-right-radius:0;
 }
+/* Nowa metoda animacji: CSS Grid 0fr/1fr. Nie animujemy prawdziwej listy ani nie ustawiamy inline height. */
 .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip{
-  border-top:1px solid rgba(15,23,42,.10);
+  display:grid;
+  grid-template-rows:0fr;
+  border-top:0 solid rgba(15,23,42,.10);
   background:#fff;
   border-bottom-left-radius:20px;
   border-bottom-right-radius:20px;
-  height:auto;
   min-height:0;
-  max-height:none;
-  overflow:visible;
-  opacity:1;
-  transform:none;
-  transition:none;
-}
-.hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-animating > .hardware-dictionary-categories-clip{
   overflow:hidden;
-  transition:height .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease;
-  will-change:height,opacity,transform;
+  opacity:0;
+  transform:translateY(-2px);
+  transition:grid-template-rows .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease,border-top-width .01s linear .12s;
 }
-.hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip[hidden]{
-  display:none!important;
+.hardware-dictionary-panel .hardware-dictionary-categories-card.is-open > .hardware-dictionary-categories-clip{
+  grid-template-rows:1fr;
+  border-top-width:1px;
+  opacity:1;
+  transform:translateY(0);
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-inner{
+  min-height:0;
+  overflow:hidden;
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-content{
   display:grid;
@@ -665,6 +668,9 @@
   opacity:1!important;
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-content > .btn{width:100%;}
+@media(prefers-reduced-motion:reduce){
+  .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip{transition:none!important;transform:none!important;}
+}
 @media(max-width:720px){
   .hardware-dictionary-panel .hardware-dictionary-categories-card{border-radius:18px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-section-summary{border-radius:16px;}
@@ -673,3 +679,4 @@
   .hardware-dictionary-panel .hardware-dictionary-categories-content{padding:10px 16px 16px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-content .hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
 }
+

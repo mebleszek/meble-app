@@ -1,3 +1,14 @@
+# meble-app — aktualna paczka
+
+## Hardware dictionary category grid animation v1 — 2026-05-24
+
+- Aktualna paczka: `site_hardware_dictionary_category_grid_animation_v1.zip`.
+- Baza: `site_hardware_dictionary_category_animation_split_v1.zip`.
+- Panel `Słowniki okuć → Kategorie / rodzaje okuć` dostał inną metodę animacji: CSS Grid `grid-template-rows: 0fr → 1fr`, zamiast mierzenia wysokości JavaScriptem i ustawiania inline `height/max-height`.
+- Zachowana jest normalna ramka jak ROZRYS oraz pełna zawartość: pola kategorii, `Usuń` i `Dodaj kategorię`.
+- Testy pilnują, żeby nie wróciły stare klasy/rozwiązania powodujące pusty panel na telefonie.
+- Bez zmian danych, backupu, import/exportu, zamienników, PRO100, usług, RYSUNKU i WYCENY.
+
 # Furniture Calc — aktualna paczka
 
 Aktualna paczka: `site_hardware_dictionary_category_animation_split_v1.zip`.

@@ -514,7 +514,8 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesClip = h('div', { class:'hardware-dictionary-categories-clip' });
+    const categoriesClip = h('div', { class:'hardware-dictionary-categories-clip', 'aria-hidden':'false' });
+    const categoriesInner = h('div', { class:'hardware-dictionary-categories-inner' });
     const categoriesBody = h('div', { class:'hardware-dictionary-categories-content' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
@@ -543,6 +544,10 @@
       categoriesClip.style.overflow = '';
       categoriesClip.style.opacity = '';
       categoriesClip.style.transform = '';
+      categoriesClip.style.gridTemplateRows = '';
+      categoriesInner.style.height = '';
+      categoriesInner.style.maxHeight = '';
+      categoriesInner.style.overflow = '';
       categoriesBody.style.height = '';
       categoriesBody.style.maxHeight = '';
       categoriesBody.style.overflow = '';
@@ -550,13 +555,14 @@
       categoriesBody.style.transform = '';
     }
     function setCategoriesAccordionOpen(open){
-      // Wspólny panel kategorii pozostaje stabilną kartą aplikacyjną bez details i bez
-      // animowanego body ROZRYS. Otwarty stan końcowy zawsze ma zwykłe body bez
-      // max-height/clipowania, bo właśnie to wcześniej dawało pusty panel na telefonie.
+      // Stabilny panel kategorii używa metody CSS Grid: ramka jest osobno, warstwa
+      // animacji ma grid-template-rows 0fr/1fr, a prawdziwa zawartość siedzi w osobnym
+      // kontenerze. Nie używamy hidden/display:none, max-height ani details, bo te
+      // mechanizmy wcześniej zostawiały na telefonie pustą/uciętą zawartość.
       resetCategoriesAccordionAnimation();
       categoriesSection.classList.toggle('is-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesClip.hidden = !open;
+      categoriesClip.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
     function animateCategoriesAccordionOpen(done){
       if(prefersReducedMotion()){
@@ -565,33 +571,24 @@
         return;
       }
       resetCategoriesAccordionAnimation();
-      categoriesSection.classList.add('is-open', 'hardware-categories-animating', 'hardware-categories-opening');
-      categoriesSummary.setAttribute('aria-expanded', 'true');
-      categoriesClip.hidden = false;
-      // Animację dostaje wyłącznie wrapper wysokości. Prawdziwa lista kategorii
-      // pozostaje zwykłą treścią bez max-height/overflow, żeby nie wracała regresja
-      // pustego panelu widoczna na telefonie.
-      categoriesClip.style.overflow = 'hidden';
-      categoriesClip.style.height = '0px';
-      categoriesClip.style.opacity = '0';
-      categoriesClip.style.transform = 'translateY(-4px)';
-      categoriesBody.style.overflow = 'visible';
-      categoriesBody.style.maxHeight = 'none';
+      categoriesSection.classList.add('hardware-categories-animating');
+      // Uruchomienie animacji opiera się na klasie is-open i CSS Grid 0fr → 1fr.
+      // Nie mierzymy scrollHeight i nie zapisujemy inline height, bo ten wariant
+      // powtarzał regresję pustej listy kategorii przy dynamicznych polach na mobile.
       try{ void categoriesClip.offsetHeight; }catch(_){ }
-      const targetHeight = Math.max(1, categoriesBody.scrollHeight || categoriesClip.scrollHeight || 1);
       const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
-      frame(()=> frame(()=>{
-        categoriesClip.style.height = targetHeight + 'px';
-        categoriesClip.style.opacity = '1';
-        categoriesClip.style.transform = 'translateY(0)';
-      }));
+      frame(()=>{
+        categoriesSection.classList.add('is-open', 'hardware-categories-opening');
+        categoriesSummary.setAttribute('aria-expanded', 'true');
+        categoriesClip.setAttribute('aria-hidden', 'false');
+      });
       categoriesSection._fcCategoriesAccordionTimer = setTimeout(()=>{
-        resetCategoriesAccordionAnimation();
+        categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening');
         categoriesSection.classList.add('is-open');
         categoriesSummary.setAttribute('aria-expanded', 'true');
-        categoriesClip.hidden = false;
+        categoriesClip.setAttribute('aria-hidden', 'false');
         if(typeof done === 'function') done();
-      }, PARAM_EXPAND_MS + 30);
+      }, PARAM_EXPAND_MS + 60);
     }
     function animateCategoriesAccordionClose(done){
       // Zamykanie tej sekcji jest natychmiastowe, tak jak w akordeonach parametrów:
@@ -649,7 +646,8 @@
     });
     categoriesBody.appendChild(catList);
     categoriesBody.appendChild(addCat);
-    categoriesClip.appendChild(categoriesBody);
+    categoriesInner.appendChild(categoriesBody);
+    categoriesClip.appendChild(categoriesInner);
     categoriesSection.appendChild(categoriesSummary);
     categoriesSection.appendChild(categoriesClip);
     scroll.appendChild(categoriesSection);
