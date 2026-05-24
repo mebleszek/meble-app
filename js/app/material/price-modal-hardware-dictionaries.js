@@ -506,15 +506,15 @@
     const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
     const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
     const paramList = h('div', { class:'hardware-dictionary-list hardware-dictionary-param-list' });
-    const categoriesSection = h('details', { class:'rozrys-material-accordion hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open', open:true });
-    const categoriesSummary = h('summary', { class:'rozrys-material-accordion__trigger hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
+    const categoriesSection = h('div', { class:'hardware-dictionary-categories-card is-open' });
+    const categoriesSummary = h('button', { type:'button', class:'rozrys-material-accordion__trigger hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
       h('span', { class:'rozrys-material-accordion__title hardware-dictionary-section-summary__text' }, [
         h('span', { class:'rozrys-material-accordion__title-line1 hardware-dictionary-section-summary__title', text:'Kategorie / rodzaje okuć' }),
         h('span', { class:'rozrys-material-accordion__title-line2 hardware-dictionary-section-summary__meta', text:'Lista kategorii do wyboru przy okuciach' })
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesBody = h('div', { class:'rozrys-material-accordion__body hardware-dictionary-section-body hardware-dictionary-categories-body' });
+    const categoriesBody = h('div', { class:'hardware-dictionary-categories-body' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
@@ -529,16 +529,13 @@
       });
     }
     function setCategoriesAccordionOpen(open){
-      // Używamy natywnego details wyłącznie jako mechaniki akordeonu. Wygląd
-      // zostaje aplikacyjny/ROZRYS, a treść listy kategorii zostaje w normalnym
-      // przepływie dokumentu. To usuwa regresję pustej karty z telefonu, gdzie
-      // ręczne ukrywanie body i max-height potrafiły uciąć pierwszy wiersz.
-      resetSectionAccordionAnimation(categoriesSection);
-      categoriesSection.open = !!open;
+      // Wspólny panel kategorii nie używa już details ani animowanego body ROZRYS.
+      // Poprzednie wersje mieszały `open`, `hidden`, `max-height` i overflow, więc
+      // test widział w DOM pełną listę, ale telefon renderował pustą/uciętą ramkę.
+      // Tutaj karta ma stałą ramkę jak ROZRYS, a body jest zwykłym blokiem.
       categoriesSection.classList.toggle('is-open', !!open);
-      categoriesSection.classList.toggle('hardware-section-static-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesBody.hidden = false;
+      categoriesBody.hidden = !open;
       categoriesBody.style.maxHeight = '';
       categoriesBody.style.height = '';
       categoriesBody.style.overflow = '';

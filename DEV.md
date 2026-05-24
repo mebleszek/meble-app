@@ -1,8 +1,20 @@
 # DEV.md — meble-app
 
+## Hardware dictionary category stable panel v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Przeanalizowano powielany błąd wspólnego akordeonu `Kategorie / rodzaje okuć`: `details/open`, klasy animowanego body ROZRYS, `hidden`, `max-height` i `overflow` dawały poprawną treść w DOM, ale na telefonie wizualnie ucinały listę do pustej/niepełnej karty.
+- Wspólny panel kategorii został odseparowany od mechaniki animowanych akordeonów: `hardware-dictionary-categories-card` trzyma ramkę/cień jak ROZRYS, a `hardware-dictionary-categories-body` jest zwykłym, nieanimowanym kontenerem bez `max-height` i bez clipowania.
+- Mini-akordeony parametrów technicznych zostają bez zmian: jeden otwarty naraz, natychmiastowe zamknięcie starego, płynne rozwijanie nowego.
+- Test `app-dev-smoke` pilnuje, że lista kategorii nie używa już `rozrys-material-accordion__body`, `hardware-dictionary-section-body`, `details/open` ani starego selektora `categories-accordion:not([open])`.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-stable-panel-v1.md`.
+
+
 ## Hardware dictionary categories details body fix v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
 - Baza startowa: `site_hardware_dictionary_category_frame_restore_v1.zip`.
 - Naprawiono regresję pustego/uciętego akordeonu `Kategorie / rodzaje okuć`: wspólny akordeon kategorii wrócił do stabilnej mechaniki `details/summary`, a jego body ma klasę `hardware-dictionary-categories-body` bez animowanego `max-height`.
 - Zachowano wygląd aplikacyjny/ROZRYS: jedna ramka, cień, chevron i zaokrąglone rogi; treść kategorii pozostaje w normalnym przepływie dokumentu, żeby telefon nie pokazywał tylko uciętej pierwszej karty.
@@ -16,8 +28,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_category_frame_restore_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 

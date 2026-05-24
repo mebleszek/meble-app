@@ -1,13 +1,22 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+Aktualna paczka: `site_hardware_dictionary_category_stable_panel_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Naprawiono akordeon `Kategorie / rodzaje okuć` w słownikach okuć: mechanika wróciła do stabilnego `details/summary`, więc lista kategorii nie powinna być już ucinana do pustej karty na telefonie.
-- Wygląd karty pozostaje zgodny ze wzorcem ROZRYS: jedna ramka, cień, chevron i poprawne narożniki.
-- Skorygowano testy regresji w `tools/app-dev-smoke.js`, żeby pilnowały realnej treści akordeonu po zamknięciu i ponownym otwarciu.
+- Naprawiono powracającą regresję pustego akordeonu `Kategorie / rodzaje okuć` w słownikach okuć.
+- Panel kategorii ma teraz własną stabilną kartę aplikacyjną: normalna ramka/cień jak ROZRYS, ale bez `details`, bez animowanego body, bez `max-height` i bez clipowania zawartości.
+- Testy regresji pilnują, żeby lista kategorii nie wróciła do problematycznych klas `rozrys-material-accordion__body` / `hardware-dictionary-section-body`.
 - Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
+
+## site_hardware_dictionary_category_stable_panel_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Przeanalizowano powtarzający się błąd pustego akordeonu `Kategorie / rodzaje okuć`: poprzednie poprawki mieszały mechanikę `details/open`, klasy animowanego body ROZRYS, `hidden`, `max-height` i `overflow`, przez co testy widziały treść w DOM, ale telefon potrafił renderować tylko uciętą pierwszą kartę.
+- Wspólny panel kategorii został przebudowany na prostą kartę aplikacyjną `hardware-dictionary-categories-card`: normalna ramka/cień jak ROZRYS, ale bez `details`, bez animowanego body, bez `max-height` i bez clipowania treści.
+- Body kategorii jest zwykłym kontenerem `hardware-dictionary-categories-body`; po otwarciu ma pokazywać pełne wiersze kategorii, inputy, przyciski `Usuń` i `Dodaj kategorię`.
+- Skorygowano smoke test, żeby pilnował nowej stabilnej struktury i nie przepuszczał powrotu do `rozrys-material-accordion__body` / `hardware-dictionary-section-body` przy liście kategorii.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
 
 ## site_hardware_dictionary_category_frame_restore_v1 — 2026-05-24
 
