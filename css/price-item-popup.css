@@ -585,7 +585,7 @@
   #priceItemModal .hardware-tech-param-summary{padding:11px 12px;}
 }
 
-/* Słowniki okuć — wspólny panel kategorii: ramka, warstwa animacji i treść są rozdzielone. */
+/* Słowniki okuć — wspólny panel kategorii: ramka i treść są stabilne, animacja nie steruje wysokością. */
 .hardware-dictionary-panel .hardware-dictionary-categories-card{
   margin-top:14px;
   border:2px solid rgba(15,23,42,.56);
@@ -607,38 +607,35 @@
   border-bottom-left-radius:0;
   border-bottom-right-radius:0;
 }
-/* Metoda po gridowej regresji: animujemy wysokość wrappera 0 → auto przez interpolate-size.
-   Gdy przeglądarka nie wspiera interpolate-size, panel otwiera się natychmiastowo, ale zawsze pokazuje pełną treść. */
-.hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip{
-  display:block;
-  height:0;
-  max-height:none;
-  border-top:0 solid rgba(15,23,42,.10);
+/* Bezpieczna metoda po regresjach: reveal jest zwykłym body w przepływie dokumentu.
+   Nie sterujemy wysokością listy kategorii żadną warstwą pomiarową.
+   Otwieranie animuje wyłącznie opacity/translate prawdziwej treści,
+   dzięki czemu karta nie może zostać wizualnie ucięta do pierwszego pola. */
+.hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-reveal{
+  display:none;
+  border-top:1px solid rgba(15,23,42,.10);
   background:#fff;
   border-bottom-left-radius:20px;
   border-bottom-right-radius:20px;
+  height:auto!important;
+  max-height:none!important;
   min-height:0;
-  overflow:hidden;
-  opacity:0;
-  transform:translateY(-2px);
-  interpolate-size:allow-keywords;
-  transition:height .44s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease,border-top-width .01s linear .12s;
+  overflow:visible!important;
 }
-.hardware-dictionary-panel .hardware-dictionary-categories-card.is-open > .hardware-dictionary-categories-clip{
-  height:auto;
-  max-height:none;
-  border-top-width:1px;
-  opacity:1;
-  transform:translateY(0);
+.hardware-dictionary-panel .hardware-dictionary-categories-card.is-open > .hardware-dictionary-categories-reveal{
+  display:block;
 }
-.hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-closing > .hardware-dictionary-categories-clip{
+.hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-opening > .hardware-dictionary-categories-reveal .hardware-dictionary-categories-content{
+  animation:hardwareDictionaryCategoriesReveal .34s cubic-bezier(.22,.72,.18,1) both;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-closing > .hardware-dictionary-categories-reveal,
+.hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-closing > .hardware-dictionary-categories-reveal .hardware-dictionary-categories-content{
+  animation:none!important;
   transition:none!important;
 }
-.hardware-dictionary-panel .hardware-dictionary-categories-inner{
-  min-height:0;
-  height:auto;
-  max-height:none;
-  overflow:visible;
+@keyframes hardwareDictionaryCategoriesReveal{
+  from{opacity:0;transform:translateY(-6px);}
+  to{opacity:1;transform:translateY(0);}
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-content{
   display:grid;
@@ -648,8 +645,8 @@
   min-height:0!important;
   max-height:none!important;
   overflow:visible!important;
-  opacity:1!important;
-  transform:none!important;
+  opacity:1;
+  transform:none;
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-content .hardware-dictionary-category-list{
   display:grid!important;
@@ -677,17 +674,14 @@
   opacity:1!important;
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-content > .btn{width:100%;}
-@supports not (interpolate-size:allow-keywords){
-  .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip{transition:opacity .22s ease,transform .22s ease,border-top-width .01s linear!important;}
-}
 @media(prefers-reduced-motion:reduce){
-  .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip{transition:none!important;transform:none!important;}
+  .hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-opening > .hardware-dictionary-categories-reveal .hardware-dictionary-categories-content{animation:none!important;transform:none!important;}
 }
 @media(max-width:720px){
   .hardware-dictionary-panel .hardware-dictionary-categories-card{border-radius:18px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-section-summary{border-radius:16px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-card.is-open > .hardware-dictionary-section-summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
-  .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-clip{border-bottom-left-radius:16px;border-bottom-right-radius:16px;}
+  .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-reveal{border-bottom-left-radius:16px;border-bottom-right-radius:16px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-content{padding:10px 16px 16px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-content .hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
 }

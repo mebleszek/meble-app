@@ -1,5 +1,16 @@
 # DEV.md — meble-app
 
+## Hardware dictionary category safe reveal v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_safe_reveal_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
+- Przeanalizowano regresje panelu `Kategorie / rodzaje okuć`: warianty animujące wysokość (`details/open`, `max-height`, `scrollHeight`, CSS Grid `0fr → 1fr`, `interpolate-size`) dawały treść w DOM, ale na telefonie potrafiły wizualnie przyciąć body do górnego fragmentu pierwszej karty.
+- Nowa metoda nie animuje wysokości listy kategorii. `hardware-dictionary-categories-card` trzyma ramkę/cień/chevron, `hardware-dictionary-categories-reveal` jest zwykłym body w przepływie dokumentu, a `hardware-dictionary-categories-content` trzyma realne pola kategorii.
+- Otwieranie panelu animuje tylko `opacity/translate` treści. Zamykanie jest natychmiastowe. Priorytet: pełna zawartość i normalna ramka, bez ryzyka pustego akordeonu.
+- Test `app-dev-smoke` pilnuje braku powrotu poprzednich technik/wrapperów oraz realnej treści po zamknięciu i ponownym otwarciu panelu.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS jako funkcji, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-safe-reveal-v1.md`.
+
 ## Hardware dictionary category interpolate animation v1 — 2026-05-24
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.

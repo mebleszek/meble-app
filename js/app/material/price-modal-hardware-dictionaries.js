@@ -514,8 +514,7 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesClip = h('div', { class:'hardware-dictionary-categories-clip', 'aria-hidden':'false' });
-    const categoriesInner = h('div', { class:'hardware-dictionary-categories-inner' });
+    const categoriesReveal = h('div', { class:'hardware-dictionary-categories-reveal', 'aria-hidden':'false' });
     const categoriesBody = h('div', { class:'hardware-dictionary-categories-content' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
@@ -539,15 +538,11 @@
     function resetCategoriesAccordionAnimation(){
       clearCategoriesAccordionTimer();
       categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening', 'hardware-categories-closing');
-      categoriesClip.style.height = '';
-      categoriesClip.style.maxHeight = '';
-      categoriesClip.style.overflow = '';
-      categoriesClip.style.opacity = '';
-      categoriesClip.style.transform = '';
-      categoriesClip.style.gridTemplateRows = '';
-      categoriesInner.style.height = '';
-      categoriesInner.style.maxHeight = '';
-      categoriesInner.style.overflow = '';
+      categoriesReveal.style.height = '';
+      categoriesReveal.style.maxHeight = '';
+      categoriesReveal.style.overflow = '';
+      categoriesReveal.style.opacity = '';
+      categoriesReveal.style.transform = '';
       categoriesBody.style.height = '';
       categoriesBody.style.maxHeight = '';
       categoriesBody.style.overflow = '';
@@ -555,15 +550,15 @@
       categoriesBody.style.transform = '';
     }
     function setCategoriesAccordionOpen(open){
-      // Stabilny panel kategorii ma rozdzielone role: karta trzyma ramkę, clip animuje
-      // wysokość, a content trzyma realną listę. Animacja opiera się na CSS
-      // interpolate-size: height 0 → auto; przy braku wsparcia przeglądarka po prostu
-      // pokaże pełną zawartość bez płynnego liczenia wysokości. Nie wracamy do
-      // details/open, grid 0fr/1fr, scrollHeight ani max-height na prawdziwej treści.
+      // Bezpieczna metoda po regresjach: nie animujemy wysokości listy kategorii.
+      // Ramka jest zwykłą kartą, reveal jest pełnowymiarowym body w normalnym
+      // przepływie dokumentu, a animacja dotyczy tylko opacity/translate treści.
+      // Nie wracamy do mechanik animowania wysokości ani do starych wrapperów,
+      // bo te warianty potrafiły zostawić treść wizualnie uciętą na telefonie.
       resetCategoriesAccordionAnimation();
       categoriesSection.classList.toggle('is-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesClip.setAttribute('aria-hidden', open ? 'false' : 'true');
+      categoriesReveal.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
     function animateCategoriesAccordionOpen(done){
       if(prefersReducedMotion()){
@@ -572,19 +567,15 @@
         return;
       }
       resetCategoriesAccordionAnimation();
-      categoriesSection.classList.add('hardware-categories-animating');
-      try{ void categoriesClip.offsetHeight; }catch(_){ }
-      const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
-      frame(()=>{
-        categoriesSection.classList.add('is-open', 'hardware-categories-opening');
-        categoriesSummary.setAttribute('aria-expanded', 'true');
-        categoriesClip.setAttribute('aria-hidden', 'false');
-      });
+      categoriesSection.classList.add('is-open', 'hardware-categories-animating', 'hardware-categories-opening');
+      categoriesSummary.setAttribute('aria-expanded', 'true');
+      categoriesReveal.setAttribute('aria-hidden', 'false');
+      try{ void categoriesReveal.offsetHeight; }catch(_){ }
       categoriesSection._fcCategoriesAccordionTimer = setTimeout(()=>{
         categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening');
         categoriesSection.classList.add('is-open');
         categoriesSummary.setAttribute('aria-expanded', 'true');
-        categoriesClip.setAttribute('aria-hidden', 'false');
+        categoriesReveal.setAttribute('aria-hidden', 'false');
         if(typeof done === 'function') done();
       }, PARAM_EXPAND_MS + 80);
     }
@@ -595,8 +586,8 @@
       categoriesSection.classList.add('hardware-categories-closing');
       categoriesSection.classList.remove('is-open');
       categoriesSummary.setAttribute('aria-expanded', 'false');
-      categoriesClip.setAttribute('aria-hidden', 'true');
-      try{ void categoriesClip.offsetHeight; }catch(_){ }
+      categoriesReveal.setAttribute('aria-hidden', 'true');
+      try{ void categoriesReveal.offsetHeight; }catch(_){ }
       setTimeout(()=> categoriesSection.classList.remove('hardware-categories-closing'), 40);
       if(typeof done === 'function') done();
     }
@@ -650,10 +641,9 @@
     });
     categoriesBody.appendChild(catList);
     categoriesBody.appendChild(addCat);
-    categoriesInner.appendChild(categoriesBody);
-    categoriesClip.appendChild(categoriesInner);
+    categoriesReveal.appendChild(categoriesBody);
     categoriesSection.appendChild(categoriesSummary);
-    categoriesSection.appendChild(categoriesClip);
+    categoriesSection.appendChild(categoriesReveal);
     scroll.appendChild(categoriesSection);
     scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
     scroll.appendChild(paramList);
