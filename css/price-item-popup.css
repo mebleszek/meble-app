@@ -593,7 +593,7 @@
   border-radius:22px;
   background:#fff;
   box-shadow:2px 3px 0 rgba(15,23,42,.16),4px 9px 16px rgba(15,23,42,.10);
-  overflow:visible;
+  overflow:hidden;
   overflow-anchor:none;
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-card.is-open{
@@ -616,13 +616,18 @@
   background:#fff;
   border-bottom-left-radius:20px;
   border-bottom-right-radius:20px;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-  opacity:1!important;
-  transform:none!important;
-  transition:none!important;
+  height:auto;
+  min-height:0;
+  max-height:none;
+  overflow:visible;
+  opacity:1;
+  transform:none;
+  transition:none;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-card.hardware-categories-animating > .hardware-dictionary-categories-body{
+  overflow:hidden;
+  transition:max-height .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease;
+  will-change:max-height,opacity,transform;
 }
 .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-body[hidden]{
   display:none!important;

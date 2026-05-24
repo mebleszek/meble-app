@@ -1,8 +1,19 @@
 # DEV.md — meble-app
 
+## Hardware dictionary category expand animation v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_expand_animation_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Do stabilnego panelu `Kategorie / rodzaje okuć` w słownikach okuć dodano płynne rozwijanie body bez wracania do wcześniejszej regresji pustej zawartości.
+- Panel nadal nie używa `details/open`, `rozrys-material-accordion__body` ani `hardware-dictionary-section-body`; po zakończeniu animacji body wraca do zwykłego stanu bez `max-height` i `overflow:hidden`.
+- Zamykanie panelu kategorii jest natychmiastowe, a animowane jest tylko otwieranie, zgodnie z kierunkiem ustalonym dla mini-akordeonów parametrów.
+- Test `app-dev-smoke` został skorygowany tak, żeby pilnował zarówno animacji `hardware-categories-animating`, jak i pełnej zawartości listy kategorii po zamknięciu/ponownym otwarciu.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-expand-animation-v1.md`.
+
 ## Hardware dictionary category stable panel v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_expand_animation_v1.zip`.
 - Baza startowa: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
 - Przeanalizowano powielany błąd wspólnego akordeonu `Kategorie / rodzaje okuć`: `details/open`, klasy animowanego body ROZRYS, `hidden`, `max-height` i `overflow` dawały poprawną treść w DOM, ale na telefonie wizualnie ucinały listę do pustej/niepełnej karty.
 - Wspólny panel kategorii został odseparowany od mechaniki animowanych akordeonów: `hardware-dictionary-categories-card` trzyma ramkę/cień jak ROZRYS, a `hardware-dictionary-categories-body` jest zwykłym, nieanimowanym kontenerem bez `max-height` i bez clipowania.

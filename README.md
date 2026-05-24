@@ -1,13 +1,21 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+Aktualna paczka: `site_hardware_dictionary_category_expand_animation_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Naprawiono powracającą regresję pustego akordeonu `Kategorie / rodzaje okuć` w słownikach okuć.
-- Panel kategorii ma teraz własną stabilną kartę aplikacyjną: normalna ramka/cień jak ROZRYS, ale bez `details`, bez animowanego body, bez `max-height` i bez clipowania zawartości.
-- Testy regresji pilnują, żeby lista kategorii nie wróciła do problematycznych klas `rozrys-material-accordion__body` / `hardware-dictionary-section-body`.
+- Dodano płynne rozwijanie wspólnego panelu `Kategorie / rodzaje okuć` w słownikach okuć.
+- Panel nadal ma stabilną ramkę/cień jak ROZRYS i nie wraca do problematycznej mechaniki `details`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body` ani stałego `max-height`.
+- Zamykanie panelu kategorii jest natychmiastowe, a animowane jest tylko otwieranie, zgodnie z zachowaniem mini-akordeonów parametrów technicznych.
 - Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
+
+## site_hardware_dictionary_category_expand_animation_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Do stabilnego panelu `Kategorie / rodzaje okuć` dodano płynne rozwijanie treści: otwarte body po animacji wraca do zwykłego stanu bez `max-height`, `overflow:hidden` i clipowania zawartości.
+- Zamykanie tej sekcji jest natychmiastowe, żeby nie wracały gumowe animacje zwijania znane z wcześniejszych testów; płynne pozostaje tylko otwarcie.
+- Test `app-dev-smoke` pilnuje nowej mechaniki: karta kategorii używa `hardware-categories-animating`, nie wraca do starych klas body i nadal renderuje pełne wiersze kategorii po zamknięciu/otwarciu.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
 
 ## site_hardware_dictionary_category_stable_panel_v1 — 2026-05-24
 

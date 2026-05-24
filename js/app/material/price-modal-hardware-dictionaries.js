@@ -528,23 +528,70 @@
         }catch(_){ }
       });
     }
-    function setCategoriesAccordionOpen(open){
-      // Wspólny panel kategorii nie używa już details ani animowanego body ROZRYS.
-      // Poprzednie wersje mieszały `open`, `hidden`, `max-height` i overflow, więc
-      // test widział w DOM pełną listę, ale telefon renderował pustą/uciętą ramkę.
-      // Tutaj karta ma stałą ramkę jak ROZRYS, a body jest zwykłym blokiem.
-      categoriesSection.classList.toggle('is-open', !!open);
-      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesBody.hidden = !open;
+    function clearCategoriesAccordionTimer(){
+      if(categoriesSection._fcCategoriesAccordionTimer){
+        clearTimeout(categoriesSection._fcCategoriesAccordionTimer);
+        categoriesSection._fcCategoriesAccordionTimer = null;
+      }
+    }
+    function resetCategoriesAccordionAnimation(){
+      clearCategoriesAccordionTimer();
+      categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening');
       categoriesBody.style.maxHeight = '';
       categoriesBody.style.height = '';
       categoriesBody.style.overflow = '';
       categoriesBody.style.opacity = '';
       categoriesBody.style.transform = '';
     }
+    function setCategoriesAccordionOpen(open){
+      // Wspólny panel kategorii pozostaje stabilną kartą aplikacyjną bez details i bez
+      // animowanego body ROZRYS. Otwarty stan końcowy zawsze ma zwykłe body bez
+      // max-height/clipowania, bo właśnie to wcześniej dawało pusty panel na telefonie.
+      resetCategoriesAccordionAnimation();
+      categoriesSection.classList.toggle('is-open', !!open);
+      categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
+      categoriesBody.hidden = !open;
+    }
+    function animateCategoriesAccordionOpen(done){
+      if(prefersReducedMotion()){
+        setCategoriesAccordionOpen(true);
+        if(typeof done === 'function') afterDictionaryLayout(done);
+        return;
+      }
+      resetCategoriesAccordionAnimation();
+      categoriesSection.classList.add('is-open', 'hardware-categories-animating', 'hardware-categories-opening');
+      categoriesSummary.setAttribute('aria-expanded', 'true');
+      categoriesBody.hidden = false;
+      categoriesBody.style.overflow = 'hidden';
+      categoriesBody.style.maxHeight = '0px';
+      categoriesBody.style.opacity = '0';
+      categoriesBody.style.transform = 'translateY(-4px)';
+      try{ void categoriesBody.offsetHeight; }catch(_){ }
+      const targetHeight = Math.max(1, categoriesBody.scrollHeight || 1);
+      const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
+      frame(()=> frame(()=>{
+        categoriesBody.style.maxHeight = targetHeight + 'px';
+        categoriesBody.style.opacity = '1';
+        categoriesBody.style.transform = 'translateY(0)';
+      }));
+      categoriesSection._fcCategoriesAccordionTimer = setTimeout(()=>{
+        resetCategoriesAccordionAnimation();
+        categoriesSection.classList.add('is-open');
+        categoriesSummary.setAttribute('aria-expanded', 'true');
+        categoriesBody.hidden = false;
+        if(typeof done === 'function') done();
+      }, PARAM_EXPAND_MS + 30);
+    }
+    function animateCategoriesAccordionClose(done){
+      // Zamykanie tej sekcji jest natychmiastowe, tak jak w akordeonach parametrów:
+      // płynne ma być tylko nowe otwarcie, bez gumowego zwijania starej zawartości.
+      setCategoriesAccordionOpen(false);
+      if(typeof done === 'function') done();
+    }
     function updateCategoriesAccordion(animate){
-      setCategoriesAccordionOpen(categoriesOpen);
-      if(categoriesOpen && animate) focusCategoriesAccordion();
+      if(!animate){ setCategoriesAccordionOpen(categoriesOpen); return; }
+      if(categoriesOpen) animateCategoriesAccordionOpen(focusCategoriesAccordion);
+      else animateCategoriesAccordionClose();
     }
     categoriesSummary.addEventListener('click', (event)=>{
       event.preventDefault();
