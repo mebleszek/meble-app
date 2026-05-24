@@ -506,15 +506,15 @@
     const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
     const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
     const paramList = h('div', { class:'hardware-dictionary-list hardware-dictionary-param-list' });
-    const categoriesSection = h('section', { class:'rozrys-material-accordion hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open' });
-    const categoriesSummary = h('button', { type:'button', class:'rozrys-material-accordion__trigger hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
+    const categoriesSection = h('details', { class:'rozrys-material-accordion hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open', open:true });
+    const categoriesSummary = h('summary', { class:'rozrys-material-accordion__trigger hardware-dictionary-section-summary', 'aria-expanded':'true' }, [
       h('span', { class:'rozrys-material-accordion__title hardware-dictionary-section-summary__text' }, [
         h('span', { class:'rozrys-material-accordion__title-line1 hardware-dictionary-section-summary__title', text:'Kategorie / rodzaje okuć' }),
         h('span', { class:'rozrys-material-accordion__title-line2 hardware-dictionary-section-summary__meta', text:'Lista kategorii do wyboru przy okuciach' })
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesBody = h('div', { class:'hardware-dictionary-category-section-body' });
+    const categoriesBody = h('div', { class:'rozrys-material-accordion__body hardware-dictionary-section-body hardware-dictionary-categories-body' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
@@ -529,14 +529,16 @@
       });
     }
     function setCategoriesAccordionOpen(open){
-      // Ten wspólny akordeon ma tylko ukrywać/pokazywać listę kategorii. Nie
-      // używa animacji wysokości ani rozrys-material-accordion__body, bo na
-      // telefonie te klasy potrafiły przyciąć edytowalną listę do pustej karty.
+      // Używamy natywnego details wyłącznie jako mechaniki akordeonu. Wygląd
+      // zostaje aplikacyjny/ROZRYS, a treść listy kategorii zostaje w normalnym
+      // przepływie dokumentu. To usuwa regresję pustej karty z telefonu, gdzie
+      // ręczne ukrywanie body i max-height potrafiły uciąć pierwszy wiersz.
       resetSectionAccordionAnimation(categoriesSection);
+      categoriesSection.open = !!open;
       categoriesSection.classList.toggle('is-open', !!open);
       categoriesSection.classList.toggle('hardware-section-static-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesBody.hidden = !open;
+      categoriesBody.hidden = false;
       categoriesBody.style.maxHeight = '';
       categoriesBody.style.height = '';
       categoriesBody.style.overflow = '';
@@ -547,7 +549,8 @@
       setCategoriesAccordionOpen(categoriesOpen);
       if(categoriesOpen && animate) focusCategoriesAccordion();
     }
-    categoriesSummary.addEventListener('click', ()=>{
+    categoriesSummary.addEventListener('click', (event)=>{
+      event.preventDefault();
       categoriesOpen = !categoriesOpen;
       updateCategoriesAccordion(true);
     });

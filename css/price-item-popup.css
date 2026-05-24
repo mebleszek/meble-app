@@ -586,26 +586,60 @@
   #priceItemModal .hardware-tech-param-summary{padding:11px 12px;}
 }
 
-/* Słowniki okuć — body wspólnego akordeonu kategorii bez clipowania i bez psucia ramki. */
-.hardware-dictionary-panel .hardware-dictionary-category-section-body{
-  display:grid;
+/* Słowniki okuć — stabilny wspólny akordeon kategorii bez pustego body na mobile. */
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion{
+  overflow:hidden!important;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion > .hardware-dictionary-section-summary::-webkit-details-marker{
+  display:none;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion > .hardware-dictionary-section-summary{
+  margin:0;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion > .hardware-dictionary-categories-body{
+  display:grid!important;
   gap:10px;
   border-top:1px solid rgba(15,23,42,.10);
   padding:10px 20px 20px;
   background:#fff;
-  max-height:none!important;
   height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
   overflow:visible!important;
   opacity:1!important;
   transform:none!important;
   transition:none!important;
 }
-.hardware-dictionary-panel .hardware-dictionary-category-section-body[hidden]{display:none!important;}
-.hardware-dictionary-panel .hardware-dictionary-category-section-body .hardware-dictionary-category-list{display:grid;gap:10px;margin-top:0;max-height:none!important;overflow:visible!important;}
-.hardware-dictionary-panel .hardware-dictionary-category-section-body .hardware-dictionary-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;height:auto!important;max-height:none!important;overflow:visible!important;}
-.hardware-dictionary-panel .hardware-dictionary-category-section-body .hardware-supplier-field{height:auto!important;max-height:none!important;overflow:visible!important;}
-.hardware-dictionary-panel .hardware-dictionary-category-section-body > .btn{width:100%;}
+.hardware-dictionary-panel .hardware-dictionary-categories-accordion:not([open]) > .hardware-dictionary-categories-body{
+  display:none!important;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-body .hardware-dictionary-category-list{
+  display:grid!important;
+  gap:10px;
+  margin-top:0;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-body .hardware-dictionary-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:end;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-body .hardware-supplier-field,
+.hardware-dictionary-panel .hardware-dictionary-categories-body .price-field-help,
+.hardware-dictionary-panel .hardware-dictionary-categories-body .investor-form-input,
+.hardware-dictionary-panel .hardware-dictionary-categories-body .btn{
+  visibility:visible!important;
+  opacity:1!important;
+}
+.hardware-dictionary-panel .hardware-dictionary-categories-body > .btn{width:100%;}
 @media(max-width:720px){
-  .hardware-dictionary-panel .hardware-dictionary-category-section-body{padding:10px 16px 16px;}
-  .hardware-dictionary-panel .hardware-dictionary-category-section-body .hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
+  .hardware-dictionary-panel .hardware-dictionary-categories-accordion > .hardware-dictionary-categories-body{padding:10px 16px 16px;}
+  .hardware-dictionary-panel .hardware-dictionary-categories-body .hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
 }

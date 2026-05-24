@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T23:31:18.146Z",
+  "generatedAt": "2026-05-24T07:43:06.038Z",
   "summary": {
     "jsFiles": 356,
     "indexScripts": 280,
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5702,
+      "lines": 5705,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -195,7 +195,7 @@
     ],
     [
       "js/app/material/price-modal-hardware-dictionaries.js",
-      609
+      612
     ],
     [
       "js/app/catalog/hardware-catalog.js",
@@ -1037,7 +1037,7 @@
       "score": 5,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 609,
+      "lines": 612,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -5841,7 +5841,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 609,
+      "lines": 612,
       "defines": [
         "priceModalHardwareDictionaries"
       ],

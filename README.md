@@ -1,3 +1,14 @@
+# Furniture Calc — aktualna paczka
+
+Aktualna paczka: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+
+## Ostatnia zmiana
+
+- Naprawiono akordeon `Kategorie / rodzaje okuć` w słownikach okuć: mechanika wróciła do stabilnego `details/summary`, więc lista kategorii nie powinna być już ucinana do pustej karty na telefonie.
+- Wygląd karty pozostaje zgodny ze wzorcem ROZRYS: jedna ramka, cień, chevron i poprawne narożniki.
+- Skorygowano testy regresji w `tools/app-dev-smoke.js`, żeby pilnowały realnej treści akordeonu po zamknięciu i ponownym otwarciu.
+- Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
+
 ## site_hardware_dictionary_category_frame_restore_v1 — 2026-05-24
 
 - Baza: `site_hardware_dictionary_category_no_clip_v1.zip`.

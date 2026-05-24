@@ -662,9 +662,11 @@ function runMaterialNodeSmoke(sandbox){
         && dictionariesSrc.includes('animateSectionAccordionClose')
         && dictionariesSrc.includes('setCategoriesAccordionOpen')
         && dictionariesSrc.includes('hardware-section-static-open')
-        && dictionariesSrc.includes("class:'hardware-dictionary-category-section-body'")
-        && !dictionariesSrc.includes("class:'hardware-dictionary-section-body hardware-dictionary-category-section-body'")
-        && !dictionariesSrc.includes("class:'rozrys-material-accordion__body hardware-dictionary-section-body'")
+        && dictionariesSrc.includes("h('details', { class:'rozrys-material-accordion hardware-dictionary-section-accordion hardware-dictionary-categories-accordion is-open', open:true })")
+        && dictionariesSrc.includes("class:'rozrys-material-accordion__body hardware-dictionary-section-body hardware-dictionary-categories-body'")
+        && !dictionariesSrc.includes("class:'hardware-dictionary-category-section-body'")
+        && dictionariesSrc.includes("event.preventDefault();")
+        && dictionariesSrc.includes("categoriesSection.open = !!open")
         && dictionariesSrc.includes("class:'rozrys-material-accordion hardware-dictionary-section-accordion")
         && dictionariesSrc.includes('closePeerCategoryAccordions')
         && dictionariesSrc.includes('toggleTechCategoryAccordion')
@@ -694,8 +696,8 @@ function runMaterialNodeSmoke(sandbox){
         && css.includes('.hardware-dictionary-section-body[hidden]{display:none!important;}')
         && css.includes('.hardware-dictionary-section-accordion.hardware-section-animating')
         && css.includes('.hardware-dictionary-section-accordion.rozrys-material-accordion.is-open')
-        && css.includes('.hardware-dictionary-category-section-body')
-        && css.includes('.hardware-dictionary-categories-accordion{overflow:hidden!important;}')
+        && css.includes('.hardware-dictionary-categories-body')
+        && css.includes('.hardware-dictionary-categories-accordion:not([open]) > .hardware-dictionary-categories-body')
         && css.includes('max-height:none!important')
         && css.includes('height:auto!important')
         && css.includes('transition:none!important')
@@ -724,13 +726,13 @@ function runMaterialNodeSmoke(sandbox){
         const content = captured && captured.contentNode;
         const section = content && content.querySelector('.hardware-dictionary-categories-accordion');
         const summary = content && content.querySelector('.hardware-dictionary-section-summary');
-        const body = content && content.querySelector('.hardware-dictionary-category-section-body');
-        const legacyBody = content && content.querySelector('.hardware-dictionary-section-body.hardware-dictionary-category-section-body');
+        const body = content && content.querySelector('.hardware-dictionary-categories-body');
+        const legacyBody = content && content.querySelector('.hardware-dictionary-category-section-body');
         const list = content && content.querySelector('.hardware-dictionary-category-list');
         const firstInput = list && list.querySelector('input');
         const initialRows = list && list.querySelectorAll('.hardware-dictionary-row');
         const addButton = body && Array.from(body.querySelectorAll('button')).find((btn)=> /Dodaj kategorię/.test(btn.textContent || ''));
-        const bodyNotClipped = ()=> body && body.hidden === false && body.classList.contains('hardware-dictionary-category-section-body') && !body.classList.contains('hardware-dictionary-section-body') && !body.classList.contains('rozrys-material-accordion__body') && body.style.maxHeight !== '0px' && body.style.maxHeight !== '1px' && body.style.overflow !== 'hidden';
+        const bodyNotClipped = ()=> body && body.hidden === false && body.classList.contains('hardware-dictionary-categories-body') && body.classList.contains('hardware-dictionary-section-body') && body.classList.contains('rozrys-material-accordion__body') && body.style.maxHeight !== '0px' && body.style.maxHeight !== '1px' && body.style.overflow !== 'hidden';
         const hasRealCategoryContent = ()=> {
           const rows = list && list.querySelectorAll('.hardware-dictionary-row');
           const input = list && list.querySelector('input');
@@ -740,10 +742,10 @@ function runMaterialNodeSmoke(sandbox){
         const initiallyVisible = !!(section && summary && body && !legacyBody && list && bodyNotClipped() && hasRealCategoryContent() && summary.getAttribute('aria-expanded') === 'true');
         if(!initiallyVisible) return false;
         summary.click();
-        const closed = body.hidden === true && summary.getAttribute('aria-expanded') === 'false' && section.classList.contains('is-open') === false;
+        const closed = section.open === false && summary.getAttribute('aria-expanded') === 'false' && section.classList.contains('is-open') === false;
         summary.click();
         const reopenedRows = list.querySelectorAll('.hardware-dictionary-row');
-        const reopened = bodyNotClipped() && summary.getAttribute('aria-expanded') === 'true' && section.classList.contains('is-open') === true && reopenedRows.length >= initialRows.length && hasRealCategoryContent();
+        const reopened = bodyNotClipped() && section.open === true && summary.getAttribute('aria-expanded') === 'true' && section.classList.contains('is-open') === true && reopenedRows.length >= initialRows.length && hasRealCategoryContent();
         return closed && reopened;
       }finally{
         FC.panelBox = oldPanelBox;

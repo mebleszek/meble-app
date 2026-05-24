@@ -1,11 +1,23 @@
+# DEV.md — meble-app
+
+## Hardware dictionary categories details body fix v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_frame_restore_v1.zip`.
+- Naprawiono regresję pustego/uciętego akordeonu `Kategorie / rodzaje okuć`: wspólny akordeon kategorii wrócił do stabilnej mechaniki `details/summary`, a jego body ma klasę `hardware-dictionary-categories-body` bez animowanego `max-height`.
+- Zachowano wygląd aplikacyjny/ROZRYS: jedna ramka, cień, chevron i zaokrąglone rogi; treść kategorii pozostaje w normalnym przepływie dokumentu, żeby telefon nie pokazywał tylko uciętej pierwszej karty.
+- Skorygowano testy `app-dev-smoke`: sprawdzają strukturę `details`, realne wiersze kategorii, input `Zawiasy`, przyciski `Usuń`/`Dodaj kategorię` oraz zamknięcie i ponowne otwarcie bez utraty treści.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-categories-details-body-fix-v1.md`.
+
 # DEV — aktywne zasady rozwoju meble-app
 
 Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały przeniesione do `DEV_HISTORY_20260425.md` i nie są źródłem bieżących decyzji architektonicznych.
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_frame_restore_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_category_no_clip_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_category_frame_restore_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
