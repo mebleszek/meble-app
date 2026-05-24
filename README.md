@@ -1,22 +1,12 @@
-Aktualna paczka: `site_hardware_dictionary_category_px_animation_v1.zip`.
-
-## site_hardware_dictionary_category_px_animation_v1 — 2026-05-24
-
-- Baza: `site_hardware_dictionary_category_stable_panel_v1.zip` — celowy powrót do ostatniej działającej wersji z pełną zawartością panelu kategorii.
-- Panel `Kategorie / rodzaje okuć` dostał animację otwierania opartą o realnie zmierzoną wysokość w pikselach: prawdziwa treść zostaje w `hardware-dictionary-categories-body`, a animacja działa tylko na wrapperze `hardware-dictionary-categories-clip`.
-- Nie użyto ponownie wcześniejszych metod, które powodowały pusty/ucięty panel: `details/open`, `grid 0fr/1fr`, `interpolate-size`, stałego `max-height` ani animowania prawdziwego body.
-- Ramka pozostaje normalna jak ROZRYS, zawartość ma pozostać pełna, a zamykanie panelu jest natychmiastowe.
-- Bez zmian w backupie, storage, imporcie/eksporcie, zamiennikach, PRO100, RYSUNKU i WYCENIE.
-
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_category_px_animation_v1.zip`.
+Aktualna paczka: `site_hardware_dictionary_category_stable_panel_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Przywrócono stabilną bazę panelu `Kategorie / rodzaje okuć`, w której zawartość jest pełna, i dodano testową animację otwierania przez wrapper z realnie zmierzoną wysokością w px.
-- Prawdziwa lista kategorii pozostaje bez clipowania: bez `hidden`, `height`, `max-height` i `overflow:hidden`; animowany jest tylko `hardware-dictionary-categories-clip`.
-- Nie wrócono do błędnych metod: `details/open`, CSS Grid `0fr/1fr`, `interpolate-size` ani animowania realnego body.
+- Naprawiono powracającą regresję pustego akordeonu `Kategorie / rodzaje okuć` w słownikach okuć.
+- Panel kategorii ma teraz własną stabilną kartę aplikacyjną: normalna ramka/cień jak ROZRYS, ale bez `details`, bez animowanego body, bez `max-height` i bez clipowania zawartości.
+- Testy regresji pilnują, żeby lista kategorii nie wróciła do problematycznych klas `rozrys-material-accordion__body` / `hardware-dictionary-section-body`.
 - Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
 
 ## site_hardware_dictionary_category_stable_panel_v1 — 2026-05-24

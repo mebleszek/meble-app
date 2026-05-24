@@ -514,10 +514,8 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesClip = h('div', { class:'hardware-dictionary-categories-clip' });
     const categoriesBody = h('div', { class:'hardware-dictionary-categories-body' });
     let categoriesOpen = true;
-    let categoriesAnimationToken = 0;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
         try{
@@ -530,78 +528,22 @@
         }catch(_){ }
       });
     }
-    function clearCategoriesClipStyles(){
-      categoriesClip.style.height = '';
-      categoriesClip.style.overflow = '';
-      categoriesClip.style.opacity = '';
-      categoriesClip.style.transform = '';
-      categoriesClip.style.transition = '';
-    }
-    function setCategoriesAccordionOpen(open, animate){
-      // Stabilna baza zostaje taka sama jak w działającej wersji: prawdziwe body kategorii
-      // nigdy nie dostaje height/max-height/overflow/hidden. Animowany jest wyłącznie
-      // osobny wrapper `categoriesClip`, któremu wpisujemy realnie zmierzoną wysokość px.
-      categoriesAnimationToken += 1;
-      const token = categoriesAnimationToken;
+    function setCategoriesAccordionOpen(open){
+      // Wspólny panel kategorii nie używa już details ani animowanego body ROZRYS.
+      // Poprzednie wersje mieszały `open`, `hidden`, `max-height` i overflow, więc
+      // test widział w DOM pełną listę, ale telefon renderował pustą/uciętą ramkę.
+      // Tutaj karta ma stałą ramkę jak ROZRYS, a body jest zwykłym blokiem.
       categoriesSection.classList.toggle('is-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesBody.hidden = false;
+      categoriesBody.hidden = !open;
       categoriesBody.style.maxHeight = '';
       categoriesBody.style.height = '';
       categoriesBody.style.overflow = '';
       categoriesBody.style.opacity = '';
       categoriesBody.style.transform = '';
-      if(!open){
-        categoriesSection.classList.remove('is-animating-open');
-        categoriesClip.hidden = true;
-        clearCategoriesClipStyles();
-        return;
-      }
-      categoriesClip.hidden = false;
-      if(!animate){
-        categoriesSection.classList.remove('is-animating-open');
-        clearCategoriesClipStyles();
-        return;
-      }
-      const reduceMotion = (()=>{ try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } })();
-      if(reduceMotion){
-        categoriesSection.classList.remove('is-animating-open');
-        clearCategoriesClipStyles();
-        return;
-      }
-      categoriesSection.classList.add('is-animating-open');
-      categoriesClip.style.transition = 'none';
-      categoriesClip.style.overflow = 'hidden';
-      categoriesClip.style.height = '0px';
-      categoriesClip.style.opacity = '0.98';
-      categoriesClip.style.transform = 'translateY(-4px)';
-      const measuredHeight = Math.max(categoriesBody.scrollHeight || 0, categoriesBody.getBoundingClientRect ? categoriesBody.getBoundingClientRect().height : 0);
-      const targetHeight = Math.ceil(measuredHeight || 1);
-      requestAnimationFrame(()=> requestAnimationFrame(()=>{
-        if(token !== categoriesAnimationToken) return;
-        categoriesClip.style.transition = '';
-        categoriesClip.style.height = targetHeight + 'px';
-        categoriesClip.style.opacity = '1';
-        categoriesClip.style.transform = 'translateY(0)';
-      }));
-      const finish = ()=>{
-        if(token !== categoriesAnimationToken || !categoriesOpen) return;
-        categoriesSection.classList.remove('is-animating-open');
-        clearCategoriesClipStyles();
-      };
-      const onEnd = (event)=>{
-        if(event && event.target !== categoriesClip) return;
-        categoriesClip.removeEventListener('transitionend', onEnd);
-        finish();
-      };
-      categoriesClip.addEventListener('transitionend', onEnd);
-      setTimeout(()=>{
-        categoriesClip.removeEventListener('transitionend', onEnd);
-        finish();
-      }, 420);
     }
     function updateCategoriesAccordion(animate){
-      setCategoriesAccordionOpen(categoriesOpen, !!animate);
+      setCategoriesAccordionOpen(categoriesOpen);
       if(categoriesOpen && animate) focusCategoriesAccordion();
     }
     categoriesSummary.addEventListener('click', (event)=>{
@@ -615,7 +557,7 @@
     function isDirty(){ return signature(categories, params) !== cleanSignature; }
     function updateActions(){ const dirty = isDirty(); exit.style.display = dirty ? 'none' : ''; cancel.style.display = dirty ? '' : 'none'; save.style.display = dirty ? '' : 'none'; }
     function syncCategoriesAccordionAfterRender(){
-      setCategoriesAccordionOpen(categoriesOpen, false);
+      setCategoriesAccordionOpen(categoriesOpen);
     }
     function render(){
       catList.innerHTML = '';
@@ -649,9 +591,8 @@
     });
     categoriesBody.appendChild(catList);
     categoriesBody.appendChild(addCat);
-    categoriesClip.appendChild(categoriesBody);
     categoriesSection.appendChild(categoriesSummary);
-    categoriesSection.appendChild(categoriesClip);
+    categoriesSection.appendChild(categoriesBody);
     scroll.appendChild(categoriesSection);
     scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
     scroll.appendChild(paramList);

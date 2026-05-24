@@ -1,19 +1,8 @@
 # DEV.md — meble-app
 
-## Hardware dictionary category px animation v1 — 2026-05-24
-
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_px_animation_v1.zip`.
-- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`; to celowy powrót do ostatniej wersji, w której panel `Kategorie / rodzaje okuć` miał pełną zawartość.
-- Przeanalizowano błędne próby animacji tego panelu: wersje oparte o `details/open`, `max-height`/`scrollHeight` na realnym body, CSS Grid `0fr→1fr`, `interpolate-size` oraz reveal bez wysokości dalej potrafiły pokazać na telefonie tylko górę pierwszej karty.
-- Nowa metoda rozdziela trzy role: `hardware-dictionary-categories-card` trzyma ramkę/cień/rogi, `hardware-dictionary-categories-clip` dostaje na czas otwierania realnie zmierzoną wysokość w px, a `hardware-dictionary-categories-body` trzyma prawdziwe pola kategorii i nigdy nie dostaje `height`, `max-height`, `overflow:hidden` ani `hidden`.
-- Otwieranie wspólnego panelu kategorii jest płynne przez animację wrappera px; po zakończeniu animacji inline style wrappera są czyszczone. Zamykanie pozostaje natychmiastowe.
-- Test `app-dev-smoke` pilnuje wrappera `categories-clip`, mierzenia `categoriesBody.scrollHeight`, braku starych body/klas oraz pełnej treści po zamknięciu i ponownym otwarciu.
-- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
-- Raport: `tools/reports/hardware-dictionary-category-px-animation-v1.md`.
-
 ## Hardware dictionary category stable panel v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_px_animation_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
 - Baza startowa: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
 - Przeanalizowano powielany błąd wspólnego akordeonu `Kategorie / rodzaje okuć`: `details/open`, klasy animowanego body ROZRYS, `hidden`, `max-height` i `overflow` dawały poprawną treść w DOM, ale na telefonie wizualnie ucinały listę do pustej/niepełnej karty.
 - Wspólny panel kategorii został odseparowany od mechaniki animowanych akordeonów: `hardware-dictionary-categories-card` trzyma ramkę/cień jak ROZRYS, a `hardware-dictionary-categories-body` jest zwykłym, nieanimowanym kontenerem bez `max-height` i bez clipowania.
