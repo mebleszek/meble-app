@@ -1,3 +1,13 @@
+## Hardware dictionary category WAAPI slow v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_waapi_slow_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_waapi_open_v1.zip`.
+- Spowolniono wyłącznie animację otwierania panelu `Kategorie / rodzaje okuć`: `SECTION_EXPAND_MS` ma teraz 820 ms zamiast czasu wspólnego z mini-parametrami.
+- Mechanika zostaje ta sama: stabilna struktura panelu, Web Animations API, pomiar `categoriesBody.scrollHeight`, brak `details/open`, brak grid/interpolate/max-height i brak dodatkowych wrapperów clipujących.
+- Zamykanie panelu pozostaje natychmiastowe; mini-akordeony parametrów technicznych pozostają bez zmian.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, ROZRYS, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-waapi-slow-v1.md`.
+
 ## Hardware dictionary category WAAPI open v1 — 2026-05-24
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_waapi_open_v1.zip`.

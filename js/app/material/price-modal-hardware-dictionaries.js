@@ -90,7 +90,8 @@
   }
   const PARAM_EXPAND_MS = 420;
   const PARAM_COLLAPSE_MS = 0;
-  const SECTION_EXPAND_MS = PARAM_EXPAND_MS;
+  // Wspólny panel kategorii jest większy niż mini-parametr, więc potrzebuje wolniejszego otwarcia.
+  const SECTION_EXPAND_MS = 820;
   function prefersReducedMotion(){
     try{ return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
   }

@@ -662,6 +662,8 @@ function runMaterialNodeSmoke(sandbox){
         && dictionariesSrc.includes('animateSectionAccordionClose')
         && dictionariesSrc.includes('setCategoriesAccordionOpen')
         && dictionariesSrc.includes('animateCategoriesAccordionOpen')
+        && dictionariesSrc.includes('const SECTION_EXPAND_MS = 820')
+        && !dictionariesSrc.includes('const SECTION_EXPAND_MS = PARAM_EXPAND_MS')
         && dictionariesSrc.includes('categoriesBody.animate')
         && dictionariesSrc.includes('categoriesBody.scrollHeight')
         && !dictionariesSrc.includes('hardware-section-static-open')
