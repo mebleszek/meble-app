@@ -1,5 +1,18 @@
 # DEV.md — meble-app
 
+## Hardware dictionary category animation split v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_animation_split_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_expand_animation_v1.zip`.
+- Panel `Kategorie / rodzaje okuć` w słownikach okuć ma rozdzielone role: `hardware-dictionary-categories-card` odpowiada za ramkę/cień/chevron, `hardware-dictionary-categories-clip` wyłącznie za animację wysokości, a `hardware-dictionary-categories-content` za realną listę kategorii.
+- Otwieranie panelu kategorii jest płynne, zamykanie natychmiastowe; po animacji wrapper jest czyszczony z wymuszonego `height`, `max-height`, `overflow`, `opacity` i `transform`.
+- Treść listy kategorii nie używa `details/open`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body` ani starego `hardware-dictionary-categories-body`, żeby nie wracała regresja pustego panelu na telefonie.
+- Test `app-dev-smoke` pilnuje struktury karta → wrapper animacji → treść, realnych wierszy kategorii oraz braku powrotu starych klas/clipowania.
+- Usunięto zdublowane wywołanie `FC.panelBox.open` w modalu słowników okuć.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-animation-split-v1.md`.
+
+
 ## Hardware dictionary category expand animation v1 — 2026-05-24
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_expand_animation_v1.zip`.
@@ -25,7 +38,7 @@
 
 ## Hardware dictionary categories details body fix v1 — 2026-05-24
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_animation_split_v1.zip`.
 - Baza startowa: `site_hardware_dictionary_category_frame_restore_v1.zip`.
 - Naprawiono regresję pustego/uciętego akordeonu `Kategorie / rodzaje okuć`: wspólny akordeon kategorii wrócił do stabilnej mechaniki `details/summary`, a jego body ma klasę `hardware-dictionary-categories-body` bez animowanego `max-height`.
 - Zachowano wygląd aplikacyjny/ROZRYS: jedna ramka, cień, chevron i zaokrąglone rogi; treść kategorii pozostaje w normalnym przepływie dokumentu, żeby telefon nie pokazywał tylko uciętej pierwszej karty.
@@ -40,7 +53,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 ## Aktualna baza
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_category_expand_animation_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 

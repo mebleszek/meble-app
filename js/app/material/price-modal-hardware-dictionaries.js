@@ -514,7 +514,8 @@
       ]),
       h('span', { class:'rozrys-material-accordion__chevron hardware-dictionary-section-chevron', html:'&#9662;', 'aria-hidden':'true' })
     ]);
-    const categoriesBody = h('div', { class:'hardware-dictionary-categories-body' });
+    const categoriesClip = h('div', { class:'hardware-dictionary-categories-clip' });
+    const categoriesBody = h('div', { class:'hardware-dictionary-categories-content' });
     let categoriesOpen = true;
     function focusCategoriesAccordion(){
       afterDictionaryLayout(()=>{
@@ -537,8 +538,13 @@
     function resetCategoriesAccordionAnimation(){
       clearCategoriesAccordionTimer();
       categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening');
-      categoriesBody.style.maxHeight = '';
+      categoriesClip.style.height = '';
+      categoriesClip.style.maxHeight = '';
+      categoriesClip.style.overflow = '';
+      categoriesClip.style.opacity = '';
+      categoriesClip.style.transform = '';
       categoriesBody.style.height = '';
+      categoriesBody.style.maxHeight = '';
       categoriesBody.style.overflow = '';
       categoriesBody.style.opacity = '';
       categoriesBody.style.transform = '';
@@ -550,7 +556,7 @@
       resetCategoriesAccordionAnimation();
       categoriesSection.classList.toggle('is-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      categoriesBody.hidden = !open;
+      categoriesClip.hidden = !open;
     }
     function animateCategoriesAccordionOpen(done){
       if(prefersReducedMotion()){
@@ -561,24 +567,29 @@
       resetCategoriesAccordionAnimation();
       categoriesSection.classList.add('is-open', 'hardware-categories-animating', 'hardware-categories-opening');
       categoriesSummary.setAttribute('aria-expanded', 'true');
-      categoriesBody.hidden = false;
-      categoriesBody.style.overflow = 'hidden';
-      categoriesBody.style.maxHeight = '0px';
-      categoriesBody.style.opacity = '0';
-      categoriesBody.style.transform = 'translateY(-4px)';
-      try{ void categoriesBody.offsetHeight; }catch(_){ }
-      const targetHeight = Math.max(1, categoriesBody.scrollHeight || 1);
+      categoriesClip.hidden = false;
+      // Animację dostaje wyłącznie wrapper wysokości. Prawdziwa lista kategorii
+      // pozostaje zwykłą treścią bez max-height/overflow, żeby nie wracała regresja
+      // pustego panelu widoczna na telefonie.
+      categoriesClip.style.overflow = 'hidden';
+      categoriesClip.style.height = '0px';
+      categoriesClip.style.opacity = '0';
+      categoriesClip.style.transform = 'translateY(-4px)';
+      categoriesBody.style.overflow = 'visible';
+      categoriesBody.style.maxHeight = 'none';
+      try{ void categoriesClip.offsetHeight; }catch(_){ }
+      const targetHeight = Math.max(1, categoriesBody.scrollHeight || categoriesClip.scrollHeight || 1);
       const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
       frame(()=> frame(()=>{
-        categoriesBody.style.maxHeight = targetHeight + 'px';
-        categoriesBody.style.opacity = '1';
-        categoriesBody.style.transform = 'translateY(0)';
+        categoriesClip.style.height = targetHeight + 'px';
+        categoriesClip.style.opacity = '1';
+        categoriesClip.style.transform = 'translateY(0)';
       }));
       categoriesSection._fcCategoriesAccordionTimer = setTimeout(()=>{
         resetCategoriesAccordionAnimation();
         categoriesSection.classList.add('is-open');
         categoriesSummary.setAttribute('aria-expanded', 'true');
-        categoriesBody.hidden = false;
+        categoriesClip.hidden = false;
         if(typeof done === 'function') done();
       }, PARAM_EXPAND_MS + 30);
     }
@@ -638,8 +649,9 @@
     });
     categoriesBody.appendChild(catList);
     categoriesBody.appendChild(addCat);
+    categoriesClip.appendChild(categoriesBody);
     categoriesSection.appendChild(categoriesSummary);
-    categoriesSection.appendChild(categoriesBody);
+    categoriesSection.appendChild(categoriesClip);
     scroll.appendChild(categoriesSection);
     scroll.appendChild(h('div', { class:'quote-subsection-title', text:'Parametry techniczne kategorii', style:'margin-top:14px' }));
     scroll.appendChild(paramList);

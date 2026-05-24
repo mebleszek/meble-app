@@ -1,13 +1,24 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_category_expand_animation_v1.zip`.
+Aktualna paczka: `site_hardware_dictionary_category_animation_split_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Dodano płynne rozwijanie wspólnego panelu `Kategorie / rodzaje okuć` w słownikach okuć.
-- Panel nadal ma stabilną ramkę/cień jak ROZRYS i nie wraca do problematycznej mechaniki `details`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body` ani stałego `max-height`.
-- Zamykanie panelu kategorii jest natychmiastowe, a animowane jest tylko otwieranie, zgodnie z zachowaniem mini-akordeonów parametrów technicznych.
+- Poprawiono płynne rozwijanie panelu `Kategorie / rodzaje okuć` bez powrotu pustej/uciętej zawartości na telefonie.
+- Panel ma rozdzielone warstwy: karta odpowiada za ramkę ROZRYS, osobny wrapper animuje wysokość, a prawdziwa lista kategorii nie jest clipowana.
+- Zamykanie panelu kategorii jest natychmiastowe, a otwieranie płynne; po animacji wrapper jest czyszczony z wymuszonych stylów wysokości i overflow.
 - Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
+
+
+## site_hardware_dictionary_category_animation_split_v1 — 2026-05-24
+
+- Baza: `site_hardware_dictionary_category_expand_animation_v1.zip`.
+- Poprawiono panel `Kategorie / rodzaje okuć` zgodnie z rozdzieleniem odpowiedzialności: karta trzyma ramkę/cień, `hardware-dictionary-categories-clip` animuje wysokość, a `hardware-dictionary-categories-content` trzyma prawdziwą listę kategorii bez clipowania.
+- Otwieranie panelu kategorii jest płynne, zamykanie pozostaje natychmiastowe, a po zakończeniu animacji wrapper nie zostaje z wymuszonym `height`, `max-height` ani `overflow:hidden`.
+- Usunięto powielaną przyczynę regresji pustej zawartości: realna treść kategorii nie używa już `details/open`, `rozrys-material-accordion__body`, `hardware-dictionary-section-body` ani starego `hardware-dictionary-categories-body`.
+- Skorygowano `tools/app-dev-smoke.js`, żeby pilnował struktury karta → wrapper animacji → treść oraz braku powrotu starych klas/clipowania.
+- Przy okazji usunięto zdublowane wywołanie `FC.panelBox.open` w modalu słowników okuć.
+- Zmiana jest tylko UI/UX i testowa: bez zmian backupów, storage, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU i WYCENY.
 
 ## site_hardware_dictionary_category_expand_animation_v1 — 2026-05-24
 
