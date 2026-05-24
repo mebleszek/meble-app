@@ -538,7 +538,7 @@
     }
     function resetCategoriesAccordionAnimation(){
       clearCategoriesAccordionTimer();
-      categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening');
+      categoriesSection.classList.remove('hardware-categories-animating', 'hardware-categories-opening', 'hardware-categories-closing');
       categoriesClip.style.height = '';
       categoriesClip.style.maxHeight = '';
       categoriesClip.style.overflow = '';
@@ -555,10 +555,11 @@
       categoriesBody.style.transform = '';
     }
     function setCategoriesAccordionOpen(open){
-      // Stabilny panel kategorii używa metody CSS Grid: ramka jest osobno, warstwa
-      // animacji ma grid-template-rows 0fr/1fr, a prawdziwa zawartość siedzi w osobnym
-      // kontenerze. Nie używamy hidden/display:none, max-height ani details, bo te
-      // mechanizmy wcześniej zostawiały na telefonie pustą/uciętą zawartość.
+      // Stabilny panel kategorii ma rozdzielone role: karta trzyma ramkę, clip animuje
+      // wysokość, a content trzyma realną listę. Animacja opiera się na CSS
+      // interpolate-size: height 0 → auto; przy braku wsparcia przeglądarka po prostu
+      // pokaże pełną zawartość bez płynnego liczenia wysokości. Nie wracamy do
+      // details/open, grid 0fr/1fr, scrollHeight ani max-height na prawdziwej treści.
       resetCategoriesAccordionAnimation();
       categoriesSection.classList.toggle('is-open', !!open);
       categoriesSummary.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -572,9 +573,6 @@
       }
       resetCategoriesAccordionAnimation();
       categoriesSection.classList.add('hardware-categories-animating');
-      // Uruchomienie animacji opiera się na klasie is-open i CSS Grid 0fr → 1fr.
-      // Nie mierzymy scrollHeight i nie zapisujemy inline height, bo ten wariant
-      // powtarzał regresję pustej listy kategorii przy dynamicznych polach na mobile.
       try{ void categoriesClip.offsetHeight; }catch(_){ }
       const frame = typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : (cb)=> setTimeout(cb, 0);
       frame(()=>{
@@ -588,12 +586,18 @@
         categoriesSummary.setAttribute('aria-expanded', 'true');
         categoriesClip.setAttribute('aria-hidden', 'false');
         if(typeof done === 'function') done();
-      }, PARAM_EXPAND_MS + 60);
+      }, PARAM_EXPAND_MS + 80);
     }
     function animateCategoriesAccordionClose(done){
-      // Zamykanie tej sekcji jest natychmiastowe, tak jak w akordeonach parametrów:
-      // płynne ma być tylko nowe otwarcie, bez gumowego zwijania starej zawartości.
-      setCategoriesAccordionOpen(false);
+      // Zamykanie tej sekcji jest natychmiastowe: nie animujemy powrotu height:auto → 0,
+      // żeby nie robić gumowego zwijania ani nie zostawić clipa w stanie pośrednim.
+      resetCategoriesAccordionAnimation();
+      categoriesSection.classList.add('hardware-categories-closing');
+      categoriesSection.classList.remove('is-open');
+      categoriesSummary.setAttribute('aria-expanded', 'false');
+      categoriesClip.setAttribute('aria-hidden', 'true');
+      try{ void categoriesClip.offsetHeight; }catch(_){ }
+      setTimeout(()=> categoriesSection.classList.remove('hardware-categories-closing'), 40);
       if(typeof done === 'function') done();
     }
     function updateCategoriesAccordion(animate){

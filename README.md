@@ -1,23 +1,25 @@
 # meble-app — aktualna paczka
 
-## Hardware dictionary category grid animation v1 — 2026-05-24
+## Hardware dictionary category interpolate animation v1 — 2026-05-24
 
-- Aktualna paczka: `site_hardware_dictionary_category_grid_animation_v1.zip`.
-- Baza: `site_hardware_dictionary_category_animation_split_v1.zip`.
-- Panel `Słowniki okuć → Kategorie / rodzaje okuć` dostał inną metodę animacji: CSS Grid `grid-template-rows: 0fr → 1fr`, zamiast mierzenia wysokości JavaScriptem i ustawiania inline `height/max-height`.
-- Zachowana jest normalna ramka jak ROZRYS oraz pełna zawartość: pola kategorii, `Usuń` i `Dodaj kategorię`.
-- Testy pilnują, żeby nie wróciły stare klasy/rozwiązania powodujące pusty panel na telefonie.
-- Bez zmian danych, backupu, import/exportu, zamienników, PRO100, usług, RYSUNKU i WYCENY.
+- Aktualna paczka: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
+- Baza: `site_hardware_dictionary_category_grid_animation_v1.zip`.
+- Po regresji gridowej animacji panelu `Słowniki okuć → Kategorie / rodzaje okuć` zmieniono metodę: zamiast CSS Grid `0fr → 1fr` używany jest wrapper z `height: 0 → auto` i `interpolate-size: allow-keywords`.
+- Realna lista kategorii pozostaje w osobnej warstwie `hardware-dictionary-categories-content` bez `max-height`, bez `overflow:hidden`, bez `details/open` i bez starych klas body ROZRYS.
+- Gdy przeglądarka nie wspiera `interpolate-size`, panel ma otworzyć się natychmiastowo, ale z pełną widoczną zawartością.
+- Testy pilnują, żeby nie wróciła gridowa metoda ani klasy/selektory, które wcześniej powodowały pusty panel na telefonie.
+- Bez zmian danych, backupu, storage, import/exportu, zamienników, PRO100, usług, RYSUNKU i WYCENY.
+
 
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_dictionary_category_animation_split_v1.zip`.
+Aktualna paczka: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Poprawiono płynne rozwijanie panelu `Kategorie / rodzaje okuć` bez powrotu pustej/uciętej zawartości na telefonie.
-- Panel ma rozdzielone warstwy: karta odpowiada za ramkę ROZRYS, osobny wrapper animuje wysokość, a prawdziwa lista kategorii nie jest clipowana.
-- Zamykanie panelu kategorii jest natychmiastowe, a otwieranie płynne; po animacji wrapper jest czyszczony z wymuszonych stylów wysokości i overflow.
+- Po gridowej regresji panel `Kategorie / rodzaje okuć` używa `interpolate-size: allow-keywords` do animacji `height:0 → auto`.
+- Prawdziwa lista kategorii jest oddzielona od wrappera animacji i nie dostaje `max-height`, `overflow:hidden`, `details/open` ani starych klas body ROZRYS.
+- Jeśli przeglądarka nie wspiera `interpolate-size`, panel ma otworzyć się natychmiastowo, ale z pełną widoczną treścią.
 - Nie zmieniono backupów, storage, import/export Excel, PRO100, usług, RYSUNKU, WYCENY ani zamienników.
 
 

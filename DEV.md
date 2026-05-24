@@ -1,5 +1,16 @@
 # DEV.md — meble-app
 
+## Hardware dictionary category interpolate animation v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_interpolate_animation_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_grid_animation_v1.zip`.
+- Po analizie wcześniejszych metod (`details/open`, `max-height`, JS `scrollHeight`, CSS Grid `0fr → 1fr`) panel `Kategorie / rodzaje okuć` dostał metodę z `interpolate-size: allow-keywords`: wrapper animuje `height:0` do `height:auto`, a w przeglądarkach bez wsparcia ma pokazać pełną zawartość bez animacji.
+- Zachowane rozdzielenie ról: `hardware-dictionary-categories-card` trzyma ramkę/cień/chevron, `hardware-dictionary-categories-clip` jest warstwą animacji wysokości, `hardware-dictionary-categories-inner` jest tylko pośrednikiem bez clipowania, a `hardware-dictionary-categories-content` trzyma realną listę kategorii.
+- Usunięto zależność od gridowego `grid-template-rows:0fr/1fr`, bo na telefonie zostawiała widoczny tylko górny fragment pierwszej karty. Nie wracają `details/open`, stare klasy body ROZRYS, inline `scrollHeight` ani `max-height` na treści.
+- Test `app-dev-smoke` pilnuje metody `interpolate-size`, braku gridowej animacji i realnej treści po zamknięciu/ponownym otwarciu panelu.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS jako funkcji, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-interpolate-animation-v1.md`.
+
 ## Hardware dictionary category grid animation v1 — 2026-05-24
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_grid_animation_v1.zip`.
