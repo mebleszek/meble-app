@@ -1,3 +1,14 @@
+## Hardware dictionary category WAAPI open v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_waapi_open_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`, czyli ostatni plik z działającą pełną zawartością panelu `Kategorie / rodzaje okuć`.
+- Panel kategorii zachowuje stabilną strukturę bez `details/open`, bez grid/interpolate, bez stałego `max-height` i bez dodatkowych wrapperów clipujących.
+- Dodano animację samego otwierania przez Web Animations API: realna wysokość body jest mierzona przez `categoriesBody.scrollHeight`, animacja idzie z `0px` do zmierzonej wartości px, a po zakończeniu wszystkie style inline są czyszczone.
+- Zamykanie panelu pozostaje natychmiastowe. Mini-akordeony parametrów technicznych pozostają bez zmian.
+- CSS body kategorii nie używa już `height:auto!important`, `overflow:visible!important` ani `transition:none!important`, bo blokowały widoczną animację wysokości.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, ROZRYS, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-waapi-open-v1.md`.
+
 # DEV.md — meble-app
 
 ## Hardware dictionary category stable panel v1 — 2026-05-24

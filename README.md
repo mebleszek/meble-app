@@ -1,3 +1,11 @@
+## Hardware dictionary category WAAPI open v1 — 2026-05-24
+
+- Nowa paczka: `site_hardware_dictionary_category_waapi_open_v1.zip`.
+- Start z działającej bazy `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Panel `Kategorie / rodzaje okuć` ma zachować pełną zawartość i normalną ramkę, a otwieranie jest animowane z policzonej wysokości w pikselach przez Web Animations API.
+- Zamykanie panelu jest natychmiastowe; parametry techniczne poniżej nie były zmieniane.
+- Bez zmian w backupie, storage, imporcie/eksporcie, PRO100, usługach, ROZRYS, RYSUNKU, WYCENIE i zamiennikach.
+
 # Furniture Calc — aktualna paczka
 
 Aktualna paczka: `site_hardware_dictionary_category_stable_panel_v1.zip`.
