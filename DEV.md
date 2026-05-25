@@ -1,5 +1,21 @@
 # DEV.md — meble-app
 
+## Cabinet hardware requirements v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_cabinet_hardware_requirements_v1.zip`.
+- Baza startowa: `site_hardware_producer_accessories_save_fix_v1.zip`.
+- Dodano warstwę techniczną `js/app/cabinet/cabinet-hardware-requirements.js`: typ szafki / wariant frontu → wymaganie techniczne okucia. Ten etap nie dobiera jeszcze konkretnego produktu katalogowego do WYCENY.
+- Reguły v1 dla zawiasów obejmują m.in. standard 110° nakładany, narożną L 170°, rogowe ślepe / ślepy narożnik, lodówkowe po ręcznym ptaszku, dolne podblatowe jako stojące bez nóg, wyjątki HK-XS i nożycowy Häfele z pomocniczymi zawiasami 110°.
+- `js/app/cabinet/front-hardware-hinges.js` nie nalicza zawiasów dla wariantów, które ich nie wymagają: zmywarka, szuflady, zlewowa z szufladą, piekarnikowa z szufladą, dolna podblatowa z szufladami/brakiem frontu, okapowa z klapą i lodówka bez ptaszka `Wymaga zawiasów meblowych`.
+- Lodówkowa dostała w modalu frontów aplikacyjny checkbox/chip `Wymaga zawiasów meblowych`; po zaznaczeniu używa wymagania `Zawias lodówkowy / do frontu lodówki`, a ilość jest liczona z realnych frontów lodówki.
+- `js/app/cabinet/cabinet-cutlist.js` dopina do partów okuć pole `hardwareRequirement`, żeby przyszły resolver katalogowy i WYCENA miały jawny kontekst techniczny bez zgadywania.
+- Do katalogu/słowników okuć dodano typy: `hinge_blind_corner` (`Do rogowej ślepej / ślepego narożnika`) i `hinge_fridge` (`Lodówkowy / do frontu lodówki`) oraz wartości parametru `nalozenie`: `równoległy / do ślepego narożnika` i `lodówkowy`.
+- Nie dodano konkretnej pozycji/ceny Bivert dla zawiasu rogowej ślepej — wymaga prawdziwego symbolu i ceny, nie wolno tworzyć fikcyjnej pozycji.
+- Na przyszłość zostaje: pełna logika okapowej drzwiczki/klapa + montaż AGD okapu, szuflady wewnętrzne 155° zerowy uskok albo `na dystansie` np. 1,8 cm, warstwa front nakładany/wpuszczany/bliźniaczy, resolver wymaganie techniczne + preferowany producent + pozycja katalogowa + cena `Do wyceny`, a także edycja poszczególnych korpusów zestawu.
+- Rozszerzono `tools/app-dev-smoke.js` o testy regresji reguł zawiasów, ptaszka lodówki i nowych typów/cech katalogu.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/cabinet-hardware-requirements-v1.md`.
+
 ## Hardware producer accessories save fix v1 — 2026-05-25
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_producer_accessories_save_fix_v1.zip`.
@@ -63,8 +79,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_producer_accessories_save_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_producer_preferences_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_cabinet_hardware_requirements_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_producer_accessories_save_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 

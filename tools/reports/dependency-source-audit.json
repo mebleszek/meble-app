@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-25T06:27:49.210Z",
+  "generatedAt": "2026-05-25T19:02:44.520Z",
   "summary": {
-    "jsFiles": 358,
-    "indexScripts": 282,
-    "devTestScripts": 315,
-    "fcSymbols": 257,
-    "fcSymbolsAll": 285,
-    "edges": 1839,
+    "jsFiles": 359,
+    "indexScripts": 283,
+    "devTestScripts": 316,
+    "fcSymbols": 258,
+    "fcSymbolsAll": 286,
+    "edges": 1840,
     "highRisk": 8,
-    "mediumRisk": 65
+    "mediumRisk": 66
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -20,16 +20,16 @@
       "medium": 2
     },
     "SZAFKI": {
-      "files": 30,
-      "lines": 7269,
+      "files": 31,
+      "lines": 7574,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 3
+      "medium": 4
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 4716,
+      "lines": 4718,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -198,12 +198,12 @@
       609
     ],
     [
-      "js/app/catalog/hardware-catalog.js",
-      573
+      "js/app/cabinet/cabinet-modal-standing-specials.js",
+      602
     ],
     [
-      "js/app/cabinet/cabinet-modal-standing-specials.js",
-      569
+      "js/app/catalog/hardware-catalog.js",
+      575
     ],
     [
       "js/app/material/price-modal-hardware-form.js",
@@ -695,7 +695,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 573,
+      "lines": 575,
       "incoming": 18,
       "outgoing": 3,
       "secondLevel": 25,
@@ -1402,6 +1402,22 @@
       "lines": 854,
       "incoming": 0,
       "outgoing": 2,
+      "secondLevel": 0,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii"
+      ]
+    },
+    {
+      "file": "js/app/cabinet/cabinet-modal-standing-specials.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "SZAFKI",
+      "category": "ui/render/events",
+      "lines": 602,
+      "incoming": 0,
+      "outgoing": 0,
       "secondLevel": 0,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -2441,13 +2457,14 @@
     "js/app/cabinet/cabinet-cutlist.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 218,
+      "lines": 238,
       "defines": [
         "cabinetCutlist"
       ],
       "uses": [
         "materialCommon",
         "frontHardware",
+        "cabinetHardwareRequirements",
         "cabinetCutlist"
       ],
       "incomingFiles": [
@@ -2459,6 +2476,7 @@
         "js/testing/wycena/fixtures.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/material/material-common.js"
       ],
       "secondLevelFiles": [
@@ -2537,6 +2555,37 @@
       "reasons": [
         "600+ linii"
       ]
+    },
+    "js/app/cabinet/cabinet-hardware-requirements.js": {
+      "area": "SZAFKI",
+      "category": "domain/controller",
+      "lines": 215,
+      "defines": [
+        "cabinetHardwareRequirements"
+      ],
+      "uses": [
+        "frontHardware",
+        "cabinetHardwareRequirements"
+      ],
+      "incomingFiles": [
+        "js/app/cabinet/cabinet-cutlist.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [
+        "js/app/rozrys/rozrys.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/testing/cabinet/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/wycena/fixtures.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
     },
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
@@ -2803,7 +2852,7 @@
     "js/app/cabinet/cabinet-modal-standing-specials.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 569,
+      "lines": 602,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -2811,12 +2860,12 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 20,
+      "domRefs": 24,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "400+ linii"
+        "600+ linii"
       ]
     },
     "js/app/cabinet/cabinet-modal-standing.js": {
@@ -3037,7 +3086,7 @@
     "js/app/cabinet/front-hardware-hinges.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 125,
+      "lines": 162,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3752,7 +3801,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 573,
+      "lines": 575,
       "defines": [
         "hardwareCatalog"
       ],

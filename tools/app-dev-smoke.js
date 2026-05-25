@@ -1044,6 +1044,47 @@ function runCabinetNodeSmoke(sandbox){
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-labor.js'), 'utf8');
       return src.includes("make('label', `rozrys-scope-chip cabinet-labor-appliance__choice") && src.includes("cb.type = 'checkbox'") && src.includes('api.setMountingMode(draft, opt.value)') && !src.includes("make('button', `rozrys-scope-chip cabinet-labor-appliance__choice");
     } },
+    { name:'Reguły techniczne zawiasów szafek są dostępne', explain:'Chroni etap szafka → wymagania okucia przed dobieraniem konkretnego produktu katalogowego.', check:()=> {
+      const api = FC.cabinetHardwareRequirements;
+      if(!(api && typeof api.getBaseHingeRequirement === 'function' && typeof api.getHingeRequirementWithQty === 'function')) return false;
+      const room = { cabinets:[] };
+      const reqStd = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, details:{} });
+      const reqL = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'narozna_l', width:90, height:82, frontCount:2, details:{} });
+      const reqBlind = api.getBaseHingeRequirement(room, { type:'wisząca', subType:'rogowa_slepa', width:90, height:72, frontCount:1, details:{} });
+      const reqOvenDrawer = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'piekarnikowa', details:{ ovenOption:'szuflada_dol' } });
+      const reqOvenFlap = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'piekarnikowa', details:{ ovenOption:'klapka_dol' } });
+      const reqSinkDrawer = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'zlewowa', details:{ sinkFront:'szuflada' } });
+      const reqUnderDoors = api.getBaseHingeRequirement(room, { type:'wisząca', subType:'dolna_podblatowa', details:{ podFrontMode:'drzwi' } });
+      const reqUnderDrawers = api.getBaseHingeRequirement(room, { type:'wisząca', subType:'dolna_podblatowa', details:{ podFrontMode:'szuflady' } });
+      const reqFridgeDefault = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'lodowkowa', details:{ fridgeOption:'zabudowa' } });
+      const reqFridgeChecked = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'lodowkowa', details:{ fridgeOption:'zabudowa', requiresFurnitureHinges:true } });
+      return reqStd.typeId === 'hinge_110_overlay'
+        && reqL.typeId === 'hinge_170_corner'
+        && reqBlind.typeId === 'hinge_blind_corner' && reqBlind.needsCatalogItem === true
+        && reqOvenDrawer.kind === 'none'
+        && reqOvenFlap.typeId === 'hinge_110_overlay'
+        && reqSinkDrawer.kind === 'none'
+        && reqUnderDoors.typeId === 'hinge_110_overlay' && reqUnderDoors.logicalGroup === 'stojąca_bez_nóg'
+        && reqUnderDrawers.kind === 'none'
+        && reqFridgeDefault.kind === 'none' && reqFridgeDefault.canEnableWithFlag === 'requiresFurnitureHinges'
+        && reqFridgeChecked.typeId === 'hinge_fridge';
+    } },
+    { name:'UI lodówki ma ptaszek zawiasów meblowych', explain:'Chroni decyzję: lodówkowa domyślnie nie dostaje zawiasów, ale front może wymagać zawiasów meblowych.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
+      return src.includes('appendFridgeFurnitureHingeToggle')
+        && src.includes('requiresFurnitureHinges')
+        && src.includes('Wymaga zawiasów meblowych')
+        && src.includes("cb.type = 'checkbox'");
+    } },
+    { name:'Katalog okuć ma typy i cechy pod reguły zawiasów v1', explain:'Chroni przyszły resolver katalogowy: wymagania techniczne mają swoje typy i słownikowe wartości.', check:()=> {
+      const catalogSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/catalog/hardware-catalog.js'), 'utf8');
+      const paramsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/catalog/hardware-technical-params.js'), 'utf8');
+      return catalogSrc.includes("id:'hinge_blind_corner'")
+        && catalogSrc.includes("Do rogowej ślepej / ślepego narożnika")
+        && catalogSrc.includes("id:'hinge_fridge'")
+        && paramsSrc.includes('równoległy / do ślepego narożnika')
+        && paramsSrc.includes('lodówkowy');
+    } },
     { name:'Hardware frontów jest załadowany', explain:'Chroni kalkulatory i katalogi używane przy frontach/podnośnikach.', check:()=> !!(FC.frontHardware && FC.frontHardwareAventosCalc && FC.frontHardwareAventosData && FC.frontHardwareAventosSelector) },
   ]);
 }

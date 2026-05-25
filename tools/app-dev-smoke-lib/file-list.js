@@ -173,6 +173,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/cabinet/front-hardware-aventos-selector.js',
   'js/app/cabinet/front-hardware-aventos.js',
   'js/app/cabinet/front-hardware.js',
+  'js/app/cabinet/cabinet-hardware-requirements.js',
   'js/app/quote/quote-snapshot.js',
   'js/app/quote/quote-pdf.js',
   'js/app/wycena/wycena-room-availability.js',

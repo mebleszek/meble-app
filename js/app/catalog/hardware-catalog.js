@@ -26,6 +26,8 @@
     { id:'hinge_110_inset', name:'110° wpuszczany', allowedCategories:['Zawiasy'], active:true },
     { id:'hinge_155_zero', name:'155° zerowy uskok', allowedCategories:['Zawiasy'], active:true },
     { id:'hinge_170_corner', name:'170° narożny', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_blind_corner', name:'Do rogowej ślepej / ślepego narożnika', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_fridge', name:'Lodówkowy / do frontu lodówki', allowedCategories:['Zawiasy'], active:true },
     { id:'drawer_m', name:'Szuflada M', allowedCategories:['Szuflady / prowadnice'], active:true },
     { id:'drawer_k', name:'Szuflada K', allowedCategories:['Szuflady / prowadnice'], active:true },
     { id:'runner_l500', name:'Prowadnica L500', allowedCategories:['Szuflady / prowadnice'], active:true },

@@ -18,7 +18,7 @@
     { value:'numberRange', label:'Liczba / zakres od-do' },
   ];
   const DEFAULT_DEFINITIONS = [
-    { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
+    { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy / do ślepego narożnika','lodówkowy'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
     { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', options:[], keyFeature:true, typePart:true, compareMode:'withinRange', order:20, active:true },
     { category:'Zawiasy', key:'hamulec', label:'Hamulec / domyk', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
     { category:'Zawiasy', key:'sprezyna', label:'Sprężyna', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:false, compareMode:'equal', order:40, active:true },

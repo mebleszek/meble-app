@@ -59,6 +59,10 @@
     return 0;
   }
 
+  function getHardwareRequirements(){
+    return FC.cabinetHardwareRequirements || {};
+  }
+
   function getAventosInfo(cab, room){
     try{
       const hardware = getFrontHardware();
@@ -181,7 +185,9 @@
     }catch(_){ }
 
     if(hingeQty > 0){
-      parts.push({ name:'Zawias BLUM', qty:hingeQty, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM' });
+      const reqApi = getHardwareRequirements();
+      const req = reqApi && typeof reqApi.getHingeRequirementWithQty === 'function' ? reqApi.getHingeRequirementWithQty(room, cab) : null;
+      parts.push({ name:(req && req.label ? req.label : 'Zawias BLUM'), qty:hingeQty, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM', hardwareRequirement:req || null });
     }
 
     if(String(cab && cab.subType || '') === 'uchylne'){
@@ -204,10 +210,24 @@
         if(info.status === 'needs_more_lifts') parts[parts.length-1].tone = 'orange';
 
         if(info.hkxsHinges && info.hkxsHinges > 0){
-          parts.push({ name:'Zawias BLUM (HK‑XS)', qty:info.hkxsHinges, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM' });
+          const reqApi = getHardwareRequirements();
+          const req = reqApi && typeof reqApi.getHingeRequirementWithQty === 'function' ? reqApi.getHingeRequirementWithQty(room, cab) : null;
+          parts.push({ name:'Zawias 110° nakładany (HK‑XS)', qty:info.hkxsHinges, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM', hardwareRequirement:req || null });
         }
       }
     }
+
+    try{
+      const reqApi = getHardwareRequirements();
+      const isHafele = reqApi && typeof reqApi.isHafeleScissorFlap === 'function' && reqApi.isHafeleScissorFlap(cab);
+      if(isHafele){
+        const req = reqApi.getHingeRequirementWithQty(room, cab);
+        const qty = Math.max(0, Math.round(Number(req && req.qty) || 0));
+        if(qty > 0){
+          parts.push({ name:'Zawias 110° nakładany (podnośnik nożycowy Häfele)', qty, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM', hardwareRequirement:req || null });
+        }
+      }
+    }catch(_){ }
 
     return parts;
   }

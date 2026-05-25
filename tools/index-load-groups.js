@@ -175,6 +175,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/cabinet/front-hardware-aventos-selector.js",
       "js/app/cabinet/front-hardware-aventos.js",
       "js/app/cabinet/front-hardware.js",
+      "js/app/cabinet/cabinet-hardware-requirements.js",
       "js/app/shared/calc.js",
       "js/app/investor/project-bootstrap.js",
       "js/app/bootstrap/app-state-bootstrap.js",

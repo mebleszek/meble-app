@@ -5,6 +5,20 @@
   const getSetDoorFrontPanels = hw.getSetDoorFrontPanels || function(){ return []; };
   const isLeadSetCabinet = hw.isLeadSetCabinet || function(){ return false; };
   const cabinetHasHandle = hw.cabinetHasHandle || function(){ return true; };
+  const getCabinetFrontCutListForMaterials = hw.getCabinetFrontCutListForMaterials || function(){ return []; };
+
+  function text(value){ return String(value == null ? '' : value).trim(); }
+  function bool(value){
+    if(value === true) return true;
+    if(value === false) return false;
+    const raw = text(value).toLowerCase();
+    return ['1','true','tak','yes','y'].includes(raw);
+  }
+  function detailsOf(cab){ return cab && cab.details && typeof cab.details === 'object' ? cab.details : {}; }
+  function fridgeNeedsFurnitureHinges(cab){
+    const d = detailsOf(cab);
+    return bool(d.requiresFurnitureHinges) || bool(d.fridgeRequiresFurnitureHinges) || bool(d.needsFurnitureHinges);
+  }
 
   const getProjectRoomData = hw.getProjectRoomData || function(){ return null; };
 
@@ -46,10 +60,19 @@ function getDoorFrontPanelsForHinges(room, cab){
   const type = String(cab.type || '');
   const sub = String(cab.subType || '');
 
-  // brak zawiasów dla klap (AVENTOS) i frontów urządzeń
+  // brak zawiasów dla klap (AVENTOS) i frontów urządzeń, z wyjątkami obsługiwanymi osobno
   if(sub === 'uchylne') return out;
   if(type !== 'stojąca' && type !== 'wisząca' && type !== 'moduł') return out;
-  if(sub === 'szuflady' || sub === 'zmywarkowa' || sub === 'lodowkowa') return out;
+  if(sub === 'szuflady' || sub === 'zmywarkowa') return out;
+  const det = detailsOf(cab);
+  if(sub === 'zlewowa' && text(det.sinkFront || 'drzwi') === 'szuflada') return out;
+  if(sub === 'piekarnikowa' && text(det.ovenOption || 'szuflada_dol').indexOf('szuflada') !== -1) return out;
+  if(sub === 'dolna_podblatowa'){
+    const mode = text(det.podFrontMode || (det.subTypeOption && String(det.subTypeOption).indexOf('szuflada') === 0 ? 'szuflady' : 'drzwi')) || 'drzwi';
+    if(mode === 'brak' || mode === 'szuflady') return out;
+  }
+  if(sub === 'okap' && text(det.hoodFrontMode || 'drzwi') === 'klapa') return out;
+  if(sub === 'lodowkowa' && (!fridgeNeedsFurnitureHinges(cab) || text(det.fridgeOption || 'zabudowa') !== 'zabudowa')) return out;
   const hasHandle = cabinetHasHandle(cab);
 
 
@@ -84,6 +107,20 @@ function getDoorFrontPanelsForHinges(room, cab){
     const fc = Math.max(1, Number(cab.details?.doorCount || cab.frontCount || 2));
     const wEach = fc ? (effectiveW / fc) : 0;
     for(let i=0;i<fc;i++) out.push({ w: wEach, h: doorH , material: (cab.frontMaterial || 'laminat') , hasHandle: hasHandle });
+    return out;
+  }
+
+  // lodówkowa: zawiasy tylko po ręcznym zaznaczeniu, liczone z frontów lodówki
+  if(type === 'stojąca' && sub === 'lodowkowa'){
+    const parts = getCabinetFrontCutListForMaterials(room, cab) || [];
+    parts.forEach((part)=>{
+      const qty = Math.max(1, Number(part && part.qty) || 1);
+      const ww = Number(part && part.a) || 0;
+      const hh = Number(part && part.b) || 0;
+      for(let i=0; i<qty; i += 1){
+        if(ww > 0 && hh > 0) out.push({ w:ww, h:hh, material:(cab.frontMaterial || 'laminat'), hasHandle:hasHandle });
+      }
+    });
     return out;
   }
 
