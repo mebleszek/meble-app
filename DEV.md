@@ -1,5 +1,29 @@
 # DEV.md — meble-app
 
+## Wywiad labor header compact v1 — 2026-05-26
+
+- Aktualna paczka robocza po tym etapie: `site_wywiad_labor_header_compact_v1.zip`.
+- Baza startowa: `site_wywiad_labor_header_status_v1.zip`.
+- Na karcie szafki w WYWIADZIE nagłówek dodatków robocizny pokazuje teraz tylko nazwy czynności, bez ilości typu `×3`; ilości zostają w rozwiniętej sekcji `Czynności robocizny`.
+- Czynności robocizny w nagłówku są kolorowane na pomarańczowo jako informacja ostrzegawcza/dodatkowa robota, a status montażu sprzętu zostaje: zielony dla montażu wliczonego i czerwony dla `bez montażu`.
+- Nie zmieniano wielkości, wagi ani ogólnej typografii tekstów w nagłówku; zmiana dotyczy wyłącznie treści i koloru linii czynności.
+- Rozszerzono `tools/app-dev-smoke.js` o regresję, że nagłówek nie pokazuje ilości `×2/×3` i że czynności mają osobny pomarańczowy kolor.
+- Zaktualizowano cache-busting `wywiad.css`, `wywiad-labor-summary.js` i `wywiad.js` w `index.html` oraz `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, storage, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/wywiad-labor-header-compact-v1.md`.
+
+## Wywiad labor header status v1 — 2026-05-26
+
+- Aktualna paczka robocza po tym etapie: `site_wywiad_labor_header_status_v1.zip`.
+- Baza startowa: `site_fridge_single_front_hinges_fix_v1.zip`.
+- Na karcie szafki w WYWIADZIE status montażu sprzętu jest teraz kolorowany zgodnie z wyborem: `bez montażu` na czerwono, `z montażem` na zielono.
+- Dodatkowe czynności robocizny w nagłówku karty są renderowane w osobnych liniach, bez zmiany wielkości, wagi ani ogólnej typografii.
+- `js/tabs/wywiad-labor-summary.js` dostał `getHeaderLines()` i `renderHeaderSummary()`, a stary `getHeaderText()` zostaje kompatybilny jako tekstowy fallback/test.
+- Rozszerzono `tools/app-dev-smoke.js` o regresję czerwonego/zielonego statusu i osobnych linii czynności.
+- Zaktualizowano cache-busting `wywiad.css`, `wywiad-labor-summary.js` i `wywiad.js` w `index.html` oraz `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, storage, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/wywiad-labor-header-status-v1.md`.
+
 ## Fridge single front hinges fix v1 — 2026-05-25
 
 - Aktualna paczka robocza po tym etapie: `site_fridge_single_front_hinges_fix_v1.zip`.

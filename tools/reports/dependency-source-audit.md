@@ -35,7 +35,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | INNE | 7 | 1333 | 2 | 0 | 0 | 0 |
 | DANE/STORAGE | 15 | 1332 | 36 | 0 | 0 | 0 |
 | SHARED | 11 | 1268 | 0 | 0 | 0 | 0 |
-| ZAKŁADKI | 3 | 585 | 0 | 0 | 0 | 0 |
+| ZAKŁADKI | 3 | 627 | 0 | 0 | 0 | 0 |
 | CORE | 2 | 128 | 0 | 0 | 0 | 0 |
 
 ## Największe pliki

@@ -1030,11 +1030,33 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;
-      if(!(api && typeof api.getHeaderText === 'function' && typeof api.renderCabinetLaborSummary === 'function')) return false;
-      const cab = { type:'wisząca', subType:'okap', details:{ applianceMountingMode:'none' }, laborItems:[{ rateId:'labor_hole_fi60', qty:2 }] };
+      if(!(api && typeof api.getHeaderText === 'function' && typeof api.getHeaderLines === 'function' && typeof api.renderHeaderSummary === 'function' && typeof api.renderCabinetLaborSummary === 'function')) return false;
+      const cab = { type:'wisząca', subType:'okap', details:{ applianceMountingMode:'none' }, laborItems:[{ rateId:'labor_hole_fi60', qty:2 }, { rateId:'labor_custom_extra', qty:1 }] };
       const header = api.getHeaderText(cab);
+      const lines = api.getHeaderLines(cab);
+      const headerNode = api.renderHeaderSummary(cab);
       const node = api.renderCabinetLaborSummary(cab);
-      return /Otwór fi 60/.test(header) && /bez montażu/.test(header) && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent) && /bez montażu/.test(node.textContent));
+      const mountOff = headerNode && headerNode.querySelector('.cabinet-header__labor-line--mount-off');
+      const laborLines = headerNode ? headerNode.querySelectorAll('.cabinet-header__labor-line--item') : [];
+      return /Otwór fi 60/.test(header)
+        && !/×2/.test(header)
+        && !/×3/.test(header)
+        && /bez montażu/.test(header)
+        && lines.length === 3
+        && !!(mountOff && /bez montażu/.test(mountOff.textContent || ''))
+        && laborLines.length === 2
+        && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent) && /bez montażu/.test(node.textContent));
+    } },
+    { name:'WYWIAD koloruje status montażu sprzętu w nagłówku szafki', explain:'Pilnuje czerwonego statusu bez montażu i zielonego statusu z montażem bez zmiany układu czcionek.', check:()=> {
+      const api = FC.wywiadLaborSummary;
+      if(!(api && typeof api.renderHeaderSummary === 'function')) return false;
+      const offNode = api.renderHeaderSummary({ type:'stojąca', subType:'piekarnikowa', details:{ applianceMountingMode:'none' }, laborItems:[] });
+      const onNode = api.renderHeaderSummary({ type:'stojąca', subType:'piekarnikowa', details:{ applianceMountingMode:'mount' }, laborItems:[] });
+      const css = fs.readFileSync(path.join(process.cwd(), 'css/wywiad.css'), 'utf8');
+      return !!(offNode && offNode.querySelector('.cabinet-header__labor-line--mount-off') && onNode && onNode.querySelector('.cabinet-header__labor-line--mount-on'))
+        && css.includes('.cabinet-header__labor-line--mount-off{color:#dc2626;}')
+        && css.includes('.cabinet-header__labor-line--mount-on{color:#16a34a;}')
+        && css.includes('.cabinet-header__labor-line--item{color:#f97316;}');
     } },
     { name:'Modal szafki ma robociznę po parametrach i materiałach', explain:'Chroni kolejność: najpierw typ, wymiary i materiały szafki, dopiero potem dodatkowe czynności.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T21:58:31.332Z",
+  "generatedAt": "2026-05-25T22:46:48.476Z",
   "summary": {
     "jsFiles": 359,
     "indexScripts": 283,
@@ -133,7 +133,7 @@
     },
     "ZAKŁADKI": {
       "files": 3,
-      "lines": 585,
+      "lines": 627,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -17121,7 +17121,7 @@
     "js/tabs/wywiad-labor-summary.js": {
       "area": "ZAKŁADKI",
       "category": "tab/controller",
-      "lines": 112,
+      "lines": 146,
       "defines": [
         "wywiadLaborSummary"
       ],
@@ -17153,7 +17153,7 @@
     "js/tabs/wywiad.js": {
       "area": "ZAKŁADKI",
       "category": "ui/render/events",
-      "lines": 216,
+      "lines": 224,
       "defines": [
         "tabsWywiad"
       ],

@@ -1,13 +1,27 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_fridge_single_front_hinges_fix_v1.zip`.
+Aktualna paczka: `site_wywiad_labor_header_compact_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Naprawiono lodówkową z jednym dużym frontem: po zaznaczeniu `Wymaga zawiasów meblowych` zawiasy nie są już liczone jak dla dwóch frontów góra/dół.
-- `front-hardware-fronts.js` respektuje teraz `fridgeFrontCount`: `1` = jeden duży front, `2` = dolny + górny front.
-- Dodano test regresji w `app-dev-smoke`, żeby ten błąd nie wrócił.
+- Uproszczono podgląd czynności robocizny w nagłówku karty szafki w WYWIADZIE.
+- Nagłówek pokazuje nazwy czynności bez ilości, bo szczegóły i ilości są wypisane niżej w sekcji `Czynności robocizny`.
+- Status montażu sprzętu zostaje kolorowany: czerwony dla `bez montażu`, zielony dla montażu wliczonego.
+- Czynności robocizny w nagłówku są pomarańczowe jako sygnał dodatkowej pracy/uwagi.
+- Nie zmieniano wielkości, wagi ani ogólnej typografii.
 - Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+
+## site_wywiad_labor_header_compact_v1 — 2026-05-26
+
+- Baza: `site_wywiad_labor_header_status_v1.zip`.
+- Zmieniono `js/tabs/wywiad-labor-summary.js`, `css/wywiad.css`, test `tools/app-dev-smoke.js`, dokumentację i cache-busting.
+- Raport: `tools/reports/wywiad-labor-header-compact-v1.md`.
+
+## site_wywiad_labor_header_status_v1 — 2026-05-26
+
+- Baza: `site_fridge_single_front_hinges_fix_v1.zip`.
+- Zmieniono `js/tabs/wywiad-labor-summary.js`, `js/tabs/wywiad.js`, `css/wywiad.css`, test `tools/app-dev-smoke.js`, dokumentację i cache-busting.
+- Raport: `tools/reports/wywiad-labor-header-status-v1.md`.
 
 ## site_fridge_single_front_hinges_fix_v1 — 2026-05-25
 
