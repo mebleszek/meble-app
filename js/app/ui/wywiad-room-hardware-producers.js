@@ -5,6 +5,7 @@
   'use strict';
   const ns = (window.FC = window.FC || {});
   const EMPTY_OPTION = '— nie ustawiaj —';
+  const draftCache = {};
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function getApi(){ return ns.roomPreferences || {}; }
@@ -35,6 +36,28 @@
       out.push(value);
     });
     return out;
+  }
+
+  function clone(value){
+    try{ if(ns.utils && typeof ns.utils.clone === 'function') return ns.utils.clone(value); }catch(_){ }
+    try{ return JSON.parse(JSON.stringify(value || {})); }catch(_){ return value && typeof value === 'object' ? Object.assign({}, value) : {}; }
+  }
+
+  function draftKey(room){ return text(room) || '__current__'; }
+
+  function rememberDraft(room, draft){
+    const key = draftKey(room);
+    if(!key) return;
+    draftCache[key] = clone(draft || {});
+  }
+
+  function clearDraft(room){ delete draftCache[draftKey(room)]; }
+
+  function getWorkingPreferences(room, preferences){
+    const api = getApi();
+    const normalized = api.normalizeRoomPreferences ? api.normalizeRoomPreferences(preferences) : clone(preferences || {});
+    const cached = draftCache[draftKey(room)];
+    return cached ? (api.normalizeRoomPreferences ? api.normalizeRoomPreferences(cached) : clone(cached)) : normalized;
   }
 
   function getSharedUiState(){
@@ -155,7 +178,7 @@
     return footer;
   }
 
-  function makeProducerField(group, draft, refreshAll){
+  function makeProducerField(room, group, draft, form, refreshAll){
     const options = getHardwareManufacturers();
     const values = ensureHardwareDraft(draft);
     const key = text(group && group.key);
@@ -170,11 +193,15 @@
     values[key] = current;
     const btn = makeChoiceButton(selectedLabel(options, current));
     btn.setAttribute('aria-label', 'Wybierz producenta: ' + (group.label || key));
+    btn.setAttribute('data-hardware-producer-key', key);
+    btn.setAttribute('data-hardware-producer-value', current);
     btn.addEventListener('click', async ()=>{
       const nextOptions = getHardwareManufacturers();
       const picked = await openChoice('Wybierz producenta — ' + (group.label || key), optionList(nextOptions), values[key]);
       if(picked == null) return;
       values[key] = canonicalManufacturer(picked, nextOptions);
+      btn.setAttribute('data-hardware-producer-value', values[key]);
+      rememberDraft(room, draft);
       setChoiceButtonLabel(btn, selectedLabel(nextOptions, values[key]));
       if(typeof refreshAll === 'function') refreshAll();
     });
@@ -184,14 +211,29 @@
       refresh(){
         const nextOptions = getHardwareManufacturers();
         values[key] = canonicalManufacturer(values[key], nextOptions);
+        btn.setAttribute('data-hardware-producer-value', values[key]);
         setChoiceButtonLabel(btn, selectedLabel(nextOptions, values[key]));
       }
     };
   }
 
+  function readFormSelections(form, draft){
+    const values = ensureHardwareDraft(draft);
+    const options = getHardwareManufacturers();
+    const buttons = form && typeof form.querySelectorAll === 'function'
+      ? Array.from(form.querySelectorAll('[data-hardware-producer-key]'))
+      : [];
+    buttons.forEach((btn)=>{
+      const key = text(btn && btn.getAttribute && btn.getAttribute('data-hardware-producer-key'));
+      if(!key) return;
+      values[key] = canonicalManufacturer(btn.getAttribute('data-hardware-producer-value'), options);
+    });
+    return draft;
+  }
+
   function buildInlineForm(room, draft){
     const api = getApi();
-    const normalized = api.normalizeRoomPreferences ? api.normalizeRoomPreferences(draft) : (draft || {});
+    const normalized = getWorkingPreferences(room, draft);
     const working = Object.assign({}, normalized, { hardwareProducers:Object.assign({}, normalized.hardwareProducers || {}) });
     const manufacturerOptions = getHardwareManufacturers();
     sanitizeDraftToExistingManufacturers(working, manufacturerOptions);
@@ -217,7 +259,7 @@
     const grid = h('div', { class:'wywiad-zone-grid wywiad-hardware-grid' });
     const groups = Array.isArray(api.HARDWARE_PRODUCER_GROUPS) ? api.HARDWARE_PRODUCER_GROUPS : [];
     groups.forEach((group)=>{
-      const field = makeProducerField(group, working, ()=>{ refreshSummary(); refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } }); });
+      const field = makeProducerField(room, group, working, form, ()=>{ refreshSummary(); refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } }); });
       refreshers.push(field.refresh);
       grid.appendChild(field.wrap);
     });
@@ -226,8 +268,11 @@
 
     form.appendChild(createSaveFooter('Preferencje producentów okuć', ()=>{
       const nextApi = getApi();
+      readFormSelections(form, working);
       sanitizeDraftToExistingManufacturers(working, getHardwareManufacturers());
+      rememberDraft(room, working);
       if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, working);
+      clearDraft(room);
       renderSummary(room);
       try{ if(ns.wywiadRoomPreferences && typeof ns.wywiadRoomPreferences.renderSummary === 'function') ns.wywiadRoomPreferences.renderSummary(room); }catch(_){ }
     }));

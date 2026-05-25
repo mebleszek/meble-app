@@ -1,13 +1,20 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_room_accordion_save_fix_v1.zip`.
+Aktualna paczka: `site_hardware_producer_accessories_save_fix_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Poprawiono zapis w akordeonie `Preferencje producentów okuć`, żeby wybrany producent nie znikał po kliknięciu `Zapisz zmiany`.
-- Dodano wspólny helper stopki zapisu dla akordeonów WYWIADU pomieszczenia: `Parametry pomieszczenia`, `Preferencje producentów okuć`, `Preferencje materiałów i kolorów`.
-- `Parametry pomieszczenia` mają teraz zielony przycisk `Zapisz zmiany`; edycja pól działa jak draft z podglądem auto-wysokości, a zapis następuje po kliknięciu.
+- Naprawiono zapis pola `Pozostałe akcesoria` w akordeonie `Preferencje producentów okuć`.
+- Formularz producentów okuć czyta przy zapisie realne wartości launcherów, więc wybór np. `Rejs` w `Pozostałe akcesoria` nie powinien znikać po `Zapisz zmiany`.
+- Dodano bufor draftu dla tego akordeonu, żeby przebudowa widoku na telefonie nie kasowała wyboru przed zapisem.
+- Rozszerzono `app-dev-smoke` o test zapisu `hardwareProducers.accessories` oraz kontrakt UI źródła wartości launcherów.
 - Nie ruszano stabilnego panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+
+## site_hardware_producer_accessories_save_fix_v1 — 2026-05-25
+
+- Baza: `site_room_accordion_save_fix_v1.zip`.
+- Zmieniono tylko `js/app/ui/wywiad-room-hardware-producers.js`, test `tools/app-dev-smoke.js`, dokumentację i cache-busting.
+- Raport: `tools/reports/hardware-producer-accessories-save-fix-v1.md`.
 
 ## site_room_accordion_save_fix_v1 — 2026-05-25
 

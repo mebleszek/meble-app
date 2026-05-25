@@ -25,7 +25,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | WYCENA | 45 | 6956 | 0 | 0 | 0 | 6 |
 | MATERIAŁ | 27 | 5702 | 8 | 3 | 0 | 3 |
 | KATALOG/USŁUGI | 24 | 4716 | 4 | 0 | 1 | 2 |
-| UI | 32 | 4198 | 0 | 6 | 0 | 2 |
+| UI | 32 | 4243 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3448 | 24 | 0 | 0 | 4 |
 | PROJEKT | 10 | 2022 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |

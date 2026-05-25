@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T05:43:12.133Z",
+  "generatedAt": "2026-05-25T06:27:49.210Z",
   "summary": {
     "jsFiles": 358,
     "indexScripts": 282,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 32,
-      "lines": 4198,
+      "lines": 4243,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -15116,7 +15116,7 @@
     "js/app/ui/wywiad-room-hardware-producers.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 258,
+      "lines": 303,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -15124,7 +15124,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 8,
+      "domRefs": 10,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

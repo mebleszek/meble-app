@@ -1,5 +1,15 @@
 # DEV.md — meble-app
 
+## Hardware producer accessories save fix v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_producer_accessories_save_fix_v1.zip`.
+- Baza startowa: `site_room_accordion_save_fix_v1.zip`.
+- Naprawiono zgłoszoną regresję: pole `Pozostałe akcesoria` w akordeonie `Preferencje producentów okuć` nie mogło tracić wartości po kliknięciu `Zapisz zmiany`.
+- `js/app/ui/wywiad-room-hardware-producers.js` dostał bezpieczny odczyt wartości z launcherów przy zapisie (`data-hardware-producer-key/value`) oraz bufor draftu na czas przebudowy widoku.
+- Rozszerzono `tools/app-dev-smoke.js` o test roundtrip `room.preferences.hardwareProducers.accessories` i kontrakt UI zapisu wartości launcherów.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogu okuć do wyceny.
+- Raport: `tools/reports/hardware-producer-accessories-save-fix-v1.md`.
+
 ## Room accordion save fix v1 — 2026-05-25
 
 - Aktualna paczka robocza po tym etapie: `site_room_accordion_save_fix_v1.zip`.
@@ -53,7 +63,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_room_accordion_save_fix_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_producer_accessories_save_fix_v1.zip`.
 - Baza startowa tej paczki: `site_hardware_producer_preferences_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.

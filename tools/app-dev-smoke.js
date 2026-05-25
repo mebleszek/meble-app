@@ -89,6 +89,23 @@ function runProjectNodeSmoke(sandbox){
         && !html.includes('roomHardwareProducerPreferencesAccordion" open')
         && !html.includes('roomPreferencesAccordion" open');
     } },
+    { name:'Preferencje producentów okuć zapisują Pozostałe akcesoria', explain:'Chroni zgłoszoną regresję: wybór w polu Pozostałe akcesoria nie może znikać po kliknięciu Zapisz zmiany.', check:()=> {
+      if(!(FC.roomPreferences && typeof FC.roomPreferences.setRoomPreferences === 'function' && typeof FC.roomPreferences.getRoomPreferences === 'function')) return false;
+      const previous = sandbox.projectData;
+      sandbox.projectData = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{} } });
+      FC.roomPreferences.setRoomPreferences('kuchnia', { hardwareProducers:{ hinges:'Blum', accessories:'Rejs' } }, { skipSave:true });
+      const got = FC.roomPreferences.getRoomPreferences('kuchnia');
+      sandbox.projectData = previous;
+      return !!(got && got.hardwareProducers && got.hardwareProducers.hinges === 'Blum' && got.hardwareProducers.accessories === 'Rejs');
+    } },
+    { name:'UI producentów okuć czyta wartości z launcherów przy zapisie', explain:'Chroni mobilny scenariusz, w którym formularz zostaje przebudowany albo closure draftu jest nieaktualne — Zapisz zmiany ma czytać realne wartości pól, w tym Pozostałe akcesoria.', check:()=> {
+      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
+      return src.includes('function readFormSelections')
+        && src.includes('data-hardware-producer-key')
+        && src.includes('data-hardware-producer-value')
+        && src.includes('rememberDraft(room, draft)')
+        && src.includes('readFormSelections(form, working)');
+    } },
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
     { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
     { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
