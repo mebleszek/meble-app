@@ -1,14 +1,20 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_producer_preferences_v1.zip`.
+Aktualna paczka: `site_room_accordion_save_fix_v1.zip`.
 
 ## Ostatnia zmiana
 
-- W `WYWIADZIE` dodano osobny akordeon `Preferencje producentów okuć` między parametrami pomieszczenia i preferencjami materiałowo-kolorystycznymi.
-- Dotychczasowy akordeon `Preferencje standardu` nazwano `Preferencje materiałów i kolorów`.
-- Producentów okuć wybiera się wyłącznie z istniejących producentów katalogu okuć przez launchery aplikacyjne: `Zawiasy`, `Szuflady / prowadnice`, `Podnośniki`, `Cargo`, `Pozostałe akcesoria`.
-- WYCENA dostała pierwszy bezpieczny most do preferencji producentów z WYWIADU dla uproszczonych linii okuć; bez trwałych zamian w projekcie i bez pełnego resolvera katalogowych pozycji okuć.
+- Poprawiono zapis w akordeonie `Preferencje producentów okuć`, żeby wybrany producent nie znikał po kliknięciu `Zapisz zmiany`.
+- Dodano wspólny helper stopki zapisu dla akordeonów WYWIADU pomieszczenia: `Parametry pomieszczenia`, `Preferencje producentów okuć`, `Preferencje materiałów i kolorów`.
+- `Parametry pomieszczenia` mają teraz zielony przycisk `Zapisz zmiany`; edycja pól działa jak draft z podglądem auto-wysokości, a zapis następuje po kliknięciu.
 - Nie ruszano stabilnego panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+
+## site_room_accordion_save_fix_v1 — 2026-05-25
+
+- Baza: `site_hardware_producer_preferences_v1.zip`.
+- Dodano `js/app/ui/wywiad-room-accordion-actions.js` jako wspólną stopkę zapisu dla akordeonów WYWIADU.
+- Zmieniono przyciski zapisu na spójne `Zapisz zmiany`.
+- Raport: `tools/reports/room-accordion-save-fix-v1.md`.
 
 ## site_hardware_producer_preferences_v1 — 2026-05-24
 

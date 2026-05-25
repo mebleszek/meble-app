@@ -103,7 +103,9 @@
   function canonicalManufacturer(value, options){
     const raw = text(value);
     if(!raw) return '';
-    return unique(options || []).find((item)=> item.toLowerCase() === raw.toLowerCase()) || '';
+    const rows = unique(options || []);
+    if(!rows.length) return raw;
+    return rows.find((item)=> item.toLowerCase() === raw.toLowerCase()) || '';
   }
 
   function ensureHardwareDraft(draft){
@@ -138,6 +140,19 @@
       openInfo(title, message);
     });
     return btn;
+  }
+
+
+  function createSaveFooter(sectionTitle, onSave){
+    const api = ns.wywiadRoomAccordionActions;
+    if(api && typeof api.createSaveFooter === 'function'){
+      return api.createSaveFooter({ sectionTitle, buttonText:'Zapisz zmiany', onSave }).footer;
+    }
+    const footer = h('div', { class:'wywiad-room-inline-form__footer' });
+    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz zmiany', 'aria-label':'Zapisz zmiany — ' + sectionTitle });
+    saveBtn.addEventListener('click', onSave);
+    footer.appendChild(saveBtn);
+    return footer;
   }
 
   function makeProducerField(group, draft, refreshAll){
@@ -209,16 +224,13 @@
     card.appendChild(grid);
     form.appendChild(card);
 
-    const footer = h('div', { class:'wywiad-room-inline-form__footer' });
-    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz producentów' });
-    saveBtn.addEventListener('click', ()=>{
+    form.appendChild(createSaveFooter('Preferencje producentów okuć', ()=>{
       const nextApi = getApi();
+      sanitizeDraftToExistingManufacturers(working, getHardwareManufacturers());
       if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, working);
       renderSummary(room);
       try{ if(ns.wywiadRoomPreferences && typeof ns.wywiadRoomPreferences.renderSummary === 'function') ns.wywiadRoomPreferences.renderSummary(room); }catch(_){ }
-    });
-    footer.appendChild(saveBtn);
-    form.appendChild(footer);
+    }));
     refreshSummary();
     refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } });
     return form;

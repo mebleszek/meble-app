@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-24T16:15:38.456Z",
+  "generatedAt": "2026-05-25T05:43:12.133Z",
   "summary": {
-    "jsFiles": 357,
-    "indexScripts": 281,
-    "devTestScripts": 314,
+    "jsFiles": 358,
+    "indexScripts": 282,
+    "devTestScripts": 315,
     "fcSymbols": 257,
     "fcSymbolsAll": 285,
     "edges": 1839,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 31,
-      "lines": 4079,
+      "files": 32,
+      "lines": 4198,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -15096,10 +15096,27 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/ui/wywiad-room-accordion-actions.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 53,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 1,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/ui/wywiad-room-hardware-producers.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 246,
+      "lines": 258,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -15111,7 +15128,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/ui/wywiad-room-preferences-bulk-modal.js": {
       "area": "UI",
@@ -15133,7 +15152,7 @@
     "js/app/ui/wywiad-room-preferences.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 325,
+      "lines": 334,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -15152,7 +15171,7 @@
     "js/app/ui/wywiad-room-settings.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 314,
+      "lines": 359,
       "defines": [],
       "uses": [
         "roomRegistry",
@@ -15167,7 +15186,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 18,
+      "domRefs": 19,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

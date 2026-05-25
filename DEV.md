@@ -1,5 +1,16 @@
 # DEV.md — meble-app
 
+## Room accordion save fix v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_room_accordion_save_fix_v1.zip`.
+- Baza startowa: `site_hardware_producer_preferences_v1.zip`.
+- Poprawiono regresję zapisu w `Preferencjach producentów okuć`: wybrany producent, np. Blum, nie jest czyszczony przy zapisie/przebudowie widoku, jeżeli lista producentów jest chwilowo niedostępna.
+- Dodano wspólny helper `js/app/ui/wywiad-room-accordion-actions.js` dla zielonego przycisku `Zapisz zmiany` w akordeonach WYWIADU pomieszczenia.
+- `Parametry pomieszczenia` dostały zielony przycisk `Zapisz zmiany`; pola w akordeonie działają teraz jak draft z podglądem auto-wysokości i zapisują komplet parametrów po kliknięciu przycisku.
+- `Preferencje producentów okuć` i `Preferencje materiałów i kolorów` używają tego samego helpera stopki zapisu; materiały zachowują przycisk `Zastosuj do istniejących szafek`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogu okuć do wyceny.
+- Raport: `tools/reports/room-accordion-save-fix-v1.md`.
+
 ## Hardware producer preferences v1 — 2026-05-24
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_producer_preferences_v1.zip`.
@@ -42,8 +53,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_producer_preferences_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_room_accordion_save_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_producer_preferences_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 

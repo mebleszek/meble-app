@@ -182,6 +182,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/bootstrap/reload-restore.js",
       "js/app/investor/project-autosave.js",
       "js/app/ui/settings-ui.js",
+      "js/app/ui/wywiad-room-accordion-actions.js",
       "js/app/ui/wywiad-room-settings.js",
       "js/app/ui/wywiad-room-hardware-producers.js",
       "js/app/ui/wywiad-room-preferences.js",

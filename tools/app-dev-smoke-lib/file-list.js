@@ -90,6 +90,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/ui/data-settings-backup-view.js',
   'js/app/ui/data-settings-modal.js',
   'js/app/ui/app-view.js',
+  'js/app/ui/wywiad-room-accordion-actions.js',
   'js/app/ui/wywiad-room-settings.js',
   'js/app/ui/wywiad-room-hardware-producers.js',
   'js/app/ui/wywiad-room-preferences.js',

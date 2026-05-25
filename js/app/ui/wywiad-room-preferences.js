@@ -109,6 +109,20 @@
     btn.textContent = String(label || '');
   }
 
+
+  function createSaveFooter(sectionTitle, beforeButtons, onSave){
+    const api = ns.wywiadRoomAccordionActions;
+    if(api && typeof api.createSaveFooter === 'function'){
+      return api.createSaveFooter({ sectionTitle, buttonText:'Zapisz zmiany', split:Array.isArray(beforeButtons) && beforeButtons.length > 0, beforeButtons, onSave }).footer;
+    }
+    const footer = h('div', { class:'wywiad-room-inline-form__footer' + ((Array.isArray(beforeButtons) && beforeButtons.length) ? ' wywiad-room-inline-form__footer--split' : '') });
+    (Array.isArray(beforeButtons) ? beforeButtons : []).forEach((btn)=>{ if(btn) footer.appendChild(btn); });
+    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz zmiany', 'aria-label':'Zapisz zmiany — ' + sectionTitle });
+    saveBtn.addEventListener('click', onSave);
+    footer.appendChild(saveBtn);
+    return footer;
+  }
+
   async function openChoice(title, options, value){
     const api = getChoiceApi();
     if(api && typeof api.openRozrysChoiceOverlay === 'function') return api.openRozrysChoiceOverlay({ title, value:String(value || ''), options });
@@ -207,22 +221,17 @@
     const zoneKeys = Array.isArray(api.ZONE_KEYS) ? api.ZONE_KEYS : ['lower','middle','upper'];
     zoneKeys.forEach((zoneKey)=> form.appendChild(buildZoneCard(zoneKey, draft, refreshers, refreshAll)));
 
-    const footer = h('div', { class:'wywiad-room-inline-form__footer wywiad-room-inline-form__footer--split' });
     const bulkBtn = h('button', { type:'button', class:'btn wywiad-room-inline-form__bulk', text:'Zastosuj do istniejących szafek' });
     bulkBtn.addEventListener('click', ()=>{
       try{
         if(ns.wywiadRoomPreferencesBulk && typeof ns.wywiadRoomPreferencesBulk.open === 'function') ns.wywiadRoomPreferencesBulk.open(room);
       }catch(_){ }
     });
-    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz preferencje' });
-    saveBtn.addEventListener('click', ()=>{
+    form.appendChild(createSaveFooter('Preferencje materiałów i kolorów', [bulkBtn], ()=>{
       const nextApi = getApi();
       if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, draft);
       renderSummary(room);
-    });
-    footer.appendChild(bulkBtn);
-    footer.appendChild(saveBtn);
-    form.appendChild(footer);
+    }));
     refreshAll();
     return form;
   }

@@ -929,12 +929,17 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
       const hardwareSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
+      const settingsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-settings.js'), 'utf8');
+      const actionsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-accordion-actions.js'), 'utf8');
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      return (src.includes('Strefa dolna / stojące')
+      return actionsSrc.includes('createSaveFooter')
+        && settingsSrc.includes("createSaveFooter('Parametry pomieszczenia'")
+        && settingsSrc.includes('applySettingsValues(room, buildPreviewSettings(inputs))')
+        && (src.includes('Strefa dolna / stojące')
         || (src.includes('buildZoneCard') && src.includes('wywiad-zone-choice') && src.includes('openRozrysChoiceOverlay') && !src.includes("document.createElement('select')")))
         && hardwareSrc.includes('getHardwareManufacturers')
         && hardwareSrc.includes('openRozrysChoiceOverlay')
-        && hardwareSrc.includes('Zapisz producentów')
+        && hardwareSrc.includes('Zapisz zmiany')
         && hardwareSrc.includes('Pozostałe akcesoria')
         && !hardwareSrc.includes("document.createElement('select')")
         && !hardwareSrc.includes("h('select'")
