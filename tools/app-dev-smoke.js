@@ -1076,6 +1076,29 @@ function runCabinetNodeSmoke(sandbox){
         && src.includes('Wymaga zawiasów meblowych')
         && src.includes("cb.type = 'checkbox'");
     } },
+    { name:'Lodówka z jednym dużym frontem liczy jeden front do zawiasów', explain:'Chroni zgłoszoną regresję: lodówkowa z ustawieniem 1 front nie może liczyć zawiasów jak dwa fronty góra/dół.', check:()=> {
+      const hw = FC.frontHardware;
+      if(!(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function' && typeof hw.getHingeCountForCabinet === 'function' && typeof hw.blumHingesPerDoor === 'function')) return false;
+      const previousProject = sandbox.projectData;
+      try{
+        sandbox.projectData = { schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ legHeight:10, bottomHeight:82 } } };
+        const cabOne = { id:'fridge_one', type:'stojąca', subType:'lodowkowa', width:60, height:200, frontMaterial:'laminat', details:{ fridgeOption:'zabudowa', fridgeFrontCount:'1', requiresFurnitureHinges:true } };
+        const cabTwo = { id:'fridge_two', type:'stojąca', subType:'lodowkowa', width:60, height:200, frontMaterial:'laminat', details:{ fridgeOption:'zabudowa', fridgeFrontCount:'2', requiresFurnitureHinges:true } };
+        const oneParts = hw.getCabinetFrontCutListForMaterials('kuchnia', cabOne);
+        const twoParts = hw.getCabinetFrontCutListForMaterials('kuchnia', cabTwo);
+        const expectedOne = hw.blumHingesPerDoor(60, 190, 'laminat', true);
+        return oneParts.length === 1
+          && oneParts[0].qty === 1
+          && oneParts[0].a === 60
+          && oneParts[0].b === 190
+          && twoParts.length === 2
+          && twoParts.some((part)=> part.b === 72)
+          && twoParts.some((part)=> part.b === 118)
+          && hw.getHingeCountForCabinet('kuchnia', cabOne) === expectedOne;
+      }finally{
+        sandbox.projectData = previousProject;
+      }
+    } },
     { name:'Katalog okuć ma typy i cechy pod reguły zawiasów v1', explain:'Chroni przyszły resolver katalogowy: wymagania techniczne mają swoje typy i słownikowe wartości.', check:()=> {
       const catalogSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/catalog/hardware-catalog.js'), 'utf8');
       const paramsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/catalog/hardware-technical-params.js'), 'utf8');

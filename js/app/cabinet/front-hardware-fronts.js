@@ -171,14 +171,35 @@ function getCabinetFrontCutListForMaterials(room, cab){
     return finalize();
   }
 
-  // Lodówkowa: 2 fronty (góra + dół)
+  // Lodówkowa: fronty muszą wynikać z realnego ustawienia lodówki,
+  // a nie ze starego założenia „zawsze góra + dół”. To samo źródło
+  // służy materiałom i liczbie zawiasów lodówkowych.
   if(cab.type === 'stojąca' && cab.subType === 'lodowkowa'){
-    const topH = Number(cab.details?.topFrontHeight) || 60;
-    const fh = getFrontHeightForCab();
-    const bottomH = Math.max(0, fh - topH);
-    addFront(Number(cab.width)||0, topH);
-    if(bottomH > 0) addFront(Number(cab.width)||0, bottomH);
-    cab.frontCount = bottomH > 0 ? 2 : 1;
+    const opt = String((cab.details && cab.details.fridgeOption) ? cab.details.fridgeOption : 'zabudowa');
+    if(opt !== 'zabudowa'){
+      cab.frontCount = 0;
+      return finalize();
+    }
+
+    const fc = String((cab.details && cab.details.fridgeFrontCount) ? cab.details.fridgeFrontCount : '2');
+    const width = Number(cab.width) || 0;
+    const totalFrontH = getFrontHeightForCab();
+
+    if(fc === '1'){
+      addFront(width, totalFrontH);
+      cab.frontCount = 1;
+      return finalize();
+    }
+
+    const roomData = getProjectRoomData(room) || {};
+    const s = roomData.settings || {};
+    const legH = Number(s.legHeight) || 0;
+    const lowerH = Math.max(0, (Number(s.bottomHeight) || 0) - legH);
+    const upperH = Math.max(0, totalFrontH - lowerH);
+    let count = 0;
+    if(lowerH > 0){ addFront(width, lowerH); count += 1; }
+    if(upperH > 0){ addFront(width, upperH); count += 1; }
+    cab.frontCount = count;
     return finalize();
   }
 

@@ -1,5 +1,17 @@
 # DEV.md — meble-app
 
+## Fridge single front hinges fix v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_fridge_single_front_hinges_fix_v1.zip`.
+- Baza startowa: `site_cabinet_hardware_requirements_v1.zip`.
+- Naprawiono regresję lodówkowej: przy `fridgeFrontCount:'1'` i zaznaczonym `Wymaga zawiasów meblowych` program nie może liczyć zawiasów od dwóch frontów góra/dół.
+- `js/app/cabinet/front-hardware-fronts.js` używa teraz realnego `details.fridgeFrontCount`: `1` oznacza jeden duży front, `2` oznacza dolny + górny front.
+- Liczenie zawiasów lodówkowych korzysta z tej samej listy frontów, więc ilość zawiasów wynika z realnej liczby frontów, a nie ze starego założenia dwóch frontów.
+- Rozszerzono `tools/app-dev-smoke.js` o test regresji dla lodówki z jednym dużym frontem i zawiasami meblowymi.
+- Zaktualizowano cache-busting `front-hardware-fronts.js` w `index.html` i `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, storage, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/fridge-single-front-hinges-fix-v1.md`.
+
 ## Cabinet hardware requirements v1 — 2026-05-25
 
 - Aktualna paczka robocza po tym etapie: `site_cabinet_hardware_requirements_v1.zip`.

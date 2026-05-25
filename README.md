@@ -1,14 +1,28 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_hardware_producer_accessories_save_fix_v1.zip`.
+Aktualna paczka: `site_fridge_single_front_hinges_fix_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Naprawiono zapis pola `Pozostałe akcesoria` w akordeonie `Preferencje producentów okuć`.
-- Formularz producentów okuć czyta przy zapisie realne wartości launcherów, więc wybór np. `Rejs` w `Pozostałe akcesoria` nie powinien znikać po `Zapisz zmiany`.
-- Dodano bufor draftu dla tego akordeonu, żeby przebudowa widoku na telefonie nie kasowała wyboru przed zapisem.
-- Rozszerzono `app-dev-smoke` o test zapisu `hardwareProducers.accessories` oraz kontrakt UI źródła wartości launcherów.
-- Nie ruszano stabilnego panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+- Naprawiono lodówkową z jednym dużym frontem: po zaznaczeniu `Wymaga zawiasów meblowych` zawiasy nie są już liczone jak dla dwóch frontów góra/dół.
+- `front-hardware-fronts.js` respektuje teraz `fridgeFrontCount`: `1` = jeden duży front, `2` = dolny + górny front.
+- Dodano test regresji w `app-dev-smoke`, żeby ten błąd nie wrócił.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+
+## site_fridge_single_front_hinges_fix_v1 — 2026-05-25
+
+- Baza: `site_cabinet_hardware_requirements_v1.zip`.
+- Zmieniono `js/app/cabinet/front-hardware-fronts.js`, test `tools/app-dev-smoke.js`, dokumentację i cache-busting.
+- Raport: `tools/reports/fridge-single-front-hinges-fix-v1.md`.
+
+## site_cabinet_hardware_requirements_v1 — 2026-05-25
+
+- Baza: `site_hardware_producer_accessories_save_fix_v1.zip`.
+- Dodano warstwę techniczną `szafka / wariant frontu → wymaganie techniczne okucia` w `js/app/cabinet/cabinet-hardware-requirements.js`.
+- Dla lodówki dodano ptaszek `Wymaga zawiasów meblowych`; po zaznaczeniu lodówka używa wymagania `Zawias lodówkowy / do frontu lodówki`.
+- Do katalogu/słowników okuć dodano typy/cechy pod rogowe ślepe i zawiasy lodówkowe.
+- Nie dodano fikcyjnej pozycji/ceny Bivert dla zawiasu rogowej ślepej; zostaje do uzupełnienia prawdziwym symbolem i ceną.
+- Raport: `tools/reports/cabinet-hardware-requirements-v1.md`.
 
 ## site_hardware_producer_accessories_save_fix_v1 — 2026-05-25
 

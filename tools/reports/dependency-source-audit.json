@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T19:02:44.520Z",
+  "generatedAt": "2026-05-25T21:58:31.332Z",
   "summary": {
     "jsFiles": 359,
     "indexScripts": 283,
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 31,
-      "lines": 7574,
+      "lines": 7595,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -3069,7 +3069,7 @@
     "js/app/cabinet/front-hardware-fronts.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 240,
+      "lines": 261,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3081,7 +3081,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/cabinet/front-hardware-hinges.js": {
       "area": "SZAFKI",
