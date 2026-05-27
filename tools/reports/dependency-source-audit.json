@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T22:46:48.476Z",
+  "generatedAt": "2026-05-26T04:27:28.332Z",
   "summary": {
     "jsFiles": 359,
     "indexScripts": 283,
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 31,
-      "lines": 7595,
+      "lines": 7597,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 4718,
+      "lines": 4789,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -203,7 +203,7 @@
     ],
     [
       "js/app/catalog/hardware-catalog.js",
-      575
+      584
     ],
     [
       "js/app/material/price-modal-hardware-form.js",
@@ -695,7 +695,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 575,
+      "lines": 584,
       "incoming": 18,
       "outgoing": 3,
       "secondLevel": 25,
@@ -1463,7 +1463,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 301,
+      "lines": 325,
       "incoming": 10,
       "outgoing": 0,
       "secondLevel": 34,
@@ -2559,7 +2559,7 @@
     "js/app/cabinet/cabinet-hardware-requirements.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 215,
+      "lines": 217,
       "defines": [
         "cabinetHardwareRequirements"
       ],
@@ -3687,7 +3687,7 @@
     "js/app/catalog/hardware-catalog-seed-data.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 223,
+      "lines": 261,
       "defines": [
         "hardwareCatalogSeedData"
       ],
@@ -3707,7 +3707,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/catalog/hardware-catalog-seeds.js": {
       "area": "KATALOG/USŁUGI",
@@ -3803,7 +3805,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 575,
+      "lines": 584,
       "defines": [
         "hardwareCatalog"
       ],
@@ -3984,7 +3986,7 @@
     "js/app/catalog/hardware-technical-params.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 301,
+      "lines": 325,
       "defines": [
         "hardwareTechnicalParams"
       ],

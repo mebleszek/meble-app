@@ -33,8 +33,8 @@ Aktualna paczka: `site_wywiad_labor_header_compact_v1.zip`.
 
 - Baza: `site_hardware_producer_accessories_save_fix_v1.zip`.
 - Dodano warstwę techniczną `szafka / wariant frontu → wymaganie techniczne okucia` w `js/app/cabinet/cabinet-hardware-requirements.js`.
-- Dla lodówki dodano ptaszek `Wymaga zawiasów meblowych`; po zaznaczeniu lodówka używa wymagania `Zawias lodówkowy / do frontu lodówki`.
-- Do katalogu/słowników okuć dodano typy/cechy pod rogowe ślepe i zawiasy lodówkowe.
+- Dla lodówki dodano ptaszek `Wymaga zawiasów meblowych`; po zaznaczeniu lodówka używa wymagania `Zawias lodówkowy nakładany`.
+- Do katalogu/słowników okuć dodano słownikowe typy/cechy `Równoległy wpuszczany` oraz `Lodówkowy nakładany`.
 - Nie dodano fikcyjnej pozycji/ceny Bivert dla zawiasu rogowej ślepej; zostaje do uzupełnienia prawdziwym symbolem i ceną.
 - Raport: `tools/reports/cabinet-hardware-requirements-v1.md`.
 
@@ -858,3 +858,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Test nie zapisuje już backupów do realnego `localStorage`; sprawdza limit 10 kopii na małych rekordach w pamięci JS przez politykę retencji.
 - Zasada pozostaje bez zmian: automatyczne backupy testowe mają maksymalnie 10 najnowszych kopii, a gdy zapis w pamięci programu nie jest możliwy, użytkownik ma ręczny eksport backupu na dysk.
 - Nie zmieniono mechanizmu backupu, retencji, `BACKUP.md`, silnika zamienników, UI, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+## Hardware hinge dictionary cleanup v1 — 2026-05-26
+
+- Poprawiono nazewnictwo słownikowe zawiasów pod szafki: rogowa ślepa korzysta z realnego typu `Równoległy wpuszczany`, a lodówkowa z `Lodówkowy nakładany`.
+- Zaszyte opisowe wartości `Do rogowej ślepej / ślepego narożnika`, `równoległy / do ślepego narożnika` i samo `lodówkowy` zostały zastąpione słownikowymi odpowiednikami.
+- Katalog startowy okuć dostał dwie realne pozycje Blum/Bivert: `79B9550+173L6130` oraz `91K9550+194K6100`, z kategorią `Zawiasy`, jednostką `kpl.`, dostawcą Bivert, datą ceny i parametrami technicznymi.
+- Instrukcja rozwoju cennika: nowe okucia dopisywać tylko jako rekordy katalogu zgodne z istniejącym modelem i słownikami aplikacji; kod nie może udawać produktu ani ukrywać ceny poza katalogiem.

@@ -1,5 +1,21 @@
 # DEV.md — meble-app
 
+## Hardware hinge dictionary cleanup v1 — 2026-05-26
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_hinge_dictionary_cleanup_v1.zip`.
+- Baza startowa: `site_wywiad_labor_header_compact_v1.zip`.
+- Poprawiono słownikową warstwę zawiasów: rogowa ślepa / ślepy narożnik używa teraz realnej cechy `Równoległy wpuszczany`, a lodówka używa cechy `Lodówkowy nakładany`.
+- Usunięto z domyślnych słowników błędne opisowe wartości `Do rogowej ślepej / ślepego narożnika`, `równoległy / do ślepego narożnika` i samo `lodówkowy`; normalizacja przenosi starsze zapisane wartości na nowe słownikowe odpowiedniki bez kasowania danych użytkownika.
+- Reguła szafki `rogowa_slepa` zwraca wymaganie `Zawias równoległy wpuszczany` z parametrem `nalozenie = równoległy wpuszczany`, a lodówkowa z ptaszkiem zwraca `Zawias lodówkowy nakładany` z parametrem `nalozenie = lodówkowy nakładany`.
+- Do seedów cennika okuć dopisano realne pozycje Blum z Bivert zgodnie z istniejącym modelem katalogu: `79B9550+173L6130` jako zawias równoległy wpuszczany 95° + prowadnik oraz `91K9550+194K6100` jako zawias lodówkowy nakładany 95° + prowadnik.
+- Nie dodano żadnej fikcyjnej pozycji z ceną; nowe wpisy mają producenta, dostawcę, kategorię, jednostkę, system, parametry techniczne słownikowe, datę ceny i notatkę tak jak pozostałe seedowane pozycje katalogu.
+- Zasada na przyszłość: żadne realne okucie nie może być zaszyte w programie jako ukryty produkt. Kod może wyznaczać wymaganie techniczne, ale pozycja do cennika/wyceny musi być rekordem katalogu zbudowanym ze słowników aplikacji: producent, kategoria, typ/cecha, parametry techniczne, dostawca i ceny.
+- Przy dodawaniu nowych pozycji cennika najpierw sprawdzić istniejący sposób zapisu w `hardware-catalog-seed-data.js` i aktualne słowniki w dziale `Okucia i akcesoria → Słowniki`; nowe dane dopisywać zgodnie z istniejącym formatem, bez ręcznego obchodzenia słowników.
+- Rozszerzono `tools/app-dev-smoke.js` o regresję migracji starych nazw, nowych wartości słownika i obecności nowych seedów cennika.
+- Zaktualizowano cache-busting `hardware-technical-params.js`, `hardware-catalog.js`, `hardware-catalog-seed-data.js` i `cabinet-hardware-requirements.js` w `index.html` oraz `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, animacji tego panelu, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowego WYCENY.
+- Raport: `tools/reports/hardware-hinge-dictionary-cleanup-v1.md`.
+
 ## Wywiad labor header compact v1 — 2026-05-26
 
 - Aktualna paczka robocza po tym etapie: `site_wywiad_labor_header_compact_v1.zip`.
@@ -41,12 +57,12 @@
 - Aktualna paczka robocza po tym etapie: `site_cabinet_hardware_requirements_v1.zip`.
 - Baza startowa: `site_hardware_producer_accessories_save_fix_v1.zip`.
 - Dodano warstwę techniczną `js/app/cabinet/cabinet-hardware-requirements.js`: typ szafki / wariant frontu → wymaganie techniczne okucia. Ten etap nie dobiera jeszcze konkretnego produktu katalogowego do WYCENY.
-- Reguły v1 dla zawiasów obejmują m.in. standard 110° nakładany, narożną L 170°, rogowe ślepe / ślepy narożnik, lodówkowe po ręcznym ptaszku, dolne podblatowe jako stojące bez nóg, wyjątki HK-XS i nożycowy Häfele z pomocniczymi zawiasami 110°.
+- Reguły v1 dla zawiasów obejmują m.in. standard 110° nakładany, narożną L 170°, rogowe ślepe / ślepy narożnik jako zawias równoległy wpuszczany, lodówkowe po ręcznym ptaszku jako lodówkowy nakładany, dolne podblatowe jako stojące bez nóg, wyjątki HK-XS i nożycowy Häfele z pomocniczymi zawiasami 110°.
 - `js/app/cabinet/front-hardware-hinges.js` nie nalicza zawiasów dla wariantów, które ich nie wymagają: zmywarka, szuflady, zlewowa z szufladą, piekarnikowa z szufladą, dolna podblatowa z szufladami/brakiem frontu, okapowa z klapą i lodówka bez ptaszka `Wymaga zawiasów meblowych`.
-- Lodówkowa dostała w modalu frontów aplikacyjny checkbox/chip `Wymaga zawiasów meblowych`; po zaznaczeniu używa wymagania `Zawias lodówkowy / do frontu lodówki`, a ilość jest liczona z realnych frontów lodówki.
+- Lodówkowa dostała w modalu frontów aplikacyjny checkbox/chip `Wymaga zawiasów meblowych`; po zaznaczeniu używa wymagania `Zawias lodówkowy nakładany`, a ilość jest liczona z realnych frontów lodówki.
 - `js/app/cabinet/cabinet-cutlist.js` dopina do partów okuć pole `hardwareRequirement`, żeby przyszły resolver katalogowy i WYCENA miały jawny kontekst techniczny bez zgadywania.
-- Do katalogu/słowników okuć dodano typy: `hinge_blind_corner` (`Do rogowej ślepej / ślepego narożnika`) i `hinge_fridge` (`Lodówkowy / do frontu lodówki`) oraz wartości parametru `nalozenie`: `równoległy / do ślepego narożnika` i `lodówkowy`.
-- Nie dodano konkretnej pozycji/ceny Bivert dla zawiasu rogowej ślepej — wymaga prawdziwego symbolu i ceny, nie wolno tworzyć fikcyjnej pozycji.
+- Do katalogu/słowników okuć dodano słownikowe typy/cechy: `hinge_parallel_inset` (`Równoległy wpuszczany`) i `hinge_fridge_overlay` (`Lodówkowy nakładany`) oraz wartości parametru `nalozenie`: `równoległy wpuszczany` i `lodówkowy nakładany`.
+- W późniejszym etapie `hardware_hinge_dictionary_cleanup_v1` dopisano realną pozycję Bivert dla zawiasu równoległego wpuszczanego; nadal obowiązuje zasada, że nie wolno tworzyć fikcyjnych pozycji bez prawdziwego symbolu i ceny.
 - Na przyszłość zostaje: pełna logika okapowej drzwiczki/klapa + montaż AGD okapu, szuflady wewnętrzne 155° zerowy uskok albo `na dystansie` np. 1,8 cm, warstwa front nakładany/wpuszczany/bliźniaczy, resolver wymaganie techniczne + preferowany producent + pozycja katalogowa + cena `Do wyceny`, a także edycja poszczególnych korpusów zestawu.
 - Rozszerzono `tools/app-dev-smoke.js` o testy regresji reguł zawiasów, ptaszka lodówki i nowych typów/cech katalogu.
 - Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
