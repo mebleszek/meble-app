@@ -18,7 +18,7 @@
     { value:'numberRange', label:'Liczba / zakres od-do' },
   ];
   const DEFAULT_DEFINITIONS = [
-    { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy wpuszczany','lodówkowy nakładany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
+    { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy / do ślepego narożnika','lodówkowy'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
     { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', options:[], keyFeature:true, typePart:true, compareMode:'withinRange', order:20, active:true },
     { category:'Zawiasy', key:'hamulec', label:'Hamulec / domyk', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
     { category:'Zawiasy', key:'sprezyna', label:'Sprężyna', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:false, compareMode:'equal', order:40, active:true },
@@ -112,30 +112,6 @@
     if(Array.isArray(value)) return value.map(text).filter(Boolean);
     return text(value).split(/[;|]/).map(text).filter(Boolean);
   }
-  function normalizeHingeOverlayOptions(list){
-    const base = ['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy wpuszczany','lodówkowy nakładany'];
-    const mapLegacy = {
-      'równoległy / do ślepego narożnika':'równoległy wpuszczany',
-      'rownolegly / do slepego naroznika':'równoległy wpuszczany',
-      'lodówkowy':'lodówkowy nakładany',
-      'lodowkowy':'lodówkowy nakładany'
-    };
-    const seen = new Set();
-    const out = [];
-    function push(value){
-      const raw = text(value);
-      if(!raw) return;
-      const normalizedKey = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const mapped = mapLegacy[raw.toLowerCase()] || mapLegacy[normalizedKey] || raw;
-      const key = mapped.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if(!mapped || seen.has(key)) return;
-      seen.add(key);
-      out.push(mapped);
-    }
-    base.forEach(push);
-    (Array.isArray(list) ? list : []).forEach(push);
-    return out;
-  }
   function normalizeDefinition(row, index){
     const src = row && typeof row === 'object' ? row : {};
     const category = text(src.category || src.hardwareCategory || src.kategoria);
@@ -148,7 +124,7 @@
       label:label || key,
       fieldType:normalizeFieldType(src.fieldType || src.typ_pola || src.type),
       unit:text(src.unit || src.jednostka),
-      options:(safeKey(category) === 'zawiasy' && key === 'nalozenie') ? normalizeHingeOverlayOptions(optionsFrom(src.options || src.wartosci)) : optionsFrom(src.options || src.wartosci),
+      options:optionsFrom(src.options || src.wartosci),
       keyFeature:src.keyFeature === false || text(src.cecha_kluczowa).toLowerCase() === 'nie' ? false : !!(src.keyFeature || src.compareKey || src.cechaKluczowa || src.cecha_kluczowa || src.typePart || src.tworzyTyp),
       typePart:src.typePart === false || text(src.tworzy_typ).toLowerCase() === 'nie' ? false : (src.typePart != null ? !!src.typePart : (src.keyFeature != null ? !!src.keyFeature : true)),
       compareMode:normalizeCompareMode(src.compareMode || src.sposob_porownania || src.porownanie),
