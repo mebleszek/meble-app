@@ -5,6 +5,7 @@
 
   const RETENTION_DAYS = 7;
   const MIN_KEEP = 10;
+  const TEST_MAX_KEEP = 10;
   const AUTO_PROTECT_LATEST = 3;
 
   function now(){ return Date.now(); }
@@ -49,28 +50,36 @@
     return !!getBackupProtection(item, list).protected;
   }
 
-  function pruneBackups(list, options){
-    const opts = Object.assign({ retentionDays:RETENTION_DAYS, minKeep:MIN_KEEP }, options || {});
-    const all = sortNewest(list);
-    if(!all.length) return all;
+  function pruneAppBackups(groupList, opts){
     const cutoff = now() - (Number(opts.retentionDays || RETENTION_DAYS) * 24 * 60 * 60 * 1000);
     const keepIds = new Set();
-    const grouped = groupBackups(all);
-    Object.keys(grouped).forEach((group)=>{
-      const groupList = grouped[group];
-      groupList.slice(0, Math.max(1, Number(opts.minKeep || MIN_KEEP))).forEach((item)=> keepIds.add(String(item.id || '')));
-      groupList.forEach((item)=>{
-        if(isPinnedProtected(item)) keepIds.add(String(item.id || ''));
-        if(Number(item.createdAtMs || 0) >= cutoff) keepIds.add(String(item.id || ''));
-      });
+    groupList.slice(0, Math.max(1, Number(opts.minKeep || MIN_KEEP))).forEach((item)=> keepIds.add(String(item.id || '')));
+    groupList.forEach((item)=>{
+      if(isPinnedProtected(item)) keepIds.add(String(item.id || ''));
+      if(Number(item.createdAtMs || 0) >= cutoff) keepIds.add(String(item.id || ''));
     });
-    if(!keepIds.size && all[0]) keepIds.add(String(all[0].id || ''));
-    return all.filter((item)=> keepIds.has(String(item.id || '')));
+    if(!keepIds.size && groupList[0]) keepIds.add(String(groupList[0].id || ''));
+    return groupList.filter((item)=> keepIds.has(String(item.id || '')));
+  }
+
+  function pruneTestBackups(groupList, opts){
+    const maxKeep = Math.max(1, Number(opts.testMaxKeep || TEST_MAX_KEEP));
+    return sortNewest(groupList).slice(0, maxKeep);
+  }
+
+  function pruneBackups(list, options){
+    const opts = Object.assign({ retentionDays:RETENTION_DAYS, minKeep:MIN_KEEP, testMaxKeep:TEST_MAX_KEEP }, options || {});
+    const all = sortNewest(list);
+    if(!all.length) return all;
+    const grouped = groupBackups(all);
+    const kept = pruneAppBackups(grouped.app || [], opts).concat(pruneTestBackups(grouped.test || [], opts));
+    return sortNewest(kept);
   }
 
   root.FC.dataBackupPolicy = {
     RETENTION_DAYS,
     MIN_KEEP,
+    TEST_MAX_KEEP,
     AUTO_PROTECT_LATEST,
     now,
     sortNewest,
@@ -80,6 +89,8 @@
     groupBackups,
     getBackupProtection,
     isProtected,
+    pruneAppBackups,
+    pruneTestBackups,
     pruneBackups,
   };
 })();

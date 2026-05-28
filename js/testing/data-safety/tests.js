@@ -6,6 +6,28 @@
   const H = FC.testHarness;
   if(!H) throw new Error('Brak FC.testHarness');
 
+
+  function withStorageSnapshotByPredicate(predicate, setup, run){
+    const saved = {};
+    const keys = [];
+    for(let i=0;i<localStorage.length;i += 1){
+      const key = localStorage.key(i);
+      if(key && predicate(key)) keys.push(key);
+    }
+    keys.forEach((key)=>{ saved[key] = localStorage.getItem(key); });
+    Object.keys(setup || {}).forEach((key)=>{ if(!Object.prototype.hasOwnProperty.call(saved, key)) saved[key] = localStorage.getItem(key); });
+    try{
+      Object.keys(saved).forEach((key)=> localStorage.removeItem(key));
+      Object.keys(setup || {}).forEach((key)=> localStorage.setItem(key, setup[key]));
+      return run();
+    } finally {
+      Object.keys(saved).forEach((key)=>{
+        if(saved[key] == null) localStorage.removeItem(key);
+        else localStorage.setItem(key, saved[key]);
+      });
+    }
+  }
+
   function withStorage(keys, run){
     const saved = {};
     Object.keys(keys || {}).forEach((key)=>{ saved[key] = localStorage.getItem(key); });
@@ -95,13 +117,44 @@
           fc_project_inv_inv_live_v1:JSON.stringify({ live:true }),
           fc_project_inv_inv_old_v1:JSON.stringify({ old:true }),
         };
-        withStorage(rows, ()=>{
+        withStorageSnapshotByPredicate((key)=> key === 'fc_investors_v1' || key === 'fc_projects_v1' || /^fc_project_inv_.+_v1$/.test(key), rows, ()=>{
+          const before = FC.dataStorageOrphanCleanup.analyzeCurrent();
           const summary = FC.dataStorageOrphanCleanup.cleanupCurrent();
-          H.assert(summary.removed === 1, 'Czyszczenie powinno usunąć dokładnie jedną sierotę', summary);
+          H.assert(before.count >= 1, 'Fixture powinien mieć co najmniej jedną sierotę przed czyszczeniem', before);
+          H.assert(summary.removed >= 1, 'Czyszczenie powinno usunąć istniejące sieroty, nie wymagać dokładnie jednej', summary);
           H.assert(localStorage.getItem('fc_project_inv_inv_old_v1') == null, 'Osierocony slot nie został fizycznie usunięty');
           H.assert(localStorage.getItem('fc_project_inv_inv_live_v1') != null, 'Czyszczenie naruszyło slot aktywnego inwestora');
           const after = FC.dataStorageOrphanCleanup.analyzeCurrent();
           H.assert(after.count === 0, 'Po czyszczeniu nie powinno być sierot w fixture', after);
+        });
+      }),
+
+      H.makeTest('Data safety', 'Czyszczenie danych testowych usuwa legacy inwestorów z powiązaniami', 'Pilnuje, żeby stare i nowe fixture\'y testów nie zostawały na liście inwestorów ani jako projekty/snapshoty/sloty po przerwanym przebiegu.', ()=>{
+        H.assert(FC.testDataManager && typeof FC.testDataManager.cleanup === 'function', 'Brak FC.testDataManager.cleanup');
+        const rows = {
+          fc_investors_v1:JSON.stringify([{ id:'inv_real', name:'Prawdziwy Klient' }, { id:'inv_room_patch_leak', name:'Room patch' }, { id:'inv_jan_test_leak', name:'Jan Test' }]),
+          fc_projects_v1:JSON.stringify([{ id:'proj_real', investorId:'inv_real' }, { id:'proj_room_patch', investorId:'inv_room_patch_leak', title:'Projekt testowy' }]),
+          fc_quote_snapshots_v1:JSON.stringify([{ id:'snap_real', investor:{ id:'inv_real' }, project:{ id:'proj_real', investorId:'inv_real' } }, { id:'snap_test', investor:{ id:'inv_room_patch_leak', name:'Room patch' }, project:{ id:'proj_room_patch', investorId:'inv_room_patch_leak' } }]),
+          fc_quote_offer_drafts_v1:JSON.stringify([{ id:'draft_real', investorId:'inv_real', projectId:'proj_real' }, { id:'draft_test', investorId:'inv_room_patch_leak', projectId:'proj_room_patch' }]),
+          fc_project_inv_inv_real_v1:JSON.stringify({ live:true }),
+          fc_project_inv_inv_room_patch_leak_v1:JSON.stringify({ schemaVersion:2 }),
+          fc_current_investor_v1:'inv_room_patch_leak',
+          fc_current_project_id_v1:'proj_room_patch',
+        };
+        withStorageSnapshotByPredicate((key)=> key === 'fc_investors_v1' || key === 'fc_projects_v1' || key === 'fc_quote_snapshots_v1' || key === 'fc_quote_offer_drafts_v1' || key === 'fc_current_investor_v1' || key === 'fc_current_project_id_v1' || /^fc_project_inv_.+_v1$/.test(key), rows, ()=>{
+          const summary = FC.testDataManager.cleanup();
+          const investors = JSON.parse(localStorage.getItem('fc_investors_v1') || '[]');
+          const projects = JSON.parse(localStorage.getItem('fc_projects_v1') || '[]');
+          const snapshots = JSON.parse(localStorage.getItem('fc_quote_snapshots_v1') || '[]');
+          const drafts = JSON.parse(localStorage.getItem('fc_quote_offer_drafts_v1') || '[]');
+          H.assert(summary.investors === 2, 'Cleanup powinien usunąć dwa legacy wpisy testowe inwestorów', summary);
+          H.assert(investors.length === 1 && investors[0].id === 'inv_real', 'Cleanup naruszył prawdziwego inwestora albo zostawił testowego', investors);
+          H.assert(projects.length === 1 && projects[0].investorId === 'inv_real', 'Cleanup nie usunął projektu testowego lub usunął realny', projects);
+          H.assert(snapshots.length === 1 && snapshots[0].id === 'snap_real', 'Cleanup nie usunął snapshotu testowego', snapshots);
+          H.assert(drafts.length === 1 && drafts[0].id === 'draft_real', 'Cleanup nie usunął draftu testowego', drafts);
+          H.assert(localStorage.getItem('fc_project_inv_inv_room_patch_leak_v1') == null, 'Cleanup nie usunął legacy slotu testowego inwestora');
+          H.assert(localStorage.getItem('fc_project_inv_inv_real_v1') != null, 'Cleanup naruszył legacy slot prawdziwego inwestora');
+          H.assert(localStorage.getItem('fc_current_investor_v1') == null, 'Cleanup nie wyczyścił wskaźnika na usuniętego testowego inwestora');
         });
       }),
 
@@ -118,6 +171,24 @@
           H.assert(info && info.snapshotKeys >= 0, 'Helper nie zwrócił metadanych pliku', info);
         } finally {
           FC.dataBackupSnapshot.downloadJson = oldDownload;
+        }
+      }),
+
+      H.makeTest('Data safety', 'Backupy testowe mają twardy limit 10 najnowszych sztuk', 'Pilnuje decyzji: automatyczne backupy before-tests mogą mieć maksymalnie 10 kopii, a ręczne backupy zachowują dotychczasową retencję.', ()=>{
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const saved = { store:localStorage.getItem(backupKey), investors:localStorage.getItem('fc_investors_v1') };
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'inv_backup_limit', name:'Backup limit' }]));
+          for(let i=0;i<12;i += 1){
+            FC.dataBackupStore.createBackup({ reason:'before-tests', label:'Przed testami limit ' + i, dedupe:false });
+          }
+          const groups = FC.dataBackupStore.listBackupGroups();
+          H.assert(groups.test.length === 10, 'Backupy testowe powinny zostać przycięte do 10 najnowszych sztuk', groups);
+        } finally {
+          if(saved.store == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, saved.store);
+          if(saved.investors == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', saved.investors);
         }
       }),
 

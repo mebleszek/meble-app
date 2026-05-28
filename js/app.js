@@ -11,6 +11,7 @@ const STORAGE_KEYS = (window.FC && window.FC.constants && window.FC.constants.ST
   quoteOfferDrafts: 'fc_quote_offer_drafts_v1',
   projects: 'fc_projects_v1',
   currentProjectId: 'fc_current_project_id_v1',
+  sheets: 'fc_sheets_v1',
   projectData: 'fc_project_v1',
   projectBackup: 'fc_project_backup_v1',
   projectBackupMeta: 'fc_project_backup_meta_v1',
@@ -28,137 +29,10 @@ function validateRequiredDOM(){
 
 
 /** App namespace to reduce globals and keep concerns separated. */
-const FC = (function(){
-  'use strict';
-
-  /* ===== Module aliases: utils + storage ===== */
-  const utils = (window.FC && window.FC.utils) || {
-    uid(){
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-      return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 1e9);
-    },
-    clone(x){
-      if (typeof structuredClone === 'function') return structuredClone(x);
-      return JSON.parse(JSON.stringify(x));
-    },
-    num(v, fallback){
-      const n = Number(v);
-      return Number.isFinite(n) ? n : fallback;
-    },
-    isPlainObject(v){
-      return !!v && typeof v === 'object' && (v.constructor === Object || Object.getPrototypeOf(v) === null);
-    }
-  };
-
-  const __fallbackStorageMemory = Object.create(null);
-  const storage = (window.FC && window.FC.storage) || {
-    getJSON(key, fallback){
-      try{
-        const raw = Object.prototype.hasOwnProperty.call(__fallbackStorageMemory, key) ? __fallbackStorageMemory[key] : null;
-        if (!raw) return utils.clone(fallback);
-        return JSON.parse(raw);
-      }catch(e){
-        return utils.clone(fallback);
-      }
-    },
-    setJSON(key, value){
-      try{ __fallbackStorageMemory[key] = JSON.stringify(value); }catch(e){}
-    },
-    getRaw(key){
-      try{ return Object.prototype.hasOwnProperty.call(__fallbackStorageMemory, key) ? __fallbackStorageMemory[key] : null; }catch(e){ return null; }
-    },
-    setRaw(key, raw){
-      try{ __fallbackStorageMemory[key] = String(raw); }catch(e){}
-    }
-  };
-
-  /* ===== Module: project schema + migrations ===== */
-  const schema = (window.FC && window.FC.schema) || null;
-  const CURRENT_SCHEMA_VERSION = (schema && Number(schema.CURRENT_SCHEMA_VERSION)) || 9;
-  const DEFAULT_PROJECT = (schema && schema.DEFAULT_PROJECT) || {
-    schemaVersion: CURRENT_SCHEMA_VERSION,
-    kuchnia: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 3.8, gapHeight: 60, ceilingBlende: 10 } },
-    szafa: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 5 } },
-    pokoj: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 5, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 0 } },
-    lazienka: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 220, bottomHeight: 82, legHeight: 15, counterThickness: 2, gapHeight: 0, ceilingBlende: 0 } }
-  };
-  const ROOMS = (schema && Array.isArray(schema.ROOMS) && schema.ROOMS.length) ? schema.ROOMS : ['kuchnia','szafa','pokoj','lazienka'];
-
-  function normalizeRoom(roomRaw, roomDefault){
-    if(schema && typeof schema.normalizeRoom === 'function'){
-      return schema.normalizeRoom(roomRaw, roomDefault);
-    }
-    const room = utils.isPlainObject(roomRaw) ? utils.clone(roomRaw) : {};
-    const def = utils.isPlainObject(roomDefault) ? utils.clone(roomDefault) : {};
-    const settings = Object.assign({}, def.settings || {}, utils.isPlainObject(room.settings) ? room.settings : {});
-    return Object.assign(def, room, {
-      cabinets: Array.isArray(room.cabinets) ? room.cabinets : [],
-      fronts: Array.isArray(room.fronts) ? room.fronts : [],
-      sets: Array.isArray(room.sets) ? room.sets : [],
-      settings,
-    });
-  }
-
-  function normalizeProject(raw){
-    if(schema && typeof schema.normalizeProject === 'function'){
-      return schema.normalizeProject(raw);
-    }
-    const data = utils.isPlainObject(raw) ? raw : {};
-    const out = Object.assign(utils.clone(DEFAULT_PROJECT), data, { schemaVersion: CURRENT_SCHEMA_VERSION });
-    for (const r of ROOMS) out[r] = normalizeRoom(data[r], DEFAULT_PROJECT[r]);
-    return out;
-  }
-
-  const project = (window.FC && window.FC.project && typeof window.FC.project.load === 'function' && typeof window.FC.project.save === 'function')
-    ? window.FC.project
-    : {
-        CURRENT_SCHEMA_VERSION,
-        DEFAULT_PROJECT,
-        load(){
-          // Robust load: try primary; if corrupted/empty, fall back to backup.
-          const rawPrimary = storage.getRaw(STORAGE_KEYS.projectData);
-          const rawBackup  = storage.getRaw(STORAGE_KEYS.projectBackup);
-
-          function parseOrNull(raw){
-            if (!raw) return null;
-            try{ return JSON.parse(raw); }catch(e){ return null; }
-          }
-
-          const primaryObj = parseOrNull(rawPrimary);
-          const backupObj  = parseOrNull(rawBackup);
-
-          // If primary is missing/corrupt but backup exists, restore from backup.
-          const chosen = primaryObj || backupObj || DEFAULT_PROJECT;
-
-          // If we had to fall back to backup, try to repair primary storage.
-          if (!primaryObj && backupObj){
-            storage.setRaw(STORAGE_KEYS.projectData, rawBackup);
-          }
-
-          return normalizeProject(chosen);
-        },
-        save(data){
-          // Robust save: keep last-good backup before overwriting.
-          const normalized = normalizeProject(data);
-
-          // Backup current primary (if any) before overwriting.
-          const currentRaw = storage.getRaw(STORAGE_KEYS.projectData);
-          if (currentRaw){
-            storage.setRaw(STORAGE_KEYS.projectBackup, currentRaw);
-            storage.setJSON(STORAGE_KEYS.projectBackupMeta, { savedAt: Date.now() });
-          }
-
-          // Write new state.
-          storage.setJSON(STORAGE_KEYS.projectData, normalized);
-          return normalized;
-        },
-        normalize: normalizeProject,
-      };
-
-  try{ window.FC.project = project; }catch(_){ }
-  return { utils, storage, project };
-})();
-const DEFAULT_PROJECT = FC.project.DEFAULT_PROJECT;
+const FC = (window.FC && window.FC.appCoreNamespace && typeof window.FC.appCoreNamespace.createAppCore === 'function')
+  ? window.FC.appCoreNamespace.createAppCore({ storageKeys: STORAGE_KEYS })
+  : (window.FC || {});
+const DEFAULT_PROJECT = (FC.project && FC.project.DEFAULT_PROJECT) || ((window.FC && window.FC.schema && window.FC.schema.DEFAULT_PROJECT) || { schemaVersion: 9 });
 
 // Wystaw init jak najwcześniej, zanim niższe sekcje pliku dotkną storage / stanu projektu.
 // Dzięki temu boot nie zgłasza fałszywie „brak init”, jeśli później wyłoży się np. niepełny stan danych.
@@ -308,114 +182,8 @@ function callExtracted(nsName, fnName, args, fallback){
   if(typeof fallback === 'function') return fallback.apply(null, args || []);
 }
 
-/* ===== Cabinet/front rules moved to js/app/cabinet/cabinet-fronts.js ===== */
-function getSubTypeOptionsForType(typeVal){ return callExtracted('cabinetFronts','getSubTypeOptionsForType',[typeVal]); }
-function applyTypeRules(room, updated, typeVal){ return callExtracted('cabinetFronts','applyTypeRules',[room, updated, typeVal]); }
-function applySubTypeRules(room, updated, subTypeVal){ return callExtracted('cabinetFronts','applySubTypeRules',[room, updated, subTypeVal]); }
-function addFront(room, front){ return callExtracted('cabinetFronts','addFront',[room, front]); }
-function removeFrontsForSet(room, setId){ return callExtracted('cabinetFronts','removeFrontsForSet',[room, setId]); }
-function removeFrontsForCab(room, cabId){ return callExtracted('cabinetFronts','removeFrontsForCab',[room, cabId]); }
-function getFrontsForSet(room, setId){ return callExtracted('cabinetFronts','getFrontsForSet',[room, setId]); }
-function getFrontsForCab(room, cabId){ return callExtracted('cabinetFronts','getFrontsForCab',[room, cabId]); }
-function cabinetAllowsFrontCount(cab){ return callExtracted('cabinetFronts','cabinetAllowsFrontCount',[cab]); }
-function getFlapFrontCount(cab){ return callExtracted('cabinetFronts','getFlapFrontCount',[cab]); }
-function getFlapFrontCountFromDetails(details){ return callExtracted('cabinetFronts','getFlapFrontCountFromDetails',[details]); }
-function ensureFrontCountRules(cab){ return callExtracted('cabinetFronts','ensureFrontCountRules',[cab]); }
-function validateAventosForDraft(room, draft){ return callExtracted('cabinetFronts','validateAventosForDraft',[room, draft]); }
-function applyAventosValidationUI(room, draft){ return callExtracted('cabinetFronts','applyAventosValidationUI',[room, draft]); }
-function syncDraftFromCabinetModalForm(d){ return callExtracted('cabinetFronts','syncDraftFromCabinetModalForm',[d]); }
-function generateFrontsForCabinet(room, cab){ return callExtracted('cabinetFronts','generateFrontsForCabinet',[room, cab]); }
+/* ===== Legacy global delegates moved to js/app/bootstrap/app-legacy-bridges.js ===== */
 
-/* ===== Cabinet modal + set wizard moved to js/app/cabinet/cabinet-modal.js ===== */
-function makeDefaultCabinetDraftForRoom(room){ return callExtracted('cabinetModal','makeDefaultCabinetDraftForRoom',[room]); }
-function openCabinetModalForAdd(){ return callExtracted('cabinetModal','openCabinetModalForAdd',[]); }
-function lockModalScroll(){ return callExtracted('cabinetModal','lockModalScroll',[]); }
-function unlockModalScroll(){ return callExtracted('cabinetModal','unlockModalScroll',[]); }
-function openCabinetModalForEdit(cabId){ return callExtracted('cabinetModal','openCabinetModalForEdit',[cabId]); }
-function openSetWizardForEdit(setId){ return callExtracted('cabinetModal','openSetWizardForEdit',[setId]); }
-function closeCabinetModal(){ return callExtracted('cabinetModal','closeCabinetModal',[]); }
-function renderCabinetTypeChoices(){ return callExtracted('cabinetModal','renderCabinetTypeChoices',[]); }
-function populateSelect(el, options, selected){ return callExtracted('cabinetModal','populateSelect',[el, options, selected]); }
-function populateFrontColorsTo(selectEl, typeVal, selected){ return callExtracted('cabinetModal','populateFrontColorsTo',[selectEl, typeVal, selected]); }
-function populateBodyColorsTo(selectEl, selected){ return callExtracted('cabinetModal','populateBodyColorsTo',[selectEl, selected]); }
-function populateOpeningOptionsTo(selectEl, typeVal, selected){ return callExtracted('cabinetModal','populateOpeningOptionsTo',[selectEl, typeVal, selected]); }
-function renderCabinetExtraDetailsInto(container, draft){ return callExtracted('cabinetModal','renderCabinetExtraDetailsInto',[container, draft]); }
-function renderSetTiles(){ return callExtracted('cabinetModal','renderSetTiles',[]); }
-function renderSetParamsUI(presetId){ return callExtracted('cabinetModal','renderSetParamsUI',[presetId]); }
-function wireSetParamsLiveUpdate(presetId){ return callExtracted('cabinetModal','wireSetParamsLiveUpdate',[presetId]); }
-function renderCabinetModal(){ return callExtracted('cabinetModal','renderCabinetModal',[]); }
-function getSetParamsFromUI(presetId){ return callExtracted('cabinetModal','getSetParamsFromUI',[presetId]); }
-function fillSetParamsUIFromSet(set){ return callExtracted('cabinetModal','fillSetParamsUIFromSet',[set]); }
-function getNextSetNumber(room){ return callExtracted('cabinetModal','getNextSetNumber',[room]); }
-function createOrUpdateSetFromWizard(){ return callExtracted('cabinetModal','createOrUpdateSetFromWizard',[]); }
-function drawCornerSketch(opts){
-  return callExtracted('cornerSketch', 'drawCornerSketch', arguments, function(){ return; });
-}
-
-
-/* ===== add/delete cabinet actions extracted to js/app/cabinet/cabinet-actions.js ===== */
-function addCabinet(){
-  return callExtracted('cabinetActions', 'addCabinet', []);
-}
-
-
-/* ===== Delete cabinet by id (used by per-card delete) ===== */
-function deleteCabinetById(cabId){
-  return callExtracted('cabinetActions', 'deleteCabinetById', [cabId]);
-}
-
-
-/* ===== Price modal functions ===== */
-function closePriceModal(){ return callExtracted('priceModal','closePriceModal',[]); }
-
-function saveMaterialFromForm(){ return callExtracted('priceModal','saveMaterialFromForm',[]); }
-
-function saveServiceFromForm(){ return callExtracted('priceModal','saveServiceFromForm',[]); }
-
-function deletePriceItem(item){ return callExtracted('priceModal','deletePriceItem',[item]); }
-function closePriceItemModal(){ return callExtracted('priceModal','closePriceItemModal',[]); }
-
-/* ===== Cabinet Modal helpers ===== */
-function getCabinetExtraSummary(room, cab){
-  return callExtracted('cabinetSummary', 'getCabinetExtraSummary', arguments, function(){ return ''; });
-}
-
-
-/* ===== Materiały: rozpiska mebli (korpusy/plecy/trawersy) ===== */
-const FC_BOARD_THICKNESS_CM = (window.FC && window.FC.materialCommon && window.FC.materialCommon.FC_BOARD_THICKNESS_CM) || 1.8; // domyślnie płyta 18mm
-const FC_TOP_TRAVERSE_DEPTH_CM = (window.FC && window.FC.materialCommon && window.FC.materialCommon.FC_TOP_TRAVERSE_DEPTH_CM) || 9; // trawersy górne
-
-function fmtCm(v){ return callExtracted('materialCommon','fmtCm',[v], function(x){ const n = Number(x); return Number.isFinite(n) ? (Math.round(n * 10) / 10).toString() : String(x ?? ''); }); }
-function formatM2(v){ return callExtracted('materialCommon','formatM2',[v], function(){ return '0.000'; }); }
-function escapeHtml(str){ return callExtracted('materialCommon','escapeHtml',[str], function(s){ return String(s ?? ''); }); }
-function calcPartAreaM2(p){ return callExtracted('materialCommon','calcPartAreaM2',[p], function(){ return 0; }); }
-function addArea(map, material, area){ return callExtracted('materialCommon','addArea',[map, material, area], function(dst){ return dst; }); }
-function totalsFromParts(parts){ return callExtracted('materialCommon','totalsFromParts',[parts], function(){ return {}; }); }
-function mergeTotals(target, src){ return callExtracted('materialCommon','mergeTotals',[target, src], function(dst){ return dst || {}; }); }
-function totalsToRows(totals){ return callExtracted('materialCommon','totalsToRows',[totals], function(){ return []; }); }
-function renderTotals(container, totals){ return callExtracted('materialCommon','renderTotals',[container, totals], function(el){ if(el) el.innerHTML = ''; }); }
-function getCabinetAssemblyRuleText(cab){ return callExtracted('materialCommon','getCabinetAssemblyRuleText',[cab], function(){ return 'Skręcanie: —'; }); }
-
-function getCabinetFrontCutListForMaterials(room, cab){ return callExtracted('frontHardware','getCabinetFrontCutListForMaterials',[room, cab], function(){ return []; }); }
-function cabinetHasHandle(cab){ return callExtracted('frontHardware','cabinetHasHandle',[cab], function(){ return true; }); }
-function getFrontWeightKgM2(frontMaterial){ return callExtracted('frontHardware','getFrontWeightKgM2',[frontMaterial], function(){ return 13.0; }); }
-function estimateFrontWeightKg(wCm, hCm, frontMaterial, hasHandle){ return callExtracted('frontHardware','estimateFrontWeightKg',[wCm, hCm, frontMaterial, hasHandle], function(){ return 0; }); }
-function blumHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){ return callExtracted('frontHardware','blumHingesPerDoor',[wCm, hCm, frontMaterial, hasHandle], function(){ return 0; }); }
-function getDoorFrontPanelsForHinges(room, cab){ return callExtracted('frontHardware','getDoorFrontPanelsForHinges',[room, cab], function(){ return []; }); }
-function getHingeCountForCabinet(room, cab){ return callExtracted('frontHardware','getHingeCountForCabinet',[room, cab], function(){ return 0; }); }
-function estimateFlapWeightKg(cab, room){ return callExtracted('frontHardware','estimateFlapWeightKg',[cab, room], function(){ return 0; }); }
-function blumAventosPowerFactor(cab, room){ return callExtracted('frontHardware','blumAventosPowerFactor',[cab, room], function(){ return 0; }); }
-function getBlumAventosInfo(cab, room){ return callExtracted('frontHardware','getBlumAventosInfo',[cab, room], function(){ return null; }); }
-
-function getCabinetCutList(cab, room){
-  return callExtracted('cabinetCutlist','getCabinetCutList',[cab, room], _getCabinetCutListFallback);
-}
-
-function _getCabinetCutListFallback(cab, room){
-  // Fallback awaryjny celowo minimalny: właściwa logika siedzi w js/app/cabinet/cabinet-cutlist.js.
-  // Zwracamy pustą listę zamiast dublować setki linii w app.js.
-  return [];
-}
 
 
 
@@ -467,10 +235,6 @@ function renderWywiadTab(list, room){
 function renderSingleCabinetCard(list, room, cab, displayIndex){
   return callExtracted('tabsWywiad', 'renderSingleCabinetCard', [list, room, cab, displayIndex]);
 }
-
-/* ===== Price modal render ===== */
-function renderPriceModal(){ return callExtracted('priceModal','renderPriceModal',[]); }
-
 
 // Tab/navigation helpers extracted to js/app/ui/tab-navigation.js
 function jumpToMaterialsForCabinet(cabId){ return callExtracted('tabNavigation','jumpToMaterialsForCabinet',[cabId]); }

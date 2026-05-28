@@ -17,13 +17,11 @@
     const buildSelectionSummary = getFn(deps, 'buildSelectionSummary', ()=> ({ scopeText:'Korpusy + fronty' }));
     const data = draft && typeof draft === 'object' ? draft : {};
     const commercial = data.commercial || {};
-    const rates = Array.isArray(data.rateSelections) ? data.rateSelections.filter((row)=> num(row && row.qty, 0) > 0) : [];
     const summary = buildSelectionSummary(normalizeDraftSelection(data));
     const parts = [];
     if(String(commercial.versionName || '').trim()) parts.push(`Wersja: ${String(commercial.versionName).trim()}`);
     if(commercial.preliminary) parts.push('Wstępna wycena');
     parts.push(summary.scopeText);
-    if(rates.length) parts.push(`Stawki: ${rates.length}`);
     if(Number(commercial.discountPercent) > 0) parts.push(`Rabat ${Number(commercial.discountPercent).toFixed(2)}%`);
     else if(Number(commercial.discountAmount) > 0) parts.push(`Rabat ${money(commercial.discountAmount)}`);
     if(String(commercial.offerValidity || '').trim()) parts.push(`Ważność: ${String(commercial.offerValidity).trim()}`);
@@ -116,10 +114,7 @@
     const normalizeDraftSelection = getFn(deps, 'normalizeDraftSelection', ()=> ({ selectedRooms:[], materialScope:{ kind:'all', material:'', includeFronts:true, includeCorpus:true } }));
     const defaultVersionName = getFn(deps, 'defaultVersionName', (preliminary)=> preliminary ? 'Wstępna oferta' : 'Oferta');
     const buildOfferSummaryFn = getFn(deps, 'buildOfferSummary', (draftArg)=> buildOfferSummary(draftArg, deps));
-    const buildSelectionMapFn = getFn(deps, 'buildSelectionMap', (draftArg)=> buildSelectionMap(draftArg, deps));
-    const saveRateSelectionRowsFn = getFn(deps, 'saveRateSelectionRows', (rows)=> saveRateSelectionRows(rows, deps));
     const buildFieldFn = getFn(deps, 'buildField', (label, inputNode, full)=> buildField(label, inputNode, full, deps));
-    const makeRateSelectionRowsFn = getFn(deps, 'makeRateSelectionRows', (catalog, selectionMap)=> makeRateSelectionRows(catalog, selectionMap, deps));
     const money = getFn(deps, 'money', (value)=> `${(Number(value)||0).toFixed(2)} PLN`);
     const num = getFn(deps, 'num', (value, fallback)=> {
       const parsed = Number(value);
@@ -132,8 +127,6 @@
 
     const draft = getOfferDraft();
     const commercial = draft && draft.commercial || {};
-    const catalog = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
-    const selectionMap = buildSelectionMapFn(draft);
     const isOpen = !!getIsOpen();
 
     const section = h('section', { class:`quote-offer-accordion rozrys-material-accordion${isOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
@@ -167,33 +160,6 @@
       const versionField = buildFieldFn('Nazwa wersji oferty', versionInput, true);
       if(versionField) body.appendChild(versionField);
 
-      const rateShell = h('div', { class:'quote-rate-editor' });
-      if(!catalog.length){
-        rateShell.appendChild(h('div', { class:'muted', text:'Brak zdefiniowanych stawek wyceny mebli. Dodaj je w cenniku.' }));
-      } else {
-        catalog.forEach((rate)=>{
-          const item = h('div', { class:'quote-rate-editor__item' });
-          const info = h('div', { class:'quote-rate-editor__info' });
-          info.appendChild(h('div', { class:'quote-rate-editor__title', text:String(rate && rate.name || 'Stawka wyceny') }));
-          const metaParts = [];
-          if(String(rate && rate.category || '').trim()) metaParts.push(String(rate.category).trim());
-          metaParts.push(`Cena: ${money(rate && rate.price)}`);
-          info.appendChild(h('div', { class:'quote-rate-editor__meta', text:metaParts.join(' • ') }));
-          item.appendChild(info);
-          const qtyWrap = h('div', { class:'quote-rate-editor__qty' });
-          qtyWrap.appendChild(h('label', { text:'Ilość' }));
-          const qtyInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'1', value:String(num(selectionMap[String(rate && rate.id || '')], 0) || '') });
-          qtyInput.addEventListener('change', ()=>{
-            const nextMap = Object.assign({}, selectionMap, { [String(rate && rate.id || '')]: Math.max(0, num(qtyInput.value, 0)) });
-            saveRateSelectionRowsFn(makeRateSelectionRowsFn(catalog, nextMap));
-          });
-          qtyWrap.appendChild(qtyInput);
-          item.appendChild(qtyWrap);
-          rateShell.appendChild(item);
-        });
-      }
-      body.appendChild(h('div', { class:'quote-subsection-title', text:'Robocizna / stawki wyceny mebli', style:'margin-top:14px' }));
-      body.appendChild(rateShell);
 
       const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
       const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });

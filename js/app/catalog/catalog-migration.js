@@ -15,7 +15,10 @@
       const src = row && typeof row === 'object' ? row : {};
       const materialType = String(src.materialType || '').trim().toLowerCase();
       if(materialType === 'akcesoria' || materialType === 'accessories' || materialType === 'akcesorium'){
-        out.accessories.push({ id:src.id, manufacturer:src.manufacturer, symbol:src.symbol, name:src.name, price:src.price });
+        const accessory = Object.assign({}, src);
+        delete accessory.materialType;
+        delete accessory.hasGrain;
+        out.accessories.push(accessory);
       }else{
         out.sheetMaterials.push(src);
       }
@@ -33,7 +36,12 @@
       storedQuoteRates:null,
       storedWorkshopServices:null,
       storedServiceOrders:null,
-      defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[] },
+      storedHardwareManufacturers:null,
+      storedHardwareSuppliers:null,
+      storedHardwareSettings:null,
+      storedHardwareCategories:null,
+      storedHardwareTypes:null,
+      defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:{}, hardwareCategories:[], hardwareTypes:[] },
       splitLegacyMaterials:null,
     }, opts || {});
 
@@ -48,6 +56,11 @@
       quoteRates: preferStored && Array.isArray(cfg.storedQuoteRates) ? clone(cfg.storedQuoteRates) : clone(cfg.legacyServices || cfg.defaults.quoteRates || []),
       workshopServices: Array.isArray(cfg.storedWorkshopServices) ? clone(cfg.storedWorkshopServices) : clone(cfg.defaults.workshopServices || []),
       serviceOrders: Array.isArray(cfg.storedServiceOrders) ? clone(cfg.storedServiceOrders) : clone(cfg.defaults.serviceOrders || []),
+      hardwareManufacturers: Array.isArray(cfg.storedHardwareManufacturers) ? clone(cfg.storedHardwareManufacturers) : clone(cfg.defaults.hardwareManufacturers || []),
+      hardwareSuppliers: Array.isArray(cfg.storedHardwareSuppliers) ? clone(cfg.storedHardwareSuppliers) : clone(cfg.defaults.hardwareSuppliers || []),
+      hardwareSettings: cfg.storedHardwareSettings && typeof cfg.storedHardwareSettings === 'object' ? clone(cfg.storedHardwareSettings) : clone(cfg.defaults.hardwareSettings || {}),
+      hardwareCategories: Array.isArray(cfg.storedHardwareCategories) ? clone(cfg.storedHardwareCategories) : clone(cfg.defaults.hardwareCategories || []),
+      hardwareTypes: Array.isArray(cfg.storedHardwareTypes) ? clone(cfg.storedHardwareTypes) : clone(cfg.defaults.hardwareTypes || []),
     };
   }
 

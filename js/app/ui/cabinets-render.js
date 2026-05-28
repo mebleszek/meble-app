@@ -98,6 +98,10 @@
         if(typeof FC.wywiadRoomSettings.renderSummary === 'function') FC.wywiadRoomSettings.renderSummary(room);
         if(typeof FC.wywiadRoomSettings.bindTriggerButtons === 'function') FC.wywiadRoomSettings.bindTriggerButtons(doc);
       }
+      if(FC.wywiadRoomPreferences){
+        if(typeof FC.wywiadRoomPreferences.renderSummary === 'function') FC.wywiadRoomPreferences.renderSummary(room);
+        if(typeof FC.wywiadRoomPreferences.bindTriggerButtons === 'function') FC.wywiadRoomPreferences.bindTriggerButtons(doc);
+      }
     }catch(_){ }
 
     // Zakładki — routing przez moduły (js/app/ui/tabs-router.js + js/tabs/*).

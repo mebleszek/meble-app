@@ -13,14 +13,35 @@
     return String((found && (found.projectStatus || found.status)) || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
   }
 
+
+  function getStatusLabel(value){
+    const key = String(value || '').trim().toLowerCase();
+    const labels = (FC.projectStatusManualGuard && FC.projectStatusManualGuard.STATUS_LABELS) || {};
+    return labels[key] || (key ? key.replace(/_/g, ' ') : 'Status');
+  }
+
+  function buildStatusOptionsForRoom(statusOptions, currentStatus){
+    const options = Array.isArray(statusOptions) ? statusOptions.slice() : [];
+    const current = String(currentStatus || '').trim();
+    if(current && !options.some((opt)=> String(opt && opt.value || '') === current)){
+      options.unshift({ value:current, label:getStatusLabel(current), currentOnly:true, description:'Ten status wynika z wyceny i nie jest dostępny jako ręczny wybór w Inwestorze.' });
+    }
+    return options;
+  }
+
   function buildProjectCards(inv, disabled, statusOptions){
     const rooms = (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') ? FC.roomRegistry.getActiveRoomDefs() : [];
     if(!rooms.length) return '<div class="muted">Brak dodanych pomieszczeń.</div>';
-    const optsHtml = (statusOptions || []).map((opt)=> `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`).join('');
     return rooms.map((room)=> {
       const status = getRoomStatus(inv, room.id);
+      const roomOptions = buildStatusOptionsForRoom(statusOptions, status);
+      const statusOptionsHtml = roomOptions.map((opt)=> {
+        const value = String(opt && opt.value || '');
+        const selected = value === String(status || '') ? ' selected' : '';
+        const currentOnly = opt && opt.currentOnly ? ' data-current-only="1" data-description="' + escapeHtml(opt.description || '') + '"' : '';
+        return `<option value="${escapeHtml(value)}"${selected}${currentOnly}>${escapeHtml(opt && opt.label || value)}</option>`;
+      }).join('');
       const buttonDisabled = disabled ? 'disabled' : '';
-      const statusOptionsHtml = optsHtml.replace(`value="${escapeHtml(status)}"`, `value="${escapeHtml(status)}" selected`);
       return `
         <div class="investor-project-card">
           <div class="investor-project-card__top">
@@ -64,6 +85,12 @@
           if(cfg.disabled) return;
           try{
             const value = String(opt.value || '');
+            if(opt.getAttribute('data-current-only') === '1' || value === 'wstepna_wycena'){
+              opt.disabled = true;
+              opt.setAttribute('data-description', String(opt.getAttribute('data-description') || 'Wycena wstępna powstaje w dziale Wycena, nie przez ręczną zmianę statusu w Inwestorze.'));
+              if(String(opt.value || '') === currentValue) opt.selected = true;
+              return;
+            }
             let validation = validationMap ? validationMap[value] : null;
             if(!validation && FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function'){
               validation = FC.projectStatusManualGuard.validateManualStatusChange(String(inv && inv.id || ''), String(room.id || ''), value);

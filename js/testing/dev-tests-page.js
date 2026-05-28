@@ -21,6 +21,10 @@
     const memorySection = byId('memoryToolsSection');
     const testsSection = byId('regressionTestsSection');
     const reportToolbar = byId('reportToolbar');
+    const progressEl = byId('testProgress');
+    const progressCtrl = FC.devTestsProgress && typeof FC.devTestsProgress.createController === 'function'
+      ? FC.devTestsProgress.createController(progressEl)
+      : null;
     const results = byId('results');
     const openMemoryBtn = byId('openMemoryTools');
     const openTestsBtn = byId('openRegressionTests');
@@ -40,6 +44,7 @@
       memorySection.hidden = name !== 'memory';
       testsSection.hidden = name !== 'tests';
       if(!keepResults){
+        if(progressCtrl) progressCtrl.reset();
         results.innerHTML = '';
         lastOverall = null;
         lastSuites = [];
@@ -70,6 +75,7 @@
     }
 
     function finishRunStartCancelled(message){
+      if(progressCtrl) progressCtrl.fail(message || 'Testy anulowane.');
       lastSuites = [];
       lastOverall = { failed:0, total:0, passed:0, durationMs:0, clipboardText:message || 'Testy anulowane.' };
       results.innerHTML = `
@@ -126,6 +132,10 @@
       showPanel('tests', true);
       setRunning(true, sourceBtn);
       results.innerHTML = '';
+      if(progressCtrl) progressCtrl.start(mode || 'all');
+      if(FC.testHarness && typeof FC.testHarness.setProgressSink === 'function'){
+        FC.testHarness.setProgressSink((event)=>{ if(progressCtrl) progressCtrl.handle(event); });
+      }
       let safetyContext = null;
       try{
         if(FC.testDataSafety && typeof FC.testDataSafety.beforeRun === 'function'){
@@ -139,6 +149,7 @@
         const suites = await registry.collectSuites(mode);
         lastSuites = suites.slice();
         lastOverall = reportView.renderResult(results, suites);
+        if(progressCtrl) progressCtrl.finish(lastOverall);
         appendSafetyNote(safetyContext);
         updateReportButtons(false);
       } catch(error){
@@ -147,6 +158,7 @@
           failed:1,
           clipboardText: `Testy aplikacji: BŁĄD\n${error && error.message ? error.message : String(error)}`,
         };
+        if(progressCtrl) progressCtrl.fail(error && error.message ? error.message : String(error));
         results.innerHTML = `
           <div class="overall bad">
             <div class="overall-title">Błąd uruchomienia testów</div>
@@ -157,6 +169,7 @@
       } finally {
         try{ cleanupTestData(true); }catch(_){ }
         try{ if(FC.testDataSafety && typeof FC.testDataSafety.afterRun === 'function') FC.testDataSafety.afterRun(safetyContext, { mode, failed:lastOverall && lastOverall.failed }); }catch(_){ }
+        if(FC.testHarness && typeof FC.testHarness.setProgressSink === 'function') FC.testHarness.setProgressSink(null);
         setRunning(false);
       }
     }

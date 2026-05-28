@@ -46,6 +46,78 @@
     try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; }
   }
 
+
+
+  function getFrontSourceApi(){ return (window.FC && window.FC.frontMaterialSource) || {}; }
+
+  function getSetFrontSourceOptions(){
+    const api = getFrontSourceApi();
+    if(api && Array.isArray(api.SOURCE_OPTIONS)) return api.SOURCE_OPTIONS;
+    return [
+      { v:'lower', t:'Jak strefa dolna / stojące' },
+      { v:'middle', t:'Jak strefa środkowa / moduły' },
+      { v:'upper', t:'Jak strefa górna / wiszące' },
+      { v:'custom', t:'Własny materiał' }
+    ];
+  }
+
+  function populateSetFrontSourceOptions(){
+    const sel = document.getElementById('setFrontSource');
+    if(!sel) return;
+    const current = sel.value || 'custom';
+    sel.innerHTML = '';
+    getSetFrontSourceOptions().forEach((entry)=>{
+      const opt = document.createElement('option');
+      opt.value = entry.v;
+      opt.textContent = entry.t;
+      if(entry.v === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if(!sel.value) sel.value = current || 'custom';
+  }
+
+  function setMaterialFieldsVisible(visible){
+    ['setFrontMaterial','setFrontColor'].forEach((id)=>{
+      const el = document.getElementById(id);
+      const wrap = el ? el.closest('div') : null;
+      if(wrap) wrap.style.display = visible ? '' : 'none';
+    });
+  }
+
+  function updateSetFrontSourceUI(){
+    const sourceEl = document.getElementById('setFrontSource');
+    const isCustom = !sourceEl || String(sourceEl.value || 'custom') === 'custom';
+    setMaterialFieldsVisible(isCustom);
+    const hint = document.getElementById('setFrontHint');
+    if(hint){
+      hint.textContent = isCustom
+        ? 'Własny materiał frontu zestawu. Wybierz materiał i kolor.'
+        : 'Fronty zestawu pobiorą materiał ze wskazanej strefy pomieszczenia.';
+    }
+  }
+
+  function getSetFrontSourceSpecFromUI(frontMaterial, frontColor){
+    const sourceEl = document.getElementById('setFrontSource');
+    const source = sourceEl ? String(sourceEl.value || 'custom') : 'custom';
+    return { source, material: frontMaterial || '', color: frontColor || '' };
+  }
+
+  function resolveSetFrontMaterial(room, sourceSpec, fallback){
+    const api = getFrontSourceApi();
+    try{
+      if(api && typeof api.resolveSetFront === 'function') return api.resolveSetFront(room, sourceSpec, fallback);
+    }catch(_){ }
+    return { source:'custom', material:(fallback && fallback.material) || 'laminat', color:(fallback && fallback.color) || '', label:'własny' };
+  }
+
+  function serializeSetFrontSource(resolved, sourceSpec){
+    const api = getFrontSourceApi();
+    try{
+      if(api && typeof api.serializeSourceForFront === 'function') return Object.assign({}, api.serializeSourceForFront(resolved), sourceSpec || {});
+    }catch(_){ }
+    return Object.assign({ source:(resolved && resolved.source) || 'custom', label:(resolved && resolved.label) || '' }, sourceSpec || {});
+  }
+
   function uidSafe(){
     try{
       if(ns.utils && typeof ns.utils.uid === 'function') return ns.utils.uid();
@@ -141,7 +213,58 @@
       colSel.dispatchEvent(new Event('change', { bubbles:true }));
     }catch(_){ }
 
+    updateSetFrontSourceUI();
     refreshSetLaunchers();
+  }
+
+  function text(value){ return String(value == null ? '' : value).trim(); }
+
+  function firstLaminatName(){
+    try{
+      const list = Array.isArray(materials) ? materials : [];
+      const hit = list.find(function(mat){ return mat && String(mat.materialType || '') === 'laminat'; });
+      return text(hit && hit.name);
+    }catch(_){ return ''; }
+  }
+
+  function getLowerZoneMaterialDefaults(room){
+    const baseLaminat = firstLaminatName();
+    const fallback = {
+      bodyColor: baseLaminat,
+      frontMaterial: 'laminat',
+      frontColor: baseLaminat,
+      backMaterial: 'HDF 3mm biała',
+      openingSystem: 'uchwyt klienta'
+    };
+    try{
+      if(ns.roomPreferences && typeof ns.roomPreferences.resolveZoneDefaults === 'function'){
+        return ns.roomPreferences.resolveZoneDefaults(room, 'lower', fallback);
+      }
+    }catch(_){ }
+    return fallback;
+  }
+
+  function getSetBaseDraft(room){
+    return getLowerZoneMaterialDefaults(room);
+  }
+
+  function getSetMaterialsApi(){ return (window.FC && window.FC.cabinetModalSetMaterials) || {}; }
+
+  function populateSetMaterialSelectors(defaults){
+    const api = getSetMaterialsApi();
+    if(api && typeof api.populateSelectors === 'function') return api.populateSelectors(defaults || {});
+    return null;
+  }
+
+  function getSetMaterialSpecFromUI(room){
+    const base = getSetBaseDraft(room);
+    const api = getSetMaterialsApi();
+    if(api && typeof api.getSpec === 'function') return api.getSpec(base);
+    return {
+      bodyColor: String(base.bodyColor || ''),
+      backMaterial: String(base.backMaterial || 'HDF 3mm biała'),
+      openingSystem: String(base.openingSystem || 'uchwyt klienta')
+    };
   }
 
   function renderSetTiles(){
@@ -344,20 +467,34 @@
     renderSetParamsUI(cabinetModalState.setPreset);
     if(document.getElementById('setParams')) document.getElementById('setParams').style.display = hasPreset ? 'grid' : 'none';
 
+    const materialBlock = document.getElementById('setMaterialBlock');
+    if(materialBlock) materialBlock.style.display = hasPreset ? 'block' : 'none';
+
     const frontBlock = document.getElementById('setFrontBlock');
     if(frontBlock) frontBlock.style.display = hasPreset ? 'block' : 'none';
 
     if(hasPreset){
       const cntSel = document.getElementById('setFrontCount');
+      const sourceSel = document.getElementById('setFrontSource');
       const matSel = document.getElementById('setFrontMaterial');
 
+      populateSetMaterialSelectors(getSetBaseDraft(uiState.roomType));
+      populateSetFrontSourceOptions();
       if(cntSel && !cntSel.value) cntSel.value = '2';
+      if(sourceSel && !sourceSel.value) sourceSel.value = 'custom';
       if(matSel && !matSel.value) matSel.value = 'laminat';
       syncSetFrontSelectors({ keepColor:true });
 
+      if(sourceSel){
+        sourceSel.onchange = function(){ updateSetFrontSourceUI(); refreshSetLaunchers(); };
+      }
       if(matSel){
         matSel.onchange = function(){ syncSetFrontSelectors({ selectedColor:'' }); };
       }
+      ['setBodyColor','setBackMaterial','setOpeningSystem'].forEach(function(id){
+        const el = document.getElementById(id);
+        if(el) el.onchange = function(){ refreshSetLaunchers(); };
+      });
 
       const hint = document.getElementById('setFrontHint');
       const updateHint = function(){
@@ -397,7 +534,7 @@
     return true;
   }
 
-  function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber){
+  function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber, frontSource){
     frontCount = Number(frontCount || 1);
 
     if(presetId === 'A'){
@@ -405,10 +542,10 @@
       const w2 = Number(dims && dims.w2 || 0);
       const totalH = Number(dims && dims.hB || 0) + Number(dims && dims.hTop || 0);
       if(frontCount === 1){
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1 + w2, height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1 + w2, height: totalH, note: `Zestaw ${setNumber}: 1 front`, frontMaterialSource: frontSource || null });
       } else {
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1, height: totalH, note: `Zestaw ${setNumber}: front lewy` });
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w2, height: totalH, note: `Zestaw ${setNumber}: front prawy` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w1, height: totalH, note: `Zestaw ${setNumber}: front lewy`, frontMaterialSource: frontSource || null });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w2, height: totalH, note: `Zestaw ${setNumber}: front prawy`, frontMaterialSource: frontSource || null });
       }
       return;
     }
@@ -417,11 +554,11 @@
       const w = Number(dims && dims.w || 0);
       const totalH = Number(dims && dims.hB || 0) + Number(dims && dims.hTop || 0);
       if(frontCount === 1){
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front`, frontMaterialSource: frontSource || null });
       } else {
         const half = Math.round((w / 2) * 10) / 10;
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2`, frontMaterialSource: frontSource || null });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2`, frontMaterialSource: frontSource || null });
       }
       return;
     }
@@ -430,11 +567,11 @@
       const w = Number(dims && dims.w || 0);
       const totalH = Number(dims && dims.hB || 0) + Number(dims && dims.hM || 0) + Number(dims && dims.hTop || 0);
       if(frontCount === 1){
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w, height: totalH, note: `Zestaw ${setNumber}: 1 front`, frontMaterialSource: frontSource || null });
       } else {
         const half = Math.round((w / 2) * 10) / 10;
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2` });
-        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2` });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: half, height: totalH, note: `Zestaw ${setNumber}: front 1/2`, frontMaterialSource: frontSource || null });
+        addFrontSafe(room, { setId:setId, setNumber:setNumber, material: frontMaterial, color: frontColor, width: w - half, height: totalH, note: `Zestaw ${setNumber}: front 2/2`, frontMaterialSource: frontSource || null });
       }
     }
   }
@@ -508,15 +645,34 @@
     }
 
     const cntSel = document.getElementById('setFrontCount');
+    const sourceSel = document.getElementById('setFrontSource');
     const matSel = document.getElementById('setFrontMaterial');
     const colSel = document.getElementById('setFrontColor');
+    const bodySel = document.getElementById('setBodyColor');
+    const backSel = document.getElementById('setBackMaterial');
+    const openingSel = document.getElementById('setOpeningSystem');
 
+    populateSetMaterialSelectors(Object.assign({}, getSetBaseDraft(uiState.roomType), {
+      bodyColor: set.bodyColor || '',
+      backMaterial: set.backMaterial || '',
+      openingSystem: set.openingSystem || ''
+    }));
+    if(bodySel && set.bodyColor) bodySel.value = set.bodyColor;
+    if(backSel && set.backMaterial) backSel.value = set.backMaterial;
+    if(openingSel && set.openingSystem) openingSel.value = set.openingSystem;
+
+    populateSetFrontSourceOptions();
     if(cntSel && set.frontCount) cntSel.value = String(set.frontCount);
+    if(sourceSel){
+      const spec = getFrontSourceApi().normalizeSetSource ? getFrontSourceApi().normalizeSetSource(set, { source:'custom' }) : (set.frontSource || { source:'custom' });
+      sourceSel.value = String((spec && spec.source) || 'custom');
+    }
     if(matSel && set.frontMaterial) matSel.value = set.frontMaterial;
     if(colSel){
       syncSetFrontSelectors({ selectedColor:set.frontColor || '' });
       colSel.value = set.frontColor || colSel.value;
     }
+    updateSetFrontSourceUI();
 
     wireSetParamsLiveUpdate(set.presetId);
   }
@@ -583,14 +739,23 @@
       const cntEl = document.getElementById('setFrontCount');
       const matEl = document.getElementById('setFrontMaterial');
       const colEl = document.getElementById('setFrontColor');
-      if(!cntEl || !matEl || !colEl){
-        showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (fronty / materiał / kolor). Wybierz preset i spróbuj ponownie.');
+      const bodyEl = document.getElementById('setBodyColor');
+      const backEl = document.getElementById('setBackMaterial');
+      const openingEl = document.getElementById('setOpeningSystem');
+      if(!cntEl || !matEl || !colEl || !bodyEl || !backEl || !openingEl){
+        showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (korpus / plecy / otwieranie / fronty). Wybierz preset i spróbuj ponownie.');
         return;
       }
 
+      const setMaterials = getSetMaterialSpecFromUI(room);
       const frontCount = Number(cntEl.value || 1);
-      const frontMaterial = matEl.value || 'laminat';
-      const frontColor = colEl.value || '';
+      const customFrontMaterial = matEl.value || 'laminat';
+      const customFrontColor = colEl.value || '';
+      const frontSourceSpec = getSetFrontSourceSpecFromUI(customFrontMaterial, customFrontColor);
+      const resolvedFront = resolveSetFrontMaterial(room, frontSourceSpec, { source:'custom', material:customFrontMaterial, color:customFrontColor });
+      const frontMaterial = resolvedFront.material || customFrontMaterial || 'laminat';
+      const frontColor = resolvedFront.color || customFrontColor || '';
+      const serializedFrontSource = serializeSetFrontSource(resolvedFront, frontSourceSpec);
 
       const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
       const setId = isEdit ? cabinetModalState.setEditId : uidSafe();
@@ -609,7 +774,7 @@
         const out = cab || {};
         out.id = out.id || uidSafe();
         if(!out.details) out.details = cloneSafe(base.details || {});
-        if(!out.bodyColor) out.bodyColor = base.bodyColor;
+        out.bodyColor = setMaterials.bodyColor || out.bodyColor || base.bodyColor;
         out.frontMaterial = frontMaterial || out.frontMaterial || base.frontMaterial || 'laminat';
         if(frontColor){
           out.frontColor = frontColor;
@@ -617,8 +782,8 @@
           const first = (typeof materials !== 'undefined' && Array.isArray(materials)) ? materials.find(function(m){ return m && m.materialType === out.frontMaterial; }) : null;
           out.frontColor = first ? first.name : '';
         }
-        if(!out.openingSystem) out.openingSystem = base.openingSystem || 'uchwyt klienta';
-        if(!out.backMaterial) out.backMaterial = base.backMaterial || 'HDF 3mm biała';
+        out.openingSystem = setMaterials.openingSystem || out.openingSystem || base.openingSystem || 'uchwyt klienta';
+        out.backMaterial = setMaterials.backMaterial || out.backMaterial || base.backMaterial || 'HDF 3mm biała';
         out.setId = setId;
         out.setPreset = presetId;
         out.setNumber = setNumber;
@@ -638,14 +803,14 @@
         const cab2 = finalizeCab(Object.assign({}, cloneSafe(base), { type:'stojąca', subType:'standardowa', width:params.w2, height:params.hB, depth:params.dBottom, setRole:'dolny_prawy', frontCount:2 }));
         const top = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:(params.w1+params.w2), height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
         created.push(cab1, cab2, top);
-        createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1, w2:params.w2, hB:params.hB, hTop:params.hTop}, setId, setNumber);
+        createFrontsForSet(room, 'A', frontCount, frontMaterial, frontColor, {w1:params.w1, w2:params.w2, hB:params.hB, hTop:params.hTop}, setId, setNumber, serializedFrontSource);
       }
 
       if(presetId === 'C'){
         const bottom = finalizeCab(Object.assign({}, cloneSafe(base), { type:'stojąca', subType:'standardowa', width:params.w, height:params.hB, depth:params.dBottom, setRole:'dolny', frontCount:2 }));
         const top = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
         created.push(bottom, top);
-        createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hTop:params.hTop}, setId, setNumber);
+        createFrontsForSet(room, 'C', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hTop:params.hTop}, setId, setNumber, serializedFrontSource);
       }
 
       if(presetId === 'D'){
@@ -653,12 +818,12 @@
         const middle = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hM, depth:params.dModule, setRole:'srodkowy_modul', frontCount:0 }));
         const top = finalizeCab(Object.assign({}, cloneSafe(base), { type:'moduł', subType:'standardowa', width:params.w, height:params.hTop, depth:params.dModule, setRole:'gorny_modul', frontCount:0 }));
         created.push(bottom, middle, top);
-        createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hM:params.hM, hTop:params.hTop}, setId, setNumber);
+        createFrontsForSet(room, 'D', frontCount, frontMaterial, frontColor, {w:params.w, hB:params.hB, hM:params.hM, hTop:params.hTop}, setId, setNumber, serializedFrontSource);
       }
 
       created.forEach(function(cab){ projectData[room].cabinets.push(cab); });
 
-      const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor };
+      const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, bodyColor:setMaterials.bodyColor, backMaterial:setMaterials.backMaterial, openingSystem:setMaterials.openingSystem, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor, frontSource:serializedFrontSource };
       if(isEdit){
         projectData[room].sets = projectData[room].sets.map(function(set){ return set && set.id === setId ? setRecord : set; });
       } else {

@@ -84,6 +84,14 @@
       }
     },
     {
+      id:'setFrontSource',
+      title:'Wybierz źródło materiału frontów zestawu',
+      placeholder:'Wybierz źródło materiału frontów zestawu',
+      shouldMount(){
+        return isVisibleById('setFrontBlock') && isVisibleById('setFrontSource');
+      }
+    },
+    {
       id:'setFrontMaterial',
       title:'Wybierz materiał frontów zestawu',
       placeholder:'Wybierz materiał frontów zestawu',
@@ -97,6 +105,30 @@
       placeholder:'Wybierz kolor frontów zestawu',
       shouldMount(){
         return isVisibleById('setFrontBlock') && isVisibleById('setFrontColor');
+      }
+    },
+    {
+      id:'setBodyColor',
+      title:'Wybierz korpus zestawu',
+      placeholder:'Wybierz korpus zestawu',
+      shouldMount(){
+        return isVisibleById('setMaterialBlock') && isVisibleById('setBodyColor');
+      }
+    },
+    {
+      id:'setBackMaterial',
+      title:'Wybierz plecy zestawu',
+      placeholder:'Wybierz plecy zestawu',
+      shouldMount(){
+        return isVisibleById('setMaterialBlock') && isVisibleById('setBackMaterial');
+      }
+    },
+    {
+      id:'setOpeningSystem',
+      title:'Wybierz otwieranie zestawu',
+      placeholder:'Wybierz otwieranie zestawu',
+      shouldMount(){
+        return isVisibleById('setMaterialBlock') && isVisibleById('setOpeningSystem');
       }
     }
   ];
@@ -278,9 +310,12 @@
         value:String(selectEl.value || ''),
         options:buildOptions(selectEl)
       });
-      if(picked == null || String(picked) === String(selectEl.value || '')) return;
+      if(picked == null) return;
       selectEl.value = String(picked || '');
       api.setChoiceLaunchValue(btn, api.getSelectOptionLabel(selectEl) || String(cfg && cfg.placeholder || ''), '');
+      // Nawet wybór tej samej wartości musi zsynchronizować draft,
+      // bo źródłowy select może być już ustawiony przez render, a model szafki
+      // po przebudowie preferencji/stref może mieć jeszcze starą wartość.
       selectEl.dispatchEvent(new Event('change', { bubbles:true }));
     });
     slot.innerHTML = '';
@@ -364,7 +399,7 @@
   function refreshCabinetChoices(rootEl){
     const root = rootEl || document;
     const mounted = [];
-    if(root === document || (root.querySelector && root.querySelector('#cmSubType, #cmFrontMaterial, #cmFrontColor, #cmBackMaterial, #cmBodyColor, #cmOpeningSystem, #cmFrontCount, #cmFlapVendor, #cmFlapKind'))){
+    if(root === document || (root.querySelector && root.querySelector('#cmSubType, #cmFrontMaterial, #cmFrontColor, #cmBackMaterial, #cmBodyColor, #cmOpeningSystem, #cmFrontCount, #cmFlapVendor, #cmFlapKind, #setBodyColor, #setBackMaterial, #setOpeningSystem'))){
       mounted.push.apply(mounted, mountSafeFieldLaunchers());
     }
     mounted.push.apply(mounted, mountDynamicSelectLaunchers(root));

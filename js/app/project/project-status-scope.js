@@ -232,6 +232,7 @@
           matchMode:'exact',
           fallbackStatus:suggestionFallbackStatus || fallbackStatus,
           allowProjectWideExact: ids.length === 1,
+          preserveCurrentWhenNoQuoteRows: !!opts.preserveCurrentWhenNoQuoteRows,
         }) || {};
       }
     }catch(_){ suggestedMap = {}; }

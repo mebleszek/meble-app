@@ -44,6 +44,17 @@
         H.assert(Array.isArray(out.pokoj.fronts), 'Brak domyślnych fronts w pokoju', out);
       }),
 
+      H.makeTest('Projekt', 'Model pokoju zachowuje preferencje standardu', 'Pilnuje Etapu 1: room.preferences jest częścią danych konkretnego pomieszczenia i nie ginie przy normalizacji projektu.', ()=>{
+        H.assert(FC.schema && typeof FC.schema.normalizeProject === 'function', 'Brak FC.schema.normalizeProject');
+        const out = FC.schema.normalizeProject({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Egger czarny', frontMaterial:'lakier', frontColor:'Biały', openingSystemStanding:'TIP-ON', hardwareManufacturer:'Blum' } } });
+        H.assert(out && Number(out.schemaVersion) >= 11, 'Schema nie podniosła wersji dla strefowych preferencji pokoju', out);
+        H.assert(out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones, 'Brak stref preferencji pokoju', out.kuchnia && out.kuchnia.preferences);
+        H.assert(out.kuchnia.preferences.zones.lower.bodyColor === 'Egger czarny', 'Korpus z preferencji dolnej zginął', out.kuchnia.preferences);
+        H.assert(out.kuchnia.preferences.zones.lower.openingSystem === 'TIP-ON', 'Otwieranie strefy dolnej/stojącej nie zostało zachowane', out.kuchnia.preferences);
+        H.assert(out.kuchnia.preferences.zones.middle.frontColor === 'Biały' && out.kuchnia.preferences.zones.upper.frontColor === 'Biały', 'Legacy front nie został przeniesiony do stref', out.kuchnia.preferences);
+        H.assert(out.szafa && out.szafa.preferences && out.szafa.preferences.zones && typeof out.szafa.preferences.zones.lower === 'object', 'Brak strefowych preferencji w pozostałych pokojach', out.szafa);
+      }),
+
       H.makeTest('Projekt', 'Resolver zakresu pokoi zachowuje zły exact scope zamiast po cichu przełączać na inne pomieszczenie', 'Pilnuje rdzenia pokojów: jeśli użytkownik ma zapisany konkretny pokój, którego już nie ma w aktywnej liście, resolver ma go zachować do walidacji zamiast zamieniać po cichu na inne pomieszczenie.', ()=>{
         H.assert(FC.roomScopeResolver && typeof FC.roomScopeResolver.resolveSelection === 'function', 'Brak FC.roomScopeResolver.resolveSelection');
         const resolved = FC.roomScopeResolver.resolveSelection({ selectedRooms:['room_missing'] }, { getActiveRooms:()=> ['room_kuchnia','room_salon'], useRozrysScope:false });
@@ -124,7 +135,7 @@
       }),
 
 
-      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia 10 najnowszych backupów w każdej grupie, usuwa tylko starszy nadmiar i nie miesza backupów testowych z programowymi.', ()=>{
+      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia dotychczasową retencję programu, a backupy testowe tnie do maksymalnie 10 najnowszych sztuk.', ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.pruneNow === 'function', 'Brak FC.dataBackupStore.pruneNow');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const prevBackupsRaw = localStorage.getItem(backupKey);
@@ -144,7 +155,7 @@
         try{
           const seed = [];
           for(let i=0;i<13;i += 1) seed.push(fakeBackup('app_' + i, 'manual', i, i === 12));
-          for(let i=0;i<13;i += 1) seed.push(fakeBackup('test_' + i, 'before-tests', i, i === 12));
+          for(let i=0;i<13;i += 1) seed.push(fakeBackup('test_' + i, 'before-tests', i, false));
           localStorage.setItem(backupKey, JSON.stringify(seed));
           const pruned = FC.dataBackupStore.pruneNow();
           const ids = new Set(pruned.map((item)=> item.id));
@@ -153,10 +164,10 @@
             H.assert(ids.has('test_' + i), 'Sprzątanie usunęło jeden z 10 najnowszych backupów testowych', pruned);
           }
           H.assert(!ids.has('app_10') && !ids.has('app_11'), 'Sprzątanie nie usunęło starego nadmiaru programu poza ostatnią dziesiątką', pruned);
-          H.assert(!ids.has('test_10') && !ids.has('test_11'), 'Sprzątanie nie usunęło starego nadmiaru testów poza ostatnią dziesiątką', pruned);
-          H.assert(ids.has('app_12') && ids.has('test_12'), 'Sprzątanie usunęło przypięty stary backup', pruned);
+          H.assert(!ids.has('test_10') && !ids.has('test_11') && !ids.has('test_12'), 'Sprzątanie testów powinno usunąć najstarsze backupy ponad limit 10', pruned);
+          H.assert(ids.has('app_12'), 'Sprzątanie usunęło przypięty stary backup programu', pruned);
           const groups = FC.dataBackupStore.listBackupGroups();
-          H.assert(groups.app.length === 11 && groups.test.length === 11, 'Grupy backupów nie są liczone osobno po retencji', groups);
+          H.assert(groups.app.length === 11 && groups.test.length === 10, 'Grupy backupów nie trzymają osobnej retencji programu i testów', groups);
         } finally {
           if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
         }
@@ -564,7 +575,9 @@
           localStorage.setItem(keys.services, JSON.stringify([{ id:'s_rate', category:'Montaż', name:'Stawka montażowa', price:100 }]));
           const migrated = FC.catalogStore.migrateLegacy();
           H.assert(Array.isArray(migrated.sheetMaterials) && migrated.sheetMaterials.length === 1, 'Migracja nie wydzieliła materiałów arkuszowych', migrated);
-          H.assert(Array.isArray(migrated.accessories) && migrated.accessories.length === 1, 'Migracja nie wydzieliła akcesoriów', migrated);
+          const migratedAccessories = Array.isArray(migrated.accessories) ? migrated.accessories : [];
+          H.assert(migratedAccessories.some((row)=> String((row && row.id) || '') === 'm_acc'), 'Migracja nie wydzieliła akcesorium z legacy materials', migrated);
+          H.assert(!migratedAccessories.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Akcesorium po migracji nadal ma typ materiału arkuszowego', migratedAccessories);
           H.assert(Array.isArray(migrated.quoteRates) && migrated.quoteRates[0] && migrated.quoteRates[0].name === 'Stawka montażowa', 'Migracja nie przeniosła usług do stawek wyceny mebli', migrated);
           H.assert(String(migrated.sheetMaterials[0].materialType || '') !== 'akcesoria', 'Akcesorium nadal siedzi w materiałach arkuszowych', migrated.sheetMaterials);
         } finally {

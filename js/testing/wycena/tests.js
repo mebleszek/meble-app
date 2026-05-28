@@ -33,6 +33,12 @@
     }catch(_){ }
   }
 
+  function invalidateRoomRegistryCache(){
+    try{
+      if(FC.roomRegistryDefinitions && typeof FC.roomRegistryDefinitions.invalidateCache === 'function') FC.roomRegistryDefinitions.invalidateCache();
+    }catch(_){ }
+  }
+
   function makeIsolationSnapshot(){
     return {
       investors: cloneListFrom(FC.investors),
@@ -74,6 +80,7 @@
       if(snapshot.hasProjectData) host.projectData = clone(snapshot.projectData);
       else delete host.projectData;
     }catch(_){ host.projectData = snapshot.hasProjectData ? clone(snapshot.projectData) : undefined; }
+    invalidateRoomRegistryCache();
   }
 
   function wrapIsolated(test){

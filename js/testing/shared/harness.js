@@ -17,6 +17,25 @@
     try{ return JSON.stringify(details, null, 2); }catch(_){ return String(details); }
   }
 
+  let progressSink = null;
+
+  function setProgressSink(fn){
+    progressSink = typeof fn === 'function' ? fn : null;
+  }
+
+  function emitProgress(event){
+    if(!progressSink) return;
+    try{ progressSink(event || {}); }catch(_error){}
+  }
+
+  function yieldToBrowser(){
+    if(typeof window === 'undefined') return Promise.resolve();
+    return new Promise((resolve)=>{
+      if(typeof window.setTimeout === 'function') window.setTimeout(resolve, 0);
+      else resolve();
+    });
+  }
+
   function makeTest(group, name, explain, fn){
     return { group, name, explain, fn };
   }
@@ -26,15 +45,28 @@
     const groupsMap = new Map();
     const results = [];
     const queue = Array.isArray(tests) ? tests : [];
-    for(const test of queue){
+    emitProgress({ type:'suite-start', label, total:queue.length });
+    await yieldToBrowser();
+    for(let index = 0; index < queue.length; index += 1){
+      const test = queue[index];
+      emitProgress({ type:'test-start', label, index:index + 1, total:queue.length, test });
+      await yieldToBrowser();
       try{
         const out = test && typeof test.fn === 'function' ? test.fn() : null;
         if(out && typeof out.then === 'function') await out;
-        results.push({ group:test.group, name:test.name, explain:test.explain, ok:true });
+        const row = { group:test.group, name:test.name, explain:test.explain, ok:true };
+        results.push(row);
+        emitProgress({ type:'test-done', label, index:index + 1, total:queue.length, row });
+        await yieldToBrowser();
       }catch(error){
-        results.push({ group:test.group, name:test.name, explain:test.explain, ok:false, message:error && error.message ? error.message : String(error), details:error && error.details });
+        const row = { group:test.group, name:test.name, explain:test.explain, ok:false, message:error && error.message ? error.message : String(error), details:error && error.details };
+        results.push(row);
+        emitProgress({ type:'test-done', label, index:index + 1, total:queue.length, row });
+        await yieldToBrowser();
       }
     }
+    emitProgress({ type:'suite-done', label, total:queue.length });
+    await yieldToBrowser();
     results.forEach((row)=>{
       if(!groupsMap.has(row.group)) groupsMap.set(row.group, { name:row.group, passed:0, failed:0, total:0, results:[] });
       const bucket = groupsMap.get(row.group);
@@ -67,5 +99,5 @@
     return lines.join('\n');
   }
 
-  host.FC.testHarness = { assert, makeTest, runSuite, makeClipboardReport, detailsToText };
+  host.FC.testHarness = { assert, makeTest, runSuite, makeClipboardReport, detailsToText, setProgressSink, emitProgress, yieldToBrowser };
 })(typeof window !== 'undefined' ? window : globalThis);

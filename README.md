@@ -1,3 +1,30 @@
+### 2026-05-18 — dev tests errors fix v1
+- Naprawiono błędy `dev_tests.html` po Etapie 2A: test potwierdzeń importu okuć nie używa już `.find()` bezpośrednio na `NodeList`.
+- Launcher wyboru w modalu szafki synchronizuje draft także wtedy, gdy wybrana wartość jest już ustawiona w ukrytym selectcie.
+- Dodano kontrakty smoke dla obu regresji; bez zmian modelu danych, storage, PRO100, ROZRYS i WYCENY.
+
+### 2026-05-14 — pro100 file import v1
+- Modal `Import PRO100` w drobnych usługach stolarskich obsługuje teraz nie tylko wklejkę, ale też pliki `.xlsx`, `.csv`, `.tsv` i `.txt`.
+- XLSX jest czytany z pierwszego arkusza przez istniejący moduł `xlsxLite`; puste wiersze i nagłówek są pomijane.
+- Wczytany plik idzie przez ten sam parser, podgląd, wykrywanie brakujących kolorów, ptaszek `Ma słoje` i zapis do `cutting.parts` co ręczne wklejenie tabeli.
+
+### 2026-05-13 — hardware missing supplier duplicate fix v1
+- Import `Ceny_dostawcow` poprawnie otwiera resolver wyboru dostawcy dla ceny istniejącego okucia nawet wtedy, gdy to samo okucie jest równocześnie w aktualnym katalogu i w arkuszu `Okucia`.
+- Śmieciowy albo nierozpoznany dostawca, np. przypadkowe `14`, nie powoduje już cichego pominięcia ceny, jeśli `producent + symbol` wskazują istniejące okucie.
+- Zasada pozostaje bez zmian: dostawca jest wybierany tylko z istniejącej listy, a resolver nie tworzy nowych dostawców.
+
+### 2026-05-12 — hardware supplier missing resolver v1
+- Import `Ceny_dostawcow` dla istniejącego okucia z pustym albo nierozpoznanym dostawcą otwiera resolver wyboru dostawcy zamiast pomijać cenę.
+- Dostawcę można wybrać tylko z istniejącej listy programu albo z arkusza `Dostawcy` w importowanym XLSX; resolver nie tworzy nowych dostawców.
+- Po wyborze dostawcy import aktualizuje lub dodaje cenę po kluczu `producent + symbol + dostawca`.
+- `Ignoruj wszystko` pomija wszystkie nierozwiązane ceny z brakującym dostawcą w tym imporcie.
+
+### 2026-05-12 — hardware import create item resolver v1
+- Import `Ceny_dostawcow` nie tworzy już nowych okuć z automatyczną kategorią `Inne` i jednostką `szt.`.
+- Nowe okucie z arkusza cen wymaga wyboru kategorii i jednostki w aplikacyjnym resolverze braków albo podania ich w Excelu.
+- Resolver importu ma przycisk `Dodaj kategorię`, który zapisuje nową kategorię w słowniku i udostępnia ją w kolejnych wyborach.
+- Arkusz `Ceny_dostawcow` ma teraz kolumny `kategoria` i `jednostka`; dopasowanie cen nadal idzie po `producent + symbol + dostawca`, nie po numerze wiersza Excela.
+
 ### 2026-04-26 — app shell storage boundary stage 1
 - `js/app/bootstrap/reload-restore.js` now owns session-scoped reload/scroll restore.
 - `js/app.js` no longer directly references `localStorage` or `sessionStorage`; it only delegates reload/restore through the app shell boundary.
@@ -334,3 +361,196 @@ Przywrócono kompatybilne globalne API AVENTOS po splicie hardware i naprawiono 
 - `OPTIMIZATION_PLAN.md` — plan optymalizacji i scalania wspólnych mechanik.
 - `DEPENDENCY_MAP.md` — mapa zależności, wpływu drugiego poziomu i kolejności bezpiecznych refaktorów.
 - `tools/dependency-source-audit.js` — narzędzie generujące raporty `tools/reports/dependency-source-audit.md/json`.
+
+
+## 2026-05-11 — Hardware import bulk/diff/types fix v1
+
+- Import cen dostawców obsługuje hurtowe wklejanie po `producent + symbol + dostawca` bez ręcznego pilnowania ID.
+- Puste `typ_cecha` w okuciu pozostaje puste; słownik typów jest listą opcji, a nie automatycznym wyborem.
+- Podgląd importu rozróżnia okucia/ceny bez zmian od realnie zmienionych rekordów.
+
+
+## Hardware supplier price create item v1 — 2026-05-12
+
+- Import XLSX okuć pozwala utworzyć nowe okucie z arkusza `Ceny_dostawcow`, gdy wiersz ma istniejącego producenta, symbol, nazwę, istniejącego dostawcę i cenę.
+- Nie wymaga ręcznego `okucie_id`; nie tworzy producentów z literówek.
+- Brakująca `data_ceny` dla nowej lub zmienionej ceny jest uzupełniana przy imporcie i widoczna po kolejnym eksporcie.
+
+
+## Hardware import resolver supplier gap v1 — 2026-05-12
+
+- Poprawiono import nowych okuć z arkusza `Ceny_dostawcow`: brakujący dostawca, kategoria i jednostka trafiają do aplikacyjnego uzupełnienia zamiast cichego pominięcia wiersza.
+- Usunięto fałszywe ostrzeżenia o duplikatach `producent + symbol`, gdy plik importu pochodził z eksportu tego samego katalogu.
+
+## Hardware price change confirmation v1 — 2026-05-13
+
+- Import XLSX cen dostawców pokazuje teraz świadome potwierdzenia przed dodaniem nowej ceny dostawcy albo aktualizacją istniejącej ceny.
+- Przy aktualizacji widać starą i nową cenę; przy cenie `Do wyceny` pojawia się ostrzeżenie, że zmiana wpłynie na przyszłe wyceny.
+- Dostępne są akcje pojedyncze i hurtowe: dodanie/aktualizacja jednej ceny, dodanie wszystkich nowych cen, aktualizacja wszystkich zmian albo pominięcie podobnych zmian.
+
+## Hardware global VAT + import stabilization v1 — 2026-05-13
+
+Aktualna paczka stabilizuje import/eksport katalogu okuć:
+
+- VAT okuć jest globalny w ustawieniach cen okuć;
+- dostawca ma rabat, ale nie ma własnego VAT-u;
+- eksport `Dostawcy` w XLSX nie zawiera już kolumny VAT dostawcy;
+- podgląd importu cen nie zmienia katalogu przed zatwierdzeniem;
+- cache-busting zmienionych modułów: `20260513_hardware_global_vat_import_stabilization_v1`.
+
+
+### site_catalog_seed_dev_tests_fix_v1.zip — 2026-05-13
+
+- Poprawiono testy developerskie katalogów po wprowadzeniu realnych seedów okuć.
+- Testy migracji nie traktują już seedów okuć jako błędnego „niewydzielenia akcesoriów”.
+- Runtime aplikacji, import/export XLSX oraz model VAT/rabatów nie były zmieniane.
+
+
+
+## Hardware import/export refactor v1 — 2026-05-14
+
+- Import/export katalogu okuć został rozdzielony na mniejsze moduły bez zmiany UI i bez zmiany sposobu pracy użytkownika z Excelem.
+- Publiczne API zostaje pod fasadami `FC.hardwareCatalogImportExport` i `FC.hardwareSupplierPriceXlsx`, więc istniejące okna importu, resolvery i potwierdzenia cen działają przez te same wejścia.
+- Logika arkusza `Ceny_dostawcow` jest rozdzielona na eksport oraz import/matching/diff, a import katalogu na parser, plan i apply.
+- Dodano testy architektoniczne i rozszerzono smoke akcesoriów do 39 testów.
+
+
+## Hardware import/export deep tests v1 — 2026-05-14
+
+- Dodano głębokie testy importu/eksportu okuć po refaktorze import/export.
+- Nowy plik testów: `js/testing/material/accessories-import-export-deep-tests.js`.
+- Nowe narzędzie developerskie:
+
+```bash
+node tools/hardware-import-export-deep-smoke.js
+```
+
+- Testy są też podpięte pod `dev_tests.html` → `MATERIAŁY`, więc można je uruchomić w przeglądarce razem z pozostałymi testami materiałów i akcesoriów.
+- Paczka nie zmienia runtime aplikacji ani UI; rozszerza wyłącznie zabezpieczenia regresyjne.
+
+## PRO100 service import v1 — 2026-05-14
+
+- W drobnych usługach stolarskich dodano import wklejki formatek z PRO100.
+- Format: `nazwa | długość wzdłuż słoja | oklejanie długości | szerokość | oklejanie szerokości | grubość | ilość | kolor`.
+- Znaki oklejania: `=` dwie krawędzie, `-` jedna krawędź, puste pole brak oklejania.
+- Import dopisuje formatki do istniejącego zlecenia usługowego albo zastępuje listę formatek.
+- Brakujące kolory/dekory można dodać do katalogu materiałów z ptaszkiem `Ma słoje`; decyzja ta wpływa na usługowy ROZRYS.
+- Usługowy ROZRYS grupuje formatki po materiale/grubości, żeby nie mieszać różnych płyt w jednym planie.
+- Nowe narzędzie testowe:
+
+```bash
+node tools/service-pro100-dev-smoke.js
+```
+
+## Room preferences stage1 v1 — 2026-05-15
+
+- W WYWIADZIE nad listą szafek dodano dwa akordeony: `Parametry pomieszczenia` oraz `Preferencje standardu`.
+- Preferencje są zapisane przy konkretnym pomieszczeniu jako `room.preferences`, bez osobnego storage i bez globalnego ustawienia aplikacji.
+- Modal preferencji obejmuje: standard wykończenia, standard blend, korpus, materiał/kolor frontu, plecy, otwieranie dolnych/stojących, górnych/wiszących i modułu oraz preferowanego producenta okuć.
+- `Standard okuć` nie został dodany, zgodnie z decyzją, że później używany ma być najlepszy sensowny wariant danej firmy.
+- Nowa szafka w pustym pomieszczeniu bierze domyślne wartości z preferencji, a kolejna szafka w tym samym pomieszczeniu klonuje ostatnią bez limitu czasowego.
+- Istniejące szafki nie są zmieniane po zapisie preferencji; hurtowe zastosowanie preferencji zostaje osobnym etapem.
+
+## Deploy unzip workflow fix v1 — 2026-05-16
+
+- Poprawiono workflow rozpakowywania paczek `site*.zip` do roota repozytorium.
+- ZIP do wdrożenia wybierany jest z bieżącego commita, a nie po czasie pliku z checkoutu GitHub Actions.
+- Workflow może aktualizować `.github` z pełnej paczki, jeżeli paczka zawiera poprawiony katalog workflowów.
+- Zmiana nie wpływa na działanie aplikacji; dotyczy tylko wdrażania paczek na GitHub Pages.
+
+## Room accordion inline v1 — 2026-05-16
+
+- W WYWIADZIE `Parametry pomieszczenia` i `Preferencje standardu` są teraz domyślnie zwiniętymi akordeonami.
+- Po rozwinięciu parametry i preferencje są dostępne od razu w treści akordeonu, bez dodatkowego przycisku otwierającego modal.
+- Akordeony dostały styl zgodny z ROZRYS: mocniejsza ramka, cień i zielona strzałka rozwijania.
+- Preferencje dalej dotyczą nowych szafek; istniejące szafki nie są zmieniane po cichu.
+
+## Program defaults settings v1 — 2026-05-16
+
+- W trybiku na stronie głównej dodano sekcję `Domyślne materiały i okucia`.
+- Sekcja zapisuje globalne fallbacki programu pod kluczem `fc_program_defaults_v1`, objętym backupem danych.
+- Materiały obejmują: domyślny korpus, materiał frontu, kolor frontu i plecy.
+- Okucia obejmują preferowane marki dla: zawiasów, szuflad/prowadnic, podnośników, systemów przesuwnych oraz cargo/organizerów.
+- Nowa pierwsza szafka w pustym pomieszczeniu może korzystać z globalnych domyślnych materiałów, a preferencje konkretnego pomieszczenia z WYWIADU mają nad nimi pierwszeństwo.
+- Nie dodano sekcji `Domyślne` do WYWIADU pokoju; przyszłe preferencje pomieszczenia mają iść strefowo: dolna, środkowa, górna.
+
+## Program defaults UI fix v1 — 2026-05-16
+
+- Poprawiono sekcję `Domyślne materiały i okucia` w trybiku strony głównej.
+- Usunięto natywne/systemowe selecty z tej sekcji; wybory są teraz launcherami aplikacyjnymi w stylu ROZRYS.
+- Usunięto zbędne liczniki `4` i `5` przy akordeonach `Materiały` i `Okucia`.
+- Akordeony tej sekcji dostały wygląd bliższy ROZRYS: ramka, cień, nagłówek i zielony chevron.
+- Nie zmieniono modelu danych ani klucza `fc_program_defaults_v1`.
+
+## Program defaults ROZRYS sync v1 — 2026-05-16
+
+- Poprawiono UI sekcji `Domyślne materiały i okucia` w trybiku strony głównej po audycie względem ROZRYS.
+- Launchery wyboru w tej sekcji nie pokazują już dodatkowej strzałki i nie używają natywnych selectów/pickerów telefonu.
+- Akordeony `Materiały` i `Okucia` mają geometrię chevrona, ramkę i cień zgodne z wzorcem ROZRYS.
+- Zmiana jest UI-only dla tej sekcji: bez zmiany modelu `fc_program_defaults_v1`, backupów, PRO100, WYCENY, ROZRYS i preferencji pokoju.
+- Raport: `tools/reports/program-defaults-rozrys-sync-v1.md`.
+
+
+## Room zone preferences v1 — 2026-05-16
+
+- Aktualna paczka po tym etapie: `site_000_room_zone_preferences_v1.zip`.
+- Baza startowa: `site_000_program_defaults_rozrys_sync_v1.zip`.
+- Preferencje w WYWIADZIE są strefowe: `lower`/dolna-stojące, `middle`/środkowa-moduły, `upper`/górna-wiszące. Nie dodawać sekcji „Domyślne” w WYWIADZIE.
+- Globalne domyślne materiały i okucia pozostają w trybiku strony głównej pod `fc_program_defaults_v1`; są fallbackiem programu i są objęte backupem.
+- UI preferencji strefowych ma używać aplikacyjnych launcherów ROZRYS; nie używać natywnych selectów/pickerów telefonu.
+- Dodawanie szafki: po wybraniu typu nowy draft kopiuje ostatnią szafkę tego samego typu. Jeżeli poprzednika danego typu brak, bierze strefę pokoju, potem globalne domyślne z trybiku, potem awaryjny fallback.
+- Raport: `tools/reports/room-zone-preferences-v1.md`.
+
+## Front material source v1 — 2026-05-16
+
+- Dodano fundament źródła materiału frontów specjalnych: front może być `jak strefa dolna / stojące`, `jak strefa środkowa / moduły`, `jak strefa górna / wiszące` albo `własny materiał`.
+- Zakres etapu obejmuje lodówki w zabudowie oraz fronty zestawów szafek; nie dodano jeszcze tabeli frontów wieloczęściowych.
+- Lodówka z 2 frontami może mieć osobno źródło materiału dla dolnego i górnego frontu. Lodówka z 1 frontem ma jedno źródło materiału frontu.
+- Zestaw szafek ma wybór `Źródło materiału frontów`; fronty zestawu zapisują informację o źródle w `frontMaterialSource`.
+- Stare lodówki i zestawy bez źródła materiału zachowują dotychczasowy materiał jako `własny`, żeby nie zmieniać projektów po cichu.
+- Nowy moduł domenowy: `js/app/cabinet/front-material-source.js`.
+- Cache-busting zmienionych modułów: `20260516_front_source_v1`.
+- Raport: `tools/reports/front-material-source-v1.md`.
+
+## 2026-05-17 — set materials unify v1
+
+- Kreator zestawów został ujednolicony z pozostałymi szafkami: zestaw ma teraz wybór korpusu, pleców, otwierania i frontów.
+- Wartości korpusu, pleców i otwierania są zapisywane w rekordzie zestawu oraz przepisywane na wygenerowane korpusy zestawu.
+- Fronty zestawu dalej mogą korzystać ze źródła materiału: własny / strefa dolna / strefa środkowa / strefa górna.
+- Dodano moduł `js/app/cabinet/cabinet-modal-set-materials.js` jako małą granicę odpowiedzialności dla materiałów zestawu.
+- Raport: `tools/reports/set-materials-unify-v1.md`.
+
+## Fridge/set material cleanup v1 — 2026-05-17
+
+- Poprawiono UI lodówki po Etapie 1C: przy wariancie lodówkowym ogólne pola `Materiał Frontu` i `Kolor Frontu` nie są już pokazywane równolegle z nowymi źródłami materiału frontu.
+- Korpus, plecy i otwieranie lodówki zostają dostępne, bo nie są zastąpione przez źródła frontu.
+- Zestawy startują z materiałów dolnej strefy/stojących: korpus, plecy i otwieranie biorą najpierw preferencje `lower`, potem globalne domyślne programu i awaryjne fallbacki.
+- Nie zmieniono modelu storage, PRO100, ROZRYS, WYCENY ani frontów wieloczęściowych.
+- Raport: `tools/reports/fridge-set-material-cleanup-v1.md`.
+
+## 2026-05-17 — preferences_front_source_cleanup_v1
+
+- Uporządkowano fundament preferencji strefowych i źródeł materiału frontu.
+- Nowe szafki, zestawy i fronty specjalne korzystają ze wspólnej kolejności: strefa pokoju → globalne domyślne z trybiku → fallback programu.
+- Dodano nowe testy zabezpieczające tę ścieżkę.
+- Paczka: `site_000_preferences_front_source_cleanup_v1.zip`.
+
+## 2026-05-17 — bulk_apply_zone_preferences_v1
+
+- Aktualna paczka po tym etapie: `site_000_bulk_apply_zone_preferences_v1.zip`.
+- Baza startowa: `site_000_preferences_front_source_cleanup_v1.zip`.
+- Dodano Etap 2A: kontrolowane zastosowanie preferencji strefowych do istniejących szafek w WYWIADZIE.
+- W akordeonie `Preferencje standardu` pojawiła się akcja `Zastosuj do istniejących szafek`, która otwiera modal aplikacyjny z wyborem stref i pól do zmiany.
+- Zakres stref: dolna/stojące, środkowa/moduły, górna/wiszące. Zakres pól: korpus, fronty, plecy, otwieranie.
+- Zmiany są planowane przed zapisem: program pokazuje liczniki dla szafek, frontów zwykłych, frontów specjalnych oraz zestawów. Dopiero zatwierdzenie wykonuje apply.
+- Fronty lodówek i zestawów są aktualizowane według `frontMaterialSource` / `frontSource`: źródła `lower`, `middle`, `upper` reagują na wybraną strefę, a `custom` zostaje nietknięte.
+- Dodano moduły `room-preferences-bulk-plan.js`, `room-preferences-bulk-apply.js` oraz `wywiad-room-preferences-bulk-modal.js`.
+- Dodano testy dla planowania/apply oraz ochronę przed natywnymi pickerami/selectami w nowym modalu.
+- Etap nie rusza okuć, producentów okuć, WYCENY, PRO100, ROZRYS ani frontów wieloczęściowych.
+- Raport: `tools/reports/bulk-apply-zone-preferences-v1.md`.
+
+## Hardware technical data + Excel v1
+
+- Katalog okuć obsługuje teraz `System okucia` oraz techniczne dane szuflad/prowadnic: profil, długość, nośność, wzmocnienie, kolor i zastosowanie.
+- Pełne dane techniczne uzupełnia się masowo w arkuszu `Okucia`; arkusz `Ceny_dostawcow` nadal nadaje się do szybkiej aktualizacji cen, a techniczne kolumny są opcjonalne.
+- Szczegóły: `tools/reports/hardware-technical-data-excel-v1.md`.

@@ -739,12 +739,25 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
   return;
 }
 
-  // lodówkowa w zabudowie — specjalna logika (point 3)
+  // lodówkowa w zabudowie — specjalna logika + źródło materiału frontu.
   if(cab.type === 'stojąca' && cab.subType === 'lodowkowa'){
     const opt = (cab.details && cab.details.fridgeOption) ? cab.details.fridgeOption : 'zabudowa';
-    
-
-const fc = (cab.details && cab.details.fridgeFrontCount) ? String(cab.details.fridgeFrontCount) : '2';
+    const fc = (cab.details && cab.details.fridgeFrontCount) ? String(cab.details.fridgeFrontCount) : '2';
+    const sourceApi = ns.frontMaterialSource;
+    const resolveFridge = (part)=>{
+      try{
+        if(sourceApi && typeof sourceApi.resolveFridgeFront === 'function') return sourceApi.resolveFridgeFront(room, cab, part);
+      }catch(_){ }
+      return { source:'custom', material:mat, color:col, label:'własny' };
+    };
+    const frontSourcePayload = (resolved, part)=>{
+      try{
+        if(sourceApi && typeof sourceApi.serializeSourceForFront === 'function'){
+          return Object.assign({ part:part }, sourceApi.serializeSourceForFront(resolved));
+        }
+      }catch(_){ }
+      return { part:part, source:(resolved && resolved.source) || 'custom', label:(resolved && resolved.label) || 'własny' };
+    };
 
     if(opt === 'zabudowa'){
       const s = projectData[room].settings;
@@ -752,11 +765,14 @@ const fc = (cab.details && cab.details.fridgeFrontCount) ? String(cab.details.fr
       const bottomFront = Math.max(0, (Number(s.bottomHeight)||0) - legH); // dolny front bez nóg
       const totalFrontH = Math.max(0, (Number(cab.height)||0) - legH); // suma wysokości frontów (bez nóg)
       if(fc === '1'){
-        addFront(room, { cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: getFrontHeightForCab(), note: `Lodówkowa (1 front)` });
+        const r = resolveFridge('single');
+        addFront(room, { cabId: cab.id, material: r.material, color: r.color, width: Number(cab.width)||0, height: getFrontHeightForCab(), note: `Lodówkowa (1 front)`, frontMaterialSource: frontSourcePayload(r, 'single') });
       } else {
         const topFront = Math.max(0, totalFrontH - bottomFront);
-        addFront(room, { cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: bottomFront, note: `Lodówkowa (dolny front)` });
-        addFront(room, { cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: topFront, note: `Lodówkowa (górny front)` });
+        const lower = resolveFridge('lower');
+        const upper = resolveFridge('upper');
+        addFront(room, { cabId: cab.id, material: lower.material, color: lower.color, width: Number(cab.width)||0, height: bottomFront, note: `Lodówkowa (dolny front)`, frontMaterialSource: frontSourcePayload(lower, 'lower') });
+        addFront(room, { cabId: cab.id, material: upper.material, color: upper.color, width: Number(cab.width)||0, height: topFront, note: `Lodówkowa (górny front)`, frontMaterialSource: frontSourcePayload(upper, 'upper') });
       }
       return;
     }

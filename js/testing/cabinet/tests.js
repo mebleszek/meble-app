@@ -64,6 +64,19 @@
     }
   }
 
+
+  function withProgramMaterialDefaults(defaults, run){
+    const previousApi = FC.programDefaults;
+    const api = Object.assign({}, previousApi || {});
+    api.getMaterialDefaults = function(){ return Object.assign({}, defaults || {}); };
+    FC.programDefaults = api;
+    try{ return run(); }
+    finally{
+      if(previousApi === undefined) delete FC.programDefaults;
+      else FC.programDefaults = previousApi;
+    }
+  }
+
   function buildCabinetModalFixture(){
     if(typeof document === 'undefined' || !document || !document.body) return null;
     const wrap = document.createElement('div');
@@ -133,8 +146,14 @@
               <div id="setTiles"></div>
               <button id="setWizardCreate" type="button"></button>
               <div id="setParams" style="display:none"></div>
+              <div id="setMaterialBlock" style="display:none">
+                <select id="setBodyColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Korpus zestawu" data-choice-title="Wybierz korpus zestawu" data-choice-placeholder="Korpus zestawu"></select>
+                <select id="setBackMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Plecy zestawu" data-choice-title="Wybierz plecy zestawu" data-choice-placeholder="Plecy zestawu"><option value="HDF 3mm biała">HDF 3mm biała</option><option value="18 mm pod kolor korpusu">18 mm pod kolor</option><option value="Brak">Brak</option></select>
+                <select id="setOpeningSystem" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Otwieranie zestawu" data-choice-title="Wybierz otwieranie zestawu" data-choice-placeholder="Otwieranie zestawu"></select>
+              </div>
               <div id="setFrontBlock" style="display:none">
                 <select id="setFrontCount" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Ilość frontów" data-choice-title="Wybierz ilość frontów zestawu" data-choice-placeholder="Ilość frontów"><option value="1">1</option><option value="2">2</option></select>
+                <select id="setFrontSource" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Źródło materiału" data-choice-title="Wybierz źródło materiału frontów zestawu" data-choice-placeholder="Źródło materiału"><option value="custom">Własny materiał</option><option value="lower">Jak strefa dolna / stojące</option><option value="middle">Jak strefa środkowa / moduły</option><option value="upper">Jak strefa górna / wiszące</option></select>
                 <select id="setFrontMaterial" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Materiał frontów" data-choice-title="Wybierz materiał frontów zestawu" data-choice-placeholder="Materiał frontów"><option value="laminat">Laminat</option><option value="akryl">Akryl</option><option value="lakier">Lakier</option></select>
                 <select id="setFrontColor" class="cabinet-choice-source set-front-choice-source" data-launcher-label="Kolor frontów" data-choice-title="Wybierz kolor frontów zestawu" data-choice-placeholder="Kolor frontów"></select>
                 <div id="setFrontHint"></div>
@@ -197,20 +216,127 @@
           H.assert(Number(draft.depth) === 51, 'Domyślna głębokość draftu kuchni nie jest zgodna z bezpiecznym ustawieniem startowym', draft);
         });
       }),
-      H.makeTest('Szafki', 'Domyślny draft potrafi sklonować ostatnio dodaną szafkę bez identyfikatorów technicznych', 'Pilnuje szybkiego dodawania serii szafek: po świeżym dodaniu nowy draft może kopiować poprzednią szafkę, ale nie może nieść starych id/setId.', ()=>{
+      H.makeTest('Szafki', 'Domyślny draft klonuje ostatnią szafkę bez limitu czasu i bez identyfikatorów technicznych', 'Pilnuje dodawania szafka za szafką: nowy draft w danym pomieszczeniu kopiuje ostatni rodzaj i ustawienia, ale nie niesie starych id/setId.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
         if(typeof document === 'undefined' || !document || !document.body) return;
         return withCabinetGlobals({
           projectData:{ schemaVersion:9, pokoj:{ cabinets:[{ id:'cab_prev', setId:'set_prev', setNumber:3, width:91, height:210, depth:62, type:'moduł', subType:'uchylne', bodyColor:'Egger W1100 ST9', frontMaterial:'lakier', frontColor:'Biel', openingSystem:'TIP-ON', backMaterial:'Brak', details:{ shelves:2 } }], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:82, legHeight:5, counterThickness:1.8, gapHeight:0, ceilingBlende:0 } } },
-          uiState:{ lastAddedAt: Date.now(), roomType:'pokoj' }
+          uiState:{ lastAddedAt: Date.now() - (1000 * 60 * 60 * 24 * 30), roomType:'pokoj' }
         }, ()=>{
           const draft = FC.cabinetModal.makeDefaultCabinetDraftForRoom('pokoj');
-          H.assert(draft && draft.type === 'moduł' && draft.subType === 'uchylne', 'Świeży draft nie sklonował ostatniej szafki', draft);
+          H.assert(draft && draft.type === 'moduł' && draft.subType === 'uchylne', 'Draft nie sklonował ostatniej szafki mimo braku limitu czasu', draft);
           H.assert(draft.id == null, 'Skopiowany draft nadal niesie stare id', draft);
           H.assert(!('setId' in draft), 'Skopiowany draft nadal niesie setId poprzedniej szafki', draft);
           H.assert(!('setNumber' in draft), 'Skopiowany draft nadal niesie setNumber poprzedniej szafki', draft);
         });
       }),
+      H.makeTest('Szafki', 'Nowa szafka bez poprzednika bierze preferencje strefowe pokoju', 'Pilnuje Etapu 1B: preferencje stref dolna/środkowa/górna ustawiają domyślny korpus, front, plecy i otwieranie tylko dla nowych szafek danego typu.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForType === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForType');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:11, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Czarny korpus', frontMaterial:'akryl', frontColor:'Akryl test', backMaterial:'Brak', openingSystem:'TIP-ON' }, middle:{ bodyColor:'Moduł korpus', frontMaterial:'laminat', frontColor:'Moduł front', backMaterial:'HDF 3mm biała', openingSystem:'korytkowy' }, upper:{ bodyColor:'Góra korpus', frontMaterial:'lakier', frontColor:'Góra front', backMaterial:'Brak', openingSystem:'podchwyt' } } } } }
+        }, ()=>{
+          const standing = FC.cabinetModal.makeDefaultCabinetDraftForRoom('kuchnia');
+          H.assert(standing.bodyColor === 'Czarny korpus', 'Draft stojący nie przejął korpusu ze strefy dolnej', standing);
+          H.assert(standing.frontMaterial === 'akryl' && standing.frontColor === 'Akryl test', 'Draft stojący nie przejął frontu ze strefy dolnej', standing);
+          H.assert(standing.backMaterial === 'Brak', 'Draft stojący nie przejął pleców ze strefy dolnej', standing);
+          H.assert(standing.openingSystem === 'TIP-ON', 'Draft stojący nie przejął otwierania ze strefy dolnej', standing);
+          const moduleDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'moduł');
+          H.assert(moduleDraft.bodyColor === 'Moduł korpus' && moduleDraft.openingSystem === 'korytkowy', 'Draft modułu nie przejął preferencji strefy środkowej', moduleDraft);
+          const hangingDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'wisząca');
+          H.assert(hangingDraft.bodyColor === 'Góra korpus' && hangingDraft.openingSystem === 'podchwyt', 'Draft wiszący nie przejął preferencji strefy górnej', hangingDraft);
+        });
+      }),
+
+
+      H.makeTest('Szafki', 'Resolver strefowy ma jedną kolejność: strefa → trybik → fallback', 'Pilnuje Etapu 1C.2: materiały dla nowych szafek, zestawów i źródeł frontu mają korzystać z jednego resolvera zamiast z powielonych ścieżek.', ()=>{
+        H.assert(FC.roomPreferences && typeof FC.roomPreferences.resolveZoneDefaults === 'function', 'Brak FC.roomPreferences.resolveZoneDefaults');
+        return withProgramMaterialDefaults({ bodyColor:'Globalny korpus', frontMaterial:'laminat', frontColor:'Globalny front', backMaterial:'Globalne plecy' }, ()=> withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Dolny korpus', openingSystem:'TIP-ON' }, middle:{ frontColor:'Środkowy front' }, upper:{} } } } }
+        }, ()=>{
+          const lower = FC.roomPreferences.resolveZoneDefaults('kuchnia', 'lower', { bodyColor:'Fallback korpus', frontMaterial:'fallback', frontColor:'Fallback front', backMaterial:'Fallback plecy', openingSystem:'Fallback open' });
+          H.assert(lower.bodyColor === 'Dolny korpus', 'Strefa dolna nie nadpisała globalnego korpusu', lower);
+          H.assert(lower.frontColor === 'Globalny front' && lower.frontMaterial === 'laminat', 'Brakujący front dolnej strefy nie wziął globalnych domyślnych', lower);
+          H.assert(lower.openingSystem === 'TIP-ON', 'Strefa dolna nie nadpisała otwierania', lower);
+          const middle = FC.roomPreferences.resolveZoneDefaults('kuchnia', 'middle', { bodyColor:'Fallback korpus', frontMaterial:'fallback', frontColor:'Fallback front', backMaterial:'Fallback plecy', openingSystem:'Fallback open' });
+          H.assert(middle.bodyColor === 'Globalny korpus', 'Środkowa strefa bez korpusu nie wzięła globalnego korpusu', middle);
+          H.assert(middle.frontColor === 'Środkowy front', 'Środkowa strefa nie nadpisała globalnego frontu', middle);
+          H.assert(middle.openingSystem === 'Fallback open', 'Brak globalnego otwierania powinien zostawić fallback', middle);
+        }));
+      }),
+
+      H.makeTest('Szafki', 'Źródło frontu używa centralnego resolvera stref', 'Pilnuje, żeby lodówki i zestawy rozwiązywały materiał jak dolne/środkowe/górne przez tę samą logikę co nowe szafki.', ()=>{
+        H.assert(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolve === 'function', 'Brak FC.frontMaterialSource.resolve');
+        H.assert(FC.roomPreferences && typeof FC.roomPreferences.resolveZoneFrontMaterial === 'function', 'Brak FC.roomPreferences.resolveZoneFrontMaterial');
+        return withProgramMaterialDefaults({ frontMaterial:'laminat', frontColor:'Globalny front' }, ()=> withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ zones:{ lower:{}, middle:{ frontMaterial:'akryl', frontColor:'Środkowy front' }, upper:{} } } } }
+        }, ()=>{
+          const middle = FC.frontMaterialSource.resolve('kuchnia', { source:'middle' }, { material:'fallback', color:'Fallback front' });
+          H.assert(middle.material === 'akryl' && middle.color === 'Środkowy front', 'Źródło middle nie użyło strefy środkowej', middle);
+          const upper = FC.frontMaterialSource.resolve('kuchnia', { source:'upper' }, { material:'fallback', color:'Fallback front' });
+          H.assert(upper.material === 'laminat' && upper.color === 'Globalny front', 'Pusta strefa upper nie użyła globalnych domyślnych z trybiku', upper);
+        }));
+      }),
+
+      H.makeTest('Szafki', 'Draft dla wybranego typu kopiuje ostatnią szafkę tego samego typu', 'Pilnuje decyzji: nowa stojąca kopiuje ostatnią stojącą, moduł ostatni moduł, a wisząca ostatnią wiszącą — bez mieszania stref.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForType === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForType');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:11, kuchnia:{ cabinets:[
+            { id:'cab_stand', width:60, height:86, depth:51, type:'stojąca', subType:'standardowa', bodyColor:'Stojący korpus', frontMaterial:'laminat', frontColor:'Stojący front', openingSystem:'TIP-ON', backMaterial:'Brak', details:{} },
+            { id:'cab_mod', width:70, height:64, depth:51, type:'moduł', subType:'uchylne', bodyColor:'Moduł korpus', frontMaterial:'lakier', frontColor:'Moduł front', openingSystem:'korytkowy', backMaterial:'HDF 3mm biała', details:{ shelves:2 } }
+          ], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Strefa dół' }, middle:{ bodyColor:'Strefa środek' }, upper:{ bodyColor:'Strefa góra' } } } } }
+        }, ()=>{
+          const standing = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'stojąca');
+          H.assert(standing.bodyColor === 'Stojący korpus' && standing.id == null, 'Nowa stojąca nie kopiuje ostatniej stojącej albo niesie id', standing);
+          const moduleDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'moduł');
+          H.assert(moduleDraft.bodyColor === 'Moduł korpus' && moduleDraft.subType === 'uchylne', 'Nowy moduł nie kopiuje ostatniego modułu', moduleDraft);
+          const hanging = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'wisząca');
+          H.assert(hanging.bodyColor === 'Strefa góra', 'Pierwsza wisząca bez poprzednika nie bierze strefy górnej', hanging);
+        });
+      }),
+
+
+      H.makeTest('Szafki', 'Fronty lodówki mogą brać materiał ze stref dolna/górna', 'Pilnuje Etapu 1C: dolny i górny front lodówki nie zgadują materiału po wysokości, tylko używają jawnego źródła jak strefa dolna albo górna.', ()=>{
+        H.assert(FC.cabinetFronts && typeof FC.cabinetFronts.generateFrontsForCabinet === 'function', 'Brak FC.cabinetFronts.generateFrontsForCabinet');
+        H.assert(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveFridgeFront === 'function', 'Brak FC.frontMaterialSource.resolveFridgeFront');
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ frontMaterial:'laminat', frontColor:'Dolny front' }, middle:{ frontMaterial:'akryl', frontColor:'Środkowy front' }, upper:{ frontMaterial:'lakier', frontColor:'Górny front' } } } } },
+          materials:[
+            { name:'Dolny front', materialType:'laminat' },
+            { name:'Środkowy front', materialType:'akryl' },
+            { name:'Górny front', materialType:'lakier' },
+            { name:'Legacy front', materialType:'laminat' }
+          ]
+        }, ()=>{
+          const cab = { id:'fridge_1', width:60, height:200, depth:57, type:'stojąca', subType:'lodowkowa', frontMaterial:'laminat', frontColor:'Legacy front', details:{ fridgeOption:'zabudowa', fridgeFrontCount:'2', fridgeFrontSourceLower:'lower', fridgeFrontSourceUpper:'upper' } };
+          projectData.kuchnia.cabinets.push(cab);
+          FC.cabinetFronts.generateFrontsForCabinet('kuchnia', cab);
+          const fronts = projectData.kuchnia.fronts;
+          H.assert(fronts.length === 2, 'Lodówka 2-frontowa nie wygenerowała dwóch frontów', fronts);
+          H.assert(fronts[0].color === 'Dolny front' && fronts[0].material === 'laminat', 'Dolny front lodówki nie wziął materiału ze strefy dolnej', fronts[0]);
+          H.assert(fronts[1].color === 'Górny front' && fronts[1].material === 'lakier', 'Górny front lodówki nie wziął materiału ze strefy górnej', fronts[1]);
+          H.assert(fronts[0].frontMaterialSource && fronts[0].frontMaterialSource.source === 'lower', 'Dolny front nie zachował źródła materiału', fronts[0]);
+          H.assert(fronts[1].frontMaterialSource && fronts[1].frontMaterialSource.source === 'upper', 'Górny front nie zachował źródła materiału', fronts[1]);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Źródło frontów zestawu rozwiązuje materiał ze strefy', 'Pilnuje Etapu 1C: zestaw może mieć fronty jako „jak strefa środkowa” bez przepisywania tekstowego koloru na sztywno w UI.', ()=>{
+        H.assert(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveSetFront === 'function', 'Brak FC.frontMaterialSource.resolveSetFront');
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ frontMaterial:'laminat', frontColor:'Dolny front' }, middle:{ frontMaterial:'akryl', frontColor:'Środek zestawu' }, upper:{ frontMaterial:'lakier', frontColor:'Górny front' } } } } },
+          materials:[
+            { name:'Dolny front', materialType:'laminat' },
+            { name:'Środek zestawu', materialType:'akryl' },
+            { name:'Górny front', materialType:'lakier' }
+          ]
+        }, ()=>{
+          const resolved = FC.frontMaterialSource.resolveSetFront('kuchnia', { frontSource:{ source:'middle' } }, { material:'laminat', color:'Awaryjny' });
+          H.assert(resolved.material === 'akryl' && resolved.color === 'Środek zestawu', 'Źródło zestawu middle nie rozwiązało materiału ze strefy środkowej', resolved);
+        });
+      }),
+
       H.makeTest('Szafki', 'Opcje otwierania dla wiszącej zachowują warianty tylko dla góry', 'Pilnuje, czy select otwierania w Wywiadzie nie gubi wariantów typowych dla szafek wiszących i nie miesza ich z dolnymi.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.populateOpeningOptionsTo === 'function', 'Brak FC.cabinetModal.populateOpeningOptionsTo');
         if(typeof document === 'undefined' || !document || !document.createElement) return;
@@ -376,7 +502,7 @@
           const frontBlock = document.getElementById('setFrontBlock');
           if(frontBlock) frontBlock.style.display = 'block';
           FC.cabinetModal.renderCabinetModal();
-          ['setFrontCount','setFrontMaterial','setFrontColor'].forEach((id)=>{
+          ['setBodyColor','setBackMaterial','setOpeningSystem','setFrontCount','setFrontSource','setFrontMaterial','setFrontColor'].forEach((id)=>{
             const select = document.getElementById(id);
             const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="' + id + '"]');
             const btn = slot && slot.querySelector('.cabinet-choice-launch');
@@ -408,6 +534,45 @@
           const slot = document.querySelector('.cabinet-choice-launch-slot[data-launch-for="setFrontColor"]');
           const label = slot && slot.querySelector('.rozrys-choice-launch__label');
           H.assert(String(label && label.textContent || '').includes('Kaszmir angielskie'), 'Launcher koloru zestawu nie odświeżył się po zmianie materiału', slot && slot.innerHTML);
+        });
+      }),
+
+      H.makeTest('Szafki', 'Zestaw zapisuje korpus, plecy i otwieranie tak jak zwykła szafka', 'Pilnuje ujednolicenia set-wizarda: zestaw ma własny wybór korpusu, pleców, otwierania i frontów, a wygenerowane korpusy dostają te wartości.', ()=>{
+        H.assert(FC.cabinetModalSetWizard && typeof FC.cabinetModalSetWizard.createOrUpdateSetFromWizard === 'function', 'Brak createOrUpdateSetFromWizard');
+        if(typeof document === 'undefined' || !document || !document.body) return;
+        return withCabinetModalFixture({
+          materials:[
+            { name:'Egger W1100 ST9', materialType:'laminat' },
+            { name:'Korpus grafit', materialType:'laminat' },
+            { name:'Front dąb', materialType:'laminat' }
+          ]
+        }, ()=>{
+          host.cabinetModalState.chosen = 'zestaw';
+          host.cabinetModalState.setPreset = 'C';
+          FC.cabinetModal.renderCabinetModal();
+          const bodySel = document.getElementById('setBodyColor');
+          const backSel = document.getElementById('setBackMaterial');
+          const openingSel = document.getElementById('setOpeningSystem');
+          const frontMatSel = document.getElementById('setFrontMaterial');
+          const frontColorSel = document.getElementById('setFrontColor');
+          H.assert(bodySel && backSel && openingSel && frontMatSel && frontColorSel, 'Brak pełnego zestawu pól materiałowych set-wizarda');
+          bodySel.value = 'Korpus grafit';
+          backSel.value = 'Brak';
+          openingSel.value = 'TIP-ON';
+          frontMatSel.value = 'laminat';
+          if(typeof frontMatSel.onchange === 'function') frontMatSel.onchange({ target: frontMatSel });
+          frontColorSel.value = 'Front dąb';
+          FC.cabinetModalSetWizard.createOrUpdateSetFromWizard();
+          const room = host.projectData.kuchnia;
+          H.assert(room.sets && room.sets.length === 1, 'Zestaw nie zapisał rekordu set', room.sets);
+          H.assert(room.sets[0].bodyColor === 'Korpus grafit' && room.sets[0].backMaterial === 'Brak' && room.sets[0].openingSystem === 'TIP-ON', 'Rekord set nie zapisał korpusu/pleców/otwierania', room.sets[0]);
+          H.assert(room.cabinets.length === 2, 'Preset C powinien dodać dwa korpusy', room.cabinets);
+          room.cabinets.forEach((cab)=>{
+            H.assert(cab.bodyColor === 'Korpus grafit', 'Korpus zestawu nie przeszedł na wygenerowaną szafkę', cab);
+            H.assert(cab.backMaterial === 'Brak', 'Plecy zestawu nie przeszły na wygenerowaną szafkę', cab);
+            H.assert(cab.openingSystem === 'TIP-ON', 'Otwieranie zestawu nie przeszło na wygenerowaną szafkę', cab);
+          });
+          H.assert(room.fronts && room.fronts.length >= 1 && room.fronts[0].color === 'Front dąb', 'Front zestawu nie zachował koloru frontu', room.fronts);
         });
       }),
 
@@ -740,6 +905,41 @@
             FC.project = prevProjectApi;
             FC.storage = prevStorageApi;
             host.renderCabinets = prevRenderCabinets;
+          }
+        });
+      }),
+
+      H.makeTest('Szafki', 'Bulk apply preferencji planuje i stosuje strefę dolną bez ruszania własnego frontu lodówki', 'Pilnuje Etapu 2A: istniejąca stojąca i dolny front lodówki mogą dostać dolną strefę, a własny górny front lodówki zostaje nietknięty.', ()=>{
+        H.assert(FC.roomPreferencesBulkPlan && typeof FC.roomPreferencesBulkPlan.buildPlan === 'function', 'Brak bulk planera preferencji');
+        H.assert(FC.roomPreferencesBulkApply && typeof FC.roomPreferencesBulkApply.apply === 'function', 'Brak bulk apply preferencji');
+        return withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ settings:{ roomHeight:250, bottomHeight:82, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Korpus dolny', frontMaterial:'laminat', frontColor:'Front dolny', backMaterial:'Plecy dolne', openingSystem:'TIP-ON' }, middle:{ frontMaterial:'laminat', frontColor:'Front moduł' }, upper:{ frontMaterial:'laminat', frontColor:'Front górny' } } }, cabinets:[
+            { id:'cab_lower', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, bodyColor:'Stary korpus', frontMaterial:'laminat', frontColor:'Stary front', backMaterial:'Stare plecy', openingSystem:'uchwyt klienta', frontCount:1, details:{} },
+            { id:'cab_fridge', type:'stojąca', subType:'lodowkowa', width:60, height:200, depth:57, bodyColor:'Stary korpus', frontMaterial:'laminat', frontColor:'Własny stary', backMaterial:'Stare plecy', openingSystem:'uchwyt klienta', frontCount:2, details:{ fridgeOption:'zabudowa', fridgeFrontCount:'2', fridgeFrontSourceLower:'lower', fridgeFrontSourceUpper:'custom', fridgeFrontCustomMaterialUpper:'laminat', fridgeFrontCustomColorUpper:'Własny górny' } }
+          ], fronts:[
+            { id:'f1', cabId:'cab_lower', material:'laminat', color:'Stary front', width:60, height:72, note:'1 front' },
+            { id:'f2', cabId:'cab_fridge', material:'laminat', color:'Stary dolny', width:60, height:72, note:'Lodówkowa dolny', frontMaterialSource:{ source:'lower', part:'lower' } },
+            { id:'f3', cabId:'cab_fridge', material:'laminat', color:'Własny górny', width:60, height:118, note:'Lodówkowa górny', frontMaterialSource:{ source:'custom', part:'upper' } }
+          ], sets:[] } }
+        }, ()=>{
+          const prevProject = FC.project;
+          try{
+            FC.project = Object.assign({}, FC.project || {}, { save:(pd)=> pd });
+            const selection = { zones:{ lower:true, middle:false, upper:false }, fields:{ body:true, front:true, back:true, opening:true } };
+            const plan = FC.roomPreferencesBulkPlan.buildPlan('kuchnia', selection);
+            H.assert(plan.ready && plan.hasChanges && plan.total >= 5, 'Plan bulk apply nie wykrył zmian dolnej strefy', plan);
+            const result = FC.roomPreferencesBulkApply.apply('kuchnia', selection);
+            const room = host.projectData.kuchnia;
+            const lower = room.cabinets.find((cab)=>cab.id === 'cab_lower');
+            const fridge = room.cabinets.find((cab)=>cab.id === 'cab_fridge');
+            const fridgeFronts = room.fronts.filter((front)=>front.cabId === 'cab_fridge');
+            H.assert(result.ok, 'Bulk apply nie zwrócił sukcesu', result);
+            H.assert(lower.bodyColor === 'Korpus dolny' && lower.frontColor === 'Front dolny' && lower.backMaterial === 'Plecy dolne' && lower.openingSystem === 'TIP-ON', 'Stojąca nie dostała pełnych danych dolnej strefy', lower);
+            H.assert(fridge.bodyColor === 'Korpus dolny' && fridge.backMaterial === 'Plecy dolne' && fridge.openingSystem === 'TIP-ON', 'Lodówka nie dostała korpusu/pleców/otwierania z dolnej strefy', fridge);
+            H.assert(fridgeFronts.some((front)=>/dolny/.test(front.note || '') && front.color === 'Front dolny'), 'Dolny front lodówki nie dostał koloru dolnej strefy', fridgeFronts);
+            H.assert(fridgeFronts.some((front)=>/górny/.test(front.note || '') && front.color === 'Własny górny'), 'Własny górny front lodówki został niepotrzebnie nadpisany', fridgeFronts);
+          } finally {
+            FC.project = prevProject;
           }
         });
       }),

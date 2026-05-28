@@ -15,6 +15,13 @@
   function validateAccessoryForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę akcesorium, zanim je zapiszesz.'); return false; }
     if(!String(data && data.manufacturer || '').trim()){ ctx.info('Brak producenta', 'Wybierz producenta akcesorium.'); return false; }
+    if(FC.hardwareCatalog && typeof FC.hardwareCatalog.uniqueTypeConflict === 'function' && String(data && data.hardwareType || '').trim()){
+      const conflict = FC.hardwareCatalog.uniqueTypeConflict(ctx.currentList(), data, ctx.appUiState() && ctx.appUiState().editingId);
+      if(conflict){
+        ctx.info('Duplikat typu u producenta', 'Dla tego producenta, kategorii i typu istnieje już pozycja: ' + String(conflict.name || conflict.symbol || conflict.id || '—') + '. Jeden typ u jednego producenta może być użyty tylko raz.');
+        return false;
+      }
+    }
     return true;
   }
   function validateServiceForm(data){
@@ -38,13 +45,22 @@
   }
   function saveAccessoryFromForm(){
     const data = ctx.getCurrentAccessoryDraft(); if(!validateAccessoryForm(data)) return false;
-    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0 }));
+    let payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    try{
+      if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function') payload = FC.hardwareCatalog.normalizeAccessory(payload, FC.utils && FC.utils.uid);
+    }catch(_){ }
+    upsertCurrentList(payload);
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   function saveServiceFromForm(){
     try{ if(ctx.currentListKind() === 'quoteRates' && FC.wycenaCore && typeof FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const data = ctx.getCurrentServiceDraft(); if(!validateServiceForm(data)) return false;
-    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0 }));
+    const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    try{
+      if(ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function'){
+        upsertCurrentList(FC.laborCatalog.normalizeDefinition(payload));
+      }else upsertCurrentList(payload);
+    }catch(_){ upsertCurrentList(payload); }
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   async function saveActivePriceItem(){
