@@ -778,3 +778,11 @@ node tools/hardware-accessories-dev-smoke.js
 - Obszar katalogu okuć dostał nową warstwę danych technicznych bez osobnego storage.
 - `hardware-catalog.js` pozostaje średnim ryzykiem i przekracza próg ostrożności, ale zmiana była domenowa i lokalna; przy następnym większym etapie okuć rozważyć wydzielenie technicznej normalizacji do osobnego modułu zamiast dalszego rozbudowywania `hardware-catalog.js`.
 - Import/export zachowuje split: parser, plan, eksport katalogu i import/eksport cen dostawców pozostają osobnymi modułami.
+
+
+## 2026-05-20 — hardware_dynamic_technical_params_v1
+
+- Katalog okuć ma nowy kierunek rozwoju: dynamiczne parametry techniczne per kategoria zamiast dokładania kolejnych stałych pól do formularza.
+- Następne etapy powinny używać `technicalParams` jako źródła prawdy dla zamienników, list zakupowych i umów.
+- Nie rozwijać dalej jednego puchnącego arkusza `Okucia`; preferować arkusze grupowe oraz prosty arkusz `Ceny_dostawcow` do szybkich aktualizacji cen.
+- Przed silnikiem zamiany producentów/systemów okuć należy oprzeć porównywanie na parametrach oznaczonych jako cechy kluczowe.

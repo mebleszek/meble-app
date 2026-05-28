@@ -33,6 +33,7 @@
     { id:'cargo_200', name:'Cargo 200', allowedCategories:['Cargo / organizery'], active:true },
     { id:'magic_corner', name:'Magic corner', allowedCategories:['Cargo / organizery'], active:true },
   ];
+  const DEFAULT_TECHNICAL_PARAMS = FC.hardwareTechnicalParams && Array.isArray(FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS) ? FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS.slice() : [];
   const PRICE_STATUSES = [
     { value:'current', label:'Aktualna' },
     { value:'review', label:'Do sprawdzenia' },
@@ -63,8 +64,26 @@
     try{ return (FC.utils && typeof FC.utils.clone === 'function') ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
     catch(_){ return JSON.parse(JSON.stringify(value || null)); }
   }
-  function text(value){ return String(value == null ? '' : value).trim(); }
-  function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
+  function scalarValue(value, depth){
+    if(value == null) return '';
+    if(depth > 4) return '';
+    if(typeof value === 'string') return value === '[object Object]' ? '' : value;
+    if(typeof value === 'number' || typeof value === 'boolean') return value;
+    if(Array.isArray(value)) return value.map((item)=> text(item)).filter(Boolean).join('; ');
+    if(value && typeof value === 'object'){
+      const keys = ['value','label','name','text','title','id','key'];
+      for(let i = 0; i < keys.length; i += 1){
+        if(Object.prototype.hasOwnProperty.call(value, keys[i])){
+          const resolved = scalarValue(value[keys[i]], (depth || 0) + 1);
+          if(text(resolved)) return resolved;
+        }
+      }
+      return '';
+    }
+    return '';
+  }
+  function text(value){ return String(scalarValue(value, 0)).trim(); }
+  function number(value){ const n = Number(text(value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function optionalNumber(value){ return text(value) === '' ? '' : number(value); }
   function bool(value){ const raw = text(value).toLowerCase(); return ['tak','true','1','yes','y'].includes(raw); }
   function round2(value){ const n = Number(value); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0; }
@@ -95,6 +114,9 @@
   }
   function normalizeTechnicalData(src){
     const row = src && typeof src === 'object' ? src : {};
+    const tech = FC.hardwareTechnicalParams || null;
+    const category = firstText(row.hardwareCategory, row.category, row.kategoria);
+    const definitions = Array.isArray(row.hardwareTechnicalParams) ? row.hardwareTechnicalParams : DEFAULT_TECHNICAL_PARAMS;
     const hardwareSystem = firstText(row.hardwareSystem, row.systemOkucia, row.system_okucia, row.system, row.series);
     const drawerProfile = firstText(row.drawerProfile, row.profilSzuflady, row.profil_szuflady, row.drawerHeight, row.wysokosc_szuflady);
     const drawerLengthMm = optionalNumber(firstText(row.drawerLengthMm, row.dlugoscSzufladyMm, row.dlugosc_mm, row.lengthMm, row.drawerLength));
@@ -103,6 +125,13 @@
     const hardwareColor = firstText(row.hardwareColor, row.kolorOkucia, row.kolor_okucia);
     const hardwareUsage = firstText(row.hardwareUsage, row.zastosowanie, row.usage);
     const technicalNote = firstText(row.technicalNote, row.uwagiTechniczne, row.uwagi_techniczne);
+    const legacyBase = { drawerProfile, drawerLengthMm, drawerLoadKg, drawerReinforced:reinforcedRaw ? bool(reinforcedRaw) : false, hardwareColor, hardwareUsage, technicalNote };
+    const technicalParams = tech && typeof tech.mergeLegacyValues === 'function'
+      ? tech.mergeLegacyValues(Object.assign({}, row, legacyBase), definitions, category)
+      : (row.technicalParams || {});
+    const autoType = tech && typeof tech.buildTypeLabel === 'function'
+      ? tech.buildTypeLabel(definitions, category, technicalParams)
+      : '';
     return {
       hardwareSystem,
       drawerProfile,
@@ -112,6 +141,8 @@
       hardwareColor,
       hardwareUsage,
       technicalNote,
+      technicalParams,
+      hardwareTypeAuto:autoType,
     };
   }
   function normalizeManufacturerList(list){ return uniqueText((Array.isArray(list) ? list : []).concat(DEFAULT_MANUFACTURERS)); }
@@ -376,6 +407,7 @@
     const cfg = normalizeSettings(settings || {});
     const supplierList = normalizeSupplierList(Array.isArray(settings && settings.hardwareSuppliers) ? settings.hardwareSuppliers : (Array.isArray(settings && settings.suppliers) ? settings.suppliers : []));
     const uid = typeof uidFn === 'function' ? uidFn : ((prefix)=> `${prefix}_${Date.now()}`);
+    const techData = normalizeTechnicalData(Object.assign({}, src, { hardwareTechnicalParams:Array.isArray(src.hardwareTechnicalParams) ? src.hardwareTechnicalParams : (Array.isArray(settings && settings.hardwareTechnicalParams) ? settings.hardwareTechnicalParams : DEFAULT_TECHNICAL_PARAMS) }));
     const supplierPrices = normalizeSupplierPrices(src.supplierPrices, src, supplierList, cfg);
     const quoteSupplierPrice = getQuoteSupplierPrice(supplierPrices) || {};
     const supplierId = text(quoteSupplierPrice.supplierId || src.supplierId) || cfg.defaultSupplierId;
@@ -413,17 +445,19 @@
       name:text(src.name),
       price,
       hardwareCategory:normalizeCategory(src.hardwareCategory || src.category || ''),
-      hardwareType:text(src.hardwareType || src.typeFeature || src.typ_cecha || src.typ || ''),
+      hardwareType:text(techData.hardwareTypeAuto || src.hardwareType || src.typeFeature || src.typ_cecha || src.typ || ''),
       hardwareUnit:normalizeUnit(src.hardwareUnit || src.unit || 'szt.'),
-      hardwareSystem:normalizeTechnicalData(src).hardwareSystem,
-      series:normalizeTechnicalData(src).hardwareSystem || text(src.series),
-      drawerProfile:normalizeTechnicalData(src).drawerProfile,
-      drawerLengthMm:normalizeTechnicalData(src).drawerLengthMm,
-      drawerLoadKg:normalizeTechnicalData(src).drawerLoadKg,
-      drawerReinforced:normalizeTechnicalData(src).drawerReinforced,
-      hardwareColor:normalizeTechnicalData(src).hardwareColor,
-      hardwareUsage:normalizeTechnicalData(src).hardwareUsage,
-      technicalNote:normalizeTechnicalData(src).technicalNote,
+      hardwareSystem:techData.hardwareSystem,
+      series:techData.hardwareSystem || text(src.series),
+      drawerProfile:techData.drawerProfile,
+      drawerLengthMm:techData.drawerLengthMm,
+      drawerLoadKg:techData.drawerLoadKg,
+      drawerReinforced:techData.drawerReinforced,
+      hardwareColor:techData.hardwareColor,
+      hardwareUsage:techData.hardwareUsage,
+      technicalNote:techData.technicalNote,
+      technicalParams:techData.technicalParams,
+      hardwareTypeAuto:!!techData.hardwareTypeAuto,
       supplierId,
       priceSource:text(text(quoteSupplierPrice.supplierId) ? ((supplier && supplier.name) || quoteSupplierPrice.supplierName || src.priceSource || supplierId) : (src.priceSource || src.supplierName || (supplier && supplier.name) || supplierId)),
       supplierPrices,
@@ -482,6 +516,7 @@
     DEFAULT_SETTINGS,
     DEFAULT_CATEGORIES,
     DEFAULT_TYPES,
+    DEFAULT_TECHNICAL_PARAMS,
     PRICE_STATUSES,
     CATEGORIES,
     UNITS,

@@ -412,19 +412,57 @@
   font-weight:850;
   line-height:1.25;
 }
-.hardware-dictionary-form{display:grid;gap:10px;min-width:0;}
-.hardware-dictionary-list{display:grid;gap:10px;max-height:min(44vh,390px);overflow:auto;padding-right:2px;}
+.hardware-dictionary-form{display:flex;flex-direction:column;gap:0;min-width:0;min-height:0;}
+.hardware-dictionary-scroll{display:grid;gap:10px;min-height:0;overflow:auto;padding-right:2px;padding-bottom:12px;-webkit-overflow-scrolling:touch;}
+.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible;padding-right:0;}
+.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible;padding:0;}
+.hardware-dictionary-actions{margin-top:0;}
 .hardware-dictionary-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.40);border-radius:16px;background:#fff;padding:10px;}
 .hardware-type-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(200px,1.5fr) auto auto;gap:10px;align-items:end;border:1px solid rgba(148,163,184,.40);border-radius:16px;background:#fff;padding:10px;}
 .hardware-type-categories{display:flex;flex-wrap:wrap;gap:6px;}
 .hardware-type-category,.hardware-type-active{min-height:38px;margin:0;}
 .hardware-supplier-actions{display:flex;justify-content:flex-end;margin-top:10px;}
+.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}
 @media(max-width:720px){
   #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr 1fr;}
   .hardware-type-row,.hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
+  #priceModal .hardware-tech-param-row .grid-2,
+  #priceItemModal .hardware-tech-param-row .grid-2,
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-2,
+  #priceModal .hardware-tech-param-row .grid-3,
+  #priceItemModal .hardware-tech-param-row .grid-3,
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-3{grid-template-columns:minmax(0,1fr);}
 }
 @media(max-width:520px){
   #priceItemModal .hardware-supplier-price-grid{grid-template-columns:1fr;}
+}
+
+
+/* Słowniki okuć — pełna szerokość parametrów na mobile, bez poziomego obcinania pól. */
+.hardware-dictionary-panel,
+.hardware-dictionary-panel *{box-sizing:border-box;}
+.hardware-dictionary-panel .hardware-dictionary-scroll,
+.hardware-dictionary-panel .hardware-dictionary-list,
+.hardware-dictionary-panel .hardware-tech-param-list,
+.hardware-dictionary-panel .hardware-tech-param-row,
+.hardware-dictionary-panel .hardware-tech-param-row > *,
+.hardware-dictionary-panel .hardware-tech-param-row .grid-2,
+.hardware-dictionary-panel .hardware-tech-param-row .grid-3,
+.hardware-dictionary-panel .hardware-tech-param-row .hardware-supplier-field{min-width:0;max-width:100%;}
+.hardware-dictionary-panel .hardware-tech-param-row .grid-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.hardware-dictionary-panel .hardware-tech-param-row .grid-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+.hardware-dictionary-panel .hardware-tech-param-row .investor-form-input,
+.hardware-dictionary-panel .hardware-tech-param-row .hardware-cycle-btn{width:100%;max-width:100%;min-width:0;}
+.hardware-dictionary-panel .hardware-cycle-btn{white-space:normal;overflow-wrap:anywhere;justify-content:center;text-align:center;}
+@media(max-width:720px){
+  .hardware-dictionary-panel .panel-box__body{padding-left:12px;padding-right:12px;}
+  .hardware-dictionary-panel .hardware-dictionary-scroll{padding-right:0;}
+  .hardware-dictionary-panel .hardware-tech-category-summary{padding-left:12px;padding-right:12px;}
+  .hardware-dictionary-panel .hardware-tech-param-row{margin-left:0;margin-right:0;padding:10px;}
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-2,
+  .hardware-dictionary-panel .hardware-tech-param-row .grid-3{grid-template-columns:minmax(0,1fr);gap:10px;}
+  .hardware-dictionary-panel .hardware-tech-param-row .label-help{min-width:0;}
+  .hardware-dictionary-panel .hardware-tech-param-row .label-help__text{min-width:0;overflow-wrap:anywhere;}
 }
 
 /* Hardware technical data accordion — app/ROZRYS-like, no native picker/select UI */
@@ -434,3 +472,30 @@
 .hardware-tech-accordion__head[aria-expanded="true"] .hardware-tech-accordion__chevron{transform:rotate(225deg);margin-top:6px}
 .hardware-tech-accordion__body{border-top:1px solid rgba(226,232,240,.95);padding:12px 14px 14px;background:linear-gradient(180deg,#fff,#f8fafc)}
 .hardware-tech-toggle{align-self:end;min-height:42px;justify-content:center}
+
+/* Dynamiczne parametry techniczne okuć — 20260519 */
+#priceItemModal .hardware-dynamic-tech-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+#priceItemModal .hardware-dynamic-tech-field{min-width:0}
+#priceItemModal .hardware-tech-range-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+#priceItemModal .hardware-tech-choice-launch-slot{width:100%;min-width:0;margin-top:0}
+#priceItemModal .hardware-tech-choice-launch{width:100%;min-width:0;justify-content:space-between;text-align:left}
+#priceItemModal .hardware-tech-choice-select[hidden]{display:none!important}
+#priceItemModal .hardware-tech-preview{margin-top:4px}
+@media(max-width:720px){#priceItemModal .hardware-dynamic-tech-grid{grid-template-columns:1fr}}
+
+/* Słowniki dynamicznych parametrów technicznych — 20260519 */
+#priceModal .hardware-tech-category-accordion,
+#priceItemModal .hardware-tech-category-accordion{border:2px solid rgba(31,41,55,.55);border-radius:18px;margin:10px 0;background:#fff;box-shadow:0 8px 0 rgba(31,41,55,.10),0 12px 24px rgba(15,23,42,.08);overflow:hidden}
+#priceModal .hardware-tech-category-summary,
+#priceItemModal .hardware-tech-category-summary{cursor:pointer;font-weight:900;font-size:18px;padding:14px 16px;list-style:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(226,232,240,.95)}
+#priceModal .hardware-tech-category-summary::-webkit-details-marker,
+#priceItemModal .hardware-tech-category-summary::-webkit-details-marker{display:none}
+#priceModal .hardware-tech-category-summary::after,
+#priceItemModal .hardware-tech-category-summary::after{content:"";width:14px;height:14px;border-right:4px solid #16a34a;border-bottom:4px solid #16a34a;transform:rotate(45deg);margin-right:6px;transition:transform .18s ease}
+#priceModal .hardware-tech-category-accordion[open] .hardware-tech-category-summary::after,
+#priceItemModal .hardware-tech-category-accordion[open] .hardware-tech-category-summary::after{transform:rotate(225deg)}
+#priceModal .hardware-tech-param-row,
+#priceItemModal .hardware-tech-param-row{border:1px solid rgba(226,232,240,.95);border-radius:16px;padding:12px;margin:10px;background:linear-gradient(180deg,#fff,#f8fafc)}
+#priceModal .hardware-cycle-btn,
+#priceItemModal .hardware-cycle-btn{width:100%;min-height:48px;text-align:left;justify-content:flex-start}

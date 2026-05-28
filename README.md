@@ -1,3 +1,50 @@
+## Hardware dictionary width fix v1 — 2026-05-23
+
+## site_hardware_param_choice_launcher_fix_v1 — 2026-05-23
+
+- Baza: `site_hardware_dictionary_width_fix_v1.zip`.
+- Poprawka UI formularza okucia: parametry tekstowe z dozwolonymi wartościami w słowniku pokazują widoczny przycisk wyboru aplikacyjnego.
+- Dodano fallback bez natywnego selecta, żeby nie zostawał sam tekst `Wartość: ...` bez możliwości zmiany.
+- Bez zmian w backupie, storage, import/export Excel i mechanice zamienników.
+
+
+- Start z aktualnej bazy `site_hardware_dictionary_full_scroll_v1.zip`.
+- Poprawiono szerokość układu parametrów technicznych w modalu `Słowniki okuć` na telefonie: pola parametru, `Typ pola`, `Sposób porównania`, `Dozwolone wartości` i chipy nie są już ucinane poziomo.
+- Formularz parametru w słownikach korzysta z pełnej szerokości głównego scrolla modala i na mobile układa wiersze w jedną kolumnę.
+- Zmiana jest wyłącznie CSS/UI; nie zmienia backupu, storage, import/export, zamienników ani modelu katalogu okuć.
+
+### 2026-05-23 — hardware param dictionary choices v1
+- Start z aktualnej bazy `site_hardware_replacement_button_visibility_fix_v1.zip`.
+## Hardware dictionary full scroll v1 — 2026-05-23
+
+- Poprawiono układ modala `Słowniki okuć`: parametry techniczne kategorii nie są już przewijane w małym wewnętrznym okienku. Po rozwinięciu kategorii przewija się główna zawartość modala.
+- Stopka akcji została oparta o standardowy wzorzec stopki panelu, a pola parametru technicznego na telefonie układają się w jedną kolumnę.
+- Zmiana jest wyłącznie UI/UX; nie zmienia backupu, storage, import/export, zamienników ani modelu katalogu okuć.
+
+- Tekstowe parametry techniczne okuć z dozwolonymi wartościami w słowniku są teraz wybierane w formularzu okucia przez launcher/listę aplikacyjną, bez natywnego selecta widocznego dla użytkownika.
+- Wartości spoza słownika są czyszczone: stare ręczne wpisy nie są chronione i pole pozostaje puste, dopóki użytkownik nie wybierze wartości ze słownika.
+- W słownikach zmieniono opis pola na `Dozwolone wartości` i dodano instrukcję pod ikoną `?`, jak trzymać spójne wartości do porównywania zamienników.
+- Nie ruszono backupów, polityki retencji, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+### 2026-05-23 — hardware replacement button visibility fix v1
+- Start z aktualnej bazy `site_hardware_replacement_preview_ui_v1.zip`.
+- Poprawiono widoczność przycisku `Zamienniki` w modalu edycji okucia: moduł tworzy/odnajduje przycisk pod `Wyjdź` i buduje źródło porównania także z bieżącego draftu formularza.
+- Podgląd nadal jest tylko listą kandydatów bez zapisu zmian; nie dodano akcji `Zamień`.
+- Nie ruszono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+### 2026-05-23 — hardware replacement preview UI v1
+- Start z aktualnej bazy `site_data_safety_backup_limit_policy_test_v2.zip`.
+- W modalu edycji okucia dodano przycisk `Zamienniki` pod `Wyjdź`.
+- Przycisk pokazuje listę zamienników jako podgląd: pasujące i najbliższe odrzucone kandydaty, z ceną `Do wyceny` oraz powodami dopasowania/odrzucenia.
+- Podgląd korzysta z technicznego silnika zamienników, nie zapisuje zmian do katalogu, projektów ani storage.
+- Nie dodano jeszcze właściwej akcji `Zamień`; nie ruszono import/export, backupów, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+### 2026-05-21 — hardware compare modes / storage cleanup v1
+- Start z aktualnej bazy `site_000_hardware_edit_modal_perf_fix_v1.zip`.
+- Nie zmieniono UI ani miejsca ustawiania zasad szukania zamienników; dalej są w słownikach parametrów technicznych kategorii okuć.
+- Tryb porównania `Mieści się w zakresie` wymaga teraz pełnego objęcia wymaganej wartości/zakresu przez zamiennik; częściowe przecięcie zakresów należy do trybu `Zakresy się przecinają`.
+- Dodano testy negatywne dla porównywania zakresów i uzupełniono diagnostykę storage/backup dla słowników okuć.
+
 ### 2026-05-18 — dev tests errors fix v1
 - Naprawiono błędy `dev_tests.html` po Etapie 2A: test potwierdzeń importu okuć nie używa już `.find()` bezpośrednio na `NodeList`.
 - Launcher wyboru w modalu szafki synchronizuje draft także wtedy, gdy wybrana wartość jest już ustawiona w ukrytym selectcie.
@@ -554,3 +601,57 @@ node tools/service-pro100-dev-smoke.js
 - Katalog okuć obsługuje teraz `System okucia` oraz techniczne dane szuflad/prowadnic: profil, długość, nośność, wzmocnienie, kolor i zastosowanie.
 - Pełne dane techniczne uzupełnia się masowo w arkuszu `Okucia`; arkusz `Ceny_dostawcow` nadal nadaje się do szybkiej aktualizacji cen, a techniczne kolumny są opcjonalne.
 - Szczegóły: `tools/reports/hardware-technical-data-excel-v1.md`.
+
+
+## 2026-05-20 — hardware_dynamic_technical_params_v1
+
+- Dodano dynamiczne parametry techniczne okuć definiowane per kategoria.
+- Dodano moduł `js/app/catalog/hardware-technical-params.js` jako centralny model definicji, wartości, zakresów i porównywania parametrów.
+- Słowniki okuć pozwalają edytować parametry techniczne w akordeonach kategorii; parametry mogą być cechą kluczową i mogą budować automatyczne `Typ / cecha`.
+- Formularz okucia pokazuje w akordeonie `Dane techniczne` tylko pola przypisane do wybranej kategorii.
+- Parametry liczbowe obsługują pola `od` i `do`: samo `od` = wartość dokładna, `od` + `do` = zakres.
+- Dodano opisy pod ikoną `?` dla nazw parametrów, typów pól, jednostek, cechy kluczowej i sposobów porównania.
+- Dodano backupowany klucz `fc_hardware_technical_params_v1` oraz klasyfikację storage.
+- Import/export XLSX dostał `Parametry_techniczne` i arkusze grupowe `Okucia_<kategoria>`, przy zachowaniu szybkiego arkusza `Ceny_dostawcow`.
+- Szczegóły etapu: `tools/reports/hardware-dynamic-technical-params-v1.md`.
+
+
+## Dokumentacja backupu
+
+Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów znajduje się w `BACKUP.md`.
+
+## 2026-05-20 — hardware_technical_params_serialization_fix_v1
+
+- Naprawiono zapis dynamicznych parametrów technicznych okuć, żeby wartości z launcherów/list nie trafiały do katalogu i backupu jako `"[object Object]"`.
+- Eksport arkuszy grupowych XLSX czyści wartości parametrów przed zapisem.
+- Dodano testy antyregresyjne dla katalogu okuć, backupu pośredniego i import/export.
+
+## 2026-05-20 — hardware edit modal perf fix v1
+
+- Poprawiono wydajność otwierania/zamykania formularza edycji okucia po dodaniu dynamicznych danych technicznych.
+- Pasywny odczyt stanu formularza nie remountuje już launchera `Typ / cecha`.
+- Dodano test smoke dla tej regresji.
+
+
+
+## 2026-05-22 — data safety test isolation v1
+
+- Poprawiono wyłącznie izolację testu retencji backupów testowych `before-tests`.
+- Zasada pozostaje bez zmian: automatyczne backupy testowe mają twardy limit 10 najnowszych kopii, a gdy zapis w pamięci programu nie jest możliwy, używany jest ręczny eksport backupu na dysk.
+- Test nie tworzy już 12 kopii pełnego realnego storage użytkownika, więc nie powinien fałszywie padać przy dużych danych lokalnych.
+- Nie zmieniono mechanizmu backupu, limitów retencji, silnika zamienników, UI, import/export Excel, PRO100, ROZRYS ani WYCENY.
+
+## 2026-05-22 — hardware replacement engine preview v1
+
+- Dodano techniczny silnik podglądu zamienników okuć: `js/app/catalog/hardware-replacement-engine.js`.
+- Etap nie dodaje przycisku ani ekranu w normalnym UI. Silnik działa w testach i będzie fundamentem pod późniejszy modal zamiany producentów/systemów.
+- Silnik sprawdza kategorię, producenta docelowego, aktywność pozycji, parametry kluczowe, tryby porównania oraz dostępność ceny dostawcy `Do wyceny`.
+- Dodano testy dla prowadnic 350/400, nośności, zakresów, producenta docelowego, braku ceny oraz braku zapisu do storage.
+- Nie zmieniono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+## 2026-05-22 — data_safety_backup_limit_policy_test_v2
+
+- Poprawiono wyłącznie przeglądarkowy test retencji backupów testowych `before-tests`.
+- Test nie zapisuje już backupów do realnego `localStorage`; sprawdza limit 10 kopii na małych rekordach w pamięci JS przez politykę retencji.
+- Zasada pozostaje bez zmian: automatyczne backupy testowe mają maksymalnie 10 najnowszych kopii, a gdy zapis w pamięci programu nie jest możliwy, użytkownik ma ręczny eksport backupu na dysk.
+- Nie zmieniono mechanizmu backupu, retencji, `BACKUP.md`, silnika zamienników, UI, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.

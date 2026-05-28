@@ -5,7 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const KIND = 'meble-app.hardware-catalog.export';
-  const VERSION = 9;
+  const VERSION = 10;
   const TEMPLATE_ROWS = 220;
   const ACCESSORY_COLUMNS = [
     ['nazwa','name'], ['jednostka','hardwareUnit'], ['producent','manufacturer'], ['kategoria','hardwareCategory'],
@@ -45,6 +45,7 @@
       suppliers:s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : [],
       categories:s && s.getHardwareCategories ? s.getHardwareCategories() : [],
       types:s && s.getHardwareTypes ? s.getHardwareTypes() : [],
+      technicalParams:s && s.getHardwareTechnicalParams ? s.getHardwareTechnicalParams() : ((FC.hardwareTechnicalParams && FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS) || []),
       settings:s && s.getHardwareSettings ? s.getHardwareSettings() : {},
     };
   }
@@ -74,6 +75,67 @@
   function buildManufacturerRows(manufacturers){ return [['nazwa']].concat((manufacturers || []).map((name)=> [name])); }
   function buildCategoryRows(categories){ return [['nazwa']].concat((categories || []).map((name)=> [name])); }
   function buildTypeRows(types){ return [['nazwa','dozwolone_kategorie','aktywny','id']].concat((types || []).map((row)=> [row && row.name || '', (row && row.allowedCategories || []).join('; '), row && row.active === false ? 'NIE' : 'TAK', row && row.id || ''])); }
+  function buildTechnicalParamRows(params){
+    return [['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','cecha_kluczowa','tworzy_typ','sposob_porownania','aktywny','kolejnosc','id']].concat((params || []).map((row)=> [
+      row && row.category || '', row && row.key || '', row && row.label || '', row && row.fieldType || 'text', row && row.unit || '', (row && row.options || []).join('; '), row && row.keyFeature === false ? 'NIE' : 'TAK', row && row.typePart === false ? 'NIE' : 'TAK', row && row.compareMode || 'equal', row && row.active === false ? 'NIE' : 'TAK', row && row.order || '', row && row.id || ''
+    ]));
+  }
+  function dynamicValueFor(item, field){
+    const api = FC.hardwareTechnicalParams || {};
+    const params = item && item.technicalParams || {};
+    const value = params[field.key];
+    if(!value) return '';
+    const normalized = api && typeof api.normalizeParamValue === 'function' ? api.normalizeParamValue(field, value) : value;
+    if(field.fieldType === 'boolean') return normalized.value ? 'TAK' : '';
+    if(field.fieldType === 'numberRange'){
+      const from = normalized.from != null ? normalized.from : '';
+      const to = normalized.to != null ? normalized.to : '';
+      return { from, to };
+    }
+    return api && typeof api.scalarText === 'function' ? api.scalarText(normalized.value) : text(normalized.value);
+  }
+  function groupColumnsForCategory(snap, category){
+    const api = FC.hardwareTechnicalParams || {};
+    const fields = api.fieldsForCategory ? api.fieldsForCategory(snap.technicalParams || [], category) : [];
+    const base = [['nazwa','name'], ['jednostka','hardwareUnit'], ['producent','manufacturer'], ['kategoria','hardwareCategory'], ['system_okucia','hardwareSystem'], ['typ_cecha','hardwareType'], ['symbol','symbol']];
+    const dyn = [];
+    fields.forEach((field)=>{
+      if(field.fieldType === 'numberRange'){
+        const keys = api.rangeColumnKeys ? api.rangeColumnKeys(field) : { from:field.key + '_od', to:field.key + '_do' };
+        dyn.push([keys.from, field.key + '.from', field]);
+        dyn.push([keys.to, field.key + '.to', field]);
+      }else{
+        dyn.push([api.columnKeyForField ? api.columnKeyForField(field) : field.key, field.key, field]);
+      }
+    });
+    return base.concat(dyn, [['tryb_ceny_zestawu','bundleCostMode'], ['uwagi_techniczne','technicalNote'], ['notatka','note'], ['id','id']]);
+  }
+  function groupedRowsForCategory(accessories, snap, category){
+    const columns = groupColumnsForCategory(snap, category);
+    const rows = [columns.map((pair)=> pair[0])];
+    (accessories || []).filter((row)=> text(row && row.hardwareCategory) === text(category)).forEach((item)=>{
+      rows.push(columns.map((pair)=>{
+        const field = pair[2];
+        if(field){
+          const dynamic = dynamicValueFor(item, field);
+          if(field.fieldType === 'numberRange') return String(pair[1]).endsWith('.to') ? (dynamic && dynamic.to || '') : (dynamic && dynamic.from || '');
+          return dynamic;
+        }
+        return valueForColumn(item, pair[1]);
+      }));
+    });
+    rows.push(columns.map((pair)=> pair[1] === 'hardwareCategory' ? category : (pair[1] === 'hardwareUnit' ? 'szt.' : '')));
+    return rows;
+  }
+  function buildGroupedAccessorySheets(snap){
+    const api = FC.hardwareTechnicalParams || {};
+    const out = {};
+    (snap.categories || []).forEach((category)=>{
+      const sheetName = api.sheetNameForCategory ? api.sheetNameForCategory(category) : ('Okucia_' + text(category).replace(/[^a-z0-9]+/gi, '_')).slice(0,31);
+      out[sheetName] = { rows:groupedRowsForCategory(snap.accessories || [], snap, category), freezeTopRow:true, widths:[34,12,18,24,24,24,18,16,16,16,16,16,18,20,20,24] };
+    });
+    return out;
+  }
   function buildSettingsRows(settings){ return [['klucz','wartosc']].concat(Object.keys(settings || {}).map((key)=> [key, settings[key]])); }
   function buildBundleRows(accessories){
     const byId = new Map((accessories || []).map((row)=> [text(row && row.id), row]));
@@ -93,6 +155,7 @@
     add('kategoria', (snap.categories && snap.categories.length ? snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'])));
     add('system_okucia', Array.from(new Set((snap.accessories || []).map((row)=> text((row && row.hardwareSystem) || (row && row.series))).filter(Boolean))));
     add('typ_cecha', (snap.types || []).map((row)=> row && row.name).filter(Boolean));
+    add('parametr_techniczny', (snap.technicalParams || []).map((row)=> row && row.key).filter(Boolean));
     add('jednostka', optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']));
     add('baza_wyceny', optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]));
     add('sposob_liczenia', optionValues(hw().PRICING_MODES, [{ value:'markup' }, { value:'manualPrice' }]));
@@ -119,7 +182,7 @@
     if(!(FC.xlsxLite && typeof FC.xlsxLite.makeWorkbookBlob === 'function')) throw new Error('Brak modułu XLSX.');
     const snap = getSnapshot();
     const supplierXlsx = FC.hardwareSupplierPriceXlsx || {};
-    const blob = FC.xlsxLite.makeWorkbookBlob({
+    const sheets = Object.assign({
       Okucia:{ rows:buildAccessoryRows(snap.accessories, snap), validations:accessoryValidations(snap), freezeTopRow:true, widths:[36,12,18,24,24,24,18,16,14,14,12,16,18,22,26,28,24] },
       Ceny_dostawcow:{ rows:(supplierXlsx.buildSupplierPriceRows ? supplierXlsx.buildSupplierPriceRows(snap.accessories, snap.suppliers, snap.settings) : [['okucie_nazwa','okucie_symbol','producent','kategoria','jednostka','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]), validations:(supplierXlsx.supplierPriceValidations ? supplierXlsx.supplierPriceValidations() : []), freezeTopRow:true, widths:[36,18,18,24,12,28,14,14,12,16,14,24,20] },
       Sklad_zestawow:{ rows:buildBundleRows(snap.accessories), freezeTopRow:true, widths:[34,34,10,18,18,16,20,24,24,24] },
@@ -127,15 +190,17 @@
       Producenci:{ rows:buildManufacturerRows(snap.manufacturers), freezeTopRow:true, widths:[24] },
       Kategorie_okuc:{ rows:buildCategoryRows(snap.categories), freezeTopRow:true, widths:[32] },
       Typy_cechy:{ rows:buildTypeRows(snap.types), freezeTopRow:true, widths:[24,36,12,24] },
+      Parametry_techniczne:{ rows:buildTechnicalParamRows(snap.technicalParams), freezeTopRow:true, widths:[24,20,24,16,12,34,14,14,22,12,12,24] },
       Slowniki:{ rows:buildDictionaryRows(snap), freezeTopRow:true, widths:[24,34] },
       Ustawienia:{ rows:buildSettingsRows(snap.settings), freezeTopRow:true, widths:[28,24] },
-    });
+    }, buildGroupedAccessorySheets(snap));
+    const blob = FC.xlsxLite.makeWorkbookBlob(sheets);
     downloadBlob(`hardware_catalog_prices_${todayLocal()}.xlsx`, blob);
   }
 
   FC.hardwareCatalogExportXlsx = {
     KIND, VERSION, TEMPLATE_ROWS, ACCESSORY_COLUMNS, SUPPLIER_COLUMNS, BUNDLE_COLUMNS,
     getSnapshot, makeExportPayload, exportJson, exportXlsx,
-    _debug:{ buildAccessoryRows, buildBundleRows, buildCategoryRows, buildTypeRows, buildSupplierRows, buildDictionaryRows, buildSettingsRows, accessoryValidations, columnFor }
+    _debug:{ buildAccessoryRows, buildBundleRows, buildCategoryRows, buildTypeRows, buildTechnicalParamRows, buildGroupedAccessorySheets, buildSupplierRows, buildDictionaryRows, buildSettingsRows, accessoryValidations, columnFor }
   };
 })();

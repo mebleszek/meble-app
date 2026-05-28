@@ -4,8 +4,8 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_deep_tests_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_global_vat_import_stabilization_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_dictionary_full_scroll_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -13,7 +13,7 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 
 1. Startować z ostatniego ZIP-a zaakceptowanego w rozmowie.
 2. Przed zmianami przeczytać aktualny `DEV.md`.
-3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`.
+3. Przy zmianach danych, storage, backupów, importu/eksportu, inwestorów, projektów, wycen, cenników albo testów danych przeczytać też `CLOUD_MIGRATION.md`. Przy zmianach backupu/storage dodatkowo przeczytać `BACKUP.md`.
 4. Przy większych porządkach, splitach albo szukaniu duplikacji między działami przeczytać też `OPTIMIZATION_PLAN.md`.
 5. Przed refaktorem większego pliku albo modułu z zależnościami sprawdzić `DEPENDENCY_MAP.md` i w razie potrzeby uruchomić `node tools/dependency-source-audit.js`.
 6. Przed wydaniem uruchomić przynajmniej:
@@ -49,6 +49,94 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Opisy pomocnicze dawać pod ikoną `?`, nie jako luźne akapity obok pól/nagłówków.
 - Przyciski: brak zmian = niebieski `Wyjdź`; niezapisane zmiany = czerwony `Anuluj` + zielony `Zapisz/Zatwierdź/Dodaj` zgodnie z kontekstem.
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
+
+
+
+
+## Hardware param choice launcher fix v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_width_fix_v1.zip`.
+- Poprawiono formularz edycji okucia: tekstowe parametry techniczne z `Dozwolonymi wartościami` renderują widoczny launcher wyboru aplikacyjnego, a nie sam podgląd `Wartość: ...`.
+- Dodano odporny fallback launchera bez natywnego selecta: jeśli standardowe `ctx.mountChoice` nie zamontuje przycisku, formularz korzysta bezpośrednio z `FC.rozrysChoice` i dalej otwiera aplikacyjną listę wyboru.
+- Stare wartości spoza słownika nadal są czyszczone i pole pozostaje puste do wyboru ze słownika.
+- Zmiana jest UI-only: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-param-choice-launcher-fix-v1.md`.
+
+
+## Hardware dictionary width fix v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_width_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_full_scroll_v1.zip`.
+- Poprawiono responsywną szerokość formularza parametrów technicznych w modalu `Słowniki okuć`: siatki `grid-2` i `grid-3` w panelu słowników używają `minmax(0, 1fr)`, a na mobile przechodzą w jedną kolumnę.
+- Ucięte po prawej stronie pola `Klucz Excel`, `Sposób porównania`, `Dozwolone wartości` i przyciski cykliczne mieszczą się teraz w głównym scrollu modala.
+- Zmiana jest wyłącznie CSS/UI; nie zmieniono danych, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-width-fix-v1.md`.
+
+## Hardware dictionary full modal scroll v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_full_scroll_v1.zip`.
+- Baza startowa: `site_hardware_param_dictionary_choices_v1.zip`.
+- W modalu `Słowniki okuć` usunięto mały wewnętrzny scroll z listy parametrów technicznych kategorii. Kategorie parametrów rozwijają się teraz w głównym scrollu modala przez `panel-box-form__scroll`.
+- Stopka z przyciskami `Wyjdź` / `Anuluj` / `Zapisz` korzysta ze standardowego wzorca `panel-box-form__footer`, a zawartość słowników przewija się nad nią.
+- Na telefonie pola w wierszu parametru technicznego przechodzą na jedną kolumnę, żeby nie wymuszać poziomego przewijania w parametrach.
+- Nie zmieniono modelu danych, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-full-scroll-v1.md`.
+
+## Hardware param dictionary choices v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_param_dictionary_choices_v1.zip`.
+- Baza startowa: `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Tekstowe parametry techniczne okuć z dozwolonymi wartościami w słowniku są renderowane w formularzu okucia jako wybór aplikacyjny/launcher, nie jako ręczne pole tekstowe.
+- Normalizacja parametru tekstowego z listą dopuszcza tylko dokładną wartość ze słownika. Wartości spoza listy, w tym stare ręczne wpisy kilku pozycji testowych, są czyszczone i użytkownik musi wybrać poprawną wartość ze słownika.
+- Parametry tekstowe bez listy, parametry liczbowe od-do i boolean zachowały dotychczasowy model wejścia.
+- W słownikach pole `Wartości podpowiedzi` zostało opisane jako `Dozwolone wartości`, a pomoc `?` tłumaczy konsekwentne wpisywanie opcji i wpływ na zamienniki.
+- Nie dodano nowego storage, nie zmieniono backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-param-dictionary-choices-v1.md`.
+
+## Hardware replacement button visibility fix v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_replacement_button_visibility_fix_v1.zip`.
+- Baza startowa: `site_hardware_replacement_preview_ui_v1.zip`.
+- Poprawiono realną widoczność przycisku `Zamienniki` w modalu edycji okucia: moduł UI potrafi odnaleźć albo odtworzyć przycisk pod `Wyjdź` i panel podglądu w stopce modala.
+- Źródło porównania jest teraz budowane odporniej: z pozycji katalogu oraz pasywnego draftu formularza, z obsługą aliasu `category` jako `hardwareCategory`.
+- Warunek widoczności nadal ogranicza przycisk do edycji istniejącego okucia bez niezapisanych zmian; przycisk nie pokazuje się w dodawaniu nowej pozycji.
+- Podgląd zamienników nadal nie zapisuje zmian do katalogu, projektu ani storage i nie dodaje właściwej akcji `Zamień`.
+- Nie zmieniono polityki backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-replacement-button-visibility-fix-v1.md`.
+
+## Hardware replacement preview UI v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_replacement_preview_ui_v1.zip`.
+- Baza startowa: `site_data_safety_backup_limit_policy_test_v2.zip`.
+- W modalu edycji okucia dodano przycisk `Zamienniki` pod przyciskiem `Wyjdź`. Przycisk jest widoczny tylko przy edycji istniejącego okucia, gdy formularz nie ma niezapisanych zmian.
+- Dodano moduł UI `js/app/material/price-modal-hardware-replacements.js`, który korzysta z `FC.hardwareReplacementEngine`, ale nie zapisuje zmian do katalogu, projektu ani storage.
+- Lista pokazuje kandydatów z tej samej kategorii i od innych producentów, z podziałem na pasujące oraz najbliższe odrzucone. Wynik zawiera status, podstawowe meta, cenę `Do wyceny` i powody dopasowania/odrzucenia.
+- `price-modal-item-form.js` tylko przekazuje stan modala do modułu zamienników; nie przejął logiki porównywania.
+- Dodano kontrakty smoke i test UI okuć pilnujące, że podgląd zamienników używa silnika, nie robi zapisu i nie używa systemowych dialogów.
+- Nie zmieniono polityki backupów, import/export Excel, PRO100, ROZRYS, RYSUNKU, WYCENY ani właściwej zamiany okuć w projekcie.
+- Raport: `tools/reports/hardware-replacement-preview-ui-v1.md`.
+
+## Hardware compare modes / storage cleanup v1 — 2026-05-21
+
+- Baza startowa: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
+- Nie zmieniono miejsca ustawiania zasad szukania zamienników: nadal definiuje się je w słownikach parametrów technicznych kategorii okuć.
+- Doprecyzowano logikę `compareParam()` dla liczbowych parametrów od-do: `withinRange` oznacza teraz, że zakres/wartość wymagania musi w całości mieścić się w zakresie zamiennika; częściowe przecięcie należy do trybu `rangeOverlap`.
+- Dodano testy negatywne pilnujące, że częściowe przecięcie zakresów nie przechodzi jako „Mieści się w zakresie”, ale przechodzi jako „Zakresy się przecinają”.
+- Doprecyzowano opisy pomocy `?` dla `withinRange` i `rangeOverlap`, bez zmiany UI ani dodawania helper textu obok pól.
+- Uzupełniono klasyfikację storage dla słowników okuć: producenci, dostawcy, ustawienia, kategorie, typy/cechy i parametry techniczne. Nie zmieniono polityki backupów ani zakresu snapshotu.
+- Raport: `tools/reports/hardware-compare-modes-storage-cleanup-v1.md`.
+
+## Hardware edit modal perf fix v1 — 2026-05-20
+
+- Baza startowa: `site_000_hardware_technical_params_serialization_fix_v1.zip`.
+- Po dynamicznych parametrach technicznych edycja okucia na telefonie mogła wyglądać jak brak reakcji na pierwszy klik, a otwarcie/zamknięcie modala potrafiło przycinać interfejs. Przyczyną było synchroniczne, wielokrotne przeliczanie formularza podczas sprawdzania dirty state oraz remountowanie launchera `Typ / cecha` przy pasywnym odczycie stanu.
+- `currentItemSignature()` dla akcesoriów używa teraz pasywnego `getCurrentAccessoryDraft({ passive:true })`, bez efektów ubocznych w DOM.
+- Dynamiczne parametry techniczne aktualizują ukryty `hardwareType` i etykietę launchera bez ponownego montowania całego launchera przy każdym przeliczeniu.
+- Odczyt dynamicznych pól jest ograniczony do kontenera `hardwareDynamicTechnicalFields`, zamiast skanować cały dokument.
+- Dodano test smoke pilnujący pasywnego odczytu stanu formularza okuć.
+- Nie zmieniono modelu danych, importu/eksportu, backupu ani polityki storage.
+- Raport: `tools/reports/hardware-edit-modal-perf-fix-v1.md`.
 
 
 ## Hardware price sources / zakup / rentowność — plan przyszły — 2026-05-10
@@ -894,7 +982,7 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 
 ## Hardware import/export deep tests v1 — 2026-05-14
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_import_export_deep_tests_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_000_hardware_edit_modal_perf_fix_v1.zip`.
 - Baza startowa: `site_hardware_import_export_refactor_v1.zip`; odrzucona paczka `site_hardware_excel_row_date_autofill_v1.zip` nadal nie jest używana jako baza.
 - Dodano głęboką suite testów import/export okuć `js/testing/material/accessories-import-export-deep-tests.js` i podpięto ją pod `MATERIAŁY` w `dev_tests.html`.
 - Dodano narzędzie Node `tools/hardware-import-export-deep-smoke.js`, żeby można było uruchomić same scenariusze import/export bez klikania w przeglądarce.
@@ -1078,3 +1166,63 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - W formularzu okucia dane techniczne są schowane pod aplikacyjnym akordeonem `Dane techniczne`; nie dodawać natywnych selectów/pickerów.
 - Następny etap okuć nie powinien zaczynać od WYCENY. Najpierw można dodać dobór szuflad/prowadnic po głębokości i opcji `wzmocniona`, a dopiero później silnik zamiany systemów.
 - Raport: `tools/reports/hardware-technical-data-excel-v1.md`.
+
+
+## 2026-05-20 — hardware_dynamic_technical_params_v1
+
+- Dodano dynamiczne parametry techniczne okuć definiowane per kategoria.
+- Dodano moduł `js/app/catalog/hardware-technical-params.js` jako centralny model definicji, wartości, zakresów i porównywania parametrów.
+- Słowniki okuć pozwalają edytować parametry techniczne w akordeonach kategorii; parametry mogą być cechą kluczową i mogą budować automatyczne `Typ / cecha`.
+- Formularz okucia pokazuje w akordeonie `Dane techniczne` tylko pola przypisane do wybranej kategorii.
+- Parametry liczbowe obsługują pola `od` i `do`: samo `od` = wartość dokładna, `od` + `do` = zakres.
+- Dodano opisy pod ikoną `?` dla nazw parametrów, typów pól, jednostek, cechy kluczowej i sposobów porównania.
+- Dodano backupowany klucz `fc_hardware_technical_params_v1` oraz klasyfikację storage.
+- Import/export XLSX dostał `Parametry_techniczne` i arkusze grupowe `Okucia_<kategoria>`, przy zachowaniu szybkiego arkusza `Ceny_dostawcow`.
+- Szczegóły etapu: `tools/reports/hardware-dynamic-technical-params-v1.md`.
+
+## 2026-05-20 — hardware_technical_params_serialization_fix_v1
+
+- Baza startowa: `site_000_backup_documentation_audit_v1.zip`.
+- Naprawiono serializację dynamicznych parametrów technicznych okuć: obiekty z launcherów/list aplikacyjnych są normalizowane do czystych wartości tekstowych, liczbowych albo zakresów.
+- `hardwareType` / `Typ / cecha` nie powinien już zapisywać `"[object Object]"`; jeżeli stary storage miał taki śmieć, normalizacja traktuje go jako pustą wartość zamiast utrwalać go dalej.
+- Eksport arkuszy grupowych XLSX używa znormalizowanych wartości parametrów, żeby nie wypuszczać `"[object Object]"` do Excela.
+- Dodano testy dla normalizacji parametrów, arkuszy grupowych i smoke test pilnujący braku `"[object Object]"` w rekordzie okucia.
+- Nie zmieniono polityki backupu ani retencji; naprawa dotyczy modelu/normalizacji katalogu okuć.
+- Raport: `tools/reports/hardware-technical-params-serialization-fix-v1.md`.
+
+
+## Data safety test isolation v1 — 2026-05-22
+
+- Baza startowa: `site_hardware_replacement_engine_preview_v1.zip`.
+- Naprawiono wyłącznie test przeglądarkowy `Backupy testowe mają twardy limit 10 najnowszych sztuk`, który przy pełnym `localStorage` mógł tworzyć 12 dużych snapshotów realnych danych użytkownika i kończyć się błędem quota.
+- Test izoluje teraz fixture danych aplikacji na czas sprawdzenia retencji: tymczasowo czyści klucze `fc_*` objęte snapshotem, tworzy mały zestaw testowy, sprawdza limit 10 backupów `before-tests`, a potem przywraca wcześniejszy stan.
+- Nie zmieniono mechanizmu backupu, polityki retencji, limitu 10 kopii testowych, fallbacku ręcznego eksportu na dysk ani `BACKUP.md`.
+- Nie zmieniono silnika zamienników, normalnego UI, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/data-safety-test-isolation-v1.md`.
+
+## Hardware replacement engine preview v1 — 2026-05-22
+
+- Aktualna paczka po tym etapie: `site_hardware_replacement_engine_preview_v1.zip`.
+- Baza startowa: `site_hardware_compare_modes_storage_cleanup_v1.zip`.
+- Dodano moduł domenowy `js/app/catalog/hardware-replacement-engine.js` jako techniczny silnik podglądu zamienników okuć.
+- Silnik nie dodaje UI, przycisków ani akcji użytkownika. Nie zapisuje zmian w projekcie, katalogu ani `localStorage`; działa jako czysta warstwa porównania dla testów i przyszłego modala zamiany.
+- Publiczne API `FC.hardwareReplacementEngine` udostępnia:
+  - `compareItems(source, candidate, options)` — sprawdza jednego kandydata i zwraca `compatible`, `score`, `checks`, `reasons`, `failures`, `warnings` oraz informację o cenie do wyceny;
+  - `findCandidates(source, candidates, options)` / `previewCandidates(...)` — ocenia listę kandydatów i sortuje zgodne po wyniku, dostępnej cenie i cenie;
+  - `quotePriceInfo(item)` — odczytuje cenę dostawcy `Do wyceny` bez zmiany danych;
+  - `summarizeResult(result)` — krótki opis wyniku dla przyszłego raportu UI.
+- Dopasowanie bazuje na kategorii, opcjonalnym producencie docelowym, aktywności kandydata, parametrach kluczowych kategorii oraz trybach porównania z `hardware-technical-params.js`.
+- Brak ceny dostawcy `Do wyceny` jest ostrzeżeniem w trybie miękkim albo blokadą przy `requireQuotePrice:true`.
+- Dodano 6 testów w `js/testing/material/accessories-tests.js` dla: braku zapisu do storage, długości prowadnic 350/400, nośności `minGte`, zakresów `withinRange`/`rangeOverlap`, producenta docelowego i braku ceny dostawcy.
+- `tools/index-load-groups.js`, `tools/app-dev-smoke-lib/file-list.js`, `index.html` i `dev_tests.html` ładują nowy moduł po `hardware-technical-params.js`, przed katalogiem okuć.
+- Nie zmieniono PRO100, usług, ROZRYS, RYSUNKU, WYCENY, import/export Excel ani polityki backupów.
+- Raport: `tools/reports/hardware-replacement-engine-preview-v1.md`.
+
+## Data safety backup limit policy test v2 — 2026-05-22
+
+- Baza startowa: `site_data_safety_test_isolation_v1.zip`.
+- Naprawiono wyłącznie test przeglądarkowy `Backupy testowe mają twardy limit 10 najnowszych sztuk`, który przy realnie ciężkim `localStorage` nadal mógł zgłaszać quota error.
+- Test nie używa już `FC.dataBackupStore.createBackup()` i nie zapisuje backupów do realnego `localStorage`; sprawdza `FC.dataBackupPolicy.pruneBackups()` oraz `groupBackups()` na małych rekordach w pamięci JS.
+- Test nadal pilnuje decyzji produktowej: backupy `before-tests` mają maksymalnie 10 najnowszych kopii, a ręczne backupy programu nie są przycinane przez limit testowy.
+- Nie zmieniono mechanizmu backupu, polityki retencji, fallbacku ręcznego eksportu na dysk, `BACKUP.md`, UI, silnika zamienników, import/export, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/data-safety-backup-limit-policy-test-v2.md`.

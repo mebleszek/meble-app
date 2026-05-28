@@ -140,6 +140,19 @@ function runDataNodeSmoke(sandbox){
         && html.includes('20260516_room_zone_preferences_v1');
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
+    { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
+      const backupDoc = fs.readFileSync(path.join(process.cwd(), 'BACKUP.md'), 'utf8');
+      const devDoc = fs.readFileSync(path.join(process.cwd(), 'DEV.md'), 'utf8');
+      const cloudDoc = fs.readFileSync(path.join(process.cwd(), 'CLOUD_MIGRATION.md'), 'utf8');
+      return backupDoc.includes('fc_data_backups_v1')
+        && backupDoc.includes('data-storage-keys.js')
+        && backupDoc.includes('fc_rozrys_plan_cache_v1')
+        && backupDoc.includes('before-tests')
+        && backupDoc.includes('fc_hardware_technical_params_v1')
+        && backupDoc.includes('[object Object]')
+        && devDoc.includes('BACKUP.md')
+        && cloudDoc.includes('BACKUP.md');
+    } },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },
   ]);
 }
@@ -431,7 +444,7 @@ function runMaterialNodeSmoke(sandbox){
         ], Producenci:[['nazwa'], ['Blum']], Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']] });
         const plan = api.buildImportPlan(parsed, { mode:'merge' });
         const item = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'TB-500');
-        return plan.errors.length === 0 && item && String(item.hardwareSystem || '') === 'Blum TANDEMBOX' && String(item.hardwareType || '') === 'M 500 50kg' && Number(item.drawerLengthMm) === 500 && Number(item.drawerLoadKg) === 50 && item.drawerReinforced === true;
+        return plan.errors.length === 0 && item && String(item.hardwareSystem || '') === 'Blum TANDEMBOX' && String(item.hardwareType || '').includes('M') && String(item.hardwareType || '').includes('500') && String(item.hardwareType || '').includes('50') && Number(item.drawerLengthMm) === 500 && Number(item.drawerLoadKg) === 50 && item.drawerReinforced === true;
       }finally{
         if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
@@ -576,27 +589,78 @@ function runMaterialNodeSmoke(sandbox){
       const gaps = xlsx.supplierPriceMissingSupplierGaps(rows, [existing, importedSame], suppliers);
       return gaps.length === 1 && gaps[0].rowIndex === 22 && gaps[0].gaps.includes('supplierName') && gaps[0].item && String(gaps[0].item.id || '') === 'same_export_item_1';
     } },
-    { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
-      const store = FC.catalogStore;
-      const ctx = FC.priceModalContext || {};
+    { name:'Dynamiczne parametry techniczne okuć mają słownik i helpy', explain:'Chroni nową architekturę: kategorie mają własne parametry, typ/cecha powstaje z cech kluczowych, a opcje techniczne mają opisy pod ?.', check:()=> {
+      const api = FC.hardwareTechnicalParams;
       const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
-      if(!(store && ctx && typeof store.getAccessories === 'function' && typeof store.savePriceList === 'function' && typeof ctx.buildHardwareTypeOptions === 'function')) return false;
-      const previous = store.getAccessories();
-      try{
-        store.saveHardwareTypes && store.saveHardwareTypes([{ id:'smoke_type_110', name:'110st chujowy', allowedCategories:['Zawiasy'], active:true }]);
-        store.savePriceList('accessories', [
-          { id:'smoke_hw_a', manufacturer:'Blum', name:'Zajęty zawias', hardwareCategory:'Zawiasy', hardwareType:'110st chujowy', hardwareUnit:'szt.', price:10, status:'active' },
-          { id:'smoke_hw_b', manufacturer:'Blum', name:'Edytowany zawias', hardwareCategory:'Zawiasy', hardwareType:'', hardwareUnit:'szt.', price:12, status:'active' }
-        ]);
-        const options = ctx.buildHardwareTypeOptions('Zawiasy', '', { manufacturer:'Blum', currentId:'smoke_hw_b' });
-        const empty = options[0];
-        const used = options.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
-        const selfOptions = ctx.buildHardwareTypeOptions('Zawiasy', '110st chujowy', { manufacturer:'Blum', currentId:'smoke_hw_a' });
-        const self = selfOptions.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
-        return dictionariesSrc.includes('applyDictionaryRenames') && empty && String(empty.value || '') === '' && used && used.disabled === true && String(used.description || '').includes('Zajęte przez') && self && self.disabled !== true;
-      }finally{
-        store.savePriceList('accessories', previous);
-      }
+      const formSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      if(!(api && Array.isArray(api.DEFAULT_DEFINITIONS) && typeof api.buildTypeLabel === 'function' && typeof api.compareParam === 'function')) return false;
+      const hingeFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Zawiasy');
+      const drawerFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Szuflady / prowadnice');
+      const typeLabel = api.buildTypeLabel(api.DEFAULT_DEFINITIONS, 'Zawiasy', { nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:90, to:110 }, hamulec:{ value:true } });
+      return hingeFields.some((row)=> row.key === 'kat_otwarcia' && row.compareMode === 'withinRange')
+        && drawerFields.some((row)=> row.key === 'dlugosc_mm' && row.compareMode === 'equal')
+        && drawerFields.some((row)=> row.key === 'nosnosc_kg' && row.compareMode === 'minGte')
+        && typeLabel.includes('nakładany') && typeLabel.includes('90') && typeLabel.includes('110°')
+        && dictionariesSrc.includes('Cecha kluczowa') && dictionariesSrc.includes('compareMode') && dictionariesSrc.includes('openHelp')
+        && formSrc.includes('hardwareDynamicTechnicalFields') && formSrc.includes('readDynamicTechnicalParams');
+    } },
+    { name:'Parametry techniczne okuć nie zapisują [object Object]', explain:'Chroni backup i katalog: obiekty z launcherów/Exceli muszą zostać znormalizowane do tekstu, liczb albo zakresów.', check:()=> {
+      const hw = FC.hardwareCatalog;
+      if(!(hw && typeof hw.normalizeAccessory === 'function')) return false;
+      const row = hw.normalizeAccessory({
+        id:'smoke_object_object_1', manufacturer:'Blum', name:'Zawias smoke', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
+        technicalParams:{
+          nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } },
+          kat_otwarcia:{ from:{ value:'90' }, to:{ label:'110' } },
+          hamulec:{ value:{ value:true } }
+        }
+      }, ()=> 'smoke_object_object_1', { defaultVatRate:23, hardwareSuppliers:[] });
+      const raw = JSON.stringify(row);
+      return raw.indexOf('[object Object]') === -1
+        && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'nakładany'
+        && Number(row.technicalParams.kat_otwarcia.from) === 90
+        && Number(row.technicalParams.kat_otwarcia.to) === 110
+        && String(row.hardwareType || '').includes('nakładany')
+        && String(row.hardwareType || '').includes('110°');
+    } },
+    { name:'Modal edycji okuć używa pasywnego odczytu stanu formularza', explain:'Chroni wydajność na telefonie: sprawdzanie brudnego formularza i zamykanie modala nie może remountować launchera Typ/Cecha ani przeliczać UI z efektami ubocznymi.', check:()=> {
+      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const hardwareFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      return itemFormSrc.includes('getCurrentAccessoryDraft({ passive:true })')
+        && hardwareFormSrc.includes('const cfg = Object.assign({ passive:false }')
+        && hardwareFormSrc.includes('syncHardwareTypeFromTechnicalParams({ updateAction:false, remountChoice:false })')
+        && hardwareFormSrc.includes("updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Typ / cecha')")
+        && !hardwareFormSrc.includes('function syncHardwareTypeFromTechnicalParams(){');
+    } },
+    { name:'Modal edycji okuć ma podgląd zamienników pod Wyjdź bez zapisu zmian', explain:'Chroni nowy etap: lista zamienników jest tylko podglądem w edycji okucia, ma własny moduł UI i nie dodaje zapisu do storage.', check:()=> {
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-replacements.js'), 'utf8');
+      return html.includes('id="hardwareReplacementToggleBtn"')
+        && html.includes('id="hardwareReplacementPreview"')
+        && html.includes('price-modal-hardware-replacements.js')
+        && itemFormSrc.includes('priceModalHardwareReplacements.updateActionState')
+        && itemFormSrc.includes('priceModalHardwareReplacements.setSourceItem')
+        && ui.includes('FC.priceModalHardwareReplacements')
+        && ui.includes('previewRows')
+        && ui.includes('Bez zapisu zmian')
+        && !ui.includes('localStorage')
+        && !ui.includes('savePriceList')
+        && !/\b(alert|confirm|prompt)\s*\(/.test(ui);
+    } },
+    { name:'Słowniki okuć przewijają główne okno parametrów', explain:'Chroni UX na telefonie: po rozwinięciu kategorii parametrów technicznych nie może powstać małe wewnętrzne okienko scrolla.', check:()=> {
+      const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
+      const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
+      return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
+        && dictionariesSrc.includes('hardware-dictionary-param-list')
+        && dictionariesSrc.includes("class:'hardware-tech-param-list'")
+        && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
+        && css.includes('.hardware-dictionary-scroll')
+        && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')
+        && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
+        && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
+        && css.includes('#priceModal .hardware-tech-param-row .grid-3')
+        && css.includes('{grid-template-columns:1fr;}');
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
       const api = FC.hardwareCatalogImportExport;

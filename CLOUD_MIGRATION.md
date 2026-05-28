@@ -122,6 +122,8 @@ Kierunek: w chmurze trzymać dane wejściowe i ewentualnie zapisany wynik tylko 
 
 ### Backupy
 
+Szczegółowy aktualny kontrakt lokalnego backupu jest w `BACKUP.md`. Przy każdej zmianie backupu, storage, eksportu/importu danych i testów bezpieczeństwa danych czytać `BACKUP.md` razem z tym plikiem.
+
 Obecnie: `fc_data_backups_v1` w localStorage, z retencją programu i testów.
 
 Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm backupów chmurowych, ale nie przez wrzucanie całego localStorage jako jednego trwałego dokumentu bez kontroli rozmiaru i zakresu.
@@ -719,3 +721,34 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Nowe pola (`hardwareSystem`, `drawerProfile`, `drawerLengthMm`, `drawerLoadKg`, `drawerReinforced`, `hardwareColor`, `hardwareUsage`, `technicalNote`) są mapowalne bezpośrednio na przyszłe pola dokumentu okucia w chmurze.
 - Import/export XLSX/JSON przenosi nowe pola jako część rekordu okucia. Arkusz `Ceny_dostawcow` może używać tych pól przy tworzeniu nowego okucia, ale szybka aktualizacja ceny istniejącej pozycji nie nadpisuje danych technicznych.
 - `series` pozostaje legacy aliasem dla `hardwareSystem`; przy migracji chmurowej docelowym polem jest `hardwareSystem`.
+
+
+## 2026-05-20 — hardware_dynamic_technical_params_v1
+
+- Dodano nowy klucz danych użytkownika `fc_hardware_technical_params_v1` dla definicji dynamicznych parametrów technicznych okuć.
+- Klucz jest objęty backupem i klasyfikacją danych użytkownika.
+- Rekordy okuć mogą zawierać nowe pole `technicalParams`, które będzie potrzebne przy przyszłej chmurze, liście zakupowej i zamianie producentów/systemów okuć.
+- Import/export XLSX obsługuje definicje parametrów przez arkusz `Parametry_techniczne` oraz arkusze grupowe `Okucia_<kategoria>`.
+- Szybka aktualizacja cen przez `Ceny_dostawcow` pozostaje niezależna od pełnych danych technicznych, żeby nie blokować pracy z cennikami dostawców.
+
+## 2026-05-20 — hardware_technical_params_serialization_fix_v1
+
+- Doprecyzowano normalizację wartości `technicalParams` dla przyszłej chmury: wartości wyborów nie mogą być serializowane jako `"[object Object]"`; powinny być tekstem, liczbą, booleanem albo zakresem `{ from, to }`.
+- Stary tekst `"[object Object]"` jest traktowany jako śmieć i nie powinien być utrwalany dalej przy normalizacji katalogu okuć.
+- Nie dodano nowych kluczy storage ani nie zmieniono zakresu backupu.
+
+## Hardware compare modes / storage cleanup v1 — 2026-05-21
+
+- Etap nie dodaje nowych kluczy storage i nie zmienia adapterów danych.
+- Doprecyzowano semantykę porównywania dynamicznych parametrów technicznych okuć: `withinRange` wymaga pełnego objęcia wymaganej wartości/zakresu przez zamiennik, a luźne przecięcie zakresów zostaje w `rangeOverlap`. To jest ważne dla późniejszej zamiany producentów/systemów bez rozluźniania dopasowania.
+- Uzupełniono klasyfikację diagnostyczną kluczy okuć: `fc_hardware_manufacturers_v1`, `fc_hardware_suppliers_v1`, `fc_hardware_settings_v1`, `fc_hardware_categories_v1`, `fc_hardware_types_v1`, `fc_hardware_technical_params_v1`. Wszystkie są danymi użytkownika i powinny być objęte backupem oraz przyszłą synchronizacją chmurową.
+- Nie zmieniono polityki backupów, retencji, restore ani import/export Excel.
+
+
+## Hardware replacement engine preview v1 — 2026-05-22
+
+- Etap nie dodaje nowych kluczy storage, nie zmienia adapterów danych i nie zapisuje wyników podglądu zamienników.
+- `js/app/catalog/hardware-replacement-engine.js` jest czystą warstwą domenową: wejściem są rekord źródłowego okucia, lista kandydatów, definicje parametrów technicznych i opcje porównania; wyjściem jest raport zgodności.
+- Przy przyszłej chmurze silnik może działać po danych pobranych z `users/{userId}/catalogs/hardware/*` bez zmiany kontraktu: nie wymaga osobnego dokumentu ani kolekcji dla wyników podglądu.
+- Wyniki `compareItems()` / `findCandidates()` są stanem runtime/raportem UI. Nie synchronizować ich jako danych użytkownika, chyba że później powstanie świadoma historia decyzji zamiany z osobnym modelem.
+- Brak ceny dostawcy `Do wyceny` jest na razie atrybutem raportu, nie zmianą danych katalogu.
