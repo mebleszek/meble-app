@@ -564,9 +564,7 @@
           localStorage.setItem(keys.services, JSON.stringify([{ id:'s_rate', category:'Montaż', name:'Stawka montażowa', price:100 }]));
           const migrated = FC.catalogStore.migrateLegacy();
           H.assert(Array.isArray(migrated.sheetMaterials) && migrated.sheetMaterials.length === 1, 'Migracja nie wydzieliła materiałów arkuszowych', migrated);
-          const migratedAccessories = Array.isArray(migrated.accessories) ? migrated.accessories : [];
-          H.assert(migratedAccessories.some((row)=> String((row && row.id) || '') === 'm_acc'), 'Migracja nie wydzieliła akcesorium z legacy materials', migrated);
-          H.assert(!migratedAccessories.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Akcesorium po migracji nadal ma typ materiału arkuszowego', migratedAccessories);
+          H.assert(Array.isArray(migrated.accessories) && migrated.accessories.length === 1, 'Migracja nie wydzieliła akcesoriów', migrated);
           H.assert(Array.isArray(migrated.quoteRates) && migrated.quoteRates[0] && migrated.quoteRates[0].name === 'Stawka montażowa', 'Migracja nie przeniosła usług do stawek wyceny mebli', migrated);
           H.assert(String(migrated.sheetMaterials[0].materialType || '') !== 'akcesoria', 'Akcesorium nadal siedzi w materiałach arkuszowych', migrated.sheetMaterials);
         } finally {

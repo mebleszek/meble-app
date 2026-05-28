@@ -6,8 +6,6 @@
   const FC = window.FC;
   const ctx = FC.priceModalContext || {};
 
-  function text(value){ return String(value == null ? '' : value).trim(); }
-
   function ensureOption(selectEl, value, label){
     if(!selectEl) return null;
     const key = String(value == null ? '' : value);
@@ -26,20 +24,12 @@
     selectEl.innerHTML = '';
     (Array.isArray(options) ? options : []).forEach((entry)=>{
       const item = entry && typeof entry === 'object' ? entry : { value:entry, label:entry };
-      const opt = ensureOption(selectEl, item.value, item.label);
-      if(opt){
-        opt.disabled = !!item.disabled;
-        if(item.description) opt.setAttribute('data-description', item.description);
-        else opt.removeAttribute('data-description');
-      }
+      ensureOption(selectEl, item.value, item.label);
     });
-    if(prev && !Array.from(selectEl.options || []).some((opt)=> String(opt.value || '') === prev)){
-      const opt = ensureOption(selectEl, prev, fallbackLabel || prev);
-      if(opt){ opt.disabled = false; opt.removeAttribute('data-description'); }
-    }
+    if(prev && !Array.from(selectEl.options || []).some((opt)=> String(opt.value || '') === prev)) ensureOption(selectEl, prev, fallbackLabel || prev);
     selectEl.value = prev;
     if(String(selectEl.value || '') !== prev){
-      const first = Array.from(selectEl.options || []).find((opt)=> String(opt.value || '') !== '' && !opt.disabled) || (selectEl.options && selectEl.options[0]) || null;
+      const first = Array.from(selectEl.options || []).find((opt)=> String(opt.value || '') !== '') || (selectEl.options && selectEl.options[0]) || null;
       selectEl.value = first ? String(first.value || '') : '';
     }
   }
@@ -117,53 +107,21 @@
 
   function buildServiceCategoryOptions(selectedValue, opts){ return buildCategoryOptions('quoteRates', selectedValue, opts); }
 
-  function currentHardwareItems(){
-    try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories') return ctx.currentList(); }catch(_){ }
-    try{ const store = ctx.catalogStore && ctx.catalogStore(); return store && store.getAccessories ? store.getAccessories() : []; }catch(_){ return []; }
-  }
-
   function buildHardwareCategoryOptions(selectedValue, opts){
     const cfg = Object.assign({ includeAll:false }, opts || {});
     const hw = FC.hardwareCatalog || {};
     const dynamic = ctx.currentList().map((item)=> item && (item.hardwareCategory || item.category));
-    let stored = [];
-    try{ const store = ctx.catalogStore && ctx.catalogStore(); stored = store && store.getHardwareCategories ? store.getHardwareCategories() : []; }catch(_){ stored = []; }
     const options = hw && typeof hw.categoryOptions === 'function'
-      ? hw.categoryOptions((stored || []).concat(dynamic), selectedValue)
-      : buildOrderedValues(['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], (stored || []).concat(dynamic), selectedValue, null);
+      ? hw.categoryOptions(dynamic, selectedValue)
+      : buildOrderedValues(['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], dynamic, selectedValue, null);
     return cfg.includeAll ? [{ value:'', label:'Wszystkie kategorie' }].concat(options) : options;
-  }
-
-
-  function buildHardwareTypeOptions(categoryValue, selectedValue, opts){
-    const cfg = Object.assign({ includeAll:false, includeEmpty:true, emptyLabel:'Wybierz typ / cechę', manufacturer:'', currentId:'' }, opts || {});
-    let types = [];
-    try{ const store = ctx.catalogStore && ctx.catalogStore(); types = store && store.getHardwareTypes ? store.getHardwareTypes() : []; }catch(_){ types = []; }
-    const hw = FC.hardwareCatalog || {};
-    const baseOptions = hw && typeof hw.typeOptions === 'function'
-      ? hw.typeOptions(types, categoryValue, selectedValue)
-      : buildOrderedValues([], types.map((row)=> row && row.name), selectedValue, null);
-    const options = (baseOptions || []).map((entry)=>{
-      const item = entry && typeof entry === 'object' ? Object.assign({}, entry) : { value:entry, label:entry };
-      const value = text(item.value);
-      if(value && text(cfg.manufacturer) && hw && typeof hw.uniqueTypeConflict === 'function'){
-        const conflict = hw.uniqueTypeConflict(currentHardwareItems(), { manufacturer:cfg.manufacturer, hardwareCategory:categoryValue, hardwareType:value }, cfg.currentId);
-        if(conflict){
-          item.disabled = true;
-          item.description = 'Zajęte przez: ' + (text(conflict.name) || text(conflict.symbol) || 'inną pozycję');
-        }
-      }
-      return item;
-    });
-    if(cfg.includeAll) return [{ value:'', label:'Wszystkie typy' }].concat(options);
-    return cfg.includeEmpty === false ? options : [{ value:'', label:cfg.emptyLabel || 'Wybierz typ / cechę' }].concat(options);
   }
 
   function buildHardwareUnitOptions(selectedValue){
     const hw = FC.hardwareCatalog || {};
     return hw && typeof hw.unitOptions === 'function'
       ? hw.unitOptions(selectedValue)
-      : buildOrderedValues(['szt.','kpl.','mb','m²','zestaw'], [], selectedValue, null);
+      : buildOrderedValues(['szt.','kpl.','para','mb','zestaw'], [], selectedValue, null);
   }
 
   function buildHardwareStatusOptions(){
@@ -200,13 +158,6 @@
       ? hw.pricingModeOptions()
       : [{ value:'markup', label:'Narzut %' }, { value:'manualPrice', label:'Cena ręczna' }];
   }
-
-  function buildHardwareBundleCostModeOptions(){
-    const hw = FC.hardwareCatalog || {};
-    return hw && typeof hw.bundleCostModeOptions === 'function'
-      ? hw.bundleCostModeOptions()
-      : [{ value:'ownPrice', label:'Własna cena zestawu' }, { value:'components', label:'Licz ze składników' }];
-  }
   function firstNonEmptyValue(options){
     const item = (Array.isArray(options) ? options : []).find((entry)=> String((entry && entry.value) != null ? entry.value : entry || '').trim() !== '');
     return item ? String(item.value != null ? item.value : item) : '';
@@ -218,5 +169,5 @@
     return FC.investorChoice.mountChoice({ mount, selectEl:cfg.selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareTypeOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, buildHardwareBundleCostModeOptions, firstNonEmptyValue, mountChoice });
+  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, firstNonEmptyValue, mountChoice });
 })();

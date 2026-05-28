@@ -49,7 +49,6 @@
       ctx.runtimeState.filters.hardwareCategory = '';
       ctx.runtimeState.filters.hardwareUnit = '';
       ctx.runtimeState.filters.hardwareStatus = '';
-      ctx.runtimeState.filters.hardwareQuickFilter = '';
       ctx.runtimeState.filters.supplierId = '';
       ctx.runtimeState.filters.priceMin = '';
       ctx.runtimeState.filters.priceMax = '';
@@ -61,17 +60,13 @@
     const producerBtn = ctx.byId('manageHardwareManufacturersBtn');
     if(producerBtn) producerBtn.onclick = ()=>{ if(ctx.openHardwareManufacturersModal) ctx.openHardwareManufacturersModal(); };
     const supplierBtn = ctx.byId('manageHardwareSuppliersBtn');
-    const dictionaryBtn = ctx.byId('manageHardwareDictionariesBtn');
     if(supplierBtn) supplierBtn.onclick = ()=>{ if(ctx.openHardwareSuppliersModal) ctx.openHardwareSuppliersModal(); };
-    if(dictionaryBtn) dictionaryBtn.onclick = ()=>{ if(ctx.openHardwareDictionariesModal) ctx.openHardwareDictionariesModal(); };
     const settingsBtn = ctx.byId('openHardwareSettingsBtn');
     if(settingsBtn) settingsBtn.onclick = ()=>{ if(ctx.openHardwareSettingsModal) ctx.openHardwareSettingsModal(); };
     const filterBtn = ctx.byId('openHardwareFiltersBtn');
     if(filterBtn) filterBtn.onclick = ()=>{ if(ctx.openHardwareFiltersModal) ctx.openHardwareFiltersModal(); };
     const sortBtn = ctx.byId('openHardwareSortBtn');
     if(sortBtn) sortBtn.onclick = ()=>{ if(ctx.openHardwareSortModal) ctx.openHardwareSortModal(); };
-    const importExportBtn = ctx.byId('openHardwareImportExportBtn');
-    if(importExportBtn) importExportBtn.onclick = ()=>{ if(ctx.openHardwareImportExportModal) ctx.openHardwareImportExportModal(); };
     const addBtn = ctx.byId('openPriceItemModalBtn');
     if(addBtn) addBtn.onclick = ()=> ctx.openPriceItemModal();
   }
@@ -95,7 +90,6 @@
       if(kind === 'accessories'){
         if(ctx.runtimeState.filters.manufacturer && String(item && item.manufacturer || '') !== String(ctx.runtimeState.filters.manufacturer || '')) return false;
         if(ctx.matchesHardwareFilters && !ctx.matchesHardwareFilters(item)) return false;
-        if(ctx.matchesHardwareQuickFilter && !ctx.matchesHardwareQuickFilter(item)) return false;
         return true;
       }
       if(ctx.runtimeState.filters.category && String(item && item.category || '') !== String(ctx.runtimeState.filters.category || '')) return false;

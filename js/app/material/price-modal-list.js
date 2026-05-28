@@ -10,7 +10,7 @@
     if(kind === 'accessories') {
       const hw = window.FC && window.FC.hardwareCatalog || {};
       const status = hw && typeof hw.statusLabel === 'function' ? hw.statusLabel(item && item.status) : (item.status || 'Aktywne');
-      return [item.manufacturer || '—', item.hardwareCategory || 'Inne', item.hardwareUnit || 'szt.', item.series || '', item.symbol ? 'SYM: ' + item.symbol : '', item.bundleItems && item.bundleItems.length ? ('składników: ' + item.bundleItems.length) : '', item.priceSource ? 'Dostawca: ' + item.priceSource : '', item.purchasePriceGross ? 'zakup: ' + Number(item.purchasePriceGross).toFixed(2) + ' PLN' : '', item.priceUpdatedAt ? 'Cena: ' + item.priceUpdatedAt : '', status].filter(Boolean).join(' • ');
+      return [item.manufacturer || '—', item.hardwareCategory || 'Inne', item.hardwareUnit || 'szt.', item.series || '', item.symbol ? 'SYM: ' + item.symbol : '', item.priceSource ? 'Dostawca: ' + item.priceSource : '', item.purchasePriceGross ? 'zakup: ' + Number(item.purchasePriceGross).toFixed(2) + ' PLN' : '', item.priceUpdatedAt ? 'Cena: ' + item.priceUpdatedAt : '', status].filter(Boolean).join(' • ');
     }
     if(kind === 'quoteRates' && window.FC && window.FC.laborCatalog && typeof window.FC.laborCatalog.describeDefinition === 'function'){
       return (item.category || '—') + ' • ' + window.FC.laborCatalog.describeDefinition(item || {});
@@ -22,20 +22,13 @@
     const container = ctx.byId('priceListItems');
     if(!container) return;
     const kind = ctx.currentListKind();
-    const oldQuickFilters = document.getElementById('hardwareQuickFilters');
-    if(kind !== 'accessories' && oldQuickFilters) oldQuickFilters.remove();
     const filtered = ctx.filteredPriceList();
     container.innerHTML = '';
-    if(kind === 'accessories' && ctx.renderHardwareQuickFilters) ctx.renderHardwareQuickFilters();
     if(!filtered.length){
       container.innerHTML = '<div class="muted" style="padding:10px">Brak pozycji dla aktualnych filtrów.</div>';
       return;
     }
     filtered.forEach((item)=>{
-      if(kind === 'accessories' && ctx.renderHardwareAccessoryRow){
-        container.appendChild(ctx.renderHardwareAccessoryRow(item || {}, ()=> ctx.openPriceItemModal(item.id)));
-        return;
-      }
       const row = document.createElement('div'); row.className = 'list-item price-modal-list-row';
       const left = document.createElement('div'); left.className = 'price-modal-list-main'; left.style.minWidth = '0';
       left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'}</div><div class="muted-tag xs">${itemMeta(kind, item || {})}</div>`;

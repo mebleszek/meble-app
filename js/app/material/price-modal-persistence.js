@@ -15,13 +15,6 @@
   function validateAccessoryForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę akcesorium, zanim je zapiszesz.'); return false; }
     if(!String(data && data.manufacturer || '').trim()){ ctx.info('Brak producenta', 'Wybierz producenta akcesorium.'); return false; }
-    if(FC.hardwareCatalog && typeof FC.hardwareCatalog.uniqueTypeConflict === 'function' && String(data && data.hardwareType || '').trim()){
-      const conflict = FC.hardwareCatalog.uniqueTypeConflict(ctx.currentList(), data, ctx.appUiState() && ctx.appUiState().editingId);
-      if(conflict){
-        ctx.info('Duplikat typu u producenta', 'Dla tego producenta, kategorii i typu istnieje już pozycja: ' + String(conflict.name || conflict.symbol || conflict.id || '—') + '. Jeden typ u jednego producenta może być użyty tylko raz.');
-        return false;
-      }
-    }
     return true;
   }
   function validateServiceForm(data){

@@ -6,8 +6,8 @@
   const H = FC.testHarness;
   if(!H) throw new Error('Brak FC.testHarness');
 
-  function baseTests(){
-    return [
+  function runAll(){
+    return H.runSuite('APP smoke testy', [
       H.makeTest('Materiały', 'Registry materiałów rozpoznaje słoje z listy materiałów', 'Sprawdza, czy helper grain działa na realnej liście materiałów zamiast zgadywać po nazwie.', ()=>{
         if(typeof FC.materialHasGrain !== 'function') throw new Error('Brak FC.materialHasGrain');
         const list = [
@@ -110,9 +110,7 @@
           localStorage.setItem(keys.quoteRates, JSON.stringify([{ id:'stored_rate', category:'Montaż', name:'Stored stawka', price:99 }]));
           const migrated = FC.catalogStore.migrateLegacy({ preferStoredSplit:true });
           H.assert(Array.isArray(migrated.sheetMaterials) && migrated.sheetMaterials.length === 1 && String(migrated.sheetMaterials[0].id || '') === 'stored_sheet', 'Migracja preferStoredSplit nie utrzymała zapisanej listy płyt', migrated);
-          const migratedAccessories = Array.isArray(migrated.accessories) ? migrated.accessories : [];
-          H.assert(migratedAccessories.some((row)=> String((row && row.id) || '') === 'stored_acc'), 'Migracja preferStoredSplit nie utrzymała zapisanej listy akcesoriów', migrated);
-          H.assert(!migratedAccessories.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Migracja preferStoredSplit zostawiła akcesorium jako typ materiału', migratedAccessories);
+          H.assert(Array.isArray(migrated.accessories) && migrated.accessories.length === 1 && String(migrated.accessories[0].id || '') === 'stored_acc', 'Migracja preferStoredSplit nie utrzymała zapisanej listy akcesoriów', migrated);
           const quoteRates = Array.isArray(migrated.quoteRates) ? migrated.quoteRates : [];
           const quoteRateIds = quoteRates.map((row)=> String((row && row.id) || ''));
           H.assert(quoteRateIds.includes('stored_rate'), 'Migracja preferStoredSplit nie utrzymała zapisanej stawki', migrated);
@@ -128,15 +126,8 @@
           try{ FC.catalogStore.migrateLegacy({ preferStoredSplit:true }); }catch(_){ }
         }
       }),
-    ];
+    ]);
   }
 
-  function runAll(){
-    const extra = FC.materialAccessoryTests && typeof FC.materialAccessoryTests.collectTests === 'function'
-      ? FC.materialAccessoryTests.collectTests()
-      : [];
-    return H.runSuite('APP smoke testy', baseTests().concat(extra));
-  }
-
-  FC.materialDevTests = { runAll, _debug:{ baseTests } };
+  FC.materialDevTests = { runAll };
 })(typeof window !== 'undefined' ? window : globalThis);

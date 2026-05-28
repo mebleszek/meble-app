@@ -177,7 +177,7 @@
 
   <script src="js/app/shared/utils.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/shared/validate.js?v=20260328_dev_tests_single_v1"></script>
-  <script src="js/app/shared/constants.js?v=20260511_hardware_supplier_status_types_v1"></script>
+  <script src="js/app/shared/constants.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/shared/storage.js?v=20260426_reload_restore_boundary_v1"></script>
   <script src="js/app/shared/data-storage-classifier.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-storage-keys.js?v=20260426_storage_audit_v1"></script>
@@ -188,7 +188,6 @@
   <script src="js/app/shared/data-backup-snapshot-normalizer.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-snapshot-apply.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-backup-export.js?v=20260425_data_safety_split_v1"></script>
-  <script src="js/app/shared/xlsx-lite.js?v=20260507_hardware_excel_template_v1"></script>
   <script src="js/app/shared/data-backup-snapshot.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-backup-policy.js?v=20260501_test_backup_retention_ui_v1"></script>
   <script src="js/app/shared/data-backup-storage.js?v=20260425_data_safety_split_v1"></script>
@@ -198,19 +197,14 @@
   <script src="js/app/project/project-model.js?v=20260426_wycena_accept_fix_v1"></script>
   <script src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/catalog/hardware-catalog.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-seed-data.js?v=20260507_hardware_catalog_seed_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-import-export.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+  <script src="js/app/catalog/hardware-catalog.js?v=20260504_hardware_supplier_pricing_v1"></script>
   <script src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
-  <script src="js/app/catalog/catalog-migration.js?v=20260511_hardware_supplier_status_types_v1"></script>
-  <script src="js/app/catalog/catalog-storage-policy.js?v=20260511_hardware_supplier_status_types_v1"></script>
+  <script src="js/app/catalog/catalog-migration.js?v=20260504_hardware_supplier_pricing_v1"></script>
   <script src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
   <script src="js/app/pricing/labor-catalog.js?v=20260504_gabaryt_compact_v1"></script>
   <script src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
   <script src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-  <script src="js/app/catalog/catalog-store.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
+  <script src="js/app/catalog/catalog-store.js?v=20260504_hardware_supplier_pricing_v1"></script>
   <script src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
   <script src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
@@ -229,7 +223,7 @@
   <script src="js/app/bootstrap/app-state-bootstrap.js?v=20260420_app_bootstrap_split_v1"></script>
   <script src="js/app/bootstrap/app-ui-bootstrap.js?v=20260421_fixture_doc_fix_v2"></script>
   <script src="js/app/bootstrap/reload-restore.js?v=20260426_reload_restore_boundary_v1"></script>
-  <script src="js/app/bootstrap/app-core-namespace.js?v=20260511_hardware_supplier_status_types_v1"></script>
+  <script src="js/app/bootstrap/app-core-namespace.js?v=20260502_app_core_namespace_v1"></script>
   <script src="js/app/bootstrap/app-legacy-bridges.js?v=20260502_app_legacy_bridges_v1"></script>
   <script src="js/app/investor/project-autosave.js?v=20260426_project_autosave_load_v1"></script>
   <script src="js/app/investor/investor-project-repository.js?v=20260430_investor_project_boundary_v1"></script>
@@ -306,15 +300,15 @@
   <script src="js/app/quote/quote-snapshot.js?v=20260503_pricing_labor_rules_v1"></script>
   <script src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
   <script src="js/app/wycena/wycena-room-availability.js?v=20260502_status_quote_scope_v1"></script>
-  <script src="js/app/wycena/wycena-core-selection.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-utils.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-catalog.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-source.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-material-plan.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-offer.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-lines.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-labor.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core.js?v=20260510_wycena_core_cache_fix_v1"></script>
+  <script src="js/app/wycena/wycena-core-selection.js?v=20260428_wycena_core_selection_split_v1"></script>
+  <script src="js/app/wycena/wycena-core-utils.js?v=20260501_wycena_core_platform_split_v1"></script>
+  <script src="js/app/wycena/wycena-core-catalog.js?v=20260501_wycena_core_platform_split_v1"></script>
+  <script src="js/app/wycena/wycena-core-source.js?v=20260501_wycena_core_platform_split_v1"></script>
+  <script src="js/app/wycena/wycena-core-material-plan.js?v=20260501_wycena_core_platform_split_v1"></script>
+  <script src="js/app/wycena/wycena-core-offer.js?v=20260503_labor_unified_picker_v1"></script>
+  <script src="js/app/wycena/wycena-core-lines.js?v=20260503_labor_unified_picker_v1"></script>
+  <script src="js/app/wycena/wycena-core-labor.js?v=20260504_gabaryt_compact_v1"></script>
+  <script src="js/app/wycena/wycena-core.js?v=20260503_pricing_labor_rules_v1"></script>
   <script src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
   <script src="js/app/wycena/wycena-tab-dom.js?v=20260428_wycena_shell_split_v1"></script>
   <script src="js/app/wycena/wycena-tab-data.js?v=20260502_wycena_tab_boundary_v1"></script>
@@ -340,24 +334,18 @@
   <script src="js/app/wycena/wycena-tab-shell.js?v=20260503_czynnosci_labor_workspace_v1"></script>
   <script src="js/tabs/wycena.js?v=20260503_czynnosci_labor_workspace_v1"></script>
     <script src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
-  <script src="js/app/material/price-modal-options.js?v=20260511_hardware_import_bulk_diff_types_v1"></script>
-  <script src="js/app/material/price-modal-filters.js?v=20260511_hardware_supplier_status_types_v1"></script>
+  <script src="js/app/material/price-modal-options.js?v=20260504_hardware_supplier_pricing_v1"></script>
+  <script src="js/app/material/price-modal-filters.js?v=20260504_hardware_supplier_pricing_v1"></script>
   <script src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
-  <script src="js/app/material/price-modal-hardware-suppliers.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/material/price-modal-hardware-dictionaries.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
-  <script src="js/app/material/price-modal-hardware-filter-sort.js?v=20260511_hardware_supplier_status_types_v1"></script>
-  <script src="js/app/material/price-modal-hardware-import-resolver.js?v=20260512_hardware_supplier_missing_resolver_v1"></script>
-  <script src="js/app/material/price-modal-hardware-price-confirm.js?v=20260513_hardware_price_change_confirm_v1"></script>
-  <script src="js/app/material/price-modal-hardware-import-export.js?v=20260513_hardware_price_change_confirm_v1"></script>
-  <script src="js/app/material/price-modal-hardware-ux.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
-  <script src="js/app/material/price-modal-hardware-bundle.js?v=20260509_hardware_bundle_import_ux_v1"></script>
-  <script src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/material/price-modal-hardware-form.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/material/price-modal-field-help.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/material/price-modal-item-form.js?v=20260511_hardware_supplier_status_types_v1"></script>
-  <script src="js/app/material/price-modal-list.js?v=20260510_hardware_catalog_ux_v1"></script>
-  <script src="js/app/material/price-modal-persistence.js?v=20260511_hardware_supplier_status_types_v1"></script>
-  <script src="js/app/material/price-modal.js?v=20260511_hardware_supplier_status_types_v1"></script>
+  <script src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
+  <script src="js/app/material/price-modal-hardware-filter-sort.js?v=20260504_hardware_supplier_pricing_v1"></script>
+  <script src="js/app/material/price-modal-hardware-kit.js?v=20260505_hardware_kit_inputs_v1"></script>
+  <script src="js/app/material/price-modal-hardware-form.js?v=20260505_hardware_kit_inputs_v1"></script>
+  <script src="js/app/material/price-modal-field-help.js?v=20260504_hardware_supplier_pricing_v1"></script>
+  <script src="js/app/material/price-modal-item-form.js?v=20260504_hardware_form_price_wrapper_fix_v1"></script>
+  <script src="js/app/material/price-modal-list.js?v=20260504_hardware_supplier_pricing_v1"></script>
+  <script src="js/app/material/price-modal-persistence.js?v=20260504_hardware_catalog_model_v1"></script>
+  <script src="js/app/material/price-modal.js?v=20260504_hardware_supplier_pricing_v1"></script>
   <script src="js/app/cabinet/cabinet-cutlist.js?v=20260415_cabinet_cutlist_fix_v3"></script>
   <script src="js/app/cabinet/front-hardware-weights.js?v=20260424_wywiad_front_hardware_split_v1"></script>
   <script src="js/app/cabinet/front-hardware-fronts.js?v=20260424_wywiad_front_hardware_split_v1"></script>
@@ -432,7 +420,7 @@
   <script src="js/testing/rozrys/suites/validation-cache-render.js?v=20260426_rozrys_tests_split_v1"></script>
   <script src="js/testing/rozrys/suites/optimizer-contracts.js?v=20260427_speedmax_split_v1"></script>
   <script src="js/testing/rozrys/tests.js?v=20260501_dev_test_progress_live_v2"></script>
-  <script src="js/testing/project/tests.js?v=20260513_catalog_seed_test_fix_v1"></script>
+  <script src="js/testing/project/tests.js?v=20260501_test_backup_retention_ui_v1"></script>
   <script src="js/testing/investor/helpers.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/suites/architecture.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/suites/registry-core.js?v=20260503_optimization_checkpoint_v1"></script>
@@ -443,8 +431,7 @@
   <script src="js/testing/investor/suites/recovery-isolation.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/suites/misc.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/tests.js?v=20260503_optimization_checkpoint_v1"></script>
-  <script src="js/testing/material/accessories-tests.js?v=20260513_hardware_accessory_tests_v1"></script>
-  <script src="js/testing/material/tests.js?v=20260513_hardware_accessory_tests_v1"></script>
+  <script src="js/testing/material/tests.js?v=20260503_pricing_labor_test_fix_v1"></script>
   <script src="js/testing/rysunek/tests.js?v=20260426_rysunek_safety_v1"></script>
   <script src="js/testing/wycena/fixtures.js?v=20260502_status_quote_scope_v1"></script>
   <script src="js/testing/wycena/suites/core-offer-basics.js?v=20260426_wycena_accept_fix_v1"></script>

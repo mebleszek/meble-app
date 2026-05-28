@@ -47,6 +47,7 @@
         const item = h('div', { class:'hardware-supplier-row' });
         const name = h('input', { class:'investor-form-input', type:'text', value:supplier.name || '' });
         const discount = h('input', { class:'investor-form-input', type:'number', step:'0.01', value:String(supplier.defaultDiscountPercent || 0) });
+        const vat = h('input', { class:'investor-form-input', type:'number', step:'0.01', value:String(supplier.defaultVatRate || 23) });
         const active = h('label', { class:'rozrys-scope-chip price-labor-toggle hardware-supplier-active' }, [
           h('input', { type:'checkbox' }), h('span', { text:'Aktywny' })
         ]);
@@ -54,10 +55,12 @@
         const remove = h('button', { class:'btn-danger', type:'button', text:'Usuń' });
         name.addEventListener('input', ()=>{ supplier.name = name.value; if(!supplier.id) supplier.id = uid(name.value); });
         discount.addEventListener('input', ()=>{ supplier.defaultDiscountPercent = number(discount.value); });
+        vat.addEventListener('input', ()=>{ supplier.defaultVatRate = number(vat.value) || 23; });
         active.querySelector('input').addEventListener('change', ()=>{ supplier.active = !!active.querySelector('input').checked; });
         remove.addEventListener('click', ()=>{ list = list.filter((item)=> String(item.id) !== String(supplier.id)); renderList(); });
         item.appendChild(h('div', { class:'hardware-supplier-field' }, [h('label', { text:'Nazwa' }), name]));
         item.appendChild(h('div', { class:'hardware-supplier-field' }, [h('label', { text:'Rabat %' }), discount]));
+        item.appendChild(h('div', { class:'hardware-supplier-field' }, [h('label', { text:'VAT %' }), vat]));
         item.appendChild(active);
         item.appendChild(remove);
         listBox.appendChild(item);
@@ -67,7 +70,7 @@
       const value = normalize(input.value);
       if(!value) return;
       const id = uid(value);
-      if(!list.some((item)=> String(item.id).toLowerCase() === id.toLowerCase())) list.push({ id, name:value, defaultDiscountPercent:0, active:true });
+      if(!list.some((item)=> String(item.id).toLowerCase() === id.toLowerCase())) list.push({ id, name:value, defaultDiscountPercent:0, defaultVatRate:23, active:true });
       input.value = '';
       renderList();
     }
@@ -114,14 +117,14 @@
     fillSelect(pricingMode, ctx.buildHardwarePricingModeOptions ? ctx.buildHardwarePricingModeOptions() : [], settings.defaultPricingMode || 'markup');
     body.appendChild(h('div', { class:'grid-2' }, [
       h('div', {}, [h('label', { text:'Domyślny dostawca' }), supplierSelect, supplierLaunch]),
-      h('div', {}, [h('label', { text:'Globalny VAT %' }), vat]),
+      h('div', {}, [h('label', { text:'Domyślny VAT %' }), vat]),
     ]));
     body.appendChild(h('div', { class:'grid-2', style:'margin-top:10px' }, [
       h('div', {}, [h('label', { text:'Cena bazowa do wyceny' }), quoteBase, quoteBaseLaunch]),
       h('div', {}, [h('label', { text:'Sposób liczenia ceny' }), pricingMode, pricingModeLaunch]),
     ]));
     body.appendChild(h('div', { style:'margin-top:10px' }, [h('label', { text:'Domyślny narzut %' }), markup]));
-    body.appendChild(h('div', { class:'muted', style:'margin-top:10px;line-height:1.35', text:'VAT jest globalny dla całego katalogu okuć. Rabat zostaje przy dostawcy.' }));
+    body.appendChild(h('div', { class:'muted', style:'margin-top:10px;line-height:1.35', text:'Te ustawienia są domyślne dla nowych okuć. Pojedynczą pozycję będzie można zmienić niezależnie.' }));
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     saveBtn.addEventListener('click', ()=>{
       saveSettings({ defaultSupplierId:supplierSelect.value, defaultVatRate:number(vat.value) || 23, defaultMarkupPercent:number(markup.value), defaultQuoteBase:quoteBase.value || 'catalogGross', defaultPricingMode:pricingMode.value || 'markup' });
