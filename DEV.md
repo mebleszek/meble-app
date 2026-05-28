@@ -1,6 +1,21 @@
 # DEV.md — meble-app
 
 
+## Wycena local storage context repair v1 — 2026-05-28
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_local_storage_context_repair_v1.zip`.
+- Baza startowa: `site_quote_snapshot_phantom_investor_fix_v1.zip`; referencja pełnego flow WYCENY/snapshotów: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- Naprawiono przypadek, w którym WYCENA działała w incognito, ale w normalnej przeglądarce z istniejącymi danymi kliknięcie `Wyceń` reagowało bez widocznego wyniku.
+- Przyczyna: zatruty/stary `localStorage` mógł mieć rozjechany aktywny kontekst (`fc_current_investor_v1`, `fc_current_project_id_v1`, `fc_project_v1`, draft oferty i snapshoty wskazywały różne projekty/pokoje). Dodatkowo `projectModel.normalizeProjectData()` gubił dynamiczne pokoje, więc nowy inwestor/pokój także mógł nie pomagać.
+- Dodano `js/app/wycena/wycena-context-repair.js`, który przed WYCENĄ spina aktywnego inwestora, właściwy projekt z `projectStore`, globalne `projectData`, aktywne pokoje i draft oferty.
+- `FC.project.load()` preferuje centralny rekord projektu aktualnego inwestora zamiast ślepo ładować stare `fc_project_v1`; `open-investor` jawnie aktywuje projekt otwieranego inwestora.
+- `normalizeProjectData()` zachowuje dynamiczne pokoje i pokoje z `meta.roomDefs`, zamiast ograniczać projekt do legacy kluczy `kuchnia/szafa/pokoj/lazienka`.
+- Drafty WYCENY są oczyszczane z pokojów nieistniejących w aktualnym projekcie; osierocone snapshoty nie mogą mieszać historii innego projektu z bieżącą pracą.
+- Dodano smoke test `tools/wycena-local-storage-context-repair-smoke.js`, który odtwarza zatruty storage z fantomowym snapshotem i sprawdza naprawę kontekstu.
+- Nie ruszano resolvera okuć, katalogu okuć, import/export Excel, backupów/retencji, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani panelu `Kategorie / rodzaje okuć`.
+- Raport: `tools/reports/wycena-local-storage-context-repair-v1.md`.
+
+
 ## 2026-05-28 — WYCENA/normalny tryb: ochrona przed sztucznym inwestorem ze snapshotu
 
 - Nie wolno odbudowywać inwestora z samego snapshotu WYCENY, jeśli snapshot ma tylko techniczne `investorId`, tytuł typu `Projekt meblowy` i brak realnych danych klienta. Taki snapshot jest historią oferty, a nie źródłem nowego inwestora.

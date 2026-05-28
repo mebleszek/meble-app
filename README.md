@@ -1,22 +1,31 @@
 # Furniture Calc — aktualna paczka
 
 
+
+### 2026-05-28 — naprawa WYCENY na starym localStorage
+
+- Aktualna paczka: `site_wycena_local_storage_context_repair_v1.zip`.
+- Naprawiono przypadek: incognito działa, a normalny tryb z istniejącymi danymi reaguje na `Wyceń`, ale nie pokazuje wyceny.
+- Problemem był rozjechany lokalny kontekst danych: aktywny inwestor, aktywny projekt, `fc_project_v1`, draft oferty i snapshoty mogły wskazywać różne projekty/pokoje.
+- Naprawa spina aktywnego inwestora z właściwym projektem, aktualizuje `projectData`, oczyszcza draft WYCENY z nieistniejących pokojów i zachowuje dynamiczne pokoje przy normalizacji projektu.
+- Nie trzeba ręcznie czyścić `localStorage`; aplikacja powinna sama przełączyć kontekst po otwarciu realnego inwestora/projektu i wejściu w WYCENĘ.
+- Nie ruszano resolvera okuć, import/export Excel, backupów, PRO100, ROZRYS, RYSUNKU ani panelu kategorii okuć.
+
 ### 2026-05-28 — naprawa danych po starych snapshotach WYCENY
 
 - Normalny tryb przeglądarki nie powinien już dopisywać na liście inwestorów technicznego rekordu `Projekt meblowy` z pustego `quote-snapshot`.
 - Recovery inwestora ze snapshotu działa tylko, gdy snapshot zawiera realne dane klienta; puste snapshoty zostają historią ofert, a nie projektem do pracy.
 - Przy nieprawidłowym bieżącym wskaźniku aplikacja czyści wybór inwestora/projektu, żeby WYCENA nie zostawała w martwym stanie po kliknięciu `Wyceń`.
 
-Aktualna paczka: `site_wywiad_labor_header_compact_v1.zip`.
+Aktualna paczka: `site_wycena_local_storage_context_repair_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Uproszczono podgląd czynności robocizny w nagłówku karty szafki w WYWIADZIE.
-- Nagłówek pokazuje nazwy czynności bez ilości, bo szczegóły i ilości są wypisane niżej w sekcji `Czynności robocizny`.
-- Status montażu sprzętu zostaje kolorowany: czerwony dla `bez montażu`, zielony dla montażu wliczonego.
-- Czynności robocizny w nagłówku są pomarańczowe jako sygnał dodatkowej pracy/uwagi.
-- Nie zmieniano wielkości, wagi ani ogólnej typografii.
-- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+- Naprawiono WYCENĘ w normalnym trybie przeglądarki, gdy istniejące dane lokalne miały rozjechany kontekst inwestora/projektu/snapshotów.
+- Aplikacja przed WYCENĄ ustawia spójny aktywny projekt dla otwartego inwestora, odświeża globalne `projectData` i czyści draft oferty z nieistniejących pokojów.
+- Normalizacja projektu zachowuje dynamiczne pokoje utworzone w INWESTORZE/WYWIADZIE, zamiast ograniczać dane do starych domyślnych pokojów.
+- Dodano smoke test zatrutego localStorage: fałszywy projekt ze snapshotu nie może blokować WYCENY realnego inwestora.
+- Nie ruszano resolvera okuć, import/export Excel, backupów, PRO100, usług, ROZRYS ani RYSUNKU.
 
 ## site_wywiad_labor_header_compact_v1 — 2026-05-26
 

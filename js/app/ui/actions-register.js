@@ -294,6 +294,7 @@
       try{
         const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
         if(persistence && typeof persistence.setCurrentInvestorId === 'function') persistence.setCurrentInvestorId(id);
+        try{ if(window.FC && window.FC.investorProjectRuntime && typeof window.FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function') window.FC.investorProjectRuntime.setActiveProjectFromInvestor(id); }catch(_){ }
         if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = id;
         // move to full workflow and open INWESTOR tab
         try{

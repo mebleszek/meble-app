@@ -21,13 +21,35 @@
     try{ return storage.getRaw(key); }catch(_){ return null; }
   }
 
+  function getCurrentInvestorId(){
+    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '').trim() : ''; }catch(_){ return ''; }
+  }
+
+  function getCentralProjectForActiveContext(){
+    try{
+      const investorId = getCurrentInvestorId();
+      if(investorId && projectStore && typeof projectStore.getByInvestorId === 'function'){
+        const byInvestor = projectStore.getByInvestorId(investorId);
+        if(byInvestor && byInvestor.projectData) return byInvestor.projectData;
+      }
+    }catch(_){ }
+    try{
+      if(projectStore && typeof projectStore.getCurrentRecord === 'function'){
+        const current = projectStore.getCurrentRecord();
+        if(current && current.projectData) return current.projectData;
+      }
+    }catch(_){ }
+    return null;
+  }
+
   function load(){
     const primaryKey = keys.projectData || 'fc_project_v1';
     const backupKey = keys.projectBackup || 'fc_project_backup_v1';
     const rawPrimary = loadRaw(primaryKey);
     const rawBackup = loadRaw(backupKey);
     function parseOrNull(raw){ if(!raw) return null; try{ return JSON.parse(raw); }catch(_){ return null; } }
-    const chosen = parseOrNull(rawPrimary) || parseOrNull(rawBackup) || (model && model.DEFAULT_PROJECT_DATA) || { schemaVersion:1 };
+    const central = getCentralProjectForActiveContext();
+    const chosen = central || parseOrNull(rawPrimary) || parseOrNull(rawBackup) || (model && model.DEFAULT_PROJECT_DATA) || { schemaVersion:1 };
     return normalizeProject(chosen);
   }
 

@@ -25,23 +25,46 @@
     if(src.meta && typeof src.meta === 'object'){
       out.meta = Object.assign({}, out.meta && typeof out.meta === 'object' ? out.meta : {}, clone(src.meta));
     }
+    function normalizeRoomValue(roomBase, roomOut, roomSrc){
+      const baseRoom = roomBase && typeof roomBase === 'object' ? roomBase : {};
+      const outRoom = roomOut && typeof roomOut === 'object' ? roomOut : {};
+      const srcRoom = roomSrc && typeof roomSrc === 'object' ? roomSrc : {};
+      return Object.assign({}, baseRoom, outRoom, srcRoom, {
+        cabinets: Array.isArray(srcRoom.cabinets) ? clone(srcRoom.cabinets) : (Array.isArray(outRoom.cabinets) ? clone(outRoom.cabinets) : clone(baseRoom.cabinets || [])),
+        fronts: Array.isArray(srcRoom.fronts) ? clone(srcRoom.fronts) : (Array.isArray(outRoom.fronts) ? clone(outRoom.fronts) : clone(baseRoom.fronts || [])),
+        sets: Array.isArray(srcRoom.sets) ? clone(srcRoom.sets) : (Array.isArray(outRoom.sets) ? clone(outRoom.sets) : clone(baseRoom.sets || [])),
+        settings: Object.assign({}, baseRoom.settings || {}, outRoom.settings || {}, srcRoom.settings || {}),
+        preferences: (FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function')
+          ? FC.roomPreferences.normalizeRoomPreferences(Object.assign({}, baseRoom.preferences || {}, outRoom.preferences || {}, srcRoom.preferences || {}))
+          : Object.assign({}, baseRoom.preferences || {}, outRoom.preferences || {}, srcRoom.preferences || {}),
+      });
+    }
     Object.keys(base || {}).forEach((key)=>{
       if(key === 'schemaVersion' || key === 'meta') return;
       const roomBase = base[key];
       const roomSrc = src && src[key] && typeof src[key] === 'object' ? src[key] : {};
       const roomOut = out && out[key] && typeof out[key] === 'object' ? out[key] : {};
       if(roomBase && typeof roomBase === 'object' && Array.isArray(roomBase.cabinets)){
-        out[key] = Object.assign({}, roomBase, roomOut, roomSrc, {
-          cabinets: Array.isArray(roomSrc.cabinets) ? clone(roomSrc.cabinets) : (Array.isArray(roomOut.cabinets) ? clone(roomOut.cabinets) : clone(roomBase.cabinets || [])),
-          fronts: Array.isArray(roomSrc.fronts) ? clone(roomSrc.fronts) : (Array.isArray(roomOut.fronts) ? clone(roomOut.fronts) : clone(roomBase.fronts || [])),
-          sets: Array.isArray(roomSrc.sets) ? clone(roomSrc.sets) : (Array.isArray(roomOut.sets) ? clone(roomOut.sets) : clone(roomBase.sets || [])),
-          settings: Object.assign({}, roomBase.settings || {}, roomOut.settings || {}, roomSrc.settings || {}),
-          preferences: (FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function')
-            ? FC.roomPreferences.normalizeRoomPreferences(Object.assign({}, roomBase.preferences || {}, roomOut.preferences || {}, roomSrc.preferences || {}))
-            : Object.assign({}, roomBase.preferences || {}, roomOut.preferences || {}, roomSrc.preferences || {}),
-        });
+        out[key] = normalizeRoomValue(roomBase, roomOut, roomSrc);
       }
     });
+    Object.keys(src || {}).forEach((key)=>{
+      if(key === 'schemaVersion' || key === 'meta') return;
+      if(Object.prototype.hasOwnProperty.call(out, key)) return;
+      const roomSrc = src[key];
+      if(!(roomSrc && typeof roomSrc === 'object')) return;
+      const looksLikeRoom = Array.isArray(roomSrc.cabinets) || Array.isArray(roomSrc.fronts) || Array.isArray(roomSrc.sets) || !!roomSrc.settings || !!roomSrc.preferences;
+      if(looksLikeRoom) out[key] = normalizeRoomValue({}, {}, roomSrc);
+    });
+    try{
+      const meta = out.meta && typeof out.meta === 'object' ? out.meta : {};
+      const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : {};
+      Object.keys(defs).forEach((key)=>{
+        if(Object.prototype.hasOwnProperty.call(out, key)) return;
+        const srcRoom = src && src[key] && typeof src[key] === 'object' ? src[key] : {};
+        out[key] = normalizeRoomValue({}, {}, srcRoom);
+      });
+    }catch(_){ }
     return out;
   }
 

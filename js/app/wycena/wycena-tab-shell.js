@@ -30,6 +30,18 @@
     if(typeof d.setState === 'function') d.setState({ isBusy:true });
     if(typeof d.render === 'function') d.render(ctx);
     try{
+      const contextRepair = FC.wycenaContextRepair && typeof FC.wycenaContextRepair.repairActiveQuoteContext === 'function'
+        ? FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'generate' })
+        : { ok:true };
+      if(contextRepair && contextRepair.ok === false){
+        if(typeof d.setState === 'function'){
+          const errorQuote = FC.wycenaContextRepair && typeof FC.wycenaContextRepair.buildErrorQuote === 'function'
+            ? FC.wycenaContextRepair.buildErrorQuote(contextRepair)
+            : { error:String(contextRepair.message || 'Błąd kontekstu WYCENY'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
+          d.setState({ lastQuote:errorQuote, previewSnapshotId:'', shouldScrollToPreview:true });
+        }
+        return;
+      }
       const selection = d.normalizeDraftSelection(d.getOfferDraft());
       const naming = await d.ensureVersionNameBeforeGenerate(selection);
       if(naming && naming.cancelled) return;
@@ -120,6 +132,13 @@
     list.innerHTML = '';
     const card = h('div', { class:'build-card quote-root', id:'quoteActivePreview' });
 
+    try{
+      if(FC.wycenaContextRepair && typeof FC.wycenaContextRepair.repairActiveQuoteContext === 'function'){
+        FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'render' });
+      }
+    }catch(err){
+      try{ console.error('[wycena] context repair before render failed', err); }catch(_){ }
+    }
     reconcileStatusPreviewState(d);
     const currentQuote = d.resolveDisplayedQuote();
     renderTopbar(card, ctx, currentQuote, d);
