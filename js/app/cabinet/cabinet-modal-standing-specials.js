@@ -135,6 +135,38 @@
     if(src === 'custom') appendFridgeCustomMaterialFields(ctx, part, label);
   }
 
+  function appendFridgeFurnitureHingeToggle(ctx){
+    const draft = ctx.draft;
+    const d = draft.details || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'cabinet-extra-field cabinet-extra-field--compact';
+    wrap.style.marginBottom = '10px';
+    const chip = document.createElement('label');
+    chip.className = 'rozrys-scope-chip cabinet-labor-appliance__choice' + (d.requiresFurnitureHinges ? ' is-checked' : '');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!d.requiresFurnitureHinges;
+    const span = document.createElement('span');
+    span.textContent = 'Wymaga zawiasów meblowych';
+    const apply = () => {
+      const next = !!cb.checked;
+      draft.details = Object.assign({}, draft.details || {}, { requiresFurnitureHinges: next });
+      if(next) chip.classList.add('is-checked');
+      else chip.classList.remove('is-checked');
+    };
+    cb.addEventListener('change', (event)=>{
+      try{ event.stopPropagation(); }catch(_){}
+      apply();
+    });
+    chip.addEventListener('click', (event)=>{
+      try{ event.stopPropagation(); }catch(_){}
+    });
+    chip.appendChild(cb);
+    chip.appendChild(span);
+    wrap.appendChild(chip);
+    ctx.container.appendChild(wrap);
+  }
+
   function renderDrawerExtras(ctx){
     const container = ctx.container;
     const draft = ctx.draft;
@@ -501,6 +533,7 @@
         appendFridgeFrontSourceField(ctx, 'lower', 'Dolny front lodówki — materiał');
         appendFridgeFrontSourceField(ctx, 'upper', 'Górny front lodówki — materiał');
       }
+      appendFridgeFurnitureHingeToggle(ctx);
     }
     toggleFridgeUI();
     draft.details = Object.assign({}, draft.details || {}, {

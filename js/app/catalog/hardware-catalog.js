@@ -26,6 +26,8 @@
     { id:'hinge_110_inset', name:'110° wpuszczany', allowedCategories:['Zawiasy'], active:true },
     { id:'hinge_155_zero', name:'155° zerowy uskok', allowedCategories:['Zawiasy'], active:true },
     { id:'hinge_170_corner', name:'170° narożny', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_parallel_inset', name:'Równoległy wpuszczany', allowedCategories:['Zawiasy'], active:true },
+    { id:'hinge_fridge_overlay', name:'Lodówkowy nakładany', allowedCategories:['Zawiasy'], active:true },
     { id:'drawer_m', name:'Szuflada M', allowedCategories:['Szuflady / prowadnice'], active:true },
     { id:'drawer_k', name:'Szuflada K', allowedCategories:['Szuflady / prowadnice'], active:true },
     { id:'runner_l500', name:'Prowadnica L500', allowedCategories:['Szuflady / prowadnice'], active:true },
@@ -150,8 +152,17 @@
   function typeIdFromName(name){ return uidFromName(name || 'typ'); }
   function normalizeTypeDefinition(row){
     const src = row && typeof row === 'object' ? row : { name:row };
-    const name = text(src.name || src.label || src.value || src.id);
-    const id = text(src.id) || typeIdFromName(name);
+    let name = text(src.name || src.label || src.value || src.id);
+    let id = text(src.id) || typeIdFromName(name);
+    const legacyKey = safePart(id || name);
+    if(legacyKey === 'hinge_blind_corner' || legacyKey === 'do_rogowej_slepej_slepego_naroznika'){
+      id = 'hinge_parallel_inset';
+      name = 'Równoległy wpuszczany';
+    }
+    else if(legacyKey === 'hinge_fridge' || legacyKey === 'lodowkowy_do_frontu_lodowki' || legacyKey === 'lodowkowy'){
+      id = 'hinge_fridge_overlay';
+      name = 'Lodówkowy nakładany';
+    }
     const allowed = uniqueText(Array.isArray(src.allowedCategories) ? src.allowedCategories : (Array.isArray(src.categories) ? src.categories : (text(src.category) ? [src.category] : [])));
     return { id, name:name || id, allowedCategories:allowed.length ? allowed : DEFAULT_CATEGORIES.slice(), active:src.active !== false };
   }

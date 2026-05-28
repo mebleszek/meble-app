@@ -1,5 +1,5 @@
 // js/app/ui/wywiad-room-preferences.js
-// UI preferencji standardu pokoju w WYWIADZIE.
+// UI preferencji materiałów i kolorów pokoju w WYWIADZIE.
 // Etap 1B: preferencje strefowe bez natywnych pickerów/selectów telefonu.
 
 (function(){
@@ -109,6 +109,20 @@
     btn.textContent = String(label || '');
   }
 
+
+  function createSaveFooter(sectionTitle, beforeButtons, onSave){
+    const api = ns.wywiadRoomAccordionActions;
+    if(api && typeof api.createSaveFooter === 'function'){
+      return api.createSaveFooter({ sectionTitle, buttonText:'Zapisz zmiany', split:Array.isArray(beforeButtons) && beforeButtons.length > 0, beforeButtons, onSave }).footer;
+    }
+    const footer = h('div', { class:'wywiad-room-inline-form__footer' + ((Array.isArray(beforeButtons) && beforeButtons.length) ? ' wywiad-room-inline-form__footer--split' : '') });
+    (Array.isArray(beforeButtons) ? beforeButtons : []).forEach((btn)=>{ if(btn) footer.appendChild(btn); });
+    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz zmiany', 'aria-label':'Zapisz zmiany — ' + sectionTitle });
+    saveBtn.addEventListener('click', onSave);
+    footer.appendChild(saveBtn);
+    return footer;
+  }
+
   async function openChoice(title, options, value){
     const api = getChoiceApi();
     if(api && typeof api.openRozrysChoiceOverlay === 'function') return api.openRozrysChoiceOverlay({ title, value:String(value || ''), options });
@@ -174,7 +188,7 @@
     const refreshers = [];
 
     const summary = h('div', { class:'wywiad-room-shell__stats-line wywiad-room-inline-form__summary' });
-    const refreshSummary = ()=>{ summary.innerHTML = '<strong>Preferencje:</strong> ' + escapeHtml(api && typeof api.getSummary === 'function' ? api.getSummary(draft) : 'Brak zapisanych preferencji.'); };
+    const refreshSummary = ()=>{ summary.innerHTML = '<strong>Materiały i kolory:</strong> ' + escapeHtml(api && typeof api.getSummary === 'function' ? api.getSummary(draft) : 'Brak zapisanych preferencji.'); };
     form.appendChild(summary);
 
     const note = h('div', { class:'wywiad-room-inline-form__note muted xs', text:'Strefy pokoju mają pierwszeństwo przed globalnymi domyślnymi z trybiku. Istniejące szafki nie są zmieniane w tym etapie.' });
@@ -207,22 +221,17 @@
     const zoneKeys = Array.isArray(api.ZONE_KEYS) ? api.ZONE_KEYS : ['lower','middle','upper'];
     zoneKeys.forEach((zoneKey)=> form.appendChild(buildZoneCard(zoneKey, draft, refreshers, refreshAll)));
 
-    const footer = h('div', { class:'wywiad-room-inline-form__footer wywiad-room-inline-form__footer--split' });
     const bulkBtn = h('button', { type:'button', class:'btn wywiad-room-inline-form__bulk', text:'Zastosuj do istniejących szafek' });
     bulkBtn.addEventListener('click', ()=>{
       try{
         if(ns.wywiadRoomPreferencesBulk && typeof ns.wywiadRoomPreferencesBulk.open === 'function') ns.wywiadRoomPreferencesBulk.open(room);
       }catch(_){ }
     });
-    const saveBtn = h('button', { type:'button', class:'btn btn-success wywiad-room-inline-form__save', text:'Zapisz preferencje' });
-    saveBtn.addEventListener('click', ()=>{
+    form.appendChild(createSaveFooter('Preferencje materiałów i kolorów', [bulkBtn], ()=>{
       const nextApi = getApi();
       if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, draft);
       renderSummary(room);
-    });
-    footer.appendChild(bulkBtn);
-    footer.appendChild(saveBtn);
-    form.appendChild(footer);
+    }));
     refreshAll();
     return form;
   }
@@ -292,7 +301,7 @@
     const draft = api && typeof api.getRoomPreferences === 'function' ? api.getRoomPreferences(room) : {};
     const form = buildForm(room, draft);
     ns.panelBox.open({
-      title:'Preferencje standardu',
+      title:'Preferencje materiałów i kolorów',
       contentNode: form,
       width:'860px',
       boxClass:'panel-box--rozrys wywiad-room-settings-box wywiad-room-preferences-box',

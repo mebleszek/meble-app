@@ -91,6 +91,17 @@
             middle: normalizeZonePreferences(rawZones.middle, legacyZoneFor(src, 'middle')),
             upper: normalizeZonePreferences(rawZones.upper, legacyZoneFor(src, 'upper'))
           },
+          hardwareProducers: (function(){
+            const hp = isPlainObject(src.hardwareProducers) ? src.hardwareProducers : (isPlainObject(src.hardware) ? src.hardware : {});
+            const legacy = text(src.hardwareManufacturer);
+            return {
+              hinges: text(hp.hinges || hp.hingesManufacturer || legacy),
+              drawers: text(hp.drawers || hp.drawerSystemManufacturer || legacy),
+              lifts: text(hp.lifts || hp.liftManufacturer || legacy),
+              cargo: text(hp.cargo || hp.cargoManufacturer || legacy),
+              accessories: text(hp.accessories || hp.accessoriesManufacturer || legacy)
+            };
+          })(),
           hardwareManufacturer: text(src.hardwareManufacturer)
         };
       }
@@ -100,7 +111,7 @@
         catch(e){ return JSON.parse(JSON.stringify(obj || {})); }
       }
       function isPlainObject(v){
-        return (utils && typeof utils.isPlainObject === 'function') ? utils.isPlainObject(v) : (!!v && typeof v === 'object' && (v.constructor === Object || Object.getPrototypeOf(v) === null));
+        return (utils && typeof utils.isPlainObject === 'function') ? utils.isPlainObject(v) : (!!v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.toString.call(v) === '[object Object]');
       }
       function num(v, fallback){
         return (utils && typeof utils.num === 'function') ? utils.num(v, fallback) : (Number.isFinite(Number(v)) ? Number(v) : fallback);

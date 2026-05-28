@@ -1,11 +1,138 @@
+# DEV.md — meble-app
+
+## Hardware hinge dictionary cleanup v1 — 2026-05-26
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_hinge_dictionary_cleanup_v1.zip`.
+- Baza startowa: `site_wywiad_labor_header_compact_v1.zip`.
+- Poprawiono słownikową warstwę zawiasów: rogowa ślepa / ślepy narożnik używa teraz realnej cechy `Równoległy wpuszczany`, a lodówka używa cechy `Lodówkowy nakładany`.
+- Usunięto z domyślnych słowników błędne opisowe wartości `Do rogowej ślepej / ślepego narożnika`, `równoległy / do ślepego narożnika` i samo `lodówkowy`; normalizacja przenosi starsze zapisane wartości na nowe słownikowe odpowiedniki bez kasowania danych użytkownika.
+- Reguła szafki `rogowa_slepa` zwraca wymaganie `Zawias równoległy wpuszczany` z parametrem `nalozenie = równoległy wpuszczany`, a lodówkowa z ptaszkiem zwraca `Zawias lodówkowy nakładany` z parametrem `nalozenie = lodówkowy nakładany`.
+- Do seedów cennika okuć dopisano realne pozycje Blum z Bivert zgodnie z istniejącym modelem katalogu: `79B9550+173L6130` jako zawias równoległy wpuszczany 95° + prowadnik oraz `91K9550+194K6100` jako zawias lodówkowy nakładany 95° + prowadnik.
+- Nie dodano żadnej fikcyjnej pozycji z ceną; nowe wpisy mają producenta, dostawcę, kategorię, jednostkę, system, parametry techniczne słownikowe, datę ceny i notatkę tak jak pozostałe seedowane pozycje katalogu.
+- Zasada na przyszłość: żadne realne okucie nie może być zaszyte w programie jako ukryty produkt. Kod może wyznaczać wymaganie techniczne, ale pozycja do cennika/wyceny musi być rekordem katalogu zbudowanym ze słowników aplikacji: producent, kategoria, typ/cecha, parametry techniczne, dostawca i ceny.
+- Przy dodawaniu nowych pozycji cennika najpierw sprawdzić istniejący sposób zapisu w `hardware-catalog-seed-data.js` i aktualne słowniki w dziale `Okucia i akcesoria → Słowniki`; nowe dane dopisywać zgodnie z istniejącym formatem, bez ręcznego obchodzenia słowników.
+- Rozszerzono `tools/app-dev-smoke.js` o regresję migracji starych nazw, nowych wartości słownika i obecności nowych seedów cennika.
+- Zaktualizowano cache-busting `hardware-technical-params.js`, `hardware-catalog.js`, `hardware-catalog-seed-data.js` i `cabinet-hardware-requirements.js` w `index.html` oraz `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, animacji tego panelu, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowego WYCENY.
+- Raport: `tools/reports/hardware-hinge-dictionary-cleanup-v1.md`.
+
+## Wywiad labor header compact v1 — 2026-05-26
+
+- Aktualna paczka robocza po tym etapie: `site_wywiad_labor_header_compact_v1.zip`.
+- Baza startowa: `site_wywiad_labor_header_status_v1.zip`.
+- Na karcie szafki w WYWIADZIE nagłówek dodatków robocizny pokazuje teraz tylko nazwy czynności, bez ilości typu `×3`; ilości zostają w rozwiniętej sekcji `Czynności robocizny`.
+- Czynności robocizny w nagłówku są kolorowane na pomarańczowo jako informacja ostrzegawcza/dodatkowa robota, a status montażu sprzętu zostaje: zielony dla montażu wliczonego i czerwony dla `bez montażu`.
+- Nie zmieniano wielkości, wagi ani ogólnej typografii tekstów w nagłówku; zmiana dotyczy wyłącznie treści i koloru linii czynności.
+- Rozszerzono `tools/app-dev-smoke.js` o regresję, że nagłówek nie pokazuje ilości `×2/×3` i że czynności mają osobny pomarańczowy kolor.
+- Zaktualizowano cache-busting `wywiad.css`, `wywiad-labor-summary.js` i `wywiad.js` w `index.html` oraz `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, storage, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/wywiad-labor-header-compact-v1.md`.
+
+## Wywiad labor header status v1 — 2026-05-26
+
+- Aktualna paczka robocza po tym etapie: `site_wywiad_labor_header_status_v1.zip`.
+- Baza startowa: `site_fridge_single_front_hinges_fix_v1.zip`.
+- Na karcie szafki w WYWIADZIE status montażu sprzętu jest teraz kolorowany zgodnie z wyborem: `bez montażu` na czerwono, `z montażem` na zielono.
+- Dodatkowe czynności robocizny w nagłówku karty są renderowane w osobnych liniach, bez zmiany wielkości, wagi ani ogólnej typografii.
+- `js/tabs/wywiad-labor-summary.js` dostał `getHeaderLines()` i `renderHeaderSummary()`, a stary `getHeaderText()` zostaje kompatybilny jako tekstowy fallback/test.
+- Rozszerzono `tools/app-dev-smoke.js` o regresję czerwonego/zielonego statusu i osobnych linii czynności.
+- Zaktualizowano cache-busting `wywiad.css`, `wywiad-labor-summary.js` i `wywiad.js` w `index.html` oraz `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, storage, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/wywiad-labor-header-status-v1.md`.
+
+## Fridge single front hinges fix v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_fridge_single_front_hinges_fix_v1.zip`.
+- Baza startowa: `site_cabinet_hardware_requirements_v1.zip`.
+- Naprawiono regresję lodówkowej: przy `fridgeFrontCount:'1'` i zaznaczonym `Wymaga zawiasów meblowych` program nie może liczyć zawiasów od dwóch frontów góra/dół.
+- `js/app/cabinet/front-hardware-fronts.js` używa teraz realnego `details.fridgeFrontCount`: `1` oznacza jeden duży front, `2` oznacza dolny + górny front.
+- Liczenie zawiasów lodówkowych korzysta z tej samej listy frontów, więc ilość zawiasów wynika z realnej liczby frontów, a nie ze starego założenia dwóch frontów.
+- Rozszerzono `tools/app-dev-smoke.js` o test regresji dla lodówki z jednym dużym frontem i zawiasami meblowymi.
+- Zaktualizowano cache-busting `front-hardware-fronts.js` w `index.html` i `dev_tests.html`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, storage, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/fridge-single-front-hinges-fix-v1.md`.
+
+## Cabinet hardware requirements v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_cabinet_hardware_requirements_v1.zip`.
+- Baza startowa: `site_hardware_producer_accessories_save_fix_v1.zip`.
+- Dodano warstwę techniczną `js/app/cabinet/cabinet-hardware-requirements.js`: typ szafki / wariant frontu → wymaganie techniczne okucia. Ten etap nie dobiera jeszcze konkretnego produktu katalogowego do WYCENY.
+- Reguły v1 dla zawiasów obejmują m.in. standard 110° nakładany, narożną L 170°, rogowe ślepe / ślepy narożnik jako zawias równoległy wpuszczany, lodówkowe po ręcznym ptaszku jako lodówkowy nakładany, dolne podblatowe jako stojące bez nóg, wyjątki HK-XS i nożycowy Häfele z pomocniczymi zawiasami 110°.
+- `js/app/cabinet/front-hardware-hinges.js` nie nalicza zawiasów dla wariantów, które ich nie wymagają: zmywarka, szuflady, zlewowa z szufladą, piekarnikowa z szufladą, dolna podblatowa z szufladami/brakiem frontu, okapowa z klapą i lodówka bez ptaszka `Wymaga zawiasów meblowych`.
+- Lodówkowa dostała w modalu frontów aplikacyjny checkbox/chip `Wymaga zawiasów meblowych`; po zaznaczeniu używa wymagania `Zawias lodówkowy nakładany`, a ilość jest liczona z realnych frontów lodówki.
+- `js/app/cabinet/cabinet-cutlist.js` dopina do partów okuć pole `hardwareRequirement`, żeby przyszły resolver katalogowy i WYCENA miały jawny kontekst techniczny bez zgadywania.
+- Do katalogu/słowników okuć dodano słownikowe typy/cechy: `hinge_parallel_inset` (`Równoległy wpuszczany`) i `hinge_fridge_overlay` (`Lodówkowy nakładany`) oraz wartości parametru `nalozenie`: `równoległy wpuszczany` i `lodówkowy nakładany`.
+- W późniejszym etapie `hardware_hinge_dictionary_cleanup_v1` dopisano realną pozycję Bivert dla zawiasu równoległego wpuszczanego; nadal obowiązuje zasada, że nie wolno tworzyć fikcyjnych pozycji bez prawdziwego symbolu i ceny.
+- Na przyszłość zostaje: pełna logika okapowej drzwiczki/klapa + montaż AGD okapu, szuflady wewnętrzne 155° zerowy uskok albo `na dystansie` np. 1,8 cm, warstwa front nakładany/wpuszczany/bliźniaczy, resolver wymaganie techniczne + preferowany producent + pozycja katalogowa + cena `Do wyceny`, a także edycja poszczególnych korpusów zestawu.
+- Rozszerzono `tools/app-dev-smoke.js` o testy regresji reguł zawiasów, ptaszka lodówki i nowych typów/cech katalogu.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogowych pozycji okuć do WYCENY.
+- Raport: `tools/reports/cabinet-hardware-requirements-v1.md`.
+
+## Hardware producer accessories save fix v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_producer_accessories_save_fix_v1.zip`.
+- Baza startowa: `site_room_accordion_save_fix_v1.zip`.
+- Naprawiono zgłoszoną regresję: pole `Pozostałe akcesoria` w akordeonie `Preferencje producentów okuć` nie mogło tracić wartości po kliknięciu `Zapisz zmiany`.
+- `js/app/ui/wywiad-room-hardware-producers.js` dostał bezpieczny odczyt wartości z launcherów przy zapisie (`data-hardware-producer-key/value`) oraz bufor draftu na czas przebudowy widoku.
+- Rozszerzono `tools/app-dev-smoke.js` o test roundtrip `room.preferences.hardwareProducers.accessories` i kontrakt UI zapisu wartości launcherów.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogu okuć do wyceny.
+- Raport: `tools/reports/hardware-producer-accessories-save-fix-v1.md`.
+
+## Room accordion save fix v1 — 2026-05-25
+
+- Aktualna paczka robocza po tym etapie: `site_room_accordion_save_fix_v1.zip`.
+- Baza startowa: `site_hardware_producer_preferences_v1.zip`.
+- Poprawiono regresję zapisu w `Preferencjach producentów okuć`: wybrany producent, np. Blum, nie jest czyszczony przy zapisie/przebudowie widoku, jeżeli lista producentów jest chwilowo niedostępna.
+- Dodano wspólny helper `js/app/ui/wywiad-room-accordion-actions.js` dla zielonego przycisku `Zapisz zmiany` w akordeonach WYWIADU pomieszczenia.
+- `Parametry pomieszczenia` dostały zielony przycisk `Zapisz zmiany`; pola w akordeonie działają teraz jak draft z podglądem auto-wysokości i zapisują komplet parametrów po kliknięciu przycisku.
+- `Preferencje producentów okuć` i `Preferencje materiałów i kolorów` używają tego samego helpera stopki zapisu; materiały zachowują przycisk `Zastosuj do istniejących szafek`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani pełnego resolvera katalogu okuć do wyceny.
+- Raport: `tools/reports/room-accordion-save-fix-v1.md`.
+
+## Hardware producer preferences v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_producer_preferences_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- W `WYWIADZIE` dodano osobny akordeon `Preferencje producentów okuć` między `Parametry pomieszczenia` i preferencjami materiałowymi.
+- Dotychczasowy akordeon `Preferencje standardu` zmieniono na `Preferencje materiałów i kolorów`, bo zawiera strefowe wybory korpusu, frontu, pleców, kolorów i otwierania.
+- Preferencje producentów okuć są rozbite na: `Zawiasy`, `Szuflady / prowadnice`, `Podnośniki`, `Cargo`, `Pozostałe akcesoria`.
+- Wybór producenta odbywa się wyłącznie przez launcher aplikacyjny z istniejących producentów katalogu okuć; nie dodano natywnych selectów ani ręcznego wpisywania producenta w WYWIADZIE.
+- Model `room.preferences` dostał pole `hardwareProducers` bez nowego klucza storage; pozostaje w danych pomieszczenia/projektu.
+- WYCENA dostała pierwszy bezpieczny most: uproszczone linie okuć typu `zawiasy BLUM` i `podnośniki BLUM` mogą użyć producenta ustawionego w preferencjach pomieszczenia przy agregacji/nazwie linii. Nie zapisuje to zamian do projektu i nie uruchamia jeszcze pełnego resolvera katalogowych pozycji okuć.
+- Rozszerzono testy `app-dev-smoke` o nowy akordeon, brak natywnych selectów, normalizację `hardwareProducers` i pierwszy kontrakt `WYWIAD → WYCENA`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani polityki backupów.
+- Raport: `tools/reports/hardware-producer-preferences-v1.md`.
+
+## Hardware dictionary category stable panel v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_categories_details_body_fix_v1.zip`.
+- Przeanalizowano powielany błąd wspólnego akordeonu `Kategorie / rodzaje okuć`: `details/open`, klasy animowanego body ROZRYS, `hidden`, `max-height` i `overflow` dawały poprawną treść w DOM, ale na telefonie wizualnie ucinały listę do pustej/niepełnej karty.
+- Wspólny panel kategorii został odseparowany od mechaniki animowanych akordeonów: `hardware-dictionary-categories-card` trzyma ramkę/cień jak ROZRYS, a `hardware-dictionary-categories-body` jest zwykłym, nieanimowanym kontenerem bez `max-height` i bez clipowania.
+- Mini-akordeony parametrów technicznych zostają bez zmian: jeden otwarty naraz, natychmiastowe zamknięcie starego, płynne rozwijanie nowego.
+- Test `app-dev-smoke` pilnuje, że lista kategorii nie używa już `rozrys-material-accordion__body`, `hardware-dictionary-section-body`, `details/open` ani starego selektora `categories-accordion:not([open])`.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-category-stable-panel-v1.md`.
+
+
+## Hardware dictionary categories details body fix v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_stable_panel_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_frame_restore_v1.zip`.
+- Naprawiono regresję pustego/uciętego akordeonu `Kategorie / rodzaje okuć`: wspólny akordeon kategorii wrócił do stabilnej mechaniki `details/summary`, a jego body ma klasę `hardware-dictionary-categories-body` bez animowanego `max-height`.
+- Zachowano wygląd aplikacyjny/ROZRYS: jedna ramka, cień, chevron i zaokrąglone rogi; treść kategorii pozostaje w normalnym przepływie dokumentu, żeby telefon nie pokazywał tylko uciętej pierwszej karty.
+- Skorygowano testy `app-dev-smoke`: sprawdzają strukturę `details`, realne wiersze kategorii, input `Zawiasy`, przyciski `Usuń`/`Dodaj kategorię` oraz zamknięcie i ponowne otwarcie bez utraty treści.
+- Bez zmian w modelu danych, backupie, storage, imporcie/eksporcie, PRO100, usługach, RYSUNKU, WYCENIE i zamiennikach.
+- Raport: `tools/reports/hardware-dictionary-categories-details-body-fix-v1.md`.
+
 # DEV — aktywne zasady rozwoju meble-app
 
 Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały przeniesione do `DEV_HISTORY_20260425.md` i nie są źródłem bieżących decyzji architektonicznych.
 
 ## Aktualna baza
 
-- Aktualna paczka robocza po tym etapie: `site_hardware_param_choice_launcher_fix_v1.zip`.
-- Baza startowa tej paczki: `site_hardware_dictionary_full_scroll_v1.zip`.
+- Aktualna paczka robocza po tym etapie: `site_cabinet_hardware_requirements_v1.zip`.
+- Baza startowa tej paczki: `site_hardware_producer_accessories_save_fix_v1.zip`.
 - Po każdej paczce wydawać kompletny ZIP z pełną strukturą repo, w tym `README.md`, `DEV.md` oraz pozostałymi dokumentami.
 - Przy wydaniu samodzielnie pilnować cache-bustingu zmienionych plików w `index.html`, `dev_tests.html` i narzędziach smoke/load-order.
 
@@ -51,7 +178,159 @@ Ten plik jest krótką, aktualną mapą pracy. Stare wpisy historyczne zostały 
 - Ikony w aplikacji mają być stabilnymi SVG, nie emoji zależnymi od systemu. Wzorce ikon trzymać w `dev_ui_patterns.html`, a wspólne SVG w `js/app/ui/app-icons.js`.
 
 
+## Hardware dictionary category frame restore v1 — 2026-05-24
 
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_frame_restore_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_no_clip_v1.zip`.
+- Przeanalizowano regresję wizualną po próbach naprawy pustego akordeonu `Kategorie / rodzaje okuć`: wymuszenie `overflow: visible` na zewnętrznym akordeonie pomagało omijać clipowanie, ale psuło jednolitą ramkę i zaokrąglone narożniki wzorca ROZRYS.
+- Akordeon kategorii ma teraz zewnętrzną ramkę jak ROZRYS (`overflow:hidden`, jedna karta, jeden cień), a lista kategorii siedzi w dedykowanym body `hardware-dictionary-category-section-body`, które nie używa animowanego `hardware-dictionary-section-body` ani `rozrys-material-accordion__body`.
+- Test regresji w `tools/app-dev-smoke.js` został skorygowany tak, żeby pilnował pełnej zawartości listy kategorii i braku powrotu problematycznych klas/overflow.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-frame-restore-v1.md`.
+
+
+## Hardware dictionary category body guard v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_body_guard_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Przeanalizowano regresję z telefonu: wspólny akordeon `Kategorie / rodzaje okuć` miał poprawną zawartość w DOM, ale mógł być wizualnie przycięty przez animację `max-height`, więc użytkownik widział pustą/uciętą ramkę zamiast listy kategorii.
+- Dla tego jednego wspólnego akordeonu kategorii ustawiono bezpieczny tryb otwarcia bez przycinania body; `max-height` i `overflow:hidden` nie zostają na otwartym panelu. Mini-akordeony parametrów technicznych nadal mają dotychczasowe animowane rozwijanie.
+- Zaostrzono `tools/app-dev-smoke.js`: test regresji sprawdza wiersze kategorii, input `Zawiasy`, przycisk `Usuń`, przycisk `Dodaj kategorię`, brak ukrycia body i brak stylu przycinającego po ponownym otwarciu.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-body-guard-v1.md`.
+
+## Hardware dictionary category regression fix v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_regression_fix_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- W `Słowniki okuć → Kategorie / rodzaje okuć` naprawiono regresję pustego body wspólnego akordeonu: render listy kategorii odbywa się przed finalnym nałożeniem stanu widoczności, a po przebudowie zawartości akordeon pilnuje, żeby body nie zostało ukryte ani z zerowym `max-height`.
+- Dla małych ekranów chevron w akordeonie kategorii ma równy odstęp od góry, dołu i prawej strony; ten sam kierunek dopisano w `dev_ui_patterns.html → Accordion ROZRYS + ruch`.
+- `tools/app-dev-smoke.js` ma nowy test regresji, który otwiera modal słowników, sprawdza obecność wierszy kategorii, zamyka i ponownie otwiera akordeon.
+- `tools/app-dev-smoke-lib/mini-document.js` dostał minimalne wsparcie dla `hidden` i selektorów `:scope > ...`, żeby test DOM dla akordeonu sprawdzał realne zachowanie zamiast tylko tekstów w plikach.
+- Nie normalizowano innych akordeonów w aplikacji; bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-regression-fix-v1.md`.
+
+## Hardware dictionary ROZRYS accordion pattern v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_rozrys_accordion_pattern_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_content_single_open_v1.zip`.
+- W `dev_ui_patterns.html → Wzorce UI` wzorzec akordeonu ROZRYS pokazuje teraz jeden spójny kierunek: wygląd 1:1 z ROZRYSU, chevron po prawej, `aria-expanded`, natychmiastowe zamykanie starej sekcji i płynne rozwijanie nowej.
+- W `Słowniki okuć → Kategorie / rodzaje okuć` wspólny akordeon korzysta z klas ROZRYS i ma widoczny chevron w takim samym stylu jak w ROZRYSIE.
+- Dla wspólnego akordeonu kategorii dodano tę samą zasadę ruchu co w dzisiejszych mini-akordeonach: zamknięcie natychmiast, otwarcie płynne, z obsługą `prefers-reduced-motion`.
+- Nie normalizowano pozostałych akordeonów w całej aplikacji; zmiana jest celowo ograniczona do wzorca UI i poprawianego akordeonu słowników okuć.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-rozrys-accordion-pattern-v1.md`.
+
+## Hardware dictionary category content / single open v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_content_single_open_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_categories_accordion_v1.zip`.
+- Wspólny akordeon `Kategorie / rodzaje okuć` został poprawiony z natywnego `details` na kontrolowany panel aplikacyjny z `aria-expanded`, żeby po rozwinięciu na telefonie widoczna była pełna zawartość listy kategorii, a nie ucięty fragment pierwszego wiersza.
+- W `Parametry techniczne kategorii` otwarcie jednej kategorii zamyka pozostałe kategorie techniczne, więc przy przechodzeniu np. z `Zawiasy` do `Szuflady / prowadnice` poprzednia długa sekcja znika.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-content-single-open-v1.md`.
+
+## Hardware dictionary categories accordion v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_categories_accordion_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_instant_close_v1.zip`.
+- W modalu `Słowniki okuć` cała sekcja `Kategorie / rodzaje okuć` jest teraz jednym wspólnym akordeonem.
+- Zwinięcie sekcji kategorii odsłania więcej miejsca do pracy na `Parametry techniczne kategorii`, bez zmiany modelu danych kategorii i parametrów.
+- Lista kategorii, pola edycji nazw i przycisk `Dodaj kategorię` działają jak dotychczas, tylko znajdują się wewnątrz wspólnego panelu.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-categories-accordion-v1.md`.
+
+
+## Hardware dictionary param instant close v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_categories_accordion_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_expand_animation_slow_v1.zip`.
+- W mini-akordeonach parametrów technicznych słowników okuć pozostawiono płynne rozwijanie nowo klikniętego parametru.
+- Zamykanie poprzednio otwartego parametru jest teraz natychmiastowe, bez animacji zwijania; usuwa to dziwne ruchy listy widoczne na mobile.
+- Sekwencja interakcji pozostaje: najpierw scroll do nagłówka klikniętego parametru, potem natychmiastowe zamknięcie starego i płynne rozwinięcie nowego.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-instant-close-v1.md`.
+
+
+## Hardware dictionary param expand animation slow v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_expand_animation_slow_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_expand_animation_v1.zip`.
+- Wydłużono i ustabilizowano animację rozwijania mini-akordeonów parametrów technicznych w słownikach okuć.
+- Zmieniono start animacji na podwójny `requestAnimationFrame`, żeby przeglądarka najpierw ustawiła stan początkowy `max-height:0`, a dopiero potem płynnie rozwinęła treść.
+- Animacja pozostaje wyłącznie UI/UX: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-expand-animation-slow-v1.md`.
+
+## Hardware dictionary param expand animation v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_expand_animation_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_scroll_before_open_v1.zip`.
+- W mini-akordeonach parametrów technicznych słowników okuć dodano płynne rozwijanie i zwijanie treści parametru.
+- Zachowano sekwencję: najpierw scroll do nagłówka klikniętego parametru, potem animowane zamknięcie poprzedniego i otwarcie nowego.
+- Zasada jednego otwartego parametru naraz pozostaje bez zmian; stare szybkie kliknięcia kasują poprzednie timery animacji, żeby nie odpalać spóźnionych stanów.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-expand-animation-v1.md`.
+
+## Hardware dictionary param scroll before open v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_before_open_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_scroll_target_v1.zip`.
+- W akordeonie parametrów technicznych kategorii okuć zmieniono kolejność interakcji: kliknięcie zwiniętego parametru najpierw przewija główne okno słownika do jego nagłówka, a dopiero po zakończeniu/timeout scrolla zwija poprzedni parametr i rozwija kliknięty.
+- Po mutacji akordeonów pozycja aktywnego nagłówka jest korygowana, żeby zamknięcie długiego parametru powyżej nie wyrzucało użytkownika poza początek nowo otwartego formularza.
+- Krótkie lokalne przewinięcia zostały zachowane; zmiana celuje w szarpnięcie przy klikaniu parametrów z dołu listy.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-scroll-before-open-v1.md`.
+
+## Hardware dictionary param scroll target v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_target_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_scroll_smooth_v1.zip`.
+- Naprawiono regresję po wygładzaniu scrolla: mini-akordeon parametru widoczny na dole ekranu nie zatrzymuje już auto-scrolla tylko dlatego, że jego nagłówek mieści się w widocznym obszarze.
+- Doscrollowanie liczy docelową pozycję względem głównego scrolla słowników i przewija do nagłówka otwartego parametru z marginesem od góry.
+- Krótkie lokalne przewinięcia zostają, a start ruchu nadal czeka na ustabilizowanie wysokości rozwiniętego akordeonu.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-scroll-target-v1.md`.
+
+## Hardware dictionary param scroll smooth v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_smooth_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_scroll_focus_v1.zip`.
+- Złagodzono auto-scroll mini-akordeonów parametrów technicznych w słownikach okuć.
+- Przy otwieraniu parametru z dołu listy zamknięcie poprzedniego otwartego parametru zachowuje wizualną pozycję klikniętego nagłówka, żeby nie było szarpnięcia zanim zacznie się płynne przewinięcie.
+- Doscrollowanie startuje po krótkim odczekaniu na przeliczenie układu i nie uruchamia się, jeśli nagłówek jest już dobrze widoczny.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-scroll-smooth-v1.md`.
+
+## Hardware dictionary param scroll focus v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_scroll_focus_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_single_open_v1.zip`.
+- W akordeonie parametrów technicznych kategorii okuć rozwinięcie parametru automatycznie przewija główne okno słownika do początku otwartego mini-akordeonu.
+- Dzięki temu przy otwieraniu parametru z dołu listy formularz nie startuje ucięty w połowie; najpierw widać nagłówek parametru i dopiero potem pola edycji.
+- Zasada jednego otwartego parametru naraz pozostaje bez zmian.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-scroll-focus-v1.md`.
+
+## Hardware dictionary param single open v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_single_open_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_param_accordions_v1.zip`.
+- W akordeonie parametrów technicznych kategorii okuć działa teraz zasada: jeden rozwinięty parametr naraz w danej kategorii.
+- Rozwinięcie kolejnego parametru automatycznie zwija poprzedni, dzięki czemu edycja słowników na telefonie nie tworzy kilku długich bloków pól naraz.
+- Nowo dodany parametr nadal rozwija się automatycznie, ale pozostaje jedynym otwartym parametrem w swojej kategorii.
+- Zmiana jest wyłącznie UI/UX słowników okuć: bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-single-open-v1.md`.
+
+## Hardware dictionary param accordions v1 — 2026-05-23
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_param_accordions_v1.zip`.
+- Baza startowa: `site_hardware_param_choice_launcher_fix_v1.zip`.
+- W modalu `Słowniki okuć`, wewnątrz akordeonu kategorii parametrów technicznych, każdy parametr jest teraz osobnym mini-akordeonem z lekkim wcięciem.
+- Nagłówek parametru pokazuje skrót: typ pola, sposób porównania, status `Cecha kluczowa`, `Buduje typ`, aktywność oraz liczbę dozwolonych wartości.
+- Pełne pola edycji parametru są widoczne dopiero po rozwinięciu konkretnego parametru; nowo dodany parametr otwiera się automatycznie.
+- Przy okazji naprawiono usuwanie parametru w tej liście tak, żeby usuwać realny rekord z kategorii, a nie kopię draftu formularza.
+- Zmiana jest wyłącznie UI/UX słowników okuć: nie zmieniono storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-param-accordions-v1.md`.
 
 ## Hardware param choice launcher fix v1 — 2026-05-23
 
@@ -1226,3 +1505,16 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Test nadal pilnuje decyzji produktowej: backupy `before-tests` mają maksymalnie 10 najnowszych kopii, a ręczne backupy programu nie są przycinane przez limit testowy.
 - Nie zmieniono mechanizmu backupu, polityki retencji, fallbacku ręcznego eksportu na dysk, `BACKUP.md`, UI, silnika zamienników, import/export, PRO100, ROZRYS, RYSUNKU ani WYCENY.
 - Raport: `tools/reports/data-safety-backup-limit-policy-test-v2.md`.
+
+
+## Hardware dictionary category no-clip v1 — 2026-05-24
+
+- Aktualna paczka robocza po tym etapie: `site_hardware_dictionary_category_no_clip_v1.zip`.
+- Baza startowa: `site_hardware_dictionary_category_body_guard_v1.zip`.
+- Po zgłoszeniu użytkownika przeanalizowano, że wspólny akordeon `Kategorie / rodzaje okuć` nadal wizualnie przycinał zawartość: widoczna była tylko górna część pierwszego wiersza kategorii.
+- Przyczyna: body kategorii nadal miało klasę `rozrys-material-accordion__body`, czyli klasę wykorzystywaną w animowanym wzorcu ROZRYS. Dla edytowalnej listy kategorii ta klasa jest ryzykowna, bo przy przeliczaniu wysokości na telefonie może zostawić ograniczony widok.
+- Rozwiązanie: dla wspólnego akordeonu kategorii używać dedykowanego body `hardware-dictionary-category-section-body`, bez klasy `rozrys-material-accordion__body`; sam nagłówek i chevron nadal wizualnie trzymają wzorzec ROZRYS.
+- W CSS akordeon kategorii i jego body mają wymuszone `overflow: visible`, `max-height: none`, `height: auto`, bez animowania wysokości. Mini-akordeony parametrów technicznych pozostają bez zmian.
+- `tools/app-dev-smoke.js` zaostrzono tak, by sprawdzał dedykowany nieclipowany kontener kategorii oraz brak klasy `rozrys-material-accordion__body` na tym body.
+- Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
+- Raport: `tools/reports/hardware-dictionary-category-no-clip-v1.md`.

@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-23T10:15:45.206Z",
+  "generatedAt": "2026-05-26T04:27:28.332Z",
   "summary": {
-    "jsFiles": 356,
-    "indexScripts": 280,
-    "devTestScripts": 313,
-    "fcSymbols": 257,
-    "fcSymbolsAll": 285,
-    "edges": 1839,
+    "jsFiles": 359,
+    "indexScripts": 283,
+    "devTestScripts": 316,
+    "fcSymbols": 258,
+    "fcSymbolsAll": 286,
+    "edges": 1840,
     "highRisk": 8,
-    "mediumRisk": 64
+    "mediumRisk": 66
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -20,16 +20,16 @@
       "medium": 2
     },
     "SZAFKI": {
-      "files": 30,
-      "lines": 7269,
+      "files": 31,
+      "lines": 7597,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 3
+      "medium": 4
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 4716,
+      "lines": 4789,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -45,11 +45,11 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5305,
+      "lines": 5702,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
-      "medium": 2
+      "medium": 3
     },
     "OPTIMIZER": {
       "files": 12,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 7,
-      "lines": 1249,
+      "lines": 1333,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 45,
-      "lines": 6921,
+      "lines": 6956,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 11,
-      "lines": 1257,
+      "lines": 1268,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 30,
-      "lines": 3832,
+      "files": 32,
+      "lines": 4243,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -133,7 +133,7 @@
     },
     "ZAKŁADKI": {
       "files": 3,
-      "lines": 585,
+      "lines": 627,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -194,12 +194,16 @@
       614
     ],
     [
-      "js/app/catalog/hardware-catalog.js",
-      573
+      "js/app/material/price-modal-hardware-dictionaries.js",
+      609
     ],
     [
       "js/app/cabinet/cabinet-modal-standing-specials.js",
-      569
+      602
+    ],
+    [
+      "js/app/catalog/hardware-catalog.js",
+      584
     ],
     [
       "js/app/material/price-modal-hardware-form.js",
@@ -232,10 +236,6 @@
     [
       "js/app/project/project-status-manual-guard.js",
       395
-    ],
-    [
-      "js/testing/test-data-manager.js",
-      393
     ]
   ],
   "topIncoming": [
@@ -695,7 +695,7 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 573,
+      "lines": 584,
       "incoming": 18,
       "outgoing": 3,
       "secondLevel": 25,
@@ -1021,6 +1021,23 @@
       "area": "SZAFKI",
       "category": "ui/render/events",
       "lines": 684,
+      "incoming": 0,
+      "outgoing": 7,
+      "secondLevel": 0,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/material/price-modal-hardware-dictionaries.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 609,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -1393,6 +1410,22 @@
       ]
     },
     {
+      "file": "js/app/cabinet/cabinet-modal-standing-specials.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "SZAFKI",
+      "category": "ui/render/events",
+      "lines": 602,
+      "incoming": 0,
+      "outgoing": 0,
+      "secondLevel": 0,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii"
+      ]
+    },
+    {
       "file": "js/app/rozrys/rozrys-render.js",
       "risk": "średnie",
       "score": 4,
@@ -1430,7 +1463,7 @@
       "score": 4,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 301,
+      "lines": 325,
       "incoming": 10,
       "outgoing": 0,
       "secondLevel": 34,
@@ -2424,13 +2457,14 @@
     "js/app/cabinet/cabinet-cutlist.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 218,
+      "lines": 238,
       "defines": [
         "cabinetCutlist"
       ],
       "uses": [
         "materialCommon",
         "frontHardware",
+        "cabinetHardwareRequirements",
         "cabinetCutlist"
       ],
       "incomingFiles": [
@@ -2442,6 +2476,7 @@
         "js/testing/wycena/fixtures.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/material/material-common.js"
       ],
       "secondLevelFiles": [
@@ -2520,6 +2555,37 @@
       "reasons": [
         "600+ linii"
       ]
+    },
+    "js/app/cabinet/cabinet-hardware-requirements.js": {
+      "area": "SZAFKI",
+      "category": "domain/controller",
+      "lines": 217,
+      "defines": [
+        "cabinetHardwareRequirements"
+      ],
+      "uses": [
+        "frontHardware",
+        "cabinetHardwareRequirements"
+      ],
+      "incomingFiles": [
+        "js/app/cabinet/cabinet-cutlist.js"
+      ],
+      "outgoingFiles": [],
+      "secondLevelFiles": [
+        "js/app/rozrys/rozrys.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/testing/cabinet/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/wycena/fixtures.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
     },
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
@@ -2786,7 +2852,7 @@
     "js/app/cabinet/cabinet-modal-standing-specials.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 569,
+      "lines": 602,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -2794,12 +2860,12 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 20,
+      "domRefs": 24,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "400+ linii"
+        "600+ linii"
       ]
     },
     "js/app/cabinet/cabinet-modal-standing.js": {
@@ -3003,7 +3069,7 @@
     "js/app/cabinet/front-hardware-fronts.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 240,
+      "lines": 261,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3015,12 +3081,14 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/cabinet/front-hardware-hinges.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 125,
+      "lines": 162,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3619,7 +3687,7 @@
     "js/app/catalog/hardware-catalog-seed-data.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 223,
+      "lines": 261,
       "defines": [
         "hardwareCatalogSeedData"
       ],
@@ -3639,7 +3707,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/catalog/hardware-catalog-seeds.js": {
       "area": "KATALOG/USŁUGI",
@@ -3735,7 +3805,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 573,
+      "lines": 584,
       "defines": [
         "hardwareCatalog"
       ],
@@ -3916,7 +3986,7 @@
     "js/app/catalog/hardware-technical-params.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 301,
+      "lines": 325,
       "defines": [
         "hardwareTechnicalParams"
       ],
@@ -5824,7 +5894,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 212,
+      "lines": 609,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -5850,11 +5920,12 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 26,
+      "domRefs": 49,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
+        "600+ linii",
         "kilka zależności wychodzących"
       ]
     },
@@ -8828,7 +8899,7 @@
     "js/app/room-preferences/room-preferences-model.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 305,
+      "lines": 386,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -11244,7 +11315,7 @@
     "js/app/settings/program-defaults-store.js": {
       "area": "INNE",
       "category": "store/storage",
-      "lines": 130,
+      "lines": 133,
       "defines": [
         "programDefaults"
       ],
@@ -13027,7 +13098,7 @@
     "js/app/shared/schema.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 255,
+      "lines": 266,
       "defines": [
         "schema"
       ],
@@ -13979,7 +14050,7 @@
     "js/app/ui/cabinets-render.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 129,
+      "lines": 130,
       "defines": [
         "cabinetsRender"
       ],
@@ -13992,6 +14063,7 @@
         "storage",
         "views",
         "wywiadRoomSettings",
+        "wywiadRoomHardwareProducers",
         "wywiadRoomPreferences",
         "cabinetsRender"
       ],
@@ -15077,6 +15149,42 @@
       "risk": "niskie",
       "reasons": []
     },
+    "js/app/ui/wywiad-room-accordion-actions.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 53,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 1,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
+    "js/app/ui/wywiad-room-hardware-producers.js": {
+      "area": "UI",
+      "category": "ui/render/events",
+      "lines": 303,
+      "defines": [],
+      "uses": [],
+      "incomingFiles": [],
+      "outgoingFiles": [],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 10,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii"
+      ]
+    },
     "js/app/ui/wywiad-room-preferences-bulk-modal.js": {
       "area": "UI",
       "category": "ui/render/events",
@@ -15097,7 +15205,7 @@
     "js/app/ui/wywiad-room-preferences.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 325,
+      "lines": 334,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -15116,7 +15224,7 @@
     "js/app/ui/wywiad-room-settings.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 314,
+      "lines": 359,
       "defines": [],
       "uses": [
         "roomRegistry",
@@ -15131,7 +15239,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 18,
+      "domRefs": 19,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -15258,7 +15366,7 @@
     "js/app/wycena/wycena-core-lines.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 143,
+      "lines": 178,
       "defines": [
         "wycenaCoreLines"
       ],
@@ -15269,6 +15377,7 @@
         "wycenaCoreOffer",
         "wycenaCoreSelection",
         "wycenaCoreLines",
+        "roomPreferences",
         "cabinetCutlist",
         "laborApplianceRules",
         "rozrysScope"
@@ -17014,7 +17123,7 @@
     "js/tabs/wywiad-labor-summary.js": {
       "area": "ZAKŁADKI",
       "category": "tab/controller",
-      "lines": 112,
+      "lines": 146,
       "defines": [
         "wywiadLaborSummary"
       ],
@@ -17046,7 +17155,7 @@
     "js/tabs/wywiad.js": {
       "area": "ZAKŁADKI",
       "category": "ui/render/events",
-      "lines": 216,
+      "lines": 224,
       "defines": [
         "tabsWywiad"
       ],

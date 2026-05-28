@@ -11,6 +11,40 @@
     throw new Error('Brak zależności FC.wycenaCoreLines — sprawdź kolejność ładowania Wyceny.');
   }
 
+
+  function resolvePreferredHardwareProducer(roomId, groupKey, fallback){
+    try{
+      const prefs = FC.roomPreferences;
+      if(prefs && typeof prefs.resolveHardwareProducerPreference === 'function'){
+        return String(prefs.resolveHardwareProducerPreference(roomId, groupKey, fallback) || '').trim();
+      }
+    }catch(_){ }
+    return String(fallback || '').trim();
+  }
+
+  function displayHardwareNameFromPreferences(rawMaterial, roomId){
+    const raw = String(rawMaterial || '').trim();
+    const name = raw.replace(/^Okucia:\s*/i, '').trim() || raw;
+    const lower = name.toLowerCase();
+    if(/^zawiasy\b/.test(lower)){
+      const producer = resolvePreferredHardwareProducer(roomId, 'hinges', 'BLUM');
+      return producer ? `zawiasy ${producer}` : name;
+    }
+    if(/^podnośniki\b|^podnosniki\b/.test(lower)){
+      const producer = resolvePreferredHardwareProducer(roomId, 'lifts', 'BLUM');
+      return producer ? `podnośniki ${producer}` : name;
+    }
+    if(/^szuflady\b|^prowadnice\b/.test(lower)){
+      const producer = resolvePreferredHardwareProducer(roomId, 'drawers', '');
+      return producer ? `${name.replace(/\s+[A-ZŁŚŻŹĆŃÓĘĄÄÖÜÉÈÊ]+$/i, '').trim() || 'szuflady / prowadnice'} ${producer}` : name;
+    }
+    if(/^cargo\b/.test(lower)){
+      const producer = resolvePreferredHardwareProducer(roomId, 'cargo', '');
+      return producer ? `cargo ${producer}` : name;
+    }
+    return name;
+  }
+
   function collectAccessories(selectedRooms){
     const rows = new Map();
     const cabs = source.selectedCabinets(selectedRooms);
@@ -22,13 +56,14 @@
         const mat = String(part && (part.material || part.name) || '').trim();
         if(a > 0 && b > 0) return;
         if(!mat) return;
-        const name = mat.replace(/^Okucia:\s*/i, '').trim() || mat;
+        const name = displayHardwareNameFromPreferences(mat, roomId);
         const key = utils.slug(name);
         const qty = Math.max(0, Number(part && part.qty) || 0) || 1;
         const prev = rows.get(key) || { key, type:'accessory', name, qty:0, unitPrice:0, total:0, rooms:new Set() };
         prev.qty += qty;
         prev.rooms.add(rl);
-        const priceItem = catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(name) || catalog.materialPriceLookup(mat) || catalog.materialPriceLookup(name);
+        const originalName = mat.replace(/^Okucia:\s*/i, '').trim() || mat;
+        const priceItem = catalog.accessoryPriceLookup(name) || catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(originalName) || catalog.materialPriceLookup(name) || catalog.materialPriceLookup(mat) || catalog.materialPriceLookup(originalName);
         prev.unitPrice = Number(priceItem && priceItem.price) || prev.unitPrice || 0;
         prev.total = prev.qty * prev.unitPrice;
         rows.set(key, prev);
