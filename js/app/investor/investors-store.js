@@ -26,9 +26,64 @@
     if(typeof repo.writeAll === 'function') repo.writeAll(list);
   }
 
+
+
+
+
+  function persistUiInvestorId(id){
+    try{
+      const keys = FC.constants && FC.constants.STORAGE_KEYS ? FC.constants.STORAGE_KEYS : (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS : { ui:'fc_ui_v1' });
+      const key = keys && keys.ui ? keys.ui : 'fc_ui_v1';
+      const raw = localStorage.getItem(key);
+      const state = raw ? JSON.parse(raw) : null;
+      if(!(state && typeof state === 'object')) return;
+      const current = String(state.currentInvestorId || '').trim();
+      if(!current && id) return;
+      state.currentInvestorId = id || null;
+      localStorage.setItem(key, JSON.stringify(state));
+    }catch(_){ }
+  }
+
+  function clearCurrentProjectForInvestorId(investorId){
+    const key = String(investorId || '').trim();
+    if(!key) return;
+    try{
+      if(!(FC.projectStore && typeof FC.projectStore.getCurrentRecord === 'function')) return;
+      const currentProject = FC.projectStore.getCurrentRecord();
+      if(currentProject && String(currentProject.investorId || '').trim() === key && typeof FC.projectStore.setCurrentProjectId === 'function'){
+        FC.projectStore.setCurrentProjectId('');
+      }
+    }catch(_){ }
+  }
+
+
+  function snapshotInvestorId(snapshot){
+    return String(snapshot && snapshot.investor && snapshot.investor.id || snapshot && snapshot.project && snapshot.project.investorId || '').trim();
+  }
+
+  function cleanupSnapshotOnlyCurrentIfNeeded(finalList, candidates){
+    const currentId = typeof repo.getCurrentId === 'function' ? String(repo.getCurrentId() || '').trim() : '';
+    if(!currentId) return;
+    const visible = Array.isArray(finalList) && finalList.some((row)=> row && String(row.id || '').trim() === currentId);
+    if(visible) return;
+    const removedPhantom = Array.isArray(candidates) && candidates.some((row)=> row && String(row.id || '').trim() === currentId && recovery.isSnapshotOnlyPhantomInvestor && recovery.isSnapshotOnlyPhantomInvestor(row));
+    let blockedSnapshotOnly = false;
+    try{
+      const snapshots = typeof repo.readRawQuoteSnapshots === 'function' ? repo.readRawQuoteSnapshots() : [];
+      blockedSnapshotOnly = (Array.isArray(snapshots) ? snapshots : []).some((snapshot)=> snapshotInvestorId(snapshot) === currentId && recovery.isRecoverableQuoteSnapshot && !recovery.isRecoverableQuoteSnapshot(snapshot));
+    }catch(_){ blockedSnapshotOnly = false; }
+    if(!removedPhantom && !blockedSnapshotOnly) return;
+    if(typeof repo.setCurrentId === 'function') repo.setCurrentId(null);
+    persistUiInvestorId(null);
+    clearCurrentProjectForInvestorId(currentId);
+  }
+
   function readAll(){
     const stored = readStoredAll();
-    return typeof recovery.recoverMissingInvestors === 'function' ? recovery.recoverMissingInvestors(stored) : stored;
+    const recovered = typeof recovery.recoverMissingInvestors === 'function' ? recovery.recoverMissingInvestors(stored) : stored;
+    const visible = typeof recovery.stripSnapshotOnlyPhantomInvestors === 'function' ? recovery.stripSnapshotOnlyPhantomInvestors(recovered) : recovered;
+    cleanupSnapshotOnlyCurrentIfNeeded(visible, recovered);
+    return visible;
   }
 
   function getCurrentId(){

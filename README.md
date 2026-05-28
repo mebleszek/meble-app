@@ -1,5 +1,12 @@
 # Furniture Calc — aktualna paczka
 
+
+### 2026-05-28 — naprawa danych po starych snapshotach WYCENY
+
+- Normalny tryb przeglądarki nie powinien już dopisywać na liście inwestorów technicznego rekordu `Projekt meblowy` z pustego `quote-snapshot`.
+- Recovery inwestora ze snapshotu działa tylko, gdy snapshot zawiera realne dane klienta; puste snapshoty zostają historią ofert, a nie projektem do pracy.
+- Przy nieprawidłowym bieżącym wskaźniku aplikacja czyści wybór inwestora/projektu, żeby WYCENA nie zostawała w martwym stanie po kliknięciu `Wyceń`.
+
 Aktualna paczka: `site_wywiad_labor_header_compact_v1.zip`.
 
 ## Ostatnia zmiana

@@ -28,6 +28,109 @@
     return String(text == null ? '' : text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   }
 
+
+
+  function normalizePlainText(text){
+    return normalizeTestText(text).replace(/\s+/g, ' ');
+  }
+
+  function isGenericProjectTitle(text){
+    const value = normalizePlainText(text);
+    if(!value) return true;
+    return value === 'projekt meblowy'
+      || value === 'projekt'
+      || value === 'oferta'
+      || value === 'wstepna oferta'
+      || value === 'snapshot only'
+      || value === 'quote snapshot';
+  }
+
+  function hasContactIdentity(src){
+    const row = src && typeof src === 'object' ? src : {};
+    return !!([
+      row.phone,
+      row.email,
+      row.city,
+      row.address,
+      row.nip,
+      row.ownerName,
+      row.companyOwner,
+      row.notes,
+    ].map((item)=> String(item || '').trim()).filter(Boolean).length);
+  }
+
+  function hasNamedIdentity(src){
+    const row = src && typeof src === 'object' ? src : {};
+    const names = [row.name, row.companyName, row.title, row.clientName]
+      .map((item)=> String(item || '').trim())
+      .filter(Boolean);
+    if(!names.length) return false;
+    return names.some((name)=> !isGenericProjectTitle(name));
+  }
+
+  function hasRealInvestorIdentity(src){
+    const row = src && typeof src === 'object' ? src : {};
+    return hasNamedIdentity(row) || hasContactIdentity(row);
+  }
+
+  function sourceLooksLikeQuoteSnapshot(src){
+    const row = src && typeof src === 'object' ? src : {};
+    const meta = row.meta && typeof row.meta === 'object' ? row.meta : {};
+    const source = normalizePlainText(meta.source || row.source || '');
+    return source === 'quote-snapshot'
+      || source === 'quote snapshot'
+      || source === 'quote-snapshot-store'
+      || source === 'quote snapshot store'
+      || source === 'snapshot'
+      || source === 'snapshot store';
+  }
+
+  function roomsLookLikeTechnicalSnapshotOnly(rooms){
+    const rows = Array.isArray(rooms) ? rooms : [];
+    if(!rows.length) return false;
+    return rows.every((room)=> {
+      const row = room && typeof room === 'object' ? room : {};
+      const label = normalizePlainText(row.label || row.name || row.id || '');
+      if(!label) return true;
+      if(/^[a-z0-9]$/.test(label)) return true;
+      if(/^room[_-]/.test(label)) return true;
+      if(/^pomieszczenie[_\s-]*[a-z0-9]+$/.test(label)) return true;
+      return false;
+    });
+  }
+
+  function isSnapshotOnlyPhantomInvestor(inv){
+    const row = inv && typeof inv === 'object' ? inv : {};
+    if(!sourceLooksLikeQuoteSnapshot(row)) return false;
+    if(hasRealInvestorIdentity(row)) return false;
+    const rooms = Array.isArray(row.rooms) ? row.rooms : [];
+    if(isGenericProjectTitle(row.name || row.companyName || row.title || '')) return true;
+    return roomsLookLikeTechnicalSnapshotOnly(rooms);
+  }
+
+  function isRecoverableProjectRecord(record){
+    const row = record && typeof record === 'object' ? record : {};
+    const title = String(row.title || '').trim();
+    if(isGenericProjectTitle(title)) return false;
+    return true;
+  }
+
+  function isRecoverableQuoteSnapshot(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const investor = snap.investor && typeof snap.investor === 'object' ? snap.investor : null;
+    const project = snap.project && typeof snap.project === 'object' ? snap.project : null;
+    if(hasRealInvestorIdentity(investor)) return true;
+    if(hasRealInvestorIdentity(project)) return true;
+    const title = String(project && project.title || '').trim();
+    if(!isGenericProjectTitle(title)) return true;
+    return false;
+  }
+
+  function stripSnapshotOnlyPhantomInvestors(list){
+    const rows = Array.isArray(list) ? list : [];
+    return rows.filter((inv)=> !isSnapshotOnlyPhantomInvestor(inv));
+  }
+
   function isKnownLeakedTestInvestor(inv){
     const src = inv && typeof inv === 'object' ? inv : {};
     const id = String(src.id || '').trim();
@@ -210,6 +313,7 @@
       const projects = typeof repo.readRawProjectRecords === 'function' ? repo.readRawProjectRecords() : [];
       (Array.isArray(projects) ? projects : []).forEach((record)=> {
         if(testOnly && !isTestRecoveryRecord(record)) return;
+        if(!isRecoverableProjectRecord(record)) return;
         const investorId = String(record && record.investorId || '').trim();
         if(!investorId) return;
         mergeCandidateInto(recovered, { id:investorId, name:String(record && record.title || '') }, roomsFromProjectRecord(record), record);
@@ -219,6 +323,7 @@
       const snapshots = typeof repo.readRawQuoteSnapshots === 'function' ? repo.readRawQuoteSnapshots() : [];
       (Array.isArray(snapshots) ? snapshots : []).forEach((snapshot)=> {
         if(testOnly && !isTestRecoveryRecord(snapshot)) return;
+        if(!isRecoverableQuoteSnapshot(snapshot)) return;
         const investorId = String(snapshot && snapshot.investor && snapshot.investor.id || snapshot && snapshot.project && snapshot.project.investorId || '').trim();
         if(!investorId) return;
         const investorLike = Object.assign({}, snapshot && snapshot.investor || {}, { id:investorId });
@@ -241,7 +346,7 @@
     if(_isRecovering) return stripDevTestInvestorsForApp(currentRaw);
     _isRecovering = true;
     try{
-      const current = stripDevTestInvestorsForApp(currentRaw);
+      const current = stripSnapshotOnlyPhantomInvestors(stripDevTestInvestorsForApp(currentRaw));
       const removedIds = typeof repo.readRemovedIds === 'function' ? repo.readRemovedIds() : new Set();
       const existingIds = new Set(current.map((inv)=> String(inv && inv.id || '')).filter(Boolean));
       let recovered = buildRecoveryCandidates({ testOnly: false });
@@ -275,6 +380,14 @@
     isKnownLeakedTestInvestor,
     isDevTestInvestorRecord,
     stripDevTestInvestorsForApp,
+    normalizePlainText,
+    isGenericProjectTitle,
+    hasRealInvestorIdentity,
+    sourceLooksLikeQuoteSnapshot,
+    isSnapshotOnlyPhantomInvestor,
+    isRecoverableProjectRecord,
+    isRecoverableQuoteSnapshot,
+    stripSnapshotOnlyPhantomInvestors,
     roomsFromProjectRecord,
     roomsFromSnapshot,
     mergeCandidateInto,

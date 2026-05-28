@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-26T04:27:28.332Z",
+  "generatedAt": "2026-05-28T17:43:06.458Z",
   "summary": {
     "jsFiles": 359,
     "indexScripts": 283,
     "devTestScripts": 316,
     "fcSymbols": 258,
     "fcSymbolsAll": 286,
-    "edges": 1840,
+    "edges": 1842,
     "highRisk": 8,
-    "mediumRisk": 66
+    "mediumRisk": 67
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -37,11 +37,11 @@
     },
     "INWESTOR": {
       "files": 25,
-      "lines": 3448,
-      "storageRefs": 24,
+      "lines": 3616,
+      "storageRefs": 26,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 4
+      "medium": 5
     },
     "MATERIAŁ": {
       "files": 27,
@@ -149,8 +149,8 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12430,
-      "storageRefs": 238,
+      "lines": 12476,
+      "storageRefs": 242,
       "dialogRefs": 1,
       "high": 5,
       "medium": 32
@@ -234,8 +234,8 @@
       406
     ],
     [
-      "js/app/project/project-status-manual-guard.js",
-      395
+      "js/app/investor/investors-recovery.js",
+      400
     ]
   ],
   "topIncoming": [
@@ -273,7 +273,7 @@
     ],
     [
       "js/app/project/project-store.js",
-      27
+      28
     ],
     [
       "js/app/project/project-bridge.js",
@@ -292,15 +292,15 @@
       20
     ],
     [
+      "js/app/shared/constants.js",
+      20
+    ],
+    [
       "js/app/ui/confirm-box.js",
       20
     ],
     [
       "js/app/catalog/catalog-store.js",
-      19
-    ],
-    [
-      "js/app/shared/constants.js",
       19
     ],
     [
@@ -331,15 +331,15 @@
     ],
     [
       "js/app/shared/utils.js",
-      159
+      160
+    ],
+    [
+      "js/app/shared/constants.js",
+      117
     ],
     [
       "js/app/project/project-bridge.js",
       110
-    ],
-    [
-      "js/app/shared/constants.js",
-      109
     ],
     [
       "js/app/shared/schema.js",
@@ -351,7 +351,7 @@
     ],
     [
       "js/app/project/project-store.js",
-      84
+      89
     ],
     [
       "js/app/investor/investors-store.js",
@@ -416,12 +416,12 @@
       23
     ],
     [
-      "js/app/shared/storage.js",
-      17
+      "js/testing/investor/suites/recovery-isolation.js",
+      20
     ],
     [
-      "js/testing/investor/suites/recovery-isolation.js",
-      16
+      "js/app/shared/storage.js",
+      17
     ],
     [
       "js/testing/test-data-manager.js",
@@ -943,6 +943,41 @@
       ]
     },
     {
+      "file": "js/testing/investor/suites/recovery-isolation.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "TESTY",
+      "category": "test",
+      "lines": 208,
+      "incoming": 8,
+      "outgoing": 13,
+      "secondLevel": 9,
+      "storageRefs": 20,
+      "dialogRefs": 0,
+      "reasons": [
+        "kilka zależnych plików",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
+      "file": "js/app/investor/investors-store.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "INWESTOR",
+      "category": "store/storage",
+      "lines": 204,
+      "incoming": 41,
+      "outgoing": 5,
+      "secondLevel": 83,
+      "storageRefs": 2,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
       "file": "js/testing/investor/suites/recovery-sources.js",
       "risk": "średnie",
       "score": 6,
@@ -953,24 +988,6 @@
       "outgoing": 13,
       "secondLevel": 9,
       "storageRefs": 12,
-      "dialogRefs": 0,
-      "reasons": [
-        "kilka zależnych plików",
-        "dużo zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
-      "file": "js/testing/investor/suites/recovery-isolation.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "TESTY",
-      "category": "test",
-      "lines": 162,
-      "incoming": 8,
-      "outgoing": 13,
-      "secondLevel": 9,
-      "storageRefs": 16,
       "dialogRefs": 0,
       "reasons": [
         "kilka zależnych plików",
@@ -1458,6 +1475,22 @@
       ]
     },
     {
+      "file": "js/app/investor/investors-recovery.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "INWESTOR",
+      "category": "domain/controller",
+      "lines": 400,
+      "incoming": 2,
+      "outgoing": 2,
+      "secondLevel": 42,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii"
+      ]
+    },
+    {
       "file": "js/app/catalog/hardware-technical-params.js",
       "risk": "średnie",
       "score": 4,
@@ -1584,9 +1617,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 27,
+      "incoming": 28,
       "outgoing": 6,
-      "secondLevel": 84,
+      "secondLevel": 89,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1624,22 +1657,6 @@
       "dialogRefs": 0,
       "reasons": [
         "kilka publicznych symboli FC",
-        "dużo zależnych plików"
-      ]
-    },
-    {
-      "file": "js/app/investor/investors-store.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "INWESTOR",
-      "category": "domain/controller",
-      "lines": 149,
-      "incoming": 41,
-      "outgoing": 3,
-      "secondLevel": 83,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
         "dużo zależnych plików"
       ]
     },
@@ -5056,7 +5073,7 @@
     "js/app/investor/investors-recovery.js": {
       "area": "INWESTOR",
       "category": "domain/controller",
-      "lines": 287,
+      "lines": 400,
       "defines": [
         "investorsRecovery"
       ],
@@ -5123,15 +5140,15 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "250+ linii"
+        "400+ linii"
       ]
     },
     "js/app/investor/investors-store.js": {
       "area": "INWESTOR",
-      "category": "domain/controller",
-      "lines": 149,
+      "category": "store/storage",
+      "lines": 204,
       "defines": [
         "investors"
       ],
@@ -5139,6 +5156,8 @@
         "investorsModel",
         "investorsLocalRepository",
         "investorsRecovery",
+        "constants",
+        "projectStore",
         "investors"
       ],
       "incomingFiles": [
@@ -5187,7 +5206,9 @@
       "outgoingFiles": [
         "js/app/investor/investors-local-repository.js",
         "js/app/investor/investors-model.js",
-        "js/app/investor/investors-recovery.js"
+        "js/app/investor/investors-recovery.js",
+        "js/app/project/project-store.js",
+        "js/app/shared/constants.js"
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
@@ -5274,14 +5295,15 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
-      "storageRefs": 0,
+      "storageRefs": 2,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
-        "dużo zależnych plików"
+        "dużo zależnych plików",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     "js/app/investor/project-autosave.js": {
@@ -7283,6 +7305,7 @@
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
+        "js/app/investor/investors-store.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/project/project-bridge.js",
@@ -7864,6 +7887,7 @@
       ],
       "incomingFiles": [
         "js/app/investor/investor-project-repository.js",
+        "js/app/investor/investors-store.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
@@ -7907,11 +7931,13 @@
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-patches.js",
+        "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
+        "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope-decision.js",
@@ -7927,12 +7953,14 @@
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
+        "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/cabinets-render.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/wywiad-room-settings.js",
@@ -7966,6 +7994,7 @@
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
+        "js/testing/test-data-manager.js",
         "js/testing/test-data-safety.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
@@ -11393,6 +11422,7 @@
         "js/app/catalog/catalog-store.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investors-model.js",
+        "js/app/investor/investors-store.js",
         "js/app/investor/session.js",
         "js/app/material/magazyn.js",
         "js/app/project/project-bridge.js",
@@ -11422,10 +11452,12 @@
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
         "js/app/investor/investor-room-actions.js",
+        "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
         "js/app/investor/investors-local-repository.js",
@@ -11444,6 +11476,7 @@
         "js/app/project/project-status-scope.js",
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
+        "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -11460,6 +11493,7 @@
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/room-registry-impact.js",
+        "js/app/shared/room-registry-project-sync.js",
         "js/app/shared/room-scope-resolver.js",
         "js/app/shared/storage.js",
         "js/app/shared/validate.js",
@@ -11489,9 +11523,13 @@
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/helpers.js",
         "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/model-actions.js",
         "js/testing/investor/suites/recovery-isolation.js",
         "js/testing/investor/suites/recovery-sources.js",
+        "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -13663,6 +13701,7 @@
         "js/app/investor/investor-project.js",
         "js/app/investor/investor-ui.js",
         "js/app/investor/investors-local-repository.js",
+        "js/app/investor/investors-store.js",
         "js/app/investor/project-autosave.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/material/magazyn.js",
@@ -17772,7 +17811,7 @@
     "js/testing/investor/suites/recovery-isolation.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 162,
+      "lines": 208,
       "defines": [
         "investorDevTestSuites"
       ],
@@ -17821,7 +17860,7 @@
         "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js"
       ],
-      "storageRefs": 16,
+      "storageRefs": 20,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": false,

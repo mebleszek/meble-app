@@ -1,5 +1,13 @@
 # DEV.md — meble-app
 
+
+## 2026-05-28 — WYCENA/normalny tryb: ochrona przed sztucznym inwestorem ze snapshotu
+
+- Nie wolno odbudowywać inwestora z samego snapshotu WYCENY, jeśli snapshot ma tylko techniczne `investorId`, tytuł typu `Projekt meblowy` i brak realnych danych klienta. Taki snapshot jest historią oferty, a nie źródłem nowego inwestora.
+- `quote-snapshot`/`quote-snapshot-store` może służyć do recovery inwestora tylko wtedy, gdy snapshot niesie realną tożsamość klienta: nazwę, firmę, telefon, email, adres, NIP albo inne ręcznie wpisane dane.
+- Jeżeli bieżący inwestor wskazuje na odrzucony rekord snapshot-only, aplikacja ma wyczyścić wskaźnik bieżącego inwestora/projektu zamiast zostawić WYCENĘ w stanie „klik działa, ale nic się nie generuje”.
+- Nie usuwać pełnego mechanizmu snapshotów, wariantów, wyborów i statusów WYCENY. Snapshoty są historią ofert; problemem było tylko użycie pustych snapshotów jako źródła listy inwestorów.
+
 ## Hardware hinge dictionary cleanup v1 — 2026-05-26
 
 - Aktualna paczka robocza po tym etapie: `site_hardware_hinge_dictionary_cleanup_v1.zip`.

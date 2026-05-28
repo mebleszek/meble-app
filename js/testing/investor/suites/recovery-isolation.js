@@ -154,6 +154,52 @@
       }
     }),
 
+    makeTest('Inwestor', 'Snapshot Wyceny bez danych klienta nie tworzy sztucznego inwestora Projekt meblowy', 'Chroni normalny tryb po wdrożeniu: stare snapshoty ofert z samym project.investorId i tytułem Projekt meblowy nie mogą dopisywać inwestora ani przełączać bieżącego projektu, bo wtedy WYCENA może wyglądać jak martwa na realnych danych.', ()=>{
+      assert(FC.investors && typeof FC.investors.readAll === 'function', 'Brak investors.readAll');
+      assert(FC.investors && typeof FC.investors.setCurrentId === 'function', 'Brak investors.setCurrentId');
+      assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function', 'Brak FC.quoteSnapshotStore.writeAll');
+      const prevInvestors = FC.investors._debug && typeof FC.investors._debug.readStoredAll === 'function' ? FC.investors._debug.readStoredAll() : FC.investors.readAll();
+      const prevProjects = FC.projectStore.readAll();
+      const prevSnapshots = FC.quoteSnapshotStore.readAll();
+      const prevCurrent = FC.investors.getCurrentId ? FC.investors.getCurrentId() : null;
+      const removedKey = FC.investors.KEY_REMOVED || 'fc_investor_removed_ids_v1';
+      const prevRemoved = (()=>{ try{ return root.localStorage.getItem(removedKey); }catch(_){ return null; } })();
+      const prevEditSession = readEditSessionRaw();
+      try{
+        clearEditSession();
+        FC.investors.writeAll([]);
+        FC.projectStore.writeAll([]);
+        try{ root.localStorage.removeItem(removedKey); }catch(_){ }
+        FC.investors.setCurrentId('inv_quote_phantom');
+        FC.quoteSnapshotStore.writeAll([{
+          id:'snap_quote_phantom_project_only',
+          generatedAt:1776634444000,
+          investor:{ id:'inv_quote_phantom' },
+          project:{ id:'proj_quote_phantom', investorId:'inv_quote_phantom', title:'Projekt meblowy', status:'wycena' },
+          scope:{ selectedRooms:['room_a','room_s','room_p','room_x'], roomLabels:['a','S','P','X'] },
+          commercial:{ preliminary:true, versionName:'Wstępna wycena' },
+          totals:{ grand:999 },
+          lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
+          meta:{ source:'quote-snapshot-store', preliminary:true, versionName:'Wstępna wycena' }
+        }]);
+        const recovered = FC.investors.readAll();
+        assert(Array.isArray(recovered) && recovered.length === 0, 'Recovery utworzył sztucznego inwestora Projekt meblowy ze snapshotu bez danych klienta', recovered);
+        const current = FC.investors.getCurrentId();
+        assert(!current, 'Bieżący inwestor pozostał ustawiony na odrzucony snapshot-only rekord', current);
+      } finally {
+        FC.quoteSnapshotStore.writeAll(prevSnapshots);
+        FC.projectStore.writeAll(prevProjects);
+        FC.investors.writeAll(prevInvestors);
+        FC.investors.setCurrentId(prevCurrent || null);
+        try{
+          if(prevRemoved == null) root.localStorage.removeItem(removedKey);
+          else root.localStorage.setItem(removedKey, prevRemoved);
+        }catch(_){ }
+        restoreEditSession(prevEditSession);
+      }
+    }),
+
+
   ];
 
   FC.investorDevTestSuites = FC.investorDevTestSuites || [];
