@@ -1,15 +1,28 @@
 # Furniture Calc — aktualna paczka
 
-Aktualna paczka: `site_wywiad_labor_header_compact_v1.zip`.
+Aktualna paczka: `site_wycena_click_no_output_fix_v1.zip`.
 
 ## Ostatnia zmiana
 
-- Uproszczono podgląd czynności robocizny w nagłówku karty szafki w WYWIADZIE.
-- Nagłówek pokazuje nazwy czynności bez ilości, bo szczegóły i ilości są wypisane niżej w sekcji `Czynności robocizny`.
-- Status montażu sprzętu zostaje kolorowany: czerwony dla `bez montażu`, zielony dla montażu wliczonego.
-- Czynności robocizny w nagłówku są pomarańczowe jako sygnał dodatkowej pracy/uwagi.
-- Nie zmieniano wielkości, wagi ani ogólnej typografii.
-- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS ani RYSUNKU.
+- Naprawiono WYCENĘ: po kliknięciu zielonego `Wyceń` świeżo wygenerowany snapshot jest jawnie ustawiany jako widoczny podgląd i nie znika po synchronizacji statusu projektu.
+- Render WYCENY nie ukrywa już po cichu błędów podglądu/historii; pokazuje kartę `Błąd podglądu WYCENY`, jeśli coś pęknie.
+- Poprawiono test szafek, który po zmianie nazw zawiasów nadal szukał starego `Zawias BLUM`.
+- Dodano `tools/wycena-click-regression-smoke.js`, czyli test realnego kliknięcia `Wyceń`.
+- Nie ruszano panelu `Kategorie / rodzaje okuć`, backupów, import/export Excel, PRO100, usług, ROZRYS, RYSUNKU ani resolvera konkretnych okuć katalogowych.
+
+## site_wycena_click_no_output_fix_v1 — 2026-05-27
+
+- Baza: `site_hardware_hinge_dictionary_cleanup_v1.zip`.
+- Zmieniono `js/app/wycena/wycena-tab-shell.js`, `js/app/wycena/wycena-tab-render-bridge.js`, `js/testing/cabinet/tests.js`, `tools/app-dev-smoke.js`, dodano `tools/wycena-click-regression-smoke.js`, dokumentację i cache-busting.
+- Raport: `tools/reports/wycena-click-no-output-fix-v1.md`.
+
+## site_hardware_hinge_dictionary_cleanup_v1 — 2026-05-26
+
+- Baza: `site_wywiad_labor_header_compact_v1.zip`.
+- Poprawiono słownikowe cechy zawiasów: `Równoległy wpuszczany` dla rogowej ślepej oraz `Lodówkowy nakładany` dla frontu lodówkowego.
+- Dopisano realne pozycje Blum z Bivert do seedów katalogu okuć zgodnie z istniejącym modelem cennika.
+- Zapisano zasadę: realne okucia do wyceny nie mogą być zaszywane na sztywno, tylko muszą być rekordami katalogu zbudowanymi ze słowników aplikacji.
+- Raport: `tools/reports/hardware-hinge-dictionary-cleanup-v1.md`.
 
 ## site_wywiad_labor_header_compact_v1 — 2026-05-26
 
@@ -33,8 +46,8 @@ Aktualna paczka: `site_wywiad_labor_header_compact_v1.zip`.
 
 - Baza: `site_hardware_producer_accessories_save_fix_v1.zip`.
 - Dodano warstwę techniczną `szafka / wariant frontu → wymaganie techniczne okucia` w `js/app/cabinet/cabinet-hardware-requirements.js`.
-- Dla lodówki dodano ptaszek `Wymaga zawiasów meblowych`; po zaznaczeniu lodówka używa wymagania `Zawias lodówkowy / do frontu lodówki`.
-- Do katalogu/słowników okuć dodano typy/cechy pod rogowe ślepe i zawiasy lodówkowe.
+- Dla lodówki dodano ptaszek `Wymaga zawiasów meblowych`; po zaznaczeniu lodówka używa wymagania `Zawias lodówkowy nakładany`.
+- Do katalogu/słowników okuć dodano słownikowe typy/cechy `Równoległy wpuszczany` oraz `Lodówkowy nakładany`.
 - Nie dodano fikcyjnej pozycji/ceny Bivert dla zawiasu rogowej ślepej; zostaje do uzupełnienia prawdziwym symbolem i ceną.
 - Raport: `tools/reports/cabinet-hardware-requirements-v1.md`.
 
@@ -858,3 +871,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Test nie zapisuje już backupów do realnego `localStorage`; sprawdza limit 10 kopii na małych rekordach w pamięci JS przez politykę retencji.
 - Zasada pozostaje bez zmian: automatyczne backupy testowe mają maksymalnie 10 najnowszych kopii, a gdy zapis w pamięci programu nie jest możliwy, użytkownik ma ręczny eksport backupu na dysk.
 - Nie zmieniono mechanizmu backupu, retencji, `BACKUP.md`, silnika zamienników, UI, import/export Excel, PRO100, ROZRYS, RYSUNKU ani WYCENY.
+
+## Hardware hinge dictionary cleanup v1 — 2026-05-26
+
+- Poprawiono nazewnictwo słownikowe zawiasów pod szafki: rogowa ślepa korzysta z realnego typu `Równoległy wpuszczany`, a lodówkowa z `Lodówkowy nakładany`.
+- Zaszyte opisowe wartości `Do rogowej ślepej / ślepego narożnika`, `równoległy / do ślepego narożnika` i samo `lodówkowy` zostały zastąpione słownikowymi odpowiednikami.
+- Katalog startowy okuć dostał dwie realne pozycje Blum/Bivert: `79B9550+173L6130` oraz `91K9550+194K6100`, z kategorią `Zawiasy`, jednostką `kpl.`, dostawcą Bivert, datą ceny i parametrami technicznymi.
+- Instrukcja rozwoju cennika: nowe okucia dopisywać tylko jako rekordy katalogu zgodne z istniejącym modelem i słownikami aplikacji; kod nie może udawać produktu ani ukrywać ceny poza katalogiem.

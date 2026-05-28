@@ -20,6 +20,34 @@
           dismissOnEsc:false,
         });
       }
+    }catch(error){
+      try{ console.error('[wycena] validation dialog failed', error); }catch(_){ }
+    }
+  }
+
+  function getSnapshotId(snapshot, deps){
+    try{
+      if(deps && typeof deps.getSnapshotId === 'function') return String(deps.getSnapshotId(snapshot) || '');
+    }catch(_){ }
+    try{ return String(snapshot && snapshot.id || ''); }catch(_){ return ''; }
+  }
+
+  function makeVisibleQuoteError(err){
+    const title = String(err && err.title || 'Nie można utworzyć wyceny');
+    const message = String(err && err.message || err || 'Nie udało się utworzyć wyceny.');
+    return {
+      error: title === message ? message : `${title}: ${message}`,
+      totals:{ materials:0, accessories:0, services:0, quoteRates:0, labor:0, subtotal:0, discount:0, grand:0 },
+      roomLabels:[],
+      generatedAt:Date.now(),
+    };
+  }
+
+  function refreshStatusBaseline(deps){
+    const d = normalizeDeps(deps);
+    if(!(typeof d.getProjectStatusForHistory === 'function' && typeof d.getSnapshotHistory === 'function' && typeof d.setState === 'function')) return;
+    try{
+      d.setState({ lastKnownProjectStatus:d.getProjectStatusForHistory(d.getSnapshotHistory()) });
     }catch(_){ }
   }
 
@@ -36,21 +64,24 @@
       let nextQuote = null;
       if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') nextQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') nextQuote = await FC.wycenaCore.collectQuoteData({ selection });
-      if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote });
+      const snapshotId = getSnapshotId(nextQuote, d);
+      if(typeof d.setState === 'function') d.setState({
+        lastQuote:nextQuote,
+        previewSnapshotId:snapshotId,
+        shouldScrollToPreview:!!snapshotId,
+      });
       if(nextQuote && !nextQuote.error) d.syncGeneratedQuoteStatus(nextQuote);
+      refreshStatusBaseline(d);
+      if(typeof d.setState === 'function') d.setState({
+        lastQuote:nextQuote,
+        previewSnapshotId:snapshotId,
+        shouldScrollToPreview:!!snapshotId,
+      });
     }catch(err){
       try{ console.error('[wycena] collect failed', err); }catch(_){ }
-      if(err && err.quoteValidation){
-        showQuoteValidationError(err);
-      } else if(typeof d.setState === 'function'){
-        d.setState({
-          lastQuote:{
-            error:String(err && err.message || err || 'Błąd wyceny'),
-            totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
-            roomLabels:[],
-          }
-        });
-      }
+      const visibleError = makeVisibleQuoteError(err);
+      if(err && err.quoteValidation) showQuoteValidationError(err);
+      if(typeof d.setState === 'function') d.setState({ lastQuote:visibleError, previewSnapshotId:'', shouldScrollToPreview:true });
     }finally{
       if(typeof d.setState === 'function') d.setState({ isBusy:false });
       if(typeof d.render === 'function') d.render(ctx);
@@ -84,7 +115,8 @@
     const state = d.getState ? d.getState() : {};
     const liveStatus = d.getProjectStatusForHistory(d.getSnapshotHistory());
     if(state.lastKnownProjectStatus && liveStatus !== state.lastKnownProjectStatus){
-      if(typeof d.setState === 'function') d.setState({ previewSnapshotId:'', lastQuote:null });
+      const hasFreshGeneratedQuote = !!(state.previewSnapshotId && state.lastQuote && getSnapshotId(state.lastQuote, d) === state.previewSnapshotId);
+      if(!hasFreshGeneratedQuote && typeof d.setState === 'function') d.setState({ previewSnapshotId:'', lastQuote:null });
     }
     if(typeof d.setState === 'function') d.setState({ lastKnownProjectStatus:liveStatus });
   }

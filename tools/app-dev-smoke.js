@@ -842,6 +842,17 @@ function runWycenaNodeSmoke(sandbox){
   return makeSingleGroupReport('WYCENA node smoke testy', 'Wycena ↔ Node smoke', [
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
+    { name:'Kliknięcie Wyceń zachowuje świeżo wygenerowany podgląd po synchronizacji statusu', explain:'Chroni regresję: po kliknięciu zielonego Wyceń snapshot nie może zostać zgubiony przez zmianę statusu projektu ani przez ciche błędy renderu.', check:()=> {
+      const shellSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
+      const bridgeSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-render-bridge.js'), 'utf8');
+      return shellSrc.includes('refreshStatusBaseline')
+        && shellSrc.includes('previewSnapshotId:snapshotId')
+        && shellSrc.includes('hasFreshGeneratedQuote')
+        && shellSrc.includes('makeVisibleQuoteError')
+        && bridgeSrc.includes('appendRenderError')
+        && bridgeSrc.includes('reportRenderError')
+        && bridgeSrc.includes('Błąd podglądu WYCENY');
+    } },
     { name:'Wycena core ma spójny świeży cache-busting', explain:'Chroni pierwsze odświeżenie po wdrożeniu przed mieszaniem starych i nowych modułów wycena-core*.', check:()=> {
       const baseExpected = '20260510_wycena_core_cache_fix_v1';
       const changedExpected = '20260524_hardware_producer_preferences_v1';
@@ -1082,14 +1093,14 @@ function runCabinetNodeSmoke(sandbox){
       const reqFridgeChecked = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'lodowkowa', details:{ fridgeOption:'zabudowa', requiresFurnitureHinges:true } });
       return reqStd.typeId === 'hinge_110_overlay'
         && reqL.typeId === 'hinge_170_corner'
-        && reqBlind.typeId === 'hinge_blind_corner' && reqBlind.needsCatalogItem === true
+        && reqBlind.typeId === 'hinge_parallel_inset' && reqBlind.label === 'Zawias równoległy wpuszczany' && reqBlind.technicalParams && reqBlind.technicalParams.nalozenie && reqBlind.technicalParams.nalozenie.value === 'równoległy wpuszczany'
         && reqOvenDrawer.kind === 'none'
         && reqOvenFlap.typeId === 'hinge_110_overlay'
         && reqSinkDrawer.kind === 'none'
         && reqUnderDoors.typeId === 'hinge_110_overlay' && reqUnderDoors.logicalGroup === 'stojąca_bez_nóg'
         && reqUnderDrawers.kind === 'none'
         && reqFridgeDefault.kind === 'none' && reqFridgeDefault.canEnableWithFlag === 'requiresFurnitureHinges'
-        && reqFridgeChecked.typeId === 'hinge_fridge';
+        && reqFridgeChecked.typeId === 'hinge_fridge_overlay' && reqFridgeChecked.technicalParams && reqFridgeChecked.technicalParams.nalozenie && reqFridgeChecked.technicalParams.nalozenie.value === 'lodówkowy nakładany';
     } },
     { name:'UI lodówki ma ptaszek zawiasów meblowych', explain:'Chroni decyzję: lodówkowa domyślnie nie dostaje zawiasów, ale front może wymagać zawiasów meblowych.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
@@ -1121,14 +1132,24 @@ function runCabinetNodeSmoke(sandbox){
         sandbox.projectData = previousProject;
       }
     } },
-    { name:'Katalog okuć ma typy i cechy pod reguły zawiasów v1', explain:'Chroni przyszły resolver katalogowy: wymagania techniczne mają swoje typy i słownikowe wartości.', check:()=> {
-      const catalogSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/catalog/hardware-catalog.js'), 'utf8');
-      const paramsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/catalog/hardware-technical-params.js'), 'utf8');
-      return catalogSrc.includes("id:'hinge_blind_corner'")
-        && catalogSrc.includes("Do rogowej ślepej / ślepego narożnika")
-        && catalogSrc.includes("id:'hinge_fridge'")
-        && paramsSrc.includes('równoległy / do ślepego narożnika')
-        && paramsSrc.includes('lodówkowy');
+    { name:'Katalog okuć ma słownikowe typy zawiasów bez sztywnego opisu rogowej ślepej', explain:'Chroni zasadę: okucie wynika ze słowników i katalogu, a rogowa ślepa używa realnej cechy równoległy wpuszczany.', check:()=> {
+      const api = FC.hardwareCatalog;
+      const tech = FC.hardwareTechnicalParams;
+      if(!(api && tech && typeof api.normalizeTypeList === 'function' && typeof tech.normalizeDefinitions === 'function')) return false;
+      const types = api.normalizeTypeList([{ id:'hinge_blind_corner', name:'Do rogowej ślepej / ślepego narożnika', allowedCategories:['Zawiasy'], active:true }, { id:'hinge_fridge', name:'Lodówkowy / do frontu lodówki', allowedCategories:['Zawiasy'], active:true }]);
+      const params = tech.normalizeDefinitions([{ category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', options:['nakładany','półnakładany / bliźniaczy','wpuszczany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true }], ['Zawiasy']);
+      const nalozenie = params.find((row)=> row && row.category === 'Zawiasy' && row.key === 'nalozenie');
+      const options = nalozenie && nalozenie.options || [];
+      const list = FC.hardwareCatalogSeeds && typeof FC.hardwareCatalogSeeds.mergeAccessorySeeds === 'function' ? FC.hardwareCatalogSeeds.mergeAccessorySeeds([]) : [];
+      return types.some((row)=> row.id === 'hinge_parallel_inset' && row.name === 'Równoległy wpuszczany')
+        && types.some((row)=> row.id === 'hinge_fridge_overlay' && row.name === 'Lodówkowy nakładany')
+        && !types.some((row)=> /rogowej ślepej|ślepego narożnika/i.test(String(row.name || '')))
+        && options.includes('równoległy wpuszczany')
+        && options.includes('lodówkowy nakładany')
+        && !options.includes('równoległy / do ślepego narożnika')
+        && !options.includes('lodówkowy')
+        && list.some((row)=> row && row.symbol === '79B9550+173L6130' && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'równoległy wpuszczany')
+        && list.some((row)=> row && row.symbol === '91K9550+194K6100' && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'lodówkowy nakładany');
     } },
     { name:'Hardware frontów jest załadowany', explain:'Chroni kalkulatory i katalogi używane przy frontach/podnośnikach.', check:()=> !!(FC.frontHardware && FC.frontHardwareAventosCalc && FC.frontHardwareAventosData && FC.frontHardwareAventosSelector) },
   ]);

@@ -10,8 +10,8 @@
     INSET_110: 'hinge_110_inset',
     ZERO_155: 'hinge_155_zero',
     CORNER_170: 'hinge_170_corner',
-    BLIND_CORNER: 'hinge_blind_corner',
-    FRIDGE: 'hinge_fridge'
+    PARALLEL_INSET: 'hinge_parallel_inset',
+    FRIDGE_OVERLAY: 'hinge_fridge_overlay'
   };
 
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -88,14 +88,16 @@
     }, extra);
   }
   function blindCorner(ruleId, extra){
-    return hingeRequirement(HINGE_TYPES.BLIND_CORNER, 'Zawias do rogowej ślepej / ślepego narożnika', ruleId, {
-      nalozenie:{ value:'równoległy / do ślepego narożnika' },
+    return hingeRequirement(HINGE_TYPES.PARALLEL_INSET, 'Zawias równoległy wpuszczany', ruleId, {
+      nalozenie:{ value:'równoległy wpuszczany' },
+      kat_otwarcia:{ from:95 },
       prowadnik:{ value:'specjalny' }
-    }, Object.assign({ needsCatalogItem:true }, extra || {}));
+    }, extra);
   }
   function fridgeHinge(ruleId, extra){
-    return hingeRequirement(HINGE_TYPES.FRIDGE, 'Zawias lodówkowy / do frontu lodówki', ruleId, {
-      nalozenie:{ value:'lodówkowy' },
+    return hingeRequirement(HINGE_TYPES.FRIDGE_OVERLAY, 'Zawias lodówkowy nakładany', ruleId, {
+      nalozenie:{ value:'lodówkowy nakładany' },
+      kat_otwarcia:{ from:95 },
       prowadnik:{ value:'specjalny' }
     }, extra);
   }

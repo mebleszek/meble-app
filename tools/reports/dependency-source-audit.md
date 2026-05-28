@@ -19,12 +19,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 53 | 12430 | 238 | 1 | 5 | 32 |
+| TESTY | 53 | 12431 | 238 | 1 | 5 | 32 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 4 |
-| SZAFKI | 31 | 7595 | 0 | 0 | 0 | 4 |
-| WYCENA | 45 | 6956 | 0 | 0 | 0 | 6 |
+| SZAFKI | 31 | 7597 | 0 | 0 | 0 | 4 |
+| WYCENA | 45 | 7022 | 0 | 0 | 0 | 6 |
 | MATERIAŁ | 27 | 5702 | 8 | 3 | 0 | 3 |
-| KATALOG/USŁUGI | 24 | 4718 | 4 | 0 | 1 | 2 |
+| KATALOG/USŁUGI | 24 | 4789 | 4 | 0 | 1 | 2 |
 | UI | 32 | 4243 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3448 | 24 | 0 | 0 | 4 |
 | PROJEKT | 10 | 2022 | 0 | 0 | 0 | 6 |
@@ -43,7 +43,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Linie | Obszar | Ryzyko |
 | --- | --- | --- | --- |
 | js/tabs/rysunek.js | 1459 | RYSUNEK | nie ruszać bez osobnego planu |
-| js/testing/cabinet/tests.js | 1006 | TESTY | wysokie |
+| js/testing/cabinet/tests.js | 1007 | TESTY | wysokie |
 | js/app/cabinet/cabinet-modal-set-wizard.js | 858 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-fronts.js | 854 | SZAFKI | średnie |
 | js/testing/project/tests.js | 848 | TESTY | wysokie |
@@ -53,7 +53,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/material/accessories-tests.js | 614 | TESTY | średnie |
 | js/app/material/price-modal-hardware-dictionaries.js | 609 | MATERIAŁ | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 602 | SZAFKI | średnie |
-| js/app/catalog/hardware-catalog.js | 575 | KATALOG/USŁUGI | średnie |
+| js/app/catalog/hardware-catalog.js | 584 | KATALOG/USŁUGI | średnie |
 | js/app/material/price-modal-hardware-form.js | 563 | MATERIAŁ | niskie |
 | js/app/catalog/catalog-store.js | 524 | KATALOG/USŁUGI | wysokie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
@@ -143,7 +143,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Ryzyko | Score | Linie | Direct impact | 2nd level | Powody |
 | --- | --- | --- | --- | --- | --- | --- |
 | js/testing/project/tests.js | wysokie | 15 | 848 | 14 | 38 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
-| js/testing/cabinet/tests.js | wysokie | 10 | 1006 | 6 | 33 | 600+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących; dużo DOM i publicznego API |
+| js/testing/cabinet/tests.js | wysokie | 10 | 1007 | 6 | 33 | 600+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących; dużo DOM i publicznego API |
 | js/testing/rozrys/tests.js | wysokie | 10 | 475 | 10 | 37 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/app/rozrys/rozrys.js | wysokie | 9 | 842 | 9 | 48 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 15 | 23 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
@@ -153,7 +153,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/wycena/fixtures.js | średnie | 7 | 154 | 16 | 24 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/tabs/rysunek.js | nie ruszać bez osobnego planu | 6 | 1459 | 2 | 7 | 600+ linii; systemowe dialogi |
 | js/testing/material/accessories-tests.js | średnie | 6 | 614 | 1 | 1 | 600+ linii; dużo zależności wychodzących |
-| js/app/catalog/hardware-catalog.js | średnie | 6 | 575 | 18 | 25 | 400+ linii; dużo zależnych plików |
+| js/app/catalog/hardware-catalog.js | średnie | 6 | 584 | 18 | 25 | 400+ linii; dużo zależnych plików |
 | js/app/ui/actions-register.js | średnie | 6 | 455 | 0 | 0 | 400+ linii; dużo zależności wychodzących; systemowe dialogi |
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
 | js/app/investor/investor-ui.js | średnie | 6 | 363 | 7 | 23 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |

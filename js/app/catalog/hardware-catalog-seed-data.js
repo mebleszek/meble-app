@@ -78,6 +78,44 @@
       note:'Seed katalogu okuć. Do szerokiego otwarcia / narożnych rozwiązań; dobrać zgodnie z konstrukcją szafki.'
     }),
     seed({
+      id:'hw_seed_blum_79b9550_173l6130_parallel_inset',
+      manufacturer:'Blum',
+      symbol:'79B9550+173L6130',
+      name:'Zawias równoległy wpuszczany CLIP TOP BLUMOTION 95° + prowadnik',
+      hardwareCategory:'Zawiasy',
+      hardwareUnit:'kpl.',
+      series:'CLIP top BLUMOTION',
+      catalogPriceGross:16.25,
+      purchasePriceGross:16.25,
+      priceSource:'Bivert',
+      priceUpdatedAt:'2026-05-26',
+      technicalParams:{
+        nalozenie:{ value:'równoległy wpuszczany' },
+        kat_otwarcia:{ from:95 },
+        prowadnik:{ value:'specjalny' }
+      },
+      note:'Seed katalogu okuć. Realna pozycja Bivert dla rogowej ślepej: zawias równoległy wpuszczany 95° z prowadnikiem. Przed ofertą sprawdzić aktualność ceny.'
+    }),
+    seed({
+      id:'hw_seed_blum_91k9550_194k6100_fridge_overlay',
+      manufacturer:'Blum',
+      symbol:'91K9550+194K6100',
+      name:'Zawias lodówkowy nakładany MODUL 95° + prowadnik',
+      hardwareCategory:'Zawiasy',
+      hardwareUnit:'kpl.',
+      series:'MODUL',
+      catalogPriceGross:8.14,
+      purchasePriceGross:8.14,
+      priceSource:'Bivert',
+      priceUpdatedAt:'2026-05-26',
+      technicalParams:{
+        nalozenie:{ value:'lodówkowy nakładany' },
+        kat_otwarcia:{ from:95 },
+        prowadnik:{ value:'specjalny' }
+      },
+      note:'Seed katalogu okuć. Realny komplet Bivert do frontów lodówki: zawias 91K9550 + prowadnik 194K6100E. Przed ofertą sprawdzić aktualność ceny.'
+    }),
+    seed({
       id:'hw_seed_gtv_fchc_110_soft_euro',
       manufacturer:'GTV',
       symbol:'FCHC 110° + euro',
