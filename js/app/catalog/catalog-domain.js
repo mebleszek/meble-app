@@ -4,7 +4,7 @@
   const FC = window.FC;
 
   const SHEET_MATERIAL_TYPES = ['laminat','akryl','lakier','blat'];
-  const QUOTE_RATE_CATEGORIES = ['Stawki godzinowe','Korpusy','Elementy szafki','Usługi przy szafce','Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
+  const QUOTE_RATE_CATEGORIES = ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
   const WORKSHOP_SERVICE_CATEGORIES = ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'];
 
   const PRICE_LIST_CONFIG = {
@@ -21,9 +21,9 @@
     accessories: {
       key:'accessories',
       storageKey:'accessories',
-      title:'Okucia i akcesoria',
-      subtitle:'Szukaj, filtruj i zarządzaj katalogiem okuć, producentami, jednostkami i cenami do wyceny.',
-      addLabel:'Dodaj okucie',
+      title:'Akcesoria',
+      subtitle:'Szukaj, filtruj i zarządzaj akcesoriami.',
+      addLabel:'Dodaj akcesorium',
       icon:'🧷',
       formKind:'accessory',
       mode:'furnitureProjects',
@@ -32,8 +32,8 @@
       key:'quoteRates',
       storageKey:'quoteRates',
       title:'Stawki wyceny mebli',
-      subtitle:'Szukaj, filtruj i zarządzaj czynnościami, stawkami i regułami robocizny do wyceny projektów meblowych.',
-      addLabel:'Dodaj robociznę',
+      subtitle:'Szukaj, filtruj i zarządzaj stawkami używanymi przy wycenie projektów meblowych.',
+      addLabel:'Dodaj stawkę',
       icon:'💲',
       formKind:'service',
       mode:'furnitureProjects',

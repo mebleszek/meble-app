@@ -47,12 +47,6 @@
     });
   }
 
-  function invalidateRoomRegistryCache(){
-    try{
-      if(FC.roomRegistryDefinitions && typeof FC.roomRegistryDefinitions.invalidateCache === 'function') FC.roomRegistryDefinitions.invalidateCache();
-    }catch(_){ }
-  }
-
   function snapshotLegacyProjectSlots(){
     return readLegacyProjectSlots();
   }
@@ -60,9 +54,6 @@
   function withInvestorProjectFixture(options, run){
     const cfg = options && typeof options === 'object' ? options : {};
     const prevLegacyProjectSlots = readLegacyProjectSlots();
-    let prevEditSession = null;
-    let hadPrevEditSession = false;
-    try{ hadPrevEditSession = localStorage.getItem('fc_edit_session_v1') !== null; prevEditSession = localStorage.getItem('fc_edit_session_v1'); }catch(_){ }
     const prevInvestors = FC.investors && typeof FC.investors.readAll === 'function' ? FC.investors.readAll() : [];
     const prevCurrentInvestorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? FC.investors.getCurrentId() : '';
     const prevProjects = FC.projectStore && typeof FC.projectStore.readAll === 'function' ? FC.projectStore.readAll() : [];
@@ -90,32 +81,22 @@
       room_kuchnia_gora: { cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
       room_salon: { cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
     });
-    const rawInvestor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
-    const investor = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
-      ? FC.testDataManager.markRecord('wycena-fixture-investor', rawInvestor)
-      : rawInvestor;
-    const rawProjectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
-    const projectRecord = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
-      ? FC.testDataManager.markRecord('wycena-fixture-project', rawProjectRecord)
-      : rawProjectRecord;
+    const investor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
+    const projectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
     const cleanup = ()=>{
       if(FC.cabinetCutlist && prevCutList) FC.cabinetCutlist.getCabinetCutList = prevCutList;
       if(FC.rozrys) FC.rozrys.__projectOverride = prevOverride;
       if(prevProjectData === undefined) { try{ delete host.projectData; }catch(_){ host.projectData = undefined; } }
       else host.projectData = prevProjectData;
-      invalidateRoomRegistryCache();
       FC.quoteOfferStore && FC.quoteOfferStore.writeAll && FC.quoteOfferStore.writeAll(prevDrafts);
       FC.quoteSnapshotStore && FC.quoteSnapshotStore.writeAll && FC.quoteSnapshotStore.writeAll(prevSnapshots);
       FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll(prevProjects);
       FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(prevCurrentProjectId);
       FC.investors && FC.investors.writeAll && FC.investors.writeAll(prevInvestors);
       FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(prevCurrentInvestorId);
-      invalidateRoomRegistryCache();
       restoreLegacyProjectSlots(prevLegacyProjectSlots);
-      try{ if(hadPrevEditSession) localStorage.setItem('fc_edit_session_v1', prevEditSession); else localStorage.removeItem('fc_edit_session_v1'); }catch(_){ }
     };
     try{
-      try{ localStorage.removeItem('fc_edit_session_v1'); }catch(_){ }
       FC.investors && FC.investors.writeAll && FC.investors.writeAll([investor]);
       FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
       FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll([projectRecord]);
@@ -124,7 +105,6 @@
       if(FC.quoteOfferStore && typeof FC.quoteOfferStore.writeAll === 'function') FC.quoteOfferStore.writeAll([]);
       host.projectData = clone(projectData);
       if(FC.rozrys) FC.rozrys.__projectOverride = host.projectData;
-      invalidateRoomRegistryCache();
       if(typeof cfg.cutListFn === 'function' && FC.cabinetCutlist){
         FC.cabinetCutlist.getCabinetCutList = cfg.cutListFn;
       }

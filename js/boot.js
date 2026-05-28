@@ -1,4 +1,4 @@
-/* boot.js — boot-clean-1.5 (ERROR BANNER + STARTER)
+/* boot.js — boot-clean-1.4 (ERROR BANNER + STARTER)
    - pokazuje czerwony pasek błędów
    - NIE resetuje automatycznie widoku po zwykłym odświeżeniu
    - uruchamia aplikację: FC.init() / App.init() / initApp() / initUI()
@@ -6,10 +6,7 @@
 */
 (() => {
   'use strict';
-  const BOOT_VERSION = 'boot-clean-1.5';
-  const BOOT_INTERVAL_MS = 50;
-  const BOOT_MISSING_INIT_TIMEOUT_MS = 15000;
-  const BOOT_MISSING_INIT_LOAD_GRACE_MS = 3000;
+  const BOOT_VERSION = 'boot-clean-1.4';
   const UI_KEY = 'fc_ui_v1';
 
   // No automatic reset to Home on normal refresh.
@@ -157,58 +154,24 @@
     return recoveryPromise;
   }
 
-  let bootStarted = false;
   function boot(){
-    if (bootStarted) return;
-    bootStarted = true;
     let tries = 0;
     let recoveryTriggered = false;
-    const startedAt = Date.now();
-    let loadSeen = document.readyState === 'complete';
-    let timer = null;
-
-    function elapsed(){ return Date.now() - startedAt; }
-    function canReportMissingInit(){
-      const waitedLongEnough = elapsed() >= BOOT_MISSING_INIT_TIMEOUT_MS;
-      const loadGracePassed = loadSeen && elapsed() >= BOOT_MISSING_INIT_LOAD_GRACE_MS;
-      // Nie pokazuj fałszywego „brak init” podczas pierwszego, wolniejszego wejścia po wdrożeniu.
-      // Raportuj dopiero po pełnym load albo po twardym limicie czasu, jeśli load z jakiegoś powodu nie nadejdzie.
-      return waitedLongEnough && (loadGracePassed || elapsed() >= BOOT_MISSING_INIT_TIMEOUT_MS + BOOT_MISSING_INIT_LOAD_GRACE_MS);
-    }
-    function reportMissingInit(){
-      showError(`❌ Nie znaleziono funkcji startowej aplikacji.
-Boot.js version: ${BOOT_VERSION}
-Szukam: FC.init(), App.init(), initApp(), initUI().`);
-    }
-
-    function tryStartAndStop(){
-      if (startOnce()) {
-        if (timer) clearInterval(timer);
-        return true;
-      }
-      return false;
-    }
-
-    window.addEventListener('load', () => {
-      loadSeen = true;
-      tryStartAndStop();
-    }, { once:true });
-
-    timer = setInterval(async () => {
+    const timer = setInterval(async () => {
       tries++;
-      if (tryStartAndStop()) return;
-      if (!recoveryTriggered && (loadSeen || elapsed() >= 3000) && tries >= 20) {
+      if (startOnce()) { clearInterval(timer); return; }
+      if (!recoveryTriggered && tries >= 12) {
         recoveryTriggered = true;
         await attemptRecovery();
-        if (tryStartAndStop()) return;
+        if (startOnce()) { clearInterval(timer); return; }
       }
-      if (canReportMissingInit()) {
+      if (tries > 60) {
         clearInterval(timer);
-        reportMissingInit();
+        showError(`❌ Nie znaleziono funkcji startowej aplikacji.
+Boot.js version: ${BOOT_VERSION}
+Szukam: FC.init(), App.init(), initApp(), initUI().`);
       }
-    }, BOOT_INTERVAL_MS);
-
-    tryStartAndStop();
+    }, 50);
   }
 
   if (document.readyState === 'loading') {

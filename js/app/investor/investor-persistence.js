@@ -64,48 +64,13 @@
       }
     }catch(_){ }
     try{
-      if(!opts.explicitRoomOnly && FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.buildManualStatusScopeChoices === 'function'){
-        const scopeDecision = FC.projectStatusManualGuard.buildManualStatusScopeChoices(investorId, targetRoomId, nextStatus);
-        const autoRoomIds = scopeDecision && scopeDecision.autoChoice && Array.isArray(scopeDecision.autoChoice.roomIds) ? scopeDecision.autoChoice.roomIds : [];
-        if(scopeDecision && scopeDecision.needsDecision !== true && autoRoomIds.length > 1){
-          return setInvestorProjectStatusScope(investorId, autoRoomIds, nextStatus, Object.assign({}, opts, { skipGuard:true, syncSelection:true }));
-        }
-      }
-    }catch(_){ }
-    try{
       if(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function'){
         const result = FC.projectStatusSync.setInvestorRoomStatus(investorId, targetRoomId, nextStatus, { syncSelection:true });
         const investor = result && result.investor ? result.investor : getInvestorById(investorId);
         return opts.returnDetails ? { applied:true, blocked:false, investor, result:result || null } : investor;
       }
     }catch(_){ }
-    const investor = updateInvestorRoom(investorId, targetRoomId, { projectStatus:nextStatus, lastManualProjectStatus:nextStatus });
-    return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
-  }
-
-
-  function setInvestorProjectStatusScope(id, roomIds, status, options){
-    const investorId = String(id || '');
-    const ids = Array.isArray(roomIds) ? Array.from(new Set(roomIds.map((roomId)=> String(roomId || '').trim()).filter(Boolean))) : [];
-    const nextStatus = String(status || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
-    const opts = options && typeof options === 'object' ? options : {};
-    if(!ids.length) return opts.returnDetails ? { applied:false, blocked:false, investor:getInvestorById(investorId), result:null } : getInvestorById(investorId);
-    try{
-      if(FC.projectStatusSync && typeof FC.projectStatusSync.applyProjectStatusChange === 'function'){
-        const result = FC.projectStatusSync.applyProjectStatusChange({
-          investorId,
-          roomIds:ids,
-          status:nextStatus,
-          syncSelection: Object.prototype.hasOwnProperty.call(opts, 'syncSelection') ? !!opts.syncSelection : true,
-          refreshUi: opts.refreshUi,
-          preserveCurrentWhenNoQuoteRows: Object.prototype.hasOwnProperty.call(opts, 'preserveCurrentWhenNoQuoteRows') ? !!opts.preserveCurrentWhenNoQuoteRows : true,
-        });
-        const investor = result && result.investor ? result.investor : getInvestorById(investorId);
-        return opts.returnDetails ? { applied:true, blocked:false, investor, result:result || null } : investor;
-      }
-    }catch(_){ }
-    ids.forEach((roomId)=> updateInvestorRoom(investorId, roomId, { projectStatus:nextStatus, lastManualProjectStatus:nextStatus }));
-    const investor = getInvestorById(investorId);
+    const investor = updateInvestorRoom(investorId, targetRoomId, { projectStatus:nextStatus });
     return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
   }
 
@@ -130,7 +95,6 @@
     saveInvestorPatch,
     updateInvestorRoom,
     setInvestorProjectStatus,
-    setInvestorProjectStatusScope,
     removeInvestor,
   };
 })();

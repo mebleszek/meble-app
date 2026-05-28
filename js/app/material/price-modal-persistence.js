@@ -38,22 +38,13 @@
   }
   function saveAccessoryFromForm(){
     const data = ctx.getCurrentAccessoryDraft(); if(!validateAccessoryForm(data)) return false;
-    let payload = Object.assign({}, data, { price:Number(data.price) || 0 });
-    try{
-      if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function') payload = FC.hardwareCatalog.normalizeAccessory(payload, FC.utils && FC.utils.uid);
-    }catch(_){ }
-    upsertCurrentList(payload);
+    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0 }));
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   function saveServiceFromForm(){
     try{ if(ctx.currentListKind() === 'quoteRates' && FC.wycenaCore && typeof FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const data = ctx.getCurrentServiceDraft(); if(!validateServiceForm(data)) return false;
-    const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
-    try{
-      if(ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function'){
-        upsertCurrentList(FC.laborCatalog.normalizeDefinition(payload));
-      }else upsertCurrentList(payload);
-    }catch(_){ upsertCurrentList(payload); }
+    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0 }));
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   async function saveActivePriceItem(){

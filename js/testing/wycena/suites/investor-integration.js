@@ -30,7 +30,7 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana Pomiar → Wycena zachowuje zaakceptowaną wstępną ofertę', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor oznacza oczekiwanie na wycenę końcową po pomiarze, a nie odrzucenie jedynej zaakceptowanej wyceny wstępnej.', ()=>{
+    H.makeTest('Wycena ↔ Inwestor', 'Ręczna zmiana statusu inwestora przełącza wskazaną ofertę i status projektu', 'Pilnuje, czy zmiana statusu projektu po stronie Inwestor korzysta z tej samej logiki co Wycena i nie rozjeżdża store projektu oraz historii ofert.', ()=>{
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function', 'Brak FC.quoteSnapshotStore.markSelectedForProject');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
@@ -45,101 +45,29 @@
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'wycena');
           selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
           record = FC.projectStore.getByInvestorId(investorId);
-          const prelimAfterWycena = FC.quoteSnapshotStore.getById(prelim.id);
-          H.assert(selected && String(selected.id || '') === String(prelim.id || ''), 'Status Wycena po Pomiarze nie może odpiąć zaakceptowanej wyceny wstępnej', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
-          H.assert(prelimAfterWycena && FC.quoteSnapshotStore.isRejectedSnapshot(prelimAfterWycena) === false, 'Status Wycena po Pomiarze nie może oznaczyć wstępnej oferty jako odrzuconej', prelimAfterWycena);
-          H.assert(record && String(record.status || '') === 'wycena', 'Status wycena nie zapisał się do projectStore jako etap oczekiwania na wycenę końcową', record);
+          H.assert(selected == null, 'Status wycena nie wyczyścił wskazanej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
+          H.assert(record && String(record.status || '') === 'wycena', 'Status wycena nie zapisał się do projectStore', record);
           FC.quoteSnapshotStore.markSelectedForProject(projectId, finalQuote.id, { status:'zaakceptowany', roomIds:['room_kuchnia_gora'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_kuchnia_gora', 'zaakceptowany');
           selected = FC.quoteSnapshotStore.getSelectedForProject(projectId);
           record = FC.projectStore.getByInvestorId(investorId);
           H.assert(selected && String(selected.id || '') === String(finalQuote.id || ''), 'Status zaakceptowany nie wskazał finalnej oferty', { selected, all:FC.quoteSnapshotStore.listForProject(projectId) });
-          const prelimAfterFinal = FC.quoteSnapshotStore.getById(prelim.id);
-          H.assert(prelimAfterFinal && FC.quoteSnapshotStore.isRejectedSnapshot(prelimAfterFinal) === false, 'Akceptacja finalnej oferty nie powinna historycznie odrzucać wstępnej oferty', prelimAfterFinal);
           H.assert(record && String(record.status || '') === 'zaakceptowany', 'Status zaakceptowany nie zapisał się do projectStore', record);
         });
       }),
 
-    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar/wycena nie wymaga wyceny wstępnej i rozpoznaje zaakceptowany wspólny zakres', 'Pilnuje, czy Inwestor pozwala przejść na Pomiar/Wycena bez tworzenia wyceny wstępnej oraz czy potrafi wskazać wspólny zaakceptowany zakres.', ()=>{
+    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar jest blokowana bez zaakceptowanej wyceny wstępnej solo', 'Pilnuje, czy Inwestor nie podniesie pokoju na Pomiar tylko dlatego, że istnieje niezaakceptowana albo wspólna wycena zamiast zaakceptowanej podstawy solo.', ()=>{
         H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:220 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820468000 });
-          const validationUnacceptedShared = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
-          H.assert(validationUnacceptedShared && validationUnacceptedShared.blocked === false && validationUnacceptedShared.requiresGeneration === false, 'Niezaakceptowana wycena wstępna nie powinna blokować ręcznego Pomiaru w Inwestorze', validationUnacceptedShared);
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar', roomIds:['room_kuchnia_gora','room_salon'] });
-          const validationAcceptedPomiar = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
-          const validationAcceptedWycena = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
-          H.assert(validationAcceptedPomiar && validationAcceptedPomiar.ok === true && validationAcceptedPomiar.blocked === false, 'Zaakceptowana wspólna wycena wstępna nie odblokowała Pomiar dla objętego pokoju', validationAcceptedPomiar);
-          H.assert(validationAcceptedWycena && validationAcceptedWycena.ok === true && validationAcceptedWycena.blocked === false, 'Zaakceptowana wspólna wycena wstępna nie odblokowała Wyceny końcowej dla objętego pokoju', validationAcceptedWycena);
-          const scopeDecision = FC.projectStatusManualGuard.buildManualStatusScopeChoices(investorId, 'room_salon', 'wycena');
-          H.assert(scopeDecision && scopeDecision.needsDecision === true, 'Zaakceptowana wspólna wycena wstępna powinna otworzyć decyzję zakresu zamiast iść automatem', scopeDecision);
-          const sharedChoice = (scopeDecision.choices || []).find((choice)=> Array.isArray(choice.roomIds) && choice.roomIds.length === 2);
-          H.assert(sharedChoice, 'Decyzja zakresu powinna pozwolić wybrać wspólny zakres statusu', scopeDecision);
-          FC.investorPersistence.setInvestorProjectStatusScope(investorId, sharedChoice.roomIds, 'wycena', { skipGuard:true, syncSelection:true });
-          const investorAfter = FC.investors.getById(investorId);
-          const byId = Object.fromEntries((investorAfter.rooms || []).map((room)=> [room.id, room]));
-          H.assert(String(byId.room_salon && byId.room_salon.projectStatus || '') === 'wycena', 'Pokój kliknięty nie przeszedł na Wycena', investorAfter.rooms);
-          H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'wycena', 'Wspólny zaakceptowany zakres nie przeszedł razem na Wycena', investorAfter.rooms);
-        });
-      }),
-
-    H.makeTest('Wycena ↔ Inwestor', 'Ręczne statusy pokoi bez wstępnej wyceny nie resetują innych pokoi', 'Pilnuje realnej ścieżki z Inwestora: A ma zaakceptowaną wycenę wstępną i status Pomiar, a ręczne ustawianie S/P na Wycena nie może cofać drugiego pokoju do Nowy ani ruszać A.', ()=>{
-        H.assert(FC.investorPersistence && typeof FC.investorPersistence.setInvestorProjectStatus === 'function', 'Brak FC.investorPersistence.setInvestorProjectStatus');
-        H.assert(FC.projectStatusSync && typeof FC.projectStatusSync.commitAcceptedSnapshot === 'function', 'Brak FC.projectStatusSync.commitAcceptedSnapshot');
-        const rooms = [
-          { id:'room_a', baseType:'kuchnia', name:'A', label:'A', projectStatus:'nowy' },
-          { id:'room_s', baseType:'pokoj', name:'S', label:'S', projectStatus:'nowy' },
-          { id:'room_p', baseType:'pokoj', name:'P', label:'P', projectStatus:'nowy' },
-        ];
-        withInvestorProjectFixture({
-          rooms,
-          projectData:{
-            schemaVersion:2,
-            meta:{
-              roomDefs:{
-                room_a:{ id:'room_a', baseType:'kuchnia', name:'A', label:'A' },
-                room_s:{ id:'room_s', baseType:'pokoj', name:'S', label:'S' },
-                room_p:{ id:'room_p', baseType:'pokoj', name:'P', label:'P' },
-              },
-              roomOrder:['room_a','room_s','room_p'],
-            },
-            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
-            room_s:{ cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
-            room_p:{ cabinets:[], fronts:[], sets:[], settings:{} },
-          }
-        }, ({ investorId, projectId })=>{
-          const prelimA = FC.quoteSnapshotStore.save({
-            id:'snap_room_a_prelim_only',
-            investor:{ id:investorId },
-            project:{ id:projectId, investorId, title:'Projekt ręcznych statusów' },
-            scope:{ selectedRooms:['room_a'], roomLabels:['A'] },
-            commercial:{ preliminary:true, versionName:'Wstępna A' },
-            meta:{ preliminary:true, versionName:'Wstępna A' },
-            totals:{ grand:140 },
-            lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
-            generatedAt:1712820471600,
-          });
-          FC.projectStatusSync.commitAcceptedSnapshot(prelimA, 'pomiar', { roomIds:['room_a'], refreshUi:false });
-          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_s', 'wycena');
-          let investor = FC.investors.getById(investorId);
-          let byId = Object.fromEntries((investor && investor.rooms || []).map((room)=> [String(room.id || ''), room]));
-          H.assert(String(byId.room_a && byId.room_a.projectStatus || '') === 'pomiar', 'Ręczna Wycena pokoju S nie może ruszyć zaakceptowanego A w Pomiarze', investor && investor.rooms);
-          H.assert(String(byId.room_s && byId.room_s.projectStatus || '') === 'wycena', 'Pokój S nie dostał ręcznego statusu Wycena', investor && investor.rooms);
-          H.assert(String(byId.room_p && byId.room_p.projectStatus || '') === 'nowy', 'Pierwsza ręczna zmiana S nie powinna zmieniać pokoju P', investor && investor.rooms);
-
-          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_p', 'wycena');
-          investor = FC.investors.getById(investorId);
-          byId = Object.fromEntries((investor && investor.rooms || []).map((room)=> [String(room.id || ''), room]));
-          H.assert(String(byId.room_a && byId.room_a.projectStatus || '') === 'pomiar', 'Ręczna Wycena pokoju P nie może ruszyć zaakceptowanego A w Pomiarze', investor && investor.rooms);
-          H.assert(String(byId.room_s && byId.room_s.projectStatus || '') === 'wycena', 'Ręczna zmiana P nie może cofnąć pokoju S do Nowy', investor && investor.rooms);
-          H.assert(String(byId.room_p && byId.room_p.projectStatus || '') === 'wycena', 'Pokój P nie dostał ręcznego statusu Wycena', investor && investor.rooms);
-
-          FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_a', 'wycena');
-          investor = FC.investors.getById(investorId);
-          byId = Object.fromEntries((investor && investor.rooms || []).map((room)=> [String(room.id || ''), room]));
-          H.assert(String(byId.room_a && byId.room_a.projectStatus || '') === 'wycena', 'Pokój A z zaakceptowaną wstępną ofertą powinien przejść Pomiar → Wycena', investor && investor.rooms);
-          H.assert(String(byId.room_s && byId.room_s.projectStatus || '') === 'wycena', 'Zmiana A nie może cofnąć ręcznie ustawionego pokoju S', investor && investor.rooms);
-          H.assert(String(byId.room_p && byId.room_p.projectStatus || '') === 'wycena', 'Zmiana A nie może cofnąć ręcznie ustawionego pokoju P', investor && investor.rooms);
+          FC.quoteSnapshotStore.save({ id:'snap_shared_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:220 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820468000 });
+          const validationMissing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationMissing && validationMissing.blocked === true && validationMissing.requiresGeneration === true && String(validationMissing.generationKind || '') === 'preliminary', 'Brak wyceny solo nie zablokował wejścia na Pomiar z propozycją wygenerowania wstępnej wyceny', validationMissing);
+          const soloPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:118 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820469000 });
+          const validationUnaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationUnaccepted && validationUnaccepted.blocked === true && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała ręcznego wejścia na Pomiar', { validationUnaccepted, soloPre });
+          FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
+          const validationAccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
+          H.assert(validationAccepted && validationAccepted.ok === true && validationAccepted.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała ręcznego wejścia na Pomiar', validationAccepted);
         });
       }),
 
@@ -157,21 +85,21 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na wycena jest dozwolona bez wyceny wstępnej', 'Pilnuje realnej ścieżki: pomieszczenie może trafić do Wyceny po pomiarze nawet bez wcześniejszej oferty wstępnej.', ()=>{
+    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na wycena jest blokowana bez zaakceptowanej wyceny wstępnej solo', 'Pilnuje, czy Inwestor nie przeskoczy ręcznie do statusu Wycena dla jednego pomieszczenia bez własnej zaakceptowanej wyceny wstępnej.', ()=>{
         H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
           const validationMissing = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
-          H.assert(validationMissing && validationMissing.blocked === false && validationMissing.requiresGeneration === false, 'Brak wyceny wstępnej solo nie powinien blokować ręcznego wejścia na Wycena', validationMissing);
+          H.assert(validationMissing && validationMissing.blocked === true && validationMissing.requiresGeneration === true && String(validationMissing.generationKind || '') === 'preliminary', 'Brak wyceny wstępnej solo nie zablokował ręcznego wejścia na Wycena', validationMissing);
           const soloPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_wycena_guard', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt wycena guard' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre wycena' }, totals:{ grand:119 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820471000 });
           const validationUnaccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
-          H.assert(validationUnaccepted && validationUnaccepted.blocked === false && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie powinna blokować ręcznego wejścia na Wycena', { validationUnaccepted, soloPre });
+          H.assert(validationUnaccepted && validationUnaccepted.blocked === true && validationUnaccepted.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała ręcznego wejścia na Wycena', { validationUnaccepted, soloPre });
           FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
           const validationAccepted = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
           H.assert(validationAccepted && validationAccepted.ok === true && validationAccepted.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała ręcznego wejścia na Wycena', validationAccepted);
         });
       }),
 
-    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar i wycena jest możliwa także bez zaakceptowanej wstępnej', 'Pilnuje realnej ścieżki: status procesu można ustawić ręcznie, a wycena wstępna nie jest wymagana do Pomiar/Wycena.', ()=>{
+    H.makeTest('Wycena ↔ Inwestor', 'Manualna zmiana na pomiar i wycena pozostaje zablokowana także przy błędnie wyższym statusie pokoju', 'Pilnuje antyregresyjnie, czy pokój z omyłkowo wyższym statusem nie może już ręcznie wskoczyć na Pomiar albo Wycena bez własnej zaakceptowanej wyceny wstępnej solo.', ()=>{
         H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.validateManualStatusChange === 'function', 'Brak FC.projectStatusManualGuard.validateManualStatusChange');
         H.assert(FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function', 'Brak FC.investorPersistence.updateInvestorRoom');
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
@@ -179,50 +107,13 @@
           FC.investorPersistence.updateInvestorRoom(investorId, 'room_salon', { projectStatus:'wycena' });
           const blockedPomiar = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
           const blockedWycena = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
-          H.assert(blockedPomiar && blockedPomiar.blocked === false && blockedPomiar.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie powinna blokować wejścia na Pomiar', { blockedPomiar, soloPre });
-          H.assert(blockedWycena && blockedWycena.blocked === false && blockedWycena.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie powinna blokować wejścia na Wycena', { blockedWycena, soloPre });
+          H.assert(blockedPomiar && blockedPomiar.blocked === true && blockedPomiar.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała wejścia na Pomiar przy błędnie wyższym statusie pokoju', { blockedPomiar, soloPre });
+          H.assert(blockedWycena && blockedWycena.blocked === true && blockedWycena.requiresGeneration === false, 'Niezaakceptowana wycena wstępna solo nie zablokowała wejścia na Wycena przy błędnie wyższym statusie pokoju', { blockedWycena, soloPre });
           FC.quoteSnapshotStore.markSelectedForProject(projectId, soloPre.id, { status:'pomiar', roomIds:['room_salon'] });
           const unlockedPomiar = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'pomiar');
           const unlockedWycena = FC.projectStatusManualGuard.validateManualStatusChange(investorId, 'room_salon', 'wycena');
           H.assert(unlockedPomiar && unlockedPomiar.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała wejścia na Pomiar przy wyższym bieżącym statusie', unlockedPomiar);
           H.assert(unlockedWycena && unlockedWycena.blocked === false, 'Zaakceptowana wycena wstępna solo nie odblokowała wejścia na Wycena przy wyższym bieżącym statusie', unlockedWycena);
-        });
-      }),
-
-    H.makeTest('Wycena ↔ Inwestor', 'Konflikt solo + wspólna oferta wymaga wyboru zakresu statusu', 'Pilnuje, czy zmiana na Wycena przy zaakceptowanej ofercie solo i wspólnej nie wybiera zakresu w ciemno, tylko zwraca decyzję z dwoma opcjami.', ()=>{
-        H.assert(FC.projectStatusManualGuard && typeof FC.projectStatusManualGuard.buildManualStatusScopeChoices === 'function', 'Brak buildManualStatusScopeChoices');
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
-          FC.quoteSnapshotStore.save({ id:'snap_scope_solo_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon solo' }, meta:{ preliminary:true, selectedByClient:true, acceptedStage:'pomiar', acceptedAt:1712820471200 }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820471200 });
-          FC.quoteSnapshotStore.save({ id:'snap_scope_shared_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna oferta' }, meta:{ preliminary:true, selectedByClient:true, acceptedStage:'pomiar', acceptedAt:1712820471300 }, totals:{ grand:200 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820471300 });
-          const decision = FC.projectStatusManualGuard.buildManualStatusScopeChoices(investorId, 'room_salon', 'wycena');
-          H.assert(decision && decision.needsDecision === true, 'Guard nie zgłosił decyzji przy konflikcie solo + wspólna oferta', decision);
-          H.assert(Array.isArray(decision.choices) && decision.choices.length === 2, 'Decyzja powinna zawierać dokładnie dwa zaakceptowane zakresy', decision);
-          const sizes = decision.choices.map((choice)=> choice.roomIds.length).sort((a,b)=> a-b).join(',');
-          H.assert(sizes === '1,2', 'Decyzja nie rozróżnia zakresu solo i wspólnego', decision);
-        });
-      }),
-
-    H.makeTest('Wycena ↔ Wybór pomieszczeń', 'Pomieszczenia bez szafek są filtrowane z zakresu wyceny', 'Pilnuje, żeby pomieszczenie dodane tylko do statusów/harmonogramu nie weszło przypadkiem do kalkulacji oferty bez szafek.', ()=>{
-        H.assert(FC.wycenaRoomAvailability && typeof FC.wycenaRoomAvailability.filterQuoteableRoomIds === 'function', 'Brak FC.wycenaRoomAvailability.filterQuoteableRoomIds');
-        H.assert(FC.wycenaTabSelectionScope && typeof FC.wycenaTabSelectionScope.normalizeDraftSelection === 'function', 'Brak normalizeDraftSelection selection scope');
-        const rooms = [
-          { id:'room_a', baseType:'kuchnia', name:'A', label:'A', projectStatus:'nowy' },
-          { id:'room_p', baseType:'pokoj', name:'P', label:'P', projectStatus:'wycena' },
-        ];
-        withInvestorProjectFixture({
-          rooms,
-          projectData:{
-            schemaVersion:2,
-            meta:{ roomDefs:{ room_a:{ id:'room_a', baseType:'kuchnia', name:'A', label:'A' }, room_p:{ id:'room_p', baseType:'pokoj', name:'P', label:'P' } }, roomOrder:['room_a','room_p'] },
-            room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
-            room_p:{ cabinets:[], fronts:[], sets:[], settings:{} },
-          }
-        }, ()=>{
-          const filtered = FC.wycenaRoomAvailability.filterQuoteableRoomIds(['room_a','room_p']);
-          H.assert(JSON.stringify(filtered) === JSON.stringify(['room_a']), 'Pokój bez szafek nie został odfiltrowany z zakresu wyceny', filtered);
-          const normalized = FC.wycenaTabSelectionScope.normalizeDraftSelection({ selection:{ selectedRooms:['room_a','room_p'], materialScope:{ includeFronts:true, includeCorpus:true } } });
-          H.assert(JSON.stringify(normalized.selectedRooms) === JSON.stringify(['room_a']), 'normalizeDraftSelection zostawił pokój bez szafek w wycenie', normalized);
-          H.assert(FC.wycenaRoomAvailability.getQuoteBlockReason('room_p') === 'Brak szafek', 'Powód blokady pokoju bez szafek jest niezgodny z UI', FC.wycenaRoomAvailability.getQuoteBlockReason('room_p'));
         });
       }),
 

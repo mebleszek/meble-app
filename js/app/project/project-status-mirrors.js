@@ -10,10 +10,8 @@
 
   const normalizeStatus = statusScope.normalizeStatus || ((value)=> String(value || '').trim().toLowerCase());
 
-  function saveInvestorRooms(investor, roomStatusMap, options){
+  function saveInvestorRooms(investor, roomStatusMap){
     if(!(investor && investor.id)) return investor || null;
-    const opts = options && typeof options === 'object' ? options : {};
-    const manualStatusMap = opts.manualStatusMap && typeof opts.manualStatusMap === 'object' ? opts.manualStatusMap : {};
     const roomMap = new Map();
     const currentRooms = Array.isArray(investor.rooms) ? investor.rooms : [];
     const explicitStatusMap = roomStatusMap && typeof roomStatusMap === 'object' ? roomStatusMap : {};
@@ -21,8 +19,7 @@
       const key = String(room && room.id || '');
       if(!key) return;
       const resolvedStatus = normalizeStatus(explicitStatusMap[key] || room && (room.projectStatus || room.status) || '');
-      const manualStatus = normalizeStatus(manualStatusMap[key] || room && room.lastManualProjectStatus || '');
-      roomMap.set(key, Object.assign({}, room, resolvedStatus ? { projectStatus:resolvedStatus } : {}, manualStatus ? { lastManualProjectStatus:manualStatus } : {}));
+      roomMap.set(key, Object.assign({}, room, resolvedStatus ? { projectStatus:resolvedStatus } : {}));
     });
     try{
       if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function'){
@@ -32,12 +29,10 @@
           if(!key) return;
           const hasExplicitStatus = Object.prototype.hasOwnProperty.call(explicitStatusMap, key);
           const resolvedStatus = normalizeStatus(hasExplicitStatus ? explicitStatusMap[key] : '');
-          const manualStatus = normalizeStatus(manualStatusMap[key] || '');
-          if(roomMap.has(key) && !hasExplicitStatus && !manualStatus) return;
-          if(!roomMap.has(key) && !hasExplicitStatus && !manualStatus) return;
+          if(roomMap.has(key) && !hasExplicitStatus) return;
+          if(!roomMap.has(key) && !hasExplicitStatus) return;
           const nextRoom = Object.assign({}, room || {}, roomMap.get(key) || {}, { id:key });
           if(resolvedStatus) nextRoom.projectStatus = resolvedStatus;
-          if(manualStatus) nextRoom.lastManualProjectStatus = manualStatus;
           roomMap.set(key, nextRoom);
         });
       }

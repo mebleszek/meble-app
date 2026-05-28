@@ -56,7 +56,6 @@
       name: String(name || ''),
       label: String(label || name || ''),
       projectStatus: String(src.projectStatus || src.status || DEFAULT_PROJECT_STATUS),
-      lastManualProjectStatus: String(src.lastManualProjectStatus || src.manualProjectStatus || ''),
     };
   }
 
@@ -118,7 +117,6 @@
         name: normalized.name || prev.name || '',
         label: normalized.label || prev.label || normalized.name || prev.name || '',
         projectStatus: normalized.projectStatus || prev.projectStatus || DEFAULT_PROJECT_STATUS,
-        lastManualProjectStatus: normalized.lastManualProjectStatus || prev.lastManualProjectStatus || '',
       });
       return list;
     }

@@ -7,14 +7,7 @@
 
   function itemMeta(kind, item){
     if(kind === 'materials') return ((item.materialType || '—') + ' • ' + (item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : '') + (item.hasGrain ? ' • 🌾 słoje' : ''));
-    if(kind === 'accessories') {
-      const hw = window.FC && window.FC.hardwareCatalog || {};
-      const status = hw && typeof hw.statusLabel === 'function' ? hw.statusLabel(item && item.status) : (item.status || 'Aktywne');
-      return [item.manufacturer || '—', item.hardwareCategory || 'Inne', item.hardwareUnit || 'szt.', item.series || '', item.symbol ? 'SYM: ' + item.symbol : '', item.priceSource ? 'Dostawca: ' + item.priceSource : '', item.purchasePriceGross ? 'zakup: ' + Number(item.purchasePriceGross).toFixed(2) + ' PLN' : '', item.priceUpdatedAt ? 'Cena: ' + item.priceUpdatedAt : '', status].filter(Boolean).join(' • ');
-    }
-    if(kind === 'quoteRates' && window.FC && window.FC.laborCatalog && typeof window.FC.laborCatalog.describeDefinition === 'function'){
-      return (item.category || '—') + ' • ' + window.FC.laborCatalog.describeDefinition(item || {});
-    }
+    if(kind === 'accessories') return ((item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : ''));
     return item.category || '—';
   }
 
@@ -33,11 +26,7 @@
       const left = document.createElement('div'); left.className = 'price-modal-list-main'; left.style.minWidth = '0';
       left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'}</div><div class="muted-tag xs">${itemMeta(kind, item || {})}</div>`;
       const right = document.createElement('div'); right.className = 'price-modal-list-actions';
-      const price = document.createElement('div'); price.className = 'price-modal-list-price';
-      if(kind === 'quoteRates' && item && item.autoRole === 'hourlyRate') price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN/h';
-      else if(kind === 'quoteRates' && (Number(item && item.price) || 0) <= 0) price.textContent = 'reguła';
-      else if(kind === 'accessories') price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN/' + String(item && item.hardwareUnit || 'szt.');
-      else price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN';
+      const price = document.createElement('div'); price.className = 'price-modal-list-price'; price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN';
       const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.type = 'button'; editBtn.textContent = 'Edytuj';
       right.appendChild(price); right.appendChild(editBtn);
       row.appendChild(left); row.appendChild(right); container.appendChild(row);

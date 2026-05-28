@@ -15,11 +15,11 @@
 <link href="css/rozrys-main.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/investor-table-sync.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/wycena.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
-<link href="css/wywiad.css?v=20260503_labor_display_fix_v1" rel="stylesheet"/>
+<link href="css/wywiad.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/style.css?v=20260424_css_full_split_v1" rel="stylesheet"/>
 <link href="css/investor-layout.css?v=20260424_wywiad_front_hardware_split_v1" rel="stylesheet"/>
 <link href="css/investor-form.css?v=20260405_field_unify_width_sync_v1" rel="stylesheet"/>
-<link href="css/rozrys-reference-sync.css?v=20260502_status_quote_scope_v1" rel="stylesheet"/>
+<link href="css/rozrys-reference-sync.css?v=20260414_status_modal_grey_v1" rel="stylesheet"/>
 <link href="css/rozrys-picker-exact-sync.css?v=20260330_material_footer_restore_v1" rel="stylesheet"/>
 <link href="css/rozrys-panel-modal-sync.css?v=20260402_investor_refactor_v1" rel="stylesheet"/>
 <link href="css/rozrys-stock-modal-sync.css?v=20260402_followup_v3" rel="stylesheet"/>
@@ -27,8 +27,7 @@
 <link href="css/rozrys-scope-chip-room-sync.css?v=20260329_material_scope_chip_sync_v2" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-pattern.css?v=20260329_room_chip_corners_v1" rel="stylesheet"/>
 <link href="css/rozrys-checkbox-chip-selected-accent.css?v=20260329_checkbox_chip_mobile_fit_v1" rel="stylesheet"/>
-<link href="css/price-item-popup.css?v=20260504_hardware_supplier_pricing_v1" rel="stylesheet"/>
-<link href="css/quote-labor-picker.css?v=20260504_gabaryt_compact_v1" rel="stylesheet"/>
+<link href="css/price-item-popup.css?v=20260406_price_item_popup_v1" rel="stylesheet"/>
 </head>
 <body>
 <header>
@@ -185,11 +184,6 @@
 </div>
 <div class="price-toolbar__actions">
 <button class="btn" id="clearPriceFiltersBtn" type="button">Wyczyść filtry</button>
-<button class="btn" id="openHardwareFiltersBtn" style="display:none" type="button">Filtry</button>
-<button class="btn" id="openHardwareSortBtn" style="display:none" type="button">Sortuj</button>
-<button class="btn" id="manageHardwareManufacturersBtn" style="display:none" type="button">Producenci</button>
-<button class="btn" id="manageHardwareSuppliersBtn" style="display:none" type="button">Dostawcy</button>
-<button class="btn" id="openHardwareSettingsBtn" style="display:none" type="button">Ustawienia</button>
 <button class="btn-primary" id="openPriceItemModalBtn" type="button">Dodaj</button>
 </div>
 </div>
@@ -247,129 +241,8 @@
 <label class="muted-tag xs" for="formHasGrain" style="margin:0">Ma słoje (ROZRYS: pilnuj kierunku)</label>
 </div>
 <div style="margin-top:10px">
-<label>Cena do wyceny (PLN)</label>
+<label>Cena (PLN)</label>
 <input class="investor-form-input" id="formPrice" step="0.01" type="number"/>
-</div>
-<div id="hardwareFormFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
-<div class="quote-subsection-title">Dane okucia</div>
-<div class="grid-3" style="margin-top:10px">
-<div>
-<label>Kategoria okucia</label>
-<select hidden="" id="hardwareCategory"></select>
-<div id="hardwareCategoryLaunch"></div>
-</div>
-<div>
-<label>Jednostka</label>
-<select hidden="" id="hardwareUnit"></select>
-<div id="hardwareUnitLaunch"></div>
-</div>
-<div>
-<label>Status</label>
-<select hidden="" id="hardwareStatus"></select>
-<div id="hardwareStatusLaunch"></div>
-</div>
-</div>
-<div id="hardwareKitFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
-<div class="quote-subsection-title">Skład zestawu</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Cena zestawu</label>
-<select hidden="" id="hardwareKitPriceMode"><option value="own">Własna cena zestawu</option><option value="components">Licz zakup ze składników</option></select>
-<div id="hardwareKitPriceModeLaunch"></div>
-</div>
-<div style="display:flex;align-items:flex-end">
-<button class="btn" id="hardwareAddKitComponentBtn" type="button">Dodaj składnik</button>
-</div>
-</div>
-<input id="hardwareKitComponentsJson" type="hidden"/>
-<div id="hardwareKitComponentsList" style="margin-top:10px"></div>
-<div class="hardware-price-preview" id="hardwareKitPreview" style="margin-top:10px">Suma składników: —</div>
-</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>System / seria</label>
-<input class="investor-form-input" id="hardwareSeries" type="text"/>
-</div>
-<div>
-<label>Dostawca / miejsce zakupu</label>
-<select hidden="" id="hardwareSupplierId"></select>
-<div id="hardwareSupplierIdLaunch"></div>
-</div>
-</div>
-<div class="quote-subsection-title" style="margin-top:14px">Cena zakupu firmy</div>
-<div class="grid-3" style="margin-top:10px">
-<div>
-<label>VAT %</label>
-<input class="investor-form-input" id="hardwareVatRate" step="0.01" type="number"/>
-</div>
-<div>
-<label>Źródło ceny</label>
-<input class="investor-form-input" id="hardwarePriceSource" placeholder="np. Bivert, MAGO, faktura" type="text"/>
-</div>
-<div>
-<label>Data ceny</label>
-<input class="investor-form-input" id="hardwarePriceUpdatedAt" placeholder="RRRR-MM-DD" type="text"/>
-</div>
-</div>
-<div class="grid-3" style="margin-top:10px">
-<div>
-<label>Cena katalogowa netto</label>
-<input class="investor-form-input" id="hardwareCatalogPriceNet" step="0.01" type="number"/>
-</div>
-<div>
-<label>Cena katalogowa brutto</label>
-<input class="investor-form-input" id="hardwareCatalogPriceGross" step="0.01" type="number"/>
-</div>
-<div>
-<label>Rabat dostawcy %</label>
-<input class="investor-form-input" id="hardwareSupplierDiscountPercent" step="0.01" type="number"/>
-</div>
-</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Realny zakup netto</label>
-<input class="investor-form-input" id="hardwarePurchasePriceNet" step="0.01" type="number" readonly=""/>
-</div>
-<div>
-<label>Realny zakup brutto</label>
-<input class="investor-form-input" id="hardwarePurchasePriceGross" step="0.01" type="number" readonly=""/>
-</div>
-</div>
-<div class="quote-subsection-title" style="margin-top:14px">Cena do wyceny</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Cena bazowa do wyceny</label>
-<select hidden="" id="hardwareQuoteBase"></select>
-<div id="hardwareQuoteBaseLaunch"></div>
-</div>
-<div>
-<label>Sposób liczenia ceny</label>
-<select hidden="" id="hardwarePricingMode"></select>
-<div id="hardwarePricingModeLaunch"></div>
-</div>
-</div>
-<div class="grid-3" style="margin-top:10px">
-<div>
-<label>Narzut %</label>
-<input class="investor-form-input" id="hardwareMarkupPercent" step="0.01" type="number"/>
-</div>
-<div>
-<label>Cena do wyceny netto</label>
-<input class="investor-form-input" id="hardwareQuotePriceNet" step="0.01" type="number"/>
-</div>
-<div>
-<label>Cena do wyceny brutto</label>
-<input class="investor-form-input" id="hardwareQuotePriceGross" step="0.01" type="number"/>
-</div>
-</div>
-<div class="hardware-price-preview" style="margin-top:10px">
-<div id="hardwareEffectiveMarkupPreview">Narzut wynikowy: —</div>
-<div id="hardwareMarginPreview">Marża względem realnego zakupu: —</div>
-</div>
-<div style="margin-top:10px">
-<label>Notatka</label>
-<input class="investor-form-input" id="hardwareNote" type="text"/>
-</div>
 </div>
 </div>
 <div id="serviceFormFields" style="display:none">
@@ -385,121 +258,8 @@
 </div>
 </div>
 <div style="margin-top:10px">
-<label>Kwota stała / cena prosta (PLN)</label>
+<label>Cena (PLN)</label>
 <input class="investor-form-input" id="formServicePrice" step="0.01" type="number"/>
-</div>
-<div id="laborFormFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
-<div class="quote-subsection-title">Reguła robocizny</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Użycie</label>
-<select class="investor-form-input" id="laborUsage">
-<option value="universal">Czynność uniwersalna</option>
-<option value="manual">Ręcznie w WYCENIE</option>
-<option value="cabinet">Szafka — dodatki</option>
-<option value="room">Pomieszczenie</option>
-<option value="project">Projekt</option>
-</select>
-</div>
-<div>
-<label>Automat</label>
-<select class="investor-form-input" id="laborAutoRole">
-<option value="none">Brak automatu</option>
-<option value="hourlyRate">Stawka godzinowa</option>
-<option value="cabinetBody">Skręcenie korpusu wg wysokości</option>
-<option value="cabinetLooseShelves">Półki z danych szafki</option>
-</select>
-</div>
-</div>
-<div class="grid-3" style="margin-top:10px">
-<div>
-<label>Stawka</label>
-<select class="investor-form-input" id="laborRateType">
-<option value="workshop">Warsztatowa</option>
-<option value="assembly">Montażowa</option>
-<option value="helper">Pomocnik</option>
-<option value="specialist">Specjalistyczna</option>
-</select>
-</div>
-<div>
-<label>Czas bazowy</label>
-<select class="investor-form-input" id="laborTimeBlockHours">
-<option value="0">Brak</option>
-<option value="0.25">0,25 h</option>
-<option value="0.5">0,5 h</option>
-<option value="1">1 h</option>
-</select>
-</div>
-<div>
-<label>Mnożnik domyślny</label>
-<input class="investor-form-input" id="laborDefaultMultiplier" step="0.01" type="number"/>
-</div>
-</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Tryb ilości</label>
-<select class="investor-form-input" id="laborQuantityMode">
-<option value="none">Bez ilości</option>
-<option value="linear">Liniowo: czas × ilość</option>
-<option value="tiers">Pakiety/progi ilościowe</option>
-<option value="startStep">Start + kolejne sztuki</option>
-</select>
-</div>
-<div>
-<label>Progi ilościowe</label>
-<input class="investor-form-input" id="laborTierText" placeholder="np. 1-2=0.25;3-5=0.5;6-10=1" type="text"/>
-</div>
-</div>
-<div class="grid-4" style="margin-top:10px">
-<div>
-<label>Start h</label>
-<select class="investor-form-input" id="laborStartHours"><option value="0">Brak</option><option value="0.25">0,25 h</option><option value="0.5">0,5 h</option><option value="1">1 h</option></select>
-</div>
-<div>
-<label>Start szt.</label>
-<input class="investor-form-input" id="laborStartQty" min="1" step="1" type="number"/>
-</div>
-<div>
-<label>Co ile szt.</label>
-<input class="investor-form-input" id="laborStepEveryQty" min="1" step="1" type="number"/>
-</div>
-<div>
-<label>Dodaj h</label>
-<select class="investor-form-input" id="laborStepHours"><option value="0">Brak</option><option value="0.25">0,25 h</option><option value="0.5">0,5 h</option><option value="1">1 h</option></select>
-</div>
-</div>
-<div class="grid-3" style="margin-top:10px">
-<div>
-<label>Gabaryt zł/m³</label>
-<input class="investor-form-input" id="laborVolumePricePerM3" step="0.01" type="number"/>
-</div>
-<div>
-<label>Gabarytoczas</label>
-<select class="investor-form-input" id="laborVolumeTimeMode"><option value="none">Wyłączony</option><option value="tiers">Progi objętości</option><option value="perM3">h/m³</option></select>
-</div>
-<div>
-<label>Gabarytoczas h/m³</label>
-<input class="investor-form-input" id="laborVolumeTimePerM3" step="0.01" type="number"/>
-</div>
-</div>
-<div style="margin-top:10px">
-<label>Progi gabarytoczasu</label>
-<input class="investor-form-input" id="laborVolumeTimeTierText" placeholder="np. 0.31-0.60=0.25;0.61-1=0.5" type="text"/>
-</div>
-<div class="grid-2" style="margin-top:10px">
-<div>
-<label>Wysokość od (mm)</label>
-<input class="investor-form-input" id="laborHeightMinMm" step="1" type="number"/>
-</div>
-<div>
-<label>Wysokość do (mm)</label>
-<input class="investor-form-input" id="laborHeightMaxMm" step="1" type="number"/>
-</div>
-</div>
-<div class="grid-2 price-labor-toggle-grid" style="margin-top:10px">
-<label class="rozrys-scope-chip price-labor-toggle"><input id="laborActive" type="checkbox"/><span>Aktywna</span></label>
-<label class="rozrys-scope-chip price-labor-toggle"><input id="laborInternalOnly" type="checkbox"/><span>Szczegóły tylko wewnętrzne</span></label>
-</div>
 </div>
 </div>
 <div class="price-item-footer" id="priceItemFooter">
@@ -622,7 +382,6 @@
 </div>
 <div></div>
 </div>
-<div class="cabinet-labor-addons" id="cmLaborAddons" style="margin-top:12px"></div>
 </div>
 <!-- Przyciski: Zatwierdź jest na górze obok Zamknij (zawsze widoczny). -->
 </div>
@@ -836,7 +595,7 @@
 <!-- startup-foundation: Bootstrap / core / state foundation -->
 <!-- load-group: startup-foundation | Bootstrap / core / state foundation -->
 <!-- load-group: startup-foundation | Bootstrap / core / state foundation -->
-<script data-load-group="startup-foundation" defer="" src="js/boot.js?v=20260504_boot_start_wait_fix_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/boot.js?v=20260418_boot_recovery_guard_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/core/actions.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/core/modals.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/core-failsafe.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -856,18 +615,18 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-snapshot-apply.js?v=20260426_storage_audit_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-export.js?v=20260425_data_safety_split_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-snapshot.js?v=20260426_storage_audit_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-policy.js?v=20260501_test_backup_retention_ui_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-policy.js?v=20260425_data_safety_split_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-storage.js?v=20260425_data_safety_split_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-records.js?v=20260425_data_safety_split_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-store.js?v=20260501_test_backup_retention_ui_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-store.js?v=20260426_storage_audit_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-model.js?v=20260426_wycena_accept_fix_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/ui-state.js?v=20260404_investor_project_status_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/session.js?v=20260424_session_dirty_proto_fix_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-model.js?v=20260502_manual_status_restore_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-model.js?v=20260430_investor_store_boundary_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-local-repository.js?v=20260430_investor_store_boundary_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-recovery.js?v=20260501_test_cleanup_boundary_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-recovery.js?v=20260430_investor_store_boundary_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20260430_investor_store_boundary_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-foundation.js?v=20260422_room_registry_hardening_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-utils.js?v=20260422_registry_perf_v1"></script>
@@ -883,21 +642,17 @@
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260422_room_registry_hardening_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260504_gabaryt_compact_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260408_stage3_arch_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-order-detail.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-editor-state.js?v=20260404_investor_company_owner_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-persistence.js?v=20260502_manual_status_restore_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-persistence.js?v=20260415_status_master_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-navigation-guard.js?v=20260407_stage2_fix_v2"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-choice.js?v=20260414_status_guard_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-links.js?v=20260403_investor_arch_sync_v1"></script>
@@ -906,10 +661,8 @@
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-actions.js?v=20260408_stage3_arch_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-modals.js?v=20260405_dup_owner_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-pdf.js?v=20260410_stage9_quote_sync_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-rooms.js?v=20260502_status_quote_scope_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui-render.js?v=20260502_investor_ui_split_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui-status-flow.js?v=20260502_investor_ui_split_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui.js?v=20260502_investor_ui_split_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-rooms.js?v=20260422_investor_tab_perf_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui.js?v=20260424_investor_edit_perf_fix_v1"></script>
 
 <!-- load-group: ui-shell | Global UI shell / bindings / shared modal helpers -->
 <script data-load-group="ui-shell" defer="" src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
@@ -922,18 +675,12 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-filter-sort.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-kit.js?v=20260505_hardware_kit_inputs_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260505_hardware_kit_inputs_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260504_hardware_form_price_wrapper_fix_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260504_hardware_supplier_pricing_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260504_hardware_catalog_model_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260504_hardware_supplier_pricing_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260426_material_price_split_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260426_material_price_split_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260426_material_price_split_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260426_material_price_split_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260426_material_price_split_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260426_material_price_split_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/choice-box.js?v=20260426_orphan_guard_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/info-box.js?v=20260416_quote_validation_v1"></script>
@@ -945,7 +692,7 @@
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-menu-view.js?v=20260426_test_hub_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-backup-actions.js?v=20260426_test_hub_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-backup-list.js?v=20260425_data_safety_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-backup-view.js?v=20260501_test_backup_retention_ui_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-backup-view.js?v=20260426_test_hub_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-modal.js?v=20260425_data_safety_split_v1"></script>
 
 <!-- load-group: app-runtime | Room / session / app runtime foundation -->
@@ -981,9 +728,7 @@
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-manifest.js?v=20260420_rozrys_lazy_tab_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-loader.js?v=20260420_rozrys_background_warmup_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-shell.js?v=20260420_rozrys_lazy_tab_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-core-namespace.js?v=20260502_app_core_namespace_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app.js?v=20260502_app_legacy_bridges_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/bootstrap/app-legacy-bridges.js?v=20260502_app_legacy_bridges_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app.js?v=20260427_app_shell_wywiad_split_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/cabinets-render.js?v=20260427_app_shell_wywiad_split_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/shared/public-api.js?v=20260408_stage3_bootfix_v1"></script>
 
@@ -1002,8 +747,7 @@
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-labor.js?v=20260503_labor_ui_adjust_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260419_wywiad_standing_split_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-repository.js?v=20260430_investor_project_boundary_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-runtime.js?v=20260430_investor_project_boundary_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-patches.js?v=20260430_investor_project_boundary_v1"></script>
@@ -1011,63 +755,35 @@
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/ui/tabs-router.js?v=20260331_boot_fix_v1"></script>
 
 <!-- load-group: tabs-quote-wycena | Classic tabs / quote / wycena -->
-<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad-labor-summary.js?v=20260503_labor_unified_picker_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad.js?v=20260503_labor_display_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wywiad.js?v=20260427_app_shell_wywiad_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/rysunek.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20260424_material_cleanup_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/czynnosci.js?v=20260504_gabaryt_compact_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/czynnosci.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-offer-store.js?v=20260425_test_isolation_stage2_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-scope.js?v=20260428_quote_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-selection.js?v=20260502_manual_status_preserve_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-selection.js?v=20260428_quote_selection_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20260428_quote_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-utils.js?v=20260501_quote_scope_entry_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-scope.js?v=20260501_quote_scope_entry_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-modal.js?v=20260501_quote_scope_entry_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-flow.js?v=20260501_quote_scope_entry_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry.js?v=20260501_quote_scope_entry_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-scope.js?v=20260502_manual_status_preserve_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-mirrors.js?v=20260502_manual_status_restore_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-sync.js?v=20260502_manual_status_restore_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-snapshot-flow.js?v=20260502_manual_status_restore_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-manual-guard.js?v=20260502_status_reconcile_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-scope-decision.js?v=20260502_status_quote_scope_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-schedule-status.js?v=20260502_schedule_status_prep_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry.js?v=20260418_quote_modal_message_and_wywiad_form_sync_v3"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-scope.js?v=20260428_project_status_scope_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-mirrors.js?v=20260501_status_test_cache_fix_v2"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-sync.js?v=20260501_status_test_cache_fix_v2"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-snapshot-flow.js?v=20260501_status_test_cache_fix_v2"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-manual-guard.js?v=20260423_room_core_session_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260417_quote_scope_labels_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-room-availability.js?v=20260502_status_quote_scope_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-selection.js?v=20260428_wycena_core_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-utils.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20260501_wycena_core_platform_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20260503_labor_unified_picker_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20260503_labor_unified_picker_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20260504_gabaryt_compact_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260503_pricing_labor_rules_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260428_wycena_core_selection_split_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-dom.js?v=20260428_wycena_shell_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-data.js?v=20260502_wycena_tab_boundary_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-state.js?v=20260503_labor_manual_accordion_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-bridge.js?v=20260502_wycena_tab_boundary_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor-bridge.js?v=20260502_wycena_tab_boundary_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-controller.js?v=20260502_wycena_tab_boundary_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-render-bridge.js?v=20260502_wycena_tab_boundary_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-scope.js?v=20260502_status_quote_scope_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-version.js?v=20260502_wycena_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-model.js?v=20260502_wycena_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-pickers.js?v=20260502_status_quote_scope_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection-render.js?v=20260502_wycena_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection.js?v=20260502_wycena_selection_split_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-labor-picker.js?v=20260503_labor_ui_adjust_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-manual-labor.js?v=20260503_czynnosci_labor_workspace_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260503_labor_manual_accordion_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection.js?v=20260417_wycena_scope_name_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260416_wycena_tab_editor_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-scroll.js?v=20260416_wycena_tab_scroll_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20260417_wycena_scope_labels_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20260501_status_test_cache_fix_v2"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-actions.js?v=20260501_status_test_cache_fix_v2"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260503_czynnosci_labor_workspace_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20260503_czynnosci_labor_workspace_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260503_czynnosci_labor_workspace_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260428_wycena_preview_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20260428_wycena_shell_split_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260428_wycena_shell_split_v1"></script>
 
 <!-- load-group: optimizer-and-stock | Optimizer / stock base -->
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/cut-optimizer.js?v=20260328_rozrys_choice_clean_v1"></script>
@@ -1087,7 +803,7 @@
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-prefs.js?v=20260419_room_rozrys_split_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-scope.js?v=20260419_rozrys_scope_api_split_v1"></script>
-<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-pickers.js?v=20260502_status_quote_scope_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-pickers.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-model.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-helpers.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-draw.js?v=20260328_rozrys_choice_clean_v1"></script>

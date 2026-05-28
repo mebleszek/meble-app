@@ -52,41 +52,6 @@
         'validateQuoteContent',
         'createQuoteValidationError',
       ]);
-      assertFunctions(H, FC.wycenaCoreUtils, 'FC.wycenaCoreUtils', [
-        'normalizeText',
-        'slug',
-        'clone',
-      ]);
-      assertFunctions(H, FC.wycenaCoreCatalog, 'FC.wycenaCoreCatalog', [
-        'ensureServiceCatalog',
-        'ensureServiceCatalogInRuntime',
-        'materialPriceLookup',
-        'accessoryPriceLookup',
-        'servicePriceLookup',
-      ]);
-      assertFunctions(H, FC.wycenaCoreSource, 'FC.wycenaCoreSource', [
-        'roomLabel',
-        'project',
-        'selectedCabinets',
-        'getSelectedAggregate',
-        'getScopedMaterials',
-      ]);
-      assertFunctions(H, FC.wycenaCoreMaterialPlan, 'FC.wycenaCoreMaterialPlan', [
-        'isPartRotationAllowed',
-        'computePlanForMaterial',
-        'collectMaterialLines',
-      ]);
-      assertFunctions(H, FC.wycenaCoreOffer, 'FC.wycenaCoreOffer', [
-        'getOfferDraft',
-        'collectCommercialDraft',
-        'collectQuoteRateLines',
-      ]);
-      assertFunctions(H, FC.wycenaCoreLines, 'FC.wycenaCoreLines', [
-        'collectAccessories',
-        'collectBuiltInAppliances',
-        'collectElementLines',
-        'collectClientPdfDetails',
-      ]);
       assertFunctions(H, FC.quoteSnapshotScope, 'FC.quoteSnapshotScope', [
         'normalizeMaterialScope',
         'buildCanonicalScope',
@@ -119,47 +84,6 @@
         'sameRoomScope',
         'snapshotScopeOverlaps',
         'getRecommendedStatusMapForProject',
-      ]);
-      assertFunctions(H, FC.quoteScopeEntryUtils, 'FC.quoteScopeEntryUtils', [
-        'clone',
-        'h',
-        'getCurrentProjectId',
-        'getCurrentInvestorId',
-        'normalizeRoomIds',
-        'normalizeType',
-      ]);
-      assertFunctions(H, FC.quoteScopeEntryScope, 'FC.quoteScopeEntryScope', [
-        'normalizeRoomIds',
-        'normalizeType',
-        'getScopeRoomIds',
-        'getScopeSummary',
-        'listExactScopeSnapshots',
-        'findExactScopeSnapshot',
-        'isVersionNameTaken',
-        'buildSuggestedVersionName',
-        'describeScopeMatch',
-      ]);
-      assertFunctions(H, FC.quoteScopeEntryModal, 'FC.quoteScopeEntryModal', [
-        'openExistingOrCreateModal',
-        'openNameModal',
-      ]);
-      assertFunctions(H, FC.quoteScopeEntryFlow, 'FC.quoteScopeEntryFlow', [
-        'openExistingSnapshot',
-        'createNewSnapshot',
-        'ensureScopedQuoteEntry',
-        'promptNewVersionName',
-      ]);
-      assertFunctions(H, FC.quoteScopeEntry, 'FC.quoteScopeEntry', [
-        'getScopeRoomIds',
-        'getScopeSummary',
-        'listExactScopeSnapshots',
-        'findExactScopeSnapshot',
-        'isVersionNameTaken',
-        'buildSuggestedVersionName',
-        'describeScopeMatch',
-        'ensureScopedQuoteEntry',
-        'openExistingSnapshot',
-        'promptNewVersionName',
       ]);
       assertFunctions(H, FC.projectStatusScope, 'FC.projectStatusScope', [
         'normalizeStatus',
@@ -198,16 +122,6 @@
         'reconcileStatusAfterSnapshotRemoval',
         'promotePreliminarySnapshotToFinal',
         'syncStatusMirrors',
-      ]);
-      assertFunctions(H, FC.projectStatusScopeDecision, 'FC.projectStatusScopeDecision', [
-        'normalizeDecision',
-        'pickManualStatusScope',
-      ]);
-      assertFunctions(H, FC.wycenaRoomAvailability, 'FC.wycenaRoomAvailability', [
-        'hasCabinets',
-        'getQuoteBlockReason',
-        'isQuoteableRoom',
-        'filterQuoteableRoomIds',
       ]);
       assertFunctions(H, FC.wycenaTabDebug, 'FC.wycenaTabDebug', [
         'currentProjectStatus',

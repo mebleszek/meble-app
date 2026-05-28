@@ -11,9 +11,6 @@
   const normalizeStatus = (FC.projectStatusSync && FC.projectStatusSync.normalizeStatus)
     || statusScope.normalizeStatus
     || ((value)=> String(value || '').trim().toLowerCase());
-  const statusRank = (FC.projectStatusSync && FC.projectStatusSync.statusRank)
-    || statusScope.statusRank
-    || ((value)=> ({ nowy:0, wstepna_wycena:1, pomiar:2, wycena:3, zaakceptowany:4, umowa:5, produkcja:6, montaz:7, zakonczone:8 }[normalizeStatus(value)] || -1));
   const normalizeRoomIds = (FC.projectStatusSync && FC.projectStatusSync.normalizeRoomIds)
     || statusScope.normalizeRoomIds
     || ((roomIds)=> Array.isArray(roomIds) ? Array.from(new Set(roomIds.map((item)=> String(item || '').trim()).filter(Boolean))) : []);
@@ -23,112 +20,6 @@
     || statusScope.getTargetRoomIdsFromSnapshot
     || (()=> []);
   const normalizeSnapshot = statusScope.normalizeSnapshot || ((snapshot)=> snapshot || null);
-
-  function listSelectedRowsForProject(projectId){
-    const pid = String(projectId || '');
-    if(!pid) return [];
-    try{
-      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
-      return (FC.quoteSnapshotStore.listForProject(pid) || []).filter((row)=> !!(row && row.meta && row.meta.selectedByClient));
-    }catch(_){ return []; }
-  }
-
-  function roomScopesOverlap(a, b){
-    const left = normalizeRoomIds(a);
-    const right = normalizeRoomIds(b);
-    if(!left.length || !right.length) return false;
-    return left.some((roomId)=> right.includes(roomId));
-  }
-
-  function isPreliminarySnapshot(snapshot){
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.isPreliminarySnapshot === 'function') return !!FC.quoteSnapshotStore.isPreliminarySnapshot(snapshot);
-    }catch(_){ }
-    return !!(snapshot && ((snapshot.meta && snapshot.meta.preliminary) || (snapshot.commercial && snapshot.commercial.preliminary)));
-  }
-
-  function collectReleasedRoomIds(beforeSelectedRows, selectedSnapshot, targetRoomIds){
-    const selectedId = String(selectedSnapshot && selectedSnapshot.id || '');
-    const targetIds = normalizeRoomIds(targetRoomIds);
-    const released = new Set();
-    (Array.isArray(beforeSelectedRows) ? beforeSelectedRows : []).forEach((row)=> {
-      if(selectedId && String(row && row.id || '') === selectedId) return;
-      const rowIds = getTargetRoomIdsFromSnapshot(row);
-      if(!roomScopesOverlap(rowIds, targetIds)) return;
-      rowIds.forEach((roomId)=> {
-        if(roomId && !targetIds.includes(roomId)) released.add(roomId);
-      });
-    });
-    return Array.from(released);
-  }
-
-  function getInvestorById(investorId){
-    const id = String(investorId || '');
-    if(!id) return null;
-    try{ if(FC.investors && typeof FC.investors.getById === 'function') return FC.investors.getById(id) || null; }catch(_){ }
-    try{ if(FC.investorPersistence && typeof FC.investorPersistence.getInvestorById === 'function') return FC.investorPersistence.getInvestorById(id) || null; }catch(_){ }
-    return null;
-  }
-
-  function getRoom(investor, roomId){
-    const key = String(roomId || '');
-    const rooms = investor && Array.isArray(investor.rooms) ? investor.rooms : [];
-    return rooms.find((room)=> String(room && room.id || '') === key) || null;
-  }
-
-  function selectedRowBaseline(row){
-    if(!row || !(row.meta && row.meta.selectedByClient)) return '';
-    if(isPreliminarySnapshot(row)) return 'pomiar';
-    return 'zaakceptowany';
-  }
-
-  function findSelectedRowsForRoom(rows, roomId){
-    const key = String(roomId || '');
-    return (Array.isArray(rows) ? rows : []).filter((row)=> getTargetRoomIdsFromSnapshot(row).includes(key));
-  }
-
-  function collectManualBaseStatusMap(beforeSelectedRows, investorId, roomIds){
-    const investor = getInvestorById(investorId);
-    const out = {};
-    normalizeRoomIds(roomIds).forEach((roomId)=> {
-      const key = String(roomId || '');
-      if(!key) return;
-      const room = getRoom(investor, key);
-      const storedManual = normalizeStatus(room && room.lastManualProjectStatus || '');
-      if(storedManual){
-        out[key] = storedManual;
-        return;
-      }
-      const current = normalizeStatus(room && (room.projectStatus || room.status) || '');
-      if(!current || current === 'nowy') return;
-      const selectedRows = findSelectedRowsForRoom(beforeSelectedRows, key);
-      if(!selectedRows.length){
-        out[key] = current;
-        return;
-      }
-      const bestBaselineRank = selectedRows.reduce((best, row)=> Math.max(best, statusRank(selectedRowBaseline(row))), -99);
-      if(statusRank(current) > bestBaselineRank) out[key] = current;
-    });
-    return out;
-  }
-
-  function collectPreliminaryDowngradeRoomIds(beforeSelectedRows, selectedSnapshot, targetRoomIds, status){
-    if(!isPreliminarySnapshot(selectedSnapshot) || normalizeStatus(status) !== 'pomiar') return [];
-    const selectedId = String(selectedSnapshot && selectedSnapshot.id || '');
-    const targetIds = normalizeRoomIds(targetRoomIds);
-    const forced = new Set();
-    (Array.isArray(beforeSelectedRows) ? beforeSelectedRows : []).forEach((row)=> {
-      if(selectedId && String(row && row.id || '') === selectedId) return;
-      if(!row || !(row.meta && row.meta.selectedByClient)) return;
-      if(isPreliminarySnapshot(row)) return;
-      const rowIds = getTargetRoomIdsFromSnapshot(row);
-      if(!roomScopesOverlap(rowIds, targetIds)) return;
-      rowIds.forEach((roomId)=> {
-        if(roomId && targetIds.includes(roomId)) forced.add(roomId);
-      });
-    });
-    return Array.from(forced);
-  }
 
   function setStatusFromSnapshot(snapshot, status, options){
     if(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function'){
@@ -160,7 +51,6 @@
     const targetRoomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
     let selectedSnapshot = snap;
     let selectionCommitted = false;
-    const selectedRowsBefore = listSelectedRowsForProject(projectId);
     try{
       const snapshotId = String(snap && snap.id || '');
       if(projectId && snapshotId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'){
@@ -168,41 +58,15 @@
         selectionCommitted = true;
       }
     }catch(_){ }
-    const releasedRoomIds = collectReleasedRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds);
-    const forceStatusRoomIds = collectPreliminaryDowngradeRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds, nextStatus);
-    const manualBaseStatusMap = collectManualBaseStatusMap(selectedRowsBefore, investorId, targetRoomIds);
-    const restoreManualStatusMap = collectManualBaseStatusMap(selectedRowsBefore, investorId, releasedRoomIds);
     const statusResult = setStatusFromSnapshot(selectedSnapshot, nextStatus, Object.assign({}, opts, {
       investorId,
       roomIds:targetRoomIds,
       syncSelection: selectionCommitted ? false : !!opts.syncSelection,
-      preserveCurrentWhenNoQuoteRows:true,
-      preserveForwardProgress:true,
-      forceStatusRoomIds,
-      manualBaseStatusMap,
     }));
-    let releaseStatusResult = null;
-    if(releasedRoomIds.length){
-      releaseStatusResult = reconcileProjectStatuses({
-        projectId,
-        investorId,
-        roomIds:releasedRoomIds,
-        restrictToRoomIds:true,
-        fallbackStatus:'nowy',
-        restoreManualStatusMap,
-        restoreManualForReleasedRooms:true,
-        refreshUi:false,
-      });
-    }
     return {
       snapshot: normalizeSnapshot(selectedSnapshot) || snap,
       selectedSnapshot: normalizeSnapshot(selectedSnapshot) || snap,
       statusResult,
-      releaseStatusResult,
-      releasedRoomIds,
-      forceStatusRoomIds,
-      manualBaseStatusMap,
-      restoreManualStatusMap,
       masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || nextStatus) || nextStatus,
       mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || nextStatus) || nextStatus,
       roomIds:targetRoomIds,
@@ -240,11 +104,7 @@
       }
     }catch(_){ converted = null; }
     if(!converted) return null;
-    const statusResult = setStatusFromSnapshot(converted, 'zaakceptowany', Object.assign({}, opts, {
-      syncSelection:false,
-      preserveCurrentWhenNoQuoteRows:true,
-      preserveForwardProgress:true,
-    }));
+    const statusResult = setStatusFromSnapshot(converted, 'zaakceptowany', Object.assign({}, opts, { syncSelection:false }));
     return {
       snapshot: normalizeSnapshot(converted) || converted,
       convertedSnapshot: normalizeSnapshot(converted) || converted,

@@ -73,42 +73,20 @@
     return String(room && (room.label || room.name || room.id) || roomId || '').trim() || 'to pomieszczenie';
   }
 
-  function getSnapshotRoomIds(row){
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSnapshotRoomIds === 'function'){
-        return normalizeRoomIds(FC.quoteSnapshotStore.getSnapshotRoomIds(row));
-      }
-    }catch(_){ }
-    return normalizeRoomIds(row && row.scope && row.scope.selectedRooms);
-  }
-
-  function getScopedRowsForRoom(projectId, roomIds, options){
+  function getExactScopedRows(projectId, roomIds, options){
     const pid = String(projectId || '');
     const ids = normalizeRoomIds(roomIds);
     const opts = options && typeof options === 'object' ? options : {};
-    const matchMode = String(opts.matchMode || 'exact').trim().toLowerCase();
     if(!pid || !ids.length) return [];
-    if(matchMode === 'exact'){
-      try{
-        if(roomScopeResolver && typeof roomScopeResolver.filterExactScopedRows === 'function'){
-          return roomScopeResolver.filterExactScopedRows(pid, ids, { allowProjectWideExact: !!opts.allowProjectWideExact });
-        }
-      }catch(_){ }
-      try{
-        if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function' && typeof FC.quoteSnapshotStore.filterRowsByRoomScope === 'function')) return [];
-        const rows = FC.quoteSnapshotStore.listForProject(pid);
-        return FC.quoteSnapshotStore.filterRowsByRoomScope(rows, ids, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact }) || [];
-      }catch(_){ return []; }
-    }
-
     try{
-      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function')) return [];
-      const rows = FC.quoteSnapshotStore.listForProject(pid) || [];
-      return rows.filter((row)=> {
-        const snapshotRooms = getSnapshotRoomIds(row);
-        if(!snapshotRooms.length) return !!(opts.allowProjectWideExact && ids.length === 1);
-        return ids.every((roomId)=> snapshotRooms.includes(roomId));
-      });
+      if(roomScopeResolver && typeof roomScopeResolver.filterExactScopedRows === 'function'){
+        return roomScopeResolver.filterExactScopedRows(pid, ids, { allowProjectWideExact: !!opts.allowProjectWideExact });
+      }
+    }catch(_){ }
+    try{
+      if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listForProject === 'function' && typeof FC.quoteSnapshotStore.filterRowsByRoomScope === 'function')) return [];
+      const rows = FC.quoteSnapshotStore.listForProject(pid);
+      return FC.quoteSnapshotStore.filterRowsByRoomScope(rows, ids, { matchMode:'exact', allowProjectWideExact: !!opts.allowProjectWideExact }) || [];
     }catch(_){ return []; }
   }
 
@@ -132,10 +110,7 @@
     const currentStatus = normalizeStatus(getRoom(investor, resolvedRoomId) && getRoom(investor, resolvedRoomId).projectStatus || '');
     const roomLabel = getRoomLabel(investor, resolvedRoomId);
     const investorRoomCount = investor && Array.isArray(investor.rooms) ? investor.rooms.length : 0;
-    const quoteRows = splitQuoteRows(getScopedRowsForRoom(project && project.id, [resolvedRoomId], {
-      matchMode:'includes',
-      allowProjectWideExact: investorRoomCount === 1,
-    }));
+    const quoteRows = splitQuoteRows(getExactScopedRows(project && project.id, [resolvedRoomId], { allowProjectWideExact: investorRoomCount === 1 }));
     return {
       investorId:String(investorId || ''),
       projectId:String(project && project.id || ''),
@@ -187,18 +162,42 @@
     };
 
     if(nextStatus === 'pomiar'){
+      if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
+      if(basis.hasPreliminary){
+        return buildResult(base, {
+          ok:false,
+          blocked:true,
+          title:'Wycena wstępna nie jest zaakceptowana',
+          message:`Dla pomieszczenia „${basis.roomLabel}” istnieje wycena wstępna, ale nie została zaakceptowana. Najpierw zaakceptuj ją w dziale Wycena, a dopiero potem ustaw status „Pomiar”.`,
+        });
+      }
       return buildResult(base, {
-        ok:true,
-        blocked:false,
-        note: basis.hasAcceptedPreliminary ? 'accepted_preliminary_scope' : (basis.hasPreliminary ? 'preliminary_exists_not_required' : 'manual_without_preliminary'),
+        ok:false,
+        blocked:true,
+        requiresGeneration:true,
+        generationKind:'preliminary',
+        title:'Brak wyceny wstępnej',
+        message:`Dla pomieszczenia „${basis.roomLabel}” nie ma wyceny wstępnej. Nie można ustawić statusu „Pomiar”. Czy wygenerować teraz wycenę wstępną tylko dla tego pomieszczenia?`,
       });
     }
 
     if(nextStatus === 'wycena'){
+      if(basis.hasAcceptedPreliminary) return buildResult(base, { ok:true, blocked:false });
+      if(basis.hasPreliminary){
+        return buildResult(base, {
+          ok:false,
+          blocked:true,
+          title:'Wycena wstępna nie jest zaakceptowana',
+          message:`Dla pomieszczenia „${basis.roomLabel}” istnieje wycena wstępna, ale nie została zaakceptowana. Nie można ręcznie przejść do statusu „Wycena”, dopóki nie ma zaakceptowanej wyceny wstępnej dla tego pomieszczenia.`,
+        });
+      }
       return buildResult(base, {
-        ok:true,
-        blocked:false,
-        note: basis.hasAcceptedPreliminary ? 'accepted_preliminary_scope' : (basis.hasPreliminary ? 'preliminary_exists_not_required' : 'manual_without_preliminary'),
+        ok:false,
+        blocked:true,
+        requiresGeneration:true,
+        generationKind:'preliminary',
+        title:'Brak wyceny wstępnej',
+        message:`Dla pomieszczenia „${basis.roomLabel}” nie ma wyceny wstępnej. Nie można ustawić statusu „Wycena”. Czy wygenerować teraz wycenę wstępną tylko dla tego pomieszczenia?`,
       });
     }
 
@@ -248,102 +247,6 @@
     };
   }
 
-
-  function getScopeLabel(roomIds){
-    const ids = normalizeRoomIds(roomIds);
-    try{
-      if(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.getScopeSummary === 'function'){
-        const summary = FC.quoteScopeEntry.getScopeSummary(ids) || {};
-        return String(summary.scopeLabel || '').trim() || ids.join(', ');
-      }
-    }catch(_){ }
-    return ids.map((roomId)=> {
-      try{ return FC.roomRegistry && typeof FC.roomRegistry.getRoomLabel === 'function' ? FC.roomRegistry.getRoomLabel(roomId) : roomId; }
-      catch(_){ return roomId; }
-    }).filter(Boolean).join(', ');
-  }
-
-  function getSnapshotVersionName(row){
-    return String(row && row.meta && row.meta.versionName || row && row.commercial && row.commercial.versionName || '').trim();
-  }
-
-  function buildAcceptedPreliminaryScopeChoices(basis){
-    const accepted = (Array.isArray(basis && basis.preliminaryRows) ? basis.preliminaryRows : [])
-      .filter((row)=> !!(row && row.meta && row.meta.selectedByClient));
-    const seen = new Set();
-    const choices = [];
-    accepted.forEach((row, index)=> {
-      const roomIds = getSnapshotRoomIds(row);
-      if(!roomIds.length || !roomIds.includes(String(basis.roomId || ''))) return;
-      const key = roomIds.slice().sort().join('|');
-      if(seen.has(key)) return;
-      seen.add(key);
-      const scopeLabel = getScopeLabel(roomIds);
-      const versionName = getSnapshotVersionName(row);
-      const exactSingle = roomIds.length === 1 && String(roomIds[0] || '') === String(basis.roomId || '');
-      choices.push({
-        id:`accepted-preliminary-${choices.length + 1}`,
-        source:'accepted-preliminary',
-        snapshotId:String(row && row.id || ''),
-        roomIds,
-        scopeLabel,
-        label: exactSingle ? `Tylko ${scopeLabel}` : scopeLabel,
-        description: versionName ? `Zaakceptowana wycena wstępna: ${versionName}` : 'Zaakceptowana wycena wstępna',
-        isExactSingle: exactSingle,
-        isMultiRoom: roomIds.length > 1,
-        order:index,
-      });
-    });
-    choices.sort((a, b)=> {
-      if(a.isExactSingle !== b.isExactSingle) return a.isExactSingle ? -1 : 1;
-      return (a.roomIds.length - b.roomIds.length) || (a.order - b.order);
-    });
-    return choices;
-  }
-
-  function buildManualStatusScopeChoices(investorId, roomId, targetStatus){
-    const basis = analyzeRoomQuoteState(investorId, roomId);
-    const nextStatus = normalizeStatus(targetStatus);
-    const base = {
-      investorId:String(investorId || ''),
-      roomId:String(roomId || ''),
-      targetStatus:nextStatus,
-      targetLabel:STATUS_LABELS[nextStatus] || nextStatus,
-      basis,
-      choices:[],
-      needsDecision:false,
-      autoChoice:null,
-      defaultChoiceId:'',
-    };
-    if(nextStatus !== 'pomiar' && nextStatus !== 'wycena'){
-      const autoChoice = { id:'single-room', source:'manual-single', roomIds:[String(roomId || '')].filter(Boolean), scopeLabel:basis.roomLabel, label:`Tylko ${basis.roomLabel}`, description:'' };
-      return Object.assign(base, { choices:[autoChoice], autoChoice });
-    }
-    const acceptedChoices = buildAcceptedPreliminaryScopeChoices(basis);
-    const singleRoomChoice = {
-      id:'single-room',
-      source: acceptedChoices.length ? 'manual-single-room-split' : 'manual-without-preliminary',
-      roomIds:[String(roomId || '')].filter(Boolean),
-      scopeLabel:basis.roomLabel,
-      label:`Tylko ${basis.roomLabel}`,
-      description: acceptedChoices.length ? 'Ręczna zmiana tylko tego pomieszczenia.' : 'Ręczna zmiana statusu bez wyceny wstępnej.',
-    };
-    if(!acceptedChoices.length){
-      return Object.assign(base, { choices:[singleRoomChoice], autoChoice:singleRoomChoice, defaultChoiceId:singleRoomChoice.id });
-    }
-    const hasExactSingle = acceptedChoices.some((choice)=> !!choice.isExactSingle);
-    const hasMultiRoom = acceptedChoices.some((choice)=> !!choice.isMultiRoom);
-    if(acceptedChoices.length === 1 && hasExactSingle && !hasMultiRoom){
-      return Object.assign(base, { choices:acceptedChoices, autoChoice:acceptedChoices[0], defaultChoiceId:acceptedChoices[0].id });
-    }
-    const choices = hasExactSingle ? acceptedChoices.slice() : [singleRoomChoice].concat(acceptedChoices);
-    return Object.assign(base, {
-      choices,
-      needsDecision:true,
-      defaultChoiceId:choices[0] && choices[0].id || '',
-    });
-  }
-
   async function generateScopedQuoteForRoom(investorId, roomId, kind, options){
     const opts = options && typeof options === 'object' ? options : {};
     const basis = analyzeRoomQuoteState(investorId, roomId);
@@ -387,8 +290,6 @@
     evaluateManualStatusChangeFromBasis,
     validateManualStatusChange,
     buildManualStatusChoiceStates,
-    buildAcceptedPreliminaryScopeChoices,
-    buildManualStatusScopeChoices,
     generateScopedQuoteForRoom,
   };
 })();
